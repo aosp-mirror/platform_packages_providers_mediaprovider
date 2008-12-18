@@ -21,6 +21,9 @@ import android.app.Service;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
+import android.content.res.Resources;
+import android.database.Cursor;
 import android.media.IMediaScannerListener;
 import android.media.IMediaScannerService;
 import android.media.MediaScanner;
@@ -35,10 +38,12 @@ import android.os.Message;
 import android.os.PowerManager;
 import android.os.Process;
 import android.os.SystemProperties;
+import android.provider.MediaStore;
 import android.util.Config;
 import android.util.Log;
 
 import java.io.File;
+import java.util.Locale;
 
 public class MediaScannerService extends Service implements Runnable
 {
@@ -67,15 +72,32 @@ public class MediaScannerService extends Service implements Runnable
         }
     }
 
+    private MediaScanner createMediaScanner() {
+        MediaScanner scanner = new MediaScanner(this);
+        Locale locale = getResources().getConfiguration().locale;
+        if (locale != null) {
+            String language = locale.getLanguage();
+            String country = locale.getCountry();
+            String localeString = null;
+            if (language != null) {
+                if (country != null) {
+                    scanner.setLocale(language + "_" + country);
+                } else {
+                    scanner.setLocale(language);
+                }
+            }    
+        }
+        
+        return scanner;
+    }
 
     private void scan(String[] directories, String volumeName) {
         // don't sleep while scanning
         mWakeLock.acquire();
 
-        MediaProvider mediaProvider = MediaProvider.getInstance();
-        if (mediaProvider != null) {
-            mediaProvider.setMediaScannerVolume(volumeName);
-        }
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.MEDIA_SCANNER_VOLUME, volumeName);
+        Uri scanUri = getContentResolver().insert(MediaStore.getMediaScannerUri(), values);
 
         Uri uri = Uri.parse("file://" + directories[0]);
         sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_STARTED, uri));
@@ -85,15 +107,14 @@ public class MediaScannerService extends Service implements Runnable
                  openDatabase(volumeName);    
             }
 
-            MediaScanner scanner = new MediaScanner(this);
+            MediaScanner scanner = createMediaScanner();
             scanner.scanDirectories(directories, volumeName);
         } catch (Exception e) {
         	Log.e(TAG, "exception in MediaScanner.scan()", e); 
         }
 
-        if (mediaProvider != null) {
-            mediaProvider.setMediaScannerVolume(null);
-        }
+        getContentResolver().delete(scanUri, null, null);
+
         sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_FINISHED, uri));
         mWakeLock.release();
     }
@@ -163,7 +184,7 @@ public class MediaScannerService extends Service implements Runnable
             volumeName = MediaProvider.EXTERNAL_VOLUME;
             openDatabase(volumeName);
         }
-        MediaScanner scanner = new MediaScanner(this);
+        MediaScanner scanner = createMediaScanner();
         return scanner.scanSingleFile(path, volumeName, mimeType);
     }
 

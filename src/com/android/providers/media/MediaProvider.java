@@ -37,10 +37,13 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.os.Process;
+import android.provider.BaseColumns;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
 import android.provider.MediaStore.Images;
+import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Video;
+import android.provider.MediaStore.Images.ImageColumns;
 import android.text.TextUtils;
 import android.util.Config;
 import android.util.Log;
@@ -66,6 +69,8 @@ public class MediaProvider extends ContentProvider {
     private static final Uri MEDIA_URI = Uri.parse("content://media");
     private static final Uri ALBUMART_URI = Uri.parse("content://media/external/audio/albumart");
     private static final Uri ALBUMART_THUMB_URI = Uri.parse("content://media/external/audio/albumart_thumb");
+
+    private static final HashMap<String, String> sArtistAlbumsMap = new HashMap<String, String>();
 
     private BroadcastReceiver mUnmountReceiver = new BroadcastReceiver() {
         @Override
@@ -102,29 +107,16 @@ public class MediaProvider extends ContentProvider {
          */
         @Override
         public void onCreate(final SQLiteDatabase db) {
-            createTables(db, mInternal);
+            updateDatabase(db, mInternal, 0, DATABASE_VERSION);
         }
 
         /**
          * Updates the database format when a new content provider is used
          * with an older database format.
          */
-        // For now, just deletes the database.
-        // TODO: decide on a general policy when updates become relevant
-        // TODO: can there even be a downgrade? how can it be handled?
-        // TODO: delete temporary files
         @Override
         public void onUpgrade(final SQLiteDatabase db, final int oldV, final int newV) {
-            if (oldV == 63 && newV == 64) {
-                Log.i(TAG, "Upgrading media database from version " +
-                        oldV + " to " + newV + ", adding images indexes");
-                db.execSQL("CREATE INDEX sort_index on images(datetaken ASC, _id ASC);");
-            } else {
-                Log.i(TAG, "Upgrading media database from version " +
-                        oldV + " to " + newV + ", which will destroy all old data");
-                dropTables(db);
-                createTables(db, mInternal);
-            }
+            updateDatabase(db, mInternal, oldV, newV);
         }
 
         /**
@@ -198,8 +190,21 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public boolean onCreate() {
-        if (sInstance != null) throw new IllegalStateException("Multiple MediaProvider instances");
-        sInstance = this;
+        sArtistAlbumsMap.put(MediaStore.Audio.Albums._ID, "audio.album_id AS " +
+                MediaStore.Audio.Albums._ID);
+        sArtistAlbumsMap.put(MediaStore.Audio.Albums.ALBUM, "album");
+        sArtistAlbumsMap.put(MediaStore.Audio.Albums.ALBUM_KEY, "album_key");
+        sArtistAlbumsMap.put(MediaStore.Audio.Albums.FIRST_YEAR, "MIN(year) AS " +
+                MediaStore.Audio.Albums.FIRST_YEAR);
+        sArtistAlbumsMap.put(MediaStore.Audio.Albums.LAST_YEAR, "MAX(year) AS " +
+                MediaStore.Audio.Albums.LAST_YEAR);
+        sArtistAlbumsMap.put(MediaStore.Audio.Media.ARTIST, "artist");
+        sArtistAlbumsMap.put(MediaStore.Audio.Media.ARTIST_ID, "artist");
+        sArtistAlbumsMap.put(MediaStore.Audio.Media.ARTIST_KEY, "artist_key");
+        sArtistAlbumsMap.put(MediaStore.Audio.Albums.NUMBER_OF_SONGS, "count(*) AS " +
+                MediaStore.Audio.Albums.NUMBER_OF_SONGS);
+        sArtistAlbumsMap.put(MediaStore.Audio.Albums.ALBUM_ART, "album_art._data AS " +
+                MediaStore.Audio.Albums.ALBUM_ART);
 
         mDatabases = new HashMap<String, DatabaseHelper>();
         attachVolume(INTERNAL_VOLUME);
@@ -226,263 +231,369 @@ public class MediaProvider extends ContentProvider {
         return true;
     }
 
-    private static void createTables(SQLiteDatabase db, boolean internal) {
-        db.execSQL("CREATE TABLE images (" +
-                   "_id INTEGER PRIMARY KEY," +
-                   "_data TEXT," +
-                   "_size INTEGER," +
-                   "_display_name TEXT," +
-                   "mime_type TEXT," +
-                   "title TEXT," +
-                   "date_added INTEGER," +
-                   "date_modified INTEGER," +
-                   "description TEXT," +
-                   "picasa_id TEXT," +
-                   "isprivate INTEGER," +
-                   "latitude DOUBLE," +
-                   "longitude DOUBLE," +
-                   "datetaken INTEGER," +
-                   "orientation INTEGER," +
-                   "mini_thumb_magic INTEGER," +
-                   "bucket_id TEXT," +
-                   "bucket_display_name TEXT" +
-                  ");");
-        
-        db.execSQL("CREATE INDEX mini_thumb_magic_index on images(mini_thumb_magic);");
+    /**
+     * This method takes care of updating all the tables in the database to the
+     * current version, creating them if necessary.
+     * This method can only update databases at schema 63 or higher, which was
+     * created August 1, 2008. Older database will be cleared and recreated.
+     * @param db Database
+     * @param internal True if this is the internal media database
+     */
+    private static void updateDatabase(SQLiteDatabase db, boolean internal,
+            int fromVersion, int toVersion) {
 
-        db.execSQL("CREATE TRIGGER images_cleanup DELETE ON images " +
-                "BEGIN " +
-                    "DELETE FROM thumbnails WHERE image_id = old._id;" +
-                    "SELECT _DELETE_FILE(old._data);" +
-                "END");
+        // sanity check
+        if (toVersion != DATABASE_VERSION) {
+            Log.e(TAG, "Illegal update request. Got " + toVersion + ", expected " +
+                    DATABASE_VERSION);
+            throw new IllegalArgumentException();
+        }
 
-        db.execSQL("CREATE TABLE thumbnails (" +
-                   "_id INTEGER PRIMARY KEY," +
-                   "_data TEXT," +
-                   "image_id INTEGER," +
-                   "kind INTEGER," +
-                   "width INTEGER," +
-                   "height INTEGER" +
+        if (fromVersion < 63) {
+            // Drop everything and start over.
+            Log.i(TAG, "Upgrading media database from version " +
+                    fromVersion + " to " + toVersion + ", which will destroy all old data");
+            db.execSQL("DROP TABLE IF EXISTS images");
+            db.execSQL("DROP TRIGGER IF EXISTS images_cleanup");
+            db.execSQL("DROP TABLE IF EXISTS thumbnails");
+            db.execSQL("DROP TRIGGER IF EXISTS thumbnails_cleanup");
+            db.execSQL("DROP TABLE IF EXISTS audio_meta");
+            db.execSQL("DROP TABLE IF EXISTS artists");
+            db.execSQL("DROP TABLE IF EXISTS albums");
+            db.execSQL("DROP TABLE IF EXISTS album_art");
+            db.execSQL("DROP VIEW IF EXISTS audio");
+            db.execSQL("DROP TRIGGER IF EXISTS audio_delete");
+            db.execSQL("DROP VIEW IF EXISTS artist_info");
+            db.execSQL("DROP VIEW IF EXISTS album_info");
+            db.execSQL("DROP VIEW IF EXISTS artists_albums_map");
+            db.execSQL("DROP TRIGGER IF EXISTS audio_meta_cleanup");
+            db.execSQL("DROP TABLE IF EXISTS audio_genres");
+            db.execSQL("DROP TABLE IF EXISTS audio_genres_map");
+            db.execSQL("DROP TRIGGER IF EXISTS audio_genres_cleanup");
+            db.execSQL("DROP TABLE IF EXISTS audio_playlists");
+            db.execSQL("DROP TABLE IF EXISTS audio_playlists_map");
+            db.execSQL("DROP TRIGGER IF EXISTS audio_playlists_cleanup");
+            db.execSQL("DROP TRIGGER IF EXISTS albumart_cleanup1");
+            db.execSQL("DROP TRIGGER IF EXISTS albumart_cleanup2");
+            db.execSQL("DROP TABLE IF EXISTS video");
+            db.execSQL("DROP TRIGGER IF EXISTS video_cleanup");
+
+            db.execSQL("CREATE TABLE IF NOT EXISTS images (" +
+                    "_id INTEGER PRIMARY KEY," +
+                    "_data TEXT," +
+                    "_size INTEGER," +
+                    "_display_name TEXT," +
+                    "mime_type TEXT," +
+                    "title TEXT," +
+                    "date_added INTEGER," +
+                    "date_modified INTEGER," +
+                    "description TEXT," +
+                    "picasa_id TEXT," +
+                    "isprivate INTEGER," +
+                    "latitude DOUBLE," +
+                    "longitude DOUBLE," +
+                    "datetaken INTEGER," +
+                    "orientation INTEGER," +
+                    "mini_thumb_magic INTEGER," +
+                    "bucket_id TEXT," +
+                    "bucket_display_name TEXT" +
                    ");");
 
-        db.execSQL("CREATE INDEX image_id_index on thumbnails(image_id);");
+            db.execSQL("CREATE INDEX IF NOT EXISTS mini_thumb_magic_index on images(mini_thumb_magic);");
 
-        db.execSQL("CREATE TRIGGER thumbnails_cleanup DELETE ON thumbnails " +
-                "BEGIN " +
-                    "SELECT _DELETE_FILE(old._data);" +
-                "END");
-
-
-        // Contains meta data about audio files
-        db.execSQL("CREATE TABLE audio_meta (" +
-                   "_id INTEGER PRIMARY KEY," +
-                   "_data TEXT NOT NULL," +
-                   "_display_name TEXT," +
-                   "_size INTEGER," +
-                   "mime_type TEXT," +
-                   "date_added INTEGER," +
-                   "date_modified INTEGER," +
-                   "title TEXT NOT NULL," +
-                   "title_key TEXT NOT NULL," +
-                   "duration INTEGER," +
-                   "artist_id INTEGER," +
-                   "composer TEXT," +
-                   "album_id INTEGER," +
-                   "track INTEGER," +    // track is an integer to allow proper sorting
-                   "year INTEGER CHECK(year!=0)," +
-                   "is_ringtone INTEGER," +
-                   "is_music INTEGER," +
-                   "is_alarm INTEGER," +
-                   "is_notification INTEGER" +
-                   ");");
-
-        // Contains a sort/group "key" and the preferred display name for artists
-        db.execSQL("CREATE TABLE artists (" +
-                    "artist_id INTEGER PRIMARY KEY," +
-                    "artist_key TEXT NOT NULL UNIQUE," +
-                    "artist TEXT NOT NULL" +
-                   ");");
-
-        // Contains a sort/group "key" and the preferred display name for albums
-        db.execSQL("CREATE TABLE albums (" +
-                    "album_id INTEGER PRIMARY KEY," +
-                    "album_key TEXT NOT NULL UNIQUE," +
-                    "album TEXT NOT NULL" +
-                   ");");
-
-        db.execSQL("CREATE TABLE album_art (" +
-                "album_id INTEGER PRIMARY KEY," +
-                "_data TEXT" +
-               ");");
-
-        // Provides a unified audio/artist/album info view.
-        // Note that views are read-only, so we define a trigger to allow deletes.
-        db.execSQL("CREATE VIEW audio as SELECT * FROM audio_meta " +
-                    "LEFT OUTER JOIN artists ON audio_meta.artist_id=artists.artist_id " +
-                    "LEFT OUTER JOIN albums ON audio_meta.album_id=albums.album_id;");
-
-        db.execSQL("CREATE TRIGGER audio_delete INSTEAD OF DELETE ON audio " +
-                "BEGIN " +
-                    "DELETE from audio_meta where _id=old._id;" +
-                    "DELETE from audio_playlists_map where audio_id=old._id;" +
-                    "DELETE from audio_genres_map where audio_id=old._id;" +
-                "END");
-
-
-        // Provides some extra info about artists, like the number of tracks
-        // and albums for this artist
-        db.execSQL("CREATE VIEW artist_info AS " +
-                    "SELECT artist_id AS _id, artist, artist_key, " +
-                    "COUNT(DISTINCT album) AS number_of_albums, " +
-                    "COUNT(*) AS number_of_tracks FROM audio WHERE is_music=1 "+
-                    "GROUP BY artist_key;");
-
-        // Provides extra info albums, such as the number of tracks
-        db.execSQL("CREATE VIEW album_info AS " +
-                "SELECT audio.album_id AS _id, album, album_key, " +
-                "MIN(year) AS minyear, " +
-                "MAX(year) AS maxyear, artist, artist_id, artist_key, " +
-                "count(*) AS " + MediaStore.Audio.Albums.NUMBER_OF_SONGS +
-                ",album_art._data AS album_art" +
-                " FROM audio LEFT OUTER JOIN album_art ON audio.album_id=album_art.album_id" +
-                " WHERE is_music=1 GROUP BY audio.album_id;");
-
-        // For a given artist_id, provides the album_id for albums on
-        // which the artist appears.
-        db.execSQL("CREATE VIEW artists_albums_map AS " +
-                "SELECT DISTINCT artist_id, album_id FROM audio_meta;");
-
-        /*
-         * Only external media volumes can handle genres, playlists, etc.
-         */
-        if (!internal) {
-            // Cleans up when an audio file is deleted
-            db.execSQL("CREATE TRIGGER audio_meta_cleanup DELETE ON audio_meta " +
-                       "BEGIN " +
-                           "DELETE FROM audio_genres_map WHERE audio_id = old._id;" +
-                           "DELETE FROM audio_playlists_map WHERE audio_id = old._id;" +
-                       "END");
-
-            // Contains audio genre definitions
-            db.execSQL("CREATE TABLE audio_genres (" +
-                       "_id INTEGER PRIMARY KEY," +
-                       "name TEXT NOT NULL" +
-                       ");");
-
-            // Contiains mappings between audio genres and audio files
-            db.execSQL("CREATE TABLE audio_genres_map (" +
-                       "_id INTEGER PRIMARY KEY," +
-                       "audio_id INTEGER NOT NULL," +
-                       "genre_id INTEGER NOT NULL" +
-                       ");");
-
-            // Cleans up when an audio genre is delete
-            db.execSQL("CREATE TRIGGER audio_genres_cleanup DELETE ON audio_genres " +
-                       "BEGIN " +
-                           "DELETE FROM audio_genres_map WHERE genre_id = old._id;" +
-                       "END");
-
-            // Contains audio playlist definitions
-            db.execSQL("CREATE TABLE audio_playlists (" +
-                       "_id INTEGER PRIMARY KEY," +
-                       "_data TEXT," +  // _data is path for file based playlists, or null
-                       "name TEXT NOT NULL," +
-                       "date_added INTEGER," +
-                       "date_modified INTEGER" +
-                       ");");
-
-            // Contains mappings between audio playlists and audio files
-            db.execSQL("CREATE TABLE audio_playlists_map (" +
-                       "_id INTEGER PRIMARY KEY," +
-                       "audio_id INTEGER NOT NULL," +
-                       "playlist_id INTEGER NOT NULL," +
-                       "play_order INTEGER NOT NULL" +
-                       ");");
-
-            // Cleans up when an audio playlist is deleted
-            db.execSQL("CREATE TRIGGER audio_playlists_cleanup DELETE ON audio_playlists " +
-                       "BEGIN " +
-                           "DELETE FROM audio_playlists_map WHERE playlist_id = old._id;" +
-                           "SELECT _DELETE_FILE(old._data);" +
-                       "END");
-
-            // Cleans up album_art table entry when an album is deleted
-            db.execSQL("CREATE TRIGGER albumart_cleanup1 DELETE ON albums " +
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS images_cleanup DELETE ON images " +
                     "BEGIN " +
-                        "DELETE FROM album_art WHERE album_id = old.album_id;" +
+                        "DELETE FROM thumbnails WHERE image_id = old._id;" +
+                        "SELECT _DELETE_FILE(old._data);" +
                     "END");
 
-            // Cleans up album_art when an album is deleted
-            db.execSQL("CREATE TRIGGER albumart_cleanup2 DELETE ON album_art " +
+            db.execSQL("CREATE TABLE IF NOT EXISTS thumbnails (" +
+                       "_id INTEGER PRIMARY KEY," +
+                       "_data TEXT," +
+                       "image_id INTEGER," +
+                       "kind INTEGER," +
+                       "width INTEGER," +
+                       "height INTEGER" +
+                       ");");
+
+            db.execSQL("CREATE INDEX IF NOT EXISTS image_id_index on thumbnails(image_id);");
+
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS thumbnails_cleanup DELETE ON thumbnails " +
+                    "BEGIN " +
+                        "SELECT _DELETE_FILE(old._data);" +
+                    "END");
+
+
+            // Contains meta data about audio files
+            db.execSQL("CREATE TABLE IF NOT EXISTS audio_meta (" +
+                       "_id INTEGER PRIMARY KEY," +
+                       "_data TEXT NOT NULL," +
+                       "_display_name TEXT," +
+                       "_size INTEGER," +
+                       "mime_type TEXT," +
+                       "date_added INTEGER," +
+                       "date_modified INTEGER," +
+                       "title TEXT NOT NULL," +
+                       "title_key TEXT NOT NULL," +
+                       "duration INTEGER," +
+                       "artist_id INTEGER," +
+                       "composer TEXT," +
+                       "album_id INTEGER," +
+                       "track INTEGER," +    // track is an integer to allow proper sorting
+                       "year INTEGER CHECK(year!=0)," +
+                       "is_ringtone INTEGER," +
+                       "is_music INTEGER," +
+                       "is_alarm INTEGER," +
+                       "is_notification INTEGER" +
+                       ");");
+
+            // Contains a sort/group "key" and the preferred display name for artists
+            db.execSQL("CREATE TABLE IF NOT EXISTS artists (" +
+                        "artist_id INTEGER PRIMARY KEY," +
+                        "artist_key TEXT NOT NULL UNIQUE," +
+                        "artist TEXT NOT NULL" +
+                       ");");
+
+            // Contains a sort/group "key" and the preferred display name for albums
+            db.execSQL("CREATE TABLE IF NOT EXISTS albums (" +
+                        "album_id INTEGER PRIMARY KEY," +
+                        "album_key TEXT NOT NULL UNIQUE," +
+                        "album TEXT NOT NULL" +
+                       ");");
+
+            db.execSQL("CREATE TABLE IF NOT EXISTS album_art (" +
+                    "album_id INTEGER PRIMARY KEY," +
+                    "_data TEXT" +
+                   ");");
+
+            // Provides a unified audio/artist/album info view.
+            // Note that views are read-only, so we define a trigger to allow deletes.
+            db.execSQL("CREATE VIEW IF NOT EXISTS audio as SELECT * FROM audio_meta " +
+                        "LEFT OUTER JOIN artists ON audio_meta.artist_id=artists.artist_id " +
+                        "LEFT OUTER JOIN albums ON audio_meta.album_id=albums.album_id;");
+
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS audio_delete INSTEAD OF DELETE ON audio " +
+                    "BEGIN " +
+                        "DELETE from audio_meta where _id=old._id;" +
+                        "DELETE from audio_playlists_map where audio_id=old._id;" +
+                        "DELETE from audio_genres_map where audio_id=old._id;" +
+                    "END");
+
+
+            // Provides some extra info about artists, like the number of tracks
+            // and albums for this artist
+            db.execSQL("CREATE VIEW IF NOT EXISTS artist_info AS " +
+                        "SELECT artist_id AS _id, artist, artist_key, " +
+                        "COUNT(DISTINCT album) AS number_of_albums, " +
+                        "COUNT(*) AS number_of_tracks FROM audio WHERE is_music=1 "+
+                        "GROUP BY artist_key;");
+
+            // Provides extra info albums, such as the number of tracks
+            db.execSQL("CREATE VIEW IF NOT EXISTS album_info AS " +
+                    "SELECT audio.album_id AS _id, album, album_key, " +
+                    "MIN(year) AS minyear, " +
+                    "MAX(year) AS maxyear, artist, artist_id, artist_key, " +
+                    "count(*) AS " + MediaStore.Audio.Albums.NUMBER_OF_SONGS +
+                    ",album_art._data AS album_art" +
+                    " FROM audio LEFT OUTER JOIN album_art ON audio.album_id=album_art.album_id" +
+                    " WHERE is_music=1 GROUP BY audio.album_id;");
+
+            // For a given artist_id, provides the album_id for albums on
+            // which the artist appears.
+            db.execSQL("CREATE VIEW IF NOT EXISTS artists_albums_map AS " +
+                    "SELECT DISTINCT artist_id, album_id FROM audio_meta;");
+
+            /*
+             * Only external media volumes can handle genres, playlists, etc.
+             */
+            if (!internal) {
+                // Cleans up when an audio file is deleted
+                db.execSQL("CREATE TRIGGER IF NOT EXISTS audio_meta_cleanup DELETE ON audio_meta " +
+                           "BEGIN " +
+                               "DELETE FROM audio_genres_map WHERE audio_id = old._id;" +
+                               "DELETE FROM audio_playlists_map WHERE audio_id = old._id;" +
+                           "END");
+
+                // Contains audio genre definitions
+                db.execSQL("CREATE TABLE IF NOT EXISTS audio_genres (" +
+                           "_id INTEGER PRIMARY KEY," +
+                           "name TEXT NOT NULL" +
+                           ");");
+
+                // Contiains mappings between audio genres and audio files
+                db.execSQL("CREATE TABLE IF NOT EXISTS audio_genres_map (" +
+                           "_id INTEGER PRIMARY KEY," +
+                           "audio_id INTEGER NOT NULL," +
+                           "genre_id INTEGER NOT NULL" +
+                           ");");
+
+                // Cleans up when an audio genre is delete
+                db.execSQL("CREATE TRIGGER IF NOT EXISTS audio_genres_cleanup DELETE ON audio_genres " +
+                           "BEGIN " +
+                               "DELETE FROM audio_genres_map WHERE genre_id = old._id;" +
+                           "END");
+
+                // Contains audio playlist definitions
+                db.execSQL("CREATE TABLE IF NOT EXISTS audio_playlists (" +
+                           "_id INTEGER PRIMARY KEY," +
+                           "_data TEXT," +  // _data is path for file based playlists, or null
+                           "name TEXT NOT NULL," +
+                           "date_added INTEGER," +
+                           "date_modified INTEGER" +
+                           ");");
+
+                // Contains mappings between audio playlists and audio files
+                db.execSQL("CREATE TABLE IF NOT EXISTS audio_playlists_map (" +
+                           "_id INTEGER PRIMARY KEY," +
+                           "audio_id INTEGER NOT NULL," +
+                           "playlist_id INTEGER NOT NULL," +
+                           "play_order INTEGER NOT NULL" +
+                           ");");
+
+                // Cleans up when an audio playlist is deleted
+                db.execSQL("CREATE TRIGGER IF NOT EXISTS audio_playlists_cleanup DELETE ON audio_playlists " +
+                           "BEGIN " +
+                               "DELETE FROM audio_playlists_map WHERE playlist_id = old._id;" +
+                               "SELECT _DELETE_FILE(old._data);" +
+                           "END");
+
+                // Cleans up album_art table entry when an album is deleted
+                db.execSQL("CREATE TRIGGER IF NOT EXISTS albumart_cleanup1 DELETE ON albums " +
+                        "BEGIN " +
+                            "DELETE FROM album_art WHERE album_id = old.album_id;" +
+                        "END");
+
+                // Cleans up album_art when an album is deleted
+                db.execSQL("CREATE TRIGGER IF NOT EXISTS albumart_cleanup2 DELETE ON album_art " +
+                        "BEGIN " +
+                            "SELECT _DELETE_FILE(old._data);" +
+                        "END");
+            }
+
+            // Contains meta data about video files
+            db.execSQL("CREATE TABLE IF NOT EXISTS video (" +
+                       "_id INTEGER PRIMARY KEY," +
+                       "_data TEXT NOT NULL," +
+                       "_display_name TEXT," +
+                       "_size INTEGER," +
+                       "mime_type TEXT," +
+                       "date_added INTEGER," +
+                       "date_modified INTEGER," +
+                       "title TEXT," +
+                       "duration INTEGER," +
+                       "artist TEXT," +
+                       "album TEXT," +
+                       "resolution TEXT," +
+                       "description TEXT," +
+                       "isprivate INTEGER," +   // for YouTube videos
+                       "tags TEXT," +           // for YouTube videos
+                       "category TEXT," +       // for YouTube videos
+                       "language TEXT," +       // for YouTube videos
+                       "mini_thumb_data TEXT," +
+                       "latitude DOUBLE," +
+                       "longitude DOUBLE," +
+                       "datetaken INTEGER," +
+                       "mini_thumb_magic INTEGER" +
+                       ");");
+
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS video_cleanup DELETE ON video " +
                     "BEGIN " +
                         "SELECT _DELETE_FILE(old._data);" +
                     "END");
         }
 
-        // Contains meta data about video files
-        db.execSQL("CREATE TABLE video (" +
-                   "_id INTEGER PRIMARY KEY," +
-                   "_data TEXT NOT NULL," +
-                   "_display_name TEXT," +
-                   "_size INTEGER," +
-                   "mime_type TEXT," +
-                   "date_added INTEGER," +
-                   "date_modified INTEGER," +
-                   "title TEXT," +
-                   "duration INTEGER," +
-                   "artist TEXT," +
-                   "album TEXT," +
-                   "resolution TEXT," +
-                   "description TEXT," +
-                   "isprivate INTEGER," +	// for YouTube videos
-                   "tags TEXT," +			// for YouTube videos
-                   "category TEXT," +		// for YouTube videos
-                   "language TEXT," +		// for YouTube videos
-                   "mini_thumb_data TEXT," +
-                   "latitude DOUBLE," +
-                   "longitude DOUBLE," +
-                   "datetaken INTEGER," +
-                   "mini_thumb_magic INTEGER" +
-                   ");");
+        // At this point the database is at least at schema version 63 (it was
+        // either created at version 63 by the code above, or was already at
+        // version 63 or later)
 
-        db.execSQL("CREATE TRIGGER video_cleanup DELETE ON video " +
-                "BEGIN " +
-                    "SELECT _DELETE_FILE(old._data);" +
-                "END");
+        if (fromVersion < 64) {
+            // create the index that updates the database to schema version 64
+            db.execSQL("CREATE INDEX IF NOT EXISTS sort_index on images(datetaken ASC, _id ASC);");
+        }
+
+        if (fromVersion < 65) {
+            // create the index that updates the database to schema version 65
+            db.execSQL("CREATE INDEX IF NOT EXISTS titlekey_index on audio_meta(title_key);");
+        }
+
+        if (fromVersion < 66) {
+            updateBucketNames(db, "images");
+        }
+
+        if (fromVersion < 67) {
+            // create the indices that update the database to schema version 67
+            db.execSQL("CREATE INDEX IF NOT EXISTS albumkey_index on albums(album_key);");
+            db.execSQL("CREATE INDEX IF NOT EXISTS artistkey_index on artists(artist_key);");
+        }
+
+        if (fromVersion < 68) {
+            // Create bucket_id and bucket_display_name columns for the video table.
+            db.execSQL("ALTER TABLE video ADD COLUMN bucket_id TEXT;");
+            db.execSQL("ALTER TABLE video ADD COLUMN bucket_display_name TEXT");
+            updateBucketNames(db, "video");
+        }
     }
 
-    private static void dropTables(SQLiteDatabase db) {
-        db.execSQL("DROP TABLE IF EXISTS images");
-        db.execSQL("DROP TRIGGER IF EXISTS images_cleanup");
-        db.execSQL("DROP TABLE IF EXISTS thumbnails");
-        db.execSQL("DROP TRIGGER IF EXISTS thumbnails_cleanup");
-        db.execSQL("DROP TABLE IF EXISTS audio_meta");
-        db.execSQL("DROP TABLE IF EXISTS artists");
-        db.execSQL("DROP TABLE IF EXISTS albums");
-        db.execSQL("DROP TABLE IF EXISTS album_art");
-        db.execSQL("DROP VIEW IF EXISTS audio");
-        db.execSQL("DROP TRIGGER IF EXISTS audio_delete");
-        db.execSQL("DROP VIEW IF EXISTS artist_info");
-        db.execSQL("DROP VIEW IF EXISTS album_info");
-        db.execSQL("DROP VIEW IF EXISTS artists_albums_map");
-        db.execSQL("DROP TRIGGER IF EXISTS audio_meta_cleanup");
-        db.execSQL("DROP TABLE IF EXISTS audio_genres");
-        db.execSQL("DROP TABLE IF EXISTS audio_genres_map");
-        db.execSQL("DROP TRIGGER IF EXISTS audio_genres_cleanup");
-        db.execSQL("DROP TABLE IF EXISTS audio_playlists");
-        db.execSQL("DROP TABLE IF EXISTS audio_playlists_map");
-        db.execSQL("DROP TRIGGER IF EXISTS audio_playlists_cleanup");
-        db.execSQL("DROP TRIGGER IF EXISTS albumart_cleanup1");
-        db.execSQL("DROP TRIGGER IF EXISTS albumart_cleanup2");
-        db.execSQL("DROP TABLE IF EXISTS video");
-        db.execSQL("DROP TRIGGER IF EXISTS video_cleanup");
+    /**
+     * Iterate through a table in a database, ensuring that the bucked id and names are correct.
+     * @param db
+     * @param tableName
+     */
+    private static void updateBucketNames(SQLiteDatabase db, String tableName) {
+        // Rebuild the bucket_display_name column using the natural case rather than lower case.
+        db.beginTransaction();
+        try {
+            String[] columns = {BaseColumns._ID, MediaColumns.DATA};
+            Cursor cursor = db.query(tableName, columns, null, null, null, null, null);
+            try {
+                final int idColumnIndex = cursor.getColumnIndex(BaseColumns._ID);
+                final int dataColumnIndex = cursor.getColumnIndex(MediaColumns.DATA);
+                while (cursor.moveToNext()) {
+                    String data = cursor.getString(dataColumnIndex);
+                    ContentValues values = new ContentValues();
+                    computeBucketValues(data, values);
+                    int rowId = cursor.getInt(idColumnIndex);
+                    db.update(tableName, values, "_id=" + rowId, null);
+                }
+            } finally {
+                cursor.close();
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    /**
+     * @param data The input path
+     * @param values the content values, where the bucked id name and display name are updated.
+     *
+     */
+
+    private static void computeBucketValues(String data, ContentValues values) {
+        File parentFile = new File(data).getParentFile();
+        if (parentFile == null) {
+            parentFile = new File("/");
+        }
+
+        // Lowercase the path for hashing. This avoids duplicate buckets if the
+        // filepath case is changed externally.
+        // Keep the original case for display.
+        String path = parentFile.toString().toLowerCase();
+        String name = parentFile.getName();
+
+        // Note: the BUCKET_ID and BUCKET_DISPLAY_NAME attributes are spelled the
+        // same for both images and video. However, for backwards-compatibility reasons
+        // there is no common base class. We use the ImageColumns version here
+        values.put(ImageColumns.BUCKET_ID, path.hashCode());
+        values.put(ImageColumns.BUCKET_DISPLAY_NAME, name);
     }
 
     @Override
     public Cursor query(Uri uri, String[] projectionIn, String selection,
             String[] selectionArgs, String sort) {
         int table = URI_MATCHER.match(uri);
-        
+
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
         if (table == MEDIA_SCANNER) {
             if (mMediaScannerVolume == null) {
@@ -492,7 +603,7 @@ public class MediaProvider extends ContentProvider {
                 return new MediaScannerCursor(mMediaScannerVolume);
             }
         }
-        
+
         String groupBy = null;
         DatabaseHelper database = getDatabaseForUri(uri);
         if (database == null) {
@@ -628,10 +739,17 @@ public class MediaProvider extends ContentProvider {
                 break;
 
             case AUDIO_ARTISTS_ID_ALBUMS:
-                qb.setTables("album_info");
-                qb.appendWhere("_id IN (SELECT album_id FROM " +
+                String aid = uri.getPathSegments().get(3);
+                qb.setTables("audio LEFT OUTER JOIN album_art ON" +
+                        " audio.album_id=album_art.album_id");
+                qb.appendWhere("is_music=1 AND audio.album_id IN (SELECT album_id FROM " +
                         "artists_albums_map WHERE artist_id = " +
-                        uri.getPathSegments().get(3) + ")");
+                         aid + ")");
+                groupBy = "audio.album_id";
+                sArtistAlbumsMap.put(MediaStore.Audio.Albums.NUMBER_OF_SONGS_FOR_ARTIST,
+                        "count(CASE WHEN artist_id==" + aid + " THEN 'foo' ELSE NULL END) AS " +
+                        MediaStore.Audio.Albums.NUMBER_OF_SONGS_FOR_ARTIST);
+                qb.setProjectionMap(sArtistAlbumsMap);
                 break;
 
             case AUDIO_ALBUMS:
@@ -669,24 +787,30 @@ public class MediaProvider extends ContentProvider {
 
         List<String> l = uri.getPathSegments();
         String mSearchString = l.size() == 4 ? l.get(3) : "";
+        mSearchString = mSearchString.replaceAll("  ", " ").trim();
         Cursor mCursor = null;
 
-        Cursor [] cursors = new Cursor[3];
-        String [] searchWords = mSearchString.split(" ");
-        String [] wildcardWords = new String[searchWords.length];
+        String [] searchWords = mSearchString.length() > 0 ?
+                mSearchString.split(" ") : new String[0];
+        String [] wildcardWords3 = new String[searchWords.length * 3];
         Collator col = Collator.getInstance();
         col.setStrength(Collator.PRIMARY);
-        for (int i = 0; i < searchWords.length; i++) {
-            wildcardWords[i] = '%' + MediaStore.Audio.keyFor(searchWords[i]) + '%';
+        int len = searchWords.length;
+        for (int i = 0; i < len; i++) {
+            wildcardWords3[i] = wildcardWords3[i + len] = wildcardWords3[i + len + len] =
+                '%' + MediaStore.Audio.keyFor(searchWords[i]) + '%';
         }
 
+        String UQs [] = new String[3];
+        HashSet<String> tablecolumns = new HashSet<String>();
 
         // Direct match artists
         {
             String[] ccols = new String[] {
                     MediaStore.Audio.Artists._ID,
                     "'artist' AS " + MediaStore.Audio.Media.MIME_TYPE,
-                    "" + R.drawable.ic_search_category_music_artist + " AS " + SearchManager.SUGGEST_COLUMN_ICON_1,
+                    "" + R.drawable.ic_search_category_music_artist + " AS " +
+                        SearchManager.SUGGEST_COLUMN_ICON_1,
                     "0 AS " + SearchManager.SUGGEST_COLUMN_ICON_2,
                     MediaStore.Audio.Artists.ARTIST + " AS " + SearchManager.SUGGEST_COLUMN_TEXT_1,
                     MediaStore.Audio.Artists.NUMBER_OF_ALBUMS + " AS data1",
@@ -695,7 +819,10 @@ public class MediaProvider extends ContentProvider {
                     "'" + Intent.ACTION_VIEW + "' AS " + SearchManager.SUGGEST_COLUMN_INTENT_ACTION,
                     "'content://media/external/audio/artists/'||" + MediaStore.Audio.Artists._ID +
                     " AS " + SearchManager.SUGGEST_COLUMN_INTENT_DATA,
+                    "'1' AS grouporder",
+                    "artist_key AS itemorder"
             };
+
 
             String where = MediaStore.Audio.Artists.ARTIST_KEY + " != ''";
             for (int i = 0; i < searchWords.length; i++) {
@@ -703,8 +830,8 @@ public class MediaProvider extends ContentProvider {
             }
 
             qb.setTables("artist_info");
-            cursors[0] = qb.query(db, ccols, where, wildcardWords,
-                    null, null, MediaStore.Audio.Artists.DEFAULT_SORT_ORDER);
+            UQs[0] = qb.buildUnionSubQuery(MediaStore.Audio.Media.MIME_TYPE,
+                    ccols, tablecolumns, 12, "artist", where, null, null, null);
         }
 
         // Direct match albums
@@ -724,6 +851,8 @@ public class MediaProvider extends ContentProvider {
                     "'" + Intent.ACTION_VIEW + "' AS " + SearchManager.SUGGEST_COLUMN_INTENT_ACTION,
                     "'content://media/external/audio/albums/'||" + MediaStore.Audio.Albums._ID +
                     " AS " + SearchManager.SUGGEST_COLUMN_INTENT_DATA,
+                    "'2' AS grouporder",
+                    "album_key AS itemorder"
             };
 
             String where = MediaStore.Audio.Media.ALBUM_KEY + " != ''";
@@ -733,8 +862,8 @@ public class MediaProvider extends ContentProvider {
 
             qb = new SQLiteQueryBuilder();
             qb.setTables("album_info");
-            cursors[1] = qb.query(db, ccols, where, wildcardWords,
-                    null, null, MediaStore.Audio.Albums.DEFAULT_SORT_ORDER);
+            UQs[1] = qb.buildUnionSubQuery(MediaStore.Audio.Media.MIME_TYPE,
+                    ccols, tablecolumns, 12, "album", where, null, null, null);
         }
 
         // Direct match tracks
@@ -755,6 +884,8 @@ public class MediaProvider extends ContentProvider {
                     " AS ar_al_ti",
                     "'" + Intent.ACTION_VIEW + "' AS " + SearchManager.SUGGEST_COLUMN_INTENT_ACTION,
                     "'content://media/external/audio/media/'||audio._id AS " + SearchManager.SUGGEST_COLUMN_INTENT_DATA,
+                    "'3' AS grouporder",
+                    "title_key AS itemorder"
             };
 
             String where = MediaStore.Audio.Media.TITLE + " != ''";
@@ -764,17 +895,19 @@ public class MediaProvider extends ContentProvider {
             }
             qb = new SQLiteQueryBuilder();
             qb.setTables("audio");
-            cursors[2] = qb.query(db, ccols, where, wildcardWords,
-                null, null, MediaStore.Audio.Media.TITLE_KEY);
+            UQs[2] = qb.buildUnionSubQuery(MediaStore.Audio.Media.MIME_TYPE,
+                    ccols, tablecolumns, 12, "audio/", where, null, null, null);
         }
 
         if (mCursor != null) {
             mCursor.deactivate();
             mCursor = null;
         }
-        if (cursors[0] != null && cursors[1] != null && cursors[2] != null) {
-            mCursor = new MergeCursor(cursors);
+        if (UQs[0] != null && UQs[1] != null && UQs[2] != null) {
+            String union = qb.buildUnionQuery(UQs, "grouporder,itemorder", null);
+            mCursor = db.rawQuery(union, wildcardWords3);
         }
+
         return mCursor;
     }
 
@@ -878,7 +1011,7 @@ public class MediaProvider extends ContentProvider {
         getContext().getContentResolver().notifyChange(uri, null);
         return numInserted;
     }
-    
+
     @Override
     public Uri insert(Uri uri, ContentValues initialValues)
     {
@@ -886,13 +1019,20 @@ public class MediaProvider extends ContentProvider {
         if (newUri != null) {
             getContext().getContentResolver().notifyChange(uri, null);
         }
-        
+
         return newUri;
     }
-    
+
     private Uri insertInternal(Uri uri, ContentValues initialValues) {
         long rowId;
         int match = URI_MATCHER.match(uri);
+
+        // handle MEDIA_SCANNER before calling getDatabaseForUri()
+        if (match == MEDIA_SCANNER) {
+            mMediaScannerVolume = initialValues.getAsString(MediaStore.MEDIA_SCANNER_VOLUME);
+            return MediaStore.getMediaScannerUri();
+        }
+
         Uri newUri = null;
         DatabaseHelper database = getDatabaseForUri(uri);
         if (database == null && match != VOLUMES) {
@@ -908,16 +1048,11 @@ public class MediaProvider extends ContentProvider {
         switch (match) {
             case IMAGES_MEDIA: {
                 ContentValues values = ensureFile(database.mInternal, initialValues, ".jpg", "DCIM/Camera");
+
                 values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);
-                if (!values.containsKey(MediaStore.MediaColumns.DISPLAY_NAME)) {
-                    String name = values.getAsString("_data");
-                    if (name != null) {
-                        int idx = name.lastIndexOf('/');
-                        if (idx >= 0) name = name.substring(idx+1);
-                    }
-                    values.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
-                }
+                computeBucketValues(values.getAsString(MediaColumns.DATA), values);
                 rowId = db.insert("images", "name", values);
+
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(
                             Images.Media.getContentUri(uri.getPathSegments().get(0)), rowId);
@@ -1067,12 +1202,14 @@ public class MediaProvider extends ContentProvider {
             case VIDEO_MEDIA: {
                 ContentValues values = ensureFile(database.mInternal, initialValues, ".3gp", "video");
                 String so = values.getAsString("_data");
-                String s = (so == null ? "" : so.toString());
+                String nonNullSo = (so == null ? "" : so.toString());
+                String s = nonNullSo;
                 int idx = s.lastIndexOf('/');
                 if (idx >= 0) {
                     s = s.substring(idx + 1);
                 }
                 values.put("_display_name", s);
+                computeBucketValues(so, values);
                 values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);
                 rowId = db.insert("video", "artist", values);
                 if (rowId > 0) {
@@ -1211,7 +1348,7 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_GENRES_ID_MEMBERS_ID:
                 out.table = "audio_genres";
                 where = "genre_id=" + uri.getPathSegments().get(3) +
-                        "AND audio_id =" + uri.getPathSegments().get(5);
+                        " AND audio_id =" + uri.getPathSegments().get(5);
                 break;
 
             case AUDIO_PLAYLISTS:
@@ -1224,14 +1361,14 @@ public class MediaProvider extends ContentProvider {
                 break;
 
             case AUDIO_PLAYLISTS_ID_MEMBERS:
-                out.table = "audio_playlists";
+                out.table = "audio_playlists_map";
                 where = "playlist_id=" + uri.getPathSegments().get(3);
                 break;
 
             case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
-                out.table = "audio_playlists";
+                out.table = "audio_playlists_map";
                 where = "playlist_id=" + uri.getPathSegments().get(3) +
-                        "AND audio_id =" + uri.getPathSegments().get(5);
+                        " AND _id=" + uri.getPathSegments().get(5);
                 break;
 
             case AUDIO_ALBUMART_ID:
@@ -1270,6 +1407,15 @@ public class MediaProvider extends ContentProvider {
         int count;
         int match = URI_MATCHER.match(uri);
 
+        // handle MEDIA_SCANNER before calling getDatabaseForUri()
+        if (match == MEDIA_SCANNER) {
+            if (mMediaScannerVolume == null) {
+                return 0;
+            }
+            mMediaScannerVolume = null;
+            return 1;
+        }
+
         if (match != VOLUMES_ID) {
             DatabaseHelper database = getDatabaseForUri(uri);
             if (database == null) {
@@ -1284,20 +1430,6 @@ public class MediaProvider extends ContentProvider {
                     case AUDIO_MEDIA:
                     case AUDIO_MEDIA_ID:
                         count = db.delete("audio_meta",
-                                sGetTableAndWhereParam.where, whereArgs);
-                        break;
-                    case AUDIO_PLAYLISTS:
-                    case AUDIO_PLAYLISTS_ID:
-                        count = db.delete("audio_playlists",
-                                sGetTableAndWhereParam.where, whereArgs);
-                        break;
-                    case AUDIO_PLAYLISTS_ID_MEMBERS:
-                    case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
-                        count = db.delete("audio_playlists_map",
-                                sGetTableAndWhereParam.where, whereArgs);
-                        break;
-                    case AUDIO_ALBUMART_ID:
-                        count = db.delete("album_art",
                                 sGetTableAndWhereParam.where, whereArgs);
                         break;
                     default:
@@ -1334,57 +1466,79 @@ public class MediaProvider extends ContentProvider {
             switch (match) {
                 case AUDIO_MEDIA:
                 case AUDIO_MEDIA_ID:
-                    ContentValues values = new ContentValues(initialValues);
-                    // Insert the artist into the artist table and remove it from
-                    // the input values
-                    String so = values.getAsString("artist");
-                    if (so != null) {
-                        String s = so.toString();
-                        values.remove("artist");
-                        long artistRowId;
-                        HashMap<String, Long> artistCache = database.mArtistCache;
-                        synchronized(artistCache) {
-                            Long temp = artistCache.get(s);
-                            if (temp == null) {
-                                artistRowId = getKeyIdForName(db, "artists", "artist_key", "artist",
-                                        s, null, artistCache, uri);
-                            } else {
-                                artistRowId = temp.longValue();
+                    {
+                        ContentValues values = new ContentValues(initialValues);
+                        // Insert the artist into the artist table and remove it from
+                        // the input values
+                        String so = values.getAsString("artist");
+                        if (so != null) {
+                            String s = so.toString();
+                            values.remove("artist");
+                            long artistRowId;
+                            HashMap<String, Long> artistCache = database.mArtistCache;
+                            synchronized(artistCache) {
+                                Long temp = artistCache.get(s);
+                                if (temp == null) {
+                                    artistRowId = getKeyIdForName(db, "artists", "artist_key", "artist",
+                                            s, null, artistCache, uri);
+                                } else {
+                                    artistRowId = temp.longValue();
+                                }
                             }
+                            values.put("artist_id", Integer.toString((int)artistRowId));
                         }
-                        values.put("artist_id", Integer.toString((int)artistRowId));
-                    }
 
-                    // Do the same for the album field
-                    so = values.getAsString("album");
-                    if (so != null) {
-                        String s = so.toString();
-                        values.remove("album");
-                        long albumRowId;
-                        HashMap<String, Long> albumCache = database.mAlbumCache;
-                        synchronized(albumCache) {
-                            Long temp = albumCache.get(s);
-                            if (temp == null) {
-                                albumRowId = getKeyIdForName(db, "albums", "album_key", "album",
-                                        s, null, albumCache, uri);
-                            } else {
-                                albumRowId = temp.longValue();
+                        // Do the same for the album field
+                        so = values.getAsString("album");
+                        if (so != null) {
+                            String s = so.toString();
+                            values.remove("album");
+                            long albumRowId;
+                            HashMap<String, Long> albumCache = database.mAlbumCache;
+                            synchronized(albumCache) {
+                                Long temp = albumCache.get(s);
+                                if (temp == null) {
+                                    albumRowId = getKeyIdForName(db, "albums", "album_key", "album",
+                                            s, null, albumCache, uri);
+                                } else {
+                                    albumRowId = temp.longValue();
+                                }
                             }
+                            values.put("album_id", Integer.toString((int)albumRowId));
                         }
-                        values.put("album_id", Integer.toString((int)albumRowId));
-                    }
 
-                    // don't allow the title_key field to be updated directly
-                    values.remove("title_key");
-                    // If the title field is modified, update the title_key
-                    so = values.getAsString("title");
-                    if (so != null) {
-                        String s = so.toString();
-                        values.put("title_key", MediaStore.Audio.keyFor(s));
-                    }
+                        // don't allow the title_key field to be updated directly
+                        values.remove("title_key");
+                        // If the title field is modified, update the title_key
+                        so = values.getAsString("title");
+                        if (so != null) {
+                            String s = so.toString();
+                            values.put("title_key", MediaStore.Audio.keyFor(s));
+                        }
 
-                    count = db.update("audio_meta", values, sGetTableAndWhereParam.where,
-                            whereArgs);
+                        count = db.update("audio_meta", values, sGetTableAndWhereParam.where,
+                                whereArgs);
+                    }
+                    break;
+                case IMAGES_MEDIA:
+                case IMAGES_MEDIA_ID:
+                case VIDEO_MEDIA:
+                case VIDEO_MEDIA_ID:
+                    {
+                        ContentValues values = new ContentValues(initialValues);
+                        // Don't allow bucket id or display name to be updated directly.
+                        // The same names are used for both images and table columns, so
+                        // we use the ImageColumns constants here.
+                        values.remove(ImageColumns.BUCKET_ID);
+                        values.remove(ImageColumns.BUCKET_DISPLAY_NAME);
+                        // If the data is being modified update the bucket values
+                        String data = values.getAsString(MediaColumns.DATA);
+                        if (data != null) {
+                            computeBucketValues(data, values);
+                        }
+                        count = db.update(sGetTableAndWhereParam.table, values,
+                                sGetTableAndWhereParam.where, whereArgs);
+                    }
                     break;
                 default:
                     count = db.update(sGetTableAndWhereParam.table, initialValues,
@@ -1396,16 +1550,6 @@ public class MediaProvider extends ContentProvider {
             getContext().getContentResolver().notifyChange(uri, null);
         }
         return count;
-    }
-
-    /* Media Scanner support */
-
-    /* package */ static MediaProvider getInstance() {
-        return sInstance;
-    }
-    
-    /* package */ void setMediaScannerVolume(String volume) {
-        mMediaScannerVolume = volume;
     }
 
     private static final String[] openFileColumns = new String[] {
@@ -1672,7 +1816,7 @@ public class MediaProvider extends ContentProvider {
                         // Use the existing entry
                         c.moveToFirst();
                         rowId = c.getLong(0);
-    
+
                         // Determine whether the current rawName is better than what's
                         // currently stored in the table, and update the table if it is.
                         String currentFancyName = c.getString(2);
@@ -1876,7 +2020,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 64;
+    private static final int DATABASE_VERSION = 68;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep
@@ -1890,11 +2034,9 @@ public class MediaProvider extends ContentProvider {
 
     private Worker mThumbWorker;
     private Handler mThumbHandler;
-    
+
     // name of the volume currently being scanned by the media scanner (or null)
     private String mMediaScannerVolume;
-
-    private static MediaProvider sInstance = null;
 
     static final String INTERNAL_VOLUME = "internal";
     static final String EXTERNAL_VOLUME = "external";
@@ -1992,7 +2134,7 @@ public class MediaProvider extends ContentProvider {
 
         URI_MATCHER.addURI("media", "*/video/media", VIDEO_MEDIA);
         URI_MATCHER.addURI("media", "*/video/media/#", VIDEO_MEDIA_ID);
-        
+
         URI_MATCHER.addURI("media", "*/media_scanner", MEDIA_SCANNER);
 
         URI_MATCHER.addURI("media", "*", VOLUMES_ID);

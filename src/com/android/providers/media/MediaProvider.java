@@ -532,10 +532,15 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("ALTER TABLE video ADD COLUMN bucket_display_name TEXT");
             updateBucketNames(db, "video");
         }
+
+        if (fromVersion < 69) {
+            updateDisplayName(db, "images");
+        }
     }
 
     /**
-     * Iterate through a table in a database, ensuring that the bucked id and names are correct.
+     * Iterate through the rows of a table in a database, ensuring that the bucket_id and
+     * bucket_display_name columns are correct.
      * @param db
      * @param tableName
      */
@@ -565,8 +570,43 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     * Iterate through the rows of a table in a database, ensuring that the
+     * display name column has a value.
+     * @param db
+     * @param tableName
+     */
+    private static void updateDisplayName(SQLiteDatabase db, String tableName) {
+        // Fill in default values for null displayName values
+        db.beginTransaction();
+        try {
+            String[] columns = {BaseColumns._ID, MediaColumns.DATA, MediaColumns.DISPLAY_NAME};
+            Cursor cursor = db.query(tableName, columns, null, null, null, null, null);
+            try {
+                final int idColumnIndex = cursor.getColumnIndex(BaseColumns._ID);
+                final int dataColumnIndex = cursor.getColumnIndex(MediaColumns.DATA);
+                final int displayNameIndex = cursor.getColumnIndex(MediaColumns.DISPLAY_NAME);
+                ContentValues values = new ContentValues();
+                while (cursor.moveToNext()) {
+                    String displayName = cursor.getString(displayNameIndex);
+                    if (displayName == null) {
+                        String data = cursor.getString(dataColumnIndex);
+                        values.clear();
+                        computeDisplayName(data, values);
+                        int rowId = cursor.getInt(idColumnIndex);
+                        db.update(tableName, values, "_id=" + rowId, null);
+                    }
+                }
+            } finally {
+                cursor.close();
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+    }
+    /**
      * @param data The input path
-     * @param values the content values, where the bucked id name and display name are updated.
+     * @param values the content values, where the bucked id name and bucket display name are updated.
      *
      */
 
@@ -587,6 +627,20 @@ public class MediaProvider extends ContentProvider {
         // there is no common base class. We use the ImageColumns version here
         values.put(ImageColumns.BUCKET_ID, path.hashCode());
         values.put(ImageColumns.BUCKET_DISPLAY_NAME, name);
+    }
+
+    /**
+     * @param data The input path
+     * @param values the content values, where the display name is updated.
+     *
+     */
+    private static void computeDisplayName(String data, ContentValues values) {
+        String s = (data == null ? "" : data.toString());
+        int idx = s.lastIndexOf('/');
+        if (idx >= 0) {
+            s = s.substring(idx + 1);
+        }
+        values.put("_display_name", s);
     }
 
     @Override
@@ -1050,7 +1104,11 @@ public class MediaProvider extends ContentProvider {
                 ContentValues values = ensureFile(database.mInternal, initialValues, ".jpg", "DCIM/Camera");
 
                 values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);
-                computeBucketValues(values.getAsString(MediaColumns.DATA), values);
+                String data = values.getAsString(MediaColumns.DATA);
+                if (! values.containsKey(MediaColumns.DISPLAY_NAME)) {
+                    computeDisplayName(data, values);
+                }
+                computeBucketValues(data, values);
                 rowId = db.insert("images", "name", values);
 
                 if (rowId > 0) {
@@ -1118,13 +1176,7 @@ public class MediaProvider extends ContentProvider {
                 s = (so == null ? "" : so.toString());
                 values.put("title_key", MediaStore.Audio.keyFor(s));
 
-                so = values.getAsString("_data");
-                s = (so == null ? "" : so.toString());
-                int idx = s.lastIndexOf('/');
-                if (idx >= 0) {
-                    s = s.substring(idx + 1);
-                }
-                values.put("_display_name", s);
+                computeDisplayName(values.getAsString("_data"), values);
                 values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);
 
                 rowId = db.insert("audio_meta", "duration", values);
@@ -1201,15 +1253,9 @@ public class MediaProvider extends ContentProvider {
 
             case VIDEO_MEDIA: {
                 ContentValues values = ensureFile(database.mInternal, initialValues, ".3gp", "video");
-                String so = values.getAsString("_data");
-                String nonNullSo = (so == null ? "" : so.toString());
-                String s = nonNullSo;
-                int idx = s.lastIndexOf('/');
-                if (idx >= 0) {
-                    s = s.substring(idx + 1);
-                }
-                values.put("_display_name", s);
-                computeBucketValues(so, values);
+                String data = values.getAsString("_data");
+                computeDisplayName(data, values);
+                computeBucketValues(data, values);
                 values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);
                 rowId = db.insert("video", "artist", values);
                 if (rowId > 0) {
@@ -2020,7 +2066,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 68;
+    private static final int DATABASE_VERSION = 69;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

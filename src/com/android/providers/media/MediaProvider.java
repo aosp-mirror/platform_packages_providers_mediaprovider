@@ -536,6 +536,11 @@ public class MediaProvider extends ContentProvider {
         if (fromVersion < 69) {
             updateDisplayName(db, "images");
         }
+
+        if (fromVersion < 70) {
+            // Create bookmark column for the video table.
+            db.execSQL("ALTER TABLE video ADD COLUMN bookmark INTEGER;");
+        }
     }
 
     /**
@@ -841,7 +846,7 @@ public class MediaProvider extends ContentProvider {
 
         List<String> l = uri.getPathSegments();
         String mSearchString = l.size() == 4 ? l.get(3) : "";
-        mSearchString = mSearchString.replaceAll("  ", " ").trim();
+        mSearchString = mSearchString.replaceAll("  ", " ").trim().toLowerCase();
         Cursor mCursor = null;
 
         String [] searchWords = mSearchString.length() > 0 ?
@@ -851,7 +856,11 @@ public class MediaProvider extends ContentProvider {
         col.setStrength(Collator.PRIMARY);
         int len = searchWords.length;
         for (int i = 0; i < len; i++) {
+            // Because we match on individual words here, we need to remove words
+            // like 'a' and 'the' that aren't part of the keys.
             wildcardWords3[i] = wildcardWords3[i + len] = wildcardWords3[i + len + len] =
+                (searchWords[i].equals("a") || searchWords[i].equals("an") ||
+                        searchWords[i].equals("the")) ? "%" :
                 '%' + MediaStore.Audio.keyFor(searchWords[i]) + '%';
         }
 
@@ -2066,7 +2075,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 69;
+    private static final int DATABASE_VERSION = 70;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

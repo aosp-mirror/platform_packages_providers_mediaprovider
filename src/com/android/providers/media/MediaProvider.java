@@ -541,6 +541,20 @@ public class MediaProvider extends ContentProvider {
             // Create bookmark column for the video table.
             db.execSQL("ALTER TABLE video ADD COLUMN bookmark INTEGER;");
         }
+        
+        if (fromVersion < 71) {
+            // There is no change to the database schema, however a code change
+            // fixed parsing of metadata for certain files bought from the
+            // iTunes music store, so we want to rescan files that might need it.
+            // We do this by clearing the modification date in the database for
+            // those files, so that the media scanner will see them as updated
+            // and rescan them.
+            db.execSQL("UPDATE audio_meta SET date_modified=0 WHERE _id IN (" +
+                    "SELECT _id FROM audio where mime_type='audio/mp4' AND " +
+                    "artist='" + MediaFile.UNKNOWN_STRING + "' AND " +
+                    "album='" + MediaFile.UNKNOWN_STRING + "'" +
+                    ");");
+        }
     }
 
     /**
@@ -2075,7 +2089,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 70;
+    private static final int DATABASE_VERSION = 71;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

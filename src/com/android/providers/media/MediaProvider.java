@@ -242,10 +242,14 @@ public class MediaProvider extends ContentProvider {
     private static void updateDatabase(SQLiteDatabase db, boolean internal,
             int fromVersion, int toVersion) {
 
-        // sanity check
+        // sanity checks
         if (toVersion != DATABASE_VERSION) {
             Log.e(TAG, "Illegal update request. Got " + toVersion + ", expected " +
                     DATABASE_VERSION);
+            throw new IllegalArgumentException();
+        } else if (fromVersion > toVersion) {
+            Log.e(TAG, "Illegal update request: can't downgrade from " + fromVersion + 
+                    " to " + toVersion + ". Did you forget to wipe data?");
             throw new IllegalArgumentException();
         }
 
@@ -261,8 +265,6 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("DROP TABLE IF EXISTS artists");
             db.execSQL("DROP TABLE IF EXISTS albums");
             db.execSQL("DROP TABLE IF EXISTS album_art");
-            db.execSQL("DROP VIEW IF EXISTS audio");
-            db.execSQL("DROP TRIGGER IF EXISTS audio_delete");
             db.execSQL("DROP VIEW IF EXISTS artist_info");
             db.execSQL("DROP VIEW IF EXISTS album_info");
             db.execSQL("DROP VIEW IF EXISTS artists_albums_map");
@@ -366,19 +368,8 @@ public class MediaProvider extends ContentProvider {
                     "_data TEXT" +
                    ");");
 
-            // Provides a unified audio/artist/album info view.
-            // Note that views are read-only, so we define a trigger to allow deletes.
-            db.execSQL("CREATE VIEW IF NOT EXISTS audio as SELECT * FROM audio_meta " +
-                        "LEFT OUTER JOIN artists ON audio_meta.artist_id=artists.artist_id " +
-                        "LEFT OUTER JOIN albums ON audio_meta.album_id=albums.album_id;");
-
-            db.execSQL("CREATE TRIGGER IF NOT EXISTS audio_delete INSTEAD OF DELETE ON audio " +
-                    "BEGIN " +
-                        "DELETE from audio_meta where _id=old._id;" +
-                        "DELETE from audio_playlists_map where audio_id=old._id;" +
-                        "DELETE from audio_genres_map where audio_id=old._id;" +
-                    "END");
-
+            recreateAudioView(db);
+            
 
             // Provides some extra info about artists, like the number of tracks
             // and albums for this artist
@@ -555,8 +546,40 @@ public class MediaProvider extends ContentProvider {
                     "album='" + MediaFile.UNKNOWN_STRING + "'" +
                     ");");
         }
+        
+        if (fromVersion < 72) {
+            // Create is_podcast and bookmark columns for the audio table.
+            db.execSQL("ALTER TABLE audio_meta ADD COLUMN is_podcast INTEGER;");
+            db.execSQL("UPDATE audio_meta SET is_podcast=1 WHERE _data LIKE '%/podcasts/%';");
+            db.execSQL("UPDATE audio_meta SET is_music=0 WHERE is_podcast=1" +
+                    " AND _data NOT LIKE '%/music/%';");
+            db.execSQL("ALTER TABLE audio_meta ADD COLUMN bookmark INTEGER;");
+
+            // New columns added to tables aren't visible in views on those tables
+            // without opening and closing the database (or using the 'vacuum' command,
+            // which we can't do here because all this code runs inside a transaction).
+            // To work around this, we drop and recreate the affected view and trigger.
+            recreateAudioView(db);
+        }
     }
 
+    private static void recreateAudioView(SQLiteDatabase db) {
+        // Provides a unified audio/artist/album info view.
+        // Note that views are read-only, so we define a trigger to allow deletes.
+        db.execSQL("DROP VIEW IF EXISTS audio");
+        db.execSQL("DROP TRIGGER IF EXISTS audio_delete");
+        db.execSQL("CREATE VIEW IF NOT EXISTS audio as SELECT * FROM audio_meta " +
+                    "LEFT OUTER JOIN artists ON audio_meta.artist_id=artists.artist_id " +
+                    "LEFT OUTER JOIN albums ON audio_meta.album_id=albums.album_id;");
+
+        db.execSQL("CREATE TRIGGER IF NOT EXISTS audio_delete INSTEAD OF DELETE ON audio " +
+                "BEGIN " +
+                    "DELETE from audio_meta where _id=old._id;" +
+                    "DELETE from audio_playlists_map where audio_id=old._id;" +
+                    "DELETE from audio_genres_map where audio_id=old._id;" +
+                "END");
+    }
+    
     /**
      * Iterate through the rows of a table in a database, ensuring that the bucket_id and
      * bucket_display_name columns are correct.
@@ -2089,7 +2112,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 71;
+    private static final int DATABASE_VERSION = 72;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

@@ -1,13 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
         package="com.android.providers.media"
-        android:sharedUserId="android.media">
+        android:sharedUserId="android.media"
+        android:sharedUserLabel="@string/uid_label">
         
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     
     <application android:process="android.process.media"
-                 android:label="Media Storage">
+                 android:label="@string/app_label">
         <provider android:name="MediaProvider" android:authorities="media"
                 android:multiprocess="false" />
         

@@ -913,10 +913,10 @@ public class MediaProvider extends ContentProvider {
                         SearchManager.SUGGEST_COLUMN_ICON_1,
                     "0 AS " + SearchManager.SUGGEST_COLUMN_ICON_2,
                     MediaStore.Audio.Artists.ARTIST + " AS " + SearchManager.SUGGEST_COLUMN_TEXT_1,
-                    MediaStore.Audio.Artists.ARTIST + " AS " + SearchManager.SUGGEST_COLUMN_QUERY,
                     MediaStore.Audio.Artists.NUMBER_OF_ALBUMS + " AS data1",
                     MediaStore.Audio.Artists.NUMBER_OF_TRACKS + " AS data2",
-                    MediaStore.Audio.Artists.ARTIST_KEY + " AS ar",
+                    MediaStore.Audio.Artists.ARTIST_KEY + " AS ar", //
+                    "'" + Intent.ACTION_VIEW + "' AS " + SearchManager.SUGGEST_COLUMN_INTENT_ACTION,
                     "'content://media/external/audio/artists/'||" + MediaStore.Audio.Artists._ID +
                     " AS " + SearchManager.SUGGEST_COLUMN_INTENT_DATA,
                     "'1' AS grouporder",
@@ -931,7 +931,7 @@ public class MediaProvider extends ContentProvider {
 
             qb.setTables("artist_info");
             UQs[0] = qb.buildUnionSubQuery(MediaStore.Audio.Media.MIME_TYPE,
-                    ccols, tablecolumns, ccols.length, "artist", where, null, null, null);
+                    ccols, tablecolumns, 12, "artist", where, null, null, null);
         }
 
         // Direct match albums
@@ -942,13 +942,13 @@ public class MediaProvider extends ContentProvider {
                     "" + R.drawable.ic_search_category_music_album + " AS " + SearchManager.SUGGEST_COLUMN_ICON_1,
                     "0 AS " + SearchManager.SUGGEST_COLUMN_ICON_2,
                     MediaStore.Audio.Albums.ALBUM + " AS " + SearchManager.SUGGEST_COLUMN_TEXT_1,
-                    MediaStore.Audio.Albums.ALBUM + " AS " + SearchManager.SUGGEST_COLUMN_QUERY,
                     MediaStore.Audio.Media.ARTIST + " AS data1",
                     "null AS data2",
                     MediaStore.Audio.Media.ARTIST_KEY +
                     "||' '||" +
                     MediaStore.Audio.Media.ALBUM_KEY +
                     " AS ar_al",
+                    "'" + Intent.ACTION_VIEW + "' AS " + SearchManager.SUGGEST_COLUMN_INTENT_ACTION,
                     "'content://media/external/audio/albums/'||" + MediaStore.Audio.Albums._ID +
                     " AS " + SearchManager.SUGGEST_COLUMN_INTENT_DATA,
                     "'2' AS grouporder",
@@ -963,7 +963,7 @@ public class MediaProvider extends ContentProvider {
             qb = new SQLiteQueryBuilder();
             qb.setTables("album_info");
             UQs[1] = qb.buildUnionSubQuery(MediaStore.Audio.Media.MIME_TYPE,
-                    ccols, tablecolumns, ccols.length, "album", where, null, null, null);
+                    ccols, tablecolumns, 12, "album", where, null, null, null);
         }
 
         // Direct match tracks
@@ -974,7 +974,6 @@ public class MediaProvider extends ContentProvider {
                     "" + R.drawable.ic_search_category_music_song + " AS " + SearchManager.SUGGEST_COLUMN_ICON_1,
                     "0 AS " + SearchManager.SUGGEST_COLUMN_ICON_2,
                     MediaStore.Audio.Media.TITLE + " AS " + SearchManager.SUGGEST_COLUMN_TEXT_1,
-                    MediaStore.Audio.Media.TITLE + " AS " + SearchManager.SUGGEST_COLUMN_QUERY,
                     MediaStore.Audio.Media.ARTIST + " AS data1",
                     MediaStore.Audio.Media.ALBUM + " AS data2",
                     MediaStore.Audio.Media.ARTIST_KEY +
@@ -983,6 +982,7 @@ public class MediaProvider extends ContentProvider {
                     "||' '||" +
                     MediaStore.Audio.Media.TITLE_KEY +
                     " AS ar_al_ti",
+                    "'" + Intent.ACTION_VIEW + "' AS " + SearchManager.SUGGEST_COLUMN_INTENT_ACTION,
                     "'content://media/external/audio/media/'||audio._id AS " + SearchManager.SUGGEST_COLUMN_INTENT_DATA,
                     "'3' AS grouporder",
                     "title_key AS itemorder"
@@ -996,7 +996,7 @@ public class MediaProvider extends ContentProvider {
             qb = new SQLiteQueryBuilder();
             qb.setTables("audio");
             UQs[2] = qb.buildUnionSubQuery(MediaStore.Audio.Media.MIME_TYPE,
-                    ccols, tablecolumns, ccols.length, "audio/", where, null, null, null);
+                    ccols, tablecolumns, 12, "audio/", where, null, null, null);
         }
 
         if (mCursor != null) {

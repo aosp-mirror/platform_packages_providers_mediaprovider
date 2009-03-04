@@ -1,0 +1,36 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+        package="com.android.providers.media"
+        android:sharedUserId="android.media"
+        android:sharedUserLabel="@string/uid_label">
+        
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    
+    <application android:process="android.process.media"
+                 android:label="@string/app_label">
+        <provider android:name="MediaProvider" android:authorities="media"
+                android:multiprocess="false" />
+        
+        <receiver android:name="MediaScannerReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_MOUNTED" />
+                <data android:scheme="file" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_SCANNER_SCAN_FILE" />
+                <data android:scheme="file" />
+            </intent-filter>
+        </receiver>
+
+        <service android:name="MediaScannerService" android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.IMediaScannerService" />
+            </intent-filter>
+        </service>
+
+    </application>
+</manifest>

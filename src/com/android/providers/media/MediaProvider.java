@@ -58,6 +58,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Stack;
 
 /**
  * Media content provider. See {@link android.provider.MediaStore} for details.
@@ -71,6 +72,12 @@ public class MediaProvider extends ContentProvider {
     private static final Uri ALBUMART_THUMB_URI = Uri.parse("content://media/external/audio/albumart_thumb");
 
     private static final HashMap<String, String> sArtistAlbumsMap = new HashMap<String, String>();
+
+    // A HashSet of paths that are pending creation of album art thumbnails.
+    private HashSet mPendingThumbs = new HashSet();
+
+    // A Stack of outstanding thumbnail requests.
+    private Stack mThumbRequestStack = new Stack();
 
     private BroadcastReceiver mUnmountReceiver = new BroadcastReceiver() {
         @Override
@@ -224,7 +231,18 @@ public class MediaProvider extends ContentProvider {
         mThumbHandler = new Handler(mThumbWorker.getLooper()) {
             @Override
             public void handleMessage(Message msg) {
-                makeThumb((ThumbData)msg.obj);
+                // The message itself is irrelevant. We are going to pop
+                // a thumbnail request off the stack in response.
+
+                ThumbData d;
+                synchronized (mThumbRequestStack) {
+                    d = (ThumbData)mThumbRequestStack.pop();
+                }
+
+                makeThumb(d);
+                synchronized (mPendingThumbs) {
+                    mPendingThumbs.remove(d.path);
+                }
             }
         };
 
@@ -1727,45 +1745,64 @@ public class MediaProvider extends ContentProvider {
 
     private void makeThumb(SQLiteDatabase db, String path, long album_id,
             Uri albumart_uri) {
+        synchronized (mPendingThumbs) {
+            if (mPendingThumbs.contains(path)) {
+                // There's already a request to make an album art thumbnail
+                // for this audio file in the queue.
+                return;
+            }
+
+            mPendingThumbs.add(path);
+        }
+
         ThumbData d = new ThumbData();
         d.db = db;
         d.path = path;
         d.album_id = album_id;
         d.albumart_uri = albumart_uri;
+
+        // Instead of processing thumbnail requests in the order they were
+        // received we instead process them stack-based, i.e. LIFO.
+        // The idea behind this is that the most recently requested thumbnails
+        // are most likely the ones still in the user's view, whereas those
+        // requested earlier may have already scrolled off.
+        synchronized (mThumbRequestStack) {
+            mThumbRequestStack.push(d);
+        }
+
+        // Trigger the handler.
         Message msg = mThumbHandler.obtainMessage();
-        msg.obj = d;
         msg.sendToTarget();
     }
 
-    private void makeThumb(ThumbData d) {
-        SQLiteDatabase db = d.db;
-        String path = d.path;
-        long album_id = d.album_id;
-        Uri albumart_uri = d.albumart_uri;
+    // Extract compressed image data from the audio file itself or, if that fails,
+    // look for a file "AlbumArt.jpg" in the containing directory.
+    private static byte[] getCompressedAlbumArt(Context context, String path) {
+        byte[] compressed = null;
 
         try {
             File f = new File(path);
             ParcelFileDescriptor pfd = ParcelFileDescriptor.open(f,
                     ParcelFileDescriptor.MODE_READ_ONLY);
 
-            MediaScanner scanner = new MediaScanner(getContext());
-            byte [] art = scanner.extractAlbumArt(pfd.getFileDescriptor());
+            MediaScanner scanner = new MediaScanner(context);
+            compressed = scanner.extractAlbumArt(pfd.getFileDescriptor());
             pfd.close();
 
             // if no embedded art exists, look for AlbumArt.jpg in same directory as the media file
-            if (art == null && path != null) {
+            if (compressed == null && path != null) {
                 int lastSlash = path.lastIndexOf('/');
                 if (lastSlash > 0) {
                     String artPath = path.substring(0, lastSlash + 1) + "AlbumArt.jpg";
                     File file = new File(artPath);
                     if (file.exists()) {
-                        art = new byte[(int)file.length()];
+                        compressed = new byte[(int)file.length()];
                         FileInputStream stream = null;
                         try {
                             stream = new FileInputStream(file);
-                            stream.read(art);
+                            stream.read(compressed);
                         } catch (IOException ex) {
-                            art = null;
+                            compressed = null;
                         } finally {
                             if (stream != null) {
                                 stream.close();
@@ -1774,84 +1811,126 @@ public class MediaProvider extends ContentProvider {
                     }
                 }
             }
-
-            Bitmap bm = null;
-            if (art != null) {
-                try {
-                    // get the size of the bitmap
-                    BitmapFactory.Options opts = new BitmapFactory.Options();
-                    opts.inJustDecodeBounds = true;
-                    opts.inSampleSize = 1;
-                    BitmapFactory.decodeByteArray(art, 0, art.length, opts);
-
-                    // request a reasonably sized output image
-                    // TODO: don't hardcode the size
-                    while (opts.outHeight > 320 || opts.outWidth > 320) {
-                        opts.outHeight /= 2;
-                        opts.outWidth /= 2;
-                        opts.inSampleSize *= 2;
-                    }
-
-                    // get the image for real now
-                    opts.inJustDecodeBounds = false;
-                    opts.inPreferredConfig = Bitmap.Config.RGB_565;
-                    bm = BitmapFactory.decodeByteArray(art, 0, art.length, opts);
-                } catch (Exception e) {
-                }
-            }
-            if (bm != null && bm.getConfig() == null) {
-                bm = bm.copy(Bitmap.Config.RGB_565, false);
-            }
-            if (bm != null) {
-                // save bitmap
-                Uri out = null;
-                // TODO: this could be done more efficiently with a call to db.replace(), which
-                // replaces or inserts as needed, making it unnecessary to query() first.
-                if (albumart_uri != null) {
-                    Cursor c = query(albumart_uri, new String [] { "_data" },
-                            null, null, null);
-                    c.moveToFirst();
-                    if (!c.isAfterLast()) {
-                        String albumart_path = c.getString(0);
-                        if (ensureFileExists(albumart_path)) {
-                            out = albumart_uri;
-                        }
-                    }
-                    c.close();
-                } else {
-                    ContentValues initialValues = new ContentValues();
-                    initialValues.put("album_id", album_id);
-                    try {
-                        ContentValues values = ensureFile(false, initialValues, "", ALBUM_THUMB_FOLDER);
-                        long rowId = db.insert("album_art", "_data", values);
-                        if (rowId > 0) {
-                            out = ContentUris.withAppendedId(ALBUMART_URI, rowId);
-                        }
-                    } catch (IllegalStateException ex) {
-                        Log.e(TAG, "error creating album thumb file");
-                    }
-                }
-                if (out != null) {
-                    boolean success = false;
-                    try {
-                        OutputStream outstream = getContext().getContentResolver().openOutputStream(out);
-                        success = bm.compress(Bitmap.CompressFormat.JPEG, 75, outstream);
-                        outstream.close();
-                    } catch (FileNotFoundException ex) {
-                        Log.e(TAG, "error creating file", ex);
-                    } catch (IOException ex) {
-                        Log.e(TAG, "error creating file", ex);
-                    }
-                    if (!success) {
-                        // the thumbnail was not written successfully, delete the entry that refers to it
-                        getContext().getContentResolver().delete(out, null, null);
-                    }
-                }
-                getContext().getContentResolver().notifyChange(MEDIA_URI, null);
-            }
-        } catch (IOException ex) {
+        } catch (IOException e) {
         }
 
+        return compressed;
+    }
+
+    // Return a URI to write the album art to and update the database as necessary.
+    Uri getAlbumArtOutputUri(SQLiteDatabase db, long album_id, Uri albumart_uri) {
+        Uri out = null;
+        // TODO: this could be done more efficiently with a call to db.replace(), which
+        // replaces or inserts as needed, making it unnecessary to query() first.
+        if (albumart_uri != null) {
+            Cursor c = query(albumart_uri, new String [] { "_data" },
+                    null, null, null);
+            c.moveToFirst();
+            if (!c.isAfterLast()) {
+                String albumart_path = c.getString(0);
+                if (ensureFileExists(albumart_path)) {
+                    out = albumart_uri;
+                }
+            }
+            c.close();
+        } else {
+            ContentValues initialValues = new ContentValues();
+            initialValues.put("album_id", album_id);
+            try {
+                ContentValues values = ensureFile(false, initialValues, "", ALBUM_THUMB_FOLDER);
+                long rowId = db.insert("album_art", "_data", values);
+                if (rowId > 0) {
+                    out = ContentUris.withAppendedId(ALBUMART_URI, rowId);
+                }
+            } catch (IllegalStateException ex) {
+                Log.e(TAG, "error creating album thumb file");
+            }
+        }
+
+        return out;
+    }
+
+    // Write out the album art to the output URI, recompresses the given Bitmap
+    // if necessary, otherwise writes the compressed data.
+    private void writeAlbumArt(
+            boolean need_to_recompress, Uri out, byte[] compressed, Bitmap bm) {
+        boolean success = false;
+        try {
+            OutputStream outstream = getContext().getContentResolver().openOutputStream(out);
+
+            if (!need_to_recompress) {
+                // No need to recompress here, just write out the original
+                // compressed data here.
+                outstream.write(compressed);
+                success = true;
+            } else {
+                success = bm.compress(Bitmap.CompressFormat.JPEG, 75, outstream);
+            }
+
+            outstream.close();
+        } catch (FileNotFoundException ex) {
+            Log.e(TAG, "error creating file", ex);
+        } catch (IOException ex) {
+            Log.e(TAG, "error creating file", ex);
+        }
+        if (!success) {
+            // the thumbnail was not written successfully, delete the entry that refers to it
+            getContext().getContentResolver().delete(out, null, null);
+        }
+    }
+
+    private void makeThumb(ThumbData d) {
+        byte[] compressed = getCompressedAlbumArt(getContext(), d.path);
+
+        if (compressed == null) {
+            return;
+        }
+
+        Bitmap bm = null;
+        boolean need_to_recompress = true;
+
+        try {
+            // get the size of the bitmap
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            opts.inJustDecodeBounds = true;
+            opts.inSampleSize = 1;
+            BitmapFactory.decodeByteArray(compressed, 0, compressed.length, opts);
+
+            // request a reasonably sized output image
+            // TODO: don't hardcode the size
+            while (opts.outHeight > 320 || opts.outWidth > 320) {
+                opts.outHeight /= 2;
+                opts.outWidth /= 2;
+                opts.inSampleSize *= 2;
+            }
+
+            if (opts.inSampleSize == 1) {
+                // The original album art was of proper size, we won't have to
+                // recompress the bitmap later.
+                need_to_recompress = false;
+            } else {
+                // get the image for real now
+                opts.inJustDecodeBounds = false;
+                opts.inPreferredConfig = Bitmap.Config.RGB_565;
+                bm = BitmapFactory.decodeByteArray(compressed, 0, compressed.length, opts);
+
+                if (bm != null && bm.getConfig() == null) {
+                    bm = bm.copy(Bitmap.Config.RGB_565, false);
+                }
+            }
+        } catch (Exception e) {
+        }
+
+        if (need_to_recompress && bm == null) {
+            return;
+        }
+
+        Uri out = getAlbumArtOutputUri(d.db, d.album_id, d.albumart_uri);
+
+        if (out != null) {
+            writeAlbumArt(need_to_recompress, out, compressed, bm);
+            getContext().getContentResolver().notifyChange(MEDIA_URI, null);
+        }
     }
 
     /**

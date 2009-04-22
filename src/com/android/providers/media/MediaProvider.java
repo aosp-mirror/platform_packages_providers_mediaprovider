@@ -819,9 +819,11 @@ public class MediaProvider extends ContentProvider {
                 break;
 
             case AUDIO_PLAYLISTS_ID_MEMBERS:
-                for (int i = 0; i < projectionIn.length; i++) {
-                    if (projectionIn[i].equals("_id")) {
-                        projectionIn[i] = "audio_playlists_map._id AS _id";
+                if (projectionIn != null) {
+                    for (int i = 0; i < projectionIn.length; i++) {
+                        if (projectionIn[i].equals("_id")) {
+                            projectionIn[i] = "audio_playlists_map._id AS _id";
+                        }
                     }
                 }
                 qb.setTables("audio_playlists_map, audio");

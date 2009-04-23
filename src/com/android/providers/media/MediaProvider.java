@@ -579,6 +579,22 @@ public class MediaProvider extends ContentProvider {
             // To work around this, we drop and recreate the affected view and trigger.
             recreateAudioView(db);
         }
+        
+        if (fromVersion < 73) {
+            // There is no change to the database schema, but we now do case insensitive
+            // matching of folder names when determining whether something is music, a
+            // ringtone, podcast, etc, so we might need to reclassify some files.
+            db.execSQL("UPDATE audio_meta SET is_music=1 WHERE is_music=0 AND " +
+                    "_data LIKE '%/music/%';");
+            db.execSQL("UPDATE audio_meta SET is_ringtone=1 WHERE is_ringtone=0 AND " +
+                    "_data LIKE '%/ringtones/%';");
+            db.execSQL("UPDATE audio_meta SET is_notification=1 WHERE is_notification=0 AND " +
+                    "_data LIKE '%/notifications/%';");
+            db.execSQL("UPDATE audio_meta SET is_alarm=1 WHERE is_alarm=0 AND " +
+                    "_data LIKE '%/alarms/%';");
+            db.execSQL("UPDATE audio_meta SET is_podcast=1 WHERE is_podcast=0 AND " +
+                    "_data LIKE '%/podcasts/%';");
+        }
     }
 
     private static void recreateAudioView(SQLiteDatabase db) {
@@ -2193,7 +2209,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 72;
+    private static final int DATABASE_VERSION = 73;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

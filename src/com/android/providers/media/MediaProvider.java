@@ -19,7 +19,6 @@ package com.android.providers.media;
 import android.app.SearchManager;
 import android.content.*;
 import android.database.Cursor;
-import android.database.MergeCursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -45,7 +44,6 @@ import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Video;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.text.TextUtils;
-import android.util.Config;
 import android.util.Log;
 
 import java.io.File;
@@ -57,7 +55,6 @@ import java.text.Collator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Stack;
 
 /**
@@ -78,6 +75,49 @@ public class MediaProvider extends ContentProvider {
 
     // A Stack of outstanding thumbnail requests.
     private Stack mThumbRequestStack = new Stack();
+
+    // For compatibility with the approximately 0 apps that used mediaprovider search in
+    // releases 1.0, 1.1 or 1.5
+    private String[] mSearchColsLegacy = new String[] {
+            android.provider.BaseColumns._ID,
+            MediaStore.Audio.Media.MIME_TYPE,
+            "(CASE WHEN grouporder=1 THEN " + R.drawable.ic_search_category_music_artist +
+            " ELSE CASE WHEN grouporder=2 THEN " + R.drawable.ic_search_category_music_album +
+            " ELSE " + R.drawable.ic_search_category_music_song + " END END" +
+            ") AS " + SearchManager.SUGGEST_COLUMN_ICON_1,
+            "0 AS " + SearchManager.SUGGEST_COLUMN_ICON_2,
+            "text1 AS " + SearchManager.SUGGEST_COLUMN_TEXT_1,
+            "text1 AS " + SearchManager.SUGGEST_COLUMN_QUERY,
+            "CASE when grouporder=1 THEN data1 ELSE artist END AS data1",
+            "CASE when grouporder=1 THEN data2 ELSE " +
+                "CASE WHEN grouporder=2 THEN NULL ELSE album END END AS data2",
+            "match as ar",
+            SearchManager.SUGGEST_COLUMN_INTENT_DATA,
+            "grouporder",
+            "itemorder"
+    };
+    private String[] mSearchColsFancy = new String[] {
+            android.provider.BaseColumns._ID,
+            MediaStore.Audio.Media.MIME_TYPE,
+            MediaStore.Audio.Artists.ARTIST,
+            MediaStore.Audio.Albums.ALBUM,
+            MediaStore.Audio.Media.TITLE,
+            "data1",
+            "data2",
+    };
+    private String[] mSearchColsBasic = new String[] {
+            android.provider.BaseColumns._ID,
+            MediaStore.Audio.Media.MIME_TYPE,
+            "(CASE WHEN grouporder=1 THEN " + R.drawable.ic_search_category_music_artist +
+            " ELSE CASE WHEN grouporder=2 THEN " + R.drawable.ic_search_category_music_album +
+            " ELSE " + R.drawable.ic_search_category_music_song + " END END" +
+            ") AS " + SearchManager.SUGGEST_COLUMN_ICON_1,
+            "text1 AS " + SearchManager.SUGGEST_COLUMN_TEXT_1,
+            "text1 AS " + SearchManager.SUGGEST_COLUMN_QUERY,
+            "CASE WHEN text2!='" + MediaFile.UNKNOWN_STRING + "' THEN text2 ELSE NULL END AS " +
+                SearchManager.SUGGEST_COLUMN_TEXT_2,
+            SearchManager.SUGGEST_COLUMN_INTENT_DATA
+    };
 
     private BroadcastReceiver mUnmountReceiver = new BroadcastReceiver() {
         @Override
@@ -595,6 +635,60 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("UPDATE audio_meta SET is_podcast=1 WHERE is_podcast=0 AND " +
                     "_data LIKE '%/podcasts/%';");
         }
+
+        if (fromVersion < 74) {
+            // This view is used instead of the audio view by the union below, to force
+            // sqlite to use the title_key index. This greatly reduces memory usage
+            // (no separate copy pass needed for sorting, which could cause errors on
+            // large datasets) and improves speed (by about 35% on a large dataset)
+            db.execSQL("CREATE VIEW IF NOT EXISTS searchhelpertitle AS SELECT * FROM audio " +
+                    "ORDER BY title_key;");
+
+            db.execSQL("CREATE VIEW IF NOT EXISTS search AS " +
+                    "SELECT _id," +
+                    "'artist' AS mime_type," +
+                    "artist," +
+                    "NULL AS album," +
+                    "NULL AS title," +
+                    "artist AS text1," +
+                    "NULL AS text2," +
+                    "number_of_albums AS data1," +
+                    "number_of_tracks AS data2," +
+                    "artist_key AS match," +
+                    "'content://media/external/audio/artists/'||_id AS suggest_intent_data," +
+                    "1 AS grouporder " +
+                    "FROM artist_info WHERE (artist!='" + MediaFile.UNKNOWN_STRING + "') " +
+                "UNION ALL " +
+                    "SELECT _id," +
+                    "'album' AS mime_type," +
+                    "artist," +
+                    "album," +
+                    "NULL AS title," +
+                    "album AS text1," +
+                    "artist AS text2," +
+                    "NULL AS data1," +
+                    "NULL AS data2," +
+                    "artist_key||' '||album_key AS match," +
+                    "'content://media/external/audio/albums/'||_id AS suggest_intent_data," +
+                    "2 AS grouporder " +
+                    "FROM album_info WHERE (album!='" + MediaFile.UNKNOWN_STRING + "') " +
+                "UNION ALL " +
+                    "SELECT searchhelpertitle._id AS _id," +
+                    "mime_type," +
+                    "artist," +
+                    "album," +
+                    "title," +
+                    "title AS text1," +
+                    "artist AS text2," +
+                    "NULL AS data1," +
+                    "NULL AS data2," +
+                    "artist_key||' '||album_key||' '||title_key AS match," +
+                    "'content://media/external/audio/media/'||searchhelpertitle._id AS " +
+                    "suggest_intent_data," +
+                    "3 AS grouporder " +
+                    "FROM searchhelpertitle WHERE (title != '') "
+                    );
+        }
     }
 
     private static void recreateAudioView(SQLiteDatabase db) {
@@ -898,8 +992,13 @@ public class MediaProvider extends ContentProvider {
                 qb.appendWhere("album_id=" + uri.getPathSegments().get(3));
                 break;
 
-            case AUDIO_SEARCH:
-                return doAudioSearch(db, qb, uri, projectionIn, selection, selectionArgs, sort);
+            case AUDIO_SEARCH_LEGACY:
+                Log.w(TAG, "Legacy media search Uri used. Please update your code.");
+                // fall through
+            case AUDIO_SEARCH_FANCY:
+            case AUDIO_SEARCH_BASIC:
+                return doAudioSearch(db, qb, uri, projectionIn, selection, selectionArgs, sort,
+                        table);
 
             default:
                 throw new IllegalStateException("Unknown URL: " + uri.toString());
@@ -915,136 +1014,45 @@ public class MediaProvider extends ContentProvider {
 
     private Cursor doAudioSearch(SQLiteDatabase db, SQLiteQueryBuilder qb,
             Uri uri, String[] projectionIn, String selection,
-            String[] selectionArgs, String sort) {
+            String[] selectionArgs, String sort, int mode) {
 
-        List<String> l = uri.getPathSegments();
-        String mSearchString = l.size() == 4 ? l.get(3) : "";
+        String mSearchString = uri.toString().endsWith("/") ? "" : uri.getLastPathSegment();
         mSearchString = mSearchString.replaceAll("  ", " ").trim().toLowerCase();
-        Cursor mCursor = null;
 
         String [] searchWords = mSearchString.length() > 0 ?
                 mSearchString.split(" ") : new String[0];
-        String [] wildcardWords3 = new String[searchWords.length * 3];
+        String [] wildcardWords = new String[searchWords.length];
         Collator col = Collator.getInstance();
         col.setStrength(Collator.PRIMARY);
         int len = searchWords.length;
         for (int i = 0; i < len; i++) {
             // Because we match on individual words here, we need to remove words
             // like 'a' and 'the' that aren't part of the keys.
-            wildcardWords3[i] = wildcardWords3[i + len] = wildcardWords3[i + len + len] =
+            wildcardWords[i] =
                 (searchWords[i].equals("a") || searchWords[i].equals("an") ||
                         searchWords[i].equals("the")) ? "%" :
                 '%' + MediaStore.Audio.keyFor(searchWords[i]) + '%';
         }
 
-        String UQs [] = new String[3];
-        HashSet<String> tablecolumns = new HashSet<String>();
-
-        // Direct match artists
-        {
-            String[] ccols = new String[] {
-                    MediaStore.Audio.Artists._ID,
-                    "'artist' AS " + MediaStore.Audio.Media.MIME_TYPE,
-                    "" + R.drawable.ic_search_category_music_artist + " AS " +
-                        SearchManager.SUGGEST_COLUMN_ICON_1,
-                    "0 AS " + SearchManager.SUGGEST_COLUMN_ICON_2,
-                    MediaStore.Audio.Artists.ARTIST + " AS " + SearchManager.SUGGEST_COLUMN_TEXT_1,
-                    MediaStore.Audio.Artists.ARTIST + " AS " + SearchManager.SUGGEST_COLUMN_QUERY,
-                    MediaStore.Audio.Artists.NUMBER_OF_ALBUMS + " AS data1",
-                    MediaStore.Audio.Artists.NUMBER_OF_TRACKS + " AS data2",
-                    MediaStore.Audio.Artists.ARTIST_KEY + " AS ar",
-                    "'content://media/external/audio/artists/'||" + MediaStore.Audio.Artists._ID +
-                    " AS " + SearchManager.SUGGEST_COLUMN_INTENT_DATA,
-                    "'1' AS grouporder",
-                    "artist_key AS itemorder"
-            };
-
-
-            String where = MediaStore.Audio.Artists.ARTIST_KEY + " != ''";
-            for (int i = 0; i < searchWords.length; i++) {
-                where += " AND ar LIKE ?";
+        String where = "";
+        for (int i = 0; i < searchWords.length; i++) {
+            if (i == 0) {
+                where = "match LIKE ?";
+            } else {
+                where += " AND match LIKE ?";
             }
-
-            qb.setTables("artist_info");
-            UQs[0] = qb.buildUnionSubQuery(MediaStore.Audio.Media.MIME_TYPE,
-                    ccols, tablecolumns, ccols.length, "artist", where, null, null, null);
         }
 
-        // Direct match albums
-        {
-            String[] ccols = new String[] {
-                    MediaStore.Audio.Albums._ID,
-                    "'album' AS " + MediaStore.Audio.Media.MIME_TYPE,
-                    "" + R.drawable.ic_search_category_music_album + " AS " + SearchManager.SUGGEST_COLUMN_ICON_1,
-                    "0 AS " + SearchManager.SUGGEST_COLUMN_ICON_2,
-                    MediaStore.Audio.Albums.ALBUM + " AS " + SearchManager.SUGGEST_COLUMN_TEXT_1,
-                    MediaStore.Audio.Albums.ALBUM + " AS " + SearchManager.SUGGEST_COLUMN_QUERY,
-                    MediaStore.Audio.Media.ARTIST + " AS data1",
-                    "null AS data2",
-                    MediaStore.Audio.Media.ARTIST_KEY +
-                    "||' '||" +
-                    MediaStore.Audio.Media.ALBUM_KEY +
-                    " AS ar_al",
-                    "'content://media/external/audio/albums/'||" + MediaStore.Audio.Albums._ID +
-                    " AS " + SearchManager.SUGGEST_COLUMN_INTENT_DATA,
-                    "'2' AS grouporder",
-                    "album_key AS itemorder"
-            };
-
-            String where = MediaStore.Audio.Media.ALBUM_KEY + " != ''";
-            for (int i = 0; i < searchWords.length; i++) {
-                where += " AND ar_al LIKE ?";
-            }
-
-            qb = new SQLiteQueryBuilder();
-            qb.setTables("album_info");
-            UQs[1] = qb.buildUnionSubQuery(MediaStore.Audio.Media.MIME_TYPE,
-                    ccols, tablecolumns, ccols.length, "album", where, null, null, null);
+        qb.setTables("search");
+        String [] cols;
+        if (mode == AUDIO_SEARCH_FANCY) {
+            cols = mSearchColsFancy;
+        } else if (mode == AUDIO_SEARCH_BASIC) {
+            cols = mSearchColsBasic;
+        } else {
+            cols = mSearchColsLegacy;
         }
-
-        // Direct match tracks
-        {
-            String[] ccols = new String[] {
-                    "audio._id AS _id",
-                    MediaStore.Audio.Media.MIME_TYPE,
-                    "" + R.drawable.ic_search_category_music_song + " AS " + SearchManager.SUGGEST_COLUMN_ICON_1,
-                    "0 AS " + SearchManager.SUGGEST_COLUMN_ICON_2,
-                    MediaStore.Audio.Media.TITLE + " AS " + SearchManager.SUGGEST_COLUMN_TEXT_1,
-                    MediaStore.Audio.Media.TITLE + " AS " + SearchManager.SUGGEST_COLUMN_QUERY,
-                    MediaStore.Audio.Media.ARTIST + " AS data1",
-                    MediaStore.Audio.Media.ALBUM + " AS data2",
-                    MediaStore.Audio.Media.ARTIST_KEY +
-                    "||' '||" +
-                    MediaStore.Audio.Media.ALBUM_KEY +
-                    "||' '||" +
-                    MediaStore.Audio.Media.TITLE_KEY +
-                    " AS ar_al_ti",
-                    "'content://media/external/audio/media/'||audio._id AS " + SearchManager.SUGGEST_COLUMN_INTENT_DATA,
-                    "'3' AS grouporder",
-                    "title_key AS itemorder"
-            };
-
-            String where = MediaStore.Audio.Media.TITLE + " != ''";
-
-            for (int i = 0; i < searchWords.length; i++) {
-                where += " AND ar_al_ti LIKE ?";
-            }
-            qb = new SQLiteQueryBuilder();
-            qb.setTables("audio");
-            UQs[2] = qb.buildUnionSubQuery(MediaStore.Audio.Media.MIME_TYPE,
-                    ccols, tablecolumns, ccols.length, "audio/", where, null, null, null);
-        }
-
-        if (mCursor != null) {
-            mCursor.deactivate();
-            mCursor = null;
-        }
-        if (UQs[0] != null && UQs[1] != null && UQs[2] != null) {
-            String union = qb.buildUnionQuery(UQs, "grouporder,itemorder", null);
-            mCursor = db.rawQuery(union, wildcardWords3);
-        }
-
-        return mCursor;
+        return qb.query(db, cols, where, wildcardWords, null, null, null);
     }
 
     @Override
@@ -2209,7 +2217,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 73;
+    private static final int DATABASE_VERSION = 74;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep
@@ -2267,7 +2275,9 @@ public class MediaProvider extends ContentProvider {
     private static final int VOLUMES = 300;
     private static final int VOLUMES_ID = 301;
 
-    private static final int AUDIO_SEARCH = 400;
+    private static final int AUDIO_SEARCH_LEGACY = 400;
+    private static final int AUDIO_SEARCH_BASIC = 401;
+    private static final int AUDIO_SEARCH_FANCY = 402;
 
     private static final int MEDIA_SCANNER = 500;
 
@@ -2329,9 +2339,22 @@ public class MediaProvider extends ContentProvider {
         URI_MATCHER.addURI("media", "*", VOLUMES_ID);
         URI_MATCHER.addURI("media", null, VOLUMES);
 
+        /**
+         * @deprecated use the 'basic' or 'fancy' search Uris instead
+         */
         URI_MATCHER.addURI("media", "*/audio/" + SearchManager.SUGGEST_URI_PATH_QUERY,
-                AUDIO_SEARCH);
+                AUDIO_SEARCH_LEGACY);
         URI_MATCHER.addURI("media", "*/audio/" + SearchManager.SUGGEST_URI_PATH_QUERY + "/*",
-                AUDIO_SEARCH);
+                AUDIO_SEARCH_LEGACY);
+
+        // used for search suggestions
+        URI_MATCHER.addURI("media", "*/audio/search/" + SearchManager.SUGGEST_URI_PATH_QUERY,
+                AUDIO_SEARCH_BASIC);
+        URI_MATCHER.addURI("media", "*/audio/search/" + SearchManager.SUGGEST_URI_PATH_QUERY +
+                "/*", AUDIO_SEARCH_BASIC);
+
+        // used by the music app's search activity
+        URI_MATCHER.addURI("media", "*/audio/search/fancy", AUDIO_SEARCH_FANCY);
+        URI_MATCHER.addURI("media", "*/audio/search/fancy/*", AUDIO_SEARCH_FANCY);
     }
 }

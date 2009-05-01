@@ -94,7 +94,8 @@ public class MediaProvider extends ContentProvider {
             "match as ar",
             SearchManager.SUGGEST_COLUMN_INTENT_DATA,
             "grouporder",
-            "itemorder"
+            "NULL AS itemorder" // We should be sorting by the artist/album/title keys, but that
+                                // column is not available here, and the list is already sorted.
     };
     private String[] mSearchColsFancy = new String[] {
             android.provider.BaseColumns._ID,

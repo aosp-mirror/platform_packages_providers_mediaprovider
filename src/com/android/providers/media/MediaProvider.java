@@ -690,6 +690,13 @@ public class MediaProvider extends ContentProvider {
                     "FROM searchhelpertitle WHERE (title != '') "
                     );
         }
+
+        if (fromVersion < 75) {
+            // Force a rescan of the audio entries so we can apply the new logic to 
+            // distinguish same-named albums.
+            db.execSQL("UPDATE audio_meta SET date_modified=0;");
+            db.execSQL("DELETE FROM albums");
+        }
     }
 
     private static void recreateAudioView(SQLiteDatabase db) {
@@ -1234,11 +1241,12 @@ public class MediaProvider extends ContentProvider {
                 values.remove("artist");
                 long artistRowId;
                 HashMap<String, Long> artistCache = database.mArtistCache;
+                String path = values.getAsString("_data");
                 synchronized(artistCache) {
                     Long temp = artistCache.get(s);
                     if (temp == null) {
                         artistRowId = getKeyIdForName(db, "artists", "artist_key", "artist",
-                                s, null, artistCache, uri);
+                                s, s, path, 0, artistCache, uri);
                     } else {
                         artistRowId = temp.longValue();
                     }
@@ -1251,11 +1259,12 @@ public class MediaProvider extends ContentProvider {
                 long albumRowId;
                 HashMap<String, Long> albumCache = database.mAlbumCache;
                 synchronized(albumCache) {
-                    Long temp = albumCache.get(s);
+                    int albumhash = path.substring(0, path.lastIndexOf('/')).hashCode();
+                    String cacheName = s + albumhash;
+                    Long temp = albumCache.get(cacheName);
                     if (temp == null) {
-                        String path = values.getAsString("_data");
                         albumRowId = getKeyIdForName(db, "albums", "album_key", "album",
-                                s, path, albumCache, uri);
+                                s, cacheName, path, albumhash, albumCache, uri);
                     } else {
                         albumRowId = temp;
                     }
@@ -1617,7 +1626,7 @@ public class MediaProvider extends ContentProvider {
                                 Long temp = artistCache.get(s);
                                 if (temp == null) {
                                     artistRowId = getKeyIdForName(db, "artists", "artist_key", "artist",
-                                            s, null, artistCache, uri);
+                                            s, s, null, 0, artistCache, uri);
                                 } else {
                                     artistRowId = temp.longValue();
                                 }
@@ -1625,18 +1634,27 @@ public class MediaProvider extends ContentProvider {
                             values.put("artist_id", Integer.toString((int)artistRowId));
                         }
 
-                        // Do the same for the album field
+                        // Do the same for the album field.
                         so = values.getAsString("album");
                         if (so != null) {
+                            String path = values.getAsString("_data");
+                            int albumHash = 0;
+                            if (path == null) {
+                                // If the path is null, we don't have a hash for the file in question.
+                                Log.w(TAG, "Update without specified path.");
+                            } else {
+                                albumHash = path.substring(0, path.lastIndexOf('/')).hashCode();
+                            }
                             String s = so.toString();
                             values.remove("album");
                             long albumRowId;
                             HashMap<String, Long> albumCache = database.mAlbumCache;
                             synchronized(albumCache) {
-                                Long temp = albumCache.get(s);
+                                String cacheName = s + albumHash;
+                                Long temp = albumCache.get(cacheName);
                                 if (temp == null) {
                                     albumRowId = getKeyIdForName(db, "albums", "album_key", "album",
-                                            s, null, albumCache, uri);
+                                            s, cacheName, path, albumHash, albumCache, uri);
                                 } else {
                                     albumRowId = temp.longValue();
                                 }
@@ -1968,14 +1986,17 @@ public class MediaProvider extends ContentProvider {
      * @param keyField  The name of the key-column
      * @param nameField The name of the name-column
      * @param rawName   The name that the calling app was trying to insert into the database
-     * @param path      The path to the file being inserted in to the audio table
+     * @param cacheName The string that will be inserted in to the cache
+     * @param path      The full path to the file being inserted in to the audio table
+     * @param albumHash A hash to distinguish between different albums of the same name
      * @param cache     The cache to add this entry to
      * @param srcuri    The Uri that prompted the call to this method, used for determining whether this is
      *                  the internal or external database
      * @return          The row ID for this artist/album, or -1 if the provided name was invalid
      */
     private long getKeyIdForName(SQLiteDatabase db, String table, String keyField, String nameField,
-            String rawName, String path, HashMap<String, Long> cache, Uri srcuri) {
+            String rawName, String cacheName, String path, int albumHash,
+            HashMap<String, Long> cache, Uri srcuri) {
         long rowId;
 
         if (rawName == null || rawName.length() == 0) {
@@ -1985,6 +2006,19 @@ public class MediaProvider extends ContentProvider {
 
         if (k == null) {
             return -1;
+        }
+
+        boolean isAlbum = table.equals("albums");
+        boolean isUnknown = MediaFile.UNKNOWN_STRING.equals(rawName);
+
+        // To distinguish same-named albums, we append a hash of the path.
+        // Ideally we would also take things like CDDB ID in to account, so
+        // we can group files from the same album that aren't in the same
+        // folder, but this is a quick and easy start that works immediately
+        // without requiring support from the mp3, mp4 and Ogg meta data
+        // readers, as long as the albums are in different folders.
+        if (isAlbum && ! isUnknown) {
+            k = k + albumHash;
         }
 
         String [] selargs = { k };
@@ -1998,8 +2032,7 @@ public class MediaProvider extends ContentProvider {
                         otherValues.put(keyField, k);
                         otherValues.put(nameField, rawName);
                         rowId = db.insert(table, "duration", otherValues);
-                        if (path != null && table.equals("albums") &&
-                                ! rawName.equals(MediaFile.UNKNOWN_STRING)) {
+                        if (path != null && isAlbum && ! isUnknown) {
                             // We just inserted a new album. Now create an album art thumbnail for it.
                             makeThumb(db, path, rowId, null);
                         }
@@ -2040,8 +2073,8 @@ public class MediaProvider extends ContentProvider {
             if (c != null) c.close();
         }
 
-        if (cache != null && ! rawName.equals(MediaFile.UNKNOWN_STRING)) {
-            cache.put(rawName, rowId);
+        if (cache != null && ! isUnknown) {
+            cache.put(cacheName, rowId);
         }
         return rowId;
     }
@@ -2218,7 +2251,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 74;
+    private static final int DATABASE_VERSION = 75;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

@@ -51,6 +51,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.text.Collator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -696,6 +697,20 @@ public class MediaProvider extends ContentProvider {
             // distinguish same-named albums.
             db.execSQL("UPDATE audio_meta SET date_modified=0;");
             db.execSQL("DELETE FROM albums");
+        }
+
+        if (fromVersion < 76) {
+            // We now ignore double quotes when building the key, so we have to remove all of them
+            // from existing keys.
+            db.execSQL("UPDATE audio_meta SET title_key=" +
+                    "REPLACE(title_key,x'081D08C29F081D',x'081D') " +
+                    "WHERE title_key LIKE '%'||x'081D08C29F081D'||'%';");
+            db.execSQL("UPDATE albums SET album_key=" +
+                    "REPLACE(album_key,x'081D08C29F081D',x'081D') " +
+                    "WHERE album_key LIKE '%'||x'081D08C29F081D'||'%';");
+            db.execSQL("UPDATE artists SET artist_key=" +
+                    "REPLACE(artist_key,x'081D08C29F081D',x'081D') " +
+                    "WHERE artist_key LIKE '%'||x'081D08C29F081D'||'%';");
         }
     }
 
@@ -2251,7 +2266,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 75;
+    private static final int DATABASE_VERSION = 76;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

@@ -1766,7 +1766,6 @@ public class MediaProvider extends ContentProvider {
 
         Worker(String name) {
             Thread t = new Thread(null, this, name);
-            t.setPriority(Thread.MIN_PRIORITY);
             t.start();
             synchronized (mLock) {
                 while (mLooper == null) {
@@ -1784,6 +1783,7 @@ public class MediaProvider extends ContentProvider {
 
         public void run() {
             synchronized (mLock) {
+                Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
                 Looper.prepare();
                 mLooper = Looper.myLooper();
                 mLock.notifyAll();

@@ -33,6 +33,7 @@ import android.os.Environment;
 import android.os.FileUtils;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.MemoryFile;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.os.Process;
@@ -51,7 +52,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.text.Collator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -67,7 +67,6 @@ import java.util.Stack;
 public class MediaProvider extends ContentProvider {
     private static final Uri MEDIA_URI = Uri.parse("content://media");
     private static final Uri ALBUMART_URI = Uri.parse("content://media/external/audio/albumart");
-    private static final Uri ALBUMART_THUMB_URI = Uri.parse("content://media/external/audio/albumart_thumb");
 
     private static final HashMap<String, String> sArtistAlbumsMap = new HashMap<String, String>();
 
@@ -281,7 +280,7 @@ public class MediaProvider extends ContentProvider {
                     d = (ThumbData)mThumbRequestStack.pop();
                 }
 
-                makeThumb(d);
+                makeThumbInternal(d);
                 synchronized (mPendingThumbs) {
                     mPendingThumbs.remove(d.path);
                 }
@@ -1729,10 +1728,51 @@ public class MediaProvider extends ContentProvider {
     @Override
     public ParcelFileDescriptor openFile(Uri uri, String mode)
             throws FileNotFoundException {
+
         ParcelFileDescriptor pfd = null;
+
+        if (URI_MATCHER.match(uri) == AUDIO_ALBUMART_FILE_ID) {
+            // get album art for the specified media file
+            DatabaseHelper database = getDatabaseForUri(uri);
+            if (database == null) {
+                throw new IllegalStateException("Couldn't open database for " + uri);
+            }
+            SQLiteDatabase db = database.getReadableDatabase();
+            SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
+            int songid = Integer.parseInt(uri.getPathSegments().get(3));
+            qb.setTables("audio_meta");
+            qb.appendWhere("_id=" + songid);
+            Cursor c = qb.query(db,
+                    new String [] {
+                        MediaStore.Audio.Media.DATA,
+                        MediaStore.Audio.Media.ALBUM_ID },
+                    null, null, null, null, null);
+            if (c.moveToFirst()) {
+                String audiopath = c.getString(0);
+                int albumid = c.getInt(1);
+                // Try to get existing album art for this album first, which
+                // could possibly have been obtained from a different file.
+                // If that fails, try to get it from this specific file.
+                Uri newUri = ContentUris.withAppendedId(ALBUMART_URI, albumid);
+                try {
+                    pfd = openFile(newUri, mode);  // recursive call
+                } catch (FileNotFoundException ex) {
+                    // That didn't work, now try to get it from the specific file
+                    pfd = getThumb(db, audiopath, albumid, null);
+                }
+            }
+            c.close();
+            return pfd;
+        }
+
         try {
             pfd = openFileHelper(uri, mode);
         } catch (FileNotFoundException ex) {
+            if (mode.contains("w")) {
+                // if the file couldn't be created, we shouldn't extract album art
+                throw ex;
+            }
+
             if (URI_MATCHER.match(uri) == AUDIO_ALBUMART_ID) {
                 // Tried to open an album art file which does not exist. Regenerate.
                 DatabaseHelper database = getDatabaseForUri(uri);
@@ -1742,20 +1782,21 @@ public class MediaProvider extends ContentProvider {
                 SQLiteDatabase db = database.getReadableDatabase();
                 SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
                 int albumid = Integer.parseInt(uri.getPathSegments().get(3));
-                qb.setTables("audio");
+                qb.setTables("audio_meta");
                 qb.appendWhere("album_id=" + albumid);
                 Cursor c = qb.query(db,
                         new String [] {
                             MediaStore.Audio.Media.DATA },
                         null, null, null, null, null);
-                c.moveToFirst();
-                if (!c.isAfterLast()) {
+                if (c.moveToFirst()) {
                     String audiopath = c.getString(0);
-                    makeThumb(db, audiopath, albumid, uri);
+                    pfd = getThumb(db, audiopath, albumid, uri);
                 }
                 c.close();
             }
-            throw ex;
+            if (pfd == null) {
+                throw ex;
+            }
         }
         return pfd;
     }
@@ -1803,7 +1844,7 @@ public class MediaProvider extends ContentProvider {
         Uri albumart_uri;
     }
 
-    private void makeThumb(SQLiteDatabase db, String path, long album_id,
+    private void makeThumbAsync(SQLiteDatabase db, String path, long album_id,
             Uri albumart_uri) {
         synchronized (mPendingThumbs) {
             if (mPendingThumbs.contains(path)) {
@@ -1885,15 +1926,17 @@ public class MediaProvider extends ContentProvider {
         if (albumart_uri != null) {
             Cursor c = query(albumart_uri, new String [] { "_data" },
                     null, null, null);
-            c.moveToFirst();
-            if (!c.isAfterLast()) {
+            if (c.moveToFirst()) {
                 String albumart_path = c.getString(0);
                 if (ensureFileExists(albumart_path)) {
                     out = albumart_uri;
                 }
+            } else {
+                albumart_uri = null;
             }
             c.close();
-        } else {
+        }
+        if (albumart_uri == null){
             ContentValues initialValues = new ContentValues();
             initialValues.put("album_id", album_id);
             try {
@@ -1906,7 +1949,6 @@ public class MediaProvider extends ContentProvider {
                 Log.e(TAG, "error creating album thumb file");
             }
         }
-
         return out;
     }
 
@@ -1939,11 +1981,21 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private void makeThumb(ThumbData d) {
+    private ParcelFileDescriptor getThumb(SQLiteDatabase db, String path, long album_id,
+            Uri albumart_uri) {
+        ThumbData d = new ThumbData();
+        d.db = db;
+        d.path = path;
+        d.album_id = album_id;
+        d.albumart_uri = albumart_uri;
+        return makeThumbInternal(d);
+    }
+
+    private ParcelFileDescriptor makeThumbInternal(ThumbData d) {
         byte[] compressed = getCompressedAlbumArt(getContext(), d.path);
 
         if (compressed == null) {
-            return;
+            return null;
         }
 
         Bitmap bm = null;
@@ -1982,15 +2034,33 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (need_to_recompress && bm == null) {
-            return;
+            return null;
         }
 
-        Uri out = getAlbumArtOutputUri(d.db, d.album_id, d.albumart_uri);
+        if (d.albumart_uri == null) {
+            // this one doesn't need to be saved (probably a song with an unknown album),
+            // so stick it in a memory file and return that
+            try {
+                MemoryFile file = new MemoryFile("albumthumb", compressed.length);
+                file.writeBytes(compressed, 0, 0, compressed.length);
+                file.deactivate();
+                return file.getParcelFileDescriptor();
+            } catch (IOException e) {
+            }
+        } else {
+            // this one needs to actually be saved on the sd card
+            Uri out = getAlbumArtOutputUri(d.db, d.album_id, d.albumart_uri);
 
-        if (out != null) {
-            writeAlbumArt(need_to_recompress, out, compressed, bm);
-            getContext().getContentResolver().notifyChange(MEDIA_URI, null);
+            if (out != null) {
+                writeAlbumArt(need_to_recompress, out, compressed, bm);
+                getContext().getContentResolver().notifyChange(MEDIA_URI, null);
+                try {
+                    return openFileHelper(out, "r");
+                } catch (FileNotFoundException ex) {
+                }
+            }
         }
+        return null;
     }
 
     /**
@@ -2049,7 +2119,7 @@ public class MediaProvider extends ContentProvider {
                         rowId = db.insert(table, "duration", otherValues);
                         if (path != null && isAlbum && ! isUnknown) {
                             // We just inserted a new album. Now create an album art thumbnail for it.
-                            makeThumb(db, path, rowId, null);
+                            makeThumbAsync(db, path, rowId, null);
                         }
                         if (rowId > 0) {
                             String volume = srcuri.toString().substring(16, 24); // extract internal/external
@@ -2317,6 +2387,7 @@ public class MediaProvider extends ContentProvider {
     private static final int AUDIO_ARTISTS_ID_ALBUMS = 118;
     private static final int AUDIO_ALBUMART = 119;
     private static final int AUDIO_ALBUMART_ID = 120;
+    private static final int AUDIO_ALBUMART_FILE_ID = 121;
 
     private static final int VIDEO_MEDIA = 200;
     private static final int VIDEO_MEDIA_ID = 201;
@@ -2379,6 +2450,7 @@ public class MediaProvider extends ContentProvider {
         URI_MATCHER.addURI("media", "*/audio/albums/#", AUDIO_ALBUMS_ID);
         URI_MATCHER.addURI("media", "*/audio/albumart", AUDIO_ALBUMART);
         URI_MATCHER.addURI("media", "*/audio/albumart/#", AUDIO_ALBUMART_ID);
+        URI_MATCHER.addURI("media", "*/audio/media/#/albumart", AUDIO_ALBUMART_FILE_ID);
 
         URI_MATCHER.addURI("media", "*/video/media", VIDEO_MEDIA);
         URI_MATCHER.addURI("media", "*/video/media/#", VIDEO_MEDIA_ID);

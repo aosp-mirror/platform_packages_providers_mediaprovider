@@ -1260,11 +1260,12 @@ public class MediaProvider extends ContentProvider {
                     Long temp = artistCache.get(s);
                     if (temp == null) {
                         artistRowId = getKeyIdForName(db, "artists", "artist_key", "artist",
-                                s, s, path, 0, artistCache, uri);
+                                s, s, path, 0, null, artistCache, uri);
                     } else {
                         artistRowId = temp.longValue();
                     }
                 }
+                String artist = s;
 
                 // Do the same for the album field
                 so = values.get("album");
@@ -1278,7 +1279,7 @@ public class MediaProvider extends ContentProvider {
                     Long temp = albumCache.get(cacheName);
                     if (temp == null) {
                         albumRowId = getKeyIdForName(db, "albums", "album_key", "album",
-                                s, cacheName, path, albumhash, albumCache, uri);
+                                s, cacheName, path, albumhash, artist, albumCache, uri);
                     } else {
                         albumRowId = temp;
                     }
@@ -1630,17 +1631,16 @@ public class MediaProvider extends ContentProvider {
                         ContentValues values = new ContentValues(initialValues);
                         // Insert the artist into the artist table and remove it from
                         // the input values
-                        String so = values.getAsString("artist");
-                        if (so != null) {
-                            String s = so.toString();
+                        String artist = values.getAsString("artist");
+                        if (artist != null) {
                             values.remove("artist");
                             long artistRowId;
                             HashMap<String, Long> artistCache = database.mArtistCache;
                             synchronized(artistCache) {
-                                Long temp = artistCache.get(s);
+                                Long temp = artistCache.get(artist);
                                 if (temp == null) {
                                     artistRowId = getKeyIdForName(db, "artists", "artist_key", "artist",
-                                            s, s, null, 0, artistCache, uri);
+                                            artist, artist, null, 0, null, artistCache, uri);
                                 } else {
                                     artistRowId = temp.longValue();
                                 }
@@ -1649,7 +1649,7 @@ public class MediaProvider extends ContentProvider {
                         }
 
                         // Do the same for the album field.
-                        so = values.getAsString("album");
+                        String so = values.getAsString("album");
                         if (so != null) {
                             String path = values.getAsString("_data");
                             int albumHash = 0;
@@ -1668,7 +1668,7 @@ public class MediaProvider extends ContentProvider {
                                 Long temp = albumCache.get(cacheName);
                                 if (temp == null) {
                                     albumRowId = getKeyIdForName(db, "albums", "album_key", "album",
-                                            s, cacheName, path, albumHash, albumCache, uri);
+                                            s, cacheName, path, albumHash, artist, albumCache, uri);
                                 } else {
                                     albumRowId = temp.longValue();
                                 }
@@ -2074,6 +2074,7 @@ public class MediaProvider extends ContentProvider {
      * @param cacheName The string that will be inserted in to the cache
      * @param path      The full path to the file being inserted in to the audio table
      * @param albumHash A hash to distinguish between different albums of the same name
+     * @param artist    The name of the artist, if known
      * @param cache     The cache to add this entry to
      * @param srcuri    The Uri that prompted the call to this method, used for determining whether this is
      *                  the internal or external database
@@ -2081,7 +2082,7 @@ public class MediaProvider extends ContentProvider {
      */
     private long getKeyIdForName(SQLiteDatabase db, String table, String keyField, String nameField,
             String rawName, String cacheName, String path, int albumHash,
-            HashMap<String, Long> cache, Uri srcuri) {
+            String artist, HashMap<String, Long> cache, Uri srcuri) {
         long rowId;
 
         if (rawName == null || rawName.length() == 0) {
@@ -2102,8 +2103,11 @@ public class MediaProvider extends ContentProvider {
         // folder, but this is a quick and easy start that works immediately
         // without requiring support from the mp3, mp4 and Ogg meta data
         // readers, as long as the albums are in different folders.
-        if (isAlbum && ! isUnknown) {
+        if (isAlbum) {
             k = k + albumHash;
+            if (isUnknown) {
+                k = k + artist;
+            }
         }
 
         String [] selargs = { k };

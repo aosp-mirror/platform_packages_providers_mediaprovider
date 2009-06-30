@@ -107,6 +107,7 @@ public class MediaProvider extends ContentProvider {
             "data1",
             "data2",
     };
+    // If this array gets changed, please update the constant below to point to the correct item.
     private String[] mSearchColsBasic = new String[] {
             android.provider.BaseColumns._ID,
             MediaStore.Audio.Media.MIME_TYPE,
@@ -116,10 +117,14 @@ public class MediaProvider extends ContentProvider {
             ") AS " + SearchManager.SUGGEST_COLUMN_ICON_1,
             "text1 AS " + SearchManager.SUGGEST_COLUMN_TEXT_1,
             "text1 AS " + SearchManager.SUGGEST_COLUMN_QUERY,
-            "CASE WHEN text2!='" + MediaFile.UNKNOWN_STRING + "' THEN text2 ELSE NULL END AS " +
-                SearchManager.SUGGEST_COLUMN_TEXT_2,
+            "(CASE WHEN grouporder=1 THEN '%1'" +  // %1 gets replaced with localized string.
+            " ELSE CASE WHEN grouporder=3 THEN artist || ' - ' || album" +
+            " ELSE CASE WHEN text2!='" + MediaFile.UNKNOWN_STRING + "' THEN text2" +
+            " ELSE NULL END END END) AS " + SearchManager.SUGGEST_COLUMN_TEXT_2,
             SearchManager.SUGGEST_COLUMN_INTENT_DATA
     };
+    // Position of the TEXT_2 item in the above array.
+    private final int SEARCH_COLUMN_BASIC_TEXT2 = 5;
 
     private BroadcastReceiver mUnmountReceiver = new BroadcastReceiver() {
         @Override
@@ -255,6 +260,9 @@ public class MediaProvider extends ContentProvider {
         sArtistAlbumsMap.put(MediaStore.Audio.Albums.ALBUM_ART, "album_art._data AS " +
                 MediaStore.Audio.Albums.ALBUM_ART);
 
+        mSearchColsBasic[SEARCH_COLUMN_BASIC_TEXT2] =
+                mSearchColsBasic[SEARCH_COLUMN_BASIC_TEXT2].replaceAll(
+                        "%1", getContext().getString(R.string.artist_label));
         mDatabases = new HashMap<String, DatabaseHelper>();
         attachVolume(INTERNAL_VOLUME);
 

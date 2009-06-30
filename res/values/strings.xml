@@ -20,4 +20,7 @@
 
     <!-- Label to show to user for this package. -->
     <string name="app_label">Media Storage</string>
+
+    <!-- Description line for music artists in the search/suggestion results -->
+    <string name="artist_label">Artist</string>
 </resources>

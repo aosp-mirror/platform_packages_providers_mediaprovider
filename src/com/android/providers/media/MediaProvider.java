@@ -69,6 +69,7 @@ public class MediaProvider extends ContentProvider {
     private static final Uri ALBUMART_URI = Uri.parse("content://media/external/audio/albumart");
 
     private static final HashMap<String, String> sArtistAlbumsMap = new HashMap<String, String>();
+    private static final HashMap<String, String> sFolderArtMap = new HashMap<String, String>();
 
     // A HashSet of paths that are pending creation of album art thumbnails.
     private HashSet mPendingThumbs = new HashSet();
@@ -132,6 +133,7 @@ public class MediaProvider extends ContentProvider {
                 // Remove the external volume and then notify all cursors backed by
                 // data on that volume
                 detachVolume(Uri.parse("content://media/external"));
+                sFolderArtMap.clear();
             }
         }
     };
@@ -1898,23 +1900,74 @@ public class MediaProvider extends ContentProvider {
             compressed = scanner.extractAlbumArt(pfd.getFileDescriptor());
             pfd.close();
 
-            // if no embedded art exists, look for AlbumArt.jpg in same directory as the media file
+            // If no embedded art exists, look for a suitable image file in the
+            // same directory as the media file.
+            // We look for, in order of preference:
+            // 0 AlbumArt.jpg
+            // 1 AlbumArt*Large.jpg
+            // 2 Any other jpg image with 'albumart' anywhere in the name
+            // 3 Any other jpg image
+            // 4 any other png image
             if (compressed == null && path != null) {
                 int lastSlash = path.lastIndexOf('/');
                 if (lastSlash > 0) {
-                    String artPath = path.substring(0, lastSlash + 1) + "AlbumArt.jpg";
-                    File file = new File(artPath);
-                    if (file.exists()) {
-                        compressed = new byte[(int)file.length()];
-                        FileInputStream stream = null;
-                        try {
-                            stream = new FileInputStream(file);
-                            stream.read(compressed);
-                        } catch (IOException ex) {
-                            compressed = null;
-                        } finally {
-                            if (stream != null) {
-                                stream.close();
+
+                    String artPath = path.substring(0, lastSlash + 1);
+
+                    String bestmatch = null;
+                    synchronized (sFolderArtMap) {
+                        if (sFolderArtMap.containsKey(artPath)) {
+                            bestmatch = sFolderArtMap.get(artPath);
+                        } else {
+                            File dir = new File(artPath);
+                            String [] entrynames = dir.list();
+                            if (entrynames == null) {
+                                return null;
+                            }
+                            bestmatch = null;
+                            int matchlevel = 1000;
+                            for (int i = entrynames.length - 1; i >=0; i--) {
+                                String entry = entrynames[i].toLowerCase();
+                                if (entry.equals("albumart.jpg")) {
+                                    bestmatch = entrynames[i];
+                                    break;
+                                } else if (entry.startsWith("albumart")
+                                        && entry.endsWith("large.jpg")
+                                        && matchlevel > 1) {
+                                    bestmatch = entrynames[i];
+                                    matchlevel = 1;
+                                } else if (entry.contains("albumart")
+                                        && entry.endsWith(".jpg")
+                                        && matchlevel > 2) {
+                                    bestmatch = entrynames[i];
+                                    matchlevel = 2;
+                                } else if (entry.endsWith(".jpg") && matchlevel > 3) {
+                                    bestmatch = entrynames[i];
+                                    matchlevel = 3;
+                                } else if (entry.endsWith(".png") && matchlevel > 4) {
+                                    bestmatch = entrynames[i];
+                                    matchlevel = 4;
+                                }
+                            }
+                            // note that this may insert null if no album art was found
+                            sFolderArtMap.put(artPath, bestmatch);
+                        }
+                    }
+
+                    if (bestmatch != null) {
+                        File file = new File(artPath  + bestmatch);
+                        if (file.exists()) {
+                            compressed = new byte[(int)file.length()];
+                            FileInputStream stream = null;
+                            try {
+                                stream = new FileInputStream(file);
+                                stream.read(compressed);
+                            } catch (IOException ex) {
+                                compressed = null;
+                            } finally {
+                                if (stream != null) {
+                                    stream.close();
+                                }
                             }
                         }
                     }

@@ -1299,6 +1299,10 @@ public class MediaProvider extends ContentProvider {
                 so = values.getAsString("title");
                 s = (so == null ? "" : so.toString());
                 values.put("title_key", MediaStore.Audio.keyFor(s));
+                // do a final trim of the title, in case it started with the special
+                // "sort first" character (ascii \001)
+                values.remove("title");
+                values.put("title", s.trim());
 
                 computeDisplayName(values.getAsString("_data"), values);
                 values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);

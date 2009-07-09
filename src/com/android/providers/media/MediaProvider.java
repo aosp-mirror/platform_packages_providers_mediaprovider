@@ -1470,6 +1470,10 @@ public class MediaProvider extends ContentProvider {
             GetTableAndWhereOutParameter out) {
         String where = null;
         switch (match) {
+            case IMAGES_MEDIA:
+                out.table = "images";
+                break;
+
             case IMAGES_MEDIA_ID:
                 out.table = "images";
                 where = "_id = " + uri.getPathSegments().get(3);

@@ -19,7 +19,6 @@ package com.android.providers.media;
 import android.app.SearchManager;
 import android.content.*;
 import android.database.Cursor;
-import android.database.MergeCursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -45,7 +44,6 @@ import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Video;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.text.TextUtils;
-import android.util.Config;
 import android.util.Log;
 
 import java.io.File;
@@ -53,11 +51,12 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.text.Collator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Stack;
 
 /**
  * Media content provider. See {@link android.provider.MediaStore} for details.
@@ -71,6 +70,61 @@ public class MediaProvider extends ContentProvider {
     private static final Uri ALBUMART_THUMB_URI = Uri.parse("content://media/external/audio/albumart_thumb");
 
     private static final HashMap<String, String> sArtistAlbumsMap = new HashMap<String, String>();
+
+    // A HashSet of paths that are pending creation of album art thumbnails.
+    private HashSet mPendingThumbs = new HashSet();
+
+    // A Stack of outstanding thumbnail requests.
+    private Stack mThumbRequestStack = new Stack();
+
+    // For compatibility with the approximately 0 apps that used mediaprovider search in
+    // releases 1.0, 1.1 or 1.5
+    private String[] mSearchColsLegacy = new String[] {
+            android.provider.BaseColumns._ID,
+            MediaStore.Audio.Media.MIME_TYPE,
+            "(CASE WHEN grouporder=1 THEN " + R.drawable.ic_search_category_music_artist +
+            " ELSE CASE WHEN grouporder=2 THEN " + R.drawable.ic_search_category_music_album +
+            " ELSE " + R.drawable.ic_search_category_music_song + " END END" +
+            ") AS " + SearchManager.SUGGEST_COLUMN_ICON_1,
+            "0 AS " + SearchManager.SUGGEST_COLUMN_ICON_2,
+            "text1 AS " + SearchManager.SUGGEST_COLUMN_TEXT_1,
+            "text1 AS " + SearchManager.SUGGEST_COLUMN_QUERY,
+            "CASE when grouporder=1 THEN data1 ELSE artist END AS data1",
+            "CASE when grouporder=1 THEN data2 ELSE " +
+                "CASE WHEN grouporder=2 THEN NULL ELSE album END END AS data2",
+            "match as ar",
+            SearchManager.SUGGEST_COLUMN_INTENT_DATA,
+            "grouporder",
+            "NULL AS itemorder" // We should be sorting by the artist/album/title keys, but that
+                                // column is not available here, and the list is already sorted.
+    };
+    private String[] mSearchColsFancy = new String[] {
+            android.provider.BaseColumns._ID,
+            MediaStore.Audio.Media.MIME_TYPE,
+            MediaStore.Audio.Artists.ARTIST,
+            MediaStore.Audio.Albums.ALBUM,
+            MediaStore.Audio.Media.TITLE,
+            "data1",
+            "data2",
+    };
+    // If this array gets changed, please update the constant below to point to the correct item.
+    private String[] mSearchColsBasic = new String[] {
+            android.provider.BaseColumns._ID,
+            MediaStore.Audio.Media.MIME_TYPE,
+            "(CASE WHEN grouporder=1 THEN " + R.drawable.ic_search_category_music_artist +
+            " ELSE CASE WHEN grouporder=2 THEN " + R.drawable.ic_search_category_music_album +
+            " ELSE " + R.drawable.ic_search_category_music_song + " END END" +
+            ") AS " + SearchManager.SUGGEST_COLUMN_ICON_1,
+            "text1 AS " + SearchManager.SUGGEST_COLUMN_TEXT_1,
+            "text1 AS " + SearchManager.SUGGEST_COLUMN_QUERY,
+            "(CASE WHEN grouporder=1 THEN '%1'" +  // %1 gets replaced with localized string.
+            " ELSE CASE WHEN grouporder=3 THEN artist || ' - ' || album" +
+            " ELSE CASE WHEN text2!='" + MediaFile.UNKNOWN_STRING + "' THEN text2" +
+            " ELSE NULL END END END) AS " + SearchManager.SUGGEST_COLUMN_TEXT_2,
+            SearchManager.SUGGEST_COLUMN_INTENT_DATA
+    };
+    // Position of the TEXT_2 item in the above array.
+    private final int SEARCH_COLUMN_BASIC_TEXT2 = 5;
 
     private BroadcastReceiver mUnmountReceiver = new BroadcastReceiver() {
         @Override
@@ -206,6 +260,9 @@ public class MediaProvider extends ContentProvider {
         sArtistAlbumsMap.put(MediaStore.Audio.Albums.ALBUM_ART, "album_art._data AS " +
                 MediaStore.Audio.Albums.ALBUM_ART);
 
+        mSearchColsBasic[SEARCH_COLUMN_BASIC_TEXT2] =
+                mSearchColsBasic[SEARCH_COLUMN_BASIC_TEXT2].replaceAll(
+                        "%1", getContext().getString(R.string.artist_label));
         mDatabases = new HashMap<String, DatabaseHelper>();
         attachVolume(INTERNAL_VOLUME);
 
@@ -224,7 +281,18 @@ public class MediaProvider extends ContentProvider {
         mThumbHandler = new Handler(mThumbWorker.getLooper()) {
             @Override
             public void handleMessage(Message msg) {
-                makeThumb((ThumbData)msg.obj);
+                // The message itself is irrelevant. We are going to pop
+                // a thumbnail request off the stack in response.
+
+                ThumbData d;
+                synchronized (mThumbRequestStack) {
+                    d = (ThumbData)mThumbRequestStack.pop();
+                }
+
+                makeThumb(d);
+                synchronized (mPendingThumbs) {
+                    mPendingThumbs.remove(d.path);
+                }
             }
         };
 
@@ -561,6 +629,97 @@ public class MediaProvider extends ContentProvider {
             // To work around this, we drop and recreate the affected view and trigger.
             recreateAudioView(db);
         }
+        
+        if (fromVersion < 73) {
+            // There is no change to the database schema, but we now do case insensitive
+            // matching of folder names when determining whether something is music, a
+            // ringtone, podcast, etc, so we might need to reclassify some files.
+            db.execSQL("UPDATE audio_meta SET is_music=1 WHERE is_music=0 AND " +
+                    "_data LIKE '%/music/%';");
+            db.execSQL("UPDATE audio_meta SET is_ringtone=1 WHERE is_ringtone=0 AND " +
+                    "_data LIKE '%/ringtones/%';");
+            db.execSQL("UPDATE audio_meta SET is_notification=1 WHERE is_notification=0 AND " +
+                    "_data LIKE '%/notifications/%';");
+            db.execSQL("UPDATE audio_meta SET is_alarm=1 WHERE is_alarm=0 AND " +
+                    "_data LIKE '%/alarms/%';");
+            db.execSQL("UPDATE audio_meta SET is_podcast=1 WHERE is_podcast=0 AND " +
+                    "_data LIKE '%/podcasts/%';");
+        }
+
+        if (fromVersion < 74) {
+            // This view is used instead of the audio view by the union below, to force
+            // sqlite to use the title_key index. This greatly reduces memory usage
+            // (no separate copy pass needed for sorting, which could cause errors on
+            // large datasets) and improves speed (by about 35% on a large dataset)
+            db.execSQL("CREATE VIEW IF NOT EXISTS searchhelpertitle AS SELECT * FROM audio " +
+                    "ORDER BY title_key;");
+
+            db.execSQL("CREATE VIEW IF NOT EXISTS search AS " +
+                    "SELECT _id," +
+                    "'artist' AS mime_type," +
+                    "artist," +
+                    "NULL AS album," +
+                    "NULL AS title," +
+                    "artist AS text1," +
+                    "NULL AS text2," +
+                    "number_of_albums AS data1," +
+                    "number_of_tracks AS data2," +
+                    "artist_key AS match," +
+                    "'content://media/external/audio/artists/'||_id AS suggest_intent_data," +
+                    "1 AS grouporder " +
+                    "FROM artist_info WHERE (artist!='" + MediaFile.UNKNOWN_STRING + "') " +
+                "UNION ALL " +
+                    "SELECT _id," +
+                    "'album' AS mime_type," +
+                    "artist," +
+                    "album," +
+                    "NULL AS title," +
+                    "album AS text1," +
+                    "artist AS text2," +
+                    "NULL AS data1," +
+                    "NULL AS data2," +
+                    "artist_key||' '||album_key AS match," +
+                    "'content://media/external/audio/albums/'||_id AS suggest_intent_data," +
+                    "2 AS grouporder " +
+                    "FROM album_info WHERE (album!='" + MediaFile.UNKNOWN_STRING + "') " +
+                "UNION ALL " +
+                    "SELECT searchhelpertitle._id AS _id," +
+                    "mime_type," +
+                    "artist," +
+                    "album," +
+                    "title," +
+                    "title AS text1," +
+                    "artist AS text2," +
+                    "NULL AS data1," +
+                    "NULL AS data2," +
+                    "artist_key||' '||album_key||' '||title_key AS match," +
+                    "'content://media/external/audio/media/'||searchhelpertitle._id AS " +
+                    "suggest_intent_data," +
+                    "3 AS grouporder " +
+                    "FROM searchhelpertitle WHERE (title != '') "
+                    );
+        }
+
+        if (fromVersion < 75) {
+            // Force a rescan of the audio entries so we can apply the new logic to 
+            // distinguish same-named albums.
+            db.execSQL("UPDATE audio_meta SET date_modified=0;");
+            db.execSQL("DELETE FROM albums");
+        }
+
+        if (fromVersion < 76) {
+            // We now ignore double quotes when building the key, so we have to remove all of them
+            // from existing keys.
+            db.execSQL("UPDATE audio_meta SET title_key=" +
+                    "REPLACE(title_key,x'081D08C29F081D',x'081D') " +
+                    "WHERE title_key LIKE '%'||x'081D08C29F081D'||'%';");
+            db.execSQL("UPDATE albums SET album_key=" +
+                    "REPLACE(album_key,x'081D08C29F081D',x'081D') " +
+                    "WHERE album_key LIKE '%'||x'081D08C29F081D'||'%';");
+            db.execSQL("UPDATE artists SET artist_key=" +
+                    "REPLACE(artist_key,x'081D08C29F081D',x'081D') " +
+                    "WHERE artist_key LIKE '%'||x'081D08C29F081D'||'%';");
+        }
     }
 
     private static void recreateAudioView(SQLiteDatabase db) {
@@ -801,9 +960,11 @@ public class MediaProvider extends ContentProvider {
                 break;
 
             case AUDIO_PLAYLISTS_ID_MEMBERS:
-                for (int i = 0; i < projectionIn.length; i++) {
-                    if (projectionIn[i].equals("_id")) {
-                        projectionIn[i] = "audio_playlists_map._id AS _id";
+                if (projectionIn != null) {
+                    for (int i = 0; i < projectionIn.length; i++) {
+                        if (projectionIn[i].equals("_id")) {
+                            projectionIn[i] = "audio_playlists_map._id AS _id";
+                        }
                     }
                 }
                 qb.setTables("audio_playlists_map, audio");
@@ -862,8 +1023,13 @@ public class MediaProvider extends ContentProvider {
                 qb.appendWhere("album_id=" + uri.getPathSegments().get(3));
                 break;
 
-            case AUDIO_SEARCH:
-                return doAudioSearch(db, qb, uri, projectionIn, selection, selectionArgs, sort);
+            case AUDIO_SEARCH_LEGACY:
+                Log.w(TAG, "Legacy media search Uri used. Please update your code.");
+                // fall through
+            case AUDIO_SEARCH_FANCY:
+            case AUDIO_SEARCH_BASIC:
+                return doAudioSearch(db, qb, uri, projectionIn, selection, selectionArgs, sort,
+                        table);
 
             default:
                 throw new IllegalStateException("Unknown URL: " + uri.toString());
@@ -879,136 +1045,45 @@ public class MediaProvider extends ContentProvider {
 
     private Cursor doAudioSearch(SQLiteDatabase db, SQLiteQueryBuilder qb,
             Uri uri, String[] projectionIn, String selection,
-            String[] selectionArgs, String sort) {
+            String[] selectionArgs, String sort, int mode) {
 
-        List<String> l = uri.getPathSegments();
-        String mSearchString = l.size() == 4 ? l.get(3) : "";
+        String mSearchString = uri.toString().endsWith("/") ? "" : uri.getLastPathSegment();
         mSearchString = mSearchString.replaceAll("  ", " ").trim().toLowerCase();
-        Cursor mCursor = null;
 
         String [] searchWords = mSearchString.length() > 0 ?
                 mSearchString.split(" ") : new String[0];
-        String [] wildcardWords3 = new String[searchWords.length * 3];
+        String [] wildcardWords = new String[searchWords.length];
         Collator col = Collator.getInstance();
         col.setStrength(Collator.PRIMARY);
         int len = searchWords.length;
         for (int i = 0; i < len; i++) {
             // Because we match on individual words here, we need to remove words
             // like 'a' and 'the' that aren't part of the keys.
-            wildcardWords3[i] = wildcardWords3[i + len] = wildcardWords3[i + len + len] =
+            wildcardWords[i] =
                 (searchWords[i].equals("a") || searchWords[i].equals("an") ||
                         searchWords[i].equals("the")) ? "%" :
                 '%' + MediaStore.Audio.keyFor(searchWords[i]) + '%';
         }
 
-        String UQs [] = new String[3];
-        HashSet<String> tablecolumns = new HashSet<String>();
-
-        // Direct match artists
-        {
-            String[] ccols = new String[] {
-                    MediaStore.Audio.Artists._ID,
-                    "'artist' AS " + MediaStore.Audio.Media.MIME_TYPE,
-                    "" + R.drawable.ic_search_category_music_artist + " AS " +
-                        SearchManager.SUGGEST_COLUMN_ICON_1,
-                    "0 AS " + SearchManager.SUGGEST_COLUMN_ICON_2,
-                    MediaStore.Audio.Artists.ARTIST + " AS " + SearchManager.SUGGEST_COLUMN_TEXT_1,
-                    MediaStore.Audio.Artists.ARTIST + " AS " + SearchManager.SUGGEST_COLUMN_QUERY,
-                    MediaStore.Audio.Artists.NUMBER_OF_ALBUMS + " AS data1",
-                    MediaStore.Audio.Artists.NUMBER_OF_TRACKS + " AS data2",
-                    MediaStore.Audio.Artists.ARTIST_KEY + " AS ar",
-                    "'content://media/external/audio/artists/'||" + MediaStore.Audio.Artists._ID +
-                    " AS " + SearchManager.SUGGEST_COLUMN_INTENT_DATA,
-                    "'1' AS grouporder",
-                    "artist_key AS itemorder"
-            };
-
-
-            String where = MediaStore.Audio.Artists.ARTIST_KEY + " != ''";
-            for (int i = 0; i < searchWords.length; i++) {
-                where += " AND ar LIKE ?";
+        String where = "";
+        for (int i = 0; i < searchWords.length; i++) {
+            if (i == 0) {
+                where = "match LIKE ?";
+            } else {
+                where += " AND match LIKE ?";
             }
-
-            qb.setTables("artist_info");
-            UQs[0] = qb.buildUnionSubQuery(MediaStore.Audio.Media.MIME_TYPE,
-                    ccols, tablecolumns, ccols.length, "artist", where, null, null, null);
         }
 
-        // Direct match albums
-        {
-            String[] ccols = new String[] {
-                    MediaStore.Audio.Albums._ID,
-                    "'album' AS " + MediaStore.Audio.Media.MIME_TYPE,
-                    "" + R.drawable.ic_search_category_music_album + " AS " + SearchManager.SUGGEST_COLUMN_ICON_1,
-                    "0 AS " + SearchManager.SUGGEST_COLUMN_ICON_2,
-                    MediaStore.Audio.Albums.ALBUM + " AS " + SearchManager.SUGGEST_COLUMN_TEXT_1,
-                    MediaStore.Audio.Albums.ALBUM + " AS " + SearchManager.SUGGEST_COLUMN_QUERY,
-                    MediaStore.Audio.Media.ARTIST + " AS data1",
-                    "null AS data2",
-                    MediaStore.Audio.Media.ARTIST_KEY +
-                    "||' '||" +
-                    MediaStore.Audio.Media.ALBUM_KEY +
-                    " AS ar_al",
-                    "'content://media/external/audio/albums/'||" + MediaStore.Audio.Albums._ID +
-                    " AS " + SearchManager.SUGGEST_COLUMN_INTENT_DATA,
-                    "'2' AS grouporder",
-                    "album_key AS itemorder"
-            };
-
-            String where = MediaStore.Audio.Media.ALBUM_KEY + " != ''";
-            for (int i = 0; i < searchWords.length; i++) {
-                where += " AND ar_al LIKE ?";
-            }
-
-            qb = new SQLiteQueryBuilder();
-            qb.setTables("album_info");
-            UQs[1] = qb.buildUnionSubQuery(MediaStore.Audio.Media.MIME_TYPE,
-                    ccols, tablecolumns, ccols.length, "album", where, null, null, null);
+        qb.setTables("search");
+        String [] cols;
+        if (mode == AUDIO_SEARCH_FANCY) {
+            cols = mSearchColsFancy;
+        } else if (mode == AUDIO_SEARCH_BASIC) {
+            cols = mSearchColsBasic;
+        } else {
+            cols = mSearchColsLegacy;
         }
-
-        // Direct match tracks
-        {
-            String[] ccols = new String[] {
-                    "audio._id AS _id",
-                    MediaStore.Audio.Media.MIME_TYPE,
-                    "" + R.drawable.ic_search_category_music_song + " AS " + SearchManager.SUGGEST_COLUMN_ICON_1,
-                    "0 AS " + SearchManager.SUGGEST_COLUMN_ICON_2,
-                    MediaStore.Audio.Media.TITLE + " AS " + SearchManager.SUGGEST_COLUMN_TEXT_1,
-                    MediaStore.Audio.Media.TITLE + " AS " + SearchManager.SUGGEST_COLUMN_QUERY,
-                    MediaStore.Audio.Media.ARTIST + " AS data1",
-                    MediaStore.Audio.Media.ALBUM + " AS data2",
-                    MediaStore.Audio.Media.ARTIST_KEY +
-                    "||' '||" +
-                    MediaStore.Audio.Media.ALBUM_KEY +
-                    "||' '||" +
-                    MediaStore.Audio.Media.TITLE_KEY +
-                    " AS ar_al_ti",
-                    "'content://media/external/audio/media/'||audio._id AS " + SearchManager.SUGGEST_COLUMN_INTENT_DATA,
-                    "'3' AS grouporder",
-                    "title_key AS itemorder"
-            };
-
-            String where = MediaStore.Audio.Media.TITLE + " != ''";
-
-            for (int i = 0; i < searchWords.length; i++) {
-                where += " AND ar_al_ti LIKE ?";
-            }
-            qb = new SQLiteQueryBuilder();
-            qb.setTables("audio");
-            UQs[2] = qb.buildUnionSubQuery(MediaStore.Audio.Media.MIME_TYPE,
-                    ccols, tablecolumns, ccols.length, "audio/", where, null, null, null);
-        }
-
-        if (mCursor != null) {
-            mCursor.deactivate();
-            mCursor = null;
-        }
-        if (UQs[0] != null && UQs[1] != null && UQs[2] != null) {
-            String union = qb.buildUnionQuery(UQs, "grouporder,itemorder", null);
-            mCursor = db.rawQuery(union, wildcardWords3);
-        }
-
-        return mCursor;
+        return qb.query(db, cols, where, wildcardWords, null, null, null);
     }
 
     @Override
@@ -1189,15 +1264,17 @@ public class MediaProvider extends ContentProvider {
                 values.remove("artist");
                 long artistRowId;
                 HashMap<String, Long> artistCache = database.mArtistCache;
+                String path = values.getAsString("_data");
                 synchronized(artistCache) {
                     Long temp = artistCache.get(s);
                     if (temp == null) {
                         artistRowId = getKeyIdForName(db, "artists", "artist_key", "artist",
-                                s, null, artistCache, uri);
+                                s, s, path, 0, null, artistCache, uri);
                     } else {
                         artistRowId = temp.longValue();
                     }
                 }
+                String artist = s;
 
                 // Do the same for the album field
                 so = values.get("album");
@@ -1206,11 +1283,12 @@ public class MediaProvider extends ContentProvider {
                 long albumRowId;
                 HashMap<String, Long> albumCache = database.mAlbumCache;
                 synchronized(albumCache) {
-                    Long temp = albumCache.get(s);
+                    int albumhash = path.substring(0, path.lastIndexOf('/')).hashCode();
+                    String cacheName = s + albumhash;
+                    Long temp = albumCache.get(cacheName);
                     if (temp == null) {
-                        String path = values.getAsString("_data");
                         albumRowId = getKeyIdForName(db, "albums", "album_key", "album",
-                                s, path, albumCache, uri);
+                                s, cacheName, path, albumhash, artist, albumCache, uri);
                     } else {
                         albumRowId = temp;
                     }
@@ -1221,6 +1299,10 @@ public class MediaProvider extends ContentProvider {
                 so = values.getAsString("title");
                 s = (so == null ? "" : so.toString());
                 values.put("title_key", MediaStore.Audio.keyFor(s));
+                // do a final trim of the title, in case it started with the special
+                // "sort first" character (ascii \001)
+                values.remove("title");
+                values.put("title", s.trim());
 
                 computeDisplayName(values.getAsString("_data"), values);
                 values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);
@@ -1566,17 +1648,16 @@ public class MediaProvider extends ContentProvider {
                         ContentValues values = new ContentValues(initialValues);
                         // Insert the artist into the artist table and remove it from
                         // the input values
-                        String so = values.getAsString("artist");
-                        if (so != null) {
-                            String s = so.toString();
+                        String artist = values.getAsString("artist");
+                        if (artist != null) {
                             values.remove("artist");
                             long artistRowId;
                             HashMap<String, Long> artistCache = database.mArtistCache;
                             synchronized(artistCache) {
-                                Long temp = artistCache.get(s);
+                                Long temp = artistCache.get(artist);
                                 if (temp == null) {
                                     artistRowId = getKeyIdForName(db, "artists", "artist_key", "artist",
-                                            s, null, artistCache, uri);
+                                            artist, artist, null, 0, null, artistCache, uri);
                                 } else {
                                     artistRowId = temp.longValue();
                                 }
@@ -1584,18 +1665,27 @@ public class MediaProvider extends ContentProvider {
                             values.put("artist_id", Integer.toString((int)artistRowId));
                         }
 
-                        // Do the same for the album field
-                        so = values.getAsString("album");
+                        // Do the same for the album field.
+                        String so = values.getAsString("album");
                         if (so != null) {
+                            String path = values.getAsString("_data");
+                            int albumHash = 0;
+                            if (path == null) {
+                                // If the path is null, we don't have a hash for the file in question.
+                                Log.w(TAG, "Update without specified path.");
+                            } else {
+                                albumHash = path.substring(0, path.lastIndexOf('/')).hashCode();
+                            }
                             String s = so.toString();
                             values.remove("album");
                             long albumRowId;
                             HashMap<String, Long> albumCache = database.mAlbumCache;
                             synchronized(albumCache) {
-                                Long temp = albumCache.get(s);
+                                String cacheName = s + albumHash;
+                                Long temp = albumCache.get(cacheName);
                                 if (temp == null) {
                                     albumRowId = getKeyIdForName(db, "albums", "album_key", "album",
-                                            s, null, albumCache, uri);
+                                            s, cacheName, path, albumHash, artist, albumCache, uri);
                                 } else {
                                     albumRowId = temp.longValue();
                                 }
@@ -1692,7 +1782,6 @@ public class MediaProvider extends ContentProvider {
 
         Worker(String name) {
             Thread t = new Thread(null, this, name);
-            t.setPriority(Thread.MIN_PRIORITY);
             t.start();
             synchronized (mLock) {
                 while (mLooper == null) {
@@ -1710,6 +1799,7 @@ public class MediaProvider extends ContentProvider {
 
         public void run() {
             synchronized (mLock) {
+                Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
                 Looper.prepare();
                 mLooper = Looper.myLooper();
                 mLock.notifyAll();
@@ -1731,45 +1821,64 @@ public class MediaProvider extends ContentProvider {
 
     private void makeThumb(SQLiteDatabase db, String path, long album_id,
             Uri albumart_uri) {
+        synchronized (mPendingThumbs) {
+            if (mPendingThumbs.contains(path)) {
+                // There's already a request to make an album art thumbnail
+                // for this audio file in the queue.
+                return;
+            }
+
+            mPendingThumbs.add(path);
+        }
+
         ThumbData d = new ThumbData();
         d.db = db;
         d.path = path;
         d.album_id = album_id;
         d.albumart_uri = albumart_uri;
+
+        // Instead of processing thumbnail requests in the order they were
+        // received we instead process them stack-based, i.e. LIFO.
+        // The idea behind this is that the most recently requested thumbnails
+        // are most likely the ones still in the user's view, whereas those
+        // requested earlier may have already scrolled off.
+        synchronized (mThumbRequestStack) {
+            mThumbRequestStack.push(d);
+        }
+
+        // Trigger the handler.
         Message msg = mThumbHandler.obtainMessage();
-        msg.obj = d;
         msg.sendToTarget();
     }
 
-    private void makeThumb(ThumbData d) {
-        SQLiteDatabase db = d.db;
-        String path = d.path;
-        long album_id = d.album_id;
-        Uri albumart_uri = d.albumart_uri;
+    // Extract compressed image data from the audio file itself or, if that fails,
+    // look for a file "AlbumArt.jpg" in the containing directory.
+    private static byte[] getCompressedAlbumArt(Context context, String path) {
+        byte[] compressed = null;
 
         try {
             File f = new File(path);
             ParcelFileDescriptor pfd = ParcelFileDescriptor.open(f,
                     ParcelFileDescriptor.MODE_READ_ONLY);
 
-            MediaScanner scanner = new MediaScanner(getContext());
-            byte [] art = scanner.extractAlbumArt(pfd.getFileDescriptor());
+            MediaScanner scanner = new MediaScanner(context);
+            compressed = scanner.extractAlbumArt(pfd.getFileDescriptor());
             pfd.close();
 
             // if no embedded art exists, look for AlbumArt.jpg in same directory as the media file
-            if (art == null && path != null) {
+            if (compressed == null && path != null) {
                 int lastSlash = path.lastIndexOf('/');
                 if (lastSlash > 0) {
                     String artPath = path.substring(0, lastSlash + 1) + "AlbumArt.jpg";
                     File file = new File(artPath);
                     if (file.exists()) {
-                        art = new byte[(int)file.length()];
+                        compressed = new byte[(int)file.length()];
                         FileInputStream stream = null;
                         try {
                             stream = new FileInputStream(file);
-                            stream.read(art);
+                            stream.read(compressed);
                         } catch (IOException ex) {
-                            art = null;
+                            compressed = null;
                         } finally {
                             if (stream != null) {
                                 stream.close();
@@ -1778,84 +1887,126 @@ public class MediaProvider extends ContentProvider {
                     }
                 }
             }
-
-            Bitmap bm = null;
-            if (art != null) {
-                try {
-                    // get the size of the bitmap
-                    BitmapFactory.Options opts = new BitmapFactory.Options();
-                    opts.inJustDecodeBounds = true;
-                    opts.inSampleSize = 1;
-                    BitmapFactory.decodeByteArray(art, 0, art.length, opts);
-
-                    // request a reasonably sized output image
-                    // TODO: don't hardcode the size
-                    while (opts.outHeight > 320 || opts.outWidth > 320) {
-                        opts.outHeight /= 2;
-                        opts.outWidth /= 2;
-                        opts.inSampleSize *= 2;
-                    }
-
-                    // get the image for real now
-                    opts.inJustDecodeBounds = false;
-                    opts.inPreferredConfig = Bitmap.Config.RGB_565;
-                    bm = BitmapFactory.decodeByteArray(art, 0, art.length, opts);
-                } catch (Exception e) {
-                }
-            }
-            if (bm != null && bm.getConfig() == null) {
-                bm = bm.copy(Bitmap.Config.RGB_565, false);
-            }
-            if (bm != null) {
-                // save bitmap
-                Uri out = null;
-                // TODO: this could be done more efficiently with a call to db.replace(), which
-                // replaces or inserts as needed, making it unnecessary to query() first.
-                if (albumart_uri != null) {
-                    Cursor c = query(albumart_uri, new String [] { "_data" },
-                            null, null, null);
-                    c.moveToFirst();
-                    if (!c.isAfterLast()) {
-                        String albumart_path = c.getString(0);
-                        if (ensureFileExists(albumart_path)) {
-                            out = albumart_uri;
-                        }
-                    }
-                    c.close();
-                } else {
-                    ContentValues initialValues = new ContentValues();
-                    initialValues.put("album_id", album_id);
-                    try {
-                        ContentValues values = ensureFile(false, initialValues, "", ALBUM_THUMB_FOLDER);
-                        long rowId = db.insert("album_art", "_data", values);
-                        if (rowId > 0) {
-                            out = ContentUris.withAppendedId(ALBUMART_URI, rowId);
-                        }
-                    } catch (IllegalStateException ex) {
-                        Log.e(TAG, "error creating album thumb file");
-                    }
-                }
-                if (out != null) {
-                    boolean success = false;
-                    try {
-                        OutputStream outstream = getContext().getContentResolver().openOutputStream(out);
-                        success = bm.compress(Bitmap.CompressFormat.JPEG, 75, outstream);
-                        outstream.close();
-                    } catch (FileNotFoundException ex) {
-                        Log.e(TAG, "error creating file", ex);
-                    } catch (IOException ex) {
-                        Log.e(TAG, "error creating file", ex);
-                    }
-                    if (!success) {
-                        // the thumbnail was not written successfully, delete the entry that refers to it
-                        getContext().getContentResolver().delete(out, null, null);
-                    }
-                }
-                getContext().getContentResolver().notifyChange(MEDIA_URI, null);
-            }
-        } catch (IOException ex) {
+        } catch (IOException e) {
         }
 
+        return compressed;
+    }
+
+    // Return a URI to write the album art to and update the database as necessary.
+    Uri getAlbumArtOutputUri(SQLiteDatabase db, long album_id, Uri albumart_uri) {
+        Uri out = null;
+        // TODO: this could be done more efficiently with a call to db.replace(), which
+        // replaces or inserts as needed, making it unnecessary to query() first.
+        if (albumart_uri != null) {
+            Cursor c = query(albumart_uri, new String [] { "_data" },
+                    null, null, null);
+            c.moveToFirst();
+            if (!c.isAfterLast()) {
+                String albumart_path = c.getString(0);
+                if (ensureFileExists(albumart_path)) {
+                    out = albumart_uri;
+                }
+            }
+            c.close();
+        } else {
+            ContentValues initialValues = new ContentValues();
+            initialValues.put("album_id", album_id);
+            try {
+                ContentValues values = ensureFile(false, initialValues, "", ALBUM_THUMB_FOLDER);
+                long rowId = db.insert("album_art", "_data", values);
+                if (rowId > 0) {
+                    out = ContentUris.withAppendedId(ALBUMART_URI, rowId);
+                }
+            } catch (IllegalStateException ex) {
+                Log.e(TAG, "error creating album thumb file");
+            }
+        }
+
+        return out;
+    }
+
+    // Write out the album art to the output URI, recompresses the given Bitmap
+    // if necessary, otherwise writes the compressed data.
+    private void writeAlbumArt(
+            boolean need_to_recompress, Uri out, byte[] compressed, Bitmap bm) {
+        boolean success = false;
+        try {
+            OutputStream outstream = getContext().getContentResolver().openOutputStream(out);
+
+            if (!need_to_recompress) {
+                // No need to recompress here, just write out the original
+                // compressed data here.
+                outstream.write(compressed);
+                success = true;
+            } else {
+                success = bm.compress(Bitmap.CompressFormat.JPEG, 75, outstream);
+            }
+
+            outstream.close();
+        } catch (FileNotFoundException ex) {
+            Log.e(TAG, "error creating file", ex);
+        } catch (IOException ex) {
+            Log.e(TAG, "error creating file", ex);
+        }
+        if (!success) {
+            // the thumbnail was not written successfully, delete the entry that refers to it
+            getContext().getContentResolver().delete(out, null, null);
+        }
+    }
+
+    private void makeThumb(ThumbData d) {
+        byte[] compressed = getCompressedAlbumArt(getContext(), d.path);
+
+        if (compressed == null) {
+            return;
+        }
+
+        Bitmap bm = null;
+        boolean need_to_recompress = true;
+
+        try {
+            // get the size of the bitmap
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            opts.inJustDecodeBounds = true;
+            opts.inSampleSize = 1;
+            BitmapFactory.decodeByteArray(compressed, 0, compressed.length, opts);
+
+            // request a reasonably sized output image
+            // TODO: don't hardcode the size
+            while (opts.outHeight > 320 || opts.outWidth > 320) {
+                opts.outHeight /= 2;
+                opts.outWidth /= 2;
+                opts.inSampleSize *= 2;
+            }
+
+            if (opts.inSampleSize == 1) {
+                // The original album art was of proper size, we won't have to
+                // recompress the bitmap later.
+                need_to_recompress = false;
+            } else {
+                // get the image for real now
+                opts.inJustDecodeBounds = false;
+                opts.inPreferredConfig = Bitmap.Config.RGB_565;
+                bm = BitmapFactory.decodeByteArray(compressed, 0, compressed.length, opts);
+
+                if (bm != null && bm.getConfig() == null) {
+                    bm = bm.copy(Bitmap.Config.RGB_565, false);
+                }
+            }
+        } catch (Exception e) {
+        }
+
+        if (need_to_recompress && bm == null) {
+            return;
+        }
+
+        Uri out = getAlbumArtOutputUri(d.db, d.album_id, d.albumart_uri);
+
+        if (out != null) {
+            writeAlbumArt(need_to_recompress, out, compressed, bm);
+            getContext().getContentResolver().notifyChange(MEDIA_URI, null);
+        }
     }
 
     /**
@@ -1866,14 +2017,18 @@ public class MediaProvider extends ContentProvider {
      * @param keyField  The name of the key-column
      * @param nameField The name of the name-column
      * @param rawName   The name that the calling app was trying to insert into the database
-     * @param path      The path to the file being inserted in to the audio table
+     * @param cacheName The string that will be inserted in to the cache
+     * @param path      The full path to the file being inserted in to the audio table
+     * @param albumHash A hash to distinguish between different albums of the same name
+     * @param artist    The name of the artist, if known
      * @param cache     The cache to add this entry to
      * @param srcuri    The Uri that prompted the call to this method, used for determining whether this is
      *                  the internal or external database
      * @return          The row ID for this artist/album, or -1 if the provided name was invalid
      */
     private long getKeyIdForName(SQLiteDatabase db, String table, String keyField, String nameField,
-            String rawName, String path, HashMap<String, Long> cache, Uri srcuri) {
+            String rawName, String cacheName, String path, int albumHash,
+            String artist, HashMap<String, Long> cache, Uri srcuri) {
         long rowId;
 
         if (rawName == null || rawName.length() == 0) {
@@ -1883,6 +2038,22 @@ public class MediaProvider extends ContentProvider {
 
         if (k == null) {
             return -1;
+        }
+
+        boolean isAlbum = table.equals("albums");
+        boolean isUnknown = MediaFile.UNKNOWN_STRING.equals(rawName);
+
+        // To distinguish same-named albums, we append a hash of the path.
+        // Ideally we would also take things like CDDB ID in to account, so
+        // we can group files from the same album that aren't in the same
+        // folder, but this is a quick and easy start that works immediately
+        // without requiring support from the mp3, mp4 and Ogg meta data
+        // readers, as long as the albums are in different folders.
+        if (isAlbum) {
+            k = k + albumHash;
+            if (isUnknown) {
+                k = k + artist;
+            }
         }
 
         String [] selargs = { k };
@@ -1896,8 +2067,7 @@ public class MediaProvider extends ContentProvider {
                         otherValues.put(keyField, k);
                         otherValues.put(nameField, rawName);
                         rowId = db.insert(table, "duration", otherValues);
-                        if (path != null && table.equals("albums") &&
-                                ! rawName.equals(MediaFile.UNKNOWN_STRING)) {
+                        if (path != null && isAlbum && ! isUnknown) {
                             // We just inserted a new album. Now create an album art thumbnail for it.
                             makeThumb(db, path, rowId, null);
                         }
@@ -1938,8 +2108,8 @@ public class MediaProvider extends ContentProvider {
             if (c != null) c.close();
         }
 
-        if (cache != null && ! rawName.equals(MediaFile.UNKNOWN_STRING)) {
-            cache.put(rawName, rowId);
+        if (cache != null && ! isUnknown) {
+            cache.put(cacheName, rowId);
         }
         return rowId;
     }
@@ -2116,7 +2286,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 72;
+    private static final int DATABASE_VERSION = 76;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep
@@ -2174,7 +2344,9 @@ public class MediaProvider extends ContentProvider {
     private static final int VOLUMES = 300;
     private static final int VOLUMES_ID = 301;
 
-    private static final int AUDIO_SEARCH = 400;
+    private static final int AUDIO_SEARCH_LEGACY = 400;
+    private static final int AUDIO_SEARCH_BASIC = 401;
+    private static final int AUDIO_SEARCH_FANCY = 402;
 
     private static final int MEDIA_SCANNER = 500;
 
@@ -2236,9 +2408,22 @@ public class MediaProvider extends ContentProvider {
         URI_MATCHER.addURI("media", "*", VOLUMES_ID);
         URI_MATCHER.addURI("media", null, VOLUMES);
 
+        /**
+         * @deprecated use the 'basic' or 'fancy' search Uris instead
+         */
         URI_MATCHER.addURI("media", "*/audio/" + SearchManager.SUGGEST_URI_PATH_QUERY,
-                AUDIO_SEARCH);
+                AUDIO_SEARCH_LEGACY);
         URI_MATCHER.addURI("media", "*/audio/" + SearchManager.SUGGEST_URI_PATH_QUERY + "/*",
-                AUDIO_SEARCH);
+                AUDIO_SEARCH_LEGACY);
+
+        // used for search suggestions
+        URI_MATCHER.addURI("media", "*/audio/search/" + SearchManager.SUGGEST_URI_PATH_QUERY,
+                AUDIO_SEARCH_BASIC);
+        URI_MATCHER.addURI("media", "*/audio/search/" + SearchManager.SUGGEST_URI_PATH_QUERY +
+                "/*", AUDIO_SEARCH_BASIC);
+
+        // used by the music app's search activity
+        URI_MATCHER.addURI("media", "*/audio/search/fancy", AUDIO_SEARCH_FANCY);
+        URI_MATCHER.addURI("media", "*/audio/search/fancy/*", AUDIO_SEARCH_FANCY);
     }
 }

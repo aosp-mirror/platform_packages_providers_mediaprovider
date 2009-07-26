@@ -40,13 +40,6 @@ public class MediaScannerReceiver extends BroadcastReceiver
         if (action.equals(Intent.ACTION_BOOT_COMPLETED)) {
             // scan internal storage
             scan(context, MediaProvider.INTERNAL_VOLUME);
-            
-            // scan external storage if it is mounted
-            String state = Environment.getExternalStorageState();
-            if (Environment.MEDIA_MOUNTED.equals(state) || 
-                    Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
-               scan(context, MediaProvider.EXTERNAL_VOLUME);
-            }
         } else {
             if (uri.getScheme().equals("file")) {
                 // handle intents related to external storage

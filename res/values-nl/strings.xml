@@ -17,4 +17,6 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label">"Media"</string>
     <string name="app_label">"Mediaopslag"</string>
+    <!-- no translation found for artist_label (1181678850424271227) -->
+    <skip />
 </resources>

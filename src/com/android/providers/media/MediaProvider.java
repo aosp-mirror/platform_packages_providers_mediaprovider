@@ -1700,6 +1700,10 @@ public class MediaProvider extends ContentProvider {
                         if (so != null) {
                             String s = so.toString();
                             values.put("title_key", MediaStore.Audio.keyFor(s));
+                            // do a final trim of the title, in case it started with the special
+                            // "sort first" character (ascii \001)
+                            values.remove("title");
+                            values.put("title", s.trim());
                         }
 
                         count = db.update("audio_meta", values, sGetTableAndWhereParam.where,

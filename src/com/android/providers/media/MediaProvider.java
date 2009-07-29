@@ -867,6 +867,7 @@ public class MediaProvider extends ContentProvider {
         }
         SQLiteDatabase db = database.getReadableDatabase();
         SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
+        String limit = uri.getQueryParameter("limit");
 
         switch (table) {
             case IMAGES_MEDIA:
@@ -1030,14 +1031,14 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_SEARCH_FANCY:
             case AUDIO_SEARCH_BASIC:
                 return doAudioSearch(db, qb, uri, projectionIn, selection, selectionArgs, sort,
-                        table);
+                        table, limit);
 
             default:
                 throw new IllegalStateException("Unknown URL: " + uri.toString());
         }
 
         Cursor c = qb.query(db, projectionIn, selection,
-                selectionArgs, groupBy, null, sort);
+                selectionArgs, groupBy, null, sort, limit);
         if (c != null) {
             c.setNotificationUri(getContext().getContentResolver(), uri);
         }
@@ -1046,7 +1047,8 @@ public class MediaProvider extends ContentProvider {
 
     private Cursor doAudioSearch(SQLiteDatabase db, SQLiteQueryBuilder qb,
             Uri uri, String[] projectionIn, String selection,
-            String[] selectionArgs, String sort, int mode) {
+            String[] selectionArgs, String sort, int mode,
+            String limit) {
 
         String mSearchString = uri.toString().endsWith("/") ? "" : uri.getLastPathSegment();
         mSearchString = mSearchString.replaceAll("  ", " ").trim().toLowerCase();
@@ -1084,7 +1086,7 @@ public class MediaProvider extends ContentProvider {
         } else {
             cols = mSearchColsLegacy;
         }
-        return qb.query(db, cols, where, wildcardWords, null, null, null);
+        return qb.query(db, cols, where, wildcardWords, null, null, null, limit);
     }
 
     @Override

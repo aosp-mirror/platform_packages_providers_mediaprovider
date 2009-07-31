@@ -126,6 +126,8 @@ public class MediaProvider extends ContentProvider {
     // Position of the TEXT_2 item in the above array.
     private final int SEARCH_COLUMN_BASIC_TEXT2 = 5;
 
+    private Uri mAlbumArtBaseUri = Uri.parse("content://media/external/audio/albumart");
+
     private BroadcastReceiver mUnmountReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -1868,8 +1870,7 @@ public class MediaProvider extends ContentProvider {
         Uri albumart_uri;
     }
 
-    private void makeThumbAsync(SQLiteDatabase db, String path, long album_id,
-            Uri albumart_uri) {
+    private void makeThumbAsync(SQLiteDatabase db, String path, long album_id) {
         synchronized (mPendingThumbs) {
             if (mPendingThumbs.contains(path)) {
                 // There's already a request to make an album art thumbnail
@@ -1884,7 +1885,7 @@ public class MediaProvider extends ContentProvider {
         d.db = db;
         d.path = path;
         d.album_id = album_id;
-        d.albumart_uri = albumart_uri;
+        d.albumart_uri = ContentUris.withAppendedId(mAlbumArtBaseUri, album_id);
 
         // Instead of processing thumbnail requests in the order they were
         // received we instead process them stack-based, i.e. LIFO.
@@ -2198,7 +2199,7 @@ public class MediaProvider extends ContentProvider {
                         rowId = db.insert(table, "duration", otherValues);
                         if (path != null && isAlbum && ! isUnknown) {
                             // We just inserted a new album. Now create an album art thumbnail for it.
-                            makeThumbAsync(db, path, rowId, null);
+                            makeThumbAsync(db, path, rowId);
                         }
                         if (rowId > 0) {
                             String volume = srcuri.toString().substring(16, 24); // extract internal/external

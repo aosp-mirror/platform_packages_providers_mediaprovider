@@ -319,7 +319,7 @@ public class MediaProvider extends ContentProvider {
                     DATABASE_VERSION);
             throw new IllegalArgumentException();
         } else if (fromVersion > toVersion) {
-            Log.e(TAG, "Illegal update request: can't downgrade from " + fromVersion + 
+            Log.e(TAG, "Illegal update request: can't downgrade from " + fromVersion +
                     " to " + toVersion + ". Did you forget to wipe data?");
             throw new IllegalArgumentException();
         }
@@ -440,7 +440,7 @@ public class MediaProvider extends ContentProvider {
                    ");");
 
             recreateAudioView(db);
-            
+
 
             // Provides some extra info about artists, like the number of tracks
             // and albums for this artist
@@ -603,7 +603,7 @@ public class MediaProvider extends ContentProvider {
             // Create bookmark column for the video table.
             db.execSQL("ALTER TABLE video ADD COLUMN bookmark INTEGER;");
         }
-        
+
         if (fromVersion < 71) {
             // There is no change to the database schema, however a code change
             // fixed parsing of metadata for certain files bought from the
@@ -617,7 +617,7 @@ public class MediaProvider extends ContentProvider {
                     "album='" + MediaFile.UNKNOWN_STRING + "'" +
                     ");");
         }
-        
+
         if (fromVersion < 72) {
             // Create is_podcast and bookmark columns for the audio table.
             db.execSQL("ALTER TABLE audio_meta ADD COLUMN is_podcast INTEGER;");
@@ -632,7 +632,7 @@ public class MediaProvider extends ContentProvider {
             // To work around this, we drop and recreate the affected view and trigger.
             recreateAudioView(db);
         }
-        
+
         if (fromVersion < 73) {
             // There is no change to the database schema, but we now do case insensitive
             // matching of folder names when determining whether something is music, a
@@ -704,7 +704,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (fromVersion < 75) {
-            // Force a rescan of the audio entries so we can apply the new logic to 
+            // Force a rescan of the audio entries so we can apply the new logic to
             // distinguish same-named albums.
             db.execSQL("UPDATE audio_meta SET date_modified=0;");
             db.execSQL("DELETE FROM albums");
@@ -741,7 +741,7 @@ public class MediaProvider extends ContentProvider {
                     "DELETE from audio_genres_map where audio_id=old._id;" +
                 "END");
     }
-    
+
     /**
      * Iterate through the rows of a table in a database, ensuring that the bucket_id and
      * bucket_display_name columns are correct.

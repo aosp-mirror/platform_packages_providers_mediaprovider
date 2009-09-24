@@ -33,6 +33,7 @@ import android.media.MiniThumbFile;
 import android.media.ThumbnailUtil;
 import android.net.Uri;
 import android.provider.BaseColumns;
+import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.Images.Thumbnails;
 import android.util.Log;
@@ -85,11 +86,6 @@ class MediaThumbRequest {
         mOrigId = ContentUris.parseId(uri);
     }
 
-    Uri getThumbUri() {
-        String uri = "content://media" + mUri.getPath().replaceFirst("media", "thumbnails");
-        return Uri.parse(uri);
-    }
-
     /**
      * Check if the corresponding thumbnail and mini-thumb have been created
      * for the given uri. This method creates both of them if they do not
@@ -106,6 +102,7 @@ class MediaThumbRequest {
             long fileMagic = miniThumbFile.getMagic(mOrigId);
             if (fileMagic == magic) {
                 // signature is identical. skip this item!
+                // Log.v(TAG, "signature is identical. skip this item!");
                 return;
             }
         }
@@ -265,7 +262,7 @@ class MediaThumbRequest {
      * @return Uri Thumbnail uri
      */
     private Uri getThumbnailUri(int width, int height) {
-        Uri thumbUri = getThumbUri();
+        Uri thumbUri = Images.Thumbnails.EXTERNAL_CONTENT_URI;
         ContentResolver cr = mCr;
         Cursor c = cr.query(thumbUri, THUMB_PROJECTION,
               Thumbnails.IMAGE_ID + "=?",
@@ -286,6 +283,7 @@ class MediaThumbRequest {
         try {
             return mCr.insert(thumbUri, values);
         } catch (Exception ex) {
+            Log.w(TAG, ex);
             return null;
         }
     }

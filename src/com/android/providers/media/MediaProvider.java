@@ -967,6 +967,7 @@ public class MediaProvider extends ContentProvider {
             String[] selectionArgs, String sort) {
         int table = URI_MATCHER.match(uri);
 
+        // Log.v(TAG, "query: uri="+uri+", selection="+selection);
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
         if (table == MEDIA_SCANNER) {
             if (mMediaScannerVolume == null) {
@@ -1570,7 +1571,7 @@ public class MediaProvider extends ContentProvider {
 
     private MediaThumbRequest requestMediaThumbnail(String path, Uri uri, long magic) {
         synchronized (mMediaThumbQueue) {
-            Log.v(TAG, "requestMediaThumbnail");
+            //Log.v(TAG, "requestMediaThumbnail: "+path+", "+uri+", magic="+magic);
             MediaThumbRequest req = new MediaThumbRequest(
                     getContext().getContentResolver(), path, uri, magic);
             mMediaThumbQueue.add(req);
@@ -1902,14 +1903,18 @@ public class MediaProvider extends ContentProvider {
                         }
                         count = db.update(sGetTableAndWhereParam.table, values,
                                 sGetTableAndWhereParam.where, whereArgs);
-                        if (count > 0) {
-                            Cursor c = db.query(sGetTableAndWhereParam.table, READY_FLAG_PROJECTION,
-                                    sGetTableAndWhereParam.where, whereArgs, null, null, null);
+                        // if this is a request from MediaScanner, DATA should contains file path
+                        // we only process update request from media scanner, otherwise the requests
+                        // could be duplicate.
+                        if (count > 0 && values.getAsString(MediaStore.MediaColumns.DATA) != null) {
+                            Cursor c = db.query(sGetTableAndWhereParam.table,
+                                    READY_FLAG_PROJECTION, sGetTableAndWhereParam.where,
+                                    whereArgs, null, null, null);
                             if (c != null) {
                                 while (c.moveToNext()) {
-                                    long ready = c.getLong(2);
-                                    if (ready == 0) {
-                                        requestMediaThumbnail(c.getString(1), uri, ready);
+                                    long magic = c.getLong(2);
+                                    if (magic == 0) {
+                                        requestMediaThumbnail(c.getString(1), uri, magic);
                                     }
                                 }
                                 c.close();

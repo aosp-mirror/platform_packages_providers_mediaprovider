@@ -77,10 +77,10 @@ class MediaThumbRequest {
         };
     }
 
-    MediaThumbRequest(ContentResolver cr, String path, Uri uri, long magic) {
+    MediaThumbRequest(ContentResolver cr, String path, Uri uri, int priority) {
         mCr = cr;
         mPath = path;
-        mMagic = magic;
+        mPriority = priority;
         mUri = uri;
         mIsVideo = "video".equals(uri.getPathSegments().get(1));
         mOrigId = ContentUris.parseId(uri);

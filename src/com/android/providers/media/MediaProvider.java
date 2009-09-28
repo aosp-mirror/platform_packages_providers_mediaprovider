@@ -303,7 +303,15 @@ public class MediaProvider extends ContentProvider {
                     } else {
                         // Log.v(TAG, "we got work to do for checkThumbnail: "+ req.mPath );
                         try {
-                            req.execute();
+                            File origFile = new File(req.mPath);
+                            if (origFile.exists() && origFile.length() > 0) {
+                                req.execute();
+                            } else {
+                                // original file hasn't been stored yet
+                                synchronized (mMediaThumbQueue) {
+                                    Log.w(TAG, "original file hasn't been stored yet: " + req.mPath);
+                                }
+                            }
                         } catch (IOException ex) {
                             Log.e(TAG, "", ex);
                         } finally {
@@ -912,7 +920,8 @@ public class MediaProvider extends ContentProvider {
             long magic = c.getLong(2);
 
             if (magic == 0) {
-                MediaThumbRequest req = requestMediaThumbnail(path, origUri, magic);
+                MediaThumbRequest req = requestMediaThumbnail(path, origUri,
+                        MediaThumbRequest.PRIORITY_HIGH);
                 synchronized (req) {
                     try {
                         while (!req.mDone) {
@@ -1163,7 +1172,7 @@ public class MediaProvider extends ContentProvider {
                 throw new IllegalStateException("Unknown URL: " + uri.toString());
         }
 
-        //Log.v(TAG, "final query = "+ qb.buildQuery(projectionIn, selection, selectionArgs, groupBy, null, sort, limit));
+        // Log.v(TAG, "query = "+ qb.buildQuery(projectionIn, selection, selectionArgs, groupBy, null, sort, limit));
         Cursor c = qb.query(db, projectionIn, selection,
                 selectionArgs, groupBy, null, sort, limit);
 
@@ -1326,7 +1335,6 @@ public class MediaProvider extends ContentProvider {
         if (newUri != null) {
             getContext().getContentResolver().notifyChange(uri, null);
         }
-
         return newUri;
     }
 
@@ -1368,7 +1376,7 @@ public class MediaProvider extends ContentProvider {
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(
                             Images.Media.getContentUri(uri.getPathSegments().get(0)), rowId);
-                    requestMediaThumbnail(data, newUri, 0);
+                    requestMediaThumbnail(data, newUri, MediaThumbRequest.PRIORITY_NORMAL);
                 }
                 break;
             }
@@ -1569,11 +1577,11 @@ public class MediaProvider extends ContentProvider {
         return newUri;
     }
 
-    private MediaThumbRequest requestMediaThumbnail(String path, Uri uri, long magic) {
+    private MediaThumbRequest requestMediaThumbnail(String path, Uri uri, int priority) {
         synchronized (mMediaThumbQueue) {
             //Log.v(TAG, "requestMediaThumbnail: "+path+", "+uri+", magic="+magic);
             MediaThumbRequest req = new MediaThumbRequest(
-                    getContext().getContentResolver(), path, uri, magic);
+                    getContext().getContentResolver(), path, uri, priority);
             mMediaThumbQueue.add(req);
             // Trigger the handler.
             Message msg = mThumbHandler.obtainMessage(IMAGE_THUMB);
@@ -1914,7 +1922,8 @@ public class MediaProvider extends ContentProvider {
                                 while (c.moveToNext()) {
                                     long magic = c.getLong(2);
                                     if (magic == 0) {
-                                        requestMediaThumbnail(c.getString(1), uri, magic);
+                                        requestMediaThumbnail(c.getString(1), uri,
+                                                MediaThumbRequest.PRIORITY_NORMAL);
                                     }
                                 }
                                 c.close();

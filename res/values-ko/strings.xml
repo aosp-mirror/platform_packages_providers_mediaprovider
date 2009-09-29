@@ -16,7 +16,6 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="999888504096344278">"미디어"</string>
-    <string name="app_label" msgid="581696352855930028">"Media Storage"</string>
-    <!-- no translation found for artist_label (1181678850424271227) -->
-    <skip />
+    <string name="app_label" msgid="581696352855930028">"미디어 저장소"</string>
+    <string name="artist_label" msgid="1181678850424271227">"아티스트"</string>
 </resources>

@@ -222,7 +222,7 @@ class MediaThumbRequest {
                 return thumb;
             }
             OutputStream thumbOut = mCr.openOutputStream(uri);
-            thumb.compress(Bitmap.CompressFormat.JPEG, 60, thumbOut);
+            thumb.compress(Bitmap.CompressFormat.JPEG, 85, thumbOut);
             thumbOut.close();
             return thumb;
         } catch (Exception ex) {

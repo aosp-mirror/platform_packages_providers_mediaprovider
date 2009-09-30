@@ -32,6 +32,7 @@ import android.media.ExifInterface;
 import android.media.MiniThumbFile;
 import android.media.ThumbnailUtil;
 import android.net.Uri;
+import android.os.Binder;
 import android.provider.BaseColumns;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.ImageColumns;
@@ -47,7 +48,8 @@ class MediaThumbRequest {
     static final int PRIORITY_LOW = 20;
     static final int PRIORITY_NORMAL = 10;
     static final int PRIORITY_HIGH = 5;
-    static final int PRIORITY_HIGHEST = 0;
+    static final int PRIORITY_CRITICAL = 0;
+    static enum State {WAIT, DONE, CANCEL}
     private static final String[] THUMB_PROJECTION = new String[] {
         BaseColumns._ID // 0
     };
@@ -55,11 +57,12 @@ class MediaThumbRequest {
     ContentResolver mCr;
     String mPath;
     long mRequestTime = System.currentTimeMillis();
+    int mCallingPid = Binder.getCallingPid();
     int mPriority;
     Uri mUri;
     boolean mIsVideo;
     long mOrigId;
-    boolean mDone;
+    State mState = State.WAIT;
     long mMagic;
 
     private BitmapFactory.Options sBitmapOptions = new BitmapFactory.Options();

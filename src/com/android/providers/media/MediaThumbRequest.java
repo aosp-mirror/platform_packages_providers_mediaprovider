@@ -16,9 +16,8 @@
 
 package com.android.providers.media;
 
-import java.io.FileNotFoundException;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Comparator;
 import java.util.Random;
 
@@ -28,15 +27,15 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.media.ExifInterface;
 import android.media.MiniThumbFile;
 import android.media.ThumbnailUtil;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.ParcelFileDescriptor;
 import android.provider.BaseColumns;
 import android.provider.MediaStore.Images;
+import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Images.ImageColumns;
-import android.provider.MediaStore.Images.Thumbnails;
 import android.util.Log;
 
 /**
@@ -106,7 +105,24 @@ class MediaThumbRequest {
             if (fileMagic == magic) {
                 // signature is identical. skip this item!
                 // Log.v(TAG, "signature is identical. skip this item!");
-                return;
+                if (mIsVideo) return;
+
+                Cursor c = mCr.query(Images.Thumbnails.EXTERNAL_CONTENT_URI,
+                        new String[] {MediaColumns._ID}, "image_id = " + mOrigId, null, null);
+                ParcelFileDescriptor pfd = null;
+                try {
+                    if (c != null && c.moveToFirst()) {
+                        pfd = mCr.openFileDescriptor(
+                                Images.Thumbnails.EXTERNAL_CONTENT_URI.buildUpon()
+                                .appendPath(c.getString(0)).build(), "r");
+                    }
+                } finally {
+                    if (c != null) c.close();
+                    if (pfd != null) {
+                        pfd.close();
+                        return;
+                    }
+                }
             }
         }
 
@@ -119,10 +135,8 @@ class MediaThumbRequest {
             if (mIsVideo) {
                 bitmap = ThumbnailUtil.createVideoThumbnail(mPath);
             } else {
-                bitmap = createThumbnailFromEXIF();
-                if (bitmap == null) {
-                    bitmap = createThumbnailFromUri();
-                }
+                bitmap = ThumbnailUtil.createImageThumbnail(mCr, mPath, mUri, mOrigId,
+                        Images.Thumbnails.MICRO_KIND, true);
             }
         }
 
@@ -132,162 +146,31 @@ class MediaThumbRequest {
         } while (magic == 0);
 
         if (bitmap != null) {
-            byte [] data = ThumbnailUtil.miniThumbData(bitmap);
+            ByteArrayOutputStream miniOutStream = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 75, miniOutStream);
+            bitmap.recycle();
+            byte [] data = null;
+
+            try {
+                miniOutStream.close();
+                data = miniOutStream.toByteArray();
+            } catch (java.io.IOException ex) {
+                Log.e(TAG, "got exception ex " + ex);
+            }
 
             // We may consider retire this proprietary format, after all it's size is only
             // 128 x 128 at most, which is still reasonable to be stored in database.
             // Gallery application can use the MINI_THUMB_MAGIC value to determine if it's
             // time to query and fetch by using Cursor.getBlob
-            miniThumbFile.saveMiniThumbToFile(data, mOrigId, magic);
-
-            ContentValues values = new ContentValues();
-            // both video/images table use the same column name "mini_thumb_magic"
-            values.put(ImageColumns.MINI_THUMB_MAGIC, magic);
-            mCr.update(mUri, values, null, null);
+            if (data != null) {
+                miniThumbFile.saveMiniThumbToFile(data, mOrigId, magic);
+                ContentValues values = new ContentValues();
+                // both video/images table use the same column name "mini_thumb_magic"
+                values.put(ImageColumns.MINI_THUMB_MAGIC, magic);
+                mCr.update(mUri, values, null, null);
+            }
         } else {
             Log.w(TAG, "can't create bitmap for thumbnail.");
-        }
-    }
-
-    // The fallback case is to decode the original photo to thumbnail size,
-    // then encode it as a JPEG. We return the thumbnail Bitmap in order to
-    // create the minithumb from it.
-    private Bitmap createThumbnailFromUri() {
-        Bitmap bitmap = ThumbnailUtil.makeBitmap(ThumbnailUtil.THUMBNAIL_TARGET_SIZE,
-                ThumbnailUtil.THUMBNAIL_MAX_NUM_PIXELS, mUri,
-                mCr);
-        if (bitmap != null) {
-            storeThumbnail(bitmap);
-        } else {
-            bitmap = ThumbnailUtil.makeBitmap(ThumbnailUtil.MINI_THUMB_TARGET_SIZE,
-                    ThumbnailUtil.MINI_THUMB_MAX_NUM_PIXELS, mUri,
-                    mCr);
-        }
-        return bitmap;
-    }
-
-    // If the photo has an EXIF thumbnail and it's big enough, extract it and
-    // save that JPEG as the large thumbnail without re-encoding it. We still
-    // have to decompress it though, in order to generate the minithumb.
-    private Bitmap createThumbnailFromEXIF() {
-        if (mPath == null) return null;
-
-        try {
-            ExifInterface exif = new ExifInterface(mPath);
-            byte [] thumbData = exif.getThumbnail();
-            if (thumbData == null) return null;
-            // Sniff the size of the EXIF thumbnail before decoding it. Photos
-            // from the device will pass, but images that are side loaded from
-            // other cameras may not.
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inJustDecodeBounds = true;
-            BitmapFactory.decodeByteArray(thumbData, 0, thumbData.length, options);
-            int width = options.outWidth;
-            int height = options.outHeight;
-            if (width >= ThumbnailUtil.THUMBNAIL_TARGET_SIZE
-                    && height >= ThumbnailUtil.THUMBNAIL_TARGET_SIZE) {
-
-                // We do not check the return value of storeThumbnail because
-                // we should return the mini thumb even if the storing fails.
-                storeThumbnail(thumbData, width, height);
-                // this is used for *encoding* the minithumb, so
-                // we don't want to dither or convert to 565 here.
-                //
-                // Decode with a scaling factor
-                // to match MINI_THUMB_TARGET_SIZE closely
-                // which will produce much better scaling quality
-                // and is significantly faster.
-                options.inSampleSize =
-                        ThumbnailUtil.computeSampleSize(options,
-                        ThumbnailUtil.MINI_THUMB_TARGET_SIZE,
-                        ThumbnailUtil.MINI_THUMB_MAX_NUM_PIXELS);
-                options.inDither = false;
-                options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-                options.inJustDecodeBounds = false;
-                return BitmapFactory.decodeByteArray(
-                        thumbData, 0, thumbData.length, options);
-            }
-        }
-        catch (IOException ex) {
-            Log.w(TAG, ex);
-        }
-        return null;
-    }
-
-    /**
-     * Store a given thumbnail in the database.
-     */
-    private Bitmap storeThumbnail(Bitmap thumb) {
-        if (thumb == null) return null;
-        try {
-            Uri uri = getThumbnailUri(thumb.getWidth(), thumb.getHeight());
-            if (uri == null) {
-                return thumb;
-            }
-            OutputStream thumbOut = mCr.openOutputStream(uri);
-            thumb.compress(Bitmap.CompressFormat.JPEG, 85, thumbOut);
-            thumbOut.close();
-            return thumb;
-        } catch (Exception ex) {
-            Log.e(TAG, "Unable to store thumbnail", ex);
-            return thumb;
-        }
-    }
-
-    /**
-     * Store a JPEG thumbnail from the EXIF header in the database.
-     */
-    private boolean storeThumbnail(byte[] jpegThumbnail, int width, int height) {
-        if (jpegThumbnail == null) return false;
-
-        Uri uri = getThumbnailUri(width, height);
-        if (uri == null) {
-            return false;
-        }
-        try {
-            OutputStream thumbOut = mCr.openOutputStream(uri);
-            thumbOut.write(jpegThumbnail);
-            thumbOut.close();
-            return true;
-        } catch (FileNotFoundException ex) {
-            return false;
-        } catch (IOException ex) {
-            return false;
-        }
-    }
-
-    /**
-     * Look up thumbnail uri by given imageId, it will be automatically created if it's not created
-     * yet. Most of the time imageId is identical to thumbId, but it's not always true.
-     * @param req
-     * @param width
-     * @param height
-     * @return Uri Thumbnail uri
-     */
-    private Uri getThumbnailUri(int width, int height) {
-        Uri thumbUri = Images.Thumbnails.EXTERNAL_CONTENT_URI;
-        ContentResolver cr = mCr;
-        Cursor c = cr.query(thumbUri, THUMB_PROJECTION,
-              Thumbnails.IMAGE_ID + "=?",
-              new String[]{String.valueOf(mOrigId)}, null);
-        try {
-            if (c.moveToNext()) {
-                return ContentUris.withAppendedId(thumbUri, c.getLong(0));
-            }
-        } finally {
-            c.close();
-        }
-
-        ContentValues values = new ContentValues(4);
-        values.put(Thumbnails.KIND, Thumbnails.MINI_KIND);
-        values.put(Thumbnails.IMAGE_ID, mOrigId);
-        values.put(Thumbnails.HEIGHT, height);
-        values.put(Thumbnails.WIDTH, width);
-        try {
-            return mCr.insert(thumbUri, values);
-        } catch (Exception ex) {
-            Log.w(TAG, ex);
-            return null;
         }
     }
 }

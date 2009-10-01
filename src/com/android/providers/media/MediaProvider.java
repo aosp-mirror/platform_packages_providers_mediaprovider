@@ -301,7 +301,7 @@ public class MediaProvider extends ContentProvider {
                     if (req == null) {
                         Log.w(TAG, "Have message but no request?");
                     } else {
-                        // Log.v(TAG, "we got work to do for checkThumbnail: "+ req.mPath );
+                        // Log.v(TAG, "we got work to do for checkThumbnail: "+ req.mPath +", there are still " + mMediaThumbQueue.size() + " tasks left in queue");
                         try {
                             File origFile = new File(req.mPath);
                             if (origFile.exists() && origFile.length() > 0) {
@@ -916,10 +916,11 @@ public class MediaProvider extends ContentProvider {
         boolean result = false;
 
         if (c.moveToFirst()) {
+            long id = c.getLong(0);
             String path = c.getString(1);
             long magic = c.getLong(2);
 
-            if (magic == 0) {
+            if (magic == 0 || MiniThumbFile.instance(origUri).getMagic(id) != magic) {
                 MediaThumbRequest req = requestMediaThumbnail(path, origUri,
                         MediaThumbRequest.PRIORITY_HIGH);
                 synchronized (req) {
@@ -1579,7 +1580,7 @@ public class MediaProvider extends ContentProvider {
 
     private MediaThumbRequest requestMediaThumbnail(String path, Uri uri, int priority) {
         synchronized (mMediaThumbQueue) {
-            //Log.v(TAG, "requestMediaThumbnail: "+path+", "+uri+", magic="+magic);
+            // Log.v(TAG, "requestMediaThumbnail: "+path+", "+uri+", priority="+priority);
             MediaThumbRequest req = new MediaThumbRequest(
                     getContext().getContentResolver(), path, uri, priority);
             mMediaThumbQueue.add(req);

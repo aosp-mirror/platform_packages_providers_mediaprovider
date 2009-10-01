@@ -81,6 +81,8 @@ public class MediaProvider extends ContentProvider {
     // A Stack of outstanding thumbnail requests.
     private Stack mThumbRequestStack = new Stack();
 
+    // The lock of mMediaThumbQueue protects both mMediaThumbQueue and mCurrentThumbRequest.
+    private MediaThumbRequest mCurrentThumbRequest = null;
     private PriorityQueue<MediaThumbRequest> mMediaThumbQueue =
             new PriorityQueue<MediaThumbRequest>(MediaThumbRequest.PRIORITY_NORMAL,
             MediaThumbRequest.getComparator());
@@ -294,30 +296,29 @@ public class MediaProvider extends ContentProvider {
             @Override
             public void handleMessage(Message msg) {
                 if (msg.what == IMAGE_THUMB) {
-                    MediaThumbRequest req;
                     synchronized (mMediaThumbQueue) {
-                        req = mMediaThumbQueue.poll();
+                        mCurrentThumbRequest = mMediaThumbQueue.poll();
                     }
-                    if (req == null) {
+                    if (mCurrentThumbRequest == null) {
                         Log.w(TAG, "Have message but no request?");
                     } else {
-                        // Log.v(TAG, "we got work to do for checkThumbnail: "+ req.mPath +", there are still " + mMediaThumbQueue.size() + " tasks left in queue");
+                        Log.v(TAG, "we got work to do for checkThumbnail: "+ mCurrentThumbRequest.mPath +", there are still " + mMediaThumbQueue.size() + " tasks left in queue");
                         try {
-                            File origFile = new File(req.mPath);
+                            File origFile = new File(mCurrentThumbRequest.mPath);
                             if (origFile.exists() && origFile.length() > 0) {
-                                req.execute();
+                                mCurrentThumbRequest.execute();
                             } else {
                                 // original file hasn't been stored yet
                                 synchronized (mMediaThumbQueue) {
-                                    Log.w(TAG, "original file hasn't been stored yet: " + req.mPath);
+                                    Log.w(TAG, "original file hasn't been stored yet: " + mCurrentThumbRequest.mPath);
                                 }
                             }
                         } catch (IOException ex) {
                             Log.e(TAG, "", ex);
                         } finally {
-                            req.mDone = true;
-                            synchronized (req) {
-                                req.notifyAll();
+                            synchronized (mCurrentThumbRequest) {
+                                mCurrentThumbRequest.mState = MediaThumbRequest.State.DONE;
+                                mCurrentThumbRequest.notifyAll();
                             }
                         }
                     }
@@ -925,15 +926,19 @@ public class MediaProvider extends ContentProvider {
                         MediaThumbRequest.PRIORITY_HIGH);
                 synchronized (req) {
                     try {
-                        while (!req.mDone) {
+                        while (req.mState == MediaThumbRequest.State.WAIT) {
                             req.wait();
                         }
                     } catch (InterruptedException e) {
                         Log.w(TAG, e);
                     }
+                    if (req.mState == MediaThumbRequest.State.DONE) {
+                        result = true;
+                    }
                 }
+            } else {
+                result = true;
             }
-            result = true;
         }
         c.close();
 
@@ -958,12 +963,42 @@ public class MediaProvider extends ContentProvider {
         }
 
         boolean needBlocking = "1".equals(uri.getQueryParameter("blocking"));
+        boolean cancelRequest = "1".equals(uri.getQueryParameter("cancel"));
         Uri origUri = Uri.parse("content://media" +
                 uri.getPath().replaceFirst("thumbnails", "media") + "/" + origId);
 
         if (needBlocking && !waitForThumbnailReady(origUri)) {
-            Log.w(TAG, "original media doesn't exist.");
+            Log.w(TAG, "original media doesn't exist or it's canceled.");
             return false;
+        } else if (cancelRequest) {
+            int pid = Binder.getCallingPid();
+            long id = -1;
+            try {
+                id = Long.parseLong(origId);
+            } catch (NumberFormatException ex) {
+                // invalid cancel request
+                return false;
+            }
+            boolean cancelAll = (id == -1);
+            synchronized (mMediaThumbQueue) {
+                if (mCurrentThumbRequest != null && mCurrentThumbRequest.mCallingPid == pid &&
+                        (cancelAll || mCurrentThumbRequest.mOrigId == id)) {
+                    synchronized (mCurrentThumbRequest) {
+                        mCurrentThumbRequest.mState = MediaThumbRequest.State.CANCEL;
+                        mCurrentThumbRequest.notifyAll();
+                    }
+                }
+                for (MediaThumbRequest mtq : mMediaThumbQueue) {
+                    if (mtq.mCallingPid == pid && (cancelAll || mCurrentThumbRequest.mOrigId == id)) {
+                        synchronized (mtq) {
+                            mtq.mState = MediaThumbRequest.State.CANCEL;
+                            mtq.notifyAll();
+                        }
+
+                        mMediaThumbQueue.remove(mtq);
+                    }
+                }
+            }
         }
 
         if (origId != null) {

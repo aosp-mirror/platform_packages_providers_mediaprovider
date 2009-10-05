@@ -134,6 +134,11 @@ class MediaThumbRequest {
         if (mPath != null) {
             if (mIsVideo) {
                 bitmap = ThumbnailUtil.createVideoThumbnail(mPath);
+                if (bitmap != null) {
+                    bitmap = ThumbnailUtil.extractMiniThumb(bitmap,
+                    ThumbnailUtil.MINI_THUMB_TARGET_SIZE,
+                    ThumbnailUtil.MINI_THUMB_TARGET_SIZE, ThumbnailUtil.RECYCLE_INPUT);
+                }
             } else {
                 bitmap = ThumbnailUtil.createImageThumbnail(mCr, mPath, mUri, mOrigId,
                         Images.Thumbnails.MICRO_KIND, true);

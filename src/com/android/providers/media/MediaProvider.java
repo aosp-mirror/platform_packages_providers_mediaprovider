@@ -924,26 +924,22 @@ public class MediaProvider extends ContentProvider {
             String path = c.getString(1);
             long magic = c.getLong(2);
 
-            if (magic == 0 || MiniThumbFile.instance(origUri).getMagic(id) != magic) {
-                MediaThumbRequest req = requestMediaThumbnail(path, origUri,
-                        MediaThumbRequest.PRIORITY_HIGH);
-                if (req == null) {
-                    return false;
-                }
-                synchronized (req) {
-                    try {
-                        while (req.mState == MediaThumbRequest.State.WAIT) {
-                            req.wait();
-                        }
-                    } catch (InterruptedException e) {
-                        Log.w(TAG, e);
+            MediaThumbRequest req = requestMediaThumbnail(path, origUri,
+                    MediaThumbRequest.PRIORITY_HIGH, magic);
+            if (req == null) {
+                return false;
+            }
+            synchronized (req) {
+                try {
+                    while (req.mState == MediaThumbRequest.State.WAIT) {
+                        req.wait();
                     }
-                    if (req.mState == MediaThumbRequest.State.DONE) {
-                        result = true;
-                    }
+                } catch (InterruptedException e) {
+                    Log.w(TAG, e);
                 }
-            } else {
-                result = true;
+                if (req.mState == MediaThumbRequest.State.DONE) {
+                    result = true;
+                }
             }
         }
         c.close();
@@ -1434,7 +1430,7 @@ public class MediaProvider extends ContentProvider {
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(
                             Images.Media.getContentUri(uri.getPathSegments().get(0)), rowId);
-                    requestMediaThumbnail(data, newUri, MediaThumbRequest.PRIORITY_NORMAL);
+                    requestMediaThumbnail(data, newUri, MediaThumbRequest.PRIORITY_NORMAL, 0);
                 }
                 break;
             }
@@ -1603,7 +1599,7 @@ public class MediaProvider extends ContentProvider {
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(Video.Media.getContentUri(
                             uri.getPathSegments().get(0)), rowId);
-                    requestMediaThumbnail(data, newUri, 0);
+                    requestMediaThumbnail(data, newUri, MediaThumbRequest.PRIORITY_NORMAL, 0);
                 }
                 break;
             }
@@ -1635,12 +1631,12 @@ public class MediaProvider extends ContentProvider {
         return newUri;
     }
 
-    private MediaThumbRequest requestMediaThumbnail(String path, Uri uri, int priority) {
+    private MediaThumbRequest requestMediaThumbnail(String path, Uri uri, int priority, long magic) {
         synchronized (mMediaThumbQueue) {
             MediaThumbRequest req = null;
             try {
                 req = new MediaThumbRequest(
-                        getContext().getContentResolver(), path, uri, priority);
+                        getContext().getContentResolver(), path, uri, priority, magic);
                 mMediaThumbQueue.add(req);
                 // Trigger the handler.
                 Message msg = mThumbHandler.obtainMessage(IMAGE_THUMB);
@@ -1985,7 +1981,7 @@ public class MediaProvider extends ContentProvider {
                                     long magic = c.getLong(2);
                                     if (magic == 0) {
                                         requestMediaThumbnail(c.getString(1), uri,
-                                                MediaThumbRequest.PRIORITY_NORMAL);
+                                                MediaThumbRequest.PRIORITY_NORMAL, 0);
                                     }
                                 }
                                 c.close();

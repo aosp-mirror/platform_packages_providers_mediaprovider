@@ -57,6 +57,7 @@ class MediaThumbRequest {
     String mPath;
     long mRequestTime = System.currentTimeMillis();
     int mCallingPid = Binder.getCallingPid();
+    long mGroupId;
     int mPriority;
     Uri mUri;
     boolean mIsVideo;
@@ -86,6 +87,12 @@ class MediaThumbRequest {
         mUri = uri;
         mIsVideo = "video".equals(uri.getPathSegments().get(1));
         mOrigId = ContentUris.parseId(uri);
+        // Only requests from Thumbnail API has this group_id parameter. In other cases,
+        // mGroupId will always be zero and can't be canceled due to pid mismatch.
+        String groupIdParam = uri.getQueryParameter("group_id");
+        if (groupIdParam != null) {
+            mGroupId = Long.parseLong(groupIdParam);
+        }
     }
 
     /**

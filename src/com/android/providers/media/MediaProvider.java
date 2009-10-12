@@ -302,7 +302,6 @@ public class MediaProvider extends ContentProvider {
                     if (mCurrentThumbRequest == null) {
                         Log.w(TAG, "Have message but no request?");
                     } else {
-                        Log.v(TAG, "we got work to do for checkThumbnail: "+ mCurrentThumbRequest.mPath +", there are still " + mMediaThumbQueue.size() + " tasks left in queue");
                         try {
                             File origFile = new File(mCurrentThumbRequest.mPath);
                             if (origFile.exists() && origFile.length() > 0) {
@@ -924,6 +923,9 @@ public class MediaProvider extends ContentProvider {
             if (magic == 0 || MiniThumbFile.instance(origUri).getMagic(id) != magic) {
                 MediaThumbRequest req = requestMediaThumbnail(path, origUri,
                         MediaThumbRequest.PRIORITY_HIGH);
+                if (req == null) {
+                    return false;
+                }
                 synchronized (req) {
                     try {
                         while (req.mState == MediaThumbRequest.State.WAIT) {
@@ -945,6 +947,16 @@ public class MediaProvider extends ContentProvider {
         return result;
     }
 
+    private boolean matchThumbRequest(MediaThumbRequest req, int pid, long id, long gid,
+            boolean isVideo) {
+        boolean cancelAllOrigId = (id == -1);
+        boolean cancelAllGroupId = (gid == -1);
+        return (req.mCallingPid == pid) &&
+                (cancelAllGroupId || req.mGroupId == gid) &&
+                (cancelAllOrigId || req.mOrigId == id) &&
+                (req.mIsVideo == isVideo);
+    }
+
     private boolean queryThumbnail(SQLiteQueryBuilder qb, Uri uri, String table,
             String column, boolean hasThumbnailId) {
         qb.setTables(table);
@@ -964,32 +976,38 @@ public class MediaProvider extends ContentProvider {
 
         boolean needBlocking = "1".equals(uri.getQueryParameter("blocking"));
         boolean cancelRequest = "1".equals(uri.getQueryParameter("cancel"));
-        Uri origUri = Uri.parse("content://media" +
-                uri.getPath().replaceFirst("thumbnails", "media") + "/" + origId);
+        Uri origUri = uri.buildUpon().encodedPath(
+                uri.getPath().replaceFirst("thumbnails", "media"))
+                .appendPath(origId).build();
 
         if (needBlocking && !waitForThumbnailReady(origUri)) {
             Log.w(TAG, "original media doesn't exist or it's canceled.");
             return false;
         } else if (cancelRequest) {
+            String groupId = uri.getQueryParameter("group_id");
+            boolean isVideo = "video".equals(uri.getPathSegments().get(1));
             int pid = Binder.getCallingPid();
             long id = -1;
+            long gid = -1;
+
             try {
                 id = Long.parseLong(origId);
+                gid = Long.parseLong(groupId);
             } catch (NumberFormatException ex) {
                 // invalid cancel request
                 return false;
             }
-            boolean cancelAll = (id == -1);
+
             synchronized (mMediaThumbQueue) {
-                if (mCurrentThumbRequest != null && mCurrentThumbRequest.mCallingPid == pid &&
-                        (cancelAll || mCurrentThumbRequest.mOrigId == id)) {
+                if (mCurrentThumbRequest != null &&
+                        matchThumbRequest(mCurrentThumbRequest, pid, id, gid, isVideo)) {
                     synchronized (mCurrentThumbRequest) {
                         mCurrentThumbRequest.mState = MediaThumbRequest.State.CANCEL;
                         mCurrentThumbRequest.notifyAll();
                     }
                 }
                 for (MediaThumbRequest mtq : mMediaThumbQueue) {
-                    if (mtq.mCallingPid == pid && (cancelAll || mCurrentThumbRequest.mOrigId == id)) {
+                    if (matchThumbRequest(mtq, pid, id, gid, isVideo)) {
                         synchronized (mtq) {
                             mtq.mState = MediaThumbRequest.State.CANCEL;
                             mtq.notifyAll();
@@ -1615,13 +1633,17 @@ public class MediaProvider extends ContentProvider {
 
     private MediaThumbRequest requestMediaThumbnail(String path, Uri uri, int priority) {
         synchronized (mMediaThumbQueue) {
-            // Log.v(TAG, "requestMediaThumbnail: "+path+", "+uri+", priority="+priority);
-            MediaThumbRequest req = new MediaThumbRequest(
-                    getContext().getContentResolver(), path, uri, priority);
-            mMediaThumbQueue.add(req);
-            // Trigger the handler.
-            Message msg = mThumbHandler.obtainMessage(IMAGE_THUMB);
-            msg.sendToTarget();
+            MediaThumbRequest req = null;
+            try {
+                req = new MediaThumbRequest(
+                        getContext().getContentResolver(), path, uri, priority);
+                mMediaThumbQueue.add(req);
+                // Trigger the handler.
+                Message msg = mThumbHandler.obtainMessage(IMAGE_THUMB);
+                msg.sendToTarget();
+            } catch (Throwable t) {
+                Log.w(TAG, t);
+            }
             return req;
         }
     }

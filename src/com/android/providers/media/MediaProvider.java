@@ -2357,7 +2357,11 @@ public class MediaProvider extends ContentProvider {
                 bm = BitmapFactory.decodeByteArray(compressed, 0, compressed.length, opts);
 
                 if (bm != null && bm.getConfig() == null) {
-                    bm = bm.copy(Bitmap.Config.RGB_565, false);
+                    Bitmap nbm = bm.copy(Bitmap.Config.RGB_565, false);
+                    if (nbm != null && nbm != bm) {
+                        bm.recycle();
+                        bm = nbm;
+                    }
                 }
             }
         } catch (Exception e) {
@@ -2378,15 +2382,29 @@ public class MediaProvider extends ContentProvider {
             } catch (IOException e) {
             }
         } else {
-            // this one needs to actually be saved on the sd card
-            Uri out = getAlbumArtOutputUri(d.db, d.album_id, d.albumart_uri);
+            // This one needs to actually be saved on the sd card.
+            // This is wrapped in a transaction because there are various things
+            // that could go wrong while generating the thumbnail, and we only want
+            // to update the database when all steps succeeded.
+            d.db.beginTransaction();
+            try {
+                Uri out = getAlbumArtOutputUri(d.db, d.album_id, d.albumart_uri);
 
-            if (out != null) {
-                writeAlbumArt(need_to_recompress, out, compressed, bm);
-                getContext().getContentResolver().notifyChange(MEDIA_URI, null);
-                try {
-                    return openFileHelper(out, "r");
-                } catch (FileNotFoundException ex) {
+                if (out != null) {
+                    writeAlbumArt(need_to_recompress, out, compressed, bm);
+                    getContext().getContentResolver().notifyChange(MEDIA_URI, null);
+                    ParcelFileDescriptor pfd = openFileHelper(out, "r");
+                    d.db.setTransactionSuccessful();
+                    return pfd;
+                }
+            } catch (FileNotFoundException ex) {
+                // do nothing, just return null below
+            } catch (UnsupportedOperationException ex) {
+                // do nothing, just return null below
+            } finally {
+                d.db.endTransaction();
+                if (bm != null) {
+                    bm.recycle();
                 }
             }
         }

@@ -133,7 +133,7 @@ public class MediaScannerService extends Service implements Runnable
     }
 
     @Override
-    public void onStart(Intent intent, int startId)
+    public int onStartCommand(Intent intent, int flags, int startId)
     {
         while (mServiceHandler == null) {
             synchronized (this) {
@@ -144,10 +144,19 @@ public class MediaScannerService extends Service implements Runnable
             }
         }
 
+        if (intent == null) {
+            Log.e(TAG, "Intent is null in onStartCommand: ",
+                new NullPointerException());
+            return Service.START_NOT_STICKY;
+        }
+
         Message msg = mServiceHandler.obtainMessage();
         msg.arg1 = startId;
         msg.obj = intent.getExtras();
         mServiceHandler.sendMessage(msg);
+
+        // Try again later if we are killed before we can finish scanning.
+        return Service.START_REDELIVER_INTENT;
     }
 
     @Override

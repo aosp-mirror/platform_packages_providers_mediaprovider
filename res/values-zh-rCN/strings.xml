@@ -17,6 +17,5 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="999888504096344278">"媒体"</string>
     <string name="app_label" msgid="581696352855930028">"媒体存储"</string>
-    <!-- no translation found for artist_label (1181678850424271227) -->
-    <skip />
+    <string name="artist_label" msgid="1181678850424271227">"艺术家"</string>
 </resources>

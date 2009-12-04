@@ -314,7 +314,11 @@ public class MediaProvider extends ContentProvider {
                                 }
                             }
                         } catch (IOException ex) {
-                            Log.e(TAG, "", ex);
+                            Log.w(TAG, ex);
+                        } catch (UnsupportedOperationException ex) {
+                            // This could happen if we unplug the sd card during insert/update/delete
+                            // See getDatabaseForUri.
+                            Log.w(TAG, ex);
                         } finally {
                             synchronized (mCurrentThumbRequest) {
                                 mCurrentThumbRequest.mState = MediaThumbRequest.State.DONE;

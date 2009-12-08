@@ -789,6 +789,27 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("UPDATE images SET date_modified=0;");
             db.execSQL("UPDATE video SET date_modified=0;");
         }
+
+        if (fromVersion < 79) {
+            // move /sdcard/albumthumbs to
+            // /sdcard/Android/data/com.android.providers.media/albumthumbs,
+            // and update the database accordingly
+
+            String storageroot = Environment.getExternalStorageDirectory().getAbsolutePath();
+            String oldthumbspath = storageroot + "/albumthumbs";
+            String newthumbspath = storageroot + "/" + ALBUM_THUMB_FOLDER;
+            File thumbsfolder = new File(oldthumbspath);
+            if (thumbsfolder.exists()) {
+                // move folder to its new location
+                File newthumbsfolder = new File(newthumbspath);
+                newthumbsfolder.getParentFile().mkdirs();
+                if(thumbsfolder.renameTo(newthumbsfolder)) {
+                    // update the database
+                    db.execSQL("UPDATE album_art SET _data=REPLACE(_data, '" +
+                            oldthumbspath + "','" + newthumbspath + "');");
+                }
+            }
+        }
     }
 
     private static void recreateAudioView(SQLiteDatabase db) {
@@ -2695,7 +2716,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 78;
+    private static final int DATABASE_VERSION = 79;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep
@@ -2715,7 +2736,7 @@ public class MediaProvider extends ContentProvider {
 
     static final String INTERNAL_VOLUME = "internal";
     static final String EXTERNAL_VOLUME = "external";
-    static final String ALBUM_THUMB_FOLDER = "albumthumbs";
+    static final String ALBUM_THUMB_FOLDER = "Android/data/com.android.providers.media/albumthumbs";
 
     // path for writing contents of in memory temp database
     private String mTempDatabasePath;

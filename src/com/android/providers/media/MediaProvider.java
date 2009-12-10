@@ -58,6 +58,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Stack;
 
@@ -2054,6 +2055,22 @@ public class MediaProvider extends ContentProvider {
                         }
                     }
                     break;
+
+                case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
+                    String moveit = uri.getQueryParameter("move");
+                    if (moveit != null) {
+                        String key = MediaStore.Audio.Playlists.Members.PLAY_ORDER;
+                        if (initialValues.containsKey(key)) {
+                            int newpos = initialValues.getAsInteger(key);
+                            List <String> segments = uri.getPathSegments();
+                            long playlist = Long.valueOf(segments.get(3));
+                            int oldpos = Integer.valueOf(segments.get(5));
+                            return movePlaylistEntry(db, playlist, oldpos, newpos);
+                        }
+                        throw new IllegalArgumentException("Need to specify " + key +
+                                " when using 'move' parameter");
+                    }
+                    // fall through
                 default:
                     count = db.update(sGetTableAndWhereParam.table, initialValues,
                         sGetTableAndWhereParam.where, whereArgs);
@@ -2066,6 +2083,42 @@ public class MediaProvider extends ContentProvider {
             getContext().getContentResolver().notifyChange(uri, null);
         }
         return count;
+    }
+
+    private int movePlaylistEntry(SQLiteDatabase db, long playlist, int from, int to) {
+        if (from == to) {
+            return 0;
+        }
+        db.beginTransaction();
+        try {
+            int numlines = 0;
+            db.execSQL("UPDATE audio_playlists_map SET play_order=-1" +
+                    " WHERE play_order=" + from +
+                    " AND playlist_id=" + playlist);
+            // We could just run both of the next two statements, but only one of
+            // of them will actually do anything, so might as well skip the compile
+            // and execute steps.
+            if (from  < to) {
+                db.execSQL("UPDATE audio_playlists_map SET play_order=play_order-1" +
+                        " WHERE play_order<=" + to + " AND play_order>" + from +
+                        " AND playlist_id=" + playlist);
+                numlines = to - from + 1;
+            } else {
+                db.execSQL("UPDATE audio_playlists_map SET play_order=play_order+1" +
+                        " WHERE play_order>=" + to + " AND play_order<" + from +
+                        " AND playlist_id=" + playlist);
+                numlines = from - to + 1;
+            }
+            db.execSQL("UPDATE audio_playlists_map SET play_order=" + to +
+                    " WHERE play_order=-1 AND playlist_id=" + playlist);
+            db.setTransactionSuccessful();
+            Uri uri = MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI
+                    .buildUpon().appendEncodedPath(String.valueOf(playlist)).build();
+            getContext().getContentResolver().notifyChange(uri, null);
+            return numlines;
+        } finally {
+            db.endTransaction();
+        }
     }
 
     private static final String[] openFileColumns = new String[] {

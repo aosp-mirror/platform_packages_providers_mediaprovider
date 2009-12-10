@@ -54,6 +54,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.text.Collator;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1659,6 +1660,42 @@ public class MediaProvider extends ContentProvider {
         return newUri;
     }
 
+    @Override
+    public ContentProviderResult[] applyBatch(ArrayList<ContentProviderOperation> operations)
+                throws OperationApplicationException {
+
+        // The operations array provides no overall information about the URI(s) being operated
+        // on, so begin a transaction for ALL of the databases.
+        DatabaseHelper ihelper = getDatabaseForUri(MediaStore.Audio.Media.INTERNAL_CONTENT_URI);
+        DatabaseHelper ehelper = getDatabaseForUri(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);
+        SQLiteDatabase idb = ihelper.getWritableDatabase();
+        idb.beginTransaction();
+        SQLiteDatabase edb = null;
+        if (ehelper != null) {
+            edb = ehelper.getWritableDatabase();
+            edb.beginTransaction();
+        }
+        try {
+            ContentProviderResult[] result = super.applyBatch(operations);
+            idb.setTransactionSuccessful();
+            if (edb != null) {
+                edb.setTransactionSuccessful();
+            }
+            // Rather than sending targeted change notifications for every Uri
+            // affected by the batch operation, just invalidate the entire internal
+            // and external name space.
+            ContentResolver res = getContext().getContentResolver();
+            res.notifyChange(Uri.parse("content://media/"), null);
+            return result;
+        } finally {
+            idb.endTransaction();
+            if (edb != null) {
+                edb.endTransaction();
+            }
+        }
+    }
+
+
     private MediaThumbRequest requestMediaThumbnail(String path, Uri uri, int priority, long magic) {
         synchronized (mMediaThumbQueue) {
             MediaThumbRequest req = null;
@@ -2023,7 +2060,9 @@ public class MediaProvider extends ContentProvider {
                     break;
             }
         }
-        if (count > 0) {
+        // in a transaction, the code that began the transaction should be taking
+        // care of notifications once it ends the transaction successfully
+        if (count > 0 && !db.inTransaction()) {
             getContext().getContentResolver().notifyChange(uri, null);
         }
         return count;

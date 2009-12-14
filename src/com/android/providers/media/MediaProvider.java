@@ -2290,7 +2290,8 @@ public class MediaProvider extends ContentProvider {
             pfd.close();
 
             // If no embedded art exists, look for a suitable image file in the
-            // same directory as the media file.
+            // same directory as the media file, except if that directory is
+            // is the root directory of the sd card or the download directory.
             // We look for, in order of preference:
             // 0 AlbumArt.jpg
             // 1 AlbumArt*Large.jpg
@@ -2301,13 +2302,16 @@ public class MediaProvider extends ContentProvider {
                 int lastSlash = path.lastIndexOf('/');
                 if (lastSlash > 0) {
 
-                    String artPath = path.substring(0, lastSlash + 1);
+                    String artPath = path.substring(0, lastSlash);
+                    String sdroot = Environment.getExternalStorageDirectory().getAbsolutePath();
+                    String dwndir = sdroot + "/download"; // there's no public constant for this
 
                     String bestmatch = null;
                     synchronized (sFolderArtMap) {
                         if (sFolderArtMap.containsKey(artPath)) {
                             bestmatch = sFolderArtMap.get(artPath);
-                        } else {
+                        } else if (!artPath.equals(sdroot) &&
+                                !artPath.equals(dwndir)) {
                             File dir = new File(artPath);
                             String [] entrynames = dir.list();
                             if (entrynames == null) {
@@ -2344,7 +2348,7 @@ public class MediaProvider extends ContentProvider {
                     }
 
                     if (bestmatch != null) {
-                        File file = new File(artPath  + bestmatch);
+                        File file = new File(artPath, bestmatch);
                         if (file.exists()) {
                             compressed = new byte[(int)file.length()];
                             FileInputStream stream = null;

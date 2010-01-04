@@ -25,7 +25,6 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.media.MediaFile;
 import android.media.MediaScanner;
 import android.media.MiniThumbFile;
 import android.net.Uri;
@@ -131,7 +130,7 @@ public class MediaProvider extends ContentProvider {
             "text1 AS " + SearchManager.SUGGEST_COLUMN_QUERY,
             "(CASE WHEN grouporder=1 THEN '%1'" +  // %1 gets replaced with localized string.
             " ELSE CASE WHEN grouporder=3 THEN artist || ' - ' || album" +
-            " ELSE CASE WHEN text2!='" + MediaFile.UNKNOWN_STRING + "' THEN text2" +
+            " ELSE CASE WHEN text2!='" + MediaStore.UNKNOWN_STRING + "' THEN text2" +
             " ELSE NULL END END END) AS " + SearchManager.SUGGEST_COLUMN_TEXT_2,
             SearchManager.SUGGEST_COLUMN_INTENT_DATA
     };
@@ -655,8 +654,8 @@ public class MediaProvider extends ContentProvider {
             // and rescan them.
             db.execSQL("UPDATE audio_meta SET date_modified=0 WHERE _id IN (" +
                     "SELECT _id FROM audio where mime_type='audio/mp4' AND " +
-                    "artist='" + MediaFile.UNKNOWN_STRING + "' AND " +
-                    "album='" + MediaFile.UNKNOWN_STRING + "'" +
+                    "artist='" + MediaStore.UNKNOWN_STRING + "' AND " +
+                    "album='" + MediaStore.UNKNOWN_STRING + "'" +
                     ");");
         }
 
@@ -712,7 +711,7 @@ public class MediaProvider extends ContentProvider {
                     "artist_key AS match," +
                     "'content://media/external/audio/artists/'||_id AS suggest_intent_data," +
                     "1 AS grouporder " +
-                    "FROM artist_info WHERE (artist!='" + MediaFile.UNKNOWN_STRING + "') " +
+                    "FROM artist_info WHERE (artist!='" + MediaStore.UNKNOWN_STRING + "') " +
                 "UNION ALL " +
                     "SELECT _id," +
                     "'album' AS mime_type," +
@@ -726,7 +725,7 @@ public class MediaProvider extends ContentProvider {
                     "artist_key||' '||album_key AS match," +
                     "'content://media/external/audio/albums/'||_id AS suggest_intent_data," +
                     "2 AS grouporder " +
-                    "FROM album_info WHERE (album!='" + MediaFile.UNKNOWN_STRING + "') " +
+                    "FROM album_info WHERE (album!='" + MediaStore.UNKNOWN_STRING + "') " +
                 "UNION ALL " +
                     "SELECT searchhelpertitle._id AS _id," +
                     "mime_type," +
@@ -2567,7 +2566,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         boolean isAlbum = table.equals("albums");
-        boolean isUnknown = MediaFile.UNKNOWN_STRING.equals(rawName);
+        boolean isUnknown = MediaStore.UNKNOWN_STRING.equals(rawName);
 
         // To distinguish same-named albums, we append a hash of the path.
         // Ideally we would also take things like CDDB ID in to account, so

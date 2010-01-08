@@ -18,7 +18,9 @@ package com.android.providers.media;
 
 import android.app.SearchManager;
 import android.content.*;
+import android.database.AbstractCursor;
 import android.database.Cursor;
+import android.database.MatrixCursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -1066,8 +1068,19 @@ public class MediaProvider extends ContentProvider {
                 return null;
             } else {
                 // create a cursor to return volume currently being scanned by the media scanner
-                return new MediaScannerCursor(mMediaScannerVolume);
+                MatrixCursor c = new MatrixCursor(new String[] {MediaStore.MEDIA_SCANNER_VOLUME});
+                c.addRow(new String[] {mMediaScannerVolume});
+                return c;
             }
+        }
+
+        // Used temporarily (until we have unique media IDs) to get an identifier
+        // for the current sd card, so that the music app doesn't have to use the
+        // non-public getFatVolumeId method
+        if (table == FS_ID) {
+            MatrixCursor c = new MatrixCursor(new String[] {"fsid"});
+            c.addRow(new Integer[] {mVolumeId});
+            return c;
         }
 
         String groupBy = null;
@@ -2728,6 +2741,7 @@ public class MediaProvider extends ContentProvider {
                 // generate database name based on volume ID
                 String dbName = "external-" + Integer.toHexString(volumeID) + ".db";
                 db = new DatabaseHelper(getContext(), dbName, false);
+                mVolumeId = volumeID;
             } else {
                 throw new IllegalArgumentException("There is no volume named " + volume);
             }
@@ -2829,6 +2843,9 @@ public class MediaProvider extends ContentProvider {
     // name of the volume currently being scanned by the media scanner (or null)
     private String mMediaScannerVolume;
 
+    // current FAT volume ID
+    private int mVolumeId;
+
     static final String INTERNAL_VOLUME = "internal";
     static final String EXTERNAL_VOLUME = "external";
     static final String ALBUM_THUMB_FOLDER = "Android/data/com.android.providers.media/albumthumbs";
@@ -2877,6 +2894,8 @@ public class MediaProvider extends ContentProvider {
     private static final int AUDIO_SEARCH_FANCY = 402;
 
     private static final int MEDIA_SCANNER = 500;
+
+    private static final int FS_ID = 600;
 
     private static final UriMatcher URI_MATCHER =
             new UriMatcher(UriMatcher.NO_MATCH);
@@ -2945,6 +2964,8 @@ public class MediaProvider extends ContentProvider {
         URI_MATCHER.addURI("media", "*/video/thumbnails/#", VIDEO_THUMBNAILS_ID);
 
         URI_MATCHER.addURI("media", "*/media_scanner", MEDIA_SCANNER);
+
+        URI_MATCHER.addURI("media", "*/fs_id", FS_ID);
 
         URI_MATCHER.addURI("media", "*", VOLUMES_ID);
         URI_MATCHER.addURI("media", null, VOLUMES);

@@ -314,7 +314,11 @@ public class MediaProvider extends ContentProvider {
                                 }
                             }
                         } catch (IOException ex) {
-                            Log.e(TAG, "", ex);
+                            Log.w(TAG, ex);
+                        } catch (UnsupportedOperationException ex) {
+                            // This could happen if we unplug the sd card during insert/update/delete
+                            // See getDatabaseForUri.
+                            Log.w(TAG, ex);
                         } finally {
                             synchronized (mCurrentThumbRequest) {
                                 mCurrentThumbRequest.mState = MediaThumbRequest.State.DONE;
@@ -778,6 +782,13 @@ public class MediaProvider extends ContentProvider {
                     "BEGIN " +
                         "SELECT _DELETE_FILE(old._data);" +
                     "END");
+        }
+
+        if (fromVersion < 78) {
+            // Force a rescan of the images/video entries so we can update
+            // latest changed DATE_TAKEN units (in milliseconds).
+            db.execSQL("UPDATE images SET date_modified=0;");
+            db.execSQL("UPDATE video SET date_modified=0;");
         }
     }
 
@@ -2648,7 +2659,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 77;
+    private static final int DATABASE_VERSION = 78;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

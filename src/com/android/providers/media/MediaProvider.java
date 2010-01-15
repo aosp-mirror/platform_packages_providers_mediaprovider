@@ -788,9 +788,8 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (fromVersion < 78) {
-            // Force a rescan of the images/video entries so we can update
+            // Force a rescan of the video entries so we can update
             // latest changed DATE_TAKEN units (in milliseconds).
-            db.execSQL("UPDATE images SET date_modified=0;");
             db.execSQL("UPDATE video SET date_modified=0;");
         }
 
@@ -813,6 +812,11 @@ public class MediaProvider extends ContentProvider {
                             oldthumbspath + "','" + newthumbspath + "');");
                 }
             }
+        }
+
+        if (fromVersion < 80) {
+            // Force rescan of image entries to update DATE_TAKEN as UTC timestamp.
+            db.execSQL("UPDATE images SET date_modified=0;");
         }
     }
 
@@ -2886,7 +2890,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 79;
+    private static final int DATABASE_VERSION = 80;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

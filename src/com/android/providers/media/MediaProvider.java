@@ -20,6 +20,7 @@ import android.app.SearchManager;
 import android.content.*;
 import android.database.AbstractCursor;
 import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.database.MatrixCursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
@@ -1408,6 +1409,11 @@ public class MediaProvider extends ContentProvider {
                     "Unknown URI: " + uri);
         }
         SQLiteDatabase db = database.getWritableDatabase();
+
+        if (match == AUDIO_PLAYLISTS_ID || match == AUDIO_PLAYLISTS_ID_MEMBERS) {
+            return playlistBulkInsert(db, uri, values);
+        }
+
         db.beginTransaction();
         int numInserted = 0;
         try {
@@ -1432,6 +1438,29 @@ public class MediaProvider extends ContentProvider {
             getContext().getContentResolver().notifyChange(uri, null);
         }
         return newUri;
+    }
+
+    private int playlistBulkInsert(SQLiteDatabase db, Uri uri, ContentValues values[]) {
+        DatabaseUtils.InsertHelper helper =
+            new DatabaseUtils.InsertHelper(db, "audio_playlists_map");
+        Long playlistId = Long.parseLong(uri.getPathSegments().get(3));
+
+        db.beginTransaction();
+        int numInserted = 0;
+        try {
+            int len = values.length;
+            for (int i = 0; i < len; i++) {
+                values[i].put(Audio.Playlists.Members.PLAYLIST_ID, playlistId);
+                helper.insert(values[i]);
+            }
+            numInserted = len;
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+            helper.close();
+        }
+        getContext().getContentResolver().notifyChange(uri, null);
+        return numInserted;
     }
 
     private Uri insertInternal(Uri uri, ContentValues initialValues) {
@@ -1570,7 +1599,7 @@ public class MediaProvider extends ContentProvider {
                 Long audioId = Long.parseLong(uri.getPathSegments().get(2));
                 ContentValues values = new ContentValues(initialValues);
                 values.put(Audio.Genres.Members.AUDIO_ID, audioId);
-                rowId = db.insert("audio_playlists_map", "genre_id", values);
+                rowId = db.insert("audio_genres_map", "genre_id", values);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(uri, rowId);
                 }
@@ -1623,8 +1652,7 @@ public class MediaProvider extends ContentProvider {
                 Long playlistId = Long.parseLong(uri.getPathSegments().get(3));
                 ContentValues values = new ContentValues(initialValues);
                 values.put(Audio.Playlists.Members.PLAYLIST_ID, playlistId);
-                rowId = db.insert("audio_playlists_map", "playlist_id",
-                        values);
+                rowId = db.insert("audio_playlists_map", "playlist_id", values);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(uri, rowId);
                 }

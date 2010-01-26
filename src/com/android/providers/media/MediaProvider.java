@@ -1443,15 +1443,29 @@ public class MediaProvider extends ContentProvider {
     private int playlistBulkInsert(SQLiteDatabase db, Uri uri, ContentValues values[]) {
         DatabaseUtils.InsertHelper helper =
             new DatabaseUtils.InsertHelper(db, "audio_playlists_map");
-        Long playlistId = Long.parseLong(uri.getPathSegments().get(3));
+        int audioidcolidx = helper.getColumnIndex(MediaStore.Audio.Playlists.Members.AUDIO_ID);
+        int playlistididx = helper.getColumnIndex(Audio.Playlists.Members.PLAYLIST_ID);
+        int playorderidx = helper.getColumnIndex(MediaStore.Audio.Playlists.Members.PLAY_ORDER);
+        long playlistId = Long.parseLong(uri.getPathSegments().get(3));
 
         db.beginTransaction();
         int numInserted = 0;
         try {
             int len = values.length;
             for (int i = 0; i < len; i++) {
-                values[i].put(Audio.Playlists.Members.PLAYLIST_ID, playlistId);
-                helper.insert(values[i]);
+                helper.prepareForInsert();
+                // getting the raw Object and converting it long ourselves saves
+                // an allocation (the alternative is ContentValues.getAsLong, which
+                // returns a Long object)
+                long audioid = ((Number) values[i].get(
+                        MediaStore.Audio.Playlists.Members.AUDIO_ID)).longValue();
+                helper.bind(audioidcolidx, audioid);
+                helper.bind(playlistididx, playlistId);
+                // convert to int ourselves to save an allocation.
+                int playorder = ((Number) values[i].get(
+                        MediaStore.Audio.Playlists.Members.PLAY_ORDER)).intValue();
+                helper.bind(playorderidx, playorder);
+                helper.execute();
             }
             numInserted = len;
             db.setTransactionSuccessful();

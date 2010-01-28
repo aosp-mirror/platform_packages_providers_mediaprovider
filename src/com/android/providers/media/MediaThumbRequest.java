@@ -28,7 +28,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MiniThumbFile;
-import android.media.ThumbnailUtil;
+import android.media.ThumbnailUtils;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.ParcelFileDescriptor;
@@ -141,14 +141,14 @@ class MediaThumbRequest {
 
         if (mPath != null) {
             if (mIsVideo) {
-                bitmap = ThumbnailUtil.createVideoThumbnail(mPath);
+                bitmap = ThumbnailUtils.createVideoThumbnail(mPath);
                 if (bitmap != null) {
-                    bitmap = ThumbnailUtil.extractMiniThumb(bitmap,
-                    ThumbnailUtil.MINI_THUMB_TARGET_SIZE,
-                    ThumbnailUtil.MINI_THUMB_TARGET_SIZE, ThumbnailUtil.RECYCLE_INPUT);
+                    bitmap = ThumbnailUtils.extractMiniThumb(bitmap,
+                    ThumbnailUtils.MINI_THUMB_TARGET_SIZE,
+                    ThumbnailUtils.MINI_THUMB_TARGET_SIZE, ThumbnailUtils.RECYCLE_INPUT);
                 }
             } else {
-                bitmap = ThumbnailUtil.createImageThumbnail(mCr, mPath, mUri, mOrigId,
+                bitmap = ThumbnailUtils.createImageThumbnail(mCr, mPath, mUri, mOrigId,
                         Images.Thumbnails.MICRO_KIND, true);
             }
         }

@@ -143,9 +143,10 @@ class MediaThumbRequest {
             if (mIsVideo) {
                 bitmap = ThumbnailUtils.createVideoThumbnail(mPath);
                 if (bitmap != null) {
-                    bitmap = ThumbnailUtils.extractMiniThumb(bitmap,
-                    ThumbnailUtils.MINI_THUMB_TARGET_SIZE,
-                    ThumbnailUtils.MINI_THUMB_TARGET_SIZE, ThumbnailUtils.RECYCLE_INPUT);
+                    bitmap = ThumbnailUtils.extractThumbnail(bitmap,
+                            ThumbnailUtils.TARGET_SIZE_MICRO_THUMBNAIL,
+                            ThumbnailUtils.TARGET_SIZE_MICRO_THUMBNAIL,
+                            ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
                 }
             } else {
                 bitmap = ThumbnailUtils.createImageThumbnail(mCr, mPath, mUri, mOrigId,

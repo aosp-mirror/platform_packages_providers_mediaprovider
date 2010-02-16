@@ -35,6 +35,7 @@ import android.os.Binder;
 import android.os.Environment;
 import android.os.FileUtils;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.MemoryFile;
 import android.os.Message;
@@ -295,8 +296,9 @@ public class MediaProvider extends ContentProvider {
             attachVolume(EXTERNAL_VOLUME);
         }
 
-        mThumbWorker = new Worker("thumbs thread");
-        mThumbHandler = new Handler(mThumbWorker.getLooper()) {
+        HandlerThread ht = new HandlerThread("thumbs thread", Process.THREAD_PRIORITY_BACKGROUND);
+        ht.start();
+        mThumbHandler = new Handler(ht.getLooper()) {
             @Override
             public void handleMessage(Message msg) {
                 if (msg.what == IMAGE_THUMB) {
@@ -2278,42 +2280,6 @@ public class MediaProvider extends ContentProvider {
         return pfd;
     }
 
-    private class Worker implements Runnable {
-        private final Object mLock = new Object();
-        private Looper mLooper;
-
-        Worker(String name) {
-            Thread t = new Thread(null, this, name);
-            t.start();
-            synchronized (mLock) {
-                while (mLooper == null) {
-                    try {
-                        mLock.wait();
-                    } catch (InterruptedException ex) {
-                    }
-                }
-            }
-        }
-
-        public Looper getLooper() {
-            return mLooper;
-        }
-
-        public void run() {
-            synchronized (mLock) {
-                Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
-                Looper.prepare();
-                mLooper = Looper.myLooper();
-                mLock.notifyAll();
-            }
-            Looper.loop();
-        }
-
-        public void quit() {
-            mLooper.quit();
-        }
-    }
-
     private class ThumbData {
         SQLiteDatabase db;
         String path;
@@ -2903,7 +2869,6 @@ public class MediaProvider extends ContentProvider {
 
     private HashMap<String, DatabaseHelper> mDatabases;
 
-    private Worker mThumbWorker;
     private Handler mThumbHandler;
 
     // name of the volume currently being scanned by the media scanner (or null)

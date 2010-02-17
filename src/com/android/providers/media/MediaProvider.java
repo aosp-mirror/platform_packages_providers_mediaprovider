@@ -2381,7 +2381,8 @@ public class MediaProvider extends ContentProvider {
 
                     String artPath = path.substring(0, lastSlash);
                     String sdroot = Environment.getExternalStorageDirectory().getAbsolutePath();
-                    String dwndir = sdroot + "/download"; // there's no public constant for this
+                    String dwndir = Environment.getExternalStoragePublicDirectory(
+                            Environment.DIRECTORY_DOWNLOADS);
 
                     String bestmatch = null;
                     synchronized (sFolderArtMap) {

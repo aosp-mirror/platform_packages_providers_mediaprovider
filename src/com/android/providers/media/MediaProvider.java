@@ -820,6 +820,55 @@ public class MediaProvider extends ContentProvider {
             // Force rescan of image entries to update DATE_TAKEN as UTC timestamp.
             db.execSQL("UPDATE images SET date_modified=0;");
         }
+
+        if (fromVersion < 81) {
+            // Delete entries starting with /mnt/sdcard. This is for the benefit
+            // of users running builds between 2.0.1 and 2.1 final only, since
+            // users updating from 2.0 or earlier will not have such entries.
+
+            // First we need to update the _data fields in the affected tables, since
+            // otherwise deleting the entries will also delete the underlying files
+            // (via a trigger), and we want to keep them.
+            db.execSQL("UPDATE audio_playlists SET _data='////' WHERE _data LIKE '/mnt/sdcard/%';");
+            db.execSQL("UPDATE images SET _data='////' WHERE _data LIKE '/mnt/sdcard/%';");
+            db.execSQL("UPDATE video SET _data='////' WHERE _data LIKE '/mnt/sdcard/%';");
+            db.execSQL("UPDATE videothumbnails SET _data='////' WHERE _data LIKE '/mnt/sdcard/%';");
+            db.execSQL("UPDATE thumbnails SET _data='////' WHERE _data LIKE '/mnt/sdcard/%';");
+            db.execSQL("UPDATE album_art SET _data='////' WHERE _data LIKE '/mnt/sdcard/%';");
+            // Once the paths have been renamed, we can safely delete the entries
+            db.execSQL("DELETE FROM audio_playlists WHERE _data IS '////';");
+            db.execSQL("DELETE FROM images WHERE _data IS '////';");
+            db.execSQL("DELETE FROM video WHERE _data IS '////';");
+            db.execSQL("DELETE FROM videothumbnails WHERE _data IS '////';");
+            db.execSQL("DELETE FROM thumbnails WHERE _data IS '////';");
+            db.execSQL("DELETE FROM audio_meta WHERE _data  IS '////';");
+            db.execSQL("DELETE FROM album_art WHERE _data  IS '////';");
+
+            // rename existing entries starting with /sdcard to /mnt/sdcard
+            db.execSQL("UPDATE audio_meta" +
+                    " SET _data='/mnt/sdcard'||SUBSTR(_data,8) WHERE _data LIKE '/sdcard/%';");
+            db.execSQL("UPDATE audio_playlists" +
+                    " SET _data='/mnt/sdcard'||SUBSTR(_data,8) WHERE _data LIKE '/sdcard/%';");
+            db.execSQL("UPDATE images" +
+                    " SET _data='/mnt/sdcard'||SUBSTR(_data,8) WHERE _data LIKE '/sdcard/%';");
+            db.execSQL("UPDATE video" +
+                    " SET _data='/mnt/sdcard'||SUBSTR(_data,8) WHERE _data LIKE '/sdcard/%';");
+            db.execSQL("UPDATE videothumbnails" +
+                    " SET _data='/mnt/sdcard'||SUBSTR(_data,8) WHERE _data LIKE '/sdcard/%';");
+            db.execSQL("UPDATE thumbnails" +
+                    " SET _data='/mnt/sdcard'||SUBSTR(_data,8) WHERE _data LIKE '/sdcard/%';");
+            db.execSQL("UPDATE album_art" +
+                    " SET _data='/mnt/sdcard'||SUBSTR(_data,8) WHERE _data LIKE '/sdcard/%';");
+
+            // Delete albums and artists, then clear the modification time on songs, which
+            // will cause the media scanner to rescan everything, rebuilding the artist and
+            // album tables along the way, while preserving playlists.
+            // We need this rescan because ICU also changed, and now generates different
+            // collation keys
+            db.execSQL("DELETE from albums");
+            db.execSQL("DELETE from artists");
+            db.execSQL("UPDATE audio_meta SET date_modified=0;");
+        }
     }
 
     private static void recreateAudioView(SQLiteDatabase db) {
@@ -2857,7 +2906,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 80;
+    private static final int DATABASE_VERSION = 81;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

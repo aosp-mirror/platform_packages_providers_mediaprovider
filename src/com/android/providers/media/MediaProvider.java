@@ -821,7 +821,7 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("UPDATE images SET date_modified=0;");
         }
 
-        if (fromVersion < 81) {
+        if (fromVersion < 81 && !internal) {
             // Delete entries starting with /mnt/sdcard. This is for the benefit
             // of users running builds between 2.0.1 and 2.1 final only, since
             // users updating from 2.0 or earlier will not have such entries.

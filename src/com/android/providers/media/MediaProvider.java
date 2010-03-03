@@ -869,6 +869,17 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("DELETE from artists");
             db.execSQL("UPDATE audio_meta SET date_modified=0;");
         }
+
+        if (fromVersion < 82) {
+            // Provides some extra info about artists, like the number of tracks
+            // and albums for this artist
+            db.execSQL("DROP VIEW IF EXISTS artist_info");
+            db.execSQL("CREATE VIEW IF NOT EXISTS artist_info AS " +
+                        "SELECT artist_id AS _id, artist, artist_key, " +
+                        "COUNT(DISTINCT album_key) AS number_of_albums, " +
+                        "COUNT(*) AS number_of_tracks FROM audio WHERE is_music=1 "+
+                        "GROUP BY artist_key;");
+        }
     }
 
     private static void recreateAudioView(SQLiteDatabase db) {
@@ -2906,7 +2917,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 81;
+    private static final int DATABASE_VERSION = 82;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

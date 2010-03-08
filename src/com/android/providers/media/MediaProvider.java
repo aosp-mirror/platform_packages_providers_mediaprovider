@@ -446,7 +446,7 @@ public class MediaProvider extends ContentProvider {
             // Contains meta data about audio files
             db.execSQL("CREATE TABLE IF NOT EXISTS audio_meta (" +
                        "_id INTEGER PRIMARY KEY," +
-                       "_data TEXT NOT NULL," +
+                       "_data TEXT UNIQUE NOT NULL," +
                        "_display_name TEXT," +
                        "_size INTEGER," +
                        "mime_type TEXT," +
@@ -835,6 +835,7 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("UPDATE videothumbnails SET _data='////' WHERE _data LIKE '/mnt/sdcard/%';");
             db.execSQL("UPDATE thumbnails SET _data='////' WHERE _data LIKE '/mnt/sdcard/%';");
             db.execSQL("UPDATE album_art SET _data='////' WHERE _data LIKE '/mnt/sdcard/%';");
+            db.execSQL("UPDATE audio_meta SET _data='////' WHERE _data LIKE '/mnt/sdcard/%';");
             // Once the paths have been renamed, we can safely delete the entries
             db.execSQL("DELETE FROM audio_playlists WHERE _data IS '////';");
             db.execSQL("DELETE FROM images WHERE _data IS '////';");
@@ -879,6 +880,31 @@ public class MediaProvider extends ContentProvider {
                         "COUNT(DISTINCT album_key) AS number_of_albums, " +
                         "COUNT(*) AS number_of_tracks FROM audio WHERE is_music=1 "+
                         "GROUP BY artist_key;");
+        }
+
+        sanityCheck(db, fromVersion);
+    }
+
+    /**
+     * Perform a simple sanity check on the database. Currently this tests
+     * whether all the _data entries in audio_meta are unique
+     */
+    private static void sanityCheck(SQLiteDatabase db, int fromVersion) {
+        Cursor c1 = db.query("audio_meta", new String[] {"count(*)"},
+                null, null, null, null, null);
+        Cursor c2 = db.query("audio_meta", new String[] {"count(distinct _data)"},
+                null, null, null, null, null);
+        c1.moveToFirst();
+        c2.moveToFirst();
+        int num1 = c1.getInt(0);
+        int num2 = c2.getInt(0);
+        c1.close();
+        c2.close();
+        if (num1 != num2) {
+            Log.e(TAG, "audio_meta._data column is not unique while upgrading" +
+                    " from schema " +fromVersion + " : " + num1 +"/" + num2);
+            // Delete all audio_meta rows so they will be rebuilt by the media scanner
+            db.execSQL("DELETE FROM audio_meta;");
         }
     }
 
@@ -2163,14 +2189,17 @@ public class MediaProvider extends ContentProvider {
                                     READY_FLAG_PROJECTION, sGetTableAndWhereParam.where,
                                     whereArgs, null, null, null);
                             if (c != null) {
-                                while (c.moveToNext()) {
-                                    long magic = c.getLong(2);
-                                    if (magic == 0) {
-                                        requestMediaThumbnail(c.getString(1), uri,
-                                                MediaThumbRequest.PRIORITY_NORMAL, 0);
+                                try {
+                                    while (c.moveToNext()) {
+                                        long magic = c.getLong(2);
+                                        if (magic == 0) {
+                                            requestMediaThumbnail(c.getString(1), uri,
+                                                    MediaThumbRequest.PRIORITY_NORMAL, 0);
+                                        }
                                     }
+                                } finally {
+                                    c.close();
                                 }
-                                c.close();
                             }
                         }
                     }
@@ -2917,7 +2946,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 82;
+    private static final int DATABASE_VERSION = 83;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

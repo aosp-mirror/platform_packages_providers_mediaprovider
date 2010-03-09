@@ -2359,25 +2359,6 @@ public class MediaProvider extends ContentProvider {
                     pfd = getThumb(db, audiopath, albumid, uri);
                 }
                 c.close();
-            } else {
-                // Opening the file failed. See if we can interpret the path as
-                // a Uri and open that instead. This lets items in the media
-                // database transparently refer to items in other content providers.
-                // TODO figure out some way to detect recursion and abort
-                // (using ThreadLocal might be appropriate for that).
-                ContentResolver res = getContext().getContentResolver();
-                Cursor c = res.query(uri, new String[] {"_data"}, null, null, null);
-                if (c != null) {
-                    try {
-                        if (c.moveToFirst()) {
-                            String path = c.getString(0);
-                            Uri newUri = Uri.parse(path);
-                            return res.openFileDescriptor(newUri, mode);
-                        }
-                    } finally {
-                        c.close();
-                    }
-                }
             }
             if (pfd == null) {
                 throw ex;

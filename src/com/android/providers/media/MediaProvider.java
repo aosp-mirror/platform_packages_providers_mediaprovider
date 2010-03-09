@@ -1031,6 +1031,21 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     *
+     * @param values the content values, where taken time is updated.
+     */
+    private static void computeTakenTime(ContentValues values) {
+        if (! values.containsKey(Images.Media.DATE_TAKEN)) {
+            // This only happens when MediaScanner finds an image file that doesn't have any useful
+            // reference to get this value. (e.g. GPSTimeStamp)
+            Long lastModified = values.getAsLong(Images.Media.DATE_MODIFIED);
+            if (lastModified != null) {
+                values.put(Images.Media.DATE_TAKEN, lastModified * 1000);
+            }
+        }
+    }
+
+    /**
      * This method blocks until thumbnail is ready.
      *
      * @param thumbUri
@@ -1602,6 +1617,7 @@ public class MediaProvider extends ContentProvider {
                     computeDisplayName(data, values);
                 }
                 computeBucketValues(data, values);
+                computeTakenTime(values);
                 rowId = db.insert("images", "name", values);
 
                 if (rowId > 0) {
@@ -2179,6 +2195,7 @@ public class MediaProvider extends ContentProvider {
                         if (data != null) {
                             computeBucketValues(data, values);
                         }
+                        computeTakenTime(values);
                         count = db.update(sGetTableAndWhereParam.table, values,
                                 sGetTableAndWhereParam.where, whereArgs);
                         // if this is a request from MediaScanner, DATA should contains file path

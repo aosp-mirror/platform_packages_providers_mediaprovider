@@ -1031,6 +1031,8 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     * Copy taken time from date_modified if we lost the original value (e.g. after factory reset)
+     * This works for both video and image tables.
      *
      * @param values the content values, where taken time is updated.
      */
@@ -1038,7 +1040,7 @@ public class MediaProvider extends ContentProvider {
         if (! values.containsKey(Images.Media.DATE_TAKEN)) {
             // This only happens when MediaScanner finds an image file that doesn't have any useful
             // reference to get this value. (e.g. GPSTimeStamp)
-            Long lastModified = values.getAsLong(Images.Media.DATE_MODIFIED);
+            Long lastModified = values.getAsLong(MediaColumns.DATE_MODIFIED);
             if (lastModified != null) {
                 values.put(Images.Media.DATE_TAKEN, lastModified * 1000);
             }
@@ -1792,6 +1794,7 @@ public class MediaProvider extends ContentProvider {
                 computeDisplayName(data, values);
                 computeBucketValues(data, values);
                 values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);
+                computeTakenTime(values);
                 rowId = db.insert("video", "artist", values);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(Video.Media.getContentUri(

@@ -2123,6 +2123,11 @@ public class MediaProvider extends ContentProvider {
                 case AUDIO_MEDIA_ID:
                     {
                         ContentValues values = new ContentValues(initialValues);
+                        // TODO Remove this and actually store the album_artist in the
+                        // database. For now this is here so the media scanner can start
+                        // sending us the album_artist, even though it's not in the db yet.
+                        values.remove(MediaStore.Audio.Media.ALBUM_ARTIST);
+
                         // Insert the artist into the artist table and remove it from
                         // the input values
                         String artist = values.getAsString("artist");

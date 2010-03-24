@@ -18,6 +18,7 @@ package com.android.providers.media;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Comparator;
 import java.util.Random;
 
@@ -34,6 +35,7 @@ import android.os.Binder;
 import android.os.ParcelFileDescriptor;
 import android.provider.BaseColumns;
 import android.provider.MediaStore.Images;
+import android.provider.MediaStore.Video;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.util.Log;
@@ -60,6 +62,8 @@ class MediaThumbRequest {
     long mGroupId;
     int mPriority;
     Uri mUri;
+    Uri mThumbUri;
+    String mOrigColumnName;
     boolean mIsVideo;
     long mOrigId;
     State mState = State.WAIT;
@@ -88,11 +92,40 @@ class MediaThumbRequest {
         mUri = uri;
         mIsVideo = "video".equals(uri.getPathSegments().get(1));
         mOrigId = ContentUris.parseId(uri);
+        mThumbUri = mIsVideo
+                ? Video.Thumbnails.EXTERNAL_CONTENT_URI
+                : Images.Thumbnails.EXTERNAL_CONTENT_URI;
+        mOrigColumnName = mIsVideo
+                ? Video.Thumbnails.VIDEO_ID
+                : Images.Thumbnails.IMAGE_ID;
         // Only requests from Thumbnail API has this group_id parameter. In other cases,
         // mGroupId will always be zero and can't be canceled due to pid mismatch.
         String groupIdParam = uri.getQueryParameter("group_id");
         if (groupIdParam != null) {
             mGroupId = Long.parseLong(groupIdParam);
+        }
+    }
+
+    Uri updateDatabase() {
+        Cursor c = mCr.query(mThumbUri, THUMB_PROJECTION,
+                mOrigColumnName+ " = " + mOrigId, null, null);
+        if (c == null) return null;
+        try {
+            if (c.moveToFirst()) {
+                return ContentUris.withAppendedId(mThumbUri, c.getLong(0));
+            }
+        } finally {
+            if (c != null) c.close();
+        }
+
+        ContentValues values = new ContentValues(2);
+        values.put(Images.Thumbnails.KIND, Images.Thumbnails.MINI_KIND);
+        values.put(mOrigColumnName, mOrigId);
+        try {
+            return mCr.insert(mThumbUri, values);
+        } catch (Exception ex) {
+            Log.w(TAG, ex);
+            return null;
         }
     }
 
@@ -111,18 +144,14 @@ class MediaThumbRequest {
         if (magic != 0) {
             long fileMagic = miniThumbFile.getMagic(mOrigId);
             if (fileMagic == magic) {
-                // signature is identical. skip this item!
-                // Log.v(TAG, "signature is identical. skip this item!");
-                if (mIsVideo) return;
-
-                Cursor c = mCr.query(Images.Thumbnails.EXTERNAL_CONTENT_URI,
-                        new String[] {MediaColumns._ID}, "image_id = " + mOrigId, null, null);
+                Cursor c = null;
                 ParcelFileDescriptor pfd = null;
                 try {
+                    c = mCr.query(mThumbUri, THUMB_PROJECTION,
+                            mOrigColumnName + " = " + mOrigId, null, null);
                     if (c != null && c.moveToFirst()) {
                         pfd = mCr.openFileDescriptor(
-                                Images.Thumbnails.EXTERNAL_CONTENT_URI.buildUpon()
-                                .appendPath(c.getString(0)).build(), "r");
+                                mThumbUri.buildUpon().appendPath(c.getString(0)).build(), "r");
                     }
                 } finally {
                     if (c != null) c.close();
@@ -141,23 +170,29 @@ class MediaThumbRequest {
 
         if (mPath != null) {
             if (mIsVideo) {
-                bitmap = ThumbnailUtils.createVideoThumbnail(mPath);
-                if (bitmap != null) {
-                    bitmap = ThumbnailUtils.extractThumbnail(bitmap,
-                            ThumbnailUtils.TARGET_SIZE_MICRO_THUMBNAIL,
-                            ThumbnailUtils.TARGET_SIZE_MICRO_THUMBNAIL,
-                            ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
-                }
+                bitmap = ThumbnailUtils.createVideoThumbnail(mPath,
+                        Video.Thumbnails.MINI_KIND);
             } else {
-                bitmap = ThumbnailUtils.createImageThumbnail(mCr, mPath, mUri, mOrigId,
-                        Images.Thumbnails.MICRO_KIND, true);
+                bitmap = ThumbnailUtils.createImageThumbnail(mPath,
+                        Images.Thumbnails.MINI_KIND);
+            }
+            if (bitmap == null) {
+                Log.w(TAG, "Can't create mini thumbnail for " + mPath);
+                return;
+            }
+
+            Uri uri = updateDatabase();
+            if (uri != null) {
+                OutputStream thumbOut = mCr.openOutputStream(uri);
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 85, thumbOut);
+                thumbOut.close();
             }
         }
 
-        // make a new magic number since things are out of sync
-        do {
-            magic = mRandom.nextLong();
-        } while (magic == 0);
+        bitmap = ThumbnailUtils.extractThumbnail(bitmap,
+                        ThumbnailUtils.TARGET_SIZE_MICRO_THUMBNAIL,
+                        ThumbnailUtils.TARGET_SIZE_MICRO_THUMBNAIL,
+                        ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
 
         if (bitmap != null) {
             ByteArrayOutputStream miniOutStream = new ByteArrayOutputStream();
@@ -177,6 +212,11 @@ class MediaThumbRequest {
             // Gallery application can use the MINI_THUMB_MAGIC value to determine if it's
             // time to query and fetch by using Cursor.getBlob
             if (data != null) {
+                // make a new magic number since things are out of sync
+                do {
+                    magic = mRandom.nextLong();
+                } while (magic == 0);
+
                 miniThumbFile.saveMiniThumbToFile(data, mOrigId, magic);
                 ContentValues values = new ContentValues();
                 // both video/images table use the same column name "mini_thumb_magic"

@@ -263,8 +263,7 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public boolean onCreate() {
-        sArtistAlbumsMap.put(MediaStore.Audio.Albums._ID, "audio.album_id AS " +
-                MediaStore.Audio.Albums._ID);
+        sArtistAlbumsMap.put(MediaStore.Audio.Albums._ID, MediaStore.Audio.Albums._ID);
         sArtistAlbumsMap.put(MediaStore.Audio.Albums.ALBUM, "album");
         sArtistAlbumsMap.put(MediaStore.Audio.Albums.ALBUM_KEY, "album_key");
         sArtistAlbumsMap.put(MediaStore.Audio.Albums.FIRST_YEAR, "MIN(year) AS " +
@@ -274,10 +273,8 @@ public class MediaProvider extends ContentProvider {
         sArtistAlbumsMap.put(MediaStore.Audio.Media.ARTIST, "artist");
         sArtistAlbumsMap.put(MediaStore.Audio.Media.ARTIST_ID, "artist");
         sArtistAlbumsMap.put(MediaStore.Audio.Media.ARTIST_KEY, "artist_key");
-        sArtistAlbumsMap.put(MediaStore.Audio.Albums.NUMBER_OF_SONGS, "count(*) AS " +
-                MediaStore.Audio.Albums.NUMBER_OF_SONGS);
-        sArtistAlbumsMap.put(MediaStore.Audio.Albums.ALBUM_ART, "album_art._data AS " +
-                MediaStore.Audio.Albums.ALBUM_ART);
+        sArtistAlbumsMap.put(MediaStore.Audio.Albums.NUMBER_OF_SONGS, "numsongs");
+        sArtistAlbumsMap.put(MediaStore.Audio.Albums.ALBUM_ART, "album_art");
 
         mSearchColsBasic[SEARCH_COLUMN_BASIC_TEXT2] =
                 mSearchColsBasic[SEARCH_COLUMN_BASIC_TEXT2].replaceAll(
@@ -492,7 +489,7 @@ public class MediaProvider extends ContentProvider {
             // and albums for this artist
             db.execSQL("CREATE VIEW IF NOT EXISTS artist_info AS " +
                         "SELECT artist_id AS _id, artist, artist_key, " +
-                        "COUNT(DISTINCT album) AS number_of_albums, " +
+                        "COUNT(DISTINCT album_id) AS number_of_albums, " +
                         "COUNT(*) AS number_of_tracks FROM audio WHERE is_music=1 "+
                         "GROUP BY artist_key;");
 
@@ -877,9 +874,59 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("DROP VIEW IF EXISTS artist_info");
             db.execSQL("CREATE VIEW IF NOT EXISTS artist_info AS " +
                         "SELECT artist_id AS _id, artist, artist_key, " +
-                        "COUNT(DISTINCT album_key) AS number_of_albums, " +
+                        "COUNT(DISTINCT album_id) AS number_of_albums, " +
                         "COUNT(*) AS number_of_tracks FROM audio WHERE is_music=1 "+
                         "GROUP BY artist_key;");
+        }
+
+        /* we skipped over version 83 */
+
+        if (fromVersion < 84) {
+            // add album_artist column
+            db.execSQL("ALTER TABLE audio_meta ADD COLUMN album_artist_id INTEGER;");
+
+            // to facilitate joining on the artists table twice (on different columns),
+            // create an intermediate view on that table
+            db.execSQL("CREATE VIEW IF NOT EXISTS album_artists AS " +
+                    "SELECT artist_id AS album_artist_id," +
+                    " artist_key AS album_artist_key, artist AS album_artist FROM artists;");
+
+            // drop and recreate the audio view
+            db.execSQL("DROP VIEW IF EXISTS audio");
+            db.execSQL("CREATE VIEW audio as SELECT * FROM audio_meta " +
+                    "LEFT OUTER JOIN artists ON audio_meta.artist_id=artists.artist_id " +
+                    "LEFT OUTER JOIN album_artists on " +
+                    "audio_meta.album_artist_id=album_artists.album_artist_id " +
+                    "LEFT OUTER JOIN albums ON audio_meta.album_id=albums.album_id;");
+
+            // drop and recreate the various views that sit on top of the audio view
+            db.execSQL("DROP VIEw IF EXISTS album_info;");
+            db.execSQL("CREATE VIEW album_info AS SELECT audio.album_id AS _id, album, album_key," +
+                    " MIN(year) AS minyear, MAX(year) AS maxyear," +
+                    " ifnull(album_artist,artist) AS artist," +
+                    " ifnull(album_artist_id,artist_id) AS artist_id," +
+                    " ifnull(album_artist_key,artist_key) AS artist_key," +
+                    " count(*) AS numsongs,album_art._data AS album_art FROM audio " +
+                    "LEFT OUTER JOIN album_art ON audio.album_id=album_art.album_id " +
+                    "WHERE is_music=1 GROUP BY audio.album_id;");
+
+            db.execSQL("DROP VIEw IF EXISTS artist_info;");
+            db.execSQL("CREATE VIEW artist_info AS SELECT artist_id AS _id, artist, artist_key," +
+                    " COUNT(DISTINCT album_id) AS number_of_albums, COUNT(*) AS number_of_tracks" +
+                    " FROM audio WHERE is_music=1 GROUP BY artist_key " +
+                    "UNION SELECT album_artist_id AS _id, album_artist AS artist," +
+                    " album_artist_key AS artist_key," +
+                    " COUNT(DISTINCT album_id) AS number_of_albums," +
+                    " COUNT(*) AS number_of_tracks FROM audio WHERE is_music=1" +
+                    " GROUP BY album_artist_key;");
+
+            // Finally, to accommodate ever larger media collections, add some indexes so we
+            // can find the songs for a given album or artist without having to scan the entire
+            // database
+            db.execSQL("CREATE INDEX IF NOT EXISTS album_id_idx on audio_meta(album_id);");
+            db.execSQL("CREATE INDEX IF NOT EXISTS artist_id_idx on audio_meta(artist_id);");
+            db.execSQL("CREATE INDEX IF NOT EXISTS album_artist_id_idx" +
+                    " on audio_meta(album_artist_id);");
         }
 
         sanityCheck(db, fromVersion);
@@ -1340,14 +1387,13 @@ public class MediaProvider extends ContentProvider {
 
             case AUDIO_ARTISTS_ID_ALBUMS:
                 String aid = uri.getPathSegments().get(3);
-                qb.setTables("audio LEFT OUTER JOIN album_art ON" +
-                        " audio.album_id=album_art.album_id");
-                qb.appendWhere("is_music=1 AND audio.album_id IN (SELECT album_id FROM " +
-                        "artists_albums_map WHERE artist_id = " +
-                         aid + ")");
-                groupBy = "audio.album_id";
+                qb.setTables("album_info");
+                qb.appendWhere("_id IN (SELECT album_id AS _id FROM audio_meta" +
+                        " WHERE artist_id=" + aid + " OR album_artist_id=" + aid + ")");
                 sArtistAlbumsMap.put(MediaStore.Audio.Albums.NUMBER_OF_SONGS_FOR_ARTIST,
-                        "count(CASE WHEN artist_id==" + aid + " THEN 'foo' ELSE NULL END) AS " +
+                        "(SELECT COUNT(*) FROM audio_meta WHERE (artist_id=" + aid +
+                        " OR album_artist_id=" + aid + ")" +
+                        " AND audio_meta.album_id=album_info._id) AS " +
                         MediaStore.Audio.Albums.NUMBER_OF_SONGS_FOR_ARTIST);
                 qb.setProjectionMap(sArtistAlbumsMap);
                 break;
@@ -1662,11 +1708,6 @@ public class MediaProvider extends ContentProvider {
                 // the view.
                 ContentValues values = new ContentValues(initialValues);
 
-                // TODO Remove this and actually store the album_artist in the
-                // database. For now this is here so the media scanner can start
-                // sending us the album_artist, even though it's not in the db yet.
-                values.remove(MediaStore.Audio.Media.ALBUM_ARTIST);
-
                 // Insert the artist into the artist table and remove it from
                 // the input values
                 Object so = values.get("artist");
@@ -1685,6 +1726,21 @@ public class MediaProvider extends ContentProvider {
                     }
                 }
                 String artist = s;
+
+                // Do the same for the album_artist field
+                so = values.get(MediaStore.Audio.Media.ALBUM_ARTIST);
+                s = (so == null ? "" : so.toString());
+                values.remove(MediaStore.Audio.Media.ALBUM_ARTIST);
+                long albumArtistRowId;
+                synchronized(artistCache) {
+                    Long temp = artistCache.get(s);
+                    if (temp == null) {
+                        albumArtistRowId = getKeyIdForName(db, "artists", "artist_key", "artist",
+                                s, s, path, 0, null, artistCache, uri);
+                    } else {
+                        albumArtistRowId = temp.longValue();
+                    }
+                }
 
                 // Do the same for the album field
                 so = values.get("album");
@@ -1705,6 +1761,7 @@ public class MediaProvider extends ContentProvider {
                 }
 
                 values.put("artist_id", Integer.toString((int)artistRowId));
+                values.put("album_artist_id", Integer.toString((int)albumArtistRowId));
                 values.put("album_id", Integer.toString((int)albumRowId));
                 so = values.getAsString("title");
                 s = (so == null ? "" : so.toString());
@@ -2123,10 +2180,6 @@ public class MediaProvider extends ContentProvider {
                 case AUDIO_MEDIA_ID:
                     {
                         ContentValues values = new ContentValues(initialValues);
-                        // TODO Remove this and actually store the album_artist in the
-                        // database. For now this is here so the media scanner can start
-                        // sending us the album_artist, even though it's not in the db yet.
-                        values.remove(MediaStore.Audio.Media.ALBUM_ARTIST);
 
                         // Insert the artist into the artist table and remove it from
                         // the input values
@@ -2138,13 +2191,34 @@ public class MediaProvider extends ContentProvider {
                             synchronized(artistCache) {
                                 Long temp = artistCache.get(artist);
                                 if (temp == null) {
-                                    artistRowId = getKeyIdForName(db, "artists", "artist_key", "artist",
-                                            artist, artist, null, 0, null, artistCache, uri);
+                                    artistRowId = getKeyIdForName(db, "artists", "artist_key",
+                                            "artist", artist, artist,
+                                            null, 0, null, artistCache, uri);
                                 } else {
                                     artistRowId = temp.longValue();
                                 }
                             }
                             values.put("artist_id", Integer.toString((int)artistRowId));
+                        }
+
+                        // Do the same for the album_artist field
+                        String albumArtist = values.getAsString(
+                                MediaStore.Audio.Media.ALBUM_ARTIST);
+                        if (albumArtist != null) {
+                            values.remove(MediaStore.Audio.Media.ALBUM_ARTIST);
+                            long albumArtistRowId;
+                            HashMap<String, Long> artistCache = database.mArtistCache;
+                            synchronized(artistCache) {
+                                Long temp = artistCache.get(albumArtist);
+                                if (temp == null) {
+                                    albumArtistRowId = getKeyIdForName(db, "artists", "artist_key",
+                                            "artist", albumArtist, albumArtist,
+                                            null, 0, null, artistCache, uri);
+                                } else {
+                                    albumArtistRowId = temp.longValue();
+                                }
+                            }
+                            values.put("album_artist_id", Integer.toString((int)albumArtistRowId));
                         }
 
                         // Do the same for the album field.
@@ -2957,7 +3031,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 83;
+    private static final int DATABASE_VERSION = 84;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

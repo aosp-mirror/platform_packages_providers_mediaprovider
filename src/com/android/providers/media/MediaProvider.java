@@ -2184,8 +2184,8 @@ public class MediaProvider extends ContentProvider {
                         // Insert the artist into the artist table and remove it from
                         // the input values
                         String artist = values.getAsString("artist");
+                        values.remove("artist");
                         if (artist != null) {
-                            values.remove("artist");
                             long artistRowId;
                             HashMap<String, Long> artistCache = database.mArtistCache;
                             synchronized(artistCache) {
@@ -2204,8 +2204,8 @@ public class MediaProvider extends ContentProvider {
                         // Do the same for the album_artist field
                         String albumArtist = values.getAsString(
                                 MediaStore.Audio.Media.ALBUM_ARTIST);
+                        values.remove(MediaStore.Audio.Media.ALBUM_ARTIST);
                         if (albumArtist != null) {
-                            values.remove(MediaStore.Audio.Media.ALBUM_ARTIST);
                             long albumArtistRowId;
                             HashMap<String, Long> artistCache = database.mArtistCache;
                             synchronized(artistCache) {
@@ -2223,6 +2223,7 @@ public class MediaProvider extends ContentProvider {
 
                         // Do the same for the album field.
                         String so = values.getAsString("album");
+                        values.remove("album");
                         if (so != null) {
                             String path = values.getAsString("_data");
                             int albumHash = 0;
@@ -2233,7 +2234,6 @@ public class MediaProvider extends ContentProvider {
                                 albumHash = path.substring(0, path.lastIndexOf('/')).hashCode();
                             }
                             String s = so.toString();
-                            values.remove("album");
                             long albumRowId;
                             HashMap<String, Long> albumCache = database.mAlbumCache;
                             synchronized(albumCache) {

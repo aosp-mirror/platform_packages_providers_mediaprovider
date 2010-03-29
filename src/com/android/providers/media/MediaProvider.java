@@ -929,6 +929,18 @@ public class MediaProvider extends ContentProvider {
                     " on audio_meta(album_artist_id);");
         }
 
+        if (fromVersion < 85) {
+            // Fix isue with artists being duplicated, and increase performance of the
+            // artist_info view.
+            db.execSQL("DROP VIEw IF EXISTS artist_info;");
+            db.execSQL("CREATE VIEW artist_info AS select artist_id AS _id, artist, artist_key," +
+                    "(select count(distinct album_id) from audio_meta where" +
+                    " (audio_meta.artist_id=artists.artist_id OR" +
+                    " audio_meta.album_artist_id=artists.artist_id)) as number_of_albums," +
+                    "(select count(*) from audio_meta where (audio_meta.artist_id=artists.artist_id" +
+                    " OR audio_meta.album_artist_id=artists.artist_id)) as number_of_tracks" +
+                    " from artists;");
+        }
         sanityCheck(db, fromVersion);
     }
 
@@ -3031,7 +3043,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 84;
+    private static final int DATABASE_VERSION = 85;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

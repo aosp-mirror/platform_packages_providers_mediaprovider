@@ -1656,12 +1656,19 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_GENRES_ID_MEMBERS_ID:
             case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
             case VIDEO_MEDIA_ID:
-                Cursor c = query(url, MIME_TYPE_PROJECTION, null, null, null);
-                if (c != null && c.getCount() == 1) {
-                    c.moveToFirst();
-                    String mimeType = c.getString(1);
-                    c.deactivate();
-                    return mimeType;
+                Cursor c = null;
+                try {
+                    c = query(url, MIME_TYPE_PROJECTION, null, null, null);
+                    if (c != null && c.getCount() == 1) {
+                        c.moveToFirst();
+                        String mimeType = c.getString(1);
+                        c.deactivate();
+                        return mimeType;
+                    }
+                } finally {
+                    if (c != null) {
+                        c.close();
+                    }
                 }
                 break;
 

@@ -1075,6 +1075,15 @@ public class MediaProvider extends ContentProvider {
                     "END;");
 
         }
+
+        if (fromVersion < 87) {
+            // The fastscroll thumb needs an index on the strings being displayed,
+            // otherwise the queries it does to determine the correct position
+            // becomes really inefficient
+            db.execSQL("CREATE INDEX title_idx on audio_meta(title);");
+            db.execSQL("CREATE INDEX artist_idx on artists(artist);");
+            db.execSQL("CREATE INDEX album_idx on albums(album);");
+        }
         sanityCheck(db, fromVersion);
     }
 
@@ -2715,8 +2724,8 @@ public class MediaProvider extends ContentProvider {
                     synchronized (sFolderArtMap) {
                         if (sFolderArtMap.containsKey(artPath)) {
                             bestmatch = sFolderArtMap.get(artPath);
-                        } else if (!artPath.equals(sdroot) &&
-                                !artPath.equals(dwndir)) {
+                        } else if (!artPath.equalsIgnoreCase(sdroot) &&
+                                !artPath.equalsIgnoreCase(dwndir)) {
                             File dir = new File(artPath);
                             String [] entrynames = dir.list();
                             if (entrynames == null) {
@@ -3218,7 +3227,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 86;
+    private static final int DATABASE_VERSION = 87;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

@@ -263,18 +263,21 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public boolean onCreate() {
-        sArtistAlbumsMap.put(MediaStore.Audio.Albums._ID, MediaStore.Audio.Albums._ID);
+        sArtistAlbumsMap.put(MediaStore.Audio.Albums._ID, "audio.album_id AS " +
+                MediaStore.Audio.Albums._ID);
         sArtistAlbumsMap.put(MediaStore.Audio.Albums.ALBUM, "album");
         sArtistAlbumsMap.put(MediaStore.Audio.Albums.ALBUM_KEY, "album_key");
-        sArtistAlbumsMap.put(MediaStore.Audio.Albums.FIRST_YEAR,
+        sArtistAlbumsMap.put(MediaStore.Audio.Albums.FIRST_YEAR, "MIN(year) AS " +
                 MediaStore.Audio.Albums.FIRST_YEAR);
-        sArtistAlbumsMap.put(MediaStore.Audio.Albums.LAST_YEAR,
+        sArtistAlbumsMap.put(MediaStore.Audio.Albums.LAST_YEAR, "MAX(year) AS " +
                 MediaStore.Audio.Albums.LAST_YEAR);
         sArtistAlbumsMap.put(MediaStore.Audio.Media.ARTIST, "artist");
         sArtistAlbumsMap.put(MediaStore.Audio.Media.ARTIST_ID, "artist");
         sArtistAlbumsMap.put(MediaStore.Audio.Media.ARTIST_KEY, "artist_key");
-        sArtistAlbumsMap.put(MediaStore.Audio.Albums.NUMBER_OF_SONGS, "numsongs");
-        sArtistAlbumsMap.put(MediaStore.Audio.Albums.ALBUM_ART, "album_art");
+        sArtistAlbumsMap.put(MediaStore.Audio.Albums.NUMBER_OF_SONGS, "count(*) AS " +
+                MediaStore.Audio.Albums.NUMBER_OF_SONGS);
+        sArtistAlbumsMap.put(MediaStore.Audio.Albums.ALBUM_ART, "album_art._data AS " +
+                MediaStore.Audio.Albums.ALBUM_ART);
 
         mSearchColsBasic[SEARCH_COLUMN_BASIC_TEXT2] =
                 mSearchColsBasic[SEARCH_COLUMN_BASIC_TEXT2].replaceAll(
@@ -367,7 +370,10 @@ public class MediaProvider extends ContentProvider {
             throw new IllegalArgumentException();
         }
 
-        if (fromVersion < 63) {
+        // Revisions 84-86 were a failed attempt at supporting the "album artist" id3 tag
+        // We can't downgrade from those revisions, so start over.
+        if (fromVersion < 63 || (fromVersion >= 84 && fromVersion <= 86)) {
+            fromVersion = 63;
             // Drop everything and start over.
             Log.i(TAG, "Upgrading media database from version " +
                     fromVersion + " to " + toVersion + ", which will destroy all old data");
@@ -391,14 +397,6 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("DROP TRIGGER IF EXISTS audio_playlists_cleanup");
             db.execSQL("DROP TRIGGER IF EXISTS albumart_cleanup1");
             db.execSQL("DROP TRIGGER IF EXISTS albumart_cleanup2");
-            db.execSQL("DROP TRIGGER IF EXISTS albums_update1;");
-            db.execSQL("DROP TRIGGER IF EXISTS albums_update2;");
-            db.execSQL("DROP TRIGGER IF EXISTS albums_update3;");
-            db.execSQL("DROP TRIGGER IF EXISTS albums_update4;");
-            db.execSQL("DROP TRIGGER IF EXISTS artist_update1;");
-            db.execSQL("DROP TRIGGER IF EXISTS artist_update2;");
-            db.execSQL("DROP TRIGGER IF EXISTS artist_update3;");
-            db.execSQL("DROP TRIGGER IF EXISTS artist_update4;");
             db.execSQL("DROP TABLE IF EXISTS video");
             db.execSQL("DROP TRIGGER IF EXISTS video_cleanup");
 
@@ -497,7 +495,7 @@ public class MediaProvider extends ContentProvider {
             // and albums for this artist
             db.execSQL("CREATE VIEW IF NOT EXISTS artist_info AS " +
                         "SELECT artist_id AS _id, artist, artist_key, " +
-                        "COUNT(DISTINCT album_id) AS number_of_albums, " +
+                        "COUNT(DISTINCT album) AS number_of_albums, " +
                         "COUNT(*) AS number_of_tracks FROM audio WHERE is_music=1 "+
                         "GROUP BY artist_key;");
 
@@ -510,6 +508,11 @@ public class MediaProvider extends ContentProvider {
                     ",album_art._data AS album_art" +
                     " FROM audio LEFT OUTER JOIN album_art ON audio.album_id=album_art.album_id" +
                     " WHERE is_music=1 GROUP BY audio.album_id;");
+
+            // For a given artist_id, provides the album_id for albums on
+            // which the artist appears.
+            db.execSQL("CREATE VIEW IF NOT EXISTS artists_albums_map AS " +
+                    "SELECT DISTINCT artist_id, album_id FROM audio_meta;");
 
             /*
              * Only external media volumes can handle genres, playlists, etc.
@@ -619,6 +622,10 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("CREATE INDEX IF NOT EXISTS sort_index on images(datetaken ASC, _id ASC);");
         }
 
+        /*
+         *  Android 1.0 shipped with database version 64
+         */
+
         if (fromVersion < 65) {
             // create the index that updates the database to schema version 65
             db.execSQL("CREATE INDEX IF NOT EXISTS titlekey_index on audio_meta(title_key);");
@@ -678,6 +685,10 @@ public class MediaProvider extends ContentProvider {
             // To work around this, we drop and recreate the affected view and trigger.
             recreateAudioView(db);
         }
+
+        /*
+         *  Android 1.5 shipped with database version 72
+         */
 
         if (fromVersion < 73) {
             // There is no change to the database schema, but we now do case insensitive
@@ -770,6 +781,10 @@ public class MediaProvider extends ContentProvider {
                     "WHERE artist_key LIKE '%'||x'081D08C29F081D'||'%';");
         }
 
+        /*
+         *  Android 1.6 shipped with database version 76
+         */
+
         if (fromVersion < 77) {
             // create video thumbnail table
             db.execSQL("CREATE TABLE IF NOT EXISTS videothumbnails (" +
@@ -789,11 +804,19 @@ public class MediaProvider extends ContentProvider {
                     "END");
         }
 
+        /*
+         *  Android 2.0 and 2.0.1 shipped with database version 77
+         */
+
         if (fromVersion < 78) {
             // Force a rescan of the video entries so we can update
             // latest changed DATE_TAKEN units (in milliseconds).
             db.execSQL("UPDATE video SET date_modified=0;");
         }
+
+        /*
+         *  Android 2.1 shipped with database version 78
+         */
 
         if (fromVersion < 79) {
             // move /sdcard/albumthumbs to
@@ -872,209 +895,16 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (fromVersion < 82) {
-            // Provides some extra info about artists, like the number of tracks
-            // and albums for this artist
+            // recreate this view with the correct "group by" specifier
             db.execSQL("DROP VIEW IF EXISTS artist_info");
             db.execSQL("CREATE VIEW IF NOT EXISTS artist_info AS " +
                         "SELECT artist_id AS _id, artist, artist_key, " +
-                        "COUNT(DISTINCT album_id) AS number_of_albums, " +
+                        "COUNT(DISTINCT album_key) AS number_of_albums, " +
                         "COUNT(*) AS number_of_tracks FROM audio WHERE is_music=1 "+
                         "GROUP BY artist_key;");
         }
 
-        /* we skipped over version 83 */
-
-        if (fromVersion < 84) {
-            // add album_artist column
-            db.execSQL("ALTER TABLE audio_meta ADD COLUMN album_artist_id INTEGER;");
-
-            // to facilitate joining on the artists table twice (on different columns),
-            // create an intermediate view on that table
-            db.execSQL("CREATE VIEW IF NOT EXISTS album_artists AS " +
-                    "SELECT artist_id AS album_artist_id," +
-                    " artist_key AS album_artist_key, artist AS album_artist FROM artists;");
-
-            // drop and recreate the audio view
-            db.execSQL("DROP VIEW IF EXISTS audio");
-            db.execSQL("CREATE VIEW audio as SELECT * FROM audio_meta " +
-                    "LEFT OUTER JOIN artists ON audio_meta.artist_id=artists.artist_id " +
-                    "LEFT OUTER JOIN album_artists on " +
-                    "audio_meta.album_artist_id=album_artists.album_artist_id " +
-                    "LEFT OUTER JOIN albums ON audio_meta.album_id=albums.album_id;");
-
-            // drop and recreate the various views that sit on top of the audio view
-            db.execSQL("DROP VIEw IF EXISTS album_info;");
-            db.execSQL("CREATE VIEW album_info AS SELECT audio.album_id AS _id, album, album_key," +
-                    " MIN(year) AS minyear, MAX(year) AS maxyear," +
-                    " ifnull(album_artist,artist) AS artist," +
-                    " ifnull(album_artist_id,artist_id) AS artist_id," +
-                    " ifnull(album_artist_key,artist_key) AS artist_key," +
-                    " count(*) AS numsongs,album_art._data AS album_art FROM audio " +
-                    "LEFT OUTER JOIN album_art ON audio.album_id=album_art.album_id " +
-                    "WHERE is_music=1 GROUP BY audio.album_id;");
-
-            db.execSQL("DROP VIEw IF EXISTS artist_info;");
-            db.execSQL("CREATE VIEW artist_info AS SELECT artist_id AS _id, artist, artist_key," +
-                    " COUNT(DISTINCT album_id) AS number_of_albums, COUNT(*) AS number_of_tracks" +
-                    " FROM audio WHERE is_music=1 GROUP BY artist_key " +
-                    "UNION SELECT album_artist_id AS _id, album_artist AS artist," +
-                    " album_artist_key AS artist_key," +
-                    " COUNT(DISTINCT album_id) AS number_of_albums," +
-                    " COUNT(*) AS number_of_tracks FROM audio WHERE is_music=1" +
-                    " GROUP BY album_artist_key;");
-
-            // Finally, to accommodate ever larger media collections, add some indexes so we
-            // can find the songs for a given album or artist without having to scan the entire
-            // database
-            db.execSQL("CREATE INDEX IF NOT EXISTS album_id_idx on audio_meta(album_id);");
-            db.execSQL("CREATE INDEX IF NOT EXISTS artist_id_idx on audio_meta(artist_id);");
-            db.execSQL("CREATE INDEX IF NOT EXISTS album_artist_id_idx" +
-                    " on audio_meta(album_artist_id);");
-        }
-
-        if (fromVersion < 85) {
-            // Fix isue with artists being duplicated, and increase performance of the
-            // artist_info view.
-            db.execSQL("DROP VIEw IF EXISTS artist_info;");
-            db.execSQL("CREATE VIEW artist_info AS select artist_id AS _id, artist, artist_key," +
-                    "(select count(distinct album_id) from audio_meta where" +
-                    " (audio_meta.artist_id=artists.artist_id OR" +
-                    " audio_meta.album_artist_id=artists.artist_id)) as number_of_albums," +
-                    "(select count(*) from audio_meta where (audio_meta.artist_id=artists.artist_id" +
-                    " OR audio_meta.album_artist_id=artists.artist_id)) as number_of_tracks" +
-                    " from artists;");
-        }
-
-        if (fromVersion < 86) {
-            // For performance reasons, cache more things in the albums and artists
-            // tables, instead of trying to synthesize them on the fly for the album_info
-            // and artist_info views
-
-            // add extra columns for albums and artists
-            db.execSQL("ALTER TABLE albums ADD COLUMN numsongs INTEGER;");
-            db.execSQL("ALTER TABLE albums ADD COLUMN minyear INTEGER;");
-            db.execSQL("ALTER TABLE albums ADD COLUMN maxyear INTEGER;");
-            db.execSQL("ALTER TABLE albums ADD COLUMN artist_id INTEGER;");
-            db.execSQL("ALTER TABLE artists ADD COLUMN number_of_albums INTEGER;");
-            db.execSQL("ALTER TABLE artists ADD COLUMN number_of_tracks INTEGER;");
-
-            // fill the new columns with data from audio_meta
-            resetAlbumArtistAggregateFields(db);
-
-            // recreate the album_info view on top of the new albums table
-            db.execSQL("DROP VIEW IF EXISTS album_info;");
-            db.execSQL("CREATE VIEW album_info AS SELECT albums.album_id AS _id,album,album_key," +
-                    "minyear,maxyear,artist,albums.artist_id,artist_key," +
-                    "numsongs,album_art._data AS album_art" +
-                    " FROM albums" +
-                    " LEFT OUTER JOIN album_art ON albums.album_id=album_art.album_id" +
-                    " LEFT OUTER JOIN artists ON albums.artist_id=artists.artist_id;");
-            // recreate the audio view on top of the new audio table
-            db.execSQL("DROP VIEW IF EXISTS audio;");
-            db.execSQL("CREATE VIEW audio as SELECT _id,_data,_display_name,_size,mime_type," +
-                    "date_added,date_modified,title,title_key,duration," +
-                    "audio_meta.artist_id,artist,artist_key," +
-                    "audio_meta.album_id,album,album_key," +
-                    "composer,track,year,is_ringtone,is_music,is_alarm," +
-                    "is_notification,is_podcast, bookmark,artists.artist,artists.artist_key" +
-                    " FROM audio_meta" +
-                    " LEFT OUTER JOIN artists ON audio_meta.artist_id=artists.artist_id" +
-                    " LEFT OUTER JOIN albums ON audio_meta.album_id=albums.album_id");
-            // triggers to keep various fields in the albums table in sync with audio_meta
-            db.execSQL("CREATE TRIGGER albums_update1 AFTER INSERT ON audio_meta BEGIN " +
-                    "UPDATE albums SET" +
-                    " artist_id=ifnull(NEW.album_artist_id,NEW.artist_id)," +
-                    " numsongs=ifnull(numsongs+1,1)," +
-                    " minyear=(SELECT MIN(year) from audio_meta WHERE album_id=NEW.album_id)," +
-                    " maxyear=(SELECT MAX(year) from audio_meta WHERE album_id=NEW.album_id)" +
-                    " WHERE album_id=NEW.album_id;" +
-                    "END;");
-            db.execSQL("CREATE TRIGGER albums_update2 DELETE ON audio_meta BEGIN " +
-                    "UPDATE albums SET" +
-                    " numsongs=(numsongs-1)," +
-                    " minyear=(SELECT MIN(year) from audio_meta WHERE album_id=OLD.album_id)," +
-                    " maxyear=(SELECT MAX(year) from audio_meta WHERE album_id=OLD.album_id)" +
-                    "WHERE album_id=OLD.album_id;" +
-                    "END;");
-            db.execSQL("CREATE TRIGGER albums_update3 UPDATE OF album_id ON audio_meta BEGIN " +
-                    "UPDATE albums SET" +
-                    " artist_id=ifnull(NEW.album_artist_id,NEW.artist_id)," +
-                    " numsongs=ifnull(numsongs+1,1)," +
-                    " minyear=MIN(ifnull(minyear,0),ifnull(NEW.year,0))," +
-                    " maxyear=MAX(ifnull(maxyear,0),ifnull(NEW.year,0))" +
-                    " WHERE album_id=NEW.album_id;" +
-                    "UPDATE albums SET" +
-                    " numsongs=(numsongs-1)," +
-                    " minyear=(SELECT MIN(year) from audio_meta WHERE album_id=OLD.album_id)," +
-                    " maxyear=(SELECT MAX(year) from audio_meta WHERE album_id=OLD.album_id)" +
-                    " WHERE album_id=OLD.album_id;" +
-                    "END;");
-            // when the number of songs for an album is 0, remove the album
-            db.execSQL("CREATE TRIGGER albums_update4 AFTER UPDATE OF numsongs ON albums" +
-                    " WHEN NEW.numsongs=0 BEGIN" +
-                    " DELETE FROM albums WHERE album_id=NEW.album_id;" +
-                    "END;");
-
-            // recreate the artist_info view on top of the new artists table
-            db.execSQL("drop view if exists artist_info;");
-            db.execSQL("CREATE VIEW artist_info AS select artist_id AS _id,artist,artist_key," +
-                    "number_of_albums,number_of_tracks from artists;");
-
-            // Triggers to keep various fields in the artists table in sync with audio_meta
-            db.execSQL("CREATE TRIGGER artist_update1 after delete on audio_meta begin " +
-                    "delete from artists where artist_id=old.artist_id AND" +
-                    " (select count(*) from audio_meta where" +
-                    " (artist_id=old.artist_id OR album_artist_id=old.artist_id))=0;" +
-                    "delete from artists where artist_id=old.album_artist_id AND" +
-                    " (select count(*) from audio_meta where" +
-                    " (artist_id=old.album_artist_id OR album_artist_id=old.album_artist_id))=0;" +
-                    "update artists set number_of_albums=(select" +
-                    " count(distinct album_id) from audio_meta where" +
-                    " artist_id=old.artist_id OR album_artist_id=old.artist_id)" +
-                    " where (artist_id=old.artist_id OR artist_id=old.album_artist_id);" +
-                    "update artists set" +
-                    " number_of_tracks=(number_of_tracks-1)" +
-                    " where (artist_id=old.artist_id OR artist_id=old.album_artist_id);" +
-                    "end;");
-            db.execSQL("CREATE TRIGGER artist_update2 after update" +
-                    " of artist_id on audio_meta begin " +
-                    "update artists set number_of_albums=(select" +
-                    " count(distinct album_id) from audio_meta where" +
-                    " artist_id=old.artist_id OR album_artist_id=old.artist_id)" +
-                    " where (artist_id=old.artist_id);" +
-                    "update artists set" +
-                    " number_of_tracks=(select" +
-                    " count(*) from audio_meta where" +
-                    " artist_id=new.artist_id OR album_artist_id=new.artist_id)" +
-                    " where (artist_id=new.artist_id);" +
-                    "end;");
-            db.execSQL("CREATE TRIGGER artist_update3 after update" +
-                    " of album_artist_id on audio_meta begin " +
-                    "update artists set number_of_albums=(select" +
-                    " count(distinct album_id) from audio_meta where" +
-                    " artist_id=old.artist_id OR album_artist_id=old.artist_id)" +
-                    " where (artist_id=old.album_artist_id);" +
-                    "update artists set number_of_tracks=(select" +
-                    " count(*) from audio_meta where" +
-                    " artist_id=new.artist_id OR album_artist_id=new.artist_id)" +
-                    " where (artist_id=new.album_artist_id);" +
-                    "end;");
-            db.execSQL("CREATE TRIGGER artist_update4 AFTER INSERT ON audio_meta BEGIN " +
-                    "UPDATE artists SET" +
-                    " number_of_albums=(SELECT" +
-                    " COUNT(DISTINCT album_id) FROM audio_meta WHERE" +
-                    " artist_id=NEW.artist_id OR album_artist_id=NEW.artist_id)," +
-                    " number_of_tracks=ifnull(number_of_tracks+1,1)" +
-                    " WHERE (artist_id=NEW.artist_id);" +
-                    "UPDATE artists SET" +
-                    " number_of_albums=(SELECT " +
-                    " COUNT(DISTINCT album_id) FROM audio_meta WHERE" +
-                    " artist_id=NEW.album_artist_id OR album_artist_id=NEW.album_artist_id)," +
-                    " number_of_tracks=ifnull(number_of_tracks+1,1)" +
-                    " WHERE (artist_id=NEW.album_artist_id);" +
-                    "END;");
-
-        }
+        /* we skipped over version 83, and reverted versions 84, 85 and 86 */
 
         if (fromVersion < 87) {
             // The fastscroll thumb needs an index on the strings being displayed,
@@ -1084,29 +914,27 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("CREATE INDEX artist_idx on artists(artist);");
             db.execSQL("CREATE INDEX album_idx on albums(album);");
         }
-        sanityCheck(db, fromVersion);
-    }
 
-    /**
-     * Fill the various fields in the artist and albums tables so they're up to
-     * date with what's currently in the audio_meta table
-     * @param db
-     */
-    private static void resetAlbumArtistAggregateFields(SQLiteDatabase db) {
-        db.execSQL("UPDATE ALBUMS SET numsongs=(SELECT count(*)" +
-                " FROM audio_meta where audio_meta.album_id=albums.album_id);");
-        db.execSQL("UPDATE ALBUMS SET minyear=(SELECT min(year)" +
-                " FROM audio_meta WHERE audio_meta.album_id=albums.album_id);");
-        db.execSQL("UPDATE ALBUMS SET maxyear=(SELECT max(year)" +
-                " FROM audio_meta WHERE audio_meta.album_id=albums.album_id);");
-        db.execSQL("UPDATE ALBUMS SET artist_id=(SELECT ifnull(artist_id,album_artist_id)" +
-                " FROM audio_meta WHERE audio_meta.album_id=albums.album_id);");
-        db.execSQL("update artists set number_of_albums=(select count(distinct album_id)" +
-                " from audio_meta where (audio_meta.artist_id=artists.artist_id OR" +
-                " audio_meta.album_artist_id=artists.artist_id));");
-        db.execSQL("update artists set number_of_tracks=(select count(*)" +
-                " from audio_meta where (audio_meta.artist_id=artists.artist_id" +
-                " OR audio_meta.album_artist_id=artists.artist_id));");
+        if (fromVersion < 88) {
+            // Clean up a few more things from versions 84/85/86, and recreate
+            // the few things worth keeping from those changes.
+            db.execSQL("DROP TRIGGER IF EXISTS albums_update1;");
+            db.execSQL("DROP TRIGGER IF EXISTS albums_update2;");
+            db.execSQL("DROP TRIGGER IF EXISTS albums_update3;");
+            db.execSQL("DROP TRIGGER IF EXISTS albums_update4;");
+            db.execSQL("DROP TRIGGER IF EXISTS artist_update1;");
+            db.execSQL("DROP TRIGGER IF EXISTS artist_update2;");
+            db.execSQL("DROP TRIGGER IF EXISTS artist_update3;");
+            db.execSQL("DROP TRIGGER IF EXISTS artist_update4;");
+            db.execSQL("DROP VIEw IF EXISTS album_artists;");
+            db.execSQL("CREATE INDEX IF NOT EXISTS album_id_idx on audio_meta(album_id);");
+            db.execSQL("CREATE INDEX IF NOT EXISTS artist_id_idx on audio_meta(artist_id);");
+            // For a given artist_id, provides the album_id for albums on
+            // which the artist appears.
+            db.execSQL("CREATE VIEW IF NOT EXISTS artists_albums_map AS " +
+                    "SELECT DISTINCT artist_id, album_id FROM audio_meta;");
+        }
+        sanityCheck(db, fromVersion);
     }
 
     /**
@@ -1564,13 +1392,14 @@ public class MediaProvider extends ContentProvider {
 
             case AUDIO_ARTISTS_ID_ALBUMS:
                 String aid = uri.getPathSegments().get(3);
-                qb.setTables("album_info");
-                qb.appendWhere("_id IN (SELECT album_id AS _id FROM audio_meta" +
-                        " WHERE artist_id=" + aid + " OR album_artist_id=" + aid + ")");
+                qb.setTables("audio LEFT OUTER JOIN album_art ON" +
+                        " audio.album_id=album_art.album_id");
+                qb.appendWhere("is_music=1 AND audio.album_id IN (SELECT album_id FROM " +
+                        "artists_albums_map WHERE artist_id = " +
+                         aid + ")");
+                groupBy = "audio.album_id";
                 sArtistAlbumsMap.put(MediaStore.Audio.Albums.NUMBER_OF_SONGS_FOR_ARTIST,
-                        "(SELECT COUNT(*) FROM audio_meta WHERE (artist_id=" + aid +
-                        " OR album_artist_id=" + aid + ")" +
-                        " AND audio_meta.album_id=album_info._id) AS " +
+                        "count(CASE WHEN artist_id==" + aid + " THEN 'foo' ELSE NULL END) AS " +
                         MediaStore.Audio.Albums.NUMBER_OF_SONGS_FOR_ARTIST);
                 qb.setProjectionMap(sArtistAlbumsMap);
                 break;
@@ -1892,6 +1721,11 @@ public class MediaProvider extends ContentProvider {
                 // the view.
                 ContentValues values = new ContentValues(initialValues);
 
+                // TODO Remove this and actually store the album_artist in the
+                // database. For now this is here so the media scanner can start
+                // sending us the album_artist, even though it's not in the db yet.
+                values.remove(MediaStore.Audio.Media.ALBUM_ARTIST);
+
                 // Insert the artist into the artist table and remove it from
                 // the input values
                 Object so = values.get("artist");
@@ -1910,21 +1744,6 @@ public class MediaProvider extends ContentProvider {
                     }
                 }
                 String artist = s;
-
-                // Do the same for the album_artist field
-                so = values.get(MediaStore.Audio.Media.ALBUM_ARTIST);
-                s = (so == null ? "" : so.toString());
-                values.remove(MediaStore.Audio.Media.ALBUM_ARTIST);
-                long albumArtistRowId;
-                synchronized(artistCache) {
-                    Long temp = artistCache.get(s);
-                    if (temp == null) {
-                        albumArtistRowId = getKeyIdForName(db, "artists", "artist_key", "artist",
-                                s, s, path, 0, null, artistCache, uri);
-                    } else {
-                        albumArtistRowId = temp.longValue();
-                    }
-                }
 
                 // Do the same for the album field
                 so = values.get("album");
@@ -1945,9 +1764,6 @@ public class MediaProvider extends ContentProvider {
                 }
 
                 values.put("artist_id", Integer.toString((int)artistRowId));
-                if (albumArtistRowId != -1) {
-                    values.put("album_artist_id", Integer.toString((int)albumArtistRowId));
-                }
                 values.put("album_id", Integer.toString((int)albumRowId));
                 so = values.getAsString("title");
                 s = (so == null ? "" : so.toString());
@@ -2336,11 +2152,6 @@ public class MediaProvider extends ContentProvider {
                         break;
                 }
                 getContext().getContentResolver().notifyChange(uri, null);
-                // Deleting an item from the database can, via triggers,
-                // remove items from the database that are also in the
-                // caches, so invalidate the caches after a delete.
-                database.mArtistCache.clear();
-                database.mAlbumCache.clear();
             }
         } else {
             detachVolume(uri);
@@ -2371,6 +2182,10 @@ public class MediaProvider extends ContentProvider {
                 case AUDIO_MEDIA_ID:
                     {
                         ContentValues values = new ContentValues(initialValues);
+                        // TODO Remove this and actually store the album_artist in the
+                        // database. For now this is here so the media scanner can start
+                        // sending us the album_artist, even though it's not in the db yet.
+                        values.remove(MediaStore.Audio.Media.ALBUM_ARTIST);
 
                         // Insert the artist into the artist table and remove it from
                         // the input values
@@ -2382,34 +2197,13 @@ public class MediaProvider extends ContentProvider {
                             synchronized(artistCache) {
                                 Long temp = artistCache.get(artist);
                                 if (temp == null) {
-                                    artistRowId = getKeyIdForName(db, "artists", "artist_key",
-                                            "artist", artist, artist,
-                                            null, 0, null, artistCache, uri);
+                                    artistRowId = getKeyIdForName(db, "artists", "artist_key", "artist",
+                                            artist, artist, null, 0, null, artistCache, uri);
                                 } else {
                                     artistRowId = temp.longValue();
                                 }
                             }
                             values.put("artist_id", Integer.toString((int)artistRowId));
-                        }
-
-                        // Do the same for the album_artist field
-                        String albumArtist = values.getAsString(
-                                MediaStore.Audio.Media.ALBUM_ARTIST);
-                        values.remove(MediaStore.Audio.Media.ALBUM_ARTIST);
-                        if (albumArtist != null) {
-                            long albumArtistRowId;
-                            HashMap<String, Long> artistCache = database.mArtistCache;
-                            synchronized(artistCache) {
-                                Long temp = artistCache.get(albumArtist);
-                                if (temp == null) {
-                                    albumArtistRowId = getKeyIdForName(db, "artists", "artist_key",
-                                            "artist", albumArtist, albumArtist,
-                                            null, 0, null, artistCache, uri);
-                                } else {
-                                    albumArtistRowId = temp.longValue();
-                                }
-                            }
-                            values.put("album_artist_id", Integer.toString((int)albumArtistRowId));
                         }
 
                         // Do the same for the album field.
@@ -2520,11 +2314,6 @@ public class MediaProvider extends ContentProvider {
                         sGetTableAndWhereParam.where, whereArgs);
                     break;
             }
-            // Updating an item in the database can, via triggers,
-            // remove items from the database that are also in the
-            // caches, so invalidate the caches after an update.
-            database.mArtistCache.clear();
-            database.mAlbumCache.clear();
         }
         // in a transaction, the code that began the transaction should be taking
         // care of notifications once it ends the transaction successfully
@@ -3227,7 +3016,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 87;
+    private static final int DATABASE_VERSION = 88;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

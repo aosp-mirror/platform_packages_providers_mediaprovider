@@ -106,7 +106,7 @@ class MediaThumbRequest {
         }
     }
 
-    Uri updateDatabase() {
+    Uri updateDatabase(Bitmap thumbnail) {
         Cursor c = mCr.query(mThumbUri, THUMB_PROJECTION,
                 mOrigColumnName+ " = " + mOrigId, null, null);
         if (c == null) return null;
@@ -118,9 +118,11 @@ class MediaThumbRequest {
             if (c != null) c.close();
         }
 
-        ContentValues values = new ContentValues(2);
+        ContentValues values = new ContentValues(4);
         values.put(Images.Thumbnails.KIND, Images.Thumbnails.MINI_KIND);
         values.put(mOrigColumnName, mOrigId);
+        values.put(Images.Thumbnails.WIDTH, thumbnail.getWidth());
+        values.put(Images.Thumbnails.HEIGHT, thumbnail.getHeight());
         try {
             return mCr.insert(mThumbUri, values);
         } catch (Exception ex) {
@@ -181,7 +183,7 @@ class MediaThumbRequest {
                 return;
             }
 
-            Uri uri = updateDatabase();
+            Uri uri = updateDatabase(bitmap);
             if (uri != null) {
                 OutputStream thumbOut = mCr.openOutputStream(uri);
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 85, thumbOut);

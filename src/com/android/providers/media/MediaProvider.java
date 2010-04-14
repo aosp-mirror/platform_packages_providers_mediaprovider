@@ -49,7 +49,6 @@ import android.os.Environment;
 import android.os.FileUtils;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.os.MemoryFile;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.os.Process;
@@ -3224,10 +3223,7 @@ public class MediaProvider extends ContentProvider {
             // this one doesn't need to be saved (probably a song with an unknown album),
             // so stick it in a memory file and return that
             try {
-                MemoryFile file = new MemoryFile("albumthumb", compressed.length);
-                file.writeBytes(compressed, 0, 0, compressed.length);
-                file.deactivate();
-                return file.getParcelFileDescriptor();
+                return ParcelFileDescriptor.fromData(compressed, "albumthumb");
             } catch (IOException e) {
             }
         } else {

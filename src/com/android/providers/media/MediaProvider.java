@@ -631,9 +631,8 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("CREATE INDEX IF NOT EXISTS titlekey_index on audio_meta(title_key);");
         }
 
-        if (fromVersion < 66) {
-            updateBucketNames(db, "images");
-        }
+        // In version 66, originally we updateBucketNames(db, "images"),
+        // but we need to do it in version 89 and therefore save the update here.
 
         if (fromVersion < 67) {
             // create the indices that update the database to schema version 67
@@ -645,7 +644,9 @@ public class MediaProvider extends ContentProvider {
             // Create bucket_id and bucket_display_name columns for the video table.
             db.execSQL("ALTER TABLE video ADD COLUMN bucket_id TEXT;");
             db.execSQL("ALTER TABLE video ADD COLUMN bucket_display_name TEXT");
-            updateBucketNames(db, "video");
+
+            // In version 68, originally we updateBucketNames(db, "video"),
+            // but we need to do it in version 89 and therefore save the update here.
         }
 
         if (fromVersion < 69) {
@@ -933,6 +934,11 @@ public class MediaProvider extends ContentProvider {
             // which the artist appears.
             db.execSQL("CREATE VIEW IF NOT EXISTS artists_albums_map AS " +
                     "SELECT DISTINCT artist_id, album_id FROM audio_meta;");
+        }
+
+        if (fromVersion < 89) {
+            updateBucketNames(db, "images");
+            updateBucketNames(db, "video");
         }
         sanityCheck(db, fromVersion);
     }
@@ -3016,7 +3022,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 88;
+    private static final int DATABASE_VERSION = 89;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

@@ -372,7 +372,9 @@ public class MediaProvider extends ContentProvider {
 
         // Revisions 84-86 were a failed attempt at supporting the "album artist" id3 tag
         // We can't downgrade from those revisions, so start over.
-        if (fromVersion < 63 || (fromVersion >= 84 && fromVersion <= 86)) {
+        // (the initial change to do this was wrong, so now we actually need to start over
+        // if the database version is 84-89)
+        if (fromVersion < 63 || (fromVersion >= 84 && fromVersion <= 89)) {
             fromVersion = 63;
             // Drop everything and start over.
             Log.i(TAG, "Upgrading media database from version " +
@@ -911,9 +913,9 @@ public class MediaProvider extends ContentProvider {
             // The fastscroll thumb needs an index on the strings being displayed,
             // otherwise the queries it does to determine the correct position
             // becomes really inefficient
-            db.execSQL("CREATE INDEX title_idx on audio_meta(title);");
-            db.execSQL("CREATE INDEX artist_idx on artists(artist);");
-            db.execSQL("CREATE INDEX album_idx on albums(album);");
+            db.execSQL("CREATE INDEX IF NOT EXISTS title_idx on audio_meta(title);");
+            db.execSQL("CREATE INDEX IF NOT EXISTS artist_idx on artists(artist);");
+            db.execSQL("CREATE INDEX IF NOT EXISTS album_idx on albums(album);");
         }
 
         if (fromVersion < 88) {
@@ -3022,7 +3024,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 89;
+    private static final int DATABASE_VERSION = 90;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

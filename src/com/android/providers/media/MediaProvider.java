@@ -3018,13 +3018,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-<<<<<<< HEAD:src/com/android/providers/media/MediaProvider.java
-    private static final int DATABASE_VERSION = 88;
-|||||||
-    private static final int DATABASE_VERSION = 89;
-=======
     private static final int DATABASE_VERSION = 90;
->>>>>>> 022eb71... Fix botched database update step.:src/com/android/providers/media/MediaProvider.java
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

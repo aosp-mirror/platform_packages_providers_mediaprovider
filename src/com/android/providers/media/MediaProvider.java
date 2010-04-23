@@ -1292,7 +1292,15 @@ public class MediaProvider extends ContentProvider {
                 break;
 
             case AUDIO_MEDIA:
-                qb.setTables("audio ");
+                if (projectionIn.length == 1 &&  selectionArgs == null
+                        && (selection == null || selection.equalsIgnoreCase("is_music=1")
+                          || selection.equalsIgnoreCase("is_podcast=1") )
+                        && projectionIn[0].equalsIgnoreCase("count(*)") ) {
+                    //Log.i("@@@@", "taking fast path for counting songs");
+                    qb.setTables("audio_meta");
+                } else {
+                    qb.setTables("audio");
+                }
                 break;
 
             case AUDIO_MEDIA_ID:
@@ -1390,7 +1398,16 @@ public class MediaProvider extends ContentProvider {
                 break;
 
             case AUDIO_ARTISTS:
-                qb.setTables("artist_info");
+                if (projectionIn.length == 1 &&  selectionArgs == null
+                        && (selection == null || selection.length() == 0)
+                        && projectionIn[0].equalsIgnoreCase("count(*)") ) {
+                    //Log.i("@@@@", "taking fast path for counting artists");
+                    qb.setTables("audio_meta");
+                    projectionIn[0] = "count(distinct artist_id)";
+                    qb.appendWhere("is_music=1");
+                } else {
+                    qb.setTables("artist_info");
+                }
                 break;
 
             case AUDIO_ARTISTS_ID:
@@ -1413,7 +1430,16 @@ public class MediaProvider extends ContentProvider {
                 break;
 
             case AUDIO_ALBUMS:
-                qb.setTables("album_info");
+                if (projectionIn.length == 1 &&  selectionArgs == null
+                        && (selection == null || selection.length() == 0)
+                        && projectionIn[0].equalsIgnoreCase("count(*)") ) {
+                    //Log.i("@@@@", "taking fast path for counting albums");
+                    qb.setTables("audio_meta");
+                    projectionIn[0] = "count(distinct album_id)";
+                    qb.appendWhere("is_music=1");
+                } else {
+                    qb.setTables("album_info");
+                }
                 break;
 
             case AUDIO_ALBUMS_ID:

@@ -155,6 +155,8 @@ class MediaThumbRequest {
                         pfd = mCr.openFileDescriptor(
                                 mThumbUri.buildUpon().appendPath(c.getString(0)).build(), "r");
                     }
+                } catch (IOException ex) {
+                    // MINI_THUMBNAIL not exists, ignore the exception and generate one.
                 } finally {
                     if (c != null) c.close();
                     if (pfd != null) {

@@ -1292,7 +1292,7 @@ public class MediaProvider extends ContentProvider {
                 break;
 
             case AUDIO_MEDIA:
-                if (projectionIn.length == 1 &&  selectionArgs == null
+                if (projectionIn != null && projectionIn.length == 1 &&  selectionArgs == null
                         && (selection == null || selection.equalsIgnoreCase("is_music=1")
                           || selection.equalsIgnoreCase("is_podcast=1") )
                         && projectionIn[0].equalsIgnoreCase("count(*)") ) {
@@ -1398,7 +1398,7 @@ public class MediaProvider extends ContentProvider {
                 break;
 
             case AUDIO_ARTISTS:
-                if (projectionIn.length == 1 &&  selectionArgs == null
+                if (projectionIn != null && projectionIn.length == 1 &&  selectionArgs == null
                         && (selection == null || selection.length() == 0)
                         && projectionIn[0].equalsIgnoreCase("count(*)") ) {
                     //Log.i("@@@@", "taking fast path for counting artists");
@@ -1430,7 +1430,7 @@ public class MediaProvider extends ContentProvider {
                 break;
 
             case AUDIO_ALBUMS:
-                if (projectionIn.length == 1 &&  selectionArgs == null
+                if (projectionIn != null && projectionIn.length == 1 &&  selectionArgs == null
                         && (selection == null || selection.length() == 0)
                         && projectionIn[0].equalsIgnoreCase("count(*)") ) {
                     //Log.i("@@@@", "taking fast path for counting albums");

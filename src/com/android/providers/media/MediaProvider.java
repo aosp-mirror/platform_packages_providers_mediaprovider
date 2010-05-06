@@ -1480,7 +1480,7 @@ public class MediaProvider extends ContentProvider {
             String[] selectionArgs, String sort, int mode,
             String limit) {
 
-        String mSearchString = uri.toString().endsWith("/") ? "" : uri.getLastPathSegment();
+        String mSearchString = uri.getPath().endsWith("/") ? "" : uri.getLastPathSegment();
         mSearchString = mSearchString.replaceAll("  ", " ").trim().toLowerCase();
 
         String [] searchWords = mSearchString.length() > 0 ?

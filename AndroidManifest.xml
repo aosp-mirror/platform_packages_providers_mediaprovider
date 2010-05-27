@@ -7,12 +7,16 @@
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.ACCESS_USB" />
     
     <application android:process="android.process.media"
                  android:label="@string/app_label">
         <provider android:name="MediaProvider" android:authorities="media"
                 android:multiprocess="false" />
-        
+
+        <provider android:name="MtpProvider" android:authorities="mtp"
+                android:multiprocess="false" />
+
         <receiver android:name="MediaScannerReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

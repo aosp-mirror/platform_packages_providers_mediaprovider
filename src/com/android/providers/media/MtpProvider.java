@@ -18,11 +18,13 @@ package com.android.providers.media;
 
 import android.content.ContentProvider;
 import android.content.ContentUris;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.UriMatcher;
 import android.database.AbstractCursor;
 import android.database.Cursor;
+import android.database.SQLException;
 import android.media.MtpClient;
 import android.media.MtpCursor;
 import android.net.Uri;
@@ -97,10 +99,10 @@ public class MtpProvider extends ContentProvider {
                     break;
 
                 default:
-                    throw new IllegalStateException("Unknown URL: " + uri.toString());
+                    throw new SQLException("Unknown URL: " + uri.toString());
             }
         } catch (Exception e) {
-            throw new IllegalStateException("Unknown URL: " + uri.toString());
+            throw new SQLException("Unknown URL: " + uri.toString());
         }
 
         MtpCursor cursor = new MtpCursor(mClient, queryType, deviceID,
@@ -116,17 +118,72 @@ public class MtpProvider extends ContentProvider {
 
     @Override
     public Uri insert(Uri uri, ContentValues initialValues) {
-        return null;
+        throw new UnsupportedOperationException("MtpProvider does not support inserting");
     }
 
     @Override
     public int delete(Uri uri, String where, String[] whereArgs) {
-        return 0;
+        int deviceID, objectID;
+
+        if (where != null || whereArgs != null) {
+            throw new UnsupportedOperationException(
+                    "MtpProvider does not support \"where\" for delete");
+        }
+
+        try {
+            switch (sUriMatcher.match(uri)) {
+                case MtpCursor.DEVICE:
+                case MtpCursor.DEVICE_ID:
+                    throw new UnsupportedOperationException("can not delete devices");
+
+                case MtpCursor.STORAGE:
+                case MtpCursor.STORAGE_ID:
+                    throw new UnsupportedOperationException("can not delete storage units");
+                case MtpCursor.OBJECT:
+                case MtpCursor.STORAGE_CHILDREN:
+                case MtpCursor.OBJECT_CHILDREN:
+                    deviceID = Integer.parseInt(uri.getPathSegments().get(1));
+                    throw new UnsupportedOperationException("can not delete multiple objects");
+
+                case MtpCursor.OBJECT_ID:
+                    deviceID = Integer.parseInt(uri.getPathSegments().get(1));
+                    objectID = Integer.parseInt(uri.getPathSegments().get(3));
+                    break;
+                default:
+                    throw new SQLException("Unknown URL: " + uri.toString());
+            }
+        } catch (Exception e) {
+            throw new SQLException("Unknown URL: " + uri.toString());
+        }
+
+        int parentID = mClient.getParent(deviceID, objectID);
+        int storageID = 0;
+        if (parentID <= 0) {
+            storageID = mClient.getStorageID(deviceID, objectID);
+        }
+        boolean success = mClient.deleteObject(deviceID, objectID);
+        Log.d(TAG, "delete object " + objectID + " on device " + deviceID +
+                (success ? " succeeded" : " failed"));
+        if (success) {
+            ContentResolver resolver = getContext().getContentResolver();
+            Log.d(TAG, "notifyChange " + uri);
+            resolver.notifyChange(uri, null);
+
+            // notify on the parent's child URI too.
+            // This is needed because the parent URI is not a subset of the child URI
+            if (parentID > 0) {
+                uri = Mtp.Object.getContentUriForObjectChildren(deviceID, parentID);
+            } else {
+                uri = Mtp.Object.getContentUriForStorageChildren(deviceID, storageID);
+            }
+            resolver.notifyChange(uri, null);
+        }
+        return (success ? 1 : 0);
     }
 
     @Override
     public int update(Uri uri, ContentValues values, String where, String[] whereArgs) {
-        return 0;
+        throw new UnsupportedOperationException("MtpProvider does not support updating");
     }
 
     static {

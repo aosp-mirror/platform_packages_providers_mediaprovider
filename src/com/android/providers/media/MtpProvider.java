@@ -39,18 +39,20 @@ import android.util.Log;
  * Finally a list of objects (typically files and folders)
  * and their properties can be for each storage unit.
  */
-public class MtpProvider extends ContentProvider {
+public class MtpProvider extends ContentProvider implements MtpClient.Listener {
 
     private static final String TAG = "MtpProvider";
 
     private MtpClient mClient;
+    private ContentResolver mResolver;
 
     private static final UriMatcher sUriMatcher;
 
     @Override
     public boolean onCreate() {
         Log.d(TAG, "onCreate");
-        mClient = new MtpClient();
+        mResolver = getContext().getContentResolver();
+        mClient = new MtpClient(this);
         mClient.start();
         return true;
     }
@@ -165,9 +167,8 @@ public class MtpProvider extends ContentProvider {
         Log.d(TAG, "delete object " + objectID + " on device " + deviceID +
                 (success ? " succeeded" : " failed"));
         if (success) {
-            ContentResolver resolver = getContext().getContentResolver();
             Log.d(TAG, "notifyChange " + uri);
-            resolver.notifyChange(uri, null);
+            mResolver.notifyChange(uri, null);
 
             // notify on the parent's child URI too.
             // This is needed because the parent URI is not a subset of the child URI
@@ -176,7 +177,7 @@ public class MtpProvider extends ContentProvider {
             } else {
                 uri = Mtp.Object.getContentUriForStorageChildren(deviceID, storageID);
             }
-            resolver.notifyChange(uri, null);
+            mResolver.notifyChange(uri, null);
         }
         return (success ? 1 : 0);
     }
@@ -184,6 +185,22 @@ public class MtpProvider extends ContentProvider {
     @Override
     public int update(Uri uri, ContentValues values, String where, String[] whereArgs) {
         throw new UnsupportedOperationException("MtpProvider does not support updating");
+    }
+
+    private void notifyDeviceChanged(int deviceID) {
+        Uri uri = Mtp.Device.getContentUri(deviceID);
+        mResolver.notifyChange(uri, null);
+    }
+
+    // MtpClient.Listener methods
+    public void deviceAdded(int deviceID) {
+        Log.d(TAG, "deviceAdded " + deviceID);
+        notifyDeviceChanged(deviceID);
+     }
+
+    public void deviceRemoved(int deviceID) {
+        Log.d(TAG, "deviceRemoved " + deviceID);
+        notifyDeviceChanged(deviceID);
     }
 
     static {

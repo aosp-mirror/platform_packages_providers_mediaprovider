@@ -3049,7 +3049,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private static String TAG = "MediaProvider";
-    private static final boolean LOCAL_LOGV = true;
+    private static final boolean LOCAL_LOGV = false;
     private static final int DATABASE_VERSION = 90;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 

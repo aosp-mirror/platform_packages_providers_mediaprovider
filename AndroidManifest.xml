@@ -37,5 +37,13 @@
             </intent-filter>
         </service>
 
+        <receiver android:name="UsbReceiver">
+            <intent-filter>
+                <action android:name="android.hardware.action.USB_STATE" />
+            </intent-filter>
+        </receiver>
+ 
+        <service android:name="MtpService" />
+
     </application>
 </manifest>

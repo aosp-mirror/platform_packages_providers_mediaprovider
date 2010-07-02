@@ -39,7 +39,7 @@ public class MtpService extends Service
          Log.d(TAG, "onStart");
 
         String storagePath = Environment.getExternalStorageDirectory().getPath();
-        String databasePath = getFilesDir().getPath() + File.pathSeparator + "mtp.db";
+        String databasePath = getFilesDir().getPath() + File.separator + "mtp.db";
         mServer = new MtpServer(storagePath, databasePath);
         mServer.start();
     }

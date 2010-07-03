@@ -63,15 +63,6 @@ public class MediaScannerService extends Service implements Runnable
         }         
     }
 
-    private void closeDatabase(String volumeName) {
-        try {
-            getContentResolver().delete(
-                    Uri.parse("content://media/" + volumeName), null, null);
-        } catch (Exception e) {
-            Log.w(TAG, "failed to close media database " + volumeName + " exception: " + e);
-        }
-    }
-
     private MediaScanner createMediaScanner() {
         MediaScanner scanner = new MediaScanner(this);
         Locale locale = getResources().getConfiguration().locale;
@@ -104,7 +95,7 @@ public class MediaScannerService extends Service implements Runnable
         
         try {
             if (volumeName.equals(MediaProvider.EXTERNAL_VOLUME)) {
-                 openDatabase(volumeName);    
+                openDatabase(volumeName);
             }
 
             MediaScanner scanner = createMediaScanner();

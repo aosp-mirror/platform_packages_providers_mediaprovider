@@ -17,15 +17,15 @@
 package com.android.providers.media;
 
 import android.app.Service;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.media.MtpDatabase;
 import android.media.MtpServer;
+import android.net.Uri;
 import android.os.Environment;
 import android.os.IBinder;
 import android.util.Log;
-
-import java.io.File;
-import java.util.Locale;
 
 public class MtpService extends Service
 {
@@ -38,12 +38,20 @@ public class MtpService extends Service
     {
          Log.d(TAG, "onStart");
 
+        // make sure external media database is open
+        try {
+            ContentValues values = new ContentValues();
+            values.put("name", MediaProvider.EXTERNAL_VOLUME);
+            getContentResolver().insert(Uri.parse("content://media/"), values);
+        } catch (IllegalArgumentException ex) {
+            Log.w(TAG, "failed to open media database");
+        }
+
+        MtpDatabase database = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME);
         String storagePath = Environment.getExternalStorageDirectory().getPath();
-        String databasePath = getFilesDir().getPath() + File.separator + "mtp.db";
-        mServer = new MtpServer(storagePath, databasePath);
+        mServer = new MtpServer(database, storagePath);
         mServer.start();
     }
-
 
     @Override
     public void onDestroy()

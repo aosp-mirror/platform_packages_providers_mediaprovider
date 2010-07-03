@@ -28,6 +28,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.MediaFile;
 import android.media.MediaScanner;
 import android.media.MiniThumbFile;
 import android.net.Uri;
@@ -48,6 +49,9 @@ import android.provider.MediaStore.Images;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Video;
 import android.provider.MediaStore.Images.ImageColumns;
+import android.provider.MediaStore.MtpObjects;
+import android.provider.MediaStore.MtpObjects.ObjectColumns;
+import android.provider.Mtp;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -942,6 +946,19 @@ public class MediaProvider extends ContentProvider {
             updateBucketNames(db, "images");
             updateBucketNames(db, "video");
         }
+
+        if (fromVersion < 91) {
+            // A table containing information for all files,
+            // needed for MTP support
+            db.execSQL("CREATE TABLE IF NOT EXISTS objects (" +
+                       "_id INTEGER PRIMARY KEY," +
+                       "_data TEXT NOT NULL," +
+                       "_size INTEGER," +
+                       "format INTEGER," +
+                       "parent INTEGER," +
+                       "date_modified INTEGER" +
+                       ");");
+        }
         sanityCheck(db, fromVersion);
     }
 
@@ -1460,6 +1477,14 @@ public class MediaProvider extends ContentProvider {
                 return doAudioSearch(db, qb, uri, projectionIn, selection, selectionArgs, sort,
                         table, limit);
 
+
+            case MTP_OBJECTS_ID:
+                qb.appendWhere("_id=" + uri.getPathSegments().get(2));
+                // fall through
+            case MTP_OBJECTS:
+                qb.setTables("objects");
+                break;
+
             default:
                 throw new IllegalStateException("Unknown URL: " + uri.toString());
         }
@@ -1677,6 +1702,78 @@ public class MediaProvider extends ContentProvider {
         }
         getContext().getContentResolver().notifyChange(uri, null);
         return numInserted;
+    }
+
+    private long getParent(SQLiteDatabase db, String path) {
+        int lastSlash = path.lastIndexOf('/');
+        if (lastSlash > 0) {
+            String parentPath = path.substring(0, lastSlash);
+            if (parentPath.equals(Environment.getExternalStorageDirectory().getAbsolutePath())) {
+                return 0;
+            }
+            String [] selargs = { parentPath };
+            Cursor c = db.query("objects", null, MediaStore.MediaColumns.DATA + "=?",
+                            selargs, null, null, null);
+            try {
+                if (c == null || c.getCount() == 0) {
+                    // parent isn't in the database - so add it
+                    ContentValues values = new ContentValues();
+                    values.put(MtpObjects.ObjectColumns.FORMAT, Mtp.Object.FORMAT_ASSOCIATION);
+                    values.put(MtpObjects.ObjectColumns.DATA, parentPath);
+                    values.put(MtpObjects.ObjectColumns.PARENT, getParent(db, parentPath));
+                    return db.insert("objects", MtpObjects.ObjectColumns.DATE_MODIFIED, values);
+                } else {
+                    c.moveToFirst();
+                    return c.getLong(0);
+                }
+            } finally {
+                if (c != null) c.close();
+            }
+        } else {
+            return 0;
+        }
+    }
+
+    private void insertFile(SQLiteDatabase db, ContentValues initialValues, int match, long rowId) {
+        String path = initialValues.getAsString(MediaStore.MediaColumns.DATA);
+        if (path == null) {
+            Log.e(TAG, "_data missing in insertFile");
+            return;
+        }
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.MediaColumns.DATA, path);
+
+        Long size = initialValues.getAsLong(MediaStore.MediaColumns.SIZE);
+        if (size == null) {
+            File file = new File(path);
+            values.put(MediaStore.MediaColumns.SIZE, file.length());
+        } else {
+            values.put(MediaStore.MediaColumns.SIZE, size);
+        }
+
+        Long parent = initialValues.getAsLong(MtpObjects.ObjectColumns.PARENT);
+        if (parent == null) {
+            long parentId = getParent(db, path);
+            values.put(MtpObjects.ObjectColumns.PARENT, parentId);
+        } else {
+            values.put(MtpObjects.ObjectColumns.PARENT, parent);
+        }
+
+        Integer format = initialValues.getAsInteger(MtpObjects.ObjectColumns.FORMAT);
+        if (format == null) {
+            String mimeType = initialValues.getAsString(MediaStore.MediaColumns.MIME_TYPE);
+            values.put(MtpObjects.ObjectColumns.FORMAT, MediaFile.getFormatCode(path, mimeType));
+        } else {
+            values.put(MtpObjects.ObjectColumns.FORMAT, format);
+        }
+
+        Integer modified = initialValues.getAsInteger(MediaStore.MediaColumns.DATE_MODIFIED);
+        if (modified != null) {
+            values.put(MtpObjects.ObjectColumns.DATE_MODIFIED, modified);
+        }
+
+        rowId = db.insert("objects", "date_modified", values);
+        Log.v(TAG, "insertFile: values="+values+" returned: "+rowId);
     }
 
     private Uri insertInternal(Uri uri, ContentValues initialValues) {
@@ -1919,6 +2016,14 @@ public class MediaProvider extends ContentProvider {
 
             default:
                 throw new UnsupportedOperationException("Invalid URI " + uri);
+        }
+
+        if (rowId > 0 &&
+                (match == IMAGES_MEDIA ||
+                match == AUDIO_MEDIA ||
+                match == VIDEO_MEDIA ||
+                match == AUDIO_PLAYLISTS)) {
+            insertFile(db, initialValues, match, rowId);
         }
 
         return newUri;
@@ -3050,7 +3155,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
-    private static final int DATABASE_VERSION = 90;
+    private static final int DATABASE_VERSION = 91;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep
@@ -3120,6 +3225,9 @@ public class MediaProvider extends ContentProvider {
     private static final int MEDIA_SCANNER = 500;
 
     private static final int FS_ID = 600;
+
+    private static final int MTP_OBJECTS = 700;
+    private static final int MTP_OBJECTS_ID = 701;
 
     private static final UriMatcher URI_MATCHER =
             new UriMatcher(UriMatcher.NO_MATCH);
@@ -3193,6 +3301,10 @@ public class MediaProvider extends ContentProvider {
 
         URI_MATCHER.addURI("media", "*", VOLUMES_ID);
         URI_MATCHER.addURI("media", null, VOLUMES);
+
+        // Used by MTP implementation
+        URI_MATCHER.addURI("media", "*/object", MTP_OBJECTS);
+        URI_MATCHER.addURI("media", "*/object/#", MTP_OBJECTS_ID);
 
         /**
          * @deprecated use the 'basic' or 'fancy' search Uris instead

@@ -1690,7 +1690,7 @@ public class MediaProvider extends ContentProvider {
         try {
             int len = values.length;
             for (int i = 0; i < len; i++) {
-                insertInternal(uri, values[i]);
+                insertInternal(uri, match, values[i]);
             }
             numInserted = len;
             db.setTransactionSuccessful();
@@ -1704,8 +1704,11 @@ public class MediaProvider extends ContentProvider {
     @Override
     public Uri insert(Uri uri, ContentValues initialValues)
     {
-        Uri newUri = insertInternal(uri, initialValues);
-        if (newUri != null) {
+        int match = URI_MATCHER.match(uri);
+        Uri newUri = insertInternal(uri, match, initialValues);
+        // do not signal notification for MTP objects.
+        // we will signal instead after file transfer is successful.
+        if (newUri != null && match != MTP_OBJECTS) {
             getContext().getContentResolver().notifyChange(uri, null);
         }
         return newUri;
@@ -1778,90 +1781,106 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private void insertObject(SQLiteDatabase db, ContentValues initialValues, int tableId, long rowId) {
+    private void insertObject(SQLiteDatabase db, long objectHandle, ContentValues initialValues,
+            int tableId, long rowId) {
         String path = initialValues.getAsString(MediaStore.MediaColumns.DATA);
         if (path == null) {
             Log.e(TAG, "_data missing in insertObject");
             return;
         }
+
         ContentValues values = new ContentValues();
-        values.put(ObjectColumns.DATA, path);
         values.put(ObjectColumns.MEDIA_TABLE, tableId);
         values.put(ObjectColumns.MEDIA_ID, rowId);
 
-        Long size = initialValues.getAsLong(MediaStore.MediaColumns.SIZE);
-        if (size == null) {
-            File file = new File(path);
-            values.put(ObjectColumns.SIZE, file.length());
+        if (objectHandle == 0) {
+            values.put(ObjectColumns.DATA, path);
+
+            Long size = initialValues.getAsLong(MediaStore.MediaColumns.SIZE);
+            if (size == null) {
+                File file = new File(path);
+                values.put(ObjectColumns.SIZE, file.length());
+            } else {
+                values.put(ObjectColumns.SIZE, size);
+            }
+
+            Long parent = initialValues.getAsLong(ObjectColumns.PARENT);
+            if (parent == null) {
+                long parentId = getParent(db, path);
+                values.put(ObjectColumns.PARENT, parentId);
+            } else {
+                values.put(ObjectColumns.PARENT, parent);
+            }
+
+            Integer format = initialValues.getAsInteger(ObjectColumns.FORMAT);
+            if (format == null) {
+                String mimeType = initialValues.getAsString(MediaStore.MediaColumns.MIME_TYPE);
+                values.put(ObjectColumns.FORMAT, MediaFile.getFormatCode(path, mimeType));
+            } else {
+                values.put(ObjectColumns.FORMAT, format);
+            }
+
+            Integer modified = initialValues.getAsInteger(MediaStore.MediaColumns.DATE_MODIFIED);
+            if (modified != null) {
+                values.put(ObjectColumns.DATE_MODIFIED, modified);
+            }
+
+            objectHandle = db.insert("objects", ObjectColumns.DATE_MODIFIED, values);
+            Log.v(TAG, "insertObject: values=" + values + " returned: " + objectHandle);
         } else {
-            values.put(ObjectColumns.SIZE, size);
+            // only need to update MEDIA_TABLE and MEDIA_ID
+            db.update("objects", values, ObjectColumns._ID + "=?",
+                    new String[] { Long.toString(objectHandle) });
         }
-
-        Long parent = initialValues.getAsLong(ObjectColumns.PARENT);
-        if (parent == null) {
-            long parentId = getParent(db, path);
-            values.put(ObjectColumns.PARENT, parentId);
-        } else {
-            values.put(ObjectColumns.PARENT, parent);
-        }
-
-        Integer format = initialValues.getAsInteger(ObjectColumns.FORMAT);
-        if (format == null) {
-            String mimeType = initialValues.getAsString(MediaStore.MediaColumns.MIME_TYPE);
-            values.put(ObjectColumns.FORMAT, MediaFile.getFormatCode(path, mimeType));
-        } else {
-            values.put(ObjectColumns.FORMAT, format);
-        }
-
-        Integer modified = initialValues.getAsInteger(MediaStore.MediaColumns.DATE_MODIFIED);
-        if (modified != null) {
-            values.put(ObjectColumns.DATE_MODIFIED, modified);
-        }
-
-        rowId = db.insert("objects", "date_modified", values);
-        Log.v(TAG, "insertObject: values="+values+" returned: "+rowId);
     }
 
-    private int deleteObject(SQLiteDatabase db, String volume, String table, String where, String[] whereArgs) {
+    private int deleteObject(SQLiteDatabase db, String volume, String table,
+            String where, String[] whereArgs) {
        // delete from corresponding media table as well
-        Cursor c = db.query("objects", mMediaTableColumns, where, whereArgs, null, null, null);
-        if (c != null && c.moveToNext()) {
-            int mediaTable = c.getInt(1);
-            long mediaId = c.getLong(2);
-            if (mediaId > 0) {
-                // call back to our delete method rather than deleting directly
-                // so notifications will be sent.
-                switch (mediaTable) {
-                    case IMAGES_MEDIA:
-                        delete(ContentUris.withAppendedId(
+       Cursor c = db.query("objects", mMediaTableColumns, where, whereArgs, null, null, null);
+       try {
+            if (c != null && c.moveToNext()) {
+                int mediaTable = c.getInt(1);
+                long mediaId = c.getLong(2);
+                if (mediaId > 0) {
+                    // call back to our delete method rather than deleting directly
+                    // so notifications will be sent.
+                    switch (mediaTable) {
+                        case IMAGES_MEDIA:
+                            delete(ContentUris.withAppendedId(
                                     Images.Media.getContentUri(volume), mediaId), null, null);
-                        break;
-                    case AUDIO_MEDIA:
-                        delete(ContentUris.withAppendedId(
+                            break;
+                        case AUDIO_MEDIA:
+                            delete(ContentUris.withAppendedId(
                                     Audio.Media.getContentUri(volume), mediaId), null, null);
-                        break;
-                    case VIDEO_MEDIA:
-                        delete(ContentUris.withAppendedId(
+                            break;
+                        case VIDEO_MEDIA:
+                            delete(ContentUris.withAppendedId(
                                     Video.Media.getContentUri(volume), mediaId), null, null);
-                        break;
-                    case AUDIO_PLAYLISTS:
-                        delete(ContentUris.withAppendedId(
+                            break;
+                        case AUDIO_PLAYLISTS:
+                            delete(ContentUris.withAppendedId(
                                     Audio.Playlists.getContentUri(volume), mediaId), null, null);
-                        break;
-                    default:
-                        Log.e(TAG, "unknown mediaTable " + mediaTable + " in deleteObject()");
-                        break;
+                            break;
+                        default:
+                            Log.e(TAG, "unknown mediaTable " + mediaTable + " in deleteObject()");
+                            break;
+                    }
                 }
+            }
+        } finally {
+            if (c != null) {
+                c.close();
             }
         }
         return db.delete("objects", where, whereArgs);
     }
 
-    private Uri insertInternal(Uri uri, ContentValues initialValues) {
+    private Uri insertInternal(Uri uri, int match, ContentValues initialValues) {
         long rowId;
-        int match = URI_MATCHER.match(uri);
+        int objectHandle = 0;
 
-        // Log.v(TAG, "insertInternal: "+uri+", initValues="+initialValues);
+        Log.v(TAG, "insertInternal: "+uri+", initValues="+initialValues);
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
         if (match == MEDIA_SCANNER) {
             mMediaScannerVolume = initialValues.getAsString(MediaStore.MEDIA_SCANNER_VOLUME);
@@ -1878,6 +1897,12 @@ public class MediaProvider extends ContentProvider {
 
         if (initialValues == null) {
             initialValues = new ContentValues();
+        } else {
+            Integer i = initialValues.getAsInteger(MediaStore.MediaColumns.MTP_OBJECT_HANDLE);
+            if (i != null) {
+                objectHandle = i.intValue();
+                initialValues.remove(MediaStore.MediaColumns.MTP_OBJECT_HANDLE);
+            }
         }
 
         switch (match) {
@@ -2095,6 +2120,14 @@ public class MediaProvider extends ContentProvider {
             case VOLUMES:
                 return attachVolume(initialValues.getAsString("name"));
 
+            case MTP_OBJECTS: {
+                 rowId = db.insert("objects", ObjectColumns.DATE_MODIFIED, initialValues);
+                if (rowId > 0) {
+                    newUri = MtpObjects.getContentUri(uri.getPathSegments().get(0), rowId);
+                }
+                break;
+            }
+
             default:
                 throw new UnsupportedOperationException("Invalid URI " + uri);
         }
@@ -2104,7 +2137,7 @@ public class MediaProvider extends ContentProvider {
                 match == AUDIO_MEDIA ||
                 match == VIDEO_MEDIA ||
                 match == AUDIO_PLAYLISTS)) {
-            insertObject(db, initialValues, match, rowId);
+            insertObject(db, objectHandle, initialValues, match, rowId);
         }
 
         return newUri;

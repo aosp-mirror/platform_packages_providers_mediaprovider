@@ -411,6 +411,10 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("DROP TRIGGER IF EXISTS albumart_cleanup2");
             db.execSQL("DROP TABLE IF EXISTS video");
             db.execSQL("DROP TRIGGER IF EXISTS video_cleanup");
+            db.execSQL("DROP TRIGGER IF EXISTS images_objects_cleanup");
+            db.execSQL("DROP TRIGGER IF EXISTS audio_objects_cleanup");
+            db.execSQL("DROP TRIGGER IF EXISTS video_objects_cleanup");
+            db.execSQL("DROP TRIGGER IF EXISTS playlists_objects_cleanup");
 
             db.execSQL("CREATE TABLE IF NOT EXISTS images (" +
                     "_id INTEGER PRIMARY KEY," +
@@ -971,6 +975,34 @@ public class MediaProvider extends ContentProvider {
             // and media_id is the ID of the object in that table
             db.execSQL("ALTER TABLE objects ADD COLUMN media_table INTEGER;");
             db.execSQL("ALTER TABLE objects ADD COLUMN media_id INTEGER;");
+        }
+        if (fromVersion < 93) {
+            // cleans up objects table when an image file is deleted
+           db.execSQL("CREATE TRIGGER IF NOT EXISTS images_objects_cleanup DELETE ON images " +
+                    "BEGIN " +
+                        "DELETE FROM objects WHERE media_table = 1 AND media_id = old._id;" +
+                    "END");
+
+
+            // cleans up objects table when an audio file is deleted
+           db.execSQL("CREATE TRIGGER IF NOT EXISTS audio_objects_cleanup DELETE ON audio_meta " +
+                    "BEGIN " +
+                        "DELETE FROM objects WHERE media_table = 100 AND media_id = old._id;" +
+                    "END");
+
+
+            // cleans up objects table when a video file is deleted
+           db.execSQL("CREATE TRIGGER IF NOT EXISTS video_objects_cleanup DELETE ON video " +
+                    "BEGIN " +
+                        "DELETE FROM objects WHERE media_table = 200 AND media_id = old._id;" +
+                    "END");
+
+
+            // cleans up objects table when a playlist file is deleted
+           db.execSQL("CREATE TRIGGER IF NOT EXISTS playlists_objects_cleanup DELETE ON audio_playlists " +
+                    "BEGIN " +
+                        "DELETE FROM objects WHERE media_table = 110 AND media_id = old._id;" +
+                    "END");
         }
         sanityCheck(db, fromVersion);
     }
@@ -3218,7 +3250,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
-    private static final int DATABASE_VERSION = 92;
+    private static final int DATABASE_VERSION = 93;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

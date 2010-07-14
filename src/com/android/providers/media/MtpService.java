@@ -17,6 +17,7 @@
 package com.android.providers.media;
 
 import android.app.Service;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -36,21 +37,24 @@ public class MtpService extends Service
     @Override
     public void onStart(Intent intent, int startId)
     {
-         Log.d(TAG, "onStart");
+         Log.d(TAG, "onStart intent " + intent + " startId " + startId);
+         ContentResolver resolver = getContentResolver();
 
         // make sure external media database is open
         try {
             ContentValues values = new ContentValues();
             values.put("name", MediaProvider.EXTERNAL_VOLUME);
-            getContentResolver().insert(Uri.parse("content://media/"), values);
+            resolver.insert(Uri.parse("content://media/"), values);
         } catch (IllegalArgumentException ex) {
             Log.w(TAG, "failed to open media database");
         }
 
         MtpDatabase database = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME);
         String storagePath = Environment.getExternalStorageDirectory().getPath();
-        mServer = new MtpServer(database, storagePath);
-        mServer.start();
+        synchronized (mBinder) {
+            mServer = new MtpServer(database, storagePath);
+            mServer.start();
+        }
     }
 
     @Override
@@ -58,15 +62,38 @@ public class MtpService extends Service
     {
         Log.d(TAG, "onDestroy");
 
-        mServer.stop();
-        mServer = null;
+        synchronized (mBinder) {
+            mServer.stop();
+            mServer = null;
+        }
     }
+
+    private final IMtpService.Stub mBinder =
+            new IMtpService.Stub() {
+        public void sendObjectAdded(int objectHandle) {
+            synchronized (this) {
+                Log.d(TAG, "sendObjectAdded " + objectHandle);
+                if (mServer != null) {
+                    mServer.sendObjectAdded(objectHandle);
+                }
+            }
+        }
+
+        public void sendObjectRemoved(int objectHandle) {
+            synchronized (this) {
+                Log.d(TAG, "sendObjectRemoved " + objectHandle);
+                if (mServer != null) {
+                    mServer.sendObjectRemoved(objectHandle);
+                }
+            }
+        }
+    };
 
     @Override
     public IBinder onBind(Intent intent)
     {
-        return null;
+        Log.d(TAG, "onBind");
+        return mBinder;
     }
-
 }
 

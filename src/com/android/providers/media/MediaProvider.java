@@ -42,6 +42,7 @@ import android.os.MemoryFile;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.os.Process;
+import android.os.RemoteException;
 import android.provider.BaseColumns;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
@@ -166,12 +167,33 @@ public class MediaProvider extends ContentProvider {
         }
     };
 
+    // set to disable sending events when the operation originates from MTP
+    private boolean mDisableMtpObjectCallbacks;
+
+    private final SQLiteDatabase.CustomFunction mObjectRemovedCallback =
+                new SQLiteDatabase.CustomFunction() {
+        public void callback(String[] args) {
+            // do nothing if the operation originated from MTP
+            if (mDisableMtpObjectCallbacks) return;
+
+            Log.d(TAG, "object removed " + args[0]);
+            IMtpService mtpService = mMtpService;
+            if (mtpService != null) {
+                try {
+                    sendObjectRemoved(Integer.parseInt(args[0]));
+                } catch (NumberFormatException e) {
+                    Log.e(TAG, "NumberFormatException in mObjectRemovedCallback", e);
+                }
+            }
+        }
+    };
+
     /**
      * Wrapper class for a specific database (associated with one particular
      * external card, or with internal storage).  Can open the actual database
      * on demand, create and upgrade the schema, etc.
      */
-    private static final class DatabaseHelper extends SQLiteOpenHelper {
+    private final class DatabaseHelper extends SQLiteOpenHelper {
         final Context mContext;
         final boolean mInternal;  // True if this is the internal database
 
@@ -210,6 +232,8 @@ public class MediaProvider extends ContentProvider {
         @Override
         public void onOpen(SQLiteDatabase db) {
             if (mInternal) return;  // The internal database is kept separately.
+
+            db.addCustomFunction("_OBJECT_REMOVED", 1, mObjectRemovedCallback);
 
             // touch the database file to show it is most recently used
             File file = new File(db.getPath());
@@ -271,8 +295,24 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    private IMtpService mMtpService;
+
+    private final ServiceConnection mMtpServiceConnection = new ServiceConnection() {
+         public void onServiceConnected(ComponentName className, android.os.IBinder service) {
+            Log.d(TAG, "mMtpService connected");
+            mMtpService = IMtpService.Stub.asInterface(service);
+        }
+
+        public void onServiceDisconnected(ComponentName className) {
+            Log.d(TAG, "mMtpService disconnected");
+            mMtpService = null;
+        }
+    };
+
     @Override
     public boolean onCreate() {
+        final Context context = getContext();
+
         sArtistAlbumsMap.put(MediaStore.Audio.Albums._ID, "audio.album_id AS " +
                 MediaStore.Audio.Albums._ID);
         sArtistAlbumsMap.put(MediaStore.Audio.Albums.ALBUM, "album");
@@ -291,13 +331,13 @@ public class MediaProvider extends ContentProvider {
 
         mSearchColsBasic[SEARCH_COLUMN_BASIC_TEXT2] =
                 mSearchColsBasic[SEARCH_COLUMN_BASIC_TEXT2].replaceAll(
-                        "%1", getContext().getString(R.string.artist_label));
+                        "%1", context.getString(R.string.artist_label));
         mDatabases = new HashMap<String, DatabaseHelper>();
         attachVolume(INTERNAL_VOLUME);
 
         IntentFilter iFilter = new IntentFilter(Intent.ACTION_MEDIA_EJECT);
         iFilter.addDataScheme("file");
-        getContext().registerReceiver(mUnmountReceiver, iFilter);
+        context.registerReceiver(mUnmountReceiver, iFilter);
 
         // open external database if external storage is mounted
         String state = Environment.getExternalStorageState();
@@ -355,6 +395,8 @@ public class MediaProvider extends ContentProvider {
             }
         };
 
+        context.bindService(new Intent(context, MtpService.class),
+                mMtpServiceConnection, Context.BIND_AUTO_CREATE);
         return true;
     }
 
@@ -380,11 +422,14 @@ public class MediaProvider extends ContentProvider {
             throw new IllegalArgumentException();
         }
 
-        // Revisions 84-86 were a failed attempt at supporting the "album artist" id3 tag
+        // Revisions 84-86 were a failed attempt at supporting the "album artist" id3 tag.
+        // Revisions 91-93 were done while MTP support was being developed and were replaced
+        // by revision 94 in an incompatible way.
         // We can't downgrade from those revisions, so start over.
         // (the initial change to do this was wrong, so now we actually need to start over
         // if the database version is 84-89)
-        if (fromVersion < 63 || (fromVersion >= 84 && fromVersion <= 89)) {
+        if (fromVersion < 63 || (fromVersion >= 84 && fromVersion <= 89) ||
+                    (fromVersion >= 91 && fromVersion <= 93)) {
             fromVersion = 63;
             // Drop everything and start over.
             Log.i(TAG, "Upgrading media database from version " +
@@ -967,42 +1012,51 @@ public class MediaProvider extends ContentProvider {
                        "format INTEGER," +
                        "parent INTEGER," +
                        "date_modified INTEGER" +
+                       // ID of the media table for this object.
+                       // Possible values are IMAGES_MEDIA, AUDIO_MEDIA, and VIDEO_MEDIA
+                       // and AUDIO_PLAYLISTS.
+                       "media_table INTEGER" +
+                       // The row number of this object in the corresponding media table.
+                       "media_id INTEGER" +
                        ");");
-        }
-        if (fromVersion < 92) {
-            // Add columns for cross referencing to media tables
-            // media_table is the name of the table for the object,
-            // and media_id is the ID of the object in that table
-            db.execSQL("ALTER TABLE objects ADD COLUMN media_table INTEGER;");
-            db.execSQL("ALTER TABLE objects ADD COLUMN media_id INTEGER;");
-        }
-        if (fromVersion < 93) {
-            // cleans up objects table when an image file is deleted
-           db.execSQL("CREATE TRIGGER IF NOT EXISTS images_objects_cleanup DELETE ON images " +
-                    "BEGIN " +
-                        "DELETE FROM objects WHERE media_table = 1 AND media_id = old._id;" +
-                    "END");
 
+            // Add cross reference from media table to MTP object table
+            // Object ID is the row number of this object in the "objects" table
+            db.execSQL("ALTER TABLE images ADD COLUMN object_id INTEGER;");
+            db.execSQL("ALTER TABLE audio_meta ADD COLUMN object_id INTEGER;");
+            db.execSQL("ALTER TABLE video ADD COLUMN object_id INTEGER;");
+            if (!internal) {
+                // audio_playlists does not exist in internal database
+                db.execSQL("ALTER TABLE audio_playlists ADD COLUMN object_id INTEGER;");
+    
+                // cleans up objects table when an image file is deleted
+                db.execSQL("CREATE TRIGGER IF NOT EXISTS images_objects_cleanup DELETE ON images " +
+                        "BEGIN " +
+                            "DELETE FROM objects WHERE _id = old.object_id;" +
+                            "SELECT _OBJECT_REMOVED(old.object_id);" +
+                        "END");
 
-            // cleans up objects table when an audio file is deleted
-           db.execSQL("CREATE TRIGGER IF NOT EXISTS audio_objects_cleanup DELETE ON audio_meta " +
-                    "BEGIN " +
-                        "DELETE FROM objects WHERE media_table = 100 AND media_id = old._id;" +
-                    "END");
+                // cleans up objects table when an audio file is deleted
+                db.execSQL("CREATE TRIGGER IF NOT EXISTS audio_objects_cleanup DELETE ON audio_meta " +
+                        "BEGIN " +
+                            "DELETE FROM objects WHERE _id = old.object_id;" +
+                            "SELECT _OBJECT_REMOVED(old.object_id);" +
+                        "END");
 
+                // cleans up objects table when a video file is deleted
+                db.execSQL("CREATE TRIGGER IF NOT EXISTS video_objects_cleanup DELETE ON video " +
+                        "BEGIN " +
+                            "DELETE FROM objects WHERE _id = old.object_id;" +
+                            "SELECT _OBJECT_REMOVED(old.object_id);" +
+                        "END");
 
-            // cleans up objects table when a video file is deleted
-           db.execSQL("CREATE TRIGGER IF NOT EXISTS video_objects_cleanup DELETE ON video " +
-                    "BEGIN " +
-                        "DELETE FROM objects WHERE media_table = 200 AND media_id = old._id;" +
-                    "END");
-
-
-            // cleans up objects table when a playlist file is deleted
-           db.execSQL("CREATE TRIGGER IF NOT EXISTS playlists_objects_cleanup DELETE ON audio_playlists " +
-                    "BEGIN " +
-                        "DELETE FROM objects WHERE media_table = 110 AND media_id = old._id;" +
-                    "END");
+                // cleans up objects table when a playlist file is deleted
+                db.execSQL("CREATE TRIGGER IF NOT EXISTS playlists_objects_cleanup DELETE ON audio_playlists " +
+                        "BEGIN " +
+                            "DELETE FROM objects WHERE _id = old.object_id;" +
+                            "SELECT _OBJECT_REMOVED(old.object_id);" +
+                        "END");
+            }
         }
         sanityCheck(db, fromVersion);
     }
@@ -1668,6 +1722,28 @@ public class MediaProvider extends ContentProvider {
         return values;
     }
 
+    private void sendObjectAdded(long objectHandle) {
+        IMtpService mtpService = mMtpService;
+        if (mtpService != null) {
+            try {
+                mtpService.sendObjectAdded((int)objectHandle);
+            } catch (RemoteException e) {
+                Log.e(TAG, "RemoteException in sendObjectAdded", e);
+            }
+        }
+    }
+
+    private void sendObjectRemoved(long objectHandle) {
+        IMtpService mtpService = mMtpService;
+        if (mtpService != null) {
+            try {
+                mtpService.sendObjectRemoved((int)objectHandle);
+            } catch (RemoteException e) {
+                Log.e(TAG, "RemoteException in sendObjectRemoved", e);
+            }
+        }
+    }
+
     @Override
     public int bulkInsert(Uri uri, ContentValues values[]) {
         int match = URI_MATCHER.match(uri);
@@ -1768,7 +1844,9 @@ public class MediaProvider extends ContentProvider {
                     values.put(ObjectColumns.FORMAT, Mtp.Object.FORMAT_ASSOCIATION);
                     values.put(ObjectColumns.DATA, parentPath);
                     values.put(ObjectColumns.PARENT, getParent(db, parentPath));
-                    return db.insert("objects", ObjectColumns.DATE_MODIFIED, values);
+                    long parent = db.insert("objects", ObjectColumns.DATE_MODIFIED, values);
+                    sendObjectAdded(parent);
+                    return parent;
                 } else {
                     c.moveToFirst();
                     return c.getLong(0);
@@ -1781,12 +1859,12 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private void insertObject(SQLiteDatabase db, long objectHandle, ContentValues initialValues,
+    private long insertObject(SQLiteDatabase db, long objectHandle, ContentValues initialValues,
             int tableId, long rowId) {
         String path = initialValues.getAsString(MediaStore.MediaColumns.DATA);
         if (path == null) {
             Log.e(TAG, "_data missing in insertObject");
-            return;
+            return 0;
         }
 
         ContentValues values = new ContentValues();
@@ -1826,12 +1904,13 @@ public class MediaProvider extends ContentProvider {
             }
 
             objectHandle = db.insert("objects", ObjectColumns.DATE_MODIFIED, values);
-            Log.v(TAG, "insertObject: values=" + values + " returned: " + objectHandle);
+            if (LOCAL_LOGV) Log.v(TAG, "insertObject: values=" + values + " returned: " + objectHandle);
         } else {
             // only need to update MEDIA_TABLE and MEDIA_ID
             db.update("objects", values, ObjectColumns._ID + "=?",
                     new String[] { Long.toString(objectHandle) });
         }
+        return objectHandle;
     }
 
     private int deleteObject(SQLiteDatabase db, String volume, String table,
@@ -1879,8 +1958,9 @@ public class MediaProvider extends ContentProvider {
     private Uri insertInternal(Uri uri, int match, ContentValues initialValues) {
         long rowId;
         int objectHandle = 0;
+        String mediaTable = null;
 
-        Log.v(TAG, "insertInternal: "+uri+", initValues="+initialValues);
+        if (LOCAL_LOGV) Log.v(TAG, "insertInternal: "+uri+", initValues="+initialValues);
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
         if (match == MEDIA_SCANNER) {
             mMediaScannerVolume = initialValues.getAsString(MediaStore.MEDIA_SCANNER_VOLUME);
@@ -1898,10 +1978,11 @@ public class MediaProvider extends ContentProvider {
         if (initialValues == null) {
             initialValues = new ContentValues();
         } else {
-            Integer i = initialValues.getAsInteger(MediaStore.MediaColumns.MTP_OBJECT_HANDLE);
+            Integer i = initialValues.getAsInteger(
+                    MediaStore.MediaColumns.MEDIA_SCANNER_NEW_OBJECT_ID);
             if (i != null) {
                 objectHandle = i.intValue();
-                initialValues.remove(MediaStore.MediaColumns.MTP_OBJECT_HANDLE);
+                initialValues.remove(MediaStore.MediaColumns.MEDIA_SCANNER_NEW_OBJECT_ID);
             }
         }
 
@@ -1916,7 +1997,8 @@ public class MediaProvider extends ContentProvider {
                 }
                 computeBucketValues(data, values);
                 computeTakenTime(values);
-                rowId = db.insert("images", "name", values);
+                mediaTable = "images";
+                rowId = db.insert(mediaTable, "name", values);
 
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(
@@ -2013,7 +2095,8 @@ public class MediaProvider extends ContentProvider {
                 computeDisplayName(values.getAsString("_data"), values);
                 values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);
 
-                rowId = db.insert("audio_meta", "duration", values);
+                mediaTable = "audio_meta";
+                rowId = db.insert(mediaTable, "duration", values);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(Audio.Media.getContentUri(uri.getPathSegments().get(0)), rowId);
                 }
@@ -2065,7 +2148,8 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_PLAYLISTS: {
                 ContentValues values = new ContentValues(initialValues);
                 values.put(MediaStore.Audio.Playlists.DATE_ADDED, System.currentTimeMillis() / 1000);
-                rowId = db.insert("audio_playlists", "name", initialValues);
+                mediaTable = "audio_playlists";
+                rowId = db.insert(mediaTable, "name", initialValues);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(Audio.Playlists.getContentUri(uri.getPathSegments().get(0)), rowId);
                 }
@@ -2091,7 +2175,8 @@ public class MediaProvider extends ContentProvider {
                 computeBucketValues(data, values);
                 values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);
                 computeTakenTime(values);
-                rowId = db.insert("video", "artist", values);
+                mediaTable = "video";
+                rowId = db.insert(mediaTable, "artist", values);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(Video.Media.getContentUri(
                             uri.getPathSegments().get(0)), rowId);
@@ -2121,8 +2206,8 @@ public class MediaProvider extends ContentProvider {
                 return attachVolume(initialValues.getAsString("name"));
 
             case MTP_OBJECTS: {
-                 rowId = db.insert("objects", ObjectColumns.DATE_MODIFIED, initialValues);
-                if (rowId > 0) {
+                    rowId = db.insert("objects", ObjectColumns.DATE_MODIFIED, initialValues);
+                 if (rowId > 0) {
                     newUri = MtpObjects.getContentUri(uri.getPathSegments().get(0), rowId);
                 }
                 break;
@@ -2132,12 +2217,16 @@ public class MediaProvider extends ContentProvider {
                 throw new UnsupportedOperationException("Invalid URI " + uri);
         }
 
-        if (rowId > 0 &&
-                (match == IMAGES_MEDIA ||
-                match == AUDIO_MEDIA ||
-                match == VIDEO_MEDIA ||
-                match == AUDIO_PLAYLISTS)) {
-            insertObject(db, objectHandle, initialValues, match, rowId);
+        if (rowId > 0 && mediaTable != null) {
+            long objectId = insertObject(db, objectHandle, initialValues, match, rowId);
+
+            // Set object_id in the media table
+            ContentValues values = new ContentValues();
+            values.put(MediaColumns.MTP_OBJECT_ID, objectId);
+            db.update(mediaTable, values, MediaColumns._ID + "=?",
+                    new String[] { Long.toString(rowId) });
+
+            sendObjectAdded(objectId);
         }
 
         return newUri;
@@ -2409,10 +2498,16 @@ public class MediaProvider extends ContentProvider {
                         throw new UnsupportedOperationException(
                                 "Deleting multiple objects via MTP not supported");
                     case MTP_OBJECTS_ID:
-                        // return here to avoid calling notifyChange()
-                        return deleteObject(db, uri.getPathSegments().get(0),
-                                sGetTableAndWhereParam.table,
-                                sGetTableAndWhereParam.where, whereArgs);
+                        try {
+                            // don't send objectRemoved event since this originated from MTP
+                            mDisableMtpObjectCallbacks = true;
+                            // return here to avoid calling notifyChange()
+                            return deleteObject(db, uri.getPathSegments().get(0),
+                                    sGetTableAndWhereParam.table,
+                                    sGetTableAndWhereParam.where, whereArgs);
+                        } finally {
+                            mDisableMtpObjectCallbacks = false;
+                        }
                     default:
                         count = db.delete(sGetTableAndWhereParam.table,
                                 sGetTableAndWhereParam.where, whereArgs);
@@ -3283,7 +3378,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
-    private static final int DATABASE_VERSION = 93;
+    private static final int DATABASE_VERSION = 94;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

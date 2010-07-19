@@ -423,13 +423,12 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Revisions 84-86 were a failed attempt at supporting the "album artist" id3 tag.
-        // Revisions 91-93 were done while MTP support was being developed and were replaced
-        // by revision 94 in an incompatible way.
+        // Revisions 91-94 were broken in a way that is not easy to repair.
         // We can't downgrade from those revisions, so start over.
         // (the initial change to do this was wrong, so now we actually need to start over
         // if the database version is 84-89)
         if (fromVersion < 63 || (fromVersion >= 84 && fromVersion <= 89) ||
-                    (fromVersion >= 91 && fromVersion <= 93)) {
+                    (fromVersion >= 91 && fromVersion <= 94)) {
             fromVersion = 63;
             // Drop everything and start over.
             Log.i(TAG, "Upgrading media database from version " +
@@ -456,6 +455,7 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("DROP TRIGGER IF EXISTS albumart_cleanup2");
             db.execSQL("DROP TABLE IF EXISTS video");
             db.execSQL("DROP TRIGGER IF EXISTS video_cleanup");
+            db.execSQL("DROP TABLE IF EXISTS objects");
             db.execSQL("DROP TRIGGER IF EXISTS images_objects_cleanup");
             db.execSQL("DROP TRIGGER IF EXISTS audio_objects_cleanup");
             db.execSQL("DROP TRIGGER IF EXISTS video_objects_cleanup");
@@ -1011,11 +1011,11 @@ public class MediaProvider extends ContentProvider {
                        "_size INTEGER," +
                        "format INTEGER," +
                        "parent INTEGER," +
-                       "date_modified INTEGER" +
+                       "date_modified INTEGER," +
                        // ID of the media table for this object.
                        // Possible values are IMAGES_MEDIA, AUDIO_MEDIA, and VIDEO_MEDIA
                        // and AUDIO_PLAYLISTS.
-                       "media_table INTEGER" +
+                       "media_table INTEGER," +
                        // The row number of this object in the corresponding media table.
                        "media_id INTEGER" +
                        ");");
@@ -3378,7 +3378,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
-    private static final int DATABASE_VERSION = 94;
+    private static final int DATABASE_VERSION = 95;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

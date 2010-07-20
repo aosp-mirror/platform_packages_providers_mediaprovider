@@ -51,7 +51,15 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
     @Override
     public boolean onCreate() {
         Log.d(TAG, "onCreate");
-        mResolver = getContext().getContentResolver();
+
+        Context context = getContext();
+        // fail if we have no USB host support
+        if (!context.getResources().getBoolean(
+                com.android.internal.R.bool.config_hasUsbHostSupport)) {
+            return false;
+        }
+
+        mResolver = context.getContentResolver();
         mClient = new MtpClient(this);
         mClient.start();
         return true;

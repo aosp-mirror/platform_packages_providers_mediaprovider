@@ -28,9 +28,11 @@ import android.database.SQLException;
 import android.media.MtpClient;
 import android.media.MtpCursor;
 import android.net.Uri;
+import android.os.ParcelFileDescriptor;
 import android.provider.Mtp;
 import android.util.Log;
 
+import java.io.FileNotFoundException;
 
 /**
  * Provides access to content on MTP and PTP devices via USB.
@@ -193,6 +195,23 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
     @Override
     public int update(Uri uri, ContentValues values, String where, String[] whereArgs) {
         throw new UnsupportedOperationException("MtpProvider does not support updating");
+    }
+
+    @Override
+    public ParcelFileDescriptor openFile(Uri uri, String mode)
+            throws FileNotFoundException {
+        int deviceID = 0;
+        int objectID = 0;
+        switch (sUriMatcher.match(uri)) {
+            case MtpCursor.OBJECT_ID:
+                deviceID = Integer.parseInt(uri.getPathSegments().get(1));
+                objectID = Integer.parseInt(uri.getPathSegments().get(3));
+                break;
+            default:
+                throw new FileNotFoundException("Unknown URL: " + uri.toString());
+        }
+
+        return mClient.openFile(deviceID, objectID);
     }
 
     private void notifyDeviceChanged(int deviceID) {

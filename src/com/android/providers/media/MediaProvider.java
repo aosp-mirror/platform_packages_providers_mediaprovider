@@ -1583,6 +1583,10 @@ public class MediaProvider extends ContentProvider {
                 qb.setTables("objects");
                 break;
 
+            case MTP_OBJECT_REFERENCES:
+                int handle = Integer.parseInt(uri.getPathSegments().get(2));
+                return getObjectReferences(db, handle);
+
             default:
                 throw new IllegalStateException("Unknown URL: " + uri.toString());
         }
@@ -1762,6 +1766,9 @@ public class MediaProvider extends ContentProvider {
 
         if (match == AUDIO_PLAYLISTS_ID || match == AUDIO_PLAYLISTS_ID_MEMBERS) {
             return playlistBulkInsert(db, uri, values);
+        } else if (match == MTP_OBJECT_REFERENCES) {
+            int handle = Integer.parseInt(uri.getPathSegments().get(2));
+            return setObjectReferences(db, handle, values);
         }
 
         db.beginTransaction();
@@ -1865,38 +1872,55 @@ public class MediaProvider extends ContentProvider {
     private long insertObject(SQLiteDatabase db, long objectHandle, ContentValues initialValues,
             int tableId, long rowId) {
         String path = initialValues.getAsString(MediaStore.MediaColumns.DATA);
-        if (path == null) {
-            Log.e(TAG, "_data missing in insertObject");
-            return 0;
-        }
+        // path might be null for playlists created on the device
 
         ContentValues values = new ContentValues();
         values.put(ObjectColumns.MEDIA_TABLE, tableId);
         values.put(ObjectColumns.MEDIA_ID, rowId);
 
         if (objectHandle == 0) {
-            values.put(ObjectColumns.DATA, path);
+            if (path != null) {
+                values.put(ObjectColumns.DATA, path);
+            }
 
             Long size = initialValues.getAsLong(MediaStore.MediaColumns.SIZE);
             if (size == null) {
-                File file = new File(path);
-                values.put(ObjectColumns.SIZE, file.length());
+                if (path != null) {
+                    File file = new File(path);
+                    values.put(ObjectColumns.SIZE, file.length());
+                }
             } else {
                 values.put(ObjectColumns.SIZE, size);
             }
 
             Long parent = initialValues.getAsLong(ObjectColumns.PARENT);
             if (parent == null) {
-                long parentId = getParent(db, path);
-                values.put(ObjectColumns.PARENT, parentId);
+                if (path != null) {
+                    long parentId = getParent(db, path);
+                    values.put(ObjectColumns.PARENT, parentId);
+                }
             } else {
                 values.put(ObjectColumns.PARENT, parent);
             }
 
             Integer format = initialValues.getAsInteger(ObjectColumns.FORMAT);
             if (format == null) {
-                String mimeType = initialValues.getAsString(MediaStore.MediaColumns.MIME_TYPE);
-                values.put(ObjectColumns.FORMAT, MediaFile.getFormatCode(path, mimeType));
+                if (path == null) {
+                    // special case device created playlists
+                    if (tableId == AUDIO_PLAYLISTS) {
+                        values.put(ObjectColumns.FORMAT, Mtp.Object.FORMAT_ABSTRACT_AV_PLAYLIST);
+                        // create a file path for the benefit of MTP
+                        path = Environment.getExternalStorageDirectory().getAbsolutePath()
+                                + "/Playlists/" + initialValues.getAsString(Audio.Playlists.NAME);
+                        values.put(MediaStore.MediaColumns.DATA, path);
+                        values.put(ObjectColumns.PARENT, getParent(db, path));
+                    } else {
+                        Log.e(TAG, "path is null in insertObject()");
+                    }
+                } else {
+                    String mimeType = initialValues.getAsString(MediaStore.MediaColumns.MIME_TYPE);
+                    values.put(ObjectColumns.FORMAT, MediaFile.getFormatCode(path, mimeType));
+                }
             } else {
                 values.put(ObjectColumns.FORMAT, format);
             }
@@ -1918,9 +1942,9 @@ public class MediaProvider extends ContentProvider {
 
     private int deleteObject(SQLiteDatabase db, String volume, String table,
             String where, String[] whereArgs) {
-       // delete from corresponding media table as well
-       Cursor c = db.query("objects", mMediaTableColumns, where, whereArgs, null, null, null);
-       try {
+        // delete from corresponding media table as well
+        Cursor c = db.query("objects", mMediaTableColumns, where, whereArgs, null, null, null);
+        try {
             if (c != null && c.moveToNext()) {
                 int mediaTable = c.getInt(1);
                 long mediaId = c.getLong(2);
@@ -1956,6 +1980,102 @@ public class MediaProvider extends ContentProvider {
             }
         }
         return db.delete("objects", where, whereArgs);
+    }
+
+    private Cursor getObjectReferences(SQLiteDatabase db, int handle) {
+       Cursor c = db.query("objects", mMediaTableColumns, "_id=?",
+                new String[] {  Integer.toString(handle) },
+                null, null, null);
+        try {
+            if (c != null && c.moveToNext()) {
+                int mediaTable = c.getInt(1);
+                long mediaId = c.getLong(2);
+                if (mediaTable != AUDIO_PLAYLISTS) {
+                    // we only support object references for playlist objects
+                    return null;
+                }
+                return db.rawQuery(OBJECT_REFERENCES_QUERY,
+                        new String[] { Long.toString(mediaId) } );
+            }
+        } finally {
+            if (c != null) {
+                c.close();
+            }
+        }
+        return null;
+    }
+
+    private int setObjectReferences(SQLiteDatabase db, int handle, ContentValues values[]) {
+        // first look up the media table and media ID for the object
+        long playlistId = 0;
+        Cursor c = db.query("objects", mMediaTableColumns, "_id=?",
+                new String[] {  Integer.toString(handle) },
+                null, null, null);
+        try {
+            if (c != null && c.moveToNext()) {
+                int mediaTable = c.getInt(1);
+                if (mediaTable != AUDIO_PLAYLISTS) {
+                    // we only support object references for playlist objects
+                    return 0;
+                }
+                playlistId = c.getLong(2);
+            }
+        } finally {
+            if (c != null) {
+                c.close();
+            }
+        }
+        if (playlistId == 0) {
+            return 0;
+        }
+
+        // next delete any existing entries
+       db.delete("audio_playlists_map", "playlist_id=?",
+                new String[] { Long.toString(playlistId) });
+
+        // finally add the new entries
+        int count = values.length;
+        int added = 0;
+        ContentValues[] valuesList = new ContentValues[count];
+        for (int i = 0; i < count; i++) {
+            // convert object ID to audio ID
+            long audioId = 0;
+            long objectId = values[i].getAsLong(MediaStore.MediaColumns._ID);
+            c = db.query("objects", mMediaTableColumns, "_id=?",
+                    new String[] {  Long.toString(objectId) },
+                    null, null, null);
+            try {
+                if (c != null && c.moveToNext()) {
+                    int mediaTable = c.getInt(1);
+                    if (mediaTable != AUDIO_MEDIA) {
+                        // we only allow audio files in playlists, so skip
+                        continue;
+                    }
+                    audioId = c.getLong(2);
+                }
+            } finally {
+                if (c != null) {
+                    c.close();
+                }
+            }
+            if (audioId != 0) {
+                ContentValues v = new ContentValues();
+                v.put(MediaStore.Audio.Playlists.Members.PLAYLIST_ID, playlistId);
+                v.put(MediaStore.Audio.Playlists.Members.AUDIO_ID, audioId);
+                v.put(MediaStore.Audio.Playlists.Members.PLAY_ORDER, added++);
+                valuesList[i] = v;
+            }
+        }
+        if (added < count) {
+            // we weren't able to find everything on the list, so lets resize the array
+            // and pass what we have.
+            ContentValues[] newValues = new ContentValues[added];
+            System.arraycopy(valuesList, 0, newValues, 0, added);
+            valuesList = newValues;
+        }
+        return playlistBulkInsert(db,
+                Audio.Playlists.Members.getContentUri(EXTERNAL_VOLUME, playlistId),
+                valuesList);
     }
 
     private Uri insertInternal(Uri uri, int match, ContentValues initialValues) {
@@ -3463,6 +3583,7 @@ public class MediaProvider extends ContentProvider {
 
     private static final int MTP_OBJECTS = 700;
     private static final int MTP_OBJECTS_ID = 701;
+    private static final int MTP_OBJECT_REFERENCES = 702;
 
     private static final UriMatcher URI_MATCHER =
             new UriMatcher(UriMatcher.NO_MATCH);
@@ -3494,6 +3615,13 @@ public class MediaProvider extends ContentProvider {
         "audio_playlists_map",
         "video",
     };
+
+    private static final String OBJECT_REFERENCES_QUERY =
+        "SELECT objects._id FROM objects, audio_playlists_map"
+        + " WHERE audio_playlists_map." + Audio.Playlists.Members.PLAYLIST_ID + "=?"
+        + " AND audio_playlists_map.audio_id = objects." + ObjectColumns.MEDIA_ID
+        + " AND objects." + ObjectColumns.MEDIA_TABLE + "=" + AUDIO_MEDIA
+        + " ORDER BY audio_playlists_map." + Audio.Playlists.Members.PLAY_ORDER;
 
     static
     {
@@ -3540,6 +3668,7 @@ public class MediaProvider extends ContentProvider {
         // Used by MTP implementation
         URI_MATCHER.addURI("media", "*/object", MTP_OBJECTS);
         URI_MATCHER.addURI("media", "*/object/#", MTP_OBJECTS_ID);
+        URI_MATCHER.addURI("media", "*/object/#/references", MTP_OBJECT_REFERENCES);
 
         /**
          * @deprecated use the 'basic' or 'fancy' search Uris instead

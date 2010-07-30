@@ -78,13 +78,6 @@ public class MtpService extends Service
                 mServer = null;
             }
         }
-
-        MtpDatabase database = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME);
-        String storagePath = Environment.getExternalStorageDirectory().getPath();
-        synchronized (mBinder) {
-            mServer = new MtpServer(database, storagePath);
-            mServer.start();
-        }
     }
 
     @Override
@@ -97,7 +90,7 @@ public class MtpService extends Service
     private final IMtpService.Stub mBinder =
             new IMtpService.Stub() {
         public void sendObjectAdded(int objectHandle) {
-            synchronized (this) {
+            synchronized (mBinder) {
                 if (mServer != null) {
                     mServer.sendObjectAdded(objectHandle);
                 }
@@ -105,7 +98,7 @@ public class MtpService extends Service
         }
 
         public void sendObjectRemoved(int objectHandle) {
-            synchronized (this) {
+            synchronized (mBinder) {
                 if (mServer != null) {
                     mServer.sendObjectRemoved(objectHandle);
                 }

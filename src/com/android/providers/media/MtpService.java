@@ -17,13 +17,14 @@
 package com.android.providers.media;
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.hardware.Usb;
 import android.media.MtpDatabase;
 import android.media.MtpServer;
-import android.net.Uri;
 import android.os.Environment;
 import android.os.IBinder;
 import android.util.Log;
@@ -32,21 +33,50 @@ public class MtpService extends Service
 {
     private static final String TAG = "MtpService";
 
+    private class UsbReceiver extends BroadcastReceiver {
+        public void onReceive(Context content, Intent intent) {
+            String action = intent.getAction();
+            if (action.equals(Usb.ACTION_USB_STATE)) {
+                boolean connected = intent.getExtras().getBoolean(Usb.USB_CONNECTED);
+                boolean mtpEnabled = Usb.USB_FUNCTION_ENABLED.equals(
+                        intent.getExtras().getString(Usb.USB_FUNCTION_MTP));
+                if (connected && mtpEnabled) {
+                    startMtpServer();
+                } else {
+                    stopMtpServer();
+                }
+            }
+        }
+    }
+
     private MtpServer mServer;
+    private UsbReceiver mUsbReceiver;
 
     @Override
     public void onStart(Intent intent, int startId)
     {
-         Log.d(TAG, "onStart intent " + intent + " startId " + startId);
-         ContentResolver resolver = getContentResolver();
+        Log.d(TAG, "onStart intent " + intent + " startId " + startId);
+    }
 
-        // make sure external media database is open
-        try {
-            ContentValues values = new ContentValues();
-            values.put("name", MediaProvider.EXTERNAL_VOLUME);
-            resolver.insert(Uri.parse("content://media/"), values);
-        } catch (IllegalArgumentException ex) {
-            Log.w(TAG, "failed to open media database");
+    private void startMtpServer() {
+        Log.d(TAG, "startMtpServer");
+        synchronized (mBinder) {
+            if (mServer == null) {
+                MtpDatabase database = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME);
+                String storagePath = Environment.getExternalStorageDirectory().getPath();
+                mServer = new MtpServer(database, storagePath);
+                mServer.start();
+            }
+        }
+    }
+
+    private void stopMtpServer() {
+        Log.d(TAG, "stopMtpServer");
+        synchronized (mBinder) {
+            if (mServer != null) {
+                mServer.stop();
+                mServer = null;
+            }
         }
 
         MtpDatabase database = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME);
@@ -61,18 +91,13 @@ public class MtpService extends Service
     public void onDestroy()
     {
         Log.d(TAG, "onDestroy");
-
-        synchronized (mBinder) {
-            mServer.stop();
-            mServer = null;
-        }
+        stopMtpServer();
     }
 
     private final IMtpService.Stub mBinder =
             new IMtpService.Stub() {
         public void sendObjectAdded(int objectHandle) {
             synchronized (this) {
-                Log.d(TAG, "sendObjectAdded " + objectHandle);
                 if (mServer != null) {
                     mServer.sendObjectAdded(objectHandle);
                 }
@@ -81,7 +106,6 @@ public class MtpService extends Service
 
         public void sendObjectRemoved(int objectHandle) {
             synchronized (this) {
-                Log.d(TAG, "sendObjectRemoved " + objectHandle);
                 if (mServer != null) {
                     mServer.sendObjectRemoved(objectHandle);
                 }
@@ -93,6 +117,14 @@ public class MtpService extends Service
     public IBinder onBind(Intent intent)
     {
         Log.d(TAG, "onBind");
+        synchronized (mBinder) {
+            if (mUsbReceiver == null) {
+                mUsbReceiver = new UsbReceiver();
+                IntentFilter filter = new IntentFilter();
+                filter.addAction(Usb.ACTION_USB_STATE);
+                registerReceiver(mUsbReceiver, filter);
+            }
+        }
         return mBinder;
     }
 }

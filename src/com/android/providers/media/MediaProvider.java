@@ -2209,9 +2209,14 @@ public class MediaProvider extends ContentProvider {
                 return attachVolume(initialValues.getAsString("name"));
 
             case MTP_OBJECTS: {
+                try {
+                    mDisableMtpObjectCallbacks = true;
                     rowId = db.insert("objects", ObjectColumns.DATE_MODIFIED, initialValues);
-                 if (rowId > 0) {
-                    newUri = MtpObjects.getContentUri(uri.getPathSegments().get(0), rowId);
+                    if (rowId > 0) {
+                        newUri = MtpObjects.getContentUri(uri.getPathSegments().get(0), rowId);
+                    }
+                } finally {
+                    mDisableMtpObjectCallbacks = false;
                 }
                 break;
             }
@@ -2220,7 +2225,8 @@ public class MediaProvider extends ContentProvider {
                 throw new UnsupportedOperationException("Invalid URI " + uri);
         }
 
-        if (rowId > 0 && mediaTable != null) {
+        // don't bother populating internal objects database since we are not sharing it via MTP
+        if (rowId > 0 && mediaTable != null && !database.mInternal) {
             long objectId = insertObject(db, objectHandle, initialValues, match, rowId);
 
             // Set object_id in the media table

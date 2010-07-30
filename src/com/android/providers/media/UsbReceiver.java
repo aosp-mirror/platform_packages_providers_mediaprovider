@@ -17,9 +17,11 @@
 package com.android.providers.media;
 
 import android.content.Context;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.content.BroadcastReceiver;
 import android.hardware.Usb;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -35,9 +37,16 @@ public class UsbReceiver extends BroadcastReceiver
         boolean mtpEnabled = Usb.USB_FUNCTION_ENABLED.equals(
                 extras.getString(Usb.USB_FUNCTION_MTP));
         Log.d(TAG, "USB_CONNECTED: " + connected + " mtpEnabled: " + mtpEnabled);
-        if (connected) {
-            context.startService(new Intent(context, MtpService.class));
-        } else {
+        if (connected && mtpEnabled) {
+            // make sure external media database is open.
+            // this will trigger MtpService to start
+            try {
+                ContentValues values = new ContentValues();
+                values.put("name", MediaProvider.EXTERNAL_VOLUME);
+                context.getContentResolver().insert(Uri.parse("content://media/"), values);
+            } catch (IllegalArgumentException ex) {
+                Log.w(TAG, "failed to open media database");
+            }
         }
     }
 

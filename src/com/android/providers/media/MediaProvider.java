@@ -1615,18 +1615,21 @@ public class MediaProvider extends ContentProvider {
         for (int i = 0; i < len; i++) {
             // Because we match on individual words here, we need to remove words
             // like 'a' and 'the' that aren't part of the keys.
+            String key = MediaStore.Audio.keyFor(searchWords[i]);
+            key = key.replace("\\", "\\\\");
+            key = key.replace("%", "\\%");
+            key = key.replace("_", "\\_");
             wildcardWords[i] =
                 (searchWords[i].equals("a") || searchWords[i].equals("an") ||
-                        searchWords[i].equals("the")) ? "%" :
-                '%' + MediaStore.Audio.keyFor(searchWords[i]) + '%';
+                        searchWords[i].equals("the")) ? "%" : "%" + key + "%";
         }
 
         String where = "";
         for (int i = 0; i < searchWords.length; i++) {
             if (i == 0) {
-                where = "match LIKE ?";
+                where = "match LIKE ? ESCAPE '\\'";
             } else {
-                where += " AND match LIKE ?";
+                where += " AND match LIKE ? ESCAPE '\\'";
             }
         }
 

@@ -17,8 +17,18 @@
 package com.android.providers.media;
 
 import android.app.SearchManager;
-import android.content.*;
-import android.database.AbstractCursor;
+import android.content.BroadcastReceiver;
+import android.content.ContentProvider;
+import android.content.ContentProviderOperation;
+import android.content.ContentProviderResult;
+import android.content.ContentResolver;
+import android.content.ContentUris;
+import android.content.ContentValues;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.OperationApplicationException;
+import android.content.UriMatcher;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.MatrixCursor;
@@ -36,7 +46,6 @@ import android.os.Environment;
 import android.os.FileUtils;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.os.Looper;
 import android.os.MemoryFile;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
@@ -942,6 +951,16 @@ public class MediaProvider extends ContentProvider {
             updateBucketNames(db, "images");
             updateBucketNames(db, "video");
         }
+
+        if (fromVersion < 91) {
+            // Never query by mini_thumb_magic_index
+            db.execSQL("DROP INDEX IF EXISTS mini_thumb_magic_index");
+
+            // sort the items by taken date in each bucket
+            db.execSQL("CREATE INDEX IF NOT EXISTS image_bucket_index ON images(bucket_id, datetaken)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS video_bucket_index ON video(bucket_id, datetaken)");
+        }
+
         sanityCheck(db, fromVersion);
     }
 
@@ -1382,10 +1401,15 @@ public class MediaProvider extends ContentProvider {
 
             case VIDEO_MEDIA:
                 qb.setTables("video");
+                if (uri.getQueryParameter("distinct") != null) {
+                    qb.setDistinct(true);
+                }
                 break;
-
             case VIDEO_MEDIA_ID:
                 qb.setTables("video");
+                if (uri.getQueryParameter("distinct") != null) {
+                    qb.setDistinct(true);
+                }
                 qb.appendWhere("_id=" + uri.getPathSegments().get(3));
                 break;
 
@@ -3053,7 +3077,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
-    private static final int DATABASE_VERSION = 90;
+    private static final int DATABASE_VERSION = 91;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

@@ -1737,6 +1737,7 @@ public class MediaProvider extends ContentProvider {
             case IMAGES_MEDIA:
             case IMAGES_THUMBNAILS:
                 return Images.Media.CONTENT_TYPE;
+            case AUDIO_ALBUMART_ID:
             case IMAGES_THUMBNAILS_ID:
                 return "image/jpeg";
 
@@ -1761,7 +1762,7 @@ public class MediaProvider extends ContentProvider {
             case VIDEO_MEDIA:
                 return Video.Media.CONTENT_TYPE;
         }
-        throw new IllegalStateException("Unknown URL");
+        throw new IllegalStateException("Unknown URL : " + url);
     }
 
     /**

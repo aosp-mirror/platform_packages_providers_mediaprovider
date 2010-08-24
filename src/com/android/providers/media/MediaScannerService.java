@@ -52,6 +52,7 @@ public class MediaScannerService extends Service implements Runnable
     private volatile Looper mServiceLooper;
     private volatile ServiceHandler mServiceHandler;
     private PowerManager.WakeLock mWakeLock;
+    private String mExternalStoragePath;
     
     private void openDatabase(String volumeName) {
         try {
@@ -115,6 +116,12 @@ public class MediaScannerService extends Service implements Runnable
     {
         PowerManager pm = (PowerManager)getSystemService(Context.POWER_SERVICE);
         mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
+
+        // use path to storage in internal storage rather than the fuse based compatibility file system
+        mExternalStoragePath = SystemProperties.get("ro.media.storage");
+        if (mExternalStoragePath == null || mExternalStoragePath.length() == 0) {
+            mExternalStoragePath = Environment.getExternalStorageDirectory().getPath();
+        }
 
         // Start up the thread running the service.  Note that we create a
         // separate thread because the service normally runs in the process's
@@ -181,9 +188,8 @@ public class MediaScannerService extends Service implements Runnable
    
     private Uri scanFile(String path, String mimeType) {
         String volumeName = MediaProvider.INTERNAL_VOLUME;
-        String externalStoragePath = Environment.getExternalStorageDirectory().getPath();
 
-        if (path.startsWith(externalStoragePath)) {
+        if (path.startsWith(mExternalStoragePath)) {
             volumeName = MediaProvider.EXTERNAL_VOLUME;
             openDatabase(volumeName);
         }
@@ -248,9 +254,7 @@ public class MediaScannerService extends Service implements Runnable
                     }
                     else if (MediaProvider.EXTERNAL_VOLUME.equals(volume)) {
                         // scan external storage
-                        directories = new String[] {
-                                Environment.getExternalStorageDirectory().getPath(),
-                                };
+                        directories = new String[] { mExternalStoragePath };
                     }
                     
                     if (directories != null) {

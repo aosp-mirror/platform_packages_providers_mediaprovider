@@ -27,6 +27,7 @@ import android.media.MtpDatabase;
 import android.media.MtpServer;
 import android.os.Environment;
 import android.os.IBinder;
+import android.os.SystemProperties;
 import android.util.Log;
 
 public class MtpService extends Service
@@ -63,7 +64,11 @@ public class MtpService extends Service
         synchronized (mBinder) {
             if (mServer == null) {
                 MtpDatabase database = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME);
-                String storagePath = Environment.getExternalStorageDirectory().getPath();
+                String storagePath = SystemProperties.get("ro.media.storage");
+                if (storagePath == null || storagePath.length() == 0) {
+                    storagePath = Environment.getExternalStorageDirectory().getPath();
+                }
+                Log.d(TAG, "starting MTP server for " + storagePath);
                 mServer = new MtpServer(database, storagePath);
                 mServer.start();
             }

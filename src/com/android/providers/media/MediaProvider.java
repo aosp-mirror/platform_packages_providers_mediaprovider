@@ -2980,7 +2980,7 @@ public class MediaProvider extends ContentProvider {
                 Cursor c = qb.query(db,
                         new String [] {
                             MediaStore.Audio.Media.DATA },
-                        null, null, null, null, null);
+                        null, null, null, null, MediaStore.Audio.Media.TRACK);
                 if (c.moveToFirst()) {
                     String audiopath = c.getString(0);
                     pfd = getThumb(db, audiopath, albumid, uri);

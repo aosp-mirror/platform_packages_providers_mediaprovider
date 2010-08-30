@@ -43,6 +43,7 @@ import android.graphics.BitmapFactory;
 import android.media.MediaFile;
 import android.media.MediaScanner;
 import android.media.MiniThumbFile;
+import android.media.MtpConstants;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Environment;
@@ -63,7 +64,6 @@ import android.provider.MediaStore.Video;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.MtpObjects;
 import android.provider.MediaStore.MtpObjects.ObjectColumns;
-import android.provider.Mtp;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -1913,7 +1913,7 @@ public class MediaProvider extends ContentProvider {
                 if (c == null || c.getCount() == 0) {
                     // parent isn't in the database - so add it
                     ContentValues values = new ContentValues();
-                    values.put(ObjectColumns.FORMAT, Mtp.Object.FORMAT_ASSOCIATION);
+                    values.put(ObjectColumns.FORMAT, MtpConstants.FORMAT_ASSOCIATION);
                     values.put(ObjectColumns.DATA, parentPath);
                     values.put(ObjectColumns.PARENT, getParent(db, parentPath));
                     long parent = db.insert("objects", ObjectColumns.DATE_MODIFIED, values);
@@ -1971,7 +1971,7 @@ public class MediaProvider extends ContentProvider {
                 if (path == null) {
                     // special case device created playlists
                     if (tableId == AUDIO_PLAYLISTS) {
-                        values.put(ObjectColumns.FORMAT, Mtp.Object.FORMAT_ABSTRACT_AV_PLAYLIST);
+                        values.put(ObjectColumns.FORMAT, MtpConstants.FORMAT_ABSTRACT_AV_PLAYLIST);
                         // create a file path for the benefit of MTP
                         path = mExternalStoragePath
                                 + "/Playlists/" + initialValues.getAsString(Audio.Playlists.NAME);

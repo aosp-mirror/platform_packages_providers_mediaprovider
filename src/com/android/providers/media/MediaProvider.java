@@ -1432,6 +1432,25 @@ public class MediaProvider extends ContentProvider {
         SQLiteDatabase db = database.getReadableDatabase();
         SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
         String limit = uri.getQueryParameter("limit");
+        String filter = uri.getQueryParameter("filter");
+        String [] keywords = null;
+        if (filter != null) {
+            filter = Uri.decode(filter).trim();
+            if (!TextUtils.isEmpty(filter)) {
+                String [] searchWords = filter.split(" ");
+                keywords = new String[searchWords.length];
+                Collator col = Collator.getInstance();
+                col.setStrength(Collator.PRIMARY);
+                for (int i = 0; i < searchWords.length; i++) {
+                    String key = MediaStore.Audio.keyFor(searchWords[i]);
+                    key = key.replace("\\", "\\\\");
+                    key = key.replace("%", "\\%");
+                    key = key.replace("_", "\\_");
+                    keywords[i] = key;
+                }
+            }
+        }
+
         boolean hasThumbnailId = false;
 
         switch (table) {
@@ -1466,11 +1485,21 @@ public class MediaProvider extends ContentProvider {
                 if (projectionIn != null && projectionIn.length == 1 &&  selectionArgs == null
                         && (selection == null || selection.equalsIgnoreCase("is_music=1")
                           || selection.equalsIgnoreCase("is_podcast=1") )
-                        && projectionIn[0].equalsIgnoreCase("count(*)") ) {
+                        && projectionIn[0].equalsIgnoreCase("count(*)")
+                        && keywords != null) {
                     //Log.i("@@@@", "taking fast path for counting songs");
                     qb.setTables("audio_meta");
                 } else {
                     qb.setTables("audio");
+                    for (int i = 0; keywords != null && i < keywords.length; i++) {
+                        if (i > 0) {
+                            qb.appendWhere(" AND ");
+                        }
+                        qb.appendWhere(MediaStore.Audio.Media.ARTIST_KEY +
+                                "||" + MediaStore.Audio.Media.ALBUM_KEY +
+                                "||" + MediaStore.Audio.Media.TITLE_KEY + " LIKE '%" +
+                                keywords[i] + "%' ESCAPE '\\'");
+                    }
                 }
                 break;
 
@@ -1544,6 +1573,13 @@ public class MediaProvider extends ContentProvider {
                 qb.setTables("audio_playlists_map, audio");
                 qb.appendWhere("audio._id = audio_id AND playlist_id = "
                         + uri.getPathSegments().get(3));
+                for (int i = 0; keywords != null && i < keywords.length; i++) {
+                    qb.appendWhere(" AND ");
+                    qb.appendWhere(MediaStore.Audio.Media.ARTIST_KEY +
+                            "||" + MediaStore.Audio.Media.ALBUM_KEY +
+                            "||" + MediaStore.Audio.Media.TITLE_KEY +
+                            " LIKE '%" + keywords[i] + "%' ESCAPE '\\'");
+                }
                 break;
 
             case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
@@ -1576,13 +1612,21 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_ARTISTS:
                 if (projectionIn != null && projectionIn.length == 1 &&  selectionArgs == null
                         && (selection == null || selection.length() == 0)
-                        && projectionIn[0].equalsIgnoreCase("count(*)") ) {
+                        && projectionIn[0].equalsIgnoreCase("count(*)")
+                        && keywords != null) {
                     //Log.i("@@@@", "taking fast path for counting artists");
                     qb.setTables("audio_meta");
                     projectionIn[0] = "count(distinct artist_id)";
                     qb.appendWhere("is_music=1");
                 } else {
                     qb.setTables("artist_info");
+                    for (int i = 0; keywords != null && i < keywords.length; i++) {
+                        if (i > 0) {
+                            qb.appendWhere(" AND ");
+                        }
+                        qb.appendWhere(MediaStore.Audio.Media.ARTIST_KEY +
+                                " LIKE '%" + keywords[i] + "%' ESCAPE '\\'");
+                    }
                 }
                 break;
 
@@ -1598,6 +1642,12 @@ public class MediaProvider extends ContentProvider {
                 qb.appendWhere("is_music=1 AND audio.album_id IN (SELECT album_id FROM " +
                         "artists_albums_map WHERE artist_id = " +
                          aid + ")");
+                for (int i = 0; keywords != null && i < keywords.length; i++) {
+                    qb.appendWhere(" AND ");
+                    qb.appendWhere(MediaStore.Audio.Media.ARTIST_KEY +
+                            "||" + MediaStore.Audio.Media.ALBUM_KEY +
+                            " LIKE '%" + keywords[i] + "%' ESCAPE '\\'");
+                }
                 groupBy = "audio.album_id";
                 sArtistAlbumsMap.put(MediaStore.Audio.Albums.NUMBER_OF_SONGS_FOR_ARTIST,
                         "count(CASE WHEN artist_id==" + aid + " THEN 'foo' ELSE NULL END) AS " +
@@ -1608,13 +1658,22 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_ALBUMS:
                 if (projectionIn != null && projectionIn.length == 1 &&  selectionArgs == null
                         && (selection == null || selection.length() == 0)
-                        && projectionIn[0].equalsIgnoreCase("count(*)") ) {
+                        && projectionIn[0].equalsIgnoreCase("count(*)")
+                        && keywords != null) {
                     //Log.i("@@@@", "taking fast path for counting albums");
                     qb.setTables("audio_meta");
                     projectionIn[0] = "count(distinct album_id)";
                     qb.appendWhere("is_music=1");
                 } else {
                     qb.setTables("album_info");
+                    for (int i = 0; keywords != null && i < keywords.length; i++) {
+                        if (i > 0) {
+                            qb.appendWhere(" AND ");
+                        }
+                        qb.appendWhere(MediaStore.Audio.Media.ARTIST_KEY +
+                                "||" + MediaStore.Audio.Media.ALBUM_KEY +
+                                " LIKE '%" + keywords[i] + "%' ESCAPE '\\'");
+                    }
                 }
                 break;
 

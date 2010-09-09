@@ -1738,9 +1738,11 @@ public class MediaProvider extends ContentProvider {
                         table, limit);
 
             case FILES_ID:
+            case MTP_OBJECTS_ID:
                 qb.appendWhere("_id=" + uri.getPathSegments().get(2));
                 // fall through
             case FILES:
+            case MTP_OBJECTS:
                 qb.setTables("files");
                 break;
 
@@ -1957,7 +1959,7 @@ public class MediaProvider extends ContentProvider {
         Uri newUri = insertInternal(uri, match, initialValues);
         // do not signal notification for MTP objects.
         // we will signal instead after file transfer is successful.
-        if (newUri != null && match != FILES) {
+        if (newUri != null && match != MTP_OBJECTS) {
             getContext().getContentResolver().notifyChange(uri, null);
         }
         return newUri;
@@ -2493,18 +2495,24 @@ public class MediaProvider extends ContentProvider {
             case VOLUMES:
                 return attachVolume(initialValues.getAsString("name"));
 
-            case FILES: {
+            case FILES:
+                rowId = db.insert("files", FileColumns.DATE_MODIFIED, initialValues);
+                if (rowId > 0) {
+                    newUri = Files.getContentUri(uri.getPathSegments().get(0), rowId);
+                }
+                break;
+
+            case MTP_OBJECTS:
                 try {
                     mDisableMtpObjectCallbacks = true;
                     rowId = db.insert("files", FileColumns.DATE_MODIFIED, initialValues);
                     if (rowId > 0) {
-                        newUri = Files.getContentUri(uri.getPathSegments().get(0), rowId);
+                        newUri = Files.getMtpObjectsUri(uri.getPathSegments().get(0), rowId);
                     }
                 } finally {
                     mDisableMtpObjectCallbacks = false;
                 }
                 break;
-            }
 
             default:
                 throw new UnsupportedOperationException("Invalid URI " + uri);
@@ -2735,8 +2743,10 @@ public class MediaProvider extends ContentProvider {
                 break;
 
             case FILES_ID:
+            case MTP_OBJECTS_ID:
                 where = "_id=" + uri.getPathSegments().get(2);
             case FILES:
+            case MTP_OBJECTS:
                 out.table = "files";
                 break;
 
@@ -2788,9 +2798,17 @@ public class MediaProvider extends ContentProvider {
                                 sGetTableAndWhereParam.where, whereArgs);
                         break;
                     case FILES:
+                        // FIXME
+                    case MTP_OBJECTS:
                         throw new UnsupportedOperationException(
                                 "Deleting multiple files via MTP not supported");
                     case FILES_ID:
+                        count = deleteObject(db, uri.getPathSegments().get(0),
+                                sGetTableAndWhereParam.table,
+                                sGetTableAndWhereParam.where, whereArgs);
+                        break;
+
+                    case MTP_OBJECTS_ID:
                         try {
                             // don't send objectRemoved event since this originated from MTP
                             mDisableMtpObjectCallbacks = true;
@@ -2801,6 +2819,7 @@ public class MediaProvider extends ContentProvider {
                         } finally {
                             mDisableMtpObjectCallbacks = false;
                         }
+
                     default:
                         count = db.delete(sGetTableAndWhereParam.table,
                                 sGetTableAndWhereParam.where, whereArgs);
@@ -3744,7 +3763,11 @@ public class MediaProvider extends ContentProvider {
 
     private static final int FILES = 700;
     private static final int FILES_ID = 701;
-    private static final int MTP_OBJECT_REFERENCES = 702;
+    
+    // Used only by the MTP implementation
+    private static final int MTP_OBJECTS = 702;
+    private static final int MTP_OBJECTS_ID = 703;
+    private static final int MTP_OBJECT_REFERENCES = 704;
 
     private static final UriMatcher URI_MATCHER =
             new UriMatcher(UriMatcher.NO_MATCH);
@@ -3829,7 +3852,9 @@ public class MediaProvider extends ContentProvider {
         // Used by MTP implementation
         URI_MATCHER.addURI("media", "*/file", FILES);
         URI_MATCHER.addURI("media", "*/file/#", FILES_ID);
-        URI_MATCHER.addURI("media", "*/file/#/references", MTP_OBJECT_REFERENCES);
+        URI_MATCHER.addURI("media", "*/object", MTP_OBJECTS);
+        URI_MATCHER.addURI("media", "*/object/#", MTP_OBJECTS_ID);
+        URI_MATCHER.addURI("media", "*/object/#/references", MTP_OBJECT_REFERENCES);
 
         /**
          * @deprecated use the 'basic' or 'fancy' search Uris instead

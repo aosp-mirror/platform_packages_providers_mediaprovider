@@ -1875,6 +1875,7 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_GENRES_ID_MEMBERS_ID:
             case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
             case VIDEO_MEDIA_ID:
+            case FILES_ID:
                 Cursor c = null;
                 try {
                     c = query(url, MIME_TYPE_PROJECTION, null, null, null);
@@ -2098,6 +2099,46 @@ public class MediaProvider extends ContentProvider {
         values.put(FileColumns.MEDIA_TABLE, tableId);
         values.put(FileColumns.MEDIA_ID, rowId);
 
+        String title = initialValues.getAsString(MediaStore.MediaColumns.TITLE);
+        if (title == null) {
+            title = MediaFile.getFileTitle(path);
+        }
+        values.put(FileColumns.TITLE, title);
+
+        String mimeType = initialValues.getAsString(MediaStore.MediaColumns.MIME_TYPE);
+        Integer formatObject = initialValues.getAsInteger(FileColumns.FORMAT);
+        int format = (formatObject == null ? 0 : formatObject.intValue());
+        if (format == 0) {
+            if (path == null) {
+                // special case device created playlists
+                if (tableId == AUDIO_PLAYLISTS) {
+                    values.put(FileColumns.FORMAT, MtpConstants.FORMAT_ABSTRACT_AV_PLAYLIST);
+                    // create a file path for the benefit of MTP
+                    path = mExternalStoragePath
+                            + "/Playlists/" + initialValues.getAsString(Audio.Playlists.NAME);
+                    values.put(MediaStore.MediaColumns.DATA, path);
+                    values.put(FileColumns.PARENT, getParent(db, path));
+                } else {
+                    Log.e(TAG, "path is null in insertObject()");
+                }
+            } else {
+                format = MediaFile.getFormatCode(path, mimeType);
+            }
+        }
+        if (format != 0) {
+            values.put(FileColumns.FORMAT, format);
+            if (mimeType == null) {
+                mimeType = MediaFile.getMimeTypeForFormatCode(format);
+            }
+        }
+
+        if (mimeType == null) {
+            mimeType = MediaFile.getMimeTypeForFile(path);
+        }
+        if (mimeType != null) {
+            values.put(FileColumns.MIME_TYPE, mimeType);
+        }
+
         if (objectHandle == 0) {
             if (path != null) {
                 values.put(FileColumns.DATA, path);
@@ -2123,28 +2164,6 @@ public class MediaProvider extends ContentProvider {
                 values.put(FileColumns.PARENT, parent);
             }
 
-            Integer format = initialValues.getAsInteger(FileColumns.FORMAT);
-            if (format == null) {
-                if (path == null) {
-                    // special case device created playlists
-                    if (tableId == AUDIO_PLAYLISTS) {
-                        values.put(FileColumns.FORMAT, MtpConstants.FORMAT_ABSTRACT_AV_PLAYLIST);
-                        // create a file path for the benefit of MTP
-                        path = mExternalStoragePath
-                                + "/Playlists/" + initialValues.getAsString(Audio.Playlists.NAME);
-                        values.put(MediaStore.MediaColumns.DATA, path);
-                        values.put(FileColumns.PARENT, getParent(db, path));
-                    } else {
-                        Log.e(TAG, "path is null in insertObject()");
-                    }
-                } else {
-                    String mimeType = initialValues.getAsString(MediaStore.MediaColumns.MIME_TYPE);
-                    values.put(FileColumns.FORMAT, MediaFile.getFormatCode(path, mimeType));
-                }
-            } else {
-                values.put(FileColumns.FORMAT, format);
-            }
-
             Integer modified = initialValues.getAsInteger(MediaStore.MediaColumns.DATE_MODIFIED);
             if (modified != null) {
                 values.put(FileColumns.DATE_MODIFIED, modified);
@@ -2153,7 +2172,6 @@ public class MediaProvider extends ContentProvider {
             objectHandle = db.insert("files", FileColumns.DATE_MODIFIED, values);
             if (LOCAL_LOGV) Log.v(TAG, "insertObject: values=" + values + " returned: " + objectHandle);
         } else {
-            // only need to update MEDIA_TABLE and MEDIA_ID
             db.update("files", values, FileColumns._ID + "=?",
                     new String[] { Long.toString(objectHandle) });
         }
@@ -2487,7 +2505,7 @@ public class MediaProvider extends ContentProvider {
                 break;
             }
 
-            case AUDIO_ALBUMART:
+            case AUDIO_ALBUMART: {
                 if (database.mInternal) {
                     throw new UnsupportedOperationException("no internal album art allowed");
                 }
@@ -2503,21 +2521,30 @@ public class MediaProvider extends ContentProvider {
                     newUri = ContentUris.withAppendedId(uri, rowId);
                 }
                 break;
+            }
 
             case VOLUMES:
                 return attachVolume(initialValues.getAsString("name"));
 
-            case FILES:
-                rowId = db.insert("files", FileColumns.DATE_MODIFIED, initialValues);
+            case FILES: {
+                ContentValues values = initialValues;
+                Integer i = values.getAsInteger(FileColumns.PARENT);
+                if (i == null) {
+                    values = new ContentValues(values);
+                    values.put(FileColumns.PARENT, getParent(db, values.getAsString(FileColumns.DATA)));
+                }
+
+                rowId = insertObject(db, 0, initialValues,0, 0);
                 if (rowId > 0) {
                     newUri = Files.getContentUri(uri.getPathSegments().get(0), rowId);
                 }
                 break;
+            }
 
             case MTP_OBJECTS:
                 try {
                     mDisableMtpObjectCallbacks = true;
-                    rowId = db.insert("files", FileColumns.DATE_MODIFIED, initialValues);
+                    rowId = insertObject(db, 0, initialValues, 0, 0);
                     if (rowId > 0) {
                         newUri = Files.getMtpObjectsUri(uri.getPathSegments().get(0), rowId);
                     }

@@ -1153,6 +1153,60 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
+        if (fromVersion < 98) {
+            db.execSQL("ALTER TABLE files ADD COLUMN title TEXT;");
+
+            // update the triggers
+            db.execSQL("DROP TRIGGER IF EXISTS files_cleanup_images;");
+            db.execSQL("DROP TRIGGER IF EXISTS files_cleanup_audio;");
+            db.execSQL("DROP TRIGGER IF EXISTS files_cleanup_video;");
+            db.execSQL("DROP TRIGGER IF EXISTS files_cleanup_playlists;");
+
+             // cleans up "files" table when an image file is deleted
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS files_cleanup_images DELETE ON images " +
+                    "BEGIN " +
+                        "DELETE FROM files WHERE _id = old.object_id;" +
+                    "END");
+
+            // cleans up "files" table when an audio file is deleted
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS files_cleanup_audio DELETE ON audio_meta " +
+                    "BEGIN " +
+                        "DELETE FROM files WHERE _id = old.object_id;" +
+                    "END");
+
+            // cleans up "files" table when a video file is deleted
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS files_cleanup_video DELETE ON video " +
+                    "BEGIN " +
+                        "DELETE FROM files WHERE _id = old.object_id;" +
+                    "END");
+
+            if (internal) {
+                // internal database does not have audio_playlists table
+                // and does not need _OBJECT_REMOVED notification for MTP
+                db.execSQL("CREATE TRIGGER IF NOT EXISTS media_cleanup DELETE ON files " +
+                        "BEGIN " +
+                            "DELETE FROM images WHERE old.media_table = 1 AND _id = old.media_id;" +
+                            "DELETE FROM audio_meta WHERE old.media_table = 100 AND _id = old.media_id;" +
+                            "DELETE FROM video WHERE old.media_table = 200 AND _id = old.media_id;" +
+                        "END");
+            } else {
+                // cleans up "files" table when a playlist file is deleted
+                db.execSQL("CREATE TRIGGER IF NOT EXISTS files_cleanup_playlists DELETE ON audio_playlists " +
+                        "BEGIN " +
+                            "DELETE FROM files WHERE _id = old.object_id;" +
+                        "END");
+
+                db.execSQL("CREATE TRIGGER IF NOT EXISTS media_cleanup DELETE ON files " +
+                        "BEGIN " +
+                            "DELETE FROM images WHERE old.media_table = 1 AND _id = old.media_id;" +
+                            "DELETE FROM audio_meta WHERE old.media_table = 100 AND _id = old.media_id;" +
+                            "DELETE FROM video WHERE old.media_table = 200 AND _id = old.media_id;" +
+                            "DELETE FROM audio_playlists WHERE old.media_table = 110 AND _id = old.media_id;" +
+                            "SELECT _OBJECT_REMOVED(old._id);" +
+                        "END");
+            }
+        }
+
         sanityCheck(db, fromVersion);
     }
 
@@ -2106,48 +2160,6 @@ public class MediaProvider extends ContentProvider {
         return objectHandle;
     }
 
-    private int deleteObject(SQLiteDatabase db, String volume, String table,
-            String where, String[] whereArgs) {
-        // delete from corresponding media table as well
-        Cursor c = db.query("files", mMediaTableColumns, where, whereArgs, null, null, null);
-        try {
-            if (c != null && c.moveToNext()) {
-                int mediaTable = c.getInt(1);
-                long mediaId = c.getLong(2);
-                if (mediaId > 0) {
-                    // call back to our delete method rather than deleting directly
-                    // so notifications will be sent.
-                    switch (mediaTable) {
-                        case IMAGES_MEDIA:
-                            delete(ContentUris.withAppendedId(
-                                    Images.Media.getContentUri(volume), mediaId), null, null);
-                            break;
-                        case AUDIO_MEDIA:
-                            delete(ContentUris.withAppendedId(
-                                    Audio.Media.getContentUri(volume), mediaId), null, null);
-                            break;
-                        case VIDEO_MEDIA:
-                            delete(ContentUris.withAppendedId(
-                                    Video.Media.getContentUri(volume), mediaId), null, null);
-                            break;
-                        case AUDIO_PLAYLISTS:
-                            delete(ContentUris.withAppendedId(
-                                    Audio.Playlists.getContentUri(volume), mediaId), null, null);
-                            break;
-                        default:
-                            Log.e(TAG, "unknown mediaTable " + mediaTable + " in deleteObject()");
-                            break;
-                    }
-                }
-            }
-        } finally {
-            if (c != null) {
-                c.close();
-            }
-        }
-        return db.delete("files", where, whereArgs);
-    }
-
     private Cursor getObjectReferences(SQLiteDatabase db, int handle) {
        Cursor c = db.query("files", mMediaTableColumns, "_id=?",
                 new String[] {  Integer.toString(handle) },
@@ -2797,28 +2809,17 @@ public class MediaProvider extends ContentProvider {
                         count = db.delete("audio_meta",
                                 sGetTableAndWhereParam.where, whereArgs);
                         break;
-                    case FILES:
-                        // FIXME
-                    case MTP_OBJECTS:
-                        throw new UnsupportedOperationException(
-                                "Deleting multiple files via MTP not supported");
-                    case FILES_ID:
-                        count = deleteObject(db, uri.getPathSegments().get(0),
-                                sGetTableAndWhereParam.table,
-                                sGetTableAndWhereParam.where, whereArgs);
-                        break;
 
+                    case MTP_OBJECTS:
                     case MTP_OBJECTS_ID:
                         try {
                             // don't send objectRemoved event since this originated from MTP
                             mDisableMtpObjectCallbacks = true;
-                            // return here to avoid calling notifyChange()
-                            return deleteObject(db, uri.getPathSegments().get(0),
-                                    sGetTableAndWhereParam.table,
-                                    sGetTableAndWhereParam.where, whereArgs);
+                             count = db.delete("files", sGetTableAndWhereParam.where, whereArgs);
                         } finally {
                             mDisableMtpObjectCallbacks = false;
                         }
+                        break;
 
                     default:
                         count = db.delete(sGetTableAndWhereParam.table,
@@ -3687,7 +3688,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
-    private static final int DATABASE_VERSION = 97;
+    private static final int DATABASE_VERSION = 98;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

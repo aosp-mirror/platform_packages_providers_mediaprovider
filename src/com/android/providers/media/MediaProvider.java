@@ -213,6 +213,18 @@ public class MediaProvider extends ContentProvider {
         return path;
     }
 
+    private static ContentValues fixExternalStoragePath(ContentValues values) {
+        String path = values.getAsString(MediaStore.MediaColumns.DATA);
+        if (path != null) {
+            String fixedPath = fixExternalStoragePath(path);
+            if (!path.equals(fixedPath)) {
+                values = new ContentValues(values);
+                values.put(MediaStore.MediaColumns.DATA, fixedPath);
+            }
+        }
+        return values;
+    }
+
     /**
      * Wrapper class for a specific database (associated with one particular
      * external card, or with internal storage).  Can open the actual database
@@ -1973,6 +1985,9 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public int bulkInsert(Uri uri, ContentValues values[]) {
+        for (int i = 0; i < values.length; i++) {
+            values[i] = fixExternalStoragePath(values[i]);
+        }
         int match = URI_MATCHER.match(uri);
         if (match == VOLUMES) {
             return super.bulkInsert(uri, values);
@@ -2010,6 +2025,7 @@ public class MediaProvider extends ContentProvider {
     @Override
     public Uri insert(Uri uri, ContentValues initialValues)
     {
+        initialValues = fixExternalStoragePath(initialValues);
         int match = URI_MATCHER.match(uri);
         Uri newUri = insertInternal(uri, match, initialValues);
         // do not signal notification for MTP objects.
@@ -2092,7 +2108,6 @@ public class MediaProvider extends ContentProvider {
     private long insertObject(SQLiteDatabase db, long objectHandle, ContentValues initialValues,
             int tableId, long rowId) {
         String path = initialValues.getAsString(MediaStore.MediaColumns.DATA);
-        path = fixExternalStoragePath(path);
         // path might be null for playlists created on the device
 
         ContentValues values = new ContentValues();
@@ -2866,6 +2881,7 @@ public class MediaProvider extends ContentProvider {
     @Override
     public int update(Uri uri, ContentValues initialValues, String userWhere,
             String[] whereArgs) {
+        initialValues = fixExternalStoragePath(initialValues);
         int count;
         // Log.v(TAG, "update for uri="+uri+", initValues="+initialValues);
         int match = URI_MATCHER.match(uri);

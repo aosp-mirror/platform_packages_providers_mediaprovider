@@ -83,8 +83,8 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
         }
 
         int deviceID = 0;
-        int storageID = 0;
-        int objectID = 0;
+        long storageID = 0;
+        long objectID = 0;
         int queryType = sUriMatcher.match(uri);
         try {
             switch (queryType) {
@@ -100,13 +100,13 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
                 case MtpCursor.STORAGE_ID:
                 case MtpCursor.STORAGE_CHILDREN:
                     deviceID = Integer.parseInt(uri.getPathSegments().get(1));
-                    storageID = Integer.parseInt(uri.getPathSegments().get(3));
+                    storageID = Long.parseLong(uri.getPathSegments().get(3));
                     break;
 
                 case MtpCursor.OBJECT_CHILDREN:
                 case MtpCursor.OBJECT_ID:
                     deviceID = Integer.parseInt(uri.getPathSegments().get(1));
-                    objectID = Integer.parseInt(uri.getPathSegments().get(3));
+                    objectID = Long.parseLong(uri.getPathSegments().get(3));
                     storageID = -1;
                     break;
 
@@ -135,7 +135,8 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
 
     @Override
     public int delete(Uri uri, String where, String[] whereArgs) {
-        int deviceID, objectID;
+        int deviceID;
+        long objectID;
 
         if (where != null || whereArgs != null) {
             throw new UnsupportedOperationException(
@@ -159,7 +160,7 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
 
                 case MtpCursor.OBJECT_ID:
                     deviceID = Integer.parseInt(uri.getPathSegments().get(1));
-                    objectID = Integer.parseInt(uri.getPathSegments().get(3));
+                    objectID = Long.parseLong(uri.getPathSegments().get(3));
                     break;
                 default:
                     throw new SQLException("Unknown URL: " + uri.toString());
@@ -168,8 +169,8 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
             throw new SQLException("Unknown URL: " + uri.toString());
         }
 
-        int parentID = mClient.getParent(deviceID, objectID);
-        int storageID = 0;
+        long parentID = mClient.getParent(deviceID, objectID);
+        long storageID = 0;
         if (parentID <= 0) {
             storageID = mClient.getStorageID(deviceID, objectID);
         }
@@ -201,11 +202,11 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
     public ParcelFileDescriptor openFile(Uri uri, String mode)
             throws FileNotFoundException {
         int deviceID = 0;
-        int objectID = 0;
+        long objectID = 0;
         switch (sUriMatcher.match(uri)) {
             case MtpCursor.OBJECT_ID:
                 deviceID = Integer.parseInt(uri.getPathSegments().get(1));
-                objectID = Integer.parseInt(uri.getPathSegments().get(3));
+                objectID = Long.parseLong(uri.getPathSegments().get(3));
                 break;
             default:
                 throw new FileNotFoundException("Unknown URL: " + uri.toString());

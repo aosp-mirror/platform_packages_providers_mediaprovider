@@ -232,7 +232,9 @@ public class MediaProvider extends ContentProvider {
      */
     private final class DatabaseHelper extends SQLiteOpenHelper {
         final Context mContext;
+        final String mName;
         final boolean mInternal;  // True if this is the internal database
+        boolean mUpgradeAttempted; // Used for upgrade error handling
 
         // In memory caches of artist and album data.
         HashMap<String, Long> mArtistCache = new HashMap<String, Long>();
@@ -241,6 +243,7 @@ public class MediaProvider extends ContentProvider {
         public DatabaseHelper(Context context, String name, boolean internal) {
             super(context, name, null, DATABASE_VERSION);
             mContext = context;
+            mName = name;
             mInternal = internal;
         }
 
@@ -258,7 +261,30 @@ public class MediaProvider extends ContentProvider {
          */
         @Override
         public void onUpgrade(final SQLiteDatabase db, final int oldV, final int newV) {
+            mUpgradeAttempted = true;
             updateDatabase(db, mInternal, oldV, newV);
+        }
+
+       public synchronized SQLiteDatabase getWritableDatabase() {
+            SQLiteDatabase result = null;
+            mUpgradeAttempted = false;
+            try {
+                result = super.getWritableDatabase();
+            } catch (Exception e) {
+                if (!mUpgradeAttempted) {
+                    Log.e(TAG, "failed to open database " + mName, e);
+                    return null;
+                }
+            }
+
+            // If we failed to open the database during an upgrade, delete the file and try again.
+            // This will result in the creation of a fresh database, which will be repopulated
+            // when the media scanner runs.
+            if (result == null && mUpgradeAttempted) {
+                mContext.getDatabasePath(mName).delete();
+                result = super.getWritableDatabase();
+            }
+            return result;
         }
 
         /**

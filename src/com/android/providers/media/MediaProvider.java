@@ -481,11 +481,17 @@ public class MediaProvider extends ContentProvider {
                         "date_modified,description,picasa_id,isprivate,latitude,longitude," +
                         "datetaken,orientation,mini_thumb_magic,bucket_id,bucket_display_name";
 
-    private static final String AUDIO_COLUMNS =
+    private static final String AUDIO_COLUMNSv99 =
                         "_data,_display_name,_size,mime_type,date_added," +
                         "date_modified,title,title_key,duration,artist_id,composer,album_id," +
                         "track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast," +
                         "bookmark";
+
+    private static final String AUDIO_COLUMNSv100 =
+                        "_data,_display_name,_size,mime_type,date_added," +
+                        "date_modified,title,title_key,duration,artist_id,composer,album_id," +
+                        "track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast," +
+                        "bookmark,album_artist";
 
     private static final String VIDEO_COLUMNS =
                         "_data,_display_name,_size,mime_type,date_added,date_modified," +
@@ -1196,8 +1202,8 @@ public class MediaProvider extends ContentProvider {
             // Copy all data from our obsolete tables to the new files table
             db.execSQL("INSERT INTO files (" + IMAGE_COLUMNS + ",old_id,media_type) SELECT "
                     + IMAGE_COLUMNS + ",_id," + FileColumns.MEDIA_TYPE_IMAGE + " FROM images;");
-            db.execSQL("INSERT INTO files (" + AUDIO_COLUMNS + ",old_id,media_type) SELECT "
-                    + AUDIO_COLUMNS + ",_id," + FileColumns.MEDIA_TYPE_AUDIO + " FROM audio_meta;");
+            db.execSQL("INSERT INTO files (" + AUDIO_COLUMNSv99 + ",old_id,media_type) SELECT "
+                    + AUDIO_COLUMNSv99 + ",_id," + FileColumns.MEDIA_TYPE_AUDIO + " FROM audio_meta;");
             db.execSQL("INSERT INTO files (" + VIDEO_COLUMNS + ",old_id,media_type) SELECT "
                     + VIDEO_COLUMNS + ",_id," + FileColumns.MEDIA_TYPE_VIDEO + " FROM video;");
             if (!internal) {
@@ -1216,9 +1222,10 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("CREATE VIEW images AS SELECT _id," + IMAGE_COLUMNS +
                         " FROM files WHERE " + FileColumns.MEDIA_TYPE + "="
                         + FileColumns.MEDIA_TYPE_IMAGE + ";");
-            db.execSQL("CREATE VIEW audio_meta AS SELECT _id," + AUDIO_COLUMNS +
-                        " FROM files WHERE " + FileColumns.MEDIA_TYPE + "="
-                        + FileColumns.MEDIA_TYPE_AUDIO + ";");
+// audio_meta will be created below for schema 100
+//            db.execSQL("CREATE VIEW audio_meta AS SELECT _id," + AUDIO_COLUMNSv99 +
+//                        " FROM files WHERE " + FileColumns.MEDIA_TYPE + "="
+//                        + FileColumns.MEDIA_TYPE_AUDIO + ";");
             db.execSQL("CREATE VIEW video AS SELECT _id," + VIDEO_COLUMNS +
                         " FROM files WHERE " + FileColumns.MEDIA_TYPE + "="
                         + FileColumns.MEDIA_TYPE_VIDEO + ";");
@@ -1305,6 +1312,16 @@ public class MediaProvider extends ContentProvider {
                             "DELETE from audio_genres_map where audio_id=old._id;" +
                         "END");
             }
+        }
+
+        if (fromVersion < 100) {
+            db.execSQL("ALTER TABLE files ADD COLUMN album_artist TEXT;");
+            db.execSQL("DROP VIEW IF EXISTS audio_meta;");
+            db.execSQL("CREATE VIEW audio_meta AS SELECT _id," + AUDIO_COLUMNSv100 +
+                    " FROM files WHERE " + FileColumns.MEDIA_TYPE + "="
+                    + FileColumns.MEDIA_TYPE_AUDIO + ";");
+            db.execSQL("UPDATE files SET date_modified=0 WHERE " + FileColumns.MEDIA_TYPE + "="
+                    + FileColumns.MEDIA_TYPE_AUDIO + ";");
         }
 
         sanityCheck(db, fromVersion);
@@ -2220,11 +2237,6 @@ public class MediaProvider extends ContentProvider {
                 // the view.
                 values = new ContentValues(initialValues);
 
-                // TODO Remove this and actually store the album_artist in the
-                // database. For now this is here so the media scanner can start
-                // sending us the album_artist, even though it's not in the db yet.
-                values.remove(MediaStore.Audio.Media.ALBUM_ARTIST);
-
                 // Insert the artist into the artist table and remove it from
                 // the input values
                 Object so = values.get("artist");
@@ -2994,10 +3006,6 @@ public class MediaProvider extends ContentProvider {
                 case AUDIO_MEDIA_ID:
                     {
                         ContentValues values = new ContentValues(initialValues);
-                        // TODO Remove this and actually store the album_artist in the
-                        // database. For now this is here so the media scanner can start
-                        // sending us the album_artist, even though it's not in the db yet.
-                        values.remove(MediaStore.Audio.Media.ALBUM_ARTIST);
 
                         // Insert the artist into the artist table and remove it from
                         // the input values
@@ -3825,7 +3833,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
-    private static final int DATABASE_VERSION = 99;
+    private static final int DATABASE_VERSION = 100;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

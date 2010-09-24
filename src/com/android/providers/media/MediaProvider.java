@@ -2776,9 +2776,28 @@ public class MediaProvider extends ContentProvider {
             File directory = new File(directoryPath);
             if (!directory.exists())
                 return false;
-            file.getParentFile().mkdirs();
+            File parent = file.getParentFile();
+            // create parent directories if necessary, and ensure they have correct permissions
+            if (!parent.exists()) {
+                parent.mkdirs();
+                String parentPath = parent.getPath();
+                if (parentPath.startsWith(mExternalStoragePath)) {
+                    while (parent != null && !mExternalStoragePath.equals(parentPath)) {
+                        FileUtils.setPermissions(parentPath, 0775, Process.myUid(),
+                                Process.SDCARD_RW_GID);
+                        parent = parent.getParentFile();
+                        parentPath = parent.getPath();
+                    }
+                }
+
+            }
             try {
-                return file.createNewFile();
+                if (file.createNewFile()) {
+                    // file should be writeable for SDCARD_RW group and world readable
+                    FileUtils.setPermissions(file.getPath(), 0664, Process.myUid(),
+                            Process.SDCARD_RW_GID);
+                    return true;
+                }
             } catch(IOException ioe) {
                 Log.e(TAG, "File creation failed", ioe);
             }

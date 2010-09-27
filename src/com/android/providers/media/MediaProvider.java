@@ -293,6 +293,11 @@ public class MediaProvider extends ContentProvider {
          */
         @Override
         public void onOpen(SQLiteDatabase db) {
+
+            // Turn off WAL optimization as it appears to cause difficult to repoduce
+            // disk i/o errors.
+            db.disableWriteAheadLogging();
+
             if (mInternal) return;  // The internal database is kept separately.
 
             db.addCustomFunction("_OBJECT_REMOVED", 1, mObjectRemovedCallback);

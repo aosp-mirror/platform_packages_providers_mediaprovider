@@ -58,12 +58,12 @@ import android.os.SystemProperties;
 import android.provider.BaseColumns;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
+import android.provider.MediaStore.Files;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Video;
-import android.provider.MediaStore.Images.ImageColumns;
-import android.provider.MediaStore.Files;
 import android.provider.MediaStore.Files.FileColumns;
+import android.provider.MediaStore.Images.ImageColumns;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -2549,8 +2549,6 @@ public class MediaProvider extends ContentProvider {
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(
                             Images.Media.getContentUri(uri.getPathSegments().get(0)), rowId);
-                    String data = initialValues.getAsString(MediaColumns.DATA);
-                    requestMediaThumbnail(data, newUri, MediaThumbRequest.PRIORITY_NORMAL, 0);
                 }
                 break;
             }
@@ -2656,8 +2654,6 @@ public class MediaProvider extends ContentProvider {
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(Video.Media.getContentUri(
                             uri.getPathSegments().get(0)), rowId);
-                    String data = initialValues.getAsString(MediaColumns.DATA);
-                    requestMediaThumbnail(data, newUri, MediaThumbRequest.PRIORITY_NORMAL, 0);
                 }
                 break;
             }

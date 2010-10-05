@@ -1139,7 +1139,7 @@ public class MediaProvider extends ContentProvider {
             // This contains a union of all the columns from the old
             // images, audio_meta, videos and audio_playlist tables.
             db.execSQL("CREATE TABLE files (" +
-                        "_id INTEGER PRIMARY KEY," +
+                        "_id INTEGER PRIMARY KEY AUTOINCREMENT," +
                         "_data TEXT," +     // this can be null for playlists
                         "_size INTEGER," +
                         "format INTEGER," +

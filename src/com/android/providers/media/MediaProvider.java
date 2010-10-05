@@ -1290,7 +1290,7 @@ public class MediaProvider extends ContentProvider {
                     "END");
 
             db.execSQL("CREATE TRIGGER IF NOT EXISTS video_cleanup DELETE ON files " +
-                    "WHEN old.media_type = " + FileColumns.MEDIA_TYPE_AUDIO + " " +
+                    "WHEN old.media_type = " + FileColumns.MEDIA_TYPE_VIDEO + " " +
                     "BEGIN " +
                         "SELECT _DELETE_FILE(old._data);" +
                     "END");

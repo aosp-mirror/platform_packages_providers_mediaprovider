@@ -21,8 +21,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.BroadcastReceiver;
 import android.net.Uri;
-import android.os.Environment;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.SystemProperties;
+import android.util.Log;
 
 import java.io.File;
 
@@ -35,6 +37,7 @@ public class MediaScannerReceiver extends BroadcastReceiver
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
         Uri uri = intent.getData();
+        String mediaStoragePath = SystemProperties.get("ro.media.storage");
         String externalStoragePath = Environment.getExternalStorageDirectory().getPath();
 
         if (action.equals(Intent.ACTION_BOOT_COMPLETED)) {
@@ -44,12 +47,18 @@ public class MediaScannerReceiver extends BroadcastReceiver
             if (uri.getScheme().equals("file")) {
                 // handle intents related to external storage
                 String path = uri.getPath();
-                if (action.equals(Intent.ACTION_MEDIA_MOUNTED) && 
-                        externalStoragePath.equals(path)) {
-                    scan(context, MediaProvider.EXTERNAL_VOLUME);
-                } else if (action.equals(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE) &&
-                        path != null && path.startsWith(externalStoragePath + "/")) {
-                    scanFile(context, path);
+                if (path == null) {
+                    Log.e(TAG, "no path for intent " + action);
+                }
+                if (action.equals(Intent.ACTION_MEDIA_MOUNTED)) {
+                    if (path.equals(mediaStoragePath) || path.equals(externalStoragePath)) {
+                        scan(context, MediaProvider.EXTERNAL_VOLUME);
+                    }
+                } else if (action.equals(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)) {
+                    if ((mediaStoragePath != null && path.startsWith(mediaStoragePath + "/")) ||
+                            (externalStoragePath != null && path.startsWith(externalStoragePath + "/"))) {
+                        scanFile(context, path);
+                    }
                 }
             }
         }

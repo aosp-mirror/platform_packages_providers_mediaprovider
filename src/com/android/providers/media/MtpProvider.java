@@ -58,11 +58,13 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
         // fail if we have no USB host support
         if (!context.getResources().getBoolean(
                 com.android.internal.R.bool.config_hasUsbHostSupport)) {
+            Log.d(TAG, "no USB host support");
             return false;
         }
 
         mResolver = context.getContentResolver();
         mClient = new MtpClient(this);
+        Log.d(TAG, "mClient: " + mClient);
         mClient.start();
         return true;
     }
@@ -70,7 +72,12 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
     @Override
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
             String sortOrder) {
+
         Log.d(TAG, "query projection: " + projection);
+
+        if (mClient == null) {
+            return null;
+        }
 
         if (projection == null) {
             throw new UnsupportedOperationException("MtpProvider queries require a projection");
@@ -138,7 +145,11 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
         int deviceID;
         long objectID;
 
-        if (where != null || whereArgs != null) {
+        if (mClient == null) {
+            throw new IllegalStateException("MTP host support not initialized");
+        }
+
+       if (where != null || whereArgs != null) {
             throw new UnsupportedOperationException(
                     "MtpProvider does not support \"where\" for delete");
         }
@@ -201,6 +212,9 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
     @Override
     public ParcelFileDescriptor openFile(Uri uri, String mode)
             throws FileNotFoundException {
+        if (mClient == null) {
+            return null;
+        }
         int deviceID = 0;
         long objectID = 0;
         switch (sUriMatcher.match(uri)) {

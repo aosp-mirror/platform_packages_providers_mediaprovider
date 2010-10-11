@@ -3425,15 +3425,20 @@ public class MediaProvider extends ContentProvider {
         if (albumart_uri != null) {
             Cursor c = query(albumart_uri, new String [] { "_data" },
                     null, null, null);
-            if (c.moveToFirst()) {
-                String albumart_path = c.getString(0);
-                if (ensureFileExists(albumart_path)) {
-                    out = albumart_uri;
+            try {
+                if (c != null && c.moveToFirst()) {
+                    String albumart_path = c.getString(0);
+                    if (ensureFileExists(albumart_path)) {
+                        out = albumart_uri;
+                    }
+                } else {
+                    albumart_uri = null;
                 }
-            } else {
-                albumart_uri = null;
+            } finally {
+                if (c != null) {
+                    c.close();
+                }
             }
-            c.close();
         }
         if (albumart_uri == null){
             ContentValues initialValues = new ContentValues();

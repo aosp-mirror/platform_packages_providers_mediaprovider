@@ -63,11 +63,11 @@ public class MtpService extends Service
         Log.d(TAG, "startMtpServer");
         synchronized (mBinder) {
             if (mServer == null) {
-                MtpDatabase database = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME);
                 String storagePath = SystemProperties.get("ro.media.storage");
                 if (storagePath == null || storagePath.length() == 0) {
                     storagePath = Environment.getExternalStorageDirectory().getPath();
                 }
+                MtpDatabase database = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME, storagePath);
                 Log.d(TAG, "starting MTP server for " + storagePath);
                 mServer = new MtpServer(database, storagePath);
                 mServer.start();

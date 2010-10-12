@@ -3032,6 +3032,42 @@ public class MediaProvider extends ContentProvider {
         synchronized (sGetTableAndWhereParam) {
             getTableAndWhere(uri, match, userWhere, sGetTableAndWhereParam);
 
+            // special case renaming directories via MTP.
+            // in this case we must update all paths in the database with
+            // the directory name as a prefix
+            if ((match == MTP_OBJECTS || match == MTP_OBJECTS_ID)
+                    && initialValues != null && initialValues.size() == 1) {
+                String oldPath = null;
+                String newPath = initialValues.getAsString("_data");
+                // MtpDatabase will rename the directory first, so we test the new file name
+                if (newPath != null && (new File(newPath)).isDirectory()) {
+                    Cursor cursor = db.query(sGetTableAndWhereParam.table, PATH_PROJECTION,
+                        userWhere, whereArgs, null, null, null);
+                    try {
+                        if (cursor != null && cursor.moveToNext()) {
+                            oldPath = cursor.getString(1);
+                        }
+                    } finally {
+                        if (cursor != null) cursor.close();
+                    }
+                    if (oldPath != null) {
+                        // first rename the row for the directory
+                        count = db.update(sGetTableAndWhereParam.table, initialValues,
+                                sGetTableAndWhereParam.where, whereArgs);
+                        if (count > 0) {
+                            // then update the paths of any files and folders contained in the directory.
+                            db.execSQL("UPDATE files SET _data=REPLACE(_data, '"
+                                    + oldPath + "/','" + newPath + "/');");
+                        }
+
+                        if (count > 0 && !db.inTransaction()) {
+                            getContext().getContentResolver().notifyChange(uri, null);
+                        }
+                        return count;
+                    }
+                }
+            }
+
             switch (match) {
                 case AUDIO_MEDIA:
                 case AUDIO_MEDIA_ID:
@@ -3956,6 +3992,11 @@ public class MediaProvider extends ContentProvider {
 
     private static final String[] ID_PROJECTION = new String[] {
         MediaStore.MediaColumns._ID
+    };
+
+    private static final String[] PATH_PROJECTION = new String[] {
+        MediaStore.MediaColumns._ID,
+            MediaStore.MediaColumns.DATA,
     };
 
     private static final String[] MIME_TYPE_PROJECTION = new String[] {

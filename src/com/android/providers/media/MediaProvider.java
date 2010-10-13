@@ -324,6 +324,17 @@ public class MediaProvider extends ContentProvider {
                             // This could happen if we unplug the sd card during insert/update/delete
                             // See getDatabaseForUri.
                             Log.w(TAG, ex);
+                        } catch (OutOfMemoryError err) {
+                            /*
+                             * Note: Catching Errors is in most cases considered
+                             * bad practice. However, in this case it is
+                             * motivated by the fact that corrupt or very large
+                             * images may cause a huge allocation to be
+                             * requested and denied. The bitmap handling API in
+                             * Android offers no other way to guard against
+                             * these problems than by catching OutOfMemoryError.
+                             */
+                            Log.w(TAG, err);
                         } finally {
                             synchronized (mCurrentThumbRequest) {
                                 mCurrentThumbRequest.mState = MediaThumbRequest.State.DONE;

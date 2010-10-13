@@ -43,6 +43,7 @@ import android.util.Config;
 import android.util.Log;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.Locale;
 
 public class MediaScannerService extends Service implements Runnable
@@ -120,6 +121,9 @@ public class MediaScannerService extends Service implements Runnable
 
         // use path to storage in internal storage rather than the fuse based compatibility file system
         mMediaStoragePath = SystemProperties.get("ro.media.storage");
+        if (mMediaStoragePath.length() == 0) {
+            mMediaStoragePath = null;
+        }
         mExternalStoragePath = Environment.getExternalStorageDirectory().getPath();
 
         // Start up the thread running the service.  Note that we create a
@@ -262,7 +266,8 @@ public class MediaScannerService extends Service implements Runnable
                     }
                     
                     if (directories != null) {
-                        if (Config.LOGD) Log.d(TAG, "start scanning volume " + volume);
+                        if (Config.LOGD) Log.d(TAG, "start scanning volume " + volume + ": "
+                                + Arrays.toString(directories));
                         scan(directories, volume);
                         if (Config.LOGD) Log.d(TAG, "done scanning volume " + volume);
                     }

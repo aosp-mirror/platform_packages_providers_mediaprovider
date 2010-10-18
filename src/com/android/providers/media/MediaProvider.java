@@ -2505,7 +2505,7 @@ public class MediaProvider extends ContentProvider {
             try {
                 if (c != null && c.moveToNext()) {
                     int mediaType = c.getInt(1);
-                    if (mediaType != FileColumns.MEDIA_TYPE_PLAYLIST) {
+                    if (mediaType != FileColumns.MEDIA_TYPE_AUDIO) {
                         // we only allow audio files in playlists, so skip
                         continue;
                     }

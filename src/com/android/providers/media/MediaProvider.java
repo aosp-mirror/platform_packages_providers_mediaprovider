@@ -2691,10 +2691,17 @@ public class MediaProvider extends ContentProvider {
                 return attachVolume(initialValues.getAsString("name"));
 
             case FILES:
+                rowId = insertFile(database, uri, initialValues,
+                        FileColumns.MEDIA_TYPE_NONE, true);
+                if (rowId > 0) {
+                    newUri = Files.getContentUri(uri.getPathSegments().get(0), rowId);
+                }
+                break;
+
             case MTP_OBJECTS:
                 // don't send a notification if the insert originated from MTP
-                rowId = insertFile(database, uri, initialValues, FileColumns.MEDIA_TYPE_NONE,
-                        (match != MTP_OBJECTS));
+                rowId = insertFile(database, uri, initialValues,
+                        FileColumns.MEDIA_TYPE_NONE, false);
                 if (rowId > 0) {
                     newUri = Files.getMtpObjectsUri(uri.getPathSegments().get(0), rowId);
                 }

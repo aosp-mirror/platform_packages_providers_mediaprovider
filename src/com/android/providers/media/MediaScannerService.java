@@ -196,6 +196,8 @@ public class MediaScannerService extends Service implements Runnable
                 (mExternalStoragePath != null && path.startsWith(mExternalStoragePath))) {
             volumeName = MediaProvider.EXTERNAL_VOLUME;
             openDatabase(volumeName);
+            // MediaScanner can use internal media storage path
+            path = MediaProvider.externalToMediaPath(path);
         }
         MediaScanner scanner = createMediaScanner();
         return scanner.scanSingleFile(path, volumeName, mimeType);

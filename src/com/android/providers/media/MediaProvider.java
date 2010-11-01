@@ -203,7 +203,7 @@ public class MediaProvider extends ContentProvider {
     // legacy path, which needs to get remapped to mMediaStoragePath
     private static String mExternalStoragePath;
 
-    private static String externalToMediaPath(String path) {
+    /* package */ static String externalToMediaPath(String path) {
         // convert external storage path to media path
         if (path != null && mMediaStoragePath != null
                 && mExternalStoragePath != null
@@ -223,10 +223,10 @@ public class MediaProvider extends ContentProvider {
         return path;
     }
 
-    private static ContentValues externalToMediaPath(ContentValues values) {
+    private static ContentValues mediaToExternalPath(ContentValues values) {
         String path = values.getAsString(MediaStore.MediaColumns.DATA);
         if (path != null) {
-            String fixedPath = externalToMediaPath(path);
+            String fixedPath = mediaToExternalPath(path);
             if (!path.equals(fixedPath)) {
                 values = new ContentValues(values);
                 values.put(MediaStore.MediaColumns.DATA, fixedPath);
@@ -1467,7 +1467,7 @@ public class MediaProvider extends ContentProvider {
      */
 
     private static void computeBucketValues(String data, ContentValues values) {
-        data = externalToMediaPath(data);
+        data = mediaToExternalPath(data);
         File parentFile = new File(data).getParentFile();
         if (parentFile == null) {
             parentFile = new File("/");
@@ -1482,7 +1482,7 @@ public class MediaProvider extends ContentProvider {
         // Note: the BUCKET_ID and BUCKET_DISPLAY_NAME attributes are spelled the
         // same for both images and video. However, for backwards-compatibility reasons
         // there is no common base class. We use the ImageColumns version here
-        values.put(ImageColumns.BUCKET_ID, mediaToExternalPath(path).hashCode());
+        values.put(ImageColumns.BUCKET_ID, path.hashCode());
         values.put(ImageColumns.BUCKET_DISPLAY_NAME, name);
     }
 
@@ -1534,7 +1534,7 @@ public class MediaProvider extends ContentProvider {
             long id = c.getLong(0);
             String path = c.getString(1);
             long magic = c.getLong(2);
-            path = externalToMediaPath(path);
+            path = mediaToExternalPath(path);
 
             MediaThumbRequest req = requestMediaThumbnail(path, origUri,
                     MediaThumbRequest.PRIORITY_HIGH, magic);
@@ -2078,7 +2078,7 @@ public class MediaProvider extends ContentProvider {
             String preferredExtension, String directoryName) {
         ContentValues values;
         String file = initialValues.getAsString("_data");
-        file = externalToMediaPath(file);
+        file = mediaToExternalPath(file);
         if (TextUtils.isEmpty(file)) {
             file = generateFileName(internal, preferredExtension, directoryName);
             values = new ContentValues(initialValues);
@@ -2118,7 +2118,7 @@ public class MediaProvider extends ContentProvider {
     @Override
     public int bulkInsert(Uri uri, ContentValues values[]) {
         for (int i = 0; i < values.length; i++) {
-            values[i] = externalToMediaPath(values[i]);
+            values[i] = mediaToExternalPath(values[i]);
         }
         int match = URI_MATCHER.match(uri);
         if (match == VOLUMES) {
@@ -2157,7 +2157,7 @@ public class MediaProvider extends ContentProvider {
     @Override
     public Uri insert(Uri uri, ContentValues initialValues)
     {
-        initialValues = externalToMediaPath(initialValues);
+        initialValues = mediaToExternalPath(initialValues);
         int match = URI_MATCHER.match(uri);
         Uri newUri = insertInternal(uri, match, initialValues);
         // do not signal notification for MTP objects.
@@ -2209,7 +2209,7 @@ public class MediaProvider extends ContentProvider {
         int lastSlash = path.lastIndexOf('/');
         if (lastSlash > 0) {
             String parentPath = path.substring(0, lastSlash);
-            if (parentPath.equals(mMediaStoragePath)) {
+            if (parentPath.equals(mExternalStoragePath)) {
                 return 0;
             }
             String [] selargs = { parentPath };
@@ -2272,7 +2272,7 @@ public class MediaProvider extends ContentProvider {
                 long artistRowId;
                 HashMap<String, Long> artistCache = database.mArtistCache;
                 String path = values.getAsString("_data");
-                path = externalToMediaPath(path);
+                path = mediaToExternalPath(path);
                 synchronized(artistCache) {
                     Long temp = artistCache.get(s);
                     if (temp == null) {
@@ -2762,7 +2762,7 @@ public class MediaProvider extends ContentProvider {
 
 
     private MediaThumbRequest requestMediaThumbnail(String path, Uri uri, int priority, long magic) {
-        path = externalToMediaPath(path);
+        path = mediaToExternalPath(path);
         synchronized (mMediaThumbQueue) {
             MediaThumbRequest req = null;
             try {
@@ -3036,7 +3036,7 @@ public class MediaProvider extends ContentProvider {
     @Override
     public int update(Uri uri, ContentValues initialValues, String userWhere,
             String[] whereArgs) {
-        initialValues = externalToMediaPath(initialValues);
+        initialValues = mediaToExternalPath(initialValues);
         int count;
         // Log.v(TAG, "update for uri="+uri+", initValues="+initialValues);
         int match = URI_MATCHER.match(uri);
@@ -3121,7 +3121,7 @@ public class MediaProvider extends ContentProvider {
                                 // If the path is null, we don't have a hash for the file in question.
                                 Log.w(TAG, "Update without specified path.");
                             } else {
-                                path = externalToMediaPath(path);
+                                path = mediaToExternalPath(path);
                                 albumHash = path.substring(0, path.lastIndexOf('/')).hashCode();
                             }
                             String s = so.toString();
@@ -3269,6 +3269,38 @@ public class MediaProvider extends ContentProvider {
         MediaStore.MediaColumns.DATA,
     };
 
+    /* Same as ContentProvider.openFileHelper, except we will convert paths
+       in external storage to internal media storage to avoid Fuse overhead.
+     */
+    private final ParcelFileDescriptor doOpenFile(Uri uri,
+            String mode) throws FileNotFoundException {
+        Cursor c = query(uri, new String[]{"_data"}, null, null, null);
+        int count = (c != null) ? c.getCount() : 0;
+        if (count != 1) {
+            // If there is not exactly one result, throw an appropriate
+            // exception.
+            if (c != null) {
+                c.close();
+            }
+            if (count == 0) {
+                throw new FileNotFoundException("No entry for " + uri);
+            }
+            throw new FileNotFoundException("Multiple items at " + uri);
+        }
+
+        c.moveToFirst();
+        int i = c.getColumnIndex("_data");
+        String path = (i >= 0 ? c.getString(i) : null);
+        c.close();
+        if (path == null) {
+            throw new FileNotFoundException("Column _data not found.");
+        }
+
+        path = externalToMediaPath(path);
+        int modeBits = ContentResolver.modeToMode(uri, mode);
+        return ParcelFileDescriptor.open(new File(path), modeBits);
+    }
+
     @Override
     public ParcelFileDescriptor openFile(Uri uri, String mode)
             throws FileNotFoundException {
@@ -3389,7 +3421,7 @@ public class MediaProvider extends ContentProvider {
         byte[] compressed = null;
 
         try {
-            path = externalToMediaPath(path);
+            path = mediaToExternalPath(path);
             File f = new File(path);
             ParcelFileDescriptor pfd = ParcelFileDescriptor.open(f,
                     ParcelFileDescriptor.MODE_READ_ONLY);

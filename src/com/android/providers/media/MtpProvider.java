@@ -25,10 +25,12 @@ import android.content.UriMatcher;
 import android.database.AbstractCursor;
 import android.database.Cursor;
 import android.database.SQLException;
+import android.media.MediaScanner;
 import android.media.MtpClient;
 import android.media.MtpCursor;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
+import android.os.SystemProperties;
 import android.provider.Mtp;
 import android.util.Log;
 
@@ -47,6 +49,8 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
 
     private MtpClient mClient;
     private ContentResolver mResolver;
+    private String mMediaStoragePath;
+    private MediaScanner mMediaScanner;
 
     private static final UriMatcher sUriMatcher;
 
@@ -62,6 +66,8 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
             return false;
         }
 
+        mMediaStoragePath = SystemProperties.get("ro.media.storage");
+        mMediaScanner = new MediaScanner(context);
         mResolver = context.getContentResolver();
         mClient = new MtpClient(this);
         Log.d(TAG, "mClient: " + mClient);
@@ -137,6 +143,29 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
 
     @Override
     public Uri insert(Uri uri, ContentValues initialValues) {
+        if (sUriMatcher.match(uri) == MtpCursor.OBJECT_IMPORT) {
+            Log.d(TAG, "import uri " + uri);
+            int deviceID = Integer.parseInt(uri.getPathSegments().get(1));
+            int objectID = Integer.parseInt(uri.getPathSegments().get(3));
+            String destPath = uri.getQuery();
+            // use internal media path to avoid fuse overhead
+            destPath = MediaProvider.externalToMediaPath(destPath);
+
+            if (!destPath.startsWith(mMediaStoragePath)) {
+                throw new IllegalArgumentException("Destination path not in media storage directory");
+            }
+            if (mClient == null) {
+                throw new IllegalStateException("MTP host support not initialized");
+            }
+            
+            if (mClient.importFile(deviceID, objectID, destPath)) {
+                Log.d(TAG, "import succeeded");
+                return mMediaScanner.scanSingleFile(destPath, MediaProvider.EXTERNAL_VOLUME, null);
+            }
+            
+            return null;
+        }
+
         throw new UnsupportedOperationException("MtpProvider does not support inserting");
     }
 
@@ -209,26 +238,6 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
         throw new UnsupportedOperationException("MtpProvider does not support updating");
     }
 
-    @Override
-    public ParcelFileDescriptor openFile(Uri uri, String mode)
-            throws FileNotFoundException {
-        if (mClient == null) {
-            return null;
-        }
-        int deviceID = 0;
-        long objectID = 0;
-        switch (sUriMatcher.match(uri)) {
-            case MtpCursor.OBJECT_ID:
-                deviceID = Integer.parseInt(uri.getPathSegments().get(1));
-                objectID = Long.parseLong(uri.getPathSegments().get(3));
-                break;
-            default:
-                throw new FileNotFoundException("Unknown URL: " + uri.toString());
-        }
-
-        return mClient.openFile(deviceID, objectID);
-    }
-
     private void notifyDeviceChanged(int deviceID) {
         Uri uri = Mtp.Device.getContentUri(deviceID);
         mResolver.notifyChange(uri, null);
@@ -255,5 +264,6 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
         sUriMatcher.addURI(Mtp.AUTHORITY, "device/#/object/#", MtpCursor.OBJECT_ID);
         sUriMatcher.addURI(Mtp.AUTHORITY, "device/#/storage/#/child", MtpCursor.STORAGE_CHILDREN);
         sUriMatcher.addURI(Mtp.AUTHORITY, "device/#/object/#/child", MtpCursor.OBJECT_CHILDREN);
+        sUriMatcher.addURI(Mtp.AUTHORITY, "device/#/import/#", MtpCursor.OBJECT_IMPORT);
     }
 }

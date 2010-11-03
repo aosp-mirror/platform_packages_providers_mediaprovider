@@ -961,6 +961,16 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("CREATE INDEX IF NOT EXISTS video_bucket_index ON video(bucket_id, datetaken)");
         }
 
+        if (fromVersion < 92) {
+            // Delete albums and artists, then clear the modification time on songs, which
+            // will cause the media scanner to rescan everything, rebuilding the artist and
+            // album tables along the way, while preserving playlists.
+            // We need this rescan because ICU also changed, and now generates different
+            // collation keys
+            db.execSQL("DELETE from albums");
+            db.execSQL("DELETE from artists");
+            db.execSQL("UPDATE audio_meta SET date_modified=0;");
+        }
         sanityCheck(db, fromVersion);
     }
 
@@ -3136,7 +3146,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 91;
+    private static final int DATABASE_VERSION = 92;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

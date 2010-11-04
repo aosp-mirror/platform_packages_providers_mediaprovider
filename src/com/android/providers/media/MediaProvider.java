@@ -1142,7 +1142,17 @@ public class MediaProvider extends ContentProvider {
         }
 
         // versions 92 - 98 were work in progress on MTP obsoleted by version 99
-
+        if (fromVersion < 92) {
+            // Delete albums and artists, then clear the modification time on songs, which
+            // will cause the media scanner to rescan everything, rebuilding the artist and
+            // album tables along the way, while preserving playlists.
+            // We need this rescan because ICU also changed, and now generates different
+            // collation keys
+            db.execSQL("DELETE from albums");
+            db.execSQL("DELETE from artists");
+            db.execSQL("UPDATE audio_meta SET date_modified=0;");
+        }
+        
         if (fromVersion < 99) {
             // Remove various stages of work in progress for MTP support
             db.execSQL("DROP TABLE IF EXISTS objects");

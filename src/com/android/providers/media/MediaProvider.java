@@ -2353,7 +2353,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         String title = values.getAsString(MediaStore.MediaColumns.TITLE);
-        if (title == null) {
+        if (title == null && path != null) {
             title = MediaFile.getFileTitle(path);
         }
         values.put(FileColumns.TITLE, title);
@@ -2408,7 +2408,7 @@ public class MediaProvider extends ContentProvider {
 
         if (rowId == 0) {
             if (mediaType == FileColumns.MEDIA_TYPE_PLAYLIST) {
-                String name = values.getAsString(Audio.Playlists.Members.AUDIO_ID);
+                String name = values.getAsString(Audio.Playlists.NAME);
                 if (name == null) {
                     throw new IllegalArgumentException(
                             "no name was provided when inserting playlist");

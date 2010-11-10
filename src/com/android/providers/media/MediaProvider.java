@@ -3033,7 +3033,13 @@ public class MediaProvider extends ContentProvider {
                                 sGetTableAndWhereParam.where, whereArgs);
                         break;
                 }
-                getContext().getContentResolver().notifyChange(uri, null);
+                // Since there are multiple Uris that can refer to the same files
+                // and deletes can affect other objects in storage (like subdirectories
+                // or playlists) we will notify a change on the entire volume to make
+                // sure no listeners miss the notification.
+                String volume = uri.getPathSegments().get(0);
+                Uri notifyUri = Uri.parse("content://" + MediaStore.AUTHORITY + "/" + volume);
+                getContext().getContentResolver().notifyChange(notifyUri, null);
             }
         } else {
             detachVolume(uri);

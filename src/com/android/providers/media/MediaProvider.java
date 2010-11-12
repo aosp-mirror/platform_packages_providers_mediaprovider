@@ -2409,9 +2409,10 @@ public class MediaProvider extends ContentProvider {
         if (rowId == 0) {
             if (mediaType == FileColumns.MEDIA_TYPE_PLAYLIST) {
                 String name = values.getAsString(Audio.Playlists.NAME);
-                if (name == null) {
+                if (name == null && path == null) {
+                    // MediaScanner will compute the name from the path if we have one
                     throw new IllegalArgumentException(
-                            "no name was provided when inserting playlist");
+                            "no name was provided when inserting abstract playlist");
                 }
             } else {
                 if (path == null) { 

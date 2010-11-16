@@ -1127,10 +1127,9 @@ public class MediaProvider extends ContentProvider {
                     "SELECT DISTINCT artist_id, album_id FROM audio_meta;");
         }
 
-        if (fromVersion < 89) {
-            updateBucketNames(db, "images");
-            updateBucketNames(db, "video");
-        }
+        // In version 89, originally we updateBucketNames(db, "images") and
+        // updateBucketNames(db, "video"), but in version 101 we now updateBucketNames
+        //  for all files and therefore can save the update here.
 
         if (fromVersion < 91) {
             // Never query by mini_thumb_magic_index
@@ -1359,6 +1358,12 @@ public class MediaProvider extends ContentProvider {
                     + FileColumns.MEDIA_TYPE_AUDIO + ";");
             db.execSQL("UPDATE files SET date_modified=0 WHERE " + FileColumns.MEDIA_TYPE + "="
                     + FileColumns.MEDIA_TYPE_AUDIO + ";");
+        }
+
+        if (fromVersion < 300) {
+            // we now compute bucket and display names for all files to avoid problems with files
+            // that the media scanner might not recognize as images or videos
+            updateBucketNames(db, "files");
         }
 
         sanityCheck(db, fromVersion);
@@ -2261,7 +2266,6 @@ public class MediaProvider extends ContentProvider {
                 if (! values.containsKey(MediaColumns.DISPLAY_NAME)) {
                     computeDisplayName(data, values);
                 }
-                computeBucketValues(data, values);
                 computeTakenTime(values);
                 break;
             }
@@ -2323,7 +2327,6 @@ public class MediaProvider extends ContentProvider {
                 values.put("title", s.trim());
 
                 computeDisplayName(values.getAsString("_data"), values);
-                values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);
                 break;
             }
 
@@ -2331,8 +2334,6 @@ public class MediaProvider extends ContentProvider {
                 values = ensureFile(database.mInternal, initialValues, ".3gp", "video");
                 String data = values.getAsString("_data");
                 computeDisplayName(data, values);
-                computeBucketValues(data, values);
-                values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);
                 computeTakenTime(values);
                 break;
             }
@@ -2341,7 +2342,12 @@ public class MediaProvider extends ContentProvider {
         if (values == null) {
             values = new ContentValues(initialValues);
         }
+        // compute bucket_id and bucket_display_name for all files
         String path = values.getAsString(MediaStore.MediaColumns.DATA);
+        if (path != null) {
+            computeBucketValues(path, values);
+        }
+        values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);
 
         long rowId = 0;
         Integer i = values.getAsInteger(
@@ -3972,7 +3978,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
-    private static final int DATABASE_VERSION = 100;
+    private static final int DATABASE_VERSION = 300;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

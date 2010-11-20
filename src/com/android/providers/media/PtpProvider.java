@@ -26,8 +26,8 @@ import android.database.AbstractCursor;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.media.MediaScanner;
-import android.media.MtpClient;
-import android.media.MtpCursor;
+import android.media.PtpClient;
+import android.media.PtpCursor;
 import android.net.Uri;
 import android.os.FileUtils;
 import android.os.Process;
@@ -45,11 +45,11 @@ import java.io.FileNotFoundException;
  * Finally a list of objects (typically files and folders)
  * and their properties can be for each storage unit.
  */
-public class PtpProvider extends ContentProvider implements MtpClient.Listener {
+public class PtpProvider extends ContentProvider implements PtpClient.Listener {
 
     private static final String TAG = "PtpProvider";
 
-    private MtpClient mClient;
+    private PtpClient mClient;
     private ContentResolver mResolver;
     private String mMediaStoragePath;
     private MediaScanner mMediaScanner;
@@ -71,7 +71,7 @@ public class PtpProvider extends ContentProvider implements MtpClient.Listener {
         mMediaStoragePath = SystemProperties.get("ro.media.storage");
         mMediaScanner = new MediaScanner(context);
         mResolver = context.getContentResolver();
-        mClient = new MtpClient(this);
+        mClient = new PtpClient(this);
         Log.d(TAG, "mClient: " + mClient);
         mClient.start();
         return true;
@@ -103,23 +103,23 @@ public class PtpProvider extends ContentProvider implements MtpClient.Listener {
         int queryType = sUriMatcher.match(uri);
         try {
             switch (queryType) {
-                case MtpCursor.DEVICE:
+                case PtpCursor.DEVICE:
                     break;
 
-                case MtpCursor.DEVICE_ID:
-                case MtpCursor.STORAGE:
-                case MtpCursor.OBJECT:
+                case PtpCursor.DEVICE_ID:
+                case PtpCursor.STORAGE:
+                case PtpCursor.OBJECT:
                     deviceID = Integer.parseInt(uri.getPathSegments().get(1));
                     break;
 
-                case MtpCursor.STORAGE_ID:
-                case MtpCursor.STORAGE_CHILDREN:
+                case PtpCursor.STORAGE_ID:
+                case PtpCursor.STORAGE_CHILDREN:
                     deviceID = Integer.parseInt(uri.getPathSegments().get(1));
                     storageID = Long.parseLong(uri.getPathSegments().get(3));
                     break;
 
-                case MtpCursor.OBJECT_CHILDREN:
-                case MtpCursor.OBJECT_ID:
+                case PtpCursor.OBJECT_CHILDREN:
+                case PtpCursor.OBJECT_ID:
                     deviceID = Integer.parseInt(uri.getPathSegments().get(1));
                     objectID = Long.parseLong(uri.getPathSegments().get(3));
                     storageID = -1;
@@ -132,7 +132,7 @@ public class PtpProvider extends ContentProvider implements MtpClient.Listener {
             throw new SQLException("Unknown URL: " + uri.toString());
         }
 
-        MtpCursor cursor = new MtpCursor(mClient, queryType, deviceID,
+        PtpCursor cursor = new PtpCursor(mClient, queryType, deviceID,
                 storageID, objectID, projection);
         return cursor;
     }
@@ -145,7 +145,7 @@ public class PtpProvider extends ContentProvider implements MtpClient.Listener {
 
     @Override
     public Uri insert(Uri uri, ContentValues initialValues) {
-        if (sUriMatcher.match(uri) == MtpCursor.OBJECT_IMPORT) {
+        if (sUriMatcher.match(uri) == PtpCursor.OBJECT_IMPORT) {
             Log.d(TAG, "import uri " + uri);
             int deviceID = Integer.parseInt(uri.getPathSegments().get(1));
             int objectID = Integer.parseInt(uri.getPathSegments().get(3));
@@ -199,20 +199,20 @@ public class PtpProvider extends ContentProvider implements MtpClient.Listener {
 
         try {
             switch (sUriMatcher.match(uri)) {
-                case MtpCursor.DEVICE:
-                case MtpCursor.DEVICE_ID:
+                case PtpCursor.DEVICE:
+                case PtpCursor.DEVICE_ID:
                     throw new UnsupportedOperationException("can not delete devices");
 
-                case MtpCursor.STORAGE:
-                case MtpCursor.STORAGE_ID:
+                case PtpCursor.STORAGE:
+                case PtpCursor.STORAGE_ID:
                     throw new UnsupportedOperationException("can not delete storage units");
-                case MtpCursor.OBJECT:
-                case MtpCursor.STORAGE_CHILDREN:
-                case MtpCursor.OBJECT_CHILDREN:
+                case PtpCursor.OBJECT:
+                case PtpCursor.STORAGE_CHILDREN:
+                case PtpCursor.OBJECT_CHILDREN:
                     deviceID = Integer.parseInt(uri.getPathSegments().get(1));
                     throw new UnsupportedOperationException("can not delete multiple objects");
 
-                case MtpCursor.OBJECT_ID:
+                case PtpCursor.OBJECT_ID:
                     deviceID = Integer.parseInt(uri.getPathSegments().get(1));
                     objectID = Long.parseLong(uri.getPathSegments().get(3));
                     break;
@@ -270,14 +270,14 @@ public class PtpProvider extends ContentProvider implements MtpClient.Listener {
 
     static {
         sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
-        sUriMatcher.addURI(Ptp.AUTHORITY, "device", MtpCursor.DEVICE);
-        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#", MtpCursor.DEVICE_ID);
-        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#/storage", MtpCursor.STORAGE);
-        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#/storage/#", MtpCursor.STORAGE_ID);
-        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#/object", MtpCursor.OBJECT);
-        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#/object/#", MtpCursor.OBJECT_ID);
-        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#/storage/#/child", MtpCursor.STORAGE_CHILDREN);
-        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#/object/#/child", MtpCursor.OBJECT_CHILDREN);
-        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#/import/#", MtpCursor.OBJECT_IMPORT);
+        sUriMatcher.addURI(Ptp.AUTHORITY, "device", PtpCursor.DEVICE);
+        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#", PtpCursor.DEVICE_ID);
+        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#/storage", PtpCursor.STORAGE);
+        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#/storage/#", PtpCursor.STORAGE_ID);
+        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#/object", PtpCursor.OBJECT);
+        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#/object/#", PtpCursor.OBJECT_ID);
+        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#/storage/#/child", PtpCursor.STORAGE_CHILDREN);
+        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#/object/#/child", PtpCursor.OBJECT_CHILDREN);
+        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#/import/#", PtpCursor.OBJECT_IMPORT);
     }
 }

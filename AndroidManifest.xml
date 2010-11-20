@@ -15,7 +15,7 @@
         <provider android:name="MediaProvider" android:authorities="media"
                 android:multiprocess="false" />
 
-        <provider android:name="MtpProvider" android:authorities="mtp"
+        <provider android:name="PtpProvider" android:authorities="ptp"
                 android:multiprocess="false" />
 
         <receiver android:name="MediaScannerReceiver">

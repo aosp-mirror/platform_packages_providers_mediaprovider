@@ -32,22 +32,22 @@ import android.net.Uri;
 import android.os.FileUtils;
 import android.os.Process;
 import android.os.SystemProperties;
-import android.provider.Mtp;
+import android.provider.Ptp;
 import android.util.Log;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 
 /**
- * Provides access to content on MTP and PTP devices via USB.
- * At the top level we have a list of MTP/PTP devices,
+ * Provides access to content on PTP devices via USB.
+ * At the top level we have a list of PTP devices,
  * and then a list of storage units for each device.
  * Finally a list of objects (typically files and folders)
  * and their properties can be for each storage unit.
  */
-public class MtpProvider extends ContentProvider implements MtpClient.Listener {
+public class PtpProvider extends ContentProvider implements MtpClient.Listener {
 
-    private static final String TAG = "MtpProvider";
+    private static final String TAG = "PtpProvider";
 
     private MtpClient mClient;
     private ContentResolver mResolver;
@@ -88,13 +88,13 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
         }
 
         if (projection == null) {
-            throw new UnsupportedOperationException("MtpProvider queries require a projection");
+            throw new UnsupportedOperationException("PtpProvider queries require a projection");
         }
         if (selection != null || selectionArgs != null) {
-            throw new UnsupportedOperationException("MtpProvider queries do not support selection");
+            throw new UnsupportedOperationException("PtpProvider queries do not support selection");
         }
         if (sortOrder != null) {
-            throw new UnsupportedOperationException("MtpProvider queries do not support sortOrder");
+            throw new UnsupportedOperationException("PtpProvider queries do not support sortOrder");
         }
 
         int deviceID = 0;
@@ -158,7 +158,7 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
                         "Destination path not in media storage directory");
             }
             if (mClient == null) {
-                throw new IllegalStateException("MTP host support not initialized");
+                throw new IllegalStateException("PTP host support not initialized");
             }
 
             // make sure the containing directories exist and have correct permissions
@@ -180,7 +180,7 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
             return null;
         }
 
-        throw new UnsupportedOperationException("MtpProvider does not support inserting");
+        throw new UnsupportedOperationException("PtpProvider does not support inserting");
     }
 
     @Override
@@ -189,12 +189,12 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
         long objectID;
 
         if (mClient == null) {
-            throw new IllegalStateException("MTP host support not initialized");
+            throw new IllegalStateException("PTP host support not initialized");
         }
 
        if (where != null || whereArgs != null) {
             throw new UnsupportedOperationException(
-                    "MtpProvider does not support \"where\" for delete");
+                    "PtpProvider does not support \"where\" for delete");
         }
 
         try {
@@ -238,9 +238,9 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
             // notify on the parent's child URI too.
             // This is needed because the parent URI is not a subset of the child URI
             if (parentID > 0) {
-                uri = Mtp.Object.getContentUriForObjectChildren(deviceID, parentID);
+                uri = Ptp.Object.getContentUriForObjectChildren(deviceID, parentID);
             } else {
-                uri = Mtp.Object.getContentUriForStorageChildren(deviceID, storageID);
+                uri = Ptp.Object.getContentUriForStorageChildren(deviceID, storageID);
             }
             mResolver.notifyChange(uri, null);
         }
@@ -249,15 +249,15 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
 
     @Override
     public int update(Uri uri, ContentValues values, String where, String[] whereArgs) {
-        throw new UnsupportedOperationException("MtpProvider does not support updating");
+        throw new UnsupportedOperationException("PtpProvider does not support updating");
     }
 
     private void notifyDeviceChanged(int deviceID) {
-        Uri uri = Mtp.Device.getContentUri(deviceID);
+        Uri uri = Ptp.Device.getContentUri(deviceID);
         mResolver.notifyChange(uri, null);
     }
 
-    // MtpClient.Listener methods
+    // PtpClient.Listener methods
     public void deviceAdded(int deviceID) {
         Log.d(TAG, "deviceAdded " + deviceID);
         notifyDeviceChanged(deviceID);
@@ -270,14 +270,14 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
 
     static {
         sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
-        sUriMatcher.addURI(Mtp.AUTHORITY, "device", MtpCursor.DEVICE);
-        sUriMatcher.addURI(Mtp.AUTHORITY, "device/#", MtpCursor.DEVICE_ID);
-        sUriMatcher.addURI(Mtp.AUTHORITY, "device/#/storage", MtpCursor.STORAGE);
-        sUriMatcher.addURI(Mtp.AUTHORITY, "device/#/storage/#", MtpCursor.STORAGE_ID);
-        sUriMatcher.addURI(Mtp.AUTHORITY, "device/#/object", MtpCursor.OBJECT);
-        sUriMatcher.addURI(Mtp.AUTHORITY, "device/#/object/#", MtpCursor.OBJECT_ID);
-        sUriMatcher.addURI(Mtp.AUTHORITY, "device/#/storage/#/child", MtpCursor.STORAGE_CHILDREN);
-        sUriMatcher.addURI(Mtp.AUTHORITY, "device/#/object/#/child", MtpCursor.OBJECT_CHILDREN);
-        sUriMatcher.addURI(Mtp.AUTHORITY, "device/#/import/#", MtpCursor.OBJECT_IMPORT);
+        sUriMatcher.addURI(Ptp.AUTHORITY, "device", MtpCursor.DEVICE);
+        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#", MtpCursor.DEVICE_ID);
+        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#/storage", MtpCursor.STORAGE);
+        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#/storage/#", MtpCursor.STORAGE_ID);
+        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#/object", MtpCursor.OBJECT);
+        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#/object/#", MtpCursor.OBJECT_ID);
+        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#/storage/#/child", MtpCursor.STORAGE_CHILDREN);
+        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#/object/#/child", MtpCursor.OBJECT_CHILDREN);
+        sUriMatcher.addURI(Ptp.AUTHORITY, "device/#/import/#", MtpCursor.OBJECT_IMPORT);
     }
 }

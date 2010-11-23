@@ -29,11 +29,13 @@ import android.media.MediaScanner;
 import android.media.MtpClient;
 import android.media.MtpCursor;
 import android.net.Uri;
-import android.os.ParcelFileDescriptor;
+import android.os.FileUtils;
+import android.os.Process;
 import android.os.SystemProperties;
 import android.provider.Mtp;
 import android.util.Log;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 
 /**
@@ -152,10 +154,22 @@ public class MtpProvider extends ContentProvider implements MtpClient.Listener {
             destPath = MediaProvider.externalToMediaPath(destPath);
 
             if (!destPath.startsWith(mMediaStoragePath)) {
-                throw new IllegalArgumentException("Destination path not in media storage directory");
+                throw new IllegalArgumentException(
+                        "Destination path not in media storage directory");
             }
             if (mClient == null) {
                 throw new IllegalStateException("MTP host support not initialized");
+            }
+
+            // make sure the containing directories exist and have correct permissions
+            File file = new File(destPath);
+            File parent = file.getParentFile();
+            parent.mkdirs();
+            while (parent != null && !mMediaStoragePath.equals(parent.getAbsolutePath())) {
+                Log.d(TAG, "parent: " + parent);
+                FileUtils.setPermissions(parent.getAbsolutePath(), 0775, Process.myUid(),
+                        Process.SDCARD_RW_GID);
+                parent = parent.getParentFile();
             }
             
             if (mClient.importFile(deviceID, objectID, destPath)) {

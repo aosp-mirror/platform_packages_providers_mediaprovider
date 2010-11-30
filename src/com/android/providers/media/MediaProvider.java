@@ -1151,7 +1151,7 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("DELETE from artists");
             db.execSQL("UPDATE audio_meta SET date_modified=0;");
         }
-        
+
         if (fromVersion < 99) {
             // Remove various stages of work in progress for MTP support
             db.execSQL("DROP TABLE IF EXISTS objects");
@@ -2421,7 +2421,7 @@ public class MediaProvider extends ContentProvider {
                             "no name was provided when inserting abstract playlist");
                 }
             } else {
-                if (path == null) { 
+                if (path == null) {
                     // path might be null for playlists created on the device
                     // or transfered via MTP
                     throw new IllegalArgumentException(
@@ -2447,11 +2447,6 @@ public class MediaProvider extends ContentProvider {
                 }
             } else {
                 values.put(FileColumns.PARENT, parent);
-            }
-
-            Integer modified = values.getAsInteger(MediaStore.MediaColumns.DATE_MODIFIED);
-            if (modified != null) {
-                values.put(FileColumns.DATE_MODIFIED, modified);
             }
 
             rowId = db.insert("files", FileColumns.DATE_MODIFIED, values);
@@ -4054,7 +4049,7 @@ public class MediaProvider extends ContentProvider {
 
     private static final int FILES = 700;
     private static final int FILES_ID = 701;
-    
+
     // Used only by the MTP implementation
     private static final int MTP_OBJECTS = 702;
     private static final int MTP_OBJECTS_ID = 703;

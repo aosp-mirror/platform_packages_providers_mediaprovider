@@ -2548,8 +2548,8 @@ public class MediaProvider extends ContentProvider {
                 ContentValues v = new ContentValues();
                 v.put(MediaStore.Audio.Playlists.Members.PLAYLIST_ID, playlistId);
                 v.put(MediaStore.Audio.Playlists.Members.AUDIO_ID, audioId);
-                v.put(MediaStore.Audio.Playlists.Members.PLAY_ORDER, added++);
-                valuesList[i] = v;
+                v.put(MediaStore.Audio.Playlists.Members.PLAY_ORDER, added);
+                valuesList[added++] = v;
             }
         }
         if (added < count) {

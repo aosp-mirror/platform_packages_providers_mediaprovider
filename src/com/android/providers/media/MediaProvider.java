@@ -1818,22 +1818,36 @@ public class MediaProvider extends ContentProvider {
                 break;
 
             case AUDIO_PLAYLISTS_ID_MEMBERS:
+                // if simpleQuery is true, we can do a simpler query on just audio_playlists_map
+                // we can do this if we have no keywords and our projection includes just columns
+                // from audio_playlists_map
+                boolean simpleQuery = (keywords == null && projectionIn != null);
                 if (projectionIn != null) {
                     for (int i = 0; i < projectionIn.length; i++) {
-                        if (projectionIn[i].equals("_id")) {
+                        String p = projectionIn[i];
+                        if (simpleQuery && !(p.equals("audio_id") ||
+                                p.equals("playlist_id") || p.equals("play_order"))) {
+                            simpleQuery = false;
+                        }
+                        if (p.equals("_id")) {
                             projectionIn[i] = "audio_playlists_map._id AS _id";
                         }
                     }
                 }
-                qb.setTables("audio_playlists_map, audio");
-                qb.appendWhere("audio._id = audio_id AND playlist_id = "
-                        + uri.getPathSegments().get(3));
-                for (int i = 0; keywords != null && i < keywords.length; i++) {
-                    qb.appendWhere(" AND ");
-                    qb.appendWhere(MediaStore.Audio.Media.ARTIST_KEY +
-                            "||" + MediaStore.Audio.Media.ALBUM_KEY +
-                            "||" + MediaStore.Audio.Media.TITLE_KEY +
-                            " LIKE '%" + keywords[i] + "%' ESCAPE '\\'");
+                if (simpleQuery) {
+                    qb.setTables("audio_playlists_map");
+                    qb.appendWhere("playlist_id = " + uri.getPathSegments().get(3));
+                } else {
+                    qb.setTables("audio_playlists_map, audio");
+                    qb.appendWhere("audio._id = audio_id AND playlist_id = "
+                            + uri.getPathSegments().get(3));
+                    for (int i = 0; keywords != null && i < keywords.length; i++) {
+                        qb.appendWhere(" AND ");
+                        qb.appendWhere(MediaStore.Audio.Media.ARTIST_KEY +
+                                "||" + MediaStore.Audio.Media.ALBUM_KEY +
+                                "||" + MediaStore.Audio.Media.TITLE_KEY +
+                                " LIKE '%" + keywords[i] + "%' ESCAPE '\\'");
+                    }
                 }
                 break;
 

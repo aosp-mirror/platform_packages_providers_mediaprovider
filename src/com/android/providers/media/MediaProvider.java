@@ -1821,7 +1821,8 @@ public class MediaProvider extends ContentProvider {
                 // if simpleQuery is true, we can do a simpler query on just audio_playlists_map
                 // we can do this if we have no keywords and our projection includes just columns
                 // from audio_playlists_map
-                boolean simpleQuery = (keywords == null && projectionIn != null);
+                boolean simpleQuery = (keywords == null && projectionIn != null
+                        && (selection == null || selection.equalsIgnoreCase("playlist_id=?")));
                 if (projectionIn != null) {
                     for (int i = 0; i < projectionIn.length; i++) {
                         String p = projectionIn[i];

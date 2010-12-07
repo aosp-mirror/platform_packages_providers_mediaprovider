@@ -275,7 +275,8 @@ public class MediaProvider extends ContentProvider {
             updateDatabase(db, mInternal, oldV, newV);
         }
 
-       public synchronized SQLiteDatabase getWritableDatabase() {
+        @Override
+        public synchronized SQLiteDatabase getWritableDatabase() {
             SQLiteDatabase result = null;
             mUpgradeAttempted = false;
             try {
@@ -1366,6 +1367,12 @@ public class MediaProvider extends ContentProvider {
             updateBucketNames(db, "files");
         }
 
+        if (fromVersion < 301) {
+            db.execSQL("DROP INDEX IF EXISTS bucket_index");
+            db.execSQL("CREATE INDEX bucket_index on files(bucket_id, media_type, datetaken, _id)");
+            db.execSQL("CREATE INDEX bucket_name on files(bucket_id, media_type, bucket_display_name)");
+        }
+
         sanityCheck(db, fromVersion);
     }
 
@@ -1705,6 +1712,9 @@ public class MediaProvider extends ContentProvider {
                 }
             }
         }
+        if (uri.getQueryParameter("distinct") != null) {
+            qb.setDistinct(true);
+        }
 
         boolean hasThumbnailId = false;
 
@@ -1859,15 +1869,9 @@ public class MediaProvider extends ContentProvider {
 
             case VIDEO_MEDIA:
                 qb.setTables("video");
-                if (uri.getQueryParameter("distinct") != null) {
-                    qb.setDistinct(true);
-                }
                 break;
             case VIDEO_MEDIA_ID:
                 qb.setTables("video");
-                if (uri.getQueryParameter("distinct") != null) {
-                    qb.setDistinct(true);
-                }
                 qb.appendWhere("_id=" + uri.getPathSegments().get(3));
                 break;
 
@@ -3988,7 +3992,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
-    private static final int DATABASE_VERSION = 300;
+    private static final int DATABASE_VERSION = 301;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

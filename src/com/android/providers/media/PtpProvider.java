@@ -80,6 +80,8 @@ public class PtpProvider extends ContentProvider implements PtpClient.Listener {
     @Override
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
             String sortOrder) {
+        // keep this locked up until we are ready to support it as a public API
+        getContext().enforceCallingPermission(android.Manifest.permission.ACCESS_USB, null);
 
         Log.d(TAG, "query projection: " + projection);
 
@@ -145,6 +147,9 @@ public class PtpProvider extends ContentProvider implements PtpClient.Listener {
 
     @Override
     public Uri insert(Uri uri, ContentValues initialValues) {
+        // keep this locked up until we are ready to support it as a public API
+        getContext().enforceCallingPermission(android.Manifest.permission.ACCESS_USB, null);
+
         if (sUriMatcher.match(uri) == PtpCursor.OBJECT_IMPORT) {
             Log.d(TAG, "import uri " + uri);
             int deviceID = Integer.parseInt(uri.getPathSegments().get(1));
@@ -185,6 +190,9 @@ public class PtpProvider extends ContentProvider implements PtpClient.Listener {
 
     @Override
     public int delete(Uri uri, String where, String[] whereArgs) {
+        // keep this locked up until we are ready to support it as a public API
+        getContext().enforceCallingPermission(android.Manifest.permission.ACCESS_USB, null);
+
         int deviceID;
         long objectID;
 

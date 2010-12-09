@@ -22,12 +22,15 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.ContentObserver;
 import android.hardware.Usb;
 import android.media.MtpDatabase;
 import android.media.MtpServer;
 import android.os.Environment;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.SystemProperties;
+import android.provider.Settings;
 import android.util.Log;
 
 public class MtpService extends Service
@@ -50,8 +53,40 @@ public class MtpService extends Service
         }
     }
 
+    private class SettingsObserver extends ContentObserver {
+        private ContentResolver mResolver;
+        SettingsObserver() {
+            super(new Handler());
+        }
+
+        void observe(Context context) {
+            Log.d(TAG, "observe");
+            mResolver = context.getContentResolver();
+            mResolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.USE_PTP_INTERFACE), false, this);
+            onChange(false);
+        }
+
+        @Override
+        public void onChange(boolean selfChange) {
+            Log.d(TAG, "onChange selfChange: " + selfChange);
+            mPtpMode = (Settings.System.getInt(mResolver,
+                    Settings.System.USE_PTP_INTERFACE, 0) != 0);
+            Log.d(TAG, "mPtpMode = " + mPtpMode);
+        }
+    }
+
     private MtpServer mServer;
     private UsbReceiver mUsbReceiver;
+    private SettingsObserver mSettingsObserver;
+    private boolean mPtpMode;
+
+    @Override
+    public void onCreate() {
+        Log.d(TAG, "onCreate");
+        mSettingsObserver = new SettingsObserver();
+        mSettingsObserver.observe(this);
+    }
 
     @Override
     public void onStart(Intent intent, int startId)
@@ -70,6 +105,7 @@ public class MtpService extends Service
                 MtpDatabase database = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME, storagePath);
                 Log.d(TAG, "starting MTP server for " + storagePath);
                 mServer = new MtpServer(database, storagePath);
+                mServer.setPtpMode(mPtpMode);
                 mServer.start();
             }
         }

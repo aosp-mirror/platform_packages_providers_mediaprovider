@@ -23,7 +23,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.ContentObserver;
-import android.hardware.Usb;
+import android.hardware.UsbManager;
 import android.media.MtpDatabase;
 import android.media.MtpServer;
 import android.os.Environment;
@@ -40,10 +40,10 @@ public class MtpService extends Service
     private class UsbReceiver extends BroadcastReceiver {
         public void onReceive(Context content, Intent intent) {
             String action = intent.getAction();
-            if (action.equals(Usb.ACTION_USB_STATE)) {
-                boolean connected = intent.getExtras().getBoolean(Usb.USB_CONNECTED);
-                boolean mtpEnabled = Usb.USB_FUNCTION_ENABLED.equals(
-                        intent.getExtras().getString(Usb.USB_FUNCTION_MTP));
+            if (action.equals(UsbManager.ACTION_USB_STATE)) {
+                boolean connected = intent.getExtras().getBoolean(UsbManager.USB_CONNECTED);
+                boolean mtpEnabled = UsbManager.USB_FUNCTION_ENABLED.equals(
+                        intent.getExtras().getString(UsbManager.USB_FUNCTION_MTP));
                 if (connected && mtpEnabled) {
                     startMtpServer();
                 } else {
@@ -155,7 +155,7 @@ public class MtpService extends Service
             if (mUsbReceiver == null) {
                 mUsbReceiver = new UsbReceiver();
                 IntentFilter filter = new IntentFilter();
-                filter.addAction(Usb.ACTION_USB_STATE);
+                filter.addAction(UsbManager.ACTION_USB_STATE);
                 registerReceiver(mUsbReceiver, filter);
             }
         }

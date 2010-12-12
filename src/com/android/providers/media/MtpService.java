@@ -22,6 +22,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.res.Resources;
 import android.database.ContentObserver;
 import android.hardware.UsbManager;
 import android.media.MtpDatabase;
@@ -102,9 +103,13 @@ public class MtpService extends Service
                 if (storagePath == null || storagePath.length() == 0) {
                     storagePath = Environment.getExternalStorageDirectory().getPath();
                 }
-                MtpDatabase database = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME, storagePath);
+                MtpDatabase database = new MtpDatabase(this,
+                        MediaProvider.EXTERNAL_VOLUME, storagePath);
+                int reserveSpaceMegabytes = getResources().getInteger(
+                        com.android.internal.R.integer.config_mtpReserveSpaceMegabytes);
+
                 Log.d(TAG, "starting MTP server for " + storagePath);
-                mServer = new MtpServer(database, storagePath);
+                mServer = new MtpServer(database, storagePath, reserveSpaceMegabytes*1024*1024);
                 mServer.setPtpMode(mPtpMode);
                 mServer.start();
             }

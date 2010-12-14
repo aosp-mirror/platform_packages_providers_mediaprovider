@@ -1373,6 +1373,11 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("CREATE INDEX bucket_name on files(bucket_id, media_type, bucket_display_name)");
         }
 
+        if (fromVersion < 302) {
+            db.execSQL("CREATE INDEX parent_index ON files(parent);");
+            db.execSQL("CREATE INDEX format_index ON files(format);");
+        }
+
         sanityCheck(db, fromVersion);
     }
 
@@ -3992,7 +3997,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
-    private static final int DATABASE_VERSION = 301;
+    private static final int DATABASE_VERSION = 302;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

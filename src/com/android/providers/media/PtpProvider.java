@@ -173,7 +173,7 @@ public class PtpProvider extends ContentProvider implements PtpClient.Listener {
             while (parent != null && !mMediaStoragePath.equals(parent.getAbsolutePath())) {
                 Log.d(TAG, "parent: " + parent);
                 FileUtils.setPermissions(parent.getAbsolutePath(), 0775, Process.myUid(),
-                        Process.SDCARD_RW_GID);
+                        Process.MEDIA_RW_GID);
                 parent = parent.getParentFile();
             }
             

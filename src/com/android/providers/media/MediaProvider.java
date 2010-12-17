@@ -1697,6 +1697,7 @@ public class MediaProvider extends ContentProvider {
             return null;
         }
         SQLiteDatabase db = database.getReadableDatabase();
+        if (db == null) return null;
         SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
         String limit = uri.getQueryParameter("limit");
         String filter = uri.getQueryParameter("filter");
@@ -2169,6 +2170,9 @@ public class MediaProvider extends ContentProvider {
                     "Unknown URI: " + uri);
         }
         SQLiteDatabase db = database.getWritableDatabase();
+        if (db == null) {
+            throw new IllegalStateException("Couldn't open database for " + uri);
+        }
 
         if (match == AUDIO_PLAYLISTS_ID || match == AUDIO_PLAYLISTS_ID_MEMBERS) {
             return playlistBulkInsert(db, uri, values);
@@ -3356,6 +3360,9 @@ public class MediaProvider extends ContentProvider {
                 throw new IllegalStateException("Couldn't open database for " + uri);
             }
             SQLiteDatabase db = database.getReadableDatabase();
+            if (db == null) {
+                throw new IllegalStateException("Couldn't open database for " + uri);
+            }
             SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
             int songid = Integer.parseInt(uri.getPathSegments().get(3));
             qb.setTables("audio_meta");
@@ -3398,6 +3405,9 @@ public class MediaProvider extends ContentProvider {
                     throw ex;
                 }
                 SQLiteDatabase db = database.getReadableDatabase();
+                if (db == null) {
+                    throw new IllegalStateException("Couldn't open database for " + uri);
+                }
                 SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
                 int albumid = Integer.parseInt(uri.getPathSegments().get(3));
                 qb.setTables("audio_meta");

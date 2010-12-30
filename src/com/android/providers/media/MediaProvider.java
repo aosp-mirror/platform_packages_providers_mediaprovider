@@ -43,7 +43,7 @@ import android.graphics.BitmapFactory;
 import android.media.MediaFile;
 import android.media.MediaScanner;
 import android.media.MiniThumbFile;
-import android.media.MtpConstants;
+import android.mtp.MtpConstants;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Environment;

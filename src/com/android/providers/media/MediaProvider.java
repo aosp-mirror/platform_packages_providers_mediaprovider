@@ -2854,7 +2854,7 @@ public class MediaProvider extends ContentProvider {
                 if (parentPath.startsWith(mMediaStoragePath)) {
                     while (parent != null && !mMediaStoragePath.equals(parentPath)) {
                         FileUtils.setPermissions(parentPath, 0775, Process.myUid(),
-                                Process.SDCARD_RW_GID);
+                                Process.MEDIA_RW_GID);
                         parent = parent.getParentFile();
                         parentPath = parent.getPath();
                     }
@@ -2863,9 +2863,9 @@ public class MediaProvider extends ContentProvider {
             }
             try {
                 if (file.createNewFile()) {
-                    // file should be writeable for SDCARD_RW group and world readable
+                    // file should be writeable for MEDIA_RW group and world readable
                     FileUtils.setPermissions(file.getPath(), 0664, Process.myUid(),
-                            Process.SDCARD_RW_GID);
+                            Process.MEDIA_RW_GID);
                     return true;
                 }
             } catch(IOException ioe) {

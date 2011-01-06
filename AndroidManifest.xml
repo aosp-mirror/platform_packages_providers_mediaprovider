@@ -8,7 +8,8 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE" />
-    
+    <uses-permission android:name="android.permission.ACCESS_USB" />
+
     <application android:process="android.process.media"
                  android:label="@string/app_label">
         <provider android:name="MediaProvider" android:authorities="media"

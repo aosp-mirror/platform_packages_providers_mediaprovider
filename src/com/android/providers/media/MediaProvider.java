@@ -970,6 +970,11 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("DELETE from albums");
             db.execSQL("DELETE from artists");
             db.execSQL("UPDATE audio_meta SET date_modified=0;");
+        } else if (fromVersion < 93) {
+            // the album disambiguator hash changed, so rescan songs and force
+            // albums to be updated. Artists are unaffected.
+            db.execSQL("DELETE from albums");
+            db.execSQL("UPDATE audio_meta SET date_modified=0;");
         }
         sanityCheck(db, fromVersion);
     }
@@ -1854,7 +1859,10 @@ public class MediaProvider extends ContentProvider {
                 // TODO Remove this and actually store the album_artist in the
                 // database. For now this is here so the media scanner can start
                 // sending us the album_artist, even though it's not in the db yet.
+                String albumartist = values.getAsString(MediaStore.Audio.Media.ALBUM_ARTIST);
                 values.remove(MediaStore.Audio.Media.ALBUM_ARTIST);
+                String compilation = values.getAsString(MediaStore.Audio.Media.COMPILATION);
+                values.remove(MediaStore.Audio.Media.COMPILATION);
 
                 // Insert the artist into the artist table and remove it from
                 // the input values
@@ -1882,7 +1890,14 @@ public class MediaProvider extends ContentProvider {
                 long albumRowId;
                 HashMap<String, Long> albumCache = database.mAlbumCache;
                 synchronized(albumCache) {
-                    int albumhash = path.substring(0, path.lastIndexOf('/')).hashCode();
+                    int albumhash = 0;
+                    if (albumartist != null) {
+                        albumhash = albumartist.hashCode();
+                    } else if (compilation != null && compilation.equals("1")) {
+                        // nothing to do, hash already set
+                    } else {
+                        albumhash = path.substring(0, path.lastIndexOf('/')).hashCode();
+                    }
                     String cacheName = s + albumhash;
                     Long temp = albumCache.get(cacheName);
                     if (temp == null) {
@@ -2315,7 +2330,10 @@ public class MediaProvider extends ContentProvider {
                         // TODO Remove this and actually store the album_artist in the
                         // database. For now this is here so the media scanner can start
                         // sending us the album_artist, even though it's not in the db yet.
+                        String albumartist = values.getAsString(MediaStore.Audio.Media.ALBUM_ARTIST);
                         values.remove(MediaStore.Audio.Media.ALBUM_ARTIST);
+                        String compilation = values.getAsString(MediaStore.Audio.Media.COMPILATION);
+                        values.remove(MediaStore.Audio.Media.COMPILATION);
 
                         // Insert the artist into the artist table and remove it from
                         // the input values
@@ -2342,12 +2360,17 @@ public class MediaProvider extends ContentProvider {
                         if (so != null) {
                             String path = values.getAsString("_data");
                             int albumHash = 0;
-                            if (path == null) {
+                            if (albumartist != null) {
+                                albumHash = albumartist.hashCode();
+                            } else if (compilation != null && compilation.equals("1")) {
+                                // nothing to do, hash already set
+                            } else if (path == null) {
                                 // If the path is null, we don't have a hash for the file in question.
                                 Log.w(TAG, "Update without specified path.");
                             } else {
                                 albumHash = path.substring(0, path.lastIndexOf('/')).hashCode();
                             }
+
                             String s = so.toString();
                             long albumRowId;
                             HashMap<String, Long> albumCache = database.mAlbumCache;
@@ -2902,7 +2925,9 @@ public class MediaProvider extends ContentProvider {
         boolean isAlbum = table.equals("albums");
         boolean isUnknown = MediaStore.UNKNOWN_STRING.equals(rawName);
 
-        // To distinguish same-named albums, we append a hash of the path.
+        // To distinguish same-named albums, we append a hash. The hash is based
+        // on the "album artist" tag if present, otherwise on the "compilation" tag
+        // if present, otherwise on the path.
         // Ideally we would also take things like CDDB ID in to account, so
         // we can group files from the same album that aren't in the same
         // folder, but this is a quick and easy start that works immediately
@@ -3146,7 +3171,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = true;
-    private static final int DATABASE_VERSION = 92;
+    private static final int DATABASE_VERSION = 93;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
 
     // maximum number of cached external databases to keep

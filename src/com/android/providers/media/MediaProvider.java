@@ -3349,7 +3349,7 @@ public class MediaProvider extends ContentProvider {
                 // If that fails, try to get it from this specific file.
                 Uri newUri = ContentUris.withAppendedId(ALBUMART_URI, albumid);
                 try {
-                    pfd = openFile(newUri, mode);  // recursive call
+                    pfd = openFileHelper(newUri, mode);
                 } catch (FileNotFoundException ex) {
                     // That didn't work, now try to get it from the specific file
                     pfd = getThumb(db, audiopath, albumid, null);

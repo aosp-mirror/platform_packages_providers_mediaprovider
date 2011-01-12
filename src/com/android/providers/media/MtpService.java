@@ -30,7 +30,6 @@ import android.mtp.MtpServer;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.SystemProperties;
 import android.provider.Settings;
 import android.util.Log;
 
@@ -99,10 +98,7 @@ public class MtpService extends Service
         Log.d(TAG, "startMtpServer");
         synchronized (mBinder) {
             if (mServer == null) {
-                String storagePath = SystemProperties.get("ro.media.storage");
-                if (storagePath == null || storagePath.length() == 0) {
-                    storagePath = Environment.getExternalStorageDirectory().getPath();
-                }
+                String storagePath = Environment.getExternalStorageDirectory().getPath();
                 MtpDatabase database = new MtpDatabase(this,
                         MediaProvider.EXTERNAL_VOLUME, storagePath);
                 int reserveSpaceMegabytes = getResources().getInteger(

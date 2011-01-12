@@ -31,6 +31,7 @@ import android.content.IntentFilter;
 import android.content.OperationApplicationException;
 import android.content.ServiceConnection;
 import android.content.UriMatcher;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.MatrixCursor;
@@ -59,11 +60,11 @@ import android.provider.BaseColumns;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
 import android.provider.MediaStore.Files;
+import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.Images;
+import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Video;
-import android.provider.MediaStore.Files.FileColumns;
-import android.provider.MediaStore.Images.ImageColumns;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -3509,7 +3510,7 @@ public class MediaProvider extends ContentProvider {
                 outstream.write(compressed);
                 success = true;
             } else {
-                success = bm.compress(Bitmap.CompressFormat.JPEG, 75, outstream);
+                success = bm.compress(Bitmap.CompressFormat.JPEG, 85, outstream);
             }
 
             outstream.close();
@@ -3552,8 +3553,9 @@ public class MediaProvider extends ContentProvider {
             BitmapFactory.decodeByteArray(compressed, 0, compressed.length, opts);
 
             // request a reasonably sized output image
-            // TODO: don't hardcode the size
-            while (opts.outHeight > 320 || opts.outWidth > 320) {
+            final Resources r = getContext().getResources();
+            final int maximumThumbSize = r.getDimensionPixelSize(R.dimen.maximum_thumb_size);
+            while (opts.outHeight > maximumThumbSize || opts.outWidth > maximumThumbSize) {
                 opts.outHeight /= 2;
                 opts.outWidth /= 2;
                 opts.inSampleSize *= 2;

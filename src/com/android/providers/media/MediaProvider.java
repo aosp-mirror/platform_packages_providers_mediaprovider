@@ -108,6 +108,8 @@ public class MediaProvider extends ContentProvider {
             new PriorityQueue<MediaThumbRequest>(MediaThumbRequest.PRIORITY_NORMAL,
             MediaThumbRequest.getComparator());
 
+    private static String mExternalStoragePath;
+
     // For compatibility with the approximately 0 apps that used mediaprovider search in
     // releases 1.0, 1.1 or 1.5
     private String[] mSearchColsLegacy = new String[] {
@@ -197,43 +199,6 @@ public class MediaProvider extends ContentProvider {
             }
         }
     };
-
-    // path to external storage, or media directory in internal storage
-    private static String mMediaStoragePath;
-    // legacy path, which needs to get remapped to mMediaStoragePath
-    private static String mExternalStoragePath;
-
-    /* package */ static String externalToMediaPath(String path) {
-        // convert external storage path to media path
-        if (path != null && mMediaStoragePath != null
-                && mExternalStoragePath != null
-                && path.startsWith(mExternalStoragePath)) {
-            path = mMediaStoragePath + path.substring(mExternalStoragePath.length());
-        }
-        return path;
-    }
-
-    private static String mediaToExternalPath(String path) {
-        // convert external storage path to media path
-        if (path != null && mMediaStoragePath != null
-                && mExternalStoragePath != null
-                && path.startsWith(mMediaStoragePath)) {
-            path = mExternalStoragePath + path.substring(mMediaStoragePath.length());
-        }
-        return path;
-    }
-
-    private static ContentValues mediaToExternalPath(ContentValues values) {
-        String path = values.getAsString(MediaStore.MediaColumns.DATA);
-        if (path != null) {
-            String fixedPath = mediaToExternalPath(path);
-            if (!path.equals(fixedPath)) {
-                values = new ContentValues(values);
-                values.put(MediaStore.MediaColumns.DATA, fixedPath);
-            }
-        }
-        return values;
-    }
 
     /**
      * Wrapper class for a specific database (associated with one particular
@@ -418,19 +383,7 @@ public class MediaProvider extends ContentProvider {
         iFilter.addDataScheme("file");
         context.registerReceiver(mUnmountReceiver, iFilter);
 
-        // figure out correct path to use for external storage
-        mMediaStoragePath = SystemProperties.get("ro.media.storage");
-        if (mMediaStoragePath == null || mMediaStoragePath.length() == 0) {
-            mMediaStoragePath = Environment.getExternalStorageDirectory().getAbsolutePath();
-        } else {
-            // apps may use the legacy /mnt/sdcard path instead.
-            // if so, we need to transform the paths to use the mMediaStoragePath prefix
-            mExternalStoragePath = Environment.getExternalStorageDirectory().getAbsolutePath();
-            if (mMediaStoragePath.equals(mExternalStoragePath)) {
-                // paths are equal - no remapping necessary
-                mExternalStoragePath = null;
-            }
-        }
+        mExternalStoragePath = Environment.getExternalStorageDirectory().getAbsolutePath();
 
         // open external database if external storage is mounted
         String state = Environment.getExternalStorageState();
@@ -1017,8 +970,8 @@ public class MediaProvider extends ContentProvider {
             // /sdcard/Android/data/com.android.providers.media/albumthumbs,
             // and update the database accordingly
 
-            String oldthumbspath = mMediaStoragePath + "/albumthumbs";
-            String newthumbspath = mMediaStoragePath + "/" + ALBUM_THUMB_FOLDER;
+            String oldthumbspath = mExternalStoragePath + "/albumthumbs";
+            String newthumbspath = mExternalStoragePath + "/" + ALBUM_THUMB_FOLDER;
             File thumbsfolder = new File(oldthumbspath);
             if (thumbsfolder.exists()) {
                 // move folder to its new location
@@ -1494,7 +1447,6 @@ public class MediaProvider extends ContentProvider {
      */
 
     private static void computeBucketValues(String data, ContentValues values) {
-        data = mediaToExternalPath(data);
         File parentFile = new File(data).getParentFile();
         if (parentFile == null) {
             parentFile = new File("/");
@@ -1561,7 +1513,6 @@ public class MediaProvider extends ContentProvider {
             long id = c.getLong(0);
             String path = c.getString(1);
             long magic = c.getLong(2);
-            path = mediaToExternalPath(path);
 
             MediaThumbRequest req = requestMediaThumbnail(path, origUri,
                     MediaThumbRequest.PRIORITY_HIGH, magic);
@@ -2118,7 +2069,6 @@ public class MediaProvider extends ContentProvider {
             String preferredExtension, String directoryName) {
         ContentValues values;
         String file = initialValues.getAsString("_data");
-        file = mediaToExternalPath(file);
         if (TextUtils.isEmpty(file)) {
             file = generateFileName(internal, preferredExtension, directoryName);
             values = new ContentValues(initialValues);
@@ -2157,9 +2107,6 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public int bulkInsert(Uri uri, ContentValues values[]) {
-        for (int i = 0; i < values.length; i++) {
-            values[i] = mediaToExternalPath(values[i]);
-        }
         int match = URI_MATCHER.match(uri);
         if (match == VOLUMES) {
             return super.bulkInsert(uri, values);
@@ -2200,7 +2147,6 @@ public class MediaProvider extends ContentProvider {
     @Override
     public Uri insert(Uri uri, ContentValues initialValues)
     {
-        initialValues = mediaToExternalPath(initialValues);
         int match = URI_MATCHER.match(uri);
         Uri newUri = insertInternal(uri, match, initialValues);
         // do not signal notification for MTP objects.
@@ -2314,7 +2260,6 @@ public class MediaProvider extends ContentProvider {
                 long artistRowId;
                 HashMap<String, Long> artistCache = database.mArtistCache;
                 String path = values.getAsString("_data");
-                path = mediaToExternalPath(path);
                 synchronized(artistCache) {
                     Long temp = artistCache.get(s);
                     if (temp == null) {
@@ -2401,7 +2346,7 @@ public class MediaProvider extends ContentProvider {
                 if (mediaType == FileColumns.MEDIA_TYPE_PLAYLIST) {
                     values.put(FileColumns.FORMAT, MtpConstants.FORMAT_ABSTRACT_AV_PLAYLIST);
                     // create a file path for the benefit of MTP
-                    path = mMediaStoragePath
+                    path = mExternalStoragePath
                             + "/Playlists/" + values.getAsString(Audio.Playlists.NAME);
                     values.put(MediaStore.MediaColumns.DATA, path);
                     values.put(FileColumns.PARENT, getParent(db, path));
@@ -2802,7 +2747,6 @@ public class MediaProvider extends ContentProvider {
 
 
     private MediaThumbRequest requestMediaThumbnail(String path, Uri uri, int priority, long magic) {
-        path = mediaToExternalPath(path);
         synchronized (mMediaThumbQueue) {
             MediaThumbRequest req = null;
             try {
@@ -2829,7 +2773,7 @@ public class MediaProvider extends ContentProvider {
 //            return Environment.getDataDirectory()
 //                + "/" + directoryName + "/" + name + preferredExtension;
         } else {
-            return mMediaStoragePath + "/" + directoryName + "/" + name + preferredExtension;
+            return mExternalStoragePath + "/" + directoryName + "/" + name + preferredExtension;
         }
     }
 
@@ -2846,28 +2790,9 @@ public class MediaProvider extends ContentProvider {
             File directory = new File(directoryPath);
             if (!directory.exists())
                 return false;
-            File parent = file.getParentFile();
-            // create parent directories if necessary, and ensure they have correct permissions
-            if (!parent.exists()) {
-                parent.mkdirs();
-                String parentPath = parent.getPath();
-                if (parentPath.startsWith(mMediaStoragePath)) {
-                    while (parent != null && !mMediaStoragePath.equals(parentPath)) {
-                        FileUtils.setPermissions(parentPath, 0775, Process.myUid(),
-                                Process.MEDIA_RW_GID);
-                        parent = parent.getParentFile();
-                        parentPath = parent.getPath();
-                    }
-                }
-
-            }
+            file.getParentFile().mkdirs();
             try {
-                if (file.createNewFile()) {
-                    // file should be writeable for MEDIA_RW group and world readable
-                    FileUtils.setPermissions(file.getPath(), 0664, Process.myUid(),
-                            Process.MEDIA_RW_GID);
-                    return true;
-                }
+                return file.createNewFile();
             } catch(IOException ioe) {
                 Log.e(TAG, "File creation failed", ioe);
             }
@@ -3082,7 +3007,6 @@ public class MediaProvider extends ContentProvider {
     @Override
     public int update(Uri uri, ContentValues initialValues, String userWhere,
             String[] whereArgs) {
-        initialValues = mediaToExternalPath(initialValues);
         int count;
         // Log.v(TAG, "update for uri="+uri+", initValues="+initialValues);
         int match = URI_MATCHER.match(uri);
@@ -3167,7 +3091,6 @@ public class MediaProvider extends ContentProvider {
                                 // If the path is null, we don't have a hash for the file in question.
                                 Log.w(TAG, "Update without specified path.");
                             } else {
-                                path = mediaToExternalPath(path);
                                 albumHash = path.substring(0, path.lastIndexOf('/')).hashCode();
                             }
                             String s = so.toString();
@@ -3315,38 +3238,6 @@ public class MediaProvider extends ContentProvider {
         MediaStore.MediaColumns.DATA,
     };
 
-    /* Same as ContentProvider.openFileHelper, except we will convert paths
-       in external storage to internal media storage to avoid Fuse overhead.
-     */
-    private final ParcelFileDescriptor doOpenFile(Uri uri,
-            String mode) throws FileNotFoundException {
-        Cursor c = query(uri, new String[]{"_data"}, null, null, null);
-        int count = (c != null) ? c.getCount() : 0;
-        if (count != 1) {
-            // If there is not exactly one result, throw an appropriate
-            // exception.
-            if (c != null) {
-                c.close();
-            }
-            if (count == 0) {
-                throw new FileNotFoundException("No entry for " + uri);
-            }
-            throw new FileNotFoundException("Multiple items at " + uri);
-        }
-
-        c.moveToFirst();
-        int i = c.getColumnIndex("_data");
-        String path = (i >= 0 ? c.getString(i) : null);
-        c.close();
-        if (path == null) {
-            throw new FileNotFoundException("Column _data not found.");
-        }
-
-        path = externalToMediaPath(path);
-        int modeBits = ContentResolver.modeToMode(uri, mode);
-        return ParcelFileDescriptor.open(new File(path), modeBits);
-    }
-
     @Override
     public ParcelFileDescriptor openFile(Uri uri, String mode)
             throws FileNotFoundException {
@@ -3473,7 +3364,6 @@ public class MediaProvider extends ContentProvider {
         byte[] compressed = null;
 
         try {
-            path = mediaToExternalPath(path);
             File f = new File(path);
             ParcelFileDescriptor pfd = ParcelFileDescriptor.open(f,
                     ParcelFileDescriptor.MODE_READ_ONLY);
@@ -3496,7 +3386,7 @@ public class MediaProvider extends ContentProvider {
                 if (lastSlash > 0) {
 
                     String artPath = path.substring(0, lastSlash);
-                    String sdroot = mMediaStoragePath;
+                    String sdroot = mExternalStoragePath;
                     String dwndir = Environment.getExternalStoragePublicDirectory(
                             Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
 
@@ -3918,7 +3808,7 @@ public class MediaProvider extends ContentProvider {
             if (INTERNAL_VOLUME.equals(volume)) {
                 db = new DatabaseHelper(getContext(), INTERNAL_DATABASE_NAME, true);
             } else if (EXTERNAL_VOLUME.equals(volume)) {
-                String path = mMediaStoragePath;
+                String path = mExternalStoragePath;
                 int volumeID = FileUtils.getFatVolumeId(path);
                 if (LOCAL_LOGV) Log.v(TAG, path + " volume ID: " + volumeID);
 
@@ -3934,7 +3824,7 @@ public class MediaProvider extends ContentProvider {
 
             if (!db.mInternal) {
                 // clean up stray album art files: delete every file not in the database
-                File[] files = new File(mMediaStoragePath, ALBUM_THUMB_FOLDER).listFiles();
+                File[] files = new File(mExternalStoragePath, ALBUM_THUMB_FOLDER).listFiles();
                 HashSet<String> fileSet = new HashSet();
                 for (int i = 0; files != null && i < files.length; i++) {
                     fileSet.add(files[i].getPath());

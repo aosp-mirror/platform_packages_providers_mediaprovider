@@ -53,8 +53,7 @@ public class MediaScannerService extends Service implements Runnable
     private volatile Looper mServiceLooper;
     private volatile ServiceHandler mServiceHandler;
     private PowerManager.WakeLock mWakeLock;
-    private String mMediaStoragePath;    // internal media storage
-    private String mExternalStoragePath;// external SD card storage
+    private String mExternalStoragePath;
     
     private void openDatabase(String volumeName) {
         try {
@@ -118,12 +117,6 @@ public class MediaScannerService extends Service implements Runnable
     {
         PowerManager pm = (PowerManager)getSystemService(Context.POWER_SERVICE);
         mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
-
-        // use path to storage in internal storage rather than the fuse based compatibility file system
-        mMediaStoragePath = SystemProperties.get("ro.media.storage");
-        if (mMediaStoragePath.length() == 0) {
-            mMediaStoragePath = null;
-        }
         mExternalStoragePath = Environment.getExternalStorageDirectory().getPath();
 
         // Start up the thread running the service.  Note that we create a
@@ -192,12 +185,9 @@ public class MediaScannerService extends Service implements Runnable
     private Uri scanFile(String path, String mimeType) {
         String volumeName = MediaProvider.INTERNAL_VOLUME;
 
-        if ((mMediaStoragePath != null && path.startsWith(mMediaStoragePath)) ||
-                (mExternalStoragePath != null && path.startsWith(mExternalStoragePath))) {
+        if (path.startsWith(mExternalStoragePath)) {
             volumeName = MediaProvider.EXTERNAL_VOLUME;
             openDatabase(volumeName);
-            // MediaScanner can use internal media storage path
-            path = MediaProvider.externalToMediaPath(path);
         }
         MediaScanner scanner = createMediaScanner();
         return scanner.scanSingleFile(path, volumeName, mimeType);
@@ -260,11 +250,7 @@ public class MediaScannerService extends Service implements Runnable
                     }
                     else if (MediaProvider.EXTERNAL_VOLUME.equals(volume)) {
                         // scan external storage
-                        if (mMediaStoragePath != null) {
-                            directories = new String[] { mMediaStoragePath };
-                        } else {
-                            directories = new String[] { mExternalStoragePath };
-                        }
+                        directories = new String[] { mExternalStoragePath };
                     }
                     
                     if (directories != null) {

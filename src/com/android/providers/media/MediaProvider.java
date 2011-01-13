@@ -111,6 +111,7 @@ public class MediaProvider extends ContentProvider {
             MediaThumbRequest.getComparator());
 
     private static String mExternalStoragePath;
+    private boolean mCaseInsensitivePaths;
 
     // For compatibility with the approximately 0 apps that used mediaprovider search in
     // releases 1.0, 1.1 or 1.5
@@ -420,6 +421,12 @@ public class MediaProvider extends ContentProvider {
         context.registerReceiver(mUnmountReceiver, iFilter);
 
         mExternalStoragePath = Environment.getExternalStorageDirectory().getAbsolutePath();
+        mCaseInsensitivePaths = !context.getResources().getBoolean(
+                com.android.internal.R.bool.config_caseSensitiveExternalStorage);
+        if (!Process.supportsProcesses()) {
+            // Simulator uses host file system, so it should be case sensitive.
+            mCaseInsensitivePaths = false;
+        }
 
         // open external database if external storage is mounted
         String state = Environment.getExternalStorageState();
@@ -2247,9 +2254,12 @@ public class MediaProvider extends ContentProvider {
             if (parentPath.equals(mExternalStoragePath)) {
                 return 0;
             }
+            // Use "LIKE" instead of "=" on case insensitive file systems so we do a
+            // case insensitive match when looking for parent directory.
+            String selection = (mCaseInsensitivePaths ? MediaStore.MediaColumns.DATA + " LIKE ?"
+                    : MediaStore.MediaColumns.DATA + "=?");
             String [] selargs = { parentPath };
-            Cursor c = db.query("files", null, MediaStore.MediaColumns.DATA + "=?",
-                            selargs, null, null, null);
+            Cursor c = db.query("files", null, selection, selargs, null, null, null);
             try {
                 if (c == null || c.getCount() == 0) {
                     // parent isn't in the database - so add it

@@ -30,6 +30,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.OperationApplicationException;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.UriMatcher;
 import android.content.res.Resources;
 import android.database.Cursor;
@@ -56,6 +57,7 @@ import android.os.ParcelFileDescriptor;
 import android.os.Process;
 import android.os.RemoteException;
 import android.os.SystemProperties;
+import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
@@ -353,6 +355,40 @@ public class MediaProvider extends ContentProvider {
             mMtpService = null;
         }
     };
+
+    private static final String[] sDefaultFolderNames = {
+        Environment.DIRECTORY_MUSIC,
+        Environment.DIRECTORY_PODCASTS,
+        Environment.DIRECTORY_RINGTONES,
+        Environment.DIRECTORY_ALARMS,
+        Environment.DIRECTORY_NOTIFICATIONS,
+        Environment.DIRECTORY_PICTURES,
+        Environment.DIRECTORY_MOVIES,
+        Environment.DIRECTORY_DOWNLOADS,
+        Environment.DIRECTORY_DCIM,
+    };
+
+    // creates default folders (Music, Downloads, etc)
+    private void createDefaultFolders(SQLiteDatabase db) {
+        // Use a SharedPreference to ensure we only do this once.
+        // We don't want to annoy the user by recreating the directories
+        // after she has deleted them.
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
+        if (prefs.getInt("created_default_folders", 0) == 0) {
+            for (String folderName : sDefaultFolderNames) {
+                File file = Environment.getExternalStoragePublicDirectory(folderName);
+                if (!file.exists()) {
+                    file.mkdirs();
+                    insertDirectory(db, file.getAbsolutePath());
+                }
+            }
+
+            SharedPreferences.Editor e = prefs.edit();
+            e.clear();
+            e.putInt("created_default_folders", 1);
+            e.commit();
+        }
+    }
 
     @Override
     public boolean onCreate() {
@@ -2203,6 +2239,16 @@ public class MediaProvider extends ContentProvider {
         return numInserted;
     }
 
+    private long insertDirectory(SQLiteDatabase db, String path) {
+        ContentValues values = new ContentValues();
+        values.put(FileColumns.FORMAT, MtpConstants.FORMAT_ASSOCIATION);
+        values.put(FileColumns.DATA, path);
+        values.put(FileColumns.PARENT, getParent(db, path));
+        long rowId = db.insert("files", FileColumns.DATE_MODIFIED, values);
+        sendObjectAdded(rowId);
+        return rowId;
+    }
+
     private long getParent(SQLiteDatabase db, String path) {
         int lastSlash = path.lastIndexOf('/');
         if (lastSlash > 0) {
@@ -2216,13 +2262,7 @@ public class MediaProvider extends ContentProvider {
             try {
                 if (c == null || c.getCount() == 0) {
                     // parent isn't in the database - so add it
-                    ContentValues values = new ContentValues();
-                    values.put(FileColumns.FORMAT, MtpConstants.FORMAT_ASSOCIATION);
-                    values.put(FileColumns.DATA, parentPath);
-                    values.put(FileColumns.PARENT, getParent(db, parentPath));
-                    long parent = db.insert("files", FileColumns.DATE_MODIFIED, values);
-                    sendObjectAdded(parent);
-                    return parent;
+                    return insertDirectory(db, parentPath);
                 } else {
                     c.moveToFirst();
                     return c.getLong(0);
@@ -3854,6 +3894,9 @@ public class MediaProvider extends ContentProvider {
             mDatabases.put(volume, db);
 
             if (!db.mInternal) {
+                // create default directories (only happens on first boot)
+                createDefaultFolders(db.getWritableDatabase());
+
                 // clean up stray album art files: delete every file not in the database
                 File[] files = new File(mExternalStoragePath, ALBUM_THUMB_FOLDER).listFiles();
                 HashSet<String> fileSet = new HashSet();

@@ -2251,6 +2251,10 @@ public class MediaProvider extends ContentProvider {
         values.put(FileColumns.FORMAT, MtpConstants.FORMAT_ASSOCIATION);
         values.put(FileColumns.DATA, path);
         values.put(FileColumns.PARENT, getParent(db, path));
+        File file = new File(path);
+        if (file.exists()) {
+            values.put(FileColumns.DATE_MODIFIED, file.lastModified() / 1000);
+        }
         long rowId = db.insert("files", FileColumns.DATE_MODIFIED, values);
         sendObjectAdded(rowId);
         return rowId;
@@ -2472,14 +2476,13 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
-            Long size = values.getAsLong(MediaStore.MediaColumns.SIZE);
-            if (size == null) {
-                if (path != null) {
-                    File file = new File(path);
+            // make sure modification date and size are set
+            if (path != null) {
+                File file = new File(path);
+                if (file.exists()) {
+                    values.put(FileColumns.DATE_MODIFIED, file.lastModified() / 1000);
                     values.put(FileColumns.SIZE, file.length());
                 }
-            } else {
-                values.put(FileColumns.SIZE, size);
             }
 
             Long parent = values.getAsLong(FileColumns.PARENT);

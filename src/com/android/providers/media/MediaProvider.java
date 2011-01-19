@@ -202,13 +202,18 @@ public class MediaProvider extends ContentProvider {
         }
 
         /**
-         * Touch this particular database and garbage collect old databases.
+         * For devices that have removable storage, we support keeping multiple databases
+         * to allow users to switch between a number of cards.
+         * On such devices, touch this particular database and garbage collect old databases.
          * An LRU cache system is used to clean up databases for old external
          * storage volumes.
          */
         @Override
         public void onOpen(SQLiteDatabase db) {
             if (mInternal) return;  // The internal database is kept separately.
+
+            // this code is only needed on devices with removable storage
+            if (!Environment.isExternalStorageRemovable()) return;
 
             // touch the database file to show it is most recently used
             File file = new File(db.getPath());
@@ -3076,18 +3081,60 @@ public class MediaProvider extends ContentProvider {
                 return Uri.parse("content://media/" + volume);
             }
 
+            Context context = getContext();
             DatabaseHelper db;
             if (INTERNAL_VOLUME.equals(volume)) {
-                db = new DatabaseHelper(getContext(), INTERNAL_DATABASE_NAME, true);
+                db = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, true);
             } else if (EXTERNAL_VOLUME.equals(volume)) {
-                String path = Environment.getExternalStorageDirectory().getPath();
-                int volumeID = FileUtils.getFatVolumeId(path);
-                if (LOCAL_LOGV) Log.v(TAG, path + " volume ID: " + volumeID);
+                if (Environment.isExternalStorageRemovable()) {
+                    String path = Environment.getExternalStorageDirectory().getPath();
+                    int volumeID = FileUtils.getFatVolumeId(path);
+                    if (LOCAL_LOGV) Log.v(TAG, path + " volume ID: " + volumeID);
 
-                // generate database name based on volume ID
-                String dbName = "external-" + Integer.toHexString(volumeID) + ".db";
-                db = new DatabaseHelper(getContext(), dbName, false);
-                mVolumeId = volumeID;
+                    // generate database name based on volume ID
+                    String dbName = "external-" + Integer.toHexString(volumeID) + ".db";
+                    db = new DatabaseHelper(context, dbName, false);
+                    mVolumeId = volumeID;
+                } else {
+                    // external database name should be EXTERNAL_DATABASE_NAME
+                    // however earlier releases used the external-XXXXXXXX.db naming
+                    // for devices without removable storage, and in that case we need to convert
+                    // to this new convention
+                    File dbFile = context.getDatabasePath(EXTERNAL_DATABASE_NAME);
+                    if (!dbFile.exists()) {
+                        // find the most recent external database and rename it to
+                        // EXTERNAL_DATABASE_NAME, and delete any other older
+                        // external database files
+                        File recentDbFile = null;
+                        for (String database : context.databaseList()) {
+                            if (database.startsWith("external-")) {
+                                File file = context.getDatabasePath(database);
+                                if (recentDbFile == null) {
+                                    recentDbFile = file;
+                                } else if (file.lastModified() > recentDbFile.lastModified()) {
+                                    recentDbFile.delete();
+                                    recentDbFile = file;
+                                } else {
+                                    file.delete();
+                                }
+                            }
+                        }
+                        if (recentDbFile != null) {
+                            if (recentDbFile.renameTo(dbFile)) {
+                                Log.d(TAG, "renamed database " + recentDbFile.getName() +
+                                        " to " + EXTERNAL_DATABASE_NAME);
+                            } else {
+                                Log.e(TAG, "Failed to rename database " + recentDbFile.getName() +
+                                        " to " + EXTERNAL_DATABASE_NAME);
+                                // This shouldn't happen, but if it does, continue using
+                                // the file under its old name
+                                dbFile = recentDbFile;
+                            }
+                        }
+                        // else DatabaseHelper will create one named EXTERNAL_DATABASE_NAME
+                    }
+                    db = new DatabaseHelper(context, dbFile.getName(), false);
+                }
             } else {
                 throw new IllegalArgumentException("There is no volume named " + volume);
             }
@@ -3173,6 +3220,7 @@ public class MediaProvider extends ContentProvider {
     private static final boolean LOCAL_LOGV = true;
     private static final int DATABASE_VERSION = 93;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
+    private static final String EXTERNAL_DATABASE_NAME = "external.db";
 
     // maximum number of cached external databases to keep
     private static final int MAX_EXTERNAL_DATABASES = 3;
@@ -3189,7 +3237,7 @@ public class MediaProvider extends ContentProvider {
     private String mMediaScannerVolume;
 
     // current FAT volume ID
-    private int mVolumeId;
+    private int mVolumeId = -1;
 
     static final String INTERNAL_VOLUME = "internal";
     static final String EXTERNAL_VOLUME = "external";

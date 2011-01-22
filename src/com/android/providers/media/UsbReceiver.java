@@ -33,23 +33,27 @@ public class UsbReceiver extends BroadcastReceiver
     @Override
     public void onReceive(Context context, Intent intent) {
         Bundle extras = intent.getExtras();
-        boolean connected = extras.getBoolean(UsbManager.USB_CONNECTED);
-        boolean mtpEnabled = UsbManager.USB_FUNCTION_ENABLED.equals(
-                extras.getString(UsbManager.USB_FUNCTION_MTP));
-        Log.d(TAG, "USB_CONNECTED: " + connected + " mtpEnabled: " + mtpEnabled);
-        if (connected && mtpEnabled) {
-            // make sure external media database is open.
-            // this will trigger MtpService to start
-            try {
-                ContentValues values = new ContentValues();
-                values.put("name", MediaProvider.EXTERNAL_VOLUME);
-                context.getContentResolver().insert(Uri.parse("content://media/"), values);
-            } catch (IllegalArgumentException ex) {
-                Log.w(TAG, "failed to open media database");
-            }
+
+        // do nothing if MTP is not supported in the kernel
+        if (!UsbManager.USB_FUNCTION_ENABLED.equals(
+                extras.getString(UsbManager.USB_FUNCTION_MTP))) {
+            return;
+        }
+
+        if (extras.getBoolean(UsbManager.USB_CONNECTED)) {
+            Log.d(TAG, "USB_CONNECTED, startService");
+            context.startService(new Intent(context, MtpService.class));
+            // tell MediaProvider MTP is connected so it can bind to the service
+            context.getContentResolver().insert(Uri.parse(
+                    "content://media/none/mtp_connected"), null);
+        } else {
+            Log.d(TAG, "USB_DISCONNECTED, stopService");
+            context.stopService(new Intent(context, MtpService.class));
+            // tell MediaProvider MTP is disconnected so it can unbind from the service
+            context.getContentResolver().delete(Uri.parse(
+                    "content://media/none/mtp_connected"), null, null);
         }
     }
-
 }
 
 

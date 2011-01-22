@@ -501,8 +501,6 @@ public class MediaProvider extends ContentProvider {
             }
         };
 
-        context.bindService(new Intent(context, MtpService.class),
-                mMtpServiceConnection, Context.BIND_AUTO_CREATE);
         return true;
     }
 
@@ -2631,11 +2629,12 @@ public class MediaProvider extends ContentProvider {
 
         Uri newUri = null;
         DatabaseHelper database = getDatabaseForUri(uri);
-        if (database == null && match != VOLUMES) {
+        if (database == null && match != VOLUMES && match != MTP_CONNECTED) {
             throw new UnsupportedOperationException(
                     "Unknown URI: " + uri);
         }
-        SQLiteDatabase db = (match == VOLUMES ? null : database.getWritableDatabase());
+        SQLiteDatabase db = ((match == VOLUMES || match == MTP_CONNECTED) ? null
+                : database.getWritableDatabase());
 
         switch (match) {
             case IMAGES_MEDIA: {
@@ -2772,6 +2771,13 @@ public class MediaProvider extends ContentProvider {
 
             case VOLUMES:
                 return attachVolume(initialValues.getAsString("name"));
+
+            case MTP_CONNECTED:
+                Context context = getContext();
+                // MTP is connected, so grab a connection to MtpService
+                context.bindService(new Intent(context, MtpService.class),
+                        mMtpServiceConnection, Context.BIND_AUTO_CREATE);
+                break;
 
             case FILES:
                 rowId = insertFile(database, uri, initialValues,
@@ -3048,11 +3054,18 @@ public class MediaProvider extends ContentProvider {
             return 1;
         }
 
-        if (match != VOLUMES_ID) {
+        if (match == VOLUMES_ID) {
+            detachVolume(uri);
+            count = 1;
+        } else if (match == MTP_CONNECTED) {
+            // MTP has disconnected, so release our connection to MtpService
+            getContext().unbindService(mMtpServiceConnection);
+            count = 1;
+        } else {
             DatabaseHelper database = getDatabaseForUri(uri);
             if (database == null) {
                 throw new UnsupportedOperationException(
-                        "Unknown URI: " + uri);
+                        "Unknown URI: " + uri + " match: " + match);
             }
             SQLiteDatabase db = database.getWritableDatabase();
 
@@ -3083,9 +3096,6 @@ public class MediaProvider extends ContentProvider {
                 Uri notifyUri = Uri.parse("content://" + MediaStore.AUTHORITY + "/" + volume);
                 getContext().getContentResolver().notifyChange(notifyUri, null);
             }
-        } else {
-            detachVolume(uri);
-            count = 1;
         }
 
         return count;
@@ -4122,6 +4132,9 @@ public class MediaProvider extends ContentProvider {
     private static final int MTP_OBJECTS = 702;
     private static final int MTP_OBJECTS_ID = 703;
     private static final int MTP_OBJECT_REFERENCES = 704;
+    // UsbReceiver calls insert() and delete() with this URI to tell us
+    // when MTP is connected and disconnected
+    private static final int MTP_CONNECTED = 705;
 
     private static final UriMatcher URI_MATCHER =
             new UriMatcher(UriMatcher.NO_MATCH);
@@ -4189,6 +4202,8 @@ public class MediaProvider extends ContentProvider {
         URI_MATCHER.addURI("media", "*/media_scanner", MEDIA_SCANNER);
 
         URI_MATCHER.addURI("media", "*/fs_id", FS_ID);
+
+        URI_MATCHER.addURI("media", "*/mtp_connected", MTP_CONNECTED);
 
         URI_MATCHER.addURI("media", "*", VOLUMES_ID);
         URI_MATCHER.addURI("media", null, VOLUMES);

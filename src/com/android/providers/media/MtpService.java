@@ -17,14 +17,12 @@
 package com.android.providers.media;
 
 import android.app.Service;
-import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.database.ContentObserver;
-import android.hardware.UsbManager;
 import android.mtp.MtpDatabase;
 import android.mtp.MtpServer;
 import android.os.Environment;
@@ -37,23 +35,7 @@ public class MtpService extends Service
 {
     private static final String TAG = "MtpService";
 
-    private class UsbReceiver extends BroadcastReceiver {
-        public void onReceive(Context content, Intent intent) {
-            String action = intent.getAction();
-            if (action.equals(UsbManager.ACTION_USB_STATE)) {
-                boolean connected = intent.getExtras().getBoolean(UsbManager.USB_CONNECTED);
-                boolean mtpEnabled = UsbManager.USB_FUNCTION_ENABLED.equals(
-                        intent.getExtras().getString(UsbManager.USB_FUNCTION_MTP));
-                if (connected && mtpEnabled) {
-                    startMtpServer();
-                } else {
-                    stopMtpServer();
-                }
-            }
-        }
-    }
-
-    private class SettingsObserver extends ContentObserver {
+     private class SettingsObserver extends ContentObserver {
         private ContentResolver mResolver;
         SettingsObserver() {
             super(new Handler());
@@ -77,7 +59,6 @@ public class MtpService extends Service
     }
 
     private MtpServer mServer;
-    private UsbReceiver mUsbReceiver;
     private SettingsObserver mSettingsObserver;
     private boolean mPtpMode;
 
@@ -89,13 +70,9 @@ public class MtpService extends Service
     }
 
     @Override
-    public void onStart(Intent intent, int startId)
-    {
-        Log.d(TAG, "onStart intent " + intent + " startId " + startId);
-    }
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.d(TAG, "onStartCommand intent " + intent + " startId " + startId);
 
-    private void startMtpServer() {
-        Log.d(TAG, "startMtpServer");
         synchronized (mBinder) {
             if (mServer == null) {
                 String storagePath = Environment.getExternalStorageDirectory().getPath();
@@ -110,23 +87,21 @@ public class MtpService extends Service
                 mServer.start();
             }
         }
-    }
 
-    private void stopMtpServer() {
-        Log.d(TAG, "stopMtpServer");
-        synchronized (mBinder) {
-            if (mServer != null) {
-                mServer.stop();
-                mServer = null;
-            }
-        }
+        return START_STICKY;
     }
 
     @Override
     public void onDestroy()
     {
         Log.d(TAG, "onDestroy");
-        stopMtpServer();
+
+        synchronized (mBinder) {
+            if (mServer != null) {
+                mServer.stop();
+                mServer = null;
+            }
+        }
     }
 
     private final IMtpService.Stub mBinder =
@@ -152,14 +127,6 @@ public class MtpService extends Service
     public IBinder onBind(Intent intent)
     {
         Log.d(TAG, "onBind");
-        synchronized (mBinder) {
-            if (mUsbReceiver == null) {
-                mUsbReceiver = new UsbReceiver();
-                IntentFilter filter = new IntentFilter();
-                filter.addAction(UsbManager.ACTION_USB_STATE);
-                registerReceiver(mUsbReceiver, filter);
-            }
-        }
         return mBinder;
     }
 }

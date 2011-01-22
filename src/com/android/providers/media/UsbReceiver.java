@@ -41,13 +41,11 @@ public class UsbReceiver extends BroadcastReceiver
         }
 
         if (extras.getBoolean(UsbManager.USB_CONNECTED)) {
-            Log.d(TAG, "USB_CONNECTED, startService");
             context.startService(new Intent(context, MtpService.class));
             // tell MediaProvider MTP is connected so it can bind to the service
             context.getContentResolver().insert(Uri.parse(
                     "content://media/none/mtp_connected"), null);
         } else {
-            Log.d(TAG, "USB_DISCONNECTED, stopService");
             context.stopService(new Intent(context, MtpService.class));
             // tell MediaProvider MTP is disconnected so it can unbind from the service
             context.getContentResolver().delete(Uri.parse(

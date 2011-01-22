@@ -352,12 +352,10 @@ public class MediaProvider extends ContentProvider {
 
     private final ServiceConnection mMtpServiceConnection = new ServiceConnection() {
          public void onServiceConnected(ComponentName className, android.os.IBinder service) {
-            Log.d(TAG, "mMtpService connected");
             mMtpService = IMtpService.Stub.asInterface(service);
         }
 
         public void onServiceDisconnected(ComponentName className) {
-            Log.d(TAG, "mMtpService disconnected");
             mMtpService = null;
         }
     };

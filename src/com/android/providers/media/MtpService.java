@@ -42,7 +42,6 @@ public class MtpService extends Service
         }
 
         void observe(Context context) {
-            Log.d(TAG, "observe");
             mResolver = context.getContentResolver();
             mResolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.USE_PTP_INTERFACE), false, this);
@@ -51,10 +50,8 @@ public class MtpService extends Service
 
         @Override
         public void onChange(boolean selfChange) {
-            Log.d(TAG, "onChange selfChange: " + selfChange);
             mPtpMode = (Settings.System.getInt(mResolver,
                     Settings.System.USE_PTP_INTERFACE, 0) != 0);
-            Log.d(TAG, "mPtpMode = " + mPtpMode);
         }
     }
 
@@ -64,15 +61,12 @@ public class MtpService extends Service
 
     @Override
     public void onCreate() {
-        Log.d(TAG, "onCreate");
         mSettingsObserver = new SettingsObserver();
         mSettingsObserver.observe(this);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(TAG, "onStartCommand intent " + intent + " startId " + startId);
-
         synchronized (mBinder) {
             if (mServer == null) {
                 String storagePath = Environment.getExternalStorageDirectory().getPath();
@@ -94,10 +88,9 @@ public class MtpService extends Service
     @Override
     public void onDestroy()
     {
-        Log.d(TAG, "onDestroy");
-
         synchronized (mBinder) {
             if (mServer != null) {
+                Log.d(TAG, "stopping MTP server");
                 mServer.stop();
                 mServer = null;
             }
@@ -126,7 +119,6 @@ public class MtpService extends Service
     @Override
     public IBinder onBind(Intent intent)
     {
-        Log.d(TAG, "onBind");
         return mBinder;
     }
 }

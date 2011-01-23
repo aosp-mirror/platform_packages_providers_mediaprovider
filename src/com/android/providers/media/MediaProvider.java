@@ -348,15 +348,20 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    // synchronize on mMtpServiceConnection when accessing mMtpService
     private IMtpService mMtpService;
 
     private final ServiceConnection mMtpServiceConnection = new ServiceConnection() {
          public void onServiceConnected(ComponentName className, android.os.IBinder service) {
-            mMtpService = IMtpService.Stub.asInterface(service);
+            synchronized (this) {
+                mMtpService = IMtpService.Stub.asInterface(service);
+            }
         }
 
         public void onServiceDisconnected(ComponentName className) {
-            mMtpService = null;
+            synchronized (this) {
+                mMtpService = null;
+            }
         }
     };
 
@@ -2146,23 +2151,27 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void sendObjectAdded(long objectHandle) {
-        IMtpService mtpService = mMtpService;
-        if (mtpService != null) {
-            try {
-                mtpService.sendObjectAdded((int)objectHandle);
-            } catch (RemoteException e) {
-                Log.e(TAG, "RemoteException in sendObjectAdded", e);
+        synchronized (mMtpServiceConnection) {
+            if (mMtpService != null) {
+                try {
+                    mMtpService.sendObjectAdded((int)objectHandle);
+                } catch (RemoteException e) {
+                    Log.e(TAG, "RemoteException in sendObjectAdded", e);
+                    mMtpService = null;
+                }
             }
         }
     }
 
     private void sendObjectRemoved(long objectHandle) {
-        IMtpService mtpService = mMtpService;
-        if (mtpService != null) {
-            try {
-                mtpService.sendObjectRemoved((int)objectHandle);
-            } catch (RemoteException e) {
-                Log.e(TAG, "RemoteException in sendObjectRemoved", e);
+        synchronized (mMtpServiceConnection) {
+            if (mMtpService != null) {
+                try {
+                    mMtpService.sendObjectRemoved((int)objectHandle);
+                } catch (RemoteException e) {
+                    Log.e(TAG, "RemoteException in sendObjectRemoved", e);
+                    mMtpService = null;
+                }
             }
         }
     }
@@ -2771,10 +2780,14 @@ public class MediaProvider extends ContentProvider {
                 return attachVolume(initialValues.getAsString("name"));
 
             case MTP_CONNECTED:
-                Context context = getContext();
-                // MTP is connected, so grab a connection to MtpService
-                context.bindService(new Intent(context, MtpService.class),
-                        mMtpServiceConnection, Context.BIND_AUTO_CREATE);
+                synchronized (mMtpServiceConnection) {
+                    if (mMtpService == null) {
+                        Context context = getContext();
+                        // MTP is connected, so grab a connection to MtpService
+                        context.bindService(new Intent(context, MtpService.class),
+                                mMtpServiceConnection, Context.BIND_AUTO_CREATE);
+                    }
+                }
                 break;
 
             case FILES:
@@ -3056,9 +3069,18 @@ public class MediaProvider extends ContentProvider {
             detachVolume(uri);
             count = 1;
         } else if (match == MTP_CONNECTED) {
-            // MTP has disconnected, so release our connection to MtpService
-            getContext().unbindService(mMtpServiceConnection);
-            count = 1;
+            synchronized (mMtpServiceConnection) {
+                if (mMtpService != null) {
+                    // MTP has disconnected, so release our connection to MtpService
+                    getContext().unbindService(mMtpServiceConnection);
+                    count = 1;
+                    // mMtpServiceConnection.onServiceDisconnected might not get called,
+                    // so set mMtpService = null here
+                    mMtpService = null;
+                } else {
+                    count = 0;
+                }
+            }
         } else {
             DatabaseHelper database = getDatabaseForUri(uri);
             if (database == null) {

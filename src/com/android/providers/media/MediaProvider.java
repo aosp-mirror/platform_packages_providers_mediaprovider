@@ -2935,11 +2935,13 @@ public class MediaProvider extends ContentProvider {
         long rowId;
 
         if (rawName == null || rawName.length() == 0) {
-            return -1;
+            rawName = MediaStore.UNKNOWN_STRING;
         }
         String k = MediaStore.Audio.keyFor(rawName);
 
         if (k == null) {
+            // shouldn't happen, since we only get null keys for null inputs
+            Log.e(TAG, "null key", new Exception());
             return -1;
         }
 

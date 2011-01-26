@@ -3160,8 +3160,8 @@ public class MediaProvider extends ContentProvider {
                                 sGetTableAndWhereParam.where, whereArgs);
                         if (count > 0) {
                             // then update the paths of any files and folders contained in the directory.
-                            db.execSQL("UPDATE files SET _data=REPLACE(_data, '"
-                                    + oldPath + "/','" + newPath + "/');");
+                            Object[] bindArgs = new Object[] {oldPath + "/", newPath + "/"};
+                            db.execSQL("UPDATE files SET _data=REPLACE(_data, ?1, ?2);", bindArgs);
                         }
 
                         if (count > 0 && !db.inTransaction()) {

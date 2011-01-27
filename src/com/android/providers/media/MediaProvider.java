@@ -1389,13 +1389,18 @@ public class MediaProvider extends ContentProvider {
                     + FileColumns.MEDIA_TYPE_AUDIO + ";");
         }
 
-        if (fromVersion < 304) {
+        if (fromVersion < 304 && !internal) {
             // notifies host when files are deleted
             db.execSQL("CREATE TRIGGER IF NOT EXISTS files_cleanup DELETE ON files " +
                     "BEGIN " +
                         "SELECT _OBJECT_REMOVED(old._id);" +
                     "END");
 
+        }
+
+        if (fromVersion < 305 && internal) {
+            // version 304 erroneously added this trigger to the internal database
+            db.execSQL("DROP TRIGGER IF EXISTS files_cleanup");
         }
 
         sanityCheck(db, fromVersion);
@@ -4070,7 +4075,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
-    private static final int DATABASE_VERSION = 304;
+    private static final int DATABASE_VERSION = 305;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
     private static final String EXTERNAL_DATABASE_NAME = "external.db";
 

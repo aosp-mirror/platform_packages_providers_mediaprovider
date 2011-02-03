@@ -1713,6 +1713,12 @@ public class MediaProvider extends ContentProvider {
             return c;
         }
 
+        if (table == VERSION) {
+            MatrixCursor c = new MatrixCursor(new String[] {"version"});
+            c.addRow(new Integer[] {DATABASE_VERSION});
+            return c;
+        }
+
         String groupBy = null;
         DatabaseHelper database = getDatabaseForUri(uri);
         if (database == null) {
@@ -4150,6 +4156,7 @@ public class MediaProvider extends ContentProvider {
     private static final int MEDIA_SCANNER = 500;
 
     private static final int FS_ID = 600;
+    private static final int VERSION = 601;
 
     private static final int FILES = 700;
     private static final int FILES_ID = 701;
@@ -4228,6 +4235,7 @@ public class MediaProvider extends ContentProvider {
         URI_MATCHER.addURI("media", "*/media_scanner", MEDIA_SCANNER);
 
         URI_MATCHER.addURI("media", "*/fs_id", FS_ID);
+        URI_MATCHER.addURI("media", "*/version", VERSION);
 
         URI_MATCHER.addURI("media", "*/mtp_connected", MTP_CONNECTED);
 

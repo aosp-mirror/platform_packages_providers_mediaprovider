@@ -1402,6 +1402,15 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("DROP TRIGGER IF EXISTS files_cleanup");
         }
 
+        if (fromVersion < 306) {
+            // The genre list was expanded and genre string parsing was tweaked, so
+            // rebuild the genre list
+            db.execSQL("UPDATE files SET date_modified=0 WHERE " + FileColumns.MEDIA_TYPE + "="
+                    + FileColumns.MEDIA_TYPE_AUDIO + ";");
+            db.execSQL("DELETE FROM audio_genres_map");
+            db.execSQL("DELETE FROM audio_genres");
+        }
+
         sanityCheck(db, fromVersion);
     }
 
@@ -4082,7 +4091,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
-    private static final int DATABASE_VERSION = 305;
+    private static final int DATABASE_VERSION = 306;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
     private static final String EXTERNAL_DATABASE_NAME = "external.db";
 

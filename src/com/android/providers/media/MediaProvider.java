@@ -1402,7 +1402,7 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("DROP TRIGGER IF EXISTS files_cleanup");
         }
 
-        if (fromVersion < 306) {
+        if (fromVersion < 306 && !internal) {
             // The genre list was expanded and genre string parsing was tweaked, so
             // rebuild the genre list
             db.execSQL("UPDATE files SET date_modified=0 WHERE " + FileColumns.MEDIA_TYPE + "="

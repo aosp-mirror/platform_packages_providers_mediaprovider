@@ -16,7 +16,9 @@
 
 package com.android.providers.media;
 
+import android.app.KeyguardManager;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -55,14 +57,37 @@ public class MtpService extends Service
         }
     }
 
+    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final String action = intent.getAction();
+            if (Intent.ACTION_USER_PRESENT.equals(action)) {
+                synchronized (mBinder) {
+                    // unlock MTP when the user has unlocked the lockscreen
+                    if (mMtpLocked && mServer != null) {
+                        mServer.setLocked(false);
+                    }
+                    mMtpLocked = false;
+                }
+            }
+        }
+    };
+
     private MtpServer mServer;
     private SettingsObserver mSettingsObserver;
     private boolean mPtpMode;
+    private boolean mMtpLocked; // true if MTP is locked due to secure keyguard
 
     @Override
     public void onCreate() {
         mSettingsObserver = new SettingsObserver();
         mSettingsObserver.observe(this);
+
+        // lock MTP if the keyguard is locked and secure
+        KeyguardManager keyguardManager =
+                (KeyguardManager)getSystemService(Context.KEYGUARD_SERVICE);
+        mMtpLocked = keyguardManager.isKeyguardLocked() && keyguardManager.isKeyguardSecure();
+        registerReceiver(mReceiver, new IntentFilter(Intent.ACTION_USER_PRESENT));
     }
 
     @Override
@@ -78,6 +103,7 @@ public class MtpService extends Service
                 Log.d(TAG, "starting MTP server for " + storagePath);
                 mServer = new MtpServer(database, storagePath, reserveSpaceMegabytes*1024*1024);
                 mServer.setPtpMode(mPtpMode);
+                mServer.setLocked(mMtpLocked);
                 mServer.start();
             }
         }
@@ -88,6 +114,7 @@ public class MtpService extends Service
     @Override
     public void onDestroy()
     {
+        unregisterReceiver(mReceiver);
         synchronized (mBinder) {
             if (mServer != null) {
                 Log.d(TAG, "stopping MTP server");

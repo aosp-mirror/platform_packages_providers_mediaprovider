@@ -1411,6 +1411,13 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("DELETE FROM audio_genres");
         }
 
+        if (fromVersion < 307 && !internal) {
+            // Force rescan of image entries to update DATE_TAKEN by either GPSTimeStamp or
+            // EXIF local time.
+            db.execSQL("UPDATE files SET date_modified=0 WHERE " + FileColumns.MEDIA_TYPE + "="
+                    + FileColumns.MEDIA_TYPE_IMAGE + ";");
+        }
+
         sanityCheck(db, fromVersion);
     }
 
@@ -4093,7 +4100,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
-    private static final int DATABASE_VERSION = 306;
+    private static final int DATABASE_VERSION = 307;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
     private static final String EXTERNAL_DATABASE_NAME = "external.db";
 

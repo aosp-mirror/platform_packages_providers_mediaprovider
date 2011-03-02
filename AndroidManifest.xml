@@ -36,7 +36,7 @@
 
         <receiver android:name="UsbReceiver">
             <intent-filter>
-                <action android:name="android.hardware.action.USB_STATE" />
+                <action android:name="android.hardware.usb.action.USB_STATE" />
             </intent-filter>
         </receiver>
  

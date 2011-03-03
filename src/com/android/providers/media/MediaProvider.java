@@ -2308,6 +2308,8 @@ public class MediaProvider extends ContentProvider {
             // Use "LIKE" instead of "=" on case insensitive file systems so we do a
             // case insensitive match when looking for parent directory.
             String selection = (mCaseInsensitivePaths ? MediaStore.MediaColumns.DATA + " LIKE ?"
+                    // search only directories.
+                    + "AND format=" + MtpConstants.FORMAT_ASSOCIATION
                     : MediaStore.MediaColumns.DATA + "=?");
             String [] selargs = { parentPath };
             Cursor c = db.query("files", null, selection, selargs, null, null, null);

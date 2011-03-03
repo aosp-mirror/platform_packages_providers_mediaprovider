@@ -34,13 +34,9 @@ public class UsbReceiver extends BroadcastReceiver
     public void onReceive(Context context, Intent intent) {
         Bundle extras = intent.getExtras();
 
-        // do nothing if MTP is not supported in the kernel
-        if (!UsbManager.USB_FUNCTION_ENABLED.equals(
-                extras.getString(UsbManager.USB_FUNCTION_MTP))) {
-            return;
-        }
-
-        if (extras.getBoolean(UsbManager.USB_CONNECTED)) {
+        if (extras.getBoolean(UsbManager.USB_CONNECTED) &&
+                UsbManager.USB_FUNCTION_ENABLED.equals(
+                    extras.getString(UsbManager.USB_FUNCTION_MTP))) {
             context.startService(new Intent(context, MtpService.class));
             // tell MediaProvider MTP is connected so it can bind to the service
             context.getContentResolver().insert(Uri.parse(

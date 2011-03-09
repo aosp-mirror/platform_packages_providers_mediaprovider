@@ -1877,6 +1877,7 @@ public class MediaProvider extends ContentProvider {
                 qb.appendWhere("_id=" + uri.getPathSegments().get(3));
                 break;
 
+            case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
             case AUDIO_PLAYLISTS_ID_MEMBERS:
                 // if simpleQuery is true, we can do a simpler query on just audio_playlists_map
                 // we can do this if we have no keywords and our projection includes just columns
@@ -1910,11 +1911,9 @@ public class MediaProvider extends ContentProvider {
                                 " LIKE '%" + keywords[i] + "%' ESCAPE '\\'");
                     }
                 }
-                break;
-
-            case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
-                qb.setTables("audio");
-                qb.appendWhere("_id=" + uri.getPathSegments().get(5));
+                if (table == AUDIO_PLAYLISTS_ID_MEMBERS_ID) {
+                    qb.appendWhere(" AND audio_playlists_map._id=" + uri.getPathSegments().get(5));
+                }
                 break;
 
             case VIDEO_MEDIA:

@@ -968,6 +968,10 @@ public class MediaProvider extends ContentProvider {
             updateBucketNames(db, "video");
         }
 
+        /*
+         *  Android 2.2 shipped with database version 89
+         */
+
         if (fromVersion < 91) {
             // Never query by mini_thumb_magic_index
             db.execSQL("DROP INDEX IF EXISTS mini_thumb_magic_index");
@@ -992,6 +996,17 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("DELETE from albums");
             db.execSQL("UPDATE audio_meta SET date_modified=0;");
         }
+
+        /*
+         *  Android 2.3 shipped with database version 93
+         */
+
+        if (fromVersion < 100) {
+            db.execSQL("ALTER TABLE audio_meta ADD COLUMN album_artist TEXT;");
+            recreateAudioView(db);
+            db.execSQL("UPDATE audio_meta SET date_modified=0;");
+        }
+
         sanityCheck(db, fromVersion);
     }
 
@@ -1872,11 +1887,7 @@ public class MediaProvider extends ContentProvider {
                 // the view.
                 ContentValues values = new ContentValues(initialValues);
 
-                // TODO Remove this and actually store the album_artist in the
-                // database. For now this is here so the media scanner can start
-                // sending us the album_artist, even though it's not in the db yet.
                 String albumartist = values.getAsString(MediaStore.Audio.Media.ALBUM_ARTIST);
-                values.remove(MediaStore.Audio.Media.ALBUM_ARTIST);
                 String compilation = values.getAsString(MediaStore.Audio.Media.COMPILATION);
                 values.remove(MediaStore.Audio.Media.COMPILATION);
 
@@ -2343,11 +2354,7 @@ public class MediaProvider extends ContentProvider {
                 case AUDIO_MEDIA_ID:
                     {
                         ContentValues values = new ContentValues(initialValues);
-                        // TODO Remove this and actually store the album_artist in the
-                        // database. For now this is here so the media scanner can start
-                        // sending us the album_artist, even though it's not in the db yet.
                         String albumartist = values.getAsString(MediaStore.Audio.Media.ALBUM_ARTIST);
-                        values.remove(MediaStore.Audio.Media.ALBUM_ARTIST);
                         String compilation = values.getAsString(MediaStore.Audio.Media.COMPILATION);
                         values.remove(MediaStore.Audio.Media.COMPILATION);
 
@@ -3236,7 +3243,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
-    private static final int DATABASE_VERSION = 93;
+    private static final int DATABASE_VERSION = 100;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
     private static final String EXTERNAL_DATABASE_NAME = "external.db";
 

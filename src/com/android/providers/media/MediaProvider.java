@@ -2664,7 +2664,7 @@ public class MediaProvider extends ContentProvider {
         Integer formatObject = values.getAsInteger(FileColumns.FORMAT);
         int format = (formatObject == null ? 0 : formatObject.intValue());
         if (format == 0) {
-            if (path == null) {
+            if (TextUtils.isEmpty(path)) {
                 // special case device created playlists
                 if (mediaType == FileColumns.MEDIA_TYPE_PLAYLIST) {
                     values.put(FileColumns.FORMAT, MtpConstants.FORMAT_ABSTRACT_AV_PLAYLIST);
@@ -2674,7 +2674,7 @@ public class MediaProvider extends ContentProvider {
                     values.put(MediaStore.MediaColumns.DATA, path);
                     values.put(FileColumns.PARENT, getParent(db, path));
                 } else {
-                    Log.e(TAG, "path is null in insertObject()");
+                    Log.e(TAG, "path is empty in insertFile()");
                 }
             } else {
                 format = MediaFile.getFormatCode(path, mimeType);

@@ -563,10 +563,10 @@ public class MediaProvider extends ContentProvider {
         // Therefore we will only force a reset for versions 92 - 94.
         if (fromVersion < 63 || (fromVersion >= 84 && fromVersion <= 89) ||
                     (fromVersion >= 92 && fromVersion <= 94)) {
-            fromVersion = 63;
             // Drop everything and start over.
             Log.i(TAG, "Upgrading media database from version " +
                     fromVersion + " to " + toVersion + ", which will destroy all old data");
+            fromVersion = 63;
             db.execSQL("DROP TABLE IF EXISTS images");
             db.execSQL("DROP TRIGGER IF EXISTS images_cleanup");
             db.execSQL("DROP TABLE IF EXISTS thumbnails");
@@ -1147,19 +1147,11 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("CREATE INDEX IF NOT EXISTS video_bucket_index ON video(bucket_id, datetaken)");
         }
 
-        // versions 92 - 98 were work in progress on MTP obsoleted by version 99
-        if (fromVersion < 92) {
-            // Delete albums and artists, then clear the modification time on songs, which
-            // will cause the media scanner to rescan everything, rebuilding the artist and
-            // album tables along the way, while preserving playlists.
-            // We need this rescan because ICU also changed, and now generates different
-            // collation keys
-            db.execSQL("DELETE from albums");
-            db.execSQL("DELETE from artists");
-            db.execSQL("UPDATE audio_meta SET date_modified=0;");
-        }
 
-        if (fromVersion < 99) {
+        // Gingerbread ended up going to version 100, but didn't yet have the "files"
+        // table, so we need to create that if we're at 100 or lower. This means
+        // we won't be able to upgrade pre-release Honeycomb.
+        if (fromVersion <= 100) {
             // Remove various stages of work in progress for MTP support
             db.execSQL("DROP TABLE IF EXISTS objects");
             db.execSQL("DROP TABLE IF EXISTS files");
@@ -1214,6 +1206,7 @@ public class MediaProvider extends ContentProvider {
                         "is_alarm INTEGER," +
                         "is_notification INTEGER," +
                         "is_podcast INTEGER," +
+                        "album_artist TEXT," +
 
                         // for audio and video
                         "duration INTEGER," +
@@ -1239,6 +1232,7 @@ public class MediaProvider extends ContentProvider {
                         // Used only for updating other tables during database upgrade.
                         "old_id INTEGER" +
                        ");");
+
             db.execSQL("CREATE INDEX path_index ON files(_data);");
             db.execSQL("CREATE INDEX media_type_index ON files(media_type);");
 
@@ -1265,10 +1259,9 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("CREATE VIEW images AS SELECT _id," + IMAGE_COLUMNS +
                         " FROM files WHERE " + FileColumns.MEDIA_TYPE + "="
                         + FileColumns.MEDIA_TYPE_IMAGE + ";");
-// audio_meta will be created below for schema 100
-//            db.execSQL("CREATE VIEW audio_meta AS SELECT _id," + AUDIO_COLUMNSv99 +
-//                        " FROM files WHERE " + FileColumns.MEDIA_TYPE + "="
-//                        + FileColumns.MEDIA_TYPE_AUDIO + ";");
+            db.execSQL("CREATE VIEW audio_meta AS SELECT _id," + AUDIO_COLUMNSv100 +
+                        " FROM files WHERE " + FileColumns.MEDIA_TYPE + "="
+                        + FileColumns.MEDIA_TYPE_AUDIO + ";");
             db.execSQL("CREATE VIEW video AS SELECT _id," + VIDEO_COLUMNS +
                         " FROM files WHERE " + FileColumns.MEDIA_TYPE + "="
                         + FileColumns.MEDIA_TYPE_VIDEO + ";");
@@ -1284,13 +1277,17 @@ public class MediaProvider extends ContentProvider {
                         + FileColumns.MEDIA_TYPE_IMAGE + ");");
 
             if (!internal) {
-                // update audio_id in the audio_genres_map and audio_playlists_map tables.
+                // update audio_id in the audio_genres_map table, and
+                // audio_playlists_map tables and playlist_id in the audio_playlists_map table
                 db.execSQL("UPDATE audio_genres_map SET audio_id = (SELECT _id FROM files "
                         + "WHERE files.old_id = audio_genres_map.audio_id AND files.media_type = "
                         + FileColumns.MEDIA_TYPE_AUDIO + ");");
                 db.execSQL("UPDATE audio_playlists_map SET audio_id = (SELECT _id FROM files "
                         + "WHERE files.old_id = audio_playlists_map.audio_id "
                         + "AND files.media_type = " + FileColumns.MEDIA_TYPE_AUDIO + ");");
+                db.execSQL("UPDATE audio_playlists_map SET playlist_id = (SELECT _id FROM files "
+                        + "WHERE files.old_id = audio_playlists_map.playlist_id "
+                        + "AND files.media_type = " + FileColumns.MEDIA_TYPE_PLAYLIST + ");");
             }
 
             // update video_id in the videothumbnails table.
@@ -1355,16 +1352,6 @@ public class MediaProvider extends ContentProvider {
                             "DELETE from audio_genres_map where audio_id=old._id;" +
                         "END");
             }
-        }
-
-        if (fromVersion < 100) {
-            db.execSQL("ALTER TABLE files ADD COLUMN album_artist TEXT;");
-            db.execSQL("DROP VIEW IF EXISTS audio_meta;");
-            db.execSQL("CREATE VIEW audio_meta AS SELECT _id," + AUDIO_COLUMNSv100 +
-                    " FROM files WHERE " + FileColumns.MEDIA_TYPE + "="
-                    + FileColumns.MEDIA_TYPE_AUDIO + ";");
-            db.execSQL("UPDATE files SET date_modified=0 WHERE " + FileColumns.MEDIA_TYPE + "="
-                    + FileColumns.MEDIA_TYPE_AUDIO + ";");
         }
 
         if (fromVersion < 300) {
@@ -1482,10 +1469,14 @@ public class MediaProvider extends ContentProvider {
                 final int dataColumnIndex = cursor.getColumnIndex(MediaColumns.DATA);
                 while (cursor.moveToNext()) {
                     String data = cursor.getString(dataColumnIndex);
-                    ContentValues values = new ContentValues();
-                    computeBucketValues(data, values);
                     int rowId = cursor.getInt(idColumnIndex);
-                    db.update(tableName, values, "_id=" + rowId, null);
+                    if (data != null) {
+                        ContentValues values = new ContentValues();
+                        computeBucketValues(data, values);
+                        db.update(tableName, values, "_id=" + rowId, null);
+                    } else {
+                        Log.w(TAG, "null data at id " + rowId);
+                    }
                 }
             } finally {
                 cursor.close();
@@ -4103,7 +4094,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
-    private static final int DATABASE_VERSION = 307;
+    private static final int DATABASE_VERSION = 400;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
     private static final String EXTERNAL_DATABASE_NAME = "external.db";
 

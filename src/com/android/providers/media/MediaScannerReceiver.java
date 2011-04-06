@@ -36,8 +36,6 @@ public class MediaScannerReceiver extends BroadcastReceiver
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
         Uri uri = intent.getData();
-        String externalStoragePath = Environment.getExternalStorageDirectory().getPath();
-
         if (action.equals(Intent.ACTION_BOOT_COMPLETED)) {
             // scan internal storage
             scan(context, MediaProvider.INTERNAL_VOLUME);
@@ -45,8 +43,16 @@ public class MediaScannerReceiver extends BroadcastReceiver
             if (uri.getScheme().equals("file")) {
                 // handle intents related to external storage
                 String path = uri.getPath();
-                if (action.equals(Intent.ACTION_MEDIA_MOUNTED) &&
-                        externalStoragePath.equals(path)) {
+                String externalStoragePath = Environment.getExternalStorageDirectory().getPath();
+
+                Log.d(TAG, "action: " + action + " path: " + path);
+                if (action.equals(Intent.ACTION_MEDIA_MOUNTED)) {
+                    // scan whenever any volume is mounted
+                    scan(context, MediaProvider.EXTERNAL_VOLUME);
+                } else if (action.equals(Intent.ACTION_MEDIA_UNMOUNTED)
+                        && !externalStoragePath.equals(path)) {
+                    // scan when any volume other than the primary volume is unmounted
+                    // this will remove files for that volume from the database
                     scan(context, MediaProvider.EXTERNAL_VOLUME);
                 } else if (action.equals(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE) &&
                         path != null && path.startsWith(externalStoragePath + "/")) {

@@ -1408,7 +1408,9 @@ public class MediaProvider extends ContentProvider {
                     + FileColumns.MEDIA_TYPE_IMAGE + ";");
         }
 
-        if (fromVersion < 401 && !internal) {
+        // Database version 401 did not add storage_id to the internal database.
+        // We need it there too, so add it in version 402
+        if (fromVersion < 401 || (fromVersion == 401 && internal)) {
             // Add column for MTP storage ID
             db.execSQL("ALTER TABLE files ADD COLUMN storage_id INTEGER;");
             // Anything in the database before this upgrade step will be in the primary storage
@@ -4120,7 +4122,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
-    private static final int DATABASE_VERSION = 401;
+    private static final int DATABASE_VERSION = 402;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
     private static final String EXTERNAL_DATABASE_NAME = "external.db";
 

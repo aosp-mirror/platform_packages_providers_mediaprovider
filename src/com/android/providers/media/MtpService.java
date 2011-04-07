@@ -128,7 +128,6 @@ public class MtpService extends Service {
             for (int i = 0; i < volumes.length; i++) {
                 String path = volumes[i];
                 String state = mStorageManager.getVolumeState(path);
-                Log.d(TAG, "volume: " + path + " " + state);
                 if (Environment.MEDIA_MOUNTED.equals(state)) {
                    volumeMountedLocked(path);
                 }
@@ -198,12 +197,9 @@ public class MtpService extends Service {
     }
 
     private void volumeMountedLocked(String path) {
-        Log.d(TAG, "volumeMountedLocked " + path);
         for (int i = 0; i < mExternalStoragePaths.length; i++) {
-            Log.d(TAG, "comparing with " + mExternalStoragePaths[i]);
             if (mExternalStoragePaths[i].equals(path)) {
                 int storageId = MtpStorage.getStorageId(i);
-                Log.d(TAG, "path " + path + " " + storageId);
 
                 // reserve space setting only applies to internal storage
                 long reserveSpace;

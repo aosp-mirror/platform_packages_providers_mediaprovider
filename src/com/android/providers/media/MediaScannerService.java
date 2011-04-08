@@ -39,7 +39,6 @@ import android.os.PowerManager;
 import android.os.Process;
 import android.os.SystemProperties;
 import android.provider.MediaStore;
-import android.util.Config;
 import android.util.Log;
 
 import java.io.File;
@@ -206,7 +205,7 @@ public class MediaScannerService extends Service implements Runnable
             new IMediaScannerService.Stub() {
         public void requestScanFile(String path, String mimeType, IMediaScannerListener listener)
         {
-            if (Config.LOGD) {
+            if (false) {
                 Log.d(TAG, "IMediaScannerService.scanFile: " + path + " mimeType: " + mimeType);
             }
             Bundle args = new Bundle();
@@ -258,10 +257,10 @@ public class MediaScannerService extends Service implements Runnable
                     }
                     
                     if (directories != null) {
-                        if (Config.LOGD) Log.d(TAG, "start scanning volume " + volume + ": "
+                        if (false) Log.d(TAG, "start scanning volume " + volume + ": "
                                 + Arrays.toString(directories));
                         scan(directories, volume);
-                        if (Config.LOGD) Log.d(TAG, "done scanning volume " + volume);
+                        if (false) Log.d(TAG, "done scanning volume " + volume);
                     }
                 }
             } catch (Exception e) {

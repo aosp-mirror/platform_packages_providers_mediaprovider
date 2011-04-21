@@ -429,8 +429,7 @@ public class MediaProvider extends ContentProvider {
         iFilter.addDataScheme("file");
         context.registerReceiver(mUnmountReceiver, iFilter);
 
-        mCaseInsensitivePaths = !context.getResources().getBoolean(
-                com.android.internal.R.bool.config_caseSensitiveExternalStorage);
+        mCaseInsensitivePaths = true;
         if (!Process.supportsProcesses()) {
             // Simulator uses host file system, so it should be case sensitive.
             mCaseInsensitivePaths = false;

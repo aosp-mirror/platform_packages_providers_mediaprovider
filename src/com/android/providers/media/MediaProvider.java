@@ -2513,7 +2513,7 @@ public class MediaProvider extends ContentProvider {
         if (mimeType != null) {
             values.put(FileColumns.MIME_TYPE, mimeType);
 
-            if (mediaType == FileColumns.MEDIA_TYPE_NONE) {
+            if (mediaType == FileColumns.MEDIA_TYPE_NONE && !MediaScanner.isNoMediaPath(path)) {
                 int fileType = MediaFile.getFileTypeForMimeType(mimeType);
                 if (MediaFile.isAudioFileType(fileType)) {
                     mediaType = FileColumns.MEDIA_TYPE_AUDIO;

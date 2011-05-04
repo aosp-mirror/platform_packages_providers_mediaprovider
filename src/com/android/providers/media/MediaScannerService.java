@@ -53,7 +53,7 @@ public class MediaScannerService extends Service implements Runnable
     private volatile Looper mServiceLooper;
     private volatile ServiceHandler mServiceHandler;
     private PowerManager.WakeLock mWakeLock;
-    private String mExternalStoragePath;
+    private String[] mExternalStoragePaths;
     
     private void openDatabase(String volumeName) {
         try {
@@ -117,7 +117,8 @@ public class MediaScannerService extends Service implements Runnable
     {
         PowerManager pm = (PowerManager)getSystemService(Context.POWER_SERVICE);
         mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
-        mExternalStoragePath = Environment.getExternalStorageDirectory().getPath();
+        mExternalStoragePaths = getResources().getStringArray(
+                com.android.internal.R.array.config_externalStoragePaths);
 
         // Start up the thread running the service.  Note that we create a
         // separate thread because the service normally runs in the process's
@@ -183,12 +184,14 @@ public class MediaScannerService extends Service implements Runnable
     }
    
     private Uri scanFile(String path, String mimeType) {
-        String volumeName = MediaProvider.INTERNAL_VOLUME;
-
-        if (path.startsWith(mExternalStoragePath)) {
-            volumeName = MediaProvider.EXTERNAL_VOLUME;
-            openDatabase(volumeName);
+        // single file scanning only supported on primary external storage
+        if (!path.startsWith(mExternalStoragePaths[0])) {
+            throw new IllegalArgumentException(
+                "scanFile is only supported on primary external storage");
         }
+
+        String volumeName = MediaProvider.EXTERNAL_VOLUME;
+        openDatabase(volumeName);
         MediaScanner scanner = createMediaScanner();
         return scanner.scanSingleFile(path, volumeName, mimeType);
     }
@@ -249,8 +252,9 @@ public class MediaScannerService extends Service implements Runnable
                         };
                     }
                     else if (MediaProvider.EXTERNAL_VOLUME.equals(volume)) {
-                        // scan external storage
-                        directories = new String[] { mExternalStoragePath };
+                        // scan external storage volumes
+                        directories = getResources().getStringArray(
+                                com.android.internal.R.array.config_externalStoragePaths);
                     }
                     
                     if (directories != null) {

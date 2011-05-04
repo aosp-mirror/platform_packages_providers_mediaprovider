@@ -1134,6 +1134,10 @@ public class MediaProvider extends ContentProvider {
         // updateBucketNames(db, "video"), but in version 101 we now updateBucketNames
         //  for all files and therefore can save the update here.
 
+        /*
+         *  Android 2.2 shipped with database version 89
+         */
+
         if (fromVersion < 91) {
             // Never query by mini_thumb_magic_index
             db.execSQL("DROP INDEX IF EXISTS mini_thumb_magic_index");

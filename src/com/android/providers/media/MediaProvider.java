@@ -58,6 +58,7 @@ import android.os.ParcelFileDescriptor;
 import android.os.Process;
 import android.os.RemoteException;
 import android.os.SystemProperties;
+import android.os.storage.StorageManager;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.provider.MediaStore;
@@ -435,8 +436,9 @@ public class MediaProvider extends ContentProvider {
             mCaseInsensitivePaths = false;
         }
 
-        mExternalStoragePaths = getContext().getResources().getStringArray(
-                com.android.internal.R.array.config_externalStoragePaths);
+        StorageManager storageManager =
+                (StorageManager)context.getSystemService(Context.STORAGE_SERVICE);
+        mExternalStoragePaths = storageManager.getVolumePaths();
 
         // open external database if external storage is mounted
         String state = Environment.getExternalStorageState();

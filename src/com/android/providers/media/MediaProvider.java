@@ -728,7 +728,7 @@ public class MediaProvider extends ContentProvider {
                            "name TEXT NOT NULL" +
                            ");");
 
-                // Contiains mappings between audio genres and audio files
+                // Contains mappings between audio genres and audio files
                 db.execSQL("CREATE TABLE IF NOT EXISTS audio_genres_map (" +
                            "_id INTEGER PRIMARY KEY," +
                            "audio_id INTEGER NOT NULL," +
@@ -1416,6 +1416,11 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("UPDATE files SET storage_id=" + MtpStorage.getStorageId(0) + ";");
         }
 
+        if (fromVersion < 403 && !internal) {
+            db.execSQL("CREATE VIEW audio_genres_map_noid AS " +
+                    "SELECT audio_id,genre_id from audio_genres_map;");
+        }
+
         sanityCheck(db, fromVersion);
     }
 
@@ -1859,15 +1864,44 @@ public class MediaProvider extends ContentProvider {
                 break;
 
             case AUDIO_GENRES_ID_MEMBERS:
-                qb.setTables("audio");
-                qb.appendWhere("_id IN (SELECT audio_id FROM " +
-                        "audio_genres_map WHERE genre_id = " +
-                        uri.getPathSegments().get(3) + ")");
-                break;
-
-            case AUDIO_GENRES_ID_MEMBERS_ID:
-                qb.setTables("audio");
-                qb.appendWhere("_id=" + uri.getPathSegments().get(5));
+                {
+                    // if simpleQuery is true, we can do a simpler query on just audio_genres_map
+                    // we can do this if we have no keywords and our projection includes just columns
+                    // from audio_genres_map
+                    boolean simpleQuery = (keywords == null && projectionIn != null
+                            && (selection == null || selection.equalsIgnoreCase("genre_id=?")));
+                    if (projectionIn != null) {
+                        for (int i = 0; i < projectionIn.length; i++) {
+                            String p = projectionIn[i];
+                            if (p.equals("_id")) {
+                                // note, this is different from playlist below, because
+                                // "_id" used to (wrongly) be the audio id in this query, not
+                                // the row id of the entry in the map, and we preserve this
+                                // behavior for backwards compatibility
+                                simpleQuery = false;
+                            }
+                            if (simpleQuery && !(p.equals("audio_id") ||
+                                    p.equals("genre_id"))) {
+                                simpleQuery = false;
+                            }
+                        }
+                    }
+                    if (simpleQuery) {
+                        qb.setTables("audio_genres_map_noid");
+                        qb.appendWhere("genre_id = " + uri.getPathSegments().get(3));
+                    } else {
+                        qb.setTables("audio_genres_map_noid, audio");
+                        qb.appendWhere("audio._id = audio_id AND genre_id = "
+                                + uri.getPathSegments().get(3));
+                        for (int i = 0; keywords != null && i < keywords.length; i++) {
+                            qb.appendWhere(" AND ");
+                            qb.appendWhere(MediaStore.Audio.Media.ARTIST_KEY +
+                                    "||" + MediaStore.Audio.Media.ALBUM_KEY +
+                                    "||" + MediaStore.Audio.Media.TITLE_KEY +
+                                    " LIKE '%" + keywords[i] + "%' ESCAPE '\\'");
+                        }
+                    }
+                }
                 break;
 
             case AUDIO_PLAYLISTS:
@@ -2101,7 +2135,6 @@ public class MediaProvider extends ContentProvider {
         switch (URI_MATCHER.match(url)) {
             case IMAGES_MEDIA_ID:
             case AUDIO_MEDIA_ID:
-            case AUDIO_GENRES_ID_MEMBERS_ID:
             case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
             case VIDEO_MEDIA_ID:
             case FILES_ID:
@@ -3027,12 +3060,6 @@ public class MediaProvider extends ContentProvider {
                 where = "genre_id=" + uri.getPathSegments().get(3);
                 break;
 
-            case AUDIO_GENRES_ID_MEMBERS_ID:
-                out.table = "audio_genres";
-                where = "genre_id=" + uri.getPathSegments().get(3) +
-                        " AND audio_id =" + uri.getPathSegments().get(5);
-                break;
-
             case AUDIO_PLAYLISTS:
                 out.table = "files";
                 where = FileColumns.MEDIA_TYPE + "=" + FileColumns.MEDIA_TYPE_PLAYLIST;
@@ -3151,7 +3178,10 @@ public class MediaProvider extends ContentProvider {
                             mDisableMtpObjectCallbacks = false;
                         }
                         break;
-
+                    case AUDIO_GENRES_ID_MEMBERS:
+                        count = db.delete("audio_genres_map",
+                                sGetTableAndWhereParam.where, whereArgs);
+                        break;
                     default:
                         count = db.delete(sGetTableAndWhereParam.table,
                                 sGetTableAndWhereParam.where, whereArgs);
@@ -4121,7 +4151,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
-    private static final int DATABASE_VERSION = 402;
+    private static final int DATABASE_VERSION = 403;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
     private static final String EXTERNAL_DATABASE_NAME = "external.db";
 
@@ -4166,7 +4196,6 @@ public class MediaProvider extends ContentProvider {
     private static final int AUDIO_GENRES = 106;
     private static final int AUDIO_GENRES_ID = 107;
     private static final int AUDIO_GENRES_ID_MEMBERS = 108;
-    private static final int AUDIO_GENRES_ID_MEMBERS_ID = 109;
     private static final int AUDIO_PLAYLISTS = 110;
     private static final int AUDIO_PLAYLISTS_ID = 111;
     private static final int AUDIO_PLAYLISTS_ID_MEMBERS = 112;
@@ -4252,7 +4281,6 @@ public class MediaProvider extends ContentProvider {
         URI_MATCHER.addURI("media", "*/audio/genres", AUDIO_GENRES);
         URI_MATCHER.addURI("media", "*/audio/genres/#", AUDIO_GENRES_ID);
         URI_MATCHER.addURI("media", "*/audio/genres/#/members", AUDIO_GENRES_ID_MEMBERS);
-        URI_MATCHER.addURI("media", "*/audio/genres/#/members/#", AUDIO_GENRES_ID_MEMBERS_ID);
         URI_MATCHER.addURI("media", "*/audio/playlists", AUDIO_PLAYLISTS);
         URI_MATCHER.addURI("media", "*/audio/playlists/#", AUDIO_PLAYLISTS_ID);
         URI_MATCHER.addURI("media", "*/audio/playlists/#/members", AUDIO_PLAYLISTS_ID_MEMBERS);

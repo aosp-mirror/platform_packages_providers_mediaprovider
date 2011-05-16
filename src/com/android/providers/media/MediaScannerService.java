@@ -22,7 +22,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
-import android.content.res.Resources;
 import android.database.Cursor;
 import android.media.IMediaScannerListener;
 import android.media.IMediaScannerService;
@@ -38,6 +37,8 @@ import android.os.Message;
 import android.os.PowerManager;
 import android.os.Process;
 import android.os.SystemProperties;
+import android.os.storage.StorageManager;
+import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
 import android.util.Log;
 
@@ -116,8 +117,8 @@ public class MediaScannerService extends Service implements Runnable
     {
         PowerManager pm = (PowerManager)getSystemService(Context.POWER_SERVICE);
         mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
-        mExternalStoragePaths = getResources().getStringArray(
-                com.android.internal.R.array.config_externalStoragePaths);
+        StorageManager storageManager = (StorageManager)getSystemService(Context.STORAGE_SERVICE);
+        mExternalStoragePaths = storageManager.getVolumePaths();
 
         // Start up the thread running the service.  Note that we create a
         // separate thread because the service normally runs in the process's
@@ -252,10 +253,9 @@ public class MediaScannerService extends Service implements Runnable
                     }
                     else if (MediaProvider.EXTERNAL_VOLUME.equals(volume)) {
                         // scan external storage volumes
-                        directories = getResources().getStringArray(
-                                com.android.internal.R.array.config_externalStoragePaths);
+                        directories = mExternalStoragePaths;
                     }
-                    
+
                     if (directories != null) {
                         if (false) Log.d(TAG, "start scanning volume " + volume + ": "
                                 + Arrays.toString(directories));

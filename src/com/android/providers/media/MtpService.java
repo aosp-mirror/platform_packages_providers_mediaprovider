@@ -23,7 +23,6 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.res.Resources;
 import android.database.ContentObserver;
 import android.mtp.MtpDatabase;
 import android.mtp.MtpServer;
@@ -33,6 +32,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.storage.StorageEventListener;
 import android.os.storage.StorageManager;
+import android.os.storage.StorageVolume;
 import android.provider.Settings;
 import android.util.Log;
 
@@ -102,18 +102,12 @@ public class MtpService extends Service {
     private boolean mPtpMode;
     private boolean mMtpDisabled; // true if MTP is disabled due to secure keyguard
     private final HashMap<String, MtpStorage> mStorageMap = new HashMap<String, MtpStorage>();
-    private String[] mExternalStoragePaths;
-    private String[] mExternalStorageDescriptions;
+    private StorageVolume[] mVolumes;
 
     @Override
     public void onCreate() {
         mSettingsObserver = new SettingsObserver();
         mSettingsObserver.observe(this);
-
-        mExternalStoragePaths = getResources().getStringArray(
-                com.android.internal.R.array.config_externalStoragePaths);
-        mExternalStorageDescriptions = getResources().getStringArray(
-                com.android.internal.R.array.config_externalStorageDescriptions);
 
         // lock MTP if the keyguard is locked and secure
         KeyguardManager keyguardManager =
@@ -124,9 +118,10 @@ public class MtpService extends Service {
         mStorageManager = (StorageManager)getSystemService(Context.STORAGE_SERVICE);
         synchronized (mBinder) {
             mStorageManager.registerListener(mStorageEventListener);
-            String[] volumes = mStorageManager.getVolumeList();
+            StorageVolume[] volumes = mStorageManager.getVolumeList();
+            mVolumes = volumes;
             for (int i = 0; i < volumes.length; i++) {
-                String path = volumes[i];
+                String path = volumes[i].getPath();
                 String state = mStorageManager.getVolumeState(path);
                 if (Environment.MEDIA_MOUNTED.equals(state)) {
                    volumeMountedLocked(path);
@@ -141,7 +136,7 @@ public class MtpService extends Service {
             if (mServer == null) {
                 Log.d(TAG, "starting MTP server");
                 mDatabase = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME,
-                        mExternalStoragePaths[0]);
+                        mVolumes[0].getPath());
                 mServer = new MtpServer(mDatabase);
                 mServer.setPtpMode(mPtpMode);
                 if (!mMtpDisabled) {
@@ -197,22 +192,14 @@ public class MtpService extends Service {
     }
 
     private void volumeMountedLocked(String path) {
-        for (int i = 0; i < mExternalStoragePaths.length; i++) {
-            if (mExternalStoragePaths[i].equals(path)) {
+        for (int i = 0; i < mVolumes.length; i++) {
+            StorageVolume volume = mVolumes[i];
+            if (volume.getPath().equals(path)) {
                 int storageId = MtpStorage.getStorageId(i);
-
-                // reserve space setting only applies to internal storage
-                long reserveSpace;
-                if (i == 0) {
-                    reserveSpace = getResources().getInteger(
-                        com.android.internal.R.integer.config_mtpReserveSpaceMegabytes)
-                        * 1024 * 1024;
-                } else {
-                    reserveSpace = 0;
-                }
+                long reserveSpace = volume.getMtpReserveSpace() * 1024 * 1024;
 
                 MtpStorage storage = new MtpStorage(storageId, path,
-                        mExternalStorageDescriptions[i], reserveSpace);
+                        volume.getDescription(), reserveSpace);
                 mStorageMap.put(path, storage);
                 if (!mMtpDisabled) {
                     addStorageLocked(storage);

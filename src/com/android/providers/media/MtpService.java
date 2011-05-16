@@ -199,7 +199,7 @@ public class MtpService extends Service {
                 long reserveSpace = volume.getMtpReserveSpace() * 1024 * 1024;
 
                 MtpStorage storage = new MtpStorage(storageId, path,
-                        volume.getDescription(), reserveSpace);
+                        volume.getDescription(), reserveSpace, volume.isRemovable());
                 mStorageMap.put(path, storage);
                 if (!mMtpDisabled) {
                     addStorageLocked(storage);

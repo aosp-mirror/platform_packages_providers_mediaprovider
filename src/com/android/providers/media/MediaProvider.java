@@ -1865,6 +1865,7 @@ public class MediaProvider extends ContentProvider {
                 qb.appendWhere("_id=" + uri.getPathSegments().get(3));
                 break;
 
+            case AUDIO_GENRES_ALL_MEMBERS:
             case AUDIO_GENRES_ID_MEMBERS:
                 {
                     // if simpleQuery is true, we can do a simpler query on just audio_genres_map
@@ -1890,11 +1891,15 @@ public class MediaProvider extends ContentProvider {
                     }
                     if (simpleQuery) {
                         qb.setTables("audio_genres_map_noid");
-                        qb.appendWhere("genre_id = " + uri.getPathSegments().get(3));
+                        if (table == AUDIO_GENRES_ID_MEMBERS) {
+                            qb.appendWhere("genre_id=" + uri.getPathSegments().get(3));
+                        }
                     } else {
                         qb.setTables("audio_genres_map_noid, audio");
-                        qb.appendWhere("audio._id = audio_id AND genre_id = "
-                                + uri.getPathSegments().get(3));
+                        qb.appendWhere("audio._id = audio_id");
+                        if (table == AUDIO_GENRES_ID_MEMBERS) {
+                            qb.appendWhere(" AND genre_id=" + uri.getPathSegments().get(3));
+                        }
                         for (int i = 0; keywords != null && i < keywords.length; i++) {
                             qb.appendWhere(" AND ");
                             qb.appendWhere(MediaStore.Audio.Media.ARTIST_KEY +
@@ -4198,6 +4203,7 @@ public class MediaProvider extends ContentProvider {
     private static final int AUDIO_GENRES = 106;
     private static final int AUDIO_GENRES_ID = 107;
     private static final int AUDIO_GENRES_ID_MEMBERS = 108;
+    private static final int AUDIO_GENRES_ALL_MEMBERS = 109;
     private static final int AUDIO_PLAYLISTS = 110;
     private static final int AUDIO_PLAYLISTS_ID = 111;
     private static final int AUDIO_PLAYLISTS_ID_MEMBERS = 112;
@@ -4283,6 +4289,7 @@ public class MediaProvider extends ContentProvider {
         URI_MATCHER.addURI("media", "*/audio/genres", AUDIO_GENRES);
         URI_MATCHER.addURI("media", "*/audio/genres/#", AUDIO_GENRES_ID);
         URI_MATCHER.addURI("media", "*/audio/genres/#/members", AUDIO_GENRES_ID_MEMBERS);
+        URI_MATCHER.addURI("media", "*/audio/genres/all/members", AUDIO_GENRES_ALL_MEMBERS);
         URI_MATCHER.addURI("media", "*/audio/playlists", AUDIO_PLAYLISTS);
         URI_MATCHER.addURI("media", "*/audio/playlists/#", AUDIO_PLAYLISTS_ID);
         URI_MATCHER.addURI("media", "*/audio/playlists/#/members", AUDIO_PLAYLISTS_ID_MEMBERS);

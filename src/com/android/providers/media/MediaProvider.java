@@ -59,6 +59,7 @@ import android.os.Process;
 import android.os.RemoteException;
 import android.os.SystemProperties;
 import android.os.storage.StorageManager;
+import android.os.storage.StorageVolume;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.provider.MediaStore;
@@ -176,11 +177,46 @@ public class MediaProvider extends ContentProvider {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equals(Intent.ACTION_MEDIA_EJECT)) {
-                // Remove the external volume and then notify all cursors backed by
-                // data on that volume
-                detachVolume(Uri.parse("content://media/external"));
-                sFolderArtMap.clear();
-                MiniThumbFile.reset();
+                StorageVolume storage = (StorageVolume)intent.getParcelableExtra(
+                        StorageVolume.EXTRA_STORAGE_VOLUME);
+                // If primary external storage is ejected, then remove the external volume
+                // notify all cursors backed by data on that volume.
+                if (storage.getPath().equals(mExternalStoragePaths[0])) {
+                    detachVolume(Uri.parse("content://media/external"));
+                    sFolderArtMap.clear();
+                    MiniThumbFile.reset();
+                } else {
+                    // If secondary external storage is ejected, then we delete all database
+                    // entries for that storage from the files table.
+                    synchronized (mDatabases) {
+                        DatabaseHelper database = mDatabases.get(EXTERNAL_VOLUME);
+                        Uri uri = Uri.parse("file://" + storage.getPath());
+                        if (database != null) {
+                            try {
+                                // Send media scanner started and stopped broadcasts for apps that rely
+                                // on these Intents for coarse grained media database notifications.
+                                context.sendBroadcast(
+                                        new Intent(Intent.ACTION_MEDIA_SCANNER_STARTED, uri));
+
+                                // don't send objectRemoved events - MTP be sending StorageRemoved anyway
+                                mDisableMtpObjectCallbacks = true;
+                                Log.d(TAG, "deleting all entries for storage " + storage);
+                                SQLiteDatabase db = database.getWritableDatabase();
+                                db.delete("files", FileColumns.STORAGE_ID + "=?",
+                                        new String[] { Integer.toString(storage.getStorageId()) });
+                                context.getContentResolver().notifyChange(
+                                        Files.getContentUri(EXTERNAL_VOLUME), null);
+
+                            } catch (Exception e) {
+                                Log.e(TAG, "exception deleting storage entries", e);
+                            } finally {
+                                context.sendBroadcast(
+                                        new Intent(Intent.ACTION_MEDIA_SCANNER_FINISHED, uri));
+                                mDisableMtpObjectCallbacks = false;
+                            }
+                        }
+                    }
+                }
             }
         }
     };

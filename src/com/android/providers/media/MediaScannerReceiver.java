@@ -49,11 +49,6 @@ public class MediaScannerReceiver extends BroadcastReceiver
                 if (action.equals(Intent.ACTION_MEDIA_MOUNTED)) {
                     // scan whenever any volume is mounted
                     scan(context, MediaProvider.EXTERNAL_VOLUME);
-                } else if (action.equals(Intent.ACTION_MEDIA_UNMOUNTED)
-                        && !externalStoragePath.equals(path)) {
-                    // scan when any volume other than the primary volume is unmounted
-                    // this will remove files for that volume from the database
-                    scan(context, MediaProvider.EXTERNAL_VOLUME);
                 } else if (action.equals(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE) &&
                         path != null && path.startsWith(externalStoragePath + "/")) {
                     scanFile(context, path);

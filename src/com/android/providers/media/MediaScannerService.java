@@ -184,12 +184,6 @@ public class MediaScannerService extends Service implements Runnable
     }
    
     private Uri scanFile(String path, String mimeType) {
-        // single file scanning only supported on primary external storage
-        if (!path.startsWith(mExternalStoragePaths[0])) {
-            throw new IllegalArgumentException(
-                "scanFile is only supported on primary external storage");
-        }
-
         String volumeName = MediaProvider.EXTERNAL_VOLUME;
         openDatabase(volumeName);
         MediaScanner scanner = createMediaScanner();

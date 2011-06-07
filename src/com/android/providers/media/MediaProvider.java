@@ -1459,6 +1459,14 @@ public class MediaProvider extends ContentProvider {
                     "SELECT audio_id,genre_id from audio_genres_map;");
         }
 
+        if (fromVersion < 404) {
+            // There was a bug that could cause distinct same-named albums to be
+            // combined again. Delete albums and force a rescan.
+            db.execSQL("DELETE from albums");
+            db.execSQL("UPDATE files SET date_modified=0 WHERE " + FileColumns.MEDIA_TYPE + "="
+                    + FileColumns.MEDIA_TYPE_AUDIO + ";");
+        }
+
         sanityCheck(db, fromVersion);
     }
 
@@ -3372,11 +3380,34 @@ public class MediaProvider extends ContentProvider {
                                 albumHash = albumartist.hashCode();
                             } else if (compilation != null && compilation.equals("1")) {
                                 // nothing to do, hash already set
-                            } else if (path == null) {
-                                // If the path is null, we don't have a hash for the file in question.
-                                Log.w(TAG, "Update without specified path.");
                             } else {
-                                albumHash = path.substring(0, path.lastIndexOf('/')).hashCode();
+                                if (path == null) {
+                                    if (match == AUDIO_MEDIA) {
+                                        Log.w(TAG, "Possible multi row album name update without"
+                                                + " path could give wrong album key");
+                                    } else {
+                                        //Log.w(TAG, "Specify path to avoid extra query");
+                                        Cursor c = query(uri,
+                                                new String[] { MediaStore.Audio.Media.DATA},
+                                                null, null, null);
+                                        if (c != null) {
+                                            try {
+                                                int numrows = c.getCount();
+                                                if (numrows == 1) {
+                                                    c.moveToFirst();
+                                                    path = c.getString(0);
+                                                } else {
+                                                    Log.e(TAG, "" + numrows + " rows for " + uri);
+                                                }
+                                            } finally {
+                                                c.close();
+                                            }
+                                        }
+                                    }
+                                }
+                                if (path != null) {
+                                    albumHash = path.substring(0, path.lastIndexOf('/')).hashCode();
+                                }
                             }
 
                             String s = so.toString();
@@ -4233,7 +4264,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
-    private static final int DATABASE_VERSION = 403;
+    private static final int DATABASE_VERSION = 404;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
     private static final String EXTERNAL_DATABASE_NAME = "external.db";
 

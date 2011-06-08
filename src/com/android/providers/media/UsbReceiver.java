@@ -35,8 +35,8 @@ public class UsbReceiver extends BroadcastReceiver
         Bundle extras = intent.getExtras();
 
         if (extras.getBoolean(UsbManager.USB_CONNECTED) &&
-                UsbManager.USB_FUNCTION_ENABLED.equals(
-                    extras.getString(UsbManager.USB_FUNCTION_MTP))) {
+                (extras.getBoolean(UsbManager.USB_FUNCTION_MTP) ||
+                 extras.getBoolean(UsbManager.USB_FUNCTION_PTP))) {
             context.startService(new Intent(context, MtpService.class));
             // tell MediaProvider MTP is connected so it can bind to the service
             context.getContentResolver().insert(Uri.parse(

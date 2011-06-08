@@ -19,11 +19,9 @@ package com.android.providers.media;
 import android.app.KeyguardManager;
 import android.app.Service;
 import android.content.BroadcastReceiver;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.database.ContentObserver;
 import android.mtp.MtpDatabase;
 import android.mtp.MtpServer;
 import android.mtp.MtpStorage;
@@ -40,26 +38,6 @@ import java.util.HashMap;
 
 public class MtpService extends Service {
     private static final String TAG = "MtpService";
-
-    private class SettingsObserver extends ContentObserver {
-        private ContentResolver mResolver;
-        SettingsObserver() {
-            super(new Handler());
-        }
-
-        void observe(Context context) {
-            mResolver = context.getContentResolver();
-            mResolver.registerContentObserver(Settings.System.getUriFor(
-                    Settings.System.USE_PTP_INTERFACE), false, this);
-            onChange(false);
-        }
-
-        @Override
-        public void onChange(boolean selfChange) {
-            mPtpMode = (Settings.System.getInt(mResolver,
-                    Settings.System.USE_PTP_INTERFACE, 0) != 0);
-        }
-    }
 
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
@@ -97,18 +75,13 @@ public class MtpService extends Service {
 
     private MtpDatabase mDatabase;
     private MtpServer mServer;
-    private SettingsObserver mSettingsObserver;
     private StorageManager mStorageManager;
-    private boolean mPtpMode;
     private boolean mMtpDisabled; // true if MTP is disabled due to secure keyguard
     private final HashMap<String, MtpStorage> mStorageMap = new HashMap<String, MtpStorage>();
     private StorageVolume[] mVolumes;
 
     @Override
     public void onCreate() {
-        mSettingsObserver = new SettingsObserver();
-        mSettingsObserver.observe(this);
-
         // lock MTP if the keyguard is locked and secure
         KeyguardManager keyguardManager =
                 (KeyguardManager)getSystemService(Context.KEYGUARD_SERVICE);
@@ -138,7 +111,6 @@ public class MtpService extends Service {
                 mDatabase = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME,
                         mVolumes[0].getPath());
                 mServer = new MtpServer(mDatabase);
-                mServer.setPtpMode(mPtpMode);
                 if (!mMtpDisabled) {
                     for (MtpStorage storage : mStorageMap.values()) {
                         addStorageLocked(storage);

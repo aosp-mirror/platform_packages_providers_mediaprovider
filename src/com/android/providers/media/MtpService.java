@@ -22,6 +22,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.hardware.usb.UsbManager;
 import android.mtp.MtpDatabase;
 import android.mtp.MtpServer;
 import android.mtp.MtpStorage;
@@ -110,7 +111,8 @@ public class MtpService extends Service {
                 Log.d(TAG, "starting MTP server");
                 mDatabase = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME,
                         mVolumes[0].getPath());
-                mServer = new MtpServer(mDatabase);
+                boolean usePtp = intent.getBooleanExtra(UsbManager.USB_FUNCTION_PTP, false);
+                mServer = new MtpServer(mDatabase, usePtp);
                 if (!mMtpDisabled) {
                     for (MtpStorage storage : mStorageMap.values()) {
                         addStorageLocked(storage);

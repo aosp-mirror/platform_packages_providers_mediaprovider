@@ -111,7 +111,8 @@ public class MtpService extends Service {
                 Log.d(TAG, "starting MTP server");
                 mDatabase = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME,
                         mVolumes[0].getPath());
-                boolean usePtp = intent.getBooleanExtra(UsbManager.USB_FUNCTION_PTP, false);
+                boolean usePtp = (intent == null ? false
+                        : intent.getBooleanExtra(UsbManager.USB_FUNCTION_PTP, false));
                 mServer = new MtpServer(mDatabase, usePtp);
                 if (!mMtpDisabled) {
                     for (MtpStorage storage : mStorageMap.values()) {

@@ -563,6 +563,12 @@ public class MediaProvider extends ContentProvider {
                         "track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast," +
                         "bookmark,album_artist";
 
+    private static final String AUDIO_COLUMNSv405 =
+                        "_data,_display_name,_size,mime_type,date_added,is_drm," +
+                        "date_modified,title,title_key,duration,artist_id,composer,album_id," +
+                        "track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast," +
+                        "bookmark,album_artist";
+
     private static final String VIDEO_COLUMNS =
                         "_data,_display_name,_size,mime_type,date_added,date_modified," +
                         "title,duration,artist,album,resolution,description,isprivate,tags," +
@@ -1465,6 +1471,18 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("DELETE from albums");
             db.execSQL("UPDATE files SET date_modified=0 WHERE " + FileColumns.MEDIA_TYPE + "="
                     + FileColumns.MEDIA_TYPE_AUDIO + ";");
+        }
+
+        if (fromVersion < 405) {
+            // Add is_drm column.
+            db.execSQL("ALTER TABLE files ADD COLUMN is_drm INTEGER;");
+
+            db.execSQL("DROP VIEW IF EXISTS audio_meta");
+            db.execSQL("CREATE VIEW audio_meta AS SELECT _id," + AUDIO_COLUMNSv405 +
+                        " FROM files WHERE " + FileColumns.MEDIA_TYPE + "="
+                        + FileColumns.MEDIA_TYPE_AUDIO + ";");
+
+            recreateAudioView(db);
         }
 
         sanityCheck(db, fromVersion);
@@ -4264,7 +4282,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
-    private static final int DATABASE_VERSION = 404;
+    private static final int DATABASE_VERSION = 405;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
     private static final String EXTERNAL_DATABASE_NAME = "external.db";
 

@@ -1279,10 +1279,18 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("CREATE INDEX media_type_index ON files(media_type);");
 
             // Copy all data from our obsolete tables to the new files table
+
+            // Copy audio records first, preserving the _id column.
+            // We do this to maintain compatibility for content Uris for ringtones.
+            // Unfortunately we cannot do this for images and videos as well.
+            // We choose to do this for the audio table because the fragility of Uris
+            // for ringtones are the most common problem we need to avoid.
+            db.execSQL("INSERT INTO files (_id," + AUDIO_COLUMNSv99 + ",old_id,media_type)" +
+                    " SELECT _id," + AUDIO_COLUMNSv99 + ",_id," + FileColumns.MEDIA_TYPE_AUDIO +
+                    " FROM audio_meta;");
+
             db.execSQL("INSERT INTO files (" + IMAGE_COLUMNS + ",old_id,media_type) SELECT "
                     + IMAGE_COLUMNS + ",_id," + FileColumns.MEDIA_TYPE_IMAGE + " FROM images;");
-            db.execSQL("INSERT INTO files (" + AUDIO_COLUMNSv99 + ",old_id,media_type) SELECT "
-                    + AUDIO_COLUMNSv99 + ",_id," + FileColumns.MEDIA_TYPE_AUDIO + " FROM audio_meta;");
             db.execSQL("INSERT INTO files (" + VIDEO_COLUMNS + ",old_id,media_type) SELECT "
                     + VIDEO_COLUMNS + ",_id," + FileColumns.MEDIA_TYPE_VIDEO + " FROM video;");
             if (!internal) {

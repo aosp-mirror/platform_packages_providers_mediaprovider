@@ -2311,11 +2311,11 @@ public class MediaProvider extends ContentProvider {
     private ContentValues ensureFile(boolean internal, ContentValues initialValues,
             String preferredExtension, String directoryName) {
         ContentValues values;
-        String file = initialValues.getAsString("_data");
+        String file = initialValues.getAsString(MediaStore.MediaColumns.DATA);
         if (TextUtils.isEmpty(file)) {
             file = generateFileName(internal, preferredExtension, directoryName);
             values = new ContentValues(initialValues);
-            values.put("_data", file);
+            values.put(MediaStore.MediaColumns.DATA, file);
         } else {
             values = initialValues;
         }
@@ -2380,7 +2380,9 @@ public class MediaProvider extends ContentProvider {
         try {
             int len = values.length;
             for (int i = 0; i < len; i++) {
-                insertInternal(uri, match, values[i]);
+                if (values[i] != null) {
+                    insertInternal(uri, match, values[i]);
+                }
             }
             numInserted = len;
             db.setTransactionSuccessful();
@@ -2392,8 +2394,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     @Override
-    public Uri insert(Uri uri, ContentValues initialValues)
-    {
+    public Uri insert(Uri uri, ContentValues initialValues) {
         int match = URI_MATCHER.match(uri);
         Uri newUri = insertInternal(uri, match, initialValues);
         // do not signal notification for MTP objects.
@@ -2540,7 +2541,7 @@ public class MediaProvider extends ContentProvider {
                 values.remove("artist");
                 long artistRowId;
                 HashMap<String, Long> artistCache = database.mArtistCache;
-                String path = values.getAsString("_data");
+                String path = values.getAsString(MediaStore.MediaColumns.DATA);
                 synchronized(artistCache) {
                     Long temp = artistCache.get(s);
                     if (temp == null) {
@@ -2587,13 +2588,13 @@ public class MediaProvider extends ContentProvider {
                 values.remove("title");
                 values.put("title", s.trim());
 
-                computeDisplayName(values.getAsString("_data"), values);
+                computeDisplayName(values.getAsString(MediaStore.MediaColumns.DATA), values);
                 break;
             }
 
             case FileColumns.MEDIA_TYPE_VIDEO: {
                 values = ensureFile(database.mInternal, initialValues, ".3gp", "video");
-                String data = values.getAsString("_data");
+                String data = values.getAsString(MediaStore.MediaColumns.DATA);
                 computeDisplayName(data, values);
                 computeTakenTime(values);
                 break;
@@ -2652,7 +2653,7 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        if (mimeType == null) {
+        if (mimeType == null && path != null) {
             mimeType = MediaFile.getMimeTypeForFile(path);
         }
         if (mimeType != null) {
@@ -2830,6 +2831,19 @@ public class MediaProvider extends ContentProvider {
         if (match == MEDIA_SCANNER) {
             mMediaScannerVolume = initialValues.getAsString(MediaStore.MEDIA_SCANNER_VOLUME);
             return MediaStore.getMediaScannerUri();
+        } else if (match == FILES) {
+            String path = initialValues.getAsString(MediaStore.MediaColumns.DATA);
+            if (path != null) {
+                MediaFile.MediaFileType mediaFileType = MediaFile.getFileType(path);
+                int fileType = (mediaFileType == null ? 0 : mediaFileType.fileType);
+                if (MediaFile.isVideoFileType(fileType)) {
+                    match = VIDEO_MEDIA;
+                } else if (MediaFile.isImageFileType(fileType)) {
+                    match = IMAGES_MEDIA;
+                } else if (MediaFile.isAudioFileType(fileType)) {
+                    match = AUDIO_MEDIA;
+                }
+            }
         }
 
         Uri newUri = null;
@@ -2967,7 +2981,7 @@ public class MediaProvider extends ContentProvider {
                     // probably no more room to store albumthumbs
                     values = initialValues;
                 }
-                rowId = db.insert("album_art", "_data", values);
+                rowId = db.insert("album_art", MediaStore.MediaColumns.DATA, values);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(uri, rowId);
                 }
@@ -3338,7 +3352,7 @@ public class MediaProvider extends ContentProvider {
             if ((match == MTP_OBJECTS || match == MTP_OBJECTS_ID)
                     && initialValues != null && initialValues.size() == 1) {
                 String oldPath = null;
-                String newPath = initialValues.getAsString("_data");
+                String newPath = initialValues.getAsString(MediaStore.MediaColumns.DATA);
                 // MtpDatabase will rename the directory first, so we test the new file name
                 if (newPath != null && (new File(newPath)).isDirectory()) {
                     Cursor cursor = db.query(sGetTableAndWhereParam.table, PATH_PROJECTION,
@@ -3400,7 +3414,7 @@ public class MediaProvider extends ContentProvider {
                         String so = values.getAsString("album");
                         values.remove("album");
                         if (so != null) {
-                            String path = values.getAsString("_data");
+                            String path = values.getAsString(MediaStore.MediaColumns.DATA);
                             int albumHash = 0;
                             if (albumartist != null) {
                                 albumHash = albumartist.hashCode();
@@ -3805,7 +3819,7 @@ public class MediaProvider extends ContentProvider {
         // TODO: this could be done more efficiently with a call to db.replace(), which
         // replaces or inserts as needed, making it unnecessary to query() first.
         if (albumart_uri != null) {
-            Cursor c = query(albumart_uri, new String [] { "_data" },
+            Cursor c = query(albumart_uri, new String [] { MediaStore.MediaColumns.DATA },
                     null, null, null);
             try {
                 if (c != null && c.moveToFirst()) {
@@ -3827,7 +3841,7 @@ public class MediaProvider extends ContentProvider {
             initialValues.put("album_id", album_id);
             try {
                 ContentValues values = ensureFile(false, initialValues, "", ALBUM_THUMB_FOLDER);
-                long rowId = db.insert("album_art", "_data", values);
+                long rowId = db.insert("album_art", MediaStore.MediaColumns.DATA, values);
                 if (rowId > 0) {
                     out = ContentUris.withAppendedId(ALBUMART_URI, rowId);
                 }

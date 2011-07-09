@@ -467,10 +467,6 @@ public class MediaProvider extends ContentProvider {
         context.registerReceiver(mUnmountReceiver, iFilter);
 
         mCaseInsensitivePaths = true;
-        if (!Process.supportsProcesses()) {
-            // Simulator uses host file system, so it should be case sensitive.
-            mCaseInsensitivePaths = false;
-        }
 
         StorageManager storageManager =
                 (StorageManager)context.getSystemService(Context.STORAGE_SERVICE);
@@ -4142,7 +4138,7 @@ public class MediaProvider extends ContentProvider {
      * @return the content URI of the attached volume.
      */
     private Uri attachVolume(String volume) {
-        if (Process.supportsProcesses() && Binder.getCallingPid() != Process.myPid()) {
+        if (Binder.getCallingPid() != Process.myPid()) {
             throw new SecurityException(
                     "Opening and closing databases not allowed.");
         }
@@ -4254,7 +4250,7 @@ public class MediaProvider extends ContentProvider {
      * @param uri The content URI of the volume, as returned by {@link #attachVolume}
      */
     private void detachVolume(Uri uri) {
-        if (Process.supportsProcesses() && Binder.getCallingPid() != Process.myPid()) {
+        if (Binder.getCallingPid() != Process.myPid()) {
             throw new SecurityException(
                     "Opening and closing databases not allowed.");
         }

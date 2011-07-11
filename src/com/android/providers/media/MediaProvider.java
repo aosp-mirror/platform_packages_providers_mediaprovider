@@ -1493,6 +1493,12 @@ public class MediaProvider extends ContentProvider {
             recreateAudioView(db);
         }
 
+        if (fromVersion < 406) {
+            // Rescan files in the media database because a new column has been added
+            // in table files in version 405
+            db.execSQL("UPDATE files SET date_modified=0;");
+        }
+
         sanityCheck(db, fromVersion);
     }
 
@@ -4304,7 +4310,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
-    private static final int DATABASE_VERSION = 405;
+    private static final int DATABASE_VERSION = 406;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
     private static final String EXTERNAL_DATABASE_NAME = "external.db";
 

@@ -33,7 +33,7 @@ public class UsbReceiver extends BroadcastReceiver
     @Override
     public void onReceive(Context context, Intent intent) {
         Bundle extras = intent.getExtras();
-        boolean connected = extras.getBoolean(UsbManager.USB_CONNECTED);
+        boolean connected = extras.getBoolean(UsbManager.USB_CONFIGURED);
         boolean mtpEnabled = extras.getBoolean(UsbManager.USB_FUNCTION_MTP);
         boolean ptpEnabled = extras.getBoolean(UsbManager.USB_FUNCTION_PTP);
         // Start MTP service if USB is connected and either the MTP or PTP function is enabled

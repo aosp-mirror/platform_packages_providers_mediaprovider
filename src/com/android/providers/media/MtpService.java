@@ -131,14 +131,6 @@ public class MtpService extends Service {
     {
         unregisterReceiver(mReceiver);
         mStorageManager.unregisterListener(mStorageEventListener);
-        synchronized (mBinder) {
-            if (mServer != null) {
-                Log.d(TAG, "stopping MTP server");
-                mServer.stop();
-                mServer = null;
-                mDatabase = null;
-            }
-        }
     }
 
     private final IMtpService.Stub mBinder =

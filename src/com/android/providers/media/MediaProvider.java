@@ -2827,23 +2827,35 @@ public class MediaProvider extends ContentProvider {
 
     private Uri insertInternal(Uri uri, int match, ContentValues initialValues) {
         long rowId;
+        ContentValues values = initialValues;
 
         if (LOCAL_LOGV) Log.v(TAG, "insertInternal: "+uri+", initValues="+initialValues);
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
         if (match == MEDIA_SCANNER) {
-            mMediaScannerVolume = initialValues.getAsString(MediaStore.MEDIA_SCANNER_VOLUME);
+            mMediaScannerVolume = values.getAsString(MediaStore.MEDIA_SCANNER_VOLUME);
             return MediaStore.getMediaScannerUri();
         } else if (match == FILES) {
-            String path = initialValues.getAsString(MediaStore.MediaColumns.DATA);
-            if (path != null) {
-                MediaFile.MediaFileType mediaFileType = MediaFile.getFileType(path);
-                int fileType = (mediaFileType == null ? 0 : mediaFileType.fileType);
-                if (MediaFile.isVideoFileType(fileType)) {
-                    match = VIDEO_MEDIA;
-                } else if (MediaFile.isImageFileType(fileType)) {
-                    match = IMAGES_MEDIA;
-                } else if (MediaFile.isAudioFileType(fileType)) {
-                    match = AUDIO_MEDIA;
+            boolean noMedia = false;
+            Boolean noMediaValue = values.getAsBoolean(MediaStore.MediaColumns.NO_MEDIA);
+            if (noMediaValue != null) {
+                noMedia = noMediaValue.booleanValue();
+                values = new ContentValues(values);
+                values.remove(MediaStore.MediaColumns.MEDIA_SCANNER_NEW_OBJECT_ID);
+            }
+
+            if (!noMedia) {
+                // compute table for insert based on file extension
+                String path = values.getAsString(MediaStore.MediaColumns.DATA);
+                if (path != null) {
+                    MediaFile.MediaFileType mediaFileType = MediaFile.getFileType(path);
+                    int fileType = (mediaFileType == null ? 0 : mediaFileType.fileType);
+                    if (MediaFile.isVideoFileType(fileType)) {
+                        match = VIDEO_MEDIA;
+                    } else if (MediaFile.isImageFileType(fileType)) {
+                        match = IMAGES_MEDIA;
+                    } else if (MediaFile.isAudioFileType(fileType)) {
+                        match = AUDIO_MEDIA;
+                    }
                 }
             }
         }
@@ -2859,7 +2871,7 @@ public class MediaProvider extends ContentProvider {
 
         switch (match) {
             case IMAGES_MEDIA: {
-                rowId = insertFile(database, uri, initialValues, FileColumns.MEDIA_TYPE_IMAGE, true);
+                rowId = insertFile(database, uri, values, FileColumns.MEDIA_TYPE_IMAGE, true);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(
                             Images.Media.getContentUri(uri.getPathSegments().get(0)), rowId);
@@ -2869,7 +2881,7 @@ public class MediaProvider extends ContentProvider {
 
             // This will be triggered by requestMediaThumbnail (see getThumbnailUri)
             case IMAGES_THUMBNAILS: {
-                ContentValues values = ensureFile(database.mInternal, initialValues, ".jpg",
+                values = ensureFile(database.mInternal, values, ".jpg",
                         "DCIM/.thumbnails");
                 rowId = db.insert("thumbnails", "name", values);
                 if (rowId > 0) {
@@ -2881,7 +2893,7 @@ public class MediaProvider extends ContentProvider {
 
             // This is currently only used by MICRO_KIND video thumbnail (see getThumbnailUri)
             case VIDEO_THUMBNAILS: {
-                ContentValues values = ensureFile(database.mInternal, initialValues, ".jpg",
+                values = ensureFile(database.mInternal, values, ".jpg",
                         "DCIM/.thumbnails");
                 rowId = db.insert("videothumbnails", "name", values);
                 if (rowId > 0) {
@@ -2892,7 +2904,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             case AUDIO_MEDIA: {
-                rowId = insertFile(database, uri, initialValues, FileColumns.MEDIA_TYPE_AUDIO, true);
+                rowId = insertFile(database, uri, values, FileColumns.MEDIA_TYPE_AUDIO, true);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(Audio.Media.getContentUri(uri.getPathSegments().get(0)), rowId);
                 }
@@ -2901,7 +2913,7 @@ public class MediaProvider extends ContentProvider {
 
             case AUDIO_MEDIA_ID_GENRES: {
                 Long audioId = Long.parseLong(uri.getPathSegments().get(2));
-                ContentValues values = new ContentValues(initialValues);
+                values = new ContentValues(values);
                 values.put(Audio.Genres.Members.AUDIO_ID, audioId);
                 rowId = db.insert("audio_genres_map", "genre_id", values);
                 if (rowId > 0) {
@@ -2912,7 +2924,7 @@ public class MediaProvider extends ContentProvider {
 
             case AUDIO_MEDIA_ID_PLAYLISTS: {
                 Long audioId = Long.parseLong(uri.getPathSegments().get(2));
-                ContentValues values = new ContentValues(initialValues);
+                values = new ContentValues(values);
                 values.put(Audio.Playlists.Members.AUDIO_ID, audioId);
                 rowId = db.insert("audio_playlists_map", "playlist_id",
                         values);
@@ -2923,7 +2935,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             case AUDIO_GENRES: {
-                rowId = db.insert("audio_genres", "audio_id", initialValues);
+                rowId = db.insert("audio_genres", "audio_id", values);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(Audio.Genres.getContentUri(uri.getPathSegments().get(0)), rowId);
                 }
@@ -2932,7 +2944,7 @@ public class MediaProvider extends ContentProvider {
 
             case AUDIO_GENRES_ID_MEMBERS: {
                 Long genreId = Long.parseLong(uri.getPathSegments().get(3));
-                ContentValues values = new ContentValues(initialValues);
+                values = new ContentValues(values);
                 values.put(Audio.Genres.Members.GENRE_ID, genreId);
                 rowId = db.insert("audio_genres_map", "genre_id", values);
                 if (rowId > 0) {
@@ -2942,7 +2954,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             case AUDIO_PLAYLISTS: {
-                ContentValues values = new ContentValues(initialValues);
+                values = new ContentValues(values);
                 values.put(MediaStore.Audio.Playlists.DATE_ADDED, System.currentTimeMillis() / 1000);
                 rowId = insertFile(database, uri, values, FileColumns.MEDIA_TYPE_PLAYLIST, true);
                 if (rowId > 0) {
@@ -2954,7 +2966,7 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_PLAYLISTS_ID:
             case AUDIO_PLAYLISTS_ID_MEMBERS: {
                 Long playlistId = Long.parseLong(uri.getPathSegments().get(3));
-                ContentValues values = new ContentValues(initialValues);
+                values = new ContentValues(values);
                 values.put(Audio.Playlists.Members.PLAYLIST_ID, playlistId);
                 rowId = db.insert("audio_playlists_map", "playlist_id", values);
                 if (rowId > 0) {
@@ -2964,7 +2976,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             case VIDEO_MEDIA: {
-                rowId = insertFile(database, uri, initialValues, FileColumns.MEDIA_TYPE_VIDEO, true);
+                rowId = insertFile(database, uri, values, FileColumns.MEDIA_TYPE_VIDEO, true);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(Video.Media.getContentUri(
                             uri.getPathSegments().get(0)), rowId);
@@ -2976,12 +2988,10 @@ public class MediaProvider extends ContentProvider {
                 if (database.mInternal) {
                     throw new UnsupportedOperationException("no internal album art allowed");
                 }
-                ContentValues values = null;
                 try {
-                    values = ensureFile(false, initialValues, "", ALBUM_THUMB_FOLDER);
+                    values = ensureFile(false, values, "", ALBUM_THUMB_FOLDER);
                 } catch (IllegalStateException ex) {
                     // probably no more room to store albumthumbs
-                    values = initialValues;
                 }
                 rowId = db.insert("album_art", MediaStore.MediaColumns.DATA, values);
                 if (rowId > 0) {
@@ -2991,7 +3001,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             case VOLUMES:
-                return attachVolume(initialValues.getAsString("name"));
+                return attachVolume(values.getAsString("name"));
 
             case MTP_CONNECTED:
                 synchronized (mMtpServiceConnection) {
@@ -3005,8 +3015,7 @@ public class MediaProvider extends ContentProvider {
                 break;
 
             case FILES:
-                rowId = insertFile(database, uri, initialValues,
-                        FileColumns.MEDIA_TYPE_NONE, true);
+                rowId = insertFile(database, uri, values, FileColumns.MEDIA_TYPE_NONE, true);
                 if (rowId > 0) {
                     newUri = Files.getContentUri(uri.getPathSegments().get(0), rowId);
                 }
@@ -3014,8 +3023,7 @@ public class MediaProvider extends ContentProvider {
 
             case MTP_OBJECTS:
                 // don't send a notification if the insert originated from MTP
-                rowId = insertFile(database, uri, initialValues,
-                        FileColumns.MEDIA_TYPE_NONE, false);
+                rowId = insertFile(database, uri, values, FileColumns.MEDIA_TYPE_NONE, false);
                 if (rowId > 0) {
                     newUri = Files.getMtpObjectsUri(uri.getPathSegments().get(0), rowId);
                 }

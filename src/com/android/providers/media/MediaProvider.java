@@ -2840,7 +2840,7 @@ public class MediaProvider extends ContentProvider {
             if (noMediaValue != null) {
                 noMedia = noMediaValue.booleanValue();
                 values = new ContentValues(values);
-                values.remove(MediaStore.MediaColumns.MEDIA_SCANNER_NEW_OBJECT_ID);
+                values.remove(MediaStore.MediaColumns.NO_MEDIA);
             }
 
             if (!noMedia) {

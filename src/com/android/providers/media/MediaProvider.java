@@ -2833,19 +2833,6 @@ public class MediaProvider extends ContentProvider {
         if (match == MEDIA_SCANNER) {
             mMediaScannerVolume = initialValues.getAsString(MediaStore.MEDIA_SCANNER_VOLUME);
             return MediaStore.getMediaScannerUri();
-        } else if (match == FILES) {
-            String path = initialValues.getAsString(MediaStore.MediaColumns.DATA);
-            if (path != null) {
-                MediaFile.MediaFileType mediaFileType = MediaFile.getFileType(path);
-                int fileType = (mediaFileType == null ? 0 : mediaFileType.fileType);
-                if (MediaFile.isVideoFileType(fileType)) {
-                    match = VIDEO_MEDIA;
-                } else if (MediaFile.isImageFileType(fileType)) {
-                    match = IMAGES_MEDIA;
-                } else if (MediaFile.isAudioFileType(fileType)) {
-                    match = AUDIO_MEDIA;
-                }
-            }
         }
 
         Uri newUri = null;

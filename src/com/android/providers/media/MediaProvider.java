@@ -4279,7 +4279,7 @@ public class MediaProvider extends ContentProvider {
                 // touch the database file to show it is most recently used
                 File file = new File(database.getReadableDatabase().getPath());
                 file.setLastModified(System.currentTimeMillis());
-            } catch (SQLException e) {
+            } catch (Exception e) {
                 Log.e(TAG, "Can't touch database file", e);
             }
 

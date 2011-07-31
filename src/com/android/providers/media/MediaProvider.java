@@ -1489,9 +1489,10 @@ public class MediaProvider extends ContentProvider {
             recreateAudioView(db);
         }
 
-        if (fromVersion < 406) {
+        if (fromVersion < 407) {
             // Rescan files in the media database because a new column has been added
-            // in table files in version 405
+            // in table files in version 405 and to recover from problems populating
+            // the genre tables
             db.execSQL("UPDATE files SET date_modified=0;");
         }
 
@@ -2825,6 +2826,47 @@ public class MediaProvider extends ContentProvider {
                 valuesList);
     }
 
+    private static final String[] GENRE_LOOKUP_PROJECTION = new String[] {
+            Audio.Genres._ID, // 0
+            Audio.Genres.NAME, // 1
+    };
+
+    private void updateGenre(long rowId, String genre) {
+        Uri uri = null;
+        Cursor cursor = null;
+        Uri genresUri = MediaStore.Audio.Genres.getContentUri("external");
+        try {
+            // see if the genre already exists
+            cursor = query(genresUri, GENRE_LOOKUP_PROJECTION, MediaStore.Audio.Genres.NAME + "=?",
+                            new String[] { genre }, null);
+            if (cursor == null || cursor.getCount() == 0) {
+                // genre does not exist, so create the genre in the genre table
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.Audio.Genres.NAME, genre);
+                uri = insert(genresUri, values);
+            } else {
+                // genre already exists, so compute its Uri
+                cursor.moveToNext();
+                uri = ContentUris.withAppendedId(genresUri, cursor.getLong(0));
+            }
+            if (uri != null) {
+                uri = Uri.withAppendedPath(uri, MediaStore.Audio.Genres.Members.CONTENT_DIRECTORY);
+            }
+        } finally {
+            // release the cursor if it exists
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+
+        if (uri != null) {
+            // add entry to audio_genre_map
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.Audio.Genres.Members.AUDIO_ID, Long.valueOf(rowId));
+            insert(uri, values);
+        }
+    }
+
     private Uri insertInternal(Uri uri, int match, ContentValues initialValues) {
         long rowId;
 
@@ -2833,6 +2875,12 @@ public class MediaProvider extends ContentProvider {
         if (match == MEDIA_SCANNER) {
             mMediaScannerVolume = initialValues.getAsString(MediaStore.MEDIA_SCANNER_VOLUME);
             return MediaStore.getMediaScannerUri();
+        }
+
+        String genre = null;
+        if (initialValues != null) {
+            genre = initialValues.getAsString(Audio.AudioColumns.GENRE);
+            initialValues.remove(Audio.AudioColumns.GENRE);
         }
 
         Uri newUri = null;
@@ -2882,6 +2930,9 @@ public class MediaProvider extends ContentProvider {
                 rowId = insertFile(database, uri, initialValues, FileColumns.MEDIA_TYPE_AUDIO, true);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(Audio.Media.getContentUri(uri.getPathSegments().get(0)), rowId);
+                    if (genre != null) {
+                        updateGenre(rowId, genre);
+                    }
                 }
                 break;
             }
@@ -3332,6 +3383,12 @@ public class MediaProvider extends ContentProvider {
         }
         SQLiteDatabase db = database.getWritableDatabase();
 
+        String genre = null;
+        if (initialValues != null) {
+            genre = initialValues.getAsString(Audio.AudioColumns.GENRE);
+            initialValues.remove(Audio.AudioColumns.GENRE);
+        }
+
         synchronized (sGetTableAndWhereParam) {
             getTableAndWhere(uri, match, userWhere, sGetTableAndWhereParam);
 
@@ -3470,6 +3527,16 @@ public class MediaProvider extends ContentProvider {
 
                         count = db.update(sGetTableAndWhereParam.table, values,
                                 sGetTableAndWhereParam.where, whereArgs);
+                        if (genre != null) {
+                            if (count == 1 && match == AUDIO_MEDIA_ID) {
+                                long rowId = Long.parseLong(uri.getPathSegments().get(3));
+                                updateGenre(rowId, genre);
+                            } else {
+                                // can't handle genres for bulk update or for non-audio files
+                                Log.w(TAG, "ignoring genre in update: count = "
+                                        + count + " match = " + match);
+                            }
+                        }
                     }
                     break;
                 case IMAGES_MEDIA:
@@ -4293,7 +4360,7 @@ public class MediaProvider extends ContentProvider {
 
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
-    private static final int DATABASE_VERSION = 406;
+    private static final int DATABASE_VERSION = 407;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
     private static final String EXTERNAL_DATABASE_NAME = "external.db";
 

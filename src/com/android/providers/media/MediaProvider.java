@@ -202,11 +202,25 @@ public class MediaProvider extends ContentProvider {
                                 mDisableMtpObjectCallbacks = true;
                                 Log.d(TAG, "deleting all entries for storage " + storage);
                                 SQLiteDatabase db = database.getWritableDatabase();
-                                db.delete("files", FileColumns.STORAGE_ID + "=?",
-                                        new String[] { Integer.toString(storage.getStorageId()) });
+                                // First clear the file path to disable the _DELETE_FILE database hook.
+                                // We do this to avoid deleting files if the volume is remounted while
+                                // we are still processing the unmount event.
+                                ContentValues values = new ContentValues();
+                                values.put(Files.FileColumns.DATA, "");
+                                String where = FileColumns.STORAGE_ID + "=?";
+                                String[] whereArgs = new String[] { Integer.toString(storage.getStorageId()) };
+                                db.update("files", values, where, whereArgs);
+                                // now delete the records
+                                db.delete("files", where, whereArgs);
+                                // notify on media Uris as well as the files Uri
+                                context.getContentResolver().notifyChange(
+                                        Audio.Media.getContentUri(EXTERNAL_VOLUME), null);
+                                context.getContentResolver().notifyChange(
+                                        Images.Media.getContentUri(EXTERNAL_VOLUME), null);
+                                context.getContentResolver().notifyChange(
+                                        Video.Media.getContentUri(EXTERNAL_VOLUME), null);
                                 context.getContentResolver().notifyChange(
                                         Files.getContentUri(EXTERNAL_VOLUME), null);
-
                             } catch (Exception e) {
                                 Log.e(TAG, "exception deleting storage entries", e);
                             } finally {

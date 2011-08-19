@@ -261,21 +261,27 @@ public class MediaProvider extends ContentProvider {
      * external card, or with internal storage).  Can open the actual database
      * on demand, create and upgrade the schema, etc.
      */
-    private final class DatabaseHelper extends SQLiteOpenHelper {
+    static final class DatabaseHelper extends SQLiteOpenHelper {
         final Context mContext;
         final String mName;
         final boolean mInternal;  // True if this is the internal database
+        final boolean mEarlyUpgrade;
+        final SQLiteDatabase.CustomFunction mObjectRemovedCallback;
         boolean mUpgradeAttempted; // Used for upgrade error handling
 
         // In memory caches of artist and album data.
         HashMap<String, Long> mArtistCache = new HashMap<String, Long>();
         HashMap<String, Long> mAlbumCache = new HashMap<String, Long>();
 
-        public DatabaseHelper(Context context, String name, boolean internal) {
+        public DatabaseHelper(Context context, String name, boolean internal,
+                boolean earlyUpgrade,
+                SQLiteDatabase.CustomFunction objectRemovedCallback) {
             super(context, name, null, DATABASE_VERSION);
             mContext = context;
             mName = name;
             mInternal = internal;
+            mEarlyUpgrade = earlyUpgrade;
+            mObjectRemovedCallback = objectRemovedCallback;
         }
 
         /**
@@ -334,7 +340,11 @@ public class MediaProvider extends ContentProvider {
 
             if (mInternal) return;  // The internal database is kept separately.
 
-            db.addCustomFunction("_OBJECT_REMOVED", 1, mObjectRemovedCallback);
+            if (mEarlyUpgrade) return; // Doing early upgrade.
+
+            if (mObjectRemovedCallback != null) {
+                db.addCustomFunction("_OBJECT_REMOVED", 1, mObjectRemovedCallback);
+            }
 
             // the code below is only needed on devices with removable storage
             if (!Environment.isExternalStorageRemovable()) return;
@@ -4217,6 +4227,26 @@ public class MediaProvider extends ContentProvider {
         return null;
     }
 
+    static boolean isMediaDatabaseName(String name) {
+        if (INTERNAL_DATABASE_NAME.equals(name)) {
+            return true;
+        }
+        if (EXTERNAL_DATABASE_NAME.equals(name)) {
+            return true;
+        }
+        if (name.startsWith("external-")) {
+            return true;
+        }
+        return false;
+    }
+
+    static boolean isInternalMediaDatabaseName(String name) {
+        if (INTERNAL_DATABASE_NAME.equals(name)) {
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Attach the database for a volume (internal or external).
      * Does nothing if the volume is already attached, otherwise
@@ -4239,7 +4269,8 @@ public class MediaProvider extends ContentProvider {
             Context context = getContext();
             DatabaseHelper db;
             if (INTERNAL_VOLUME.equals(volume)) {
-                db = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, true);
+                db = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, true,
+                        false, mObjectRemovedCallback);
             } else if (EXTERNAL_VOLUME.equals(volume)) {
                 if (Environment.isExternalStorageRemovable()) {
                     String path = mExternalStoragePaths[0];
@@ -4248,7 +4279,8 @@ public class MediaProvider extends ContentProvider {
 
                     // generate database name based on volume ID
                     String dbName = "external-" + Integer.toHexString(volumeID) + ".db";
-                    db = new DatabaseHelper(context, dbName, false);
+                    db = new DatabaseHelper(context, dbName, false,
+                            false, mObjectRemovedCallback);
                     mVolumeId = volumeID;
                 } else {
                     // external database name should be EXTERNAL_DATABASE_NAME
@@ -4288,7 +4320,8 @@ public class MediaProvider extends ContentProvider {
                         }
                         // else DatabaseHelper will create one named EXTERNAL_DATABASE_NAME
                     }
-                    db = new DatabaseHelper(context, dbFile.getName(), false);
+                    db = new DatabaseHelper(context, dbFile.getName(), false,
+                            false, mObjectRemovedCallback);
                 }
             } else {
                 throw new IllegalArgumentException("There is no volume named " + volume);

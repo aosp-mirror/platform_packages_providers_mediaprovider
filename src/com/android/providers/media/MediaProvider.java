@@ -1331,6 +1331,9 @@ public class MediaProvider extends ContentProvider {
                         + FileColumns.MEDIA_TYPE_PLAYLIST + ";");
             }
 
+            // create temporary index to make the updates go faster
+            db.execSQL("CREATE INDEX tmp ON files(old_id);");
+
             // update the image_id column in the thumbnails table.
             db.execSQL("UPDATE thumbnails SET image_id = (SELECT _id FROM files "
                         + "WHERE files.old_id = thumbnails.image_id AND files.media_type = "
@@ -1354,6 +1357,9 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("UPDATE videothumbnails SET video_id = (SELECT _id FROM files "
                         + "WHERE files.old_id = videothumbnails.video_id AND files.media_type = "
                         + FileColumns.MEDIA_TYPE_VIDEO + ");");
+
+            // we don't need this index anymore now
+            db.execSQL("DROP INDEX tmp;");
 
             // update indices to work on the files table
             db.execSQL("DROP INDEX IF EXISTS title_idx");
@@ -1568,13 +1574,14 @@ public class MediaProvider extends ContentProvider {
             try {
                 final int idColumnIndex = cursor.getColumnIndex(BaseColumns._ID);
                 final int dataColumnIndex = cursor.getColumnIndex(MediaColumns.DATA);
+                String [] rowId = new String[1];
                 while (cursor.moveToNext()) {
                     String data = cursor.getString(dataColumnIndex);
-                    int rowId = cursor.getInt(idColumnIndex);
+                    rowId[0] = String.valueOf(cursor.getInt(idColumnIndex));
                     if (data != null) {
                         ContentValues values = new ContentValues();
                         computeBucketValues(data, values);
-                        db.update(tableName, values, "_id=" + rowId, null);
+                        db.update(tableName, values, "_id=?", rowId);
                     } else {
                         Log.w(TAG, "null data at id " + rowId);
                     }

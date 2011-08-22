@@ -18,10 +18,13 @@ package com.android.providers.media;
 
 import java.io.File;
 
+import android.app.ActivityManagerNative;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.RemoteException;
 import android.util.Log;
 import android.util.Slog;
 
@@ -44,12 +47,26 @@ public class MediaUpgradeReceiver extends BroadcastReceiver {
         // We are now running with the system up, but no apps started,
         // so can do whatever cleanup after an upgrade that we want.
 
+        // Lookup the last known database version
+        SharedPreferences prefs = context.getSharedPreferences(TAG, Context.MODE_PRIVATE);
+        int prefVersion = prefs.getInt(PREF_DB_VERSION, 0);
+        if (prefVersion == MediaProvider.DATABASE_VERSION) {
+            return;
+        }
+        prefs.edit().putInt(PREF_DB_VERSION, MediaProvider.DATABASE_VERSION).commit();
+
         try {
             File dbDir = context.getDatabasePath("foo").getParentFile();
             String[] files = dbDir.list();
             for (int i=0; i<files.length; i++) {
                 String file = files[i];
                 if (MediaProvider.isMediaDatabaseName(file)) {
+                    try {
+                        ActivityManagerNative.getDefault().showBootMessage(
+                                context.getText(R.string.upgrade_msg), true);
+                    } catch (RemoteException e) {
+                    }
+
                     long startTime = System.currentTimeMillis();
                     Slog.i(TAG, "---> Start upgrade of media database " + file);
                     SQLiteDatabase db = null;

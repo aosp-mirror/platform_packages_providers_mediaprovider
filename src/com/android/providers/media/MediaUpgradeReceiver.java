@@ -58,6 +58,7 @@ public class MediaUpgradeReceiver extends BroadcastReceiver {
         try {
             File dbDir = context.getDatabasePath("foo").getParentFile();
             String[] files = dbDir.list();
+            if (files == null) return;
             for (int i=0; i<files.length; i++) {
                 String file = files[i];
                 if (MediaProvider.isMediaDatabaseName(file)) {

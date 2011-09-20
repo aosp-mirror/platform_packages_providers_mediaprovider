@@ -569,6 +569,12 @@ public class MediaProvider extends ContentProvider {
     private static final String IMAGE_COLUMNS =
                         "_data,_size,_display_name,mime_type,title,date_added," +
                         "date_modified,description,picasa_id,isprivate,latitude,longitude," +
+                        "datetaken,orientation,mini_thumb_magic,bucket_id,bucket_display_name," +
+                        "width,height";
+
+    private static final String IMAGE_COLUMNSv407 =
+                        "_data,_size,_display_name,mime_type,title,date_added," +
+                        "date_modified,description,picasa_id,isprivate,latitude,longitude," +
                         "datetaken,orientation,mini_thumb_magic,bucket_id,bucket_display_name";
 
     private static final String AUDIO_COLUMNSv99 =
@@ -590,6 +596,13 @@ public class MediaProvider extends ContentProvider {
                         "bookmark,album_artist";
 
     private static final String VIDEO_COLUMNS =
+                        "_data,_display_name,_size,mime_type,date_added,date_modified," +
+                        "title,duration,artist,album,resolution,description,isprivate,tags," +
+                        "category,language,mini_thumb_data,latitude,longitude,datetaken," +
+                        "mini_thumb_magic,bucket_id,bucket_display_name,bookmark,width," +
+                        "height";
+
+    private static final String VIDEO_COLUMNSv407 =
                         "_data,_display_name,_size,mime_type,date_added,date_modified," +
                         "title,duration,artist,album,resolution,description,isprivate,tags," +
                         "category,language,mini_thumb_data,latitude,longitude,datetaken," +
@@ -1309,10 +1322,10 @@ public class MediaProvider extends ContentProvider {
                     " SELECT _id," + AUDIO_COLUMNSv99 + ",_id," + FileColumns.MEDIA_TYPE_AUDIO +
                     " FROM audio_meta;");
 
-            db.execSQL("INSERT INTO files (" + IMAGE_COLUMNS + ",old_id,media_type) SELECT "
-                    + IMAGE_COLUMNS + ",_id," + FileColumns.MEDIA_TYPE_IMAGE + " FROM images;");
-            db.execSQL("INSERT INTO files (" + VIDEO_COLUMNS + ",old_id,media_type) SELECT "
-                    + VIDEO_COLUMNS + ",_id," + FileColumns.MEDIA_TYPE_VIDEO + " FROM video;");
+            db.execSQL("INSERT INTO files (" + IMAGE_COLUMNSv407 + ",old_id,media_type) SELECT "
+                    + IMAGE_COLUMNSv407 + ",_id," + FileColumns.MEDIA_TYPE_IMAGE + " FROM images;");
+            db.execSQL("INSERT INTO files (" + VIDEO_COLUMNSv407 + ",old_id,media_type) SELECT "
+                    + VIDEO_COLUMNSv407 + ",_id," + FileColumns.MEDIA_TYPE_VIDEO + " FROM video;");
             if (!internal) {
                 db.execSQL("INSERT INTO files (" + PLAYLIST_COLUMNS + ",old_id,media_type) SELECT "
                         + PLAYLIST_COLUMNS + ",_id," + FileColumns.MEDIA_TYPE_PLAYLIST
@@ -1326,13 +1339,13 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("DROP TABLE IF EXISTS audio_playlists");
 
             // Create views to replace our old tables
-            db.execSQL("CREATE VIEW images AS SELECT _id," + IMAGE_COLUMNS +
+            db.execSQL("CREATE VIEW images AS SELECT _id," + IMAGE_COLUMNSv407 +
                         " FROM files WHERE " + FileColumns.MEDIA_TYPE + "="
                         + FileColumns.MEDIA_TYPE_IMAGE + ";");
             db.execSQL("CREATE VIEW audio_meta AS SELECT _id," + AUDIO_COLUMNSv100 +
                         " FROM files WHERE " + FileColumns.MEDIA_TYPE + "="
                         + FileColumns.MEDIA_TYPE_AUDIO + ";");
-            db.execSQL("CREATE VIEW video AS SELECT _id," + VIDEO_COLUMNS +
+            db.execSQL("CREATE VIEW video AS SELECT _id," + VIDEO_COLUMNSv407 +
                         " FROM files WHERE " + FileColumns.MEDIA_TYPE + "="
                         + FileColumns.MEDIA_TYPE_VIDEO + ";");
             if (!internal) {
@@ -1524,6 +1537,25 @@ public class MediaProvider extends ContentProvider {
             // in table files in version 405 and to recover from problems populating
             // the genre tables
             db.execSQL("UPDATE files SET date_modified=0;");
+        }
+
+        if (fromVersion < 408) {
+            // Add the width/height columns for images and video
+            db.execSQL("ALTER TABLE files ADD COLUMN width INTEGER;");
+            db.execSQL("ALTER TABLE files ADD COLUMN height INTEGER;");
+
+            // Rescan files to fill the columns
+            db.execSQL("UPDATE files SET date_modified=0;");
+
+            // Update images and video views to contain the width/height columns
+            db.execSQL("DROP VIEW IF EXISTS images");
+            db.execSQL("DROP VIEW IF EXISTS video");
+            db.execSQL("CREATE VIEW images AS SELECT _id," + IMAGE_COLUMNS +
+                        " FROM files WHERE " + FileColumns.MEDIA_TYPE + "="
+                        + FileColumns.MEDIA_TYPE_IMAGE + ";");
+            db.execSQL("CREATE VIEW video AS SELECT _id," + VIDEO_COLUMNS +
+                        " FROM files WHERE " + FileColumns.MEDIA_TYPE + "="
+                        + FileColumns.MEDIA_TYPE_VIDEO + ";");
         }
 
         sanityCheck(db, fromVersion);
@@ -4415,7 +4447,7 @@ public class MediaProvider extends ContentProvider {
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
 
-    static final int DATABASE_VERSION = 407;
+    static final int DATABASE_VERSION = 408;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
     private static final String EXTERNAL_DATABASE_NAME = "external.db";
 

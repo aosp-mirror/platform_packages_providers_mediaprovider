@@ -19,5 +19,5 @@
     <string name="uid_label" msgid="999888504096344278">"媒體"</string>
     <string name="app_label" msgid="581696352855930028">"媒體儲存空間"</string>
     <string name="upgrade_msg" msgid="4093462661265175619">"正在升級媒體資料庫。"</string>
-    <string name="artist_label" msgid="1181678850424271227">"歌手/創作人"</string>
+    <string name="artist_label" msgid="1181678850424271227">"演出者"</string>
 </resources>

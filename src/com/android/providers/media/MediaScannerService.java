@@ -231,7 +231,12 @@ public class MediaScannerService extends Service implements Runnable
                     IBinder binder = arguments.getIBinder("listener");
                     IMediaScannerListener listener = 
                             (binder == null ? null : IMediaScannerListener.Stub.asInterface(binder));
-                    Uri uri = scanFile(filePath, arguments.getString("mimetype"));
+                    Uri uri = null;
+                    try {
+                        uri = scanFile(filePath, arguments.getString("mimetype"));
+                    } catch (Exception e) {
+                        Log.e(TAG, "Exception scanning file", e);
+                    }
                     if (listener != null) {
                         listener.scanCompleted(filePath, uri);
                     }

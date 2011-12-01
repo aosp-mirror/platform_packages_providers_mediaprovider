@@ -35,10 +35,28 @@ import android.os.storage.StorageVolume;
 import android.provider.Settings;
 import android.util.Log;
 
+import java.io.File;
 import java.util.HashMap;
 
 public class MtpService extends Service {
     private static final String TAG = "MtpService";
+
+    // We restrict PTP to these subdirectories
+    private static final String[] PTP_DIRECTORIES = new String[] {
+        Environment.DIRECTORY_DCIM,
+        Environment.DIRECTORY_PICTURES,
+    };
+
+    private void addStorageDevicesLocked() {
+        if (mPtpMode) {
+            // In PTP mode we support only primary storage
+            addStorageLocked(mStorageMap.get(mVolumes[0].getPath()));
+        } else {
+            for (MtpStorage storage : mStorageMap.values()) {
+                addStorageLocked(storage);
+            }
+        }
+    }
 
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
@@ -48,9 +66,7 @@ public class MtpService extends Service {
                 synchronized (mBinder) {
                     // Unhide the storage units when the user has unlocked the lockscreen
                     if (mMtpDisabled) {
-                        for (MtpStorage storage : mStorageMap.values()) {
-                            addStorageLocked(storage);
-                        }
+                        addStorageDevicesLocked();
                         mMtpDisabled = false;
                     }
                 }
@@ -78,6 +94,7 @@ public class MtpService extends Service {
     private MtpServer mServer;
     private StorageManager mStorageManager;
     private boolean mMtpDisabled; // true if MTP is disabled due to secure keyguard
+    private boolean mPtpMode;
     private final HashMap<String, MtpStorage> mStorageMap = new HashMap<String, MtpStorage>();
     private StorageVolume[] mVolumes;
 
@@ -108,16 +125,26 @@ public class MtpService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         synchronized (mBinder) {
             if (mServer == null) {
-                Log.d(TAG, "starting MTP server");
-                mDatabase = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME,
-                        mVolumes[0].getPath());
-                boolean usePtp = (intent == null ? false
+                mPtpMode = (intent == null ? false
                         : intent.getBooleanExtra(UsbManager.USB_FUNCTION_PTP, false));
-                mServer = new MtpServer(mDatabase, usePtp);
-                if (!mMtpDisabled) {
-                    for (MtpStorage storage : mStorageMap.values()) {
-                        addStorageLocked(storage);
+                Log.d(TAG, "starting MTP server in " + (mPtpMode ? "PTP mode" : "MTP mode"));
+                String[] subdirs = null;
+                if (mPtpMode) {
+                    int count = PTP_DIRECTORIES.length;
+                    subdirs = new String[count];
+                    for (int i = 0; i < count; i++) {
+                        File file =
+                                Environment.getExternalStoragePublicDirectory(PTP_DIRECTORIES[i]);
+                        // make sure this directory exists
+                        file.mkdirs();
+                        subdirs[i] = file.getPath();
                     }
+                }
+                mDatabase = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME,
+                        mVolumes[0].getPath(), subdirs);
+                mServer = new MtpServer(mDatabase, mPtpMode);
+                if (!mMtpDisabled) {
+                    addStorageDevicesLocked();
                 }
                 mServer.start();
             }
@@ -168,7 +195,10 @@ public class MtpService extends Service {
                 MtpStorage storage = new MtpStorage(volume);
                 mStorageMap.put(path, storage);
                 if (!mMtpDisabled) {
-                    addStorageLocked(storage);
+                    // In PTP mode we support only primary storage
+                    if (i == 0 || !mPtpMode) {
+                        addStorageLocked(storage);
+                    }
                 }
                 break;
             }

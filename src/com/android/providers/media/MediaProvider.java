@@ -102,6 +102,9 @@ public class MediaProvider extends ContentProvider {
     private static final HashMap<String, String> sArtistAlbumsMap = new HashMap<String, String>();
     private static final HashMap<String, String> sFolderArtMap = new HashMap<String, String>();
 
+    // In memory cache of path<->id mappings, to speed up inserts during media scan
+    HashMap<String, Long> mDirectoryCache = new HashMap<String, Long>();
+
     // A HashSet of paths that are pending creation of album art thumbnails.
     private HashSet mPendingThumbs = new HashSet();
 
@@ -169,6 +172,10 @@ public class MediaProvider extends ContentProvider {
     private static final String[] mMediaTableColumns = new String[] {
             FileColumns._ID,
             FileColumns.MEDIA_TYPE,
+    };
+
+    private static final String[] sIdOnlyColumn = new String[] {
+        FileColumns._ID
     };
 
     private Uri mAlbumArtBaseUri = Uri.parse("content://media/external/audio/albumart");
@@ -241,6 +248,12 @@ public class MediaProvider extends ContentProvider {
     private final SQLiteDatabase.CustomFunction mObjectRemovedCallback =
                 new SQLiteDatabase.CustomFunction() {
         public void callback(String[] args) {
+            // We could remove only the deleted entry from the cache, but that
+            // requires the path, which we don't have here, so instead we just
+            // clear the entire cache.
+            // TODO: include the path in the callback and only remove the affected
+            // entry from the cache
+            mDirectoryCache.clear();
             // do nothing if the operation originated from MTP
             if (mDisableMtpObjectCallbacks) return;
 
@@ -2532,22 +2545,35 @@ public class MediaProvider extends ContentProvider {
                     return 0;
                 }
             }
+            Long cid = mDirectoryCache.get(parentPath);
+            if (cid != null) {
+                if (LOCAL_LOGV) Log.v(TAG, "Returning cached entry for " + parentPath);
+                return cid;
+            }
+
             // Use "LIKE" instead of "=" on case insensitive file systems so we do a
             // case insensitive match when looking for parent directory.
+            // TODO: investigate whether a "nocase" constraint on the column and
+            // using "=" would give the same result faster.
             String selection = (mCaseInsensitivePaths ? MediaStore.MediaColumns.DATA + " LIKE ?"
                     // search only directories.
                     + "AND format=" + MtpConstants.FORMAT_ASSOCIATION
                     : MediaStore.MediaColumns.DATA + "=?");
             String [] selargs = { parentPath };
-            Cursor c = db.query("files", null, selection, selargs, null, null, null);
+            Cursor c = db.query("files", sIdOnlyColumn, selection, selargs, null, null, null);
             try {
+                long id;
                 if (c == null || c.getCount() == 0) {
                     // parent isn't in the database - so add it
-                    return insertDirectory(db, parentPath);
+                    id = insertDirectory(db, parentPath);
+                    if (LOCAL_LOGV) Log.v(TAG, "Inserted " + parentPath);
                 } else {
                     c.moveToFirst();
-                    return c.getLong(0);
+                    id = c.getLong(0);
+                    if (LOCAL_LOGV) Log.v(TAG, "Queried " + parentPath);
                 }
+                mDirectoryCache.put(parentPath, id);
+                return id;
             } finally {
                 if (c != null) c.close();
             }
@@ -3462,6 +3488,7 @@ public class MediaProvider extends ContentProvider {
                     && initialValues != null && initialValues.size() == 1) {
                 String oldPath = null;
                 String newPath = initialValues.getAsString(MediaStore.MediaColumns.DATA);
+                mDirectoryCache.remove(newPath);
                 // MtpDatabase will rename the directory first, so we test the new file name
                 if (newPath != null && (new File(newPath)).isDirectory()) {
                     Cursor cursor = db.query(sGetTableAndWhereParam.table, PATH_PROJECTION,
@@ -3474,6 +3501,7 @@ public class MediaProvider extends ContentProvider {
                         if (cursor != null) cursor.close();
                     }
                     if (oldPath != null) {
+                        mDirectoryCache.remove(oldPath);
                         // first rename the row for the directory
                         count = db.update(sGetTableAndWhereParam.table, initialValues,
                                 sGetTableAndWhereParam.where, whereArgs);

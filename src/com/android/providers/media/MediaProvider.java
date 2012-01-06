@@ -1581,6 +1581,15 @@ public class MediaProvider extends ContentProvider {
                         + FileColumns.MEDIA_TYPE_VIDEO + ";");
         }
 
+        if (fromVersion < 409 && !internal) {
+            // A bug that prevented numeric genres from being parsed was fixed, so
+            // rebuild the genre list
+            db.execSQL("UPDATE files SET date_modified=0 WHERE " + FileColumns.MEDIA_TYPE + "="
+                    + FileColumns.MEDIA_TYPE_AUDIO + ";");
+            db.execSQL("DELETE FROM audio_genres_map");
+            db.execSQL("DELETE FROM audio_genres");
+        }
+
         sanityCheck(db, fromVersion);
     }
 
@@ -4552,7 +4561,7 @@ public class MediaProvider extends ContentProvider {
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
 
-    static final int DATABASE_VERSION = 408;
+    static final int DATABASE_VERSION = 409;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
     private static final String EXTERNAL_DATABASE_NAME = "external.db";
 

@@ -43,11 +43,14 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaFile;
 import android.media.MediaScanner;
+import android.media.MediaScannerConnection;
+import android.media.MediaScannerConnection.MediaScannerConnectionClient;
 import android.media.MiniThumbFile;
 import android.mtp.MtpConstants;
 import android.mtp.MtpStorage;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.FileUtils;
 import android.os.Handler;
@@ -83,11 +86,13 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.text.Collator;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.PriorityQueue;
 import java.util.Stack;
 
@@ -3007,10 +3012,13 @@ public class MediaProvider extends ContentProvider {
         }
 
         String genre = null;
+        String path = null;
         if (initialValues != null) {
             genre = initialValues.getAsString(Audio.AudioColumns.GENRE);
             initialValues.remove(Audio.AudioColumns.GENRE);
+            path = initialValues.getAsString(MediaStore.MediaColumns.DATA);
         }
+
 
         Uri newUri = null;
         DatabaseHelper helper = getDatabaseForUri(uri);
@@ -3187,8 +3195,7 @@ public class MediaProvider extends ContentProvider {
                     newUri = Files.getContentUri(uri.getPathSegments().get(0), rowId);
                     if (initialValues.getAsInteger(MediaStore.Files.FileColumns.FORMAT)
                             == MtpConstants.FORMAT_ASSOCIATION) {
-                        mDirectoryCache.put(
-                                initialValues.getAsString(MediaStore.MediaColumns.DATA), rowId);
+                        mDirectoryCache.put(path, rowId);
                     }
                 }
                 break;
@@ -3206,7 +3213,82 @@ public class MediaProvider extends ContentProvider {
                 throw new UnsupportedOperationException("Invalid URI " + uri);
         }
 
+        if (path != null && path.toLowerCase(Locale.US).endsWith("/.nomedia")) {
+            // need to set the media_type of all the files below this folder to 0
+            processNewNoMediaPath(helper, db, path);
+        }
         return newUri;
+    }
+
+    /*
+     * Sets the media type of all files below the newly added .nomedia file or
+     * hidden folder to 0, so the entries no longer appear in e.g. the audio and
+     * images views.
+     *
+     * @param path The path to the new .nomedia file or hidden directory
+     */
+    private void processNewNoMediaPath(DatabaseHelper helper, SQLiteDatabase db, String path) {
+        File nomedia = new File(path);
+        if (nomedia.exists()) {
+            // only do this if the file actually exists, so we don't get tricked
+            // by someone just inserting a .nomedia entry into the database
+            String hiddenroot = nomedia.isDirectory() ? path : nomedia.getParent();
+            ContentValues mediatype = new ContentValues();
+            mediatype.put("media_type", 0);
+            int numrows = db.update("files", mediatype, "_data LIKE ?", new String[] { hiddenroot  + "/%"});
+            helper.mNumUpdates += numrows;
+            ContentResolver res = getContext().getContentResolver();
+            res.notifyChange(Uri.parse("content://media/"), null);
+        }
+    }
+
+    /*
+     * Rescan files for missing metadata and set their type accordingly.
+     * There is code for detecting the removal of a nomedia file or renaming of
+     * a directory from hidden to non-hidden in the MediaScanner and MtpDatabase,
+     * both of which call here.
+     */
+    private void processRemovedNoMediaPath(final String path) {
+        final DatabaseHelper helper;
+        if (path.startsWith(mExternalStoragePaths[0])) {
+            helper = getDatabaseForUri(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);
+        } else {
+            helper = getDatabaseForUri(MediaStore.Audio.Media.INTERNAL_CONTENT_URI);
+        }
+        SQLiteDatabase db = helper.getWritableDatabase();
+        new ScannerClient(getContext(), db, path);
+    }
+
+    private static final class ScannerClient implements MediaScannerConnectionClient {
+        String mPath = null;
+        MediaScannerConnection mScannerConnection;
+        SQLiteDatabase mDb;
+
+        public ScannerClient(Context context, SQLiteDatabase db, String path) {
+            mDb = db;
+            mPath = path;
+            mScannerConnection = new MediaScannerConnection(context, this);
+            mScannerConnection.connect();
+        }
+
+        @Override
+        public void onMediaScannerConnected() {
+            Cursor c = mDb.query("files", openFileColumns, "_data like ?",
+                    new String[] { mPath + "/%"}, null, null, null);
+            while (c.moveToNext()) {
+                String d = c.getString(0);
+                File f = new File(d);
+                if (f.isFile()) {
+                    mScannerConnection.scanFile(d, null);
+                }
+            }
+            mScannerConnection.disconnect();
+            c.close();
+        }
+
+        @Override
+        public void onScanCompleted(String path, Uri uri) {
+        }
     }
 
     @Override
@@ -3525,6 +3607,15 @@ public class MediaProvider extends ContentProvider {
     }
 
     @Override
+    public Bundle call(String method, String arg, Bundle extras) {
+        if (MediaStore.UNHIDE_CALL.equals(method)) {
+            processRemovedNoMediaPath(arg);
+            return null;
+        }
+        throw new UnsupportedOperationException("Unsupported call: " + method);
+    }
+
+    @Override
     public int update(Uri uri, ContentValues initialValues, String userWhere,
             String[] whereArgs) {
         int count;
@@ -3557,7 +3648,8 @@ public class MediaProvider extends ContentProvider {
                 String newPath = initialValues.getAsString(MediaStore.MediaColumns.DATA);
                 mDirectoryCache.remove(newPath);
                 // MtpDatabase will rename the directory first, so we test the new file name
-                if (newPath != null && (new File(newPath)).isDirectory()) {
+                File f = new File(newPath);
+                if (newPath != null && f.isDirectory()) {
                     helper.mNumQueries++;
                     Cursor cursor = db.query(sGetTableAndWhereParam.table, PATH_PROJECTION,
                         userWhere, whereArgs, null, null, null);
@@ -3584,8 +3676,14 @@ public class MediaProvider extends ContentProvider {
                         if (count > 0 && !db.inTransaction()) {
                             getContext().getContentResolver().notifyChange(uri, null);
                         }
+                        if (f.getName().startsWith(".")) {
+                            // the new directory name is hidden
+                            processNewNoMediaPath(helper, db, newPath);
+                        }
                         return count;
                     }
+                } else if (newPath.toLowerCase(Locale.US).endsWith("/.nomedia")) {
+                    processNewNoMediaPath(helper, db, newPath);
                 }
             }
 
@@ -4796,5 +4894,4 @@ public class MediaProvider extends ContentProvider {
             writer.println("Scanning: " + mMediaScannerVolume);
         }
     }
-
 }

@@ -4211,8 +4211,8 @@ public class MediaProvider extends ContentProvider {
             return 0;
         }
         db.beginTransaction();
+        int numlines = 0;
         try {
-            int numlines = 0;
             helper.mNumUpdates += 3;
             Cursor c = db.query("audio_playlists_map",
                     new String [] {"play_order" },
@@ -4250,13 +4250,17 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("UPDATE audio_playlists_map SET play_order=" + to_play_order +
                     " WHERE play_order=-1 AND playlist_id=" + playlist);
             db.setTransactionSuccessful();
-            Uri uri = MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI
-                    .buildUpon().appendEncodedPath(String.valueOf(playlist)).build();
-            getContext().getContentResolver().notifyChange(uri, null);
-            return numlines;
         } finally {
             db.endTransaction();
         }
+
+        Uri uri = MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI
+                .buildUpon().appendEncodedPath(String.valueOf(playlist)).build();
+        // notifyChange() must be called after the database transaction is ended
+        // or the listeners will read the old data in the callback
+        getContext().getContentResolver().notifyChange(uri, null);
+
+        return numlines;
     }
 
     private static final String[] openFileColumns = new String[] {

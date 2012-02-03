@@ -96,6 +96,9 @@ import java.util.Locale;
 import java.util.PriorityQueue;
 import java.util.Stack;
 
+import libcore.io.ErrnoException;
+import libcore.io.Libcore;
+
 /**
  * Media content provider. See {@link android.provider.MediaStore} for details.
  * Separate databases are kept for each external storage card we see (using the
@@ -185,6 +188,10 @@ public class MediaProvider extends ContentProvider {
 
     private static final String[] sIdOnlyColumn = new String[] {
         FileColumns._ID
+    };
+
+    private static final String[] sDataOnlyColumn = new String[] {
+        FileColumns.DATA
     };
 
     private Uri mAlbumArtBaseUri = Uri.parse("content://media/external/audio/albumart");
@@ -1595,6 +1602,10 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("DELETE FROM audio_genres");
         }
 
+        if (fromVersion < 500) {
+            // we're now deleting the file in mediaprovider code, rather than via a trigger
+            db.execSQL("DROP TRIGGER IF EXISTS videothumbnails_cleanup;");
+        }
         sanityCheck(db, fromVersion);
     }
 
@@ -3587,6 +3598,27 @@ public class MediaProvider extends ContentProvider {
                         count = db.delete("audio_genres_map",
                                 sGetTableAndWhereParam.where, whereArgs);
                         break;
+
+                    case VIDEO_THUMBNAILS_ID:
+                    case VIDEO_THUMBNAILS:
+                        // Delete the referenced files first.
+                        Cursor c = db.query(sGetTableAndWhereParam.table,
+                                sDataOnlyColumn,
+                                sGetTableAndWhereParam.where, whereArgs, null, null, null);
+                        if (c != null) {
+                            while (c.moveToNext()) {
+                                try {
+                                    Libcore.os.remove(c.getString(0));
+                                } catch (ErrnoException e) {
+                                }
+                            }
+                            c.close();
+                        }
+                        database.mNumDeletes++;
+                        count = db.delete(sGetTableAndWhereParam.table,
+                                sGetTableAndWhereParam.where, whereArgs);
+                        break;
+
                     default:
                         database.mNumDeletes++;
                         count = db.delete(sGetTableAndWhereParam.table,
@@ -4659,7 +4691,7 @@ public class MediaProvider extends ContentProvider {
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
 
-    static final int DATABASE_VERSION = 409;
+    static final int DATABASE_VERSION = 500;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
     private static final String EXTERNAL_DATABASE_NAME = "external.db";
 

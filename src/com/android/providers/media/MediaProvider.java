@@ -181,7 +181,7 @@ public class MediaProvider extends ContentProvider {
     // Position of the TEXT_2 item in the above array.
     private final int SEARCH_COLUMN_BASIC_TEXT2 = 5;
 
-    private static final String[] mMediaTableColumns = new String[] {
+    private static final String[] sMediaTableColumns = new String[] {
             FileColumns._ID,
             FileColumns.MEDIA_TYPE,
     };
@@ -193,6 +193,12 @@ public class MediaProvider extends ContentProvider {
     private static final String[] sDataOnlyColumn = new String[] {
         FileColumns.DATA
     };
+
+    private static final String[] sMediaTypeDataId = new String[] {
+        FileColumns.MEDIA_TYPE,
+        FileColumns.DATA,
+        FileColumns._ID
+};
 
     private Uri mAlbumArtBaseUri = Uri.parse("content://media/external/audio/albumart");
 
@@ -1606,6 +1612,14 @@ public class MediaProvider extends ContentProvider {
             // we're now deleting the file in mediaprovider code, rather than via a trigger
             db.execSQL("DROP TRIGGER IF EXISTS videothumbnails_cleanup;");
         }
+        if (fromVersion < 501) {
+            // we're now deleting the file in mediaprovider code, rather than via a trigger
+            // the images_cleanup trigger would delete the image file and the entry
+            // in the thumbnail table, which in turn would trigger thumbnails_cleanup
+            // to delete the thumbnail image
+            db.execSQL("DROP TRIGGER IF EXISTS images_cleanup;");
+            db.execSQL("DROP TRIGGER IF EXISTS thumbnails_cleanup;");
+        }
         sanityCheck(db, fromVersion);
     }
 
@@ -2864,7 +2878,7 @@ public class MediaProvider extends ContentProvider {
 
     private Cursor getObjectReferences(DatabaseHelper helper, SQLiteDatabase db, int handle) {
         helper.mNumQueries++;
-        Cursor c = db.query("files", mMediaTableColumns, "_id=?",
+        Cursor c = db.query("files", sMediaTableColumns, "_id=?",
                 new String[] {  Integer.toString(handle) },
                 null, null, null);
         try {
@@ -2892,7 +2906,7 @@ public class MediaProvider extends ContentProvider {
         // first look up the media table and media ID for the object
         long playlistId = 0;
         helper.mNumQueries++;
-        Cursor c = db.query("files", mMediaTableColumns, "_id=?",
+        Cursor c = db.query("files", sMediaTableColumns, "_id=?",
                 new String[] {  Integer.toString(handle) },
                 null, null, null);
         try {
@@ -2927,7 +2941,7 @@ public class MediaProvider extends ContentProvider {
             long audioId = 0;
             long objectId = values[i].getAsLong(MediaStore.MediaColumns._ID);
             helper.mNumQueries++;
-            c = db.query("files", mMediaTableColumns, "_id=?",
+            c = db.query("files", sMediaTableColumns, "_id=?",
                     new String[] {  Long.toString(objectId) },
                     null, null, null);
             try {
@@ -3581,6 +3595,38 @@ public class MediaProvider extends ContentProvider {
 
             synchronized (sGetTableAndWhereParam) {
                 getTableAndWhere(uri, match, userWhere, sGetTableAndWhereParam);
+
+                if (sGetTableAndWhereParam.table.equals("files")) {
+                    Cursor c = db.query(sGetTableAndWhereParam.table,
+                            sMediaTypeDataId,
+                            sGetTableAndWhereParam.where, whereArgs, null, null, null);
+                    String [] idvalue = new String[] { "" };
+                    while (c.moveToNext()) {
+                        int mediatype = c.getInt(0);
+                        if (mediatype == FileColumns.MEDIA_TYPE_IMAGE) {
+                            try {
+                                Libcore.os.remove(c.getString(1));
+                                idvalue[0] =  "" + c.getLong(2);
+                                Cursor cc = db.query("thumbnails", sDataOnlyColumn,
+                                        "image_id=?", idvalue, null, null, null);
+                                while (cc.moveToNext()) {
+                                    Libcore.os.remove(cc.getString(0));
+                                }
+                                cc.close();
+                                db.delete("thumbnails", "image_id=?", idvalue);
+                            } catch (ErrnoException e) {
+                            }
+                        } else if (mediatype == FileColumns.MEDIA_TYPE_AUDIO) {
+                            // TODO, maybe: remove the "audio_meta_cleanup" trigger and implement
+                            // its functionality here (clean up genres map and playlist map)
+                        } else if (mediatype == FileColumns.MEDIA_TYPE_PLAYLIST) {
+                            // TODO, maybe: remove the audio_playlists_cleanup trigger and implement
+                            // it functionality here (clean up the playlist map)
+                        }
+                    }
+                    c.close();
+                }
+
                 switch (match) {
                     case MTP_OBJECTS:
                     case MTP_OBJECTS_ID:
@@ -3599,6 +3645,8 @@ public class MediaProvider extends ContentProvider {
                                 sGetTableAndWhereParam.where, whereArgs);
                         break;
 
+                    case IMAGES_THUMBNAILS_ID:
+                    case IMAGES_THUMBNAILS:
                     case VIDEO_THUMBNAILS_ID:
                     case VIDEO_THUMBNAILS:
                         // Delete the referenced files first.
@@ -4691,7 +4739,7 @@ public class MediaProvider extends ContentProvider {
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
 
-    static final int DATABASE_VERSION = 500;
+    static final int DATABASE_VERSION = 501;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
     private static final String EXTERNAL_DATABASE_NAME = "external.db";
 

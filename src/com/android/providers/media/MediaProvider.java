@@ -1620,6 +1620,10 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("DROP TRIGGER IF EXISTS images_cleanup;");
             db.execSQL("DROP TRIGGER IF EXISTS thumbnails_cleanup;");
         }
+        if (fromVersion < 502) {
+            // we're now deleting the file in mediaprovider code, rather than via a trigger
+            db.execSQL("DROP TRIGGER IF EXISTS video_cleanup;");
+        }
         sanityCheck(db, fromVersion);
     }
 
@@ -3616,6 +3620,11 @@ public class MediaProvider extends ContentProvider {
                                 db.delete("thumbnails", "image_id=?", idvalue);
                             } catch (ErrnoException e) {
                             }
+                        } else if (mediatype == FileColumns.MEDIA_TYPE_VIDEO) {
+                            try {
+                                Libcore.os.remove(c.getString(1));
+                            } catch (ErrnoException e) {
+                            }
                         } else if (mediatype == FileColumns.MEDIA_TYPE_AUDIO) {
                             // TODO, maybe: remove the "audio_meta_cleanup" trigger and implement
                             // its functionality here (clean up genres map and playlist map)
@@ -4739,7 +4748,7 @@ public class MediaProvider extends ContentProvider {
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
 
-    static final int DATABASE_VERSION = 501;
+    static final int DATABASE_VERSION = 502;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
     private static final String EXTERNAL_DATABASE_NAME = "external.db";
 

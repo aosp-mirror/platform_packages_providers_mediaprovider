@@ -3601,39 +3601,45 @@ public class MediaProvider extends ContentProvider {
                 getTableAndWhere(uri, match, userWhere, sGetTableAndWhereParam);
 
                 if (sGetTableAndWhereParam.table.equals("files")) {
-                    Cursor c = db.query(sGetTableAndWhereParam.table,
-                            sMediaTypeDataId,
-                            sGetTableAndWhereParam.where, whereArgs, null, null, null);
-                    String [] idvalue = new String[] { "" };
-                    while (c.moveToNext()) {
-                        int mediatype = c.getInt(0);
-                        if (mediatype == FileColumns.MEDIA_TYPE_IMAGE) {
-                            try {
-                                Libcore.os.remove(c.getString(1));
-                                idvalue[0] =  "" + c.getLong(2);
-                                Cursor cc = db.query("thumbnails", sDataOnlyColumn,
-                                        "image_id=?", idvalue, null, null, null);
-                                while (cc.moveToNext()) {
-                                    Libcore.os.remove(cc.getString(0));
+                    String deleteparam = uri.getQueryParameter(MediaStore.PARAM_DELETE_DATA);
+                    if (deleteparam == null || ! deleteparam.equals("false")) {
+                        database.mNumQueries++;
+                        Cursor c = db.query(sGetTableAndWhereParam.table,
+                                sMediaTypeDataId,
+                                sGetTableAndWhereParam.where, whereArgs, null, null, null);
+                        String [] idvalue = new String[] { "" };
+                        while (c.moveToNext()) {
+                            int mediatype = c.getInt(0);
+                            if (mediatype == FileColumns.MEDIA_TYPE_IMAGE) {
+                                try {
+                                    Libcore.os.remove(c.getString(1));
+                                    idvalue[0] =  "" + c.getLong(2);
+                                    database.mNumQueries++;
+                                    Cursor cc = db.query("thumbnails", sDataOnlyColumn,
+                                            "image_id=?", idvalue, null, null, null);
+                                    while (cc.moveToNext()) {
+                                        Libcore.os.remove(cc.getString(0));
+                                    }
+                                    cc.close();
+                                    database.mNumDeletes++;
+                                    db.delete("thumbnails", "image_id=?", idvalue);
+                                } catch (ErrnoException e) {
                                 }
-                                cc.close();
-                                db.delete("thumbnails", "image_id=?", idvalue);
-                            } catch (ErrnoException e) {
+                            } else if (mediatype == FileColumns.MEDIA_TYPE_VIDEO) {
+                                try {
+                                    Libcore.os.remove(c.getString(1));
+                                } catch (ErrnoException e) {
+                                }
+                            } else if (mediatype == FileColumns.MEDIA_TYPE_AUDIO) {
+                                // TODO, maybe: remove the "audio_meta_cleanup" trigger and implement
+                                // its functionality here (clean up genres map and playlist map)
+                            } else if (mediatype == FileColumns.MEDIA_TYPE_PLAYLIST) {
+                                // TODO, maybe: remove the audio_playlists_cleanup trigger and implement
+                                // it functionality here (clean up the playlist map)
                             }
-                        } else if (mediatype == FileColumns.MEDIA_TYPE_VIDEO) {
-                            try {
-                                Libcore.os.remove(c.getString(1));
-                            } catch (ErrnoException e) {
-                            }
-                        } else if (mediatype == FileColumns.MEDIA_TYPE_AUDIO) {
-                            // TODO, maybe: remove the "audio_meta_cleanup" trigger and implement
-                            // its functionality here (clean up genres map and playlist map)
-                        } else if (mediatype == FileColumns.MEDIA_TYPE_PLAYLIST) {
-                            // TODO, maybe: remove the audio_playlists_cleanup trigger and implement
-                            // it functionality here (clean up the playlist map)
                         }
+                        c.close();
                     }
-                    c.close();
                 }
 
                 switch (match) {

@@ -1624,6 +1624,11 @@ public class MediaProvider extends ContentProvider {
             // we're now deleting the file in mediaprovider code, rather than via a trigger
             db.execSQL("DROP TRIGGER IF EXISTS video_cleanup;");
         }
+        if (fromVersion < 503) {
+            // genre and playlist cleanup now done in mediaprovider code, instead of in a trigger
+            db.execSQL("DROP TRIGGER IF EXISTS audio_delete");
+            db.execSQL("DROP TRIGGER IF EXISTS audio_meta_cleanup");
+        }
         sanityCheck(db, fromVersion);
     }
 
@@ -1654,17 +1659,9 @@ public class MediaProvider extends ContentProvider {
         // Provides a unified audio/artist/album info view.
         // Note that views are read-only, so we define a trigger to allow deletes.
         db.execSQL("DROP VIEW IF EXISTS audio");
-        db.execSQL("DROP TRIGGER IF EXISTS audio_delete");
         db.execSQL("CREATE VIEW IF NOT EXISTS audio as SELECT * FROM audio_meta " +
                     "LEFT OUTER JOIN artists ON audio_meta.artist_id=artists.artist_id " +
                     "LEFT OUTER JOIN albums ON audio_meta.album_id=albums.album_id;");
-
-        db.execSQL("CREATE TRIGGER IF NOT EXISTS audio_delete INSTEAD OF DELETE ON audio " +
-                "BEGIN " +
-                    "DELETE from audio_meta where _id=old._id;" +
-                    "DELETE from audio_playlists_map where audio_id=old._id;" +
-                    "DELETE from audio_genres_map where audio_id=old._id;" +
-                "END");
     }
 
     /**
@@ -3631,8 +3628,9 @@ public class MediaProvider extends ContentProvider {
                                 } catch (ErrnoException e) {
                                 }
                             } else if (mediatype == FileColumns.MEDIA_TYPE_AUDIO) {
-                                // TODO, maybe: remove the "audio_meta_cleanup" trigger and implement
-                                // its functionality here (clean up genres map and playlist map)
+                                idvalue[0] =  "" + c.getLong(2);
+                                db.delete("audio_genres_map", "audio_id=?", idvalue);
+                                db.delete("audio_playlists_map", "audio_id=?", idvalue);
                             } else if (mediatype == FileColumns.MEDIA_TYPE_PLAYLIST) {
                                 // TODO, maybe: remove the audio_playlists_cleanup trigger and implement
                                 // it functionality here (clean up the playlist map)
@@ -4754,7 +4752,7 @@ public class MediaProvider extends ContentProvider {
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
 
-    static final int DATABASE_VERSION = 502;
+    static final int DATABASE_VERSION = 503;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
     private static final String EXTERNAL_DATABASE_NAME = "external.db";
 

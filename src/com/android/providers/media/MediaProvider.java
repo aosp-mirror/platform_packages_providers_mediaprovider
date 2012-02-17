@@ -32,6 +32,7 @@ import android.content.OperationApplicationException;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.UriMatcher;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
@@ -317,7 +318,7 @@ public class MediaProvider extends ContentProvider {
         public DatabaseHelper(Context context, String name, boolean internal,
                 boolean earlyUpgrade,
                 SQLiteDatabase.CustomFunction objectRemovedCallback) {
-            super(context, name, null, DATABASE_VERSION);
+            super(context, name, null, getDatabaseVersion(context));
             mContext = context;
             mName = name;
             mInternal = internal;
@@ -330,7 +331,7 @@ public class MediaProvider extends ContentProvider {
          */
         @Override
         public void onCreate(final SQLiteDatabase db) {
-            updateDatabase(db, mInternal, 0, DATABASE_VERSION);
+            updateDatabase(mContext, db, mInternal, 0, getDatabaseVersion(mContext));
         }
 
         /**
@@ -340,7 +341,7 @@ public class MediaProvider extends ContentProvider {
         @Override
         public void onUpgrade(final SQLiteDatabase db, final int oldV, final int newV) {
             mUpgradeAttempted = true;
-            updateDatabase(db, mInternal, oldV, newV);
+            updateDatabase(mContext, db, mInternal, oldV, newV);
         }
 
         @Override
@@ -498,6 +499,15 @@ public class MediaProvider extends ContentProvider {
             e.clear();
             e.putInt("created_default_folders", 1);
             e.commit();
+        }
+    }
+
+    private static int getDatabaseVersion(Context context) {
+        try {
+            return context.getPackageManager().getPackageInfo(
+                    context.getPackageName(), 0).versionCode;
+        } catch (NameNotFoundException e) {
+            throw new RuntimeException("couldn't get version code for " + context);
         }
     }
 
@@ -659,13 +669,13 @@ public class MediaProvider extends ContentProvider {
      * @param db Database
      * @param internal True if this is the internal media database
      */
-    private static void updateDatabase(SQLiteDatabase db, boolean internal,
+    private static void updateDatabase(Context context, SQLiteDatabase db, boolean internal,
             int fromVersion, int toVersion) {
 
         // sanity checks
-        if (toVersion != DATABASE_VERSION) {
-            Log.e(TAG, "Illegal update request. Got " + toVersion + ", expected " +
-                    DATABASE_VERSION);
+        int dbversion = getDatabaseVersion(context);
+        if (toVersion != dbversion) {
+            Log.e(TAG, "Illegal update request. Got " + toVersion + ", expected " + dbversion);
             throw new IllegalArgumentException();
         } else if (fromVersion > toVersion) {
             Log.e(TAG, "Illegal update request: can't downgrade from " + fromVersion +
@@ -1629,6 +1639,11 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("DROP TRIGGER IF EXISTS audio_delete");
             db.execSQL("DROP TRIGGER IF EXISTS audio_meta_cleanup");
         }
+        if (fromVersion < 504) {
+            // add an index to help with case-insensitive matching of paths
+            db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS path_index_lower ON files(_data COLLATE NOCASE);");
+        }
         sanityCheck(db, fromVersion);
     }
 
@@ -1940,7 +1955,7 @@ public class MediaProvider extends ContentProvider {
 
         if (table == VERSION) {
             MatrixCursor c = new MatrixCursor(new String[] {"version"});
-            c.addRow(new Integer[] {DATABASE_VERSION});
+            c.addRow(new Integer[] {getDatabaseVersion(getContext())});
             return c;
         }
 
@@ -4752,7 +4767,6 @@ public class MediaProvider extends ContentProvider {
     private static String TAG = "MediaProvider";
     private static final boolean LOCAL_LOGV = false;
 
-    static final int DATABASE_VERSION = 503;
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
     private static final String EXTERNAL_DATABASE_NAME = "external.db";
 

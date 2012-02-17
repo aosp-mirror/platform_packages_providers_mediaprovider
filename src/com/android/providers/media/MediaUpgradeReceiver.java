@@ -50,10 +50,11 @@ public class MediaUpgradeReceiver extends BroadcastReceiver {
         // Lookup the last known database version
         SharedPreferences prefs = context.getSharedPreferences(TAG, Context.MODE_PRIVATE);
         int prefVersion = prefs.getInt(PREF_DB_VERSION, 0);
-        if (prefVersion == MediaProvider.DATABASE_VERSION) {
+        int dbVersion = MediaProvider.getDatabaseVersion(context);
+        if (prefVersion == dbVersion) {
             return;
         }
-        prefs.edit().putInt(PREF_DB_VERSION, MediaProvider.DATABASE_VERSION).commit();
+        prefs.edit().putInt(PREF_DB_VERSION, dbVersion).commit();
 
         try {
             File dbDir = context.getDatabasePath("foo").getParentFile();

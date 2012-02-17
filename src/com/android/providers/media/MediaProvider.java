@@ -502,7 +502,7 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private static int getDatabaseVersion(Context context) {
+    public static int getDatabaseVersion(Context context) {
         try {
             return context.getPackageManager().getPackageInfo(
                     context.getPackageName(), 0).versionCode;

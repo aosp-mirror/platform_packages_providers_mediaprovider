@@ -16,6 +16,12 @@
 
 package com.android.providers.media;
 
+import static android.Manifest.permission.ACCESS_CACHE_FILESYSTEM;
+import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
+import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
+import static android.os.ParcelFileDescriptor.MODE_READ_WRITE;
+import static android.os.ParcelFileDescriptor.MODE_WRITE_ONLY;
+
 import android.app.SearchManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -113,6 +119,20 @@ public class MediaProvider extends ContentProvider {
 
     private static final HashMap<String, String> sArtistAlbumsMap = new HashMap<String, String>();
     private static final HashMap<String, String> sFolderArtMap = new HashMap<String, String>();
+
+    /** Resolved canonical path to external storage. */
+    private static final String sExternalPath;
+    /** Resolved canonical path to cache storage. */
+    private static final String sCachePath;
+
+    static {
+        try {
+            sExternalPath = Environment.getExternalStorageDirectory().getCanonicalPath();
+            sCachePath = Environment.getDownloadCacheDirectory().getCanonicalPath();
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to resolve canonical paths", e);
+        }
+    }
 
     // In memory cache of path<->id mappings, to speed up inserts during media scan
     HashMap<String, Long> mDirectoryCache = new HashMap<String, Long>();
@@ -4132,7 +4152,7 @@ public class MediaProvider extends ContentProvider {
                 // If that fails, try to get it from this specific file.
                 Uri newUri = ContentUris.withAppendedId(ALBUMART_URI, albumid);
                 try {
-                    pfd = openFileHelper(newUri, mode);
+                    pfd = openFileAndEnforcePathPermissionsHelper(newUri, mode);
                 } catch (FileNotFoundException ex) {
                     // That didn't work, now try to get it from the specific file
                     pfd = getThumb(database, db, audiopath, albumid, null);
@@ -4143,7 +4163,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         try {
-            pfd = openFileHelper(uri, mode);
+            pfd = openFileAndEnforcePathPermissionsHelper(uri, mode);
         } catch (FileNotFoundException ex) {
             if (mode.contains("w")) {
                 // if the file couldn't be created, we shouldn't extract album art
@@ -4179,6 +4199,63 @@ public class MediaProvider extends ContentProvider {
             }
         }
         return pfd;
+    }
+
+    /**
+     * Return the {@link MediaColumns#DATA} field for the given {@code Uri}.
+     */
+    private File queryForDataFile(Uri uri) throws FileNotFoundException {
+        final Cursor cursor = query(
+                uri, new String[] { MediaColumns.DATA }, null, null, null);
+        try {
+            switch (cursor.getCount()) {
+                case 0:
+                    throw new FileNotFoundException("No entry for " + uri);
+                case 1:
+                    if (cursor.moveToFirst()) {
+                        return new File(cursor.getString(0));
+                    } else {
+                        throw new FileNotFoundException("Unable to read entry for " + uri);
+                    }
+                default:
+                    throw new FileNotFoundException("Multiple items at " + uri);
+            }
+        } finally {
+            cursor.close();
+        }
+    }
+
+    /**
+     * Replacement for {@link #openFileHelper(Uri, String)} which enforces any
+     * permissions applicable to the path before returning.
+     */
+    private ParcelFileDescriptor openFileAndEnforcePathPermissionsHelper(Uri uri, String mode)
+            throws FileNotFoundException {
+        final int modeBits = ContentResolver.modeToMode(uri, mode);
+        final boolean isWrite = (modeBits & MODE_WRITE_ONLY) != 0;
+
+        final File file = queryForDataFile(uri);
+        final String path;
+        try {
+            path = file.getCanonicalPath();
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Unable to resolve canonical path for " + file, e);
+        }
+
+        if (path.startsWith(sExternalPath)) {
+            getContext().enforceCallingOrSelfPermission(
+                    READ_EXTERNAL_STORAGE, "External path: " + path);
+
+            if (isWrite) {
+                getContext().enforceCallingOrSelfPermission(
+                        WRITE_EXTERNAL_STORAGE, "External path: " + path);
+            }
+        } else if (path.startsWith(sCachePath)) {
+            getContext().enforceCallingOrSelfPermission(
+                    ACCESS_CACHE_FILESYSTEM, "Cache path: " + path);
+        }
+
+        return ParcelFileDescriptor.open(file, modeBits);
     }
 
     private class ThumbData {

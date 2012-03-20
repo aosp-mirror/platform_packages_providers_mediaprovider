@@ -14,7 +14,17 @@
     <application android:process="android.process.media"
                  android:label="@string/app_label">
         <provider android:name="MediaProvider" android:authorities="media"
-                android:multiprocess="false" />
+                android:multiprocess="false">
+            <grant-uri-permission android:pathPrefix="/internal/" />
+            <grant-uri-permission android:pathPrefix="/external/" />
+            <path-permission
+                    android:pathPrefix="/internal/"
+                    android:writePermission="android.permission.WRITE_MEDIA_STORAGE" />
+            <path-permission
+                    android:pathPrefix="/external/"
+                    android:readPermission="android.permission.READ_EXTERNAL_STORAGE"
+                    android:writePermission="android.permission.WRITE_EXTERNAL_STORAGE" />
+        </provider>
 
         <!-- Handles database upgrades after OTAs, then disables itself -->
         <receiver android:name="MediaUpgradeReceiver">

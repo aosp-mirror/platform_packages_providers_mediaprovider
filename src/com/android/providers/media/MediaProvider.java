@@ -324,6 +324,7 @@ public class MediaProvider extends ContentProvider {
             mInternal = internal;
             mEarlyUpgrade = earlyUpgrade;
             mObjectRemovedCallback = objectRemovedCallback;
+            setWriteAheadLoggingEnabled(true);
         }
 
         /**
@@ -376,9 +377,6 @@ public class MediaProvider extends ContentProvider {
          */
         @Override
         public void onOpen(SQLiteDatabase db) {
-
-            // Turn on WAL optimization
-            db.enableWriteAheadLogging();
 
             if (mInternal) return;  // The internal database is kept separately.
 

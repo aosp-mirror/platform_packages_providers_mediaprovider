@@ -1642,6 +1642,12 @@ public class MediaProvider extends ContentProvider {
             db.execSQL(
                     "CREATE INDEX IF NOT EXISTS path_index_lower ON files(_data COLLATE NOCASE);");
         }
+        if (fromVersion < 505) {
+            // Starting with schema 505 we fill in the width/height/resolution columns for videos,
+            // so force a rescan of videos to fill in the blanks
+            db.execSQL("UPDATE files SET date_modified=0 WHERE " + FileColumns.MEDIA_TYPE + "="
+                    + FileColumns.MEDIA_TYPE_VIDEO + ";");
+        }
         sanityCheck(db, fromVersion);
     }
 

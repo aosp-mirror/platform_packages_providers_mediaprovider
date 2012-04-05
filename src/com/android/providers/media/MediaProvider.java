@@ -3647,9 +3647,11 @@ public class MediaProvider extends ContentProvider {
                                 } catch (ErrnoException e) {
                                 }
                             } else if (mediatype == FileColumns.MEDIA_TYPE_AUDIO) {
-                                idvalue[0] =  "" + c.getLong(2);
-                                db.delete("audio_genres_map", "audio_id=?", idvalue);
-                                db.delete("audio_playlists_map", "audio_id=?", idvalue);
+                                if (!database.mInternal) {
+                                    idvalue[0] =  "" + c.getLong(2);
+                                    db.delete("audio_genres_map", "audio_id=?", idvalue);
+                                    db.delete("audio_playlists_map", "audio_id=?", idvalue);
+                                }
                             } else if (mediatype == FileColumns.MEDIA_TYPE_PLAYLIST) {
                                 // TODO, maybe: remove the audio_playlists_cleanup trigger and implement
                                 // it functionality here (clean up the playlist map)

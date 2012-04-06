@@ -68,7 +68,9 @@ import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
+import android.provider.MediaStore.Audio.PlaylistsColumns;
 import android.provider.MediaStore.Files;
+import android.provider.MediaStore.Audio.Playlists;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.ImageColumns;
@@ -199,7 +201,12 @@ public class MediaProvider extends ContentProvider {
         FileColumns.MEDIA_TYPE,
         FileColumns.DATA,
         FileColumns._ID
-};
+    };
+
+    private static final String[] sPlaylistIdPlayOrder = new String[] {
+        Playlists.Members.PLAYLIST_ID,
+        Playlists.Members.PLAY_ORDER
+    };
 
     private Uri mAlbumArtBaseUri = Uri.parse("content://media/external/audio/albumart");
 
@@ -3624,6 +3631,7 @@ public class MediaProvider extends ContentProvider {
                                 sMediaTypeDataId,
                                 sGetTableAndWhereParam.where, whereArgs, null, null, null);
                         String [] idvalue = new String[] { "" };
+                        String [] playlistvalues = new String[] { "", "" };
                         while (c.moveToNext()) {
                             int mediatype = c.getInt(0);
                             if (mediatype == FileColumns.MEDIA_TYPE_IMAGE) {
@@ -3650,6 +3658,20 @@ public class MediaProvider extends ContentProvider {
                                 if (!database.mInternal) {
                                     idvalue[0] =  "" + c.getLong(2);
                                     db.delete("audio_genres_map", "audio_id=?", idvalue);
+                                    // for each playlist that the item appears in, move
+                                    // all the items behind it forward by one
+                                    Cursor cc = db.query("audio_playlists_map",
+                                            sPlaylistIdPlayOrder,
+                                            "audio_id=?", idvalue, null, null, null);
+                                    while (cc.moveToNext()) {
+                                        playlistvalues[0] = "" + cc.getLong(0);
+                                        playlistvalues[1] = "" + cc.getInt(1);
+                                        db.execSQL("UPDATE audio_playlists_map" +
+                                                " SET play_order=play_order-1" +
+                                                " WHERE playlist_id=? AND play_order>?",
+                                                playlistvalues);
+                                    }
+                                    cc.close();
                                     db.delete("audio_playlists_map", "audio_id=?", idvalue);
                                 }
                             } else if (mediatype == FileColumns.MEDIA_TYPE_PLAYLIST) {
@@ -3999,24 +4021,40 @@ public class MediaProvider extends ContentProvider {
         try {
             int numlines = 0;
             helper.mNumUpdates += 3;
+            Cursor c = db.query("audio_playlists_map",
+                    new String [] {"play_order" },
+                    "playlist_id=?", new String[] {"" + playlist}, null, null, "play_order",
+                    from + ",1");
+            c.moveToFirst();
+            int from_play_order = c.getInt(0);
+            c.close();
+            c = db.query("audio_playlists_map",
+                    new String [] {"play_order" },
+                    "playlist_id=?", new String[] {"" + playlist}, null, null, "play_order",
+                    to + ",1");
+            c.moveToFirst();
+            int to_play_order = c.getInt(0);
+            c.close();
             db.execSQL("UPDATE audio_playlists_map SET play_order=-1" +
-                    " WHERE play_order=" + from +
+                    " WHERE play_order=" + from_play_order +
                     " AND playlist_id=" + playlist);
             // We could just run both of the next two statements, but only one of
             // of them will actually do anything, so might as well skip the compile
             // and execute steps.
             if (from  < to) {
                 db.execSQL("UPDATE audio_playlists_map SET play_order=play_order-1" +
-                        " WHERE play_order<=" + to + " AND play_order>" + from +
+                        " WHERE play_order<=" + to_play_order +
+                        " AND play_order>" + from_play_order +
                         " AND playlist_id=" + playlist);
                 numlines = to - from + 1;
             } else {
                 db.execSQL("UPDATE audio_playlists_map SET play_order=play_order+1" +
-                        " WHERE play_order>=" + to + " AND play_order<" + from +
+                        " WHERE play_order>=" + to_play_order +
+                        " AND play_order<" + from_play_order +
                         " AND playlist_id=" + playlist);
                 numlines = from - to + 1;
             }
-            db.execSQL("UPDATE audio_playlists_map SET play_order=" + to +
+            db.execSQL("UPDATE audio_playlists_map SET play_order=" + to_play_order +
                     " WHERE play_order=-1 AND playlist_id=" + playlist);
             db.setTransactionSuccessful();
             Uri uri = MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI

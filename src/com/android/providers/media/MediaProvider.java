@@ -1655,6 +1655,41 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("UPDATE files SET date_modified=0 WHERE " + FileColumns.MEDIA_TYPE + "="
                     + FileColumns.MEDIA_TYPE_VIDEO + ";");
         }
+        if (fromVersion < 506) {
+            // sd card storage got moved to /storage/sdcard0
+            // first delete everything that already got scanned in /storage before this
+            // update step was added
+            db.execSQL("DROP TRIGGER IF EXISTS files_cleanup");
+            db.execSQL("DELETE FROM files WHERE _data LIKE '/storage/%';");
+            db.execSQL("DELETE FROM album_art WHERE _data LIKE '/storage/%';");
+            db.execSQL("DELETE FROM thumbnails WHERE _data LIKE '/storage/%';");
+            db.execSQL("DELETE FROM videothumbnails WHERE _data LIKE '/storage/%';");
+            // then rename everything from /mnt/sdcard/ to /storage/sdcard0,
+            // and from /mnt/external1 to /storage/sdcard1
+            db.execSQL("UPDATE files SET " +
+                "_data='/storage/sdcard0'||SUBSTR(_data,12) WHERE _data LIKE '/mnt/sdcard/%';");
+            db.execSQL("UPDATE files SET " +
+                "_data='/storage/sdcard1'||SUBSTR(_data,15) WHERE _data LIKE '/mnt/external1/%';");
+            db.execSQL("UPDATE album_art SET " +
+                "_data='/storage/sdcard0'||SUBSTR(_data,12) WHERE _data LIKE '/mnt/sdcard/%';");
+            db.execSQL("UPDATE album_art SET " +
+                "_data='/storage/sdcard1'||SUBSTR(_data,15) WHERE _data LIKE '/mnt/external1/%';");
+            db.execSQL("UPDATE thumbnails SET " +
+                "_data='/storage/sdcard0'||SUBSTR(_data,12) WHERE _data LIKE '/mnt/sdcard/%';");
+            db.execSQL("UPDATE thumbnails SET " +
+                "_data='/storage/sdcard1'||SUBSTR(_data,15) WHERE _data LIKE '/mnt/external1/%';");
+            db.execSQL("UPDATE videothumbnails SET " +
+                "_data='/storage/sdcard0'||SUBSTR(_data,12) WHERE _data LIKE '/mnt/sdcard/%';");
+            db.execSQL("UPDATE videothumbnails SET " +
+                "_data='/storage/sdcard1'||SUBSTR(_data,15) WHERE _data LIKE '/mnt/external1/%';");
+
+            if (!internal) {
+                db.execSQL("CREATE TRIGGER IF NOT EXISTS files_cleanup DELETE ON files " +
+                    "BEGIN " +
+                        "SELECT _OBJECT_REMOVED(old._id);" +
+                    "END");
+            }
+        }
         sanityCheck(db, fromVersion);
     }
 

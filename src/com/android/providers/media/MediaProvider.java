@@ -61,16 +61,14 @@ import android.os.ParcelFileDescriptor;
 import android.os.Process;
 import android.os.RemoteException;
 import android.os.SystemClock;
-import android.os.SystemProperties;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
-import android.provider.MediaStore.Audio.PlaylistsColumns;
-import android.provider.MediaStore.Files;
 import android.provider.MediaStore.Audio.Playlists;
+import android.provider.MediaStore.Files;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.ImageColumns;
@@ -89,7 +87,6 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.text.Collator;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1499,12 +1496,6 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        if (fromVersion < 300) {
-            // we now compute bucket and display names for all files to avoid problems with files
-            // that the media scanner might not recognize as images or videos
-            updateBucketNames(db, "files");
-        }
-
         if (fromVersion < 301) {
             db.execSQL("DROP INDEX IF EXISTS bucket_index");
             db.execSQL("CREATE INDEX bucket_index on files(bucket_id, media_type, datetaken, _id)");
@@ -1689,6 +1680,10 @@ public class MediaProvider extends ContentProvider {
                         "SELECT _OBJECT_REMOVED(old._id);" +
                     "END");
             }
+        }
+        if (fromVersion < 507) {
+            // we update _data in version 506, we need to update the bucket_id as well
+            updateBucketNames(db, "files");
         }
         sanityCheck(db, fromVersion);
     }

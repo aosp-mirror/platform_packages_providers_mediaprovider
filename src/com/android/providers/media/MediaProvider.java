@@ -2852,6 +2852,9 @@ public class MediaProvider extends ContentProvider {
         }
         if (format != 0) {
             values.put(FileColumns.FORMAT, format);
+            if (format == MtpConstants.FORMAT_ASSOCIATION) {
+                mDirectoryCache.put(path, rowId);
+            }
             if (mimeType == null) {
                 mimeType = MediaFile.getMimeTypeForFormatCode(format);
             }
@@ -3275,10 +3278,6 @@ public class MediaProvider extends ContentProvider {
                         FileColumns.MEDIA_TYPE_NONE, true);
                 if (rowId > 0) {
                     newUri = Files.getContentUri(uri.getPathSegments().get(0), rowId);
-                    if (initialValues.getAsInteger(MediaStore.Files.FileColumns.FORMAT)
-                            == MtpConstants.FORMAT_ASSOCIATION) {
-                        mDirectoryCache.put(path, rowId);
-                    }
                 }
                 break;
 

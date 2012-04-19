@@ -4135,7 +4135,7 @@ public class MediaProvider extends ContentProvider {
                     pfd = openFileHelper(newUri, mode);
                 } catch (FileNotFoundException ex) {
                     // That didn't work, now try to get it from the specific file
-                    pfd = getThumb(db, audiopath, albumid, null);
+                    pfd = getThumb(database, db, audiopath, albumid, null);
                 }
             }
             c.close();
@@ -4170,7 +4170,7 @@ public class MediaProvider extends ContentProvider {
                         null, null, null, null, MediaStore.Audio.Media.TRACK);
                 if (c.moveToFirst()) {
                     String audiopath = c.getString(0);
-                    pfd = getThumb(db, audiopath, albumid, uri);
+                    pfd = getThumb(database, db, audiopath, albumid, uri);
                 }
                 c.close();
             }
@@ -4389,9 +4389,10 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private ParcelFileDescriptor getThumb(SQLiteDatabase db, String path, long album_id,
-            Uri albumart_uri) {
+    private ParcelFileDescriptor getThumb(DatabaseHelper helper, SQLiteDatabase db, String path,
+            long album_id, Uri albumart_uri) {
         ThumbData d = new ThumbData();
+        d.helper = helper;
         d.db = db;
         d.path = path;
         d.album_id = album_id;

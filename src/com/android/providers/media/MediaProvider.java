@@ -1705,6 +1705,19 @@ public class MediaProvider extends ContentProvider {
             // we update _data in version 506, we need to update the bucket_id as well
             updateBucketNames(db, "files");
         }
+        if (fromVersion < 508 && !internal) {
+            // ensure we don't get duplicate entries in the genre map
+            db.execSQL("CREATE TABLE IF NOT EXISTS audio_genres_map_tmp (" +
+                    "_id INTEGER PRIMARY KEY," +
+                    "audio_id INTEGER NOT NULL," +
+                    "genre_id INTEGER NOT NULL," +
+                    "UNIQUE (audio_id,genre_id) ON CONFLICT IGNORE" +
+                    ");");
+            db.execSQL("INSERT INTO audio_genres_map_tmp (audio_id,genre_id)" +
+                    " SELECT DISTINCT audio_id,genre_id FROM audio_genres_map;");
+            db.execSQL("DROP TABLE audio_genres_map;");
+            db.execSQL("ALTER TABLE audio_genres_map_tmp RENAME TO audio_genres_map;");
+        }
         sanityCheck(db, fromVersion);
     }
 

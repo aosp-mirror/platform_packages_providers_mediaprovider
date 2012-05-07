@@ -3293,7 +3293,19 @@ public class MediaProvider extends ContentProvider {
             }
 
             case VOLUMES:
-                return attachVolume(initialValues.getAsString("name"));
+            {
+                String name = initialValues.getAsString("name");
+                Uri attachedVolume = attachVolume(name);
+                if (mMediaScannerVolume != null && mMediaScannerVolume.equals(name)) {
+                    DatabaseHelper dbhelper = getDatabaseForUri(attachedVolume);
+                    if (dbhelper == null) {
+                        Log.e(TAG, "no database for attached volume " + attachedVolume);
+                    } else {
+                        dbhelper.mScanStartTime = SystemClock.currentTimeMicro();
+                    }
+                }
+                return attachedVolume;
+            }
 
             case MTP_CONNECTED:
                 synchronized (mMtpServiceConnection) {
@@ -4743,7 +4755,7 @@ public class MediaProvider extends ContentProvider {
      */
     private DatabaseHelper getDatabaseForUri(Uri uri) {
         synchronized (mDatabases) {
-            if (uri.getPathSegments().size() > 1) {
+            if (uri.getPathSegments().size() >= 1) {
                 return mDatabases.get(uri.getPathSegments().get(0));
             }
         }

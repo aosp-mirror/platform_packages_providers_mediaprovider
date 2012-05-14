@@ -2885,9 +2885,6 @@ public class MediaProvider extends ContentProvider {
         }
         if (format != 0) {
             values.put(FileColumns.FORMAT, format);
-            if (format == MtpConstants.FORMAT_ASSOCIATION) {
-                mDirectoryCache.put(path, rowId);
-            }
             if (mimeType == null) {
                 mimeType = MediaFile.getMimeTypeForFormatCode(format);
             }
@@ -2964,6 +2961,9 @@ public class MediaProvider extends ContentProvider {
             helper.mNumUpdates++;
             db.update("files", values, FileColumns._ID + "=?",
                     new String[] { Long.toString(rowId) });
+        }
+        if (format == MtpConstants.FORMAT_ASSOCIATION) {
+            mDirectoryCache.put(path, rowId);
         }
 
         return rowId;

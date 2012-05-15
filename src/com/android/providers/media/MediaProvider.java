@@ -704,6 +704,7 @@ public class MediaProvider extends ContentProvider {
                     " to " + toVersion + ". Did you forget to wipe data?");
             throw new IllegalArgumentException();
         }
+        long startTime = SystemClock.currentTimeMicro();
 
         // Revisions 84-86 were a failed attempt at supporting the "album artist" id3 tag.
         // We can't downgrade from those revisions, so start over.
@@ -1718,7 +1719,25 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("DROP TABLE audio_genres_map;");
             db.execSQL("ALTER TABLE audio_genres_map_tmp RENAME TO audio_genres_map;");
         }
+
+        if (fromVersion < 509) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS log (time DATETIME PRIMARY KEY, message TEXT);");
+        }
         sanityCheck(db, fromVersion);
+        long elapsedSeconds = (SystemClock.currentTimeMicro() - startTime) / 1000000;
+        logToDb(db, "Database upgraded from version " + fromVersion + " to " + toVersion
+                + " in " + elapsedSeconds + " seconds");
+    }
+
+    /**
+     * Write a persistent diagnostic message to the log table.
+     */
+    static void logToDb(SQLiteDatabase db, String message) {
+        db.execSQL("INSERT INTO log (time, message) VALUES (datetime('now'),?);",
+                new String[] { message });
+        // delete all but the last 500 rows
+        db.execSQL("DELETE FROM log WHERE rowid IN" +
+                " (SELECT rowid FROM log ORDER BY time DESC LIMIT 500,-1);");
     }
 
     /**
@@ -1746,7 +1765,6 @@ public class MediaProvider extends ContentProvider {
 
     private static void recreateAudioView(SQLiteDatabase db) {
         // Provides a unified audio/artist/album info view.
-        // Note that views are read-only, so we define a trigger to allow deletes.
         db.execSQL("DROP VIEW IF EXISTS audio");
         db.execSQL("CREATE VIEW IF NOT EXISTS audio as SELECT * FROM audio_meta " +
                     "LEFT OUTER JOIN artists ON audio_meta.artist_id=artists.artist_id " +
@@ -1770,11 +1788,12 @@ public class MediaProvider extends ContentProvider {
                 final int idColumnIndex = cursor.getColumnIndex(BaseColumns._ID);
                 final int dataColumnIndex = cursor.getColumnIndex(MediaColumns.DATA);
                 String [] rowId = new String[1];
+                ContentValues values = new ContentValues();
                 while (cursor.moveToNext()) {
                     String data = cursor.getString(dataColumnIndex);
-                    rowId[0] = String.valueOf(cursor.getInt(idColumnIndex));
+                    rowId[0] = cursor.getString(idColumnIndex);
                     if (data != null) {
-                        ContentValues values = new ContentValues();
+                        values.clear();
                         computeBucketValues(data, values);
                         db.update("files", values, "_id=?", rowId);
                     } else {
@@ -1825,12 +1844,12 @@ public class MediaProvider extends ContentProvider {
             db.endTransaction();
         }
     }
+
     /**
      * @param data The input path
      * @param values the content values, where the bucked id name and bucket display name are updated.
      *
      */
-
     private static void computeBucketValues(String data, ContentValues values) {
         File parentFile = new File(data).getParentFile();
         if (parentFile == null) {
@@ -3665,6 +3684,8 @@ public class MediaProvider extends ContentProvider {
                 Log.w(TAG, "no database for scanned volume " + mMediaScannerVolume);
             } else {
                 database.mScanStopTime = SystemClock.currentTimeMicro();
+                String msg = dump(database, false);
+                logToDb(database.getWritableDatabase(), msg);
             }
             mMediaScannerVolume = null;
             return 1;
@@ -5133,49 +5154,76 @@ public class MediaProvider extends ContentProvider {
     public void dump(FileDescriptor fd, PrintWriter writer, String[] args) {
         Collection<DatabaseHelper> foo = mDatabases.values();
         for (DatabaseHelper dbh: foo) {
-            StringBuilder s = new StringBuilder();
-            s.append(dbh.mName);
-            s.append(": ");
-            SQLiteDatabase db = dbh.getReadableDatabase();
-            if (db == null) {
-                s.append("null");
-            } else {
-                s.append("version " + db.getVersion() + ", ");
-                Cursor c = db.query("files", new String[] {"count(*)"}, null, null, null, null, null);
-                try {
-                    if (c != null && c.moveToFirst()) {
-                        int num = c.getInt(0);
-                        s.append(num + " rows, ");
+            writer.println(dump(dbh, true));
+        }
+        writer.flush();
+    }
+
+    private String dump(DatabaseHelper dbh, boolean dumpDbLog) {
+        StringBuilder s = new StringBuilder();
+        s.append(dbh.mName);
+        s.append(": ");
+        SQLiteDatabase db = dbh.getReadableDatabase();
+        if (db == null) {
+            s.append("null");
+        } else {
+            s.append("version " + db.getVersion() + ", ");
+            Cursor c = db.query("files", new String[] {"count(*)"}, null, null, null, null, null);
+            try {
+                if (c != null && c.moveToFirst()) {
+                    int num = c.getInt(0);
+                    s.append(num + " rows, ");
+                } else {
+                    s.append("couldn't get row count, ");
+                }
+            } finally {
+                if (c != null) {
+                    c.close();
+                }
+            }
+            s.append(dbh.mNumInserts + " inserts, ");
+            s.append(dbh.mNumUpdates + " updates, ");
+            s.append(dbh.mNumDeletes + " deletes, ");
+            s.append(dbh.mNumQueries + " queries, ");
+            if (dbh.mScanStartTime != 0) {
+                s.append("scan started " + DateUtils.formatDateTime(getContext(),
+                        dbh.mScanStartTime / 1000,
+                        DateUtils.FORMAT_SHOW_DATE
+                        | DateUtils.FORMAT_SHOW_TIME
+                        | DateUtils.FORMAT_ABBREV_ALL));
+                long now = dbh.mScanStopTime;
+                if (now < dbh.mScanStartTime) {
+                    now = SystemClock.currentTimeMicro();
+                }
+                s.append(" (" + DateUtils.formatElapsedTime(
+                        (now - dbh.mScanStartTime) / 1000000) + ")");
+                if (dbh.mScanStopTime < dbh.mScanStartTime) {
+                    if (mMediaScannerVolume != null &&
+                            dbh.mName.startsWith(mMediaScannerVolume)) {
+                        s.append(" (ongoing)");
                     } else {
-                        s.append("couldn't get row count, ");
+                        s.append(" (scanning " + mMediaScannerVolume + ")");
+                    }
+                }
+            }
+            if (dumpDbLog) {
+                c = db.query("log", new String[] {"time", "message"},
+                        null, null, null, null, "time");
+                try {
+                    if (c != null) {
+                        while (c.moveToNext()) {
+                            String when = c.getString(0);
+                            String msg = c.getString(1);
+                            s.append("\n" + when + " : " + msg);
+                        }
                     }
                 } finally {
                     if (c != null) {
                         c.close();
                     }
                 }
-                s.append(dbh.mNumInserts + " inserts, ");
-                s.append(dbh.mNumUpdates + " updates, ");
-                s.append(dbh.mNumDeletes + " deletes, ");
-                s.append(dbh.mNumQueries + " queries, ");
-                if (dbh.mScanStartTime != 0) {
-                    s.append("scan started " + DateUtils.formatDateTime(getContext(),
-                            dbh.mScanStartTime / 1000,
-                            DateUtils.FORMAT_SHOW_DATE
-                            | DateUtils.FORMAT_SHOW_TIME
-                            | DateUtils.FORMAT_ABBREV_ALL));
-                    if (dbh.mScanStopTime < dbh.mScanStartTime) {
-                        s.append(" (ongoing)");
-                    } else {
-                        s.append(" (" + DateUtils.formatElapsedTime(
-                                (dbh.mScanStopTime - dbh.mScanStartTime) / 1000000) + ")");
-                    }
-                }
             }
-            writer.println(s);
         }
-        if (mMediaScannerVolume != null) {
-            writer.println("Scanning: " + mMediaScannerVolume);
-        }
+        return s.toString();
     }
 }

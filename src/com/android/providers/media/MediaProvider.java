@@ -1703,7 +1703,7 @@ public class MediaProvider extends ContentProvider {
         }
         if (fromVersion < 507) {
             // we update _data in version 506, we need to update the bucket_id as well
-            updateBucketNames(db, "files");
+            updateBucketNames(db);
         }
         if (fromVersion < 508 && !internal) {
             // ensure we don't get duplicate entries in the genre map
@@ -1754,17 +1754,18 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Iterate through the rows of a table in a database, ensuring that the bucket_id and
-     * bucket_display_name columns are correct.
+     * Update the bucket_id and bucket_display_name columns for images and videos
      * @param db
      * @param tableName
      */
-    private static void updateBucketNames(SQLiteDatabase db, String tableName) {
+    private static void updateBucketNames(SQLiteDatabase db) {
         // Rebuild the bucket_display_name column using the natural case rather than lower case.
         db.beginTransaction();
         try {
             String[] columns = {BaseColumns._ID, MediaColumns.DATA};
-            Cursor cursor = db.query(tableName, columns, null, null, null, null, null);
+            // update only images and videos
+            Cursor cursor = db.query("files", columns, "media_type=1 OR media_type=3",
+                    null, null, null, null);
             try {
                 final int idColumnIndex = cursor.getColumnIndex(BaseColumns._ID);
                 final int dataColumnIndex = cursor.getColumnIndex(MediaColumns.DATA);
@@ -1775,7 +1776,7 @@ public class MediaProvider extends ContentProvider {
                     if (data != null) {
                         ContentValues values = new ContentValues();
                         computeBucketValues(data, values);
-                        db.update(tableName, values, "_id=?", rowId);
+                        db.update("files", values, "_id=?", rowId);
                     } else {
                         Log.w(TAG, "null data at id " + rowId);
                     }

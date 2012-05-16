@@ -19,5 +19,5 @@
     <string name="uid_label" msgid="999888504096344278">"Medien"</string>
     <string name="app_label" msgid="581696352855930028">"Medienspeicher"</string>
     <string name="upgrade_msg" msgid="4093462661265175619">"Medien-Datenbank wird aktualisiert."</string>
-    <string name="artist_label" msgid="1181678850424271227">"Musiker"</string>
+    <string name="artist_label" msgid="1181678850424271227">"Interpret"</string>
 </resources>

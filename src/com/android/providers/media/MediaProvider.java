@@ -2717,7 +2717,10 @@ public class MediaProvider extends ContentProvider {
             // case insensitive match when looking for parent directory.
             // TODO: investigate whether a "nocase" constraint on the column and
             // using "=" would give the same result faster.
-            String selection = (mCaseInsensitivePaths ? MediaStore.MediaColumns.DATA + " LIKE ?"
+            String selection = (mCaseInsensitivePaths ? MediaStore.MediaColumns.DATA + " LIKE ?1"
+                    // The like above makes it use the index.
+                    // The comparison below makes it correct when the path has wildcard chars
+                    + " AND lower(_data)=lower(?1)"
                     // search only directories.
                     + " AND format=" + MtpConstants.FORMAT_ASSOCIATION
                     : MediaStore.MediaColumns.DATA + "=?");
@@ -2731,6 +2734,9 @@ public class MediaProvider extends ContentProvider {
                     id = insertDirectory(helper, db, parentPath);
                     if (LOCAL_LOGV) Log.v(TAG, "Inserted " + parentPath);
                 } else {
+                    if (c.getCount() > 1) {
+                        Log.e(TAG, "more than one match for " + parentPath);
+                    }
                     c.moveToFirst();
                     id = c.getLong(0);
                     if (LOCAL_LOGV) Log.v(TAG, "Queried " + parentPath);
@@ -3373,19 +3379,41 @@ public class MediaProvider extends ContentProvider {
      *
      * @param path The path to the new .nomedia file or hidden directory
      */
-    private void processNewNoMediaPath(DatabaseHelper helper, SQLiteDatabase db, String path) {
-        File nomedia = new File(path);
+    private void processNewNoMediaPath(final DatabaseHelper helper, final SQLiteDatabase db,
+            final String path) {
+        final File nomedia = new File(path);
         if (nomedia.exists()) {
-            // only do this if the file actually exists, so we don't get tricked
-            // by someone just inserting a .nomedia entry into the database
-            String hiddenroot = nomedia.isDirectory() ? path : nomedia.getParent();
-            ContentValues mediatype = new ContentValues();
-            mediatype.put("media_type", 0);
-            int numrows = db.update("files", mediatype, "_data LIKE ?", new String[] { hiddenroot  + "/%"});
-            helper.mNumUpdates += numrows;
-            ContentResolver res = getContext().getContentResolver();
-            res.notifyChange(Uri.parse("content://media/"), null);
+            hidePath(helper, db, path);
+        } else {
+            // File doesn't exist. Try again in a little while.
+            // XXX there's probably a better way of doing this
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    SystemClock.sleep(2000);
+                    if (nomedia.exists()) {
+                        hidePath(helper, db, path);
+                    } else {
+                        Log.w(TAG, "does not exist: " + path, new Exception());
+                    }
+                }}).start();
         }
+    }
+
+    private void hidePath(DatabaseHelper helper, SQLiteDatabase db, String path) {
+        File nomedia = new File(path);
+        String hiddenroot = nomedia.isDirectory() ? path : nomedia.getParent();
+        ContentValues mediatype = new ContentValues();
+        mediatype.put("media_type", 0);
+        int numrows = db.update("files", mediatype,
+                // the "like" test makes use of the index, while the lower() test ensures it
+                // doesn't match entries it shouldn't when the path contains sqlite wildcards
+                "_data LIKE ? AND lower(substr(_data,1,?))=lower(?)",
+                new String[] { hiddenroot  + "/%",
+                    "" + (hiddenroot.length() + 1), hiddenroot + "/"});
+        helper.mNumUpdates += numrows;
+        ContentResolver res = getContext().getContentResolver();
+        res.notifyChange(Uri.parse("content://media/"), null);
     }
 
     /*
@@ -3419,8 +3447,12 @@ public class MediaProvider extends ContentProvider {
 
         @Override
         public void onMediaScannerConnected() {
-            Cursor c = mDb.query("files", openFileColumns, "_data like ?",
-                    new String[] { mPath + "/%"}, null, null, null);
+            Cursor c = mDb.query("files", openFileColumns,
+                    // the "like" test makes use of the index, while the lower() ensures it
+                    // doesn't match entries it shouldn't when the path contains sqlite wildcards
+                    "_data like ? AND lower(substr(_data,1,?))=lower(?)",
+                    new String[] { mPath + "/%", "" + (mPath.length() + 1), mPath + "/"},
+                    null, null, null);
             while (c.moveToNext()) {
                 String d = c.getString(0);
                 File f = new File(d);
@@ -3900,9 +3932,15 @@ public class MediaProvider extends ContentProvider {
                                 sGetTableAndWhereParam.where, whereArgs);
                         if (count > 0) {
                             // then update the paths of any files and folders contained in the directory.
-                            Object[] bindArgs = new Object[] {oldPath + "/%", oldPath.length() + 1, newPath};
+                            Object[] bindArgs = new Object[] {newPath, oldPath.length() + 1,
+                                    oldPath + "/%", (oldPath.length() + 1), oldPath + "/"};
                             helper.mNumUpdates++;
-                            db.execSQL("UPDATE files SET _data=?3||SUBSTR(_data, ?2) WHERE _data LIKE ?1;", bindArgs);
+                            db.execSQL("UPDATE files SET _data=?1||SUBSTR(_data, ?2)" +
+                                    // the "like" test makes use of the index, while the lower()
+                                    // test ensures it doesn't match entries it shouldn't when the
+                                    // path contains sqlite wildcards
+                                    " WHERE _data LIKE ?3 AND lower(substr(_data,1,?4))=lower(?5);",
+                                    bindArgs);
                         }
 
                         if (count > 0 && !db.inTransaction()) {

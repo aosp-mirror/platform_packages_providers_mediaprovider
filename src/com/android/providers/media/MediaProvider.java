@@ -4336,10 +4336,14 @@ public class MediaProvider extends ContentProvider {
                         WRITE_EXTERNAL_STORAGE, "External path: " + path);
             }
 
-            // bypass emulation layer when file is opened for reading
+            // bypass emulation layer when file is opened for reading, but only
+            // when opening read-only and we have an exact match.
             if (modeBits == MODE_READ_ONLY && Environment.isExternalStorageEmulated()) {
-                file = new File(Environment.getMediaStorageDirectory(), path.substring(
-                        sExternalPath.length()));
+                final File directFile = new File(Environment.getMediaStorageDirectory(), path
+                        .substring(sExternalPath.length()));
+                if (directFile.exists()) {
+                    file = directFile;
+                }
             }
 
         } else if (path.startsWith(sCachePath)) {

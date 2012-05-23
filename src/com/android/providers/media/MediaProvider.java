@@ -4254,6 +4254,10 @@ public class MediaProvider extends ContentProvider {
     private File queryForDataFile(Uri uri) throws FileNotFoundException {
         final Cursor cursor = query(
                 uri, new String[] { MediaColumns.DATA }, null, null, null);
+        if (cursor == null) {
+            throw new FileNotFoundException("Missing cursor for " + uri);
+        }
+
         try {
             switch (cursor.getCount()) {
                 case 0:

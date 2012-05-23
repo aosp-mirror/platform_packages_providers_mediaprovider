@@ -19,7 +19,7 @@ package com.android.providers.media;
 import static android.Manifest.permission.ACCESS_CACHE_FILESYSTEM;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
-import static android.os.ParcelFileDescriptor.MODE_READ_WRITE;
+import static android.os.ParcelFileDescriptor.MODE_READ_ONLY;
 import static android.os.ParcelFileDescriptor.MODE_WRITE_ONLY;
 
 import android.app.SearchManager;
@@ -4281,7 +4281,7 @@ public class MediaProvider extends ContentProvider {
         final int modeBits = ContentResolver.modeToMode(uri, mode);
         final boolean isWrite = (modeBits & MODE_WRITE_ONLY) != 0;
 
-        final File file = queryForDataFile(uri);
+        File file = queryForDataFile(uri);
         final String path;
         try {
             path = file.getCanonicalPath();
@@ -4297,6 +4297,13 @@ public class MediaProvider extends ContentProvider {
                 getContext().enforceCallingOrSelfPermission(
                         WRITE_EXTERNAL_STORAGE, "External path: " + path);
             }
+
+            // bypass emulation layer when file is opened for reading
+            if (modeBits == MODE_READ_ONLY && Environment.isExternalStorageEmulated()) {
+                file = new File(Environment.getMediaStorageDirectory(), path.substring(
+                        sExternalPath.length()));
+            }
+
         } else if (path.startsWith(sCachePath)) {
             getContext().enforceCallingOrSelfPermission(
                     ACCESS_CACHE_FILESYSTEM, "Cache path: " + path);

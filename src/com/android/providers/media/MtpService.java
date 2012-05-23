@@ -50,10 +50,10 @@ public class MtpService extends Service {
     private void addStorageDevicesLocked() {
         if (mPtpMode) {
             // In PTP mode we support only primary storage
-            addStorageLocked(mStorageMap.get(mVolumes[0].getPath()));
+            addStorageLocked(mVolumeMap.get(mVolumes[0].getPath()));
         } else {
-            for (MtpStorage storage : mStorageMap.values()) {
-                addStorageLocked(storage);
+            for (StorageVolume volume : mVolumeMap.values()) {
+                addStorageLocked(volume);
             }
         }
     }
@@ -81,9 +81,9 @@ public class MtpService extends Service {
                 if (Environment.MEDIA_MOUNTED.equals(newState)) {
                     volumeMountedLocked(path);
                 } else if (Environment.MEDIA_MOUNTED.equals(oldState)) {
-                    MtpStorage storage = mStorageMap.remove(path);
-                    if (storage != null) {
-                        removeStorageLocked(storage);
+                    StorageVolume volume = mVolumeMap.remove(path);
+                    if (volume != null) {
+                        removeStorageLocked(volume);
                     }
                 }
             }
@@ -95,6 +95,7 @@ public class MtpService extends Service {
     private StorageManager mStorageManager;
     private boolean mMtpDisabled; // true if MTP is disabled due to secure keyguard
     private boolean mPtpMode;
+    private final HashMap<String, StorageVolume> mVolumeMap = new HashMap<String, StorageVolume>();
     private final HashMap<String, MtpStorage> mStorageMap = new HashMap<String, MtpStorage>();
     private StorageVolume[] mVolumes;
 
@@ -189,15 +190,11 @@ public class MtpService extends Service {
         for (int i = 0; i < mVolumes.length; i++) {
             StorageVolume volume = mVolumes[i];
             if (volume.getPath().equals(path)) {
-                int storageId = MtpStorage.getStorageId(i);
-                long reserveSpace = volume.getMtpReserveSpace() * 1024 * 1024;
-
-                MtpStorage storage = new MtpStorage(volume);
-                mStorageMap.put(path, storage);
+                mVolumeMap.put(path, volume);
                 if (!mMtpDisabled) {
                     // In PTP mode we support only primary storage
                     if (i == 0 || !mPtpMode) {
-                        addStorageLocked(storage);
+                        addStorageLocked(volume);
                     }
                 }
                 break;
@@ -205,8 +202,12 @@ public class MtpService extends Service {
         }
     }
 
-    private void addStorageLocked(MtpStorage storage) {
-        Log.d(TAG, "addStorageLocked " + storage.getStorageId() + " " + storage.getPath());
+    private void addStorageLocked(StorageVolume volume) {
+        MtpStorage storage = new MtpStorage(volume);
+        String path = storage.getPath();
+        mStorageMap.put(path, storage);
+        
+        Log.d(TAG, "addStorageLocked " + storage.getStorageId() + " " +path);
         if (mDatabase != null) {
             mDatabase.addStorage(storage);
         }
@@ -215,7 +216,13 @@ public class MtpService extends Service {
         }
     }
 
-    private void removeStorageLocked(MtpStorage storage) {
+    private void removeStorageLocked(StorageVolume volume) {
+        MtpStorage storage = mStorageMap.remove(volume.getPath());
+        if (storage == null) {
+            Log.e(TAG, "no MtpStorage for " + volume.getPath());
+            return;
+        }
+
         Log.d(TAG, "removeStorageLocked " + storage.getStorageId() + " " + storage.getPath());
         if (mDatabase != null) {
             mDatabase.removeStorage(storage);

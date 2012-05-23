@@ -203,7 +203,7 @@ public class MtpService extends Service {
     }
 
     private void addStorageLocked(StorageVolume volume) {
-        MtpStorage storage = new MtpStorage(volume);
+        MtpStorage storage = new MtpStorage(volume, getApplicationContext());
         String path = storage.getPath();
         mStorageMap.put(path, storage);
         

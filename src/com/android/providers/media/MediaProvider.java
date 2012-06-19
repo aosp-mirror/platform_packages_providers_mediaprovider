@@ -2614,13 +2614,15 @@ public class MediaProvider extends ContentProvider {
             return setObjectReferences(helper, db, handle, values);
         }
 
+
         db.beginTransaction();
+        ArrayList<Long> notifyRowIds = new ArrayList<Long>();
         int numInserted = 0;
         try {
             int len = values.length;
             for (int i = 0; i < len; i++) {
                 if (values[i] != null) {
-                    insertInternal(uri, match, values[i]);
+                    insertInternal(uri, match, values[i], notifyRowIds);
                 }
             }
             numInserted = len;
@@ -2628,6 +2630,10 @@ public class MediaProvider extends ContentProvider {
         } finally {
             db.endTransaction();
         }
+
+        // Notify MTP (outside of successful transaction)
+        notifyMtp(notifyRowIds);
+
         getContext().getContentResolver().notifyChange(uri, null);
         return numInserted;
     }
@@ -2635,13 +2641,24 @@ public class MediaProvider extends ContentProvider {
     @Override
     public Uri insert(Uri uri, ContentValues initialValues) {
         int match = URI_MATCHER.match(uri);
-        Uri newUri = insertInternal(uri, match, initialValues);
+
+        ArrayList<Long> notifyRowIds = new ArrayList<Long>();
+        Uri newUri = insertInternal(uri, match, initialValues, notifyRowIds);
+        notifyMtp(notifyRowIds);
+
         // do not signal notification for MTP objects.
         // we will signal instead after file transfer is successful.
         if (newUri != null && match != MTP_OBJECTS) {
             getContext().getContentResolver().notifyChange(uri, null);
         }
         return newUri;
+    }
+
+    private void notifyMtp(ArrayList<Long> rowIds) {
+        int size = rowIds.size();
+        for (int i = 0; i < size; i++) {
+            sendObjectAdded(rowIds.get(i).longValue());
+        }
     }
 
     private int playlistBulkInsert(SQLiteDatabase db, Uri uri, ContentValues values[]) {
@@ -2766,7 +2783,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private long insertFile(DatabaseHelper helper, Uri uri, ContentValues initialValues, int mediaType,
-            boolean notify) {
+                            boolean notify, ArrayList<Long> notifyRowIds) {
         SQLiteDatabase db = helper.getWritableDatabase();
         ContentValues values = null;
 
@@ -2981,7 +2998,7 @@ public class MediaProvider extends ContentProvider {
             if (LOCAL_LOGV) Log.v(TAG, "insertFile: values=" + values + " returned: " + rowId);
 
             if (rowId != -1 && notify) {
-                sendObjectAdded(rowId);
+                notifyRowIds.add(rowId);
             }
         } else {
             helper.mNumUpdates++;
@@ -3138,7 +3155,8 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private Uri insertInternal(Uri uri, int match, ContentValues initialValues) {
+    private Uri insertInternal(Uri uri, int match, ContentValues initialValues,
+                               ArrayList<Long> notifyRowIds) {
         long rowId;
 
         if (LOCAL_LOGV) Log.v(TAG, "insertInternal: "+uri+", initValues="+initialValues);
@@ -3176,7 +3194,8 @@ public class MediaProvider extends ContentProvider {
 
         switch (match) {
             case IMAGES_MEDIA: {
-                rowId = insertFile(helper, uri, initialValues, FileColumns.MEDIA_TYPE_IMAGE, true);
+                rowId = insertFile(helper, uri, initialValues,
+                        FileColumns.MEDIA_TYPE_IMAGE, true, notifyRowIds);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(
                             Images.Media.getContentUri(uri.getPathSegments().get(0)), rowId);
@@ -3211,7 +3230,8 @@ public class MediaProvider extends ContentProvider {
             }
 
             case AUDIO_MEDIA: {
-                rowId = insertFile(helper, uri, initialValues, FileColumns.MEDIA_TYPE_AUDIO, true);
+                rowId = insertFile(helper, uri, initialValues,
+                        FileColumns.MEDIA_TYPE_AUDIO, true, notifyRowIds);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(Audio.Media.getContentUri(uri.getPathSegments().get(0)), rowId);
                     if (genre != null) {
@@ -3270,7 +3290,8 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_PLAYLISTS: {
                 ContentValues values = new ContentValues(initialValues);
                 values.put(MediaStore.Audio.Playlists.DATE_ADDED, System.currentTimeMillis() / 1000);
-                rowId = insertFile(helper, uri, values, FileColumns.MEDIA_TYPE_PLAYLIST, true);
+                rowId = insertFile(helper, uri, values,
+                        FileColumns.MEDIA_TYPE_PLAYLIST, true, notifyRowIds);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(Audio.Playlists.getContentUri(uri.getPathSegments().get(0)), rowId);
                 }
@@ -3291,7 +3312,8 @@ public class MediaProvider extends ContentProvider {
             }
 
             case VIDEO_MEDIA: {
-                rowId = insertFile(helper, uri, initialValues, FileColumns.MEDIA_TYPE_VIDEO, true);
+                rowId = insertFile(helper, uri, initialValues,
+                        FileColumns.MEDIA_TYPE_VIDEO, true, notifyRowIds);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(Video.Media.getContentUri(
                             uri.getPathSegments().get(0)), rowId);
@@ -3346,16 +3368,16 @@ public class MediaProvider extends ContentProvider {
 
             case FILES:
                 rowId = insertFile(helper, uri, initialValues,
-                        FileColumns.MEDIA_TYPE_NONE, true);
+                        FileColumns.MEDIA_TYPE_NONE, true, notifyRowIds);
                 if (rowId > 0) {
                     newUri = Files.getContentUri(uri.getPathSegments().get(0), rowId);
                 }
                 break;
 
             case MTP_OBJECTS:
-                // don't send a notification if the insert originated from MTP
+                // We don't send a notification if the insert originated from MTP
                 rowId = insertFile(helper, uri, initialValues,
-                        FileColumns.MEDIA_TYPE_NONE, false);
+                        FileColumns.MEDIA_TYPE_NONE, false, notifyRowIds);
                 if (rowId > 0) {
                     newUri = Files.getMtpObjectsUri(uri.getPathSegments().get(0), rowId);
                 }

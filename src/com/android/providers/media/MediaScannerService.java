@@ -85,31 +85,34 @@ public class MediaScannerService extends Service implements Runnable
     }
 
     private void scan(String[] directories, String volumeName) {
+        Uri uri = Uri.parse("file://" + directories[0]);
         // don't sleep while scanning
         mWakeLock.acquire();
 
-        ContentValues values = new ContentValues();
-        values.put(MediaStore.MEDIA_SCANNER_VOLUME, volumeName);
-        Uri scanUri = getContentResolver().insert(MediaStore.getMediaScannerUri(), values);
-
-        Uri uri = Uri.parse("file://" + directories[0]);
-        sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_STARTED, uri));
-        
         try {
-            if (volumeName.equals(MediaProvider.EXTERNAL_VOLUME)) {
-                openDatabase(volumeName);
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.MEDIA_SCANNER_VOLUME, volumeName);
+            Uri scanUri = getContentResolver().insert(MediaStore.getMediaScannerUri(), values);
+
+            sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_STARTED, uri));
+
+            try {
+                if (volumeName.equals(MediaProvider.EXTERNAL_VOLUME)) {
+                    openDatabase(volumeName);
+                }
+
+                MediaScanner scanner = createMediaScanner();
+                scanner.scanDirectories(directories, volumeName);
+            } catch (Exception e) {
+                Log.e(TAG, "exception in MediaScanner.scan()", e);
             }
 
-            MediaScanner scanner = createMediaScanner();
-            scanner.scanDirectories(directories, volumeName);
-        } catch (Exception e) {
-            Log.e(TAG, "exception in MediaScanner.scan()", e);
+            getContentResolver().delete(scanUri, null, null);
+
+        } finally {
+            sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_FINISHED, uri));
+            mWakeLock.release();
         }
-
-        getContentResolver().delete(scanUri, null, null);
-
-        sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_FINISHED, uri));
-        mWakeLock.release();
     }
     
     @Override

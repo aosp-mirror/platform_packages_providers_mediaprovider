@@ -64,6 +64,10 @@ do
     then
         # png
         echo "cat /storage/sdcard0/proto.png > \"$data\"" >> $CPFILES
+    elif [ "$format" == "14340" ]
+    then
+        # bmp
+        echo "cat /storage/sdcard0/proto.bmp > \"$data\"" >> $CPFILES
     elif [ "$format" == "14343" -a "$mediatype" == "0" ]
     then
         # gif
@@ -100,7 +104,15 @@ do
     then
         # 3gp
         echo "cat /storage/sdcard0/proto.3gp > \"$data\"" >> $CPFILES
-    elif [ "$format" == "47362" -a "$mediatype" == "2" ]
+    elif [ "$format" == "47747" ]
+    then
+        # doc
+        echo "cat /storage/sdcard0/proto.doc > \"$data\"" >> $CPFILES
+    elif [ "$format" == "47749" ]
+    then
+        # xls
+        echo "cat /storage/sdcard0/proto.xls > \"$data\"" >> $CPFILES
+    elif [ "$format" == "47362" ]
     then
         # ogg
         echo "cat /storage/sdcard0/proto.ogg > \"$data\"" >> $CPFILES
@@ -108,6 +120,10 @@ do
     then
         # unknown type
         echo "cat /storage/sdcard0/proto.dat > \"$data\"" >> $CPFILES
+    elif [ "$format" == "12288" -a "$mediatype" == "1" ]
+    then
+        # some kind of image file
+        echo "cat /storage/sdcard0/proto.jpg > \"$data\"" >> $CPFILES
     elif [ "$format" == "12289" -a "$mediatype" == "0" ]
     then
         # directory, ignore
@@ -119,7 +135,7 @@ do
     else
         echo ignored: $format '|' $mediatype '|' $mimetype '|' $data
     fi
-    echo mkdir -p \"$(dirname $data)\" >> $MKDIRS
+    echo mkdir -p \"$(dirname "$data")\" >> $MKDIRS
 done
 
 sort -u $MKDIRS > mkfiles.sh

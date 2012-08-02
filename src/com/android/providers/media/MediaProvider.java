@@ -2976,7 +2976,9 @@ public class MediaProvider extends ContentProvider {
                 File file = new File(path);
                 if (file.exists()) {
                     values.put(FileColumns.DATE_MODIFIED, file.lastModified() / 1000);
-                    values.put(FileColumns.SIZE, file.length());
+                    if (!values.containsKey(FileColumns.SIZE)) {
+                        values.put(FileColumns.SIZE, file.length());
+                    }
                 }
             }
 

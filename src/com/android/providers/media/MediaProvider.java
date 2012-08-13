@@ -263,9 +263,13 @@ public class MediaProvider extends ContentProvider {
                                 values.put(Files.FileColumns.DATA, "");
                                 String where = FileColumns.STORAGE_ID + "=?";
                                 String[] whereArgs = new String[] { Integer.toString(storage.getStorageId()) };
+                                database.mNumUpdates++;
                                 db.update("files", values, where, whereArgs);
                                 // now delete the records
-                                db.delete("files", where, whereArgs);
+                                database.mNumDeletes++;
+                                int numpurged = db.delete("files", where, whereArgs);
+                                logToDb(db, "removed " + numpurged +
+                                        " rows for ejected filesystem " + storage.getPath());
                                 // notify on media Uris as well as the files Uri
                                 context.getContentResolver().notifyChange(
                                         Audio.Media.getContentUri(EXTERNAL_VOLUME), null);
@@ -3807,6 +3811,7 @@ public class MediaProvider extends ContentProvider {
                             } else if (mediatype == FileColumns.MEDIA_TYPE_AUDIO) {
                                 if (!database.mInternal) {
                                     idvalue[0] =  "" + c.getLong(2);
+                                    database.mNumDeletes += 2; // also count the one below
                                     db.delete("audio_genres_map", "audio_id=?", idvalue);
                                     // for each playlist that the item appears in, move
                                     // all the items behind it forward by one
@@ -3816,6 +3821,7 @@ public class MediaProvider extends ContentProvider {
                                     while (cc.moveToNext()) {
                                         playlistvalues[0] = "" + cc.getLong(0);
                                         playlistvalues[1] = "" + cc.getInt(1);
+                                        database.mNumUpdates++;
                                         db.execSQL("UPDATE audio_playlists_map" +
                                                 " SET play_order=play_order-1" +
                                                 " WHERE playlist_id=? AND play_order>?",

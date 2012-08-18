@@ -88,30 +88,31 @@ public class MediaScannerService extends Service implements Runnable
         // don't sleep while scanning
         mWakeLock.acquire();
 
-        ContentValues values = new ContentValues();
-        values.put(MediaStore.MEDIA_SCANNER_VOLUME, volumeName);
-        Uri scanUri = getContentResolver().insert(MediaStore.getMediaScannerUri(), values);
-
-        Uri uri = Uri.parse("file://" + directories[0]);
-        sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_STARTED, uri));
-        
         try {
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.MEDIA_SCANNER_VOLUME, volumeName);
+            Uri scanUri = getContentResolver().insert(MediaStore.getMediaScannerUri(), values);
+
+            Uri uri = Uri.parse("file://" + directories[0]);
+            sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_STARTED, uri));
+
             if (volumeName.equals(MediaProvider.EXTERNAL_VOLUME)) {
                 openDatabase(volumeName);
             }
 
             MediaScanner scanner = createMediaScanner();
             scanner.scanDirectories(directories, volumeName);
+
+            getContentResolver().delete(scanUri, null, null);
+
+            sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_FINISHED, uri));
         } catch (Exception e) {
             Log.e(TAG, "exception in MediaScanner.scan()", e);
+        } finally {
+            mWakeLock.release();
         }
-
-        getContentResolver().delete(scanUri, null, null);
-
-        sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_FINISHED, uri));
-        mWakeLock.release();
     }
-    
+
     @Override
     public void onCreate()
     {

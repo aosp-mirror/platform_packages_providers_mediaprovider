@@ -27,12 +27,10 @@ import android.mtp.MtpDatabase;
 import android.mtp.MtpServer;
 import android.mtp.MtpStorage;
 import android.os.Environment;
-import android.os.Handler;
 import android.os.IBinder;
 import android.os.storage.StorageEventListener;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
-import android.provider.Settings;
 import android.util.Log;
 
 import java.io.File;
@@ -50,11 +48,12 @@ public class MtpService extends Service {
     private void addStorageDevicesLocked() {
         if (mPtpMode) {
             // In PTP mode we support only primary storage
-            String path = mVolumes[0].getPath();
+            final StorageVolume primary = StorageManager.getPrimaryVolume(mVolumes);
+            String path = primary.getPath();
             if (path != null) {
                 String state = mStorageManager.getVolumeState(path);
                 if (Environment.MEDIA_MOUNTED.equals(state)) {
-                    addStorageLocked(mVolumeMap.get(mVolumes[0].getPath()));
+                    addStorageLocked(mVolumeMap.get(primary.getPath()));
                 }
             }
         } else {
@@ -147,8 +146,9 @@ public class MtpService extends Service {
                         subdirs[i] = file.getPath();
                     }
                 }
+                final StorageVolume primary = StorageManager.getPrimaryVolume(mVolumes);
                 mDatabase = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME,
-                        mVolumes[0].getPath(), subdirs);
+                        primary.getPath(), subdirs);
                 mServer = new MtpServer(mDatabase, mPtpMode);
                 if (!mMtpDisabled) {
                     addStorageDevicesLocked();
@@ -199,7 +199,7 @@ public class MtpService extends Service {
                 mVolumeMap.put(path, volume);
                 if (!mMtpDisabled) {
                     // In PTP mode we support only primary storage
-                    if (i == 0 || !mPtpMode) {
+                    if (volume.isPrimary() || !mPtpMode) {
                         addStorageLocked(volume);
                     }
                 }

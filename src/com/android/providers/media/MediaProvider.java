@@ -83,6 +83,7 @@ import android.provider.MediaStore.Video;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.util.Log;
+import android.util.Slog;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -642,6 +643,11 @@ public class MediaProvider extends ContentProvider {
 
         return true;
     }
+
+    private static final String TABLE_FILES = "files";
+    private static final String TABLE_ALBUM_ART = "album_art";
+    private static final String TABLE_THUMBNAILS = "thumbnails";
+    private static final String TABLE_VIDEO_THUMBNAILS = "videothumbnails";
 
     private static final String IMAGE_COLUMNS =
                         "_data,_size,_display_name,mime_type,title,date_added," +
@@ -1727,6 +1733,30 @@ public class MediaProvider extends ContentProvider {
         if (fromVersion < 509) {
             db.execSQL("CREATE TABLE IF NOT EXISTS log (time DATETIME PRIMARY KEY, message TEXT);");
         }
+
+        // Emulated external storage moved to user-specific paths
+        if (fromVersion < 510 && Environment.isExternalStorageEmulated()) {
+            db.execSQL("DROP TRIGGER IF EXISTS files_cleanup");
+
+            // File.fixSlashes() removes any trailing slashes
+            final String externalStorage = Environment.getExternalStorageDirectory().toString();
+            Slog.d(TAG, "Adjusting external storage paths to: " + externalStorage);
+
+            final String[] tables = {
+                    TABLE_FILES, TABLE_ALBUM_ART, TABLE_THUMBNAILS, TABLE_VIDEO_THUMBNAILS };
+            for (String table : tables) {
+                db.execSQL("UPDATE " + table + " SET " + "_data='" + externalStorage
+                        + "'||SUBSTR(_data,17) WHERE _data LIKE '/storage/sdcard0/%';");
+            }
+
+            if (!internal) {
+                db.execSQL("CREATE TRIGGER IF NOT EXISTS files_cleanup DELETE ON files " +
+                    "BEGIN " +
+                        "SELECT _OBJECT_REMOVED(old._id);" +
+                    "END");
+            }
+        }
+
         sanityCheck(db, fromVersion);
         long elapsedSeconds = (SystemClock.currentTimeMicro() - startTime) / 1000000;
         logToDb(db, "Database upgraded from version " + fromVersion + " to " + toVersion

@@ -49,11 +49,11 @@ public class MtpService extends Service {
         if (mPtpMode) {
             // In PTP mode we support only primary storage
             final StorageVolume primary = StorageManager.getPrimaryVolume(mVolumes);
-            String path = primary.getPath();
+            final String path = primary.getPath();
             if (path != null) {
                 String state = mStorageManager.getVolumeState(path);
                 if (Environment.MEDIA_MOUNTED.equals(state)) {
-                    addStorageLocked(mVolumeMap.get(primary.getPath()));
+                    addStorageLocked(mVolumeMap.get(path));
                 }
             }
         } else {

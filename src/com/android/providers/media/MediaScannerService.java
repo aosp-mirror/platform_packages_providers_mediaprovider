@@ -190,7 +190,14 @@ public class MediaScannerService extends Service implements Runnable
         String volumeName = MediaProvider.EXTERNAL_VOLUME;
         openDatabase(volumeName);
         MediaScanner scanner = createMediaScanner();
-        return scanner.scanSingleFile(path, volumeName, mimeType);
+        try {
+            // make sure the file path is in canonical form
+            String canonicalPath = new File(path).getCanonicalPath();
+            return scanner.scanSingleFile(canonicalPath, volumeName, mimeType);
+        } catch (Exception e) {
+            Log.e(TAG, "bad path " + path + " in scanFile()", e);
+            return null;
+        }
     }
 
     @Override

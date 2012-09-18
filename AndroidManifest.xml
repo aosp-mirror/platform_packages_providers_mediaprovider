@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE" />
     <uses-permission android:name="android.permission.ACCESS_MTP" />
+    <uses-permission android:name="android.permission.MANAGE_USERS" />
+    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
 
     <application android:process="android.process.media"
                  android:label="@string/app_label"
@@ -57,12 +59,15 @@
             </intent-filter>
         </service>
 
-        <receiver android:name="UsbReceiver">
+        <receiver android:name=".MtpReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
             <intent-filter>
                 <action android:name="android.hardware.usb.action.USB_STATE" />
             </intent-filter>
         </receiver>
- 
+
         <service android:name="MtpService" />
 
         <activity android:name="RingtonePickerActivity"

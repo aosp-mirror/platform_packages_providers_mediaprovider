@@ -17,28 +17,38 @@
 
 package com.android.providers.media;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.BroadcastReceiver;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.storage.StorageManager;
+import android.os.storage.StorageVolume;
 import android.util.Log;
 
-import java.io.File;
-
-
-public class MediaScannerReceiver extends BroadcastReceiver
-{
+public class MediaScannerReceiver extends BroadcastReceiver {
     private final static String TAG = "MediaScannerReceiver";
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        String action = intent.getAction();
-        Uri uri = intent.getData();
-        if (action.equals(Intent.ACTION_BOOT_COMPLETED)) {
-            // scan internal storage
+        final String action = intent.getAction();
+        final Uri uri = intent.getData();
+        if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
+            // Scan internal storage
             scan(context, MediaProvider.INTERNAL_VOLUME);
+
+            // Scan any available external storage
+            // TODO: switch to atomic fetching of volume state
+            final StorageManager sm = StorageManager.from(context);
+            for (StorageVolume volume : sm.getVolumeList()) {
+                final String state = sm.getVolumeState(volume.getPath());
+                if (Environment.MEDIA_MOUNTED.equals(state)
+                        || Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+                    scan(context, volume.getPath());
+                }
+            }
+
         } else {
             if (uri.getScheme().equals("file")) {
                 // handle intents related to external storage
@@ -46,10 +56,10 @@ public class MediaScannerReceiver extends BroadcastReceiver
                 String externalStoragePath = Environment.getExternalStorageDirectory().getPath();
 
                 Log.d(TAG, "action: " + action + " path: " + path);
-                if (action.equals(Intent.ACTION_MEDIA_MOUNTED)) {
+                if (Intent.ACTION_MEDIA_MOUNTED.equals(action)) {
                     // scan whenever any volume is mounted
                     scan(context, MediaProvider.EXTERNAL_VOLUME);
-                } else if (action.equals(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE) &&
+                } else if (Intent.ACTION_MEDIA_SCANNER_SCAN_FILE.equals(action) &&
                         path != null && path.startsWith(externalStoragePath + "/")) {
                     scanFile(context, path);
                 }
@@ -71,5 +81,3 @@ public class MediaScannerReceiver extends BroadcastReceiver
                 new Intent(context, MediaScannerService.class).putExtras(args));
     }    
 }
-
-

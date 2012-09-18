@@ -16,22 +16,32 @@
 
 package com.android.providers.media;
 
-import android.content.Context;
-import android.content.ContentValues;
-import android.content.Intent;
 import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.hardware.usb.UsbManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 
-
-public class UsbReceiver extends BroadcastReceiver
-{
+public class MtpReceiver extends BroadcastReceiver {
     private final static String TAG = "UsbReceiver";
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        final String action = intent.getAction();
+        if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
+            final Intent usbState = context.registerReceiver(
+                    null, new IntentFilter(UsbManager.ACTION_USB_STATE));
+            if (usbState != null) {
+                handleUsbState(context, usbState);
+            }
+        } else if (UsbManager.ACTION_USB_STATE.equals(action)) {
+            handleUsbState(context, intent);
+        }
+    }
+
+    private void handleUsbState(Context context, Intent intent) {
         Bundle extras = intent.getExtras();
         boolean connected = extras.getBoolean(UsbManager.USB_CONFIGURED);
         boolean mtpEnabled = extras.getBoolean(UsbManager.USB_FUNCTION_MTP);
@@ -54,5 +64,3 @@ public class UsbReceiver extends BroadcastReceiver
         }
     }
 }
-
-

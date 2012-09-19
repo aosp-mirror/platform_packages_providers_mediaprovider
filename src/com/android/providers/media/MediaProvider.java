@@ -1746,6 +1746,10 @@ public class MediaProvider extends ContentProvider {
                         + "'||SUBSTR(_data,17) WHERE _data LIKE '/storage/sdcard0/%';");
             }
         }
+        if (fromVersion < 511) {
+            // we update _data in version 510, we need to update the bucket_id as well
+            updateBucketNames(db);
+        }
 
         sanityCheck(db, fromVersion);
         long elapsedSeconds = (SystemClock.currentTimeMicro() - startTime) / 1000000;

@@ -3985,11 +3985,18 @@ public class MediaProvider extends ContentProvider {
                         count = db.update(sGetTableAndWhereParam.table, initialValues,
                                 sGetTableAndWhereParam.where, whereArgs);
                         if (count > 0) {
-                            // then update the paths of any files and folders contained in the directory.
+                            // update the paths of any files and folders contained in the directory
                             Object[] bindArgs = new Object[] {newPath, oldPath.length() + 1,
-                                    oldPath + "/%", (oldPath.length() + 1), oldPath + "/"};
+                                    oldPath + "/%", (oldPath.length() + 1), oldPath + "/",
+                                    // update bucket_display_name and bucket_id based on new path
+                                    f.getName(),
+                                    f.toString().toLowerCase().hashCode()
+                                    };
                             helper.mNumUpdates++;
                             db.execSQL("UPDATE files SET _data=?1||SUBSTR(_data, ?2)" +
+                                    // also update bucket_display_name
+                                    ",bucket_display_name=?6" +
+                                    ",bucket_id=?7" +
                                     // the "like" test makes use of the index, while the lower()
                                     // test ensures it doesn't match entries it shouldn't when the
                                     // path contains sqlite wildcards

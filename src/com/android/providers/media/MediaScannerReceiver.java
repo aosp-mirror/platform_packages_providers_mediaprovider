@@ -23,8 +23,6 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.storage.StorageManager;
-import android.os.storage.StorageVolume;
 import android.util.Log;
 
 public class MediaScannerReceiver extends BroadcastReceiver {
@@ -35,19 +33,9 @@ public class MediaScannerReceiver extends BroadcastReceiver {
         final String action = intent.getAction();
         final Uri uri = intent.getData();
         if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
-            // Scan internal storage
+            // Scan both internal and external storage
             scan(context, MediaProvider.INTERNAL_VOLUME);
-
-            // Scan any available external storage
-            // TODO: switch to atomic fetching of volume state
-            final StorageManager sm = StorageManager.from(context);
-            for (StorageVolume volume : sm.getVolumeList()) {
-                final String state = sm.getVolumeState(volume.getPath());
-                if (Environment.MEDIA_MOUNTED.equals(state)
-                        || Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
-                    scan(context, volume.getPath());
-                }
-            }
+            scan(context, MediaProvider.EXTERNAL_VOLUME);
 
         } else {
             if (uri.getScheme().equals("file")) {

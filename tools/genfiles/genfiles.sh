@@ -139,7 +139,7 @@ done
 }
 
 echo mkfiles.sh generated. Now run:
-grep sdcard0\/proto mkfiles.sh |sed 's/cat \/storage\/sdcard0\//adb push /' | sed 's/ > .*/ \/storage\/sdcard0/'|sort -u
+grep sdcard0\/proto mkfiles.sh |sed 's/cat \/storage\/sdcard0\//adb push protos\//' | sed 's/ > .*/ \/storage\/sdcard0\//'|sort -u
 echo adb push mkfiles.sh /storage/sdcard0
 echo adb shell sh /storage/sdcard0/mkfiles.sh
 

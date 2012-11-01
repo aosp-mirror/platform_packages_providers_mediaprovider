@@ -567,8 +567,6 @@ public class MediaProvider extends ContentProvider {
         iFilter.addDataScheme("file");
         context.registerReceiver(mUnmountReceiver, iFilter);
 
-        mCaseInsensitivePaths = true;
-
         StorageManager storageManager =
                 (StorageManager)context.getSystemService(Context.STORAGE_SERVICE);
         mExternalStoragePaths = storageManager.getVolumePaths();
@@ -1575,6 +1573,8 @@ public class MediaProvider extends ContentProvider {
                     + FileColumns.MEDIA_TYPE_IMAGE + ";");
         }
 
+        // Honeycomb went up to version 307, ICS started at 401
+
         // Database version 401 did not add storage_id to the internal database.
         // We need it there too, so add it in version 402
         if (fromVersion < 401 || (fromVersion == 401 && internal)) {
@@ -1643,6 +1643,8 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("DELETE FROM audio_genres_map");
             db.execSQL("DELETE FROM audio_genres");
         }
+
+        // ICS went out with database version 409, JB started at 500
 
         if (fromVersion < 500) {
             // we're now deleting the file in mediaprovider code, rather than via a trigger
@@ -1749,6 +1751,60 @@ public class MediaProvider extends ContentProvider {
         if (fromVersion < 511) {
             // we update _data in version 510, we need to update the bucket_id as well
             updateBucketNames(db);
+        }
+
+        // JB 4.2 went out with database version 511, starting next release with 600
+
+        if (fromVersion < 600) {
+            // modify _data column to be unique and collate nocase. Because this drops the original
+            // table and replaces it with a new one by the same name, we need to also recreate all
+            // indices and triggers that refer to the files table.
+            // Views don't need to be recreated.
+
+            db.execSQL("CREATE TABLE files2 (_id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "_data TEXT UNIQUE" +
+                    // the internal filesystem is case-sensitive
+                    (internal ? "," : " COLLATE NOCASE,") +
+                    "_size INTEGER,format INTEGER,parent INTEGER,date_added INTEGER," +
+                    "date_modified INTEGER,mime_type TEXT,title TEXT,description TEXT," +
+                    "_display_name TEXT,picasa_id TEXT,orientation INTEGER,latitude DOUBLE," +
+                    "longitude DOUBLE,datetaken INTEGER,mini_thumb_magic INTEGER,bucket_id TEXT," +
+                    "bucket_display_name TEXT,isprivate INTEGER,title_key TEXT,artist_id INTEGER," +
+                    "album_id INTEGER,composer TEXT,track INTEGER,year INTEGER CHECK(year!=0)," +
+                    "is_ringtone INTEGER,is_music INTEGER,is_alarm INTEGER," +
+                    "is_notification INTEGER,is_podcast INTEGER,album_artist TEXT," +
+                    "duration INTEGER,bookmark INTEGER,artist TEXT,album TEXT,resolution TEXT," +
+                    "tags TEXT,category TEXT,language TEXT,mini_thumb_data TEXT,name TEXT," +
+                    "media_type INTEGER,old_id INTEGER,storage_id INTEGER,is_drm INTEGER," +
+                    "width INTEGER, height INTEGER);");
+
+            // copy data from old table, squashing entries with duplicate _data
+            db.execSQL("INSERT OR REPLACE INTO files2 SELECT * FROM files;");
+            db.execSQL("DROP TABLE files;");
+            db.execSQL("ALTER TABLE files2 RENAME TO files;");
+
+            // recreate indices and triggers
+            db.execSQL("CREATE INDEX album_id_idx ON files(album_id);");
+            db.execSQL("CREATE INDEX artist_id_idx ON files(artist_id);");
+            db.execSQL("CREATE INDEX bucket_index on files(bucket_id,media_type," +
+                    "datetaken, _id);");
+            db.execSQL("CREATE INDEX bucket_name on files(bucket_id,media_type," +
+                    "bucket_display_name);");
+            db.execSQL("CREATE INDEX format_index ON files(format);");
+            db.execSQL("CREATE INDEX media_type_index ON files(media_type);");
+            db.execSQL("CREATE INDEX parent_index ON files(parent);");
+            db.execSQL("CREATE INDEX path_index ON files(_data);");
+            db.execSQL("CREATE INDEX sort_index ON files(datetaken ASC, _id ASC);");
+            db.execSQL("CREATE INDEX title_idx ON files(title);");
+            db.execSQL("CREATE INDEX titlekey_index ON files(title_key);");
+            if (!internal) {
+                db.execSQL("CREATE TRIGGER audio_playlists_cleanup DELETE ON files" +
+                        " WHEN old.media_type=4" +
+                        " BEGIN DELETE FROM audio_playlists_map WHERE playlist_id = old._id;" +
+                        "SELECT _DELETE_FILE(old._data);END;");
+                db.execSQL("CREATE TRIGGER files_cleanup DELETE ON files" +
+                        " BEGIN SELECT _OBJECT_REMOVED(old._id);END;");
+            }
         }
 
         sanityCheck(db, fromVersion);
@@ -2756,17 +2812,7 @@ public class MediaProvider extends ContentProvider {
                 return cid;
             }
 
-            // Use "LIKE" instead of "=" on case insensitive file systems so we do a
-            // case insensitive match when looking for parent directory.
-            // TODO: investigate whether a "nocase" constraint on the column and
-            // using "=" would give the same result faster.
-            String selection = (mCaseInsensitivePaths ? MediaStore.MediaColumns.DATA + " LIKE ?1"
-                    // The like above makes it use the index.
-                    // The comparison below makes it correct when the path has wildcard chars
-                    + " AND lower(_data)=lower(?1)"
-                    // search only directories.
-                    + " AND format=" + MtpConstants.FORMAT_ASSOCIATION
-                    : MediaStore.MediaColumns.DATA + "=?");
+            String selection = MediaStore.MediaColumns.DATA + "=?";
             String [] selargs = { parentPath };
             helper.mNumQueries++;
             Cursor c = db.query("files", sIdOnlyColumn, selection, selargs, null, null, null);

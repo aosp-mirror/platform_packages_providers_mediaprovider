@@ -2498,7 +2498,10 @@ public class MediaProvider extends ContentProvider {
                 combine(prependArgs, selectionArgs), groupBy, null, sort, limit);
 
         if (c != null) {
-            c.setNotificationUri(getContext().getContentResolver(), uri);
+            String nonotify = uri.getQueryParameter("nonotify");
+            if (nonotify == null || !nonotify.equals("1")) {
+                c.setNotificationUri(getContext().getContentResolver(), uri);
+            }
         }
 
         return c;

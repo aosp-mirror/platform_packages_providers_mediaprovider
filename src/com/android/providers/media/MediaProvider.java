@@ -1817,7 +1817,8 @@ public class MediaProvider extends ContentProvider {
      * Write a persistent diagnostic message to the log table.
      */
     static void logToDb(SQLiteDatabase db, String message) {
-        db.execSQL("INSERT INTO log (time,message) VALUES (strftime('%Y-%m-%d %H:%M:%f','now'),?);",
+        db.execSQL("INSERT OR REPLACE" +
+                " INTO log (time,message) VALUES (strftime('%Y-%m-%d %H:%M:%f','now'),?);",
                 new String[] { message });
         // delete all but the last 500 rows
         db.execSQL("DELETE FROM log WHERE rowid IN" +

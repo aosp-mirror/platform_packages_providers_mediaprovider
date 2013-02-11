@@ -103,6 +103,7 @@ import java.util.PriorityQueue;
 import java.util.Stack;
 
 import libcore.io.ErrnoException;
+import libcore.io.IoUtils;
 import libcore.io.Libcore;
 
 /**
@@ -4663,29 +4664,22 @@ public class MediaProvider extends ContentProvider {
     // Write out the album art to the output URI, recompresses the given Bitmap
     // if necessary, otherwise writes the compressed data.
     private void writeAlbumArt(
-            boolean need_to_recompress, Uri out, byte[] compressed, Bitmap bm) {
-        boolean success = false;
+            boolean need_to_recompress, Uri out, byte[] compressed, Bitmap bm) throws IOException {
+        OutputStream outstream = null;
         try {
-            OutputStream outstream = getContext().getContentResolver().openOutputStream(out);
+            outstream = getContext().getContentResolver().openOutputStream(out);
 
             if (!need_to_recompress) {
                 // No need to recompress here, just write out the original
                 // compressed data here.
                 outstream.write(compressed);
-                success = true;
             } else {
-                success = bm.compress(Bitmap.CompressFormat.JPEG, 85, outstream);
+                if (!bm.compress(Bitmap.CompressFormat.JPEG, 85, outstream)) {
+                    throw new IOException("failed to compress bitmap");
+                }
             }
-
-            outstream.close();
-        } catch (FileNotFoundException ex) {
-            Log.e(TAG, "error creating file", ex);
-        } catch (IOException ex) {
-            Log.e(TAG, "error creating file", ex);
-        }
-        if (!success) {
-            // the thumbnail was not written successfully, delete the entry that refers to it
-            getContext().getContentResolver().delete(out, null, null);
+        } finally {
+            IoUtils.closeQuietly(outstream);
         }
     }
 
@@ -4764,17 +4758,19 @@ public class MediaProvider extends ContentProvider {
             // that could go wrong while generating the thumbnail, and we only want
             // to update the database when all steps succeeded.
             d.db.beginTransaction();
+            Uri out = null;
+            ParcelFileDescriptor pfd = null;
             try {
-                Uri out = getAlbumArtOutputUri(d.helper, d.db, d.album_id, d.albumart_uri);
+                out = getAlbumArtOutputUri(d.helper, d.db, d.album_id, d.albumart_uri);
 
                 if (out != null) {
                     writeAlbumArt(need_to_recompress, out, compressed, bm);
                     getContext().getContentResolver().notifyChange(MEDIA_URI, null);
-                    ParcelFileDescriptor pfd = openFileHelper(out, "r");
+                    pfd = openFileHelper(out, "r");
                     d.db.setTransactionSuccessful();
                     return pfd;
                 }
-            } catch (FileNotFoundException ex) {
+            } catch (IOException ex) {
                 // do nothing, just return null below
             } catch (UnsupportedOperationException ex) {
                 // do nothing, just return null below
@@ -4782,6 +4778,13 @@ public class MediaProvider extends ContentProvider {
                 d.db.endTransaction();
                 if (bm != null) {
                     bm.recycle();
+                }
+                if (pfd == null && out != null) {
+                    // Thumbnail was not written successfully, delete the entry that refers to it.
+                    // Note that this only does something if getAlbumArtOutputUri() reused an
+                    // existing entry from the database. If a new entry was created, it will
+                    // have been rolled back as part of backing out the transaction.
+                    getContext().getContentResolver().delete(out, null, null);
                 }
             }
         }

@@ -2631,7 +2631,7 @@ public class MediaProvider extends ContentProvider {
 
     /**
      * Ensures there is a file in the _data column of values, if one isn't
-     * present a new file is created.
+     * present a new filename is generated. The file itself is not created.
      *
      * @param initialValues the values passed to insert by the caller
      * @return the new values
@@ -4653,6 +4653,9 @@ public class MediaProvider extends ContentProvider {
                 long rowId = db.insert("album_art", MediaStore.MediaColumns.DATA, values);
                 if (rowId > 0) {
                     out = ContentUris.withAppendedId(ALBUMART_URI, rowId);
+                    // ensure the parent directory exists
+                    String albumart_path = values.getAsString(MediaStore.MediaColumns.DATA);
+                    ensureFileExists(albumart_path);
                 }
             } catch (IllegalStateException ex) {
                 Log.e(TAG, "error creating album thumb file");

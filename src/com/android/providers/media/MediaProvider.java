@@ -1751,6 +1751,15 @@ public class MediaProvider extends ContentProvider {
             updateBucketNames(db);
         }
 
+        if (fromVersion < 512) {
+            // remove primary key constraint because column time is not necessarily unique
+            db.execSQL("CREATE TABLE IF NOT EXISTS log_tmp (time DATETIME, message TEXT);");
+            db.execSQL("DELETE FROM log_tmp;");
+            db.execSQL("INSERT INTO log_tmp SELECT time, message FROM log;");
+            db.execSQL("DROP TABLE log;");
+            db.execSQL("ALTER TABLE log_tmp RENAME TO log;");
+        }
+
         sanityCheck(db, fromVersion);
         long elapsedSeconds = (SystemClock.currentTimeMicro() - startTime) / 1000000;
         logToDb(db, "Database upgraded from version " + fromVersion + " to " + toVersion
@@ -1765,7 +1774,7 @@ public class MediaProvider extends ContentProvider {
                 new String[] { message });
         // delete all but the last 500 rows
         db.execSQL("DELETE FROM log WHERE rowid IN" +
-                " (SELECT rowid FROM log ORDER BY time DESC LIMIT 500,-1);");
+                " (SELECT rowid FROM log ORDER BY rowid DESC LIMIT 500,-1);");
     }
 
     /**
@@ -5357,7 +5366,7 @@ public class MediaProvider extends ContentProvider {
             }
             if (dumpDbLog) {
                 c = db.query("log", new String[] {"time", "message"},
-                        null, null, null, null, "time");
+                        null, null, null, null, "rowid");
                 try {
                     if (c != null) {
                         while (c.moveToNext()) {

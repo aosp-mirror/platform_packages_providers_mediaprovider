@@ -91,7 +91,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -2107,8 +2106,6 @@ public class MediaProvider extends ContentProvider {
             if (!TextUtils.isEmpty(filter)) {
                 String [] searchWords = filter.split(" ");
                 keywords = new String[searchWords.length];
-                Collator col = Collator.getInstance();
-                col.setStrength(Collator.PRIMARY);
                 for (int i = 0; i < searchWords.length; i++) {
                     String key = MediaStore.Audio.keyFor(searchWords[i]);
                     key = key.replace("\\", "\\\\");
@@ -2485,8 +2482,6 @@ public class MediaProvider extends ContentProvider {
         String [] searchWords = mSearchString.length() > 0 ?
                 mSearchString.split(" ") : new String[0];
         String [] wildcardWords = new String[searchWords.length];
-        Collator col = Collator.getInstance();
-        col.setStrength(Collator.PRIMARY);
         int len = searchWords.length;
         for (int i = 0; i < len; i++) {
             // Because we match on individual words here, we need to remove words

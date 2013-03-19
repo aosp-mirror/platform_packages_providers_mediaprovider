@@ -305,6 +305,13 @@ public final class RingtonePickerActivity extends AlertActivity implements
             if (mDefaultRingtone == null) {
                 mDefaultRingtone = RingtoneManager.getRingtone(this, mUriForDefaultItem);
             }
+           /*
+            * Stream type of mDefaultRingtone is not set explicitly here.
+            * It should be set in accordance with mRingtoneManager of this Activity.
+            */
+            if (mDefaultRingtone != null) {
+                mDefaultRingtone.setStreamType(mRingtoneManager.inferStreamType());
+            }
             ringtone = mDefaultRingtone;
 
             /*

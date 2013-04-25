@@ -630,7 +630,7 @@ public class MediaProvider extends ContentProvider {
                         d = (ThumbData)mThumbRequestStack.pop();
                     }
 
-                    makeThumbInternal(d);
+                    IoUtils.closeQuietly(makeThumbInternal(d));
                     synchronized (mPendingThumbs) {
                         mPendingThumbs.remove(d.path);
                     }

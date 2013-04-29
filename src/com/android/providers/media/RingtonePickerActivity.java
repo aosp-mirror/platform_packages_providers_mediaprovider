@@ -132,11 +132,6 @@ public final class RingtonePickerActivity extends AlertActivity implements
         // Give the Activity so it can do managed queries
         mRingtoneManager = new RingtoneManager(this);
 
-        // Get whether to include DRM ringtones
-        final boolean includeDrm = intent.getBooleanExtra(
-                RingtoneManager.EXTRA_RINGTONE_INCLUDE_DRM, true);
-        mRingtoneManager.setIncludeDrm(includeDrm);
-
         // Get the types of ringtones to show
         int types = intent.getIntExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, -1);
         if (types != -1) {

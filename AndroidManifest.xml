@@ -2,7 +2,7 @@
         package="com.android.providers.media"
         android:sharedUserId="android.media"
         android:sharedUserLabel="@string/uid_label"
-        android:versionCode="600">
+        android:versionCode="601">
         
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />

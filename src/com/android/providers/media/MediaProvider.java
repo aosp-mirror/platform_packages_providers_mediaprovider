@@ -5056,15 +5056,15 @@ public class MediaProvider extends ContentProvider {
                         // external database files
                         File recentDbFile = null;
                         for (String database : context.databaseList()) {
-                            if (database.startsWith("external-")) {
+                            if (database.startsWith("external-") && database.endsWith(".db")) {
                                 File file = context.getDatabasePath(database);
                                 if (recentDbFile == null) {
                                     recentDbFile = file;
                                 } else if (file.lastModified() > recentDbFile.lastModified()) {
-                                    recentDbFile.delete();
+                                    context.deleteDatabase(recentDbFile.getName());
                                     recentDbFile = file;
                                 } else {
-                                    file.delete();
+                                    context.deleteDatabase(file.getName());
                                 }
                             }
                         }

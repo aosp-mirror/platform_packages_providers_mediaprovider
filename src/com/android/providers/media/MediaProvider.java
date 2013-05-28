@@ -4973,7 +4973,7 @@ public class MediaProvider extends ContentProvider {
         if (EXTERNAL_DATABASE_NAME.equals(name)) {
             return true;
         }
-        if (name.startsWith("external-")) {
+        if (name.startsWith("external-") && name.endsWith(".db")) {
             return true;
         }
         return false;

@@ -26,6 +26,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.provider.MediaStore;
 import android.provider.Settings;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
@@ -88,6 +89,18 @@ public final class RingtonePickerActivity extends AlertActivity implements
      * manage the default ringtone for us, so we should stop this one manually.
      */
     private Ringtone mDefaultRingtone;
+
+    /**
+     * The ringtone that's currently playing, unless the currently playing one is the default
+     * ringtone.
+     */
+    private Ringtone mCurrentRingtone;
+
+    /**
+     * Keep the currently playing ringtone around when changing orientation, so that it
+     * can be stopped later, after the activity is recreated.
+     */
+    private static Ringtone sPlayingRingtone;
 
     private DialogInterface.OnClickListener mRingtoneClickListener =
             new DialogInterface.OnClickListener() {
@@ -166,7 +179,6 @@ public final class RingtonePickerActivity extends AlertActivity implements
 
         setupAlert();
     }
-
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -280,19 +292,9 @@ public final class RingtonePickerActivity extends AlertActivity implements
     }
 
     public void run() {
-
+        stopAnyPlayingRingtone();
         if (mSampleRingtonePos == mSilentPos) {
-            mRingtoneManager.stopPreviousRingtone();
             return;
-        }
-
-        /*
-         * Stop the default ringtone, if it's playing (other ringtones will be
-         * stopped by the RingtoneManager when we get another Ringtone from it.
-         */
-        if (mDefaultRingtone != null && mDefaultRingtone.isPlaying()) {
-            mDefaultRingtone.stop();
-            mDefaultRingtone = null;
         }
 
         Ringtone ringtone;
@@ -308,17 +310,10 @@ public final class RingtonePickerActivity extends AlertActivity implements
                 mDefaultRingtone.setStreamType(mRingtoneManager.inferStreamType());
             }
             ringtone = mDefaultRingtone;
-
-            /*
-             * Normally the non-static RingtoneManager.getRingtone stops the
-             * previous ringtone, but we're getting the default ringtone outside
-             * of the RingtoneManager instance, so let's stop the previous
-             * ringtone manually.
-             */
-            mRingtoneManager.stopPreviousRingtone();
-
+            mCurrentRingtone = null;
         } else {
             ringtone = mRingtoneManager.getRingtone(getRingtoneManagerPosition(mSampleRingtonePos));
+            mCurrentRingtone = ringtone;
         }
 
         if (ringtone != null) {
@@ -329,16 +324,34 @@ public final class RingtonePickerActivity extends AlertActivity implements
     @Override
     protected void onStop() {
         super.onStop();
-        stopAnyPlayingRingtone();
+        if (!isChangingConfigurations()) {
+            stopAnyPlayingRingtone();
+        } else {
+            saveAnyPlayingRingtone();
+        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        stopAnyPlayingRingtone();
+        if (!isChangingConfigurations()) {
+            stopAnyPlayingRingtone();
+        }
+    }
+
+    private void saveAnyPlayingRingtone() {
+        if (mDefaultRingtone != null && mDefaultRingtone.isPlaying()) {
+            sPlayingRingtone = mDefaultRingtone;
+        } else if (mCurrentRingtone != null && mCurrentRingtone.isPlaying()) {
+            sPlayingRingtone = mCurrentRingtone;
+        }
     }
 
     private void stopAnyPlayingRingtone() {
+        if (sPlayingRingtone != null && sPlayingRingtone.isPlaying()) {
+            sPlayingRingtone.stop();
+        }
+        sPlayingRingtone = null;
 
         if (mDefaultRingtone != null && mDefaultRingtone.isPlaying()) {
             mDefaultRingtone.stop();

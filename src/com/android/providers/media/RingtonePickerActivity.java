@@ -45,6 +45,8 @@ public final class RingtonePickerActivity extends AlertActivity implements
         AdapterView.OnItemSelectedListener, Runnable, DialogInterface.OnClickListener,
         AlertController.AlertParams.OnPrepareListViewListener {
 
+    private static final int POS_UNKNOWN = -1;
+
     private static final String TAG = "RingtonePickerActivity";
 
     private static final int DELAY_MS_SELECTION_PLAYED = 300;
@@ -57,16 +59,16 @@ public final class RingtonePickerActivity extends AlertActivity implements
     private Handler mHandler;
 
     /** The position in the list of the 'Silent' item. */
-    private int mSilentPos = -1;
+    private int mSilentPos = POS_UNKNOWN;
 
     /** The position in the list of the 'Default' item. */
-    private int mDefaultRingtonePos = -1;
+    private int mDefaultRingtonePos = POS_UNKNOWN;
 
     /** The position in the list of the last clicked item. */
-    private int mClickedPos = -1;
+    private int mClickedPos = POS_UNKNOWN;
 
     /** The position in the list of the ringtone to sample. */
-    private int mSampleRingtonePos = -1;
+    private int mSampleRingtonePos = POS_UNKNOWN;
 
     /** Whether this list has the 'Silent' item. */
     private boolean mHasSilentItem;
@@ -137,7 +139,7 @@ public final class RingtonePickerActivity extends AlertActivity implements
         }
 
         if (savedInstanceState != null) {
-            mClickedPos = savedInstanceState.getInt(SAVE_CLICKED_POS, -1);
+            mClickedPos = savedInstanceState.getInt(SAVE_CLICKED_POS, POS_UNKNOWN);
         }
         // Get whether to show the 'Silent' item
         mHasSilentItem = intent.getBooleanExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true);
@@ -190,7 +192,7 @@ public final class RingtonePickerActivity extends AlertActivity implements
         if (mHasDefaultItem) {
             mDefaultRingtonePos = addDefaultRingtoneItem(listView);
 
-            if (RingtoneManager.isDefault(mExistingUri)) {
+            if (mClickedPos == POS_UNKNOWN && RingtoneManager.isDefault(mExistingUri)) {
                 mClickedPos = mDefaultRingtonePos;
             }
         }
@@ -199,12 +201,12 @@ public final class RingtonePickerActivity extends AlertActivity implements
             mSilentPos = addSilentItem(listView);
 
             // The 'Silent' item should use a null Uri
-            if (mExistingUri == null) {
+            if (mClickedPos == POS_UNKNOWN && mExistingUri == null) {
                 mClickedPos = mSilentPos;
             }
         }
 
-        if (mClickedPos == -1) {
+        if (mClickedPos == POS_UNKNOWN) {
             mClickedPos = getListPosition(mRingtoneManager.getRingtonePosition(mExistingUri));
         }
 

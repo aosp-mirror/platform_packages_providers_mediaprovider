@@ -26,4 +26,14 @@
 
     <!-- Description line for music artists in the search/suggestion results -->
     <string name="artist_label">Artist</string>
+
+    <!-- Choice in the ringtone picker.  If chosen, the default ringtone will be used. -->
+    <string name="ringtone_default">Default ringtone</string>
+
+    <!-- Choice in the notification sound picker.  If chosen, the default notification sound will be
+         used. -->
+    <string name="notification_sound_default">Default notification sound</string>
+
+    <!-- Choice in the alarm sound picker.  If chosen, the default alarm sound will be used. -->
+    <string name="alarm_sound_default">Default alarm sound</string>
 </resources>

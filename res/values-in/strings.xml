@@ -20,4 +20,10 @@
     <string name="app_label" msgid="581696352855930028">"Penyimpanan Media"</string>
     <string name="upgrade_msg" msgid="4093462661265175619">"Meningkatkan versi basis data Media."</string>
     <string name="artist_label" msgid="1181678850424271227">"Artis"</string>
+    <!-- no translation found for ringtone_default (3332469542084549546) -->
+    <skip />
+    <!-- no translation found for notification_sound_default (5309766396223094324) -->
+    <skip />
+    <!-- no translation found for alarm_sound_default (6854264112790616066) -->
+    <skip />
 </resources>

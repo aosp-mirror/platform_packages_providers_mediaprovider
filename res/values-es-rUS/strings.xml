@@ -20,10 +20,7 @@
     <string name="app_label" msgid="581696352855930028">"Almacenamiento de medios"</string>
     <string name="upgrade_msg" msgid="4093462661265175619">"Actualizando la base de datos de los medios"</string>
     <string name="artist_label" msgid="1181678850424271227">"Artista"</string>
-    <!-- no translation found for ringtone_default (3332469542084549546) -->
-    <skip />
-    <!-- no translation found for notification_sound_default (5309766396223094324) -->
-    <skip />
-    <!-- no translation found for alarm_sound_default (6854264112790616066) -->
-    <skip />
+    <string name="ringtone_default" msgid="3332469542084549546">"Tono predeterminado"</string>
+    <string name="notification_sound_default" msgid="5309766396223094324">"Sonido de notificación predeterminado"</string>
+    <string name="alarm_sound_default" msgid="6854264112790616066">"Sonido de alarma predeterminado"</string>
 </resources>

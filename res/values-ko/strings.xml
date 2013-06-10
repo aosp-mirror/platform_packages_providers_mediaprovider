@@ -20,10 +20,7 @@
     <string name="app_label" msgid="581696352855930028">"미디어 저장소"</string>
     <string name="upgrade_msg" msgid="4093462661265175619">"미디어 데이터베이스 업그레이드 중"</string>
     <string name="artist_label" msgid="1181678850424271227">"아티스트"</string>
-    <!-- no translation found for ringtone_default (3332469542084549546) -->
-    <skip />
-    <!-- no translation found for notification_sound_default (5309766396223094324) -->
-    <skip />
-    <!-- no translation found for alarm_sound_default (6854264112790616066) -->
-    <skip />
+    <string name="ringtone_default" msgid="3332469542084549546">"기본 벨소리"</string>
+    <string name="notification_sound_default" msgid="5309766396223094324">"기본 알림 소리"</string>
+    <string name="alarm_sound_default" msgid="6854264112790616066">"기본 알람 소리"</string>
 </resources>

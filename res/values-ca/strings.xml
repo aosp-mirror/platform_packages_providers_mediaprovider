@@ -20,10 +20,7 @@
     <string name="app_label" msgid="581696352855930028">"Emmagatzematge de mitjans"</string>
     <string name="upgrade_msg" msgid="4093462661265175619">"S\'està actualitzant la base de dades multimèdia."</string>
     <string name="artist_label" msgid="1181678850424271227">"Intèrpret"</string>
-    <!-- no translation found for ringtone_default (3332469542084549546) -->
-    <skip />
-    <!-- no translation found for notification_sound_default (5309766396223094324) -->
-    <skip />
-    <!-- no translation found for alarm_sound_default (6854264112790616066) -->
-    <skip />
+    <string name="ringtone_default" msgid="3332469542084549546">"To predeterminat"</string>
+    <string name="notification_sound_default" msgid="5309766396223094324">"So de notificació predeterminat"</string>
+    <string name="alarm_sound_default" msgid="6854264112790616066">"So d\'alarma predeterminat"</string>
 </resources>

@@ -3060,6 +3060,11 @@ public class MediaProvider extends ContentProvider {
                     if (!values.containsKey(FileColumns.SIZE)) {
                         values.put(FileColumns.SIZE, file.length());
                     }
+                    // make sure date taken time is set
+                    if (mediaType == FileColumns.MEDIA_TYPE_IMAGE
+                            || mediaType == FileColumns.MEDIA_TYPE_VIDEO) {
+                        computeTakenTime(values);
+                    }
                 }
             }
 

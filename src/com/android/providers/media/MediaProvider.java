@@ -389,7 +389,7 @@ public class MediaProvider extends ContentProvider {
             // This will result in the creation of a fresh database, which will be repopulated
             // when the media scanner runs.
             if (result == null && mUpgradeAttempted) {
-                mContext.getDatabasePath(mName).delete();
+                mContext.deleteDatabase(mName);
                 result = super.getWritableDatabase();
             }
             return result;

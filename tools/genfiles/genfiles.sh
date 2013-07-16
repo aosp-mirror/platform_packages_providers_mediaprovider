@@ -48,10 +48,13 @@ then
 fi
 
 # generate script to generate directory structure and content
-$ANDROID_HOST_OUT/bin/sqlite3 $1 "select format, media_type, mime_type, _data from files where _data like '"$EXTERNAL"/%';" | {
+$ANDROID_HOST_OUT/bin/sqlite3 $1 "select format, media_type, mime_type, case when substr(_data,-1) is '\' then substr(_data,1,length(_data)-1) else _data end from files where _data like '"$EXTERNAL"/%';" | {
 
 MKDIRS=/tmp/mkdirs$$
 CPFILES=/tmp/cpfiles$$
+
+echo "# create directories" > $MKDIRS
+echo "# copy files" > $CPFILES
 
 IFS="|"
 while read format mediatype mimetype data;
@@ -100,15 +103,19 @@ do
     then
         # 3gp
         echo "cat /storage/sdcard0/proto.3gp > \"$data\"" >> $CPFILES
-    elif [ "$format" == "47362" -a "$mediatype" == "2" ]
+    elif [ "$format" == "47362" ]
     then
         # ogg
         echo "cat /storage/sdcard0/proto.ogg > \"$data\"" >> $CPFILES
+    elif [ "$format" == "47747" ]
+    then
+        # doc
+        echo "cat /storage/sdcard0/proto.doc > \"$data\"" >> $CPFILES
     elif [ "$format" == "12288" -a "$mediatype" == "0" ]
     then
         # unknown type
         echo "cat /storage/sdcard0/proto.dat > \"$data\"" >> $CPFILES
-    elif [ "$format" == "12289" -a "$mediatype" == "0" ]
+    elif [ "$format" == "12289" ]
     then
         # directory, ignore
         true
@@ -119,7 +126,7 @@ do
     else
         echo ignored: $format '|' $mediatype '|' $mimetype '|' $data
     fi
-    echo mkdir -p \"$(dirname $data)\" >> $MKDIRS
+    echo mkdir -p \"$(dirname "$data")\" >> $MKDIRS
 done
 
 sort -u $MKDIRS > mkfiles.sh
@@ -129,7 +136,7 @@ rm -rf $MKDIRS $CPFILES
 }
 
 # generate playlist files
-$ANDROID_HOST_OUT/bin/sqlite3 $1 "select audio_playlists._data, audio._data from audio_playlists left outer join audio_playlists_map on audio_playlists._id=audio_playlists_map.playlist_id left outer join audio on audio_playlists_map.audio_id=audio._id order by audio_playlists_map.playlist_id,audio_playlists_map.play_order;" | {
+sqlite3 $1 "select audio_playlists._data, audio._data from audio_playlists left outer join audio_playlists_map on audio_playlists._id=audio_playlists_map.playlist_id left outer join audio on audio_playlists_map.audio_id=audio._id order by audio_playlists_map.playlist_id,audio_playlists_map.play_order;" | {
 
 IFS="|"
 while read plist entry

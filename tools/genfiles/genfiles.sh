@@ -29,12 +29,6 @@ then
 fi
 
 
-if [ "$ANDROID_HOST_OUT" == "" ]
-then
-    echo "Couldn't find sqlite3. Please run envsetup/lunch and build."
-    exit 1
-fi
-
 if [ "$1" == "" ]
 then
     echo "Usage: $0 <file.db> [external storage root]"
@@ -48,7 +42,7 @@ then
 fi
 
 # generate script to generate directory structure and content
-$ANDROID_HOST_OUT/bin/sqlite3 $1 "select format, media_type, mime_type, case when substr(_data,-1) is '\' then substr(_data,1,length(_data)-1) else _data end from files where _data like '"$EXTERNAL"/%';" | {
+sqlite3 $1 "select format, media_type, mime_type, case when substr(_data,-1) is '\' then substr(_data,1,length(_data)-1) else _data end from files where _data like '"$EXTERNAL"/%';" | {
 
 MKDIRS=/tmp/mkdirs$$
 CPFILES=/tmp/cpfiles$$

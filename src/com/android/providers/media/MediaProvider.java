@@ -2870,7 +2870,7 @@ public class MediaProvider extends ContentProvider {
 
         switch (mediaType) {
             case FileColumns.MEDIA_TYPE_IMAGE: {
-                values = ensureFile(helper.mInternal, initialValues, ".jpg", "DCIM/Camera");
+                values = ensureFile(helper.mInternal, initialValues, ".jpg", "Pictures");
 
                 values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);
                 String data = values.getAsString(MediaColumns.DATA);

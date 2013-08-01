@@ -4596,12 +4596,15 @@ public class MediaProvider extends ContentProvider {
                     if (bestmatch != null) {
                         File file = new File(artPath, bestmatch);
                         if (file.exists()) {
-                            compressed = new byte[(int)file.length()];
                             FileInputStream stream = null;
                             try {
+                                compressed = new byte[(int)file.length()];
                                 stream = new FileInputStream(file);
                                 stream.read(compressed);
                             } catch (IOException ex) {
+                                compressed = null;
+                            } catch (OutOfMemoryError ex) {
+                                Log.w(TAG, ex);
                                 compressed = null;
                             } finally {
                                 if (stream != null) {

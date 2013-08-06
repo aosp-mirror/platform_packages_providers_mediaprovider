@@ -104,6 +104,8 @@ import java.util.Stack;
 
 import libcore.io.ErrnoException;
 import libcore.io.Libcore;
+import libcore.io.OsConstants;
+import libcore.io.StructStat;
 
 /**
  * Media content provider. See {@link android.provider.MediaStore} for details.
@@ -4408,13 +4410,63 @@ public class MediaProvider extends ContentProvider {
                     file = directFile;
                 }
             }
-
         } else if (path.startsWith(sCachePath)) {
             getContext().enforceCallingOrSelfPermission(
                     ACCESS_CACHE_FILESYSTEM, "Cache path: " + path);
+        } else if (isWrite) {
+            // don't write to non-cache, non-sdcard files.
+            throw new FileNotFoundException("Can't access " + file);
+        } else {
+            checkWorldReadAccess(path);
         }
 
         return ParcelFileDescriptor.open(file, modeBits);
+    }
+
+    /**
+     * Check whether the path is a world-readable file
+     */
+    private void checkWorldReadAccess(String path) throws FileNotFoundException {
+
+        try {
+            StructStat stat = Libcore.os.stat(path);
+            int accessBits = OsConstants.S_IROTH;
+            if (OsConstants.S_ISREG(stat.st_mode) &&
+                ((stat.st_mode & accessBits) == accessBits)) {
+                checkLeadingPathComponentsWorldExecutable(path);
+                return;
+            }
+        } catch (ErrnoException e) {
+            // couldn't stat the file, either it doesn't exist or isn't
+            // accessible to us
+        }
+
+        throw new FileNotFoundException("Can't access " + path);
+    }
+
+    private void checkLeadingPathComponentsWorldExecutable(String filePath)
+            throws FileNotFoundException {
+        File parent = new File(filePath).getParentFile();
+
+        int accessBits = OsConstants.S_IXOTH;
+
+        while (parent != null) {
+            if (! parent.exists()) {
+                // parent dir doesn't exist, give up
+                throw new FileNotFoundException("access denied");
+            }
+            try {
+                StructStat stat = Libcore.os.stat(parent.getPath());
+                if ((stat.st_mode & accessBits) != accessBits) {
+                    // the parent dir doesn't have the appropriate access
+                    throw new FileNotFoundException("Can't access " + filePath);
+                }
+            } catch (ErrnoException e1) {
+                // couldn't stat() parent
+                throw new FileNotFoundException("Can't access " + filePath);
+            }
+            parent = parent.getParentFile();
+        }
     }
 
     private class ThumbData {

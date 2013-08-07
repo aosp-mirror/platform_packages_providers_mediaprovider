@@ -4462,7 +4462,6 @@ public class MediaProvider extends ContentProvider {
             if (modeBits == MODE_READ_ONLY) {
                 file = Environment.maybeTranslateEmulatedPathToInternal(file);
             }
-
         } else if (path.startsWith(sCachePath)) {
             getContext().enforceCallingOrSelfPermission(
                     ACCESS_CACHE_FILESYSTEM, "Cache path: " + path);

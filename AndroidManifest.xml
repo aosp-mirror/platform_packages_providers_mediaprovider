@@ -25,6 +25,17 @@
                     android:writePermission="android.permission.WRITE_EXTERNAL_STORAGE" />
         </provider>
 
+        <provider
+            android:name="MediaDocumentsProvider"
+            android:authorities="com.android.providers.media.documents"
+            android:grantUriPermissions="true"
+            android:exported="true"
+            android:permission="android.permission.MANAGE_DOCUMENTS">
+            <meta-data
+                android:name="android.content.DOCUMENT_PROVIDER"
+                android:resource="@xml/document_provider" />
+        </provider>
+
         <!-- Handles database upgrades after OTAs, then disables itself -->
         <receiver android:name="MediaUpgradeReceiver">
             <!-- This broadcast is sent after the core system has finished

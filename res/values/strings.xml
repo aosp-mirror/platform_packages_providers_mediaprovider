@@ -36,4 +36,10 @@
 
     <!-- Choice in the alarm sound picker.  If chosen, the default alarm sound will be used. -->
     <string name="alarm_sound_default">Default alarm sound</string>
+
+    <!-- Title for documents backend that offers images. [CHAR LIMIT=24] -->
+    <string name="root_images">Images</string>
+    <!-- Title for documents backend that offers music. [CHAR LIMIT=24] -->
+    <string name="root_music">Music</string>
+
 </resources>

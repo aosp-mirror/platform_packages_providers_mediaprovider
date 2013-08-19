@@ -23,4 +23,8 @@
     <string name="ringtone_default" msgid="3332469542084549546">"Nada dering default"</string>
     <string name="notification_sound_default" msgid="5309766396223094324">"Suara pemberitahuan default"</string>
     <string name="alarm_sound_default" msgid="6854264112790616066">"Suara alarm default"</string>
+    <!-- no translation found for root_images (7098113056247445324) -->
+    <skip />
+    <!-- no translation found for root_music (4663573634162145060) -->
+    <skip />
 </resources>

@@ -21,11 +21,13 @@ import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.UriMatcher;
+import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.MatrixCursor.RowBuilder;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.provider.BaseColumns;
 import android.provider.DocumentsContract;
@@ -321,7 +323,8 @@ public class MediaDocumentsProvider extends ContentProvider {
         row.offer(DocumentColumns.MIME_TYPE, Documents.MIME_TYPE_DIR);
         row.offer(DocumentColumns.LAST_MODIFIED,
                 cursor.getLong(BucketQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
-        row.offer(DocumentColumns.FLAGS, Documents.FLAG_PREFERS_GRID);
+        row.offer(DocumentColumns.FLAGS,
+                Documents.FLAG_PREFERS_GRID | Documents.FLAG_SUPPORTS_THUMBNAIL);
     }
 
     private interface ImageQuery {
@@ -487,6 +490,62 @@ public class MediaDocumentsProvider extends ContentProvider {
             }
         }
     }
+
+    @Override
+    public AssetFileDescriptor openTypedAssetFile(Uri uri, String mimeTypeFilter, Bundle opts)
+            throws FileNotFoundException {
+        // TODO: load optimized image thumbnails
+        switch (sMatcher.match(uri)) {
+            case URI_DOCS_ID: {
+                final DocId docId = parseDocId(uri);
+
+                if (ROOT_IMAGES.equals(docId.root) && TYPE_BUCKET.equals(docId.type)) {
+                    final long token = Binder.clearCallingIdentity();
+                    try {
+                        return openBucketThumbnail(docId.id);
+                    } finally {
+                        Binder.restoreCallingIdentity(token);
+                    }
+                } else {
+                    return super.openTypedAssetFile(uri, mimeTypeFilter, opts);
+                }
+            }
+            default: {
+                throw new UnsupportedOperationException("Unsupported Uri " + uri);
+            }
+        }
+    }
+
+    private interface BucketThumbnailQuery {
+        final String[] PROJECTION = new String[] {
+                ImageColumns._ID,
+                ImageColumns.BUCKET_ID,
+                ImageColumns.DATE_MODIFIED };
+
+        final int _ID = 0;
+        final int BUCKET_ID = 1;
+        final int DATE_MODIFIED = 2;
+    }
+
+    private AssetFileDescriptor openBucketThumbnail(long bucketId) throws FileNotFoundException {
+        final ContentResolver resolver = getContext().getContentResolver();
+        Cursor cursor = null;
+        try {
+            cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
+                    BucketThumbnailQuery.PROJECTION, ImageColumns.BUCKET_ID + "=" + bucketId, null,
+                    ImageColumns.DATE_MODIFIED + " DESC");
+            if (cursor.moveToFirst()) {
+                final long id = cursor.getLong(BucketThumbnailQuery._ID);
+                final Uri uri = ContentUris.withAppendedId(Images.Media.EXTERNAL_CONTENT_URI, id);
+                return new AssetFileDescriptor(resolver.openFileDescriptor(uri, "r"), 0,
+                        AssetFileDescriptor.UNKNOWN_LENGTH);
+            }
+        } finally {
+            IoUtils.closeQuietly(cursor);
+        }
+        return null;
+    }
+
 
     @Override
     public Uri insert(Uri uri, ContentValues values) {

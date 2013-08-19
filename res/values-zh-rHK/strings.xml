@@ -16,13 +16,13 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="uid_label" msgid="999888504096344278">"Média"</string>
-    <string name="app_label" msgid="581696352855930028">"Úložiště médií"</string>
-    <string name="upgrade_msg" msgid="4093462661265175619">"Aktualizace databáze médií."</string>
-    <string name="artist_label" msgid="1181678850424271227">"Interpret"</string>
-    <string name="ringtone_default" msgid="3332469542084549546">"Výchozí vyzváněcí tón"</string>
-    <string name="notification_sound_default" msgid="5309766396223094324">"Výchozí zvuk oznámení"</string>
-    <string name="alarm_sound_default" msgid="6854264112790616066">"Výchozí zvuk budíku"</string>
+    <string name="uid_label" msgid="999888504096344278">"媒體"</string>
+    <string name="app_label" msgid="581696352855930028">"媒體儲存空間"</string>
+    <string name="upgrade_msg" msgid="4093462661265175619">"正在升級媒體資料庫。"</string>
+    <string name="artist_label" msgid="1181678850424271227">"歌手/創作人"</string>
+    <string name="ringtone_default" msgid="3332469542084549546">"預設鈴聲"</string>
+    <string name="notification_sound_default" msgid="5309766396223094324">"預設通知音效"</string>
+    <string name="alarm_sound_default" msgid="6854264112790616066">"預設鬧鐘音效"</string>
     <!-- no translation found for root_images (7098113056247445324) -->
     <skip />
     <!-- no translation found for root_music (4663573634162145060) -->

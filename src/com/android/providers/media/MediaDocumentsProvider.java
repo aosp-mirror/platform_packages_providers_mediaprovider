@@ -21,14 +21,11 @@ import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.UriMatcher;
-import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.MatrixCursor.RowBuilder;
-import android.graphics.Point;
 import android.net.Uri;
 import android.os.Binder;
-import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.provider.BaseColumns;
 import android.provider.DocumentsContract;
@@ -251,6 +248,7 @@ public class MediaDocumentsProvider extends ContentProvider {
         final RowBuilder row = result.newRow();
         row.offer(RootColumns.ROOT_ID, ROOT_IMAGES);
         row.offer(RootColumns.ROOT_TYPE, Roots.ROOT_TYPE_SHORTCUT);
+        row.offer(RootColumns.ICON, R.mipmap.ic_launcher_gallery);
         row.offer(RootColumns.TITLE, getContext().getString(R.string.root_images));
     }
 
@@ -480,40 +478,6 @@ public class MediaDocumentsProvider extends ContentProvider {
                 final long token = Binder.clearCallingIdentity();
                 try {
                     return getContext().getContentResolver().openFileDescriptor(target, mode);
-                } finally {
-                    Binder.restoreCallingIdentity(token);
-                }
-            }
-            default: {
-                throw new UnsupportedOperationException("Unsupported Uri " + uri);
-            }
-        }
-    }
-
-    @Override
-    public AssetFileDescriptor openTypedAssetFile(Uri uri, String mimeTypeFilter, Bundle opts)
-            throws FileNotFoundException {
-        final Point point = opts.getParcelable(DocumentsContract.EXTRA_THUMBNAIL_SIZE);
-        if (!ENABLE_THUMBNAILS || point == null) {
-            return super.openTypedAssetFile(uri, mimeTypeFilter, opts);
-        }
-
-        final ContentResolver resolver = getContext().getContentResolver();
-        switch (sMatcher.match(uri)) {
-            case URI_DOCS_ID: {
-                final DocId docId = parseDocId(uri);
-
-                // Delegate to real provider
-                final long token = Binder.clearCallingIdentity();
-                try {
-                    if (ROOT_IMAGES.equals(docId.root) && TYPE_ID.equals(docId.type)) {
-                        final Uri thumbUri = ContentUris.withAppendedId(
-                                Images.Thumbnails.EXTERNAL_CONTENT_URI, docId.id);
-                        return new AssetFileDescriptor(resolver.openFileDescriptor(thumbUri, "r"), 0,
-                                AssetFileDescriptor.UNKNOWN_LENGTH);
-                    } else {
-                        throw new UnsupportedOperationException("Unsupported Uri " + uri);
-                    }
                 } finally {
                     Binder.restoreCallingIdentity(token);
                 }

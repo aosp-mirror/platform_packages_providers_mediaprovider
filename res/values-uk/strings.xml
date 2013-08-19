@@ -23,4 +23,8 @@
     <string name="ringtone_default" msgid="3332469542084549546">"Сигнал дзвінка за умовчанням"</string>
     <string name="notification_sound_default" msgid="5309766396223094324">"Звук сповіщення за умовчанням"</string>
     <string name="alarm_sound_default" msgid="6854264112790616066">"Звук сигналу за умовчанням"</string>
+    <!-- no translation found for root_images (7098113056247445324) -->
+    <skip />
+    <!-- no translation found for root_music (4663573634162145060) -->
+    <skip />
 </resources>

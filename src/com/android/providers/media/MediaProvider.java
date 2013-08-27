@@ -38,6 +38,7 @@ import android.content.OperationApplicationException;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.UriMatcher;
+import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Resources;
 import android.database.Cursor;
@@ -4449,12 +4450,19 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (path.startsWith(sExternalPath)) {
-            getContext().enforceCallingOrSelfPermission(
-                    READ_EXTERNAL_STORAGE, "External path: " + path);
+            Context c = getContext();
+            if (c.checkCallingOrSelfUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    != PackageManager.PERMISSION_GRANTED) {
+                c.enforceCallingOrSelfPermission(
+                        READ_EXTERNAL_STORAGE, "External path: " + path);
+            }
 
             if (isWrite) {
-                getContext().enforceCallingOrSelfPermission(
-                        WRITE_EXTERNAL_STORAGE, "External path: " + path);
+                if (c.checkCallingOrSelfUriPermission(uri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    c.enforceCallingOrSelfPermission(
+                            WRITE_EXTERNAL_STORAGE, "External path: " + path);
+                }
             }
 
             // Bypass emulation layer when file is opened for reading, but only

@@ -25,6 +25,9 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 
+import java.io.File;
+import java.io.IOException;
+
 public class MediaScannerReceiver extends BroadcastReceiver {
     private final static String TAG = "MediaScannerReceiver";
 
@@ -42,6 +45,17 @@ public class MediaScannerReceiver extends BroadcastReceiver {
                 // handle intents related to external storage
                 String path = uri.getPath();
                 String externalStoragePath = Environment.getExternalStorageDirectory().getPath();
+                String legacyPath = Environment.getLegacyExternalStorageDirectory().getPath();
+
+                try {
+                    path = new File(path).getCanonicalPath();
+                } catch (IOException e) {
+                    Log.e(TAG, "couldn't canonicalize " + path);
+                    return;
+                }
+                if (path.startsWith(legacyPath)) {
+                    path = externalStoragePath + path.substring(legacyPath.length());
+                }
 
                 Log.d(TAG, "action: " + action + " path: " + path);
                 if (Intent.ACTION_MEDIA_MOUNTED.equals(action)) {

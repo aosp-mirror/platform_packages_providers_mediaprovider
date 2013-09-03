@@ -224,7 +224,12 @@ class MediaThumbRequest {
                 ContentValues values = new ContentValues();
                 // both video/images table use the same column name "mini_thumb_magic"
                 values.put(ImageColumns.MINI_THUMB_MAGIC, magic);
-                mCr.update(mUri, values, null, null);
+                try {
+                    mCr.update(mUri, values, null, null);
+                    mMagic = magic;
+                } catch (java.lang.IllegalStateException ex) {
+                    Log.e(TAG, "got exception while updating database " + ex);
+                }
             }
         } else {
             Log.w(TAG, "can't create bitmap for thumbnail.");

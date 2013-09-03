@@ -3882,25 +3882,19 @@ public class MediaProvider extends ContentProvider {
                         while (c.moveToNext()) {
                             int mediatype = c.getInt(0);
                             if (mediatype == FileColumns.MEDIA_TYPE_IMAGE) {
-                                try {
-                                    Libcore.os.remove(c.getString(1));
-                                    idvalue[0] =  "" + c.getLong(2);
-                                    database.mNumQueries++;
-                                    Cursor cc = db.query("thumbnails", sDataOnlyColumn,
-                                            "image_id=?", idvalue, null, null, null);
-                                    while (cc.moveToNext()) {
-                                        Libcore.os.remove(cc.getString(0));
-                                    }
-                                    cc.close();
-                                    database.mNumDeletes++;
-                                    db.delete("thumbnails", "image_id=?", idvalue);
-                                } catch (ErrnoException e) {
+                                deleteIfAllowed(uri, c.getString(1));
+                                idvalue[0] =  "" + c.getLong(2);
+                                database.mNumQueries++;
+                                Cursor cc = db.query("thumbnails", sDataOnlyColumn,
+                                        "image_id=?", idvalue, null, null, null);
+                                while (cc.moveToNext()) {
+                                    deleteIfAllowed(uri, cc.getString(0));
                                 }
+                                cc.close();
+                                database.mNumDeletes++;
+                                db.delete("thumbnails", "image_id=?", idvalue);
                             } else if (mediatype == FileColumns.MEDIA_TYPE_VIDEO) {
-                                try {
-                                    Libcore.os.remove(c.getString(1));
-                                } catch (ErrnoException e) {
-                                }
+                                deleteIfAllowed(uri, c.getString(1));
                             } else if (mediatype == FileColumns.MEDIA_TYPE_AUDIO) {
                                 if (!database.mInternal) {
                                     idvalue[0] =  "" + c.getLong(2);
@@ -3960,10 +3954,7 @@ public class MediaProvider extends ContentProvider {
                                 sGetTableAndWhereParam.where, whereArgs, null, null, null);
                         if (c != null) {
                             while (c.moveToNext()) {
-                                try {
-                                    Libcore.os.remove(c.getString(0));
-                                } catch (ErrnoException e) {
-                                }
+                                deleteIfAllowed(uri, c.getString(0));
                             }
                             c.close();
                         }
@@ -4450,9 +4441,32 @@ public class MediaProvider extends ContentProvider {
     private ParcelFileDescriptor openFileAndEnforcePathPermissionsHelper(Uri uri, String mode)
             throws FileNotFoundException {
         final int modeBits = ContentResolver.modeToMode(uri, mode);
-        final boolean isWrite = (modeBits & MODE_WRITE_ONLY) != 0;
 
         File file = queryForDataFile(uri);
+
+        checkAccess(uri, file, modeBits);
+
+        // Bypass emulation layer when file is opened for reading, but only
+        // when opening read-only and we have an exact match.
+        if (modeBits == MODE_READ_ONLY) {
+            file = Environment.maybeTranslateEmulatedPathToInternal(file);
+        }
+
+        return ParcelFileDescriptor.open(file, modeBits);
+    }
+
+    private void deleteIfAllowed(Uri uri, String path) {
+        try {
+            File file = new File(path);
+            checkAccess(uri, file, ParcelFileDescriptor.MODE_WRITE_ONLY);
+            file.delete();
+        } catch (Exception e) {
+            Log.e(TAG, "Couldn't delete " + path);
+        }
+    }
+
+    private void checkAccess(Uri uri, File file, int modeBits) throws FileNotFoundException {
+        final boolean isWrite = (modeBits & MODE_WRITE_ONLY) != 0;
         final String path;
         try {
             path = file.getCanonicalPath();
@@ -4476,11 +4490,6 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
-            // Bypass emulation layer when file is opened for reading, but only
-            // when opening read-only and we have an exact match.
-            if (modeBits == MODE_READ_ONLY) {
-                file = Environment.maybeTranslateEmulatedPathToInternal(file);
-            }
         } else if (path.startsWith(sCachePath)) {
             getContext().enforceCallingOrSelfPermission(
                     ACCESS_CACHE_FILESYSTEM, "Cache path: " + path);
@@ -4490,8 +4499,6 @@ public class MediaProvider extends ContentProvider {
         } else {
             checkWorldReadAccess(path);
         }
-
-        return ParcelFileDescriptor.open(file, modeBits);
     }
 
     /**

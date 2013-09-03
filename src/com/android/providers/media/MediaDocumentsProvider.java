@@ -241,6 +241,32 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     }
 
     @Override
+    public Cursor queryRecentDocuments(String rootId, String[] projection)
+            throws FileNotFoundException {
+        final ContentResolver resolver = getContext().getContentResolver();
+        final MatrixCursor result = new MatrixCursor(resolveDocumentProjection(projection));
+
+        final long token = Binder.clearCallingIdentity();
+        Cursor cursor = null;
+        try {
+            if (TYPE_IMAGE.equals(rootId)) {
+                // include all unique buckets
+                cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
+                        ImageQuery.PROJECTION, null, null, ImageColumns.DATE_MODIFIED + " DESC");
+                while (cursor.moveToNext() && result.getCount() < 24) {
+                    includeImage(result, cursor);
+                }
+            } else {
+                throw new UnsupportedOperationException("Unsupported root " + rootId);
+            }
+        } finally {
+            IoUtils.closeQuietly(cursor);
+            Binder.restoreCallingIdentity(token);
+        }
+        return result;
+    }
+
+    @Override
     public ParcelFileDescriptor openDocument(String docId, String mode, CancellationSignal signal)
             throws FileNotFoundException {
         final Ident ident = getIdentForDocId(docId);
@@ -295,7 +321,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final RowBuilder row = result.newRow();
         row.offer(Root.COLUMN_ROOT_ID, TYPE_IMAGE);
         row.offer(Root.COLUMN_ROOT_TYPE, Root.ROOT_TYPE_SHORTCUT);
-        row.offer(Root.COLUMN_FLAGS, Root.FLAG_LOCAL_ONLY | Root.FLAG_PROVIDES_IMAGES);
+        row.offer(Root.COLUMN_FLAGS,
+                Root.FLAG_LOCAL_ONLY | Root.FLAG_PROVIDES_IMAGES | Root.FLAG_SUPPORTS_RECENTS);
         row.offer(Root.COLUMN_ICON, R.mipmap.ic_launcher_gallery);
         row.offer(Root.COLUMN_TITLE, getContext().getString(R.string.root_images));
         row.offer(Root.COLUMN_DOCUMENT_ID, TYPE_IMAGE);

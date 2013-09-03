@@ -29,9 +29,8 @@ import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
 import android.provider.BaseColumns;
 import android.provider.DocumentsContract;
-import android.provider.DocumentsContract.DocumentColumns;
-import android.provider.DocumentsContract.DocumentRoot;
-import android.provider.DocumentsContract.Documents;
+import android.provider.DocumentsContract.Document;
+import android.provider.DocumentsContract.Root;
 import android.provider.DocumentsProvider;
 import android.provider.MediaStore.Audio;
 import android.provider.MediaStore.Audio.AlbumColumns;
@@ -43,21 +42,24 @@ import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.text.format.DateUtils;
 
-import com.google.android.collect.Lists;
-
 import libcore.io.IoUtils;
 
 import java.io.FileNotFoundException;
-import java.util.List;
 
 /**
  * Presents a {@link DocumentsContract} view of {@link MediaProvider} contents.
  */
 public class MediaDocumentsProvider extends DocumentsProvider {
 
-    private static final String[] SUPPORTED_COLUMNS = new String[] {
-            DocumentColumns.DOC_ID, DocumentColumns.DISPLAY_NAME, DocumentColumns.SIZE,
-            DocumentColumns.MIME_TYPE, DocumentColumns.LAST_MODIFIED, DocumentColumns.FLAGS
+    private static final String[] DEFAULT_ROOT_PROJECTION = new String[] {
+            Root.COLUMN_ROOT_ID, Root.COLUMN_ROOT_TYPE, Root.COLUMN_FLAGS, Root.COLUMN_ICON,
+            Root.COLUMN_TITLE, Root.COLUMN_SUMMARY, Root.COLUMN_DOCUMENT_ID,
+            Root.COLUMN_AVAILABLE_BYTES,
+    };
+
+    private static final String[] DEFAULT_DOCUMENT_PROJECTION = new String[] {
+            Document.COLUMN_DOCUMENT_ID, Document.COLUMN_MIME_TYPE, Document.COLUMN_DISPLAY_NAME,
+            Document.COLUMN_LAST_MODIFIED, Document.COLUMN_FLAGS, Document.COLUMN_SIZE,
     };
 
     private static final String TYPE_IMAGE = "image";
@@ -67,31 +69,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     private static final String TYPE_ARTIST = "artist";
     private static final String TYPE_ALBUM = "album";
 
-    private DocumentRoot mImagesRoot;
-    private DocumentRoot mAudioRoot;
-
-    private List<DocumentRoot> mRoots;
-
     @Override
     public boolean onCreate() {
-        mRoots = Lists.newArrayList();
-
-        mImagesRoot = new DocumentRoot();
-        mImagesRoot.docId = TYPE_IMAGE;
-        mImagesRoot.rootType = DocumentRoot.ROOT_TYPE_SHORTCUT;
-        mImagesRoot.title = getContext().getString(R.string.root_images);
-        mImagesRoot.icon = R.mipmap.ic_launcher_gallery;
-        mImagesRoot.flags = DocumentRoot.FLAG_LOCAL_ONLY;
-        mRoots.add(mImagesRoot);
-
-        mAudioRoot = new DocumentRoot();
-        mAudioRoot.docId = TYPE_AUDIO;
-        mAudioRoot.rootType = DocumentRoot.ROOT_TYPE_SHORTCUT;
-        mAudioRoot.title = getContext().getString(R.string.root_audio);
-        mAudioRoot.icon = R.drawable.ic_search_category_music_song;
-        mAudioRoot.flags = DocumentRoot.FLAG_LOCAL_ONLY;
-        mRoots.add(mAudioRoot);
-
         return true;
     }
 
@@ -117,15 +96,26 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         return type + ":" + id;
     }
 
-    @Override
-    public List<DocumentRoot> getDocumentRoots() {
-        return mRoots;
+    private static String[] resolveRootProjection(String[] projection) {
+        return projection != null ? projection : DEFAULT_ROOT_PROJECTION;
+    }
+
+    private static String[] resolveDocumentProjection(String[] projection) {
+        return projection != null ? projection : DEFAULT_DOCUMENT_PROJECTION;
     }
 
     @Override
-    public Cursor queryDocument(String docId) throws FileNotFoundException {
+    public Cursor queryRoots(String[] projection) throws FileNotFoundException {
+        final MatrixCursor result = new MatrixCursor(resolveRootProjection(projection));
+        includeImagesRoot(result);
+        includeAudioRoot(result);
+        return result;
+    }
+
+    @Override
+    public Cursor queryDocument(String docId, String[] projection) throws FileNotFoundException {
         final ContentResolver resolver = getContext().getContentResolver();
-        final MatrixCursor result = new MatrixCursor(SUPPORTED_COLUMNS);
+        final MatrixCursor result = new MatrixCursor(resolveDocumentProjection(projection));
         final Ident ident = getIdentForDocId(docId);
 
         final long token = Binder.clearCallingIdentity();
@@ -133,7 +123,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         try {
             if (TYPE_IMAGE.equals(ident.type) && ident.id == -1) {
                 // single root
-                includeImagesRoot(result);
+                includeImages(result);
             } else if (TYPE_BUCKET.equals(ident.type)) {
                 // single bucket
                 cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
@@ -152,7 +142,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 }
             } else if (TYPE_AUDIO.equals(ident.type) && ident.id == -1) {
                 // single root
-                includeAudioRoot(result);
+                includeAudio(result);
             } else if (TYPE_ARTIST.equals(ident.type)) {
                 // single artist
                 cursor = resolver.query(Artists.EXTERNAL_CONTENT_URI,
@@ -188,9 +178,10 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     }
 
     @Override
-    public Cursor queryDocumentChildren(String docId) throws FileNotFoundException {
+    public Cursor queryChildDocuments(String docId, String[] projection, String sortOrder)
+            throws FileNotFoundException {
         final ContentResolver resolver = getContext().getContentResolver();
-        final MatrixCursor result = new MatrixCursor(SUPPORTED_COLUMNS);
+        final MatrixCursor result = new MatrixCursor(resolveDocumentProjection(projection));
         final Ident ident = getIdentForDocId(docId);
 
         final long token = Binder.clearCallingIdentity();
@@ -302,17 +293,37 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
     private void includeImagesRoot(MatrixCursor result) {
         final RowBuilder row = result.newRow();
-        row.offer(DocumentColumns.DOC_ID, TYPE_IMAGE);
-        row.offer(DocumentColumns.DISPLAY_NAME, mImagesRoot.title);
-        row.offer(DocumentColumns.FLAGS, Documents.FLAG_PREFERS_GRID);
-        row.offer(DocumentColumns.MIME_TYPE, Documents.MIME_TYPE_DIR);
+        row.offer(Root.COLUMN_ROOT_ID, TYPE_IMAGE);
+        row.offer(Root.COLUMN_ROOT_TYPE, Root.ROOT_TYPE_SHORTCUT);
+        row.offer(Root.COLUMN_FLAGS, Root.FLAG_LOCAL_ONLY | Root.FLAG_PROVIDES_IMAGES);
+        row.offer(Root.COLUMN_ICON, R.mipmap.ic_launcher_gallery);
+        row.offer(Root.COLUMN_TITLE, getContext().getString(R.string.root_images));
+        row.offer(Root.COLUMN_DOCUMENT_ID, TYPE_IMAGE);
     }
 
     private void includeAudioRoot(MatrixCursor result) {
         final RowBuilder row = result.newRow();
-        row.offer(DocumentColumns.DOC_ID, TYPE_AUDIO);
-        row.offer(DocumentColumns.DISPLAY_NAME, mAudioRoot.title);
-        row.offer(DocumentColumns.MIME_TYPE, Documents.MIME_TYPE_DIR);
+        row.offer(Root.COLUMN_ROOT_ID, TYPE_AUDIO);
+        row.offer(Root.COLUMN_ROOT_TYPE, Root.ROOT_TYPE_SHORTCUT);
+        row.offer(Root.COLUMN_FLAGS, Root.FLAG_LOCAL_ONLY | Root.FLAG_PROVIDES_AUDIO);
+        row.offer(Root.COLUMN_ICON, R.drawable.ic_search_category_music_song);
+        row.offer(Root.COLUMN_TITLE, getContext().getString(R.string.root_audio));
+        row.offer(Root.COLUMN_DOCUMENT_ID, TYPE_AUDIO);
+    }
+
+    private void includeImages(MatrixCursor result) {
+        final RowBuilder row = result.newRow();
+        row.offer(Document.COLUMN_DOCUMENT_ID, TYPE_IMAGE);
+        row.offer(Document.COLUMN_DISPLAY_NAME, getContext().getString(R.string.root_images));
+        row.offer(Document.COLUMN_FLAGS, Document.FLAG_DIR_PREFERS_GRID);
+        row.offer(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
+    }
+
+    private void includeAudio(MatrixCursor result) {
+        final RowBuilder row = result.newRow();
+        row.offer(Document.COLUMN_DOCUMENT_ID, TYPE_AUDIO);
+        row.offer(Document.COLUMN_DISPLAY_NAME, getContext().getString(R.string.root_audio));
+        row.offer(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
     }
 
     private interface BucketQuery {
@@ -331,13 +342,13 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final String docId = getDocIdForIdent(TYPE_BUCKET, id);
 
         final RowBuilder row = result.newRow();
-        row.offer(DocumentColumns.DOC_ID, docId);
-        row.offer(DocumentColumns.DISPLAY_NAME, cursor.getString(BucketQuery.BUCKET_DISPLAY_NAME));
-        row.offer(DocumentColumns.MIME_TYPE, Documents.MIME_TYPE_DIR);
-        row.offer(DocumentColumns.LAST_MODIFIED,
+        row.offer(Document.COLUMN_DOCUMENT_ID, docId);
+        row.offer(Document.COLUMN_DISPLAY_NAME, cursor.getString(BucketQuery.BUCKET_DISPLAY_NAME));
+        row.offer(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
+        row.offer(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(BucketQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
-        row.offer(DocumentColumns.FLAGS,
-                Documents.FLAG_PREFERS_GRID | Documents.FLAG_SUPPORTS_THUMBNAIL);
+        row.offer(Document.COLUMN_FLAGS,
+                Document.FLAG_DIR_PREFERS_GRID | Document.FLAG_SUPPORTS_THUMBNAIL);
     }
 
     private interface ImageQuery {
@@ -360,13 +371,13 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final String docId = getDocIdForIdent(TYPE_IMAGE, id);
 
         final RowBuilder row = result.newRow();
-        row.offer(DocumentColumns.DOC_ID, docId);
-        row.offer(DocumentColumns.DISPLAY_NAME, cursor.getString(ImageQuery.DISPLAY_NAME));
-        row.offer(DocumentColumns.SIZE, cursor.getLong(ImageQuery.SIZE));
-        row.offer(DocumentColumns.MIME_TYPE, cursor.getString(ImageQuery.MIME_TYPE));
-        row.offer(DocumentColumns.LAST_MODIFIED,
+        row.offer(Document.COLUMN_DOCUMENT_ID, docId);
+        row.offer(Document.COLUMN_DISPLAY_NAME, cursor.getString(ImageQuery.DISPLAY_NAME));
+        row.offer(Document.COLUMN_SIZE, cursor.getLong(ImageQuery.SIZE));
+        row.offer(Document.COLUMN_MIME_TYPE, cursor.getString(ImageQuery.MIME_TYPE));
+        row.offer(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(ImageQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
-        row.offer(DocumentColumns.FLAGS, Documents.FLAG_SUPPORTS_THUMBNAIL);
+        row.offer(Document.COLUMN_FLAGS, Document.FLAG_SUPPORTS_THUMBNAIL);
     }
 
     private interface ArtistQuery {
@@ -383,9 +394,9 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final String docId = getDocIdForIdent(TYPE_ARTIST, id);
 
         final RowBuilder row = result.newRow();
-        row.offer(DocumentColumns.DOC_ID, docId);
-        row.offer(DocumentColumns.DISPLAY_NAME, cursor.getString(ArtistQuery.ARTIST));
-        row.offer(DocumentColumns.MIME_TYPE, Documents.MIME_TYPE_DIR);
+        row.offer(Document.COLUMN_DOCUMENT_ID, docId);
+        row.offer(Document.COLUMN_DISPLAY_NAME, cursor.getString(ArtistQuery.ARTIST));
+        row.offer(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
     }
 
     private interface AlbumQuery {
@@ -402,9 +413,9 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final String docId = getDocIdForIdent(TYPE_ALBUM, id);
 
         final RowBuilder row = result.newRow();
-        row.offer(DocumentColumns.DOC_ID, docId);
-        row.offer(DocumentColumns.DISPLAY_NAME, cursor.getString(AlbumQuery.ALBUM));
-        row.offer(DocumentColumns.MIME_TYPE, Documents.MIME_TYPE_DIR);
+        row.offer(Document.COLUMN_DOCUMENT_ID, docId);
+        row.offer(Document.COLUMN_DISPLAY_NAME, cursor.getString(AlbumQuery.ALBUM));
+        row.offer(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
     }
 
     private interface SongQuery {
@@ -427,11 +438,11 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final String docId = getDocIdForIdent(TYPE_AUDIO, id);
 
         final RowBuilder row = result.newRow();
-        row.offer(DocumentColumns.DOC_ID, docId);
-        row.offer(DocumentColumns.DISPLAY_NAME, cursor.getString(SongQuery.TITLE));
-        row.offer(DocumentColumns.SIZE, cursor.getLong(SongQuery.SIZE));
-        row.offer(DocumentColumns.MIME_TYPE, cursor.getString(SongQuery.MIME_TYPE));
-        row.offer(DocumentColumns.LAST_MODIFIED,
+        row.offer(Document.COLUMN_DOCUMENT_ID, docId);
+        row.offer(Document.COLUMN_DISPLAY_NAME, cursor.getString(SongQuery.TITLE));
+        row.offer(Document.COLUMN_SIZE, cursor.getLong(SongQuery.SIZE));
+        row.offer(Document.COLUMN_MIME_TYPE, cursor.getString(SongQuery.MIME_TYPE));
+        row.offer(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(SongQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
     }
 

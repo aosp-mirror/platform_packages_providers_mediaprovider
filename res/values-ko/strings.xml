@@ -24,5 +24,5 @@
     <string name="notification_sound_default" msgid="5309766396223094324">"기본 알림 소리"</string>
     <string name="alarm_sound_default" msgid="6854264112790616066">"기본 알람 소리"</string>
     <string name="root_images" msgid="7098113056247445324">"이미지"</string>
-    <string name="root_music" msgid="4663573634162145060">"음악"</string>
+    <string name="root_audio" msgid="7177565505195715659">"오디오"</string>
 </resources>

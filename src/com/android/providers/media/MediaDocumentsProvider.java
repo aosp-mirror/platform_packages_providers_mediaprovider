@@ -40,6 +40,7 @@ import android.provider.MediaStore.Audio.Artists;
 import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.ImageColumns;
+import android.text.TextUtils;
 import android.text.format.DateUtils;
 
 import libcore.io.IoUtils;
@@ -54,7 +55,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     private static final String[] DEFAULT_ROOT_PROJECTION = new String[] {
             Root.COLUMN_ROOT_ID, Root.COLUMN_ROOT_TYPE, Root.COLUMN_FLAGS, Root.COLUMN_ICON,
             Root.COLUMN_TITLE, Root.COLUMN_SUMMARY, Root.COLUMN_DOCUMENT_ID,
-            Root.COLUMN_AVAILABLE_BYTES,
+            Root.COLUMN_AVAILABLE_BYTES, Root.COLUMN_MIME_TYPES
     };
 
     private static final String[] DEFAULT_DOCUMENT_PROJECTION = new String[] {
@@ -62,12 +63,21 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             Document.COLUMN_LAST_MODIFIED, Document.COLUMN_FLAGS, Document.COLUMN_SIZE,
     };
 
+    private static final String IMAGE_MIME_TYPES = joinNewline("image/*");
+
+    private static final String AUDIO_MIME_TYPES = joinNewline(
+            "audio/*", "application/ogg", "application/x-flac");
+
     private static final String TYPE_IMAGE = "image";
     private static final String TYPE_BUCKET = "bucket";
 
     private static final String TYPE_AUDIO = "audio";
     private static final String TYPE_ARTIST = "artist";
     private static final String TYPE_ALBUM = "album";
+
+    private static String joinNewline(String... args) {
+        return TextUtils.join("\n", args);
+    }
 
     @Override
     public boolean onCreate() {
@@ -321,21 +331,22 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final RowBuilder row = result.newRow();
         row.offer(Root.COLUMN_ROOT_ID, TYPE_IMAGE);
         row.offer(Root.COLUMN_ROOT_TYPE, Root.ROOT_TYPE_SHORTCUT);
-        row.offer(Root.COLUMN_FLAGS,
-                Root.FLAG_LOCAL_ONLY | Root.FLAG_PROVIDES_IMAGES | Root.FLAG_SUPPORTS_RECENTS);
+        row.offer(Root.COLUMN_FLAGS, Root.FLAG_LOCAL_ONLY | Root.FLAG_SUPPORTS_RECENTS);
         row.offer(Root.COLUMN_ICON, R.mipmap.ic_launcher_gallery);
         row.offer(Root.COLUMN_TITLE, getContext().getString(R.string.root_images));
         row.offer(Root.COLUMN_DOCUMENT_ID, TYPE_IMAGE);
+        row.offer(Root.COLUMN_MIME_TYPES, IMAGE_MIME_TYPES);
     }
 
     private void includeAudioRoot(MatrixCursor result) {
         final RowBuilder row = result.newRow();
         row.offer(Root.COLUMN_ROOT_ID, TYPE_AUDIO);
         row.offer(Root.COLUMN_ROOT_TYPE, Root.ROOT_TYPE_SHORTCUT);
-        row.offer(Root.COLUMN_FLAGS, Root.FLAG_LOCAL_ONLY | Root.FLAG_PROVIDES_AUDIO);
+        row.offer(Root.COLUMN_FLAGS, Root.FLAG_LOCAL_ONLY);
         row.offer(Root.COLUMN_ICON, R.drawable.ic_search_category_music_song);
         row.offer(Root.COLUMN_TITLE, getContext().getString(R.string.root_audio));
         row.offer(Root.COLUMN_DOCUMENT_ID, TYPE_AUDIO);
+        row.offer(Root.COLUMN_MIME_TYPES, AUDIO_MIME_TYPES);
     }
 
     private void includeImages(MatrixCursor result) {

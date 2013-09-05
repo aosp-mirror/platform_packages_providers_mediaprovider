@@ -79,6 +79,10 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         return TextUtils.join("\n", args);
     }
 
+    private void copyNotificationUri(MatrixCursor result, Cursor cursor) {
+        result.setNotificationUri(getContext().getContentResolver(), cursor.getNotificationUri());
+    }
+
     @Override
     public boolean onCreate() {
         return true;
@@ -139,6 +143,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
                         BucketQuery.PROJECTION, ImageColumns.BUCKET_ID + "=" + ident.id,
                         null, null);
+                copyNotificationUri(result, cursor);
                 if (cursor.moveToFirst()) {
                     includeBucket(result, cursor);
                 }
@@ -147,6 +152,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
                         ImageQuery.PROJECTION, BaseColumns._ID + "=" + ident.id, null,
                         null);
+                copyNotificationUri(result, cursor);
                 if (cursor.moveToFirst()) {
                     includeImage(result, cursor);
                 }
@@ -158,6 +164,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Artists.EXTERNAL_CONTENT_URI,
                         ArtistQuery.PROJECTION, BaseColumns._ID + "=" + ident.id, null,
                         null);
+                copyNotificationUri(result, cursor);
                 if (cursor.moveToFirst()) {
                     includeArtist(result, cursor);
                 }
@@ -166,6 +173,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Albums.EXTERNAL_CONTENT_URI,
                         AlbumQuery.PROJECTION, BaseColumns._ID + "=" + ident.id, null,
                         null);
+                copyNotificationUri(result, cursor);
                 if (cursor.moveToFirst()) {
                     includeAlbum(result, cursor);
                 }
@@ -174,6 +182,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Audio.Media.EXTERNAL_CONTENT_URI,
                         SongQuery.PROJECTION, BaseColumns._ID + "=" + ident.id, null,
                         null);
+                copyNotificationUri(result, cursor);
                 if (cursor.moveToFirst()) {
                     includeAudio(result, cursor);
                 }
@@ -201,6 +210,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 // include all unique buckets
                 cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
                         BucketQuery.PROJECTION, null, null, ImageColumns.BUCKET_ID);
+                copyNotificationUri(result, cursor);
                 long lastId = Long.MIN_VALUE;
                 while (cursor.moveToNext()) {
                     final long id = cursor.getLong(
@@ -215,6 +225,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
                         ImageQuery.PROJECTION, ImageColumns.BUCKET_ID + "=" + ident.id,
                         null, null);
+                copyNotificationUri(result, cursor);
                 while (cursor.moveToNext()) {
                     includeImage(result, cursor);
                 }
@@ -222,6 +233,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 // include all artists
                 cursor = resolver.query(Audio.Artists.EXTERNAL_CONTENT_URI,
                         ArtistQuery.PROJECTION, null, null, null);
+                copyNotificationUri(result, cursor);
                 while (cursor.moveToNext()) {
                     includeArtist(result, cursor);
                 }
@@ -229,6 +241,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 // include all albums under artist
                 cursor = resolver.query(Artists.Albums.getContentUri("external", ident.id),
                         AlbumQuery.PROJECTION, null, null, null);
+                copyNotificationUri(result, cursor);
                 while (cursor.moveToNext()) {
                     includeAlbum(result, cursor);
                 }
@@ -237,6 +250,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Audio.Media.EXTERNAL_CONTENT_URI,
                         SongQuery.PROJECTION, AudioColumns.ALBUM_ID + "=" + ident.id,
                         null, null);
+                copyNotificationUri(result, cursor);
                 while (cursor.moveToNext()) {
                     includeAudio(result, cursor);
                 }
@@ -263,6 +277,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 // include all unique buckets
                 cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
                         ImageQuery.PROJECTION, null, null, ImageColumns.DATE_MODIFIED + " DESC");
+                copyNotificationUri(result, cursor);
                 while (cursor.moveToNext() && result.getCount() < 24) {
                     includeImage(result, cursor);
                 }

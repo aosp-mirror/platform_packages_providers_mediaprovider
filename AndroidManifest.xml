@@ -33,7 +33,7 @@
             android:permission="android.permission.MANAGE_DOCUMENTS">
             <meta-data
                 android:name="android.content.DOCUMENT_PROVIDER"
-                android:resource="@xml/document_provider" />
+                android:value="true" />
         </provider>
 
         <!-- Handles database upgrades after OTAs, then disables itself -->

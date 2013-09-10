@@ -344,39 +344,39 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
     private void includeImagesRoot(MatrixCursor result) {
         final RowBuilder row = result.newRow();
-        row.offer(Root.COLUMN_ROOT_ID, TYPE_IMAGE);
-        row.offer(Root.COLUMN_ROOT_TYPE, Root.ROOT_TYPE_SHORTCUT);
-        row.offer(Root.COLUMN_FLAGS, Root.FLAG_LOCAL_ONLY | Root.FLAG_SUPPORTS_RECENTS);
-        row.offer(Root.COLUMN_ICON, R.mipmap.ic_launcher_gallery);
-        row.offer(Root.COLUMN_TITLE, getContext().getString(R.string.root_images));
-        row.offer(Root.COLUMN_DOCUMENT_ID, TYPE_IMAGE);
-        row.offer(Root.COLUMN_MIME_TYPES, IMAGE_MIME_TYPES);
+        row.add(Root.COLUMN_ROOT_ID, TYPE_IMAGE);
+        row.add(Root.COLUMN_ROOT_TYPE, Root.ROOT_TYPE_SHORTCUT);
+        row.add(Root.COLUMN_FLAGS, Root.FLAG_LOCAL_ONLY | Root.FLAG_SUPPORTS_RECENTS);
+        row.add(Root.COLUMN_ICON, R.mipmap.ic_launcher_gallery);
+        row.add(Root.COLUMN_TITLE, getContext().getString(R.string.root_images));
+        row.add(Root.COLUMN_DOCUMENT_ID, TYPE_IMAGE);
+        row.add(Root.COLUMN_MIME_TYPES, IMAGE_MIME_TYPES);
     }
 
     private void includeAudioRoot(MatrixCursor result) {
         final RowBuilder row = result.newRow();
-        row.offer(Root.COLUMN_ROOT_ID, TYPE_AUDIO);
-        row.offer(Root.COLUMN_ROOT_TYPE, Root.ROOT_TYPE_SHORTCUT);
-        row.offer(Root.COLUMN_FLAGS, Root.FLAG_LOCAL_ONLY);
-        row.offer(Root.COLUMN_ICON, R.drawable.ic_search_category_music_song);
-        row.offer(Root.COLUMN_TITLE, getContext().getString(R.string.root_audio));
-        row.offer(Root.COLUMN_DOCUMENT_ID, TYPE_AUDIO);
-        row.offer(Root.COLUMN_MIME_TYPES, AUDIO_MIME_TYPES);
+        row.add(Root.COLUMN_ROOT_ID, TYPE_AUDIO);
+        row.add(Root.COLUMN_ROOT_TYPE, Root.ROOT_TYPE_SHORTCUT);
+        row.add(Root.COLUMN_FLAGS, Root.FLAG_LOCAL_ONLY);
+        row.add(Root.COLUMN_ICON, R.drawable.ic_search_category_music_song);
+        row.add(Root.COLUMN_TITLE, getContext().getString(R.string.root_audio));
+        row.add(Root.COLUMN_DOCUMENT_ID, TYPE_AUDIO);
+        row.add(Root.COLUMN_MIME_TYPES, AUDIO_MIME_TYPES);
     }
 
     private void includeImages(MatrixCursor result) {
         final RowBuilder row = result.newRow();
-        row.offer(Document.COLUMN_DOCUMENT_ID, TYPE_IMAGE);
-        row.offer(Document.COLUMN_DISPLAY_NAME, getContext().getString(R.string.root_images));
-        row.offer(Document.COLUMN_FLAGS, Document.FLAG_DIR_PREFERS_GRID);
-        row.offer(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
+        row.add(Document.COLUMN_DOCUMENT_ID, TYPE_IMAGE);
+        row.add(Document.COLUMN_DISPLAY_NAME, getContext().getString(R.string.root_images));
+        row.add(Document.COLUMN_FLAGS, Document.FLAG_DIR_PREFERS_GRID);
+        row.add(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
     }
 
     private void includeAudio(MatrixCursor result) {
         final RowBuilder row = result.newRow();
-        row.offer(Document.COLUMN_DOCUMENT_ID, TYPE_AUDIO);
-        row.offer(Document.COLUMN_DISPLAY_NAME, getContext().getString(R.string.root_audio));
-        row.offer(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
+        row.add(Document.COLUMN_DOCUMENT_ID, TYPE_AUDIO);
+        row.add(Document.COLUMN_DISPLAY_NAME, getContext().getString(R.string.root_audio));
+        row.add(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
     }
 
     private interface BucketQuery {
@@ -395,12 +395,12 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final String docId = getDocIdForIdent(TYPE_BUCKET, id);
 
         final RowBuilder row = result.newRow();
-        row.offer(Document.COLUMN_DOCUMENT_ID, docId);
-        row.offer(Document.COLUMN_DISPLAY_NAME, cursor.getString(BucketQuery.BUCKET_DISPLAY_NAME));
-        row.offer(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
-        row.offer(Document.COLUMN_LAST_MODIFIED,
+        row.add(Document.COLUMN_DOCUMENT_ID, docId);
+        row.add(Document.COLUMN_DISPLAY_NAME, cursor.getString(BucketQuery.BUCKET_DISPLAY_NAME));
+        row.add(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
+        row.add(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(BucketQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
-        row.offer(Document.COLUMN_FLAGS,
+        row.add(Document.COLUMN_FLAGS,
                 Document.FLAG_DIR_PREFERS_GRID | Document.FLAG_SUPPORTS_THUMBNAIL);
     }
 
@@ -424,13 +424,13 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final String docId = getDocIdForIdent(TYPE_IMAGE, id);
 
         final RowBuilder row = result.newRow();
-        row.offer(Document.COLUMN_DOCUMENT_ID, docId);
-        row.offer(Document.COLUMN_DISPLAY_NAME, cursor.getString(ImageQuery.DISPLAY_NAME));
-        row.offer(Document.COLUMN_SIZE, cursor.getLong(ImageQuery.SIZE));
-        row.offer(Document.COLUMN_MIME_TYPE, cursor.getString(ImageQuery.MIME_TYPE));
-        row.offer(Document.COLUMN_LAST_MODIFIED,
+        row.add(Document.COLUMN_DOCUMENT_ID, docId);
+        row.add(Document.COLUMN_DISPLAY_NAME, cursor.getString(ImageQuery.DISPLAY_NAME));
+        row.add(Document.COLUMN_SIZE, cursor.getLong(ImageQuery.SIZE));
+        row.add(Document.COLUMN_MIME_TYPE, cursor.getString(ImageQuery.MIME_TYPE));
+        row.add(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(ImageQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
-        row.offer(Document.COLUMN_FLAGS, Document.FLAG_SUPPORTS_THUMBNAIL);
+        row.add(Document.COLUMN_FLAGS, Document.FLAG_SUPPORTS_THUMBNAIL);
     }
 
     private interface ArtistQuery {
@@ -447,9 +447,9 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final String docId = getDocIdForIdent(TYPE_ARTIST, id);
 
         final RowBuilder row = result.newRow();
-        row.offer(Document.COLUMN_DOCUMENT_ID, docId);
-        row.offer(Document.COLUMN_DISPLAY_NAME, cursor.getString(ArtistQuery.ARTIST));
-        row.offer(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
+        row.add(Document.COLUMN_DOCUMENT_ID, docId);
+        row.add(Document.COLUMN_DISPLAY_NAME, cursor.getString(ArtistQuery.ARTIST));
+        row.add(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
     }
 
     private interface AlbumQuery {
@@ -466,9 +466,9 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final String docId = getDocIdForIdent(TYPE_ALBUM, id);
 
         final RowBuilder row = result.newRow();
-        row.offer(Document.COLUMN_DOCUMENT_ID, docId);
-        row.offer(Document.COLUMN_DISPLAY_NAME, cursor.getString(AlbumQuery.ALBUM));
-        row.offer(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
+        row.add(Document.COLUMN_DOCUMENT_ID, docId);
+        row.add(Document.COLUMN_DISPLAY_NAME, cursor.getString(AlbumQuery.ALBUM));
+        row.add(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
     }
 
     private interface SongQuery {
@@ -491,11 +491,11 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final String docId = getDocIdForIdent(TYPE_AUDIO, id);
 
         final RowBuilder row = result.newRow();
-        row.offer(Document.COLUMN_DOCUMENT_ID, docId);
-        row.offer(Document.COLUMN_DISPLAY_NAME, cursor.getString(SongQuery.TITLE));
-        row.offer(Document.COLUMN_SIZE, cursor.getLong(SongQuery.SIZE));
-        row.offer(Document.COLUMN_MIME_TYPE, cursor.getString(SongQuery.MIME_TYPE));
-        row.offer(Document.COLUMN_LAST_MODIFIED,
+        row.add(Document.COLUMN_DOCUMENT_ID, docId);
+        row.add(Document.COLUMN_DISPLAY_NAME, cursor.getString(SongQuery.TITLE));
+        row.add(Document.COLUMN_SIZE, cursor.getLong(SongQuery.SIZE));
+        row.add(Document.COLUMN_MIME_TYPE, cursor.getString(SongQuery.MIME_TYPE));
+        row.add(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(SongQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
     }
 

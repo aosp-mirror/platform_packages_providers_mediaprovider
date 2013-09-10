@@ -1833,6 +1833,19 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("ALTER TABLE log_tmp RENAME TO log;");
         }
 
+        if (fromVersion < 700) {
+            // fix datetaken fields that were added with an incorrect timestamp
+            // datetaken needs to be in milliseconds, so should generally be a few orders of
+            // magnitude larger than date_modified. If it's within the same order of magnitude, it
+            // is probably wrong.
+            // (this could do the wrong thing if your picture was actually taken before ~3/21/1970)
+            db.execSQL("UPDATE files set datetaken=date_modified*1000"
+                    + " WHERE date_modified IS NOT NULL"
+                    + " AND datetaken IS NOT NULL"
+                    + " AND datetaken<date_modified*5;");
+        }
+
+
         sanityCheck(db, fromVersion);
         long elapsedSeconds = (SystemClock.currentTimeMicro() - startTime) / 1000000;
         logToDb(db, "Database upgraded from version " + fromVersion + " to " + toVersion

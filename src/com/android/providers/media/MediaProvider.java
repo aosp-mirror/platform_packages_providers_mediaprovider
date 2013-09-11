@@ -263,7 +263,7 @@ public class MediaProvider extends ContentProvider {
                                 // We do this to avoid deleting files if the volume is remounted while
                                 // we are still processing the unmount event.
                                 ContentValues values = new ContentValues();
-                                values.put(Files.FileColumns.DATA, "");
+                                values.putNull(Files.FileColumns.DATA);
                                 String where = FileColumns.STORAGE_ID + "=?";
                                 String[] whereArgs = new String[] { Integer.toString(storage.getStorageId()) };
                                 database.mNumUpdates++;

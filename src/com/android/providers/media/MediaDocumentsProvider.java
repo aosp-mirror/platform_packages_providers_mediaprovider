@@ -475,7 +475,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final RowBuilder row = result.newRow();
         row.add(Document.COLUMN_DOCUMENT_ID, TYPE_IMAGES_ROOT);
         row.add(Document.COLUMN_DISPLAY_NAME, getContext().getString(R.string.root_images));
-        row.add(Document.COLUMN_FLAGS, Document.FLAG_DIR_PREFERS_GRID);
+        row.add(Document.COLUMN_FLAGS,
+                Document.FLAG_DIR_PREFERS_GRID | Document.FLAG_DIR_PREFERS_LAST_MODIFIED);
         row.add(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
     }
 
@@ -483,7 +484,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final RowBuilder row = result.newRow();
         row.add(Document.COLUMN_DOCUMENT_ID, TYPE_VIDEOS_ROOT);
         row.add(Document.COLUMN_DISPLAY_NAME, getContext().getString(R.string.root_videos));
-        row.add(Document.COLUMN_FLAGS, Document.FLAG_DIR_PREFERS_GRID);
+        row.add(Document.COLUMN_FLAGS,
+                Document.FLAG_DIR_PREFERS_GRID | Document.FLAG_DIR_PREFERS_LAST_MODIFIED);
         row.add(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
     }
 
@@ -516,8 +518,9 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         row.add(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
         row.add(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(ImagesBucketQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
-        row.add(Document.COLUMN_FLAGS,
-                Document.FLAG_DIR_PREFERS_GRID | Document.FLAG_SUPPORTS_THUMBNAIL);
+        row.add(Document.COLUMN_FLAGS, Document.FLAG_DIR_PREFERS_GRID
+                | Document.FLAG_SUPPORTS_THUMBNAIL | Document.FLAG_DIR_PREFERS_LAST_MODIFIED
+                | Document.FLAG_DIR_HIDE_GRID_TITLES);
     }
 
     private interface ImageQuery {
@@ -571,8 +574,9 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         row.add(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
         row.add(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(VideosBucketQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
-        row.add(Document.COLUMN_FLAGS,
-                Document.FLAG_DIR_PREFERS_GRID | Document.FLAG_SUPPORTS_THUMBNAIL);
+        row.add(Document.COLUMN_FLAGS, Document.FLAG_DIR_PREFERS_GRID
+                | Document.FLAG_SUPPORTS_THUMBNAIL | Document.FLAG_DIR_PREFERS_LAST_MODIFIED
+                | Document.FLAG_DIR_HIDE_GRID_TITLES);
     }
 
     private interface VideoQuery {

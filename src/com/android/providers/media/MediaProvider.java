@@ -230,6 +230,8 @@ public class MediaProvider extends ContentProvider {
 
     private Uri mAlbumArtBaseUri = Uri.parse("content://media/external/audio/albumart");
 
+    private static final String CANONICAL = "canonical";
+
     private BroadcastReceiver mUnmountReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -2128,10 +2130,100 @@ public class MediaProvider extends ContentProvider {
         }
         return true;
     }
+
+    @Override
+    public Uri canonicalize(Uri uri) {
+        int match = URI_MATCHER.match(uri);
+
+        // only support canonicalizing specific audio Uris
+        if (match != AUDIO_MEDIA_ID) {
+            return null;
+        }
+
+        Cursor c = query(uri, null, null, null, null);
+        if (c == null) {
+            return null;
+        }
+        if (c.getCount() != 1 || !c.moveToNext()) {
+            c.close();
+            return null;
+        }
+
+        // Construct a canonical Uri by tacking on some query parameters
+        Uri.Builder builder = uri.buildUpon();
+        builder.appendQueryParameter(CANONICAL, "1");
+        String title = c.getString(c.getColumnIndex(MediaStore.Audio.Media.TITLE));
+        c.close();
+        if (TextUtils.isEmpty(title)) {
+            return null;
+        }
+        builder.appendQueryParameter(MediaStore.Audio.Media.TITLE, title);
+        Uri newUri = builder.build();
+        return newUri;
+    }
+
+    @Override
+    public Uri uncanonicalize(Uri uri) {
+        if (uri != null && "1".equals(uri.getQueryParameter(CANONICAL))) {
+            int match = URI_MATCHER.match(uri);
+            if (match != AUDIO_MEDIA_ID) {
+                // this type of canonical Uri is not supported
+                return null;
+            }
+            String titleFromUri = uri.getQueryParameter(MediaStore.Audio.Media.TITLE);
+            if (titleFromUri == null) {
+                // the required parameter is missing
+                return null;
+            }
+            // clear the query parameters, we don't need them anymore
+            uri = uri.buildUpon().clearQuery().build();
+
+            Cursor c = query(uri, null, null, null, null);
+
+            int titleIdx = c.getColumnIndex(MediaStore.Audio.Media.TITLE);
+            if (c != null && c.getCount() == 1 && c.moveToNext() &&
+                    titleFromUri.equals(c.getString(titleIdx))) {
+                // the result matched perfectly
+                c.close();
+                return uri;
+            }
+
+            c.close();
+            // do a lookup by title
+            Uri newUri = MediaStore.Audio.Media.getContentUri(uri.getPathSegments().get(0));
+
+            c = query(newUri, null, MediaStore.Audio.Media.TITLE + "=?",
+                    new String[] {titleFromUri}, null);
+            if (c == null) {
+                return null;
+            }
+            if (!c.moveToNext()) {
+                c.close();
+                return null;
+            }
+            // get the first matching entry and return a Uri for it
+            long id = c.getLong(c.getColumnIndex(MediaStore.Audio.Media._ID));
+            c.close();
+            return ContentUris.withAppendedId(newUri, id);
+        }
+        return uri;
+    }
+
+    private Uri safeUncanonicalize(Uri uri) {
+        Uri newUri = uncanonicalize(uri);
+        if (newUri != null) {
+            return newUri;
+        }
+        return uri;
+    }
+
     @SuppressWarnings("fallthrough")
     @Override
     public Cursor query(Uri uri, String[] projectionIn, String selection,
             String[] selectionArgs, String sort) {
+
+        uri = safeUncanonicalize(uri);
+
         int table = URI_MATCHER.match(uri);
         List<String> prependArgs = new ArrayList<String>();
 
@@ -3823,6 +3915,7 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public int delete(Uri uri, String userWhere, String[] whereArgs) {
+        uri = safeUncanonicalize(uri);
         int count;
         int match = URI_MATCHER.match(uri);
 
@@ -3996,6 +4089,7 @@ public class MediaProvider extends ContentProvider {
     @Override
     public int update(Uri uri, ContentValues initialValues, String userWhere,
             String[] whereArgs) {
+        uri = safeUncanonicalize(uri);
         int count;
         // Log.v(TAG, "update for uri="+uri+", initValues="+initialValues);
         int match = URI_MATCHER.match(uri);
@@ -4330,6 +4424,7 @@ public class MediaProvider extends ContentProvider {
     public ParcelFileDescriptor openFile(Uri uri, String mode)
             throws FileNotFoundException {
 
+        uri = safeUncanonicalize(uri);
         ParcelFileDescriptor pfd = null;
 
         if (URI_MATCHER.match(uri) == AUDIO_ALBUMART_FILE_ID) {

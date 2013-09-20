@@ -4537,7 +4537,7 @@ public class MediaProvider extends ContentProvider {
      */
     private ParcelFileDescriptor openFileAndEnforcePathPermissionsHelper(Uri uri, String mode)
             throws FileNotFoundException {
-        final int modeBits = ContentResolver.modeToMode(uri, mode);
+        final int modeBits = ParcelFileDescriptor.parseMode(mode);
 
         File file = queryForDataFile(uri);
 

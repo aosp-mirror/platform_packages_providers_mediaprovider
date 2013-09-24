@@ -211,7 +211,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                         null, null);
                 copyNotificationUri(result, cursor);
                 if (cursor.moveToFirst()) {
-                    includeVideo(result, cursor);
+                    includeVideosBucket(result, cursor);
                 }
             } else if (TYPE_VIDEO.equals(ident.type)) {
                 // single video

@@ -85,6 +85,12 @@ import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.util.Log;
 
+import libcore.io.ErrnoException;
+import libcore.io.IoUtils;
+import libcore.io.Libcore;
+import libcore.io.OsConstants;
+import libcore.io.StructStat;
+
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
@@ -101,12 +107,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.PriorityQueue;
 import java.util.Stack;
-
-import libcore.io.ErrnoException;
-import libcore.io.IoUtils;
-import libcore.io.Libcore;
-import libcore.io.OsConstants;
-import libcore.io.StructStat;
 
 /**
  * Media content provider. See {@link android.provider.MediaStore} for details.
@@ -3393,6 +3393,7 @@ public class MediaProvider extends ContentProvider {
                 rowId = insertFile(helper, uri, initialValues,
                         FileColumns.MEDIA_TYPE_IMAGE, true, notifyRowIds);
                 if (rowId > 0) {
+                    MediaDocumentsProvider.onImagesInserted(getContext());
                     newUri = ContentUris.withAppendedId(
                             Images.Media.getContentUri(uri.getPathSegments().get(0)), rowId);
                 }
@@ -3429,6 +3430,7 @@ public class MediaProvider extends ContentProvider {
                 rowId = insertFile(helper, uri, initialValues,
                         FileColumns.MEDIA_TYPE_AUDIO, true, notifyRowIds);
                 if (rowId > 0) {
+                    MediaDocumentsProvider.onAudioInserted(getContext());
                     newUri = ContentUris.withAppendedId(Audio.Media.getContentUri(uri.getPathSegments().get(0)), rowId);
                     if (genre != null) {
                         updateGenre(rowId, genre);
@@ -3511,6 +3513,7 @@ public class MediaProvider extends ContentProvider {
                 rowId = insertFile(helper, uri, initialValues,
                         FileColumns.MEDIA_TYPE_VIDEO, true, notifyRowIds);
                 if (rowId > 0) {
+                    MediaDocumentsProvider.onVideoInserted(getContext());
                     newUri = ContentUris.withAppendedId(Video.Media.getContentUri(
                             uri.getPathSegments().get(0)), rowId);
                 }

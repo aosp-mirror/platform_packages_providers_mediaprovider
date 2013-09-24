@@ -18,6 +18,7 @@ package com.android.providers.media;
 
 import android.content.ContentResolver;
 import android.content.ContentUris;
+import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.database.MatrixCursor;
@@ -87,6 +88,10 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     private static final String TYPE_ARTIST = "artist";
     private static final String TYPE_ALBUM = "album";
 
+    private static boolean sReturnedImagesEmpty = false;
+    private static boolean sReturnedVideosEmpty = false;
+    private static boolean sReturnedAudioEmpty = false;
+
     private static String joinNewline(String... args) {
         return TextUtils.join("\n", args);
     }
@@ -98,6 +103,33 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     @Override
     public boolean onCreate() {
         return true;
+    }
+
+    private static void notifyRootsChanged(Context context) {
+        context.getContentResolver().notifyChange(
+                DocumentsContract.buildRootsUri("com.android.providers.media.documents"), null,
+                false);
+    }
+
+    static void onImagesInserted(Context context) {
+        if (sReturnedImagesEmpty) {
+            notifyRootsChanged(context);
+            sReturnedImagesEmpty = false;
+        }
+    }
+
+    static void onVideoInserted(Context context) {
+        if (sReturnedVideosEmpty) {
+            notifyRootsChanged(context);
+            sReturnedVideosEmpty = false;
+        }
+    }
+
+    static void onAudioInserted(Context context) {
+        if (sReturnedAudioEmpty) {
+            notifyRootsChanged(context);
+            sReturnedAudioEmpty = false;
+        }
     }
 
     private static class Ident {
@@ -430,6 +462,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         int flags = Root.FLAG_LOCAL_ONLY | Root.FLAG_SUPPORTS_RECENTS;
         if (isEmpty(Images.Media.EXTERNAL_CONTENT_URI)) {
             flags |= Root.FLAG_EMPTY;
+            sReturnedImagesEmpty = true;
         }
 
         final RowBuilder row = result.newRow();
@@ -445,6 +478,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         int flags = Root.FLAG_LOCAL_ONLY | Root.FLAG_SUPPORTS_RECENTS;
         if (isEmpty(Video.Media.EXTERNAL_CONTENT_URI)) {
             flags |= Root.FLAG_EMPTY;
+            sReturnedVideosEmpty = true;
         }
 
         final RowBuilder row = result.newRow();
@@ -460,6 +494,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         int flags = Root.FLAG_LOCAL_ONLY;
         if (isEmpty(Audio.Media.EXTERNAL_CONTENT_URI)) {
             flags |= Root.FLAG_EMPTY;
+            sReturnedAudioEmpty = true;
         }
 
         final RowBuilder row = result.newRow();

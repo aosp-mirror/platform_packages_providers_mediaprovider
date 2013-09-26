@@ -3353,6 +3353,8 @@ public class MediaProvider extends ContentProvider {
 
     private Uri insertInternal(Uri uri, int match, ContentValues initialValues,
                                ArrayList<Long> notifyRowIds) {
+        final String volumeName = getVolumeName(uri);
+
         long rowId;
 
         if (LOCAL_LOGV) Log.v(TAG, "insertInternal: "+uri+", initValues="+initialValues);
@@ -3393,9 +3395,10 @@ public class MediaProvider extends ContentProvider {
                 rowId = insertFile(helper, uri, initialValues,
                         FileColumns.MEDIA_TYPE_IMAGE, true, notifyRowIds);
                 if (rowId > 0) {
-                    MediaDocumentsProvider.onImagesInserted(getContext());
+                    MediaDocumentsProvider.onMediaStoreInsert(
+                            getContext(), volumeName, FileColumns.MEDIA_TYPE_IMAGE, rowId);
                     newUri = ContentUris.withAppendedId(
-                            Images.Media.getContentUri(uri.getPathSegments().get(0)), rowId);
+                            Images.Media.getContentUri(volumeName), rowId);
                 }
                 break;
             }
@@ -3408,7 +3411,7 @@ public class MediaProvider extends ContentProvider {
                 rowId = db.insert("thumbnails", "name", values);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(Images.Thumbnails.
-                            getContentUri(uri.getPathSegments().get(0)), rowId);
+                            getContentUri(volumeName), rowId);
                 }
                 break;
             }
@@ -3421,7 +3424,7 @@ public class MediaProvider extends ContentProvider {
                 rowId = db.insert("videothumbnails", "name", values);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(Video.Thumbnails.
-                            getContentUri(uri.getPathSegments().get(0)), rowId);
+                            getContentUri(volumeName), rowId);
                 }
                 break;
             }
@@ -3430,8 +3433,10 @@ public class MediaProvider extends ContentProvider {
                 rowId = insertFile(helper, uri, initialValues,
                         FileColumns.MEDIA_TYPE_AUDIO, true, notifyRowIds);
                 if (rowId > 0) {
-                    MediaDocumentsProvider.onAudioInserted(getContext());
-                    newUri = ContentUris.withAppendedId(Audio.Media.getContentUri(uri.getPathSegments().get(0)), rowId);
+                    MediaDocumentsProvider.onMediaStoreInsert(
+                            getContext(), volumeName, FileColumns.MEDIA_TYPE_AUDIO, rowId);
+                    newUri = ContentUris.withAppendedId(
+                            Audio.Media.getContentUri(volumeName), rowId);
                     if (genre != null) {
                         updateGenre(rowId, genre);
                     }
@@ -3468,7 +3473,8 @@ public class MediaProvider extends ContentProvider {
                 helper.mNumInserts++;
                 rowId = db.insert("audio_genres", "audio_id", initialValues);
                 if (rowId > 0) {
-                    newUri = ContentUris.withAppendedId(Audio.Genres.getContentUri(uri.getPathSegments().get(0)), rowId);
+                    newUri = ContentUris.withAppendedId(
+                            Audio.Genres.getContentUri(volumeName), rowId);
                 }
                 break;
             }
@@ -3491,7 +3497,8 @@ public class MediaProvider extends ContentProvider {
                 rowId = insertFile(helper, uri, values,
                         FileColumns.MEDIA_TYPE_PLAYLIST, true, notifyRowIds);
                 if (rowId > 0) {
-                    newUri = ContentUris.withAppendedId(Audio.Playlists.getContentUri(uri.getPathSegments().get(0)), rowId);
+                    newUri = ContentUris.withAppendedId(
+                            Audio.Playlists.getContentUri(volumeName), rowId);
                 }
                 break;
             }
@@ -3513,9 +3520,10 @@ public class MediaProvider extends ContentProvider {
                 rowId = insertFile(helper, uri, initialValues,
                         FileColumns.MEDIA_TYPE_VIDEO, true, notifyRowIds);
                 if (rowId > 0) {
-                    MediaDocumentsProvider.onVideoInserted(getContext());
-                    newUri = ContentUris.withAppendedId(Video.Media.getContentUri(
-                            uri.getPathSegments().get(0)), rowId);
+                    MediaDocumentsProvider.onMediaStoreInsert(
+                            getContext(), volumeName, FileColumns.MEDIA_TYPE_VIDEO, rowId);
+                    newUri = ContentUris.withAppendedId(
+                            Video.Media.getContentUri(volumeName), rowId);
                 }
                 break;
             }
@@ -3569,7 +3577,7 @@ public class MediaProvider extends ContentProvider {
                 rowId = insertFile(helper, uri, initialValues,
                         FileColumns.MEDIA_TYPE_NONE, true, notifyRowIds);
                 if (rowId > 0) {
-                    newUri = Files.getContentUri(uri.getPathSegments().get(0), rowId);
+                    newUri = Files.getContentUri(volumeName, rowId);
                 }
                 break;
 
@@ -3578,7 +3586,7 @@ public class MediaProvider extends ContentProvider {
                 rowId = insertFile(helper, uri, initialValues,
                         FileColumns.MEDIA_TYPE_NONE, false, notifyRowIds);
                 if (rowId > 0) {
-                    newUri = Files.getMtpObjectsUri(uri.getPathSegments().get(0), rowId);
+                    newUri = Files.getMtpObjectsUri(volumeName, rowId);
                 }
                 break;
 
@@ -3957,6 +3965,8 @@ public class MediaProvider extends ContentProvider {
                 }
             }
         } else {
+            final String volumeName = getVolumeName(uri);
+
             DatabaseHelper database = getDatabaseForUri(uri);
             if (database == null) {
                 throw new UnsupportedOperationException(
@@ -3967,7 +3977,6 @@ public class MediaProvider extends ContentProvider {
 
             synchronized (sGetTableAndWhereParam) {
                 getTableAndWhere(uri, match, userWhere, sGetTableAndWhereParam);
-
                 if (sGetTableAndWhereParam.table.equals("files")) {
                     String deleteparam = uri.getQueryParameter(MediaStore.PARAM_DELETE_DATA);
                     if (deleteparam == null || ! deleteparam.equals("false")) {
@@ -3978,10 +3987,16 @@ public class MediaProvider extends ContentProvider {
                         String [] idvalue = new String[] { "" };
                         String [] playlistvalues = new String[] { "", "" };
                         while (c.moveToNext()) {
-                            int mediatype = c.getInt(0);
-                            if (mediatype == FileColumns.MEDIA_TYPE_IMAGE) {
-                                deleteIfAllowed(uri, c.getString(1));
-                                idvalue[0] =  "" + c.getLong(2);
+                            final int mediaType = c.getInt(0);
+                            final String data = c.getString(1);
+                            final long id = c.getLong(2);
+
+                            if (mediaType == FileColumns.MEDIA_TYPE_IMAGE) {
+                                deleteIfAllowed(uri, data);
+                                MediaDocumentsProvider.onMediaStoreDelete(getContext(), volumeName,
+                                        FileColumns.MEDIA_TYPE_IMAGE, id);
+
+                                idvalue[0] = String.valueOf(id);
                                 database.mNumQueries++;
                                 Cursor cc = db.query("thumbnails", sDataOnlyColumn,
                                         "image_id=?", idvalue, null, null, null);
@@ -3991,11 +4006,18 @@ public class MediaProvider extends ContentProvider {
                                 cc.close();
                                 database.mNumDeletes++;
                                 db.delete("thumbnails", "image_id=?", idvalue);
-                            } else if (mediatype == FileColumns.MEDIA_TYPE_VIDEO) {
-                                deleteIfAllowed(uri, c.getString(1));
-                            } else if (mediatype == FileColumns.MEDIA_TYPE_AUDIO) {
+
+                            } else if (mediaType == FileColumns.MEDIA_TYPE_VIDEO) {
+                                deleteIfAllowed(uri, data);
+                                MediaDocumentsProvider.onMediaStoreDelete(getContext(), volumeName,
+                                        FileColumns.MEDIA_TYPE_VIDEO, id);
+
+                            } else if (mediaType == FileColumns.MEDIA_TYPE_AUDIO) {
                                 if (!database.mInternal) {
-                                    idvalue[0] =  "" + c.getLong(2);
+                                    MediaDocumentsProvider.onMediaStoreDelete(getContext(),
+                                            volumeName, FileColumns.MEDIA_TYPE_AUDIO, id);
+
+                                    idvalue[0] = String.valueOf(id);
                                     database.mNumDeletes += 2; // also count the one below
                                     db.delete("audio_genres_map", "audio_id=?", idvalue);
                                     // for each playlist that the item appears in, move
@@ -4015,7 +4037,7 @@ public class MediaProvider extends ContentProvider {
                                     cc.close();
                                     db.delete("audio_playlists_map", "audio_id=?", idvalue);
                                 }
-                            } else if (mediatype == FileColumns.MEDIA_TYPE_PLAYLIST) {
+                            } else if (mediaType == FileColumns.MEDIA_TYPE_PLAYLIST) {
                                 // TODO, maybe: remove the audio_playlists_cleanup trigger and implement
                                 // it functionality here (clean up the playlist map)
                             }
@@ -4067,12 +4089,12 @@ public class MediaProvider extends ContentProvider {
                                 sGetTableAndWhereParam.where, whereArgs);
                         break;
                 }
+
                 // Since there are multiple Uris that can refer to the same files
                 // and deletes can affect other objects in storage (like subdirectories
                 // or playlists) we will notify a change on the entire volume to make
                 // sure no listeners miss the notification.
-                String volume = uri.getPathSegments().get(0);
-                Uri notifyUri = Uri.parse("content://" + MediaStore.AUTHORITY + "/" + volume);
+                Uri notifyUri = Uri.parse("content://" + MediaStore.AUTHORITY + "/" + volumeName);
                 getContext().getContentResolver().notifyChange(notifyUri, null);
             }
         }
@@ -5531,6 +5553,15 @@ public class MediaProvider extends ContentProvider {
         // used by the music app's search activity
         URI_MATCHER.addURI("media", "*/audio/search/fancy", AUDIO_SEARCH_FANCY);
         URI_MATCHER.addURI("media", "*/audio/search/fancy/*", AUDIO_SEARCH_FANCY);
+    }
+
+    private static String getVolumeName(Uri uri) {
+        final List<String> segments = uri.getPathSegments();
+        if (segments != null && segments.size() > 0) {
+            return segments.get(0);
+        } else {
+            return null;
+        }
     }
 
     @Override

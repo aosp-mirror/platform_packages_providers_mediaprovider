@@ -40,12 +40,14 @@ import android.provider.MediaStore.Audio.Albums;
 import android.provider.MediaStore.Audio.ArtistColumns;
 import android.provider.MediaStore.Audio.Artists;
 import android.provider.MediaStore.Audio.AudioColumns;
+import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.Video;
 import android.provider.MediaStore.Video.VideoColumns;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
+import android.util.Log;
 
 import libcore.io.IoUtils;
 
@@ -53,9 +55,12 @@ import java.io.File;
 import java.io.FileNotFoundException;
 
 /**
- * Presents a {@link DocumentsContract} view of {@link MediaProvider} contents.
+ * Presents a {@link DocumentsContract} view of {@link MediaProvider} external
+ * contents.
  */
 public class MediaDocumentsProvider extends DocumentsProvider {
+
+    private static final String AUTHORITY = "com.android.providers.media.documents";
 
     private static final String[] DEFAULT_ROOT_PROJECTION = new String[] {
             Root.COLUMN_ROOT_ID, Root.COLUMN_ROOT_TYPE, Root.COLUMN_FLAGS, Root.COLUMN_ICON,
@@ -106,29 +111,47 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     }
 
     private static void notifyRootsChanged(Context context) {
-        context.getContentResolver().notifyChange(
-                DocumentsContract.buildRootsUri("com.android.providers.media.documents"), null,
-                false);
+        context.getContentResolver()
+                .notifyChange(DocumentsContract.buildRootsUri(AUTHORITY), null, false);
     }
 
-    static void onImagesInserted(Context context) {
-        if (sReturnedImagesEmpty) {
-            notifyRootsChanged(context);
+    /**
+     * When inserting the first item of each type, we need to trigger a roots
+     * refresh to clear a previously reported {@link Root#FLAG_EMPTY}.
+     */
+    static void onMediaStoreInsert(Context context, String volumeName, int type, long id) {
+        if (!"external".equals(volumeName)) return;
+
+        if (type == FileColumns.MEDIA_TYPE_IMAGE && sReturnedImagesEmpty) {
             sReturnedImagesEmpty = false;
-        }
-    }
-
-    static void onVideoInserted(Context context) {
-        if (sReturnedVideosEmpty) {
             notifyRootsChanged(context);
+        } else if (type == FileColumns.MEDIA_TYPE_VIDEO && sReturnedVideosEmpty) {
             sReturnedVideosEmpty = false;
+            notifyRootsChanged(context);
+        } else if (type == FileColumns.MEDIA_TYPE_AUDIO && sReturnedAudioEmpty) {
+            sReturnedAudioEmpty = false;
+            notifyRootsChanged(context);
         }
     }
 
-    static void onAudioInserted(Context context) {
-        if (sReturnedAudioEmpty) {
-            notifyRootsChanged(context);
-            sReturnedAudioEmpty = false;
+    /**
+     * When deleting an item, we need to revoke any outstanding Uri grants.
+     */
+    static void onMediaStoreDelete(Context context, String volumeName, int type, long id) {
+        if (!"external".equals(volumeName)) return;
+
+        if (type == FileColumns.MEDIA_TYPE_IMAGE) {
+            final Uri uri = DocumentsContract.buildDocumentUri(
+                    AUTHORITY, getDocIdForIdent(TYPE_IMAGE, id));
+            context.revokeUriPermission(uri, ~0);
+        } else if (type == FileColumns.MEDIA_TYPE_VIDEO) {
+            final Uri uri = DocumentsContract.buildDocumentUri(
+                    AUTHORITY, getDocIdForIdent(TYPE_VIDEO, id));
+            context.revokeUriPermission(uri, ~0);
+        } else if (type == FileColumns.MEDIA_TYPE_AUDIO) {
+            final Uri uri = DocumentsContract.buildDocumentUri(
+                    AUTHORITY, getDocIdForIdent(TYPE_AUDIO, id));
+            context.revokeUriPermission(uri, ~0);
         }
     }
 

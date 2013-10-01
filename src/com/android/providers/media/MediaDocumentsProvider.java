@@ -47,7 +47,6 @@ import android.provider.MediaStore.Video;
 import android.provider.MediaStore.Video.VideoColumns;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
-import android.util.Log;
 
 import libcore.io.IoUtils;
 
@@ -63,9 +62,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     private static final String AUTHORITY = "com.android.providers.media.documents";
 
     private static final String[] DEFAULT_ROOT_PROJECTION = new String[] {
-            Root.COLUMN_ROOT_ID, Root.COLUMN_ROOT_TYPE, Root.COLUMN_FLAGS, Root.COLUMN_ICON,
-            Root.COLUMN_TITLE, Root.COLUMN_SUMMARY, Root.COLUMN_DOCUMENT_ID,
-            Root.COLUMN_AVAILABLE_BYTES, Root.COLUMN_MIME_TYPES
+            Root.COLUMN_ROOT_ID, Root.COLUMN_FLAGS, Root.COLUMN_ICON,
+            Root.COLUMN_TITLE, Root.COLUMN_DOCUMENT_ID, Root.COLUMN_MIME_TYPES
     };
 
     private static final String[] DEFAULT_DOCUMENT_PROJECTION = new String[] {
@@ -490,7 +488,6 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
         final RowBuilder row = result.newRow();
         row.add(Root.COLUMN_ROOT_ID, TYPE_IMAGES_ROOT);
-        row.add(Root.COLUMN_ROOT_TYPE, Root.ROOT_TYPE_SHORTCUT);
         row.add(Root.COLUMN_FLAGS, flags);
         row.add(Root.COLUMN_TITLE, getContext().getString(R.string.root_images));
         row.add(Root.COLUMN_DOCUMENT_ID, TYPE_IMAGES_ROOT);
@@ -506,7 +503,6 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
         final RowBuilder row = result.newRow();
         row.add(Root.COLUMN_ROOT_ID, TYPE_VIDEOS_ROOT);
-        row.add(Root.COLUMN_ROOT_TYPE, Root.ROOT_TYPE_SHORTCUT);
         row.add(Root.COLUMN_FLAGS, flags);
         row.add(Root.COLUMN_TITLE, getContext().getString(R.string.root_videos));
         row.add(Root.COLUMN_DOCUMENT_ID, TYPE_VIDEOS_ROOT);
@@ -522,7 +518,6 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
         final RowBuilder row = result.newRow();
         row.add(Root.COLUMN_ROOT_ID, TYPE_AUDIO_ROOT);
-        row.add(Root.COLUMN_ROOT_TYPE, Root.ROOT_TYPE_SHORTCUT);
         row.add(Root.COLUMN_FLAGS, flags);
         row.add(Root.COLUMN_TITLE, getContext().getString(R.string.root_audio));
         row.add(Root.COLUMN_DOCUMENT_ID, TYPE_AUDIO_ROOT);

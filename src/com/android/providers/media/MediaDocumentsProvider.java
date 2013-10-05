@@ -208,7 +208,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 // single bucket
                 cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
                         ImagesBucketQuery.PROJECTION, ImageColumns.BUCKET_ID + "=" + ident.id,
-                        null, null);
+                        null, ImagesBucketQuery.SORT_ORDER);
                 copyNotificationUri(result, cursor);
                 if (cursor.moveToFirst()) {
                     includeImagesBucket(result, cursor);
@@ -229,7 +229,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 // single bucket
                 cursor = resolver.query(Video.Media.EXTERNAL_CONTENT_URI,
                         VideosBucketQuery.PROJECTION, VideoColumns.BUCKET_ID + "=" + ident.id,
-                        null, null);
+                        null, VideosBucketQuery.SORT_ORDER);
                 copyNotificationUri(result, cursor);
                 if (cursor.moveToFirst()) {
                     includeVideosBucket(result, cursor);
@@ -296,7 +296,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             if (TYPE_IMAGES_ROOT.equals(ident.type)) {
                 // include all unique buckets
                 cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
-                        ImagesBucketQuery.PROJECTION, null, null, ImageColumns.BUCKET_ID);
+                        ImagesBucketQuery.PROJECTION, null, null, ImagesBucketQuery.SORT_ORDER);
+                // multiple orders
                 copyNotificationUri(result, cursor);
                 long lastId = Long.MIN_VALUE;
                 while (cursor.moveToNext()) {
@@ -318,7 +319,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             } else if (TYPE_VIDEOS_ROOT.equals(ident.type)) {
                 // include all unique buckets
                 cursor = resolver.query(Video.Media.EXTERNAL_CONTENT_URI,
-                        VideosBucketQuery.PROJECTION, null, null, VideoColumns.BUCKET_ID);
+                        VideosBucketQuery.PROJECTION, null, null, VideosBucketQuery.SORT_ORDER);
                 copyNotificationUri(result, cursor);
                 long lastId = Long.MIN_VALUE;
                 while (cursor.moveToNext()) {
@@ -554,6 +555,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 ImageColumns.BUCKET_ID,
                 ImageColumns.BUCKET_DISPLAY_NAME,
                 ImageColumns.DATE_MODIFIED };
+        final String SORT_ORDER = ImageColumns.BUCKET_ID + ", " + ImageColumns.DATE_MODIFIED
+                + " DESC";
 
         final int BUCKET_ID = 0;
         final int BUCKET_DISPLAY_NAME = 1;
@@ -610,6 +613,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 VideoColumns.BUCKET_ID,
                 VideoColumns.BUCKET_DISPLAY_NAME,
                 VideoColumns.DATE_MODIFIED };
+        final String SORT_ORDER = VideoColumns.BUCKET_ID + ", " + VideoColumns.DATE_MODIFIED
+                + " DESC";
 
         final int BUCKET_ID = 0;
         final int BUCKET_DISPLAY_NAME = 1;

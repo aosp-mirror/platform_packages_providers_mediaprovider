@@ -4416,11 +4416,24 @@ public class MediaProvider extends ContentProvider {
         } else if (isWrite) {
             // don't write to non-cache, non-sdcard files.
             throw new FileNotFoundException("Can't access " + file);
+        } else if (isSecondaryExternalPath(path)) {
+            // read access is OK with the appropriate permission
+            getContext().enforceCallingOrSelfPermission(
+                    READ_EXTERNAL_STORAGE, "External path: " + path);
         } else {
             checkWorldReadAccess(path);
         }
 
         return ParcelFileDescriptor.open(file, modeBits);
+    }
+
+    private boolean isSecondaryExternalPath(String path) {
+        for (int i = mExternalStoragePaths.length - 1; i >= 0; --i) {
+            if (path.startsWith(mExternalStoragePaths[i])) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

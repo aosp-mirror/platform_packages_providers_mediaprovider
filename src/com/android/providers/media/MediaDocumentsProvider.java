@@ -27,6 +27,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Point;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
 import android.provider.BaseColumns;
@@ -47,6 +48,7 @@ import android.provider.MediaStore.Video;
 import android.provider.MediaStore.Video.VideoColumns;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
+import android.util.Log;
 
 import libcore.io.IoUtils;
 
@@ -58,6 +60,7 @@ import java.io.FileNotFoundException;
  * contents.
  */
 public class MediaDocumentsProvider extends DocumentsProvider {
+    private static final String TAG = "MediaDocumentsProvider";
 
     private static final String AUTHORITY = "com.android.providers.media.documents";
 
@@ -766,9 +769,10 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final int _DATA = 0;
     }
 
-    private AssetFileDescriptor openImageThumbnailCleared(long id, CancellationSignal signal)
+    private ParcelFileDescriptor openImageThumbnailCleared(long id, CancellationSignal signal)
             throws FileNotFoundException {
         final ContentResolver resolver = getContext().getContentResolver();
+
         Cursor cursor = null;
         try {
             cursor = resolver.query(Images.Thumbnails.EXTERNAL_CONTENT_URI,
@@ -776,9 +780,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                     null, signal);
             if (cursor.moveToFirst()) {
                 final String data = cursor.getString(ImageThumbnailQuery._DATA);
-                return new AssetFileDescriptor(ParcelFileDescriptor.open(
-                        new File(data), ParcelFileDescriptor.MODE_READ_ONLY), 0,
-                        AssetFileDescriptor.UNKNOWN_LENGTH);
+                return ParcelFileDescriptor.open(
+                        new File(data), ParcelFileDescriptor.MODE_READ_ONLY);
             }
         } finally {
             IoUtils.closeQuietly(cursor);
@@ -790,24 +793,33 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             long id, CancellationSignal signal) throws FileNotFoundException {
         final ContentResolver resolver = getContext().getContentResolver();
 
-        AssetFileDescriptor afd = openImageThumbnailCleared(id, signal);
-        if (afd == null) {
+        ParcelFileDescriptor pfd = openImageThumbnailCleared(id, signal);
+        if (pfd == null) {
             // No thumbnail yet, so generate. This is messy, since we drop the
             // Bitmap on the floor, but its the least-complicated way.
             final BitmapFactory.Options opts = new BitmapFactory.Options();
             opts.inJustDecodeBounds = true;
             Images.Thumbnails.getThumbnail(resolver, id, Images.Thumbnails.MINI_KIND, opts);
 
-            afd = openImageThumbnailCleared(id, signal);
+            pfd = openImageThumbnailCleared(id, signal);
         }
 
-        if (afd == null) {
+        if (pfd == null) {
             // Phoey, fallback to full image
             final Uri fullUri = ContentUris.withAppendedId(Images.Media.EXTERNAL_CONTENT_URI, id);
-            afd = resolver.openAssetFileDescriptor(fullUri, "r", signal);
+            pfd = resolver.openFileDescriptor(fullUri, "r", signal);
         }
 
-        return afd;
+        final int orientation = queryOrientationForImage(id, signal);
+        final Bundle extras;
+        if (orientation != 0) {
+            extras = new Bundle(1);
+            extras.putInt(DocumentsContract.EXTRA_ORIENTATION, orientation);
+        } else {
+            extras = null;
+        }
+
+        return new AssetFileDescriptor(pfd, 0, AssetFileDescriptor.UNKNOWN_LENGTH, extras);
     }
 
     private interface VideosBucketThumbnailQuery {
@@ -881,5 +893,31 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         }
 
         return afd;
+    }
+
+    private interface ImageOrientationQuery {
+        final String[] PROJECTION = new String[] {
+                ImageColumns.ORIENTATION };
+
+        final int ORIENTATION = 0;
+    }
+
+    private int queryOrientationForImage(long id, CancellationSignal signal) {
+        final ContentResolver resolver = getContext().getContentResolver();
+
+        Cursor cursor = null;
+        try {
+            cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
+                    ImageOrientationQuery.PROJECTION, ImageColumns._ID + "=" + id, null, null,
+                    signal);
+            if (cursor.moveToFirst()) {
+                return cursor.getInt(ImageOrientationQuery.ORIENTATION);
+            } else {
+                Log.w(TAG, "Missing orientation data for " + id);
+                return 0;
+            }
+        } finally {
+            IoUtils.closeQuietly(cursor);
+        }
     }
 }

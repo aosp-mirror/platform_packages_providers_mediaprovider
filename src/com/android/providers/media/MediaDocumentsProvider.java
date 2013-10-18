@@ -476,7 +476,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         try {
             cursor = resolver.query(uri, new String[] {
                     BaseColumns._ID }, null, null, null);
-            return (cursor.getCount() == 0);
+            return (cursor == null) || (cursor.getCount() == 0);
         } finally {
             IoUtils.closeQuietly(cursor);
             Binder.restoreCallingIdentity(token);

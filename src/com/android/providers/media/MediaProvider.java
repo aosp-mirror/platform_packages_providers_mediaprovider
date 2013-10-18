@@ -60,7 +60,6 @@ import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.FileUtils;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
@@ -136,6 +135,8 @@ public class MediaProvider extends ContentProvider {
             throw new RuntimeException("Unable to resolve canonical paths", e);
         }
     }
+
+    private StorageManager mStorageManager;
 
     // In memory cache of path<->id mappings, to speed up inserts during media scan
     HashMap<String, Long> mDirectoryCache = new HashMap<String, Long>();
@@ -545,6 +546,8 @@ public class MediaProvider extends ContentProvider {
     @Override
     public boolean onCreate() {
         final Context context = getContext();
+
+        mStorageManager = (StorageManager) context.getSystemService(Context.STORAGE_SERVICE);
 
         sArtistAlbumsMap.put(MediaStore.Audio.Albums._ID, "audio.album_id AS " +
                 MediaStore.Audio.Albums._ID);
@@ -5225,16 +5228,15 @@ public class MediaProvider extends ContentProvider {
                         false, mObjectRemovedCallback);
             } else if (EXTERNAL_VOLUME.equals(volume)) {
                 if (Environment.isExternalStorageRemovable()) {
-                    String path = mExternalStoragePaths[0];
-                    int volumeID = FileUtils.getFatVolumeId(path);
-                    if (LOCAL_LOGV) Log.v(TAG, path + " volume ID: " + volumeID);
+                    final StorageVolume actualVolume = mStorageManager.getPrimaryVolume();
+                    final int volumeId = actualVolume.getFatVolumeId();
 
                     // Must check for failure!
                     // If the volume is not (yet) mounted, this will create a new
                     // external-ffffffff.db database instead of the one we expect.  Then, if
                     // android.process.media is later killed and respawned, the real external
                     // database will be attached, containing stale records, or worse, be empty.
-                    if (volumeID == -1) {
+                    if (volumeId == -1) {
                         String state = Environment.getExternalStorageState();
                         if (Environment.MEDIA_MOUNTED.equals(state) ||
                                 Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
@@ -5253,10 +5255,10 @@ public class MediaProvider extends ContentProvider {
                     }
 
                     // generate database name based on volume ID
-                    String dbName = "external-" + Integer.toHexString(volumeID) + ".db";
+                    String dbName = "external-" + Integer.toHexString(volumeId) + ".db";
                     helper = new DatabaseHelper(context, dbName, false,
                             false, mObjectRemovedCallback);
-                    mVolumeId = volumeID;
+                    mVolumeId = volumeId;
                 } else {
                     // external database name should be EXTERNAL_DATABASE_NAME
                     // however earlier releases used the external-XXXXXXXX.db naming

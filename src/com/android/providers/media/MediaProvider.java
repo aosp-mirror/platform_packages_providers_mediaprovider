@@ -131,9 +131,13 @@ public class MediaProvider extends ContentProvider {
 
     static {
         try {
-            sExternalPath = Environment.getExternalStorageDirectory().getCanonicalPath();
-            sCachePath = Environment.getDownloadCacheDirectory().getCanonicalPath();
-            sLegacyPath = Environment.getLegacyExternalStorageDirectory().getCanonicalPath();
+            sExternalPath =
+                    Environment.getExternalStorageDirectory().getCanonicalPath() + File.separator;
+            sCachePath =
+                    Environment.getDownloadCacheDirectory().getCanonicalPath() + File.separator;
+            sLegacyPath =
+                    Environment.getLegacyExternalStorageDirectory().getCanonicalPath()
+                    + File.separator;
         } catch (IOException e) {
             throw new RuntimeException("Unable to resolve canonical paths", e);
         }

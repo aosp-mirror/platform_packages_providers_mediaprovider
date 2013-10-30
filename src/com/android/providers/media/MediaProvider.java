@@ -4602,10 +4602,13 @@ public class MediaProvider extends ContentProvider {
             throw new IllegalArgumentException("Unable to resolve canonical path for " + file, e);
         }
 
+        Context c = getContext();
+        boolean readGranted =
+                (c.checkCallingOrSelfUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                == PackageManager.PERMISSION_GRANTED);
+
         if (path.startsWith(sExternalPath) || path.startsWith(sLegacyPath)) {
-            Context c = getContext();
-            if (c.checkCallingOrSelfUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    != PackageManager.PERMISSION_GRANTED) {
+            if (!readGranted) {
                 c.enforceCallingOrSelfPermission(
                         READ_EXTERNAL_STORAGE, "External path: " + path);
             }
@@ -4619,15 +4622,19 @@ public class MediaProvider extends ContentProvider {
             }
 
         } else if (path.startsWith(sCachePath)) {
-            getContext().enforceCallingOrSelfPermission(
-                    ACCESS_CACHE_FILESYSTEM, "Cache path: " + path);
+            if (!readGranted) {
+                c.enforceCallingOrSelfPermission(
+                        ACCESS_CACHE_FILESYSTEM, "Cache path: " + path);
+            }
         } else if (isWrite) {
             // don't write to non-cache, non-sdcard files.
             throw new FileNotFoundException("Can't access " + file);
         } else if (isSecondaryExternalPath(path)) {
             // read access is OK with the appropriate permission
-            getContext().enforceCallingOrSelfPermission(
-                    READ_EXTERNAL_STORAGE, "External path: " + path);
+            if (!readGranted) {
+                c.enforceCallingOrSelfPermission(
+                        READ_EXTERNAL_STORAGE, "External path: " + path);
+            }
         } else {
             checkWorldReadAccess(path);
         }

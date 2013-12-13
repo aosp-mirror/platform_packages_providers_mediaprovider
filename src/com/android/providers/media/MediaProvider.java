@@ -4624,28 +4624,31 @@ public class MediaProvider extends ContentProvider {
         }
 
         Context c = getContext();
-        boolean readGranted =
+        boolean readGranted = false;
+        boolean writeGranted = false;
+        if (isWrite) {
+            writeGranted =
+                (c.checkCallingOrSelfUriPermission(uri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                == PackageManager.PERMISSION_GRANTED);
+        } else {
+            readGranted =
                 (c.checkCallingOrSelfUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 == PackageManager.PERMISSION_GRANTED);
+        }
 
         if (path.startsWith(sExternalPath) || path.startsWith(sLegacyPath)) {
-            if (!readGranted) {
-                c.enforceCallingOrSelfPermission(
-                        READ_EXTERNAL_STORAGE, "External path: " + path);
-            }
-
             if (isWrite) {
-                if (c.checkCallingOrSelfUriPermission(uri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                        != PackageManager.PERMISSION_GRANTED) {
+                if (!writeGranted) {
                     c.enforceCallingOrSelfPermission(
-                            WRITE_EXTERNAL_STORAGE, "External path: " + path);
+                        WRITE_EXTERNAL_STORAGE, "External path: " + path);
                 }
-            }
-
-        } else if (path.startsWith(sCachePath)) {
-            if (!readGranted) {
+            } else if (!readGranted) {
                 c.enforceCallingOrSelfPermission(
-                        ACCESS_CACHE_FILESYSTEM, "Cache path: " + path);
+                    READ_EXTERNAL_STORAGE, "External path: " + path);
+            }
+        } else if (path.startsWith(sCachePath)) {
+            if ((isWrite && !writeGranted) || !readGranted) {
+                c.enforceCallingOrSelfPermission(ACCESS_CACHE_FILESYSTEM, "Cache path: " + path);
             }
         } else if (isWrite) {
             // don't write to non-cache, non-sdcard files.

@@ -3654,6 +3654,8 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void hidePath(DatabaseHelper helper, SQLiteDatabase db, String path) {
+        // a new nomedia path was added, so clear the media paths
+        MediaScanner.clearMediaPathCache(true /* media */, false /* nomedia */);
         File nomedia = new File(path);
         String hiddenroot = nomedia.isDirectory() ? path : nomedia.getParent();
         ContentValues mediatype = new ContentValues();
@@ -3673,6 +3675,8 @@ public class MediaProvider extends ContentProvider {
      * both of which call here.
      */
     private void processRemovedNoMediaPath(final String path) {
+        // a nomedia path was removed, so clear the nomedia paths
+        MediaScanner.clearMediaPathCache(false /* media */, true /* nomedia */);
         final DatabaseHelper helper;
         if (path.startsWith(mExternalStoragePaths[0])) {
             helper = getDatabaseForUri(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);

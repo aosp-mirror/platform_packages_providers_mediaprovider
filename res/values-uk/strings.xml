@@ -25,5 +25,5 @@
     <string name="alarm_sound_default" msgid="6854264112790616066">"Звук сигналу за умовчанням"</string>
     <string name="root_images" msgid="7098113056247445324">"Зображення"</string>
     <string name="root_videos" msgid="3304457332406057833">"Відео"</string>
-    <string name="root_audio" msgid="7177565505195715659">"Звук"</string>
+    <string name="root_audio" msgid="7177565505195715659">"Аудіо"</string>
 </resources>

@@ -186,6 +186,7 @@ public class MtpService extends Service {
         if (mServer == null && isCurrentUser) {
             Log.d(TAG, "starting MTP server in " + (mPtpMode ? "PTP mode" : "MTP mode"));
             mServer = new MtpServer(mDatabase, mPtpMode);
+            mDatabase.setServer(mServer);
             if (!mMtpDisabled) {
                 addStorageDevicesLocked();
             }
@@ -195,6 +196,7 @@ public class MtpService extends Service {
             // Internally, kernel will close our FD, and server thread will
             // handle cleanup.
             mServer = null;
+            mDatabase.setServer(null);
         }
     }
 

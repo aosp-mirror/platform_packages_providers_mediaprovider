@@ -19,6 +19,7 @@ package com.android.providers.media;
 import static android.Manifest.permission.ACCESS_CACHE_FILESYSTEM;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
+import static android.Manifest.permission.WRITE_MEDIA_STORAGE;
 import static android.os.ParcelFileDescriptor.MODE_READ_ONLY;
 import static android.os.ParcelFileDescriptor.MODE_WRITE_ONLY;
 
@@ -4643,15 +4644,25 @@ public class MediaProvider extends ContentProvider {
                 c.enforceCallingOrSelfPermission(
                         ACCESS_CACHE_FILESYSTEM, "Cache path: " + path);
             }
-        } else if (isWrite) {
-            // don't write to non-cache, non-sdcard files.
-            throw new FileNotFoundException("Can't access " + file);
         } else if (isSecondaryExternalPath(path)) {
             // read access is OK with the appropriate permission
             if (!readGranted) {
-                c.enforceCallingOrSelfPermission(
-                        READ_EXTERNAL_STORAGE, "External path: " + path);
+                if (c.checkCallingOrSelfPermission(WRITE_MEDIA_STORAGE)
+                        == PackageManager.PERMISSION_DENIED) {
+                    c.enforceCallingOrSelfPermission(
+                            READ_EXTERNAL_STORAGE, "External path: " + path);
+                }
             }
+            if (isWrite) {
+                if (c.checkCallingOrSelfUriPermission(uri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    c.enforceCallingOrSelfPermission(
+                            WRITE_MEDIA_STORAGE, "External path: " + path);
+                }
+            }
+        } else if (isWrite) {
+            // don't write to non-cache, non-sdcard files.
+            throw new FileNotFoundException("Can't access " + file);
         } else {
             checkWorldReadAccess(path);
         }

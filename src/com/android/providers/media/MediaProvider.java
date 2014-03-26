@@ -1878,21 +1878,26 @@ public class MediaProvider extends ContentProvider {
      * whether all the _data entries in audio_meta are unique
      */
     private static void sanityCheck(SQLiteDatabase db, int fromVersion) {
-        Cursor c1 = db.query("audio_meta", new String[] {"count(*)"},
-                null, null, null, null, null);
-        Cursor c2 = db.query("audio_meta", new String[] {"count(distinct _data)"},
-                null, null, null, null, null);
-        c1.moveToFirst();
-        c2.moveToFirst();
-        int num1 = c1.getInt(0);
-        int num2 = c2.getInt(0);
-        c1.close();
-        c2.close();
-        if (num1 != num2) {
-            Log.e(TAG, "audio_meta._data column is not unique while upgrading" +
-                    " from schema " +fromVersion + " : " + num1 +"/" + num2);
-            // Delete all audio_meta rows so they will be rebuilt by the media scanner
-            db.execSQL("DELETE FROM audio_meta;");
+        Cursor c1 = null;
+        Cursor c2 = null;
+        try {
+            c1 = db.query("audio_meta", new String[] {"count(*)"},
+                    null, null, null, null, null);
+            c2 = db.query("audio_meta", new String[] {"count(distinct _data)"},
+                    null, null, null, null, null);
+            c1.moveToFirst();
+            c2.moveToFirst();
+            int num1 = c1.getInt(0);
+            int num2 = c2.getInt(0);
+            if (num1 != num2) {
+                Log.e(TAG, "audio_meta._data column is not unique while upgrading" +
+                        " from schema " +fromVersion + " : " + num1 +"/" + num2);
+                // Delete all audio_meta rows so they will be rebuilt by the media scanner
+                db.execSQL("DELETE FROM audio_meta;");
+            }
+        } finally {
+            IoUtils.closeQuietly(c1);
+            IoUtils.closeQuietly(c2);
         }
     }
 
@@ -1934,7 +1939,7 @@ public class MediaProvider extends ContentProvider {
                     }
                 }
             } finally {
-                cursor.close();
+                IoUtils.closeQuietly(cursor);
             }
             db.setTransactionSuccessful();
         } finally {
@@ -1970,7 +1975,7 @@ public class MediaProvider extends ContentProvider {
                     }
                 }
             } finally {
-                cursor.close();
+                IoUtils.closeQuietly(cursor);
             }
             db.setTransactionSuccessful();
         } finally {
@@ -2042,35 +2047,33 @@ public class MediaProvider extends ContentProvider {
     private boolean waitForThumbnailReady(Uri origUri) {
         Cursor c = this.query(origUri, new String[] { ImageColumns._ID, ImageColumns.DATA,
                 ImageColumns.MINI_THUMB_MAGIC}, null, null, null);
-        if (c == null) return false;
-
         boolean result = false;
+        try {
+            if (c != null && c.moveToFirst()) {
+                long id = c.getLong(0);
+                String path = c.getString(1);
+                long magic = c.getLong(2);
 
-        if (c.moveToFirst()) {
-            long id = c.getLong(0);
-            String path = c.getString(1);
-            long magic = c.getLong(2);
-
-            MediaThumbRequest req = requestMediaThumbnail(path, origUri,
-                    MediaThumbRequest.PRIORITY_HIGH, magic);
-            if (req == null) {
-                return false;
-            }
-            synchronized (req) {
-                try {
-                    while (req.mState == MediaThumbRequest.State.WAIT) {
-                        req.wait();
+                MediaThumbRequest req = requestMediaThumbnail(path, origUri,
+                        MediaThumbRequest.PRIORITY_HIGH, magic);
+                if (req != null) {
+                    synchronized (req) {
+                        try {
+                            while (req.mState == MediaThumbRequest.State.WAIT) {
+                                req.wait();
+                            }
+                        } catch (InterruptedException e) {
+                            Log.w(TAG, e);
+                        }
+                        if (req.mState == MediaThumbRequest.State.DONE) {
+                            result = true;
+                        }
                     }
-                } catch (InterruptedException e) {
-                    Log.w(TAG, e);
-                }
-                if (req.mState == MediaThumbRequest.State.DONE) {
-                    result = true;
                 }
             }
+        } finally {
+            IoUtils.closeQuietly(c);
         }
-        c.close();
-
         return result;
     }
 
@@ -2160,21 +2163,22 @@ public class MediaProvider extends ContentProvider {
         if (match != AUDIO_MEDIA_ID) {
             return null;
         }
-
         Cursor c = query(uri, null, null, null, null);
-        if (c == null) {
-            return null;
-        }
-        if (c.getCount() != 1 || !c.moveToNext()) {
-            c.close();
-            return null;
-        }
+        String title = null;
+        Uri.Builder builder = null;
 
-        // Construct a canonical Uri by tacking on some query parameters
-        Uri.Builder builder = uri.buildUpon();
-        builder.appendQueryParameter(CANONICAL, "1");
-        String title = c.getString(c.getColumnIndex(MediaStore.Audio.Media.TITLE));
-        c.close();
+        try {
+            if (c == null || c.getCount() != 1 || !c.moveToNext()) {
+                return null;
+            }
+
+            // Construct a canonical Uri by tacking on some query parameters
+            builder = uri.buildUpon();
+            builder.appendQueryParameter(CANONICAL, "1");
+            title = c.getString(c.getColumnIndex(MediaStore.Audio.Media.TITLE));
+        } finally {
+            IoUtils.closeQuietly(c);
+        }
         if (TextUtils.isEmpty(title)) {
             return null;
         }
@@ -2200,32 +2204,32 @@ public class MediaProvider extends ContentProvider {
             uri = uri.buildUpon().clearQuery().build();
 
             Cursor c = query(uri, null, null, null, null);
+            try {
+                int titleIdx = c.getColumnIndex(MediaStore.Audio.Media.TITLE);
+                if (c != null && c.getCount() == 1 && c.moveToNext() &&
+                        titleFromUri.equals(c.getString(titleIdx))) {
+                    // the result matched perfectly
+                    return uri;
+                }
 
-            int titleIdx = c.getColumnIndex(MediaStore.Audio.Media.TITLE);
-            if (c != null && c.getCount() == 1 && c.moveToNext() &&
-                    titleFromUri.equals(c.getString(titleIdx))) {
-                // the result matched perfectly
-                c.close();
-                return uri;
-            }
+                IoUtils.closeQuietly(c);
+                // do a lookup by title
+                Uri newUri = MediaStore.Audio.Media.getContentUri(uri.getPathSegments().get(0));
 
-            c.close();
-            // do a lookup by title
-            Uri newUri = MediaStore.Audio.Media.getContentUri(uri.getPathSegments().get(0));
-
-            c = query(newUri, null, MediaStore.Audio.Media.TITLE + "=?",
-                    new String[] {titleFromUri}, null);
-            if (c == null) {
-                return null;
+                c = query(newUri, null, MediaStore.Audio.Media.TITLE + "=?",
+                        new String[] {titleFromUri}, null);
+                if (c == null) {
+                    return null;
+                }
+                if (!c.moveToNext()) {
+                    return null;
+                }
+                // get the first matching entry and return a Uri for it
+                long id = c.getLong(c.getColumnIndex(MediaStore.Audio.Media._ID));
+                return ContentUris.withAppendedId(newUri, id);
+            } finally {
+                IoUtils.closeQuietly(c);
             }
-            if (!c.moveToNext()) {
-                c.close();
-                return null;
-            }
-            // get the first matching entry and return a Uri for it
-            long id = c.getLong(c.getColumnIndex(MediaStore.Audio.Media._ID));
-            c.close();
-            return ContentUris.withAppendedId(newUri, id);
         }
         return uri;
     }
@@ -2725,9 +2729,7 @@ public class MediaProvider extends ContentProvider {
                         return mimeType;
                     }
                 } finally {
-                    if (c != null) {
-                        c.close();
-                    }
+                    IoUtils.closeQuietly(c);
                 }
                 break;
 
@@ -2971,7 +2973,7 @@ public class MediaProvider extends ContentProvider {
                 mDirectoryCache.put(parentPath, id);
                 return id;
             } finally {
-                if (c != null) c.close();
+                IoUtils.closeQuietly(c);
             }
         } else {
             return 0;
@@ -3247,9 +3249,7 @@ public class MediaProvider extends ContentProvider {
                         new String[] { Long.toString(playlistId) } );
             }
         } finally {
-            if (c != null) {
-                c.close();
-            }
+            IoUtils.closeQuietly(c);
         }
         return null;
     }
@@ -3272,9 +3272,7 @@ public class MediaProvider extends ContentProvider {
                 playlistId = c.getLong(0);
             }
         } finally {
-            if (c != null) {
-                c.close();
-            }
+            IoUtils.closeQuietly(c);
         }
         if (playlistId == 0) {
             return 0;
@@ -3307,9 +3305,7 @@ public class MediaProvider extends ContentProvider {
                     audioId = c.getLong(0);
                 }
             } finally {
-                if (c != null) {
-                    c.close();
-                }
+                IoUtils.closeQuietly(c);
             }
             if (audioId != 0) {
                 ContentValues v = new ContentValues();
@@ -3358,10 +3354,7 @@ public class MediaProvider extends ContentProvider {
                 uri = Uri.withAppendedPath(uri, MediaStore.Audio.Genres.Members.CONTENT_DIRECTORY);
             }
         } finally {
-            // release the cursor if it exists
-            if (cursor != null) {
-                cursor.close();
-            }
+            IoUtils.closeQuietly(cursor);
         }
 
         if (uri != null) {
@@ -3698,15 +3691,18 @@ public class MediaProvider extends ContentProvider {
                     "_data >= ? AND _data < ?",
                     new String[] { mPath + "/", mPath + "0"},
                     null, null, null);
-            while (c.moveToNext()) {
-                String d = c.getString(0);
-                File f = new File(d);
-                if (f.isFile()) {
-                    mScannerConnection.scanFile(d, null);
+            try  {
+                while (c.moveToNext()) {
+                    String d = c.getString(0);
+                    File f = new File(d);
+                    if (f.isFile()) {
+                        mScannerConnection.scanFile(d, null);
+                    }
                 }
+                mScannerConnection.disconnect();
+            } finally {
+                IoUtils.closeQuietly(c);
             }
-            mScannerConnection.disconnect();
-            c.close();
         }
 
         @Override
@@ -4007,63 +4003,71 @@ public class MediaProvider extends ContentProvider {
                                 sGetTableAndWhereParam.where, whereArgs, null, null, null);
                         String [] idvalue = new String[] { "" };
                         String [] playlistvalues = new String[] { "", "" };
-                        while (c.moveToNext()) {
-                            final int mediaType = c.getInt(0);
-                            final String data = c.getString(1);
-                            final long id = c.getLong(2);
+                        try {
+                            while (c.moveToNext()) {
+                                final int mediaType = c.getInt(0);
+                                final String data = c.getString(1);
+                                final long id = c.getLong(2);
 
-                            if (mediaType == FileColumns.MEDIA_TYPE_IMAGE) {
-                                deleteIfAllowed(uri, data);
-                                MediaDocumentsProvider.onMediaStoreDelete(getContext(), volumeName,
-                                        FileColumns.MEDIA_TYPE_IMAGE, id);
-
-                                idvalue[0] = String.valueOf(id);
-                                database.mNumQueries++;
-                                Cursor cc = db.query("thumbnails", sDataOnlyColumn,
-                                        "image_id=?", idvalue, null, null, null);
-                                while (cc.moveToNext()) {
-                                    deleteIfAllowed(uri, cc.getString(0));
-                                }
-                                cc.close();
-                                database.mNumDeletes++;
-                                db.delete("thumbnails", "image_id=?", idvalue);
-
-                            } else if (mediaType == FileColumns.MEDIA_TYPE_VIDEO) {
-                                deleteIfAllowed(uri, data);
-                                MediaDocumentsProvider.onMediaStoreDelete(getContext(), volumeName,
-                                        FileColumns.MEDIA_TYPE_VIDEO, id);
-
-                            } else if (mediaType == FileColumns.MEDIA_TYPE_AUDIO) {
-                                if (!database.mInternal) {
+                                if (mediaType == FileColumns.MEDIA_TYPE_IMAGE) {
+                                    deleteIfAllowed(uri, data);
                                     MediaDocumentsProvider.onMediaStoreDelete(getContext(),
-                                            volumeName, FileColumns.MEDIA_TYPE_AUDIO, id);
+                                            volumeName, FileColumns.MEDIA_TYPE_IMAGE, id);
 
                                     idvalue[0] = String.valueOf(id);
-                                    database.mNumDeletes += 2; // also count the one below
-                                    db.delete("audio_genres_map", "audio_id=?", idvalue);
-                                    // for each playlist that the item appears in, move
-                                    // all the items behind it forward by one
-                                    Cursor cc = db.query("audio_playlists_map",
-                                            sPlaylistIdPlayOrder,
-                                            "audio_id=?", idvalue, null, null, null);
-                                    while (cc.moveToNext()) {
-                                        playlistvalues[0] = "" + cc.getLong(0);
-                                        playlistvalues[1] = "" + cc.getInt(1);
-                                        database.mNumUpdates++;
-                                        db.execSQL("UPDATE audio_playlists_map" +
-                                                " SET play_order=play_order-1" +
-                                                " WHERE playlist_id=? AND play_order>?",
-                                                playlistvalues);
+                                    database.mNumQueries++;
+                                    Cursor cc = db.query("thumbnails", sDataOnlyColumn,
+                                                "image_id=?", idvalue, null, null, null);
+                                    try {
+                                        while (cc.moveToNext()) {
+                                            deleteIfAllowed(uri, cc.getString(0));
+                                        }
+                                        database.mNumDeletes++;
+                                        db.delete("thumbnails", "image_id=?", idvalue);
+                                    } finally {
+                                        IoUtils.closeQuietly(cc);
                                     }
-                                    cc.close();
-                                    db.delete("audio_playlists_map", "audio_id=?", idvalue);
+                                } else if (mediaType == FileColumns.MEDIA_TYPE_VIDEO) {
+                                    deleteIfAllowed(uri, data);
+                                    MediaDocumentsProvider.onMediaStoreDelete(getContext(),
+                                            volumeName, FileColumns.MEDIA_TYPE_VIDEO, id);
+
+                                } else if (mediaType == FileColumns.MEDIA_TYPE_AUDIO) {
+                                    if (!database.mInternal) {
+                                        MediaDocumentsProvider.onMediaStoreDelete(getContext(),
+                                                volumeName, FileColumns.MEDIA_TYPE_AUDIO, id);
+
+                                        idvalue[0] = String.valueOf(id);
+                                        database.mNumDeletes += 2; // also count the one below
+                                        db.delete("audio_genres_map", "audio_id=?", idvalue);
+                                        // for each playlist that the item appears in, move
+                                        // all the items behind it forward by one
+                                        Cursor cc = db.query("audio_playlists_map",
+                                                    sPlaylistIdPlayOrder,
+                                                    "audio_id=?", idvalue, null, null, null);
+                                        try {
+                                            while (cc.moveToNext()) {
+                                                playlistvalues[0] = "" + cc.getLong(0);
+                                                playlistvalues[1] = "" + cc.getInt(1);
+                                                database.mNumUpdates++;
+                                                db.execSQL("UPDATE audio_playlists_map" +
+                                                        " SET play_order=play_order-1" +
+                                                        " WHERE playlist_id=? AND play_order>?",
+                                                        playlistvalues);
+                                            }
+                                            db.delete("audio_playlists_map", "audio_id=?", idvalue);
+                                        } finally {
+                                            IoUtils.closeQuietly(cc);
+                                        }
+                                    }
+                                } else if (mediaType == FileColumns.MEDIA_TYPE_PLAYLIST) {
+                                    // TODO, maybe: remove the audio_playlists_cleanup trigger and
+                                    // implement functionality here (clean up the playlist map)
                                 }
-                            } else if (mediaType == FileColumns.MEDIA_TYPE_PLAYLIST) {
-                                // TODO, maybe: remove the audio_playlists_cleanup trigger and implement
-                                // it functionality here (clean up the playlist map)
                             }
+                        } finally {
+                            IoUtils.closeQuietly(c);
                         }
-                        c.close();
                     }
                 }
 
@@ -4094,10 +4098,13 @@ public class MediaProvider extends ContentProvider {
                                 sDataOnlyColumn,
                                 sGetTableAndWhereParam.where, whereArgs, null, null, null);
                         if (c != null) {
-                            while (c.moveToNext()) {
-                                deleteIfAllowed(uri, c.getString(0));
+                            try {
+                                while (c.moveToNext()) {
+                                    deleteIfAllowed(uri, c.getString(0));
+                                }
+                            } finally {
+                                IoUtils.closeQuietly(c);
                             }
-                            c.close();
                         }
                         database.mNumDeletes++;
                         count = db.delete(sGetTableAndWhereParam.table,
@@ -4176,7 +4183,7 @@ public class MediaProvider extends ContentProvider {
                             oldPath = cursor.getString(1);
                         }
                     } finally {
-                        if (cursor != null) cursor.close();
+                        IoUtils.closeQuietly(cursor);
                     }
                     if (oldPath != null) {
                         mDirectoryCache.remove(oldPath);
@@ -4277,7 +4284,7 @@ public class MediaProvider extends ContentProvider {
                                                     Log.e(TAG, "" + numrows + " rows for " + uri);
                                                 }
                                             } finally {
-                                                c.close();
+                                                IoUtils.closeQuietly(c);
                                             }
                                         }
                                     }
@@ -4370,7 +4377,7 @@ public class MediaProvider extends ContentProvider {
                                         }
                                     }
                                 } finally {
-                                    c.close();
+                                    IoUtils.closeQuietly(c);
                                 }
                             }
                         }
@@ -4414,22 +4421,22 @@ public class MediaProvider extends ContentProvider {
         }
         db.beginTransaction();
         int numlines = 0;
+        Cursor c = null;
         try {
             helper.mNumUpdates += 3;
-            Cursor c = db.query("audio_playlists_map",
+            c = db.query("audio_playlists_map",
                     new String [] {"play_order" },
                     "playlist_id=?", new String[] {"" + playlist}, null, null, "play_order",
                     from + ",1");
             c.moveToFirst();
             int from_play_order = c.getInt(0);
-            c.close();
+            IoUtils.closeQuietly(c);
             c = db.query("audio_playlists_map",
                     new String [] {"play_order" },
                     "playlist_id=?", new String[] {"" + playlist}, null, null, "play_order",
                     to + ",1");
             c.moveToFirst();
             int to_play_order = c.getInt(0);
-            c.close();
             db.execSQL("UPDATE audio_playlists_map SET play_order=-1" +
                     " WHERE play_order=" + from_play_order +
                     " AND playlist_id=" + playlist);
@@ -4454,6 +4461,7 @@ public class MediaProvider extends ContentProvider {
             db.setTransactionSuccessful();
         } finally {
             db.endTransaction();
+            IoUtils.closeQuietly(c);
         }
 
         Uri uri = MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI
@@ -4495,21 +4503,24 @@ public class MediaProvider extends ContentProvider {
                         MediaStore.Audio.Media.DATA,
                         MediaStore.Audio.Media.ALBUM_ID },
                     null, null, null, null, null);
-            if (c.moveToFirst()) {
-                String audiopath = c.getString(0);
-                int albumid = c.getInt(1);
-                // Try to get existing album art for this album first, which
-                // could possibly have been obtained from a different file.
-                // If that fails, try to get it from this specific file.
-                Uri newUri = ContentUris.withAppendedId(ALBUMART_URI, albumid);
-                try {
-                    pfd = openFileAndEnforcePathPermissionsHelper(newUri, mode);
-                } catch (FileNotFoundException ex) {
-                    // That didn't work, now try to get it from the specific file
-                    pfd = getThumb(database, db, audiopath, albumid, null);
+            try {
+                if (c.moveToFirst()) {
+                    String audiopath = c.getString(0);
+                    int albumid = c.getInt(1);
+                    // Try to get existing album art for this album first, which
+                    // could possibly have been obtained from a different file.
+                    // If that fails, try to get it from this specific file.
+                    Uri newUri = ContentUris.withAppendedId(ALBUMART_URI, albumid);
+                    try {
+                        pfd = openFileAndEnforcePathPermissionsHelper(newUri, mode);
+                    } catch (FileNotFoundException ex) {
+                        // That didn't work, now try to get it from the specific file
+                        pfd = getThumb(database, db, audiopath, albumid, null);
+                    }
                 }
+            } finally {
+                IoUtils.closeQuietly(c);
             }
-            c.close();
             return pfd;
         }
 
@@ -4539,11 +4550,14 @@ public class MediaProvider extends ContentProvider {
                         new String [] {
                             MediaStore.Audio.Media.DATA },
                         null, null, null, null, MediaStore.Audio.Media.TRACK);
-                if (c.moveToFirst()) {
-                    String audiopath = c.getString(0);
-                    pfd = getThumb(database, db, audiopath, albumid, uri);
+                try {
+                    if (c.moveToFirst()) {
+                        String audiopath = c.getString(0);
+                        pfd = getThumb(database, db, audiopath, albumid, uri);
+                    }
+                } finally {
+                    IoUtils.closeQuietly(c);
                 }
-                c.close();
             }
             if (pfd == null) {
                 throw ex;
@@ -4576,7 +4590,7 @@ public class MediaProvider extends ContentProvider {
                     throw new FileNotFoundException("Multiple items at " + uri);
             }
         } finally {
-            cursor.close();
+            IoUtils.closeQuietly(cursor);
         }
     }
 
@@ -4893,9 +4907,7 @@ public class MediaProvider extends ContentProvider {
                     albumart_uri = null;
                 }
             } finally {
-                if (c != null) {
-                    c.close();
-                }
+                IoUtils.closeQuietly(c);
             }
         }
         if (albumart_uri == null){
@@ -5152,7 +5164,7 @@ public class MediaProvider extends ContentProvider {
                     break;
             }
         } finally {
-            if (c != null) c.close();
+            IoUtils.closeQuietly(c);
         }
 
         if (cache != null && ! isUnknown) {
@@ -5362,7 +5374,7 @@ public class MediaProvider extends ContentProvider {
                         fileSet.remove(cursor.getString(0));
                     }
                 } finally {
-                    if (cursor != null) cursor.close();
+                    IoUtils.closeQuietly(cursor);
                 }
 
                 Iterator<String> iterator = fileSet.iterator();
@@ -5644,9 +5656,7 @@ public class MediaProvider extends ContentProvider {
                     s.append("couldn't get row count, ");
                 }
             } finally {
-                if (c != null) {
-                    c.close();
-                }
+                IoUtils.closeQuietly(c);
             }
             s.append(dbh.mNumInserts + " inserts, ");
             s.append(dbh.mNumUpdates + " updates, ");
@@ -5685,9 +5695,7 @@ public class MediaProvider extends ContentProvider {
                         }
                     }
                 } finally {
-                    if (c != null) {
-                        c.close();
-                    }
+                    IoUtils.closeQuietly(c);
                 }
             }
         }

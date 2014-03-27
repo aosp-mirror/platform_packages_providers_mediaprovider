@@ -158,6 +158,9 @@ public class MtpService extends Service {
                 }
             }
             final StorageVolume primary = StorageManager.getPrimaryVolume(mVolumes);
+            if (mDatabase != null) {
+                mDatabase.setServer(null);
+            }
             mDatabase = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME,
                     primary.getPath(), subdirs);
             manageServiceLocked();
@@ -204,6 +207,9 @@ public class MtpService extends Service {
     public void onDestroy() {
         unregisterReceiver(mReceiver);
         mStorageManager.unregisterListener(mStorageEventListener);
+        if (mDatabase != null) {
+            mDatabase.setServer(null);
+        }
     }
 
     private final IMtpService.Stub mBinder =

@@ -23,4 +23,7 @@
     <string name="ringtone_default" msgid="3332469542084549546">"Varsayılan zil sesi"</string>
     <string name="notification_sound_default" msgid="5309766396223094324">"Varsayılan bildirim sesi"</string>
     <string name="alarm_sound_default" msgid="6854264112790616066">"Varsayılan alarm sesi"</string>
+    <string name="root_images" msgid="7098113056247445324">"Resimler"</string>
+    <string name="root_videos" msgid="3304457332406057833">"Videolar"</string>
+    <string name="root_audio" msgid="7177565505195715659">"Ses"</string>
 </resources>

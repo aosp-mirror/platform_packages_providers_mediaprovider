@@ -23,4 +23,7 @@
     <string name="ringtone_default" msgid="3332469542084549546">"Ton de sonerie prestabilit"</string>
     <string name="notification_sound_default" msgid="5309766396223094324">"Sunet de notificare prestabilit"</string>
     <string name="alarm_sound_default" msgid="6854264112790616066">"Sunet de alarmă prestabilit"</string>
+    <string name="root_images" msgid="7098113056247445324">"Imagini"</string>
+    <string name="root_videos" msgid="3304457332406057833">"Videoclipuri"</string>
+    <string name="root_audio" msgid="7177565505195715659">"Audio"</string>
 </resources>

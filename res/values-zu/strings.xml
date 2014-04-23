@@ -23,4 +23,7 @@
     <string name="ringtone_default" msgid="3332469542084549546">"Ithoni yokukhala ezenzakalelayo"</string>
     <string name="notification_sound_default" msgid="5309766396223094324">"Umsindo wesaziso ozenzakalelayo"</string>
     <string name="alarm_sound_default" msgid="6854264112790616066">"Umsindo we-alamu ozenzakalelayo"</string>
+    <string name="root_images" msgid="7098113056247445324">"Izithombe"</string>
+    <string name="root_videos" msgid="3304457332406057833">"Amavidiyo"</string>
+    <string name="root_audio" msgid="7177565505195715659">"Umsindo"</string>
 </resources>

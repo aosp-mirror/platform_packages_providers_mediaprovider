@@ -234,5 +234,6 @@ class MediaThumbRequest {
         } else {
             Log.w(TAG, "can't create bitmap for thumbnail.");
         }
+        miniThumbFile.deactivate();
     }
 }

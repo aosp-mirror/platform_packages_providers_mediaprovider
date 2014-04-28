@@ -81,15 +81,15 @@ import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Video;
+import android.system.ErrnoException;
+import android.system.Os;
+import android.system.OsConstants;
+import android.system.StructStat;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.util.Log;
 
-import libcore.io.ErrnoException;
 import libcore.io.IoUtils;
-import libcore.io.Libcore;
-import libcore.io.OsConstants;
-import libcore.io.StructStat;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -4683,7 +4683,7 @@ public class MediaProvider extends ContentProvider {
     private void checkWorldReadAccess(String path) throws FileNotFoundException {
 
         try {
-            StructStat stat = Libcore.os.stat(path);
+            StructStat stat = Os.stat(path);
             int accessBits = OsConstants.S_IROTH;
             if (OsConstants.S_ISREG(stat.st_mode) &&
                 ((stat.st_mode & accessBits) == accessBits)) {
@@ -4710,7 +4710,7 @@ public class MediaProvider extends ContentProvider {
                 throw new FileNotFoundException("access denied");
             }
             try {
-                StructStat stat = Libcore.os.stat(parent.getPath());
+                StructStat stat = Os.stat(parent.getPath());
                 if ((stat.st_mode & accessBits) != accessBits) {
                     // the parent dir doesn't have the appropriate access
                     throw new FileNotFoundException("Can't access " + filePath);

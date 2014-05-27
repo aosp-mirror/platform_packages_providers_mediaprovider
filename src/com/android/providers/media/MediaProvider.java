@@ -244,7 +244,7 @@ public class MediaProvider extends ContentProvider {
     private BroadcastReceiver mUnmountReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals(Intent.ACTION_MEDIA_EJECT)) {
+            if (Intent.ACTION_MEDIA_EJECT.equals(intent.getAction())) {
                 StorageVolume storage = (StorageVolume)intent.getParcelableExtra(
                         StorageVolume.EXTRA_STORAGE_VOLUME);
                 // If primary external storage is ejected, then remove the external volume

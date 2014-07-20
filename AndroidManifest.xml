@@ -82,7 +82,7 @@
         <service android:name="MtpService" />
 
         <activity android:name="RingtonePickerActivity"
-                android:theme="@*android:style/Theme.Holo.Dialog.Alert"
+                android:theme="@style/PickerDialogTheme"
                 android:excludeFromRecents="true">
             <intent-filter>
                 <action android:name="android.intent.action.RINGTONE_PICKER" />

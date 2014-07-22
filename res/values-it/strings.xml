@@ -22,7 +22,7 @@
     <string name="artist_label" msgid="1181678850424271227">"Artista"</string>
     <string name="ringtone_default" msgid="3332469542084549546">"Suoneria predefinita"</string>
     <string name="notification_sound_default" msgid="5309766396223094324">"Suono di notifica predefinito"</string>
-    <string name="alarm_sound_default" msgid="6854264112790616066">"Suono allarme predefinito"</string>
+    <string name="alarm_sound_default" msgid="6854264112790616066">"Suono sveglia predefinito"</string>
     <string name="root_images" msgid="7098113056247445324">"Immagini"</string>
     <string name="root_videos" msgid="3304457332406057833">"Video"</string>
     <string name="root_audio" msgid="7177565505195715659">"Audio"</string>

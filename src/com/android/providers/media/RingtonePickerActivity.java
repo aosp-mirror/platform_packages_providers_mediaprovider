@@ -19,7 +19,6 @@ package com.android.providers.media;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
-import android.media.AudioManager;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -327,8 +326,6 @@ public final class RingtonePickerActivity extends AlertActivity implements
         }
 
         if (ringtone != null) {
-            // use a non-intercepted stream for playback
-            ringtone.setStreamType(AudioManager.STREAM_SYSTEM);
             ringtone.play();
         }
     }

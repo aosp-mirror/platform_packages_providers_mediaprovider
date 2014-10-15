@@ -3785,11 +3785,17 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private boolean ensureFileExists(String path) {
+    private boolean ensureFileExists(Uri uri, String path) {
         File file = new File(path);
         if (file.exists()) {
             return true;
         } else {
+            try {
+                checkAccess(uri, file,
+                        ParcelFileDescriptor.MODE_READ_WRITE | ParcelFileDescriptor.MODE_CREATE);
+            } catch (FileNotFoundException e) {
+                return false;
+            }
             // we will not attempt to create the first directory in the path
             // (for example, do not create /sdcard if the SD card is not mounted)
             int secondSlash = path.indexOf('/', 1);
@@ -4911,7 +4917,7 @@ public class MediaProvider extends ContentProvider {
             try {
                 if (c != null && c.moveToFirst()) {
                     String albumart_path = c.getString(0);
-                    if (ensureFileExists(albumart_path)) {
+                    if (ensureFileExists(albumart_uri, albumart_path)) {
                         out = albumart_uri;
                     }
                 } else {
@@ -4932,7 +4938,7 @@ public class MediaProvider extends ContentProvider {
                     out = ContentUris.withAppendedId(ALBUMART_URI, rowId);
                     // ensure the parent directory exists
                     String albumart_path = values.getAsString(MediaStore.MediaColumns.DATA);
-                    ensureFileExists(albumart_path);
+                    ensureFileExists(out, albumart_path);
                 }
             } catch (IllegalStateException ex) {
                 Log.e(TAG, "error creating album thumb file");

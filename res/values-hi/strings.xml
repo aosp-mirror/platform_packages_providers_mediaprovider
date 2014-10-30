@@ -17,11 +17,11 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="999888504096344278">"मीडिया"</string>
-    <string name="app_label" msgid="581696352855930028">"मीडिया संग्रहण"</string>
+    <string name="app_label" msgid="581696352855930028">"मीडिया मेमोरी"</string>
     <string name="upgrade_msg" msgid="4093462661265175619">"मीडिया डेटाबेस अपग्रेड हो रहा है."</string>
     <string name="artist_label" msgid="1181678850424271227">"कलाकार"</string>
     <string name="ringtone_default" msgid="3332469542084549546">"डिफ़ॉल्‍ट रिंगटोन"</string>
-    <string name="notification_sound_default" msgid="5309766396223094324">"सामान्य सूचना ध्वनी"</string>
+    <string name="notification_sound_default" msgid="5309766396223094324">"साधारण नोटिफिकेशन ध्वनी"</string>
     <string name="alarm_sound_default" msgid="6854264112790616066">"डिफ़ॉल्ट अलार्म ध्वनि"</string>
     <string name="root_images" msgid="7098113056247445324">"चित्र"</string>
     <string name="root_videos" msgid="3304457332406057833">"वीडियो"</string>

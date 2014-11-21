@@ -441,6 +441,15 @@ public class MediaProvider extends ContentProvider {
 
             // delete least recently used databases if we are over the limit
             String[] databases = mContext.databaseList();
+            // Don't delete wal auxiliary files(db-shm and db-wal) directly because db file may
+            // not be deleted, and it will cause Disk I/O error when accessing this database.
+            List<String> dbList = new ArrayList<String>();
+            for (String database : databases) {
+                if (database != null && database.endsWith(".db")) {
+                    dbList.add(database);
+                }
+            }
+            databases = dbList.toArray(new String[0]);
             int count = databases.length;
             int limit = MAX_EXTERNAL_DATABASES;
 

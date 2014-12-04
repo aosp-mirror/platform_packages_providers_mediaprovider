@@ -2858,7 +2858,11 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Notify MTP (outside of successful transaction)
-        notifyMtp(notifyRowIds);
+        if (uri != null) {
+            if (uri.toString().startsWith("content://media/external/")) {
+                notifyMtp(notifyRowIds);
+            }
+        }
 
         getContext().getContentResolver().notifyChange(uri, null);
         return numInserted;
@@ -2870,7 +2874,11 @@ public class MediaProvider extends ContentProvider {
 
         ArrayList<Long> notifyRowIds = new ArrayList<Long>();
         Uri newUri = insertInternal(uri, match, initialValues, notifyRowIds);
-        notifyMtp(notifyRowIds);
+        if (uri != null) {
+            if (uri.toString().startsWith("content://media/external/")) {
+                notifyMtp(notifyRowIds);
+            }
+        }
 
         // do not signal notification for MTP objects.
         // we will signal instead after file transfer is successful.

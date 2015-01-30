@@ -63,12 +63,6 @@ public class MediaUpgradeReceiver extends BroadcastReceiver {
             for (int i=0; i<files.length; i++) {
                 String file = files[i];
                 if (MediaProvider.isMediaDatabaseName(file)) {
-                    try {
-                        ActivityManagerNative.getDefault().showBootMessage(
-                                context.getText(R.string.upgrade_msg), true);
-                    } catch (RemoteException e) {
-                    }
-
                     long startTime = System.currentTimeMillis();
                     Slog.i(TAG, "---> Start upgrade of media database " + file);
                     SQLiteDatabase db = null;

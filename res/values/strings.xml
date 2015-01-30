@@ -21,9 +21,6 @@
     <!-- Label to show to user for this package. -->
     <string name="app_label">Media Storage</string>
 
-    <!-- [CHAR LIMIT=NONE] Boot message while upgrading media provider. -->
-    <string name="upgrade_msg">Upgrading Media database.</string>
-
     <!-- Description line for music artists in the search/suggestion results -->
     <string name="artist_label">Artist</string>
 

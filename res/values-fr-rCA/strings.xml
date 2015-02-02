@@ -18,7 +18,6 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="999888504096344278">"Médias"</string>
     <string name="app_label" msgid="581696352855930028">"Stockage multimédia"</string>
-    <string name="upgrade_msg" msgid="4093462661265175619">"Mise à jour de la base de données multimédia."</string>
     <string name="artist_label" msgid="1181678850424271227">"Artiste"</string>
     <string name="ringtone_default" msgid="3332469542084549546">"Sonnerie par défaut"</string>
     <string name="notification_sound_default" msgid="5309766396223094324">"Son de notification par défaut"</string>

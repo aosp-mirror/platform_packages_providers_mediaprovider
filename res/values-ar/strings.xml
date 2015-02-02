@@ -18,7 +18,6 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="999888504096344278">"وسائط"</string>
     <string name="app_label" msgid="581696352855930028">"تخزين الوسائط"</string>
-    <string name="upgrade_msg" msgid="4093462661265175619">"جارٍ ترقية قاعدة بيانات الوسائط."</string>
     <string name="artist_label" msgid="1181678850424271227">"الفنان"</string>
     <string name="ringtone_default" msgid="3332469542084549546">"نغمة الرنين الافتراضية"</string>
     <string name="notification_sound_default" msgid="5309766396223094324">"صوت الإشعار الافتراضي"</string>

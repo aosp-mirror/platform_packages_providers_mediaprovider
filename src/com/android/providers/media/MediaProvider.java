@@ -1622,7 +1622,7 @@ public class MediaProvider extends ContentProvider {
             // Add column for MTP storage ID
             db.execSQL("ALTER TABLE files ADD COLUMN storage_id INTEGER;");
             // Anything in the database before this upgrade step will be in the primary storage
-            db.execSQL("UPDATE files SET storage_id=" + MtpStorage.getStorageId(0) + ";");
+            db.execSQL("UPDATE files SET storage_id=" + MtpStorage.getStorageIdForIndex(0) + ";");
         }
 
         if (fromVersion < 403 && !internal) {
@@ -3019,12 +3019,12 @@ public class MediaProvider extends ContentProvider {
             if (path.startsWith(test)) {
                 int length = test.length();
                 if (path.length() == length || path.charAt(length) == '/') {
-                    return MtpStorage.getStorageId(i);
+                    return MtpStorage.getStorageIdForIndex(i);
                 }
             }
         }
         // default to primary storage
-        return MtpStorage.getStorageId(0);
+        return MtpStorage.getStorageIdForIndex(0);
     }
 
     private long insertFile(DatabaseHelper helper, Uri uri, ContentValues initialValues, int mediaType,

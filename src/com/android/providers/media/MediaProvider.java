@@ -70,6 +70,7 @@ import android.os.RemoteException;
 import android.os.SystemClock;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
+import android.os.storage.VolumeInfo;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.provider.MediaStore;
@@ -5323,7 +5324,9 @@ public class MediaProvider extends ContentProvider {
                 helper = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, true,
                         false, mObjectRemovedCallback);
             } else if (EXTERNAL_VOLUME.equals(volume)) {
-                if (Environment.isExternalStorageRemovable()) {
+                // Only extract FAT volume ID for primary public
+                final VolumeInfo vol = mStorageManager.getPrimaryPhysicalVolume();
+                if (vol != null) {
                     final StorageVolume actualVolume = mStorageManager.getPrimaryVolume();
                     final int volumeId = actualVolume.getFatVolumeId();
 

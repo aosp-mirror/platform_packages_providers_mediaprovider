@@ -19,6 +19,7 @@ package com.android.providers.media;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
+import android.media.AudioAttributes;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -99,6 +100,8 @@ public final class RingtonePickerActivity extends AlertActivity implements
      */
     private Ringtone mCurrentRingtone;
 
+    private int mAttributesFlags;
+
     /**
      * Keep the currently playing ringtone around when changing orientation, so that it
      * can be stopped later, after the activity is recreated.
@@ -144,6 +147,10 @@ public final class RingtonePickerActivity extends AlertActivity implements
         }
         // Get whether to show the 'Silent' item
         mHasSilentItem = intent.getBooleanExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true);
+        // AudioAttributes flags
+        mAttributesFlags |= intent.getIntExtra(
+                RingtoneManager.EXTRA_RINGTONE_AUDIO_ATTRIBUTES_FLAGS,
+                0 /*defaultValue == no flags*/);
 
         // Give the Activity so it can do managed queries
         mRingtoneManager = new RingtoneManager(this);
@@ -326,6 +333,12 @@ public final class RingtonePickerActivity extends AlertActivity implements
         }
 
         if (ringtone != null) {
+            if (mAttributesFlags != 0) {
+                ringtone.setAudioAttributes(
+                        new AudioAttributes.Builder(ringtone.getAudioAttributes())
+                                .setFlags(mAttributesFlags)
+                                .build());
+            }
             ringtone.play();
         }
     }

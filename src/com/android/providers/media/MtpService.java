@@ -17,12 +17,8 @@
 package com.android.providers.media;
 
 import android.app.ActivityManager;
-import android.app.KeyguardManager;
 import android.app.Service;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.hardware.usb.UsbManager;
 import android.mtp.MtpDatabase;
 import android.mtp.MtpServer;
@@ -40,7 +36,7 @@ import java.util.HashMap;
 
 public class MtpService extends Service {
     private static final String TAG = "MtpService";
-    private static final boolean LOGD = true;
+    private static final boolean LOGD = false;
 
     // We restrict PTP to these subdirectories
     private static final String[] PTP_DIRECTORIES = new String[] {
@@ -66,32 +62,6 @@ public class MtpService extends Service {
         }
     }
 
-    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            final String action = intent.getAction();
-            if (Intent.ACTION_USER_PRESENT.equals(action)) {
-                // If the media scanner is running, it may currently be calling
-                // sendObjectAdded/Removed, which also synchronizes on mBinder
-                // (and in addition to that, all the native MtpServer methods
-                // lock the same Mutex). If it happens to be in an mtp device
-                // write(), it may block for some time, so process this broadcast
-                // in a thread.
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        synchronized (mBinder) {
-                            // Unhide the storage units when the user has unlocked the lockscreen
-                            if (mMtpDisabled) {
-                                addStorageDevicesLocked();
-                                mMtpDisabled = false;
-                            }
-                        }
-                    }}, "addStorageDevices").start();
-            }
-        }
-    };
-
     private final StorageEventListener mStorageEventListener = new StorageEventListener() {
         @Override
         public void onStorageStateChanged(String path, String oldState, String newState) {
@@ -114,6 +84,7 @@ public class MtpService extends Service {
     private StorageManager mStorageManager;
     /** Flag indicating if MTP is disabled due to keyguard */
     private boolean mMtpDisabled;
+    private boolean mUnlocked;
     private boolean mPtpMode;
     private final HashMap<String, StorageVolume> mVolumeMap = new HashMap<String, StorageVolume>();
     private final HashMap<String, MtpStorage> mStorageMap = new HashMap<String, MtpStorage>();
@@ -121,8 +92,6 @@ public class MtpService extends Service {
 
     @Override
     public void onCreate() {
-        registerReceiver(mReceiver, new IntentFilter(Intent.ACTION_USER_PRESENT));
-
         mStorageManager = StorageManager.from(this);
         synchronized (mBinder) {
             updateDisabledStateLocked();
@@ -141,6 +110,8 @@ public class MtpService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        mUnlocked = intent.getBooleanExtra(UsbManager.USB_DATA_UNLOCKED, false);
+        if (LOGD) { Log.d(TAG, "onStartCommand intent=" + intent + " mUnlocked=" + mUnlocked); }
         synchronized (mBinder) {
             updateDisabledStateLocked();
             mPtpMode = (intent == null ? false
@@ -171,10 +142,7 @@ public class MtpService extends Service {
 
     private void updateDisabledStateLocked() {
         final boolean isCurrentUser = UserHandle.myUserId() == ActivityManager.getCurrentUser();
-        final KeyguardManager keyguardManager = (KeyguardManager) getSystemService(
-                Context.KEYGUARD_SERVICE);
-        mMtpDisabled = (keyguardManager.isKeyguardLocked() && keyguardManager.isKeyguardSecure())
-                || !isCurrentUser;
+        mMtpDisabled = !mUnlocked || !isCurrentUser;
         if (LOGD) {
             Log.d(TAG, "updating state; isCurrentUser=" + isCurrentUser + ", mMtpLocked="
                     + mMtpDisabled);
@@ -205,7 +173,6 @@ public class MtpService extends Service {
 
     @Override
     public void onDestroy() {
-        unregisterReceiver(mReceiver);
         mStorageManager.unregisterListener(mStorageEventListener);
         if (mDatabase != null) {
             mDatabase.setServer(null);

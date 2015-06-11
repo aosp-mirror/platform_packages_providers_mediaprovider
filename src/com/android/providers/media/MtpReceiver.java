@@ -23,9 +23,11 @@ import android.content.IntentFilter;
 import android.hardware.usb.UsbManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 
 public class MtpReceiver extends BroadcastReceiver {
-    private final static String TAG = "UsbReceiver";
+    private static final String TAG = MtpReceiver.class.getSimpleName();
+    private static final boolean DEBUG = false;
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -46,18 +48,22 @@ public class MtpReceiver extends BroadcastReceiver {
         boolean connected = extras.getBoolean(UsbManager.USB_CONFIGURED);
         boolean mtpEnabled = extras.getBoolean(UsbManager.USB_FUNCTION_MTP);
         boolean ptpEnabled = extras.getBoolean(UsbManager.USB_FUNCTION_PTP);
+        boolean unlocked = extras.getBoolean(UsbManager.USB_DATA_UNLOCKED);
         // Start MTP service if USB is connected and either the MTP or PTP function is enabled
         if (connected && (mtpEnabled || ptpEnabled)) {
             intent = new Intent(context, MtpService.class);
+            intent.putExtra(UsbManager.USB_DATA_UNLOCKED, unlocked);
             if (ptpEnabled) {
                 intent.putExtra(UsbManager.USB_FUNCTION_PTP, true);
             }
+            if (DEBUG) { Log.d(TAG, "handleUsbState startService"); }
             context.startService(intent);
             // tell MediaProvider MTP is connected so it can bind to the service
             context.getContentResolver().insert(Uri.parse(
                     "content://media/none/mtp_connected"), null);
         } else {
-            context.stopService(new Intent(context, MtpService.class));
+            boolean status = context.stopService(new Intent(context, MtpService.class));
+            if (DEBUG) { Log.d(TAG, "handleUsbState stopService status=" + status); }
             // tell MediaProvider MTP is disconnected so it can unbind from the service
             context.getContentResolver().delete(Uri.parse(
                     "content://media/none/mtp_connected"), null, null);

@@ -2315,7 +2315,6 @@ public class MediaProvider extends ContentProvider {
         SQLiteDatabase db = helper.getReadableDatabase();
         if (db == null) return null;
         SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
-        qb.setStrict(true);
         String limit = uri.getQueryParameter("limit");
         String filter = uri.getQueryParameter("filter");
         String [] keywords = null;
@@ -4540,7 +4539,6 @@ public class MediaProvider extends ContentProvider {
                 throw new IllegalStateException("Couldn't open database for " + uri);
             }
             SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
-            qb.setStrict(true);
             int songid = Integer.parseInt(uri.getPathSegments().get(3));
             qb.setTables("audio_meta");
             qb.appendWhere("_id=" + songid);
@@ -4589,7 +4587,6 @@ public class MediaProvider extends ContentProvider {
                     throw new IllegalStateException("Couldn't open database for " + uri);
                 }
                 SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
-                qb.setStrict(true);
                 int albumid = Integer.parseInt(uri.getPathSegments().get(3));
                 qb.setTables("audio_meta");
                 qb.appendWhere("album_id=" + albumid);

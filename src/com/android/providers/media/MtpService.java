@@ -221,10 +221,16 @@ public class MtpService extends Service {
 
     private void addStorageLocked(StorageVolume volume) {
         MtpStorage storage = new MtpStorage(volume, getApplicationContext());
-        String path = storage.getPath();
-        mStorageMap.put(path, storage);
+        mStorageMap.put(storage.getPath(), storage);
 
-        Log.d(TAG, "addStorageLocked " + storage.getStorageId() + " " + path);
+        if (storage.getStorageId() == StorageVolume.STORAGE_ID_INVALID) {
+            Log.w(TAG, "Ignoring volume with invalid MTP storage ID: " + storage);
+            return;
+        } else {
+            Log.d(TAG, "Adding MTP storage 0x" + Integer.toHexString(storage.getStorageId())
+                    + " at " + storage.getPath());
+        }
+
         if (mDatabase != null) {
             mDatabase.addStorage(storage);
         }
@@ -236,11 +242,12 @@ public class MtpService extends Service {
     private void removeStorageLocked(StorageVolume volume) {
         MtpStorage storage = mStorageMap.remove(volume.getPath());
         if (storage == null) {
-            Log.e(TAG, "no MtpStorage for " + volume.getPath());
+            Log.e(TAG, "Missing MtpStorage for " + volume.getPath());
             return;
         }
 
-        Log.d(TAG, "removeStorageLocked " + storage.getStorageId() + " " + storage.getPath());
+        Log.d(TAG, "Removing MTP storage " + Integer.toHexString(storage.getStorageId()) + " at "
+                + storage.getPath());
         if (mDatabase != null) {
             mDatabase.removeStorage(storage);
         }

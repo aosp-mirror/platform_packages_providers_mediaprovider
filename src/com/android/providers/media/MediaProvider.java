@@ -1623,7 +1623,7 @@ public class MediaProvider extends ContentProvider {
             // Add column for MTP storage ID
             db.execSQL("ALTER TABLE files ADD COLUMN storage_id INTEGER;");
             // Anything in the database before this upgrade step will be in the primary storage
-            db.execSQL("UPDATE files SET storage_id=" + MtpStorage.getStorageIdForIndex(0) + ";");
+            db.execSQL("UPDATE files SET storage_id=" + StorageVolume.STORAGE_ID_PRIMARY + ";");
         }
 
         if (fromVersion < 403 && !internal) {
@@ -3015,17 +3015,14 @@ public class MediaProvider extends ContentProvider {
     }
 
     private int getStorageId(String path) {
-        for (int i = 0; i < mExternalStoragePaths.length; i++) {
-            String test = mExternalStoragePaths[i];
-            if (path.startsWith(test)) {
-                int length = test.length();
-                if (path.length() == length || path.charAt(length) == '/') {
-                    return MtpStorage.getStorageIdForIndex(i);
-                }
-            }
+        final StorageManager storage = getContext().getSystemService(StorageManager.class);
+        final StorageVolume vol = storage.getStorageVolume(new File(path));
+        if (vol != null) {
+            return vol.getStorageId();
+        } else {
+            Log.w(TAG, "Missing volume for " + path + "; assuming invalid");
+            return StorageVolume.STORAGE_ID_INVALID;
         }
-        // default to primary storage
-        return MtpStorage.getStorageIdForIndex(0);
     }
 
     private long insertFile(DatabaseHelper helper, Uri uri, ContentValues initialValues, int mediaType,
@@ -5364,7 +5361,8 @@ public class MediaProvider extends ContentProvider {
                     // for devices without removable storage, and in that case we need to convert
                     // to this new convention
                     File dbFile = context.getDatabasePath(EXTERNAL_DATABASE_NAME);
-                    if (!dbFile.exists()) {
+                    if (!dbFile.exists()
+                            && android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
                         // find the most recent external database and rename it to
                         // EXTERNAL_DATABASE_NAME, and delete any other older
                         // external database files

@@ -137,7 +137,7 @@ public class MtpService extends Service {
             manageServiceLocked();
         }
 
-        return START_STICKY;
+        return START_REDELIVER_INTENT;
     }
 
     private void updateDisabledStateLocked() {

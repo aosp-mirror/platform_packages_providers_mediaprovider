@@ -4742,7 +4742,7 @@ public class MediaProvider extends ContentProvider {
 
         try {
             StructStat stat = Os.stat(path);
-            int accessBits = OsConstants.S_IROTH;
+            int accessBits = OsConstants.S_IRGRP;
             if (OsConstants.S_ISREG(stat.st_mode) &&
                 ((stat.st_mode & accessBits) == accessBits)) {
                 checkLeadingPathComponentsWorldExecutable(path);
@@ -4760,7 +4760,7 @@ public class MediaProvider extends ContentProvider {
             throws FileNotFoundException {
         File parent = new File(filePath).getParentFile();
 
-        int accessBits = OsConstants.S_IXOTH;
+        int accessBits = OsConstants.S_IXGRP;
 
         while (parent != null) {
             if (! parent.exists()) {

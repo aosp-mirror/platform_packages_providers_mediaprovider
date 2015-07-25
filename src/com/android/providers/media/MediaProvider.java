@@ -23,6 +23,7 @@ import static android.Manifest.permission.WRITE_MEDIA_STORAGE;
 import static android.os.ParcelFileDescriptor.MODE_READ_ONLY;
 import static android.os.ParcelFileDescriptor.MODE_WRITE_ONLY;
 
+import android.app.AppOpsManager;
 import android.app.SearchManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -56,7 +57,6 @@ import android.media.MediaScannerConnection;
 import android.media.MediaScannerConnection.MediaScannerConnectionClient;
 import android.media.MiniThumbFile;
 import android.mtp.MtpConstants;
-import android.mtp.MtpStorage;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
@@ -91,6 +91,9 @@ import android.text.format.DateUtils;
 import android.util.Log;
 
 import libcore.io.IoUtils;
+import libcore.util.EmptyArray;
+
+import com.android.internal.util.Preconditions;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -146,6 +149,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private StorageManager mStorageManager;
+    private AppOpsManager mAppOpsManager;
 
     // In memory cache of path<->id mappings, to speed up inserts during media scan
     HashMap<String, Long> mDirectoryCache = new HashMap<String, Long>();
@@ -163,7 +167,7 @@ public class MediaProvider extends ContentProvider {
             MediaThumbRequest.getComparator());
 
     private boolean mCaseInsensitivePaths;
-    private static String[] mExternalStoragePaths;
+    private String[] mExternalStoragePaths = EmptyArray.STRING;
 
     // For compatibility with the approximately 0 apps that used mediaprovider search in
     // releases 1.0, 1.1 or 1.5
@@ -568,7 +572,8 @@ public class MediaProvider extends ContentProvider {
     public boolean onCreate() {
         final Context context = getContext();
 
-        mStorageManager = (StorageManager) context.getSystemService(Context.STORAGE_SERVICE);
+        mStorageManager = context.getSystemService(StorageManager.class);
+        mAppOpsManager = context.getSystemService(AppOpsManager.class);
 
         sArtistAlbumsMap.put(MediaStore.Audio.Albums._ID, "audio.album_id AS " +
                 MediaStore.Audio.Albums._ID);
@@ -595,10 +600,6 @@ public class MediaProvider extends ContentProvider {
         IntentFilter iFilter = new IntentFilter(Intent.ACTION_MEDIA_EJECT);
         iFilter.addDataScheme("file");
         context.registerReceiver(mUnmountReceiver, iFilter);
-
-        StorageManager storageManager =
-                (StorageManager)context.getSystemService(Context.STORAGE_SERVICE);
-        mExternalStoragePaths = storageManager.getVolumePaths();
 
         // open external database if external storage is mounted
         String state = Environment.getExternalStorageState();
@@ -1221,8 +1222,11 @@ public class MediaProvider extends ContentProvider {
             // /sdcard/Android/data/com.android.providers.media/albumthumbs,
             // and update the database accordingly
 
-            String oldthumbspath = mExternalStoragePaths[0] + "/albumthumbs";
-            String newthumbspath = mExternalStoragePaths[0] + "/" + ALBUM_THUMB_FOLDER;
+            final StorageManager sm = context.getSystemService(StorageManager.class);
+            final StorageVolume vol = sm.getPrimaryVolume();
+
+            String oldthumbspath = vol.getPath() + "/albumthumbs";
+            String newthumbspath = vol.getPath() + "/" + ALBUM_THUMB_FOLDER;
             File thumbsfolder = new File(oldthumbspath);
             if (thumbsfolder.exists()) {
                 // move folder to its new location
@@ -4691,11 +4695,11 @@ public class MediaProvider extends ContentProvider {
         if (path.startsWith(sExternalPath) || path.startsWith(sLegacyPath)) {
             if (isWrite) {
                 if (!writeGranted) {
-                    c.enforceCallingOrSelfPermission(
+                    enforceCallingOrSelfPermissionAndAppOps(
                         WRITE_EXTERNAL_STORAGE, "External path: " + path);
                 }
             } else if (!readGranted) {
-                c.enforceCallingOrSelfPermission(
+                enforceCallingOrSelfPermissionAndAppOps(
                     READ_EXTERNAL_STORAGE, "External path: " + path);
             }
         } else if (path.startsWith(sCachePath)) {
@@ -4707,7 +4711,7 @@ public class MediaProvider extends ContentProvider {
             if (!readGranted) {
                 if (c.checkCallingOrSelfPermission(WRITE_MEDIA_STORAGE)
                         == PackageManager.PERMISSION_DENIED) {
-                    c.enforceCallingOrSelfPermission(
+                    enforceCallingOrSelfPermissionAndAppOps(
                             READ_EXTERNAL_STORAGE, "External path: " + path);
                 }
             }
@@ -4738,11 +4742,13 @@ public class MediaProvider extends ContentProvider {
     /**
      * Check whether the path is a world-readable file
      */
-    private void checkWorldReadAccess(String path) throws FileNotFoundException {
-
+    private static void checkWorldReadAccess(String path) throws FileNotFoundException {
+        // Path has already been canonicalized, and we relax the check to look
+        // at groups to support runtime storage permissions.
+        final int accessBits = path.startsWith("/storage/") ? OsConstants.S_IRGRP
+                : OsConstants.S_IROTH;
         try {
             StructStat stat = Os.stat(path);
-            int accessBits = OsConstants.S_IRGRP;
             if (OsConstants.S_ISREG(stat.st_mode) &&
                 ((stat.st_mode & accessBits) == accessBits)) {
                 checkLeadingPathComponentsWorldExecutable(path);
@@ -4756,11 +4762,14 @@ public class MediaProvider extends ContentProvider {
         throw new FileNotFoundException("Can't access " + path);
     }
 
-    private void checkLeadingPathComponentsWorldExecutable(String filePath)
+    private static void checkLeadingPathComponentsWorldExecutable(String filePath)
             throws FileNotFoundException {
         File parent = new File(filePath).getParentFile();
 
-        int accessBits = OsConstants.S_IXGRP;
+        // Path has already been canonicalized, and we relax the check to look
+        // at groups to support runtime storage permissions.
+        final int accessBits = filePath.startsWith("/storage/") ? OsConstants.S_IXGRP
+                : OsConstants.S_IXOTH;
 
         while (parent != null) {
             if (! parent.exists()) {
@@ -4824,18 +4833,18 @@ public class MediaProvider extends ContentProvider {
 
     //Return true if the artPath is the dir as it in mExternalStoragePaths
     //for multi storage support
-    private static boolean isRootStorageDir(String artPath) {
-        for ( int i = 0; i < mExternalStoragePaths.length; i++) {
-            if ((mExternalStoragePaths[i] != null) &&
-                    (artPath.equalsIgnoreCase(mExternalStoragePaths[i])))
+    private static boolean isRootStorageDir(String[] rootPaths, String testPath) {
+        for (String rootPath : rootPaths) {
+            if (rootPath != null && rootPath.equalsIgnoreCase(testPath)) {
                 return true;
+            }
         }
         return false;
     }
 
     // Extract compressed image data from the audio file itself or, if that fails,
     // look for a file "AlbumArt.jpg" in the containing directory.
-    private static byte[] getCompressedAlbumArt(Context context, String path) {
+    private static byte[] getCompressedAlbumArt(Context context, String[] rootPaths, String path) {
         byte[] compressed = null;
 
         try {
@@ -4868,7 +4877,7 @@ public class MediaProvider extends ContentProvider {
                     synchronized (sFolderArtMap) {
                         if (sFolderArtMap.containsKey(artPath)) {
                             bestmatch = sFolderArtMap.get(artPath);
-                        } else if (!isRootStorageDir(artPath) &&
+                        } else if (!isRootStorageDir(rootPaths, artPath) &&
                                 !artPath.equalsIgnoreCase(dwndir)) {
                             File dir = new File(artPath);
                             String [] entrynames = dir.list();
@@ -5008,7 +5017,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private ParcelFileDescriptor makeThumbInternal(ThumbData d) {
-        byte[] compressed = getCompressedAlbumArt(getContext(), d.path);
+        byte[] compressed = getCompressedAlbumArt(getContext(), mExternalStoragePaths, d.path);
 
         if (compressed == null) {
             return null;
@@ -5310,6 +5319,9 @@ public class MediaProvider extends ContentProvider {
                     "Opening and closing databases not allowed.");
         }
 
+        // Update paths to reflect currently mounted volumes
+        mExternalStoragePaths = mStorageManager.getVolumePaths();
+
         synchronized (mDatabases) {
             if (mDatabases.get(volume) != null) {  // Already attached
                 return Uri.parse("content://media/" + volume);
@@ -5449,6 +5461,9 @@ public class MediaProvider extends ContentProvider {
             throw new SecurityException(
                     "Opening and closing databases not allowed.");
         }
+
+        // Update paths to reflect currently mounted volumes
+        mExternalStoragePaths = mStorageManager.getVolumePaths();
 
         String volume = uri.getPathSegments().get(0);
         if (INTERNAL_VOLUME.equals(volume)) {
@@ -5673,6 +5688,22 @@ public class MediaProvider extends ContentProvider {
             return segments.get(0);
         } else {
             return null;
+        }
+    }
+
+    private void enforceCallingOrSelfPermissionAndAppOps(String permission, String message) {
+        getContext().enforceCallingOrSelfPermission(permission, message);
+
+        // Sure they have the permission, but has app-ops been revoked for
+        // legacy apps? If so, they have no business being in here; we already
+        // told them the volume was unmounted.
+        final String opName = AppOpsManager.permissionToOp(permission);
+        if (opName != null) {
+            final String callingPackage = Preconditions.checkNotNull(getCallingPackage());
+            if (mAppOpsManager.noteProxyOp(opName, callingPackage) != AppOpsManager.MODE_ALLOWED) {
+                throw new SecurityException(
+                        message + ": " + callingPackage + " is not allowed to " + permission);
+            }
         }
     }
 

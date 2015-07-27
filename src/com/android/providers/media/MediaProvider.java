@@ -5691,6 +5691,14 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    private String getCallingPackageOrSelf() {
+        String callingPackage = getCallingPackage();
+        if (callingPackage == null) {
+            callingPackage = getContext().getOpPackageName();
+        }
+        return callingPackage;
+    }
+
     private void enforceCallingOrSelfPermissionAndAppOps(String permission, String message) {
         getContext().enforceCallingOrSelfPermission(permission, message);
 
@@ -5699,7 +5707,7 @@ public class MediaProvider extends ContentProvider {
         // told them the volume was unmounted.
         final String opName = AppOpsManager.permissionToOp(permission);
         if (opName != null) {
-            final String callingPackage = Preconditions.checkNotNull(getCallingPackage());
+            final String callingPackage = getCallingPackageOrSelf();
             if (mAppOpsManager.noteProxyOp(opName, callingPackage) != AppOpsManager.MODE_ALLOWED) {
                 throw new SecurityException(
                         message + ": " + callingPackage + " is not allowed to " + permission);

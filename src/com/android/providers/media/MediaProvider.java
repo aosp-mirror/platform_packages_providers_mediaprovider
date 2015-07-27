@@ -4627,7 +4627,11 @@ public class MediaProvider extends ContentProvider {
                     throw new FileNotFoundException("No entry for " + uri);
                 case 1:
                     if (cursor.moveToFirst()) {
-                        return new File(cursor.getString(0));
+                        String data = cursor.getString(0);
+                        if (data == null) {
+                            throw new FileNotFoundException("Null path for " + uri);
+                        }
+                        return new File(data);
                     } else {
                         throw new FileNotFoundException("Unable to read entry for " + uri);
                     }

@@ -3784,7 +3784,6 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-
     private MediaThumbRequest requestMediaThumbnail(String path, Uri uri, int priority, long magic) {
         synchronized (mMediaThumbQueue) {
             MediaThumbRequest req = null;
@@ -4992,6 +4991,8 @@ public class MediaProvider extends ContentProvider {
     private void writeAlbumArt(
             boolean need_to_recompress, Uri out, byte[] compressed, Bitmap bm) throws IOException {
         OutputStream outstream = null;
+        // Clear calling identity as we may be handling an IPC.
+        final long identity = Binder.clearCallingIdentity();
         try {
             outstream = getContext().getContentResolver().openOutputStream(out);
 
@@ -5005,6 +5006,7 @@ public class MediaProvider extends ContentProvider {
                 }
             }
         } finally {
+            Binder.restoreCallingIdentity(identity);
             IoUtils.closeQuietly(outstream);
         }
     }
@@ -5110,7 +5112,15 @@ public class MediaProvider extends ContentProvider {
                     // Note that this only does something if getAlbumArtOutputUri() reused an
                     // existing entry from the database. If a new entry was created, it will
                     // have been rolled back as part of backing out the transaction.
-                    getContext().getContentResolver().delete(out, null, null);
+
+                    // Clear calling identity as we may be handling an IPC.
+                    final long identity = Binder.clearCallingIdentity();
+                    try {
+                        getContext().getContentResolver().delete(out, null, null);
+                    } finally {
+                        Binder.restoreCallingIdentity(identity);
+                    }
+
                 }
             }
         }

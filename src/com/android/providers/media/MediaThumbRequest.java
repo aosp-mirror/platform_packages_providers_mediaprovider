@@ -147,6 +147,8 @@ class MediaThumbRequest {
             if (fileMagic == magic) {
                 Cursor c = null;
                 ParcelFileDescriptor pfd = null;
+                // Clear calling identity as we may be handling an IPC.
+                final long identity = Binder.clearCallingIdentity();
                 try {
                     c = mCr.query(mThumbUri, THUMB_PROJECTION,
                             mOrigColumnName + " = " + mOrigId, null, null);
@@ -157,6 +159,7 @@ class MediaThumbRequest {
                 } catch (IOException ex) {
                     // MINI_THUMBNAIL not exists, ignore the exception and generate one.
                 } finally {
+                    Binder.restoreCallingIdentity(identity);
                     if (c != null) c.close();
                     if (pfd != null) {
                         pfd.close();

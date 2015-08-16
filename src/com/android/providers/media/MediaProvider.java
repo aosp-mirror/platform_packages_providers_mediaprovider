@@ -128,19 +128,21 @@ public class MediaProvider extends ContentProvider {
     private static final HashMap<String, String> sFolderArtMap = new HashMap<String, String>();
 
     /** Resolved canonical path to external storage. */
-    private static final String sExternalPath;
+    private String mExternalPath;
     /** Resolved canonical path to cache storage. */
-    private static final String sCachePath;
+    private String mCachePath;
     /** Resolved canonical path to legacy storage. */
-    private static final String sLegacyPath;
+    private String mLegacyPath;
 
-    static {
+    private void updateStoragePaths() {
+        mExternalStoragePaths = mStorageManager.getVolumePaths();
+
         try {
-            sExternalPath =
+            mExternalPath =
                     Environment.getExternalStorageDirectory().getCanonicalPath() + File.separator;
-            sCachePath =
+            mCachePath =
                     Environment.getDownloadCacheDirectory().getCanonicalPath() + File.separator;
-            sLegacyPath =
+            mLegacyPath =
                     Environment.getLegacyExternalStorageDirectory().getCanonicalPath()
                     + File.separator;
         } catch (IOException e) {
@@ -4695,7 +4697,7 @@ public class MediaProvider extends ContentProvider {
                 == PackageManager.PERMISSION_GRANTED);
         }
 
-        if (path.startsWith(sExternalPath) || path.startsWith(sLegacyPath)) {
+        if (path.startsWith(mExternalPath) || path.startsWith(mLegacyPath)) {
             if (isWrite) {
                 if (!writeGranted) {
                     enforceCallingOrSelfPermissionAndAppOps(
@@ -4705,7 +4707,7 @@ public class MediaProvider extends ContentProvider {
                 enforceCallingOrSelfPermissionAndAppOps(
                     READ_EXTERNAL_STORAGE, "External path: " + path);
             }
-        } else if (path.startsWith(sCachePath)) {
+        } else if (path.startsWith(mCachePath)) {
             if ((isWrite && !writeGranted) || !readGranted) {
                 c.enforceCallingOrSelfPermission(ACCESS_CACHE_FILESYSTEM, "Cache path: " + path);
             }
@@ -4734,7 +4736,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private boolean isSecondaryExternalPath(String path) {
-        for (int i = mExternalStoragePaths.length - 1; i >= 0; --i) {
+        for (int i = 1; i < mExternalStoragePaths.length; i++) {
             if (path.startsWith(mExternalStoragePaths[i])) {
                 return true;
             }
@@ -5334,7 +5336,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Update paths to reflect currently mounted volumes
-        mExternalStoragePaths = mStorageManager.getVolumePaths();
+        updateStoragePaths();
 
         synchronized (mDatabases) {
             if (mDatabases.get(volume) != null) {  // Already attached
@@ -5477,7 +5479,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Update paths to reflect currently mounted volumes
-        mExternalStoragePaths = mStorageManager.getVolumePaths();
+        updateStoragePaths();
 
         String volume = uri.getPathSegments().get(0);
         if (INTERNAL_VOLUME.equals(volume)) {

@@ -539,25 +539,33 @@ public class MediaProvider extends ContentProvider {
         Environment.DIRECTORY_DCIM,
     };
 
-    // creates default folders (Music, Downloads, etc)
-    private void createDefaultFolders(DatabaseHelper helper, SQLiteDatabase db) {
-        // Use a SharedPreference to ensure we only do this once.
-        // We don't want to annoy the user by recreating the directories
-        // after she has deleted them.
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
-        if (prefs.getInt("created_default_folders", 0) == 0) {
+    /**
+     * Ensure that default folders are created on mounted primary storage
+     * devices. We only do this once per volume so we don't annoy the user if
+     * deleted manually.
+     */
+    private void ensureDefaultFolders(DatabaseHelper helper, SQLiteDatabase db) {
+        final StorageVolume vol = mStorageManager.getPrimaryVolume();
+        final String key;
+        if (VolumeInfo.ID_EMULATED_INTERNAL.equals(vol.getId())) {
+            key = "created_default_folders";
+        } else {
+            key = "created_default_folders_" + vol.getUuid();
+        }
+
+        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
+        if (prefs.getInt(key, 0) == 0) {
             for (String folderName : sDefaultFolderNames) {
-                File file = Environment.getExternalStoragePublicDirectory(folderName);
-                if (!file.exists()) {
-                    file.mkdirs();
-                    insertDirectory(helper, db, file.getAbsolutePath());
+                final File folder = new File(vol.getPathFile(), folderName);
+                if (!folder.exists()) {
+                    folder.mkdirs();
+                    insertDirectory(helper, db, folder.getAbsolutePath());
                 }
             }
 
-            SharedPreferences.Editor e = prefs.edit();
-            e.clear();
-            e.putInt("created_default_folders", 1);
-            e.commit();
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putInt(key, 1);
+            editor.commit();
         }
     }
 
@@ -5338,13 +5346,17 @@ public class MediaProvider extends ContentProvider {
         // Update paths to reflect currently mounted volumes
         updateStoragePaths();
 
+        DatabaseHelper helper = null;
         synchronized (mDatabases) {
-            if (mDatabases.get(volume) != null) {  // Already attached
+            helper = mDatabases.get(volume);
+            if (helper != null) {
+                if (EXTERNAL_VOLUME.equals(volume)) {
+                    ensureDefaultFolders(helper, helper.getWritableDatabase());
+                }
                 return Uri.parse("content://media/" + volume);
             }
 
             Context context = getContext();
-            DatabaseHelper helper;
             if (INTERNAL_VOLUME.equals(volume)) {
                 helper = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, true,
                         false, mObjectRemovedCallback);
@@ -5432,9 +5444,6 @@ public class MediaProvider extends ContentProvider {
             mDatabases.put(volume, helper);
 
             if (!helper.mInternal) {
-                // create default directories (only happens on first boot)
-                createDefaultFolders(helper, helper.getWritableDatabase());
-
                 // clean up stray album art files: delete every file not in the database
                 File[] files = new File(mExternalStoragePaths[0], ALBUM_THUMB_FOLDER).listFiles();
                 HashSet<String> fileSet = new HashSet();
@@ -5462,6 +5471,9 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (LOCAL_LOGV) Log.v(TAG, "Attached volume: " + volume);
+        if (EXTERNAL_VOLUME.equals(volume)) {
+            ensureDefaultFolders(helper, helper.getWritableDatabase());
+        }
         return Uri.parse("content://media/" + volume);
     }
 

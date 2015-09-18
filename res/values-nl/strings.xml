@@ -20,7 +20,7 @@
     <string name="app_label" msgid="581696352855930028">"Mediaopslag"</string>
     <string name="artist_label" msgid="1181678850424271227">"Artiest"</string>
     <string name="ringtone_default" msgid="3332469542084549546">"Standaardbeltoon"</string>
-    <string name="notification_sound_default" msgid="5309766396223094324">"Standaardmeldingsgeluid"</string>
+    <string name="notification_sound_default" msgid="5309766396223094324">"Standaard meldingsgeluid"</string>
     <string name="alarm_sound_default" msgid="6854264112790616066">"Standaardalarmgeluid"</string>
     <string name="root_images" msgid="7098113056247445324">"Afbeeldingen"</string>
     <string name="root_videos" msgid="3304457332406057833">"Video\'s"</string>

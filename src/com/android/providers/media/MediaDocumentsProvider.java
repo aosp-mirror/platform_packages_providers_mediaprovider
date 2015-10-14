@@ -187,6 +187,35 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         return projection != null ? projection : DEFAULT_DOCUMENT_PROJECTION;
     }
 
+    private Uri getUriForDocumentId(String docId) {
+        final Ident ident = getIdentForDocId(docId);
+        if (TYPE_IMAGE.equals(ident.type) && ident.id != -1) {
+            return ContentUris.withAppendedId(
+                    Images.Media.EXTERNAL_CONTENT_URI, ident.id);
+        } else if (TYPE_VIDEO.equals(ident.type) && ident.id != -1) {
+            return ContentUris.withAppendedId(
+                    Video.Media.EXTERNAL_CONTENT_URI, ident.id);
+        } else if (TYPE_AUDIO.equals(ident.type) && ident.id != -1) {
+            return ContentUris.withAppendedId(
+                    Audio.Media.EXTERNAL_CONTENT_URI, ident.id);
+        } else {
+            throw new UnsupportedOperationException("Unsupported document " + docId);
+        }
+    }
+
+    @Override
+    public void deleteDocument(String docId) throws FileNotFoundException {
+        final Uri target = getUriForDocumentId(docId);
+
+        // Delegate to real provider
+        final long token = Binder.clearCallingIdentity();
+        try {
+            getContext().getContentResolver().delete(target, null, null);
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
+    }
+
     @Override
     public Cursor queryRoots(String[] projection) throws FileNotFoundException {
         final MatrixCursor result = new MatrixCursor(resolveRootProjection(projection));
@@ -415,24 +444,10 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     @Override
     public ParcelFileDescriptor openDocument(String docId, String mode, CancellationSignal signal)
             throws FileNotFoundException {
-        final Ident ident = getIdentForDocId(docId);
+        final Uri target = getUriForDocumentId(docId);
 
         if (!"r".equals(mode)) {
             throw new IllegalArgumentException("Media is read-only");
-        }
-
-        final Uri target;
-        if (TYPE_IMAGE.equals(ident.type) && ident.id != -1) {
-            target = ContentUris.withAppendedId(
-                    Images.Media.EXTERNAL_CONTENT_URI, ident.id);
-        } else if (TYPE_VIDEO.equals(ident.type) && ident.id != -1) {
-            target = ContentUris.withAppendedId(
-                    Video.Media.EXTERNAL_CONTENT_URI, ident.id);
-        } else if (TYPE_AUDIO.equals(ident.type) && ident.id != -1) {
-            target = ContentUris.withAppendedId(
-                    Audio.Media.EXTERNAL_CONTENT_URI, ident.id);
-        } else {
-            throw new UnsupportedOperationException("Unsupported document " + docId);
         }
 
         // Delegate to real provider
@@ -609,7 +624,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         row.add(Document.COLUMN_MIME_TYPE, cursor.getString(ImageQuery.MIME_TYPE));
         row.add(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(ImageQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
-        row.add(Document.COLUMN_FLAGS, Document.FLAG_SUPPORTS_THUMBNAIL);
+        row.add(Document.COLUMN_FLAGS,
+                Document.FLAG_SUPPORTS_THUMBNAIL | Document.FLAG_SUPPORTS_DELETE);
     }
 
     private interface VideosBucketQuery {
@@ -667,7 +683,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         row.add(Document.COLUMN_MIME_TYPE, cursor.getString(VideoQuery.MIME_TYPE));
         row.add(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(VideoQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
-        row.add(Document.COLUMN_FLAGS, Document.FLAG_SUPPORTS_THUMBNAIL);
+        row.add(Document.COLUMN_FLAGS,
+                Document.FLAG_SUPPORTS_THUMBNAIL | Document.FLAG_SUPPORTS_DELETE);
     }
 
     private interface ArtistQuery {
@@ -736,6 +753,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         row.add(Document.COLUMN_MIME_TYPE, cursor.getString(SongQuery.MIME_TYPE));
         row.add(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(SongQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
+        row.add(Document.COLUMN_FLAGS, Document.FLAG_SUPPORTS_DELETE);
     }
 
     private interface ImagesBucketThumbnailQuery {

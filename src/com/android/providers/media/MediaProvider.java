@@ -289,12 +289,18 @@ public class MediaProvider extends ContentProvider {
                             String where = FileColumns.STORAGE_ID + "=?";
                             String[] whereArgs = new String[] { Integer.toString(storage.getStorageId()) };
                             database.mNumUpdates++;
-                            db.update("files", values, where, whereArgs);
-                            // now delete the records
-                            database.mNumDeletes++;
-                            int numpurged = db.delete("files", where, whereArgs);
-                            logToDb(db, "removed " + numpurged +
-                                    " rows for ejected filesystem " + storage.getPath());
+                            db.beginTransaction();
+                            try {
+                                db.update("files", values, where, whereArgs);
+                                // now delete the records
+                                database.mNumDeletes++;
+                                int numpurged = db.delete("files", where, whereArgs);
+                                logToDb(db, "removed " + numpurged +
+                                        " rows for ejected filesystem " + storage.getPath());
+                                db.setTransactionSuccessful();
+                            } finally {
+                                db.endTransaction();
+                            }
                             // notify on media Uris as well as the files Uri
                             context.getContentResolver().notifyChange(
                                     Audio.Media.getContentUri(EXTERNAL_VOLUME), null);

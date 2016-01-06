@@ -93,8 +93,6 @@ import android.util.Log;
 import libcore.io.IoUtils;
 import libcore.util.EmptyArray;
 
-import com.android.internal.util.Preconditions;
-
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
@@ -4871,8 +4869,9 @@ public class MediaProvider extends ContentProvider {
             ParcelFileDescriptor pfd = ParcelFileDescriptor.open(f,
                     ParcelFileDescriptor.MODE_READ_ONLY);
 
-            MediaScanner scanner = new MediaScanner(context);
-            compressed = scanner.extractAlbumArt(pfd.getFileDescriptor());
+            try (MediaScanner scanner = new MediaScanner(context, "internal")) {
+                compressed = scanner.extractAlbumArt(pfd.getFileDescriptor());
+            }
             pfd.close();
 
             // If no embedded art exists, look for a suitable image file in the

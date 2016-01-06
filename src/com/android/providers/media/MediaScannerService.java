@@ -21,33 +21,26 @@ import android.app.Service;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Configuration;
-import android.database.Cursor;
 import android.media.IMediaScannerListener;
 import android.media.IMediaScannerService;
 import android.media.MediaScanner;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.FileUtils;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.PowerManager;
 import android.os.Process;
-import android.os.SystemProperties;
 import android.os.storage.StorageManager;
-import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
 import android.util.Log;
 
 import java.io.File;
 import java.util.Arrays;
-import java.util.Locale;
 
-public class MediaScannerService extends Service implements Runnable
-{
+public class MediaScannerService extends Service implements Runnable {
     private static final String TAG = "MediaScannerService";
 
     private volatile Looper mServiceLooper;
@@ -63,25 +56,6 @@ public class MediaScannerService extends Service implements Runnable
         } catch (IllegalArgumentException ex) {
             Log.w(TAG, "failed to open media database");
         }         
-    }
-
-    private MediaScanner createMediaScanner() {
-        MediaScanner scanner = new MediaScanner(this);
-        Locale locale = getResources().getConfiguration().locale;
-        if (locale != null) {
-            String language = locale.getLanguage();
-            String country = locale.getCountry();
-            String localeString = null;
-            if (language != null) {
-                if (country != null) {
-                    scanner.setLocale(language + "_" + country);
-                } else {
-                    scanner.setLocale(language);
-                }
-            }    
-        }
-        
-        return scanner;
     }
 
     private void scan(String[] directories, String volumeName) {
@@ -101,8 +75,9 @@ public class MediaScannerService extends Service implements Runnable
                     openDatabase(volumeName);
                 }
 
-                MediaScanner scanner = createMediaScanner();
-                scanner.scanDirectories(directories, volumeName);
+                try (MediaScanner scanner = new MediaScanner(this, volumeName)) {
+                    scanner.scanDirectories(directories);
+                }
             } catch (Exception e) {
                 Log.e(TAG, "exception in MediaScanner.scan()", e);
             }
@@ -116,8 +91,7 @@ public class MediaScannerService extends Service implements Runnable
     }
     
     @Override
-    public void onCreate()
-    {
+    public void onCreate() {
         PowerManager pm = (PowerManager)getSystemService(Context.POWER_SERVICE);
         mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
         StorageManager storageManager = (StorageManager)getSystemService(Context.STORAGE_SERVICE);
@@ -131,8 +105,7 @@ public class MediaScannerService extends Service implements Runnable
     }
 
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId)
-    {
+    public int onStartCommand(Intent intent, int flags, int startId) {
         while (mServiceHandler == null) {
             synchronized (this) {
                 try {
@@ -158,8 +131,7 @@ public class MediaScannerService extends Service implements Runnable
     }
 
     @Override
-    public void onDestroy()
-    {
+    public void onDestroy() {
         // Make sure thread has started before telling it to quit.
         while (mServiceLooper == null) {
             synchronized (this) {
@@ -172,8 +144,8 @@ public class MediaScannerService extends Service implements Runnable
         mServiceLooper.quit();
     }
 
-    public void run()
-    {
+    @Override
+    public void run() {
         // reduce priority below other background threads to avoid interfering
         // with other services at boot time.
         Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND +
@@ -185,15 +157,15 @@ public class MediaScannerService extends Service implements Runnable
 
         Looper.loop();
     }
-   
+
     private Uri scanFile(String path, String mimeType) {
         String volumeName = MediaProvider.EXTERNAL_VOLUME;
         openDatabase(volumeName);
-        MediaScanner scanner = createMediaScanner();
-        try {
+
+        try (MediaScanner scanner = new MediaScanner(this, volumeName)) {
             // make sure the file path is in canonical form
             String canonicalPath = new File(path).getCanonicalPath();
-            return scanner.scanSingleFile(canonicalPath, volumeName, mimeType);
+            return scanner.scanSingleFile(canonicalPath, mimeType);
         } catch (Exception e) {
             Log.e(TAG, "bad path " + path + " in scanFile()", e);
             return null;
@@ -201,15 +173,13 @@ public class MediaScannerService extends Service implements Runnable
     }
 
     @Override
-    public IBinder onBind(Intent intent)
-    {
+    public IBinder onBind(Intent intent) {
         return mBinder;
     }
     
     private final IMediaScannerService.Stub mBinder = 
             new IMediaScannerService.Stub() {
-        public void requestScanFile(String path, String mimeType, IMediaScannerListener listener)
-        {
+        public void requestScanFile(String path, String mimeType, IMediaScannerListener listener) {
             if (false) {
                 Log.d(TAG, "IMediaScannerService.scanFile: " + path + " mimeType: " + mimeType);
             }
@@ -228,11 +198,9 @@ public class MediaScannerService extends Service implements Runnable
         }
     };
 
-    private final class ServiceHandler extends Handler
-    {
+    private final class ServiceHandler extends Handler {
         @Override
-        public void handleMessage(Message msg)
-        {
+        public void handleMessage(Message msg) {
             Bundle arguments = (Bundle) msg.obj;
             String filePath = arguments.getString("filepath");
             
@@ -281,4 +249,3 @@ public class MediaScannerService extends Service implements Runnable
         }
     };
 }
-

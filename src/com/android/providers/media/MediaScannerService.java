@@ -234,6 +234,10 @@ public class MediaScannerService extends Service implements Runnable
         public void handleMessage(Message msg)
         {
             Bundle arguments = (Bundle) msg.obj;
+            if (arguments == null) {
+                Log.e(TAG, "null intent, b/20953950");
+                return;
+            }
             String filePath = arguments.getString("filepath");
             
             try {

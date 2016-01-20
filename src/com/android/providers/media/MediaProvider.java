@@ -2923,7 +2923,22 @@ public class MediaProvider extends ContentProvider {
         // do not signal notification for MTP objects.
         // we will signal instead after file transfer is successful.
         if (newUri != null && match != MTP_OBJECTS) {
+            // Report a general change to the media provider.
+            // XXX do we really need to do this?  It is what we used to report,
+            // and if apps are looking at these explicit URIs and not monitoring
+            // descendants, they will no longer see the change if we remove it.
+            // On the other hand, if we report the general directory changed, then it
+            // is hard for clients to know if they can count on looking at the more
+            // specific URI to understand the change or if they will need to do a
+            // full query under the path to resolve it with an arbitrary change.
+            // (For example a bulk insert will currently report a change for just the
+            // containing path, which tells clients there was a complicated change that
+            // they will need to resolve with a new query.)
             getContext().getContentResolver().notifyChange(uri, null);
+            // Also report the specific URIs that changed.
+            if (match != MEDIA_SCANNER) {
+                getContext().getContentResolver().notifyChange(newUri, null);
+            }
         }
         return newUri;
     }

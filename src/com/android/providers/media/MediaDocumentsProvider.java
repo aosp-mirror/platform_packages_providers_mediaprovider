@@ -594,8 +594,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         row.add(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(ImagesBucketQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
         row.add(Document.COLUMN_FLAGS, Document.FLAG_DIR_PREFERS_GRID
-                | Document.FLAG_SUPPORTS_THUMBNAIL | Document.FLAG_DIR_PREFERS_LAST_MODIFIED
-                | Document.FLAG_DIR_HIDE_GRID_TITLES);
+                | Document.FLAG_SUPPORTS_THUMBNAIL | Document.FLAG_DIR_PREFERS_LAST_MODIFIED);
     }
 
     private interface ImageQuery {
@@ -653,8 +652,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         row.add(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(VideosBucketQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
         row.add(Document.COLUMN_FLAGS, Document.FLAG_DIR_PREFERS_GRID
-                | Document.FLAG_SUPPORTS_THUMBNAIL | Document.FLAG_DIR_PREFERS_LAST_MODIFIED
-                | Document.FLAG_DIR_HIDE_GRID_TITLES);
+                | Document.FLAG_SUPPORTS_THUMBNAIL | Document.FLAG_DIR_PREFERS_LAST_MODIFIED);
     }
 
     private interface VideoQuery {

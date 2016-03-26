@@ -16,8 +16,8 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="uid_label" msgid="8421971615411294156">"Meдиа"</string>
-    <string name="app_label" msgid="9035307001052716210">"Медиа қоймасы"</string>
+    <string name="uid_label" msgid="8421971615411294156">"Мультимeдиа"</string>
+    <string name="app_label" msgid="9035307001052716210">"Мультимедиа қоймасы"</string>
     <string name="artist_label" msgid="8105600993099120273">"Орындаушы"</string>
     <string name="ringtone_default" msgid="1744846699922263043">"Әдепкі қоңырау әуені"</string>
     <string name="notification_sound_default" msgid="6541609166469990135">"Әдепкі хабарландыру дыбысы"</string>

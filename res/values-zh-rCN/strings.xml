@@ -16,13 +16,13 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="uid_label" msgid="8421971615411294156">"Multimedia"</string>
-    <string name="app_label" msgid="9035307001052716210">"Multimedia xotirasi"</string>
-    <string name="artist_label" msgid="8105600993099120273">"Ijrochi"</string>
-    <string name="ringtone_default" msgid="1744846699922263043">"Standart rington"</string>
-    <string name="notification_sound_default" msgid="6541609166469990135">"Standart bildirishnoma ovozi"</string>
-    <string name="alarm_sound_default" msgid="5488847775252870314">"Standart ovozli signal"</string>
-    <string name="root_images" msgid="5861633549189045666">"Rasmlar"</string>
-    <string name="root_videos" msgid="8792703517064649453">"Videolar"</string>
-    <string name="root_audio" msgid="3505830755201326018">"Audio"</string>
+    <string name="uid_label" msgid="8421971615411294156">"媒体"</string>
+    <string name="app_label" msgid="9035307001052716210">"媒体存储设备"</string>
+    <string name="artist_label" msgid="8105600993099120273">"音乐人"</string>
+    <string name="ringtone_default" msgid="1744846699922263043">"默认铃声"</string>
+    <string name="notification_sound_default" msgid="6541609166469990135">"默认通知提示音"</string>
+    <string name="alarm_sound_default" msgid="5488847775252870314">"默认闹钟铃声"</string>
+    <string name="root_images" msgid="5861633549189045666">"图片"</string>
+    <string name="root_videos" msgid="8792703517064649453">"视频"</string>
+    <string name="root_audio" msgid="3505830755201326018">"音频"</string>
 </resources>

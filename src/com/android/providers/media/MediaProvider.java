@@ -3065,7 +3065,8 @@ public class MediaProvider extends ContentProvider {
 
         switch (mediaType) {
             case FileColumns.MEDIA_TYPE_IMAGE: {
-                values = ensureFile(helper.mInternal, initialValues, ".jpg", "Pictures");
+                values = ensureFile(helper.mInternal, initialValues, ".jpg",
+                        Environment.DIRECTORY_PICTURES);
 
                 values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);
                 String data = values.getAsString(MediaColumns.DATA);
@@ -3840,7 +3841,10 @@ public class MediaProvider extends ContentProvider {
 //            return Environment.getDataDirectory()
 //                + "/" + directoryName + "/" + name + preferredExtension;
         } else {
-            return mExternalStoragePaths[0] + "/" + directoryName + "/" + name + preferredExtension;
+            String dirPath = mExternalStoragePaths[0] + "/" + directoryName;
+            File dirFile = new File(dirPath);
+            dirFile.mkdirs();
+            return dirPath + "/" + name + preferredExtension;
         }
     }
 

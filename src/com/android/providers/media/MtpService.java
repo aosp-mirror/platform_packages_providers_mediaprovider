@@ -132,9 +132,7 @@ public class MtpService extends Service {
             if (mDatabase != null) {
                 mDatabase.setServer(null);
             }
-            mDatabase = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME,
-                    primary.getPath(), subdirs);
-            manageServiceLocked();
+            manageServiceLocked(primary, subdirs);
         }
 
         return START_REDELIVER_INTENT;
@@ -152,10 +150,12 @@ public class MtpService extends Service {
     /**
      * Manage {@link #mServer}, creating only when running as the current user.
      */
-    private void manageServiceLocked() {
+    private void manageServiceLocked(StorageVolume primary, String[] subdirs) {
         final boolean isCurrentUser = UserHandle.myUserId() == ActivityManager.getCurrentUser();
         if (mServer == null && isCurrentUser) {
             Log.d(TAG, "starting MTP server in " + (mPtpMode ? "PTP mode" : "MTP mode"));
+            mDatabase = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME,
+                    primary.getPath(), subdirs);
             mServer = new MtpServer(mDatabase, mPtpMode);
             mDatabase.setServer(mServer);
             if (!mMtpDisabled) {

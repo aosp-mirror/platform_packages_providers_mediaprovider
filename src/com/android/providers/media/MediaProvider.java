@@ -4466,7 +4466,7 @@ public class MediaProvider extends ContentProvider {
                             int newpos = initialValues.getAsInteger(key);
                             List <String> segments = uri.getPathSegments();
                             long playlist = Long.valueOf(segments.get(3));
-                            int oldpos = Integer.valueOf(segments.get(5));
+                            int oldpos = Integer.parseInt(segments.get(5));
                             return movePlaylistEntry(helper, db, playlist, oldpos, newpos);
                         }
                         throw new IllegalArgumentException("Need to specify " + key +

@@ -4465,7 +4465,7 @@ public class MediaProvider extends ContentProvider {
                         if (initialValues.containsKey(key)) {
                             int newpos = initialValues.getAsInteger(key);
                             List <String> segments = uri.getPathSegments();
-                            long playlist = Long.valueOf(segments.get(3));
+                            long playlist = Long.parseLong(segments.get(3));
                             int oldpos = Integer.parseInt(segments.get(5));
                             return movePlaylistEntry(helper, db, playlist, oldpos, newpos);
                         }

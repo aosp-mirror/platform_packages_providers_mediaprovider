@@ -282,12 +282,6 @@ public final class RingtonePickerActivity extends AlertActivity implements
             setResult(RESULT_CANCELED);
         }
 
-        getWindow().getDecorView().post(new Runnable() {
-            public void run() {
-                mCursor.deactivate();
-            }
-        });
-
         finish();
     }
 
@@ -346,6 +340,8 @@ public final class RingtonePickerActivity extends AlertActivity implements
     @Override
     protected void onStop() {
         super.onStop();
+        mCursor.deactivate();
+
         if (!isChangingConfigurations()) {
             stopAnyPlayingRingtone();
         } else {

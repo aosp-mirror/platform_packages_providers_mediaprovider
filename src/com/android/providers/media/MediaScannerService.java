@@ -160,7 +160,6 @@ public class MediaScannerService extends Service implements Runnable {
 
     private Uri scanFile(String path, String mimeType) {
         String volumeName = MediaProvider.EXTERNAL_VOLUME;
-        openDatabase(volumeName);
 
         try (MediaScanner scanner = new MediaScanner(this, volumeName)) {
             // make sure the file path is in canonical form

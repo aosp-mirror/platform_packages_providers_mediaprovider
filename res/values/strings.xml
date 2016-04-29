@@ -41,4 +41,30 @@
     <!-- Title for documents backend that offers audio. [CHAR LIMIT=24] -->
     <string name="root_audio">Audio</string>
 
+    <!-- Strings of localized sound names below:
+         VERY IMPORTANT: the lower case version of the names must match the resource
+                         name as extracted from the metadata or the file name, all
+                         non-alphanumeric characters are replaced by "_", each
+                         resource name is preceded by "sound_name_".
+    -->
+
+    <!-- Name of alarm in the alarm sound picker: theme:motion, style:ambient tempo:flowing -->
+    <string name="sound_name_awaken">Awaken</string>
+    <!-- Name of alarm in the alarm sound picker: theme:motion, style:soft pure tones
+         tempo:initially downtempo -->
+    <string name="sound_name_bounce">Bounce</string>
+    <!-- Name of alarm in the alarm sound picker: theme:motion, style:traditional tempo:mid -->
+    <string name="sound_name_drip">Drip</string>
+    <!-- Name of alarm in the alarm sound picker: theme:motion, style:rhythmic tempo:up-tempo -->
+    <string name="sound_name_gallop">Gallop</string>
+    <!-- Name of alarm in the alarm sound picker: theme:motion, style:traditional tempo:mid -->
+    <string name="sound_name_nudge">Nudge</string>
+    <!-- Name of alarm in the alarm sound picker: theme:motion, style:traditional tempo:mid -->
+    <string name="sound_name_orbit">Orbit</string>
+    <!-- Name of alarm in the alarm sound picker: theme:motion, style:digital tempo:mid -->
+    <string name="sound_name_rise">Rise</string>
+    <!-- Name of alarm in the alarm sound picker: theme:motion, style:musical tempo:swaying -->
+    <string name="sound_name_sway">Sway</string>
+    <!-- Name of alarm in the alarm sound picker: theme:motion, style:sound design tempo:mid -->
+    <string name="sound_name_wag">Wag</string>
 </resources>

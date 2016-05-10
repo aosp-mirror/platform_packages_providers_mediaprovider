@@ -230,6 +230,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final ContentResolver resolver = getContext().getContentResolver();
         final MatrixCursor result = new MatrixCursor(resolveDocumentProjection(projection));
         final Ident ident = getIdentForDocId(docId);
+        final String[] queryArgs = new String[] { Long.toString(ident.id) } ;
 
         final long token = Binder.clearCallingIdentity();
         Cursor cursor = null;
@@ -240,8 +241,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             } else if (TYPE_IMAGES_BUCKET.equals(ident.type)) {
                 // single bucket
                 cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
-                        ImagesBucketQuery.PROJECTION, ImageColumns.BUCKET_ID + "=" + ident.id,
-                        null, ImagesBucketQuery.SORT_ORDER);
+                        ImagesBucketQuery.PROJECTION, ImageColumns.BUCKET_ID + "=?",
+                        queryArgs, ImagesBucketQuery.SORT_ORDER);
                 copyNotificationUri(result, cursor);
                 if (cursor.moveToFirst()) {
                     includeImagesBucket(result, cursor);
@@ -249,7 +250,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             } else if (TYPE_IMAGE.equals(ident.type)) {
                 // single image
                 cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
-                        ImageQuery.PROJECTION, BaseColumns._ID + "=" + ident.id, null,
+                        ImageQuery.PROJECTION, BaseColumns._ID + "=?", queryArgs,
                         null);
                 copyNotificationUri(result, cursor);
                 if (cursor.moveToFirst()) {
@@ -261,8 +262,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             } else if (TYPE_VIDEOS_BUCKET.equals(ident.type)) {
                 // single bucket
                 cursor = resolver.query(Video.Media.EXTERNAL_CONTENT_URI,
-                        VideosBucketQuery.PROJECTION, VideoColumns.BUCKET_ID + "=" + ident.id,
-                        null, VideosBucketQuery.SORT_ORDER);
+                        VideosBucketQuery.PROJECTION, VideoColumns.BUCKET_ID + "=?",
+                        queryArgs, VideosBucketQuery.SORT_ORDER);
                 copyNotificationUri(result, cursor);
                 if (cursor.moveToFirst()) {
                     includeVideosBucket(result, cursor);
@@ -270,7 +271,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             } else if (TYPE_VIDEO.equals(ident.type)) {
                 // single video
                 cursor = resolver.query(Video.Media.EXTERNAL_CONTENT_URI,
-                        VideoQuery.PROJECTION, BaseColumns._ID + "=" + ident.id, null,
+                        VideoQuery.PROJECTION, BaseColumns._ID + "=?", queryArgs,
                         null);
                 copyNotificationUri(result, cursor);
                 if (cursor.moveToFirst()) {
@@ -282,7 +283,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             } else if (TYPE_ARTIST.equals(ident.type)) {
                 // single artist
                 cursor = resolver.query(Artists.EXTERNAL_CONTENT_URI,
-                        ArtistQuery.PROJECTION, BaseColumns._ID + "=" + ident.id, null,
+                        ArtistQuery.PROJECTION, BaseColumns._ID + "=?", queryArgs,
                         null);
                 copyNotificationUri(result, cursor);
                 if (cursor.moveToFirst()) {
@@ -291,7 +292,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             } else if (TYPE_ALBUM.equals(ident.type)) {
                 // single album
                 cursor = resolver.query(Albums.EXTERNAL_CONTENT_URI,
-                        AlbumQuery.PROJECTION, BaseColumns._ID + "=" + ident.id, null,
+                        AlbumQuery.PROJECTION, BaseColumns._ID + "=?", queryArgs,
                         null);
                 copyNotificationUri(result, cursor);
                 if (cursor.moveToFirst()) {
@@ -300,7 +301,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             } else if (TYPE_AUDIO.equals(ident.type)) {
                 // single song
                 cursor = resolver.query(Audio.Media.EXTERNAL_CONTENT_URI,
-                        SongQuery.PROJECTION, BaseColumns._ID + "=" + ident.id, null,
+                        SongQuery.PROJECTION, BaseColumns._ID + "=?", queryArgs,
                         null);
                 copyNotificationUri(result, cursor);
                 if (cursor.moveToFirst()) {
@@ -322,6 +323,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final ContentResolver resolver = getContext().getContentResolver();
         final MatrixCursor result = new MatrixCursor(resolveDocumentProjection(projection));
         final Ident ident = getIdentForDocId(docId);
+        final String[] queryArgs = new String[] { Long.toString(ident.id) } ;
 
         final long token = Binder.clearCallingIdentity();
         Cursor cursor = null;
@@ -343,8 +345,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             } else if (TYPE_IMAGES_BUCKET.equals(ident.type)) {
                 // include images under bucket
                 cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
-                        ImageQuery.PROJECTION, ImageColumns.BUCKET_ID + "=" + ident.id,
-                        null, null);
+                        ImageQuery.PROJECTION, ImageColumns.BUCKET_ID + "=?",
+                        queryArgs, null);
                 copyNotificationUri(result, cursor);
                 while (cursor.moveToNext()) {
                     includeImage(result, cursor);
@@ -365,8 +367,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             } else if (TYPE_VIDEOS_BUCKET.equals(ident.type)) {
                 // include videos under bucket
                 cursor = resolver.query(Video.Media.EXTERNAL_CONTENT_URI,
-                        VideoQuery.PROJECTION, VideoColumns.BUCKET_ID + "=" + ident.id,
-                        null, null);
+                        VideoQuery.PROJECTION, VideoColumns.BUCKET_ID + "=?",
+                        queryArgs, null);
                 copyNotificationUri(result, cursor);
                 while (cursor.moveToNext()) {
                     includeVideo(result, cursor);
@@ -390,8 +392,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             } else if (TYPE_ALBUM.equals(ident.type)) {
                 // include all songs under album
                 cursor = resolver.query(Audio.Media.EXTERNAL_CONTENT_URI,
-                        SongQuery.PROJECTION, AudioColumns.ALBUM_ID + "=" + ident.id,
-                        null, null);
+                        SongQuery.PROJECTION, AudioColumns.ALBUM_ID + "=?",
+                        queryArgs, null);
                 copyNotificationUri(result, cursor);
                 while (cursor.moveToNext()) {
                     includeAudio(result, cursor);
@@ -442,6 +444,50 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     }
 
     @Override
+    public Cursor querySearchDocuments(String rootId, String query, String[] projection)
+            throws FileNotFoundException {
+        final ContentResolver resolver = getContext().getContentResolver();
+        final MatrixCursor result = new MatrixCursor(resolveDocumentProjection(projection));
+
+        final long token = Binder.clearCallingIdentity();
+        final String[] queryArgs = new String[] { "%" + query + "%" };
+        Cursor cursor = null;
+        try {
+            if (TYPE_IMAGES_ROOT.equals(rootId)) {
+                cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI, ImageQuery.PROJECTION,
+                        ImageColumns.DISPLAY_NAME + " LIKE ?", queryArgs,
+                        ImageColumns.DATE_MODIFIED + " DESC");
+                copyNotificationUri(result, cursor);
+                while (cursor.moveToNext()) {
+                    includeImage(result, cursor);
+                }
+            } else if (TYPE_VIDEOS_ROOT.equals(rootId)) {
+                cursor = resolver.query(Video.Media.EXTERNAL_CONTENT_URI, VideoQuery.PROJECTION,
+                        VideoColumns.DISPLAY_NAME + " LIKE ?", queryArgs,
+                        VideoColumns.DATE_MODIFIED + " DESC");
+                copyNotificationUri(result, cursor);
+                while (cursor.moveToNext()) {
+                    includeVideo(result, cursor);
+                }
+            } else if (TYPE_AUDIO_ROOT.equals(rootId)) {
+                cursor = resolver.query(Audio.Media.EXTERNAL_CONTENT_URI, SongQuery.PROJECTION,
+                        AudioColumns.TITLE + " LIKE ?", queryArgs,
+                        AudioColumns.DATE_MODIFIED + " DESC");
+                copyNotificationUri(result, cursor);
+                while (cursor.moveToNext()) {
+                    includeAudio(result, cursor);
+                }
+            } else {
+                throw new UnsupportedOperationException("Unsupported root " + rootId);
+            }
+        } finally {
+            IoUtils.closeQuietly(cursor);
+            Binder.restoreCallingIdentity(token);
+        }
+        return result;
+    }
+
+    @Override
     public ParcelFileDescriptor openDocument(String docId, String mode, CancellationSignal signal)
             throws FileNotFoundException {
         final Uri target = getUriForDocumentId(docId);
@@ -462,7 +508,6 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     @Override
     public AssetFileDescriptor openDocumentThumbnail(
             String docId, Point sizeHint, CancellationSignal signal) throws FileNotFoundException {
-        final ContentResolver resolver = getContext().getContentResolver();
         final Ident ident = getIdentForDocId(docId);
 
         final long token = Binder.clearCallingIdentity();
@@ -500,7 +545,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     }
 
     private void includeImagesRoot(MatrixCursor result) {
-        int flags = Root.FLAG_LOCAL_ONLY | Root.FLAG_SUPPORTS_RECENTS;
+        int flags = Root.FLAG_LOCAL_ONLY | Root.FLAG_SUPPORTS_RECENTS | Root.FLAG_SUPPORTS_SEARCH;
         if (isEmpty(Images.Media.EXTERNAL_CONTENT_URI)) {
             flags |= Root.FLAG_EMPTY;
             sReturnedImagesEmpty = true;
@@ -515,7 +560,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     }
 
     private void includeVideosRoot(MatrixCursor result) {
-        int flags = Root.FLAG_LOCAL_ONLY | Root.FLAG_SUPPORTS_RECENTS;
+        int flags = Root.FLAG_LOCAL_ONLY | Root.FLAG_SUPPORTS_RECENTS | Root.FLAG_SUPPORTS_SEARCH;
         if (isEmpty(Video.Media.EXTERNAL_CONTENT_URI)) {
             flags |= Root.FLAG_EMPTY;
             sReturnedVideosEmpty = true;
@@ -530,7 +575,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     }
 
     private void includeAudioRoot(MatrixCursor result) {
-        int flags = Root.FLAG_LOCAL_ONLY;
+        int flags = Root.FLAG_LOCAL_ONLY | Root.FLAG_SUPPORTS_SEARCH;
         if (isEmpty(Audio.Media.EXTERNAL_CONTENT_URI)) {
             flags |= Root.FLAG_EMPTY;
             sReturnedAudioEmpty = true;

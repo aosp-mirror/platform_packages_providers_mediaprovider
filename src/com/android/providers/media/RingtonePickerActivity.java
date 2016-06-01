@@ -18,7 +18,10 @@ package com.android.providers.media;
 
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.Resources;
+import android.content.res.Resources.NotFoundException;
 import android.database.Cursor;
+import android.database.CursorWrapper;
 import android.media.AudioAttributes;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
@@ -28,6 +31,7 @@ import android.os.Handler;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
@@ -35,6 +39,8 @@ import android.widget.TextView;
 
 import com.android.internal.app.AlertActivity;
 import com.android.internal.app.AlertController;
+
+import java.util.regex.Pattern;
 
 /**
  * The {@link RingtonePickerActivity} allows the user to choose one from all of the
@@ -52,7 +58,11 @@ public final class RingtonePickerActivity extends AlertActivity implements
 
     private static final int DELAY_MS_SELECTION_PLAYED = 300;
 
+    private static final String COLUMN_LABEL = MediaStore.Audio.Media.TITLE;
+
     private static final String SAVE_CLICKED_POS = "clicked_pos";
+
+    private static final String SOUND_NAME_RES_PREFIX = "sound_name_";
 
     private RingtoneManager mRingtoneManager;
     private int mType;
@@ -161,7 +171,7 @@ public final class RingtonePickerActivity extends AlertActivity implements
             mRingtoneManager.setType(mType);
         }
 
-        mCursor = mRingtoneManager.getCursor();
+        mCursor = new LocalizedCursor(mRingtoneManager.getCursor(), getResources(), COLUMN_LABEL);
 
         // The volume keys will control the stream that we are choosing a ringtone for
         setVolumeControlStream(mRingtoneManager.inferStreamType());
@@ -173,7 +183,7 @@ public final class RingtonePickerActivity extends AlertActivity implements
         final AlertController.AlertParams p = mAlertParams;
         p.mCursor = mCursor;
         p.mOnClickListener = mRingtoneClickListener;
-        p.mLabelColumn = MediaStore.Audio.Media.TITLE;
+        p.mLabelColumn = COLUMN_LABEL;
         p.mIsSingleChoice = true;
         p.mOnItemSelectedListener = this;
         p.mPositiveButtonText = getString(com.android.internal.R.string.ok);
@@ -392,4 +402,73 @@ public final class RingtonePickerActivity extends AlertActivity implements
         return ringtoneManagerPos + mStaticItemCount;
     }
 
+    private static class LocalizedCursor extends CursorWrapper {
+
+        final int mTitleIndex;
+        final Resources mResources;
+        String mNamePrefix;
+        final Pattern mSanitizePattern;
+
+        LocalizedCursor(Cursor cursor, Resources resources, String columnLabel) {
+            super(cursor);
+            mTitleIndex = mCursor.getColumnIndex(columnLabel);
+            mResources = resources;
+            mSanitizePattern = Pattern.compile("[^a-zA-Z0-9]");
+            if (mTitleIndex == -1) {
+                Log.e(TAG, "No index for column " + columnLabel);
+                mNamePrefix = null;
+            } else {
+                try {
+                    // Build the prefix for the name of the resource to look up
+                    // format is: "ResourcePackageName::ResourceTypeName/"
+                    // (the type name is expected to be "string" but let's not hardcode it).
+                    // Here we use an existing resource "notification_sound_default" which is
+                    // always expected to be found.
+                    mNamePrefix = String.format("%s:%s/%s",
+                            mResources.getResourcePackageName(R.string.notification_sound_default),
+                            mResources.getResourceTypeName(R.string.notification_sound_default),
+                            SOUND_NAME_RES_PREFIX);
+                } catch (NotFoundException e) {
+                    mNamePrefix = null;
+                }
+            }
+        }
+
+        /**
+         * Process resource name to generate a valid resource name.
+         * @param input
+         * @return a non-null String
+         */
+        private String sanitize(String input) {
+            if (input == null) {
+                return "";
+            }
+            return mSanitizePattern.matcher(input).replaceAll("_").toLowerCase();
+        }
+
+        @Override
+        public String getString(int columnIndex) {
+            final String defaultName = mCursor.getString(columnIndex);
+            if ((columnIndex != mTitleIndex) || (mNamePrefix == null)) {
+                return defaultName;
+            }
+            TypedValue value = new TypedValue();
+            try {
+                // the name currently in the database is used to derive a name to match
+                // against resource names in this package
+                mResources.getValue(mNamePrefix + sanitize(defaultName), value, false);
+            } catch (NotFoundException e) {
+                // no localized string, use the default string
+                return defaultName;
+            }
+            if ((value != null) && (value.type == TypedValue.TYPE_STRING)) {
+                Log.d(TAG, String.format("Replacing name %s with %s",
+                        defaultName, value.string.toString()));
+                return value.string.toString();
+            } else {
+                Log.e(TAG, "Invalid value when looking up localized name, using " + defaultName);
+                return defaultName;
+            }
+        }
+    }
 }

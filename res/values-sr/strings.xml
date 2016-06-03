@@ -25,4 +25,22 @@
     <string name="root_images" msgid="5861633549189045666">"Слике"</string>
     <string name="root_videos" msgid="8792703517064649453">"Видео снимци"</string>
     <string name="root_audio" msgid="3505830755201326018">"Звук"</string>
+    <!-- no translation found for sound_name_awaken (5266892392848526147) -->
+    <skip />
+    <!-- no translation found for sound_name_bounce (8771447635446665231) -->
+    <skip />
+    <!-- no translation found for sound_name_drip (1744684469020662152) -->
+    <skip />
+    <!-- no translation found for sound_name_gallop (2664454314532060876) -->
+    <skip />
+    <!-- no translation found for sound_name_nudge (5445751598250698244) -->
+    <skip />
+    <!-- no translation found for sound_name_orbit (4623457897813255481) -->
+    <skip />
+    <!-- no translation found for sound_name_rise (2200258555031675806) -->
+    <skip />
+    <!-- no translation found for sound_name_sway (348448316663085643) -->
+    <skip />
+    <!-- no translation found for sound_name_wag (2730733083078126563) -->
+    <skip />
 </resources>

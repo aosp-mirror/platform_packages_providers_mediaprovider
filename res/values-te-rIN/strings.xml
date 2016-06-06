@@ -25,4 +25,13 @@
     <string name="root_images" msgid="5861633549189045666">"చిత్రాలు"</string>
     <string name="root_videos" msgid="8792703517064649453">"వీడియోలు"</string>
     <string name="root_audio" msgid="3505830755201326018">"ఆడియో"</string>
+    <string name="sound_name_awaken" msgid="5266892392848526147">"అవేకెన్"</string>
+    <string name="sound_name_bounce" msgid="8771447635446665231">"బౌన్స్"</string>
+    <string name="sound_name_drip" msgid="1744684469020662152">"డ్రిప్"</string>
+    <string name="sound_name_gallop" msgid="2664454314532060876">"గ్యాలప్"</string>
+    <string name="sound_name_nudge" msgid="5445751598250698244">"నడ్జ్"</string>
+    <string name="sound_name_orbit" msgid="4623457897813255481">"ఆర్బిట్"</string>
+    <string name="sound_name_rise" msgid="2200258555031675806">"రైస్"</string>
+    <string name="sound_name_sway" msgid="348448316663085643">"స్వే"</string>
+    <string name="sound_name_wag" msgid="2730733083078126563">"వాగ్"</string>
 </resources>

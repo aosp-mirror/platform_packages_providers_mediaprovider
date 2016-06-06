@@ -25,4 +25,13 @@
     <string name="root_images" msgid="5861633549189045666">"이미지"</string>
     <string name="root_videos" msgid="8792703517064649453">"동영상"</string>
     <string name="root_audio" msgid="3505830755201326018">"오디오"</string>
+    <string name="sound_name_awaken" msgid="5266892392848526147">"잠을 깨우는 소리"</string>
+    <string name="sound_name_bounce" msgid="8771447635446665231">"깡충깡충 뛰는 소리"</string>
+    <string name="sound_name_drip" msgid="1744684469020662152">"물방울이 똑똑 떨어지는 소리"</string>
+    <string name="sound_name_gallop" msgid="2664454314532060876">"말 달리는 소리"</string>
+    <string name="sound_name_nudge" msgid="5445751598250698244">"쿡쿡 찌르는 소리"</string>
+    <string name="sound_name_orbit" msgid="4623457897813255481">"궤도를 도는 소리"</string>
+    <string name="sound_name_rise" msgid="2200258555031675806">"점점 커지는 소리"</string>
+    <string name="sound_name_sway" msgid="348448316663085643">"천천히 흔들리는 소리"</string>
+    <string name="sound_name_wag" msgid="2730733083078126563">"개가 꼬리를 흔드는 소리"</string>
 </resources>

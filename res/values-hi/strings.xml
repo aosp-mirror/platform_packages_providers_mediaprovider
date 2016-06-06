@@ -25,4 +25,13 @@
     <string name="root_images" msgid="5861633549189045666">"चित्र"</string>
     <string name="root_videos" msgid="8792703517064649453">"वीडियो"</string>
     <string name="root_audio" msgid="3505830755201326018">"ऑडियो"</string>
+    <string name="sound_name_awaken" msgid="5266892392848526147">"अवेकन"</string>
+    <string name="sound_name_bounce" msgid="8771447635446665231">"बाउंस"</string>
+    <string name="sound_name_drip" msgid="1744684469020662152">"ड्रिप"</string>
+    <string name="sound_name_gallop" msgid="2664454314532060876">"गैलप"</string>
+    <string name="sound_name_nudge" msgid="5445751598250698244">"नज"</string>
+    <string name="sound_name_orbit" msgid="4623457897813255481">"ऑर्बिट"</string>
+    <string name="sound_name_rise" msgid="2200258555031675806">"राइज़"</string>
+    <string name="sound_name_sway" msgid="348448316663085643">"स्वे"</string>
+    <string name="sound_name_wag" msgid="2730733083078126563">"वैग"</string>
 </resources>

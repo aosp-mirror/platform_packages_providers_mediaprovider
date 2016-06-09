@@ -26,12 +26,12 @@
     <string name="root_videos" msgid="8792703517064649453">"ဗီဒီယိုများ"</string>
     <string name="root_audio" msgid="3505830755201326018">"အသံ"</string>
     <string name="sound_name_awaken" msgid="5266892392848526147">"နိုးထသည့်အသံ"</string>
-    <string name="sound_name_bounce" msgid="8771447635446665231">"ဘောင့်စ်သီချင်းသံ"</string>
-    <string name="sound_name_drip" msgid="1744684469020662152">"အစက်ကျသည့်အသံ"</string>
-    <string name="sound_name_gallop" msgid="2664454314532060876">"မြင်းကဆုန်ပေါက်ပြေးသည့်အသံ"</string>
-    <string name="sound_name_nudge" msgid="5445751598250698244">"တံတောင်နှင့်တွတ်သည့်အသံ"</string>
-    <string name="sound_name_orbit" msgid="4623457897813255481">"လည်ပတ်သည့်အသံ"</string>
-    <string name="sound_name_rise" msgid="2200258555031675806">"အပေါ်တက်သည့်အသံ"</string>
-    <string name="sound_name_sway" msgid="348448316663085643">"ရွေ့လျားသည့်အသံ"</string>
-    <string name="sound_name_wag" msgid="2730733083078126563">"လှုပ်ခါသည့်အသံ"</string>
+    <string name="sound_name_bounce" msgid="8771447635446665231">"ဘောင့်စ်ဂီတ"</string>
+    <string name="sound_name_drip" msgid="1744684469020662152">"ရေစက်ကျသံ"</string>
+    <string name="sound_name_gallop" msgid="2664454314532060876">"ကဆုန်ပေါက်ပြေးသံ"</string>
+    <string name="sound_name_nudge" msgid="5445751598250698244">"အသာအယာနှိုးသံ"</string>
+    <string name="sound_name_orbit" msgid="4623457897813255481">"လည်ပတ်သံ"</string>
+    <string name="sound_name_rise" msgid="2200258555031675806">"စူးရှကျယ်လောင်သံ"</string>
+    <string name="sound_name_sway" msgid="348448316663085643">"ပုခက်လွှဲသံ"</string>
+    <string name="sound_name_wag" msgid="2730733083078126563">"လှုပ်ခါသံ"</string>
 </resources>

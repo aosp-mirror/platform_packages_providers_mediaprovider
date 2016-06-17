@@ -16,13 +16,13 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="uid_label" msgid="999888504096344278">"मीडिया"</string>
-    <string name="app_label" msgid="581696352855930028">"मीडिया मेमोरी"</string>
-    <string name="artist_label" msgid="1181678850424271227">"कलाकार"</string>
-    <string name="ringtone_default" msgid="3332469542084549546">"डिफ़ॉल्‍ट रिंगटोन"</string>
-    <string name="notification_sound_default" msgid="5309766396223094324">"साधारण नोटिफिकेशन ध्वनी"</string>
-    <string name="alarm_sound_default" msgid="6854264112790616066">"डिफ़ॉल्ट अलार्म ध्वनि"</string>
-    <string name="root_images" msgid="7098113056247445324">"चित्र"</string>
-    <string name="root_videos" msgid="3304457332406057833">"वीडियो"</string>
-    <string name="root_audio" msgid="7177565505195715659">"ऑडियो"</string>
+    <string name="uid_label" msgid="8421971615411294156">"मीडिया"</string>
+    <string name="app_label" msgid="9035307001052716210">"मीडिया मेमोरी"</string>
+    <string name="artist_label" msgid="8105600993099120273">"कलाकार"</string>
+    <string name="ringtone_default" msgid="1744846699922263043">"डिफ़ॉल्ट रिंगटोन"</string>
+    <string name="notification_sound_default" msgid="6541609166469990135">"डिफ़ॉल्ट नोटिफ़िकेशन ध्वनि"</string>
+    <string name="alarm_sound_default" msgid="5488847775252870314">"डिफ़ॉल्ट अलार्म ध्वनि"</string>
+    <string name="root_images" msgid="5861633549189045666">"चित्र"</string>
+    <string name="root_videos" msgid="8792703517064649453">"वीडियो"</string>
+    <string name="root_audio" msgid="3505830755201326018">"ऑडियो"</string>
 </resources>

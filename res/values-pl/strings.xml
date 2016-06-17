@@ -16,13 +16,13 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="uid_label" msgid="999888504096344278">"Multimedia"</string>
-    <string name="app_label" msgid="581696352855930028">"Przechowywanie multimediów"</string>
-    <string name="artist_label" msgid="1181678850424271227">"Wykonawca"</string>
-    <string name="ringtone_default" msgid="3332469542084549546">"Dzwonek domyślny"</string>
-    <string name="notification_sound_default" msgid="5309766396223094324">"Domyślny dźwięk powiadomienia"</string>
-    <string name="alarm_sound_default" msgid="6854264112790616066">"Domyślny dźwięk alarmu"</string>
-    <string name="root_images" msgid="7098113056247445324">"Obrazy"</string>
-    <string name="root_videos" msgid="3304457332406057833">"Filmy"</string>
-    <string name="root_audio" msgid="7177565505195715659">"Dźwięk"</string>
+    <string name="uid_label" msgid="8421971615411294156">"Multimedia"</string>
+    <string name="app_label" msgid="9035307001052716210">"Przechowywanie multimediów"</string>
+    <string name="artist_label" msgid="8105600993099120273">"Wykonawca"</string>
+    <string name="ringtone_default" msgid="1744846699922263043">"Dzwonek domyślny"</string>
+    <string name="notification_sound_default" msgid="6541609166469990135">"Domyślny dźwięk powiadomienia"</string>
+    <string name="alarm_sound_default" msgid="5488847775252870314">"Domyślny dźwięk alarmu"</string>
+    <string name="root_images" msgid="5861633549189045666">"Grafika"</string>
+    <string name="root_videos" msgid="8792703517064649453">"Filmy"</string>
+    <string name="root_audio" msgid="3505830755201326018">"Dźwięk"</string>
 </resources>

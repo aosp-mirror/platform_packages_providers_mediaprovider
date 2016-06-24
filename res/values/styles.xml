@@ -16,7 +16,7 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <style name="PickerDialogTheme" parent="@*android:style/Theme.Material.Settings.Dialog">
+    <style name="PickerDialogTheme" parent="@*android:style/Theme.DeviceDefault.Settings.Dialog">
     </style>
 
 </resources>

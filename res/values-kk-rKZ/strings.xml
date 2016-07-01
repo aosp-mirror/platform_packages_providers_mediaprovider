@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--  Copyright (C) 2009 The Android Open Source Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+  
+          http://www.apache.org/licenses/LICENSE-2.0
+  
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+ -->
+
+<resources xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="uid_label" msgid="8421971615411294156">"Мультимeдиа"</string>
+    <string name="app_label" msgid="9035307001052716210">"Мультимедиа қоймасы"</string>
+    <string name="artist_label" msgid="8105600993099120273">"Орындаушы"</string>
+    <string name="ringtone_default" msgid="1744846699922263043">"Әдепкі қоңырау әуені"</string>
+    <string name="notification_sound_default" msgid="6541609166469990135">"Әдепкі хабарландыру дыбысы"</string>
+    <string name="alarm_sound_default" msgid="5488847775252870314">"Әдепкі дабыл дыбысы"</string>
+    <string name="root_images" msgid="5861633549189045666">"Кескіндер"</string>
+    <string name="root_videos" msgid="8792703517064649453">"Бейнелер"</string>
+    <string name="root_audio" msgid="3505830755201326018">"Aудио"</string>
+</resources>

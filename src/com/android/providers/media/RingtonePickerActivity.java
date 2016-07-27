@@ -16,8 +16,11 @@
 
 package com.android.providers.media;
 
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager.NameNotFoundException;
+import android.content.pm.UserInfo;
 import android.content.res.Resources;
 import android.content.res.Resources.NotFoundException;
 import android.database.Cursor;
@@ -28,6 +31,8 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.UserHandle;
+import android.os.UserManager;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Log;
@@ -162,8 +167,32 @@ public final class RingtonePickerActivity extends AlertActivity implements
                 RingtoneManager.EXTRA_RINGTONE_AUDIO_ATTRIBUTES_FLAGS,
                 0 /*defaultValue == no flags*/);
 
+        int pickerUserId = intent.getIntExtra(Intent.EXTRA_USER_ID, UserHandle.USER_CURRENT);
+
         // Give the Activity so it can do managed queries
-        mRingtoneManager = new RingtoneManager(this);
+        Context targetContext = this;
+        if (pickerUserId != UserHandle.USER_CURRENT) {
+            UserInfo parentInfo = UserManager.get(this).getProfileParent(pickerUserId);
+            final int myUserId = UserHandle.myUserId();
+
+            // pickerUserId must be calling user or its parent
+            if (pickerUserId != myUserId && (parentInfo == null || myUserId != parentInfo.id)) {
+                finish();
+                throw new SecurityException(
+                        "User " + pickerUserId + " is not owned by user " + myUserId);
+            }
+
+            try {
+                // This allows listing ringtones of a different profile (managed by the caller)
+                targetContext = createPackageContextAsUser(getPackageName(), 0 /* flags */,
+                        UserHandle.of(pickerUserId));
+            } catch (NameNotFoundException e) {
+                Log.w(TAG, "Unable to create user context.", e);
+                finish();
+                return;
+            }
+        }
+        mRingtoneManager = new RingtoneManager(targetContext);
 
         // Get the types of ringtones to show
         mType = intent.getIntExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, -1);

@@ -15,6 +15,7 @@
 
     <application android:process="android.process.media"
                  android:label="@string/app_label"
+                 android:allowBackup="false"
                  android:supportsRtl="true">
         <provider android:name="MediaProvider" android:authorities="media"
                 android:multiprocess="false" android:exported="true">

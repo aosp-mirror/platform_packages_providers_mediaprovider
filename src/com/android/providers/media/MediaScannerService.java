@@ -240,7 +240,7 @@ public class MediaScannerService extends Service implements Runnable {
                         if (getSystemService(UserManager.class).isDemoUser()) {
                             directories = ArrayUtils.appendElement(String.class,
                                     mExternalStoragePaths,
-                                    Environment.getDataPreloadsDirectory().getAbsolutePath());
+                                    Environment.getDataPreloadsMediaDirectory().getAbsolutePath());
                         } else {
                             directories = mExternalStoragePaths;
                         }

@@ -147,26 +147,6 @@ public final class RingtonePickerActivity extends AlertActivity implements
 
         Intent intent = getIntent();
 
-        /*
-         * Get whether to show the 'Default' item, and the URI to play when the
-         * default is clicked
-         */
-        mHasDefaultItem = intent.getBooleanExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true);
-        mUriForDefaultItem = intent.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI);
-        if (mUriForDefaultItem == null) {
-            mUriForDefaultItem = Settings.System.DEFAULT_RINGTONE_URI;
-        }
-
-        if (savedInstanceState != null) {
-            mClickedPos = savedInstanceState.getInt(SAVE_CLICKED_POS, POS_UNKNOWN);
-        }
-        // Get whether to show the 'Silent' item
-        mHasSilentItem = intent.getBooleanExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true);
-        // AudioAttributes flags
-        mAttributesFlags |= intent.getIntExtra(
-                RingtoneManager.EXTRA_RINGTONE_AUDIO_ATTRIBUTES_FLAGS,
-                0 /*defaultValue == no flags*/);
-
         int pickerUserId = intent.getIntExtra(Intent.EXTRA_USER_ID, UserHandle.USER_CURRENT);
 
         // Give the Activity so it can do managed queries
@@ -199,6 +179,35 @@ public final class RingtonePickerActivity extends AlertActivity implements
         if (mType != -1) {
             mRingtoneManager.setType(mType);
         }
+
+        /*
+         * Get whether to show the 'Default' item, and the URI to play when the
+         * default is clicked
+         */
+        mHasDefaultItem = intent.getBooleanExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true);
+        mUriForDefaultItem = intent.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI);
+        if (mUriForDefaultItem == null) {
+            if (mType == RingtoneManager.TYPE_NOTIFICATION) {
+                mUriForDefaultItem = Settings.System.DEFAULT_NOTIFICATION_URI;
+            } else if (mType == RingtoneManager.TYPE_ALARM) {
+                mUriForDefaultItem = Settings.System.DEFAULT_ALARM_ALERT_URI;
+            } else if (mType == RingtoneManager.TYPE_RINGTONE) {
+                mUriForDefaultItem = Settings.System.DEFAULT_RINGTONE_URI;
+            } else {
+                // or leave it null for silence.
+                mUriForDefaultItem = Settings.System.DEFAULT_RINGTONE_URI;
+            }
+        }
+
+        if (savedInstanceState != null) {
+            mClickedPos = savedInstanceState.getInt(SAVE_CLICKED_POS, POS_UNKNOWN);
+        }
+        // Get whether to show the 'Silent' item
+        mHasSilentItem = intent.getBooleanExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true);
+        // AudioAttributes flags
+        mAttributesFlags |= intent.getIntExtra(
+                RingtoneManager.EXTRA_RINGTONE_AUDIO_ATTRIBUTES_FLAGS,
+                0 /*defaultValue == no flags*/);
 
         mCursor = new LocalizedCursor(mRingtoneManager.getCursor(), getResources(), COLUMN_LABEL);
 

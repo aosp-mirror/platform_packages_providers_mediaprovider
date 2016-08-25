@@ -16,6 +16,7 @@
 
 package com.android.providers.media;
 
+import android.content.ContentProvider;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -37,8 +38,13 @@ import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Log;
 import android.util.TypedValue;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.AdapterView.AdapterContextMenuInfo;
+import android.widget.CursorAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -103,6 +109,9 @@ public final class RingtonePickerActivity extends AlertActivity implements
     /** The Uri to play when the 'Default' item is clicked. */
     private Uri mUriForDefaultItem;
 
+    /** Id of the user to which the ringtone picker should list the ringtones */
+    private int mPickerUserId;
+
     /**
      * A Ringtone for the default ringtone. In most cases, the RingtoneManager
      * will stop the previous ringtone. However, the RingtoneManager doesn't
@@ -156,32 +165,33 @@ public final class RingtonePickerActivity extends AlertActivity implements
 
         Intent intent = getIntent();
 
-        int pickerUserId = intent.getIntExtra(Intent.EXTRA_USER_ID, UserHandle.USER_CURRENT);
-
+        mPickerUserId = intent.getIntExtra(Intent.EXTRA_USER_ID, UserHandle.USER_CURRENT);
         // Give the Activity so it can do managed queries
         Context targetContext = this;
-        if (pickerUserId != UserHandle.USER_CURRENT) {
-            UserInfo parentInfo = UserManager.get(this).getProfileParent(pickerUserId);
+        if (mPickerUserId != UserHandle.USER_CURRENT) {
+            UserInfo parentInfo = UserManager.get(this).getProfileParent(mPickerUserId);
             final int myUserId = UserHandle.myUserId();
 
-            // pickerUserId must be calling user or its parent
-            if (pickerUserId != myUserId && (parentInfo == null || myUserId != parentInfo.id)) {
+            // calling user must be mPickerUserId or its parent
+            if (mPickerUserId != myUserId && (parentInfo == null || myUserId != parentInfo.id)) {
                 finish();
                 throw new SecurityException(
-                        "User " + pickerUserId + " is not owned by user " + myUserId);
+                        "User " + mPickerUserId + " is not managed by user " + myUserId);
             }
 
             try {
                 // This allows listing ringtones of a different profile (managed by the caller)
                 targetContext = createPackageContextAsUser(getPackageName(), 0 /* flags */,
-                        UserHandle.of(pickerUserId));
+                        UserHandle.of(mPickerUserId));
             } catch (NameNotFoundException e) {
                 Log.w(TAG, "Unable to create user context.", e);
                 finish();
                 return;
             }
+        } else {
+            mPickerUserId = UserHandle.myUserId();
         }
-        mRingtoneManager = new RingtoneManager(targetContext);
+        mRingtoneManager = new RingtoneManager(targetContext, /* includeParentRingtones */ true);
 
         // Get the types of ringtones to show
         mType = intent.getIntExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, -1);
@@ -231,7 +241,7 @@ public final class RingtonePickerActivity extends AlertActivity implements
                 .getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI);
 
         final AlertController.AlertParams p = mAlertParams;
-        p.mCursor = mCursor;
+        p.mAdapter = new WorkRingtonesAdapter(mCursor);
         p.mOnClickListener = mRingtoneClickListener;
         p.mLabelColumn = COLUMN_LABEL;
         p.mIsSingleChoice = true;
@@ -262,6 +272,15 @@ public final class RingtonePickerActivity extends AlertActivity implements
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putInt(SAVE_CLICKED_POS, mClickedPos);
+    }
+
+    @Override
+    public void onDestroy() {
+        if (mCursor != null) {
+            mCursor.close();
+            mCursor = null;
+        }
+        super.onDestroy();
     }
 
     public void onPrepareListView(ListView listView) {
@@ -547,6 +566,73 @@ public final class RingtonePickerActivity extends AlertActivity implements
             } else {
                 Log.e(TAG, "Invalid value when looking up localized name, using " + defaultName);
                 return defaultName;
+            }
+        }
+    }
+
+    private class BadgedRingtoneAdapter extends CursorAdapter {
+        private final boolean mIsManagedProfile;
+
+        public BadgedRingtoneAdapter(Context context, Cursor cursor, boolean isManagedProfile) {
+            super(context, cursor);
+            mIsManagedProfile = isManagedProfile;
+        }
+
+        @Override
+        public boolean areAllItemsEnabled() {
+            return true;
+        }
+
+        @Override
+        public boolean isEnabled(int position) {
+            return true;
+        }
+
+        @Override
+        public long getItemId(int position) {
+            if (position < 0) {
+                return position;
+            }
+            return super.getItemId(position);
+        }
+
+        @Override
+        public View newView(Context context, Cursor cursor, ViewGroup parent) {
+            LayoutInflater inflater = LayoutInflater.from(context);
+            return inflater.inflate(R.layout.radio_with_work_badge, parent, false);
+        }
+
+        @Override
+        public void bindView(View view, Context context, Cursor cursor) {
+            // Set text as the title of the ringtone
+            ((TextView) view.findViewById(R.id.checked_text_view))
+                    .setText(cursor.getString(RingtoneManager.TITLE_COLUMN_INDEX));
+
+            boolean isWorkRingtone = false;
+            if (mIsManagedProfile) {
+                /*
+                 * Display the work icon if the ringtone belongs to a work profile. We can tell that
+                 * a ringtone belongs to a work profile if the picker user is a managed profile, the
+                 * ringtone Uri is in external storage, and either the uri has no user id or has the
+                 * id of the picker user
+                 */
+                Uri currentUri = mRingtoneManager.getRingtoneUri(cursor.getPosition());
+                int uriUserId = ContentProvider.getUserIdFromUri(currentUri, mPickerUserId);
+                Uri uriWithoutUserId = ContentProvider.getUriWithoutUserId(currentUri);
+
+                if (uriUserId == mPickerUserId && uriWithoutUserId.toString()
+                        .startsWith(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI.toString())) {
+                    isWorkRingtone = true;
+                }
+            }
+
+            ImageView workIcon = (ImageView) view.findViewById(R.id.work_icon);
+            if(isWorkRingtone) {
+                workIcon.setImageDrawable(getPackageManager().getUserBadgeForDensityNoBackground(
+                        UserHandle.of(mPickerUserId), -1 /* density */));
+                workIcon.setVisibility(View.VISIBLE);
+            } else {
+                workIcon.setVisibility(View.GONE);
             }
         }
     }

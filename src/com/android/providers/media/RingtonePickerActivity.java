@@ -379,7 +379,6 @@ public final class RingtonePickerActivity extends AlertActivity implements
     @Override
     protected void onStop() {
         super.onStop();
-        mCursor.deactivate();
 
         if (!isChangingConfigurations()) {
             stopAnyPlayingRingtone();

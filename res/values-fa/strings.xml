@@ -23,7 +23,7 @@
     <string name="notification_sound_default" msgid="6541609166469990135">"صدای اعلان پیش‌فرض"</string>
     <string name="alarm_sound_default" msgid="5488847775252870314">"صدای زنگ پیش‌فرض"</string>
     <string name="root_images" msgid="5861633549189045666">"تصویر"</string>
-    <string name="root_videos" msgid="8792703517064649453">"ویدیو"</string>
+    <string name="root_videos" msgid="8792703517064649453">"ویدئو"</string>
     <string name="root_audio" msgid="3505830755201326018">"صوت"</string>
     <string name="sound_name_awaken" msgid="5266892392848526147">"بیداری"</string>
     <string name="sound_name_bounce" msgid="8771447635446665231">"جهش"</string>

@@ -1982,34 +1982,36 @@ public class MediaProvider extends ContentProvider {
                     return 0;
                 }
             }
-            Long cid = mDirectoryCache.get(parentPath);
-            if (cid != null) {
-                if (LOCAL_LOGV) Log.v(TAG, "Returning cached entry for " + parentPath);
-                return cid;
-            }
-
-            String selection = MediaStore.MediaColumns.DATA + "=?";
-            String [] selargs = { parentPath };
-            helper.mNumQueries++;
-            Cursor c = db.query("files", sIdOnlyColumn, selection, selargs, null, null, null);
-            try {
-                long id;
-                if (c == null || c.getCount() == 0) {
-                    // parent isn't in the database - so add it
-                    id = insertDirectory(helper, db, parentPath);
-                    if (LOCAL_LOGV) Log.v(TAG, "Inserted " + parentPath);
-                } else {
-                    if (c.getCount() > 1) {
-                        Log.e(TAG, "more than one match for " + parentPath);
-                    }
-                    c.moveToFirst();
-                    id = c.getLong(0);
-                    if (LOCAL_LOGV) Log.v(TAG, "Queried " + parentPath);
+            synchronized(mDirectoryCache) {
+                Long cid = mDirectoryCache.get(parentPath);
+                if (cid != null) {
+                    if (LOCAL_LOGV) Log.v(TAG, "Returning cached entry for " + parentPath);
+                    return cid;
                 }
-                mDirectoryCache.put(parentPath, id);
-                return id;
-            } finally {
-                IoUtils.closeQuietly(c);
+
+                String selection = MediaStore.MediaColumns.DATA + "=?";
+                String [] selargs = { parentPath };
+                helper.mNumQueries++;
+                Cursor c = db.query("files", sIdOnlyColumn, selection, selargs, null, null, null);
+                try {
+                    long id;
+                    if (c == null || c.getCount() == 0) {
+                        // parent isn't in the database - so add it
+                        id = insertDirectory(helper, db, parentPath);
+                        if (LOCAL_LOGV) Log.v(TAG, "Inserted " + parentPath);
+                    } else {
+                        if (c.getCount() > 1) {
+                            Log.e(TAG, "more than one match for " + parentPath);
+                        }
+                        c.moveToFirst();
+                        id = c.getLong(0);
+                        if (LOCAL_LOGV) Log.v(TAG, "Queried " + parentPath);
+                    }
+                    mDirectoryCache.put(parentPath, id);
+                    return id;
+                } finally {
+                    IoUtils.closeQuietly(c);
+                }
             }
         } else {
             return 0;
@@ -2259,7 +2261,9 @@ public class MediaProvider extends ContentProvider {
                     new String[] { Long.toString(rowId) });
         }
         if (format == MtpConstants.FORMAT_ASSOCIATION) {
-            mDirectoryCache.put(path, rowId);
+            synchronized(mDirectoryCache) {
+                mDirectoryCache.put(path, rowId);
+            }
         }
 
         return rowId;
@@ -2662,6 +2666,7 @@ public class MediaProvider extends ContentProvider {
 
         long lastId = -1;
         int numFound = 0, numFixed = 0;
+        boolean firstIteration = true;
         while (true) {
             // Run a query for any entry with an invalid parent id, and try to fix it up.
             // Limit to 500 rows so that the query results fit in the cursor window. Otherwise
@@ -2678,6 +2683,12 @@ public class MediaProvider extends ContentProvider {
                 }
 
                 numFound += c.getCount();
+                if (firstIteration) {
+                    synchronized(mDirectoryCache) {
+                        mDirectoryCache.clear();
+                    }
+                    firstIteration = false;
+                }
                 while (c.moveToNext()) {
                     final String path = c.getString(0);
                     lastId = c.getLong(1);

@@ -59,6 +59,7 @@ import android.media.MiniThumbFile;
 import android.mtp.MtpConstants;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -4122,6 +4123,15 @@ public class MediaProvider extends ContentProvider {
                 String msg = dump(database, false);
                 logToDb(database.getWritableDatabase(), msg);
             }
+            if (INTERNAL_VOLUME.equals(mMediaScannerVolume)) {
+                // persist current build fingerprint as fingerprint for system (internal) sound scan
+                final SharedPreferences scanSettings =
+                        getContext().getSharedPreferences(MediaScanner.SCANNED_BUILD_PREFS_NAME,
+                                Context.MODE_PRIVATE);
+                final SharedPreferences.Editor editor = scanSettings.edit();
+                editor.putString(MediaScanner.LAST_INTERNAL_SCAN_FINGERPRINT, Build.FINGERPRINT);
+                editor.apply();
+            }
             mMediaScannerVolume = null;
             return 1;
         }
@@ -4979,7 +4989,7 @@ public class MediaProvider extends ContentProvider {
             ParcelFileDescriptor pfd = ParcelFileDescriptor.open(f,
                     ParcelFileDescriptor.MODE_READ_ONLY);
 
-            try (MediaScanner scanner = new MediaScanner(context, "internal")) {
+            try (MediaScanner scanner = new MediaScanner(context, INTERNAL_VOLUME)) {
                 compressed = scanner.extractAlbumArt(pfd.getFileDescriptor());
             }
             pfd.close();

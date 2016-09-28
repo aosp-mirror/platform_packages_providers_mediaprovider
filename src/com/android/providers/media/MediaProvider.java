@@ -2182,7 +2182,7 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        if (mimeType == null && path != null) {
+        if (mimeType == null && path != null && format != MtpConstants.FORMAT_ASSOCIATION) {
             mimeType = MediaFile.getMimeTypeForFile(path);
         }
         if (mimeType != null) {

@@ -2175,7 +2175,7 @@ public class MediaProvider extends ContentProvider {
                 format = MediaFile.getFormatCode(path, mimeType);
             }
         }
-        if (path.endsWith("/")) {
+        if (path != null && path.endsWith("/")) {
             Log.e(TAG, "directory has trailing slash: " + path);
             return 0;
         }

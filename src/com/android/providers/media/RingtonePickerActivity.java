@@ -45,6 +45,7 @@ import android.widget.TextView;
 import com.android.internal.app.AlertActivity;
 import com.android.internal.app.AlertController;
 
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
@@ -116,6 +117,8 @@ public final class RingtonePickerActivity extends AlertActivity implements
     private Ringtone mCurrentRingtone;
 
     private int mAttributesFlags;
+
+    private boolean mShowOkCancelButtons;
 
     /**
      * Keep the currently playing ringtone around when changing orientation, so that it
@@ -209,6 +212,9 @@ public final class RingtonePickerActivity extends AlertActivity implements
                 RingtoneManager.EXTRA_RINGTONE_AUDIO_ATTRIBUTES_FLAGS,
                 0 /*defaultValue == no flags*/);
 
+        mShowOkCancelButtons = getResources().getBoolean(R.bool.config_showOkCancelButtons);
+
+
         mCursor = new LocalizedCursor(mRingtoneManager.getCursor(), getResources(), COLUMN_LABEL);
 
         // The volume keys will control the stream that we are choosing a ringtone for
@@ -224,10 +230,12 @@ public final class RingtonePickerActivity extends AlertActivity implements
         p.mLabelColumn = COLUMN_LABEL;
         p.mIsSingleChoice = true;
         p.mOnItemSelectedListener = this;
-        p.mPositiveButtonText = getString(com.android.internal.R.string.ok);
-        p.mPositiveButtonListener = this;
-        p.mNegativeButtonText = getString(com.android.internal.R.string.cancel);
-        p.mPositiveButtonListener = this;
+        if (mShowOkCancelButtons) {
+            p.mPositiveButtonText = getString(com.android.internal.R.string.ok);
+            p.mPositiveButtonListener = this;
+            p.mNegativeButtonText = getString(com.android.internal.R.string.cancel);
+            p.mPositiveButtonListener = this;
+        }
         p.mOnPrepareListViewListener = this;
 
         p.mTitle = intent.getCharSequenceExtra(RingtoneManager.EXTRA_RINGTONE_TITLE);
@@ -402,6 +410,34 @@ public final class RingtonePickerActivity extends AlertActivity implements
         if (!isChangingConfigurations()) {
             stopAnyPlayingRingtone();
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (!mShowOkCancelButtons) {
+            // Obtain the currently selected ringtone
+            Uri uri = null;
+            if (mClickedPos == mDefaultRingtonePos) {
+                // Set it to the default Uri that they originally gave us
+                uri = mUriForDefaultItem;
+            } else if (mClickedPos == mSilentPos) {
+                // A null Uri is for the 'Silent' item
+                uri = null;
+            } else {
+                uri = mRingtoneManager.getRingtoneUri(getRingtoneManagerPosition(mClickedPos));
+            }
+
+            // Return new URI if another ringtone was selected, as there's no ok/cancel button
+            if (Objects.equals(uri, mExistingUri)) {
+                setResult(RESULT_CANCELED);
+            } else {
+                Intent resultIntent = new Intent();
+                resultIntent.putExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI, uri);
+                setResult(RESULT_OK, resultIntent);
+            }
+        }
+
+        super.onBackPressed();
     }
 
     private void saveAnyPlayingRingtone() {

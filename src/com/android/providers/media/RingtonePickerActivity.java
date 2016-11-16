@@ -240,7 +240,14 @@ public final class RingtonePickerActivity extends AlertActivity implements
 
         p.mTitle = intent.getCharSequenceExtra(RingtoneManager.EXTRA_RINGTONE_TITLE);
         if (p.mTitle == null) {
-            p.mTitle = getString(com.android.internal.R.string.ringtone_picker_title);
+          if (mType == RingtoneManager.TYPE_ALARM) {
+              p.mTitle = getString(com.android.internal.R.string.ringtone_picker_title_alarm);
+          } else if (mType == RingtoneManager.TYPE_NOTIFICATION) {
+              p.mTitle =
+                  getString(com.android.internal.R.string.ringtone_picker_title_notification);
+          } else {
+              p.mTitle = getString(com.android.internal.R.string.ringtone_picker_title);
+          }
         }
 
         setupAlert();

@@ -835,6 +835,8 @@ public class MediaProvider extends ContentProvider {
                     + " WHEN old.media_type=4"
                     + " BEGIN DELETE FROM audio_playlists_map WHERE playlist_id = old._id;"
                     + "SELECT _DELETE_FILE(old._data);END");
+            db.execSQL("CREATE TRIGGER files_cleanup DELETE ON files"
+                    + " BEGIN SELECT _OBJECT_REMOVED(old._id);END");
         }
 
         db.execSQL("CREATE INDEX image_id_index on thumbnails(image_id)");
@@ -909,8 +911,6 @@ public class MediaProvider extends ContentProvider {
                 + " WHERE album_id = old.album_id;END");
         db.execSQL("CREATE TRIGGER albumart_cleanup2 DELETE ON album_art"
                 + " BEGIN SELECT _DELETE_FILE(old._data);END");
-        db.execSQL("CREATE TRIGGER files_cleanup DELETE ON files"
-                + " BEGIN SELECT _OBJECT_REMOVED(old._id);END");
     }
 
     private static void updateFromKKSchema(SQLiteDatabase db, boolean internal, int fromVersion) {

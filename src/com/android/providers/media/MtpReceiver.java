@@ -16,6 +16,7 @@
 
 package com.android.providers.media;
 
+import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -23,7 +24,9 @@ import android.content.IntentFilter;
 import android.hardware.usb.UsbManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.UserHandle;
 import android.util.Log;
+import android.mtp.MtpServer;
 
 public class MtpReceiver extends BroadcastReceiver {
     private static final String TAG = MtpReceiver.class.getSimpleName();
@@ -45,12 +48,21 @@ public class MtpReceiver extends BroadcastReceiver {
 
     private void handleUsbState(Context context, Intent intent) {
         Bundle extras = intent.getExtras();
-        boolean connected = extras.getBoolean(UsbManager.USB_CONFIGURED);
+        boolean configured = extras.getBoolean(UsbManager.USB_CONFIGURED);
         boolean mtpEnabled = extras.getBoolean(UsbManager.USB_FUNCTION_MTP);
         boolean ptpEnabled = extras.getBoolean(UsbManager.USB_FUNCTION_PTP);
         boolean unlocked = extras.getBoolean(UsbManager.USB_DATA_UNLOCKED);
-        // Start MTP service if USB is connected and either the MTP or PTP function is enabled
-        if (connected && (mtpEnabled || ptpEnabled)) {
+        boolean configChanged = extras.getBoolean(UsbManager.USB_CONFIG_CHANGED);
+        boolean isCurrentUser = UserHandle.myUserId() == ActivityManager.getCurrentUser();
+
+        if (configChanged && (mtpEnabled || ptpEnabled)) {
+            if (!isCurrentUser)
+                return;
+            MtpServer.configure(ptpEnabled);
+            // tell MediaProvider MTP is configured so it can bind to the service
+            context.getContentResolver().insert(Uri.parse(
+                    "content://media/none/mtp_connected"), null);
+        } else if (configured && (mtpEnabled || ptpEnabled)) {
             intent = new Intent(context, MtpService.class);
             intent.putExtra(UsbManager.USB_DATA_UNLOCKED, unlocked);
             if (ptpEnabled) {
@@ -58,9 +70,6 @@ public class MtpReceiver extends BroadcastReceiver {
             }
             if (DEBUG) { Log.d(TAG, "handleUsbState startService"); }
             context.startService(intent);
-            // tell MediaProvider MTP is connected so it can bind to the service
-            context.getContentResolver().insert(Uri.parse(
-                    "content://media/none/mtp_connected"), null);
         } else {
             boolean status = context.stopService(new Intent(context, MtpService.class));
             if (DEBUG) { Log.d(TAG, "handleUsbState stopService status=" + status); }

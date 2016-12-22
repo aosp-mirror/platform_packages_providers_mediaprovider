@@ -24,6 +24,7 @@ import android.hardware.usb.UsbManager;
 import android.mtp.MtpDatabase;
 import android.mtp.MtpServer;
 import android.mtp.MtpStorage;
+import android.os.Build;
 import android.os.Environment;
 import android.os.IBinder;
 import android.os.UserHandle;
@@ -188,7 +189,20 @@ public class MtpService extends Service {
             Log.d(TAG, "starting MTP server in " + (mPtpMode ? "PTP mode" : "MTP mode"));
             final MtpDatabase database = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME,
                     primary.getPath(), subdirs);
-            final MtpServer server = new MtpServer(database, mPtpMode, new OnServerTerminated());
+            String deviceSerialNumber = Build.getSerial();
+            if (Build.UNKNOWN.equals(deviceSerialNumber)) {
+                deviceSerialNumber = "????????";
+            }
+            final MtpServer server =
+                    new MtpServer(
+                            database,
+                            mPtpMode,
+                            new OnServerTerminated(),
+                            Build.MANUFACTURER, // MTP DeviceInfo: Manufacturer
+                            Build.MODEL,        // MTP DeviceInfo: Model
+                            "1.0",              // MTP DeviceInfo: Device Version
+                            deviceSerialNumber  // MTP DeviceInfo: Serial Number
+                            );
             database.setServer(server);
             sServerHolder = new ServerHolder(server, database);
 

@@ -23,6 +23,7 @@ import android.hardware.usb.UsbManager;
 import android.mtp.MtpDatabase;
 import android.mtp.MtpServer;
 import android.mtp.MtpStorage;
+import android.os.Build;
 import android.os.Environment;
 import android.os.IBinder;
 import android.os.UserHandle;
@@ -156,7 +157,19 @@ public class MtpService extends Service {
             Log.d(TAG, "starting MTP server in " + (mPtpMode ? "PTP mode" : "MTP mode"));
             mDatabase = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME,
                     primary.getPath(), subdirs);
-            mServer = new MtpServer(mDatabase, mPtpMode);
+            String deviceSerialNumber = Build.SERIAL;
+            if (Build.UNKNOWN.equals(deviceSerialNumber)) {
+                deviceSerialNumber = "????????";
+            }
+            mServer =
+                    new MtpServer(
+                            mDatabase,
+                            mPtpMode,
+                            Build.MANUFACTURER, // MTP DeviceInfo: Manufacturer
+                            Build.MODEL,        // MTP DeviceInfo: Model
+                            "1.0",              // MTP DeviceInfo: Device Version
+                            deviceSerialNumber  // MTP DeviceInfo: Serial Number
+                            );
             mDatabase.setServer(mServer);
             if (!mMtpDisabled) {
                 addStorageDevicesLocked();

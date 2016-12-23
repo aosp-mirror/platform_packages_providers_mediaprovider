@@ -189,7 +189,7 @@ public class MtpService extends Service {
             Log.d(TAG, "starting MTP server in " + (mPtpMode ? "PTP mode" : "MTP mode"));
             final MtpDatabase database = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME,
                     primary.getPath(), subdirs);
-            String deviceSerialNumber = Build.getSerial();
+            String deviceSerialNumber = Build.SERIAL;
             if (Build.UNKNOWN.equals(deviceSerialNumber)) {
                 deviceSerialNumber = "????????";
             }

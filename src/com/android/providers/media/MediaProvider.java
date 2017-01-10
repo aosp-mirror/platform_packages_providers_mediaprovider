@@ -837,6 +837,8 @@ public class MediaProvider extends ContentProvider {
                     + "SELECT _DELETE_FILE(old._data);END");
             db.execSQL("CREATE TRIGGER files_cleanup DELETE ON files"
                     + " BEGIN SELECT _OBJECT_REMOVED(old._id);END");
+            db.execSQL("CREATE VIEW audio_playlists AS SELECT _id,_data,name,date_added,date_modified"
+                    + " FROM files WHERE media_type=4");
         }
 
         db.execSQL("CREATE INDEX image_id_index on thumbnails(image_id)");
@@ -893,8 +895,6 @@ public class MediaProvider extends ContentProvider {
                 + "'content://media/external/audio/media/'||searchhelpertitle._id"
                 + " AS suggest_intent_data,"
                 + "3 AS grouporder FROM searchhelpertitle WHERE (title != '')");
-        db.execSQL("CREATE VIEW audio_playlists AS SELECT _id,_data,name,date_added,date_modified"
-                + " FROM files WHERE media_type=4");
         db.execSQL("CREATE VIEW audio_genres_map_noid AS SELECT audio_id,genre_id"
                 + " FROM audio_genres_map");
         db.execSQL("CREATE VIEW images AS SELECT _id,_data,_size,_display_name,mime_type,title,"

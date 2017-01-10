@@ -34,4 +34,12 @@
     <string name="sound_name_rise" msgid="2200258555031675806">"Ucalan tempdə"</string>
     <string name="sound_name_sway" msgid="348448316663085643">"Yellənmə"</string>
     <string name="sound_name_wag" msgid="2730733083078126563">"Fırlatma"</string>
+    <!-- no translation found for add_ringtone_text (8077717303037760418) -->
+    <skip />
+    <!-- no translation found for delete_ringtone_text (2963662097583300181) -->
+    <skip />
+    <!-- no translation found for unable_to_add_ringtone (6256097521165711269) -->
+    <skip />
+    <!-- no translation found for unable_to_delete_ringtone (2258180073859253495) -->
+    <skip />
 </resources>

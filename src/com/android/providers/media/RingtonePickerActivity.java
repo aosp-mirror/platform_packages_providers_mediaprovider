@@ -137,6 +137,11 @@ public final class RingtonePickerActivity extends AlertActivity implements
      */
     private Ringtone mCurrentRingtone;
 
+    /**
+     * Stable ID for the ringtone that is currently checked (may be -1 if no ringtone is checked).
+     */
+    private long mCheckedItemId = -1;
+
     private int mAttributesFlags;
 
     private boolean mShowOkCancelButtons;
@@ -412,21 +417,22 @@ public final class RingtonePickerActivity extends AlertActivity implements
      * This should only need to happen after adding or removing a ringtone.
      */
     private void requeryForAdapter() {
-        // Save the ringtone that was selected before setting a new adapter.
-        final Ringtone currentRingtone = getRingtone(getRingtoneManagerPosition(getCheckedItem()));
-
         // Refresh and set a new cursor, closing the old one.
         initRingtoneManager();
         mAdapter.changeCursor(mCursor);
 
-        // Update checked item location using the selected ringtone URI.
-        if (currentRingtone != null) {
-            setCheckedItem(getListPosition(
-                    mRingtoneManager.getRingtonePosition(currentRingtone.getUri())));
+        // Update checked item location.
+        int checkedPosition = POS_UNKNOWN;
+        for (int i = 0; i < mAdapter.getCount(); i++) {
+            if (mAdapter.getItemId(i) == mCheckedItemId) {
+                checkedPosition = getListPosition(i);
+                break;
+            }
         }
-        if (mHasSilentItem && getCheckedItem() == POS_UNKNOWN) {
-            setCheckedItem(mSilentPos);
+        if (mHasSilentItem && checkedPosition == POS_UNKNOWN) {
+            checkedPosition = mSilentPos;
         }
+        setCheckedItem(checkedPosition);
         setupAlert();
     }
 
@@ -489,6 +495,7 @@ public final class RingtonePickerActivity extends AlertActivity implements
 
     private void setCheckedItem(int pos) {
         mAlertParams.mCheckedItem = pos;
+        mCheckedItemId = mAdapter.getItemId(getRingtoneManagerPosition(pos));
     }
 
     /*
@@ -720,16 +727,6 @@ public final class RingtonePickerActivity extends AlertActivity implements
         public BadgedRingtoneAdapter(Context context, Cursor cursor, boolean isManagedProfile) {
             super(context, cursor);
             mIsManagedProfile = isManagedProfile;
-        }
-
-        @Override
-        public boolean areAllItemsEnabled() {
-            return true;
-        }
-
-        @Override
-        public boolean isEnabled(int position) {
-            return true;
         }
 
         @Override

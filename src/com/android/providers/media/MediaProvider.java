@@ -17,6 +17,7 @@
 package com.android.providers.media;
 
 import static android.Manifest.permission.ACCESS_CACHE_FILESYSTEM;
+import static android.Manifest.permission.INTERACT_ACROSS_USERS;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_MEDIA_STORAGE;
@@ -42,6 +43,7 @@ import android.content.SharedPreferences;
 import android.content.UriMatcher;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.content.pm.UserInfo;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
@@ -61,6 +63,7 @@ import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.FileUtils;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
@@ -68,6 +71,8 @@ import android.os.ParcelFileDescriptor;
 import android.os.Process;
 import android.os.RemoteException;
 import android.os.SystemClock;
+import android.os.UserHandle;
+import android.os.UserManager;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.os.storage.VolumeInfo;
@@ -136,7 +141,6 @@ public class MediaProvider extends ContentProvider {
 
     private void updateStoragePaths() {
         mExternalStoragePaths = mStorageManager.getVolumePaths();
-
         try {
             mExternalPath =
                     Environment.getExternalStorageDirectory().getCanonicalPath() + File.separator;
@@ -4739,8 +4743,45 @@ public class MediaProvider extends ContentProvider {
             // don't write to non-cache, non-sdcard files.
             throw new FileNotFoundException("Can't access " + file);
         } else {
+            boolean hasWriteMediaStorage = c.checkCallingOrSelfPermission(WRITE_MEDIA_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED;
+            boolean hasInteractAcrossUsers = c.checkCallingOrSelfPermission(INTERACT_ACROSS_USERS)
+                    == PackageManager.PERMISSION_GRANTED;
+            if (!hasWriteMediaStorage && !hasInteractAcrossUsers && isOtherUserExternalDir(path)) {
+                throw new FileNotFoundException("Can't access across users " + file);
+            }
             checkWorldReadAccess(path);
         }
+    }
+
+    private boolean isOtherUserExternalDir(String path) {
+        List<VolumeInfo> volumes = mStorageManager.getVolumes();
+        for (VolumeInfo volume : volumes) {
+            if (contains(volume.path, path)) {
+                // If any of mExternalStoragePaths belongs to this volume and doesn't contain
+                // the path, then we consider the path to be from another user
+                for (String externalStoragePath : mExternalStoragePaths) {
+                    if (contains(volume.path, externalStoragePath)
+                            && !contains(externalStoragePath, path)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean contains(String dirPath, String filePath) {
+        if (dirPath== null || filePath == null) return false;
+
+        if (dirPath.equals(filePath)) {
+            return true;
+        }
+
+        if (!dirPath.endsWith("/")) {
+            dirPath += "/";
+        }
+        return filePath.startsWith(dirPath);
     }
 
     private boolean isSecondaryExternalPath(String path) {

@@ -240,9 +240,6 @@ public final class RingtonePickerActivity extends AlertActivity implements
             }
         }
 
-        if (savedInstanceState != null) {
-            setCheckedItem(savedInstanceState.getInt(SAVE_CLICKED_POS, POS_UNKNOWN));
-        }
         // Get whether to show the 'Silent' item
         mHasSilentItem = intent.getBooleanExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true);
         // AudioAttributes flags
@@ -262,6 +259,9 @@ public final class RingtonePickerActivity extends AlertActivity implements
         // Create the list of ringtones and hold on to it so we can update later.
         mAdapter = new BadgedRingtoneAdapter(this, mCursor,
                 /* isManagedProfile = */ UserManager.get(this).isManagedProfile(mPickerUserId));
+        if (savedInstanceState != null) {
+            setCheckedItem(savedInstanceState.getInt(SAVE_CLICKED_POS, POS_UNKNOWN));
+        }
 
         final AlertController.AlertParams p = mAlertParams;
         p.mAdapter = mAdapter;

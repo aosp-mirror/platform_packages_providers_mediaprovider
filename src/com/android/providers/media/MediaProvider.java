@@ -3318,10 +3318,11 @@ public class MediaProvider extends ContentProvider {
         synchronized (sGetTableAndWhereParam) {
             getTableAndWhere(uri, match, userWhere, sGetTableAndWhereParam);
 
-            // special case renaming directories via MTP.
+            // special case renaming directories via MTP and ESP.
             // in this case we must update all paths in the database with
             // the directory name as a prefix
-            if ((match == MTP_OBJECTS || match == MTP_OBJECTS_ID)
+            if ((match == MTP_OBJECTS || match == MTP_OBJECTS_ID
+                        || match == FILES || match == FILES_ID)
                     && initialValues != null && initialValues.size() == 1) {
                 String oldPath = null;
                 String newPath = initialValues.getAsString(MediaStore.MediaColumns.DATA);

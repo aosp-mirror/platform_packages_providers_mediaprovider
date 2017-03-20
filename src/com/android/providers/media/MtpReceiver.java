@@ -49,6 +49,7 @@ public class MtpReceiver extends BroadcastReceiver {
     private void handleUsbState(Context context, Intent intent) {
         Bundle extras = intent.getExtras();
         boolean configured = extras.getBoolean(UsbManager.USB_CONFIGURED);
+        boolean connected = extras.getBoolean(UsbManager.USB_CONNECTED);
         boolean mtpEnabled = extras.getBoolean(UsbManager.USB_FUNCTION_MTP);
         boolean ptpEnabled = extras.getBoolean(UsbManager.USB_FUNCTION_PTP);
         boolean unlocked = extras.getBoolean(UsbManager.USB_DATA_UNLOCKED);
@@ -70,7 +71,8 @@ public class MtpReceiver extends BroadcastReceiver {
             }
             if (DEBUG) { Log.d(TAG, "handleUsbState startService"); }
             context.startService(intent);
-        } else {
+        } else if (!connected || !(mtpEnabled || ptpEnabled)) {
+            // Only unbind if disconnected or disabled.
             boolean status = context.stopService(new Intent(context, MtpService.class));
             if (DEBUG) { Log.d(TAG, "handleUsbState stopService status=" + status); }
             // tell MediaProvider MTP is disconnected so it can unbind from the service

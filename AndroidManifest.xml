@@ -3,7 +3,7 @@
         android:sharedUserId="android.media"
         android:sharedUserLabel="@string/uid_label"
         android:versionCode="800">
-        
+
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -28,6 +28,7 @@
 
         <provider
             android:name="MediaDocumentsProvider"
+            android:label="@string/storage_description"
             android:authorities="com.android.providers.media.documents"
             android:grantUriPermissions="true"
             android:exported="true"

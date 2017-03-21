@@ -43,7 +43,6 @@ import android.content.SharedPreferences;
 import android.content.UriMatcher;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
-import android.content.pm.UserInfo;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
@@ -72,8 +71,6 @@ import android.os.ParcelFileDescriptor;
 import android.os.Process;
 import android.os.RemoteException;
 import android.os.SystemClock;
-import android.os.UserHandle;
-import android.os.UserManager;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.os.storage.VolumeInfo;
@@ -2652,6 +2649,14 @@ public class MediaProvider extends ContentProvider {
                 }
                 break;
 
+            case FILES_DIRECTORY:
+                rowId = insertDirectory(helper, helper.getWritableDatabase(),
+                        initialValues.getAsString(FileColumns.DATA));
+                if (rowId > 0) {
+                    newUri = Files.getContentUri(volumeName, rowId);
+                }
+                break;
+
             default:
                 throw new UnsupportedOperationException("Invalid URI " + uri);
         }
@@ -3055,6 +3060,7 @@ public class MediaProvider extends ContentProvider {
             case MTP_OBJECTS_ID:
                 where = "_id=" + uri.getPathSegments().get(2);
             case FILES:
+            case FILES_DIRECTORY:
             case MTP_OBJECTS:
                 out.table = "files";
                 break;
@@ -3318,10 +3324,10 @@ public class MediaProvider extends ContentProvider {
         synchronized (sGetTableAndWhereParam) {
             getTableAndWhere(uri, match, userWhere, sGetTableAndWhereParam);
 
-            // special case renaming directories via MTP.
+            // special case renaming directories via MTP and ESP.
             // in this case we must update all paths in the database with
             // the directory name as a prefix
-            if ((match == MTP_OBJECTS || match == MTP_OBJECTS_ID)
+            if ((match == MTP_OBJECTS || match == MTP_OBJECTS_ID || match == FILES_DIRECTORY)
                     && initialValues != null && initialValues.size() == 1) {
                 String oldPath = null;
                 String newPath = initialValues.getAsString(MediaStore.MediaColumns.DATA);
@@ -4736,6 +4742,9 @@ public class MediaProvider extends ContentProvider {
     // when MTP is connected and disconnected
     private static final int MTP_CONNECTED = 705;
 
+    // Used only to invoke special logic for directories
+    private static final int FILES_DIRECTORY = 706;
+
     private static final UriMatcher URI_MATCHER =
             new UriMatcher(UriMatcher.NO_MATCH);
 
@@ -4815,6 +4824,9 @@ public class MediaProvider extends ContentProvider {
         URI_MATCHER.addURI("media", "*/object", MTP_OBJECTS);
         URI_MATCHER.addURI("media", "*/object/#", MTP_OBJECTS_ID);
         URI_MATCHER.addURI("media", "*/object/#/references", MTP_OBJECT_REFERENCES);
+
+        // Used only to trigger special logic for directories
+        URI_MATCHER.addURI("media", "*/dir", FILES_DIRECTORY);
 
         /**
          * @deprecated use the 'basic' or 'fancy' search Uris instead

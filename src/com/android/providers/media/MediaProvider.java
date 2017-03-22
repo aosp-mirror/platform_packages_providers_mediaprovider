@@ -3863,8 +3863,8 @@ public class MediaProvider extends ContentProvider {
                 // If any of mExternalStoragePaths belongs to this volume and doesn't include
                 // the path, then we consider the path to be from another user
                 for (String externalStoragePath : mExternalStoragePaths) {
-                    if (externalStoragePath.startsWith(volume.path)
-                            && !path.startsWith(externalStoragePath)) {
+                    if (FileUtils.contains(volume.path, externalStoragePath)
+                            && !FileUtils.contains(externalStoragePath, path)) {
                         return true;
                     }
                 }

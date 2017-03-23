@@ -329,6 +329,8 @@ public final class RingtonePickerActivity extends AlertActivity implements
         }
     }
 
+    // Disabled because context menus aren't Material Design :(
+    /*
     @Override
     public void onCreateContextMenu(ContextMenu menu, View view, ContextMenuInfo menuInfo) {
         int position = ((AdapterContextMenuInfo) menuInfo).position;
@@ -361,6 +363,7 @@ public final class RingtonePickerActivity extends AlertActivity implements
             }
         }
     }
+    */
 
     @Override
     public void onDestroy() {

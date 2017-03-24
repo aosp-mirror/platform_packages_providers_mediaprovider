@@ -71,7 +71,7 @@ import java.util.regex.Pattern;
  */
 public final class RingtonePickerActivity extends AlertActivity implements
         AdapterView.OnItemSelectedListener, Runnable, DialogInterface.OnClickListener,
-        AlertController.AlertParams.OnPrepareListViewListener, OnCreateContextMenuListener {
+        AlertController.AlertParams.OnPrepareListViewListener {
 
     private static final int POS_UNKNOWN = -1;
 

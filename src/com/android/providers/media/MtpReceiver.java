@@ -56,7 +56,7 @@ public class MtpReceiver extends BroadcastReceiver {
         boolean configChanged = extras.getBoolean(UsbManager.USB_CONFIG_CHANGED);
         boolean isCurrentUser = UserHandle.myUserId() == ActivityManager.getCurrentUser();
 
-        if (configChanged && (mtpEnabled || ptpEnabled)) {
+        if ((configChanged || (connected && !configured)) && (mtpEnabled || ptpEnabled)) {
             if (!isCurrentUser)
                 return;
             MtpServer.configure(ptpEnabled);

@@ -17,7 +17,7 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"ມີເດຍ"</string>
-    <string name="storage_description" msgid="4081716890357580107">"Local storage"</string>
+    <string name="storage_description" msgid="4081716890357580107">"ບ່ອນຈັດເກັບຂໍ້ມູນໃນເຄື່ອງ"</string>
     <string name="app_label" msgid="9035307001052716210">"ພື້ນທີ່ຈັດເກັບຂໍ້ມູນມີເດຍ"</string>
     <string name="artist_label" msgid="8105600993099120273">"ສິນລະປິນ"</string>
     <string name="ringtone_default" msgid="1744846699922263043">"ຣິງໂທນເລີ່ມຕົ້ນ"</string>

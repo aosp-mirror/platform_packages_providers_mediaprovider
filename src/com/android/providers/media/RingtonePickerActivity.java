@@ -20,8 +20,6 @@ import android.content.ContentProvider;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.PackageManager.NameNotFoundException;
-import android.content.pm.UserInfo;
 import android.content.res.Resources;
 import android.content.res.Resources.NotFoundException;
 import android.database.Cursor;
@@ -40,16 +38,10 @@ import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Log;
 import android.util.TypedValue;
-import android.view.ContextMenu;
-import android.view.ContextMenu.ContextMenuInfo;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.View.OnCreateContextMenuListener;
 import android.widget.AdapterView;
-import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.CursorAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -190,32 +182,8 @@ public final class RingtonePickerActivity extends AlertActivity implements
         mHandler = new Handler();
 
         Intent intent = getIntent();
-
-        mPickerUserId = intent.getIntExtra(Intent.EXTRA_USER_ID, UserHandle.USER_CURRENT);
+        mPickerUserId = UserHandle.myUserId();
         mTargetContext = this;
-        if (mPickerUserId != UserHandle.USER_CURRENT) {
-            UserInfo parentInfo = UserManager.get(this).getProfileParent(mPickerUserId);
-            final int myUserId = UserHandle.myUserId();
-
-            // calling user must be mPickerUserId or its parent
-            if (mPickerUserId != myUserId && (parentInfo == null || myUserId != parentInfo.id)) {
-                finish();
-                throw new SecurityException(
-                        "User " + mPickerUserId + " is not managed by user " + myUserId);
-            }
-
-            try {
-                // This allows listing ringtones of a different profile (managed by the caller)
-                mTargetContext = createPackageContextAsUser(getPackageName(), 0 /* flags */,
-                        UserHandle.of(mPickerUserId));
-            } catch (NameNotFoundException e) {
-                Log.w(TAG, "Unable to create user context.", e);
-                finish();
-                return;
-            }
-        } else {
-            mPickerUserId = UserHandle.myUserId();
-        }
 
         // Get the types of ringtones to show
         mType = intent.getIntExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, -1);

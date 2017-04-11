@@ -17,8 +17,7 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"Медыя"</string>
-    <!-- no translation found for storage_description (4081716890357580107) -->
-    <skip />
+    <string name="storage_description" msgid="4081716890357580107">"Лакальнае сховішча"</string>
     <string name="app_label" msgid="9035307001052716210">"Медыясховішча"</string>
     <string name="artist_label" msgid="8105600993099120273">"Выканаўца"</string>
     <string name="ringtone_default" msgid="1744846699922263043">"Стандартны рынгтон"</string>

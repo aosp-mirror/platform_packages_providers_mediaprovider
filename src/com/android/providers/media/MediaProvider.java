@@ -1853,21 +1853,24 @@ public class MediaProvider extends ContentProvider {
             return setObjectReferences(helper, db, handle, values);
         }
 
-
-        db.beginTransaction();
         ArrayList<Long> notifyRowIds = new ArrayList<Long>();
         int numInserted = 0;
-        try {
-            int len = values.length;
-            for (int i = 0; i < len; i++) {
-                if (values[i] != null) {
-                    insertInternal(uri, match, values[i], notifyRowIds);
+        // insert may need to call getParent(), which in turn may need to update the database,
+        // so synchronize on mDirectoryCache to avoid deadlocks
+        synchronized (mDirectoryCache) {
+            db.beginTransaction();
+            try {
+                int len = values.length;
+                for (int i = 0; i < len; i++) {
+                    if (values[i] != null) {
+                        insertInternal(uri, match, values[i], notifyRowIds);
+                    }
                 }
+                numInserted = len;
+                db.setTransactionSuccessful();
+            } finally {
+                db.endTransaction();
             }
-            numInserted = len;
-            db.setTransactionSuccessful();
-        } finally {
-            db.endTransaction();
         }
 
         // Notify MTP (outside of successful transaction)
@@ -2846,33 +2849,42 @@ public class MediaProvider extends ContentProvider {
     public ContentProviderResult[] applyBatch(ArrayList<ContentProviderOperation> operations)
                 throws OperationApplicationException {
 
-        // The operations array provides no overall information about the URI(s) being operated
-        // on, so begin a transaction for ALL of the databases.
-        DatabaseHelper ihelper = getDatabaseForUri(MediaStore.Audio.Media.INTERNAL_CONTENT_URI);
-        DatabaseHelper ehelper = getDatabaseForUri(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);
-        SQLiteDatabase idb = ihelper.getWritableDatabase();
-        idb.beginTransaction();
-        SQLiteDatabase edb = null;
-        if (ehelper != null) {
-            edb = ehelper.getWritableDatabase();
-            edb.beginTransaction();
-        }
-        try {
-            ContentProviderResult[] result = super.applyBatch(operations);
-            idb.setTransactionSuccessful();
-            if (edb != null) {
-                edb.setTransactionSuccessful();
-            }
-            // Rather than sending targeted change notifications for every Uri
-            // affected by the batch operation, just invalidate the entire internal
-            // and external name space.
-            ContentResolver res = getContext().getContentResolver();
-            res.notifyChange(Uri.parse("content://media/"), null);
-            return result;
-        } finally {
-            idb.endTransaction();
-            if (edb != null) {
-                edb.endTransaction();
+        // batched operations are likely to need to call getParent(), which in turn may need to
+        // update the database, so synchronize on mDirectoryCache to avoid deadlocks
+        synchronized (mDirectoryCache) {
+            // The operations array provides no overall information about the URI(s) being operated
+            // on, so begin a transaction for ALL of the databases.
+            DatabaseHelper ihelper = getDatabaseForUri(MediaStore.Audio.Media.INTERNAL_CONTENT_URI);
+            DatabaseHelper ehelper = getDatabaseForUri(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);
+            SQLiteDatabase idb = ihelper.getWritableDatabase();
+            idb.beginTransaction();
+            SQLiteDatabase edb = null;
+            try {
+                if (ehelper != null) {
+                    edb = ehelper.getWritableDatabase();
+                }
+                if (edb != null) {
+                    edb.beginTransaction();
+                }
+                ContentProviderResult[] result = super.applyBatch(operations);
+                idb.setTransactionSuccessful();
+                if (edb != null) {
+                    edb.setTransactionSuccessful();
+                }
+                // Rather than sending targeted change notifications for every Uri
+                // affected by the batch operation, just invalidate the entire internal
+                // and external name space.
+                ContentResolver res = getContext().getContentResolver();
+                res.notifyChange(Uri.parse("content://media/"), null);
+                return result;
+            } finally {
+                try {
+                    idb.endTransaction();
+                } finally {
+                    if (edb != null) {
+                        edb.endTransaction();
+                    }
+                }
             }
         }
     }

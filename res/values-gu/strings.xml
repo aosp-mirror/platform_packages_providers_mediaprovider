@@ -30,11 +30,11 @@
     <string name="sound_name_bounce" msgid="8771447635446665231">"બાઉન્સ"</string>
     <string name="sound_name_drip" msgid="1744684469020662152">"ટીપાં"</string>
     <string name="sound_name_gallop" msgid="2664454314532060876">"ગૅલપ"</string>
-    <string name="sound_name_nudge" msgid="5445751598250698244">"નજ"</string>
-    <string name="sound_name_orbit" msgid="4623457897813255481">"ઓર્બિટ"</string>
-    <string name="sound_name_rise" msgid="2200258555031675806">"ઉદય"</string>
-    <string name="sound_name_sway" msgid="348448316663085643">"સ્વે"</string>
-    <string name="sound_name_wag" msgid="2730733083078126563">"વૅગ"</string>
+    <string name="sound_name_nudge" msgid="5445751598250698244">"Nudge"</string>
+    <string name="sound_name_orbit" msgid="4623457897813255481">"Orbit"</string>
+    <string name="sound_name_rise" msgid="2200258555031675806">"Rise"</string>
+    <string name="sound_name_sway" msgid="348448316663085643">"Sway"</string>
+    <string name="sound_name_wag" msgid="2730733083078126563">"Wag"</string>
     <string name="add_ringtone_text" msgid="8077717303037760418">"રિંગટોન ઉમેરો"</string>
     <string name="delete_ringtone_text" msgid="2963662097583300181">"કાઢી નાખો"</string>
     <string name="unable_to_add_ringtone" msgid="6256097521165711269">"કસ્ટમ રિંગટોન ઉમેરવામાં અસમર્થ"</string>

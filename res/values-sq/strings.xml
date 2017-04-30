@@ -35,7 +35,7 @@
     <string name="sound_name_rise" msgid="2200258555031675806">"Ngritje"</string>
     <string name="sound_name_sway" msgid="348448316663085643">"Lëkundje"</string>
     <string name="sound_name_wag" msgid="2730733083078126563">"Tundje"</string>
-    <string name="add_ringtone_text" msgid="8077717303037760418">"Shto ton zileje"</string>
+    <string name="add_ringtone_text" msgid="8077717303037760418">"Shto zile"</string>
     <string name="delete_ringtone_text" msgid="2963662097583300181">"Fshi"</string>
     <string name="unable_to_add_ringtone" msgid="6256097521165711269">"Nuk mund të shtojë ton zileje të personalizuar"</string>
     <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"Nuk mund të fshijë ton zileje të personalizuar"</string>

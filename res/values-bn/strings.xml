@@ -35,8 +35,8 @@
     <string name="sound_name_rise" msgid="2200258555031675806">"রাইজ"</string>
     <string name="sound_name_sway" msgid="348448316663085643">"দোলা"</string>
     <string name="sound_name_wag" msgid="2730733083078126563">"ওয়াগ"</string>
-    <string name="add_ringtone_text" msgid="8077717303037760418">"রিংয়ের শব্দ যোগ করুন"</string>
+    <string name="add_ringtone_text" msgid="8077717303037760418">"রিংটোন যোগ করুন"</string>
     <string name="delete_ringtone_text" msgid="2963662097583300181">"মুছুন"</string>
-    <string name="unable_to_add_ringtone" msgid="6256097521165711269">"কাস্টম রিংয়ের শব্দ যোগ করা গেল না"</string>
+    <string name="unable_to_add_ringtone" msgid="6256097521165711269">"কাস্টম রিংটোন যোগ করা গেল না"</string>
     <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"কাস্টম রিংয়ের শব্দ মোছা গেল না"</string>
 </resources>

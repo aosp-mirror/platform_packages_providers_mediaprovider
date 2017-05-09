@@ -156,6 +156,8 @@ public final class RingtonePickerActivity extends AlertActivity implements
                 // only audio files (MIME type "audio/*")
                 final Intent chooseFile = new Intent(Intent.ACTION_GET_CONTENT);
                 chooseFile.setType("audio/*");
+                chooseFile.putExtra(Intent.EXTRA_MIME_TYPES,
+                        new String[] { "audio/*", "application/ogg" });
                 startActivityForResult(chooseFile, ADD_FILE_REQUEST_CODE);
                 return;
             }

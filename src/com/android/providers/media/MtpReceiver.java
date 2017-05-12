@@ -35,21 +35,14 @@ public class MtpReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         final String action = intent.getAction();
-        Bundle b = intent.getExtras();
-        b.size();
-
         if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
             final Intent usbState = context.registerReceiver(
                     null, new IntentFilter(UsbManager.ACTION_USB_STATE));
             if (usbState != null) {
                 handleUsbState(context, usbState);
-                b = usbState.getExtras();
-                b.size();
-                Log.e(TAG, "handled sticky Usb state intent: " + b);
             }
         } else if (UsbManager.ACTION_USB_STATE.equals(action)) {
             handleUsbState(context, intent);
-            Log.e(TAG, "handled Usb state intent: " + b);
         }
     }
 

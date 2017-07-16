@@ -167,7 +167,6 @@ public class MediaProvider extends ContentProvider {
             new PriorityQueue<MediaThumbRequest>(MediaThumbRequest.PRIORITY_NORMAL,
             MediaThumbRequest.getComparator());
 
-    private boolean mCaseInsensitivePaths;
     private String[] mExternalStoragePaths = EmptyArray.STRING;
 
     // For compatibility with the approximately 0 apps that used mediaprovider search in
@@ -254,7 +253,8 @@ public class MediaProvider extends ContentProvider {
     private static final String PARENT_NOT_PRESENT_CLAUSE =
             "parent != 0 AND parent NOT IN (SELECT _id FROM files)";
 
-    private Uri mAlbumArtBaseUri = Uri.parse("content://media/external/audio/albumart");
+    private static final Uri sAlbumArtBaseUri =
+            Uri.parse("content://media/external/audio/albumart");
 
     private static final String CANONICAL = "canonical";
 
@@ -338,6 +338,7 @@ public class MediaProvider extends ContentProvider {
 
     private final SQLiteDatabase.CustomFunction mObjectRemovedCallback =
                 new SQLiteDatabase.CustomFunction() {
+        @Override
         public void callback(String[] args) {
             // We could remove only the deleted entry from the cache, but that
             // requires the path, which we don't have here, so instead we just
@@ -530,12 +531,14 @@ public class MediaProvider extends ContentProvider {
     private IMtpService mMtpService;
 
     private final ServiceConnection mMtpServiceConnection = new ServiceConnection() {
-         public void onServiceConnected(ComponentName className, android.os.IBinder service) {
+        @Override
+        public void onServiceConnected(ComponentName className, android.os.IBinder service) {
             synchronized (this) {
                 mMtpService = IMtpService.Stub.asInterface(service);
             }
         }
 
+        @Override
         public void onServiceDisconnected(ComponentName className) {
             synchronized (this) {
                 mMtpService = null;
@@ -2952,16 +2955,13 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private static final class GetTableAndWhereOutParameter {
+    private static final class TableAndWhere {
         public String table;
         public String where;
     }
 
-    static final GetTableAndWhereOutParameter sGetTableAndWhereParam =
-            new GetTableAndWhereOutParameter();
-
-    private void getTableAndWhere(Uri uri, int match, String userWhere,
-            GetTableAndWhereOutParameter out) {
+    private TableAndWhere getTableAndWhere(Uri uri, int match, String userWhere) {
+        TableAndWhere out = new TableAndWhere();
         String where = null;
         switch (match) {
             case IMAGES_MEDIA:
@@ -3092,6 +3092,7 @@ public class MediaProvider extends ContentProvider {
         } else {
             out.where = where;
         }
+        return out;
     }
 
     @Override
@@ -3154,149 +3155,147 @@ public class MediaProvider extends ContentProvider {
             database.mNumDeletes++;
             SQLiteDatabase db = database.getWritableDatabase();
 
-            synchronized (sGetTableAndWhereParam) {
-                getTableAndWhere(uri, match, userWhere, sGetTableAndWhereParam);
-                if (sGetTableAndWhereParam.table.equals("files")) {
-                    String deleteparam = uri.getQueryParameter(MediaStore.PARAM_DELETE_DATA);
-                    if (deleteparam == null || ! deleteparam.equals("false")) {
-                        database.mNumQueries++;
-                        Cursor c = db.query(sGetTableAndWhereParam.table,
-                                sMediaTypeDataId,
-                                sGetTableAndWhereParam.where, whereArgs, null, null, null);
-                        String [] idvalue = new String[] { "" };
-                        String [] playlistvalues = new String[] { "", "" };
-                        try {
-                            while (c.moveToNext()) {
-                                final int mediaType = c.getInt(0);
-                                final String data = c.getString(1);
-                                final long id = c.getLong(2);
+            TableAndWhere tableAndWhere = getTableAndWhere(uri, match, userWhere);
+            if (tableAndWhere.table.equals("files")) {
+                String deleteparam = uri.getQueryParameter(MediaStore.PARAM_DELETE_DATA);
+                if (deleteparam == null || ! deleteparam.equals("false")) {
+                    database.mNumQueries++;
+                    Cursor c = db.query(tableAndWhere.table,
+                            sMediaTypeDataId,
+                            tableAndWhere.where, whereArgs, null, null, null);
+                    String [] idvalue = new String[] { "" };
+                    String [] playlistvalues = new String[] { "", "" };
+                    try {
+                        while (c.moveToNext()) {
+                            final int mediaType = c.getInt(0);
+                            final String data = c.getString(1);
+                            final long id = c.getLong(2);
 
-                                if (mediaType == FileColumns.MEDIA_TYPE_IMAGE) {
-                                    deleteIfAllowed(uri, data);
+                            if (mediaType == FileColumns.MEDIA_TYPE_IMAGE) {
+                                deleteIfAllowed(uri, data);
+                                MediaDocumentsProvider.onMediaStoreDelete(getContext(),
+                                        volumeName, FileColumns.MEDIA_TYPE_IMAGE, id);
+
+                                idvalue[0] = String.valueOf(id);
+                                database.mNumQueries++;
+                                Cursor cc = db.query("thumbnails", sDataOnlyColumn,
+                                            "image_id=?", idvalue, null, null, null);
+                                try {
+                                    while (cc.moveToNext()) {
+                                        deleteIfAllowed(uri, cc.getString(0));
+                                    }
+                                    database.mNumDeletes++;
+                                    db.delete("thumbnails", "image_id=?", idvalue);
+                                } finally {
+                                    IoUtils.closeQuietly(cc);
+                                }
+                            } else if (mediaType == FileColumns.MEDIA_TYPE_VIDEO) {
+                                deleteIfAllowed(uri, data);
+                                MediaDocumentsProvider.onMediaStoreDelete(getContext(),
+                                        volumeName, FileColumns.MEDIA_TYPE_VIDEO, id);
+
+                            } else if (mediaType == FileColumns.MEDIA_TYPE_AUDIO) {
+                                if (!database.mInternal) {
                                     MediaDocumentsProvider.onMediaStoreDelete(getContext(),
-                                            volumeName, FileColumns.MEDIA_TYPE_IMAGE, id);
+                                            volumeName, FileColumns.MEDIA_TYPE_AUDIO, id);
 
                                     idvalue[0] = String.valueOf(id);
-                                    database.mNumQueries++;
-                                    Cursor cc = db.query("thumbnails", sDataOnlyColumn,
-                                                "image_id=?", idvalue, null, null, null);
+                                    database.mNumDeletes += 2; // also count the one below
+                                    db.delete("audio_genres_map", "audio_id=?", idvalue);
+                                    // for each playlist that the item appears in, move
+                                    // all the items behind it forward by one
+                                    Cursor cc = db.query("audio_playlists_map",
+                                                sPlaylistIdPlayOrder,
+                                                "audio_id=?", idvalue, null, null, null);
                                     try {
                                         while (cc.moveToNext()) {
-                                            deleteIfAllowed(uri, cc.getString(0));
+                                            playlistvalues[0] = "" + cc.getLong(0);
+                                            playlistvalues[1] = "" + cc.getInt(1);
+                                            database.mNumUpdates++;
+                                            db.execSQL("UPDATE audio_playlists_map" +
+                                                    " SET play_order=play_order-1" +
+                                                    " WHERE playlist_id=? AND play_order>?",
+                                                    playlistvalues);
                                         }
-                                        database.mNumDeletes++;
-                                        db.delete("thumbnails", "image_id=?", idvalue);
+                                        db.delete("audio_playlists_map", "audio_id=?", idvalue);
                                     } finally {
                                         IoUtils.closeQuietly(cc);
                                     }
-                                } else if (mediaType == FileColumns.MEDIA_TYPE_VIDEO) {
-                                    deleteIfAllowed(uri, data);
-                                    MediaDocumentsProvider.onMediaStoreDelete(getContext(),
-                                            volumeName, FileColumns.MEDIA_TYPE_VIDEO, id);
-
-                                } else if (mediaType == FileColumns.MEDIA_TYPE_AUDIO) {
-                                    if (!database.mInternal) {
-                                        MediaDocumentsProvider.onMediaStoreDelete(getContext(),
-                                                volumeName, FileColumns.MEDIA_TYPE_AUDIO, id);
-
-                                        idvalue[0] = String.valueOf(id);
-                                        database.mNumDeletes += 2; // also count the one below
-                                        db.delete("audio_genres_map", "audio_id=?", idvalue);
-                                        // for each playlist that the item appears in, move
-                                        // all the items behind it forward by one
-                                        Cursor cc = db.query("audio_playlists_map",
-                                                    sPlaylistIdPlayOrder,
-                                                    "audio_id=?", idvalue, null, null, null);
-                                        try {
-                                            while (cc.moveToNext()) {
-                                                playlistvalues[0] = "" + cc.getLong(0);
-                                                playlistvalues[1] = "" + cc.getInt(1);
-                                                database.mNumUpdates++;
-                                                db.execSQL("UPDATE audio_playlists_map" +
-                                                        " SET play_order=play_order-1" +
-                                                        " WHERE playlist_id=? AND play_order>?",
-                                                        playlistvalues);
-                                            }
-                                            db.delete("audio_playlists_map", "audio_id=?", idvalue);
-                                        } finally {
-                                            IoUtils.closeQuietly(cc);
-                                        }
-                                    }
-                                } else if (mediaType == FileColumns.MEDIA_TYPE_PLAYLIST) {
-                                    // TODO, maybe: remove the audio_playlists_cleanup trigger and
-                                    // implement functionality here (clean up the playlist map)
                                 }
+                            } else if (mediaType == FileColumns.MEDIA_TYPE_PLAYLIST) {
+                                // TODO, maybe: remove the audio_playlists_cleanup trigger and
+                                // implement functionality here (clean up the playlist map)
+                            }
+                        }
+                    } finally {
+                        IoUtils.closeQuietly(c);
+                    }
+                    // Do not allow deletion if the file/object is referenced as parent
+                    // by some other entries. It could cause database corruption.
+                    if (!TextUtils.isEmpty(tableAndWhere.where)) {
+                        tableAndWhere.where =
+                                "(" + tableAndWhere.where + ")" +
+                                        " AND (_id NOT IN (SELECT parent FROM files" +
+                                        " WHERE NOT (" + tableAndWhere.where + ")))";
+                    } else {
+                        tableAndWhere.where = ID_NOT_PARENT_CLAUSE;
+                    }
+                }
+            }
+
+            switch (match) {
+                case MTP_OBJECTS:
+                case MTP_OBJECTS_ID:
+                    try {
+                        // don't send objectRemoved event since this originated from MTP
+                        mDisableMtpObjectCallbacks = true;
+                        database.mNumDeletes++;
+                        count = db.delete("files", tableAndWhere.where, whereArgs);
+                    } finally {
+                        mDisableMtpObjectCallbacks = false;
+                    }
+                    break;
+                case AUDIO_GENRES_ID_MEMBERS:
+                    database.mNumDeletes++;
+                    count = db.delete("audio_genres_map",
+                            tableAndWhere.where, whereArgs);
+                    break;
+
+                case IMAGES_THUMBNAILS_ID:
+                case IMAGES_THUMBNAILS:
+                case VIDEO_THUMBNAILS_ID:
+                case VIDEO_THUMBNAILS:
+                    // Delete the referenced files first.
+                    Cursor c = db.query(tableAndWhere.table,
+                            sDataOnlyColumn,
+                            tableAndWhere.where, whereArgs, null, null, null);
+                    if (c != null) {
+                        try {
+                            while (c.moveToNext()) {
+                                deleteIfAllowed(uri, c.getString(0));
                             }
                         } finally {
                             IoUtils.closeQuietly(c);
                         }
                     }
-                    // Do not allow deletion if the file/object is referenced as parent
-                    // by some other entries. It could cause database corruption.
-                    if (!TextUtils.isEmpty(sGetTableAndWhereParam.where)) {
-                        sGetTableAndWhereParam.where =
-                                "(" + sGetTableAndWhereParam.where + ")" +
-                                        " AND (_id NOT IN (SELECT parent FROM files" +
-                                        " WHERE NOT (" + sGetTableAndWhereParam.where + ")))";
-                    } else {
-                        sGetTableAndWhereParam.where = ID_NOT_PARENT_CLAUSE;
-                    }
-                }
+                    database.mNumDeletes++;
+                    count = db.delete(tableAndWhere.table,
+                            tableAndWhere.where, whereArgs);
+                    break;
 
-                switch (match) {
-                    case MTP_OBJECTS:
-                    case MTP_OBJECTS_ID:
-                        try {
-                            // don't send objectRemoved event since this originated from MTP
-                            mDisableMtpObjectCallbacks = true;
-                            database.mNumDeletes++;
-                            count = db.delete("files", sGetTableAndWhereParam.where, whereArgs);
-                        } finally {
-                            mDisableMtpObjectCallbacks = false;
-                        }
-                        break;
-                    case AUDIO_GENRES_ID_MEMBERS:
-                        database.mNumDeletes++;
-                        count = db.delete("audio_genres_map",
-                                sGetTableAndWhereParam.where, whereArgs);
-                        break;
-
-                    case IMAGES_THUMBNAILS_ID:
-                    case IMAGES_THUMBNAILS:
-                    case VIDEO_THUMBNAILS_ID:
-                    case VIDEO_THUMBNAILS:
-                        // Delete the referenced files first.
-                        Cursor c = db.query(sGetTableAndWhereParam.table,
-                                sDataOnlyColumn,
-                                sGetTableAndWhereParam.where, whereArgs, null, null, null);
-                        if (c != null) {
-                            try {
-                                while (c.moveToNext()) {
-                                    deleteIfAllowed(uri, c.getString(0));
-                                }
-                            } finally {
-                                IoUtils.closeQuietly(c);
-                            }
-                        }
-                        database.mNumDeletes++;
-                        count = db.delete(sGetTableAndWhereParam.table,
-                                sGetTableAndWhereParam.where, whereArgs);
-                        break;
-
-                    default:
-                        database.mNumDeletes++;
-                        count = db.delete(sGetTableAndWhereParam.table,
-                                sGetTableAndWhereParam.where, whereArgs);
-                        break;
-                }
-
-                // Since there are multiple Uris that can refer to the same files
-                // and deletes can affect other objects in storage (like subdirectories
-                // or playlists) we will notify a change on the entire volume to make
-                // sure no listeners miss the notification.
-                Uri notifyUri = Uri.parse("content://" + MediaStore.AUTHORITY + "/" + volumeName);
-                getContext().getContentResolver().notifyChange(notifyUri, null);
+                default:
+                    database.mNumDeletes++;
+                    count = db.delete(tableAndWhere.table,
+                            tableAndWhere.where, whereArgs);
+                    break;
             }
+
+            // Since there are multiple Uris that can refer to the same files
+            // and deletes can affect other objects in storage (like subdirectories
+            // or playlists) we will notify a change on the entire volume to make
+            // sure no listeners miss the notification.
+            Uri notifyUri = Uri.parse("content://" + MediaStore.AUTHORITY + "/" + volumeName);
+            getContext().getContentResolver().notifyChange(notifyUri, null);
         }
 
         return count;
@@ -3333,250 +3332,248 @@ public class MediaProvider extends ContentProvider {
             initialValues.remove(Audio.AudioColumns.GENRE);
         }
 
-        synchronized (sGetTableAndWhereParam) {
-            getTableAndWhere(uri, match, userWhere, sGetTableAndWhereParam);
+        TableAndWhere tableAndWhere = getTableAndWhere(uri, match, userWhere);
 
-            // special case renaming directories via MTP and ESP.
-            // in this case we must update all paths in the database with
-            // the directory name as a prefix
-            if ((match == MTP_OBJECTS || match == MTP_OBJECTS_ID || match == FILES_DIRECTORY)
-                    && initialValues != null && initialValues.size() == 1) {
-                String oldPath = null;
-                String newPath = initialValues.getAsString(MediaStore.MediaColumns.DATA);
-                mDirectoryCache.remove(newPath);
-                // MtpDatabase will rename the directory first, so we test the new file name
-                File f = new File(newPath);
-                if (newPath != null && f.isDirectory()) {
-                    helper.mNumQueries++;
-                    Cursor cursor = db.query(sGetTableAndWhereParam.table, PATH_PROJECTION,
-                        userWhere, whereArgs, null, null, null);
-                    try {
-                        if (cursor != null && cursor.moveToNext()) {
-                            oldPath = cursor.getString(1);
-                        }
-                    } finally {
-                        IoUtils.closeQuietly(cursor);
+        // special case renaming directories via MTP.
+        // in this case we must update all paths in the database with
+        // the directory name as a prefix
+        if ((match == MTP_OBJECTS || match == MTP_OBJECTS_ID || match == FILES_DIRECTORY)
+                && initialValues != null && initialValues.size() == 1) {
+            String oldPath = null;
+            String newPath = initialValues.getAsString(MediaStore.MediaColumns.DATA);
+            mDirectoryCache.remove(newPath);
+            // MtpDatabase will rename the directory first, so we test the new file name
+            File f = new File(newPath);
+            if (newPath != null && f.isDirectory()) {
+                helper.mNumQueries++;
+                Cursor cursor = db.query(tableAndWhere.table, PATH_PROJECTION,
+                    userWhere, whereArgs, null, null, null);
+                try {
+                    if (cursor != null && cursor.moveToNext()) {
+                        oldPath = cursor.getString(1);
                     }
-                    if (oldPath != null) {
-                        mDirectoryCache.remove(oldPath);
-                        // first rename the row for the directory
-                        helper.mNumUpdates++;
-                        count = db.update(sGetTableAndWhereParam.table, initialValues,
-                                sGetTableAndWhereParam.where, whereArgs);
-                        if (count > 0) {
-                            // update the paths of any files and folders contained in the directory
-                            Object[] bindArgs = new Object[] {
-                                    newPath,
-                                    oldPath.length() + 1,
-                                    oldPath + "/",
-                                    oldPath + "0",
-                                    // update bucket_display_name and bucket_id based on new path
-                                    f.getName(),
-                                    f.toString().toLowerCase().hashCode()
-                                    };
-                            helper.mNumUpdates++;
-                            db.execSQL("UPDATE files SET _data=?1||SUBSTR(_data, ?2)" +
-                                    // also update bucket_display_name
-                                    ",bucket_display_name=?5" +
-                                    ",bucket_id=?6" +
-                                    " WHERE _data >= ?3 AND _data < ?4;",
-                                    bindArgs);
-                        }
-
-                        if (count > 0 && !db.inTransaction()) {
-                            getContext().getContentResolver().notifyChange(uri, null);
-                        }
-                        if (f.getName().startsWith(".")) {
-                            // the new directory name is hidden
-                            processNewNoMediaPath(helper, db, newPath);
-                        }
-                        return count;
-                    }
-                } else if (newPath.toLowerCase(Locale.US).endsWith("/.nomedia")) {
-                    processNewNoMediaPath(helper, db, newPath);
+                } finally {
+                    IoUtils.closeQuietly(cursor);
                 }
-            }
-
-            switch (match) {
-                case AUDIO_MEDIA:
-                case AUDIO_MEDIA_ID:
-                    {
-                        ContentValues values = new ContentValues(initialValues);
-                        String albumartist = values.getAsString(MediaStore.Audio.Media.ALBUM_ARTIST);
-                        String compilation = values.getAsString(MediaStore.Audio.Media.COMPILATION);
-                        values.remove(MediaStore.Audio.Media.COMPILATION);
-
-                        // Insert the artist into the artist table and remove it from
-                        // the input values
-                        String artist = values.getAsString("artist");
-                        values.remove("artist");
-                        if (artist != null) {
-                            long artistRowId;
-                            HashMap<String, Long> artistCache = helper.mArtistCache;
-                            synchronized(artistCache) {
-                                Long temp = artistCache.get(artist);
-                                if (temp == null) {
-                                    artistRowId = getKeyIdForName(helper, db,
-                                            "artists", "artist_key", "artist",
-                                            artist, artist, null, 0, null, artistCache, uri);
-                                } else {
-                                    artistRowId = temp.longValue();
-                                }
-                            }
-                            values.put("artist_id", Integer.toString((int)artistRowId));
-                        }
-
-                        // Do the same for the album field.
-                        String so = values.getAsString("album");
-                        values.remove("album");
-                        if (so != null) {
-                            String path = values.getAsString(MediaStore.MediaColumns.DATA);
-                            int albumHash = 0;
-                            if (albumartist != null) {
-                                albumHash = albumartist.hashCode();
-                            } else if (compilation != null && compilation.equals("1")) {
-                                // nothing to do, hash already set
-                            } else {
-                                if (path == null) {
-                                    if (match == AUDIO_MEDIA) {
-                                        Log.w(TAG, "Possible multi row album name update without"
-                                                + " path could give wrong album key");
-                                    } else {
-                                        //Log.w(TAG, "Specify path to avoid extra query");
-                                        Cursor c = query(uri,
-                                                new String[] { MediaStore.Audio.Media.DATA},
-                                                null, null, null);
-                                        if (c != null) {
-                                            try {
-                                                int numrows = c.getCount();
-                                                if (numrows == 1) {
-                                                    c.moveToFirst();
-                                                    path = c.getString(0);
-                                                } else {
-                                                    Log.e(TAG, "" + numrows + " rows for " + uri);
-                                                }
-                                            } finally {
-                                                IoUtils.closeQuietly(c);
-                                            }
-                                        }
-                                    }
-                                }
-                                if (path != null) {
-                                    albumHash = path.substring(0, path.lastIndexOf('/')).hashCode();
-                                }
-                            }
-
-                            String s = so.toString();
-                            long albumRowId;
-                            HashMap<String, Long> albumCache = helper.mAlbumCache;
-                            synchronized(albumCache) {
-                                String cacheName = s + albumHash;
-                                Long temp = albumCache.get(cacheName);
-                                if (temp == null) {
-                                    albumRowId = getKeyIdForName(helper, db,
-                                            "albums", "album_key", "album",
-                                            s, cacheName, path, albumHash, artist, albumCache, uri);
-                                } else {
-                                    albumRowId = temp.longValue();
-                                }
-                            }
-                            values.put("album_id", Integer.toString((int)albumRowId));
-                        }
-
-                        // don't allow the title_key field to be updated directly
-                        values.remove("title_key");
-                        // If the title field is modified, update the title_key
-                        so = values.getAsString("title");
-                        if (so != null) {
-                            String s = so.toString();
-                            values.put("title_key", MediaStore.Audio.keyFor(s));
-                            // do a final trim of the title, in case it started with the special
-                            // "sort first" character (ascii \001)
-                            values.remove("title");
-                            values.put("title", s.trim());
-                        }
-
-                        helper.mNumUpdates++;
-                        count = db.update(sGetTableAndWhereParam.table, values,
-                                sGetTableAndWhereParam.where, whereArgs);
-                        if (genre != null) {
-                            if (count == 1 && match == AUDIO_MEDIA_ID) {
-                                long rowId = Long.parseLong(uri.getPathSegments().get(3));
-                                updateGenre(rowId, genre);
-                            } else {
-                                // can't handle genres for bulk update or for non-audio files
-                                Log.w(TAG, "ignoring genre in update: count = "
-                                        + count + " match = " + match);
-                            }
-                        }
-                    }
-                    break;
-                case IMAGES_MEDIA:
-                case IMAGES_MEDIA_ID:
-                case VIDEO_MEDIA:
-                case VIDEO_MEDIA_ID:
-                    {
-                        ContentValues values = new ContentValues(initialValues);
-                        // Don't allow bucket id or display name to be updated directly.
-                        // The same names are used for both images and table columns, so
-                        // we use the ImageColumns constants here.
-                        values.remove(ImageColumns.BUCKET_ID);
-                        values.remove(ImageColumns.BUCKET_DISPLAY_NAME);
-                        // If the data is being modified update the bucket values
-                        String data = values.getAsString(MediaColumns.DATA);
-                        if (data != null) {
-                            computeBucketValues(data, values);
-                        }
-                        computeTakenTime(values);
-                        helper.mNumUpdates++;
-                        count = db.update(sGetTableAndWhereParam.table, values,
-                                sGetTableAndWhereParam.where, whereArgs);
-                        // if this is a request from MediaScanner, DATA should contains file path
-                        // we only process update request from media scanner, otherwise the requests
-                        // could be duplicate.
-                        if (count > 0 && values.getAsString(MediaStore.MediaColumns.DATA) != null) {
-                            helper.mNumQueries++;
-                            Cursor c = db.query(sGetTableAndWhereParam.table,
-                                    READY_FLAG_PROJECTION, sGetTableAndWhereParam.where,
-                                    whereArgs, null, null, null);
-                            if (c != null) {
-                                try {
-                                    while (c.moveToNext()) {
-                                        long magic = c.getLong(2);
-                                        if (magic == 0) {
-                                            requestMediaThumbnail(c.getString(1), uri,
-                                                    MediaThumbRequest.PRIORITY_NORMAL, 0);
-                                        }
-                                    }
-                                } finally {
-                                    IoUtils.closeQuietly(c);
-                                }
-                            }
-                        }
-                    }
-                    break;
-
-                case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
-                    String moveit = uri.getQueryParameter("move");
-                    if (moveit != null) {
-                        String key = MediaStore.Audio.Playlists.Members.PLAY_ORDER;
-                        if (initialValues.containsKey(key)) {
-                            int newpos = initialValues.getAsInteger(key);
-                            List <String> segments = uri.getPathSegments();
-                            long playlist = Long.parseLong(segments.get(3));
-                            int oldpos = Integer.parseInt(segments.get(5));
-                            return movePlaylistEntry(helper, db, playlist, oldpos, newpos);
-                        }
-                        throw new IllegalArgumentException("Need to specify " + key +
-                                " when using 'move' parameter");
-                    }
-                    // fall through
-                default:
+                if (oldPath != null) {
+                    mDirectoryCache.remove(oldPath);
+                    // first rename the row for the directory
                     helper.mNumUpdates++;
-                    count = db.update(sGetTableAndWhereParam.table, initialValues,
-                        sGetTableAndWhereParam.where, whereArgs);
-                    break;
+                    count = db.update(tableAndWhere.table, initialValues,
+                            tableAndWhere.where, whereArgs);
+                    if (count > 0) {
+                        // update the paths of any files and folders contained in the directory
+                        Object[] bindArgs = new Object[] {
+                                newPath,
+                                oldPath.length() + 1,
+                                oldPath + "/",
+                                oldPath + "0",
+                                // update bucket_display_name and bucket_id based on new path
+                                f.getName(),
+                                f.toString().toLowerCase().hashCode()
+                                };
+                        helper.mNumUpdates++;
+                        db.execSQL("UPDATE files SET _data=?1||SUBSTR(_data, ?2)" +
+                                // also update bucket_display_name
+                                ",bucket_display_name=?5" +
+                                ",bucket_id=?6" +
+                                " WHERE _data >= ?3 AND _data < ?4;",
+                                bindArgs);
+                    }
+
+                    if (count > 0 && !db.inTransaction()) {
+                        getContext().getContentResolver().notifyChange(uri, null);
+                    }
+                    if (f.getName().startsWith(".")) {
+                        // the new directory name is hidden
+                        processNewNoMediaPath(helper, db, newPath);
+                    }
+                    return count;
+                }
+            } else if (newPath.toLowerCase(Locale.US).endsWith("/.nomedia")) {
+                processNewNoMediaPath(helper, db, newPath);
             }
+        }
+
+        switch (match) {
+            case AUDIO_MEDIA:
+            case AUDIO_MEDIA_ID:
+                {
+                    ContentValues values = new ContentValues(initialValues);
+                    String albumartist = values.getAsString(MediaStore.Audio.Media.ALBUM_ARTIST);
+                    String compilation = values.getAsString(MediaStore.Audio.Media.COMPILATION);
+                    values.remove(MediaStore.Audio.Media.COMPILATION);
+
+                    // Insert the artist into the artist table and remove it from
+                    // the input values
+                    String artist = values.getAsString("artist");
+                    values.remove("artist");
+                    if (artist != null) {
+                        long artistRowId;
+                        HashMap<String, Long> artistCache = helper.mArtistCache;
+                        synchronized(artistCache) {
+                            Long temp = artistCache.get(artist);
+                            if (temp == null) {
+                                artistRowId = getKeyIdForName(helper, db,
+                                        "artists", "artist_key", "artist",
+                                        artist, artist, null, 0, null, artistCache, uri);
+                            } else {
+                                artistRowId = temp.longValue();
+                            }
+                        }
+                        values.put("artist_id", Integer.toString((int)artistRowId));
+                    }
+
+                    // Do the same for the album field.
+                    String so = values.getAsString("album");
+                    values.remove("album");
+                    if (so != null) {
+                        String path = values.getAsString(MediaStore.MediaColumns.DATA);
+                        int albumHash = 0;
+                        if (albumartist != null) {
+                            albumHash = albumartist.hashCode();
+                        } else if (compilation != null && compilation.equals("1")) {
+                            // nothing to do, hash already set
+                        } else {
+                            if (path == null) {
+                                if (match == AUDIO_MEDIA) {
+                                    Log.w(TAG, "Possible multi row album name update without"
+                                            + " path could give wrong album key");
+                                } else {
+                                    //Log.w(TAG, "Specify path to avoid extra query");
+                                    Cursor c = query(uri,
+                                            new String[] { MediaStore.Audio.Media.DATA},
+                                            null, null, null);
+                                    if (c != null) {
+                                        try {
+                                            int numrows = c.getCount();
+                                            if (numrows == 1) {
+                                                c.moveToFirst();
+                                                path = c.getString(0);
+                                            } else {
+                                                Log.e(TAG, "" + numrows + " rows for " + uri);
+                                            }
+                                        } finally {
+                                            IoUtils.closeQuietly(c);
+                                        }
+                                    }
+                                }
+                            }
+                            if (path != null) {
+                                albumHash = path.substring(0, path.lastIndexOf('/')).hashCode();
+                            }
+                        }
+
+                        String s = so.toString();
+                        long albumRowId;
+                        HashMap<String, Long> albumCache = helper.mAlbumCache;
+                        synchronized(albumCache) {
+                            String cacheName = s + albumHash;
+                            Long temp = albumCache.get(cacheName);
+                            if (temp == null) {
+                                albumRowId = getKeyIdForName(helper, db,
+                                        "albums", "album_key", "album",
+                                        s, cacheName, path, albumHash, artist, albumCache, uri);
+                            } else {
+                                albumRowId = temp.longValue();
+                            }
+                        }
+                        values.put("album_id", Integer.toString((int)albumRowId));
+                    }
+
+                    // don't allow the title_key field to be updated directly
+                    values.remove("title_key");
+                    // If the title field is modified, update the title_key
+                    so = values.getAsString("title");
+                    if (so != null) {
+                        String s = so.toString();
+                        values.put("title_key", MediaStore.Audio.keyFor(s));
+                        // do a final trim of the title, in case it started with the special
+                        // "sort first" character (ascii \001)
+                        values.remove("title");
+                        values.put("title", s.trim());
+                    }
+
+                    helper.mNumUpdates++;
+                    count = db.update(tableAndWhere.table, values,
+                            tableAndWhere.where, whereArgs);
+                    if (genre != null) {
+                        if (count == 1 && match == AUDIO_MEDIA_ID) {
+                            long rowId = Long.parseLong(uri.getPathSegments().get(3));
+                            updateGenre(rowId, genre);
+                        } else {
+                            // can't handle genres for bulk update or for non-audio files
+                            Log.w(TAG, "ignoring genre in update: count = "
+                                    + count + " match = " + match);
+                        }
+                    }
+                }
+                break;
+            case IMAGES_MEDIA:
+            case IMAGES_MEDIA_ID:
+            case VIDEO_MEDIA:
+            case VIDEO_MEDIA_ID:
+                {
+                    ContentValues values = new ContentValues(initialValues);
+                    // Don't allow bucket id or display name to be updated directly.
+                    // The same names are used for both images and table columns, so
+                    // we use the ImageColumns constants here.
+                    values.remove(ImageColumns.BUCKET_ID);
+                    values.remove(ImageColumns.BUCKET_DISPLAY_NAME);
+                    // If the data is being modified update the bucket values
+                    String data = values.getAsString(MediaColumns.DATA);
+                    if (data != null) {
+                        computeBucketValues(data, values);
+                    }
+                    computeTakenTime(values);
+                    helper.mNumUpdates++;
+                    count = db.update(tableAndWhere.table, values,
+                            tableAndWhere.where, whereArgs);
+                    // if this is a request from MediaScanner, DATA should contains file path
+                    // we only process update request from media scanner, otherwise the requests
+                    // could be duplicate.
+                    if (count > 0 && values.getAsString(MediaStore.MediaColumns.DATA) != null) {
+                        helper.mNumQueries++;
+                        Cursor c = db.query(tableAndWhere.table,
+                                READY_FLAG_PROJECTION, tableAndWhere.where,
+                                whereArgs, null, null, null);
+                        if (c != null) {
+                            try {
+                                while (c.moveToNext()) {
+                                    long magic = c.getLong(2);
+                                    if (magic == 0) {
+                                        requestMediaThumbnail(c.getString(1), uri,
+                                                MediaThumbRequest.PRIORITY_NORMAL, 0);
+                                    }
+                                }
+                            } finally {
+                                IoUtils.closeQuietly(c);
+                            }
+                        }
+                    }
+                }
+                break;
+
+            case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
+                String moveit = uri.getQueryParameter("move");
+                if (moveit != null) {
+                    String key = MediaStore.Audio.Playlists.Members.PLAY_ORDER;
+                    if (initialValues.containsKey(key)) {
+                        int newpos = initialValues.getAsInteger(key);
+                        List <String> segments = uri.getPathSegments();
+                        long playlist = Long.parseLong(segments.get(3));
+                        int oldpos = Integer.parseInt(segments.get(5));
+                        return movePlaylistEntry(helper, db, playlist, oldpos, newpos);
+                    }
+                    throw new IllegalArgumentException("Need to specify " + key +
+                            " when using 'move' parameter");
+                }
+                // fall through
+            default:
+                helper.mNumUpdates++;
+                count = db.update(tableAndWhere.table, initialValues,
+                    tableAndWhere.where, whereArgs);
+                break;
         }
         // in a transaction, the code that began the transaction should be taking
         // care of notifications once it ends the transaction successfully
@@ -3970,7 +3967,7 @@ public class MediaProvider extends ContentProvider {
         d.db = db;
         d.path = path;
         d.album_id = album_id;
-        d.albumart_uri = ContentUris.withAppendedId(mAlbumArtBaseUri, album_id);
+        d.albumart_uri = ContentUris.withAppendedId(sAlbumArtBaseUri, album_id);
 
         // Instead of processing thumbnail requests in the order they were
         // received we instead process them stack-based, i.e. LIFO.

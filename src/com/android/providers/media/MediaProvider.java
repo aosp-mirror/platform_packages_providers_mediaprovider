@@ -69,7 +69,6 @@ import android.os.HandlerThread;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.os.Process;
-import android.os.RemoteException;
 import android.os.SystemClock;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
@@ -286,8 +285,6 @@ public class MediaProvider extends ContentProvider {
                             context.sendBroadcast(
                                     new Intent(Intent.ACTION_MEDIA_SCANNER_STARTED, uri));
 
-                            // don't send objectRemoved events - MTP be sending StorageRemoved anyway
-                            mDisableMtpObjectCallbacks = true;
                             Log.d(TAG, "deleting all entries for storage " + storage);
                             SQLiteDatabase db = database.getWritableDatabase();
                             // First clear the file path to disable the _DELETE_FILE database hook.
@@ -296,7 +293,7 @@ public class MediaProvider extends ContentProvider {
                             ContentValues values = new ContentValues();
                             values.putNull(Files.FileColumns.DATA);
                             String where = FileColumns.STORAGE_ID + "=?";
-                            String[] whereArgs = new String[] { Integer.toString(storage.getStorageId()) };
+                            String[] whereArgs = new String[] { };
                             database.mNumUpdates++;
                             db.beginTransaction();
                             try {
@@ -324,16 +321,12 @@ public class MediaProvider extends ContentProvider {
                         } finally {
                             context.sendBroadcast(
                                     new Intent(Intent.ACTION_MEDIA_SCANNER_FINISHED, uri));
-                            mDisableMtpObjectCallbacks = false;
                         }
                     }
                 }
             }
         }
     };
-
-    // set to disable sending events when the operation originates from MTP
-    private boolean mDisableMtpObjectCallbacks;
 
     private final SQLiteDatabase.CustomFunction mObjectRemovedCallback =
                 new SQLiteDatabase.CustomFunction() {
@@ -345,18 +338,6 @@ public class MediaProvider extends ContentProvider {
             // TODO: include the path in the callback and only remove the affected
             // entry from the cache
             mDirectoryCache.clear();
-            // do nothing if the operation originated from MTP
-            if (mDisableMtpObjectCallbacks) return;
-
-            Log.d(TAG, "object removed " + args[0]);
-            IMtpService mtpService = mMtpService;
-            if (mtpService != null) {
-                try {
-                    sendObjectRemoved(Integer.parseInt(args[0]));
-                } catch (NumberFormatException e) {
-                    Log.e(TAG, "NumberFormatException in mObjectRemovedCallback", e);
-                }
-            }
         }
     };
 
@@ -822,7 +803,7 @@ public class MediaProvider extends ContentProvider {
                 + "is_alarm INTEGER,is_notification INTEGER,is_podcast INTEGER,album_artist TEXT,"
                 + "duration INTEGER,bookmark INTEGER,artist TEXT,album TEXT,resolution TEXT,"
                 + "tags TEXT,category TEXT,language TEXT,mini_thumb_data TEXT,name TEXT,"
-                + "media_type INTEGER,old_id INTEGER,storage_id INTEGER,is_drm INTEGER,"
+                + "media_type INTEGER,old_id INTEGER,is_drm INTEGER,"
                 + "width INTEGER, height INTEGER, title_resource_uri TEXT)");
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!internal) {
@@ -1809,32 +1790,6 @@ public class MediaProvider extends ContentProvider {
         return values;
     }
 
-    private void sendObjectAdded(long objectHandle) {
-        synchronized (mMtpServiceConnection) {
-            if (mMtpService != null) {
-                try {
-                    mMtpService.sendObjectAdded((int)objectHandle);
-                } catch (RemoteException e) {
-                    Log.e(TAG, "RemoteException in sendObjectAdded", e);
-                    mMtpService = null;
-                }
-            }
-        }
-    }
-
-    private void sendObjectRemoved(long objectHandle) {
-        synchronized (mMtpServiceConnection) {
-            if (mMtpService != null) {
-                try {
-                    mMtpService.sendObjectRemoved((int)objectHandle);
-                } catch (RemoteException e) {
-                    Log.e(TAG, "RemoteException in sendObjectRemoved", e);
-                    mMtpService = null;
-                }
-            }
-        }
-    }
-
     @Override
     public int bulkInsert(Uri uri, ContentValues values[]) {
         int match = URI_MATCHER.match(uri);
@@ -1878,13 +1833,6 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        // Notify MTP (outside of successful transaction)
-        if (uri != null) {
-            if (uri.toString().startsWith("content://media/external/")) {
-                notifyMtp(notifyRowIds);
-            }
-        }
-
         getContext().getContentResolver().notifyChange(uri, null);
         return numInserted;
     }
@@ -1895,11 +1843,6 @@ public class MediaProvider extends ContentProvider {
 
         ArrayList<Long> notifyRowIds = new ArrayList<Long>();
         Uri newUri = insertInternal(uri, match, initialValues, notifyRowIds);
-        if (uri != null) {
-            if (uri.toString().startsWith("content://media/external/")) {
-                notifyMtp(notifyRowIds);
-            }
-        }
 
         // do not signal notification for MTP objects.
         // we will signal instead after file transfer is successful.
@@ -1919,13 +1862,6 @@ public class MediaProvider extends ContentProvider {
             }
         }
         return newUri;
-    }
-
-    private void notifyMtp(ArrayList<Long> rowIds) {
-        int size = rowIds.size();
-        for (int i = 0; i < size; i++) {
-            sendObjectAdded(rowIds.get(i).longValue());
-        }
     }
 
     private int playlistBulkInsert(SQLiteDatabase db, Uri uri, ContentValues values[]) {
@@ -1971,14 +1907,12 @@ public class MediaProvider extends ContentProvider {
         values.put(FileColumns.FORMAT, MtpConstants.FORMAT_ASSOCIATION);
         values.put(FileColumns.DATA, path);
         values.put(FileColumns.PARENT, getParent(helper, db, path));
-        values.put(FileColumns.STORAGE_ID, getStorageId(path));
         File file = new File(path);
         if (file.exists()) {
             values.put(FileColumns.DATE_MODIFIED, file.lastModified() / 1000);
         }
         helper.mNumInserts++;
         long rowId = db.insert("files", FileColumns.DATE_MODIFIED, values);
-        sendObjectAdded(rowId);
         return rowId;
     }
 
@@ -2024,17 +1958,6 @@ public class MediaProvider extends ContentProvider {
             }
         } else {
             return 0;
-        }
-    }
-
-    private int getStorageId(String path) {
-        final StorageManager storage = getContext().getSystemService(StorageManager.class);
-        final StorageVolume vol = storage.getStorageVolume(new File(path));
-        if (vol != null) {
-            return vol.getStorageId();
-        } else {
-            Log.w(TAG, "Missing volume for " + path + "; assuming invalid");
-            return StorageVolume.STORAGE_ID_INVALID;
         }
     }
 
@@ -2336,11 +2259,6 @@ public class MediaProvider extends ContentProvider {
                     long parentId = getParent(helper, db, path);
                     values.put(FileColumns.PARENT, parentId);
                 }
-            }
-            Integer storage = values.getAsInteger(FileColumns.STORAGE_ID);
-            if (storage == null) {
-                int storageId = getStorageId(path);
-                values.put(FileColumns.STORAGE_ID, storageId);
             }
 
             helper.mNumInserts++;
@@ -3330,14 +3248,8 @@ public class MediaProvider extends ContentProvider {
             switch (match) {
                 case MTP_OBJECTS:
                 case MTP_OBJECTS_ID:
-                    try {
-                        // don't send objectRemoved event since this originated from MTP
-                        mDisableMtpObjectCallbacks = true;
-                        database.mNumDeletes++;
-                        count = db.delete("files", tableAndWhere.where, whereArgs);
-                    } finally {
-                        mDisableMtpObjectCallbacks = false;
-                    }
+                    database.mNumDeletes++;
+                    count = db.delete("files", tableAndWhere.where, whereArgs);
                     break;
                 case AUDIO_GENRES_ID_MEMBERS:
                     database.mNumDeletes++;
@@ -3430,8 +3342,7 @@ public class MediaProvider extends ContentProvider {
                 // Is a rename operation
                 && ((initialValues.size() == 1 && initialValues.containsKey(FileColumns.DATA))
                 // Is a move operation
-                || (initialValues.size() == 3 && initialValues.containsKey(FileColumns.DATA)
-                && initialValues.containsKey(FileColumns.STORAGE_ID)
+                || (initialValues.size() == 2 && initialValues.containsKey(FileColumns.DATA)
                 && initialValues.containsKey(FileColumns.PARENT)))) {
             String oldPath = null;
             String newPath = initialValues.getAsString(MediaStore.MediaColumns.DATA);

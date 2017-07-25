@@ -16,6 +16,7 @@
 
 package com.android.providers.media;
 
+import android.annotation.Nullable;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
@@ -25,6 +26,7 @@ import android.database.MatrixCursor;
 import android.database.MatrixCursor.RowBuilder;
 import android.graphics.BitmapFactory;
 import android.graphics.Point;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
@@ -50,6 +52,11 @@ import android.provider.MediaStore.Video.VideoColumns;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.util.Log;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import libcore.io.IoUtils;
 
@@ -102,6 +109,35 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     private static String joinNewline(String... args) {
         return TextUtils.join("\n", args);
     }
+
+    /**
+     * A lookup to convert universal metadata tags into database column names.
+     */
+    private static final Map<String, String> EXIF_COLUMN_MAP = new HashMap<>();
+
+    static {
+        EXIF_COLUMN_MAP.put(ExifInterface.TAG_IMAGE_WIDTH, ImageColumns.WIDTH);
+        EXIF_COLUMN_MAP.put(ExifInterface.TAG_IMAGE_LENGTH, ImageColumns.HEIGHT);
+        EXIF_COLUMN_MAP.put(ExifInterface.TAG_DATETIME, ImageColumns.DATE_TAKEN);
+        EXIF_COLUMN_MAP.put(ExifInterface.TAG_GPS_LATITUDE, ImageColumns.LATITUDE);
+        EXIF_COLUMN_MAP.put(ExifInterface.TAG_GPS_LONGITUDE, ImageColumns.LONGITUDE);
+    }
+
+    private static String[] DEFAULT_IMAGE_TAGS = {
+        ExifInterface.TAG_IMAGE_WIDTH,
+        ExifInterface.TAG_IMAGE_LENGTH,
+        ExifInterface.TAG_DATETIME,
+        ExifInterface.TAG_GPS_LATITUDE,
+        ExifInterface.TAG_GPS_LONGITUDE
+    };
+
+    private static String[] PROJECTION = {
+        ImageColumns.WIDTH,
+        ImageColumns.HEIGHT,
+        ImageColumns.DATE_TAKEN,
+        ImageColumns.LATITUDE,
+        ImageColumns.LONGITUDE
+    };
 
     private void copyNotificationUri(MatrixCursor result, Cursor cursor) {
         result.setNotificationUri(getContext().getContentResolver(), cursor.getNotificationUri());
@@ -214,6 +250,94 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         } finally {
             Binder.restoreCallingIdentity(token);
         }
+    }
+
+    @Override
+    public @Nullable Bundle getDocumentMetadata(String docId, @Nullable String[] tags)
+        throws FileNotFoundException {
+
+        final Ident ident = getIdentForDocId(docId);
+        String[] bundleTags;
+        String tagType;
+        Uri query;
+
+        switch (ident.type) {
+            case TYPE_IMAGE:
+                bundleTags = (tags != null) ? tags : DEFAULT_IMAGE_TAGS;
+                tagType = DocumentsContract.METADATA_EXIF;
+                query = Images.Media.EXTERNAL_CONTENT_URI;
+                break;
+            case TYPE_VIDEO:
+            case TYPE_AUDIO:
+            default:
+                //not supported file type.
+                return null;
+        }
+
+        final ContentResolver resolver = getContext().getContentResolver();
+        final long token = Binder.clearCallingIdentity();
+        Cursor cursor = null;
+        Bundle result = null;
+
+        try {
+            cursor = resolver.query(
+                    query,
+                    PROJECTION,
+                    BaseColumns._ID + "=?",
+                    new String[]{Long.toString(ident.id)},
+                    null);
+
+            if (!cursor.moveToFirst()) {
+                throw new FileNotFoundException("Can't find document id: " + docId);
+            }
+
+            Bundle metadata = extractMetadataFromCursor(cursor, bundleTags);
+            result = new Bundle();
+            result.putBundle(tagType, metadata);
+        } finally {
+            IoUtils.closeQuietly(cursor);
+            Binder.restoreCallingIdentity(token);
+        }
+        return result;
+    }
+
+    private static Bundle extractMetadataFromCursor(Cursor cursor, String[] bundleTags) {
+
+        assert (cursor.getCount() == 1);
+
+        final Bundle metadata = new Bundle();
+        for (String name : bundleTags) {
+            int index = cursor.getColumnIndex(EXIF_COLUMN_MAP.get(name));
+
+            // Special case to be able to pull longs out of a cursor, as long is not a supported
+            // field of getType.
+            if (ExifInterface.TAG_DATETIME.equals(name)) {
+                metadata.putLong(name, cursor.getLong(index));
+                continue;
+            }
+
+            switch (cursor.getType(index)) {
+                case Cursor.FIELD_TYPE_INTEGER:
+                    metadata.putInt(name, cursor.getInt(index));
+                    break;
+                case Cursor.FIELD_TYPE_FLOAT:
+                    //Errors on the side of greater precision since interface doesnt support doubles
+                    metadata.putFloat(name, cursor.getFloat(index));
+                    break;
+                case Cursor.FIELD_TYPE_STRING:
+                    metadata.putString(name, cursor.getString(index));
+                    break;
+                case Cursor.FIELD_TYPE_BLOB:
+                    Log.d(TAG, "Unsupported type, blob, for col: " + name);
+                    break;
+                case Cursor.FIELD_TYPE_NULL:
+                    Log.d(TAG, "Unsupported type, null, for col: " + name);
+                    break;
+                default:
+                    throw new RuntimeException("Data type not supported");
+            }
+        }
+        return metadata;
     }
 
     @Override
@@ -669,7 +793,9 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         row.add(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(ImageQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
         row.add(Document.COLUMN_FLAGS,
-                Document.FLAG_SUPPORTS_THUMBNAIL | Document.FLAG_SUPPORTS_DELETE);
+                Document.FLAG_SUPPORTS_THUMBNAIL
+                    | Document.FLAG_SUPPORTS_DELETE
+                    | Document.FLAG_SUPPORTS_METADATA);
     }
 
     private interface VideosBucketQuery {

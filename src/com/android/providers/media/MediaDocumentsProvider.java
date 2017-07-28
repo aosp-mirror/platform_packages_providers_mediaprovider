@@ -55,14 +55,17 @@ import android.text.format.DateFormat;
 import android.text.format.DateUtils;
 import android.util.Log;
 
-import libcore.io.IoUtils;
-
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+
+import libcore.io.IoUtils;
 
 /**
  * Presents a {@link DocumentsContract} view of {@link MediaProvider} external
@@ -115,6 +118,10 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     public static final String METADATA_KEY_AUDIO = "android.media.metadata.audio";
     /** @hide */
     public static final String METADATA_KEY_VIDEO = "android.media.metadata.video";
+    /** @hide */
+    public static final String JPEG_MIME_TYPE = "image/jpeg";
+    /** @hide */
+    public static final String JPG_MIME_TYPE = "image/jpg";
 
     /**
      * A mapping between media colums and metadata tag names. These keys of the
@@ -259,6 +266,33 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     @Override
     public @Nullable Bundle getDocumentMetadata(String docId) throws FileNotFoundException {
 
+        String mimeType = getDocumentType(docId);
+
+        if (JPEG_MIME_TYPE.equals(mimeType)
+            || JPG_MIME_TYPE.equals(mimeType)) {
+            return getExifMetadata(docId, mimeType);
+        } else {
+            return getDocumentMetadataFromIndex(docId);
+        }
+    }
+
+    private @Nullable Bundle getExifMetadata(String docId, String mimeType) {
+
+        InputStream is = null;
+        try {
+            final ParcelFileDescriptor fd = openDocument(docId, "r", null);
+            is = new FileInputStream(fd.getFileDescriptor());
+            return getDocumentMetadataFromStream(is, mimeType);
+        } catch (IOException io) {
+            return null;
+        } finally {
+            IoUtils.closeQuietly(is);
+        }
+    }
+
+    public @Nullable Bundle getDocumentMetadataFromIndex(String docId)
+            throws FileNotFoundException {
+
         final Ident ident = getIdentForDocId(docId);
 
         Map<String, String> columnMap = null;
@@ -284,7 +318,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             default:
                 // Unsupported file type.
                 throw new FileNotFoundException(
-                        "Metadata request for unsupported file type: " + ident.type);
+                    "Metadata request for unsupported file type: " + ident.type);
         }
 
         final long token = Binder.clearCallingIdentity();
@@ -311,7 +345,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             result.putBundle(tagType, metadata);
             result.putStringArray(
                     DocumentsContract.METADATA_TYPES,
-                    new String[]{ tagType });
+                    new String[]{tagType});
         } finally {
             IoUtils.closeQuietly(cursor);
             Binder.restoreCallingIdentity(token);

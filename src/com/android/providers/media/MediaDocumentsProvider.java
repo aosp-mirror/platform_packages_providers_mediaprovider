@@ -50,10 +50,13 @@ import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.Video;
 import android.provider.MediaStore.Video.VideoColumns;
+import android.provider.MetadataReader;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.text.format.DateUtils;
 import android.util.Log;
+
+import libcore.io.IoUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -64,8 +67,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-
-import libcore.io.IoUtils;
 
 /**
  * Presents a {@link DocumentsContract} view of {@link MediaProvider} external
@@ -271,25 +272,26 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
         String mimeType = getDocumentType(docId);
 
-        if (JPEG_MIME_TYPE.equals(mimeType)
-            || JPG_MIME_TYPE.equals(mimeType)) {
-            return getExifMetadata(docId, mimeType);
+        if (MetadataReader.isSupportedMimeType(mimeType)) {
+            return getDocumentMetadataFromStream(docId, mimeType);
         } else {
             return getDocumentMetadataFromIndex(docId);
         }
     }
 
-    private @Nullable Bundle getExifMetadata(String docId, String mimeType) {
-
-        InputStream is = null;
+    private @Nullable Bundle getDocumentMetadataFromStream(String docId, String mimeType) {
+        assert MetadataReader.isSupportedMimeType(mimeType);
+        InputStream stream = null;
         try {
-            final ParcelFileDescriptor fd = openDocument(docId, "r", null);
-            is = new FileInputStream(fd.getFileDescriptor());
-            return getDocumentMetadataFromStream(is, mimeType);
+            stream = new ParcelFileDescriptor.AutoCloseInputStream(
+                    openDocument(docId, "r", null));
+            Bundle metadata = new Bundle();
+            MetadataReader.getMetadata(metadata, stream, mimeType, null);
+            return metadata;
         } catch (IOException io) {
             return null;
         } finally {
-            IoUtils.closeQuietly(is);
+            IoUtils.closeQuietly(stream);
         }
     }
 

@@ -114,16 +114,12 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         return TextUtils.join("\n", args);
     }
 
-    /** @hide */
     public static final String METADATA_KEY_AUDIO = "android.media.metadata.audio";
-    /** @hide */
     public static final String METADATA_KEY_VIDEO = "android.media.metadata.video";
-    /** @hide */
     public static final String JPEG_MIME_TYPE = "image/jpeg";
-    /** @hide */
     public static final String JPG_MIME_TYPE = "image/jpg";
 
-    /**
+    /*
      * A mapping between media colums and metadata tag names. These keys of the
      * map form the projection for queries against the media store database.
      */
@@ -132,6 +128,11 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     private static final Map<String, String> AUDIO_COLUMN_MAP = new HashMap<>();
 
     static {
+        /**
+         * Note that for images (jpegs at least) we'll first try an alternate
+         * means of extracting metadata, one that provides more data. But if
+         * that fails, or if the image type is not JPEG, we fall back to these columns.
+         */
         IMAGE_COLUMN_MAP.put(ImageColumns.WIDTH, ExifInterface.TAG_IMAGE_WIDTH);
         IMAGE_COLUMN_MAP.put(ImageColumns.HEIGHT, ExifInterface.TAG_IMAGE_LENGTH);
         IMAGE_COLUMN_MAP.put(ImageColumns.DATE_TAKEN, ExifInterface.TAG_DATETIME);
@@ -139,6 +140,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         IMAGE_COLUMN_MAP.put(ImageColumns.LONGITUDE, ExifInterface.TAG_GPS_LONGITUDE);
 
         VIDEO_COLUMN_MAP.put(VideoColumns.DURATION, MediaMetadata.METADATA_KEY_DURATION);
+        VIDEO_COLUMN_MAP.put(VideoColumns.HEIGHT, ExifInterface.TAG_IMAGE_LENGTH);
+        VIDEO_COLUMN_MAP.put(VideoColumns.WIDTH, ExifInterface.TAG_IMAGE_WIDTH);
         VIDEO_COLUMN_MAP.put(VideoColumns.LATITUDE, ExifInterface.TAG_GPS_LATITUDE);
         VIDEO_COLUMN_MAP.put(VideoColumns.LONGITUDE, ExifInterface.TAG_GPS_LONGITUDE);
         VIDEO_COLUMN_MAP.put(VideoColumns.DATE_TAKEN, MediaMetadata.METADATA_KEY_DATE);

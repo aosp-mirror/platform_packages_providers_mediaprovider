@@ -50,6 +50,7 @@ import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.Video;
 import android.provider.MediaStore.Video.VideoColumns;
+import android.provider.MetadataReader;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.text.format.DateUtils;
@@ -58,7 +59,10 @@ import android.util.Log;
 import libcore.io.IoUtils;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Locale;
@@ -111,12 +115,12 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         return TextUtils.join("\n", args);
     }
 
-    /** @hide */
     public static final String METADATA_KEY_AUDIO = "android.media.metadata.audio";
-    /** @hide */
     public static final String METADATA_KEY_VIDEO = "android.media.metadata.video";
+    public static final String JPEG_MIME_TYPE = "image/jpeg";
+    public static final String JPG_MIME_TYPE = "image/jpg";
 
-    /**
+    /*
      * A mapping between media colums and metadata tag names. These keys of the
      * map form the projection for queries against the media store database.
      */
@@ -125,6 +129,11 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     private static final Map<String, String> AUDIO_COLUMN_MAP = new HashMap<>();
 
     static {
+        /**
+         * Note that for images (jpegs at least) we'll first try an alternate
+         * means of extracting metadata, one that provides more data. But if
+         * that fails, or if the image type is not JPEG, we fall back to these columns.
+         */
         IMAGE_COLUMN_MAP.put(ImageColumns.WIDTH, ExifInterface.TAG_IMAGE_WIDTH);
         IMAGE_COLUMN_MAP.put(ImageColumns.HEIGHT, ExifInterface.TAG_IMAGE_LENGTH);
         IMAGE_COLUMN_MAP.put(ImageColumns.DATE_TAKEN, ExifInterface.TAG_DATETIME);
@@ -132,6 +141,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         IMAGE_COLUMN_MAP.put(ImageColumns.LONGITUDE, ExifInterface.TAG_GPS_LONGITUDE);
 
         VIDEO_COLUMN_MAP.put(VideoColumns.DURATION, MediaMetadata.METADATA_KEY_DURATION);
+        VIDEO_COLUMN_MAP.put(VideoColumns.HEIGHT, ExifInterface.TAG_IMAGE_LENGTH);
+        VIDEO_COLUMN_MAP.put(VideoColumns.WIDTH, ExifInterface.TAG_IMAGE_WIDTH);
         VIDEO_COLUMN_MAP.put(VideoColumns.LATITUDE, ExifInterface.TAG_GPS_LATITUDE);
         VIDEO_COLUMN_MAP.put(VideoColumns.LONGITUDE, ExifInterface.TAG_GPS_LONGITUDE);
         VIDEO_COLUMN_MAP.put(VideoColumns.DATE_TAKEN, MediaMetadata.METADATA_KEY_DATE);
@@ -259,6 +270,34 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     @Override
     public @Nullable Bundle getDocumentMetadata(String docId) throws FileNotFoundException {
 
+        String mimeType = getDocumentType(docId);
+
+        if (MetadataReader.isSupportedMimeType(mimeType)) {
+            return getDocumentMetadataFromStream(docId, mimeType);
+        } else {
+            return getDocumentMetadataFromIndex(docId);
+        }
+    }
+
+    private @Nullable Bundle getDocumentMetadataFromStream(String docId, String mimeType) {
+        assert MetadataReader.isSupportedMimeType(mimeType);
+        InputStream stream = null;
+        try {
+            stream = new ParcelFileDescriptor.AutoCloseInputStream(
+                    openDocument(docId, "r", null));
+            Bundle metadata = new Bundle();
+            MetadataReader.getMetadata(metadata, stream, mimeType, null);
+            return metadata;
+        } catch (IOException io) {
+            return null;
+        } finally {
+            IoUtils.closeQuietly(stream);
+        }
+    }
+
+    public @Nullable Bundle getDocumentMetadataFromIndex(String docId)
+            throws FileNotFoundException {
+
         final Ident ident = getIdentForDocId(docId);
 
         Map<String, String> columnMap = null;
@@ -284,7 +323,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             default:
                 // Unsupported file type.
                 throw new FileNotFoundException(
-                        "Metadata request for unsupported file type: " + ident.type);
+                    "Metadata request for unsupported file type: " + ident.type);
         }
 
         final long token = Binder.clearCallingIdentity();
@@ -311,7 +350,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             result.putBundle(tagType, metadata);
             result.putStringArray(
                     DocumentsContract.METADATA_TYPES,
-                    new String[]{ tagType });
+                    new String[]{tagType});
         } finally {
             IoUtils.closeQuietly(cursor);
             Binder.restoreCallingIdentity(token);

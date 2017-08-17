@@ -18,7 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"Аудио-визуелни содржини"</string>
     <string name="storage_description" msgid="4081716890357580107">"Локална меморија"</string>
-    <string name="app_label" msgid="9035307001052716210">"Меморија за аудио-визуелни содржини"</string>
+    <string name="app_label" msgid="9035307001052716210">"Капацитет за аудио-визуелни содржини"</string>
     <string name="artist_label" msgid="8105600993099120273">"Изведувач"</string>
     <string name="ringtone_default" msgid="1744846699922263043">"Стандардна мелодија"</string>
     <string name="notification_sound_default" msgid="6541609166469990135">"Стандарден звук за известување"</string>

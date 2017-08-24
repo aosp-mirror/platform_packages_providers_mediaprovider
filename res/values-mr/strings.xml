@@ -23,7 +23,7 @@
     <string name="ringtone_default" msgid="1744846699922263043">"डीफॉल्ट रिंगटोन"</string>
     <string name="notification_sound_default" msgid="6541609166469990135">"डीफॉल्ट सूचना ध्वनी"</string>
     <string name="alarm_sound_default" msgid="5488847775252870314">"डीफॉल्ट अलार्म ध्वनी"</string>
-    <string name="root_images" msgid="5861633549189045666">"प्रतिमा"</string>
+    <string name="root_images" msgid="5861633549189045666">"इमेज"</string>
     <string name="root_videos" msgid="8792703517064649453">"व्हिडिओ"</string>
     <string name="root_audio" msgid="3505830755201326018">"ऑडिओ"</string>
     <string name="sound_name_awaken" msgid="5266892392848526147">"अवेकन"</string>

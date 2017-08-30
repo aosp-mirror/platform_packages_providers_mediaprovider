@@ -110,7 +110,6 @@ public class MtpService extends Service {
     @Override
     public void onCreate() {
         mStorageManager = this.getSystemService(StorageManager.class);
-        mStorageManager.registerListener(mStorageEventListener);
     }
 
     @Override
@@ -124,15 +123,13 @@ public class MtpService extends Service {
         synchronized (this) {
             mVolumeMap = new HashMap<>();
             mStorageMap = new HashMap<>();
-            StorageVolume[] volumes = mStorageManager.getVolumeList(user.getIdentifier(), 0);
-            mVolumes = volumes;
-            for (int i = 0; i < volumes.length; i++) {
-                String path = volumes[i].getPath();
-                String state = volumes[i].getState();
-                if (Environment.MEDIA_MOUNTED.equals(state)) {
-                    volumeMountedLocked(path);
+            mStorageManager.registerListener(mStorageEventListener);
+            mVolumes = StorageManager.getVolumeList(user.getIdentifier(), 0);
+            for (StorageVolume volume : mVolumes) {
+                if (Environment.MEDIA_MOUNTED.equals(volume.getState())) {
+                    volumeMountedLocked(volume.getPath());
                 } else {
-                    Log.e(TAG, "StorageVolume not mounted " + path);
+                    Log.e(TAG, "StorageVolume not mounted " + volume.getPath());
                 }
             }
         }

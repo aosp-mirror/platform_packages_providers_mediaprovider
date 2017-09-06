@@ -394,6 +394,7 @@ public class MediaProvider extends ContentProvider {
             mEarlyUpgrade = earlyUpgrade;
             mObjectRemovedCallback = objectRemovedCallback;
             setWriteAheadLoggingEnabled(true);
+            setIdleConnectionTimeout(IDLE_CONNECTION_TIMEOUT_MS);
         }
 
         /**
@@ -4674,6 +4675,9 @@ public class MediaProvider extends ContentProvider {
     // Delete databases that have not been used in two months
     // 60 days in milliseconds (1000 * 60 * 60 * 24 * 60)
     private static final long OBSOLETE_DATABASE_DB = 5184000000L;
+
+    // Memory optimization - close idle connections after 30s of inactivity
+    private static final int IDLE_CONNECTION_TIMEOUT_MS = 30000;
 
     private HashMap<String, DatabaseHelper> mDatabases;
 

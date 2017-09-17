@@ -36,7 +36,7 @@
     <string name="sound_name_sway" msgid="348448316663085643">"התנודדות"</string>
     <string name="sound_name_wag" msgid="2730733083078126563">"כשכוש"</string>
     <string name="add_ringtone_text" msgid="8077717303037760418">"רינגטון חדש"</string>
-    <string name="delete_ringtone_text" msgid="2963662097583300181">"מחק"</string>
+    <string name="delete_ringtone_text" msgid="2963662097583300181">"מחיקה"</string>
     <string name="unable_to_add_ringtone" msgid="6256097521165711269">"לא ניתן להוסיף רינגטון מותאם אישית"</string>
     <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"לא ניתן למחוק רינגטון מותאם אישית"</string>
 </resources>

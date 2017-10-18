@@ -192,7 +192,7 @@ public class MtpService extends Service {
                     createPackageContextAsUser(this.getPackageName(), 0, user),
                     MediaProvider.EXTERNAL_VOLUME,
                     primary.getPath(), subdirs);
-            String deviceSerialNumber = Build.SERIAL;
+            String deviceSerialNumber = Build.getSerial();
             if (Build.UNKNOWN.equals(deviceSerialNumber)) {
                 deviceSerialNumber = "????????";
             }

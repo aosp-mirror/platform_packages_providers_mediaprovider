@@ -16,6 +16,7 @@
 
 package com.android.providers.media;
 
+import android.annotation.NonNull;
 import android.app.ActivityManager;
 import android.app.Service;
 import android.content.Intent;
@@ -31,6 +32,9 @@ import android.os.storage.StorageEventListener;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.util.Log;
+
+import com.android.internal.annotations.GuardedBy;
+import com.android.internal.util.Preconditions;
 
 import java.io.File;
 import java.util.HashMap;
@@ -66,7 +70,7 @@ public class MtpService extends Service {
     private final StorageEventListener mStorageEventListener = new StorageEventListener() {
         @Override
         public void onStorageStateChanged(String path, String oldState, String newState) {
-            synchronized (mBinder) {
+            synchronized (MtpService.this) {
                 Log.d(TAG, "onStorageStateChanged " + path + " " + oldState + " -> " + newState);
                 if (Environment.MEDIA_MOUNTED.equals(newState)) {
                     volumeMountedLocked(path);
@@ -80,21 +84,38 @@ public class MtpService extends Service {
         }
     };
 
-    private MtpDatabase mDatabase;
-    private MtpServer mServer;
+    /**
+     * Static state of MtpServer. MtpServer opens FD for MTP driver internally and we cannot open
+     * multiple MtpServer at the same time. The static field used to handle the case where MtpServer
+     * lives beyond the lifetime of MtpService.
+     *
+     * Lock MtpService.this before locking MtpService.class if needed. Otherwise it goes to
+     * deadlock.
+     */
+    @GuardedBy("MtpService.class")
+    private static ServerHolder sServerHolder;
+
     private StorageManager mStorageManager;
+
     /** Flag indicating if MTP is disabled due to keyguard */
+    @GuardedBy("this")
     private boolean mMtpDisabled;
+    @GuardedBy("this")
     private boolean mUnlocked;
+    @GuardedBy("this")
     private boolean mPtpMode;
+
+    @GuardedBy("this")
     private final HashMap<String, StorageVolume> mVolumeMap = new HashMap<String, StorageVolume>();
+    @GuardedBy("this")
     private final HashMap<String, MtpStorage> mStorageMap = new HashMap<String, MtpStorage>();
+    @GuardedBy("this")
     private StorageVolume[] mVolumes;
 
     @Override
     public void onCreate() {
         mStorageManager = StorageManager.from(this);
-        synchronized (mBinder) {
+        synchronized (this) {
             updateDisabledStateLocked();
             mStorageManager.registerListener(mStorageEventListener);
             StorageVolume[] volumes = mStorageManager.getVolumeList();
@@ -111,9 +132,9 @@ public class MtpService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        mUnlocked = intent.getBooleanExtra(UsbManager.USB_DATA_UNLOCKED, false);
-        if (LOGD) { Log.d(TAG, "onStartCommand intent=" + intent + " mUnlocked=" + mUnlocked); }
-        synchronized (mBinder) {
+        synchronized (this) {
+            mUnlocked = intent.getBooleanExtra(UsbManager.USB_DATA_UNLOCKED, false);
+            if (LOGD) { Log.d(TAG, "onStartCommand intent=" + intent + " mUnlocked=" + mUnlocked); }
             updateDisabledStateLocked();
             mPtpMode = (intent == null ? false
                     : intent.getBooleanExtra(UsbManager.USB_FUNCTION_PTP, false));
@@ -130,9 +151,6 @@ public class MtpService extends Service {
                 }
             }
             final StorageVolume primary = StorageManager.getPrimaryVolume(mVolumes);
-            if (mDatabase != null) {
-                mDatabase.setServer(null);
-            }
             manageServiceLocked(primary, subdirs);
         }
 
@@ -153,59 +171,71 @@ public class MtpService extends Service {
      */
     private void manageServiceLocked(StorageVolume primary, String[] subdirs) {
         final boolean isCurrentUser = UserHandle.myUserId() == ActivityManager.getCurrentUser();
-        if (mServer == null && isCurrentUser) {
+
+        synchronized (MtpService.class) {
+            if (sServerHolder != null) {
+                if (LOGD) {
+                    Log.d(TAG, "Cannot launch second MTP server.");
+                }
+                // Previously executed MtpServer is still running. It will be terminated
+                // because MTP device FD will become invalid soon. Also MtpService will get new
+                // intent after that when UsbDeviceManager configures USB with new state.
+                return;
+            }
+            if (!isCurrentUser) {
+                return;
+            }
+
             Log.d(TAG, "starting MTP server in " + (mPtpMode ? "PTP mode" : "MTP mode"));
-            mDatabase = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME,
+            final MtpDatabase database = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME,
                     primary.getPath(), subdirs);
             String deviceSerialNumber = Build.SERIAL;
             if (Build.UNKNOWN.equals(deviceSerialNumber)) {
                 deviceSerialNumber = "????????";
             }
-            mServer =
+            final MtpServer server =
                     new MtpServer(
-                            mDatabase,
+                            database,
                             mPtpMode,
+                            new OnServerTerminated(),
                             Build.MANUFACTURER, // MTP DeviceInfo: Manufacturer
                             Build.MODEL,        // MTP DeviceInfo: Model
                             "1.0",              // MTP DeviceInfo: Device Version
                             deviceSerialNumber  // MTP DeviceInfo: Serial Number
                             );
-            mDatabase.setServer(mServer);
+            database.setServer(server);
+            sServerHolder = new ServerHolder(server, database);
+
+            // Need to run addStorageDevicesLocked after sServerHolder is set since it accesses
+            // sServerHolder.
             if (!mMtpDisabled) {
                 addStorageDevicesLocked();
             }
-            mServer.start();
-        } else if (mServer != null && !isCurrentUser) {
-            Log.d(TAG, "no longer current user; shutting down MTP server");
-            // Internally, kernel will close our FD, and server thread will
-            // handle cleanup.
-            mServer = null;
-            mDatabase.setServer(null);
+            server.start();
         }
     }
 
     @Override
     public void onDestroy() {
         mStorageManager.unregisterListener(mStorageEventListener);
-        if (mDatabase != null) {
-            mDatabase.setServer(null);
-        }
     }
 
     private final IMtpService.Stub mBinder =
             new IMtpService.Stub() {
+        @Override
         public void sendObjectAdded(int objectHandle) {
-            synchronized (mBinder) {
-                if (mServer != null) {
-                    mServer.sendObjectAdded(objectHandle);
+            synchronized (MtpService.class) {
+                if (sServerHolder != null) {
+                    sServerHolder.server.sendObjectAdded(objectHandle);
                 }
             }
         }
 
+        @Override
         public void sendObjectRemoved(int objectHandle) {
-            synchronized (mBinder) {
-                if (mServer != null) {
-                    mServer.sendObjectRemoved(objectHandle);
+            synchronized (MtpService.class) {
+                if (sServerHolder != null) {
+                    sServerHolder.server.sendObjectRemoved(objectHandle);
                 }
             }
         }
@@ -244,11 +274,11 @@ public class MtpService extends Service {
                     + " at " + storage.getPath());
         }
 
-        if (mDatabase != null) {
-            mDatabase.addStorage(storage);
-        }
-        if (mServer != null) {
-            mServer.addStorage(storage);
+        synchronized (MtpService.class) {
+            if (sServerHolder != null) {
+                sServerHolder.database.addStorage(storage);
+                sServerHolder.server.addStorage(storage);
+            }
         }
     }
 
@@ -261,11 +291,42 @@ public class MtpService extends Service {
 
         Log.d(TAG, "Removing MTP storage " + Integer.toHexString(storage.getStorageId()) + " at "
                 + storage.getPath());
-        if (mDatabase != null) {
-            mDatabase.removeStorage(storage);
+
+        synchronized (MtpService.class) {
+            if (sServerHolder != null) {
+                sServerHolder.database.removeStorage(storage);
+                sServerHolder.server.removeStorage(storage);
+            }
         }
-        if (mServer != null) {
-            mServer.removeStorage(storage);
+    }
+
+    private static class ServerHolder {
+        @NonNull final MtpServer server;
+        @NonNull final MtpDatabase database;
+
+        ServerHolder(@NonNull MtpServer server, @NonNull MtpDatabase database) {
+            Preconditions.checkNotNull(server);
+            Preconditions.checkNotNull(database);
+            this.server = server;
+            this.database = database;
+        }
+
+        void close() {
+            this.database.setServer(null);
+        }
+    }
+
+    private class OnServerTerminated implements Runnable {
+        @Override
+        public void run() {
+            synchronized (MtpService.class) {
+                if (sServerHolder == null) {
+                    Log.e(TAG, "sServerHolder is unexpectedly null.");
+                    return;
+                }
+                sServerHolder.close();
+                sServerHolder = null;
+            }
         }
     }
 }

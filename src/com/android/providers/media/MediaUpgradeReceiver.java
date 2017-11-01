@@ -18,7 +18,6 @@ package com.android.providers.media;
 
 import java.io.File;
 
-import android.app.ActivityManagerNative;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;

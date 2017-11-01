@@ -3338,7 +3338,13 @@ public class MediaProvider extends ContentProvider {
         // in this case we must update all paths in the database with
         // the directory name as a prefix
         if ((match == MTP_OBJECTS || match == MTP_OBJECTS_ID || match == FILES_DIRECTORY)
-                && initialValues != null && initialValues.size() == 1) {
+                && initialValues != null
+                // Is a rename operation
+                && ((initialValues.size() == 1 && initialValues.containsKey(FileColumns.DATA))
+                // Is a move operation
+                || (initialValues.size() == 3 && initialValues.containsKey(FileColumns.DATA)
+                && initialValues.containsKey(FileColumns.STORAGE_ID)
+                && initialValues.containsKey(FileColumns.PARENT)))) {
             String oldPath = null;
             String newPath = initialValues.getAsString(MediaStore.MediaColumns.DATA);
             mDirectoryCache.remove(newPath);

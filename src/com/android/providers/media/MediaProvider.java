@@ -91,10 +91,6 @@ import android.system.StructStat;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.util.Log;
-
-import libcore.io.IoUtils;
-import libcore.util.EmptyArray;
-
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
@@ -111,6 +107,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.PriorityQueue;
 import java.util.Stack;
+import libcore.io.IoUtils;
+import libcore.util.EmptyArray;
 
 /**
  * Media content provider. See {@link android.provider.MediaStore} for details.
@@ -151,6 +149,7 @@ public class MediaProvider extends ContentProvider {
 
     private StorageManager mStorageManager;
     private AppOpsManager mAppOpsManager;
+    private PackageManager mPackageManager;
 
     // In memory cache of path<->id mappings, to speed up inserts during media scan
     HashMap<String, Long> mDirectoryCache = new HashMap<String, Long>();
@@ -604,6 +603,7 @@ public class MediaProvider extends ContentProvider {
 
         mStorageManager = context.getSystemService(StorageManager.class);
         mAppOpsManager = context.getSystemService(AppOpsManager.class);
+        mPackageManager = context.getPackageManager();
 
         sArtistAlbumsMap.put(MediaStore.Audio.Albums._ID, "audio.album_id AS " +
                 MediaStore.Audio.Albums._ID);
@@ -823,7 +823,7 @@ public class MediaProvider extends ContentProvider {
                 + "duration INTEGER,bookmark INTEGER,artist TEXT,album TEXT,resolution TEXT,"
                 + "tags TEXT,category TEXT,language TEXT,mini_thumb_data TEXT,name TEXT,"
                 + "media_type INTEGER,old_id INTEGER,storage_id INTEGER,is_drm INTEGER,"
-                + "width INTEGER, height INTEGER)");
+                + "width INTEGER, height INTEGER, title_resource_uri TEXT)");
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!internal) {
             db.execSQL("CREATE TABLE audio_genres (_id INTEGER PRIMARY KEY,name TEXT NOT NULL)");
@@ -925,6 +925,7 @@ public class MediaProvider extends ContentProvider {
         // collation keys
         db.execSQL("DELETE from albums");
         db.execSQL("DELETE from artists");
+        db.execSQL("ALTER TABLE files ADD COLUMN title_resource_uri TEXT DEFAULT NULL");
         db.execSQL("UPDATE files SET date_modified=0;");
     }
 
@@ -954,7 +955,7 @@ public class MediaProvider extends ContentProvider {
         if (fromVersion < 700) {
             // Anything older than KK is recreated from scratch
             createLatestSchema(db, internal);
-        } else if (fromVersion < 800) {
+        } else if (fromVersion < 900) {
             updateFromKKSchema(db, internal, fromVersion);
         }
 
@@ -2037,6 +2038,77 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    /**
+     * Localizable titles conform to this URI pattern:
+     *   Scheme: {@link ContentResolver.SCHEME_ANDROID_RESOURCE}
+     *   Authority: Package Name of ringtone title provider
+     *   First Path Segment: Type of resource (must be "string")
+     *   Second Path Segment: Resource ID of title
+     *
+     * @param title The title to localize
+     * @return The localized title, or {@code null} if unlocalizable
+     * @throws Exception Thrown if the title appears to be localizable, but the localization failed
+     * for any reason. For example, the application from which the localized title is fetched is not
+     * installed, or it does not have the resource which needs to be localized.
+     */
+    private String getLocalizedTitle(String title) throws Exception {
+        try {
+            if (TextUtils.isEmpty(title)) {
+                return null;
+            }
+            final Uri titleUri = Uri.parse(title);
+            final String scheme = titleUri.getScheme();
+            if (!ContentResolver.SCHEME_ANDROID_RESOURCE.equals(scheme)) {
+                return null;
+            }
+            final List<String> pathSegments = titleUri.getPathSegments();
+            if (pathSegments.size() != 2) {
+                Log.e(TAG, "Error getting localized title for " + title + ", must have 2 path "
+                    + "segments");
+                return null;
+            }
+            final String type = pathSegments.get(0);
+            if (!"string".equals(type)) {
+                Log.e(TAG, "Error getting localized title for " + title + ", first path segment "
+                    + "must be \"string\"");
+                return null;
+            }
+            final String packageName = titleUri.getAuthority();
+            final Resources resources = mPackageManager.getResourcesForApplication(packageName);
+            final String resourceIdentifier = pathSegments.get(1);
+            final int id = resources.getIdentifier(resourceIdentifier, type, packageName);
+            return resources.getString(id);
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting localized title for " + title, e);
+            throw e;
+        }
+    }
+
+    private void localizeTitles() {
+        for (DatabaseHelper helper : mDatabases.values()) {
+            final SQLiteDatabase db = helper.getWritableDatabase();
+            try (Cursor c = db.query("files", new String[]{"_id", "title_resource_uri"},
+                "title_resource_uri IS NOT NULL", null, null, null, null)) {
+                while (c.moveToNext()) {
+                    final String id = c.getString(0);
+                    final String titleResourceUri = c.getString(1);
+                    final ContentValues values = new ContentValues();
+                    try {
+                        final String localizedTitle = getLocalizedTitle(titleResourceUri);
+                        values.put("title_key", MediaStore.Audio.keyFor(localizedTitle));
+                        // do a final trim of the title, in case it started with the special
+                        // "sort first" character (ascii \001)
+                        values.put("title", localizedTitle.trim());
+                        db.update("files", values, "_id=?", new String[]{id});
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error updating localized title for " + titleResourceUri
+                            + ", keeping old localization");
+                    }
+                }
+            }
+        }
+    }
+
     private long insertFile(DatabaseHelper helper, Uri uri, ContentValues initialValues, int mediaType,
                             boolean notify, ArrayList<Long> notifyRowIds) {
         SQLiteDatabase db = helper.getWritableDatabase();
@@ -2118,10 +2190,21 @@ public class MediaProvider extends ContentProvider {
                 values.put("album_id", Integer.toString((int)albumRowId));
                 so = values.getAsString("title");
                 s = (so == null ? "" : so.toString());
+
+                try {
+                    final String localizedTitle = getLocalizedTitle(s);
+                    if (localizedTitle != null) {
+                        values.put("title_resource_uri", s);
+                        s = localizedTitle;
+                    } else {
+                        values.putNull("title_resource_uri");
+                    }
+                } catch (Exception e) {
+                    values.put("title_resource_uri", s);
+                }
                 values.put("title_key", MediaStore.Audio.keyFor(s));
                 // do a final trim of the title, in case it started with the special
                 // "sort first" character (ascii \001)
-                values.remove("title");
                 values.put("title", s.trim());
 
                 computeDisplayName(values.getAsString(MediaStore.MediaColumns.DATA), values);
@@ -3308,6 +3391,10 @@ public class MediaProvider extends ContentProvider {
             processRemovedNoMediaPath(arg);
             return null;
         }
+        if (MediaStore.RETRANSLATE_CALL.equals(method)) {
+            localizeTitles();
+            return null;
+        }
         throw new UnsupportedOperationException("Unsupported call: " + method);
     }
 
@@ -3493,12 +3580,21 @@ public class MediaProvider extends ContentProvider {
                     // If the title field is modified, update the title_key
                     so = values.getAsString("title");
                     if (so != null) {
-                        String s = so.toString();
-                        values.put("title_key", MediaStore.Audio.keyFor(s));
+                        try {
+                            final String localizedTitle = getLocalizedTitle(so);
+                            if (localizedTitle != null) {
+                                values.put("title_resource_uri", so);
+                                so = localizedTitle;
+                            } else {
+                                values.putNull("title_resource_uri");
+                            }
+                        } catch (Exception e) {
+                            values.put("title_resource_uri", so);
+                        }
+                        values.put("title_key", MediaStore.Audio.keyFor(so));
                         // do a final trim of the title, in case it started with the special
                         // "sort first" character (ascii \001)
-                        values.remove("title");
-                        values.put("title", s.trim());
+                        values.put("title", so.trim());
                     }
 
                     helper.mNumUpdates++;

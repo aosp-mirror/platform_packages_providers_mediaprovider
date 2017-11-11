@@ -23,6 +23,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import java.io.File;
@@ -38,6 +39,8 @@ public class MediaScannerReceiver extends BroadcastReceiver {
         if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
             // Scan internal only.
             scan(context, MediaProvider.INTERNAL_VOLUME);
+        } else if (Intent.ACTION_LOCALE_CHANGED.equals(action)) {
+            scanTranslatable(context);
         } else {
             if (uri.getScheme().equals("file")) {
                 // handle intents related to external storage
@@ -72,12 +75,18 @@ public class MediaScannerReceiver extends BroadcastReceiver {
         args.putString("volume", volume);
         context.startService(
                 new Intent(context, MediaScannerService.class).putExtras(args));
-    }    
+    }
 
     private void scanFile(Context context, String path) {
         Bundle args = new Bundle();
         args.putString("filepath", path);
         context.startService(
                 new Intent(context, MediaScannerService.class).putExtras(args));
-    }    
+    }
+
+    private void scanTranslatable(Context context) {
+        final Bundle args = new Bundle();
+        args.putBoolean(MediaStore.RETRANSLATE_CALL, true);
+        context.startService(new Intent(context, MediaScannerService.class).putExtras(args));
+    }
 }

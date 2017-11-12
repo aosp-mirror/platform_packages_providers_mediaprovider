@@ -18,6 +18,7 @@
 package com.android.providers.media;
 
 import android.app.Service;
+import android.content.ContentProviderClient;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -224,6 +225,10 @@ public class MediaScannerService extends Service implements Runnable {
                     if (listener != null) {
                         listener.scanCompleted(filePath, uri);
                     }
+                } else if (arguments.getBoolean(MediaStore.RETRANSLATE_CALL)) {
+                    ContentProviderClient mediaProvider = getBaseContext().getContentResolver()
+                        .acquireContentProviderClient(MediaStore.AUTHORITY);
+                    mediaProvider.call(MediaStore.RETRANSLATE_CALL, null, null);
                 } else {
                     String volume = arguments.getString("volume");
                     String[] directories = null;
@@ -259,5 +264,5 @@ public class MediaScannerService extends Service implements Runnable {
 
             stopSelf(msg.arg1);
         }
-    };
+    }
 }

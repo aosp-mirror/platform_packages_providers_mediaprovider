@@ -20,6 +20,7 @@ import android.annotation.NonNull;
 import android.app.ActivityManager;
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.hardware.usb.UsbManager;
 import android.mtp.MtpDatabase;
 import android.mtp.MtpServer;
@@ -55,9 +56,11 @@ public class MtpService extends Service {
             final StorageVolume primary = StorageManager.getPrimaryVolume(mVolumes);
             final String path = primary.getPath();
             if (path != null) {
-                String state = mStorageManager.getVolumeState(path);
+                String state = primary.getState();
                 if (Environment.MEDIA_MOUNTED.equals(state)) {
                     addStorageLocked(mVolumeMap.get(path));
+                } else {
+                    Log.e(TAG, "Couldn't add primary storage " + path + " in state " + state);
                 }
             }
         } else {
@@ -70,7 +73,7 @@ public class MtpService extends Service {
     private final StorageEventListener mStorageEventListener = new StorageEventListener() {
         @Override
         public void onStorageStateChanged(String path, String oldState, String newState) {
-            synchronized (MtpService.this) {
+            synchronized (this) {
                 Log.d(TAG, "onStorageStateChanged " + path + " " + oldState + " -> " + newState);
                 if (Environment.MEDIA_MOUNTED.equals(newState)) {
                     volumeMountedLocked(path);
@@ -84,16 +87,8 @@ public class MtpService extends Service {
         }
     };
 
-    /**
-     * Static state of MtpServer. MtpServer opens FD for MTP driver internally and we cannot open
-     * multiple MtpServer at the same time. The static field used to handle the case where MtpServer
-     * lives beyond the lifetime of MtpService.
-     *
-     * Lock MtpService.this before locking MtpService.class if needed. Otherwise it goes to
-     * deadlock.
-     */
-    @GuardedBy("MtpService.class")
-    private static ServerHolder sServerHolder;
+    @GuardedBy("this")
+    private ServerHolder sServerHolder;
 
     private StorageManager mStorageManager;
 
@@ -106,73 +101,81 @@ public class MtpService extends Service {
     private boolean mPtpMode;
 
     @GuardedBy("this")
-    private final HashMap<String, StorageVolume> mVolumeMap = new HashMap<String, StorageVolume>();
+    private HashMap<String, StorageVolume> mVolumeMap;
     @GuardedBy("this")
-    private final HashMap<String, MtpStorage> mStorageMap = new HashMap<String, MtpStorage>();
+    private HashMap<String, MtpStorage> mStorageMap;
     @GuardedBy("this")
     private StorageVolume[] mVolumes;
 
     @Override
     public void onCreate() {
-        mStorageManager = StorageManager.from(this);
-        synchronized (this) {
-            updateDisabledStateLocked();
-            mStorageManager.registerListener(mStorageEventListener);
-            StorageVolume[] volumes = mStorageManager.getVolumeList();
-            mVolumes = volumes;
-            for (int i = 0; i < volumes.length; i++) {
-                String path = volumes[i].getPath();
-                String state = mStorageManager.getVolumeState(path);
-                if (Environment.MEDIA_MOUNTED.equals(state)) {
-                    volumeMountedLocked(path);
-                }
-            }
-        }
+        mStorageManager = this.getSystemService(StorageManager.class);
+    }
+
+    @Override
+    public void onDestroy() {
+        mStorageManager.unregisterListener(mStorageEventListener);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        UserHandle user = new UserHandle(ActivityManager.getCurrentUser());
+        synchronized (this) {
+            mVolumeMap = new HashMap<>();
+            mStorageMap = new HashMap<>();
+            mStorageManager.registerListener(mStorageEventListener);
+            mVolumes = StorageManager.getVolumeList(user.getIdentifier(), 0);
+            for (StorageVolume volume : mVolumes) {
+                if (Environment.MEDIA_MOUNTED.equals(volume.getState())) {
+                    volumeMountedLocked(volume.getPath());
+                } else {
+                    Log.e(TAG, "StorageVolume not mounted " + volume.getPath());
+                }
+            }
+        }
+
         synchronized (this) {
             mUnlocked = intent.getBooleanExtra(UsbManager.USB_DATA_UNLOCKED, false);
-            if (LOGD) { Log.d(TAG, "onStartCommand intent=" + intent + " mUnlocked=" + mUnlocked); }
             updateDisabledStateLocked();
             mPtpMode = (intent == null ? false
                     : intent.getBooleanExtra(UsbManager.USB_FUNCTION_PTP, false));
             String[] subdirs = null;
             if (mPtpMode) {
+                Environment.UserEnvironment env = new Environment.UserEnvironment(
+                        user.getIdentifier());
                 int count = PTP_DIRECTORIES.length;
                 subdirs = new String[count];
                 for (int i = 0; i < count; i++) {
-                    File file =
-                            Environment.getExternalStoragePublicDirectory(PTP_DIRECTORIES[i]);
+                    File file = env.buildExternalStoragePublicDirs(PTP_DIRECTORIES[i])[0];
                     // make sure this directory exists
                     file.mkdirs();
                     subdirs[i] = file.getPath();
                 }
             }
             final StorageVolume primary = StorageManager.getPrimaryVolume(mVolumes);
-            manageServiceLocked(primary, subdirs);
+            try {
+                manageServiceLocked(primary, subdirs, user);
+            } catch (PackageManager.NameNotFoundException e) {
+                Log.e(TAG, "Couldn't find the current user!: " + e.getMessage());
+            }
         }
 
         return START_REDELIVER_INTENT;
     }
 
     private void updateDisabledStateLocked() {
-        final boolean isCurrentUser = UserHandle.myUserId() == ActivityManager.getCurrentUser();
-        mMtpDisabled = !mUnlocked || !isCurrentUser;
+        mMtpDisabled = !mUnlocked;
         if (LOGD) {
-            Log.d(TAG, "updating state; isCurrentUser=" + isCurrentUser + ", mMtpLocked="
-                    + mMtpDisabled);
+            Log.d(TAG, "updating state; mMtpLocked=" + mMtpDisabled);
         }
     }
 
     /**
      * Manage {@link #mServer}, creating only when running as the current user.
      */
-    private void manageServiceLocked(StorageVolume primary, String[] subdirs) {
-        final boolean isCurrentUser = UserHandle.myUserId() == ActivityManager.getCurrentUser();
-
-        synchronized (MtpService.class) {
+    private void manageServiceLocked(StorageVolume primary, String[] subdirs, UserHandle user)
+            throws PackageManager.NameNotFoundException {
+        synchronized (this) {
             if (sServerHolder != null) {
                 if (LOGD) {
                     Log.d(TAG, "Cannot launch second MTP server.");
@@ -182,12 +185,12 @@ public class MtpService extends Service {
                 // intent after that when UsbDeviceManager configures USB with new state.
                 return;
             }
-            if (!isCurrentUser) {
-                return;
-            }
 
-            Log.d(TAG, "starting MTP server in " + (mPtpMode ? "PTP mode" : "MTP mode"));
-            final MtpDatabase database = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME,
+            Log.d(TAG, "starting MTP server in " + (mPtpMode ? "PTP mode" : "MTP mode") +
+                    " with storage " + primary.getPath() + (mMtpDisabled ? " disabled" : ""));
+            final MtpDatabase database = new MtpDatabase(this,
+                    createPackageContextAsUser(this.getPackageName(), 0, user),
+                    MediaProvider.EXTERNAL_VOLUME,
                     primary.getPath(), subdirs);
             String deviceSerialNumber = Build.SERIAL;
             if (Build.UNKNOWN.equals(deviceSerialNumber)) {
@@ -213,11 +216,6 @@ public class MtpService extends Service {
             }
             server.start();
         }
-    }
-
-    @Override
-    public void onDestroy() {
-        mStorageManager.unregisterListener(mStorageEventListener);
     }
 
     private final IMtpService.Stub mBinder =

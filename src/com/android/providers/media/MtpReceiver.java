@@ -36,10 +36,6 @@ public class MtpReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         final String action = intent.getAction();
         if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
-            // If we somehow fail to configure after boot, it becomes difficult to
-            // recover usb state. Thus we always configure once on boot, but it
-            // has no effect if Mtp is disabled or already configured.
-            MtpServer.configure(false);
             final Intent usbState = context.registerReceiver(
                     null, new IntentFilter(UsbManager.ACTION_USB_STATE));
             if (usbState != null) {

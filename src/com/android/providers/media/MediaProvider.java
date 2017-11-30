@@ -103,6 +103,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1060,7 +1061,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * This method blocks until thumbnail is ready.
+     * This method requests a thumbnail and blocks until thumbnail is ready.
      *
      * @param thumbUri
      * @return
@@ -1273,7 +1274,7 @@ public class MediaProvider extends ContentProvider {
         int table = URI_MATCHER.match(uri);
         List<String> prependArgs = new ArrayList<String>();
 
-        // Log.v(TAG, "query: uri="+uri+", selection="+selection);
+        //Log.v(TAG, "query: uri="+uri+", selection="+selection);
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
         if (table == MEDIA_SCANNER) {
             if (mMediaScannerVolume == null) {
@@ -2778,6 +2779,31 @@ public class MediaProvider extends ContentProvider {
         MediaScanner.clearMediaPathCache(true /* media */, false /* nomedia */);
         File nomedia = new File(path);
         String hiddenroot = nomedia.isDirectory() ? path : nomedia.getParent();
+
+        // query for images and videos that will be affected
+        Cursor c = db.query("files",
+                new String[] {"_id", "media_type"},
+                "_data >= ? AND _data < ? AND (media_type=1 OR media_type=3)"
+                + " AND mini_thumb_magic IS NOT NULL",
+                new String[] { hiddenroot  + "/", hiddenroot + "0"},
+                null /* groupBy */, null /* having */, null /* orderBy */);
+        if(c != null) {
+            if (c.getCount() != 0) {
+                Uri imagesUri = Uri.parse("content://media/external/images/media");
+                Uri videosUri = Uri.parse("content://media/external/videos/media");
+                while (c.moveToNext()) {
+                    // remove thumbnail for image/video
+                    long id = c.getLong(0);
+                    long mediaType = c.getLong(1);
+                    Log.i(TAG, "hiding image " + id + ", removing thumbnail");
+                    removeThumbnailFor(mediaType == FileColumns.MEDIA_TYPE_IMAGE ?
+                            imagesUri : videosUri, db, id);
+                }
+            }
+            IoUtils.closeQuietly(c);
+        }
+
+        // set the media type of the affected entries to 0
         ContentValues mediatype = new ContentValues();
         mediatype.put("media_type", 0);
         int numrows = db.update("files", mediatype,
@@ -3126,6 +3152,7 @@ public class MediaProvider extends ContentProvider {
                 editor.apply();
             }
             mMediaScannerVolume = null;
+            pruneThumbnails();
             return 1;
         }
 
@@ -3147,6 +3174,7 @@ public class MediaProvider extends ContentProvider {
             }
         } else {
             final String volumeName = getVolumeName(uri);
+            final boolean isExternal = "external".equals(volumeName);
 
             DatabaseHelper database = getDatabaseForUri(uri);
             if (database == null) {
@@ -3163,9 +3191,12 @@ public class MediaProvider extends ContentProvider {
                     database.mNumQueries++;
                     Cursor c = db.query(tableAndWhere.table,
                             sMediaTypeDataId,
-                            tableAndWhere.where, whereArgs, null, null, null);
+                            tableAndWhere.where, whereArgs,
+                            null /* groupBy */, null /* having */, null /* orderBy */);
                     String [] idvalue = new String[] { "" };
                     String [] playlistvalues = new String[] { "", "" };
+                    MiniThumbFile imageMicroThumbs = null;
+                    MiniThumbFile videoMicroThumbs = null;
                     try {
                         while (c.moveToNext()) {
                             final int mediaType = c.getInt(0);
@@ -3180,7 +3211,9 @@ public class MediaProvider extends ContentProvider {
                                 idvalue[0] = String.valueOf(id);
                                 database.mNumQueries++;
                                 Cursor cc = db.query("thumbnails", sDataOnlyColumn,
-                                            "image_id=?", idvalue, null, null, null);
+                                            "image_id=?", idvalue,
+                                            null /* groupBy */, null /* having */,
+                                            null /* orderBy */);
                                 try {
                                     while (cc.moveToNext()) {
                                         deleteIfAllowed(uri, cc.getString(0));
@@ -3190,11 +3223,38 @@ public class MediaProvider extends ContentProvider {
                                 } finally {
                                     IoUtils.closeQuietly(cc);
                                 }
+                                if (isExternal) {
+                                    if (imageMicroThumbs == null) {
+                                        imageMicroThumbs = MiniThumbFile.instance(
+                                                Images.Media.EXTERNAL_CONTENT_URI);
+                                    }
+                                    imageMicroThumbs.eraseMiniThumb(id);
+                                }
                             } else if (mediaType == FileColumns.MEDIA_TYPE_VIDEO) {
                                 deleteIfAllowed(uri, data);
                                 MediaDocumentsProvider.onMediaStoreDelete(getContext(),
                                         volumeName, FileColumns.MEDIA_TYPE_VIDEO, id);
 
+                                idvalue[0] = String.valueOf(id);
+                                database.mNumQueries++;
+                                Cursor cc = db.query("videothumbnails", sDataOnlyColumn,
+                                            "video_id=?", idvalue, null, null, null);
+                                try {
+                                    while (cc.moveToNext()) {
+                                        deleteIfAllowed(uri, cc.getString(0));
+                                    }
+                                    database.mNumDeletes++;
+                                    db.delete("videothumbnails", "video_id=?", idvalue);
+                                } finally {
+                                    IoUtils.closeQuietly(cc);
+                                }
+                                if (isExternal) {
+                                    if (videoMicroThumbs == null) {
+                                        videoMicroThumbs = MiniThumbFile.instance(
+                                                Video.Media.EXTERNAL_CONTENT_URI);
+                                    }
+                                    videoMicroThumbs.eraseMiniThumb(id);
+                                }
                             } else if (mediaType == FileColumns.MEDIA_TYPE_AUDIO) {
                                 if (!database.mInternal) {
                                     MediaDocumentsProvider.onMediaStoreDelete(getContext(),
@@ -3230,6 +3290,12 @@ public class MediaProvider extends ContentProvider {
                         }
                     } finally {
                         IoUtils.closeQuietly(c);
+                        if (imageMicroThumbs != null) {
+                            imageMicroThumbs.deactivate();
+                        }
+                        if (videoMicroThumbs != null) {
+                            videoMicroThumbs.deactivate();
+                        }
                     }
                     // Do not allow deletion if the file/object is referenced as parent
                     // by some other entries. It could cause database corruption.
@@ -3311,12 +3377,92 @@ public class MediaProvider extends ContentProvider {
         throw new UnsupportedOperationException("Unsupported call: " + method);
     }
 
+
+    /*
+     * Clean up all thumbnail files for which the source image or video no longer exists.
+     * This is called at the end of a media scan.
+     */
+    private void pruneThumbnails() {
+        Log.v(TAG, "pruneThumbnails ");
+
+        final Uri thumbsUri = Images.Thumbnails.getContentUri("external");
+
+        // Remove orphan entries in the thumbnails tables
+        DatabaseHelper helper = getDatabaseForUri(thumbsUri);
+        SQLiteDatabase db = helper.getWritableDatabase();
+        db.execSQL("delete from thumbnails where image_id not in (select _id from images)");
+        db.execSQL("delete from videothumbnails where video_id not in (select _id from video)");
+
+        // Remove cached thumbnails that are no longer referenced by the thumbnails tables
+        HashSet<String> existingFiles = new HashSet<String>();
+        try {
+            String directory = "/sdcard/DCIM/.thumbnails";
+            File dirFile = new File(directory).getCanonicalFile();
+            String[] files = dirFile.list();
+            if (files == null)
+                files = new String[0];
+
+            String dirPath = dirFile.getPath();
+            for (int i = 0; i < files.length; i++) {
+                if (files[i].endsWith(".jpg")) {
+                    String fullPathString = dirPath + "/" + files[i];
+                    existingFiles.add(fullPathString);
+                }
+            }
+        } catch (IOException e) {
+            return;
+        }
+
+        for (String table : new String[] {"thumbnails", "videothumbnails"}) {
+            Cursor c = db.query(table, new String [] { "_data" },
+                    null, null, null, null, null); // where clause/args, groupby, having, orderby
+            if (c != null && c.moveToFirst()) {
+                do {
+                    String fullPathString = c.getString(0);
+                    existingFiles.remove(fullPathString);
+                } while (c.moveToNext());
+            }
+            IoUtils.closeQuietly(c);
+        }
+
+        for (String fileToDelete : existingFiles) {
+            if (LOCAL_LOGV)
+                Log.v(TAG, "fileToDelete is " + fileToDelete);
+            try {
+                (new File(fileToDelete)).delete();
+            } catch (SecurityException ex) {
+            }
+        }
+
+        Log.v(TAG, "/pruneDeadThumbnailFiles... ");
+    }
+
+    private void removeThumbnailFor(Uri uri, SQLiteDatabase db, long id) {
+        Cursor c = db.rawQuery("select _data from thumbnails where image_id=" + id
+                + " union all select _data from videothumbnails where video_id=" + id,
+                null /* selectionArgs */);
+        if (c != null) {
+            while (c.moveToNext()) {
+                String path = c.getString(0);
+                deleteIfAllowed(uri, path);
+            }
+            IoUtils.closeQuietly(c);
+            db.execSQL("delete from thumbnails where image_id=" + id);
+            db.execSQL("delete from videothumbnails where video_id=" + id);
+        }
+        MiniThumbFile microThumbs = MiniThumbFile.instance(uri);
+        microThumbs.eraseMiniThumb(id);
+        microThumbs.deactivate();
+    }
+
     @Override
     public int update(Uri uri, ContentValues initialValues, String userWhere,
             String[] whereArgs) {
         uri = safeUncanonicalize(uri);
         int count;
-        // Log.v(TAG, "update for uri="+uri+", initValues="+initialValues);
+        //Log.v(TAG, "update for uri=" + uri + ", initValues=" + initialValues +
+        //        ", where=" + userWhere + ", args=" + Arrays.toString(whereArgs) + " caller:" +
+        //        Binder.getCallingPid());
         int match = URI_MATCHER.match(uri);
         DatabaseHelper helper = getDatabaseForUri(uri);
         if (helper == null) {
@@ -3334,6 +3480,33 @@ public class MediaProvider extends ContentProvider {
         }
 
         TableAndWhere tableAndWhere = getTableAndWhere(uri, match, userWhere);
+
+        // if the media type is being changed, check if it's being changed from image or video
+        // to something else
+        if (initialValues.containsKey(FileColumns.MEDIA_TYPE)) {
+            long newMediaType = initialValues.getAsLong(FileColumns.MEDIA_TYPE);
+            helper.mNumQueries++;
+            Cursor cursor = db.query(tableAndWhere.table, sMediaTableColumns,
+                tableAndWhere.where, whereArgs, null, null, null);
+            try {
+                while (cursor != null && cursor.moveToNext()) {
+                    long curMediaType = cursor.getLong(1);
+                    if (curMediaType == FileColumns.MEDIA_TYPE_IMAGE &&
+                            newMediaType != FileColumns.MEDIA_TYPE_IMAGE) {
+                        Log.i(TAG, "need to remove image thumbnail for id " + cursor.getString(0));
+                        removeThumbnailFor(Images.Media.EXTERNAL_CONTENT_URI,
+                                db, cursor.getLong(0));
+                    } else if (curMediaType == FileColumns.MEDIA_TYPE_VIDEO &&
+                            newMediaType != FileColumns.MEDIA_TYPE_VIDEO) {
+                        Log.i(TAG, "need to remove video thumbnail for id " + cursor.getString(0));
+                        removeThumbnailFor(Video.Media.EXTERNAL_CONTENT_URI,
+                                db, cursor.getLong(0));
+                    }
+                }
+            } finally {
+                IoUtils.closeQuietly(cursor);
+            }
+        }
 
         // special case renaming directories via MTP.
         // in this case we must update all paths in the database with

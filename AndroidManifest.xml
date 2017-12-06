@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:androidprv="http://schemas.android.com/apk/prv/res/android"
         package="com.android.providers.media"
         android:sharedUserId="android.media"
         android:sharedUserLabel="@string/uid_label"
@@ -72,7 +73,8 @@
             </intent-filter>
         </service>
 
-        <receiver android:name=".MtpReceiver">
+        <receiver android:name=".MtpReceiver"
+                  androidprv:systemUserOnly="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
@@ -81,7 +83,8 @@
             </intent-filter>
         </receiver>
 
-        <service android:name="MtpService" />
+        <service android:name="MtpService"
+                 androidprv:systemUserOnly="true"/>
 
         <activity android:name="RingtonePickerActivity"
                 android:theme="@style/PickerDialogTheme"

@@ -18,6 +18,4 @@ package com.android.providers.media;
 
 interface IMtpService
 {
-    void sendObjectAdded(int objectHandle);
-    void sendObjectRemoved(int objectHandle);
 }

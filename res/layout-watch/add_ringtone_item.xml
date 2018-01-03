@@ -14,6 +14,11 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
+
+<!--
+     Currently, no file manager app on watch could handle ACTION_GET_CONTENT intent.
+     Make the visibility to "gone" to prevent failures.
+ -->
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -26,4 +31,5 @@
         android:paddingEnd="?android:attr/listPreferredItemPaddingEnd"
         android:drawableStart="@drawable/ic_add_padded"
         android:drawablePadding="8dp"
-        android:ellipsize="marquee" />
+        android:ellipsize="marquee"
+        android:visibility="gone" />

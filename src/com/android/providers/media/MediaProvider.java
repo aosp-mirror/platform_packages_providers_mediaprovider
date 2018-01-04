@@ -66,10 +66,13 @@ import android.os.Environment;
 import android.os.FileUtils;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.IBinder;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.os.Process;
 import android.os.SystemClock;
+import android.os.UserHandle;
+import android.os.UserManager;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.os.storage.VolumeInfo;
@@ -693,6 +696,29 @@ public class MediaProvider extends ContentProvider {
         };
 
         return true;
+    }
+
+    private void enforceShellRestrictions() {
+        if (UserHandle.getCallingAppId() == android.os.Process.SHELL_UID
+                && getContext().getSystemService(UserManager.class)
+                        .hasUserRestriction(UserManager.DISALLOW_USB_FILE_TRANSFER)) {
+            throw new SecurityException(
+                    "Shell user cannot access files for user " + UserHandle.myUserId());
+        }
+    }
+
+    @Override
+    protected int enforceReadPermissionInner(Uri uri, String callingPkg, IBinder callerToken)
+            throws SecurityException {
+        enforceShellRestrictions();
+        return super.enforceReadPermissionInner(uri, callingPkg, callerToken);
+    }
+
+    @Override
+    protected int enforceWritePermissionInner(Uri uri, String callingPkg, IBinder callerToken)
+            throws SecurityException {
+        enforceShellRestrictions();
+        return super.enforceWritePermissionInner(uri, callingPkg, callerToken);
     }
 
     private static final String TABLE_FILES = "files";

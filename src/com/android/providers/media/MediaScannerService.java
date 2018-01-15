@@ -238,6 +238,7 @@ public class MediaScannerService extends Service implements Runnable {
                         directories = new String[] {
                                 Environment.getRootDirectory() + "/media",
                                 Environment.getOemDirectory() + "/media",
+                                Environment.getProductDirectory() + "/media",
                         };
                     }
                     else if (MediaProvider.EXTERNAL_VOLUME.equals(volume)) {

@@ -43,7 +43,6 @@ import android.content.SharedPreferences;
 import android.content.UriMatcher;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
-import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
@@ -1205,7 +1204,7 @@ public class MediaProvider extends ContentProvider {
             // Construct a canonical Uri by tacking on some query parameters
             builder = uri.buildUpon();
             builder.appendQueryParameter(CANONICAL, "1");
-            title = getDefaultTitleFromCursor(c);
+            title = c.getString(c.getColumnIndex(MediaStore.Audio.Media.TITLE));
         } finally {
             IoUtils.closeQuietly(c);
         }
@@ -1235,8 +1234,9 @@ public class MediaProvider extends ContentProvider {
 
             Cursor c = query(uri, null, null, null, null);
             try {
+                int titleIdx = c.getColumnIndex(MediaStore.Audio.Media.TITLE);
                 if (c != null && c.getCount() == 1 && c.moveToNext() &&
-                    titleFromUri.equals(getDefaultTitleFromCursor(c))) {
+                        titleFromUri.equals(c.getString(titleIdx))) {
                     // the result matched perfectly
                     return uri;
                 }
@@ -1988,107 +1988,49 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * @param c the Cursor whose title to retrieve
-     * @return the result of {@link #getDefaultTitle(String)} if the result is valid; otherwise
-     * the value of the {@code MediaStore.Audio.Media.TITLE} column
-     */
-    private String getDefaultTitleFromCursor(Cursor c) {
-        String title = null;
-        final String titleResourceUri = c.getString(c.getColumnIndex("title_resource_uri"));
-        if (titleResourceUri != null) {
-            try {
-                title = getDefaultTitle(titleResourceUri);
-            } catch (Exception e) {
-                // Best attempt only
-            }
-        }
-        if (title == null) {
-            title = c.getString(c.getColumnIndex(MediaStore.Audio.Media.TITLE));
-        }
-        return title;
-    }
-
-    /**
-     * @param title_resource_uri The title resource for which to retrieve the default localization
-     * @return The title localized to {@code Locale.US}, or {@code null} if unlocalizable
-     * @throws Exception Thrown if the title appears to be localizable, but the localization failed
-     * for any reason. For example, the application from which the localized title is fetched is not
-     * installed, or it does not have the resource which needs to be localized
-     */
-    private String getDefaultTitle(String title_resource_uri) throws Exception{
-        try {
-            return getTitleFromResourceUri(title_resource_uri, false);
-        } catch (Exception e) {
-            Log.e(TAG, "Error getting default title for " + title_resource_uri, e);
-            throw e;
-        }
-    }
-
-    /**
-     * @param title_resource_uri The title resource to localize
-     * @return The localized title, or {@code null} if unlocalizable
-     * @throws Exception Thrown if the title appears to be localizable, but the localization failed
-     * for any reason. For example, the application from which the localized title is fetched is not
-     * installed, or it does not have the resource which needs to be localized
-     */
-    private String getLocalizedTitle(String title_resource_uri) throws Exception {
-        try {
-            return getTitleFromResourceUri(title_resource_uri, true);
-        } catch (Exception e) {
-            Log.e(TAG, "Error getting localized title for " + title_resource_uri, e);
-            throw e;
-        }
-    }
-
-    /**
      * Localizable titles conform to this URI pattern:
      *   Scheme: {@link ContentResolver.SCHEME_ANDROID_RESOURCE}
      *   Authority: Package Name of ringtone title provider
      *   First Path Segment: Type of resource (must be "string")
-     *   Second Path Segment: Resource name of title
+     *   Second Path Segment: Resource ID of title
      *
-     * @param title_resource_uri The title resource to retrieve
-     * @param localize Whether or not to localize the title
-     * @return The title, or {@code null} if unlocalizable
+     * @param title The title to localize
+     * @return The localized title, or {@code null} if unlocalizable
      * @throws Exception Thrown if the title appears to be localizable, but the localization failed
      * for any reason. For example, the application from which the localized title is fetched is not
-     * installed, or it does not have the resource which needs to be localized
+     * installed, or it does not have the resource which needs to be localized.
      */
-    private String getTitleFromResourceUri(String title_resource_uri, boolean localize)
-        throws Exception {
-        if (TextUtils.isEmpty(title_resource_uri)) {
-            return null;
+    private String getLocalizedTitle(String title) throws Exception {
+        try {
+            if (TextUtils.isEmpty(title)) {
+                return null;
+            }
+            final Uri titleUri = Uri.parse(title);
+            final String scheme = titleUri.getScheme();
+            if (!ContentResolver.SCHEME_ANDROID_RESOURCE.equals(scheme)) {
+                return null;
+            }
+            final List<String> pathSegments = titleUri.getPathSegments();
+            if (pathSegments.size() != 2) {
+                Log.e(TAG, "Error getting localized title for " + title + ", must have 2 path "
+                    + "segments");
+                return null;
+            }
+            final String type = pathSegments.get(0);
+            if (!"string".equals(type)) {
+                Log.e(TAG, "Error getting localized title for " + title + ", first path segment "
+                    + "must be \"string\"");
+                return null;
+            }
+            final String packageName = titleUri.getAuthority();
+            final Resources resources = mPackageManager.getResourcesForApplication(packageName);
+            final String resourceIdentifier = pathSegments.get(1);
+            final int id = resources.getIdentifier(resourceIdentifier, type, packageName);
+            return resources.getString(id);
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting localized title for " + title, e);
+            throw e;
         }
-        final Uri titleUri = Uri.parse(title_resource_uri);
-        final String scheme = titleUri.getScheme();
-        if (!ContentResolver.SCHEME_ANDROID_RESOURCE.equals(scheme)) {
-            return null;
-        }
-        final List<String> pathSegments = titleUri.getPathSegments();
-        if (pathSegments.size() != 2) {
-            Log.e(TAG, "Error getting localized title for " + title_resource_uri
-                + ", must have 2 path segments");
-            return null;
-        }
-        final String type = pathSegments.get(0);
-        if (!"string".equals(type)) {
-            Log.e(TAG, "Error getting localized title for " + title_resource_uri
-                + ", first path segment must be \"string\"");
-            return null;
-        }
-        final String packageName = titleUri.getAuthority();
-        final Resources resources;
-        if (localize) {
-            resources = mPackageManager.getResourcesForApplication(packageName);
-        } else {
-            final Context packageContext = getContext().createPackageContext(packageName, 0);
-            final Configuration configuration = packageContext.getResources().getConfiguration();
-            configuration.setLocale(Locale.US);
-            resources = packageContext.createConfigurationContext(configuration).getResources();
-        }
-        final String resourceIdentifier = pathSegments.get(1);
-        final int id = resources.getIdentifier(resourceIdentifier, type, packageName);
-        return resources.getString(id);
     }
 
     private void localizeTitles() {

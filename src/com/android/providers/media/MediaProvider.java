@@ -290,27 +290,13 @@ public class MediaProvider extends ContentProvider {
                                     new Intent(Intent.ACTION_MEDIA_SCANNER_STARTED, uri));
 
                             Log.d(TAG, "deleting all entries for storage " + storage);
-                            SQLiteDatabase db = database.getWritableDatabase();
-                            // First clear the file path to disable the _DELETE_FILE database hook.
-                            // We do this to avoid deleting files if the volume is remounted while
-                            // we are still processing the unmount event.
-                            ContentValues values = new ContentValues();
-                            values.putNull(Files.FileColumns.DATA);
-                            String where = FileColumns.STORAGE_ID + "=?";
-                            String[] whereArgs = new String[] { };
-                            database.mNumUpdates++;
-                            db.beginTransaction();
-                            try {
-                                db.update("files", values, where, whereArgs);
-                                // now delete the records
-                                database.mNumDeletes++;
-                                int numpurged = db.delete("files", where, whereArgs);
-                                logToDb(db, "removed " + numpurged +
-                                        " rows for ejected filesystem " + storage.getPath());
-                                db.setTransactionSuccessful();
-                            } finally {
-                                db.endTransaction();
-                            }
+                            delete(Files.getMtpObjectsUri(EXTERNAL_VOLUME),
+                                    // the 'like' makes it use the index, the 'lower()' makes it
+                                    // correct when the path contains sqlite wildcard characters
+                                    "_data LIKE ?1 AND lower(substr(_data,1,?2))=lower(?3)",
+                                    new String[]{storage.getPath() + "/%",
+                                            Integer.toString(storage.getPath().length() + 1),
+                                            storage.getPath() + "/"});
                             // notify on media Uris as well as the files Uri
                             context.getContentResolver().notifyChange(
                                     Audio.Media.getContentUri(EXTERNAL_VOLUME), null);

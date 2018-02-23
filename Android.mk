@@ -9,6 +9,7 @@ LOCAL_SRC_FILES := $(call all-subdir-java-files) \
 LOCAL_JAVA_LIBRARIES := 
 
 LOCAL_PACKAGE_NAME := MediaProvider
+LOCAL_PRIVATE_PLATFORM_APIS := true
 LOCAL_CERTIFICATE := media
 LOCAL_PRIVILEGED_MODULE := true
 

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--  Copyright (C) 2009 The Android Open Source Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+ -->
+
+<resources xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <!-- no translation found for uid_label (8421971615411294156) -->
+    <skip />
+    <string name="storage_description" msgid="4081716890357580107">"স্থানীয় সঞ্চয়াগাৰ"</string>
+    <!-- no translation found for app_label (9035307001052716210) -->
+    <skip />
+    <!-- no translation found for artist_label (8105600993099120273) -->
+    <skip />
+    <!-- no translation found for ringtone_default (1744846699922263043) -->
+    <skip />
+    <!-- no translation found for notification_sound_default (6541609166469990135) -->
+    <skip />
+    <!-- no translation found for alarm_sound_default (5488847775252870314) -->
+    <skip />
+    <!-- no translation found for root_images (5861633549189045666) -->
+    <skip />
+    <!-- no translation found for root_videos (8792703517064649453) -->
+    <skip />
+    <!-- no translation found for root_audio (3505830755201326018) -->
+    <skip />
+    <!-- no translation found for sound_name_awaken (5266892392848526147) -->
+    <skip />
+    <!-- no translation found for sound_name_bounce (8771447635446665231) -->
+    <skip />
+    <!-- no translation found for sound_name_drip (1744684469020662152) -->
+    <skip />
+    <!-- no translation found for sound_name_gallop (2664454314532060876) -->
+    <skip />
+    <!-- no translation found for sound_name_nudge (5445751598250698244) -->
+    <skip />
+    <!-- no translation found for sound_name_orbit (4623457897813255481) -->
+    <skip />
+    <!-- no translation found for sound_name_rise (2200258555031675806) -->
+    <skip />
+    <!-- no translation found for sound_name_sway (348448316663085643) -->
+    <skip />
+    <!-- no translation found for sound_name_wag (2730733083078126563) -->
+    <skip />
+    <string name="add_ringtone_text" msgid="8077717303037760418">"ৰিংট\'ন যোগ কৰক"</string>
+    <string name="delete_ringtone_text" msgid="2963662097583300181">"মচক"</string>
+    <string name="unable_to_add_ringtone" msgid="6256097521165711269">"নিজৰ উপযোগিতা অনুযায়ী তৈয়াৰ কৰা ৰিংট\'ন যোগ কৰিব পৰা নগ\'ল"</string>
+    <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"নিজৰ উপযোগিতা অনুযায়ী তৈয়াৰ কৰা ৰিংট\'ন মচিব পৰা নগ\'ল"</string>
+</resources>

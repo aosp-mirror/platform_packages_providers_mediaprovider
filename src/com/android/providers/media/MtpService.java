@@ -99,6 +99,7 @@ public class MtpService extends Service {
     @Override
     public void onCreate() {
         mStorageManager = this.getSystemService(StorageManager.class);
+        mStorageManager.registerListener(mStorageEventListener);
     }
 
     @Override
@@ -109,7 +110,6 @@ public class MtpService extends Service {
     @Override
     public synchronized int onStartCommand(Intent intent, int flags, int startId) {
         UserHandle user = new UserHandle(ActivityManager.getCurrentUser());
-        mStorageManager.registerListener(mStorageEventListener);
         mUnlocked = intent.getBooleanExtra(UsbManager.USB_DATA_UNLOCKED, false);
         mPtpMode = intent.getBooleanExtra(UsbManager.USB_FUNCTION_PTP, false);
         mVolumes = StorageManager.getVolumeList(user.getIdentifier(), 0);

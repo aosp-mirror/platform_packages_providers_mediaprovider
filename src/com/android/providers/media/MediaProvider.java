@@ -291,7 +291,10 @@ public class MediaProvider extends ContentProvider {
                                     new Intent(Intent.ACTION_MEDIA_SCANNER_STARTED, uri));
 
                             Log.d(TAG, "deleting all entries for storage " + storage);
-                            delete(Files.getMtpObjectsUri(EXTERNAL_VOLUME),
+                            Uri.Builder builder =
+                                    Files.getMtpObjectsUri(EXTERNAL_VOLUME).buildUpon();
+                            builder.appendQueryParameter(MediaStore.PARAM_DELETE_DATA, "false");
+                            delete(builder.build(),
                                     // the 'like' makes it use the index, the 'lower()' makes it
                                     // correct when the path contains sqlite wildcard characters
                                     "_data LIKE ?1 AND lower(substr(_data,1,?2))=lower(?3)",

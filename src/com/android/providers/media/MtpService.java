@@ -105,6 +105,11 @@ public class MtpService extends Service {
     @Override
     public void onDestroy() {
         mStorageManager.unregisterListener(mStorageEventListener);
+        synchronized (MtpService.class) {
+            if (sServerHolder != null) {
+                sServerHolder.database.setServer(null);
+            }
+        }
     }
 
     @Override

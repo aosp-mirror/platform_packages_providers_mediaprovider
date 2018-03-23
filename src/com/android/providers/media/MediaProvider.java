@@ -2918,16 +2918,7 @@ public class MediaProvider extends ContentProvider {
         // a nomedia path was removed, so clear the nomedia paths
         MediaScanner.clearMediaPathCache(false /* media */, true /* nomedia */);
         final DatabaseHelper helper;
-        String[] internalPaths = new String[] {
-            Environment.getRootDirectory() + "/media",
-            Environment.getOemDirectory() + "/media",
-        };
-
-        if (path.startsWith(internalPaths[0]) || path.startsWith(internalPaths[1])) {
-            helper = getDatabaseForUri(MediaStore.Audio.Media.INTERNAL_CONTENT_URI);
-        } else {
-            helper = getDatabaseForUri(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);
-        }
+        helper = getDatabaseForUri(MediaStore.Audio.Media.getContentUriForPath(path));
         SQLiteDatabase db = helper.getWritableDatabase();
         new ScannerClient(getContext(), db, path);
     }

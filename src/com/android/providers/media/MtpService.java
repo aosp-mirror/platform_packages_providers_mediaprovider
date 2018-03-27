@@ -19,6 +19,7 @@ package com.android.providers.media;
 import android.annotation.NonNull;
 import android.app.ActivityManager;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.usb.UsbManager;
@@ -27,6 +28,9 @@ import android.mtp.MtpServer;
 import android.os.Build;
 import android.os.Environment;
 import android.os.IBinder;
+import android.os.ParcelFileDescriptor;
+import android.os.RemoteException;
+import android.os.ServiceManager;
 import android.os.UserHandle;
 import android.os.storage.StorageEventListener;
 import android.os.storage.StorageManager;
@@ -35,8 +39,10 @@ import android.util.Log;
 
 import com.android.internal.annotations.GuardedBy;
 import com.android.internal.util.Preconditions;
+import android.hardware.usb.IUsbManager;
 
 import java.io.File;
+import java.io.FileDescriptor;
 import java.util.HashMap;
 
 /**
@@ -140,9 +146,6 @@ public class MtpService extends Service {
         return START_REDELIVER_INTENT;
     }
 
-    /**
-     * Manage MtpServer, creating only when running as the current user.
-     */
     private synchronized void startServer(StorageVolume primary, String[] subdirs, UserHandle user)
             throws PackageManager.NameNotFoundException {
         if (sServerHolder != null) {
@@ -164,8 +167,25 @@ public class MtpService extends Service {
         if (Build.UNKNOWN.equals(deviceSerialNumber)) {
             deviceSerialNumber = "????????";
         }
+        IUsbManager usbMgr = IUsbManager.Stub.asInterface(ServiceManager.getService(
+                Context.USB_SERVICE));
+        ParcelFileDescriptor controlFd = null;
+        try {
+            controlFd = usbMgr.getControlFd(
+                    mPtpMode ? UsbManager.FUNCTION_PTP : UsbManager.FUNCTION_MTP);
+        } catch (RemoteException e) {
+            Log.e(TAG, "Error communicating with UsbManager: " + e);
+        }
+        FileDescriptor fd = null;
+        if (controlFd == null) {
+            Log.i(TAG, "Couldn't get control FD!");
+        } else {
+            fd = controlFd.getFileDescriptor();
+        }
+
         final MtpServer server =
-                new MtpServer(database, mPtpMode, new OnServerTerminated(), Build.MANUFACTURER,
+                new MtpServer(database, fd, mPtpMode,
+                        new OnServerTerminated(), Build.MANUFACTURER,
                         Build.MODEL, "1.0", deviceSerialNumber);
         database.setServer(server);
         sServerHolder = new ServerHolder(server, database);

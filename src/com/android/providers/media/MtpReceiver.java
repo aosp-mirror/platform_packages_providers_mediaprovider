@@ -16,6 +16,7 @@
 
 package com.android.providers.media;
 
+import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -23,6 +24,7 @@ import android.content.IntentFilter;
 import android.hardware.usb.UsbManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.UserHandle;
 import android.util.Log;
 
 public class MtpReceiver extends BroadcastReceiver {
@@ -50,8 +52,11 @@ public class MtpReceiver extends BroadcastReceiver {
         boolean mtpEnabled = extras.getBoolean(UsbManager.USB_FUNCTION_MTP);
         boolean ptpEnabled = extras.getBoolean(UsbManager.USB_FUNCTION_PTP);
         boolean unlocked = extras.getBoolean(UsbManager.USB_DATA_UNLOCKED);
+        boolean isCurrentUser = UserHandle.myUserId() == ActivityManager.getCurrentUser();
 
         if (configured && (mtpEnabled || ptpEnabled)) {
+            if (!isCurrentUser)
+                return;
             context.getContentResolver().insert(Uri.parse(
                     "content://media/none/mtp_connected"), null);
             intent = new Intent(context, MtpService.class);

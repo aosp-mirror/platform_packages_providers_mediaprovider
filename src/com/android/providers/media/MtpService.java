@@ -114,6 +114,9 @@ public class MtpService extends Service {
 
     @Override
     public void onCreate() {
+        mVolumes = StorageManager.getVolumeList(getUserId(), 0);
+        mVolumeMap = new HashMap<>();
+
         mStorageManager = this.getSystemService(StorageManager.class);
         mStorageManager.registerListener(mStorageEventListener);
     }
@@ -130,11 +133,9 @@ public class MtpService extends Service {
 
     @Override
     public synchronized int onStartCommand(Intent intent, int flags, int startId) {
-        UserHandle user = new UserHandle(ActivityManager.getCurrentUser());
         mUnlocked = intent.getBooleanExtra(UsbManager.USB_DATA_UNLOCKED, false);
         mPtpMode = intent.getBooleanExtra(UsbManager.USB_FUNCTION_PTP, false);
-        mVolumes = StorageManager.getVolumeList(getUserId(), 0);
-        mVolumeMap = new HashMap<>();
+
         for (StorageVolume v : mVolumes) {
             if (v.getState().equals(Environment.MEDIA_MOUNTED)) {
                 mVolumeMap.put(v.getPath(), v);

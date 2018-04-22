@@ -168,7 +168,7 @@ public final class RingtonePickerActivity extends AlertActivity implements
             // In the buttonless (watch-only) version, preemptively set our result since we won't
             // have another chance to do so before the activity closes.
             if (!mShowOkCancelButtons) {
-                setResultFromSelection();
+                setSuccessResultWithRingtone(getCurrentlySelectedRingtoneUri());
             }
 
             // Play clip
@@ -372,7 +372,7 @@ public final class RingtonePickerActivity extends AlertActivity implements
         // In the buttonless (watch-only) version, preemptively set our result since we won't
         // have another chance to do so before the activity closes.
         if (!mShowOkCancelButtons) {
-            setResultFromSelection();
+            setSuccessResultWithRingtone(getCurrentlySelectedRingtoneUri());
         }
         // If external storage is available, add a button to install sounds from storage.
         if(Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
@@ -481,7 +481,7 @@ public final class RingtonePickerActivity extends AlertActivity implements
         mRingtoneManager.stopPreviousRingtone();
 
         if (positiveResult) {
-            setResultFromSelection();
+            setSuccessResultWithRingtone(getCurrentlySelectedRingtoneUri());
         } else {
             setResult(RESULT_CANCELED);
         }
@@ -498,7 +498,7 @@ public final class RingtonePickerActivity extends AlertActivity implements
         // In the buttonless (watch-only) version, preemptively set our result since we won't
         // have another chance to do so before the activity closes.
         if (!mShowOkCancelButtons) {
-            setResultFromSelection();
+            setSuccessResultWithRingtone(getCurrentlySelectedRingtoneUri());
         }
     }
 
@@ -566,27 +566,21 @@ public final class RingtonePickerActivity extends AlertActivity implements
         }
     }
 
-    private void setResultFromSelection() {
-        // Obtain the currently selected ringtone
-        Uri uri = null;
-        if (getCheckedItem() == mDefaultRingtonePos) {
-            // Set it to the default Uri that they originally gave us
-            uri = mUriForDefaultItem;
-        } else if (getCheckedItem() == mSilentPos) {
-            // A null Uri is for the 'Silent' item
-            uri = null;
-        } else {
-            uri = mRingtoneManager.getRingtoneUri(getRingtoneManagerPosition(getCheckedItem()));
-        }
+    private void setSuccessResultWithRingtone(Uri ringtoneUri) {
+      setResult(RESULT_OK,
+          new Intent().putExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI, ringtoneUri));
+    }
 
-        // Return new URI if another ringtone was selected, as there's no ok/cancel button
-        if (Objects.equals(uri, mExistingUri)) {
-            setResult(RESULT_CANCELED);
-        } else {
-            Intent resultIntent = new Intent();
-            resultIntent.putExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI, uri);
-            setResult(RESULT_OK, resultIntent);
-        }
+    private Uri getCurrentlySelectedRingtoneUri() {
+      if (getCheckedItem() == mDefaultRingtonePos) {
+        // Use the default Uri that they originally gave us.
+        return mUriForDefaultItem;
+      } else if (getCheckedItem() == mSilentPos) {
+        // Use a null Uri for the 'Silent' item.
+        return null;
+      } else {
+        return mRingtoneManager.getRingtoneUri(getRingtoneManagerPosition(getCheckedItem()));
+      }
     }
 
     private void saveAnyPlayingRingtone() {

@@ -24,7 +24,7 @@
     <string name="notification_sound_default" msgid="6541609166469990135">"الصوت التلقائي للإشعارات"</string>
     <string name="alarm_sound_default" msgid="5488847775252870314">"الصوت التلقائي للتنبيه"</string>
     <string name="root_images" msgid="5861633549189045666">"الصور"</string>
-    <string name="root_videos" msgid="8792703517064649453">"مقاطع الفيديو"</string>
+    <string name="root_videos" msgid="8792703517064649453">"الفيديوهات"</string>
     <string name="root_audio" msgid="3505830755201326018">"الصوت"</string>
     <string name="sound_name_awaken" msgid="5266892392848526147">"إيقاظ"</string>
     <string name="sound_name_bounce" msgid="8771447635446665231">"ارتداد"</string>

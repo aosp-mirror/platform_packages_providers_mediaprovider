@@ -915,7 +915,7 @@ public class MediaProvider extends ContentProvider {
                 + " BEGIN SELECT _DELETE_FILE(old._data);END");
     }
 
-    private static void updateFromKKSchema(SQLiteDatabase db, boolean internal, int fromVersion) {
+    private static void updateFromKKSchema(SQLiteDatabase db) {
         // Delete albums and artists, then clear the modification time on songs, which
         // will cause the media scanner to rescan everything, rebuilding the artist and
         // album tables along the way, while preserving playlists.
@@ -924,7 +924,15 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("DELETE from albums");
         db.execSQL("DELETE from artists");
         db.execSQL("ALTER TABLE files ADD COLUMN title_resource_uri TEXT DEFAULT NULL");
-        db.execSQL("UPDATE files SET date_modified=0;");
+        db.execSQL("UPDATE files SET date_modified=0");
+    }
+
+    private static void updateFromOCSchema(SQLiteDatabase db) {
+        // Add the column used for title localization, and force a rescan of any
+        // ringtones, alarms and notifications that may be using it.
+        db.execSQL("ALTER TABLE files ADD COLUMN title_resource_uri TEXT DEFAULT NULL");
+        db.execSQL("UPDATE files SET date_modified=0"
+                + " WHERE (is_alarm IS 1) OR (is_ringtone IS 1) OR (is_notification IS 1)");
     }
 
     /**
@@ -953,8 +961,10 @@ public class MediaProvider extends ContentProvider {
         if (fromVersion < 700) {
             // Anything older than KK is recreated from scratch
             createLatestSchema(db, internal);
+        } else if (fromVersion < 800) {
+            updateFromKKSchema(db);
         } else if (fromVersion < 900) {
-            updateFromKKSchema(db, internal, fromVersion);
+            updateFromOCSchema(db);
         }
 
         sanityCheck(db, fromVersion);

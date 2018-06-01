@@ -17,8 +17,8 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"मीडिया"</string>
-    <string name="storage_description" msgid="4081716890357580107">"स्थानिक संचय"</string>
-    <string name="app_label" msgid="9035307001052716210">"मीडिया संचय"</string>
+    <string name="storage_description" msgid="4081716890357580107">"स्थानिक स्टोरेज"</string>
+    <string name="app_label" msgid="9035307001052716210">"मीडिया स्टोरेज"</string>
     <string name="artist_label" msgid="8105600993099120273">"कलाकार"</string>
     <string name="ringtone_default" msgid="1744846699922263043">"डीफॉल्ट रिंगटोन"</string>
     <string name="notification_sound_default" msgid="6541609166469990135">"डीफॉल्ट सूचना ध्वनी"</string>

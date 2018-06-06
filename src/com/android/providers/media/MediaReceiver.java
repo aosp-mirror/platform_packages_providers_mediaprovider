@@ -44,6 +44,8 @@ public class MediaReceiver extends BroadcastReceiver {
             // Scan internal only.
             scan(context, MediaProvider.INTERNAL_VOLUME);
 
+        } else if (Intent.ACTION_DEVICE_CUSTOMIZATION_READY.equals(action)) {
+            initResourceRingtones(context);
         } else if (Intent.ACTION_LOCALE_CHANGED.equals(action)) {
             scanTranslatable(context);
 
@@ -83,6 +85,11 @@ public class MediaReceiver extends BroadcastReceiver {
                 }
             }
         }
+    }
+
+    private void initResourceRingtones(Context context) {
+        context.startService(
+                new Intent(context, RingtoneOverlayService.class));
     }
 
     private void scan(Context context, String volume) {

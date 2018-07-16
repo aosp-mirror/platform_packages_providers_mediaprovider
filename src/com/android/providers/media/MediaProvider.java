@@ -23,6 +23,7 @@ import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_MEDIA_STORAGE;
 import static android.os.ParcelFileDescriptor.MODE_READ_ONLY;
 import static android.os.ParcelFileDescriptor.MODE_WRITE_ONLY;
+import static android.provider.MediaStore.AUTHORITY;
 
 import android.app.AppOpsManager;
 import android.app.SearchManager;
@@ -41,6 +42,7 @@ import android.content.OperationApplicationException;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.UriMatcher;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Configuration;
@@ -95,8 +97,6 @@ import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.util.Log;
 
-import com.android.internal.util.ArrayUtils;
-
 import libcore.io.IoUtils;
 import libcore.util.EmptyArray;
 
@@ -124,6 +124,8 @@ import java.util.Stack;
  * changes with the card.
  */
 public class MediaProvider extends ContentProvider {
+    private static final boolean ENFORCE_PUBLIC_API = false;
+
     private static final Uri MEDIA_URI = Uri.parse("content://media");
     private static final Uri ALBUMART_URI = Uri.parse("content://media/external/audio/albumart");
     private static final int ALBUM_THUMB = 1;
@@ -1190,7 +1192,8 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public Uri canonicalize(Uri uri) {
-        int match = URI_MATCHER.match(uri);
+        final boolean allowHidden = isCallingPackageAllowedHidden();
+        final int match = matchUri(uri, allowHidden);
 
         // only support canonicalizing specific audio Uris
         if (match != AUDIO_MEDIA_ID) {
@@ -1222,8 +1225,10 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public Uri uncanonicalize(Uri uri) {
+        final boolean allowHidden = isCallingPackageAllowedHidden();
+        final int match = matchUri(uri, allowHidden);
+
         if (uri != null && "1".equals(uri.getQueryParameter(CANONICAL))) {
-            int match = URI_MATCHER.match(uri);
             if (match != AUDIO_MEDIA_ID) {
                 // this type of canonical Uri is not supported
                 return null;
@@ -1282,7 +1287,8 @@ public class MediaProvider extends ContentProvider {
 
         uri = safeUncanonicalize(uri);
 
-        int table = URI_MATCHER.match(uri);
+        final boolean allowHidden = isCallingPackageAllowedHidden();
+        final int table = matchUri(uri, allowHidden);
 
         //Log.v(TAG, "query: uri="+uri+", selection="+selection);
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
@@ -1703,9 +1709,11 @@ public class MediaProvider extends ContentProvider {
     }
 
     @Override
-    public String getType(Uri url)
-    {
-        switch (URI_MATCHER.match(url)) {
+    public String getType(Uri url) {
+        final boolean allowHidden = isCallingPackageAllowedHidden();
+        final int match = matchUri(url, allowHidden);
+
+        switch (match) {
             case IMAGES_MEDIA_ID:
             case AUDIO_MEDIA_ID:
             case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
@@ -1781,7 +1789,9 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public int bulkInsert(Uri uri, ContentValues values[]) {
-        int match = URI_MATCHER.match(uri);
+        final boolean allowHidden = isCallingPackageAllowedHidden();
+        final int match = matchUri(uri, allowHidden);
+
         if (match == VOLUMES) {
             return super.bulkInsert(uri, values);
         }
@@ -1828,7 +1838,8 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public Uri insert(Uri uri, ContentValues initialValues) {
-        int match = URI_MATCHER.match(uri);
+        final boolean allowHidden = isCallingPackageAllowedHidden();
+        final int match = matchUri(uri, allowHidden);
 
         ArrayList<Long> notifyRowIds = new ArrayList<Long>();
         Uri newUri = insertInternal(uri, match, initialValues, notifyRowIds);
@@ -3169,7 +3180,9 @@ public class MediaProvider extends ContentProvider {
     public int delete(Uri uri, String userWhere, String[] userWhereArgs) {
         uri = safeUncanonicalize(uri);
         int count;
-        int match = URI_MATCHER.match(uri);
+
+        final boolean allowHidden = isCallingPackageAllowedHidden();
+        final int match = matchUri(uri, allowHidden);
 
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
         if (match == MEDIA_SCANNER) {
@@ -3516,7 +3529,10 @@ public class MediaProvider extends ContentProvider {
         //Log.v(TAG, "update for uri=" + uri + ", initValues=" + initialValues +
         //        ", where=" + userWhere + ", args=" + Arrays.toString(whereArgs) + " caller:" +
         //        Binder.getCallingPid());
-        int match = URI_MATCHER.match(uri);
+
+        final boolean allowHidden = isCallingPackageAllowedHidden();
+        final int match = matchUri(uri, allowHidden);
+
         DatabaseHelper helper = getDatabaseForUri(uri);
         if (helper == null) {
             throw new UnsupportedOperationException(
@@ -3888,7 +3904,10 @@ public class MediaProvider extends ContentProvider {
         uri = safeUncanonicalize(uri);
         ParcelFileDescriptor pfd = null;
 
-        if (URI_MATCHER.match(uri) == AUDIO_ALBUMART_FILE_ID) {
+        final boolean allowHidden = isCallingPackageAllowedHidden();
+        final int match = matchUri(uri, allowHidden);
+
+        if (match == AUDIO_ALBUMART_FILE_ID) {
             // get album art for the specified media file
             DatabaseHelper database = getDatabaseForUri(uri);
             if (database == null) {
@@ -3936,7 +3955,7 @@ public class MediaProvider extends ContentProvider {
                 throw ex;
             }
 
-            if (URI_MATCHER.match(uri) == AUDIO_ALBUMART_ID) {
+            if (match == AUDIO_ALBUMART_ID) {
                 // Tried to open an album art file which does not exist. Regenerate.
                 DatabaseHelper database = getDatabaseForUri(uri);
                 if (database == null) {
@@ -4992,7 +5011,10 @@ public class MediaProvider extends ContentProvider {
     // Used only to invoke special logic for directories
     private static final int FILES_DIRECTORY = 706;
 
-    private static final UriMatcher URI_MATCHER =
+    private static final UriMatcher HIDDEN_URI_MATCHER =
+            new UriMatcher(UriMatcher.NO_MATCH);
+
+    private static final UriMatcher PUBLIC_URI_MATCHER =
             new UriMatcher(UriMatcher.NO_MATCH);
 
     private static final String[] ID_PROJECTION = new String[] {
@@ -5020,78 +5042,106 @@ public class MediaProvider extends ContentProvider {
         + " WHERE " + Audio.Playlists.Members.PLAYLIST_ID + "=?"
         + " ORDER BY " + Audio.Playlists.Members.PLAY_ORDER;
 
-    static
-    {
-        URI_MATCHER.addURI("media", "*/images/media", IMAGES_MEDIA);
-        URI_MATCHER.addURI("media", "*/images/media/#", IMAGES_MEDIA_ID);
-        URI_MATCHER.addURI("media", "*/images/thumbnails", IMAGES_THUMBNAILS);
-        URI_MATCHER.addURI("media", "*/images/thumbnails/#", IMAGES_THUMBNAILS_ID);
+    private int matchUri(Uri uri, boolean allowHidden) {
+        final int publicMatch = PUBLIC_URI_MATCHER.match(uri);
+        if (publicMatch != UriMatcher.NO_MATCH) {
+            return publicMatch;
+        }
 
-        URI_MATCHER.addURI("media", "*/audio/media", AUDIO_MEDIA);
-        URI_MATCHER.addURI("media", "*/audio/media/#", AUDIO_MEDIA_ID);
-        URI_MATCHER.addURI("media", "*/audio/media/#/genres", AUDIO_MEDIA_ID_GENRES);
-        URI_MATCHER.addURI("media", "*/audio/media/#/genres/#", AUDIO_MEDIA_ID_GENRES_ID);
-        URI_MATCHER.addURI("media", "*/audio/media/#/playlists", AUDIO_MEDIA_ID_PLAYLISTS);
-        URI_MATCHER.addURI("media", "*/audio/media/#/playlists/#", AUDIO_MEDIA_ID_PLAYLISTS_ID);
-        URI_MATCHER.addURI("media", "*/audio/genres", AUDIO_GENRES);
-        URI_MATCHER.addURI("media", "*/audio/genres/#", AUDIO_GENRES_ID);
-        URI_MATCHER.addURI("media", "*/audio/genres/#/members", AUDIO_GENRES_ID_MEMBERS);
-        URI_MATCHER.addURI("media", "*/audio/genres/all/members", AUDIO_GENRES_ALL_MEMBERS);
-        URI_MATCHER.addURI("media", "*/audio/playlists", AUDIO_PLAYLISTS);
-        URI_MATCHER.addURI("media", "*/audio/playlists/#", AUDIO_PLAYLISTS_ID);
-        URI_MATCHER.addURI("media", "*/audio/playlists/#/members", AUDIO_PLAYLISTS_ID_MEMBERS);
-        URI_MATCHER.addURI("media", "*/audio/playlists/#/members/#", AUDIO_PLAYLISTS_ID_MEMBERS_ID);
-        URI_MATCHER.addURI("media", "*/audio/artists", AUDIO_ARTISTS);
-        URI_MATCHER.addURI("media", "*/audio/artists/#", AUDIO_ARTISTS_ID);
-        URI_MATCHER.addURI("media", "*/audio/artists/#/albums", AUDIO_ARTISTS_ID_ALBUMS);
-        URI_MATCHER.addURI("media", "*/audio/albums", AUDIO_ALBUMS);
-        URI_MATCHER.addURI("media", "*/audio/albums/#", AUDIO_ALBUMS_ID);
-        URI_MATCHER.addURI("media", "*/audio/albumart", AUDIO_ALBUMART);
-        URI_MATCHER.addURI("media", "*/audio/albumart/#", AUDIO_ALBUMART_ID);
-        URI_MATCHER.addURI("media", "*/audio/media/#/albumart", AUDIO_ALBUMART_FILE_ID);
+        final int hiddenMatch = HIDDEN_URI_MATCHER.match(uri);
+        if (hiddenMatch != UriMatcher.NO_MATCH) {
+            // Detect callers asking about hidden behavior by looking closer when
+            // the matchers diverge; we only care about apps that are explicitly
+            // targeting a specific public API level.
+            if (ENFORCE_PUBLIC_API && !allowHidden) {
+                throw new IllegalStateException("Unknown URL: " + uri + " is hidden API");
+            }
+            return hiddenMatch;
+        }
 
-        URI_MATCHER.addURI("media", "*/video/media", VIDEO_MEDIA);
-        URI_MATCHER.addURI("media", "*/video/media/#", VIDEO_MEDIA_ID);
-        URI_MATCHER.addURI("media", "*/video/thumbnails", VIDEO_THUMBNAILS);
-        URI_MATCHER.addURI("media", "*/video/thumbnails/#", VIDEO_THUMBNAILS_ID);
+        return UriMatcher.NO_MATCH;
+    }
 
-        URI_MATCHER.addURI("media", "*/media_scanner", MEDIA_SCANNER);
+    static {
+        final UriMatcher publicMatcher = PUBLIC_URI_MATCHER;
+        final UriMatcher hiddenMatcher = HIDDEN_URI_MATCHER;
 
-        URI_MATCHER.addURI("media", "*/fs_id", FS_ID);
-        URI_MATCHER.addURI("media", "*/version", VERSION);
+        publicMatcher.addURI(AUTHORITY, "*/images/media", IMAGES_MEDIA);
+        publicMatcher.addURI(AUTHORITY, "*/images/media/#", IMAGES_MEDIA_ID);
+        publicMatcher.addURI(AUTHORITY, "*/images/thumbnails", IMAGES_THUMBNAILS);
+        publicMatcher.addURI(AUTHORITY, "*/images/thumbnails/#", IMAGES_THUMBNAILS_ID);
 
-        URI_MATCHER.addURI("media", "*/mtp_connected", MTP_CONNECTED);
+        publicMatcher.addURI(AUTHORITY, "*/audio/media", AUDIO_MEDIA);
+        publicMatcher.addURI(AUTHORITY, "*/audio/media/#", AUDIO_MEDIA_ID);
+        publicMatcher.addURI(AUTHORITY, "*/audio/media/#/genres", AUDIO_MEDIA_ID_GENRES);
+        publicMatcher.addURI(AUTHORITY, "*/audio/media/#/genres/#", AUDIO_MEDIA_ID_GENRES_ID);
+        hiddenMatcher.addURI(AUTHORITY, "*/audio/media/#/playlists", AUDIO_MEDIA_ID_PLAYLISTS);
+        hiddenMatcher.addURI(AUTHORITY, "*/audio/media/#/playlists/#", AUDIO_MEDIA_ID_PLAYLISTS_ID);
+        publicMatcher.addURI(AUTHORITY, "*/audio/genres", AUDIO_GENRES);
+        publicMatcher.addURI(AUTHORITY, "*/audio/genres/#", AUDIO_GENRES_ID);
+        publicMatcher.addURI(AUTHORITY, "*/audio/genres/#/members", AUDIO_GENRES_ID_MEMBERS);
+        // TODO: not actually defined in API, but CTS tested
+        publicMatcher.addURI(AUTHORITY, "*/audio/genres/all/members", AUDIO_GENRES_ALL_MEMBERS);
+        publicMatcher.addURI(AUTHORITY, "*/audio/playlists", AUDIO_PLAYLISTS);
+        publicMatcher.addURI(AUTHORITY, "*/audio/playlists/#", AUDIO_PLAYLISTS_ID);
+        publicMatcher.addURI(AUTHORITY, "*/audio/playlists/#/members", AUDIO_PLAYLISTS_ID_MEMBERS);
+        publicMatcher.addURI(AUTHORITY, "*/audio/playlists/#/members/#", AUDIO_PLAYLISTS_ID_MEMBERS_ID);
+        publicMatcher.addURI(AUTHORITY, "*/audio/artists", AUDIO_ARTISTS);
+        publicMatcher.addURI(AUTHORITY, "*/audio/artists/#", AUDIO_ARTISTS_ID);
+        publicMatcher.addURI(AUTHORITY, "*/audio/artists/#/albums", AUDIO_ARTISTS_ID_ALBUMS);
+        publicMatcher.addURI(AUTHORITY, "*/audio/albums", AUDIO_ALBUMS);
+        publicMatcher.addURI(AUTHORITY, "*/audio/albums/#", AUDIO_ALBUMS_ID);
+        // TODO: not actually defined in API, but CTS tested
+        publicMatcher.addURI(AUTHORITY, "*/audio/albumart", AUDIO_ALBUMART);
+        // TODO: not actually defined in API, but CTS tested
+        publicMatcher.addURI(AUTHORITY, "*/audio/albumart/#", AUDIO_ALBUMART_ID);
+        // TODO: not actually defined in API, but CTS tested
+        publicMatcher.addURI(AUTHORITY, "*/audio/media/#/albumart", AUDIO_ALBUMART_FILE_ID);
 
-        URI_MATCHER.addURI("media", "*", VOLUMES_ID);
-        URI_MATCHER.addURI("media", null, VOLUMES);
+        publicMatcher.addURI(AUTHORITY, "*/video/media", VIDEO_MEDIA);
+        publicMatcher.addURI(AUTHORITY, "*/video/media/#", VIDEO_MEDIA_ID);
+        publicMatcher.addURI(AUTHORITY, "*/video/thumbnails", VIDEO_THUMBNAILS);
+        publicMatcher.addURI(AUTHORITY, "*/video/thumbnails/#", VIDEO_THUMBNAILS_ID);
+
+        publicMatcher.addURI(AUTHORITY, "*/media_scanner", MEDIA_SCANNER);
+
+        // NOTE: technically hidden, since Uri is never exposed
+        publicMatcher.addURI(AUTHORITY, "*/fs_id", FS_ID);
+        // NOTE: technically hidden, since Uri is never exposed
+        publicMatcher.addURI(AUTHORITY, "*/version", VERSION);
+
+        hiddenMatcher.addURI(AUTHORITY, "*/mtp_connected", MTP_CONNECTED);
+
+        hiddenMatcher.addURI(AUTHORITY, "*", VOLUMES_ID);
+        hiddenMatcher.addURI(AUTHORITY, null, VOLUMES);
 
         // Used by MTP implementation
-        URI_MATCHER.addURI("media", "*/file", FILES);
-        URI_MATCHER.addURI("media", "*/file/#", FILES_ID);
-        URI_MATCHER.addURI("media", "*/object", MTP_OBJECTS);
-        URI_MATCHER.addURI("media", "*/object/#", MTP_OBJECTS_ID);
-        URI_MATCHER.addURI("media", "*/object/#/references", MTP_OBJECT_REFERENCES);
+        publicMatcher.addURI(AUTHORITY, "*/file", FILES);
+        publicMatcher.addURI(AUTHORITY, "*/file/#", FILES_ID);
+        hiddenMatcher.addURI(AUTHORITY, "*/object", MTP_OBJECTS);
+        hiddenMatcher.addURI(AUTHORITY, "*/object/#", MTP_OBJECTS_ID);
+        hiddenMatcher.addURI(AUTHORITY, "*/object/#/references", MTP_OBJECT_REFERENCES);
 
         // Used only to trigger special logic for directories
-        URI_MATCHER.addURI("media", "*/dir", FILES_DIRECTORY);
+        hiddenMatcher.addURI(AUTHORITY, "*/dir", FILES_DIRECTORY);
 
         /**
          * @deprecated use the 'basic' or 'fancy' search Uris instead
          */
-        URI_MATCHER.addURI("media", "*/audio/" + SearchManager.SUGGEST_URI_PATH_QUERY,
+        hiddenMatcher.addURI(AUTHORITY, "*/audio/" + SearchManager.SUGGEST_URI_PATH_QUERY,
                 AUDIO_SEARCH_LEGACY);
-        URI_MATCHER.addURI("media", "*/audio/" + SearchManager.SUGGEST_URI_PATH_QUERY + "/*",
+        hiddenMatcher.addURI(AUTHORITY, "*/audio/" + SearchManager.SUGGEST_URI_PATH_QUERY + "/*",
                 AUDIO_SEARCH_LEGACY);
 
         // used for search suggestions
-        URI_MATCHER.addURI("media", "*/audio/search/" + SearchManager.SUGGEST_URI_PATH_QUERY,
+        hiddenMatcher.addURI(AUTHORITY, "*/audio/search/" + SearchManager.SUGGEST_URI_PATH_QUERY,
                 AUDIO_SEARCH_BASIC);
-        URI_MATCHER.addURI("media", "*/audio/search/" + SearchManager.SUGGEST_URI_PATH_QUERY +
+        hiddenMatcher.addURI(AUTHORITY, "*/audio/search/" + SearchManager.SUGGEST_URI_PATH_QUERY +
                 "/*", AUDIO_SEARCH_BASIC);
 
         // used by the music app's search activity
-        URI_MATCHER.addURI("media", "*/audio/search/fancy", AUDIO_SEARCH_FANCY);
-        URI_MATCHER.addURI("media", "*/audio/search/fancy/*", AUDIO_SEARCH_FANCY);
+        hiddenMatcher.addURI(AUTHORITY, "*/audio/search/fancy", AUDIO_SEARCH_FANCY);
+        hiddenMatcher.addURI(AUTHORITY, "*/audio/search/fancy/*", AUDIO_SEARCH_FANCY);
     }
 
     private static String getVolumeName(Uri uri) {
@@ -5109,6 +5159,26 @@ public class MediaProvider extends ContentProvider {
             callingPackage = getContext().getOpPackageName();
         }
         return callingPackage;
+    }
+
+    private int getCallingPackageTargetSdkVersion() {
+        final String callingPackage = getCallingPackage();
+        if (callingPackage != null) {
+            ApplicationInfo ai = null;
+            try {
+                ai = getContext().getPackageManager()
+                        .getApplicationInfo(callingPackage, 0);
+            } catch (NameNotFoundException ignored) {
+            }
+            if (ai != null) {
+                return ai.targetSdkVersion;
+            }
+        }
+        return Build.VERSION_CODES.CUR_DEVELOPMENT;
+    }
+
+    private boolean isCallingPackageAllowedHidden() {
+        return getCallingPackageTargetSdkVersion() == Build.VERSION_CODES.CUR_DEVELOPMENT;
     }
 
     private void enforceCallingOrSelfPermissionAndAppOps(String permission, String message) {

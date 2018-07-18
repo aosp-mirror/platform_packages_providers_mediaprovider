@@ -507,25 +507,6 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    // synchronize on mMtpServiceConnection when accessing mMtpService
-    private IMtpService mMtpService;
-
-    private final ServiceConnection mMtpServiceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName className, android.os.IBinder service) {
-            synchronized (this) {
-                mMtpService = IMtpService.Stub.asInterface(service);
-            }
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName className) {
-            synchronized (this) {
-                mMtpService = null;
-            }
-        }
-    };
-
     private static final String[] sDefaultFolderNames = {
         Environment.DIRECTORY_MUSIC,
         Environment.DIRECTORY_PODCASTS,
@@ -2514,13 +2495,12 @@ public class MediaProvider extends ContentProvider {
 
         Uri newUri = null;
         DatabaseHelper helper = getDatabaseForUri(uri);
-        if (helper == null && match != VOLUMES && match != MTP_CONNECTED) {
+        if (helper == null && match != VOLUMES) {
             throw new UnsupportedOperationException(
                     "Unknown URI: " + uri);
         }
 
-        SQLiteDatabase db = ((match == VOLUMES || match == MTP_CONNECTED) ? null
-                : helper.getWritableDatabase());
+        SQLiteDatabase db = match == VOLUMES ? null : helper.getWritableDatabase();
 
         switch (match) {
             case IMAGES_MEDIA: {
@@ -2693,19 +2673,6 @@ public class MediaProvider extends ContentProvider {
                 }
                 return attachedVolume;
             }
-
-            case MTP_CONNECTED:
-                synchronized (mMtpServiceConnection) {
-                    if (mMtpService == null) {
-                        Context context = getContext();
-                        // MTP is connected, so grab a connection to MtpService
-                        context.bindService(new Intent(context, MtpService.class),
-                                mMtpServiceConnection, Context.BIND_AUTO_CREATE);
-                    }
-                }
-                fixParentIdIfNeeded();
-
-                break;
 
             case FILES:
                 rowId = insertFile(helper, uri, initialValues,
@@ -3215,19 +3182,6 @@ public class MediaProvider extends ContentProvider {
         if (match == VOLUMES_ID) {
             detachVolume(uri);
             count = 1;
-        } else if (match == MTP_CONNECTED) {
-            synchronized (mMtpServiceConnection) {
-                if (mMtpService != null) {
-                    // MTP has disconnected, so release our connection to MtpService
-                    getContext().unbindService(mMtpServiceConnection);
-                    count = 1;
-                    // mMtpServiceConnection.onServiceDisconnected might not get called,
-                    // so set mMtpService = null here
-                    mMtpService = null;
-                } else {
-                    count = 0;
-                }
-            }
         } else {
             final String volumeName = getVolumeName(uri);
             final boolean isExternal = "external".equals(volumeName);
@@ -5004,9 +4958,6 @@ public class MediaProvider extends ContentProvider {
     private static final int MTP_OBJECTS = 702;
     private static final int MTP_OBJECTS_ID = 703;
     private static final int MTP_OBJECT_REFERENCES = 704;
-    // UsbReceiver calls insert() and delete() with this URI to tell us
-    // when MTP is connected and disconnected
-    private static final int MTP_CONNECTED = 705;
 
     // Used only to invoke special logic for directories
     private static final int FILES_DIRECTORY = 706;
@@ -5109,8 +5060,6 @@ public class MediaProvider extends ContentProvider {
         publicMatcher.addURI(AUTHORITY, "*/fs_id", FS_ID);
         // NOTE: technically hidden, since Uri is never exposed
         publicMatcher.addURI(AUTHORITY, "*/version", VERSION);
-
-        hiddenMatcher.addURI(AUTHORITY, "*/mtp_connected", MTP_CONNECTED);
 
         hiddenMatcher.addURI(AUTHORITY, "*", VOLUMES_ID);
         hiddenMatcher.addURI(AUTHORITY, null, VOLUMES);

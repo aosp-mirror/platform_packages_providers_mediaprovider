@@ -22,7 +22,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.usb.UsbManager;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.UserHandle;
 import android.util.Log;
@@ -57,8 +56,6 @@ public class MtpReceiver extends BroadcastReceiver {
         if (configured && (mtpEnabled || ptpEnabled)) {
             if (!isCurrentUser)
                 return;
-            context.getContentResolver().insert(Uri.parse(
-                    "content://media/none/mtp_connected"), null);
             intent = new Intent(context, MtpService.class);
             intent.putExtra(UsbManager.USB_DATA_UNLOCKED, unlocked);
             if (ptpEnabled) {
@@ -70,9 +67,6 @@ public class MtpReceiver extends BroadcastReceiver {
             // Only unbind if disconnected or disabled.
             boolean status = context.stopService(new Intent(context, MtpService.class));
             if (DEBUG) { Log.d(TAG, "handleUsbState stopService status=" + status); }
-            // tell MediaProvider MTP is disconnected so it can unbind from the service
-            context.getContentResolver().delete(Uri.parse(
-                    "content://media/none/mtp_connected"), null, null);
         }
     }
 }

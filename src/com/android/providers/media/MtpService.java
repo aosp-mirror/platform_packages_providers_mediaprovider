@@ -229,7 +229,7 @@ public class MtpService extends Service {
 
     private void addStorage(StorageVolume volume) {
         Log.v(TAG, "Adding MTP storage:" + volume.getPath());
-        synchronized (this) {
+        synchronized (MtpService.class) {
             if (sServerHolder != null) {
                 sServerHolder.database.addStorage(volume);
             }

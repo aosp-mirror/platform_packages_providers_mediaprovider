@@ -52,7 +52,7 @@ import android.database.DatabaseUtils;
 import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.database.sqlite.SQLiteQueryBuilder;
+import android.database.sqlite.SQLiteStatementBuilder;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaFile;
@@ -1122,7 +1122,7 @@ public class MediaProvider extends ContentProvider {
                 (req.mIsVideo == isVideo);
     }
 
-    private boolean queryThumbnail(SQLiteQueryBuilder qb, Uri uri, String table,
+    private boolean queryThumbnail(SQLiteStatementBuilder qb, Uri uri, String table,
             String column, boolean hasThumbnailId) {
         qb.setTables(table);
         if (hasThumbnailId) {
@@ -1326,7 +1326,7 @@ public class MediaProvider extends ContentProvider {
         helper.mNumQueries++;
         SQLiteDatabase db = helper.getReadableDatabase();
         if (db == null) return null;
-        SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
+        SQLiteStatementBuilder qb = new SQLiteStatementBuilder();
         String limit = uri.getQueryParameter("limit");
         String filter = uri.getQueryParameter("filter");
         String [] keywords = null;
@@ -1663,7 +1663,7 @@ public class MediaProvider extends ContentProvider {
         return c;
     }
 
-    private Cursor doAudioSearch(SQLiteDatabase db, SQLiteQueryBuilder qb,
+    private Cursor doAudioSearch(SQLiteDatabase db, SQLiteStatementBuilder qb,
             Uri uri, String[] projectionIn, String selection,
             String[] selectionArgs, String sort, int mode,
             String limit) {
@@ -3049,8 +3049,8 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private SQLiteQueryBuilder getUpdateDeleteBuilder(Uri uri, int match) {
-        final SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
+    private SQLiteStatementBuilder getUpdateDeleteBuilder(Uri uri, int match) {
+        final SQLiteStatementBuilder qb = new SQLiteStatementBuilder();
         switch (match) {
             case IMAGES_MEDIA:
                 qb.setTables("files");
@@ -3239,7 +3239,7 @@ public class MediaProvider extends ContentProvider {
             }
             database.mNumDeletes++;
             SQLiteDatabase db = database.getWritableDatabase();
-            SQLiteQueryBuilder qb = getUpdateDeleteBuilder(uri, match);
+            SQLiteStatementBuilder qb = getUpdateDeleteBuilder(uri, match);
             if (qb.getTables().equals("files")) {
                 String deleteparam = uri.getQueryParameter(MediaStore.PARAM_DELETE_DATA);
                 if (deleteparam == null || ! deleteparam.equals("false")) {
@@ -3413,7 +3413,7 @@ public class MediaProvider extends ContentProvider {
      * can be used to recursively delete all matching entries, since it only
      * deletes parents when no references remaining.
      */
-    private int deleteRecursive(SQLiteQueryBuilder qb, SQLiteDatabase db, String userWhere,
+    private int deleteRecursive(SQLiteStatementBuilder qb, SQLiteDatabase db, String userWhere,
             String[] userWhereArgs) {
         db.beginTransaction();
         try {
@@ -3541,7 +3541,7 @@ public class MediaProvider extends ContentProvider {
         helper.mNumUpdates++;
 
         SQLiteDatabase db = helper.getWritableDatabase();
-        SQLiteQueryBuilder qb = getUpdateDeleteBuilder(uri, match);
+        SQLiteStatementBuilder qb = getUpdateDeleteBuilder(uri, match);
 
         String genre = null;
         if (initialValues != null) {
@@ -3917,7 +3917,7 @@ public class MediaProvider extends ContentProvider {
             if (db == null) {
                 throw new IllegalStateException("Couldn't open database for " + uri);
             }
-            SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
+            SQLiteStatementBuilder qb = new SQLiteStatementBuilder();
             int songid = Integer.parseInt(uri.getPathSegments().get(3));
             qb.setTables("audio_meta");
             qb.appendWhere("_id=" + songid);
@@ -3965,7 +3965,7 @@ public class MediaProvider extends ContentProvider {
                 if (db == null) {
                     throw new IllegalStateException("Couldn't open database for " + uri);
                 }
-                SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
+                SQLiteStatementBuilder qb = new SQLiteStatementBuilder();
                 int albumid = Integer.parseInt(uri.getPathSegments().get(3));
                 qb.setTables("audio_meta");
                 qb.appendWhere("album_id=" + albumid);

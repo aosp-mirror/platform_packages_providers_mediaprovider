@@ -25,10 +25,11 @@ import static android.os.ParcelFileDescriptor.MODE_READ_ONLY;
 import static android.os.ParcelFileDescriptor.MODE_WRITE_ONLY;
 import static android.provider.MediaStore.AUTHORITY;
 
+import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.app.AppOpsManager;
 import android.app.SearchManager;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.ContentProvider;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
@@ -39,7 +40,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.OperationApplicationException;
-import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.UriMatcher;
 import android.content.pm.ApplicationInfo;
@@ -52,7 +52,7 @@ import android.database.DatabaseUtils;
 import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.database.sqlite.SQLiteStatementBuilder;
+import android.database.sqlite.SQLiteQueryBuilder;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaFile;
@@ -72,7 +72,6 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
-import android.os.Process;
 import android.os.SystemClock;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -599,7 +598,8 @@ public class MediaProvider extends ContentProvider {
             attachVolume(EXTERNAL_VOLUME);
         }
 
-        HandlerThread ht = new HandlerThread("thumbs thread", Process.THREAD_PRIORITY_BACKGROUND);
+        HandlerThread ht = new HandlerThread("thumbs thread",
+                android.os.Process.THREAD_PRIORITY_BACKGROUND);
         ht.start();
         mThumbHandler = new Handler(ht.getLooper()) {
             @Override
@@ -1103,13 +1103,13 @@ public class MediaProvider extends ContentProvider {
                 (req.mIsVideo == isVideo);
     }
 
-    private boolean queryThumbnail(SQLiteStatementBuilder qb, Uri uri, String table,
+    private boolean queryThumbnail(SQLiteQueryBuilder qb, Uri uri, String table,
             String column, boolean hasThumbnailId) {
         qb.setTables(table);
         if (hasThumbnailId) {
             // For uri dispatched to this method, the 4th path segment is always
             // the thumbnail id.
-            qb.appendWhere("_id = " + uri.getPathSegments().get(3));
+            appendWhereStandalone(qb, "_id = " + uri.getPathSegments().get(3));
             // client already knows which thumbnail it wants, bypass it.
             return true;
         }
@@ -1166,7 +1166,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (origId != null) {
-            qb.appendWhere(column + " = " + origId);
+            appendWhereStandalone(qb, column + " = " + origId);
         }
         return true;
     }
@@ -1307,7 +1307,7 @@ public class MediaProvider extends ContentProvider {
         helper.mNumQueries++;
         SQLiteDatabase db = helper.getReadableDatabase();
         if (db == null) return null;
-        SQLiteStatementBuilder qb = new SQLiteStatementBuilder();
+        SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
         String limit = uri.getQueryParameter("limit");
         String filter = uri.getQueryParameter("filter");
         String [] keywords = null;
@@ -1332,25 +1332,6 @@ public class MediaProvider extends ContentProvider {
         boolean hasThumbnailId = false;
 
         switch (table) {
-            case IMAGES_MEDIA:
-                qb.setTables("images");
-                if (uri.getQueryParameter("distinct") != null)
-                    qb.setDistinct(true);
-
-                // set the project map so that data dir is prepended to _data.
-                //qb.setProjectionMap(mImagesProjectionMap, true);
-                break;
-
-            case IMAGES_MEDIA_ID:
-                qb.setTables("images");
-                if (uri.getQueryParameter("distinct") != null)
-                    qb.setDistinct(true);
-
-                // set the project map so that data dir is prepended to _data.
-                //qb.setProjectionMap(mImagesProjectionMap, true);
-                qb.appendWhere("_id=?", uri.getPathSegments().get(3));
-                break;
-
             case IMAGES_THUMBNAILS_ID:
                 hasThumbnailId = true;
             case IMAGES_THUMBNAILS:
@@ -1370,51 +1351,12 @@ public class MediaProvider extends ContentProvider {
                 } else {
                     qb.setTables("audio");
                     for (int i = 0; keywords != null && i < keywords.length; i++) {
-                        if (i > 0) {
-                            qb.appendWhere(" AND ");
-                        }
-                        qb.appendWhere(MediaStore.Audio.Media.ARTIST_KEY +
+                        appendWhereStandalone(qb, MediaStore.Audio.Media.ARTIST_KEY +
                                 "||" + MediaStore.Audio.Media.ALBUM_KEY +
                                 "||" + MediaStore.Audio.Media.TITLE_KEY + " LIKE ? ESCAPE '\\'",
                                 "%" + keywords[i] + "%");
                     }
                 }
-                break;
-
-            case AUDIO_MEDIA_ID:
-                qb.setTables("audio");
-                qb.appendWhere("_id=?", uri.getPathSegments().get(3));
-                break;
-
-            case AUDIO_MEDIA_ID_GENRES:
-                qb.setTables("audio_genres");
-                qb.appendWhere("_id IN (SELECT genre_id FROM " +
-                        "audio_genres_map WHERE audio_id=?)", uri.getPathSegments().get(3));
-                break;
-
-            case AUDIO_MEDIA_ID_GENRES_ID:
-                qb.setTables("audio_genres");
-                qb.appendWhere("_id=?", uri.getPathSegments().get(5));
-                break;
-
-            case AUDIO_MEDIA_ID_PLAYLISTS:
-                qb.setTables("audio_playlists");
-                qb.appendWhere("_id IN (SELECT playlist_id FROM " +
-                        "audio_playlists_map WHERE audio_id=?)", uri.getPathSegments().get(3));
-                break;
-
-            case AUDIO_MEDIA_ID_PLAYLISTS_ID:
-                qb.setTables("audio_playlists");
-                qb.appendWhere("_id=?", uri.getPathSegments().get(5));
-                break;
-
-            case AUDIO_GENRES:
-                qb.setTables("audio_genres");
-                break;
-
-            case AUDIO_GENRES_ID:
-                qb.setTables("audio_genres");
-                qb.appendWhere("_id=?", uri.getPathSegments().get(3));
                 break;
 
             case AUDIO_GENRES_ALL_MEMBERS:
@@ -1444,32 +1386,22 @@ public class MediaProvider extends ContentProvider {
                     if (simpleQuery) {
                         qb.setTables("audio_genres_map_noid");
                         if (table == AUDIO_GENRES_ID_MEMBERS) {
-                            qb.appendWhere("genre_id=?", uri.getPathSegments().get(3));
+                            appendWhereStandalone(qb, "genre_id=?", uri.getPathSegments().get(3));
                         }
                     } else {
                         qb.setTables("audio_genres_map_noid, audio");
-                        qb.appendWhere("audio._id = audio_id");
+                        appendWhereStandalone(qb, "audio._id = audio_id");
                         if (table == AUDIO_GENRES_ID_MEMBERS) {
-                            qb.appendWhere(" AND genre_id=?", uri.getPathSegments().get(3));
+                            appendWhereStandalone(qb, "genre_id=?", uri.getPathSegments().get(3));
                         }
                         for (int i = 0; keywords != null && i < keywords.length; i++) {
-                            qb.appendWhere(" AND ");
-                            qb.appendWhere(MediaStore.Audio.Media.ARTIST_KEY +
+                            appendWhereStandalone(qb, MediaStore.Audio.Media.ARTIST_KEY +
                                     "||" + MediaStore.Audio.Media.ALBUM_KEY +
                                     "||" + MediaStore.Audio.Media.TITLE_KEY +
                                     " LIKE ? ESCAPE '\\'", "%" + keywords[i] + "%");
                         }
                     }
                 }
-                break;
-
-            case AUDIO_PLAYLISTS:
-                qb.setTables("audio_playlists");
-                break;
-
-            case AUDIO_PLAYLISTS_ID:
-                qb.setTables("audio_playlists");
-                qb.appendWhere("_id=?", uri.getPathSegments().get(3));
                 break;
 
             case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
@@ -1493,30 +1425,22 @@ public class MediaProvider extends ContentProvider {
                 }
                 if (simpleQuery) {
                     qb.setTables("audio_playlists_map");
-                    qb.appendWhere("playlist_id=?", uri.getPathSegments().get(3));
+                    appendWhereStandalone(qb, "playlist_id=?", uri.getPathSegments().get(3));
                 } else {
                     qb.setTables("audio_playlists_map, audio");
-                    qb.appendWhere("audio._id = audio_id AND playlist_id=?",
+                    appendWhereStandalone(qb, "audio._id = audio_id AND playlist_id=?",
                             uri.getPathSegments().get(3));
                     for (int i = 0; keywords != null && i < keywords.length; i++) {
-                        qb.appendWhere(" AND ");
-                        qb.appendWhere(MediaStore.Audio.Media.ARTIST_KEY +
+                        appendWhereStandalone(qb, MediaStore.Audio.Media.ARTIST_KEY +
                                 "||" + MediaStore.Audio.Media.ALBUM_KEY +
                                 "||" + MediaStore.Audio.Media.TITLE_KEY +
                                 " LIKE ? ESCAPE '\\'", "%" + keywords[i] + "%");
                     }
                 }
                 if (table == AUDIO_PLAYLISTS_ID_MEMBERS_ID) {
-                    qb.appendWhere(" AND audio_playlists_map._id=?", uri.getPathSegments().get(5));
+                    appendWhereStandalone(qb, "audio_playlists_map._id=?",
+                            uri.getPathSegments().get(5));
                 }
-                break;
-
-            case VIDEO_MEDIA:
-                qb.setTables("video");
-                break;
-            case VIDEO_MEDIA_ID:
-                qb.setTables("video");
-                qb.appendWhere("_id=?", uri.getPathSegments().get(3));
                 break;
 
             case VIDEO_THUMBNAILS_ID:
@@ -1535,14 +1459,11 @@ public class MediaProvider extends ContentProvider {
                     //Log.i("@@@@", "taking fast path for counting artists");
                     qb.setTables("audio_meta");
                     projectionIn[0] = "count(distinct artist_id)";
-                    qb.appendWhere("is_music=1");
+                    appendWhereStandalone(qb, "is_music=1");
                 } else {
                     qb.setTables("artist_info");
                     for (int i = 0; keywords != null && i < keywords.length; i++) {
-                        if (i > 0) {
-                            qb.appendWhere(" AND ");
-                        }
-                        qb.appendWhere(MediaStore.Audio.Media.ARTIST_KEY +
+                        appendWhereStandalone(qb, MediaStore.Audio.Media.ARTIST_KEY +
                                 " LIKE ? ESCAPE '\\'", "%" + keywords[i] + "%");
                     }
                 }
@@ -1550,18 +1471,17 @@ public class MediaProvider extends ContentProvider {
 
             case AUDIO_ARTISTS_ID:
                 qb.setTables("artist_info");
-                qb.appendWhere("_id=?", uri.getPathSegments().get(3));
+                appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 break;
 
             case AUDIO_ARTISTS_ID_ALBUMS:
                 String aid = uri.getPathSegments().get(3);
                 qb.setTables("audio LEFT OUTER JOIN album_art ON" +
                         " audio.album_id=album_art.album_id");
-                qb.appendWhere("is_music=1 AND audio.album_id IN (SELECT album_id FROM " +
+                appendWhereStandalone(qb, "is_music=1 AND audio.album_id IN (SELECT album_id FROM " +
                         "artists_albums_map WHERE artist_id=?)", aid);
                 for (int i = 0; keywords != null && i < keywords.length; i++) {
-                    qb.appendWhere(" AND ");
-                    qb.appendWhere(MediaStore.Audio.Media.ARTIST_KEY +
+                    appendWhereStandalone(qb, MediaStore.Audio.Media.ARTIST_KEY +
                             "||" + MediaStore.Audio.Media.ALBUM_KEY +
                             " LIKE ? ESCAPE '\\'", "%" + keywords[i] + "%");
                 }
@@ -1580,14 +1500,11 @@ public class MediaProvider extends ContentProvider {
                     //Log.i("@@@@", "taking fast path for counting albums");
                     qb.setTables("audio_meta");
                     projectionIn[0] = "count(distinct album_id)";
-                    qb.appendWhere("is_music=1");
+                    appendWhereStandalone(qb, "is_music=1");
                 } else {
                     qb.setTables("album_info");
                     for (int i = 0; keywords != null && i < keywords.length; i++) {
-                        if (i > 0) {
-                            qb.appendWhere(" AND ");
-                        }
-                        qb.appendWhere(MediaStore.Audio.Media.ARTIST_KEY +
+                        appendWhereStandalone(qb, MediaStore.Audio.Media.ARTIST_KEY +
                                 "||" + MediaStore.Audio.Media.ALBUM_KEY +
                                 " LIKE ? ESCAPE '\\'", "%" + keywords[i] + "%");
                     }
@@ -1596,37 +1513,17 @@ public class MediaProvider extends ContentProvider {
 
             case AUDIO_ALBUMS_ID:
                 qb.setTables("album_info");
-                qb.appendWhere("_id=?", uri.getPathSegments().get(3));
+                appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 break;
 
             case AUDIO_ALBUMART_ID:
                 qb.setTables("album_art");
-                qb.appendWhere("album_id=?", uri.getPathSegments().get(3));
+                appendWhereStandalone(qb, "album_id=?", uri.getPathSegments().get(3));
                 break;
-
-            case AUDIO_SEARCH_LEGACY:
-                Log.w(TAG, "Legacy media search Uri used. Please update your code.");
-                // fall through
-            case AUDIO_SEARCH_FANCY:
-            case AUDIO_SEARCH_BASIC:
-                return doAudioSearch(db, qb, uri, projectionIn, selection,
-                        selectionArgs, sort, table, limit);
-
-            case FILES_ID:
-            case MTP_OBJECTS_ID:
-                qb.appendWhere("_id=?", uri.getPathSegments().get(2));
-                // fall through
-            case FILES:
-            case MTP_OBJECTS:
-                qb.setTables("files");
-                break;
-
-            case MTP_OBJECT_REFERENCES:
-                int handle = Integer.parseInt(uri.getPathSegments().get(2));
-                return getObjectReferences(helper, db, handle);
 
             default:
-                throw new IllegalStateException("Unknown URL: " + uri.toString());
+                qb = getQueryBuilder(TYPE_QUERY, uri, table);
+                break;
         }
 
         // Log.v(TAG, "query = "+ qb.buildQuery(projectionIn, selection,
@@ -1642,51 +1539,6 @@ public class MediaProvider extends ContentProvider {
         }
 
         return c;
-    }
-
-    private Cursor doAudioSearch(SQLiteDatabase db, SQLiteStatementBuilder qb,
-            Uri uri, String[] projectionIn, String selection,
-            String[] selectionArgs, String sort, int mode,
-            String limit) {
-
-        String mSearchString = uri.getPath().endsWith("/") ? "" : uri.getLastPathSegment();
-        mSearchString = mSearchString.replaceAll("  ", " ").trim().toLowerCase();
-
-        String [] searchWords = mSearchString.length() > 0 ?
-                mSearchString.split(" ") : new String[0];
-        String [] wildcardWords = new String[searchWords.length];
-        int len = searchWords.length;
-        for (int i = 0; i < len; i++) {
-            // Because we match on individual words here, we need to remove words
-            // like 'a' and 'the' that aren't part of the keys.
-            String key = MediaStore.Audio.keyFor(searchWords[i]);
-            key = key.replace("\\", "\\\\");
-            key = key.replace("%", "\\%");
-            key = key.replace("_", "\\_");
-            wildcardWords[i] =
-                (searchWords[i].equals("a") || searchWords[i].equals("an") ||
-                        searchWords[i].equals("the")) ? "%" : "%" + key + "%";
-        }
-
-        String where = "";
-        for (int i = 0; i < searchWords.length; i++) {
-            if (i == 0) {
-                where = "match LIKE ? ESCAPE '\\'";
-            } else {
-                where += " AND match LIKE ? ESCAPE '\\'";
-            }
-        }
-
-        qb.setTables("search");
-        String [] cols;
-        if (mode == AUDIO_SEARCH_FANCY) {
-            cols = mSearchColsFancy;
-        } else if (mode == AUDIO_SEARCH_BASIC) {
-            cols = mSearchColsBasic;
-        } else {
-            cols = mSearchColsLegacy;
-        }
-        return qb.query(db, cols, where, wildcardWords, null, null, null, limit);
     }
 
     @Override
@@ -1788,9 +1640,6 @@ public class MediaProvider extends ContentProvider {
 
         if (match == AUDIO_PLAYLISTS_ID || match == AUDIO_PLAYLISTS_ID_MEMBERS) {
             return playlistBulkInsert(db, uri, values);
-        } else if (match == MTP_OBJECT_REFERENCES) {
-            int handle = Integer.parseInt(uri.getPathSegments().get(2));
-            return setObjectReferences(helper, db, handle, values);
         }
 
         ArrayList<Long> notifyRowIds = new ArrayList<Long>();
@@ -1827,7 +1676,7 @@ public class MediaProvider extends ContentProvider {
 
         // do not signal notification for MTP objects.
         // we will signal instead after file transfer is successful.
-        if (newUri != null && match != MTP_OBJECTS) {
+        if (newUri != null) {
             // Report a general change to the media provider.
             // We only report this to observers that are not looking at
             // this specific URI and its descendants, because they will
@@ -2682,15 +2531,6 @@ public class MediaProvider extends ContentProvider {
                 }
                 break;
 
-            case MTP_OBJECTS:
-                // We don't send a notification if the insert originated from MTP
-                rowId = insertFile(helper, uri, initialValues,
-                        FileColumns.MEDIA_TYPE_NONE, false, notifyRowIds);
-                if (rowId > 0) {
-                    newUri = Files.getMtpObjectsUri(volumeName, rowId);
-                }
-                break;
-
             case FILES_DIRECTORY:
                 rowId = insertDirectory(helper, helper.getWritableDatabase(),
                         initialValues.getAsString(FileColumns.DATA));
@@ -3016,123 +2856,145 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private SQLiteStatementBuilder getUpdateDeleteBuilder(Uri uri, int match) {
-        final SQLiteStatementBuilder qb = new SQLiteStatementBuilder();
-        switch (match) {
-            case IMAGES_MEDIA:
-                qb.setTables("files");
-                qb.appendWhere(FileColumns.MEDIA_TYPE + "=?",
-                        String.valueOf(FileColumns.MEDIA_TYPE_IMAGE));
-                break;
+    private static void appendWhereStandalone(@NonNull SQLiteQueryBuilder qb,
+            @Nullable String selection, @Nullable Object... selectionArgs) {
+        qb.appendWhereStandalone(DatabaseUtils.bindSelection(selection, selectionArgs));
+    }
 
+    private static boolean parseBoolean(String value) {
+        if (value == null) return false;
+        if ("1".equals(value)) return true;
+        if ("true".equalsIgnoreCase(value)) return true;
+        return false;
+    }
+
+    private static final int TYPE_QUERY = 0;
+    private static final int TYPE_UPDATE = 1;
+    private static final int TYPE_DELETE = 2;
+
+    private SQLiteQueryBuilder getQueryBuilder(int type, Uri uri, int match) {
+        final SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
+        if (parseBoolean(uri.getQueryParameter("distinct"))) {
+            qb.setDistinct(true);
+        }
+
+        switch (match) {
             case IMAGES_MEDIA_ID:
-                qb.setTables("files");
-                qb.appendWhere("_id=?", uri.getPathSegments().get(3));
+                appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
+            case IMAGES_MEDIA:
+                if (type == TYPE_QUERY) {
+                    qb.setTables("images");
+                } else {
+                    qb.setTables("files");
+                    appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
+                            FileColumns.MEDIA_TYPE_IMAGE);
+                }
                 break;
 
             case IMAGES_THUMBNAILS_ID:
-                qb.appendWhere("_id=?", uri.getPathSegments().get(3));
+                appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
+                // fall-through
             case IMAGES_THUMBNAILS:
                 qb.setTables("thumbnails");
                 break;
 
-            case AUDIO_MEDIA:
-                qb.setTables("files");
-                qb.appendWhere(FileColumns.MEDIA_TYPE + "=?",
-                        String.valueOf(FileColumns.MEDIA_TYPE_AUDIO));
-                break;
-
             case AUDIO_MEDIA_ID:
-                qb.setTables("files");
-                qb.appendWhere("_id=?", uri.getPathSegments().get(3));
-                break;
-
-            case AUDIO_MEDIA_ID_GENRES:
-                qb.setTables("audio_genres");
-                qb.appendWhere("audio_id=?", uri.getPathSegments().get(3));
+                appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
+                // fall-through
+            case AUDIO_MEDIA:
+                if (type == TYPE_QUERY) {
+                    qb.setTables("audio");
+                } else {
+                    qb.setTables("files");
+                    appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
+                            FileColumns.MEDIA_TYPE_AUDIO);
+                }
                 break;
 
             case AUDIO_MEDIA_ID_GENRES_ID:
+                appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(5));
+                // fall-through
+            case AUDIO_MEDIA_ID_GENRES:
                 qb.setTables("audio_genres");
-                qb.appendWhere("audio_id=? AND genre_id=?", uri.getPathSegments().get(3),
-                        uri.getPathSegments().get(5));
-                break;
-
-            case AUDIO_MEDIA_ID_PLAYLISTS:
-                qb.setTables("audio_playlists");
-                qb.appendWhere("audio_id=?", uri.getPathSegments().get(3));
+                appendWhereStandalone(qb, "_id IN (SELECT genre_id FROM " +
+                        "audio_genres_map WHERE audio_id=?)", uri.getPathSegments().get(3));
                 break;
 
             case AUDIO_MEDIA_ID_PLAYLISTS_ID:
+                appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(5));
+                // fall-through
+            case AUDIO_MEDIA_ID_PLAYLISTS:
                 qb.setTables("audio_playlists");
-                qb.appendWhere("audio_id=? AND playlists_id=?", uri.getPathSegments().get(3),
-                        uri.getPathSegments().get(5));
+                appendWhereStandalone(qb, "_id IN (SELECT playlist_id FROM " +
+                        "audio_playlists_map WHERE audio_id=?)", uri.getPathSegments().get(3));
                 break;
 
+            case AUDIO_GENRES_ID:
+                appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
+                // fall-through
             case AUDIO_GENRES:
                 qb.setTables("audio_genres");
                 break;
 
-            case AUDIO_GENRES_ID:
-                qb.setTables("audio_genres");
-                qb.appendWhere("_id=?", uri.getPathSegments().get(3));
-                break;
-
             case AUDIO_GENRES_ID_MEMBERS:
                 qb.setTables("audio_genres_map");
-                qb.appendWhere("genre_id=?", uri.getPathSegments().get(3));
-                break;
-
-            case AUDIO_PLAYLISTS:
-                qb.setTables("files");
-                qb.appendWhere(FileColumns.MEDIA_TYPE + "=?",
-                        String.valueOf(FileColumns.MEDIA_TYPE_PLAYLIST));
+                appendWhereStandalone(qb, "genre_id=?", uri.getPathSegments().get(3));
                 break;
 
             case AUDIO_PLAYLISTS_ID:
-                qb.setTables("files");
-                qb.appendWhere("_id=?", uri.getPathSegments().get(3));
+                appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
+                // fall-through
+            case AUDIO_PLAYLISTS:
+                if (type == TYPE_QUERY) {
+                    qb.setTables("audio_playlists");
+                } else {
+                    qb.setTables("files");
+                    appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
+                            FileColumns.MEDIA_TYPE_PLAYLIST);
+                }
                 break;
 
             case AUDIO_PLAYLISTS_ID_MEMBERS:
                 qb.setTables("audio_playlists_map");
-                qb.appendWhere("playlist_id=?", uri.getPathSegments().get(3));
+                appendWhereStandalone(qb, "playlist_id=?", uri.getPathSegments().get(3));
                 break;
 
             case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
                 qb.setTables("audio_playlists_map");
-                qb.appendWhere("playlist_id=? AND _id=?", uri.getPathSegments().get(3),
+                appendWhereStandalone(qb, "playlist_id=? AND _id=?", uri.getPathSegments().get(3),
                         uri.getPathSegments().get(5));
                 break;
 
             case AUDIO_ALBUMART_ID:
                 qb.setTables("album_art");
-                qb.appendWhere("album_id=?", uri.getPathSegments().get(3));
-                break;
-
-            case VIDEO_MEDIA:
-                qb.setTables("files");
-                qb.appendWhere(FileColumns.MEDIA_TYPE + "=?",
-                        String.valueOf(FileColumns.MEDIA_TYPE_VIDEO));
+                appendWhereStandalone(qb, "album_id=?", uri.getPathSegments().get(3));
                 break;
 
             case VIDEO_MEDIA_ID:
-                qb.setTables("files");
-                qb.appendWhere("_id=?", uri.getPathSegments().get(3));
+                appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
+                // fall-through
+            case VIDEO_MEDIA:
+                if (type == TYPE_QUERY) {
+                    qb.setTables("video");
+                } else {
+                    qb.setTables("files");
+                    appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
+                            FileColumns.MEDIA_TYPE_VIDEO);
+                }
                 break;
 
             case VIDEO_THUMBNAILS_ID:
-                qb.appendWhere("_id=?", uri.getPathSegments().get(3));
+                appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
+                // fall-through
             case VIDEO_THUMBNAILS:
                 qb.setTables("videothumbnails");
                 break;
 
             case FILES_ID:
-            case MTP_OBJECTS_ID:
-                qb.appendWhere("_id=?", uri.getPathSegments().get(2));
+                appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(2));
+                // fall-through
             case FILES:
             case FILES_DIRECTORY:
-            case MTP_OBJECTS:
                 qb.setTables("files");
                 break;
 
@@ -3193,7 +3055,7 @@ public class MediaProvider extends ContentProvider {
             }
             database.mNumDeletes++;
             SQLiteDatabase db = database.getWritableDatabase();
-            SQLiteStatementBuilder qb = getUpdateDeleteBuilder(uri, match);
+            SQLiteQueryBuilder qb = getQueryBuilder(TYPE_DELETE, uri, match);
             if (qb.getTables().equals("files")) {
                 String deleteparam = uri.getQueryParameter(MediaStore.PARAM_DELETE_DATA);
                 if (deleteparam == null || ! deleteparam.equals("false")) {
@@ -3306,19 +3168,11 @@ public class MediaProvider extends ContentProvider {
                     }
                     // Do not allow deletion if the file/object is referenced as parent
                     // by some other entries. It could cause database corruption.
-                    if (!TextUtils.isEmpty(qb.getWhere())) {
-                        qb.appendWhere(" AND ");
-                    }
-                    qb.appendWhere(ID_NOT_PARENT_CLAUSE);
+                    appendWhereStandalone(qb, ID_NOT_PARENT_CLAUSE);
                 }
             }
 
             switch (match) {
-                case MTP_OBJECTS:
-                case MTP_OBJECTS_ID:
-                    database.mNumDeletes++;
-                    count = deleteRecursive(qb, db, userWhere, userWhereArgs);
-                    break;
                 case AUDIO_GENRES_ID_MEMBERS:
                     database.mNumDeletes++;
                     count = deleteRecursive(qb, db, userWhere, userWhereArgs);
@@ -3367,7 +3221,7 @@ public class MediaProvider extends ContentProvider {
      * can be used to recursively delete all matching entries, since it only
      * deletes parents when no references remaining.
      */
-    private int deleteRecursive(SQLiteStatementBuilder qb, SQLiteDatabase db, String userWhere,
+    private int deleteRecursive(SQLiteQueryBuilder qb, SQLiteDatabase db, String userWhere,
             String[] userWhereArgs) {
         db.beginTransaction();
         try {
@@ -3495,7 +3349,7 @@ public class MediaProvider extends ContentProvider {
         helper.mNumUpdates++;
 
         SQLiteDatabase db = helper.getWritableDatabase();
-        SQLiteStatementBuilder qb = getUpdateDeleteBuilder(uri, match);
+        SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, uri, match);
 
         String genre = null;
         if (initialValues != null) {
@@ -3533,7 +3387,7 @@ public class MediaProvider extends ContentProvider {
         // special case renaming directories via MTP.
         // in this case we must update all paths in the database with
         // the directory name as a prefix
-        if ((match == MTP_OBJECTS || match == MTP_OBJECTS_ID || match == FILES_DIRECTORY)
+        if ((match == FILES_DIRECTORY)
                 && initialValues != null
                 // Is a rename operation
                 && ((initialValues.size() == 1 && initialValues.containsKey(FileColumns.DATA))
@@ -3871,10 +3725,10 @@ public class MediaProvider extends ContentProvider {
             if (db == null) {
                 throw new IllegalStateException("Couldn't open database for " + uri);
             }
-            SQLiteStatementBuilder qb = new SQLiteStatementBuilder();
+            SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
             int songid = Integer.parseInt(uri.getPathSegments().get(3));
             qb.setTables("audio_meta");
-            qb.appendWhere("_id=" + songid);
+            appendWhereStandalone(qb, "_id=" + songid);
             Cursor c = qb.query(db,
                     new String [] {
                         MediaStore.Audio.Media.DATA,
@@ -3919,10 +3773,10 @@ public class MediaProvider extends ContentProvider {
                 if (db == null) {
                     throw new IllegalStateException("Couldn't open database for " + uri);
                 }
-                SQLiteStatementBuilder qb = new SQLiteStatementBuilder();
+                SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
                 int albumid = Integer.parseInt(uri.getPathSegments().get(3));
                 qb.setTables("audio_meta");
-                qb.appendWhere("album_id=" + albumid);
+                appendWhereStandalone(qb, "album_id=" + albumid);
                 Cursor c = qb.query(db,
                         new String [] {
                             MediaStore.Audio.Media.DATA },
@@ -4686,7 +4540,7 @@ public class MediaProvider extends ContentProvider {
      * @return the content URI of the attached volume.
      */
     private Uri attachVolume(String volume) {
-        if (Binder.getCallingPid() != Process.myPid()) {
+        if (Binder.getCallingPid() != android.os.Process.myPid()) {
             throw new SecurityException(
                     "Opening and closing databases not allowed.");
         }
@@ -4833,7 +4687,7 @@ public class MediaProvider extends ContentProvider {
      * @param uri The content URI of the volume, as returned by {@link #attachVolume}
      */
     private void detachVolume(Uri uri) {
-        if (Binder.getCallingPid() != Process.myPid()) {
+        if (Binder.getCallingPid() != android.os.Process.myPid()) {
             throw new SecurityException(
                     "Opening and closing databases not allowed.");
         }
@@ -4942,10 +4796,6 @@ public class MediaProvider extends ContentProvider {
     private static final int VOLUMES = 300;
     private static final int VOLUMES_ID = 301;
 
-    private static final int AUDIO_SEARCH_LEGACY = 400;
-    private static final int AUDIO_SEARCH_BASIC = 401;
-    private static final int AUDIO_SEARCH_FANCY = 402;
-
     private static final int MEDIA_SCANNER = 500;
 
     private static final int FS_ID = 600;
@@ -4953,11 +4803,6 @@ public class MediaProvider extends ContentProvider {
 
     private static final int FILES = 700;
     private static final int FILES_ID = 701;
-
-    // Used only by the MTP implementation
-    private static final int MTP_OBJECTS = 702;
-    private static final int MTP_OBJECTS_ID = 703;
-    private static final int MTP_OBJECT_REFERENCES = 704;
 
     // Used only to invoke special logic for directories
     private static final int FILES_DIRECTORY = 706;
@@ -5067,30 +4912,9 @@ public class MediaProvider extends ContentProvider {
         // Used by MTP implementation
         publicMatcher.addURI(AUTHORITY, "*/file", FILES);
         publicMatcher.addURI(AUTHORITY, "*/file/#", FILES_ID);
-        hiddenMatcher.addURI(AUTHORITY, "*/object", MTP_OBJECTS);
-        hiddenMatcher.addURI(AUTHORITY, "*/object/#", MTP_OBJECTS_ID);
-        hiddenMatcher.addURI(AUTHORITY, "*/object/#/references", MTP_OBJECT_REFERENCES);
 
         // Used only to trigger special logic for directories
         hiddenMatcher.addURI(AUTHORITY, "*/dir", FILES_DIRECTORY);
-
-        /**
-         * @deprecated use the 'basic' or 'fancy' search Uris instead
-         */
-        hiddenMatcher.addURI(AUTHORITY, "*/audio/" + SearchManager.SUGGEST_URI_PATH_QUERY,
-                AUDIO_SEARCH_LEGACY);
-        hiddenMatcher.addURI(AUTHORITY, "*/audio/" + SearchManager.SUGGEST_URI_PATH_QUERY + "/*",
-                AUDIO_SEARCH_LEGACY);
-
-        // used for search suggestions
-        hiddenMatcher.addURI(AUTHORITY, "*/audio/search/" + SearchManager.SUGGEST_URI_PATH_QUERY,
-                AUDIO_SEARCH_BASIC);
-        hiddenMatcher.addURI(AUTHORITY, "*/audio/search/" + SearchManager.SUGGEST_URI_PATH_QUERY +
-                "/*", AUDIO_SEARCH_BASIC);
-
-        // used by the music app's search activity
-        hiddenMatcher.addURI(AUTHORITY, "*/audio/search/fancy", AUDIO_SEARCH_FANCY);
-        hiddenMatcher.addURI(AUTHORITY, "*/audio/search/fancy/*", AUDIO_SEARCH_FANCY);
     }
 
     private static String getVolumeName(Uri uri) {

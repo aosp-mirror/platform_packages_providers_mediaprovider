@@ -629,55 +629,6 @@ public class MediaProvider extends ContentProvider {
         return super.enforceWritePermissionInner(uri, callingPkg, callerToken);
     }
 
-    private static final String TABLE_FILES = "files";
-    private static final String TABLE_ALBUM_ART = "album_art";
-    private static final String TABLE_THUMBNAILS = "thumbnails";
-    private static final String TABLE_VIDEO_THUMBNAILS = "videothumbnails";
-
-    private static final String IMAGE_COLUMNS =
-                        "_data,_size,_display_name,mime_type,title,date_added," +
-                        "date_modified,description,picasa_id,isprivate,latitude,longitude," +
-                        "datetaken,orientation,mini_thumb_magic,bucket_id,bucket_display_name," +
-                        "width,height";
-
-    private static final String IMAGE_COLUMNSv407 =
-                        "_data,_size,_display_name,mime_type,title,date_added," +
-                        "date_modified,description,picasa_id,isprivate,latitude,longitude," +
-                        "datetaken,orientation,mini_thumb_magic,bucket_id,bucket_display_name";
-
-    private static final String AUDIO_COLUMNSv99 =
-                        "_data,_display_name,_size,mime_type,date_added," +
-                        "date_modified,title,title_key,duration,artist_id,composer,album_id," +
-                        "track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast," +
-                        "bookmark";
-
-    private static final String AUDIO_COLUMNSv100 =
-                        "_data,_display_name,_size,mime_type,date_added," +
-                        "date_modified,title,title_key,duration,artist_id,composer,album_id," +
-                        "track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast," +
-                        "bookmark,album_artist";
-
-    private static final String AUDIO_COLUMNSv405 =
-                        "_data,_display_name,_size,mime_type,date_added,is_drm," +
-                        "date_modified,title,title_key,duration,artist_id,composer,album_id," +
-                        "track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast," +
-                        "bookmark,album_artist";
-
-    private static final String VIDEO_COLUMNS =
-                        "_data,_display_name,_size,mime_type,date_added,date_modified," +
-                        "title,duration,artist,album,resolution,description,isprivate,tags," +
-                        "category,language,mini_thumb_data,latitude,longitude,datetaken," +
-                        "mini_thumb_magic,bucket_id,bucket_display_name,bookmark,width," +
-                        "height";
-
-    private static final String VIDEO_COLUMNSv407 =
-                        "_data,_display_name,_size,mime_type,date_added,date_modified," +
-                        "title,duration,artist,album,resolution,description,isprivate,tags," +
-                        "category,language,mini_thumb_data,latitude,longitude,datetaken," +
-                        "mini_thumb_magic,bucket_id,bucket_display_name, bookmark";
-
-    private static final String PLAYLIST_COLUMNS = "_data,name,date_added,date_modified";
-
     // restore the database to a clean slate
     private static void makePristine(SQLiteDatabase db) {
         // drop all triggers
@@ -1075,10 +1026,21 @@ public class MediaProvider extends ContentProvider {
         return uri;
     }
 
-    @SuppressWarnings("fallthrough")
     @Override
     public Cursor query(Uri uri, String[] projectionIn, String selection,
             String[] selectionArgs, String sort) {
+        return queryCommon(uri, projectionIn, selection, selectionArgs, sort, null);
+    }
+
+    @Override
+    public Cursor query(Uri uri, String[] projectionIn, String selection,
+            String[] selectionArgs, String sort, CancellationSignal signal) {
+        return queryCommon(uri, projectionIn, selection, selectionArgs, sort, signal);
+    }
+
+    @SuppressWarnings("fallthrough")
+    private Cursor queryCommon(Uri uri, String[] projectionIn, String selection,
+            String[] selectionArgs, String sort, CancellationSignal signal) {
 
         uri = safeUncanonicalize(uri);
 
@@ -1325,7 +1287,7 @@ public class MediaProvider extends ContentProvider {
         // Log.v(TAG, "query = "+ qb.buildQuery(projectionIn, selection,
         //        combine(prependArgs, selectionArgs), groupBy, null, sort, limit));
         Cursor c = qb.query(db, projectionIn, selection,
-                selectionArgs, groupBy, null, sort, limit);
+                selectionArgs, groupBy, null, sort, limit, signal);
 
         if (c != null) {
             String nonotify = uri.getQueryParameter("nonotify");
@@ -1978,102 +1940,6 @@ public class MediaProvider extends ContentProvider {
         return rowId;
     }
 
-    private Cursor getObjectReferences(DatabaseHelper helper, SQLiteDatabase db, int handle) {
-        helper.mNumQueries++;
-        Cursor c = db.query("files", sMediaTableColumns, "_id=?",
-                new String[] {  Integer.toString(handle) },
-                null, null, null);
-        try {
-            if (c != null && c.moveToNext()) {
-                long playlistId = c.getLong(0);
-                int mediaType = c.getInt(1);
-                if (mediaType != FileColumns.MEDIA_TYPE_PLAYLIST) {
-                    // we only support object references for playlist objects
-                    return null;
-                }
-                helper.mNumQueries++;
-                return db.rawQuery(OBJECT_REFERENCES_QUERY,
-                        new String[] { Long.toString(playlistId) } );
-            }
-        } finally {
-            IoUtils.closeQuietly(c);
-        }
-        return null;
-    }
-
-    private int setObjectReferences(DatabaseHelper helper, SQLiteDatabase db,
-            int handle, ContentValues values[]) {
-        // first look up the media table and media ID for the object
-        long playlistId = 0;
-        helper.mNumQueries++;
-        Cursor c = db.query("files", sMediaTableColumns, "_id=?",
-                new String[] {  Integer.toString(handle) },
-                null, null, null);
-        try {
-            if (c != null && c.moveToNext()) {
-                int mediaType = c.getInt(1);
-                if (mediaType != FileColumns.MEDIA_TYPE_PLAYLIST) {
-                    // we only support object references for playlist objects
-                    return 0;
-                }
-                playlistId = c.getLong(0);
-            }
-        } finally {
-            IoUtils.closeQuietly(c);
-        }
-        if (playlistId == 0) {
-            return 0;
-        }
-
-        // next delete any existing entries
-        helper.mNumDeletes++;
-        db.delete("audio_playlists_map", "playlist_id=?",
-                new String[] { Long.toString(playlistId) });
-
-        // finally add the new entries
-        int count = values.length;
-        int added = 0;
-        ContentValues[] valuesList = new ContentValues[count];
-        for (int i = 0; i < count; i++) {
-            // convert object ID to audio ID
-            long audioId = 0;
-            long objectId = values[i].getAsLong(MediaStore.MediaColumns._ID);
-            helper.mNumQueries++;
-            c = db.query("files", sMediaTableColumns, "_id=?",
-                    new String[] {  Long.toString(objectId) },
-                    null, null, null);
-            try {
-                if (c != null && c.moveToNext()) {
-                    int mediaType = c.getInt(1);
-                    if (mediaType != FileColumns.MEDIA_TYPE_AUDIO) {
-                        // we only allow audio files in playlists, so skip
-                        continue;
-                    }
-                    audioId = c.getLong(0);
-                }
-            } finally {
-                IoUtils.closeQuietly(c);
-            }
-            if (audioId != 0) {
-                ContentValues v = new ContentValues();
-                v.put(MediaStore.Audio.Playlists.Members.PLAYLIST_ID, playlistId);
-                v.put(MediaStore.Audio.Playlists.Members.AUDIO_ID, audioId);
-                v.put(MediaStore.Audio.Playlists.Members.PLAY_ORDER, added);
-                valuesList[added++] = v;
-            }
-        }
-        if (added < count) {
-            // we weren't able to find everything on the list, so lets resize the array
-            // and pass what we have.
-            ContentValues[] newValues = new ContentValues[added];
-            System.arraycopy(valuesList, 0, newValues, 0, added);
-            valuesList = newValues;
-        }
-        return playlistBulkInsert(db,
-                Audio.Playlists.Members.getContentUri(EXTERNAL_VOLUME, playlistId),
-                valuesList);
-    }
-
     private static final String[] GENRE_LOOKUP_PROJECTION = new String[] {
             Audio.Genres._ID, // 0
             Audio.Genres.NAME, // 1
@@ -2347,76 +2213,6 @@ public class MediaProvider extends ContentProvider {
             processNewNoMediaPath(helper, db, path);
         }
         return newUri;
-    }
-
-    private void fixParentIdIfNeeded() {
-        final DatabaseHelper helper = getDatabaseForUri(Uri.parse("content://media/external/file"));
-        if (helper == null) {
-            if (LOCAL_LOGV) Log.v(TAG, "fixParentIdIfNeeded: helper is null, nothing to fix!");
-            return;
-        }
-
-        SQLiteDatabase db = helper.getWritableDatabase();
-
-        long lastId = -1;
-        int numFound = 0, numFixed = 0;
-        boolean firstIteration = true;
-        while (true) {
-            // Run a query for any entry with an invalid parent id, and try to fix it up.
-            // Limit to 500 rows so that the query results fit in the cursor window. Otherwise
-            // the query could be re-run at some point to get the next results, but since we
-            // already updated some rows, this could go out of bounds or skip some rows.
-            // Order by _id, and do not query what we've already processed.
-            Cursor c = db.query("files", sDataId, PARENT_NOT_PRESENT_CLAUSE +
-                    (lastId < 0 ? "" : " AND _id > " + lastId),
-                    null, null, null, "_id ASC", "500");
-
-            try {
-                if (c == null || c.getCount() == 0) {
-                    break;
-                }
-
-                numFound += c.getCount();
-                if (firstIteration) {
-                    synchronized(mDirectoryCache) {
-                        mDirectoryCache.clear();
-                    }
-                    firstIteration = false;
-                }
-                while (c.moveToNext()) {
-                    final String path = c.getString(0);
-                    lastId = c.getLong(1);
-
-                    File file = new File(path);
-                    if (file.exists()) {
-                        // If the file actually exists, try to fix up the parent id.
-                        // getParent() will add entries for any missing ancestors.
-                        long parentId = getParent(helper, db, path);
-                        if (LOCAL_LOGV) Log.d(TAG,
-                                "changing parent to " + parentId + " for " + path);
-
-                        ContentValues values = new ContentValues();
-                        values.put(FileColumns.PARENT, parentId);
-                        int numrows = db.update("files", values, "_id=" + lastId, null);
-                        helper.mNumUpdates += numrows;
-                        numFixed += numrows;
-                    } else {
-                        // If the file does not exist, remove the entry now
-                        if (LOCAL_LOGV) Log.d(TAG, "removing " + path);
-                        db.delete("files", "_id=" + lastId, null);
-                    }
-                }
-            } finally {
-                IoUtils.closeQuietly(c);
-            }
-        }
-        if (numFound > 0) {
-            Log.d(TAG, "fixParentIdIfNeeded: found: " + numFound + ", fixed: " + numFixed);
-        }
-        if (numFixed > 0) {
-            ContentResolver res = getContext().getContentResolver();
-            res.notifyChange(Uri.parse("content://media/"), null);
-        }
     }
 
     /*
@@ -4645,9 +4441,6 @@ public class MediaProvider extends ContentProvider {
     static final String INTERNAL_VOLUME = "internal";
     static final String EXTERNAL_VOLUME = "external";
     static final String ALBUM_THUMB_FOLDER = "Android/data/com.android.providers.media/albumthumbs";
-
-    // path for writing contents of in memory temp database
-    private String mTempDatabasePath;
 
     // WARNING: the values of IMAGES_MEDIA, AUDIO_MEDIA, and VIDEO_MEDIA and AUDIO_PLAYLISTS
     // are stored in the "files" table, so do not renumber them unless you also add

@@ -45,16 +45,19 @@ import android.content.UriMatcher;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.content.res.AssetFileDescriptor;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.MatrixCursor;
+import android.database.sqlite.SQLiteConnection;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Point;
 import android.media.MediaFile;
 import android.media.MediaScanner;
 import android.media.MediaScannerConnection;
@@ -65,13 +68,12 @@ import android.net.Uri;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.os.Environment;
 import android.os.FileUtils;
-import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.IBinder;
-import android.os.Message;
 import android.os.ParcelFileDescriptor;
+import android.os.ParcelFileDescriptor.OnCloseListener;
 import android.os.SystemClock;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -87,6 +89,7 @@ import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.MediaColumns;
+import android.provider.MediaStore.ThumbnailConstants;
 import android.provider.MediaStore.Video;
 import android.system.ErrnoException;
 import android.system.Os;
@@ -95,6 +98,8 @@ import android.system.StructStat;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.util.Log;
+
+import com.android.internal.os.BackgroundThread;
 
 import libcore.io.IoUtils;
 import libcore.util.EmptyArray;
@@ -113,8 +118,12 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
-import java.util.PriorityQueue;
-import java.util.Stack;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Media content provider. See {@link android.provider.MediaStore} for details.
@@ -127,8 +136,6 @@ public class MediaProvider extends ContentProvider {
 
     private static final Uri MEDIA_URI = Uri.parse("content://media");
     private static final Uri ALBUMART_URI = Uri.parse("content://media/external/audio/albumart");
-    private static final int ALBUM_THUMB = 1;
-    private static final int IMAGE_THUMB = 2;
 
     private static final HashMap<String, String> sArtistAlbumsMap = new HashMap<String, String>();
     private static final HashMap<String, String> sFolderArtMap = new HashMap<String, String>();
@@ -162,17 +169,10 @@ public class MediaProvider extends ContentProvider {
     // In memory cache of path<->id mappings, to speed up inserts during media scan
     HashMap<String, Long> mDirectoryCache = new HashMap<String, Long>();
 
-    // A HashSet of paths that are pending creation of album art thumbnails.
-    private HashSet mPendingThumbs = new HashSet();
-
-    // A Stack of outstanding thumbnail requests.
-    private Stack mThumbRequestStack = new Stack();
-
-    // The lock of mMediaThumbQueue protects both mMediaThumbQueue and mCurrentThumbRequest.
-    private MediaThumbRequest mCurrentThumbRequest = null;
-    private PriorityQueue<MediaThumbRequest> mMediaThumbQueue =
-            new PriorityQueue<MediaThumbRequest>(MediaThumbRequest.PRIORITY_NORMAL,
-            MediaThumbRequest.getComparator());
+    /**
+     * Executor that handles processing thumbnail requests.
+     */
+    private ExecutorService mThumbExecutor;
 
     private String[] mExternalStoragePaths = EmptyArray.STRING;
 
@@ -561,6 +561,8 @@ public class MediaProvider extends ContentProvider {
     public boolean onCreate() {
         final Context context = getContext();
 
+        SQLiteConnection.sLocalDebug = LOCAL_LOGV;
+
         mStorageManager = context.getSystemService(StorageManager.class);
         mAppOpsManager = context.getSystemService(AppOpsManager.class);
         mPackageManager = context.getPackageManager();
@@ -598,79 +600,8 @@ public class MediaProvider extends ContentProvider {
             attachVolume(EXTERNAL_VOLUME);
         }
 
-        HandlerThread ht = new HandlerThread("thumbs thread",
-                android.os.Process.THREAD_PRIORITY_BACKGROUND);
-        ht.start();
-        mThumbHandler = new Handler(ht.getLooper()) {
-            @Override
-            public void handleMessage(Message msg) {
-                if (msg.what == IMAGE_THUMB) {
-                    synchronized (mMediaThumbQueue) {
-                        mCurrentThumbRequest = mMediaThumbQueue.poll();
-                    }
-                    if (mCurrentThumbRequest == null) {
-                        Log.w(TAG, "Have message but no request?");
-                    } else {
-                        try {
-                            if (mCurrentThumbRequest.mPath != null) {
-                                File origFile = new File(mCurrentThumbRequest.mPath);
-                                if (origFile.exists() && origFile.length() > 0) {
-                                    mCurrentThumbRequest.execute();
-                                    // Check if more requests for the same image are queued.
-                                    synchronized (mMediaThumbQueue) {
-                                        for (MediaThumbRequest mtq : mMediaThumbQueue) {
-                                            if ((mtq.mOrigId == mCurrentThumbRequest.mOrigId) &&
-                                                (mtq.mIsVideo == mCurrentThumbRequest.mIsVideo) &&
-                                                (mtq.mMagic == 0) &&
-                                                (mtq.mState == MediaThumbRequest.State.WAIT)) {
-                                                mtq.mMagic = mCurrentThumbRequest.mMagic;
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    // original file hasn't been stored yet
-                                    synchronized (mMediaThumbQueue) {
-                                        Log.w(TAG, "original file hasn't been stored yet: " + mCurrentThumbRequest.mPath);
-                                    }
-                                }
-                            }
-                        } catch (IOException ex) {
-                            Log.w(TAG, ex);
-                        } catch (UnsupportedOperationException ex) {
-                            // This could happen if we unplug the sd card during insert/update/delete
-                            // See getDatabaseForUri.
-                            Log.w(TAG, ex);
-                        } catch (OutOfMemoryError err) {
-                            /*
-                             * Note: Catching Errors is in most cases considered
-                             * bad practice. However, in this case it is
-                             * motivated by the fact that corrupt or very large
-                             * images may cause a huge allocation to be
-                             * requested and denied. The bitmap handling API in
-                             * Android offers no other way to guard against
-                             * these problems than by catching OutOfMemoryError.
-                             */
-                            Log.w(TAG, err);
-                        } finally {
-                            synchronized (mCurrentThumbRequest) {
-                                mCurrentThumbRequest.mState = MediaThumbRequest.State.DONE;
-                                mCurrentThumbRequest.notifyAll();
-                            }
-                        }
-                    }
-                } else if (msg.what == ALBUM_THUMB) {
-                    ThumbData d;
-                    synchronized (mThumbRequestStack) {
-                        d = (ThumbData)mThumbRequestStack.pop();
-                    }
-
-                    IoUtils.closeQuietly(makeThumbInternal(d));
-                    synchronized (mPendingThumbs) {
-                        mPendingThumbs.remove(d.path);
-                    }
-                }
-            }
-        };
+        final BlockingQueue<Runnable> workQueue = new PriorityBlockingQueue<>();
+        mThumbExecutor = new ThreadPoolExecutor(1, 1, 10L, TimeUnit.SECONDS, workQueue);
 
         return true;
     }
@@ -697,55 +628,6 @@ public class MediaProvider extends ContentProvider {
         enforceShellRestrictions();
         return super.enforceWritePermissionInner(uri, callingPkg, callerToken);
     }
-
-    private static final String TABLE_FILES = "files";
-    private static final String TABLE_ALBUM_ART = "album_art";
-    private static final String TABLE_THUMBNAILS = "thumbnails";
-    private static final String TABLE_VIDEO_THUMBNAILS = "videothumbnails";
-
-    private static final String IMAGE_COLUMNS =
-                        "_data,_size,_display_name,mime_type,title,date_added," +
-                        "date_modified,description,picasa_id,isprivate,latitude,longitude," +
-                        "datetaken,orientation,mini_thumb_magic,bucket_id,bucket_display_name," +
-                        "width,height";
-
-    private static final String IMAGE_COLUMNSv407 =
-                        "_data,_size,_display_name,mime_type,title,date_added," +
-                        "date_modified,description,picasa_id,isprivate,latitude,longitude," +
-                        "datetaken,orientation,mini_thumb_magic,bucket_id,bucket_display_name";
-
-    private static final String AUDIO_COLUMNSv99 =
-                        "_data,_display_name,_size,mime_type,date_added," +
-                        "date_modified,title,title_key,duration,artist_id,composer,album_id," +
-                        "track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast," +
-                        "bookmark";
-
-    private static final String AUDIO_COLUMNSv100 =
-                        "_data,_display_name,_size,mime_type,date_added," +
-                        "date_modified,title,title_key,duration,artist_id,composer,album_id," +
-                        "track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast," +
-                        "bookmark,album_artist";
-
-    private static final String AUDIO_COLUMNSv405 =
-                        "_data,_display_name,_size,mime_type,date_added,is_drm," +
-                        "date_modified,title,title_key,duration,artist_id,composer,album_id," +
-                        "track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast," +
-                        "bookmark,album_artist";
-
-    private static final String VIDEO_COLUMNS =
-                        "_data,_display_name,_size,mime_type,date_added,date_modified," +
-                        "title,duration,artist,album,resolution,description,isprivate,tags," +
-                        "category,language,mini_thumb_data,latitude,longitude,datetaken," +
-                        "mini_thumb_magic,bucket_id,bucket_display_name,bookmark,width," +
-                        "height";
-
-    private static final String VIDEO_COLUMNSv407 =
-                        "_data,_display_name,_size,mime_type,date_added,date_modified," +
-                        "title,duration,artist,album,resolution,description,isprivate,tags," +
-                        "category,language,mini_thumb_data,latitude,longitude,datetaken," +
-                        "mini_thumb_magic,bucket_id,bucket_display_name, bookmark";
-
-    private static final String PLAYLIST_COLUMNS = "_data,name,date_added,date_modified";
 
     // restore the database to a clean slate
     private static void makePristine(SQLiteDatabase db) {
@@ -1054,123 +936,6 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    /**
-     * This method requests a thumbnail and blocks until thumbnail is ready.
-     *
-     * @param thumbUri
-     * @return
-     */
-    private boolean waitForThumbnailReady(Uri origUri) {
-        Cursor c = this.query(origUri, new String[] { ImageColumns._ID, ImageColumns.DATA,
-                ImageColumns.MINI_THUMB_MAGIC}, null, null, null);
-        boolean result = false;
-        try {
-            if (c != null && c.moveToFirst()) {
-                long id = c.getLong(0);
-                String path = c.getString(1);
-                long magic = c.getLong(2);
-
-                MediaThumbRequest req = requestMediaThumbnail(path, origUri,
-                        MediaThumbRequest.PRIORITY_HIGH, magic);
-                if (req != null) {
-                    synchronized (req) {
-                        try {
-                            while (req.mState == MediaThumbRequest.State.WAIT) {
-                                req.wait();
-                            }
-                        } catch (InterruptedException e) {
-                            Log.w(TAG, e);
-                        }
-                        if (req.mState == MediaThumbRequest.State.DONE) {
-                            result = true;
-                        }
-                    }
-                }
-            }
-        } finally {
-            IoUtils.closeQuietly(c);
-        }
-        return result;
-    }
-
-    private boolean matchThumbRequest(MediaThumbRequest req, int pid, long id, long gid,
-            boolean isVideo) {
-        boolean cancelAllOrigId = (id == -1);
-        boolean cancelAllGroupId = (gid == -1);
-        return (req.mCallingPid == pid) &&
-                (cancelAllGroupId || req.mGroupId == gid) &&
-                (cancelAllOrigId || req.mOrigId == id) &&
-                (req.mIsVideo == isVideo);
-    }
-
-    private boolean queryThumbnail(SQLiteQueryBuilder qb, Uri uri, String table,
-            String column, boolean hasThumbnailId) {
-        qb.setTables(table);
-        if (hasThumbnailId) {
-            // For uri dispatched to this method, the 4th path segment is always
-            // the thumbnail id.
-            appendWhereStandalone(qb, "_id = " + uri.getPathSegments().get(3));
-            // client already knows which thumbnail it wants, bypass it.
-            return true;
-        }
-        String origId = uri.getQueryParameter("orig_id");
-        // We can't query ready_flag unless we know original id
-        if (origId == null) {
-            // this could be thumbnail query for other purpose, bypass it.
-            return true;
-        }
-
-        boolean needBlocking = "1".equals(uri.getQueryParameter("blocking"));
-        boolean cancelRequest = "1".equals(uri.getQueryParameter("cancel"));
-        Uri origUri = uri.buildUpon().encodedPath(
-                uri.getPath().replaceFirst("thumbnails", "media"))
-                .appendPath(origId).build();
-
-        if (needBlocking && !waitForThumbnailReady(origUri)) {
-            Log.w(TAG, "original media doesn't exist or it's canceled.");
-            return false;
-        } else if (cancelRequest) {
-            String groupId = uri.getQueryParameter("group_id");
-            boolean isVideo = "video".equals(uri.getPathSegments().get(1));
-            int pid = Binder.getCallingPid();
-            long id = -1;
-            long gid = -1;
-
-            try {
-                id = Long.parseLong(origId);
-                gid = Long.parseLong(groupId);
-            } catch (NumberFormatException ex) {
-                // invalid cancel request
-                return false;
-            }
-
-            synchronized (mMediaThumbQueue) {
-                if (mCurrentThumbRequest != null &&
-                        matchThumbRequest(mCurrentThumbRequest, pid, id, gid, isVideo)) {
-                    synchronized (mCurrentThumbRequest) {
-                        mCurrentThumbRequest.mState = MediaThumbRequest.State.CANCEL;
-                        mCurrentThumbRequest.notifyAll();
-                    }
-                }
-                for (MediaThumbRequest mtq : mMediaThumbQueue) {
-                    if (matchThumbRequest(mtq, pid, id, gid, isVideo)) {
-                        synchronized (mtq) {
-                            mtq.mState = MediaThumbRequest.State.CANCEL;
-                            mtq.notifyAll();
-                        }
-
-                        mMediaThumbQueue.remove(mtq);
-                    }
-                }
-            }
-        }
-
-        if (origId != null) {
-            appendWhereStandalone(qb, column + " = " + origId);
-        }
-        return true;
-    }
-
     @Override
     public Uri canonicalize(Uri uri) {
         final boolean allowHidden = isCallingPackageAllowedHidden();
@@ -1261,10 +1026,21 @@ public class MediaProvider extends ContentProvider {
         return uri;
     }
 
-    @SuppressWarnings("fallthrough")
     @Override
     public Cursor query(Uri uri, String[] projectionIn, String selection,
             String[] selectionArgs, String sort) {
+        return queryCommon(uri, projectionIn, selection, selectionArgs, sort, null);
+    }
+
+    @Override
+    public Cursor query(Uri uri, String[] projectionIn, String selection,
+            String[] selectionArgs, String sort, CancellationSignal signal) {
+        return queryCommon(uri, projectionIn, selection, selectionArgs, sort, signal);
+    }
+
+    @SuppressWarnings("fallthrough")
+    private Cursor queryCommon(Uri uri, String[] projectionIn, String selection,
+            String[] selectionArgs, String sort, CancellationSignal signal) {
 
         uri = safeUncanonicalize(uri);
 
@@ -1329,17 +1105,7 @@ public class MediaProvider extends ContentProvider {
             qb.setDistinct(true);
         }
 
-        boolean hasThumbnailId = false;
-
         switch (table) {
-            case IMAGES_THUMBNAILS_ID:
-                hasThumbnailId = true;
-            case IMAGES_THUMBNAILS:
-                if (!queryThumbnail(qb, uri, "thumbnails", "image_id", hasThumbnailId)) {
-                    return null;
-                }
-                break;
-
             case AUDIO_MEDIA:
                 if (projectionIn != null && projectionIn.length == 1 &&  selectionArgs == null
                         && (selection == null || selection.equalsIgnoreCase("is_music=1")
@@ -1443,14 +1209,6 @@ public class MediaProvider extends ContentProvider {
                 }
                 break;
 
-            case VIDEO_THUMBNAILS_ID:
-                hasThumbnailId = true;
-            case VIDEO_THUMBNAILS:
-                if (!queryThumbnail(qb, uri, "videothumbnails", "video_id", hasThumbnailId)) {
-                    return null;
-                }
-                break;
-
             case AUDIO_ARTISTS:
                 if (projectionIn != null && projectionIn.length == 1 &&  selectionArgs == null
                         && (selection == null || selection.length() == 0)
@@ -1529,7 +1287,7 @@ public class MediaProvider extends ContentProvider {
         // Log.v(TAG, "query = "+ qb.buildQuery(projectionIn, selection,
         //        combine(prependArgs, selectionArgs), groupBy, null, sort, limit));
         Cursor c = qb.query(db, projectionIn, selection,
-                selectionArgs, groupBy, null, sort, limit);
+                selectionArgs, groupBy, null, sort, limit, signal);
 
         if (c != null) {
             String nonotify = uri.getQueryParameter("nonotify");
@@ -1569,8 +1327,11 @@ public class MediaProvider extends ContentProvider {
             case IMAGES_MEDIA:
             case IMAGES_THUMBNAILS:
                 return Images.Media.CONTENT_TYPE;
+
             case AUDIO_ALBUMART_ID:
+            case AUDIO_ALBUMART_FILE_ID:
             case IMAGES_THUMBNAILS_ID:
+            case VIDEO_THUMBNAILS_ID:
                 return "image/jpeg";
 
             case AUDIO_MEDIA:
@@ -2179,102 +1940,6 @@ public class MediaProvider extends ContentProvider {
         return rowId;
     }
 
-    private Cursor getObjectReferences(DatabaseHelper helper, SQLiteDatabase db, int handle) {
-        helper.mNumQueries++;
-        Cursor c = db.query("files", sMediaTableColumns, "_id=?",
-                new String[] {  Integer.toString(handle) },
-                null, null, null);
-        try {
-            if (c != null && c.moveToNext()) {
-                long playlistId = c.getLong(0);
-                int mediaType = c.getInt(1);
-                if (mediaType != FileColumns.MEDIA_TYPE_PLAYLIST) {
-                    // we only support object references for playlist objects
-                    return null;
-                }
-                helper.mNumQueries++;
-                return db.rawQuery(OBJECT_REFERENCES_QUERY,
-                        new String[] { Long.toString(playlistId) } );
-            }
-        } finally {
-            IoUtils.closeQuietly(c);
-        }
-        return null;
-    }
-
-    private int setObjectReferences(DatabaseHelper helper, SQLiteDatabase db,
-            int handle, ContentValues values[]) {
-        // first look up the media table and media ID for the object
-        long playlistId = 0;
-        helper.mNumQueries++;
-        Cursor c = db.query("files", sMediaTableColumns, "_id=?",
-                new String[] {  Integer.toString(handle) },
-                null, null, null);
-        try {
-            if (c != null && c.moveToNext()) {
-                int mediaType = c.getInt(1);
-                if (mediaType != FileColumns.MEDIA_TYPE_PLAYLIST) {
-                    // we only support object references for playlist objects
-                    return 0;
-                }
-                playlistId = c.getLong(0);
-            }
-        } finally {
-            IoUtils.closeQuietly(c);
-        }
-        if (playlistId == 0) {
-            return 0;
-        }
-
-        // next delete any existing entries
-        helper.mNumDeletes++;
-        db.delete("audio_playlists_map", "playlist_id=?",
-                new String[] { Long.toString(playlistId) });
-
-        // finally add the new entries
-        int count = values.length;
-        int added = 0;
-        ContentValues[] valuesList = new ContentValues[count];
-        for (int i = 0; i < count; i++) {
-            // convert object ID to audio ID
-            long audioId = 0;
-            long objectId = values[i].getAsLong(MediaStore.MediaColumns._ID);
-            helper.mNumQueries++;
-            c = db.query("files", sMediaTableColumns, "_id=?",
-                    new String[] {  Long.toString(objectId) },
-                    null, null, null);
-            try {
-                if (c != null && c.moveToNext()) {
-                    int mediaType = c.getInt(1);
-                    if (mediaType != FileColumns.MEDIA_TYPE_AUDIO) {
-                        // we only allow audio files in playlists, so skip
-                        continue;
-                    }
-                    audioId = c.getLong(0);
-                }
-            } finally {
-                IoUtils.closeQuietly(c);
-            }
-            if (audioId != 0) {
-                ContentValues v = new ContentValues();
-                v.put(MediaStore.Audio.Playlists.Members.PLAYLIST_ID, playlistId);
-                v.put(MediaStore.Audio.Playlists.Members.AUDIO_ID, audioId);
-                v.put(MediaStore.Audio.Playlists.Members.PLAY_ORDER, added);
-                valuesList[added++] = v;
-            }
-        }
-        if (added < count) {
-            // we weren't able to find everything on the list, so lets resize the array
-            // and pass what we have.
-            ContentValues[] newValues = new ContentValues[added];
-            System.arraycopy(valuesList, 0, newValues, 0, added);
-            valuesList = newValues;
-        }
-        return playlistBulkInsert(db,
-                Audio.Playlists.Members.getContentUri(EXTERNAL_VOLUME, playlistId),
-                valuesList);
-    }
-
     private static final String[] GENRE_LOOKUP_PROJECTION = new String[] {
             Audio.Genres._ID, // 0
             Audio.Genres.NAME, // 1
@@ -2550,76 +2215,6 @@ public class MediaProvider extends ContentProvider {
         return newUri;
     }
 
-    private void fixParentIdIfNeeded() {
-        final DatabaseHelper helper = getDatabaseForUri(Uri.parse("content://media/external/file"));
-        if (helper == null) {
-            if (LOCAL_LOGV) Log.v(TAG, "fixParentIdIfNeeded: helper is null, nothing to fix!");
-            return;
-        }
-
-        SQLiteDatabase db = helper.getWritableDatabase();
-
-        long lastId = -1;
-        int numFound = 0, numFixed = 0;
-        boolean firstIteration = true;
-        while (true) {
-            // Run a query for any entry with an invalid parent id, and try to fix it up.
-            // Limit to 500 rows so that the query results fit in the cursor window. Otherwise
-            // the query could be re-run at some point to get the next results, but since we
-            // already updated some rows, this could go out of bounds or skip some rows.
-            // Order by _id, and do not query what we've already processed.
-            Cursor c = db.query("files", sDataId, PARENT_NOT_PRESENT_CLAUSE +
-                    (lastId < 0 ? "" : " AND _id > " + lastId),
-                    null, null, null, "_id ASC", "500");
-
-            try {
-                if (c == null || c.getCount() == 0) {
-                    break;
-                }
-
-                numFound += c.getCount();
-                if (firstIteration) {
-                    synchronized(mDirectoryCache) {
-                        mDirectoryCache.clear();
-                    }
-                    firstIteration = false;
-                }
-                while (c.moveToNext()) {
-                    final String path = c.getString(0);
-                    lastId = c.getLong(1);
-
-                    File file = new File(path);
-                    if (file.exists()) {
-                        // If the file actually exists, try to fix up the parent id.
-                        // getParent() will add entries for any missing ancestors.
-                        long parentId = getParent(helper, db, path);
-                        if (LOCAL_LOGV) Log.d(TAG,
-                                "changing parent to " + parentId + " for " + path);
-
-                        ContentValues values = new ContentValues();
-                        values.put(FileColumns.PARENT, parentId);
-                        int numrows = db.update("files", values, "_id=" + lastId, null);
-                        helper.mNumUpdates += numrows;
-                        numFixed += numrows;
-                    } else {
-                        // If the file does not exist, remove the entry now
-                        if (LOCAL_LOGV) Log.d(TAG, "removing " + path);
-                        db.delete("files", "_id=" + lastId, null);
-                    }
-                }
-            } finally {
-                IoUtils.closeQuietly(c);
-            }
-        }
-        if (numFound > 0) {
-            Log.d(TAG, "fixParentIdIfNeeded: found: " + numFound + ", fixed: " + numFixed);
-        }
-        if (numFixed > 0) {
-            ContentResolver res = getContext().getContentResolver();
-            res.notifyChange(Uri.parse("content://media/"), null);
-        }
-    }
-
     /*
      * Sets the media type of all files below the newly added .nomedia file or
      * hidden folder to 0, so the entries no longer appear in e.g. the audio and
@@ -2790,23 +2385,6 @@ public class MediaProvider extends ContentProvider {
                     }
                 }
             }
-        }
-    }
-
-    private MediaThumbRequest requestMediaThumbnail(String path, Uri uri, int priority, long magic) {
-        synchronized (mMediaThumbQueue) {
-            MediaThumbRequest req = null;
-            try {
-                req = new MediaThumbRequest(
-                        getContext().getContentResolver(), path, uri, priority, magic);
-                mMediaThumbQueue.add(req);
-                // Trigger the handler.
-                Message msg = mThumbHandler.obtainMessage(IMAGE_THUMB);
-                msg.sendToTarget();
-            } catch (Throwable t) {
-                Log.w(TAG, t);
-            }
-            return req;
         }
     }
 
@@ -3594,20 +3172,27 @@ public class MediaProvider extends ContentProvider {
                     // we only process update request from media scanner, otherwise the requests
                     // could be duplicate.
                     if (count > 0 && values.getAsString(MediaStore.MediaColumns.DATA) != null) {
+                        // Invalidate any thumbnails so they get regenerated
                         helper.mNumQueries++;
-                        Cursor c = qb.query(db, READY_FLAG_PROJECTION, userWhere, userWhereArgs,
-                                null, null, null, null);
-                        if (c != null) {
-                            try {
-                                while (c.moveToNext()) {
-                                    long magic = c.getLong(2);
-                                    if (magic == 0) {
-                                        requestMediaThumbnail(c.getString(1), uri,
-                                                MediaThumbRequest.PRIORITY_NORMAL, 0);
-                                    }
+                        try (Cursor c = qb.query(db, READY_FLAG_PROJECTION, userWhere,
+                                userWhereArgs, null, null, null, null)) {
+                            while (c.moveToNext()) {
+                                switch (match) {
+                                    case IMAGES_MEDIA:
+                                    case IMAGES_MEDIA_ID:
+                                        delete(Images.Thumbnails.EXTERNAL_CONTENT_URI,
+                                                Images.Thumbnails.IMAGE_ID + "=?", new String[] {
+                                                        c.getString(0)
+                                                });
+                                        break;
+                                    case VIDEO_MEDIA:
+                                    case VIDEO_MEDIA_ID:
+                                        delete(Video.Thumbnails.EXTERNAL_CONTENT_URI,
+                                                Video.Thumbnails.VIDEO_ID + "=?", new String[] {
+                                                        c.getString(0)
+                                                });
+                                        break;
                                 }
-                            } finally {
-                                IoUtils.closeQuietly(c);
                             }
                         }
                     }
@@ -3639,6 +3224,7 @@ public class MediaProvider extends ContentProvider {
         if (count > 0 && !db.inTransaction()) {
             getContext().getContentResolver().notifyChange(uri, null);
         }
+
         return count;
     }
 
@@ -3706,10 +3292,20 @@ public class MediaProvider extends ContentProvider {
     };
 
     @Override
-    public ParcelFileDescriptor openFile(Uri uri, String mode)
-            throws FileNotFoundException {
+    public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
+        return openFileCommon(uri, mode, null);
+    }
 
+    @Override
+    public ParcelFileDescriptor openFile(Uri uri, String mode, CancellationSignal signal)
+            throws FileNotFoundException {
+        return openFileCommon(uri, mode, signal);
+    }
+
+    private ParcelFileDescriptor openFileCommon(Uri uri, String mode, CancellationSignal signal)
+            throws FileNotFoundException {
         uri = safeUncanonicalize(uri);
+
         ParcelFileDescriptor pfd = null;
 
         final boolean allowHidden = isCallingPackageAllowedHidden();
@@ -3743,7 +3339,7 @@ public class MediaProvider extends ContentProvider {
                     // If that fails, try to get it from this specific file.
                     Uri newUri = ContentUris.withAppendedId(ALBUMART_URI, albumid);
                     try {
-                        pfd = openFileAndEnforcePathPermissionsHelper(newUri, mode);
+                        pfd = openFileAndEnforcePathPermissionsHelper(newUri, mode, null, signal);
                     } catch (FileNotFoundException ex) {
                         // That didn't work, now try to get it from the specific file
                         pfd = getThumb(database, db, audiopath, albumid, null);
@@ -3755,8 +3351,23 @@ public class MediaProvider extends ContentProvider {
             return pfd;
         }
 
+        // Kick off metadata update when writing is finished
+        OnCloseListener listener = null;
+        switch (match) {
+            case IMAGES_THUMBNAILS_ID:
+            case VIDEO_THUMBNAILS_ID: {
+                final Uri finalUri = uri;
+                listener = (e) -> {
+                    if (e == null) {
+                        updateImageMetadata(finalUri);
+                    }
+                };
+                break;
+            }
+        }
+
         try {
-            pfd = openFileAndEnforcePathPermissionsHelper(uri, mode);
+            pfd = openFileAndEnforcePathPermissionsHelper(uri, mode, listener, signal);
         } catch (FileNotFoundException ex) {
             if (mode.contains("w")) {
                 // if the file couldn't be created, we shouldn't extract album art
@@ -3797,12 +3408,115 @@ public class MediaProvider extends ContentProvider {
         return pfd;
     }
 
+    @Override
+    public AssetFileDescriptor openTypedAssetFile(Uri uri, String mimeTypeFilter, Bundle opts)
+            throws FileNotFoundException {
+        return openTypedAssetFileCommon(uri, mimeTypeFilter, opts, null);
+    }
+
+    @Override
+    public AssetFileDescriptor openTypedAssetFile(Uri uri, String mimeTypeFilter, Bundle opts,
+            CancellationSignal signal) throws FileNotFoundException {
+        return openTypedAssetFileCommon(uri, mimeTypeFilter, opts, signal);
+
+    }
+
+    private AssetFileDescriptor openTypedAssetFileCommon(Uri uri, String mimeTypeFilter,
+            Bundle opts, CancellationSignal signal) throws FileNotFoundException {
+        uri = safeUncanonicalize(uri);
+
+        final boolean allowHidden = isCallingPackageAllowedHidden();
+        final int match = matchUri(uri, allowHidden);
+
+        // Offer thumbnail of media, when requested
+        final boolean wantsThumb = (opts != null) && opts.containsKey(ContentResolver.EXTRA_SIZE)
+                && (mimeTypeFilter != null) && mimeTypeFilter.startsWith("image/");
+        if (wantsThumb) {
+            switch (match) {
+                case IMAGES_MEDIA_ID: {
+                    final long imageId = Long.parseLong(uri.getPathSegments().get(3));
+                    final int kind = resolveKind(opts);
+                    return openThumbBlocking(new ImageThumbTask(this, imageId, kind, signal),
+                            PrioritizedFutureTask.PRIORITY_HIGH);
+                }
+
+                case VIDEO_MEDIA_ID: {
+                    final long videoId = Long.parseLong(uri.getPathSegments().get(3));
+                    final int kind = resolveKind(opts);
+                    return openThumbBlocking(new VideoThumbTask(this, videoId, kind, signal),
+                            PrioritizedFutureTask.PRIORITY_HIGH);
+                }
+            }
+        }
+
+        // Worst case, return the underlying file
+        return new AssetFileDescriptor(openFileCommon(uri, "r", signal), 0,
+                AssetFileDescriptor.UNKNOWN_LENGTH);
+    }
+
+    /**
+     * Resolve the best thumbnail kind based on the requested dimensions.
+     */
+    private int resolveKind(Bundle opts) {
+        if (opts != null) {
+            final Point size = opts.getParcelable(ContentResolver.EXTRA_SIZE);
+            if (ThumbnailConstants.MICRO_SIZE.equals(size)) {
+                return ThumbnailConstants.MICRO_KIND;
+            }
+        }
+        return ThumbnailConstants.MINI_KIND;
+    }
+
+    /**
+     * Update the metadata columns for the image residing at given {@link Uri}
+     * by reading data from the underlying image.
+     */
+    private void updateImageMetadata(Uri uri) {
+        try {
+            final File file = queryForDataFile(uri, null);
+            final BitmapFactory.Options bitmapOpts = new BitmapFactory.Options();
+            bitmapOpts.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(file.getAbsolutePath(), bitmapOpts);
+
+            final ContentValues values = new ContentValues();
+            values.put(MediaColumns.WIDTH, bitmapOpts.outWidth);
+            values.put(MediaColumns.HEIGHT, bitmapOpts.outHeight);
+            update(uri, values, null, null);
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to update metadata for " + uri, e);
+        }
+    }
+
+    private AssetFileDescriptor openThumbBlocking(ThumbTask task, int priority)
+            throws FileNotFoundException {
+        try {
+            final PrioritizedFutureTask<File> prioritizedTask =
+                    new PrioritizedFutureTask<>(task, priority);
+            mThumbExecutor.execute(prioritizedTask);
+            return new AssetFileDescriptor(
+                    ParcelFileDescriptor.open(prioritizedTask.get(),
+                            ParcelFileDescriptor.MODE_READ_ONLY),
+                    0, AssetFileDescriptor.UNKNOWN_LENGTH);
+        } catch (ExecutionException | InterruptedException e) {
+            throw new FileNotFoundException(e.getCause().getMessage());
+        }
+    }
+
     /**
      * Return the {@link MediaColumns#DATA} field for the given {@code Uri}.
      */
-    private File queryForDataFile(Uri uri) throws FileNotFoundException {
+    File queryForDataFile(Uri uri, CancellationSignal signal)
+            throws FileNotFoundException {
+        return queryForDataFile(uri, null, null, signal);
+    }
+
+    /**
+     * Return the {@link MediaColumns#DATA} field for the given {@code Uri}.
+     */
+    File queryForDataFile(Uri uri, String selection, String[] selectionArgs,
+            CancellationSignal signal) throws FileNotFoundException {
         final Cursor cursor = query(
-                uri, new String[] { MediaColumns.DATA }, null, null, null);
+                uri, new String[] { MediaColumns.DATA }, selection, selectionArgs, null, signal);
         if (cursor == null) {
             throw new FileNotFoundException("Missing cursor for " + uri);
         }
@@ -3833,11 +3547,11 @@ public class MediaProvider extends ContentProvider {
      * Replacement for {@link #openFileHelper(Uri, String)} which enforces any
      * permissions applicable to the path before returning.
      */
-    private ParcelFileDescriptor openFileAndEnforcePathPermissionsHelper(Uri uri, String mode)
-            throws FileNotFoundException {
+    private ParcelFileDescriptor openFileAndEnforcePathPermissionsHelper(Uri uri, String mode,
+            OnCloseListener listener, CancellationSignal signal) throws FileNotFoundException {
         final int modeBits = ParcelFileDescriptor.parseMode(mode);
 
-        File file = queryForDataFile(uri);
+        File file = queryForDataFile(uri, signal);
 
         checkAccess(uri, file, modeBits);
 
@@ -3847,7 +3561,20 @@ public class MediaProvider extends ContentProvider {
             file = Environment.maybeTranslateEmulatedPathToInternal(file);
         }
 
-        return ParcelFileDescriptor.open(file, modeBits);
+        try {
+            if (listener != null) {
+                return ParcelFileDescriptor.open(file, modeBits,
+                        BackgroundThread.getHandler(), listener);
+            } else {
+                return ParcelFileDescriptor.open(file, modeBits);
+            }
+        } catch (IOException e) {
+            if (e instanceof FileNotFoundException) {
+                throw (FileNotFoundException) e;
+            } else {
+                throw new IllegalStateException(e);
+            }
+        }
     }
 
     private void deleteIfAllowed(Uri uri, String path) {
@@ -3856,7 +3583,7 @@ public class MediaProvider extends ContentProvider {
             checkAccess(uri, file, ParcelFileDescriptor.MODE_WRITE_ONLY);
             file.delete();
         } catch (Exception e) {
-            Log.e(TAG, "Couldn't delete " + path);
+            Log.e(TAG, "Couldn't delete " + path, e);
         }
     }
 
@@ -4010,39 +3737,6 @@ public class MediaProvider extends ContentProvider {
         String path;
         long album_id;
         Uri albumart_uri;
-    }
-
-    private void makeThumbAsync(DatabaseHelper helper, SQLiteDatabase db,
-            String path, long album_id) {
-        synchronized (mPendingThumbs) {
-            if (mPendingThumbs.contains(path)) {
-                // There's already a request to make an album art thumbnail
-                // for this audio file in the queue.
-                return;
-            }
-
-            mPendingThumbs.add(path);
-        }
-
-        ThumbData d = new ThumbData();
-        d.helper = helper;
-        d.db = db;
-        d.path = path;
-        d.album_id = album_id;
-        d.albumart_uri = ContentUris.withAppendedId(sAlbumArtBaseUri, album_id);
-
-        // Instead of processing thumbnail requests in the order they were
-        // received we instead process them stack-based, i.e. LIFO.
-        // The idea behind this is that the most recently requested thumbnails
-        // are most likely the ones still in the user's view, whereas those
-        // requested earlier may have already scrolled off.
-        synchronized (mThumbRequestStack) {
-            mThumbRequestStack.push(d);
-        }
-
-        // Trigger the handler.
-        Message msg = mThumbHandler.obtainMessage(ALBUM_THUMB);
-        msg.sendToTarget();
     }
 
     //Return true if the artPath is the dir as it in mExternalStoragePaths
@@ -4404,10 +4098,6 @@ public class MediaProvider extends ContentProvider {
                         otherValues.put(nameField, rawName);
                         helper.mNumInserts++;
                         rowId = db.insert(table, "duration", otherValues);
-                        if (path != null && isAlbum && ! isUnknown) {
-                            // We just inserted a new album. Now create an album art thumbnail for it.
-                            makeThumbAsync(helper, db, path, rowId);
-                        }
                         if (rowId > 0) {
                             String volume = srcuri.toString().substring(16, 24); // extract internal/external
                             Uri uri = Uri.parse("content://media/" + volume + "/audio/" + table + "/" + rowId);
@@ -4724,8 +4414,8 @@ public class MediaProvider extends ContentProvider {
         if (LOCAL_LOGV) Log.v(TAG, "Detached volume: " + volume);
     }
 
-    private static String TAG = "MediaProvider";
-    private static final boolean LOCAL_LOGV = false;
+    static String TAG = "MediaProvider";
+    static final boolean LOCAL_LOGV = false;
 
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
     private static final String EXTERNAL_DATABASE_NAME = "external.db";
@@ -4742,8 +4432,6 @@ public class MediaProvider extends ContentProvider {
 
     private HashMap<String, DatabaseHelper> mDatabases;
 
-    private Handler mThumbHandler;
-
     // name of the volume currently being scanned by the media scanner (or null)
     private String mMediaScannerVolume;
 
@@ -4753,9 +4441,6 @@ public class MediaProvider extends ContentProvider {
     static final String INTERNAL_VOLUME = "internal";
     static final String EXTERNAL_VOLUME = "external";
     static final String ALBUM_THUMB_FOLDER = "Android/data/com.android.providers.media/albumthumbs";
-
-    // path for writing contents of in memory temp database
-    private String mTempDatabasePath;
 
     // WARNING: the values of IMAGES_MEDIA, AUDIO_MEDIA, and VIDEO_MEDIA and AUDIO_PLAYLISTS
     // are stored in the "files" table, so do not renumber them unless you also add

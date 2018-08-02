@@ -561,8 +561,6 @@ public class MediaProvider extends ContentProvider {
     public boolean onCreate() {
         final Context context = getContext();
 
-        SQLiteConnection.sLocalDebug = LOCAL_LOGV;
-
         mStorageManager = context.getSystemService(StorageManager.class);
         mAppOpsManager = context.getSystemService(AppOpsManager.class);
         mPackageManager = context.getPackageManager();

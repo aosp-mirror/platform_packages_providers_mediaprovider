@@ -2910,6 +2910,13 @@ public class MediaProvider extends ContentProvider {
     @Override
     public int update(Uri uri, ContentValues initialValues, String userWhere,
             String[] userWhereArgs) {
+        if ("com.google.android.GoogleCamera".equals(getCallingPackageOrSelf())) {
+            if (matchUri(uri, false) == IMAGES_MEDIA_ID) {
+                Log.w(TAG, "Working around app bug in b/111966296");
+                uri = MediaStore.Files.getContentUri("external", ContentUris.parseId(uri));
+            }
+        }
+
         uri = safeUncanonicalize(uri);
         int count;
         //Log.v(TAG, "update for uri=" + uri + ", initValues=" + initialValues +

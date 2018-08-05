@@ -51,7 +51,6 @@ import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.MatrixCursor;
-import android.database.sqlite.SQLiteConnection;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteQueryBuilder;
@@ -560,8 +559,6 @@ public class MediaProvider extends ContentProvider {
     @Override
     public boolean onCreate() {
         final Context context = getContext();
-
-        SQLiteConnection.sLocalDebug = LOCAL_LOGV;
 
         mStorageManager = context.getSystemService(StorageManager.class);
         mAppOpsManager = context.getSystemService(AppOpsManager.class);
@@ -1279,6 +1276,10 @@ public class MediaProvider extends ContentProvider {
                 appendWhereStandalone(qb, "album_id=?", uri.getPathSegments().get(3));
                 break;
 
+            case MTP_OBJECT_REFERENCES:
+                int handle = Integer.parseInt(uri.getPathSegments().get(2));
+                return getObjectReferences(helper, db, handle);
+
             default:
                 qb = getQueryBuilder(TYPE_QUERY, uri, table);
                 break;
@@ -1401,6 +1402,9 @@ public class MediaProvider extends ContentProvider {
 
         if (match == AUDIO_PLAYLISTS_ID || match == AUDIO_PLAYLISTS_ID_MEMBERS) {
             return playlistBulkInsert(db, uri, values);
+        } else if (match == MTP_OBJECT_REFERENCES) {
+            int handle = Integer.parseInt(uri.getPathSegments().get(2));
+            return setObjectReferences(helper, db, handle, values);
         }
 
         ArrayList<Long> notifyRowIds = new ArrayList<Long>();
@@ -1437,7 +1441,7 @@ public class MediaProvider extends ContentProvider {
 
         // do not signal notification for MTP objects.
         // we will signal instead after file transfer is successful.
-        if (newUri != null) {
+        if (newUri != null && match != MTP_OBJECTS) {
             // Report a general change to the media provider.
             // We only report this to observers that are not looking at
             // this specific URI and its descendants, because they will
@@ -1940,6 +1944,102 @@ public class MediaProvider extends ContentProvider {
         return rowId;
     }
 
+    private Cursor getObjectReferences(DatabaseHelper helper, SQLiteDatabase db, int handle) {
+        helper.mNumQueries++;
+        Cursor c = db.query("files", sMediaTableColumns, "_id=?",
+                new String[] {  Integer.toString(handle) },
+                null, null, null);
+        try {
+            if (c != null && c.moveToNext()) {
+                long playlistId = c.getLong(0);
+                int mediaType = c.getInt(1);
+                if (mediaType != FileColumns.MEDIA_TYPE_PLAYLIST) {
+                    // we only support object references for playlist objects
+                    return null;
+                }
+                helper.mNumQueries++;
+                return db.rawQuery(OBJECT_REFERENCES_QUERY,
+                        new String[] { Long.toString(playlistId) } );
+            }
+        } finally {
+            IoUtils.closeQuietly(c);
+        }
+        return null;
+    }
+
+    private int setObjectReferences(DatabaseHelper helper, SQLiteDatabase db,
+            int handle, ContentValues values[]) {
+        // first look up the media table and media ID for the object
+        long playlistId = 0;
+        helper.mNumQueries++;
+        Cursor c = db.query("files", sMediaTableColumns, "_id=?",
+                new String[] {  Integer.toString(handle) },
+                null, null, null);
+        try {
+            if (c != null && c.moveToNext()) {
+                int mediaType = c.getInt(1);
+                if (mediaType != FileColumns.MEDIA_TYPE_PLAYLIST) {
+                    // we only support object references for playlist objects
+                    return 0;
+                }
+                playlistId = c.getLong(0);
+            }
+        } finally {
+            IoUtils.closeQuietly(c);
+        }
+        if (playlistId == 0) {
+            return 0;
+        }
+
+        // next delete any existing entries
+        helper.mNumDeletes++;
+        db.delete("audio_playlists_map", "playlist_id=?",
+                new String[] { Long.toString(playlistId) });
+
+        // finally add the new entries
+        int count = values.length;
+        int added = 0;
+        ContentValues[] valuesList = new ContentValues[count];
+        for (int i = 0; i < count; i++) {
+            // convert object ID to audio ID
+            long audioId = 0;
+            long objectId = values[i].getAsLong(MediaStore.MediaColumns._ID);
+            helper.mNumQueries++;
+            c = db.query("files", sMediaTableColumns, "_id=?",
+                    new String[] {  Long.toString(objectId) },
+                    null, null, null);
+            try {
+                if (c != null && c.moveToNext()) {
+                    int mediaType = c.getInt(1);
+                    if (mediaType != FileColumns.MEDIA_TYPE_AUDIO) {
+                        // we only allow audio files in playlists, so skip
+                        continue;
+                    }
+                    audioId = c.getLong(0);
+                }
+            } finally {
+                IoUtils.closeQuietly(c);
+            }
+            if (audioId != 0) {
+                ContentValues v = new ContentValues();
+                v.put(MediaStore.Audio.Playlists.Members.PLAYLIST_ID, playlistId);
+                v.put(MediaStore.Audio.Playlists.Members.AUDIO_ID, audioId);
+                v.put(MediaStore.Audio.Playlists.Members.PLAY_ORDER, added);
+                valuesList[added++] = v;
+            }
+        }
+        if (added < count) {
+            // we weren't able to find everything on the list, so lets resize the array
+            // and pass what we have.
+            ContentValues[] newValues = new ContentValues[added];
+            System.arraycopy(valuesList, 0, newValues, 0, added);
+            valuesList = newValues;
+        }
+        return playlistBulkInsert(db,
+                Audio.Playlists.Members.getContentUri(EXTERNAL_VOLUME, playlistId),
+                valuesList);
+    }
+
     private static final String[] GENRE_LOOKUP_PROJECTION = new String[] {
             Audio.Genres._ID, // 0
             Audio.Genres.NAME, // 1
@@ -2193,6 +2293,15 @@ public class MediaProvider extends ContentProvider {
                         FileColumns.MEDIA_TYPE_NONE, true, notifyRowIds);
                 if (rowId > 0) {
                     newUri = Files.getContentUri(volumeName, rowId);
+                }
+                break;
+
+            case MTP_OBJECTS:
+                // We don't send a notification if the insert originated from MTP
+                rowId = insertFile(helper, uri, initialValues,
+                        FileColumns.MEDIA_TYPE_NONE, false, notifyRowIds);
+                if (rowId > 0) {
+                    newUri = Files.getMtpObjectsUri(volumeName, rowId);
                 }
                 break;
 
@@ -2569,10 +2678,12 @@ public class MediaProvider extends ContentProvider {
                 break;
 
             case FILES_ID:
+            case MTP_OBJECTS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(2));
                 // fall-through
             case FILES:
             case FILES_DIRECTORY:
+            case MTP_OBJECTS:
                 qb.setTables("files");
                 break;
 
@@ -2751,6 +2862,11 @@ public class MediaProvider extends ContentProvider {
             }
 
             switch (match) {
+                case MTP_OBJECTS:
+                case MTP_OBJECTS_ID:
+                    database.mNumDeletes++;
+                    count = deleteRecursive(qb, db, userWhere, userWhereArgs);
+                    break;
                 case AUDIO_GENRES_ID_MEMBERS:
                     database.mNumDeletes++;
                     count = deleteRecursive(qb, db, userWhere, userWhereArgs);
@@ -2910,6 +3026,13 @@ public class MediaProvider extends ContentProvider {
     @Override
     public int update(Uri uri, ContentValues initialValues, String userWhere,
             String[] userWhereArgs) {
+        if ("com.google.android.GoogleCamera".equals(getCallingPackageOrSelf())) {
+            if (matchUri(uri, false) == IMAGES_MEDIA_ID) {
+                Log.w(TAG, "Working around app bug in b/111966296");
+                uri = MediaStore.Files.getContentUri("external", ContentUris.parseId(uri));
+            }
+        }
+
         uri = safeUncanonicalize(uri);
         int count;
         //Log.v(TAG, "update for uri=" + uri + ", initValues=" + initialValues +
@@ -2965,7 +3088,7 @@ public class MediaProvider extends ContentProvider {
         // special case renaming directories via MTP.
         // in this case we must update all paths in the database with
         // the directory name as a prefix
-        if ((match == FILES_DIRECTORY)
+        if ((match == MTP_OBJECTS || match == MTP_OBJECTS_ID || match == FILES_DIRECTORY)
                 && initialValues != null
                 // Is a rename operation
                 && ((initialValues.size() == 1 && initialValues.containsKey(FileColumns.DATA))
@@ -4489,6 +4612,11 @@ public class MediaProvider extends ContentProvider {
     private static final int FILES = 700;
     private static final int FILES_ID = 701;
 
+    // Used only by the MTP implementation
+    private static final int MTP_OBJECTS = 702;
+    private static final int MTP_OBJECTS_ID = 703;
+    private static final int MTP_OBJECT_REFERENCES = 704;
+
     // Used only to invoke special logic for directories
     private static final int FILES_DIRECTORY = 706;
 
@@ -4597,6 +4725,9 @@ public class MediaProvider extends ContentProvider {
         // Used by MTP implementation
         publicMatcher.addURI(AUTHORITY, "*/file", FILES);
         publicMatcher.addURI(AUTHORITY, "*/file/#", FILES_ID);
+        hiddenMatcher.addURI(AUTHORITY, "*/object", MTP_OBJECTS);
+        hiddenMatcher.addURI(AUTHORITY, "*/object/#", MTP_OBJECTS_ID);
+        hiddenMatcher.addURI(AUTHORITY, "*/object/#/references", MTP_OBJECT_REFERENCES);
 
         // Used only to trigger special logic for directories
         hiddenMatcher.addURI(AUTHORITY, "*/dir", FILES_DIRECTORY);

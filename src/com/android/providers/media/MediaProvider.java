@@ -3030,6 +3030,9 @@ public class MediaProvider extends ContentProvider {
             if (matchUri(uri, false) == IMAGES_MEDIA_ID) {
                 Log.w(TAG, "Working around app bug in b/111966296");
                 uri = MediaStore.Files.getContentUri("external", ContentUris.parseId(uri));
+            } else if (matchUri(uri, false) == VIDEO_MEDIA_ID) {
+                Log.w(TAG, "Working around app bug in b/112246630");
+                uri = MediaStore.Files.getContentUri("external", ContentUris.parseId(uri));
             }
         }
 

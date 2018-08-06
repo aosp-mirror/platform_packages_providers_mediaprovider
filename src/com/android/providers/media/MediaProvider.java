@@ -28,7 +28,6 @@ import static android.provider.MediaStore.AUTHORITY;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.AppOpsManager;
-import android.app.SearchManager;
 import android.content.BroadcastReceiver;
 import android.content.ContentProvider;
 import android.content.ContentProviderOperation;
@@ -176,55 +175,6 @@ public class MediaProvider extends ContentProvider {
 
     private String[] mExternalStoragePaths = EmptyArray.STRING;
 
-    // For compatibility with the approximately 0 apps that used mediaprovider search in
-    // releases 1.0, 1.1 or 1.5
-    private String[] mSearchColsLegacy = new String[] {
-            android.provider.BaseColumns._ID,
-            MediaStore.Audio.Media.MIME_TYPE,
-            "(CASE WHEN grouporder=1 THEN " + R.drawable.ic_search_category_music_artist +
-            " ELSE CASE WHEN grouporder=2 THEN " + R.drawable.ic_search_category_music_album +
-            " ELSE " + R.drawable.ic_search_category_music_song + " END END" +
-            ") AS " + SearchManager.SUGGEST_COLUMN_ICON_1,
-            "0 AS " + SearchManager.SUGGEST_COLUMN_ICON_2,
-            "text1 AS " + SearchManager.SUGGEST_COLUMN_TEXT_1,
-            "text1 AS " + SearchManager.SUGGEST_COLUMN_QUERY,
-            "CASE when grouporder=1 THEN data1 ELSE artist END AS data1",
-            "CASE when grouporder=1 THEN data2 ELSE " +
-                "CASE WHEN grouporder=2 THEN NULL ELSE album END END AS data2",
-            "match as ar",
-            SearchManager.SUGGEST_COLUMN_INTENT_DATA,
-            "grouporder",
-            "NULL AS itemorder" // We should be sorting by the artist/album/title keys, but that
-                                // column is not available here, and the list is already sorted.
-    };
-    private String[] mSearchColsFancy = new String[] {
-            android.provider.BaseColumns._ID,
-            MediaStore.Audio.Media.MIME_TYPE,
-            MediaStore.Audio.Artists.ARTIST,
-            MediaStore.Audio.Albums.ALBUM,
-            MediaStore.Audio.Media.TITLE,
-            "data1",
-            "data2",
-    };
-    // If this array gets changed, please update the constant below to point to the correct item.
-    private String[] mSearchColsBasic = new String[] {
-            android.provider.BaseColumns._ID,
-            MediaStore.Audio.Media.MIME_TYPE,
-            "(CASE WHEN grouporder=1 THEN " + R.drawable.ic_search_category_music_artist +
-            " ELSE CASE WHEN grouporder=2 THEN " + R.drawable.ic_search_category_music_album +
-            " ELSE " + R.drawable.ic_search_category_music_song + " END END" +
-            ") AS " + SearchManager.SUGGEST_COLUMN_ICON_1,
-            "text1 AS " + SearchManager.SUGGEST_COLUMN_TEXT_1,
-            "text1 AS " + SearchManager.SUGGEST_COLUMN_QUERY,
-            "(CASE WHEN grouporder=1 THEN '%1'" +  // %1 gets replaced with localized string.
-            " ELSE CASE WHEN grouporder=3 THEN artist || ' - ' || album" +
-            " ELSE CASE WHEN text2!='" + MediaStore.UNKNOWN_STRING + "' THEN text2" +
-            " ELSE NULL END END END) AS " + SearchManager.SUGGEST_COLUMN_TEXT_2,
-            SearchManager.SUGGEST_COLUMN_INTENT_DATA
-    };
-    // Position of the TEXT_2 item in the above array.
-    private final int SEARCH_COLUMN_BASIC_TEXT2 = 5;
-
     private static final String[] sMediaTableColumns = new String[] {
             FileColumns._ID,
             FileColumns.MEDIA_TYPE,
@@ -249,19 +199,8 @@ public class MediaProvider extends ContentProvider {
         Playlists.Members.PLAY_ORDER
     };
 
-    private static final String[] sDataId = new String[] {
-        FileColumns.DATA,
-        FileColumns._ID
-    };
-
     private static final String ID_NOT_PARENT_CLAUSE =
             "_id NOT IN (SELECT parent FROM files)";
-
-    private static final String PARENT_NOT_PRESENT_CLAUSE =
-            "parent != 0 AND parent NOT IN (SELECT _id FROM files)";
-
-    private static final Uri sAlbumArtBaseUri =
-            Uri.parse("content://media/external/audio/albumart");
 
     private static final String CANONICAL = "canonical";
 
@@ -565,9 +504,6 @@ public class MediaProvider extends ContentProvider {
         mAppOpsManager = context.getSystemService(AppOpsManager.class);
         mPackageManager = context.getPackageManager();
 
-        mSearchColsBasic[SEARCH_COLUMN_BASIC_TEXT2] =
-                mSearchColsBasic[SEARCH_COLUMN_BASIC_TEXT2].replaceAll(
-                        "%1", context.getString(R.string.artist_label));
         mDatabases = new HashMap<String, DatabaseHelper>();
         attachVolume(INTERNAL_VOLUME);
 
@@ -4521,10 +4457,6 @@ public class MediaProvider extends ContentProvider {
 
     private static final UriMatcher PUBLIC_URI_MATCHER =
             new UriMatcher(UriMatcher.NO_MATCH);
-
-    private static final String[] ID_PROJECTION = new String[] {
-        MediaStore.MediaColumns._ID
-    };
 
     private static final String[] PATH_PROJECTION = new String[] {
         MediaStore.MediaColumns._ID,

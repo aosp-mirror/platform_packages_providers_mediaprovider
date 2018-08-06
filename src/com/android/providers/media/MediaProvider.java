@@ -1000,6 +1000,12 @@ public class MediaProvider extends ContentProvider {
         helper.mNumQueries++;
         SQLiteDatabase db = helper.getReadableDatabase();
         if (db == null) return null;
+
+        if (table == MTP_OBJECT_REFERENCES) {
+            final int handle = Integer.parseInt(uri.getPathSegments().get(2));
+            return getObjectReferences(helper, db, handle);
+        }
+
         SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, uri, table);
         String limit = uri.getQueryParameter("limit");
         String filter = uri.getQueryParameter("filter");

@@ -1116,6 +1116,19 @@ public class MediaProvider extends ContentProvider {
             groupBy = "audio.album_id";
         }
 
+        // Some apps are abusing the "WHERE" clause by injecting "GROUP BY"
+        // clauses; gracefully lift them out.
+        if (getCallingPackageTargetSdkVersion() < Build.VERSION_CODES.Q) {
+            final int groupByIndex = (selection != null) ? selection.indexOf(") GROUP BY (") : -1;
+            if (groupByIndex != -1) {
+                final String original = selection;
+                selection = original.substring(0, groupByIndex);
+                groupBy = original.substring(groupByIndex + ") GROUP BY (".length());
+                Log.w(TAG, "Recovered abusive '" + selection + "' and '" + groupBy + "' from '"
+                        + original + "'");
+            }
+        }
+
         Cursor c = qb.query(db, projectionIn, selection,
                 selectionArgs, groupBy, null, sort, limit, signal);
 
@@ -2393,6 +2406,7 @@ public class MediaProvider extends ContentProvider {
         if (parseBoolean(uri.getQueryParameter("distinct"))) {
             qb.setDistinct(true);
         }
+        qb.setStrict(true);
 
         switch (match) {
             case IMAGES_MEDIA_ID:

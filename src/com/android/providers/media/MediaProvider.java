@@ -111,6 +111,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -959,6 +960,7 @@ public class MediaProvider extends ContentProvider {
     @SuppressWarnings("fallthrough")
     private Cursor queryCommon(Uri uri, String[] projectionIn, String selection,
             String[] selectionArgs, String sort, CancellationSignal signal) {
+        if (LOCAL_LOGV) log("query", uri, projectionIn, selection, selectionArgs, sort);
 
         uri = safeUncanonicalize(uri);
 
@@ -1168,6 +1170,8 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public int bulkInsert(Uri uri, ContentValues values[]) {
+        if (LOCAL_LOGV) log("bulkInsert", uri, values);
+
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
@@ -1217,6 +1221,8 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public Uri insert(Uri uri, ContentValues initialValues) {
+        if (LOCAL_LOGV) log("insert", uri, initialValues);
+
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
@@ -2240,6 +2246,7 @@ public class MediaProvider extends ContentProvider {
     @Override
     public ContentProviderResult[] applyBatch(ArrayList<ContentProviderOperation> operations)
                 throws OperationApplicationException {
+        if (LOCAL_LOGV) log("applyBatch", operations);
 
         // batched operations are likely to need to call getParent(), which in turn may need to
         // update the database, so synchronize on mDirectoryCache to avoid deadlocks
@@ -2534,6 +2541,8 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public int delete(Uri uri, String userWhere, String[] userWhereArgs) {
+        if (LOCAL_LOGV) log("delete", uri, userWhere, userWhereArgs);
+
         uri = safeUncanonicalize(uri);
         int count;
 
@@ -2772,6 +2781,8 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public Bundle call(String method, String arg, Bundle extras) {
+        if (LOCAL_LOGV) log("call", method, arg, extras);
+
         if (MediaStore.UNHIDE_CALL.equals(method)) {
             processRemovedNoMediaPath(arg);
             return null;
@@ -2864,6 +2875,8 @@ public class MediaProvider extends ContentProvider {
     @Override
     public int update(Uri uri, ContentValues initialValues, String userWhere,
             String[] userWhereArgs) {
+        if (LOCAL_LOGV) log("update", uri, initialValues, userWhere, userWhereArgs);
+
         if ("com.google.android.GoogleCamera".equals(getCallingPackageOrSelf())) {
             if (matchUri(uri, false) == IMAGES_MEDIA_ID) {
                 Log.w(TAG, "Working around app bug in b/111966296");
@@ -3268,6 +3281,8 @@ public class MediaProvider extends ContentProvider {
 
     private ParcelFileDescriptor openFileCommon(Uri uri, String mode, CancellationSignal signal)
             throws FileNotFoundException {
+        if (LOCAL_LOGV) log("openFile", uri, mode);
+
         uri = safeUncanonicalize(uri);
 
         ParcelFileDescriptor pfd = null;
@@ -3387,6 +3402,8 @@ public class MediaProvider extends ContentProvider {
 
     private AssetFileDescriptor openTypedAssetFileCommon(Uri uri, String mimeTypeFilter,
             Bundle opts, CancellationSignal signal) throws FileNotFoundException {
+        if (LOCAL_LOGV) log("openTypedAssetFile", uri, mimeTypeFilter, opts);
+
         uri = safeUncanonicalize(uri);
 
         final boolean allowHidden = isCallingPackageAllowedHidden();
@@ -4378,8 +4395,16 @@ public class MediaProvider extends ContentProvider {
         if (LOCAL_LOGV) Log.v(TAG, "Detached volume: " + volume);
     }
 
-    static String TAG = "MediaProvider";
-    static final boolean LOCAL_LOGV = false;
+    /*
+     * Useful commands to enable debugging:
+     * $ adb shell setprop log.tag.MediaProvider VERBOSE
+     * $ adb shell setprop db.log.slow_query_threshold.`adb shell cat \
+     *       /data/system/packages.list |grep "com.android.providers.media " |cut -b 29-33` 0
+     * $ adb shell setprop db.log.bindargs 1
+     */
+
+    static final String TAG = "MediaProvider";
+    static final boolean LOCAL_LOGV = Log.isLoggable(TAG, Log.VERBOSE);
 
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
     private static final String EXTERNAL_DATABASE_NAME = "external.db";
@@ -4706,6 +4731,22 @@ public class MediaProvider extends ContentProvider {
                         message + ": " + callingPackage + " is not allowed to " + permission);
             }
         }
+    }
+
+    private static void log(String method, Object... args) {
+        // First, force-unparcel any bundles so we can log them
+        for (Object arg : args) {
+            if (arg instanceof Bundle) {
+                ((Bundle) arg).size();
+            }
+        }
+
+        final StringBuilder sb = new StringBuilder();
+        sb.append(method);
+        sb.append('(');
+        sb.append(Arrays.deepToString(args));
+        sb.append(')');
+        Log.v(TAG, sb.toString());
     }
 
     @Override

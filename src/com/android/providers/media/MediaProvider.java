@@ -28,7 +28,6 @@ import static android.provider.MediaStore.AUTHORITY;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.AppOpsManager;
-import android.app.SearchManager;
 import android.content.BroadcastReceiver;
 import android.content.ContentProvider;
 import android.content.ContentProviderOperation;
@@ -96,6 +95,7 @@ import android.system.OsConstants;
 import android.system.StructStat;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
+import android.util.ArrayMap;
 import android.util.Log;
 
 import com.android.internal.os.BackgroundThread;
@@ -111,12 +111,14 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -136,8 +138,7 @@ public class MediaProvider extends ContentProvider {
     private static final Uri MEDIA_URI = Uri.parse("content://media");
     private static final Uri ALBUMART_URI = Uri.parse("content://media/external/audio/albumart");
 
-    private static final HashMap<String, String> sArtistAlbumsMap = new HashMap<String, String>();
-    private static final HashMap<String, String> sFolderArtMap = new HashMap<String, String>();
+    private static final ArrayMap<String, String> sFolderArtMap = new ArrayMap<>();
 
     /** Resolved canonical path to external storage. */
     private String mExternalPath;
@@ -175,55 +176,6 @@ public class MediaProvider extends ContentProvider {
 
     private String[] mExternalStoragePaths = EmptyArray.STRING;
 
-    // For compatibility with the approximately 0 apps that used mediaprovider search in
-    // releases 1.0, 1.1 or 1.5
-    private String[] mSearchColsLegacy = new String[] {
-            android.provider.BaseColumns._ID,
-            MediaStore.Audio.Media.MIME_TYPE,
-            "(CASE WHEN grouporder=1 THEN " + R.drawable.ic_search_category_music_artist +
-            " ELSE CASE WHEN grouporder=2 THEN " + R.drawable.ic_search_category_music_album +
-            " ELSE " + R.drawable.ic_search_category_music_song + " END END" +
-            ") AS " + SearchManager.SUGGEST_COLUMN_ICON_1,
-            "0 AS " + SearchManager.SUGGEST_COLUMN_ICON_2,
-            "text1 AS " + SearchManager.SUGGEST_COLUMN_TEXT_1,
-            "text1 AS " + SearchManager.SUGGEST_COLUMN_QUERY,
-            "CASE when grouporder=1 THEN data1 ELSE artist END AS data1",
-            "CASE when grouporder=1 THEN data2 ELSE " +
-                "CASE WHEN grouporder=2 THEN NULL ELSE album END END AS data2",
-            "match as ar",
-            SearchManager.SUGGEST_COLUMN_INTENT_DATA,
-            "grouporder",
-            "NULL AS itemorder" // We should be sorting by the artist/album/title keys, but that
-                                // column is not available here, and the list is already sorted.
-    };
-    private String[] mSearchColsFancy = new String[] {
-            android.provider.BaseColumns._ID,
-            MediaStore.Audio.Media.MIME_TYPE,
-            MediaStore.Audio.Artists.ARTIST,
-            MediaStore.Audio.Albums.ALBUM,
-            MediaStore.Audio.Media.TITLE,
-            "data1",
-            "data2",
-    };
-    // If this array gets changed, please update the constant below to point to the correct item.
-    private String[] mSearchColsBasic = new String[] {
-            android.provider.BaseColumns._ID,
-            MediaStore.Audio.Media.MIME_TYPE,
-            "(CASE WHEN grouporder=1 THEN " + R.drawable.ic_search_category_music_artist +
-            " ELSE CASE WHEN grouporder=2 THEN " + R.drawable.ic_search_category_music_album +
-            " ELSE " + R.drawable.ic_search_category_music_song + " END END" +
-            ") AS " + SearchManager.SUGGEST_COLUMN_ICON_1,
-            "text1 AS " + SearchManager.SUGGEST_COLUMN_TEXT_1,
-            "text1 AS " + SearchManager.SUGGEST_COLUMN_QUERY,
-            "(CASE WHEN grouporder=1 THEN '%1'" +  // %1 gets replaced with localized string.
-            " ELSE CASE WHEN grouporder=3 THEN artist || ' - ' || album" +
-            " ELSE CASE WHEN text2!='" + MediaStore.UNKNOWN_STRING + "' THEN text2" +
-            " ELSE NULL END END END) AS " + SearchManager.SUGGEST_COLUMN_TEXT_2,
-            SearchManager.SUGGEST_COLUMN_INTENT_DATA
-    };
-    // Position of the TEXT_2 item in the above array.
-    private final int SEARCH_COLUMN_BASIC_TEXT2 = 5;
-
     private static final String[] sMediaTableColumns = new String[] {
             FileColumns._ID,
             FileColumns.MEDIA_TYPE,
@@ -248,19 +200,8 @@ public class MediaProvider extends ContentProvider {
         Playlists.Members.PLAY_ORDER
     };
 
-    private static final String[] sDataId = new String[] {
-        FileColumns.DATA,
-        FileColumns._ID
-    };
-
     private static final String ID_NOT_PARENT_CLAUSE =
             "_id NOT IN (SELECT parent FROM files)";
-
-    private static final String PARENT_NOT_PRESENT_CLAUSE =
-            "parent != 0 AND parent NOT IN (SELECT _id FROM files)";
-
-    private static final Uri sAlbumArtBaseUri =
-            Uri.parse("content://media/external/audio/albumart");
 
     private static final String CANONICAL = "canonical";
 
@@ -564,25 +505,6 @@ public class MediaProvider extends ContentProvider {
         mAppOpsManager = context.getSystemService(AppOpsManager.class);
         mPackageManager = context.getPackageManager();
 
-        sArtistAlbumsMap.put(MediaStore.Audio.Albums._ID, "audio.album_id AS " +
-                MediaStore.Audio.Albums._ID);
-        sArtistAlbumsMap.put(MediaStore.Audio.Albums.ALBUM, "album");
-        sArtistAlbumsMap.put(MediaStore.Audio.Albums.ALBUM_KEY, "album_key");
-        sArtistAlbumsMap.put(MediaStore.Audio.Albums.FIRST_YEAR, "MIN(year) AS " +
-                MediaStore.Audio.Albums.FIRST_YEAR);
-        sArtistAlbumsMap.put(MediaStore.Audio.Albums.LAST_YEAR, "MAX(year) AS " +
-                MediaStore.Audio.Albums.LAST_YEAR);
-        sArtistAlbumsMap.put(MediaStore.Audio.Media.ARTIST, "artist");
-        sArtistAlbumsMap.put(MediaStore.Audio.Media.ARTIST_ID, "artist");
-        sArtistAlbumsMap.put(MediaStore.Audio.Media.ARTIST_KEY, "artist_key");
-        sArtistAlbumsMap.put(MediaStore.Audio.Albums.NUMBER_OF_SONGS, "count(*) AS " +
-                MediaStore.Audio.Albums.NUMBER_OF_SONGS);
-        sArtistAlbumsMap.put(MediaStore.Audio.Albums.ALBUM_ART, "album_art._data AS " +
-                MediaStore.Audio.Albums.ALBUM_ART);
-
-        mSearchColsBasic[SEARCH_COLUMN_BASIC_TEXT2] =
-                mSearchColsBasic[SEARCH_COLUMN_BASIC_TEXT2].replaceAll(
-                        "%1", context.getString(R.string.artist_label));
         mDatabases = new HashMap<String, DatabaseHelper>();
         attachVolume(INTERNAL_VOLUME);
 
@@ -1038,6 +960,7 @@ public class MediaProvider extends ContentProvider {
     @SuppressWarnings("fallthrough")
     private Cursor queryCommon(Uri uri, String[] projectionIn, String selection,
             String[] selectionArgs, String sort, CancellationSignal signal) {
+        if (LOCAL_LOGV) log("query", uri, projectionIn, selection, selectionArgs, sort);
 
         uri = safeUncanonicalize(uri);
 
@@ -1072,7 +995,6 @@ public class MediaProvider extends ContentProvider {
             return c;
         }
 
-        String groupBy = null;
         DatabaseHelper helper = getDatabaseForUri(uri);
         if (helper == null) {
             return null;
@@ -1080,7 +1002,13 @@ public class MediaProvider extends ContentProvider {
         helper.mNumQueries++;
         SQLiteDatabase db = helper.getReadableDatabase();
         if (db == null) return null;
-        SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
+
+        if (table == MTP_OBJECT_REFERENCES) {
+            final int handle = Integer.parseInt(uri.getPathSegments().get(2));
+            return getObjectReferences(helper, db, handle);
+        }
+
+        SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, uri, table);
         String limit = uri.getQueryParameter("limit");
         String filter = uri.getQueryParameter("filter");
         String [] keywords = null;
@@ -1098,195 +1026,53 @@ public class MediaProvider extends ContentProvider {
                 }
             }
         }
-        if (uri.getQueryParameter("distinct") != null) {
-            qb.setDistinct(true);
-        }
 
+        String keywordColumn = null;
         switch (table) {
             case AUDIO_MEDIA:
-                if (projectionIn != null && projectionIn.length == 1 &&  selectionArgs == null
-                        && (selection == null || selection.equalsIgnoreCase("is_music=1")
-                          || selection.equalsIgnoreCase("is_podcast=1") )
-                        && projectionIn[0].equalsIgnoreCase("count(*)")
-                        && keywords != null) {
-                    //Log.i("@@@@", "taking fast path for counting songs");
-                    qb.setTables("audio_meta");
-                } else {
-                    qb.setTables("audio");
-                    for (int i = 0; keywords != null && i < keywords.length; i++) {
-                        appendWhereStandalone(qb, MediaStore.Audio.Media.ARTIST_KEY +
-                                "||" + MediaStore.Audio.Media.ALBUM_KEY +
-                                "||" + MediaStore.Audio.Media.TITLE_KEY + " LIKE ? ESCAPE '\\'",
-                                "%" + keywords[i] + "%");
-                    }
-                }
-                break;
-
             case AUDIO_GENRES_ALL_MEMBERS:
             case AUDIO_GENRES_ID_MEMBERS:
-                {
-                    // if simpleQuery is true, we can do a simpler query on just audio_genres_map
-                    // we can do this if we have no keywords and our projection includes just columns
-                    // from audio_genres_map
-                    boolean simpleQuery = (keywords == null && projectionIn != null
-                            && (selection == null || selection.equalsIgnoreCase("genre_id=?")));
-                    if (projectionIn != null) {
-                        for (int i = 0; i < projectionIn.length; i++) {
-                            String p = projectionIn[i];
-                            if (p.equals("_id")) {
-                                // note, this is different from playlist below, because
-                                // "_id" used to (wrongly) be the audio id in this query, not
-                                // the row id of the entry in the map, and we preserve this
-                                // behavior for backwards compatibility
-                                simpleQuery = false;
-                            }
-                            if (simpleQuery && !(p.equals("audio_id") ||
-                                    p.equals("genre_id"))) {
-                                simpleQuery = false;
-                            }
-                        }
-                    }
-                    if (simpleQuery) {
-                        qb.setTables("audio_genres_map_noid");
-                        if (table == AUDIO_GENRES_ID_MEMBERS) {
-                            appendWhereStandalone(qb, "genre_id=?", uri.getPathSegments().get(3));
-                        }
-                    } else {
-                        qb.setTables("audio_genres_map_noid, audio");
-                        appendWhereStandalone(qb, "audio._id = audio_id");
-                        if (table == AUDIO_GENRES_ID_MEMBERS) {
-                            appendWhereStandalone(qb, "genre_id=?", uri.getPathSegments().get(3));
-                        }
-                        for (int i = 0; keywords != null && i < keywords.length; i++) {
-                            appendWhereStandalone(qb, MediaStore.Audio.Media.ARTIST_KEY +
-                                    "||" + MediaStore.Audio.Media.ALBUM_KEY +
-                                    "||" + MediaStore.Audio.Media.TITLE_KEY +
-                                    " LIKE ? ESCAPE '\\'", "%" + keywords[i] + "%");
-                        }
-                    }
-                }
-                break;
-
             case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
             case AUDIO_PLAYLISTS_ID_MEMBERS:
-                // if simpleQuery is true, we can do a simpler query on just audio_playlists_map
-                // we can do this if we have no keywords and our projection includes just columns
-                // from audio_playlists_map
-                boolean simpleQuery = (keywords == null && projectionIn != null
-                        && (selection == null || selection.equalsIgnoreCase("playlist_id=?")));
-                if (projectionIn != null) {
-                    for (int i = 0; i < projectionIn.length; i++) {
-                        String p = projectionIn[i];
-                        if (simpleQuery && !(p.equals("audio_id") ||
-                                p.equals("playlist_id") || p.equals("play_order"))) {
-                            simpleQuery = false;
-                        }
-                        if (p.equals("_id")) {
-                            projectionIn[i] = "audio_playlists_map._id AS _id";
-                        }
-                    }
-                }
-                if (simpleQuery) {
-                    qb.setTables("audio_playlists_map");
-                    appendWhereStandalone(qb, "playlist_id=?", uri.getPathSegments().get(3));
-                } else {
-                    qb.setTables("audio_playlists_map, audio");
-                    appendWhereStandalone(qb, "audio._id = audio_id AND playlist_id=?",
-                            uri.getPathSegments().get(3));
-                    for (int i = 0; keywords != null && i < keywords.length; i++) {
-                        appendWhereStandalone(qb, MediaStore.Audio.Media.ARTIST_KEY +
-                                "||" + MediaStore.Audio.Media.ALBUM_KEY +
-                                "||" + MediaStore.Audio.Media.TITLE_KEY +
-                                " LIKE ? ESCAPE '\\'", "%" + keywords[i] + "%");
-                    }
-                }
-                if (table == AUDIO_PLAYLISTS_ID_MEMBERS_ID) {
-                    appendWhereStandalone(qb, "audio_playlists_map._id=?",
-                            uri.getPathSegments().get(5));
-                }
+                keywordColumn = MediaStore.Audio.Media.ARTIST_KEY +
+                        "||" + MediaStore.Audio.Media.ALBUM_KEY +
+                        "||" + MediaStore.Audio.Media.TITLE_KEY;
                 break;
-
-            case AUDIO_ARTISTS:
-                if (projectionIn != null && projectionIn.length == 1 &&  selectionArgs == null
-                        && (selection == null || selection.length() == 0)
-                        && projectionIn[0].equalsIgnoreCase("count(*)")
-                        && keywords != null) {
-                    //Log.i("@@@@", "taking fast path for counting artists");
-                    qb.setTables("audio_meta");
-                    projectionIn[0] = "count(distinct artist_id)";
-                    appendWhereStandalone(qb, "is_music=1");
-                } else {
-                    qb.setTables("artist_info");
-                    for (int i = 0; keywords != null && i < keywords.length; i++) {
-                        appendWhereStandalone(qb, MediaStore.Audio.Media.ARTIST_KEY +
-                                " LIKE ? ESCAPE '\\'", "%" + keywords[i] + "%");
-                    }
-                }
-                break;
-
-            case AUDIO_ARTISTS_ID:
-                qb.setTables("artist_info");
-                appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
-                break;
-
             case AUDIO_ARTISTS_ID_ALBUMS:
-                String aid = uri.getPathSegments().get(3);
-                qb.setTables("audio LEFT OUTER JOIN album_art ON" +
-                        " audio.album_id=album_art.album_id");
-                appendWhereStandalone(qb, "is_music=1 AND audio.album_id IN (SELECT album_id FROM " +
-                        "artists_albums_map WHERE artist_id=?)", aid);
-                for (int i = 0; keywords != null && i < keywords.length; i++) {
-                    appendWhereStandalone(qb, MediaStore.Audio.Media.ARTIST_KEY +
-                            "||" + MediaStore.Audio.Media.ALBUM_KEY +
-                            " LIKE ? ESCAPE '\\'", "%" + keywords[i] + "%");
-                }
-                groupBy = "audio.album_id";
-                sArtistAlbumsMap.put(MediaStore.Audio.Albums.NUMBER_OF_SONGS_FOR_ARTIST,
-                        "count(CASE WHEN artist_id==" + aid + " THEN 'foo' ELSE NULL END) AS " +
-                        MediaStore.Audio.Albums.NUMBER_OF_SONGS_FOR_ARTIST);
-                qb.setProjectionMap(sArtistAlbumsMap);
-                break;
-
             case AUDIO_ALBUMS:
-                if (projectionIn != null && projectionIn.length == 1 &&  selectionArgs == null
-                        && (selection == null || selection.length() == 0)
-                        && projectionIn[0].equalsIgnoreCase("count(*)")
-                        && keywords != null) {
-                    //Log.i("@@@@", "taking fast path for counting albums");
-                    qb.setTables("audio_meta");
-                    projectionIn[0] = "count(distinct album_id)";
-                    appendWhereStandalone(qb, "is_music=1");
-                } else {
-                    qb.setTables("album_info");
-                    for (int i = 0; keywords != null && i < keywords.length; i++) {
-                        appendWhereStandalone(qb, MediaStore.Audio.Media.ARTIST_KEY +
-                                "||" + MediaStore.Audio.Media.ALBUM_KEY +
-                                " LIKE ? ESCAPE '\\'", "%" + keywords[i] + "%");
-                    }
-                }
+                keywordColumn = MediaStore.Audio.Media.ARTIST_KEY + "||"
+                        + MediaStore.Audio.Media.ALBUM_KEY;
                 break;
-
-            case AUDIO_ALBUMS_ID:
-                qb.setTables("album_info");
-                appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
-                break;
-
-            case AUDIO_ALBUMART_ID:
-                qb.setTables("album_art");
-                appendWhereStandalone(qb, "album_id=?", uri.getPathSegments().get(3));
-                break;
-
-            case MTP_OBJECT_REFERENCES:
-                int handle = Integer.parseInt(uri.getPathSegments().get(2));
-                return getObjectReferences(helper, db, handle);
-
-            default:
-                qb = getQueryBuilder(TYPE_QUERY, uri, table);
+            case AUDIO_ARTISTS:
+                keywordColumn = MediaStore.Audio.Media.ARTIST_KEY;
                 break;
         }
 
-        // Log.v(TAG, "query = "+ qb.buildQuery(projectionIn, selection,
-        //        combine(prependArgs, selectionArgs), groupBy, null, sort, limit));
+        if (keywordColumn != null) {
+            for (int i = 0; keywords != null && i < keywords.length; i++) {
+                appendWhereStandalone(qb, keywordColumn + " LIKE ? ESCAPE '\\'",
+                        "%" + keywords[i] + "%");
+            }
+        }
+
+        String groupBy = null;
+        if (table == AUDIO_ARTISTS_ID_ALBUMS) {
+            groupBy = "audio.album_id";
+        }
+
+        // Some apps are abusing the "WHERE" clause by injecting "GROUP BY"
+        // clauses; gracefully lift them out.
+        if (getCallingPackageTargetSdkVersion() < Build.VERSION_CODES.Q) {
+            final int groupByIndex = (selection != null) ? selection.indexOf(") GROUP BY (") : -1;
+            if (groupByIndex != -1) {
+                final String original = selection;
+                selection = original.substring(0, groupByIndex);
+                groupBy = original.substring(groupByIndex + ") GROUP BY (".length());
+                Log.w(TAG, "Recovered abusive '" + selection + "' and '" + groupBy + "' from '"
+                        + original + "'");
+            }
+        }
+
         Cursor c = qb.query(db, projectionIn, selection,
                 selectionArgs, groupBy, null, sort, limit, signal);
 
@@ -1384,6 +1170,8 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public int bulkInsert(Uri uri, ContentValues values[]) {
+        if (LOCAL_LOGV) log("bulkInsert", uri, values);
+
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
@@ -1433,6 +1221,8 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public Uri insert(Uri uri, ContentValues initialValues) {
+        if (LOCAL_LOGV) log("insert", uri, initialValues);
+
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
@@ -2456,6 +2246,7 @@ public class MediaProvider extends ContentProvider {
     @Override
     public ContentProviderResult[] applyBatch(ArrayList<ContentProviderOperation> operations)
                 throws OperationApplicationException {
+        if (LOCAL_LOGV) log("applyBatch", operations);
 
         // batched operations are likely to need to call getParent(), which in turn may need to
         // update the database, so synchronize on mDirectoryCache to avoid deadlocks
@@ -2564,6 +2355,7 @@ public class MediaProvider extends ContentProvider {
         if (parseBoolean(uri.getQueryParameter("distinct"))) {
             qb.setDistinct(true);
         }
+        qb.setStrict(true);
 
         switch (match) {
             case IMAGES_MEDIA_ID:
@@ -2624,8 +2416,15 @@ public class MediaProvider extends ContentProvider {
                 break;
 
             case AUDIO_GENRES_ID_MEMBERS:
-                qb.setTables("audio_genres_map");
                 appendWhereStandalone(qb, "genre_id=?", uri.getPathSegments().get(3));
+                // fall-through
+            case AUDIO_GENRES_ALL_MEMBERS:
+                if (type == TYPE_QUERY) {
+                    qb.setTables("audio_genres_map_noid, audio");
+                    appendWhereStandalone(qb, "audio._id = audio_id");
+                } else {
+                    qb.setTables("audio_genres_map");
+                }
                 break;
 
             case AUDIO_PLAYLISTS_ID:
@@ -2641,20 +2440,66 @@ public class MediaProvider extends ContentProvider {
                 }
                 break;
 
-            case AUDIO_PLAYLISTS_ID_MEMBERS:
-                qb.setTables("audio_playlists_map");
-                appendWhereStandalone(qb, "playlist_id=?", uri.getPathSegments().get(3));
-                break;
-
             case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
-                qb.setTables("audio_playlists_map");
-                appendWhereStandalone(qb, "playlist_id=? AND _id=?", uri.getPathSegments().get(3),
+                appendWhereStandalone(qb, "audio_playlists_map._id=?",
                         uri.getPathSegments().get(5));
+                // fall-through
+            case AUDIO_PLAYLISTS_ID_MEMBERS:
+                appendWhereStandalone(qb, "playlist_id=?", uri.getPathSegments().get(3));
+                if (type == TYPE_QUERY) {
+                    qb.setTables("audio_playlists_map, audio");
+                    qb.setProjectionMap(sPlaylistMembersMap);
+                    appendWhereStandalone(qb, "audio._id = audio_id");
+                } else {
+                    qb.setTables("audio_playlists_map");
+                }
                 break;
 
             case AUDIO_ALBUMART_ID:
                 qb.setTables("album_art");
                 appendWhereStandalone(qb, "album_id=?", uri.getPathSegments().get(3));
+                break;
+
+            case AUDIO_ARTISTS_ID_ALBUMS:
+                if (type == TYPE_QUERY) {
+                    final String artistId = uri.getPathSegments().get(3);
+                    qb.setTables("audio LEFT OUTER JOIN album_art ON" +
+                            " audio.album_id=album_art.album_id");
+                    appendWhereStandalone(qb,
+                            "is_music=1 AND audio.album_id IN (SELECT album_id FROM " +
+                                    "artists_albums_map WHERE artist_id=?)", artistId);
+
+                    final HashMap<String, String> projectionMap = new HashMap<>(sArtistAlbumsMap);
+                    projectionMap.put(MediaStore.Audio.Artists.Albums.NUMBER_OF_SONGS_FOR_ARTIST,
+                            "count(CASE WHEN artist_id==" + artistId
+                                    + " THEN 'foo' ELSE NULL END) AS "
+                                    + MediaStore.Audio.Artists.Albums.NUMBER_OF_SONGS_FOR_ARTIST);
+                    qb.setProjectionMap(projectionMap);
+                } else {
+                    throw new UnsupportedOperationException("Albums cannot be directly modified");
+                }
+                break;
+
+            case AUDIO_ARTISTS_ID:
+                appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
+                // fall-through
+            case AUDIO_ARTISTS:
+                if (type == TYPE_QUERY) {
+                    qb.setTables("artist_info");
+                } else {
+                    throw new UnsupportedOperationException("Artists cannot be directly modified");
+                }
+                break;
+
+            case AUDIO_ALBUMS_ID:
+                appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
+                // fall-through
+            case AUDIO_ALBUMS:
+                if (type == TYPE_QUERY) {
+                    qb.setTables("album_info");
+                } else {
+                    throw new UnsupportedOperationException("Albums cannot be directly modified");
+                }
                 break;
 
             case VIDEO_MEDIA_ID:
@@ -2696,6 +2541,8 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public int delete(Uri uri, String userWhere, String[] userWhereArgs) {
+        if (LOCAL_LOGV) log("delete", uri, userWhere, userWhereArgs);
+
         uri = safeUncanonicalize(uri);
         int count;
 
@@ -2934,6 +2781,8 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public Bundle call(String method, String arg, Bundle extras) {
+        if (LOCAL_LOGV) log("call", method, arg, extras);
+
         if (MediaStore.UNHIDE_CALL.equals(method)) {
             processRemovedNoMediaPath(arg);
             return null;
@@ -3026,6 +2875,8 @@ public class MediaProvider extends ContentProvider {
     @Override
     public int update(Uri uri, ContentValues initialValues, String userWhere,
             String[] userWhereArgs) {
+        if (LOCAL_LOGV) log("update", uri, initialValues, userWhere, userWhereArgs);
+
         if ("com.google.android.GoogleCamera".equals(getCallingPackageOrSelf())) {
             if (matchUri(uri, false) == IMAGES_MEDIA_ID) {
                 Log.w(TAG, "Working around app bug in b/111966296");
@@ -3430,6 +3281,8 @@ public class MediaProvider extends ContentProvider {
 
     private ParcelFileDescriptor openFileCommon(Uri uri, String mode, CancellationSignal signal)
             throws FileNotFoundException {
+        if (LOCAL_LOGV) log("openFile", uri, mode);
+
         uri = safeUncanonicalize(uri);
 
         ParcelFileDescriptor pfd = null;
@@ -3549,6 +3402,8 @@ public class MediaProvider extends ContentProvider {
 
     private AssetFileDescriptor openTypedAssetFileCommon(Uri uri, String mimeTypeFilter,
             Bundle opts, CancellationSignal signal) throws FileNotFoundException {
+        if (LOCAL_LOGV) log("openTypedAssetFile", uri, mimeTypeFilter, opts);
+
         uri = safeUncanonicalize(uri);
 
         final boolean allowHidden = isCallingPackageAllowedHidden();
@@ -4540,8 +4395,16 @@ public class MediaProvider extends ContentProvider {
         if (LOCAL_LOGV) Log.v(TAG, "Detached volume: " + volume);
     }
 
-    static String TAG = "MediaProvider";
-    static final boolean LOCAL_LOGV = false;
+    /*
+     * Useful commands to enable debugging:
+     * $ adb shell setprop log.tag.MediaProvider VERBOSE
+     * $ adb shell setprop db.log.slow_query_threshold.`adb shell cat \
+     *       /data/system/packages.list |grep "com.android.providers.media " |cut -b 29-33` 0
+     * $ adb shell setprop db.log.bindargs 1
+     */
+
+    static final String TAG = "MediaProvider";
+    static final boolean LOCAL_LOGV = Log.isLoggable(TAG, Log.VERBOSE);
 
     private static final String INTERNAL_DATABASE_NAME = "internal.db";
     private static final String EXTERNAL_DATABASE_NAME = "external.db";
@@ -4628,10 +4491,6 @@ public class MediaProvider extends ContentProvider {
 
     private static final UriMatcher PUBLIC_URI_MATCHER =
             new UriMatcher(UriMatcher.NO_MATCH);
-
-    private static final String[] ID_PROJECTION = new String[] {
-        MediaStore.MediaColumns._ID
-    };
 
     private static final String[] PATH_PROJECTION = new String[] {
         MediaStore.MediaColumns._ID,
@@ -4736,6 +4595,91 @@ public class MediaProvider extends ContentProvider {
         hiddenMatcher.addURI(AUTHORITY, "*/dir", FILES_DIRECTORY);
     }
 
+    private static final ArrayMap<String, String> sMediaColumns = new ArrayMap<>();
+    private static final ArrayMap<String, String> sAudioColumns = new ArrayMap<>();
+
+    private static final ArrayMap<String, String> sArtistAlbumsMap = new ArrayMap<>();
+    private static final ArrayMap<String, String> sPlaylistMembersMap = new ArrayMap<>();
+
+    private static void addMapping(Map<String, String> map, String column) {
+        map.put(column, column);
+    }
+
+    private static void addMapping(Map<String, String> map, String fromColumn, String toColumn) {
+        map.put(fromColumn, toColumn + " AS " + fromColumn);
+    }
+
+    {
+        final Map<String, String> map = sMediaColumns;
+        addMapping(map, MediaStore.MediaColumns._ID);
+        addMapping(map, MediaStore.MediaColumns.DATA);
+        addMapping(map, MediaStore.MediaColumns.SIZE);
+        addMapping(map, MediaStore.MediaColumns.DISPLAY_NAME);
+        addMapping(map, MediaStore.MediaColumns.TITLE);
+        addMapping(map, MediaStore.MediaColumns.DATE_ADDED);
+        addMapping(map, MediaStore.MediaColumns.DATE_MODIFIED);
+        addMapping(map, MediaStore.MediaColumns.MIME_TYPE);
+        // TODO: not actually defined in API, but CTS tested
+        addMapping(map, MediaStore.MediaColumns.IS_DRM);
+        addMapping(map, MediaStore.MediaColumns.WIDTH);
+        addMapping(map, MediaStore.MediaColumns.HEIGHT);
+    }
+
+    {
+        final Map<String, String> map = sAudioColumns;
+        map.putAll(sMediaColumns);
+        addMapping(map, MediaStore.Audio.AudioColumns.TITLE_KEY);
+        addMapping(map, MediaStore.Audio.AudioColumns.DURATION);
+        addMapping(map, MediaStore.Audio.AudioColumns.BOOKMARK);
+        addMapping(map, MediaStore.Audio.AudioColumns.ARTIST_ID);
+        addMapping(map, MediaStore.Audio.AudioColumns.ARTIST);
+        addMapping(map, MediaStore.Audio.AudioColumns.ARTIST_KEY);
+        addMapping(map, MediaStore.Audio.AudioColumns.COMPOSER);
+        addMapping(map, MediaStore.Audio.AudioColumns.ALBUM_ID);
+        addMapping(map, MediaStore.Audio.AudioColumns.ALBUM);
+        addMapping(map, MediaStore.Audio.AudioColumns.ALBUM_KEY);
+        addMapping(map, MediaStore.Audio.AudioColumns.TRACK);
+        addMapping(map, MediaStore.Audio.AudioColumns.YEAR);
+        addMapping(map, MediaStore.Audio.AudioColumns.IS_MUSIC);
+        addMapping(map, MediaStore.Audio.AudioColumns.IS_PODCAST);
+        addMapping(map, MediaStore.Audio.AudioColumns.IS_RINGTONE);
+        addMapping(map, MediaStore.Audio.AudioColumns.IS_ALARM);
+        addMapping(map, MediaStore.Audio.AudioColumns.IS_NOTIFICATION);
+    }
+
+    {
+        final Map<String, String> map = sArtistAlbumsMap;
+        // TODO: defined in API, but CTS claims it should be omitted
+        // addMapping(map, MediaStore.Audio.Artists.Albums.ALBUM_ID, "audio.album_id");
+        addMapping(map, MediaStore.Audio.Artists.Albums.ALBUM);
+        addMapping(map, MediaStore.Audio.Artists.Albums.ARTIST);
+        addMapping(map, MediaStore.Audio.Artists.Albums.NUMBER_OF_SONGS, "count(*)");
+        // NOTE: NUMBER_OF_SONGS_FOR_ARTIST added dynamically at query time
+        addMapping(map, MediaStore.Audio.Artists.Albums.FIRST_YEAR, "MIN(year)");
+        addMapping(map, MediaStore.Audio.Artists.Albums.LAST_YEAR, "MAX(year)");
+        addMapping(map, MediaStore.Audio.Artists.Albums.ALBUM_KEY);
+        addMapping(map, MediaStore.Audio.Artists.Albums.ALBUM_ART, "album_art._data");
+
+        // TODO: not actually defined in API, but CTS tested
+        addMapping(map, MediaStore.Audio.Albums._ID, "audio.album_id");
+        addMapping(map, MediaStore.Audio.Media.ARTIST_ID);
+        addMapping(map, MediaStore.Audio.Media.ARTIST_KEY);
+    }
+
+    {
+        final Map<String, String> map = sPlaylistMembersMap;
+        // TODO: not actually defined in API, but CTS tested
+        map.putAll(sAudioColumns);
+        addMapping(map, MediaStore.Audio.Playlists.Members._ID, "audio_playlists_map._id");
+        addMapping(map, MediaStore.Audio.Playlists.Members.AUDIO_ID);
+        addMapping(map, MediaStore.Audio.Playlists.Members.PLAYLIST_ID);
+        addMapping(map, MediaStore.Audio.Playlists.Members.PLAY_ORDER);
+
+        // TODO: defined in API, but CTS claims it should be omitted
+        map.remove(MediaStore.MediaColumns.WIDTH);
+        map.remove(MediaStore.MediaColumns.HEIGHT);
+    }
+
     private static String getVolumeName(Uri uri) {
         final List<String> segments = uri.getPathSegments();
         if (segments != null && segments.size() > 0) {
@@ -4787,6 +4731,22 @@ public class MediaProvider extends ContentProvider {
                         message + ": " + callingPackage + " is not allowed to " + permission);
             }
         }
+    }
+
+    private static void log(String method, Object... args) {
+        // First, force-unparcel any bundles so we can log them
+        for (Object arg : args) {
+            if (arg instanceof Bundle) {
+                ((Bundle) arg).size();
+            }
+        }
+
+        final StringBuilder sb = new StringBuilder();
+        sb.append(method);
+        sb.append('(');
+        sb.append(Arrays.deepToString(args));
+        sb.append(')');
+        Log.v(TAG, sb.toString());
     }
 
     @Override

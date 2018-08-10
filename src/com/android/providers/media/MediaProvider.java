@@ -96,6 +96,7 @@ import android.system.StructStat;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.util.ArrayMap;
+import android.util.ArraySet;
 import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
@@ -114,8 +115,6 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -177,7 +176,7 @@ public class MediaProvider extends ContentProvider {
     private PackageManager mPackageManager;
 
     // In memory cache of path<->id mappings, to speed up inserts during media scan
-    HashMap<String, Long> mDirectoryCache = new HashMap<String, Long>();
+    ArrayMap<String, Long> mDirectoryCache = new ArrayMap<String, Long>();
 
     /**
      * Executor that handles processing thumbnail requests.
@@ -310,8 +309,8 @@ public class MediaProvider extends ContentProvider {
         long mScanStopTime;
 
         // In memory caches of artist and album data.
-        HashMap<String, Long> mArtistCache = new HashMap<String, Long>();
-        HashMap<String, Long> mAlbumCache = new HashMap<String, Long>();
+        ArrayMap<String, Long> mArtistCache = new ArrayMap<String, Long>();
+        ArrayMap<String, Long> mAlbumCache = new ArrayMap<String, Long>();
 
         public DatabaseHelper(Context context, String name, boolean internal,
                 boolean earlyUpgrade, SQLiteDatabase.CustomFunction objectRemovedCallback) {
@@ -524,7 +523,7 @@ public class MediaProvider extends ContentProvider {
         mAppOpsManager = context.getSystemService(AppOpsManager.class);
         mPackageManager = context.getPackageManager();
 
-        mDatabases = new HashMap<String, DatabaseHelper>();
+        mDatabases = new ArrayMap<String, DatabaseHelper>();
         attachVolume(INTERNAL_VOLUME);
 
         IntentFilter iFilter = new IntentFilter(Intent.ACTION_MEDIA_EJECT);
@@ -1579,7 +1578,7 @@ public class MediaProvider extends ContentProvider {
                 String s = (so == null ? "" : so.toString());
                 values.remove("artist");
                 long artistRowId;
-                HashMap<String, Long> artistCache = helper.mArtistCache;
+                ArrayMap<String, Long> artistCache = helper.mArtistCache;
                 String path = values.getAsString(MediaStore.MediaColumns.DATA);
                 synchronized(artistCache) {
                     Long temp = artistCache.get(s);
@@ -1598,7 +1597,7 @@ public class MediaProvider extends ContentProvider {
                 s = (so == null ? "" : so.toString());
                 values.remove("album");
                 long albumRowId;
-                HashMap<String, Long> albumCache = helper.mAlbumCache;
+                ArrayMap<String, Long> albumCache = helper.mAlbumCache;
                 synchronized(albumCache) {
                     int albumhash = 0;
                     if (albumartist != null) {
@@ -2569,7 +2568,7 @@ public class MediaProvider extends ContentProvider {
                             "is_music=1 AND audio.album_id IN (SELECT album_id FROM " +
                                     "artists_albums_map WHERE artist_id=?)", artistId);
 
-                    final HashMap<String, String> projectionMap = new HashMap<>(sArtistAlbumsMap);
+                    final ArrayMap<String, String> projectionMap = new ArrayMap<>(sArtistAlbumsMap);
                     projectionMap.put(MediaStore.Audio.Artists.Albums.NUMBER_OF_SONGS_FOR_ARTIST,
                             "count(CASE WHEN artist_id==" + artistId
                                     + " THEN 'foo' ELSE NULL END) AS "
@@ -2911,7 +2910,7 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("delete from videothumbnails where video_id not in (select _id from video)");
 
         // Remove cached thumbnails that are no longer referenced by the thumbnails tables
-        HashSet<String> existingFiles = new HashSet<String>();
+        ArraySet<String> existingFiles = new ArraySet<String>();
         try {
             String directory = "/sdcard/DCIM/.thumbnails";
             File dirFile = new File(directory).getCanonicalFile();
@@ -3123,7 +3122,7 @@ public class MediaProvider extends ContentProvider {
                     values.remove("artist");
                     if (artist != null) {
                         long artistRowId;
-                        HashMap<String, Long> artistCache = helper.mArtistCache;
+                        ArrayMap<String, Long> artistCache = helper.mArtistCache;
                         synchronized(artistCache) {
                             Long temp = artistCache.get(artist);
                             if (temp == null) {
@@ -3179,7 +3178,7 @@ public class MediaProvider extends ContentProvider {
 
                         String s = so.toString();
                         long albumRowId;
-                        HashMap<String, Long> albumCache = helper.mAlbumCache;
+                        ArrayMap<String, Long> albumCache = helper.mAlbumCache;
                         synchronized(albumCache) {
                             String cacheName = s + albumHash;
                             Long temp = albumCache.get(cacheName);
@@ -4138,7 +4137,7 @@ public class MediaProvider extends ContentProvider {
     private long getKeyIdForName(DatabaseHelper helper, SQLiteDatabase db,
             String table, String keyField, String nameField,
             String rawName, String cacheName, String path, int albumHash,
-            String artist, HashMap<String, Long> cache, Uri srcuri) {
+            String artist, ArrayMap<String, Long> cache, Uri srcuri) {
         long rowId;
 
         if (rawName == null || rawName.length() == 0) {
@@ -4423,7 +4422,7 @@ public class MediaProvider extends ContentProvider {
             if (!helper.mInternal) {
                 // clean up stray album art files: delete every file not in the database
                 File[] files = new File(mExternalStoragePaths[0], ALBUM_THUMB_FOLDER).listFiles();
-                HashSet<String> fileSet = new HashSet();
+                ArraySet<String> fileSet = new ArraySet();
                 for (int i = 0; files != null && i < files.length; i++) {
                     fileSet.add(files[i].getPath());
                 }
@@ -4523,7 +4522,7 @@ public class MediaProvider extends ContentProvider {
     // Memory optimization - close idle connections after 30s of inactivity
     private static final int IDLE_CONNECTION_TIMEOUT_MS = 30000;
 
-    private HashMap<String, DatabaseHelper> mDatabases;
+    private ArrayMap<String, DatabaseHelper> mDatabases;
 
     // name of the volume currently being scanned by the media scanner (or null)
     private String mMediaScannerVolume;

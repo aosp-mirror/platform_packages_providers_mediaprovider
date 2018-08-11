@@ -16,7 +16,7 @@
 
 package com.android.providers.media;
 
-import static com.android.providers.media.MediaProvider.makePristine;
+import static com.android.providers.media.MediaProvider.makePristineSchema;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -149,7 +149,7 @@ public class DatabaseHelperTest {
      * {@link android.os.Build.VERSION_CODES#P}.
      */
     private static void createPSchema(SQLiteDatabase db, boolean internal) {
-        makePristine(db);
+        makePristineSchema(db);
 
         db.execSQL("CREATE TABLE android_metadata (locale TEXT)");
         db.execSQL("CREATE TABLE thumbnails (_id INTEGER PRIMARY KEY,_data TEXT,image_id INTEGER,"

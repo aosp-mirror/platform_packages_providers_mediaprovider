@@ -96,8 +96,10 @@ import android.system.StructStat;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.util.ArrayMap;
+import android.util.ArraySet;
 import android.util.Log;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.os.BackgroundThread;
 
 import libcore.io.IoUtils;
@@ -113,8 +115,6 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -125,6 +125,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Media content provider. See {@link android.provider.MediaStore} for details.
@@ -137,6 +139,13 @@ public class MediaProvider extends ContentProvider {
 
     private static final Uri MEDIA_URI = Uri.parse("content://media");
     private static final Uri ALBUMART_URI = Uri.parse("content://media/external/audio/albumart");
+
+    /**
+     * Regex that matches paths in all well-known package-specific directories,
+     * and which captures the package name as the first group.
+     */
+    private static final Pattern PATTERN_OWNED_PATH = Pattern.compile(
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|media|obb|sandbox)/([^/]+)/.*");
 
     private static final ArrayMap<String, String> sFolderArtMap = new ArrayMap<>();
 
@@ -167,7 +176,7 @@ public class MediaProvider extends ContentProvider {
     private PackageManager mPackageManager;
 
     // In memory cache of path<->id mappings, to speed up inserts during media scan
-    HashMap<String, Long> mDirectoryCache = new HashMap<String, Long>();
+    ArrayMap<String, Long> mDirectoryCache = new ArrayMap<String, Long>();
 
     /**
      * Executor that handles processing thumbnail requests.
@@ -284,9 +293,10 @@ public class MediaProvider extends ContentProvider {
      * external card, or with internal storage).  Can open the actual database
      * on demand, create and upgrade the schema, etc.
      */
-    static final class DatabaseHelper extends SQLiteOpenHelper {
+    static class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         final Context mContext;
         final String mName;
+        final int mVersion;
         final boolean mInternal;  // True if this is the internal database
         final boolean mEarlyUpgrade;
         final SQLiteDatabase.CustomFunction mObjectRemovedCallback;
@@ -299,15 +309,21 @@ public class MediaProvider extends ContentProvider {
         long mScanStopTime;
 
         // In memory caches of artist and album data.
-        HashMap<String, Long> mArtistCache = new HashMap<String, Long>();
-        HashMap<String, Long> mAlbumCache = new HashMap<String, Long>();
+        ArrayMap<String, Long> mArtistCache = new ArrayMap<String, Long>();
+        ArrayMap<String, Long> mAlbumCache = new ArrayMap<String, Long>();
 
         public DatabaseHelper(Context context, String name, boolean internal,
-                boolean earlyUpgrade,
-                SQLiteDatabase.CustomFunction objectRemovedCallback) {
-            super(context, name, null, getDatabaseVersion(context));
+                boolean earlyUpgrade, SQLiteDatabase.CustomFunction objectRemovedCallback) {
+            this(context, name, getDatabaseVersion(context), internal, earlyUpgrade,
+                    objectRemovedCallback);
+        }
+
+        public DatabaseHelper(Context context, String name, int version, boolean internal,
+                boolean earlyUpgrade, SQLiteDatabase.CustomFunction objectRemovedCallback) {
+            super(context, name, null, version);
             mContext = context;
             mName = name;
+            mVersion = version;
             mInternal = internal;
             mEarlyUpgrade = earlyUpgrade;
             mObjectRemovedCallback = objectRemovedCallback;
@@ -315,22 +331,24 @@ public class MediaProvider extends ContentProvider {
             setIdleConnectionTimeout(IDLE_CONNECTION_TIMEOUT_MS);
         }
 
-        /**
-         * Creates database the first time we try to open it.
-         */
         @Override
         public void onCreate(final SQLiteDatabase db) {
-            updateDatabase(mContext, db, mInternal, 0, getDatabaseVersion(mContext));
+            Log.v(TAG, "onCreate() for " + mName);
+            updateDatabase(mContext, db, mInternal, 0, mVersion);
         }
 
-        /**
-         * Updates the database format when a new content provider is used
-         * with an older database format.
-         */
         @Override
         public void onUpgrade(final SQLiteDatabase db, final int oldV, final int newV) {
+            Log.v(TAG, "onUpgrade() for " + mName + " from " + oldV + " to " + newV);
             mUpgradeAttempted = true;
             updateDatabase(mContext, db, mInternal, oldV, newV);
+        }
+
+        @Override
+        public void onDowngrade(final SQLiteDatabase db, final int oldV, final int newV) {
+            Log.v(TAG, "onDowngrade() for " + mName + " from " + oldV + " to " + newV);
+            mUpgradeAttempted = true;
+            downgradeDatabase(mContext, db, mInternal, oldV, newV);
         }
 
         @Override
@@ -505,7 +523,7 @@ public class MediaProvider extends ContentProvider {
         mAppOpsManager = context.getSystemService(AppOpsManager.class);
         mPackageManager = context.getPackageManager();
 
-        mDatabases = new HashMap<String, DatabaseHelper>();
+        mDatabases = new ArrayMap<String, DatabaseHelper>();
         attachVolume(INTERNAL_VOLUME);
 
         IntentFilter iFilter = new IntentFilter(Intent.ACTION_MEDIA_EJECT);
@@ -549,7 +567,8 @@ public class MediaProvider extends ContentProvider {
     }
 
     // restore the database to a clean slate
-    private static void makePristine(SQLiteDatabase db) {
+    @VisibleForTesting
+    static void makePristine(SQLiteDatabase db) {
         // drop all triggers
         Cursor c = db.query("sqlite_master", new String[] {"name"}, "type is 'trigger'",
                 null, null, null, null);
@@ -583,7 +602,8 @@ public class MediaProvider extends ContentProvider {
         c.close();
     }
 
-    private static void createLatestSchema(SQLiteDatabase db, boolean internal) {
+    @VisibleForTesting
+    static void createLatestSchema(SQLiteDatabase db, boolean internal) {
         makePristine(db);
 
         db.execSQL("CREATE TABLE android_metadata (locale TEXT)");
@@ -608,7 +628,8 @@ public class MediaProvider extends ContentProvider {
                 + "duration INTEGER,bookmark INTEGER,artist TEXT,album TEXT,resolution TEXT,"
                 + "tags TEXT,category TEXT,language TEXT,mini_thumb_data TEXT,name TEXT,"
                 + "media_type INTEGER,old_id INTEGER,is_drm INTEGER,"
-                + "width INTEGER, height INTEGER, title_resource_uri TEXT)");
+                + "width INTEGER, height INTEGER, title_resource_uri TEXT,"
+                + "owner_package_name TEXT DEFAULT NULL)");
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!internal) {
             db.execSQL("CREATE TABLE audio_genres (_id INTEGER PRIMARY KEY,name TEXT NOT NULL)");
@@ -722,6 +743,41 @@ public class MediaProvider extends ContentProvider {
                 + " WHERE (is_alarm IS 1) OR (is_ringtone IS 1) OR (is_notification IS 1)");
     }
 
+    private static void updateFromPSchema(SQLiteDatabase db) {
+        db.execSQL("ALTER TABLE files ADD COLUMN owner_package_name TEXT DEFAULT NULL");
+
+        // Derive new column value based on well-known paths
+        try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
+                FileColumns.DATA + " REGEXP '" + PATTERN_OWNED_PATH.pattern() + "'",
+                null, null, null, null, null)) {
+            Log.d(TAG, "Updating " + c.getCount() + " entries with well-known owners");
+
+            final Matcher m = PATTERN_OWNED_PATH.matcher("");
+            final ContentValues values = new ContentValues();
+
+            while (c.moveToNext()) {
+                final long id = c.getLong(0);
+                final String data = c.getString(1);
+                m.reset(data);
+                if (m.matches()) {
+                    final String packageName = m.group(1);
+                    values.clear();
+                    values.put(FileColumns.OWNER_PACKAGE_NAME, packageName);
+                    db.update("files", values, "_id=" + id, null);
+                }
+            }
+        }
+    }
+
+    static final int VERSION_J = 509;
+    static final int VERSION_K = 700;
+    static final int VERSION_L = 700;
+    static final int VERSION_M = 800;
+    static final int VERSION_N = 800;
+    static final int VERSION_O = 800;
+    static final int VERSION_P = 900;
+    static final int VERSION_Q = 1000;
+
     /**
      * This method takes care of updating all the tables in the database to the
      * current version, creating them if necessary.
@@ -732,18 +788,7 @@ public class MediaProvider extends ContentProvider {
      */
     private static void updateDatabase(Context context, SQLiteDatabase db, boolean internal,
             int fromVersion, int toVersion) {
-
-        // sanity checks
-        int dbversion = getDatabaseVersion(context);
-        if (toVersion != dbversion) {
-            Log.e(TAG, "Illegal update request. Got " + toVersion + ", expected " + dbversion);
-            throw new IllegalArgumentException();
-        } else if (fromVersion > toVersion) {
-            Log.e(TAG, "Illegal update request: can't downgrade from " + fromVersion +
-                    " to " + toVersion + ". Did you forget to wipe data?");
-            throw new IllegalArgumentException();
-        }
-        long startTime = SystemClock.currentTimeMicro();
+        final long startTime = SystemClock.elapsedRealtime();
 
         if (fromVersion < 700) {
             // Anything older than KK is recreated from scratch
@@ -752,11 +797,28 @@ public class MediaProvider extends ContentProvider {
             updateFromKKSchema(db);
         } else if (fromVersion < 900) {
             updateFromOCSchema(db);
+        } else if (fromVersion < 1000) {
+            updateFromPSchema(db);
         }
 
         sanityCheck(db, fromVersion);
-        long elapsedSeconds = (SystemClock.currentTimeMicro() - startTime) / 1000000;
+
+        final long elapsedSeconds = (SystemClock.elapsedRealtime() - startTime)
+                / DateUtils.SECOND_IN_MILLIS;
         logToDb(db, "Database upgraded from version " + fromVersion + " to " + toVersion
+                + " in " + elapsedSeconds + " seconds");
+    }
+
+    private static void downgradeDatabase(Context context, SQLiteDatabase db, boolean internal,
+            int fromVersion, int toVersion) {
+        final long startTime = SystemClock.elapsedRealtime();
+
+        // The best we can do is wipe and start over
+        createLatestSchema(db, internal);
+
+        final long elapsedSeconds = (SystemClock.elapsedRealtime() - startTime)
+                / DateUtils.SECOND_IN_MILLIS;
+        logToDb(db, "Database downgraded from version " + fromVersion + " to " + toVersion
                 + " in " + elapsedSeconds + " seconds");
     }
 
@@ -1516,7 +1578,7 @@ public class MediaProvider extends ContentProvider {
                 String s = (so == null ? "" : so.toString());
                 values.remove("artist");
                 long artistRowId;
-                HashMap<String, Long> artistCache = helper.mArtistCache;
+                ArrayMap<String, Long> artistCache = helper.mArtistCache;
                 String path = values.getAsString(MediaStore.MediaColumns.DATA);
                 synchronized(artistCache) {
                     Long temp = artistCache.get(s);
@@ -1535,7 +1597,7 @@ public class MediaProvider extends ContentProvider {
                 s = (so == null ? "" : so.toString());
                 values.remove("album");
                 long albumRowId;
-                HashMap<String, Long> albumCache = helper.mAlbumCache;
+                ArrayMap<String, Long> albumCache = helper.mAlbumCache;
                 synchronized(albumCache) {
                     int albumhash = 0;
                     if (albumartist != null) {
@@ -1868,6 +1930,24 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    @VisibleForTesting
+    static @Nullable String getPathOwnerPackageName(@Nullable String path) {
+        if (path == null) return null;
+        final Matcher m = PATTERN_OWNED_PATH.matcher(path);
+        if (m.matches()) {
+            return m.group(1);
+        } else {
+            return null;
+        }
+    }
+
+    private void maybePut(@NonNull ContentValues values, @NonNull String key,
+            @Nullable String value) {
+        if (value != null) {
+            values.put(key, value);
+        }
+    }
+
     private Uri insertInternal(Uri uri, int match, ContentValues initialValues,
                                ArrayList<Long> notifyRowIds) {
         final String volumeName = getVolumeName(uri);
@@ -1890,10 +1970,25 @@ public class MediaProvider extends ContentProvider {
 
         String genre = null;
         String path = null;
+        String ownerPackageName = null;
         if (initialValues != null) {
             genre = initialValues.getAsString(Audio.AudioColumns.GENRE);
             initialValues.remove(Audio.AudioColumns.GENRE);
             path = initialValues.getAsString(MediaStore.MediaColumns.DATA);
+
+            // Remote callers have no direct control over owner column; we force
+            // it be whoever is creating the content.
+            initialValues.remove(FileColumns.OWNER_PACKAGE_NAME);
+
+            final String callingPackageName = getCallingPackageOrSelf();
+            if (getContext().getPackageName().equals(callingPackageName)
+                    || "com.android.mtp".equals(callingPackageName)) {
+                // When media inserted by ourselves, the best we can do is guess
+                // ownership based on path.
+                ownerPackageName = getPathOwnerPackageName(path);
+            } else {
+                ownerPackageName = callingPackageName;
+            }
         }
 
 
@@ -1908,6 +2003,7 @@ public class MediaProvider extends ContentProvider {
 
         switch (match) {
             case IMAGES_MEDIA: {
+                maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
                 rowId = insertFile(helper, uri, initialValues,
                         FileColumns.MEDIA_TYPE_IMAGE, true, notifyRowIds);
                 if (rowId > 0) {
@@ -1946,6 +2042,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             case AUDIO_MEDIA: {
+                maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
                 rowId = insertFile(helper, uri, initialValues,
                         FileColumns.MEDIA_TYPE_AUDIO, true, notifyRowIds);
                 if (rowId > 0) {
@@ -2033,6 +2130,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             case VIDEO_MEDIA: {
+                maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
                 rowId = insertFile(helper, uri, initialValues,
                         FileColumns.MEDIA_TYPE_VIDEO, true, notifyRowIds);
                 if (rowId > 0) {
@@ -2079,6 +2177,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             case FILES:
+                maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
                 rowId = insertFile(helper, uri, initialValues,
                         FileColumns.MEDIA_TYPE_NONE, true, notifyRowIds);
                 if (rowId > 0) {
@@ -2469,7 +2568,7 @@ public class MediaProvider extends ContentProvider {
                             "is_music=1 AND audio.album_id IN (SELECT album_id FROM " +
                                     "artists_albums_map WHERE artist_id=?)", artistId);
 
-                    final HashMap<String, String> projectionMap = new HashMap<>(sArtistAlbumsMap);
+                    final ArrayMap<String, String> projectionMap = new ArrayMap<>(sArtistAlbumsMap);
                     projectionMap.put(MediaStore.Audio.Artists.Albums.NUMBER_OF_SONGS_FOR_ARTIST,
                             "count(CASE WHEN artist_id==" + artistId
                                     + " THEN 'foo' ELSE NULL END) AS "
@@ -2811,7 +2910,7 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("delete from videothumbnails where video_id not in (select _id from video)");
 
         // Remove cached thumbnails that are no longer referenced by the thumbnails tables
-        HashSet<String> existingFiles = new HashSet<String>();
+        ArraySet<String> existingFiles = new ArraySet<String>();
         try {
             String directory = "/sdcard/DCIM/.thumbnails";
             File dirFile = new File(directory).getCanonicalFile();
@@ -2910,6 +3009,10 @@ public class MediaProvider extends ContentProvider {
         if (initialValues != null) {
             genre = initialValues.getAsString(Audio.AudioColumns.GENRE);
             initialValues.remove(Audio.AudioColumns.GENRE);
+
+            // Remote callers have no direct control over owner column; we force
+            // it be whoever is creating the content.
+            initialValues.remove(FileColumns.OWNER_PACKAGE_NAME);
         }
 
         // if the media type is being changed, check if it's being changed from image or video
@@ -3019,7 +3122,7 @@ public class MediaProvider extends ContentProvider {
                     values.remove("artist");
                     if (artist != null) {
                         long artistRowId;
-                        HashMap<String, Long> artistCache = helper.mArtistCache;
+                        ArrayMap<String, Long> artistCache = helper.mArtistCache;
                         synchronized(artistCache) {
                             Long temp = artistCache.get(artist);
                             if (temp == null) {
@@ -3075,7 +3178,7 @@ public class MediaProvider extends ContentProvider {
 
                         String s = so.toString();
                         long albumRowId;
-                        HashMap<String, Long> albumCache = helper.mAlbumCache;
+                        ArrayMap<String, Long> albumCache = helper.mAlbumCache;
                         synchronized(albumCache) {
                             String cacheName = s + albumHash;
                             Long temp = albumCache.get(cacheName);
@@ -4034,7 +4137,7 @@ public class MediaProvider extends ContentProvider {
     private long getKeyIdForName(DatabaseHelper helper, SQLiteDatabase db,
             String table, String keyField, String nameField,
             String rawName, String cacheName, String path, int albumHash,
-            String artist, HashMap<String, Long> cache, Uri srcuri) {
+            String artist, ArrayMap<String, Long> cache, Uri srcuri) {
         long rowId;
 
         if (rawName == null || rawName.length() == 0) {
@@ -4319,7 +4422,7 @@ public class MediaProvider extends ContentProvider {
             if (!helper.mInternal) {
                 // clean up stray album art files: delete every file not in the database
                 File[] files = new File(mExternalStoragePaths[0], ALBUM_THUMB_FOLDER).listFiles();
-                HashSet<String> fileSet = new HashSet();
+                ArraySet<String> fileSet = new ArraySet();
                 for (int i = 0; files != null && i < files.length; i++) {
                     fileSet.add(files[i].getPath());
                 }
@@ -4419,7 +4522,7 @@ public class MediaProvider extends ContentProvider {
     // Memory optimization - close idle connections after 30s of inactivity
     private static final int IDLE_CONNECTION_TIMEOUT_MS = 30000;
 
-    private HashMap<String, DatabaseHelper> mDatabases;
+    private ArrayMap<String, DatabaseHelper> mDatabases;
 
     // name of the volume currently being scanned by the media scanner (or null)
     private String mMediaScannerVolume;

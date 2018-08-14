@@ -26,7 +26,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.UserHandle;
 import android.util.Log;
-import android.mtp.MtpServer;
 
 public class MtpReceiver extends BroadcastReceiver {
     private static final String TAG = MtpReceiver.class.getSimpleName();
@@ -36,10 +35,6 @@ public class MtpReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         final String action = intent.getAction();
         if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
-            // If we somehow fail to configure after boot, it becomes difficult to
-            // recover usb state. Thus we always configure once on boot, but it
-            // has no effect if Mtp is disabled or already configured.
-            MtpServer.configure(false);
             final Intent usbState = context.registerReceiver(
                     null, new IntentFilter(UsbManager.ACTION_USB_STATE));
             if (usbState != null) {
@@ -57,14 +52,13 @@ public class MtpReceiver extends BroadcastReceiver {
         boolean mtpEnabled = extras.getBoolean(UsbManager.USB_FUNCTION_MTP);
         boolean ptpEnabled = extras.getBoolean(UsbManager.USB_FUNCTION_PTP);
         boolean unlocked = extras.getBoolean(UsbManager.USB_DATA_UNLOCKED);
-        boolean configChanged = extras.getBoolean(UsbManager.USB_CONFIG_CHANGED);
+        boolean isCurrentUser = UserHandle.myUserId() == ActivityManager.getCurrentUser();
 
-        if ((configChanged || (connected && !configured)) && (mtpEnabled || ptpEnabled)) {
-            MtpServer.configure(ptpEnabled);
-            // tell MediaProvider MTP is configured so it can bind to the service
+        if (configured && (mtpEnabled || ptpEnabled)) {
+            if (!isCurrentUser)
+                return;
             context.getContentResolver().insert(Uri.parse(
                     "content://media/none/mtp_connected"), null);
-        } else if (configured && (mtpEnabled || ptpEnabled)) {
             intent = new Intent(context, MtpService.class);
             intent.putExtra(UsbManager.USB_DATA_UNLOCKED, unlocked);
             if (ptpEnabled) {

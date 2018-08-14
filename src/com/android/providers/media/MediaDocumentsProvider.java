@@ -16,6 +16,7 @@
 
 package com.android.providers.media;
 
+import android.annotation.Nullable;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
@@ -25,11 +26,16 @@ import android.database.MatrixCursor;
 import android.database.MatrixCursor.RowBuilder;
 import android.graphics.BitmapFactory;
 import android.graphics.Point;
+import android.media.ExifInterface;
+import android.media.MediaMetadata;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.CancellationSignal;
+import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
+import android.os.UserHandle;
+import android.os.UserManager;
 import android.provider.BaseColumns;
 import android.provider.DocumentsContract;
 import android.provider.DocumentsContract.Document;
@@ -47,14 +53,23 @@ import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.Video;
 import android.provider.MediaStore.Video.VideoColumns;
+import android.provider.MetadataReader;
 import android.text.TextUtils;
+import android.text.format.DateFormat;
 import android.text.format.DateUtils;
 import android.util.Log;
 
 import libcore.io.IoUtils;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * Presents a {@link DocumentsContract} view of {@link MediaProvider} external
@@ -103,6 +118,47 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         return TextUtils.join("\n", args);
     }
 
+    public static final String METADATA_KEY_AUDIO = "android.media.metadata.audio";
+    public static final String METADATA_KEY_VIDEO = "android.media.metadata.video";
+    // Video lat/long are just that. Lat/long. Unlike EXIF where the values are
+    // in fact some funky string encoding. So we add our own contstant to convey coords.
+    public static final String METADATA_VIDEO_LATITUDE = "android.media.metadata.video:latitude";
+    public static final String METADATA_VIDEO_LONGITUTE = "android.media.metadata.video:longitude";
+
+    /*
+     * A mapping between media colums and metadata tag names. These keys of the
+     * map form the projection for queries against the media store database.
+     */
+    private static final Map<String, String> IMAGE_COLUMN_MAP = new HashMap<>();
+    private static final Map<String, String> VIDEO_COLUMN_MAP = new HashMap<>();
+    private static final Map<String, String> AUDIO_COLUMN_MAP = new HashMap<>();
+
+    static {
+        /**
+         * Note that for images (jpegs at least) we'll first try an alternate
+         * means of extracting metadata, one that provides more data. But if
+         * that fails, or if the image type is not JPEG, we fall back to these columns.
+         */
+        IMAGE_COLUMN_MAP.put(ImageColumns.WIDTH, ExifInterface.TAG_IMAGE_WIDTH);
+        IMAGE_COLUMN_MAP.put(ImageColumns.HEIGHT, ExifInterface.TAG_IMAGE_LENGTH);
+        IMAGE_COLUMN_MAP.put(ImageColumns.DATE_TAKEN, ExifInterface.TAG_DATETIME);
+        IMAGE_COLUMN_MAP.put(ImageColumns.LATITUDE, ExifInterface.TAG_GPS_LATITUDE);
+        IMAGE_COLUMN_MAP.put(ImageColumns.LONGITUDE, ExifInterface.TAG_GPS_LONGITUDE);
+
+        VIDEO_COLUMN_MAP.put(VideoColumns.DURATION, MediaMetadata.METADATA_KEY_DURATION);
+        VIDEO_COLUMN_MAP.put(VideoColumns.HEIGHT, ExifInterface.TAG_IMAGE_LENGTH);
+        VIDEO_COLUMN_MAP.put(VideoColumns.WIDTH, ExifInterface.TAG_IMAGE_WIDTH);
+        VIDEO_COLUMN_MAP.put(VideoColumns.LATITUDE, METADATA_VIDEO_LATITUDE);
+        VIDEO_COLUMN_MAP.put(VideoColumns.LONGITUDE, METADATA_VIDEO_LONGITUTE);
+        VIDEO_COLUMN_MAP.put(VideoColumns.DATE_TAKEN, MediaMetadata.METADATA_KEY_DATE);
+
+        AUDIO_COLUMN_MAP.put(AudioColumns.ARTIST, MediaMetadata.METADATA_KEY_ARTIST);
+        AUDIO_COLUMN_MAP.put(AudioColumns.COMPOSER, MediaMetadata.METADATA_KEY_COMPOSER);
+        AUDIO_COLUMN_MAP.put(AudioColumns.ALBUM, MediaMetadata.METADATA_KEY_ALBUM);
+        AUDIO_COLUMN_MAP.put(AudioColumns.YEAR, MediaMetadata.METADATA_KEY_YEAR);
+        AUDIO_COLUMN_MAP.put(AudioColumns.DURATION, MediaMetadata.METADATA_KEY_DURATION);
+    }
+
     private void copyNotificationUri(MatrixCursor result, Cursor cursor) {
         result.setNotificationUri(getContext().getContentResolver(), cursor.getNotificationUri());
     }
@@ -110,6 +166,29 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     @Override
     public boolean onCreate() {
         return true;
+    }
+
+    private void enforceShellRestrictions() {
+        if (UserHandle.getCallingAppId() == android.os.Process.SHELL_UID
+                && getContext().getSystemService(UserManager.class)
+                        .hasUserRestriction(UserManager.DISALLOW_USB_FILE_TRANSFER)) {
+            throw new SecurityException(
+                    "Shell user cannot access files for user " + UserHandle.myUserId());
+        }
+    }
+
+    @Override
+    protected int enforceReadPermissionInner(Uri uri, String callingPkg, IBinder callerToken)
+            throws SecurityException {
+        enforceShellRestrictions();
+        return super.enforceReadPermissionInner(uri, callingPkg, callerToken);
+    }
+
+    @Override
+    protected int enforceWritePermissionInner(Uri uri, String callingPkg, IBinder callerToken)
+            throws SecurityException {
+        enforceShellRestrictions();
+        return super.enforceWritePermissionInner(uri, callingPkg, callerToken);
     }
 
     private static void notifyRootsChanged(Context context) {
@@ -214,6 +293,143 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         } finally {
             Binder.restoreCallingIdentity(token);
         }
+    }
+
+    @Override
+    public @Nullable Bundle getDocumentMetadata(String docId) throws FileNotFoundException {
+
+        String mimeType = getDocumentType(docId);
+
+        if (MetadataReader.isSupportedMimeType(mimeType)) {
+            return getDocumentMetadataFromStream(docId, mimeType);
+        } else {
+            return getDocumentMetadataFromIndex(docId);
+        }
+    }
+
+    private @Nullable Bundle getDocumentMetadataFromStream(String docId, String mimeType) {
+        assert MetadataReader.isSupportedMimeType(mimeType);
+        InputStream stream = null;
+        try {
+            stream = new ParcelFileDescriptor.AutoCloseInputStream(
+                    openDocument(docId, "r", null));
+            Bundle metadata = new Bundle();
+            MetadataReader.getMetadata(metadata, stream, mimeType, null);
+            return metadata;
+        } catch (IOException io) {
+            return null;
+        } finally {
+            IoUtils.closeQuietly(stream);
+        }
+    }
+
+    public @Nullable Bundle getDocumentMetadataFromIndex(String docId)
+            throws FileNotFoundException {
+
+        final Ident ident = getIdentForDocId(docId);
+
+        Map<String, String> columnMap = null;
+        String tagType;
+        Uri query;
+
+        switch (ident.type) {
+            case TYPE_IMAGE:
+                columnMap = IMAGE_COLUMN_MAP;
+                tagType = DocumentsContract.METADATA_EXIF;
+                query = Images.Media.EXTERNAL_CONTENT_URI;
+                break;
+            case TYPE_VIDEO:
+                columnMap = VIDEO_COLUMN_MAP;
+                tagType = METADATA_KEY_VIDEO;
+                query = Video.Media.EXTERNAL_CONTENT_URI;
+                break;
+            case TYPE_AUDIO:
+                columnMap = AUDIO_COLUMN_MAP;
+                tagType = METADATA_KEY_AUDIO;
+                query = Audio.Media.EXTERNAL_CONTENT_URI;
+                break;
+            default:
+                // Unsupported file type.
+                throw new FileNotFoundException(
+                    "Metadata request for unsupported file type: " + ident.type);
+        }
+
+        final long token = Binder.clearCallingIdentity();
+        Cursor cursor = null;
+        Bundle result = null;
+
+        final ContentResolver resolver = getContext().getContentResolver();
+        Collection<String> columns = columnMap.keySet();
+        String[] projection = columns.toArray(new String[columns.size()]);
+        try {
+            cursor = resolver.query(
+                    query,
+                    projection,
+                    BaseColumns._ID + "=?",
+                    new String[]{Long.toString(ident.id)},
+                    null);
+
+            if (!cursor.moveToFirst()) {
+                throw new FileNotFoundException("Can't find document id: " + docId);
+            }
+
+            final Bundle metadata = extractMetadataFromCursor(cursor, columnMap);
+            result = new Bundle();
+            result.putBundle(tagType, metadata);
+            result.putStringArray(
+                    DocumentsContract.METADATA_TYPES,
+                    new String[]{tagType});
+        } finally {
+            IoUtils.closeQuietly(cursor);
+            Binder.restoreCallingIdentity(token);
+        }
+        return result;
+    }
+
+    private static Bundle extractMetadataFromCursor(Cursor cursor, Map<String, String> columns) {
+
+        assert (cursor.getCount() == 1);
+
+        final Bundle metadata = new Bundle();
+        for (String col : columns.keySet()) {
+
+            int index = cursor.getColumnIndex(col);
+            String bundleTag = columns.get(col);
+
+            // Special case to be able to pull longs out of a cursor, as long is not a supported
+            // field of getType.
+            if (ExifInterface.TAG_DATETIME.equals(bundleTag)) {
+                // formate string to be consistent with how EXIF interface formats the date.
+                long date = cursor.getLong(index);
+                String format = DateFormat.getBestDateTimePattern(Locale.getDefault(),
+                    "MMM dd, yyyy, hh:mm");
+                metadata.putString(bundleTag, DateFormat.format(format, date).toString());
+                continue;
+            }
+
+            switch (cursor.getType(index)) {
+                case Cursor.FIELD_TYPE_INTEGER:
+                    metadata.putInt(bundleTag, cursor.getInt(index));
+                    break;
+                case Cursor.FIELD_TYPE_FLOAT:
+                    //Errors on the side of greater precision since interface doesnt support doubles
+                    metadata.putFloat(bundleTag, cursor.getFloat(index));
+                    break;
+                case Cursor.FIELD_TYPE_STRING:
+                    metadata.putString(bundleTag, cursor.getString(index));
+                    break;
+                case Cursor.FIELD_TYPE_BLOB:
+                    Log.d(TAG, "Unsupported type, blob, for col: " + bundleTag);
+                    break;
+                case Cursor.FIELD_TYPE_NULL:
+                    Log.d(TAG, "Unsupported type, null, for col: " + bundleTag);
+                    break;
+                default:
+                    throw new RuntimeException("Data type not supported");
+            }
+        }
+
+        return metadata;
     }
 
     @Override
@@ -669,7 +885,9 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         row.add(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(ImageQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
         row.add(Document.COLUMN_FLAGS,
-                Document.FLAG_SUPPORTS_THUMBNAIL | Document.FLAG_SUPPORTS_DELETE);
+                Document.FLAG_SUPPORTS_THUMBNAIL
+                    | Document.FLAG_SUPPORTS_DELETE
+                    | Document.FLAG_SUPPORTS_METADATA);
     }
 
     private interface VideosBucketQuery {
@@ -727,7 +945,9 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         row.add(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(VideoQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
         row.add(Document.COLUMN_FLAGS,
-                Document.FLAG_SUPPORTS_THUMBNAIL | Document.FLAG_SUPPORTS_DELETE);
+                Document.FLAG_SUPPORTS_THUMBNAIL
+                    | Document.FLAG_SUPPORTS_DELETE
+                    | Document.FLAG_SUPPORTS_METADATA);
     }
 
     private interface ArtistQuery {
@@ -796,7 +1016,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         row.add(Document.COLUMN_MIME_TYPE, cursor.getString(SongQuery.MIME_TYPE));
         row.add(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(SongQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
-        row.add(Document.COLUMN_FLAGS, Document.FLAG_SUPPORTS_DELETE);
+        row.add(Document.COLUMN_FLAGS, Document.FLAG_SUPPORTS_DELETE
+                | Document.FLAG_SUPPORTS_METADATA);
     }
 
     private interface ImagesBucketThumbnailQuery {

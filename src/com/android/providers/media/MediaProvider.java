@@ -43,6 +43,7 @@ import android.content.SharedPreferences;
 import android.content.UriMatcher;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
@@ -66,11 +67,13 @@ import android.os.Environment;
 import android.os.FileUtils;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.IBinder;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.os.Process;
-import android.os.RemoteException;
 import android.os.SystemClock;
+import android.os.UserHandle;
+import android.os.UserManager;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.os.storage.VolumeInfo;
@@ -91,10 +94,6 @@ import android.system.StructStat;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.util.Log;
-
-import libcore.io.IoUtils;
-import libcore.util.EmptyArray;
-
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
@@ -103,6 +102,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -111,6 +111,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.PriorityQueue;
 import java.util.Stack;
+import libcore.io.IoUtils;
+import libcore.util.EmptyArray;
 
 /**
  * Media content provider. See {@link android.provider.MediaStore} for details.
@@ -151,6 +153,7 @@ public class MediaProvider extends ContentProvider {
 
     private StorageManager mStorageManager;
     private AppOpsManager mAppOpsManager;
+    private PackageManager mPackageManager;
 
     // In memory cache of path<->id mappings, to speed up inserts during media scan
     HashMap<String, Long> mDirectoryCache = new HashMap<String, Long>();
@@ -287,30 +290,17 @@ public class MediaProvider extends ContentProvider {
                             context.sendBroadcast(
                                     new Intent(Intent.ACTION_MEDIA_SCANNER_STARTED, uri));
 
-                            // don't send objectRemoved events - MTP be sending StorageRemoved anyway
-                            mDisableMtpObjectCallbacks = true;
                             Log.d(TAG, "deleting all entries for storage " + storage);
-                            SQLiteDatabase db = database.getWritableDatabase();
-                            // First clear the file path to disable the _DELETE_FILE database hook.
-                            // We do this to avoid deleting files if the volume is remounted while
-                            // we are still processing the unmount event.
-                            ContentValues values = new ContentValues();
-                            values.putNull(Files.FileColumns.DATA);
-                            String where = FileColumns.STORAGE_ID + "=?";
-                            String[] whereArgs = new String[] { Integer.toString(storage.getStorageId()) };
-                            database.mNumUpdates++;
-                            db.beginTransaction();
-                            try {
-                                db.update("files", values, where, whereArgs);
-                                // now delete the records
-                                database.mNumDeletes++;
-                                int numpurged = db.delete("files", where, whereArgs);
-                                logToDb(db, "removed " + numpurged +
-                                        " rows for ejected filesystem " + storage.getPath());
-                                db.setTransactionSuccessful();
-                            } finally {
-                                db.endTransaction();
-                            }
+                            Uri.Builder builder =
+                                    Files.getMtpObjectsUri(EXTERNAL_VOLUME).buildUpon();
+                            builder.appendQueryParameter(MediaStore.PARAM_DELETE_DATA, "false");
+                            delete(builder.build(),
+                                    // the 'like' makes it use the index, the 'lower()' makes it
+                                    // correct when the path contains sqlite wildcard characters
+                                    "_data LIKE ?1 AND lower(substr(_data,1,?2))=lower(?3)",
+                                    new String[]{storage.getPath() + "/%",
+                                            Integer.toString(storage.getPath().length() + 1),
+                                            storage.getPath() + "/"});
                             // notify on media Uris as well as the files Uri
                             context.getContentResolver().notifyChange(
                                     Audio.Media.getContentUri(EXTERNAL_VOLUME), null);
@@ -325,16 +315,12 @@ public class MediaProvider extends ContentProvider {
                         } finally {
                             context.sendBroadcast(
                                     new Intent(Intent.ACTION_MEDIA_SCANNER_FINISHED, uri));
-                            mDisableMtpObjectCallbacks = false;
                         }
                     }
                 }
             }
         }
     };
-
-    // set to disable sending events when the operation originates from MTP
-    private boolean mDisableMtpObjectCallbacks;
 
     private final SQLiteDatabase.CustomFunction mObjectRemovedCallback =
                 new SQLiteDatabase.CustomFunction() {
@@ -346,18 +332,6 @@ public class MediaProvider extends ContentProvider {
             // TODO: include the path in the callback and only remove the affected
             // entry from the cache
             mDirectoryCache.clear();
-            // do nothing if the operation originated from MTP
-            if (mDisableMtpObjectCallbacks) return;
-
-            Log.d(TAG, "object removed " + args[0]);
-            IMtpService mtpService = mMtpService;
-            if (mtpService != null) {
-                try {
-                    sendObjectRemoved(Integer.parseInt(args[0]));
-                } catch (NumberFormatException e) {
-                    Log.e(TAG, "NumberFormatException in mObjectRemovedCallback", e);
-                }
-            }
         }
     };
 
@@ -604,6 +578,7 @@ public class MediaProvider extends ContentProvider {
 
         mStorageManager = context.getSystemService(StorageManager.class);
         mAppOpsManager = context.getSystemService(AppOpsManager.class);
+        mPackageManager = context.getPackageManager();
 
         sArtistAlbumsMap.put(MediaStore.Audio.Albums._ID, "audio.album_id AS " +
                 MediaStore.Audio.Albums._ID);
@@ -714,6 +689,29 @@ public class MediaProvider extends ContentProvider {
         return true;
     }
 
+    private void enforceShellRestrictions() {
+        if (UserHandle.getCallingAppId() == android.os.Process.SHELL_UID
+                && getContext().getSystemService(UserManager.class)
+                        .hasUserRestriction(UserManager.DISALLOW_USB_FILE_TRANSFER)) {
+            throw new SecurityException(
+                    "Shell user cannot access files for user " + UserHandle.myUserId());
+        }
+    }
+
+    @Override
+    protected int enforceReadPermissionInner(Uri uri, String callingPkg, IBinder callerToken)
+            throws SecurityException {
+        enforceShellRestrictions();
+        return super.enforceReadPermissionInner(uri, callingPkg, callerToken);
+    }
+
+    @Override
+    protected int enforceWritePermissionInner(Uri uri, String callingPkg, IBinder callerToken)
+            throws SecurityException {
+        enforceShellRestrictions();
+        return super.enforceWritePermissionInner(uri, callingPkg, callerToken);
+    }
+
     private static final String TABLE_FILES = "files";
     private static final String TABLE_ALBUM_ART = "album_art";
     private static final String TABLE_THUMBNAILS = "thumbnails";
@@ -822,8 +820,8 @@ public class MediaProvider extends ContentProvider {
                 + "is_alarm INTEGER,is_notification INTEGER,is_podcast INTEGER,album_artist TEXT,"
                 + "duration INTEGER,bookmark INTEGER,artist TEXT,album TEXT,resolution TEXT,"
                 + "tags TEXT,category TEXT,language TEXT,mini_thumb_data TEXT,name TEXT,"
-                + "media_type INTEGER,old_id INTEGER,storage_id INTEGER,is_drm INTEGER,"
-                + "width INTEGER, height INTEGER)");
+                + "media_type INTEGER,old_id INTEGER,is_drm INTEGER,"
+                + "width INTEGER, height INTEGER, title_resource_uri TEXT)");
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!internal) {
             db.execSQL("CREATE TABLE audio_genres (_id INTEGER PRIMARY KEY,name TEXT NOT NULL)");
@@ -917,7 +915,7 @@ public class MediaProvider extends ContentProvider {
                 + " BEGIN SELECT _DELETE_FILE(old._data);END");
     }
 
-    private static void updateFromKKSchema(SQLiteDatabase db, boolean internal, int fromVersion) {
+    private static void updateFromKKSchema(SQLiteDatabase db) {
         // Delete albums and artists, then clear the modification time on songs, which
         // will cause the media scanner to rescan everything, rebuilding the artist and
         // album tables along the way, while preserving playlists.
@@ -925,7 +923,16 @@ public class MediaProvider extends ContentProvider {
         // collation keys
         db.execSQL("DELETE from albums");
         db.execSQL("DELETE from artists");
-        db.execSQL("UPDATE files SET date_modified=0;");
+        db.execSQL("ALTER TABLE files ADD COLUMN title_resource_uri TEXT DEFAULT NULL");
+        db.execSQL("UPDATE files SET date_modified=0");
+    }
+
+    private static void updateFromOCSchema(SQLiteDatabase db) {
+        // Add the column used for title localization, and force a rescan of any
+        // ringtones, alarms and notifications that may be using it.
+        db.execSQL("ALTER TABLE files ADD COLUMN title_resource_uri TEXT DEFAULT NULL");
+        db.execSQL("UPDATE files SET date_modified=0"
+                + " WHERE (is_alarm IS 1) OR (is_ringtone IS 1) OR (is_notification IS 1)");
     }
 
     /**
@@ -955,7 +962,9 @@ public class MediaProvider extends ContentProvider {
             // Anything older than KK is recreated from scratch
             createLatestSchema(db, internal);
         } else if (fromVersion < 800) {
-            updateFromKKSchema(db, internal, fromVersion);
+            updateFromKKSchema(db);
+        } else if (fromVersion < 900) {
+            updateFromOCSchema(db);
         }
 
         sanityCheck(db, fromVersion);
@@ -1060,7 +1069,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * This method blocks until thumbnail is ready.
+     * This method requests a thumbnail and blocks until thumbnail is ready.
      *
      * @param thumbUri
      * @return
@@ -1196,7 +1205,7 @@ public class MediaProvider extends ContentProvider {
             // Construct a canonical Uri by tacking on some query parameters
             builder = uri.buildUpon();
             builder.appendQueryParameter(CANONICAL, "1");
-            title = c.getString(c.getColumnIndex(MediaStore.Audio.Media.TITLE));
+            title = getDefaultTitleFromCursor(c);
         } finally {
             IoUtils.closeQuietly(c);
         }
@@ -1228,7 +1237,7 @@ public class MediaProvider extends ContentProvider {
             try {
                 int titleIdx = c.getColumnIndex(MediaStore.Audio.Media.TITLE);
                 if (c != null && c.getCount() == 1 && c.moveToNext() &&
-                        titleFromUri.equals(c.getString(titleIdx))) {
+                        titleFromUri.equals(getDefaultTitleFromCursor(c))) {
                     // the result matched perfectly
                     return uri;
                 }
@@ -1273,7 +1282,7 @@ public class MediaProvider extends ContentProvider {
         int table = URI_MATCHER.match(uri);
         List<String> prependArgs = new ArrayList<String>();
 
-        // Log.v(TAG, "query: uri="+uri+", selection="+selection);
+        //Log.v(TAG, "query: uri="+uri+", selection="+selection);
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
         if (table == MEDIA_SCANNER) {
             if (mMediaScannerVolume == null) {
@@ -1808,32 +1817,6 @@ public class MediaProvider extends ContentProvider {
         return values;
     }
 
-    private void sendObjectAdded(long objectHandle) {
-        synchronized (mMtpServiceConnection) {
-            if (mMtpService != null) {
-                try {
-                    mMtpService.sendObjectAdded((int)objectHandle);
-                } catch (RemoteException e) {
-                    Log.e(TAG, "RemoteException in sendObjectAdded", e);
-                    mMtpService = null;
-                }
-            }
-        }
-    }
-
-    private void sendObjectRemoved(long objectHandle) {
-        synchronized (mMtpServiceConnection) {
-            if (mMtpService != null) {
-                try {
-                    mMtpService.sendObjectRemoved((int)objectHandle);
-                } catch (RemoteException e) {
-                    Log.e(TAG, "RemoteException in sendObjectRemoved", e);
-                    mMtpService = null;
-                }
-            }
-        }
-    }
-
     @Override
     public int bulkInsert(Uri uri, ContentValues values[]) {
         int match = URI_MATCHER.match(uri);
@@ -1877,13 +1860,6 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        // Notify MTP (outside of successful transaction)
-        if (uri != null) {
-            if (uri.toString().startsWith("content://media/external/")) {
-                notifyMtp(notifyRowIds);
-            }
-        }
-
         getContext().getContentResolver().notifyChange(uri, null);
         return numInserted;
     }
@@ -1894,11 +1870,6 @@ public class MediaProvider extends ContentProvider {
 
         ArrayList<Long> notifyRowIds = new ArrayList<Long>();
         Uri newUri = insertInternal(uri, match, initialValues, notifyRowIds);
-        if (uri != null) {
-            if (uri.toString().startsWith("content://media/external/")) {
-                notifyMtp(notifyRowIds);
-            }
-        }
 
         // do not signal notification for MTP objects.
         // we will signal instead after file transfer is successful.
@@ -1918,13 +1889,6 @@ public class MediaProvider extends ContentProvider {
             }
         }
         return newUri;
-    }
-
-    private void notifyMtp(ArrayList<Long> rowIds) {
-        int size = rowIds.size();
-        for (int i = 0; i < size; i++) {
-            sendObjectAdded(rowIds.get(i).longValue());
-        }
     }
 
     private int playlistBulkInsert(SQLiteDatabase db, Uri uri, ContentValues values[]) {
@@ -1970,14 +1934,12 @@ public class MediaProvider extends ContentProvider {
         values.put(FileColumns.FORMAT, MtpConstants.FORMAT_ASSOCIATION);
         values.put(FileColumns.DATA, path);
         values.put(FileColumns.PARENT, getParent(helper, db, path));
-        values.put(FileColumns.STORAGE_ID, getStorageId(path));
         File file = new File(path);
         if (file.exists()) {
             values.put(FileColumns.DATE_MODIFIED, file.lastModified() / 1000);
         }
         helper.mNumInserts++;
         long rowId = db.insert("files", FileColumns.DATE_MODIFIED, values);
-        sendObjectAdded(rowId);
         return rowId;
     }
 
@@ -2026,14 +1988,136 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private int getStorageId(String path) {
-        final StorageManager storage = getContext().getSystemService(StorageManager.class);
-        final StorageVolume vol = storage.getStorageVolume(new File(path));
-        if (vol != null) {
-            return vol.getStorageId();
+    /**
+     * @param c the Cursor whose title to retrieve
+     * @return the result of {@link #getDefaultTitle(String)} if the result is valid; otherwise
+     * the value of the {@code MediaStore.Audio.Media.TITLE} column
+     */
+    private String getDefaultTitleFromCursor(Cursor c) {
+        String title = null;
+        final int columnIndex = c.getColumnIndex("title_resource_uri");
+        // Necessary to check for existence because we may be reading from an old DB version
+        if (columnIndex > -1) {
+            final String titleResourceUri = c.getString(columnIndex);
+            if (titleResourceUri != null) {
+                try {
+                    title = getDefaultTitle(titleResourceUri);
+                } catch (Exception e) {
+                    // Best attempt only
+                }
+            }
+        }
+        if (title == null) {
+            title = c.getString(c.getColumnIndex(MediaStore.Audio.Media.TITLE));
+        }
+        return title;
+    }
+
+    /**
+     * @param title_resource_uri The title resource for which to retrieve the default localization
+     * @return The title localized to {@code Locale.US}, or {@code null} if unlocalizable
+     * @throws Exception Thrown if the title appears to be localizable, but the localization failed
+     * for any reason. For example, the application from which the localized title is fetched is not
+     * installed, or it does not have the resource which needs to be localized
+     */
+    private String getDefaultTitle(String title_resource_uri) throws Exception{
+        try {
+            return getTitleFromResourceUri(title_resource_uri, false);
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting default title for " + title_resource_uri, e);
+            throw e;
+        }
+    }
+
+    /**
+     * @param title_resource_uri The title resource to localize
+     * @return The localized title, or {@code null} if unlocalizable
+     * @throws Exception Thrown if the title appears to be localizable, but the localization failed
+     * for any reason. For example, the application from which the localized title is fetched is not
+     * installed, or it does not have the resource which needs to be localized
+     */
+    private String getLocalizedTitle(String title_resource_uri) throws Exception {
+        try {
+            return getTitleFromResourceUri(title_resource_uri, true);
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting localized title for " + title_resource_uri, e);
+            throw e;
+        }
+    }
+
+    /**
+     * Localizable titles conform to this URI pattern:
+     *   Scheme: {@link ContentResolver.SCHEME_ANDROID_RESOURCE}
+     *   Authority: Package Name of ringtone title provider
+     *   First Path Segment: Type of resource (must be "string")
+     *   Second Path Segment: Resource name of title
+     *
+     * @param title_resource_uri The title resource to retrieve
+     * @param localize Whether or not to localize the title
+     * @return The title, or {@code null} if unlocalizable
+     * @throws Exception Thrown if the title appears to be localizable, but the localization failed
+     * for any reason. For example, the application from which the localized title is fetched is not
+     * installed, or it does not have the resource which needs to be localized
+     */
+    private String getTitleFromResourceUri(String title_resource_uri, boolean localize)
+        throws Exception {
+        if (TextUtils.isEmpty(title_resource_uri)) {
+            return null;
+        }
+        final Uri titleUri = Uri.parse(title_resource_uri);
+        final String scheme = titleUri.getScheme();
+        if (!ContentResolver.SCHEME_ANDROID_RESOURCE.equals(scheme)) {
+            return null;
+        }
+        final List<String> pathSegments = titleUri.getPathSegments();
+        if (pathSegments.size() != 2) {
+            Log.e(TAG, "Error getting localized title for " + title_resource_uri
+                + ", must have 2 path segments");
+            return null;
+        }
+        final String type = pathSegments.get(0);
+        if (!"string".equals(type)) {
+            Log.e(TAG, "Error getting localized title for " + title_resource_uri
+                + ", first path segment must be \"string\"");
+            return null;
+        }
+        final String packageName = titleUri.getAuthority();
+        final Resources resources;
+        if (localize) {
+            resources = mPackageManager.getResourcesForApplication(packageName);
         } else {
-            Log.w(TAG, "Missing volume for " + path + "; assuming invalid");
-            return StorageVolume.STORAGE_ID_INVALID;
+            final Context packageContext = getContext().createPackageContext(packageName, 0);
+            final Configuration configuration = packageContext.getResources().getConfiguration();
+            configuration.setLocale(Locale.US);
+            resources = packageContext.createConfigurationContext(configuration).getResources();
+        }
+        final String resourceIdentifier = pathSegments.get(1);
+        final int id = resources.getIdentifier(resourceIdentifier, type, packageName);
+        return resources.getString(id);
+    }
+
+    private void localizeTitles() {
+        for (DatabaseHelper helper : mDatabases.values()) {
+            final SQLiteDatabase db = helper.getWritableDatabase();
+            try (Cursor c = db.query("files", new String[]{"_id", "title_resource_uri"},
+                "title_resource_uri IS NOT NULL", null, null, null, null)) {
+                while (c.moveToNext()) {
+                    final String id = c.getString(0);
+                    final String titleResourceUri = c.getString(1);
+                    final ContentValues values = new ContentValues();
+                    try {
+                        final String localizedTitle = getLocalizedTitle(titleResourceUri);
+                        values.put("title_key", MediaStore.Audio.keyFor(localizedTitle));
+                        // do a final trim of the title, in case it started with the special
+                        // "sort first" character (ascii \001)
+                        values.put("title", localizedTitle.trim());
+                        db.update("files", values, "_id=?", new String[]{id});
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error updating localized title for " + titleResourceUri
+                            + ", keeping old localization");
+                    }
+                }
+            }
         }
     }
 
@@ -2118,10 +2202,21 @@ public class MediaProvider extends ContentProvider {
                 values.put("album_id", Integer.toString((int)albumRowId));
                 so = values.getAsString("title");
                 s = (so == null ? "" : so.toString());
+
+                try {
+                    final String localizedTitle = getLocalizedTitle(s);
+                    if (localizedTitle != null) {
+                        values.put("title_resource_uri", s);
+                        s = localizedTitle;
+                    } else {
+                        values.putNull("title_resource_uri");
+                    }
+                } catch (Exception e) {
+                    values.put("title_resource_uri", s);
+                }
                 values.put("title_key", MediaStore.Audio.keyFor(s));
                 // do a final trim of the title, in case it started with the special
                 // "sort first" character (ascii \001)
-                values.remove("title");
                 values.put("title", s.trim());
 
                 computeDisplayName(values.getAsString(MediaStore.MediaColumns.DATA), values);
@@ -2196,10 +2291,15 @@ public class MediaProvider extends ContentProvider {
         if (mimeType == null && path != null && format != MtpConstants.FORMAT_ASSOCIATION) {
             mimeType = MediaFile.getMimeTypeForFile(path);
         }
+
         if (mimeType != null) {
             values.put(FileColumns.MIME_TYPE, mimeType);
 
-            if (mediaType == FileColumns.MEDIA_TYPE_NONE && !MediaScanner.isNoMediaPath(path)) {
+            // If 'values' contained the media type, then the caller wants us
+            // to use that exact type, so don't override it based on mimetype
+            if (!values.containsKey(FileColumns.MEDIA_TYPE) &&
+                    mediaType == FileColumns.MEDIA_TYPE_NONE &&
+                    !MediaScanner.isNoMediaPath(path)) {
                 int fileType = MediaFile.getFileTypeForMimeType(mimeType);
                 if (MediaFile.isAudioFileType(fileType)) {
                     mediaType = FileColumns.MEDIA_TYPE_AUDIO;
@@ -2253,11 +2353,6 @@ public class MediaProvider extends ContentProvider {
                     long parentId = getParent(helper, db, path);
                     values.put(FileColumns.PARENT, parentId);
                 }
-            }
-            Integer storage = values.getAsInteger(FileColumns.STORAGE_ID);
-            if (storage == null) {
-                int storageId = getStorageId(path);
-                values.put(FileColumns.STORAGE_ID, storageId);
             }
 
             helper.mNumInserts++;
@@ -2778,6 +2873,31 @@ public class MediaProvider extends ContentProvider {
         MediaScanner.clearMediaPathCache(true /* media */, false /* nomedia */);
         File nomedia = new File(path);
         String hiddenroot = nomedia.isDirectory() ? path : nomedia.getParent();
+
+        // query for images and videos that will be affected
+        Cursor c = db.query("files",
+                new String[] {"_id", "media_type"},
+                "_data >= ? AND _data < ? AND (media_type=1 OR media_type=3)"
+                + " AND mini_thumb_magic IS NOT NULL",
+                new String[] { hiddenroot  + "/", hiddenroot + "0"},
+                null /* groupBy */, null /* having */, null /* orderBy */);
+        if(c != null) {
+            if (c.getCount() != 0) {
+                Uri imagesUri = Uri.parse("content://media/external/images/media");
+                Uri videosUri = Uri.parse("content://media/external/videos/media");
+                while (c.moveToNext()) {
+                    // remove thumbnail for image/video
+                    long id = c.getLong(0);
+                    long mediaType = c.getLong(1);
+                    Log.i(TAG, "hiding image " + id + ", removing thumbnail");
+                    removeThumbnailFor(mediaType == FileColumns.MEDIA_TYPE_IMAGE ?
+                            imagesUri : videosUri, db, id);
+                }
+            }
+            IoUtils.closeQuietly(c);
+        }
+
+        // set the media type of the affected entries to 0
         ContentValues mediatype = new ContentValues();
         mediatype.put("media_type", 0);
         int numrows = db.update("files", mediatype,
@@ -3126,6 +3246,7 @@ public class MediaProvider extends ContentProvider {
                 editor.apply();
             }
             mMediaScannerVolume = null;
+            pruneThumbnails();
             return 1;
         }
 
@@ -3147,6 +3268,7 @@ public class MediaProvider extends ContentProvider {
             }
         } else {
             final String volumeName = getVolumeName(uri);
+            final boolean isExternal = "external".equals(volumeName);
 
             DatabaseHelper database = getDatabaseForUri(uri);
             if (database == null) {
@@ -3163,9 +3285,12 @@ public class MediaProvider extends ContentProvider {
                     database.mNumQueries++;
                     Cursor c = db.query(tableAndWhere.table,
                             sMediaTypeDataId,
-                            tableAndWhere.where, whereArgs, null, null, null);
+                            tableAndWhere.where, whereArgs,
+                            null /* groupBy */, null /* having */, null /* orderBy */);
                     String [] idvalue = new String[] { "" };
                     String [] playlistvalues = new String[] { "", "" };
+                    MiniThumbFile imageMicroThumbs = null;
+                    MiniThumbFile videoMicroThumbs = null;
                     try {
                         while (c.moveToNext()) {
                             final int mediaType = c.getInt(0);
@@ -3180,7 +3305,9 @@ public class MediaProvider extends ContentProvider {
                                 idvalue[0] = String.valueOf(id);
                                 database.mNumQueries++;
                                 Cursor cc = db.query("thumbnails", sDataOnlyColumn,
-                                            "image_id=?", idvalue, null, null, null);
+                                            "image_id=?", idvalue,
+                                            null /* groupBy */, null /* having */,
+                                            null /* orderBy */);
                                 try {
                                     while (cc.moveToNext()) {
                                         deleteIfAllowed(uri, cc.getString(0));
@@ -3190,11 +3317,38 @@ public class MediaProvider extends ContentProvider {
                                 } finally {
                                     IoUtils.closeQuietly(cc);
                                 }
+                                if (isExternal) {
+                                    if (imageMicroThumbs == null) {
+                                        imageMicroThumbs = MiniThumbFile.instance(
+                                                Images.Media.EXTERNAL_CONTENT_URI);
+                                    }
+                                    imageMicroThumbs.eraseMiniThumb(id);
+                                }
                             } else if (mediaType == FileColumns.MEDIA_TYPE_VIDEO) {
                                 deleteIfAllowed(uri, data);
                                 MediaDocumentsProvider.onMediaStoreDelete(getContext(),
                                         volumeName, FileColumns.MEDIA_TYPE_VIDEO, id);
 
+                                idvalue[0] = String.valueOf(id);
+                                database.mNumQueries++;
+                                Cursor cc = db.query("videothumbnails", sDataOnlyColumn,
+                                            "video_id=?", idvalue, null, null, null);
+                                try {
+                                    while (cc.moveToNext()) {
+                                        deleteIfAllowed(uri, cc.getString(0));
+                                    }
+                                    database.mNumDeletes++;
+                                    db.delete("videothumbnails", "video_id=?", idvalue);
+                                } finally {
+                                    IoUtils.closeQuietly(cc);
+                                }
+                                if (isExternal) {
+                                    if (videoMicroThumbs == null) {
+                                        videoMicroThumbs = MiniThumbFile.instance(
+                                                Video.Media.EXTERNAL_CONTENT_URI);
+                                    }
+                                    videoMicroThumbs.eraseMiniThumb(id);
+                                }
                             } else if (mediaType == FileColumns.MEDIA_TYPE_AUDIO) {
                                 if (!database.mInternal) {
                                     MediaDocumentsProvider.onMediaStoreDelete(getContext(),
@@ -3230,6 +3384,12 @@ public class MediaProvider extends ContentProvider {
                         }
                     } finally {
                         IoUtils.closeQuietly(c);
+                        if (imageMicroThumbs != null) {
+                            imageMicroThumbs.deactivate();
+                        }
+                        if (videoMicroThumbs != null) {
+                            videoMicroThumbs.deactivate();
+                        }
                     }
                     // Do not allow deletion if the file/object is referenced as parent
                     // by some other entries. It could cause database corruption.
@@ -3247,14 +3407,8 @@ public class MediaProvider extends ContentProvider {
             switch (match) {
                 case MTP_OBJECTS:
                 case MTP_OBJECTS_ID:
-                    try {
-                        // don't send objectRemoved event since this originated from MTP
-                        mDisableMtpObjectCallbacks = true;
-                        database.mNumDeletes++;
-                        count = db.delete("files", tableAndWhere.where, whereArgs);
-                    } finally {
-                        mDisableMtpObjectCallbacks = false;
-                    }
+                    database.mNumDeletes++;
+                    count = db.delete("files", tableAndWhere.where, whereArgs);
                     break;
                 case AUDIO_GENRES_ID_MEMBERS:
                     database.mNumDeletes++;
@@ -3308,7 +3462,89 @@ public class MediaProvider extends ContentProvider {
             processRemovedNoMediaPath(arg);
             return null;
         }
+        if (MediaStore.RETRANSLATE_CALL.equals(method)) {
+            localizeTitles();
+            return null;
+        }
         throw new UnsupportedOperationException("Unsupported call: " + method);
+    }
+
+
+    /*
+     * Clean up all thumbnail files for which the source image or video no longer exists.
+     * This is called at the end of a media scan.
+     */
+    private void pruneThumbnails() {
+        Log.v(TAG, "pruneThumbnails ");
+
+        final Uri thumbsUri = Images.Thumbnails.getContentUri("external");
+
+        // Remove orphan entries in the thumbnails tables
+        DatabaseHelper helper = getDatabaseForUri(thumbsUri);
+        SQLiteDatabase db = helper.getWritableDatabase();
+        db.execSQL("delete from thumbnails where image_id not in (select _id from images)");
+        db.execSQL("delete from videothumbnails where video_id not in (select _id from video)");
+
+        // Remove cached thumbnails that are no longer referenced by the thumbnails tables
+        HashSet<String> existingFiles = new HashSet<String>();
+        try {
+            String directory = "/sdcard/DCIM/.thumbnails";
+            File dirFile = new File(directory).getCanonicalFile();
+            String[] files = dirFile.list();
+            if (files == null)
+                files = new String[0];
+
+            String dirPath = dirFile.getPath();
+            for (int i = 0; i < files.length; i++) {
+                if (files[i].endsWith(".jpg")) {
+                    String fullPathString = dirPath + "/" + files[i];
+                    existingFiles.add(fullPathString);
+                }
+            }
+        } catch (IOException e) {
+            return;
+        }
+
+        for (String table : new String[] {"thumbnails", "videothumbnails"}) {
+            Cursor c = db.query(table, new String [] { "_data" },
+                    null, null, null, null, null); // where clause/args, groupby, having, orderby
+            if (c != null && c.moveToFirst()) {
+                do {
+                    String fullPathString = c.getString(0);
+                    existingFiles.remove(fullPathString);
+                } while (c.moveToNext());
+            }
+            IoUtils.closeQuietly(c);
+        }
+
+        for (String fileToDelete : existingFiles) {
+            if (LOCAL_LOGV)
+                Log.v(TAG, "fileToDelete is " + fileToDelete);
+            try {
+                (new File(fileToDelete)).delete();
+            } catch (SecurityException ex) {
+            }
+        }
+
+        Log.v(TAG, "/pruneDeadThumbnailFiles... ");
+    }
+
+    private void removeThumbnailFor(Uri uri, SQLiteDatabase db, long id) {
+        Cursor c = db.rawQuery("select _data from thumbnails where image_id=" + id
+                + " union all select _data from videothumbnails where video_id=" + id,
+                null /* selectionArgs */);
+        if (c != null) {
+            while (c.moveToNext()) {
+                String path = c.getString(0);
+                deleteIfAllowed(uri, path);
+            }
+            IoUtils.closeQuietly(c);
+            db.execSQL("delete from thumbnails where image_id=" + id);
+            db.execSQL("delete from videothumbnails where video_id=" + id);
+        }
+        MiniThumbFile microThumbs = MiniThumbFile.instance(uri);
+        microThumbs.eraseMiniThumb(id);
+        microThumbs.deactivate();
     }
 
     @Override
@@ -3316,7 +3552,9 @@ public class MediaProvider extends ContentProvider {
             String[] whereArgs) {
         uri = safeUncanonicalize(uri);
         int count;
-        // Log.v(TAG, "update for uri="+uri+", initValues="+initialValues);
+        //Log.v(TAG, "update for uri=" + uri + ", initValues=" + initialValues +
+        //        ", where=" + userWhere + ", args=" + Arrays.toString(whereArgs) + " caller:" +
+        //        Binder.getCallingPid());
         int match = URI_MATCHER.match(uri);
         DatabaseHelper helper = getDatabaseForUri(uri);
         if (helper == null) {
@@ -3335,6 +3573,33 @@ public class MediaProvider extends ContentProvider {
 
         TableAndWhere tableAndWhere = getTableAndWhere(uri, match, userWhere);
 
+        // if the media type is being changed, check if it's being changed from image or video
+        // to something else
+        if (initialValues.containsKey(FileColumns.MEDIA_TYPE)) {
+            long newMediaType = initialValues.getAsLong(FileColumns.MEDIA_TYPE);
+            helper.mNumQueries++;
+            Cursor cursor = db.query(tableAndWhere.table, sMediaTableColumns,
+                tableAndWhere.where, whereArgs, null, null, null);
+            try {
+                while (cursor != null && cursor.moveToNext()) {
+                    long curMediaType = cursor.getLong(1);
+                    if (curMediaType == FileColumns.MEDIA_TYPE_IMAGE &&
+                            newMediaType != FileColumns.MEDIA_TYPE_IMAGE) {
+                        Log.i(TAG, "need to remove image thumbnail for id " + cursor.getString(0));
+                        removeThumbnailFor(Images.Media.EXTERNAL_CONTENT_URI,
+                                db, cursor.getLong(0));
+                    } else if (curMediaType == FileColumns.MEDIA_TYPE_VIDEO &&
+                            newMediaType != FileColumns.MEDIA_TYPE_VIDEO) {
+                        Log.i(TAG, "need to remove video thumbnail for id " + cursor.getString(0));
+                        removeThumbnailFor(Video.Media.EXTERNAL_CONTENT_URI,
+                                db, cursor.getLong(0));
+                    }
+                }
+            } finally {
+                IoUtils.closeQuietly(cursor);
+            }
+        }
+
         // special case renaming directories via MTP.
         // in this case we must update all paths in the database with
         // the directory name as a prefix
@@ -3343,8 +3608,7 @@ public class MediaProvider extends ContentProvider {
                 // Is a rename operation
                 && ((initialValues.size() == 1 && initialValues.containsKey(FileColumns.DATA))
                 // Is a move operation
-                || (initialValues.size() == 3 && initialValues.containsKey(FileColumns.DATA)
-                && initialValues.containsKey(FileColumns.STORAGE_ID)
+                || (initialValues.size() == 2 && initialValues.containsKey(FileColumns.DATA)
                 && initialValues.containsKey(FileColumns.PARENT)))) {
             String oldPath = null;
             String newPath = initialValues.getAsString(MediaStore.MediaColumns.DATA);
@@ -3493,12 +3757,21 @@ public class MediaProvider extends ContentProvider {
                     // If the title field is modified, update the title_key
                     so = values.getAsString("title");
                     if (so != null) {
-                        String s = so.toString();
-                        values.put("title_key", MediaStore.Audio.keyFor(s));
+                        try {
+                            final String localizedTitle = getLocalizedTitle(so);
+                            if (localizedTitle != null) {
+                                values.put("title_resource_uri", so);
+                                so = localizedTitle;
+                            } else {
+                                values.putNull("title_resource_uri");
+                            }
+                        } catch (Exception e) {
+                            values.put("title_resource_uri", so);
+                        }
+                        values.put("title_key", MediaStore.Audio.keyFor(so));
                         // do a final trim of the title, in case it started with the special
                         // "sort first" character (ascii \001)
-                        values.remove("title");
-                        values.put("title", s.trim());
+                        values.put("title", so.trim());
                     }
 
                     helper.mNumUpdates++;

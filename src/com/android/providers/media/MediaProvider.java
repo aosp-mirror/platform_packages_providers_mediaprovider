@@ -19,8 +19,15 @@ package com.android.providers.media;
 import static android.Manifest.permission.ACCESS_CACHE_FILESYSTEM;
 import static android.Manifest.permission.INTERACT_ACROSS_USERS;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
+import static android.Manifest.permission.READ_MEDIA_AUDIO;
+import static android.Manifest.permission.READ_MEDIA_IMAGES;
+import static android.Manifest.permission.READ_MEDIA_VIDEO;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
+import static android.Manifest.permission.WRITE_MEDIA_AUDIO;
+import static android.Manifest.permission.WRITE_MEDIA_IMAGES;
 import static android.Manifest.permission.WRITE_MEDIA_STORAGE;
+import static android.Manifest.permission.WRITE_MEDIA_VIDEO;
+import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.os.ParcelFileDescriptor.MODE_READ_ONLY;
 import static android.os.ParcelFileDescriptor.MODE_WRITE_ONLY;
 import static android.provider.MediaStore.AUTHORITY;
@@ -73,12 +80,14 @@ import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.ParcelFileDescriptor.OnCloseListener;
 import android.os.SystemClock;
+import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.os.storage.VolumeInfo;
 import android.preference.PreferenceManager;
+import android.provider.BaseColumns;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
 import android.provider.MediaStore.Audio.Playlists;
@@ -136,6 +145,9 @@ import java.util.regex.Pattern;
  */
 public class MediaProvider extends ContentProvider {
     private static final boolean ENFORCE_PUBLIC_API = false;
+
+    private static final boolean ENFORCE_ISOLATED_STORAGE = SystemProperties
+            .getBoolean(StorageManager.PROP_ISOLATED_STORAGE, false);
 
     private static final Uri MEDIA_URI = Uri.parse("content://media");
     private static final Uri ALBUMART_URI = Uri.parse("content://media/external/audio/albumart");
@@ -566,9 +578,8 @@ public class MediaProvider extends ContentProvider {
         return super.enforceWritePermissionInner(uri, callingPkg, callerToken);
     }
 
-    // restore the database to a clean slate
     @VisibleForTesting
-    static void makePristine(SQLiteDatabase db) {
+    static void makePristineSchema(SQLiteDatabase db) {
         // drop all triggers
         Cursor c = db.query("sqlite_master", new String[] {"name"}, "type is 'trigger'",
                 null, null, null, null);
@@ -602,9 +613,8 @@ public class MediaProvider extends ContentProvider {
         c.close();
     }
 
-    @VisibleForTesting
-    static void createLatestSchema(SQLiteDatabase db, boolean internal) {
-        makePristine(db);
+    private static void createLatestSchema(SQLiteDatabase db, boolean internal) {
+        makePristineSchema(db);
 
         db.execSQL("CREATE TABLE android_metadata (locale TEXT)");
         db.execSQL("CREATE TABLE thumbnails (_id INTEGER PRIMARY KEY,_data TEXT,image_id INTEGER,"
@@ -647,8 +657,6 @@ public class MediaProvider extends ContentProvider {
                     + "SELECT _DELETE_FILE(old._data);END");
             db.execSQL("CREATE TRIGGER files_cleanup DELETE ON files"
                     + " BEGIN SELECT _OBJECT_REMOVED(old._id);END");
-            db.execSQL("CREATE VIEW audio_playlists AS SELECT _id,_data,name,date_added,date_modified"
-                    + " FROM files WHERE media_type=4");
         }
 
         db.execSQL("CREATE INDEX image_id_index on thumbnails(image_id)");
@@ -669,10 +677,36 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("CREATE INDEX title_idx ON files(title)");
         db.execSQL("CREATE INDEX titlekey_index ON files(title_key)");
 
+        db.execSQL("CREATE TRIGGER albumart_cleanup1 DELETE ON albums BEGIN DELETE FROM album_art"
+                + " WHERE album_id = old.album_id;END");
+        db.execSQL("CREATE TRIGGER albumart_cleanup2 DELETE ON album_art"
+                + " BEGIN SELECT _DELETE_FILE(old._data);END");
+
+        createLatestViews(db, internal);
+    }
+
+    private static void makePristineViews(SQLiteDatabase db) {
+        // drop all views
+        Cursor c = db.query("sqlite_master", new String[] {"name"}, "type is 'view'",
+                null, null, null, null);
+        while (c.moveToNext()) {
+            db.execSQL("DROP VIEW IF EXISTS " + c.getString(0));
+        }
+        c.close();
+    }
+
+    private static void createLatestViews(SQLiteDatabase db, boolean internal) {
+        makePristineViews(db);
+
+        if (!internal) {
+            db.execSQL("CREATE VIEW audio_playlists AS SELECT _id,_data,name,date_added,"
+                    + "date_modified,owner_package_name FROM files WHERE media_type=4");
+        }
+
         db.execSQL("CREATE VIEW audio_meta AS SELECT _id,_data,_display_name,_size,mime_type,"
                 + "date_added,is_drm,date_modified,title,title_key,duration,artist_id,composer,"
                 + "album_id,track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast,"
-                + "bookmark,album_artist FROM files WHERE media_type=2");
+                + "bookmark,album_artist,owner_package_name FROM files WHERE media_type=2");
         db.execSQL("CREATE VIEW artists_albums_map AS SELECT DISTINCT artist_id, album_id"
                 + " FROM audio_meta");
         db.execSQL("CREATE VIEW audio as SELECT * FROM audio_meta LEFT OUTER JOIN artists"
@@ -710,17 +744,12 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("CREATE VIEW images AS SELECT _id,_data,_size,_display_name,mime_type,title,"
                 + "date_added,date_modified,description,picasa_id,isprivate,latitude,longitude,"
                 + "datetaken,orientation,mini_thumb_magic,bucket_id,bucket_display_name,width,"
-                + "height FROM files WHERE media_type=1");
+                + "height,owner_package_name FROM files WHERE media_type=1");
         db.execSQL("CREATE VIEW video AS SELECT _id,_data,_display_name,_size,mime_type,"
                 + "date_added,date_modified,title,duration,artist,album,resolution,description,"
                 + "isprivate,tags,category,language,mini_thumb_data,latitude,longitude,datetaken,"
-                + "mini_thumb_magic,bucket_id,bucket_display_name,bookmark,width,height"
-                + " FROM files WHERE media_type=3");
-
-        db.execSQL("CREATE TRIGGER albumart_cleanup1 DELETE ON albums BEGIN DELETE FROM album_art"
-                + " WHERE album_id = old.album_id;END");
-        db.execSQL("CREATE TRIGGER albumart_cleanup2 DELETE ON album_art"
-                + " BEGIN SELECT _DELETE_FILE(old._data);END");
+                + "mini_thumb_magic,bucket_id,bucket_display_name,bookmark,width,height,"
+                + "owner_package_name FROM files WHERE media_type=3");
     }
 
     private static void updateFromKKSchema(SQLiteDatabase db) {
@@ -743,7 +772,7 @@ public class MediaProvider extends ContentProvider {
                 + " WHERE (is_alarm IS 1) OR (is_ringtone IS 1) OR (is_notification IS 1)");
     }
 
-    private static void updateFromPSchema(SQLiteDatabase db) {
+    private static void updateFromPSchema(SQLiteDatabase db, boolean internal) {
         db.execSQL("ALTER TABLE files ADD COLUMN owner_package_name TEXT DEFAULT NULL");
 
         // Derive new column value based on well-known paths
@@ -767,6 +796,8 @@ public class MediaProvider extends ContentProvider {
                 }
             }
         }
+
+        createLatestViews(db, internal);
     }
 
     static final int VERSION_J = 509;
@@ -798,7 +829,9 @@ public class MediaProvider extends ContentProvider {
         } else if (fromVersion < 900) {
             updateFromOCSchema(db);
         } else if (fromVersion < 1000) {
-            updateFromPSchema(db);
+            updateFromPSchema(db, internal);
+        } else if (fromVersion < 1001) {
+            createLatestViews(db, internal);
         }
 
         sanityCheck(db, fromVersion);
@@ -1981,7 +2014,7 @@ public class MediaProvider extends ContentProvider {
             initialValues.remove(FileColumns.OWNER_PACKAGE_NAME);
 
             final String callingPackageName = getCallingPackageOrSelf();
-            if (getContext().getPackageName().equals(callingPackageName)
+            if (getContext().getOpPackageName().equals(callingPackageName)
                     || "com.android.mtp".equals(callingPackageName)) {
                 // When media inserted by ourselves, the best we can do is guess
                 // ownership based on path.
@@ -1989,8 +2022,10 @@ public class MediaProvider extends ContentProvider {
             } else {
                 ownerPackageName = callingPackageName;
             }
-        }
 
+            // TODO: translate incoming path between sandboxes
+            // TODO: reject paths when caller is targeting Q
+        }
 
         Uri newUri = null;
         DatabaseHelper helper = getDatabaseForUri(uri);
@@ -2015,8 +2050,17 @@ public class MediaProvider extends ContentProvider {
                 break;
             }
 
-            // This will be triggered by requestMediaThumbnail (see getThumbnailUri)
             case IMAGES_THUMBNAILS: {
+                if (helper.mInternal) {
+                    throw new UnsupportedOperationException(
+                            "Writing to internal storage is not supported.");
+                }
+
+                // Require that caller has write access to underlying media
+                final long imageId = initialValues.getAsLong(MediaStore.Images.Thumbnails.IMAGE_ID);
+                enforceCallingPermission(ContentUris.withAppendedId(
+                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI, imageId), true);
+
                 ContentValues values = ensureFile(helper.mInternal, initialValues, ".jpg",
                         "DCIM/.thumbnails");
                 helper.mNumInserts++;
@@ -2028,8 +2072,17 @@ public class MediaProvider extends ContentProvider {
                 break;
             }
 
-            // This is currently only used by MICRO_KIND video thumbnail (see getThumbnailUri)
             case VIDEO_THUMBNAILS: {
+                if (helper.mInternal) {
+                    throw new UnsupportedOperationException(
+                            "Writing to internal storage is not supported.");
+                }
+
+                // Require that caller has write access to underlying media
+                final long videoId = initialValues.getAsLong(MediaStore.Video.Thumbnails.VIDEO_ID);
+                enforceCallingPermission(ContentUris.withAppendedId(
+                        MediaStore.Video.Media.EXTERNAL_CONTENT_URI, videoId), true);
+
                 ContentValues values = ensureFile(helper.mInternal, initialValues, ".jpg",
                         "DCIM/.thumbnails");
                 helper.mNumInserts++;
@@ -2058,7 +2111,11 @@ public class MediaProvider extends ContentProvider {
             }
 
             case AUDIO_MEDIA_ID_GENRES: {
-                Long audioId = Long.parseLong(uri.getPathSegments().get(2));
+                // Require that caller has write access to underlying media
+                final long audioId = Long.parseLong(uri.getPathSegments().get(2));
+                enforceCallingPermission(ContentUris.withAppendedId(
+                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, audioId), true);
+
                 ContentValues values = new ContentValues(initialValues);
                 values.put(Audio.Genres.Members.AUDIO_ID, audioId);
                 helper.mNumInserts++;
@@ -2070,7 +2127,15 @@ public class MediaProvider extends ContentProvider {
             }
 
             case AUDIO_MEDIA_ID_PLAYLISTS: {
-                Long audioId = Long.parseLong(uri.getPathSegments().get(2));
+                // Require that caller has write access to underlying media
+                final long audioId = Long.parseLong(uri.getPathSegments().get(2));
+                enforceCallingPermission(ContentUris.withAppendedId(
+                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, audioId), true);
+                final long playlistId = initialValues
+                        .getAsLong(MediaStore.Audio.Playlists.Members.PLAYLIST_ID);
+                enforceCallingPermission(ContentUris.withAppendedId(
+                        MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI, playlistId), true);
+
                 ContentValues values = new ContentValues(initialValues);
                 values.put(Audio.Playlists.Members.AUDIO_ID, audioId);
                 helper.mNumInserts++;
@@ -2083,6 +2148,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             case AUDIO_GENRES: {
+                // NOTE: No permission enforcement on genres
                 helper.mNumInserts++;
                 rowId = db.insert("audio_genres", "audio_id", initialValues);
                 if (rowId > 0) {
@@ -2093,6 +2159,12 @@ public class MediaProvider extends ContentProvider {
             }
 
             case AUDIO_GENRES_ID_MEMBERS: {
+                // Require that caller has write access to underlying media
+                final long audioId = initialValues
+                        .getAsLong(MediaStore.Audio.Genres.Members.AUDIO_ID);
+                enforceCallingPermission(ContentUris.withAppendedId(
+                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, audioId), true);
+
                 Long genreId = Long.parseLong(uri.getPathSegments().get(3));
                 ContentValues values = new ContentValues(initialValues);
                 values.put(Audio.Genres.Members.GENRE_ID, genreId);
@@ -2105,6 +2177,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             case AUDIO_PLAYLISTS: {
+                maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
                 ContentValues values = new ContentValues(initialValues);
                 values.put(MediaStore.Audio.Playlists.DATE_ADDED, System.currentTimeMillis() / 1000);
                 rowId = insertFile(helper, uri, values,
@@ -2118,7 +2191,15 @@ public class MediaProvider extends ContentProvider {
 
             case AUDIO_PLAYLISTS_ID:
             case AUDIO_PLAYLISTS_ID_MEMBERS: {
-                Long playlistId = Long.parseLong(uri.getPathSegments().get(3));
+                // Require that caller has write access to underlying media
+                final long audioId = initialValues
+                        .getAsLong(MediaStore.Audio.Playlists.Members.AUDIO_ID);
+                enforceCallingPermission(ContentUris.withAppendedId(
+                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, audioId), true);
+                final long playlistId = Long.parseLong(uri.getPathSegments().get(3));
+                enforceCallingPermission(ContentUris.withAppendedId(
+                        MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI, playlistId), true);
+
                 ContentValues values = new ContentValues(initialValues);
                 values.put(Audio.Playlists.Members.PLAYLIST_ID, playlistId);
                 helper.mNumInserts++;
@@ -2450,15 +2531,31 @@ public class MediaProvider extends ContentProvider {
     private static final int TYPE_DELETE = 2;
 
     private SQLiteQueryBuilder getQueryBuilder(int type, Uri uri, int match) {
+        final boolean forWrite;
+        switch (type) {
+            case TYPE_QUERY: forWrite = false; break;
+            case TYPE_UPDATE: forWrite = true; break;
+            case TYPE_DELETE: forWrite = true; break;
+            default: throw new IllegalStateException();
+        }
+
+        final int permission = checkCallingPermission(uri, match, forWrite);
+        return getQueryBuilder(type, uri, match, permission);
+    }
+
+    private SQLiteQueryBuilder getQueryBuilder(int type, Uri uri, int match, int permission) {
         final SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
         if (parseBoolean(uri.getQueryParameter("distinct"))) {
             qb.setDistinct(true);
         }
         qb.setStrict(true);
 
+        final String callingPackage = getCallingPackageOrSelf();
+
         switch (match) {
             case IMAGES_MEDIA_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
+                // fall-through
             case IMAGES_MEDIA:
                 if (type == TYPE_QUERY) {
                     qb.setTables("images");
@@ -2467,6 +2564,9 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
                             FileColumns.MEDIA_TYPE_IMAGE);
                 }
+                if (permission == PERMISSION_GRANTED_IF_OWNER) {
+                    appendWhereStandalone(qb, "owner_package_name=?", callingPackage);
+                }
                 break;
 
             case IMAGES_THUMBNAILS_ID:
@@ -2474,6 +2574,11 @@ public class MediaProvider extends ContentProvider {
                 // fall-through
             case IMAGES_THUMBNAILS:
                 qb.setTables("thumbnails");
+                if (permission == PERMISSION_GRANTED_IF_OWNER) {
+                    appendWhereStandalone(qb,
+                            "image_id IN (SELECT _id FROM images WHERE owner_package_name=?)",
+                            callingPackage);
+                }
                 break;
 
             case AUDIO_MEDIA_ID:
@@ -2486,6 +2591,9 @@ public class MediaProvider extends ContentProvider {
                     qb.setTables("files");
                     appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
                             FileColumns.MEDIA_TYPE_AUDIO);
+                }
+                if (permission == PERMISSION_GRANTED_IF_OWNER) {
+                    appendWhereStandalone(qb, "owner_package_name=?", callingPackage);
                 }
                 break;
 
@@ -2536,6 +2644,9 @@ public class MediaProvider extends ContentProvider {
                     qb.setTables("files");
                     appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
                             FileColumns.MEDIA_TYPE_PLAYLIST);
+                }
+                if (permission == PERMISSION_GRANTED_IF_OWNER) {
+                    appendWhereStandalone(qb, "owner_package_name=?", callingPackage);
                 }
                 break;
 
@@ -2612,6 +2723,9 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
                             FileColumns.MEDIA_TYPE_VIDEO);
                 }
+                if (permission == PERMISSION_GRANTED_IF_OWNER) {
+                    appendWhereStandalone(qb, "owner_package_name=?", callingPackage);
+                }
                 break;
 
             case VIDEO_THUMBNAILS_ID:
@@ -2619,6 +2733,11 @@ public class MediaProvider extends ContentProvider {
                 // fall-through
             case VIDEO_THUMBNAILS:
                 qb.setTables("videothumbnails");
+                if (permission == PERMISSION_GRANTED_IF_OWNER) {
+                    appendWhereStandalone(qb,
+                            "video_id IN (SELECT _id FROM video WHERE owner_package_name=?)",
+                            callingPackage);
+                }
                 break;
 
             case FILES_ID:
@@ -2629,6 +2748,9 @@ public class MediaProvider extends ContentProvider {
             case FILES_DIRECTORY:
             case MTP_OBJECTS:
                 qb.setTables("files");
+                if (permission == PERMISSION_GRANTED_IF_OWNER) {
+                    appendWhereStandalone(qb, "owner_package_name=?", callingPackage);
+                }
                 break;
 
             default:
@@ -3634,8 +3756,15 @@ public class MediaProvider extends ContentProvider {
     private ParcelFileDescriptor openFileAndEnforcePathPermissionsHelper(Uri uri, String mode,
             OnCloseListener listener, CancellationSignal signal) throws FileNotFoundException {
         final int modeBits = ParcelFileDescriptor.parseMode(mode);
+        final boolean forWrite = (modeBits != ParcelFileDescriptor.MODE_READ_ONLY);
 
         File file = queryForDataFile(uri, signal);
+
+        try {
+            enforceCallingPermission(uri, forWrite);
+        } catch (SecurityException e) {
+            throw new FileNotFoundException(e.getMessage());
+        }
 
         checkAccess(uri, file, modeBits);
 
@@ -3669,6 +3798,147 @@ public class MediaProvider extends ContentProvider {
         } catch (Exception e) {
             Log.e(TAG, "Couldn't delete " + path, e);
         }
+    }
+
+    /**
+     * Value indicating that permission should only be considered granted for
+     * items that the calling package directly owns.
+     * <p>
+     * This value typically means that a {@link MediaColumns#OWNER_PACKAGE_NAME}
+     * filter should be applied to any database operations.
+     */
+    private static final int PERMISSION_GRANTED_IF_OWNER = 100;
+
+    /**
+     * Check access that should be allowed for caller, based on grants and/or
+     * runtime permissions they hold.
+     * <ul>
+     * <li>If caller holds a {@link Uri} grant, access is allowed according to
+     * that grant.
+     * <li>If caller holds the write permission for a collection, they can
+     * read/write all contents of that collection.
+     * <li>If caller holds the read permission for a collection, they can read
+     * all contents of that collection, but writes are limited to content they
+     * own.
+     * <li>If caller holds no permissions for a collection, all reads/write are
+     * limited to content they own.
+     * </ul>
+     *
+     * @return one of {@link PackageManager#PERMISSION_DENIED},
+     *         {@link PackageManager#PERMISSION_GRANTED}, or
+     *         {@link #PERMISSION_GRANTED_IF_OWNER}.
+     */
+    private int checkCallingPermission(Uri uri, int match, boolean forWrite) {
+        final Context context = getContext();
+        final String callingPackage = getCallingPackageOrSelf();
+
+        // Shortcut when using old storage model; everything is allowed
+        if (!ENFORCE_ISOLATED_STORAGE) {
+            return PERMISSION_GRANTED;
+        }
+
+        // System internals can work with all media
+        if (context.getOpPackageName().equals(callingPackage)
+                || "com.android.mtp".equals(callingPackage)) {
+            return PERMISSION_GRANTED;
+        }
+
+        final String readPermission;
+        final String writePermission;
+        switch (match) {
+            case IMAGES_MEDIA:
+            case IMAGES_MEDIA_ID:
+            case IMAGES_THUMBNAILS:
+            case IMAGES_THUMBNAILS_ID:
+                readPermission = READ_MEDIA_IMAGES;
+                writePermission = WRITE_MEDIA_IMAGES;
+                break;
+
+            case AUDIO_MEDIA:
+            case AUDIO_MEDIA_ID:
+            case AUDIO_MEDIA_ID_GENRES:
+            case AUDIO_MEDIA_ID_GENRES_ID:
+            case AUDIO_MEDIA_ID_PLAYLISTS:
+            case AUDIO_MEDIA_ID_PLAYLISTS_ID:
+            case AUDIO_GENRES:
+            case AUDIO_GENRES_ID:
+            case AUDIO_GENRES_ID_MEMBERS:
+            case AUDIO_GENRES_ALL_MEMBERS:
+            case AUDIO_PLAYLISTS:
+            case AUDIO_PLAYLISTS_ID:
+            case AUDIO_PLAYLISTS_ID_MEMBERS:
+            case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
+            case AUDIO_ARTISTS:
+            case AUDIO_ARTISTS_ID:
+            case AUDIO_ALBUMS:
+            case AUDIO_ALBUMS_ID:
+            case AUDIO_ARTISTS_ID_ALBUMS:
+            case AUDIO_ALBUMART:
+            case AUDIO_ALBUMART_ID:
+            case AUDIO_ALBUMART_FILE_ID:
+                readPermission = READ_MEDIA_AUDIO;
+                writePermission = WRITE_MEDIA_AUDIO;
+                break;
+
+            case VIDEO_MEDIA:
+            case VIDEO_MEDIA_ID:
+            case VIDEO_THUMBNAILS:
+            case VIDEO_THUMBNAILS_ID:
+                readPermission = READ_MEDIA_VIDEO;
+                writePermission = WRITE_MEDIA_VIDEO;
+                break;
+
+            default:
+                return PERMISSION_GRANTED_IF_OWNER;
+        }
+
+        if (forWrite) {
+            if ((context.checkCallingPermission(writePermission) == PERMISSION_GRANTED) ||
+                    (context.checkCallingUriPermission(uri,
+                            Intent.FLAG_GRANT_WRITE_URI_PERMISSION) == PERMISSION_GRANTED)) {
+                return PERMISSION_GRANTED;
+            }
+        } else {
+            if ((context.checkCallingPermission(readPermission) == PERMISSION_GRANTED) ||
+                    (context.checkCallingUriPermission(uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION) == PERMISSION_GRANTED)) {
+                return PERMISSION_GRANTED;
+            }
+        }
+
+        // Worst case, apps can always work with content they own
+        return PERMISSION_GRANTED_IF_OWNER;
+    }
+
+    /**
+     * Enforce that caller has access to the given {@link Uri}, as determined by
+     * {@link #checkCallingPermission(Uri, int, boolean)}.
+     *
+     * @throws SecurityException if access isn't allowed.
+     */
+    private void enforceCallingPermission(Uri uri, boolean forWrite) {
+        final boolean allowHidden = isCallingPackageAllowedHidden();
+        final int match = matchUri(uri, allowHidden);
+
+        final int permission = checkCallingPermission(uri, match, forWrite);
+        if (permission == PERMISSION_GRANTED) {
+            // Access allowed, yay!
+            return;
+        } else if (permission == PERMISSION_GRANTED_IF_OWNER) {
+            DatabaseHelper helper = getDatabaseForUri(uri);
+            SQLiteDatabase db = helper.getReadableDatabase();
+            SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, uri, match, permission);
+            try (Cursor c = qb.query(db, new String[] { BaseColumns._ID },
+                    null, null, null, null, null)) {
+                if (c.moveToFirst()) {
+                    // Access allowed, yay!
+                    return;
+                }
+            }
+        }
+
+        throw new SecurityException(
+                "Caller " + getCallingPackage() + " has no access to " + uri);
     }
 
     private void checkAccess(Uri uri, File file, int modeBits) throws FileNotFoundException {

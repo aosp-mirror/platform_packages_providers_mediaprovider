@@ -683,7 +683,8 @@ public class MediaProvider extends ContentProvider {
                 + "tags TEXT,category TEXT,language TEXT,mini_thumb_data TEXT,name TEXT,"
                 + "media_type INTEGER,old_id INTEGER,is_drm INTEGER,"
                 + "width INTEGER, height INTEGER, title_resource_uri TEXT,"
-                + "owner_package_name TEXT DEFAULT NULL)");
+                + "owner_package_name TEXT DEFAULT NULL,"
+                + "color_standard INTEGER, color_transfer INTEGER, color_range INTEGER)");
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!internal) {
             db.execSQL("CREATE TABLE audio_genres (_id INTEGER PRIMARY KEY,name TEXT NOT NULL)");
@@ -817,7 +818,7 @@ public class MediaProvider extends ContentProvider {
                 + " WHERE (is_alarm IS 1) OR (is_ringtone IS 1) OR (is_notification IS 1)");
     }
 
-    private static void updateFromPSchema(SQLiteDatabase db, boolean internal) {
+    private static void updateAddOwnerPackageName(SQLiteDatabase db, boolean internal) {
         db.execSQL("ALTER TABLE files ADD COLUMN owner_package_name TEXT DEFAULT NULL");
 
         // Derive new column value based on well-known paths
@@ -841,8 +842,13 @@ public class MediaProvider extends ContentProvider {
                 }
             }
         }
+    }
 
-        createLatestViews(db, internal);
+    private static void updateAddColorSpaces(SQLiteDatabase db, boolean internal) {
+        // Add the color aspects related column used for HDR detection etc.
+        db.execSQL("ALTER TABLE files ADD COLUMN color_standard INTEGER;");
+        db.execSQL("ALTER TABLE files ADD COLUMN color_transfer INTEGER;");
+        db.execSQL("ALTER TABLE files ADD COLUMN color_range INTEGER;");
     }
 
     static final int VERSION_J = 509;
@@ -873,11 +879,18 @@ public class MediaProvider extends ContentProvider {
             updateFromKKSchema(db);
         } else if (fromVersion < 900) {
             updateFromOCSchema(db);
-        } else if (fromVersion < 1000) {
-            updateFromPSchema(db, internal);
-        } else if (fromVersion < 1002) {
-            createLatestViews(db, internal);
+        } else {
+            if (fromVersion < 1000) {
+                updateAddOwnerPackageName(db, internal);
+            }
+            if (fromVersion < 1003) {
+                updateAddColorSpaces(db, internal);
+            }
         }
+
+        // Always recreate latest views during upgrade; they're cheap and it's
+        // an easy way to ensure they're defined consistently
+        createLatestViews(db, internal);
 
         sanityCheck(db, fromVersion);
 

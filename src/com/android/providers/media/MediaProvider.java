@@ -555,6 +555,51 @@ public class MediaProvider extends ContentProvider {
         return true;
     }
 
+    public void onIdleMaintenance(CancellationSignal signal) {
+        // Finished orphaning any content whose package no longer exists
+        final ArraySet<String> unknownPackages = new ArraySet<>();
+        synchronized (mDatabases) {
+            for (DatabaseHelper helper : mDatabases.values()) {
+                final SQLiteDatabase db = helper.getReadableDatabase();
+                try (Cursor c = db.query(false, "files", new String[] { "owner_package_name" },
+                        null, null, "owner_package_name", null, null, null, signal)) {
+                    while (c.moveToNext()) {
+                        final String packageName = c.getString(0);
+                        if (TextUtils.isEmpty(packageName)) continue;
+                        try {
+                            getContext().getPackageManager().getPackageInfo(packageName,
+                                    PackageManager.MATCH_UNINSTALLED_PACKAGES);
+                        } catch (NameNotFoundException e) {
+                            unknownPackages.add(packageName);
+                        }
+                    }
+                }
+            }
+        }
+
+        Log.d(TAG, "Found " + unknownPackages.size() + " unknown packages");
+        for (String packageName : unknownPackages) {
+            onPackageOrphaned(packageName);
+        }
+    }
+
+    public void onPackageOrphaned(String packageName) {
+        final ContentValues values = new ContentValues();
+        values.putNull(FileColumns.OWNER_PACKAGE_NAME);
+
+        synchronized (mDatabases) {
+            for (DatabaseHelper helper : mDatabases.values()) {
+                final SQLiteDatabase db = helper.getWritableDatabase();
+                final int count = db.update("files", values,
+                        "owner_package_name=?", new String[] { packageName });
+                if (count > 0) {
+                    Log.d(TAG, "Orphaned " + count + " items belonging to "
+                            + packageName + " on " + helper.mName);
+                }
+            }
+        }
+    }
+
     private void enforceShellRestrictions() {
         if (UserHandle.getCallingAppId() == android.os.Process.SHELL_UID
                 && getContext().getSystemService(UserManager.class)

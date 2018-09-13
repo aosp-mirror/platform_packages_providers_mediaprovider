@@ -57,10 +57,15 @@
             </intent-filter>
         </receiver>
 
-        <receiver android:name="MediaScannerReceiver">
+        <receiver android:name=".MediaReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.LOCALE_CHANGED" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.PACKAGE_FULLY_REMOVED" />
+                <action android:name="android.intent.action.PACKAGE_DATA_CLEARED" />
+                <data android:scheme="package" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_MOUNTED" />
@@ -75,6 +80,11 @@
                 <data android:scheme="file" />
             </intent-filter>
         </receiver>
+
+        <service
+            android:name=".IdleService"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
 
         <service android:name="MediaScannerService" android:exported="true">
             <intent-filter>

@@ -561,8 +561,8 @@ public class MediaProvider extends ContentProvider {
         synchronized (mDatabases) {
             for (DatabaseHelper helper : mDatabases.values()) {
                 final SQLiteDatabase db = helper.getReadableDatabase();
-                try (Cursor c = db.query(false, "files", new String[] { "owner_package_name" },
-                        null, null, "owner_package_name", null, null, null, signal)) {
+                try (Cursor c = db.query(true, "files", new String[] { "owner_package_name" },
+                        null, null, null, null, null, null, signal)) {
                     while (c.moveToNext()) {
                         final String packageName = c.getString(0);
                         if (TextUtils.isEmpty(packageName)) continue;

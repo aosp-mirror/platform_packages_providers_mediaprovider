@@ -67,7 +67,6 @@ import android.media.MediaFile;
 import android.media.MediaScanner;
 import android.media.MediaScannerConnection;
 import android.media.MediaScannerConnection.MediaScannerConnectionClient;
-import android.media.MiniThumbFile;
 import android.mtp.MtpConstants;
 import android.net.Uri;
 import android.os.Binder;
@@ -144,7 +143,7 @@ import java.util.regex.Pattern;
  * changes with the card.
  */
 public class MediaProvider extends ContentProvider {
-    private static final boolean ENFORCE_PUBLIC_API = false;
+    private static final boolean ENFORCE_PUBLIC_API = true;
 
     private static final boolean ENFORCE_ISOLATED_STORAGE = SystemProperties
             .getBoolean(StorageManager.PROP_ISOLATED_STORAGE, false);
@@ -237,7 +236,6 @@ public class MediaProvider extends ContentProvider {
                 if (storage.getPath().equals(mExternalStoragePaths[0])) {
                     detachVolume(Uri.parse("content://media/external"));
                     sFolderArtMap.clear();
-                    MiniThumbFile.reset();
                 } else {
                     // If secondary external storage is ejected, then we delete all database
                     // entries for that storage from the files table.
@@ -555,6 +553,51 @@ public class MediaProvider extends ContentProvider {
         return true;
     }
 
+    public void onIdleMaintenance(CancellationSignal signal) {
+        // Finished orphaning any content whose package no longer exists
+        final ArraySet<String> unknownPackages = new ArraySet<>();
+        synchronized (mDatabases) {
+            for (DatabaseHelper helper : mDatabases.values()) {
+                final SQLiteDatabase db = helper.getReadableDatabase();
+                try (Cursor c = db.query(true, "files", new String[] { "owner_package_name" },
+                        null, null, null, null, null, null, signal)) {
+                    while (c.moveToNext()) {
+                        final String packageName = c.getString(0);
+                        if (TextUtils.isEmpty(packageName)) continue;
+                        try {
+                            getContext().getPackageManager().getPackageInfo(packageName,
+                                    PackageManager.MATCH_UNINSTALLED_PACKAGES);
+                        } catch (NameNotFoundException e) {
+                            unknownPackages.add(packageName);
+                        }
+                    }
+                }
+            }
+        }
+
+        Log.d(TAG, "Found " + unknownPackages.size() + " unknown packages");
+        for (String packageName : unknownPackages) {
+            onPackageOrphaned(packageName);
+        }
+    }
+
+    public void onPackageOrphaned(String packageName) {
+        final ContentValues values = new ContentValues();
+        values.putNull(FileColumns.OWNER_PACKAGE_NAME);
+
+        synchronized (mDatabases) {
+            for (DatabaseHelper helper : mDatabases.values()) {
+                final SQLiteDatabase db = helper.getWritableDatabase();
+                final int count = db.update("files", values,
+                        "owner_package_name=?", new String[] { packageName });
+                if (count > 0) {
+                    Log.d(TAG, "Orphaned " + count + " items belonging to "
+                            + packageName + " on " + helper.mName);
+                }
+            }
+        }
+    }
+
     private void enforceShellRestrictions() {
         if (UserHandle.getCallingAppId() == android.os.Process.SHELL_UID
                 && getContext().getSystemService(UserManager.class)
@@ -709,7 +752,8 @@ public class MediaProvider extends ContentProvider {
                 + "bookmark,album_artist,owner_package_name FROM files WHERE media_type=2");
         db.execSQL("CREATE VIEW artists_albums_map AS SELECT DISTINCT artist_id, album_id"
                 + " FROM audio_meta");
-        db.execSQL("CREATE VIEW audio as SELECT * FROM audio_meta LEFT OUTER JOIN artists"
+        db.execSQL("CREATE VIEW audio as SELECT *, NULL AS width, NULL as height"
+                + " FROM audio_meta LEFT OUTER JOIN artists"
                 + " ON audio_meta.artist_id=artists.artist_id LEFT OUTER JOIN albums"
                 + " ON audio_meta.album_id=albums.album_id");
         db.execSQL("CREATE VIEW album_info AS SELECT audio.album_id AS _id, album, album_key,"
@@ -744,11 +788,11 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("CREATE VIEW images AS SELECT _id,_data,_size,_display_name,mime_type,title,"
                 + "date_added,date_modified,description,picasa_id,isprivate,latitude,longitude,"
                 + "datetaken,orientation,mini_thumb_magic,bucket_id,bucket_display_name,width,"
-                + "height,owner_package_name FROM files WHERE media_type=1");
+                + "height,is_drm,owner_package_name FROM files WHERE media_type=1");
         db.execSQL("CREATE VIEW video AS SELECT _id,_data,_display_name,_size,mime_type,"
                 + "date_added,date_modified,title,duration,artist,album,resolution,description,"
                 + "isprivate,tags,category,language,mini_thumb_data,latitude,longitude,datetaken,"
-                + "mini_thumb_magic,bucket_id,bucket_display_name,bookmark,width,height,"
+                + "mini_thumb_magic,bucket_id,bucket_display_name,bookmark,width,height,is_drm,"
                 + "owner_package_name FROM files WHERE media_type=3");
     }
 
@@ -830,7 +874,7 @@ public class MediaProvider extends ContentProvider {
             updateFromOCSchema(db);
         } else if (fromVersion < 1000) {
             updateFromPSchema(db, internal);
-        } else if (fromVersion < 1001) {
+        } else if (fromVersion < 1002) {
             createLatestViews(db, internal);
         }
 
@@ -2559,6 +2603,10 @@ public class MediaProvider extends ContentProvider {
             case IMAGES_MEDIA:
                 if (type == TYPE_QUERY) {
                     qb.setTables("images");
+                    if (ENFORCE_PUBLIC_API) {
+                        qb.setProjectionMap(sImagesColumns);
+                        qb.setProjectionGreylist(sGreylist);
+                    }
                 } else {
                     qb.setTables("files");
                     appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
@@ -2587,6 +2635,10 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_MEDIA:
                 if (type == TYPE_QUERY) {
                     qb.setTables("audio");
+                    if (ENFORCE_PUBLIC_API) {
+                        qb.setProjectionMap(sAudioColumns);
+                        qb.setProjectionGreylist(sGreylist);
+                    }
                 } else {
                     qb.setTables("files");
                     appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
@@ -2718,6 +2770,10 @@ public class MediaProvider extends ContentProvider {
             case VIDEO_MEDIA:
                 if (type == TYPE_QUERY) {
                     qb.setTables("video");
+                    if (ENFORCE_PUBLIC_API) {
+                        qb.setProjectionMap(sVideoColumns);
+                        qb.setProjectionGreylist(sGreylist);
+                    }
                 } else {
                     qb.setTables("files");
                     appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
@@ -2821,8 +2877,6 @@ public class MediaProvider extends ContentProvider {
                             null, null);
                     String [] idvalue = new String[] { "" };
                     String [] playlistvalues = new String[] { "", "" };
-                    MiniThumbFile imageMicroThumbs = null;
-                    MiniThumbFile videoMicroThumbs = null;
                     try {
                         while (c.moveToNext()) {
                             final int mediaType = c.getInt(0);
@@ -2849,13 +2903,6 @@ public class MediaProvider extends ContentProvider {
                                 } finally {
                                     IoUtils.closeQuietly(cc);
                                 }
-                                if (isExternal) {
-                                    if (imageMicroThumbs == null) {
-                                        imageMicroThumbs = MiniThumbFile.instance(
-                                                Images.Media.EXTERNAL_CONTENT_URI);
-                                    }
-                                    imageMicroThumbs.eraseMiniThumb(id);
-                                }
                             } else if (mediaType == FileColumns.MEDIA_TYPE_VIDEO) {
                                 deleteIfAllowed(uri, data);
                                 MediaDocumentsProvider.onMediaStoreDelete(getContext(),
@@ -2873,13 +2920,6 @@ public class MediaProvider extends ContentProvider {
                                     db.delete("videothumbnails", "video_id=?", idvalue);
                                 } finally {
                                     IoUtils.closeQuietly(cc);
-                                }
-                                if (isExternal) {
-                                    if (videoMicroThumbs == null) {
-                                        videoMicroThumbs = MiniThumbFile.instance(
-                                                Video.Media.EXTERNAL_CONTENT_URI);
-                                    }
-                                    videoMicroThumbs.eraseMiniThumb(id);
                                 }
                             } else if (mediaType == FileColumns.MEDIA_TYPE_AUDIO) {
                                 if (!database.mInternal) {
@@ -2916,12 +2956,6 @@ public class MediaProvider extends ContentProvider {
                         }
                     } finally {
                         IoUtils.closeQuietly(c);
-                        if (imageMicroThumbs != null) {
-                            imageMicroThumbs.deactivate();
-                        }
-                        if (videoMicroThumbs != null) {
-                            videoMicroThumbs.deactivate();
-                        }
                     }
                     // Do not allow deletion if the file/object is referenced as parent
                     // by some other entries. It could cause database corruption.
@@ -3088,9 +3122,6 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("delete from thumbnails where image_id=" + id);
             db.execSQL("delete from videothumbnails where video_id=" + id);
         }
-        MiniThumbFile microThumbs = MiniThumbFile.instance(uri);
-        microThumbs.eraseMiniThumb(id);
-        microThumbs.deactivate();
     }
 
     @Override
@@ -4970,6 +5001,8 @@ public class MediaProvider extends ContentProvider {
 
     private static final ArrayMap<String, String> sMediaColumns = new ArrayMap<>();
     private static final ArrayMap<String, String> sAudioColumns = new ArrayMap<>();
+    private static final ArrayMap<String, String> sImagesColumns = new ArrayMap<>();
+    private static final ArrayMap<String, String> sVideoColumns = new ArrayMap<>();
 
     private static final ArrayMap<String, String> sArtistAlbumsMap = new ArrayMap<>();
     private static final ArrayMap<String, String> sPlaylistMembersMap = new ArrayMap<>();
@@ -5021,6 +5054,42 @@ public class MediaProvider extends ContentProvider {
     }
 
     {
+        final Map<String, String> map = sImagesColumns;
+        map.putAll(sMediaColumns);
+        addMapping(map, MediaStore.Images.ImageColumns.DESCRIPTION);
+        addMapping(map, MediaStore.Images.ImageColumns.PICASA_ID);
+        addMapping(map, MediaStore.Images.ImageColumns.IS_PRIVATE);
+        addMapping(map, MediaStore.Images.ImageColumns.LATITUDE);
+        addMapping(map, MediaStore.Images.ImageColumns.LONGITUDE);
+        addMapping(map, MediaStore.Images.ImageColumns.DATE_TAKEN);
+        addMapping(map, MediaStore.Images.ImageColumns.ORIENTATION);
+        addMapping(map, MediaStore.Images.ImageColumns.MINI_THUMB_MAGIC);
+        addMapping(map, MediaStore.Images.ImageColumns.BUCKET_ID);
+        addMapping(map, MediaStore.Images.ImageColumns.BUCKET_DISPLAY_NAME);
+    }
+
+    {
+        final Map<String, String> map = sVideoColumns;
+        map.putAll(sMediaColumns);
+        addMapping(map, MediaStore.Video.VideoColumns.DURATION);
+        addMapping(map, MediaStore.Video.VideoColumns.ARTIST);
+        addMapping(map, MediaStore.Video.VideoColumns.ALBUM);
+        addMapping(map, MediaStore.Video.VideoColumns.RESOLUTION);
+        addMapping(map, MediaStore.Video.VideoColumns.DESCRIPTION);
+        addMapping(map, MediaStore.Video.VideoColumns.IS_PRIVATE);
+        addMapping(map, MediaStore.Video.VideoColumns.TAGS);
+        addMapping(map, MediaStore.Video.VideoColumns.CATEGORY);
+        addMapping(map, MediaStore.Video.VideoColumns.LANGUAGE);
+        addMapping(map, MediaStore.Video.VideoColumns.LATITUDE);
+        addMapping(map, MediaStore.Video.VideoColumns.LONGITUDE);
+        addMapping(map, MediaStore.Video.VideoColumns.DATE_TAKEN);
+        addMapping(map, MediaStore.Video.VideoColumns.MINI_THUMB_MAGIC);
+        addMapping(map, MediaStore.Video.VideoColumns.BUCKET_ID);
+        addMapping(map, MediaStore.Video.VideoColumns.BUCKET_DISPLAY_NAME);
+        addMapping(map, MediaStore.Video.VideoColumns.BOOKMARK);
+    }
+
+    {
         final Map<String, String> map = sArtistAlbumsMap;
         // TODO: defined in API, but CTS claims it should be omitted
         // addMapping(map, MediaStore.Audio.Artists.Albums.ALBUM_ID, "audio.album_id");
@@ -5041,7 +5110,6 @@ public class MediaProvider extends ContentProvider {
 
     {
         final Map<String, String> map = sPlaylistMembersMap;
-        // TODO: not actually defined in API, but CTS tested
         map.putAll(sAudioColumns);
         addMapping(map, MediaStore.Audio.Playlists.Members._ID, "audio_playlists_map._id");
         addMapping(map, MediaStore.Audio.Playlists.Members.AUDIO_ID);
@@ -5051,6 +5119,23 @@ public class MediaProvider extends ContentProvider {
         // TODO: defined in API, but CTS claims it should be omitted
         map.remove(MediaStore.MediaColumns.WIDTH);
         map.remove(MediaStore.MediaColumns.HEIGHT);
+    }
+
+    /**
+     * List of abusive custom columns that we're willing to allow via
+     * {@link SQLiteQueryBuilder#setProjectionGreylist(List)}.
+     */
+    static final ArrayList<Pattern> sGreylist = new ArrayList<>();
+
+    {
+        sGreylist.add(Pattern.compile(
+                "(?i)count\\(\\*\\)"));
+        sGreylist.add(Pattern.compile(
+                "case when case when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added \\* \\d+ when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added / \\d+ else \\d+ end > case when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified \\* \\d+ when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified / \\d+ else \\d+ end then case when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added \\* \\d+ when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added / \\d+ else \\d+ end else case when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified \\* \\d+ when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified / \\d+ else \\d+ end end as corrected_added_modified"));
+        sGreylist.add(Pattern.compile(
+                "MAX\\(case when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken \\* \\d+ when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken / \\d+ else \\d+ end\\)"));
+        sGreylist.add(Pattern.compile(
+                "(?i)\\d+ as orientation"));
     }
 
     private static String getVolumeName(Uri uri) {

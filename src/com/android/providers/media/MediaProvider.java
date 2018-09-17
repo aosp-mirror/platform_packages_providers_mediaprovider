@@ -1797,14 +1797,13 @@ public class MediaProvider extends ContentProvider {
             if (!values.containsKey(FileColumns.MEDIA_TYPE) &&
                     mediaType == FileColumns.MEDIA_TYPE_NONE &&
                     !MediaScanner.isNoMediaPath(path)) {
-                int fileType = MediaFile.getFileTypeForMimeType(mimeType);
-                if (MediaFile.isAudioFileType(fileType)) {
+                if (MediaFile.isAudioMimeType(mimeType)) {
                     mediaType = FileColumns.MEDIA_TYPE_AUDIO;
-                } else if (MediaFile.isVideoFileType(fileType)) {
+                } else if (MediaFile.isVideoMimeType(mimeType)) {
                     mediaType = FileColumns.MEDIA_TYPE_VIDEO;
-                } else if (MediaFile.isImageFileType(fileType)) {
+                } else if (MediaFile.isImageMimeType(mimeType)) {
                     mediaType = FileColumns.MEDIA_TYPE_IMAGE;
-                } else if (MediaFile.isPlayListFileType(fileType)) {
+                } else if (MediaFile.isPlayListMimeType(mimeType)) {
                     mediaType = FileColumns.MEDIA_TYPE_PLAYLIST;
                 }
             }

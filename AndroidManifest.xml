@@ -18,7 +18,8 @@
     <application android:process="android.process.media"
                  android:label="@string/app_label"
                  android:allowBackup="false"
-                 android:supportsRtl="true">
+                 android:supportsRtl="true"
+                 android:usesCleartextTraffic="true">
         <provider android:name="MediaProvider" android:authorities="media"
                 android:multiprocess="false" android:exported="true">
             <grant-uri-permission android:pathPrefix="/external/" />

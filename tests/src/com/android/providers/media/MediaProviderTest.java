@@ -81,6 +81,8 @@ public class MediaProviderTest {
                 "MAX(case when (datetaken >= 157680000 and datetaken < 1892160000) then datetaken * 1000 when (datetaken >= 157680000000 and datetaken < 1892160000000) then datetaken when (datetaken >= 157680000000000 and datetaken < 1892160000000000) then datetaken / 1000 else 0 end)"));
         assertTrue(isGreylistMatch(
                 "0 as orientation"));
+        assertTrue(isGreylistMatch(
+                "\"content://media/internal/audio/media\""));
     }
 
     private static boolean isGreylistMatch(String raw) {

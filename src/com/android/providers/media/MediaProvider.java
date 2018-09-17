@@ -5051,6 +5051,9 @@ public class MediaProvider extends ContentProvider {
         addMapping(map, MediaStore.Audio.AudioColumns.IS_RINGTONE);
         addMapping(map, MediaStore.Audio.AudioColumns.IS_ALARM);
         addMapping(map, MediaStore.Audio.AudioColumns.IS_NOTIFICATION);
+
+        // TODO: not actually defined in API, but CTS tested
+        addMapping(map, MediaStore.Audio.AudioColumns.ALBUM_ARTIST);
     }
 
     {

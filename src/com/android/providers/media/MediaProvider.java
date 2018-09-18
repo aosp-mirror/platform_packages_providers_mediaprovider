@@ -143,7 +143,7 @@ import java.util.regex.Pattern;
  * changes with the card.
  */
 public class MediaProvider extends ContentProvider {
-    private static final boolean ENFORCE_PUBLIC_API = true;
+    private static final boolean ENFORCE_PUBLIC_API = false;
 
     private static final boolean ENFORCE_ISOLATED_STORAGE = SystemProperties
             .getBoolean(StorageManager.PROP_ISOLATED_STORAGE, false);

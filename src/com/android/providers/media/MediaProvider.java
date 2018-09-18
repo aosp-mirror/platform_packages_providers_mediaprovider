@@ -5138,6 +5138,8 @@ public class MediaProvider extends ContentProvider {
                 "MAX\\(case when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken \\* \\d+ when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken / \\d+ else \\d+ end\\)"));
         sGreylist.add(Pattern.compile(
                 "(?i)\\d+ as orientation"));
+        sGreylist.add(Pattern.compile(
+                "\"content://media/[a-z]+/audio/media\""));
     }
 
     private static String getVolumeName(Uri uri) {

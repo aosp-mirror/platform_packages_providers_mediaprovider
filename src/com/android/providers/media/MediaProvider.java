@@ -143,7 +143,7 @@ import java.util.regex.Pattern;
  * changes with the card.
  */
 public class MediaProvider extends ContentProvider {
-    private static final boolean ENFORCE_PUBLIC_API = false;
+    private static final boolean ENFORCE_PUBLIC_API = true;
 
     private static final boolean ENFORCE_ISOLATED_STORAGE = SystemProperties
             .getBoolean(StorageManager.PROP_ISOLATED_STORAGE, false);
@@ -1797,14 +1797,13 @@ public class MediaProvider extends ContentProvider {
             if (!values.containsKey(FileColumns.MEDIA_TYPE) &&
                     mediaType == FileColumns.MEDIA_TYPE_NONE &&
                     !MediaScanner.isNoMediaPath(path)) {
-                int fileType = MediaFile.getFileTypeForMimeType(mimeType);
-                if (MediaFile.isAudioFileType(fileType)) {
+                if (MediaFile.isAudioMimeType(mimeType)) {
                     mediaType = FileColumns.MEDIA_TYPE_AUDIO;
-                } else if (MediaFile.isVideoFileType(fileType)) {
+                } else if (MediaFile.isVideoMimeType(mimeType)) {
                     mediaType = FileColumns.MEDIA_TYPE_VIDEO;
-                } else if (MediaFile.isImageFileType(fileType)) {
+                } else if (MediaFile.isImageMimeType(mimeType)) {
                     mediaType = FileColumns.MEDIA_TYPE_IMAGE;
-                } else if (MediaFile.isPlayListFileType(fileType)) {
+                } else if (MediaFile.isPlayListMimeType(mimeType)) {
                     mediaType = FileColumns.MEDIA_TYPE_PLAYLIST;
                 }
             }
@@ -5051,6 +5050,9 @@ public class MediaProvider extends ContentProvider {
         addMapping(map, MediaStore.Audio.AudioColumns.IS_RINGTONE);
         addMapping(map, MediaStore.Audio.AudioColumns.IS_ALARM);
         addMapping(map, MediaStore.Audio.AudioColumns.IS_NOTIFICATION);
+
+        // TODO: not actually defined in API, but CTS tested
+        addMapping(map, MediaStore.Audio.AudioColumns.ALBUM_ARTIST);
     }
 
     {
@@ -5136,6 +5138,8 @@ public class MediaProvider extends ContentProvider {
                 "MAX\\(case when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken \\* \\d+ when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken / \\d+ else \\d+ end\\)"));
         sGreylist.add(Pattern.compile(
                 "(?i)\\d+ as orientation"));
+        sGreylist.add(Pattern.compile(
+                "\"content://media/[a-z]+/audio/media\""));
     }
 
     private static String getVolumeName(Uri uri) {

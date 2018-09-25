@@ -5134,6 +5134,8 @@ public class MediaProvider extends ContentProvider {
         sGreylist.add(Pattern.compile(
                 "MAX\\(case when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken \\* \\d+ when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken / \\d+ else \\d+ end\\)"));
         sGreylist.add(Pattern.compile(
+                "MAX\\(case when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added \\* \\d+ when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added / \\d+ else \\d+ end\\)"));
+        sGreylist.add(Pattern.compile(
                 "(?i)\\d+ as orientation"));
         sGreylist.add(Pattern.compile(
                 "\"content://media/[a-z]+/audio/media\""));

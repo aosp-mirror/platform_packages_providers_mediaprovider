@@ -106,6 +106,7 @@ import android.text.format.DateUtils;
 import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.Log;
+import android.util.Pair;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.os.BackgroundThread;
@@ -1202,14 +1203,10 @@ public class MediaProvider extends ContentProvider {
         // Some apps are abusing the "WHERE" clause by injecting "GROUP BY"
         // clauses; gracefully lift them out.
         if (getCallingPackageTargetSdkVersion() < Build.VERSION_CODES.Q) {
-            final int groupByIndex = (selection != null) ? selection.indexOf(") GROUP BY (") : -1;
-            if (groupByIndex != -1) {
-                final String original = selection;
-                selection = original.substring(0, groupByIndex);
-                groupBy = original.substring(groupByIndex + ") GROUP BY (".length());
-                Log.w(TAG, "Recovered abusive '" + selection + "' and '" + groupBy + "' from '"
-                        + original + "'");
-            }
+            final Pair<String, String> selectionAndGroupBy = recoverAbusiveGroupBy(
+                    Pair.create(selection, groupBy));
+            selection = selectionAndGroupBy.first;
+            groupBy = selectionAndGroupBy.second;
         }
 
         Cursor c = qb.query(db, projectionIn, selection,
@@ -5137,9 +5134,45 @@ public class MediaProvider extends ContentProvider {
         sGreylist.add(Pattern.compile(
                 "MAX\\(case when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken \\* \\d+ when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken / \\d+ else \\d+ end\\)"));
         sGreylist.add(Pattern.compile(
+                "MAX\\(case when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added \\* \\d+ when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added / \\d+ else \\d+ end\\)"));
+        sGreylist.add(Pattern.compile(
                 "(?i)\\d+ as orientation"));
         sGreylist.add(Pattern.compile(
                 "\"content://media/[a-z]+/audio/media\""));
+    }
+
+    /**
+     * Gracefully recover from abusive callers that are smashing invalid
+     * {@code GROUP BY} clauses into {@code WHERE} clauses.
+     */
+    @VisibleForTesting
+    static Pair<String, String> recoverAbusiveGroupBy(Pair<String, String> selectionAndGroupBy) {
+        final String origSelection = selectionAndGroupBy.first;
+        final String origGroupBy = selectionAndGroupBy.second;
+
+        final int index = (origSelection != null) ? origSelection.indexOf(" GROUP BY ") : -1;
+        if (index != -1) {
+            String selection = origSelection.substring(0, index);
+            String groupBy = origSelection.substring(index + " GROUP BY ".length());
+
+            // If values are unbalanced, then splice in extra parenthesis
+            if (selection.endsWith(")") && groupBy.startsWith("(")) {
+                selection = "(" + selection;
+                groupBy = groupBy + ")";
+            }
+
+            // Yell if we already had a group by requested
+            if (!TextUtils.isEmpty(origGroupBy)) {
+                throw new IllegalArgumentException(
+                        "Abusive '" + groupBy + "' conflicts with requested '" + origGroupBy + "'");
+            }
+
+            Log.w(TAG, "Recovered abusive '" + selection + "' and '" + groupBy + "' from '"
+                    + origSelection + "'");
+            return Pair.create(selection, groupBy);
+        } else {
+            return selectionAndGroupBy;
+        }
     }
 
     private static String getVolumeName(Uri uri) {

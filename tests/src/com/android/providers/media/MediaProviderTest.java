@@ -17,12 +17,15 @@
 package com.android.providers.media;
 
 import static com.android.providers.media.MediaProvider.getPathOwnerPackageName;
+import static com.android.providers.media.MediaProvider.recoverAbusiveGroupBy;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import android.support.test.runner.AndroidJUnit4;
+import android.util.Pair;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -64,6 +67,77 @@ public class MediaProviderTest {
     }
 
     @Test
+    public void testRecoverAbusiveGroupBy_Conflicting() throws Exception {
+        // Abusive group is fine
+        recoverAbusiveGroupBy(Pair.create("foo=bar GROUP BY foo", null));
+
+        // Official group is fine
+        recoverAbusiveGroupBy(Pair.create("foo=bar", "foo"));
+
+        // Conflicting groups should yell
+        try {
+            recoverAbusiveGroupBy(Pair.create("foo=bar GROUP BY foo", "foo"));
+            fail("Expected IAE when conflicting groups defined");
+        } catch (IllegalArgumentException expected) {
+        }
+    }
+
+    @Test
+    public void testRecoverAbusiveGroupBy_Buckets() throws Exception {
+        final Pair<String, String> input = Pair.create(
+                "(media_type = 1 OR media_type = 3) AND bucket_display_name IS NOT NULL AND bucket_id IS NOT NULL AND _data NOT LIKE \"%/DCIM/%\" ) GROUP BY (bucket_id",
+                null);
+        final Pair<String, String> expected = Pair.create(
+                "((media_type = 1 OR media_type = 3) AND bucket_display_name IS NOT NULL AND bucket_id IS NOT NULL AND _data NOT LIKE \"%/DCIM/%\" )",
+                "(bucket_id)");
+        assertEquals(expected, recoverAbusiveGroupBy(input));
+    }
+
+    @Test
+    public void testRecoverAbusiveGroupBy_BucketsByPath() throws Exception {
+        final Pair<String, String> input = Pair.create(
+                "_data LIKE ? AND _data IS NOT NULL) GROUP BY (bucket_id",
+                null);
+        final Pair<String, String> expected = Pair.create(
+                "(_data LIKE ? AND _data IS NOT NULL)",
+                "(bucket_id)");
+        assertEquals(expected, recoverAbusiveGroupBy(input));
+    }
+
+    @Test
+    public void testRecoverAbusiveGroupBy_113651872() throws Exception {
+        final Pair<String, String> input = Pair.create(
+                "(LOWER(SUBSTR(_data, -4))=? OR LOWER(SUBSTR(_data, -5))=? OR LOWER(SUBSTR(_data, -4))=?) AND LOWER(SUBSTR(_data, 1, 65))!=?) GROUP BY (bucket_id),(bucket_display_name",
+                null);
+        final Pair<String, String> expected = Pair.create(
+                "((LOWER(SUBSTR(_data, -4))=? OR LOWER(SUBSTR(_data, -5))=? OR LOWER(SUBSTR(_data, -4))=?) AND LOWER(SUBSTR(_data, 1, 65))!=?)",
+                "(bucket_id),(bucket_display_name)");
+        assertEquals(expected, recoverAbusiveGroupBy(input));
+    }
+
+    @Test
+    public void testRecoverAbusiveGroupBy_113652519() throws Exception {
+        final Pair<String, String> input = Pair.create(
+                "(1) GROUP BY 1,(2)",
+                null);
+        final Pair<String, String> expected = Pair.create(
+                "(1)",
+                "1,(2)");
+        assertEquals(expected, recoverAbusiveGroupBy(input));
+    }
+
+    @Test
+    public void testRecoverAbusiveGroupBy_115340326() throws Exception {
+        final Pair<String, String> input = Pair.create(
+                "(1) GROUP BY bucket_id,(bucket_display_name)",
+                null);
+        final Pair<String,String> expected = Pair.create(
+                "(1)",
+                "bucket_id,(bucket_display_name)");
+        assertEquals(expected, recoverAbusiveGroupBy(input));
+    }
+
+    @Test
     public void testGreylist() throws Exception {
         assertFalse(isGreylistMatch(
                 "SELECT secret FROM other_table"));
@@ -79,6 +153,8 @@ public class MediaProviderTest {
                 "case when case when (date_added >= 157680000 and date_added < 1892160000) then date_added * 1000 when (date_added >= 157680000000 and date_added < 1892160000000) then date_added when (date_added >= 157680000000000 and date_added < 1892160000000000) then date_added / 1000 else 0 end > case when (date_modified >= 157680000 and date_modified < 1892160000) then date_modified * 1000 when (date_modified >= 157680000000 and date_modified < 1892160000000) then date_modified when (date_modified >= 157680000000000 and date_modified < 1892160000000000) then date_modified / 1000 else 0 end then case when (date_added >= 157680000 and date_added < 1892160000) then date_added * 1000 when (date_added >= 157680000000 and date_added < 1892160000000) then date_added when (date_added >= 157680000000000 and date_added < 1892160000000000) then date_added / 1000 else 0 end else case when (date_modified >= 157680000 and date_modified < 1892160000) then date_modified * 1000 when (date_modified >= 157680000000 and date_modified < 1892160000000) then date_modified when (date_modified >= 157680000000000 and date_modified < 1892160000000000) then date_modified / 1000 else 0 end end as corrected_added_modified"));
         assertTrue(isGreylistMatch(
                 "MAX(case when (datetaken >= 157680000 and datetaken < 1892160000) then datetaken * 1000 when (datetaken >= 157680000000 and datetaken < 1892160000000) then datetaken when (datetaken >= 157680000000000 and datetaken < 1892160000000000) then datetaken / 1000 else 0 end)"));
+        assertTrue(isGreylistMatch(
+                "MAX(case when (date_added >= 157680000 and date_added < 1892160000) then date_added * 1000 when (date_added >= 157680000000 and date_added < 1892160000000) then date_added when (date_added >= 157680000000000 and date_added < 1892160000000000) then date_added / 1000 else 0 end)"));
         assertTrue(isGreylistMatch(
                 "0 as orientation"));
         assertTrue(isGreylistMatch(

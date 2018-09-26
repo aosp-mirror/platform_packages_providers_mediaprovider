@@ -144,7 +144,7 @@ import java.util.regex.Pattern;
  * changes with the card.
  */
 public class MediaProvider extends ContentProvider {
-    private static final boolean ENFORCE_PUBLIC_API = true;
+    private static final boolean ENFORCE_PUBLIC_API = false;
 
     private static final boolean ENFORCE_ISOLATED_STORAGE = SystemProperties
             .getBoolean(StorageManager.PROP_ISOLATED_STORAGE, false);
@@ -5128,7 +5128,9 @@ public class MediaProvider extends ContentProvider {
 
     {
         sGreylist.add(Pattern.compile(
-                "(?i)count\\(\\*\\)"));
+                "(?i)[_a-z0-9]+ as [_a-z0-9]+"));
+        sGreylist.add(Pattern.compile(
+                "(?i)(min|max|sum|avg|total|count)\\(([_a-z0-9]+|\\*)\\)( as [_a-z0-9]+)?"));
         sGreylist.add(Pattern.compile(
                 "case when case when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added \\* \\d+ when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added / \\d+ else \\d+ end > case when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified \\* \\d+ when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified / \\d+ else \\d+ end then case when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added \\* \\d+ when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added / \\d+ else \\d+ end else case when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified \\* \\d+ when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified / \\d+ else \\d+ end end as corrected_added_modified"));
         sGreylist.add(Pattern.compile(
@@ -5136,7 +5138,7 @@ public class MediaProvider extends ContentProvider {
         sGreylist.add(Pattern.compile(
                 "MAX\\(case when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added \\* \\d+ when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added / \\d+ else \\d+ end\\)"));
         sGreylist.add(Pattern.compile(
-                "(?i)\\d+ as orientation"));
+                "MAX\\(case when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified \\* \\d+ when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified / \\d+ else \\d+ end\\)"));
         sGreylist.add(Pattern.compile(
                 "\"content://media/[a-z]+/audio/media\""));
     }

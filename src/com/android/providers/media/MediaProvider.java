@@ -5142,6 +5142,52 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     * Simple attempt to balance the given SQL expression by adding parenthesis
+     * when needed.
+     * <p>
+     * Since this is only used for recovering from abusive apps, we're not
+     * interested in trying to build a fully valid SQL parser up in Java. It'll
+     * give up when it encounters complex SQL, such as string literals.
+     */
+    @VisibleForTesting
+    static @Nullable String maybeBalance(@Nullable String sql) {
+        if (sql == null) return null;
+
+        int count = 0;
+        char literal = '\0';
+        for (int i = 0; i < sql.length(); i++) {
+            final char c = sql.charAt(i);
+
+            if (c == '\'' || c == '"') {
+                if (literal == '\0') {
+                    // Start literal
+                    literal = c;
+                } else if (literal == c) {
+                    // End literal
+                    literal = '\0';
+                }
+            }
+
+            if (literal == '\0') {
+                if (c == '(') {
+                    count++;
+                } else if (c == ')') {
+                    count--;
+                }
+            }
+        }
+        while (count > 0) {
+            sql = sql + ")";
+            count--;
+        }
+        while (count < 0) {
+            sql = "(" + sql;
+            count++;
+        }
+        return sql;
+    }
+
+    /**
      * Gracefully recover from abusive callers that are smashing invalid
      * {@code GROUP BY} clauses into {@code WHERE} clauses.
      */
@@ -5155,11 +5201,9 @@ public class MediaProvider extends ContentProvider {
             String selection = origSelection.substring(0, index);
             String groupBy = origSelection.substring(index + " GROUP BY ".length());
 
-            // If values are unbalanced, then splice in extra parenthesis
-            if (selection.endsWith(")") && groupBy.startsWith("(")) {
-                selection = "(" + selection;
-                groupBy = groupBy + ")";
-            }
+            // Try balancing things out
+            selection = maybeBalance(selection);
+            groupBy = maybeBalance(groupBy);
 
             // Yell if we already had a group by requested
             if (!TextUtils.isEmpty(origGroupBy)) {

@@ -17,6 +17,7 @@
 package com.android.providers.media;
 
 import static com.android.providers.media.MediaProvider.getPathOwnerPackageName;
+import static com.android.providers.media.MediaProvider.maybeBalance;
 import static com.android.providers.media.MediaProvider.recoverAbusiveGroupBy;
 
 import static org.junit.Assert.assertEquals;
@@ -118,10 +119,21 @@ public class MediaProviderTest {
     @Test
     public void testRecoverAbusiveGroupBy_113652519() throws Exception {
         final Pair<String, String> input = Pair.create(
-                "(1) GROUP BY 1,(2)",
+                "1) GROUP BY 1,(2",
                 null);
         final Pair<String, String> expected = Pair.create(
                 "(1)",
+                "1,(2)");
+        assertEquals(expected, recoverAbusiveGroupBy(input));
+    }
+
+    @Test
+    public void testRecoverAbusiveGroupBy_113652519_longer() throws Exception {
+        final Pair<String, String> input = Pair.create(
+                "mime_type IN ( ?, ?, ? ) AND 1) GROUP BY 1,(2",
+                null);
+        final Pair<String, String> expected = Pair.create(
+                "(mime_type IN ( ?, ?, ? ) AND 1)",
                 "1,(2)");
         assertEquals(expected, recoverAbusiveGroupBy(input));
     }
@@ -135,6 +147,25 @@ public class MediaProviderTest {
                 "(1)",
                 "bucket_id,(bucket_display_name)");
         assertEquals(expected, recoverAbusiveGroupBy(input));
+    }
+
+    @Test
+    public void testMaybeBalance() throws Exception {
+        assertEquals(null, maybeBalance(null));
+        assertEquals("", maybeBalance(""));
+
+        assertEquals("()", maybeBalance(")"));
+        assertEquals("()", maybeBalance("("));
+        assertEquals("()", maybeBalance("()"));
+
+        assertEquals("(1==1)", maybeBalance("1==1)"));
+        assertEquals("((foo)bar)baz", maybeBalance("foo)bar)baz"));
+        assertEquals("foo(bar(baz))", maybeBalance("foo(bar(baz"));
+
+        assertEquals("IN '('", maybeBalance("IN '('"));
+        assertEquals("IN ('(')", maybeBalance("IN ('('"));
+        assertEquals("IN (\")\")", maybeBalance("IN (\")\""));
+        assertEquals("IN ('\"(')", maybeBalance("IN ('\"('"));
     }
 
     @Test

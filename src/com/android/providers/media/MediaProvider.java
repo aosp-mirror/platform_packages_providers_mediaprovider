@@ -5211,7 +5211,8 @@ public class MediaProvider extends ContentProvider {
         final String origSelection = selectionAndGroupBy.first;
         final String origGroupBy = selectionAndGroupBy.second;
 
-        final int index = (origSelection != null) ? origSelection.indexOf(" GROUP BY ") : -1;
+        final int index = (origSelection != null)
+                ? origSelection.toUpperCase().indexOf(" GROUP BY ") : -1;
         if (index != -1) {
             String selection = origSelection.substring(0, index);
             String groupBy = origSelection.substring(index + " GROUP BY ".length());

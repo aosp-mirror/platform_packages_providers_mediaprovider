@@ -2302,6 +2302,8 @@ public class MediaProvider extends ContentProvider {
                 rowId = insertFile(helper, uri, initialValues,
                         FileColumns.MEDIA_TYPE_NONE, true, notifyRowIds);
                 if (rowId > 0) {
+                    MediaDocumentsProvider.onMediaStoreInsert(
+                            getContext(), volumeName, FileColumns.MEDIA_TYPE_NONE, rowId);
                     newUri = Files.getContentUri(volumeName, rowId);
                 }
                 break;
@@ -3141,6 +3143,7 @@ public class MediaProvider extends ContentProvider {
         //        ", where=" + userWhere + ", args=" + Arrays.toString(whereArgs) + " caller:" +
         //        Binder.getCallingPid());
 
+        final String volumeName = getVolumeName(uri);
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
@@ -3167,13 +3170,19 @@ public class MediaProvider extends ContentProvider {
         // if the media type is being changed, check if it's being changed from image or video
         // to something else
         if (initialValues.containsKey(FileColumns.MEDIA_TYPE)) {
-            long newMediaType = initialValues.getAsLong(FileColumns.MEDIA_TYPE);
+            final int newMediaType = initialValues.getAsInteger(FileColumns.MEDIA_TYPE);
+
+            // If we're changing media types, invalidate any cached "empty"
+            // answers for the new collection type.
+            MediaDocumentsProvider.onMediaStoreInsert(
+                    getContext(), volumeName, newMediaType, -1);
+
             helper.mNumQueries++;
             Cursor cursor = qb.query(db, sMediaTableColumns, userWhere, userWhereArgs, null, null,
                     null, null);
             try {
                 while (cursor != null && cursor.moveToNext()) {
-                    long curMediaType = cursor.getLong(1);
+                    final int curMediaType = cursor.getInt(1);
                     if (curMediaType == FileColumns.MEDIA_TYPE_IMAGE &&
                             newMediaType != FileColumns.MEDIA_TYPE_IMAGE) {
                         Log.i(TAG, "need to remove image thumbnail for id " + cursor.getString(0));

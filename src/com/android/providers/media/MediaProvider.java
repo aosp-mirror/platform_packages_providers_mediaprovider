@@ -683,7 +683,8 @@ public class MediaProvider extends ContentProvider {
                 + "tags TEXT,category TEXT,language TEXT,mini_thumb_data TEXT,name TEXT,"
                 + "media_type INTEGER,old_id INTEGER,is_drm INTEGER,"
                 + "width INTEGER, height INTEGER, title_resource_uri TEXT,"
-                + "owner_package_name TEXT DEFAULT NULL)");
+                + "owner_package_name TEXT DEFAULT NULL,"
+                + "color_standard INTEGER, color_transfer INTEGER, color_range INTEGER)");
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!internal) {
             db.execSQL("CREATE TABLE audio_genres (_id INTEGER PRIMARY KEY,name TEXT NOT NULL)");
@@ -817,7 +818,7 @@ public class MediaProvider extends ContentProvider {
                 + " WHERE (is_alarm IS 1) OR (is_ringtone IS 1) OR (is_notification IS 1)");
     }
 
-    private static void updateFromPSchema(SQLiteDatabase db, boolean internal) {
+    private static void updateAddOwnerPackageName(SQLiteDatabase db, boolean internal) {
         db.execSQL("ALTER TABLE files ADD COLUMN owner_package_name TEXT DEFAULT NULL");
 
         // Derive new column value based on well-known paths
@@ -841,8 +842,13 @@ public class MediaProvider extends ContentProvider {
                 }
             }
         }
+    }
 
-        createLatestViews(db, internal);
+    private static void updateAddColorSpaces(SQLiteDatabase db, boolean internal) {
+        // Add the color aspects related column used for HDR detection etc.
+        db.execSQL("ALTER TABLE files ADD COLUMN color_standard INTEGER;");
+        db.execSQL("ALTER TABLE files ADD COLUMN color_transfer INTEGER;");
+        db.execSQL("ALTER TABLE files ADD COLUMN color_range INTEGER;");
     }
 
     static final int VERSION_J = 509;
@@ -873,11 +879,18 @@ public class MediaProvider extends ContentProvider {
             updateFromKKSchema(db);
         } else if (fromVersion < 900) {
             updateFromOCSchema(db);
-        } else if (fromVersion < 1000) {
-            updateFromPSchema(db, internal);
-        } else if (fromVersion < 1002) {
-            createLatestViews(db, internal);
+        } else {
+            if (fromVersion < 1000) {
+                updateAddOwnerPackageName(db, internal);
+            }
+            if (fromVersion < 1003) {
+                updateAddColorSpaces(db, internal);
+            }
         }
+
+        // Always recreate latest views during upgrade; they're cheap and it's
+        // an easy way to ensure they're defined consistently
+        createLatestViews(db, internal);
 
         sanityCheck(db, fromVersion);
 
@@ -2302,6 +2315,8 @@ public class MediaProvider extends ContentProvider {
                 rowId = insertFile(helper, uri, initialValues,
                         FileColumns.MEDIA_TYPE_NONE, true, notifyRowIds);
                 if (rowId > 0) {
+                    MediaDocumentsProvider.onMediaStoreInsert(
+                            getContext(), volumeName, FileColumns.MEDIA_TYPE_NONE, rowId);
                     newUri = Files.getContentUri(volumeName, rowId);
                 }
                 break;
@@ -2412,16 +2427,7 @@ public class MediaProvider extends ContentProvider {
         // a nomedia path was removed, so clear the nomedia paths
         MediaScanner.clearMediaPathCache(false /* media */, true /* nomedia */);
         final DatabaseHelper helper;
-        String[] internalPaths = new String[] {
-            Environment.getRootDirectory() + "/media",
-            Environment.getOemDirectory() + "/media",
-        };
-
-        if (path.startsWith(internalPaths[0]) || path.startsWith(internalPaths[1])) {
-            helper = getDatabaseForUri(MediaStore.Audio.Media.INTERNAL_CONTENT_URI);
-        } else {
-            helper = getDatabaseForUri(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);
-        }
+        helper = getDatabaseForUri(MediaStore.Audio.Media.getContentUriForPath(path));
         SQLiteDatabase db = helper.getWritableDatabase();
         new ScannerClient(getContext(), db, path);
     }
@@ -3141,6 +3147,7 @@ public class MediaProvider extends ContentProvider {
         //        ", where=" + userWhere + ", args=" + Arrays.toString(whereArgs) + " caller:" +
         //        Binder.getCallingPid());
 
+        final String volumeName = getVolumeName(uri);
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
@@ -3167,13 +3174,19 @@ public class MediaProvider extends ContentProvider {
         // if the media type is being changed, check if it's being changed from image or video
         // to something else
         if (initialValues.containsKey(FileColumns.MEDIA_TYPE)) {
-            long newMediaType = initialValues.getAsLong(FileColumns.MEDIA_TYPE);
+            final int newMediaType = initialValues.getAsInteger(FileColumns.MEDIA_TYPE);
+
+            // If we're changing media types, invalidate any cached "empty"
+            // answers for the new collection type.
+            MediaDocumentsProvider.onMediaStoreInsert(
+                    getContext(), volumeName, newMediaType, -1);
+
             helper.mNumQueries++;
             Cursor cursor = qb.query(db, sMediaTableColumns, userWhere, userWhereArgs, null, null,
                     null, null);
             try {
                 while (cursor != null && cursor.moveToNext()) {
-                    long curMediaType = cursor.getLong(1);
+                    final int curMediaType = cursor.getInt(1);
                     if (curMediaType == FileColumns.MEDIA_TYPE_IMAGE &&
                             newMediaType != FileColumns.MEDIA_TYPE_IMAGE) {
                         Log.i(TAG, "need to remove image thumbnail for id " + cursor.getString(0));

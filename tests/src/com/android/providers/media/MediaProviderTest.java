@@ -150,6 +150,17 @@ public class MediaProviderTest {
     }
 
     @Test
+    public void testRecoverAbusiveGroupBy_116845885() throws Exception {
+        final Pair<String, String> input = Pair.create(
+                "(title like 'C360%' or title like 'getInstance%') group by ((datetaken+19800000)/86400000)",
+                null);
+        final Pair<String,String> expected = Pair.create(
+                "(title like 'C360%' or title like 'getInstance%')",
+                "((datetaken+19800000)/86400000)");
+        assertEquals(expected, recoverAbusiveGroupBy(input));
+    }
+
+    @Test
     public void testMaybeBalance() throws Exception {
         assertEquals(null, maybeBalance(null));
         assertEquals("", maybeBalance(""));

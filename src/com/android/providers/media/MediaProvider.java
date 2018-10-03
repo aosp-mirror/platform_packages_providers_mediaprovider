@@ -110,6 +110,7 @@ import android.util.Pair;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.os.BackgroundThread;
+import com.android.internal.util.ArrayUtils;
 
 import libcore.io.IoUtils;
 import libcore.util.EmptyArray;
@@ -1213,13 +1214,20 @@ public class MediaProvider extends ContentProvider {
             groupBy = "audio.album_id";
         }
 
-        // Some apps are abusing the "WHERE" clause by injecting "GROUP BY"
-        // clauses; gracefully lift them out.
         if (getCallingPackageTargetSdkVersion() < Build.VERSION_CODES.Q) {
+            // Some apps are abusing the "WHERE" clause by injecting "GROUP BY"
+            // clauses; gracefully lift them out.
             final Pair<String, String> selectionAndGroupBy = recoverAbusiveGroupBy(
                     Pair.create(selection, groupBy));
             selection = selectionAndGroupBy.first;
             groupBy = selectionAndGroupBy.second;
+
+            // Some apps are abusing the first column to inject "DISTINCT";
+            // gracefully lift them out.
+            if (!ArrayUtils.isEmpty(projectionIn) && projectionIn[0].startsWith("DISTINCT ")) {
+                projectionIn[0] = projectionIn[0].substring("DISTINCT ".length());
+                qb.setDistinct(true);
+            }
         }
 
         Cursor c = qb.query(db, projectionIn, selection,

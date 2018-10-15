@@ -20,6 +20,7 @@ import android.annotation.Nullable;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
+import android.content.MimeTypeFilter;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.database.MatrixCursor;
@@ -58,16 +59,18 @@ import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.text.format.DateUtils;
 import android.util.Log;
+import android.util.Pair;
 
 import libcore.io.IoUtils;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -264,6 +267,88 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
     private static String[] resolveDocumentProjection(String[] projection) {
         return projection != null ? projection : DEFAULT_DOCUMENT_PROJECTION;
+    }
+
+    private static Pair<String, String[]> buildSearchSelection(String displayName,
+            String[] mimeTypes, long lastModifiedAfter, long fileSizeOver, String columnDisplayName,
+            String columnMimeType, String columnLastModified, String columnFileSize) {
+        StringBuilder selection = new StringBuilder();
+        final ArrayList<String> selectionArgs = new ArrayList<>();
+
+        if (!displayName.isEmpty()) {
+            selection.append(columnDisplayName + " LIKE ?");
+            selectionArgs.add("%" + displayName + "%");
+        }
+
+        if (lastModifiedAfter != -1) {
+            if (selection.length() > 0) {
+                selection.append(" AND ");
+            }
+
+            // The units of DATE_MODIFIED are seconds since 1970.
+            // The units of lastModified are milliseconds since 1970.
+            selection.append(columnLastModified + " > " + lastModifiedAfter / 1000);
+        }
+
+        if (fileSizeOver != -1) {
+            if (selection.length() > 0) {
+                selection.append(" AND ");
+            }
+
+            selection.append(columnFileSize + " > " + fileSizeOver);
+        }
+
+        if (mimeTypes != null && mimeTypes.length > 0) {
+            for (int i = 0; i < mimeTypes.length; i++) {
+                final String type = mimeTypes[i];
+                if (i == 0) {
+                    if (selection.length() > 0) {
+                        selection.append(" AND ");
+                    }
+                    selection.append(columnMimeType + " IN ( ?");
+                } else {
+                    selection.append(", ?");
+                }
+                selectionArgs.add(type);
+            }
+            selection.append(" )");
+        }
+
+        return new Pair<>(selection.toString(), selectionArgs.toArray(new String[0]));
+    }
+
+    /**
+     * Check whether filter mime type and get the matched mime types.
+     * If we don't need to filter mime type, the matchedMimeTypes will be empty.
+     *
+     * @param mimeTypes the mime types to test
+     * @param filter the filter. It is "image/*" or "video/*" or "audio/*".
+     * @param matchedMimeTypes the matched mime types will add into this.
+     * @return true, should do mime type filter. false, no need.
+     */
+    private static boolean shouldFilterMimeType(String[] mimeTypes, String filter,
+            List<String> matchedMimeTypes) {
+        matchedMimeTypes.clear();
+        boolean shouldQueryMimeType = true;
+        if (mimeTypes != null) {
+            for (int i = 0; i < mimeTypes.length; i++) {
+                // If the mime type is "*/*" or "image/*" or "video/*" or "audio/*",
+                // we don't need to filter mime type.
+                if (TextUtils.equals(mimeTypes[i], "*/*") ||
+                        TextUtils.equals(mimeTypes[i], filter)) {
+                    matchedMimeTypes.clear();
+                    shouldQueryMimeType = false;
+                    break;
+                }
+                if (MimeTypeFilter.matches(mimeTypes[i], filter)) {
+                    matchedMimeTypes.add(mimeTypes[i]);
+                }
+            }
+        } else {
+            shouldQueryMimeType = false;
+        }
+
+        return shouldQueryMimeType;
     }
 
     private Uri getUriForDocumentId(String docId) {
@@ -679,38 +764,85 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     }
 
     @Override
-    public Cursor querySearchDocuments(String rootId, String query, String[] projection)
+    public Cursor querySearchDocuments(String rootId, String[] projection, Bundle queryArgs)
             throws FileNotFoundException {
         final ContentResolver resolver = getContext().getContentResolver();
         final MatrixCursor result = new MatrixCursor(resolveDocumentProjection(projection));
 
         final long token = Binder.clearCallingIdentity();
-        final String[] queryArgs = new String[] { "%" + query + "%" };
+
+        final String displayName = queryArgs.getString(DocumentsContract.QUERY_ARG_DISPLAY_NAME,
+                "" /* defaultValue */);
+        final long lastModifiedAfter = queryArgs.getLong(
+                DocumentsContract.QUERY_ARG_LAST_MODIFIED_AFTER, -1 /* defaultValue */);
+        final long fileSizeOver = queryArgs.getLong(DocumentsContract.QUERY_ARG_FILE_SIZE_OVER,
+                -1 /* defaultValue */);
+        final String[] mimeTypes = queryArgs.getStringArray(DocumentsContract.QUERY_ARG_MIME_TYPES);
+        final ArrayList<String> matchedMimeTypes = new ArrayList<>();
+
         Cursor cursor = null;
         try {
             if (TYPE_IMAGES_ROOT.equals(rootId)) {
-                cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI, ImageQuery.PROJECTION,
-                        ImageColumns.DISPLAY_NAME + " LIKE ?", queryArgs,
-                        ImageColumns.DATE_MODIFIED + " DESC");
-                copyNotificationUri(result, cursor);
-                while (cursor.moveToNext()) {
-                    includeImage(result, cursor);
+                final boolean shouldFilterMimeType = shouldFilterMimeType(mimeTypes, "image/*",
+                        matchedMimeTypes);
+
+                // If the queried mime types didn't match the root, we don't need to
+                // query the provider. Ex: the queried mime type is "video/*", but the root
+                // is images root.
+                if (mimeTypes == null || !shouldFilterMimeType || matchedMimeTypes.size() > 0) {
+                    final Pair<String, String[]> selectionPair = buildSearchSelection(displayName,
+                            matchedMimeTypes.toArray(new String[0]), lastModifiedAfter,
+                            fileSizeOver, ImageColumns.DISPLAY_NAME, ImageColumns.MIME_TYPE,
+                            ImageColumns.DATE_MODIFIED, ImageColumns.SIZE);
+
+                    cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
+                            ImageQuery.PROJECTION,
+                            selectionPair.first, selectionPair.second,
+                            ImageColumns.DATE_MODIFIED + " DESC");
+
+                    copyNotificationUri(result, cursor);
+                    while (cursor.moveToNext()) {
+                        includeImage(result, cursor);
+                    }
                 }
             } else if (TYPE_VIDEOS_ROOT.equals(rootId)) {
-                cursor = resolver.query(Video.Media.EXTERNAL_CONTENT_URI, VideoQuery.PROJECTION,
-                        VideoColumns.DISPLAY_NAME + " LIKE ?", queryArgs,
-                        VideoColumns.DATE_MODIFIED + " DESC");
-                copyNotificationUri(result, cursor);
-                while (cursor.moveToNext()) {
-                    includeVideo(result, cursor);
+                final boolean shouldFilterMimeType = shouldFilterMimeType(mimeTypes, "video/*",
+                        matchedMimeTypes);
+
+                // If the queried mime types didn't match the root, we don't need to
+                // query the provider.
+                if (mimeTypes == null || !shouldFilterMimeType || matchedMimeTypes.size() > 0) {
+                    final Pair<String, String[]> selectionPair = buildSearchSelection(displayName,
+                            matchedMimeTypes.toArray(new String[0]), lastModifiedAfter,
+                            fileSizeOver, VideoColumns.DISPLAY_NAME, VideoColumns.MIME_TYPE,
+                            VideoColumns.DATE_MODIFIED, VideoColumns.SIZE);
+                    cursor = resolver.query(Video.Media.EXTERNAL_CONTENT_URI, VideoQuery.PROJECTION,
+                            selectionPair.first, selectionPair.second,
+                            VideoColumns.DATE_MODIFIED + " DESC");
+                    copyNotificationUri(result, cursor);
+                    while (cursor.moveToNext()) {
+                        includeVideo(result, cursor);
+                    }
                 }
             } else if (TYPE_AUDIO_ROOT.equals(rootId)) {
-                cursor = resolver.query(Audio.Media.EXTERNAL_CONTENT_URI, SongQuery.PROJECTION,
-                        AudioColumns.TITLE + " LIKE ?", queryArgs,
-                        AudioColumns.DATE_MODIFIED + " DESC");
-                copyNotificationUri(result, cursor);
-                while (cursor.moveToNext()) {
-                    includeAudio(result, cursor);
+                final boolean shouldFilterMimeType = shouldFilterMimeType(mimeTypes, "audio/*",
+                        matchedMimeTypes);
+
+                // If the queried mime types didn't match the root, we don't need to
+                // query the provider.
+                if (mimeTypes == null || !shouldFilterMimeType || matchedMimeTypes.size() > 0) {
+                    final Pair<String, String[]> selectionPair = buildSearchSelection(displayName,
+                            matchedMimeTypes.toArray(new String[0]), lastModifiedAfter,
+                            fileSizeOver, AudioColumns.TITLE, AudioColumns.MIME_TYPE,
+                            AudioColumns.DATE_MODIFIED, AudioColumns.SIZE);
+
+                    cursor = resolver.query(Audio.Media.EXTERNAL_CONTENT_URI, SongQuery.PROJECTION,
+                            selectionPair.first, selectionPair.second,
+                            AudioColumns.DATE_MODIFIED + " DESC");
+                    copyNotificationUri(result, cursor);
+                    while (cursor.moveToNext()) {
+                        includeAudio(result, cursor);
+                    }
                 }
             } else {
                 throw new UnsupportedOperationException("Unsupported root " + rootId);
@@ -719,6 +851,14 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             IoUtils.closeQuietly(cursor);
             Binder.restoreCallingIdentity(token);
         }
+
+        final String[] handledQueryArgs = DocumentsContract.getHandledQueryArguments(queryArgs);
+        if (handledQueryArgs.length > 0) {
+            final Bundle extras = new Bundle();
+            extras.putStringArray(ContentResolver.EXTRA_HONORED_ARGS, handledQueryArgs);
+            result.setExtras(extras);
+        }
+
         return result;
     }
 

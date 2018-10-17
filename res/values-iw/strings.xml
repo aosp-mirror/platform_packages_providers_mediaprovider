@@ -21,7 +21,7 @@
     <string name="app_label" msgid="9035307001052716210">"אחסון מדיה"</string>
     <string name="artist_label" msgid="8105600993099120273">"אמן"</string>
     <string name="ringtone_default" msgid="1744846699922263043">"רינגטון ברירת מחדל"</string>
-    <string name="notification_sound_default" msgid="6541609166469990135">"צליל ברירת המחדל לתזכורת"</string>
+    <string name="notification_sound_default" msgid="6541609166469990135">"צליל ברירת המחדל להתראות"</string>
     <string name="alarm_sound_default" msgid="5488847775252870314">"צליל לשעון מעורר"</string>
     <string name="root_images" msgid="5861633549189045666">"תמונות"</string>
     <string name="root_videos" msgid="8792703517064649453">"סרטונים"</string>

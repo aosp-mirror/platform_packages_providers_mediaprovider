@@ -3886,7 +3886,8 @@ public class MediaProvider extends ContentProvider {
         }
 
         // System internals can work with all media
-        if (context.getOpPackageName().equals(callingPackage)
+        if ("com.android.providers.media".equals(callingPackage)
+                || "com.android.providers.downloads".equals(callingPackage)
                 || "com.android.mtp".equals(callingPackage)) {
             return PERMISSION_GRANTED;
         }

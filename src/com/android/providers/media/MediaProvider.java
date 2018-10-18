@@ -57,6 +57,7 @@ import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.MatrixCursor;
+import android.database.RedactingCursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteQueryBuilder;
@@ -160,6 +161,20 @@ public class MediaProvider extends ContentProvider {
      */
     private static final Pattern PATTERN_OWNED_PATH = Pattern.compile(
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|media|obb|sandbox)/([^/]+)/.*");
+
+    /**
+     * Set of {@link Cursor} columns that should be redacted when apps target
+     * {@link Build.VERSION_CODES#Q}.
+     */
+    private static final ArrayMap<String, Object> sDataRedactions = new ArrayMap<>();
+
+    {
+        sDataRedactions.put(MediaStore.MediaColumns.DATA, null);
+        sDataRedactions.put(MediaStore.Images.Thumbnails.DATA, null);
+        sDataRedactions.put(MediaStore.Video.Thumbnails.DATA, null);
+        sDataRedactions.put(MediaStore.Audio.PlaylistsColumns.DATA, null);
+        sDataRedactions.put(MediaStore.Audio.AlbumColumns.ALBUM_ART, null);
+    }
 
     private static final ArrayMap<String, String> sFolderArtMap = new ArrayMap<>();
 
@@ -1239,6 +1254,11 @@ public class MediaProvider extends ContentProvider {
             if (nonotify == null || !nonotify.equals("1")) {
                 c.setNotificationUri(getContext().getContentResolver(), uri);
             }
+
+            // Reject raw filesystem paths from modern callers
+            if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q && !allowHidden) {
+                c = RedactingCursor.create(c, sDataRedactions);
+            }
         }
 
         return c;
@@ -1363,7 +1383,7 @@ public class MediaProvider extends ContentProvider {
                 int len = values.length;
                 for (int i = 0; i < len; i++) {
                     if (values[i] != null) {
-                        insertInternal(uri, match, values[i], notifyRowIds);
+                        insertCommon(uri, match, values[i], notifyRowIds);
                     }
                 }
                 numInserted = len;
@@ -1385,7 +1405,7 @@ public class MediaProvider extends ContentProvider {
         final int match = matchUri(uri, allowHidden);
 
         ArrayList<Long> notifyRowIds = new ArrayList<Long>();
-        Uri newUri = insertInternal(uri, match, initialValues, notifyRowIds);
+        Uri newUri = insertCommon(uri, match, initialValues, notifyRowIds);
 
         // do not signal notification for MTP objects.
         // we will signal instead after file transfer is successful.
@@ -2043,8 +2063,8 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private Uri insertInternal(Uri uri, int match, ContentValues initialValues,
-                               ArrayList<Long> notifyRowIds) {
+    private Uri insertCommon(Uri uri, int match, ContentValues initialValues,
+            ArrayList<Long> notifyRowIds) {
         final String volumeName = getVolumeName(uri);
 
         long rowId;
@@ -2067,6 +2087,14 @@ public class MediaProvider extends ContentProvider {
         String path = null;
         String ownerPackageName = null;
         if (initialValues != null) {
+            // Reject raw filesystem paths from modern callers
+            final boolean allowHidden = isCallingPackageAllowedHidden();
+            if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q && !allowHidden) {
+                for (String column : sDataRedactions.keySet()) {
+                    initialValues.remove(column);
+                }
+            }
+
             genre = initialValues.getAsString(Audio.AudioColumns.GENRE);
             initialValues.remove(Audio.AudioColumns.GENRE);
             path = initialValues.getAsString(MediaStore.MediaColumns.DATA);
@@ -2075,18 +2103,16 @@ public class MediaProvider extends ContentProvider {
             // it be whoever is creating the content.
             initialValues.remove(FileColumns.OWNER_PACKAGE_NAME);
 
-            final String callingPackageName = getCallingPackageOrSelf();
-            if (getContext().getOpPackageName().equals(callingPackageName)
-                    || "com.android.mtp".equals(callingPackageName)) {
+            final String callingPackage = getCallingPackageOrSelf();
+            if (isSystemInternalPackage(callingPackage)) {
                 // When media inserted by ourselves, the best we can do is guess
                 // ownership based on path.
                 ownerPackageName = getPathOwnerPackageName(path);
             } else {
-                ownerPackageName = callingPackageName;
+                ownerPackageName = callingPackage;
             }
 
             // TODO: translate incoming path between sandboxes
-            // TODO: reject paths when caller is targeting Q
         }
 
         Uri newUri = null;
@@ -3173,6 +3199,13 @@ public class MediaProvider extends ContentProvider {
 
         String genre = null;
         if (initialValues != null) {
+            // Reject raw filesystem paths from modern callers
+            if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q && !allowHidden) {
+                for (String column : sDataRedactions.keySet()) {
+                    initialValues.remove(column);
+                }
+            }
+
             genre = initialValues.getAsString(Audio.AudioColumns.GENRE);
             initialValues.remove(Audio.AudioColumns.GENRE);
 
@@ -3854,6 +3887,21 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     * Determine if given package name should be considered part of the internal
+     * OS media stack, and allowed certain raw access.
+     */
+    private static boolean isSystemInternalPackage(String callingPackage) {
+        switch (callingPackage) {
+            case "com.android.providers.media":
+            case "com.android.providers.downloads":
+            case "com.android.mtp":
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /**
      * Value indicating that permission should only be considered granted for
      * items that the calling package directly owns.
      * <p>
@@ -3891,9 +3939,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         // System internals can work with all media
-        if ("com.android.providers.media".equals(callingPackage)
-                || "com.android.providers.downloads".equals(callingPackage)
-                || "com.android.mtp".equals(callingPackage)) {
+        if (isSystemInternalPackage(callingPackage)) {
             return PERMISSION_GRANTED;
         }
 

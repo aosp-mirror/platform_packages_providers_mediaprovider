@@ -129,6 +129,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -3139,6 +3140,7 @@ public class MediaProvider extends ContentProvider {
             String[] userWhereArgs) {
         if (LOCAL_LOGV) log("update", uri, initialValues, userWhere, userWhereArgs);
 
+        final Uri originalUri = uri;
         if ("com.google.android.GoogleCamera".equals(getCallingPackageOrSelf())) {
             if (matchUri(uri, false) == IMAGES_MEDIA_ID) {
                 Log.w(TAG, "Working around app bug in b/111966296");
@@ -3473,6 +3475,9 @@ public class MediaProvider extends ContentProvider {
         // care of notifications once it ends the transaction successfully
         if (count > 0 && !db.inTransaction()) {
             getContext().getContentResolver().notifyChange(uri, null);
+            if (!Objects.equals(uri, originalUri)) {
+                getContext().getContentResolver().notifyChange(originalUri, null);
+            }
         }
 
         return count;

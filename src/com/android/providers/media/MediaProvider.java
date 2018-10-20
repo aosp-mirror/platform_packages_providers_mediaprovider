@@ -57,7 +57,6 @@ import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.MatrixCursor;
-import android.database.RedactingCursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteQueryBuilder;
@@ -137,6 +136,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -163,17 +163,16 @@ public class MediaProvider extends ContentProvider {
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|media|obb|sandbox)/([^/]+)/.*");
 
     /**
-     * Set of {@link Cursor} columns that should be redacted when apps target
-     * {@link Build.VERSION_CODES#Q}.
+     * Set of {@link Cursor} columns that refer to raw filesystem paths.
      */
-    private static final ArrayMap<String, Object> sDataRedactions = new ArrayMap<>();
+    private static final ArrayMap<String, Object> sDataColumns = new ArrayMap<>();
 
     {
-        sDataRedactions.put(MediaStore.MediaColumns.DATA, null);
-        sDataRedactions.put(MediaStore.Images.Thumbnails.DATA, null);
-        sDataRedactions.put(MediaStore.Video.Thumbnails.DATA, null);
-        sDataRedactions.put(MediaStore.Audio.PlaylistsColumns.DATA, null);
-        sDataRedactions.put(MediaStore.Audio.AlbumColumns.ALBUM_ART, null);
+        sDataColumns.put(MediaStore.MediaColumns.DATA, null);
+        sDataColumns.put(MediaStore.Images.Thumbnails.DATA, null);
+        sDataColumns.put(MediaStore.Video.Thumbnails.DATA, null);
+        sDataColumns.put(MediaStore.Audio.PlaylistsColumns.DATA, null);
+        sDataColumns.put(MediaStore.Audio.AlbumColumns.ALBUM_ART, null);
     }
 
     private static final ArrayMap<String, String> sFolderArtMap = new ArrayMap<>();
@@ -1255,10 +1254,24 @@ public class MediaProvider extends ContentProvider {
                 c.setNotificationUri(getContext().getContentResolver(), uri);
             }
 
-            // Reject raw filesystem paths from modern callers
-            if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q && !allowHidden) {
-                c = RedactingCursor.create(c, sDataRedactions);
+            // Augment outgoing raw filesystem paths
+            final String callingPackage = getCallingPackageOrSelf();
+            final Map<String, UnaryOperator<String>> operators = new ArrayMap<>();
+            if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q
+                    && !isCallingPackageSystem()) {
+                // Modern apps don't get raw paths
+                for (String column : sDataColumns.keySet()) {
+                    operators.put(column, path -> null);
+                }
+            } else if (isCallingPackageSandboxed()) {
+                // Apps running in a sandbox need their paths translated
+                for (String column : sDataColumns.keySet()) {
+                    operators.put(column, path -> {
+                        return translateSystemToApp(path, callingPackage);
+                    });
+                }
             }
+            c = TranslatingCursor.create(c, operators);
         }
 
         return c;
@@ -2087,11 +2100,18 @@ public class MediaProvider extends ContentProvider {
         String path = null;
         String ownerPackageName = null;
         if (initialValues != null) {
-            // Reject raw filesystem paths from modern callers
-            final boolean allowHidden = isCallingPackageAllowedHidden();
-            if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q && !allowHidden) {
-                for (String column : sDataRedactions.keySet()) {
+            // Augment incoming raw filesystem paths
+            for (String column : sDataColumns.keySet()) {
+                if (!initialValues.containsKey(column)) continue;
+
+                if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q
+                        && !isCallingPackageSystem()) {
+                    // Modern apps don't get raw paths
                     initialValues.remove(column);
+                } else if (isCallingPackageSandboxed()) {
+                    // Apps running in a sandbox need their paths translated
+                    initialValues.put(column, translateAppToSystem(
+                            initialValues.getAsString(column), getCallingPackageOrSelf()));
                 }
             }
 
@@ -2103,16 +2123,13 @@ public class MediaProvider extends ContentProvider {
             // it be whoever is creating the content.
             initialValues.remove(FileColumns.OWNER_PACKAGE_NAME);
 
-            final String callingPackage = getCallingPackageOrSelf();
-            if (isSystemInternalPackage(callingPackage)) {
+            if (isCallingPackageSystem()) {
                 // When media inserted by ourselves, the best we can do is guess
                 // ownership based on path.
                 ownerPackageName = getPathOwnerPackageName(path);
             } else {
-                ownerPackageName = callingPackage;
+                ownerPackageName = getCallingPackageOrSelf();
             }
-
-            // TODO: translate incoming path between sandboxes
         }
 
         Uri newUri = null;
@@ -3199,10 +3216,18 @@ public class MediaProvider extends ContentProvider {
 
         String genre = null;
         if (initialValues != null) {
-            // Reject raw filesystem paths from modern callers
-            if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q && !allowHidden) {
-                for (String column : sDataRedactions.keySet()) {
+            // Augment incoming raw filesystem paths
+            for (String column : sDataColumns.keySet()) {
+                if (!initialValues.containsKey(column)) continue;
+
+                if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q
+                        && !isCallingPackageSystem()) {
+                    // Modern apps don't get raw paths
                     initialValues.remove(column);
+                } else if (isCallingPackageSandboxed()) {
+                    // Apps running in a sandbox need their paths translated
+                    initialValues.put(column, translateAppToSystem(
+                            initialValues.getAsString(column), getCallingPackageOrSelf()));
                 }
             }
 
@@ -3844,7 +3869,13 @@ public class MediaProvider extends ContentProvider {
         final int modeBits = ParcelFileDescriptor.parseMode(mode);
         final boolean forWrite = (modeBits != ParcelFileDescriptor.MODE_READ_ONLY);
 
-        File file = queryForDataFile(uri, signal);
+        final File file;
+        final CallingIdentity token = clearCallingIdentity();
+        try {
+            file = queryForDataFile(uri, signal);
+        } finally {
+            restoreCallingIdentity(token);
+        }
 
         try {
             enforceCallingPermission(uri, forWrite);
@@ -3853,12 +3884,6 @@ public class MediaProvider extends ContentProvider {
         }
 
         checkAccess(uri, file, modeBits);
-
-        // Bypass emulation layer when file is opened for reading, but only
-        // when opening read-only and we have an exact match.
-        if (modeBits == MODE_READ_ONLY) {
-            file = Environment.maybeTranslateEmulatedPathToInternal(file);
-        }
 
         try {
             if (listener != null) {
@@ -3883,21 +3908,6 @@ public class MediaProvider extends ContentProvider {
             file.delete();
         } catch (Exception e) {
             Log.e(TAG, "Couldn't delete " + path, e);
-        }
-    }
-
-    /**
-     * Determine if given package name should be considered part of the internal
-     * OS media stack, and allowed certain raw access.
-     */
-    private static boolean isSystemInternalPackage(String callingPackage) {
-        switch (callingPackage) {
-            case "com.android.providers.media":
-            case "com.android.providers.downloads":
-            case "com.android.mtp":
-                return true;
-            default:
-                return false;
         }
     }
 
@@ -3931,7 +3941,6 @@ public class MediaProvider extends ContentProvider {
      */
     private int checkCallingPermission(Uri uri, int match, boolean forWrite) {
         final Context context = getContext();
-        final String callingPackage = getCallingPackageOrSelf();
 
         // Shortcut when using old storage model; everything is allowed
         if (!ENFORCE_ISOLATED_STORAGE) {
@@ -3939,7 +3948,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         // System internals can work with all media
-        if (isSystemInternalPackage(callingPackage)) {
+        if (isCallingPackageSystem()) {
             return PERMISSION_GRANTED;
         }
 
@@ -5328,8 +5337,34 @@ public class MediaProvider extends ContentProvider {
         return Build.VERSION_CODES.CUR_DEVELOPMENT;
     }
 
+    /**
+     * Determine if calling package is sandboxed, or if they have a full view of
+     * the entire filesystem.
+     */
+    private boolean isCallingPackageSandboxed() {
+        return getContext().getPackageManager().checkPermission(
+                android.Manifest.permission.WRITE_MEDIA_STORAGE,
+                getCallingPackageOrSelf()) != PackageManager.PERMISSION_GRANTED;
+    }
+
+    @Deprecated
     private boolean isCallingPackageAllowedHidden() {
-        return getCallingPackageTargetSdkVersion() == Build.VERSION_CODES.CUR_DEVELOPMENT;
+        return isCallingPackageSystem();
+    }
+
+    /**
+     * Determine if given package name should be considered part of the internal
+     * OS media stack, and allowed certain raw access.
+     */
+    private boolean isCallingPackageSystem() {
+        switch (getCallingPackageOrSelf()) {
+            case "com.android.providers.media":
+            case "com.android.providers.downloads":
+            case "com.android.mtp":
+                return true;
+            default:
+                return false;
+        }
     }
 
     private void enforceCallingOrSelfPermissionAndAppOps(String permission, String message) {
@@ -5346,6 +5381,22 @@ public class MediaProvider extends ContentProvider {
                         message + ": " + callingPackage + " is not allowed to " + permission);
             }
         }
+    }
+
+    private @Nullable String translateAppToSystem(@Nullable String path, String callingPackage) {
+        if (path == null) return path;
+
+        final File app = new File(path);
+        final File system = mStorageManager.translateAppToSystem(app, callingPackage);
+        return system.getPath();
+    }
+
+    private @Nullable String translateSystemToApp(@Nullable String path, String callingPackage) {
+        if (path == null) return path;
+
+        final File system = new File(path);
+        final File app = mStorageManager.translateSystemToApp(system, callingPackage);
+        return app.getPath();
     }
 
     private static void log(String method, Object... args) {

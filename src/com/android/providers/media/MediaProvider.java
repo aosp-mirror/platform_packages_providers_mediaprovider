@@ -5361,6 +5361,7 @@ public class MediaProvider extends ContentProvider {
             case "com.android.providers.media":
             case "com.android.providers.downloads":
             case "com.android.mtp":
+            case "com.android.externalstorage":
                 return true;
             default:
                 return false;

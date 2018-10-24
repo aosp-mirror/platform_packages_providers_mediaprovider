@@ -821,8 +821,7 @@ public class MediaProvider extends ContentProvider {
                 + "duration INTEGER,bookmark INTEGER,artist TEXT,album TEXT,resolution TEXT,"
                 + "tags TEXT,category TEXT,language TEXT,mini_thumb_data TEXT,name TEXT,"
                 + "media_type INTEGER,old_id INTEGER,is_drm INTEGER,"
-                + "width INTEGER, height INTEGER, title_resource_uri TEXT,"
-                + "color_standard INTEGER, color_transfer INTEGER, color_range INTEGER)");
+                + "width INTEGER, height INTEGER, title_resource_uri TEXT)");
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!internal) {
             db.execSQL("CREATE TABLE audio_genres (_id INTEGER PRIMARY KEY,name TEXT NOT NULL)");
@@ -936,13 +935,6 @@ public class MediaProvider extends ContentProvider {
                 + " WHERE (is_alarm IS 1) OR (is_ringtone IS 1) OR (is_notification IS 1)");
     }
 
-    private static void updateFromPISchema(SQLiteDatabase db) {
-        // Add the color aspects related column used for HDR detection etc.
-        db.execSQL("ALTER TABLE files ADD COLUMN color_standard INTEGER;");
-        db.execSQL("ALTER TABLE files ADD COLUMN color_transfer INTEGER;");
-        db.execSQL("ALTER TABLE files ADD COLUMN color_range INTEGER;");
-    }
-
     /**
      * This method takes care of updating all the tables in the database to the
      * current version, creating them if necessary.
@@ -969,15 +961,10 @@ public class MediaProvider extends ContentProvider {
         if (fromVersion < 700) {
             // Anything older than KK is recreated from scratch
             createLatestSchema(db, internal);
-        }
-        if (fromVersion < 800) {
+        } else if (fromVersion < 800) {
             updateFromKKSchema(db);
-        }
-        if (fromVersion < 900) {
+        } else if (fromVersion < 900) {
             updateFromOCSchema(db);
-        }
-        if (fromVersion < 1000) {
-            updateFromPISchema(db);
         }
 
         sanityCheck(db, fromVersion);

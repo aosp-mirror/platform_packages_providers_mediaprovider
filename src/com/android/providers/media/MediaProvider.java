@@ -28,7 +28,6 @@ import static android.Manifest.permission.WRITE_MEDIA_IMAGES;
 import static android.Manifest.permission.WRITE_MEDIA_STORAGE;
 import static android.Manifest.permission.WRITE_MEDIA_VIDEO;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
-import static android.os.ParcelFileDescriptor.MODE_READ_ONLY;
 import static android.os.ParcelFileDescriptor.MODE_WRITE_ONLY;
 import static android.provider.MediaStore.AUTHORITY;
 
@@ -37,6 +36,7 @@ import android.annotation.Nullable;
 import android.app.AppOpsManager;
 import android.content.BroadcastReceiver;
 import android.content.ContentProvider;
+import android.content.ContentProviderClient;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
 import android.content.ContentResolver;
@@ -78,6 +78,7 @@ import android.os.FileUtils;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.ParcelFileDescriptor.OnCloseListener;
+import android.os.RemoteException;
 import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.UserHandle;
@@ -87,6 +88,7 @@ import android.os.storage.StorageVolume;
 import android.os.storage.VolumeInfo;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
+import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
 import android.provider.MediaStore.Audio.Playlists;
@@ -3092,17 +3094,69 @@ public class MediaProvider extends ContentProvider {
     public Bundle call(String method, String arg, Bundle extras) {
         if (LOCAL_LOGV) log("call", method, arg, extras);
 
-        if (MediaStore.UNHIDE_CALL.equals(method)) {
-            processRemovedNoMediaPath(arg);
-            return null;
-        }
-        if (MediaStore.RETRANSLATE_CALL.equals(method)) {
-            localizeTitles();
-            return null;
-        }
-        throw new UnsupportedOperationException("Unsupported call: " + method);
-    }
+        switch (method) {
+            case MediaStore.UNHIDE_CALL: {
+                processRemovedNoMediaPath(arg);
+                return null;
+            }
+            case MediaStore.RETRANSLATE_CALL: {
+                localizeTitles();
+                return null;
+            }
+            case MediaStore.GET_DOCUMENT_URI_CALL: {
+                final Uri mediaUri = extras.getParcelable(DocumentsContract.EXTRA_URI);
+                enforceCallingPermission(mediaUri, false);
 
+                final Uri fileUri;
+                final CallingIdentity token = clearCallingIdentity();
+                try {
+                    fileUri = Uri.fromFile(queryForDataFile(mediaUri, null));
+                } catch (FileNotFoundException e) {
+                    throw new IllegalArgumentException(e);
+                } finally {
+                    restoreCallingIdentity(token);
+                }
+
+                try (ContentProviderClient client = getContext().getContentResolver()
+                        .acquireUnstableContentProviderClient(
+                                DocumentsContract.EXTERNAL_STORAGE_PROVIDER_AUTHORITY)) {
+                    extras.putParcelable(DocumentsContract.EXTRA_URI, fileUri);
+                    return client.call(method, null, extras);
+                } catch (RemoteException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+            case MediaStore.GET_MEDIA_URI_CALL: {
+                final Uri documentUri = extras.getParcelable(DocumentsContract.EXTRA_URI);
+                getContext().enforceCallingUriPermission(documentUri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION, TAG);
+
+                final Uri fileUri;
+                try (ContentProviderClient client = getContext().getContentResolver()
+                        .acquireUnstableContentProviderClient(
+                                DocumentsContract.EXTERNAL_STORAGE_PROVIDER_AUTHORITY)) {
+                    final Bundle res = client.call(method, null, extras);
+                    fileUri = res.getParcelable(DocumentsContract.EXTRA_URI);
+                } catch (RemoteException e) {
+                    throw new IllegalStateException(e);
+                }
+
+                final CallingIdentity token = clearCallingIdentity();
+                try {
+                    final Bundle res = new Bundle();
+                    res.putParcelable(DocumentsContract.EXTRA_URI,
+                            queryForMediaUri(new File(fileUri.getPath()), null));
+                    return res;
+                } catch (FileNotFoundException e) {
+                    throw new IllegalArgumentException(e);
+                } finally {
+                    restoreCallingIdentity(token);
+                }
+            }
+            default:
+                throw new UnsupportedOperationException("Unsupported call: " + method);
+        }
+    }
 
     /*
      * Clean up all thumbnail files for which the source image or video no longer exists.
@@ -3854,6 +3908,32 @@ public class MediaProvider extends ContentProvider {
                     }
                 default:
                     throw new FileNotFoundException("Multiple items at " + uri);
+            }
+        } finally {
+            IoUtils.closeQuietly(cursor);
+        }
+    }
+
+    Uri queryForMediaUri(File file, CancellationSignal signal) throws FileNotFoundException {
+        final Uri uri = Files.getContentUri("external");
+        final Cursor cursor = query(uri, new String[] { MediaColumns._ID },
+                MediaColumns.DATA + "=?", new String[] { file.getAbsolutePath() }, null, signal);
+        if (cursor == null) {
+            throw new FileNotFoundException("Missing cursor for " + file);
+        }
+
+        try {
+            switch (cursor.getCount()) {
+                case 0:
+                    throw new FileNotFoundException("No entry for " + file);
+                case 1:
+                    if (cursor.moveToFirst()) {
+                        return ContentUris.withAppendedId(uri, cursor.getLong(0));
+                    } else {
+                        throw new FileNotFoundException("Unable to read entry for " + file);
+                    }
+                default:
+                    throw new FileNotFoundException("Multiple items at " + file);
             }
         } finally {
             IoUtils.closeQuietly(cursor);

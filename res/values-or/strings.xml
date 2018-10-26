@@ -36,6 +36,8 @@
     <string name="sound_name_sway" msgid="348448316663085643">"ସ୍ୱେ"</string>
     <string name="sound_name_wag" msgid="2730733083078126563">"ୱେଗ୍‍"</string>
     <string name="add_ringtone_text" msgid="8077717303037760418">"ରିଙ୍ଗଟୋନ୍‍ ଯୋଡ଼ନ୍ତୁ"</string>
+    <string name="add_alarm_text" msgid="2440919366091720815">"ଆଲାର୍ମ ଯୋଗ କରନ୍ତୁ"</string>
+    <string name="add_notification_text" msgid="5013822215567515665">"ବିଜ୍ଞପ୍ତି ଯୋଗ କରନ୍ତୁ"</string>
     <string name="delete_ringtone_text" msgid="2963662097583300181">"ଡିଲିଟ୍‌ କରନ୍ତୁ"</string>
     <string name="unable_to_add_ringtone" msgid="6256097521165711269">"କଷ୍ଟମ୍‍ ରିଙ୍ଗଟୋନ୍‍ ଯୋଡ଼ିପାରିବ ନାହିଁ"</string>
     <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"କଷ୍ଟମ୍‍ ରିଙ୍ଗଟୋନ୍‍ ଡିଲିଟ୍‍ କରିପାରିବ ନାହିଁ"</string>

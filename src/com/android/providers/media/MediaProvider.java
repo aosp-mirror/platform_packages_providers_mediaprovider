@@ -2663,6 +2663,9 @@ public class MediaProvider extends ContentProvider {
 
         final String callingPackage = getCallingPackageOrSelf();
 
+        final int permissionGrantedTypes = (permission & ~PERMISSION_GRANTED_MASK);
+        permission = permission & PERMISSION_GRANTED_MASK;
+
         switch (match) {
             case IMAGES_MEDIA_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
@@ -2871,9 +2874,28 @@ public class MediaProvider extends ContentProvider {
             case FILES_DIRECTORY:
             case MTP_OBJECTS:
                 qb.setTables("files");
+
+                final ArrayList<String> options = new ArrayList<>();
                 if (permission == PERMISSION_GRANTED_IF_OWNER) {
-                    appendWhereStandalone(qb, "owner_package_name=?", callingPackage);
+                    options.add(DatabaseUtils.bindSelection("owner_package_name=?",
+                            callingPackage));
                 }
+                if ((permissionGrantedTypes & PERMISSION_GRANTED_TYPE_AUDIO) != 0) {
+                    options.add(DatabaseUtils.bindSelection("media_type=?",
+                            FileColumns.MEDIA_TYPE_AUDIO));
+                }
+                if ((permissionGrantedTypes & PERMISSION_GRANTED_TYPE_VIDEO) != 0) {
+                    options.add(DatabaseUtils.bindSelection("media_type=?",
+                            FileColumns.MEDIA_TYPE_VIDEO));
+                }
+                if ((permissionGrantedTypes & PERMISSION_GRANTED_TYPE_IMAGES) != 0) {
+                    options.add(DatabaseUtils.bindSelection("media_type=?",
+                            FileColumns.MEDIA_TYPE_IMAGE));
+                }
+                if (options.size() > 0) {
+                    appendWhereStandalone(qb, TextUtils.join(" OR ", options));
+                }
+
                 break;
 
             default:
@@ -4077,7 +4099,17 @@ public class MediaProvider extends ContentProvider {
      * This value typically means that a {@link MediaColumns#OWNER_PACKAGE_NAME}
      * filter should be applied to any database operations.
      */
-    private static final int PERMISSION_GRANTED_IF_OWNER = 100;
+    private static final int PERMISSION_GRANTED_IF_OWNER = 0x00000001;
+
+    /**
+     * Special values indicating that permission should only be considered
+     * granted to non-owned media based on media type.
+     */
+    private static final int PERMISSION_GRANTED_TYPE_AUDIO = 0x00010000;
+    private static final int PERMISSION_GRANTED_TYPE_VIDEO = 0x00020000;
+    private static final int PERMISSION_GRANTED_TYPE_IMAGES = 0x00040000;
+
+    private static final int PERMISSION_GRANTED_MASK = 0x0000ffff;
 
     /**
      * Check access that should be allowed for caller, based on grants and/or
@@ -4108,6 +4140,13 @@ public class MediaProvider extends ContentProvider {
 
         // System internals can work with all media
         if (isCallingPackageSystem()) {
+            return PERMISSION_GRANTED;
+        }
+
+        // Outstanding grant means they get access
+        if (context.checkCallingUriPermission(uri, forWrite
+                ? Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                : Intent.FLAG_GRANT_READ_URI_PERMISSION) == PERMISSION_GRANTED) {
             return PERMISSION_GRANTED;
         }
 
@@ -4156,22 +4195,30 @@ public class MediaProvider extends ContentProvider {
                 writePermission = WRITE_MEDIA_VIDEO;
                 break;
 
+            case FILES:
+            case FILES_ID:
+                int permission = PERMISSION_GRANTED_IF_OWNER;
+                if (context.checkCallingPermission(
+                        forWrite ? WRITE_MEDIA_AUDIO : READ_MEDIA_AUDIO) == PERMISSION_GRANTED) {
+                    permission |= PERMISSION_GRANTED_TYPE_AUDIO;
+                }
+                if (context.checkCallingPermission(
+                        forWrite ? WRITE_MEDIA_VIDEO : READ_MEDIA_VIDEO) == PERMISSION_GRANTED) {
+                    permission |= PERMISSION_GRANTED_TYPE_VIDEO;
+                }
+                if (context.checkCallingPermission(
+                        forWrite ? WRITE_MEDIA_IMAGES : READ_MEDIA_IMAGES) == PERMISSION_GRANTED) {
+                    permission |= PERMISSION_GRANTED_TYPE_IMAGES;
+                }
+                return permission;
+
             default:
                 return PERMISSION_GRANTED_IF_OWNER;
         }
 
-        if (forWrite) {
-            if ((context.checkCallingPermission(writePermission) == PERMISSION_GRANTED) ||
-                    (context.checkCallingUriPermission(uri,
-                            Intent.FLAG_GRANT_WRITE_URI_PERMISSION) == PERMISSION_GRANTED)) {
-                return PERMISSION_GRANTED;
-            }
-        } else {
-            if ((context.checkCallingPermission(readPermission) == PERMISSION_GRANTED) ||
-                    (context.checkCallingUriPermission(uri,
-                            Intent.FLAG_GRANT_READ_URI_PERMISSION) == PERMISSION_GRANTED)) {
-                return PERMISSION_GRANTED;
-            }
+        if (context.checkCallingPermission(
+                forWrite ? writePermission : readPermission) == PERMISSION_GRANTED) {
+            return PERMISSION_GRANTED;
         }
 
         // Worst case, apps can always work with content they own
@@ -4192,12 +4239,8 @@ public class MediaProvider extends ContentProvider {
         if (permission == PERMISSION_GRANTED) {
             // Access allowed, yay!
             return;
-        } else if (permission == PERMISSION_GRANTED_IF_OWNER) {
-            DatabaseHelper helper = getDatabaseForUri(uri);
-            SQLiteDatabase db = helper.getReadableDatabase();
-            SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, uri, match, permission);
-            try (Cursor c = qb.query(db, new String[0],
-                    null, null, null, null, null)) {
+        } else {
+            try (Cursor c = queryCommon(uri, new String[0], null, null, null, null)) {
                 if (c.moveToFirst()) {
                     // Access allowed, yay!
                     return;

@@ -17,56 +17,98 @@
 package com.android.providers.media;
 
 import android.annotation.NonNull;
+import android.content.ContentResolver;
 import android.database.CharArrayBuffer;
 import android.database.CrossProcessCursorWrapper;
 import android.database.Cursor;
 import android.database.CursorWindow;
 import android.database.DatabaseUtils;
-import android.util.SparseArray;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteQueryBuilder;
+import android.net.Uri;
+import android.os.CancellationSignal;
 
-import java.util.Map;
-import java.util.function.UnaryOperator;
+import com.android.internal.util.ArrayUtils;
+
+import java.util.Objects;
 
 /**
- * Cursor that offers to translate values of requested columns.
+ * Cursor that supports deprecation of {@code _data} columns, typically by
+ * replacing values with fake paths that the OS then offers to redirect to
+ * {@link ContentResolver#openFileDescriptor(Uri, String)}, which developers
+ * should be using directly.
  *
  * @hide
  */
 public class TranslatingCursor extends CrossProcessCursorWrapper {
-    private final SparseArray<UnaryOperator<String>> mTranslations;
+    public static class Config {
+        public final Uri baseUri;
+        public final String idColumn;
+        public final String dataColumn;
 
-    private TranslatingCursor(@NonNull Cursor cursor,
-            SparseArray<UnaryOperator<String>> translations) {
-        super(cursor);
-        mTranslations = translations;
+        public Config(Uri baseUri, String idColumn, String dataColumn) {
+            this.baseUri = baseUri;
+            this.idColumn = idColumn;
+            this.dataColumn = dataColumn;
+        }
     }
 
-    /**
-     * Create a wrapped instance of the given {@link Cursor} which translates
-     * the requested columns so they always return specific values when
-     * accessed.
-     * <p>
-     * If a translated column appears multiple times in the underlying cursor,
-     * all instances will be translated. If none of the translated columns
-     * appear in the given cursor, the given cursor will be returned untouched
-     * to improve performance.
-     */
-    public static Cursor create(@NonNull Cursor cursor,
-            @NonNull Map<String, UnaryOperator<String>> translations) {
-        final SparseArray<UnaryOperator<String>> internalTranslations = new SparseArray<>();
+    public interface Translator {
+        public String translate(String data, long id);
+    }
 
-        final String[] columns = cursor.getColumnNames();
-        for (int i = 0; i < columns.length; i++) {
-            if (translations.containsKey(columns[i])) {
-                internalTranslations.put(i, translations.get(columns[i]));
-            }
-        }
+    private final @NonNull Config mConfig;
+    private final @NonNull Translator mTranslator;
+    private final boolean mDropLast;
 
-        if (internalTranslations.size() == 0) {
-            return cursor;
+    private final int mIdIndex;
+    private final int mDataIndex;
+
+    private TranslatingCursor(@NonNull Cursor cursor, @NonNull Config config,
+            @NonNull Translator translator, boolean dropLast) {
+        super(cursor);
+
+        mConfig = Objects.requireNonNull(config);
+        mTranslator = Objects.requireNonNull(translator);
+        mDropLast = dropLast;
+
+        mIdIndex = cursor.getColumnIndexOrThrow(config.idColumn);
+        mDataIndex = cursor.getColumnIndexOrThrow(config.dataColumn);
+    }
+
+    @Override
+    public int getColumnCount() {
+        if (mDropLast) {
+            return super.getColumnCount() - 1;
         } else {
-            return new TranslatingCursor(cursor, internalTranslations);
+            return super.getColumnCount();
         }
+    }
+
+    public static Cursor query(@NonNull Config config, @NonNull Translator translator,
+            SQLiteQueryBuilder qb, SQLiteDatabase db, String[] projectionIn, String selection,
+            String[] selectionArgs, String groupBy, String having, String sortOrder, String limit,
+            CancellationSignal signal) {
+        final boolean requestedId = ArrayUtils.isEmpty(projectionIn)
+                || ArrayUtils.contains(projectionIn, config.idColumn);
+        final boolean requestedData = ArrayUtils.isEmpty(projectionIn)
+                || ArrayUtils.contains(projectionIn, config.dataColumn);
+
+        // If caller didn't request data, we have nothing to redirect
+        if (!requestedData || !ContentResolver.DEPRECATE_DATA_COLUMNS) {
+            return qb.query(db, projectionIn, selection, selectionArgs,
+                    groupBy, having, sortOrder, limit, signal);
+        }
+
+        // If caller didn't request id, we need to splice it in
+        if (!requestedId) {
+            projectionIn = ArrayUtils.appendElement(String.class, projectionIn,
+                    config.idColumn);
+        }
+
+        final Cursor c = qb.query(db, projectionIn, selection, selectionArgs,
+                groupBy, having, sortOrder);
+        return new TranslatingCursor(c, config, translator, !requestedId);
     }
 
     @Override
@@ -89,9 +131,8 @@ public class TranslatingCursor extends CrossProcessCursorWrapper {
 
     @Override
     public double getDouble(int columnIndex) {
-        final int i = mTranslations.indexOfKey(columnIndex);
-        if (i >= 0) {
-            throw new IllegalStateException();
+        if (columnIndex == mDataIndex) {
+            throw new IllegalArgumentException();
         } else {
             return super.getDouble(columnIndex);
         }
@@ -99,9 +140,8 @@ public class TranslatingCursor extends CrossProcessCursorWrapper {
 
     @Override
     public float getFloat(int columnIndex) {
-        final int i = mTranslations.indexOfKey(columnIndex);
-        if (i >= 0) {
-            throw new IllegalStateException();
+        if (columnIndex == mDataIndex) {
+            throw new IllegalArgumentException();
         } else {
             return super.getFloat(columnIndex);
         }
@@ -109,9 +149,8 @@ public class TranslatingCursor extends CrossProcessCursorWrapper {
 
     @Override
     public int getInt(int columnIndex) {
-        final int i = mTranslations.indexOfKey(columnIndex);
-        if (i >= 0) {
-            throw new IllegalStateException();
+        if (columnIndex == mDataIndex) {
+            throw new IllegalArgumentException();
         } else {
             return super.getInt(columnIndex);
         }
@@ -119,9 +158,8 @@ public class TranslatingCursor extends CrossProcessCursorWrapper {
 
     @Override
     public long getLong(int columnIndex) {
-        final int i = mTranslations.indexOfKey(columnIndex);
-        if (i >= 0) {
-            throw new IllegalStateException();
+        if (columnIndex == mDataIndex) {
+            throw new IllegalArgumentException();
         } else {
             return super.getLong(columnIndex);
         }
@@ -129,9 +167,8 @@ public class TranslatingCursor extends CrossProcessCursorWrapper {
 
     @Override
     public short getShort(int columnIndex) {
-        final int i = mTranslations.indexOfKey(columnIndex);
-        if (i >= 0) {
-            throw new IllegalStateException();
+        if (columnIndex == mDataIndex) {
+            throw new IllegalArgumentException();
         } else {
             return super.getShort(columnIndex);
         }
@@ -139,9 +176,8 @@ public class TranslatingCursor extends CrossProcessCursorWrapper {
 
     @Override
     public String getString(int columnIndex) {
-        final int i = mTranslations.indexOfKey(columnIndex);
-        if (i >= 0) {
-            return mTranslations.valueAt(i).apply(super.getString(columnIndex));
+        if (columnIndex == mDataIndex) {
+            return mTranslator.translate(super.getString(mDataIndex), super.getLong(mIdIndex));
         } else {
             return super.getString(columnIndex);
         }
@@ -149,9 +185,8 @@ public class TranslatingCursor extends CrossProcessCursorWrapper {
 
     @Override
     public void copyStringToBuffer(int columnIndex, CharArrayBuffer buffer) {
-        final int i = mTranslations.indexOfKey(columnIndex);
-        if (i >= 0) {
-            throw new IllegalStateException();
+        if (columnIndex == mDataIndex) {
+            throw new IllegalArgumentException();
         } else {
             super.copyStringToBuffer(columnIndex, buffer);
         }
@@ -159,9 +194,8 @@ public class TranslatingCursor extends CrossProcessCursorWrapper {
 
     @Override
     public byte[] getBlob(int columnIndex) {
-        final int i = mTranslations.indexOfKey(columnIndex);
-        if (i >= 0) {
-            throw new IllegalStateException();
+        if (columnIndex == mDataIndex) {
+            throw new IllegalArgumentException();
         } else {
             return super.getBlob(columnIndex);
         }
@@ -169,8 +203,7 @@ public class TranslatingCursor extends CrossProcessCursorWrapper {
 
     @Override
     public int getType(int columnIndex) {
-        final int i = mTranslations.indexOfKey(columnIndex);
-        if (i >= 0) {
+        if (columnIndex == mDataIndex) {
             return Cursor.FIELD_TYPE_STRING;
         } else {
             return super.getType(columnIndex);
@@ -179,8 +212,7 @@ public class TranslatingCursor extends CrossProcessCursorWrapper {
 
     @Override
     public boolean isNull(int columnIndex) {
-        final int i = mTranslations.indexOfKey(columnIndex);
-        if (i >= 0) {
+        if (columnIndex == mDataIndex) {
             return getString(columnIndex) == null;
         } else {
             return super.isNull(columnIndex);

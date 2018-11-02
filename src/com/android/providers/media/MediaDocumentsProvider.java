@@ -625,12 +625,31 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     }
 
     @Override
-    public Cursor queryRecentDocuments(String rootId, String[] projection)
+    public Cursor queryRecentDocuments(
+            String rootId, String[] projection, @Nullable Bundle queryArgs,
+      @Nullable CancellationSignal signal)
             throws FileNotFoundException {
         final ContentResolver resolver = getContext().getContentResolver();
         final MatrixCursor result = new MatrixCursor(resolveDocumentProjection(projection));
 
         final long token = Binder.clearCallingIdentity();
+
+        int limit = -1;
+        if (queryArgs != null) {
+            limit = queryArgs.getInt(ContentResolver.QUERY_ARG_LIMIT, -1);
+        }
+        if (limit < 0) {
+            // Use default value, and no QUERY_ARG* is honored.
+            limit = 64;
+        } else {
+            // We are honoring the QUERY_ARG_LIMIT.
+            Bundle extras = new Bundle();
+            result.setExtras(extras);
+            extras.putStringArray(ContentResolver.EXTRA_HONORED_ARGS, new String[]{
+                ContentResolver.QUERY_ARG_LIMIT
+            });
+        }
+
         Cursor cursor = null;
         try {
             if (TYPE_IMAGES_ROOT.equals(rootId)) {
@@ -638,7 +657,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
                         ImageQuery.PROJECTION, null, null, ImageColumns.DATE_MODIFIED + " DESC");
                 copyNotificationUri(result, cursor);
-                while (cursor.moveToNext() && result.getCount() < 64) {
+                while (cursor.moveToNext() && result.getCount() < limit) {
                     includeImage(result, cursor);
                 }
             } else if (TYPE_VIDEOS_ROOT.equals(rootId)) {
@@ -646,7 +665,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Video.Media.EXTERNAL_CONTENT_URI,
                         VideoQuery.PROJECTION, null, null, VideoColumns.DATE_MODIFIED + " DESC");
                 copyNotificationUri(result, cursor);
-                while (cursor.moveToNext() && result.getCount() < 64) {
+                while (cursor.moveToNext() && result.getCount() < limit) {
                     includeVideo(result, cursor);
                 }
             } else {

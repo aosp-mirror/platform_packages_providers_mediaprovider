@@ -827,6 +827,7 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("DELETE from artists");
         db.execSQL("ALTER TABLE files ADD COLUMN title_resource_uri TEXT DEFAULT NULL");
         db.execSQL("UPDATE files SET date_modified=0");
+        updateAddColorSpaces(db);
     }
 
     private static void updateFromOCSchema(SQLiteDatabase db) {
@@ -835,6 +836,7 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("ALTER TABLE files ADD COLUMN title_resource_uri TEXT DEFAULT NULL");
         db.execSQL("UPDATE files SET date_modified=0"
                 + " WHERE (is_alarm IS 1) OR (is_ringtone IS 1) OR (is_notification IS 1)");
+        updateAddColorSpaces(db);
     }
 
     private static void updateAddOwnerPackageName(SQLiteDatabase db, boolean internal) {
@@ -863,7 +865,7 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private static void updateAddColorSpaces(SQLiteDatabase db, boolean internal) {
+    private static void updateAddColorSpaces(SQLiteDatabase db) {
         // Add the color aspects related column used for HDR detection etc.
         db.execSQL("ALTER TABLE files ADD COLUMN color_standard INTEGER;");
         db.execSQL("ALTER TABLE files ADD COLUMN color_transfer INTEGER;");
@@ -903,7 +905,7 @@ public class MediaProvider extends ContentProvider {
                 updateAddOwnerPackageName(db, internal);
             }
             if (fromVersion < 1003) {
-                updateAddColorSpaces(db, internal);
+                updateAddColorSpaces(db);
             }
         }
 

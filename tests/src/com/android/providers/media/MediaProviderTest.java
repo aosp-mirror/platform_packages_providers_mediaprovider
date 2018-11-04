@@ -16,6 +16,10 @@
 
 package com.android.providers.media;
 
+import static android.provider.MediaStore.PARAM_PRIMARY;
+import static android.provider.MediaStore.PARAM_SECONDARY;
+
+import static com.android.providers.media.MediaProvider.ensureFileColumns;
 import static com.android.providers.media.MediaProvider.getPathOwnerPackageName;
 import static com.android.providers.media.MediaProvider.maybeBalance;
 import static com.android.providers.media.MediaProvider.recoverAbusiveGroupBy;
@@ -25,6 +29,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import android.content.ContentValues;
+import android.net.Uri;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.provider.MediaStore.MediaColumns;
 import android.support.test.runner.AndroidJUnit4;
 import android.util.Pair;
 
@@ -65,6 +74,68 @@ public class MediaProviderTest {
 
         assertEquals("com.example",
                 getPathOwnerPackageName("/storage/0000-0000/Android/data/com.example/foo.jpg"));
+    }
+
+    @Test
+    public void testBuildData_Simple() throws Exception {
+        final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+        assertEndsWith("/Pictures/file.png", buildFile(uri, "file", "image/png"));
+        assertEndsWith("/Pictures/file.png", buildFile(uri, "file.png", "image/png"));
+        assertEndsWith("/Pictures/file.jpg.png", buildFile(uri, "file.jpg", "image/png"));
+    }
+
+    @Test
+    public void testBuildData_Primary() throws Exception {
+        final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI.buildUpon()
+                .appendQueryParameter(MediaStore.PARAM_PRIMARY, Environment.DIRECTORY_DCIM).build();
+        assertEndsWith("/DCIM/IMG_1024.JPG", buildFile(uri, "IMG_1024.JPG", "image/jpeg"));
+    }
+
+    @Test
+    public void testBuildData_Secondary() throws Exception {
+        final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI.buildUpon()
+                .appendQueryParameter(PARAM_SECONDARY, Environment.DIRECTORY_SCREENSHOTS)
+                .build();
+        assertEndsWith("/Pictures/Screenshots/foo.png", buildFile(uri, "foo.png", "image/png"));
+    }
+
+    @Test
+    public void testBuildData_InvalidNames() throws Exception {
+        final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+        assertThrows(IllegalArgumentException.class, () -> {
+            buildFile(uri, "foo/bar", "image/png");
+        });
+        assertThrows(IllegalArgumentException.class, () -> {
+            buildFile(uri.buildUpon().appendQueryParameter(PARAM_PRIMARY, "foo/bar")
+                    .build(), "foo", "image/png");
+        });
+        assertThrows(IllegalArgumentException.class, () -> {
+            buildFile(uri.buildUpon().appendQueryParameter(PARAM_SECONDARY, "foo/bar").build(),
+                    "foo", "image/png");
+        });
+    }
+
+    @Test
+    public void testBuildData_InvalidTypes() throws Exception {
+        for (String type : new String[] {
+                "audio/foo", "video/foo", "image/foo", "application/foo", "foo/foo"
+        }) {
+            if (!type.startsWith("audio/")) {
+                assertThrows(IllegalArgumentException.class, () -> {
+                    buildFile(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, "foo", type);
+                });
+            }
+            if (!type.startsWith("video/")) {
+                assertThrows(IllegalArgumentException.class, () -> {
+                    buildFile(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, "foo", type);
+                });
+            }
+            if (!type.startsWith("image/")) {
+                assertThrows(IllegalArgumentException.class, () -> {
+                    buildFile(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "foo", type);
+                });
+            }
+        }
     }
 
     @Test
@@ -143,7 +214,7 @@ public class MediaProviderTest {
         final Pair<String, String> input = Pair.create(
                 "(1) GROUP BY bucket_id,(bucket_display_name)",
                 null);
-        final Pair<String,String> expected = Pair.create(
+        final Pair<String, String> expected = Pair.create(
                 "(1)",
                 "bucket_id,(bucket_display_name)");
         assertEquals(expected, recoverAbusiveGroupBy(input));
@@ -154,7 +225,7 @@ public class MediaProviderTest {
         final Pair<String, String> input = Pair.create(
                 "(title like 'C360%' or title like 'getInstance%') group by ((datetaken+19800000)/86400000)",
                 null);
-        final Pair<String,String> expected = Pair.create(
+        final Pair<String, String> expected = Pair.create(
                 "(title like 'C360%' or title like 'getInstance%')",
                 "((datetaken+19800000)/86400000)");
         assertEquals(expected, recoverAbusiveGroupBy(input));
@@ -252,5 +323,30 @@ public class MediaProviderTest {
             }
         }
         return false;
+    }
+
+    private static String buildFile(Uri uri, String displayName, String mimeType) {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DISPLAY_NAME, displayName);
+        values.put(MediaColumns.MIME_TYPE, mimeType);
+        ensureFileColumns(uri, values);
+        return values.getAsString(MediaColumns.DATA);
+    }
+
+    private static void assertEndsWith(String expected, String actual) {
+        if (!actual.endsWith(expected)) {
+            fail("Expected ends with " + expected + " but found " + actual);
+        }
+    }
+
+    private static <T extends Exception> void assertThrows(Class<T> clazz, Runnable r) {
+        try {
+            r.run();
+            fail("Expected " + clazz + " to be thrown");
+        } catch (Exception e) {
+            if (!clazz.isAssignableFrom(e.getClass())) {
+                throw e;
+            }
+        }
     }
 }

@@ -1264,7 +1264,8 @@ public class MediaProvider extends ContentProvider {
         final Cursor c;
         if (ContentResolver.DEPRECATE_DATA_COLUMNS && !isCallingPackageSystem()
                 && config != null) {
-            final String callingPackage = getCallingPackageOrSelf();
+            final int callingPid = Binder.getCallingPid();
+            final int callingUid = Binder.getCallingUid();
             final Translator translator;
             if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q) {
                 translator = (data, id) -> null;
@@ -1272,7 +1273,7 @@ public class MediaProvider extends ContentProvider {
                 translator = (data, id) -> {
                     try {
                         // Prefer translating path directly into app sandbox
-                        return translateSystemToApp(data, callingPackage);
+                        return translateSystemToApp(data, callingPid, callingUid);
                     } catch (SecurityException e) {
                         // Otherwise use special filesystem path to redirect
                         return ContentResolver.translateDeprecatedDataPath(
@@ -2267,10 +2268,11 @@ public class MediaProvider extends ContentProvider {
                         && !isCallingPackageSystem()) {
                     // Modern apps don't get raw paths
                     initialValues.remove(column);
-                } else if (isCallingPackageSandboxed()) {
+                } else {
                     // Apps running in a sandbox need their paths translated
                     initialValues.put(column, translateAppToSystem(
-                            initialValues.getAsString(column), getCallingPackageOrSelf()));
+                            initialValues.getAsString(column),
+                            Binder.getCallingPid(), Binder.getCallingUid()));
                 }
             }
 
@@ -3531,10 +3533,11 @@ public class MediaProvider extends ContentProvider {
                         && !isCallingPackageSystem()) {
                     // Modern apps don't get raw paths
                     initialValues.remove(column);
-                } else if (isCallingPackageSandboxed()) {
+                } else {
                     // Apps running in a sandbox need their paths translated
                     initialValues.put(column, translateAppToSystem(
-                            initialValues.getAsString(column), getCallingPackageOrSelf()));
+                            initialValues.getAsString(column),
+                            Binder.getCallingPid(), Binder.getCallingUid()));
                 }
             }
 
@@ -5745,19 +5748,19 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private @Nullable String translateAppToSystem(@Nullable String path, String callingPackage) {
+    private @Nullable String translateAppToSystem(@Nullable String path, int pid, int uid) {
         if (path == null) return path;
 
         final File app = new File(path);
-        final File system = mStorageManager.translateAppToSystem(app, callingPackage);
+        final File system = mStorageManager.translateAppToSystem(app, pid, uid);
         return system.getPath();
     }
 
-    private @Nullable String translateSystemToApp(@Nullable String path, String callingPackage) {
+    private @Nullable String translateSystemToApp(@Nullable String path, int pid, int uid) {
         if (path == null) return path;
 
         final File system = new File(path);
-        final File app = mStorageManager.translateSystemToApp(system, callingPackage);
+        final File app = mStorageManager.translateSystemToApp(system, pid, uid);
         return app.getPath();
     }
 

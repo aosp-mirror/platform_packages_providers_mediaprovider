@@ -1,0 +1,20 @@
+android_app {
+    name: "MediaProvider",
+
+    manifest: "AndroidManifest.xml",
+
+    resource_dirs: [
+        "res",
+    ],
+
+    srcs: [
+        "src/**/*.aidl",
+        "src/**/*.java",
+    ],
+
+    platform_apis: true,
+
+    certificate: "media",
+
+    privileged: true,
+}

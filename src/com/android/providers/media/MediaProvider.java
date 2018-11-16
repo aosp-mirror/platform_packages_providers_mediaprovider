@@ -704,7 +704,9 @@ public class MediaProvider extends ContentProvider {
                 + "width INTEGER, height INTEGER, title_resource_uri TEXT,"
                 + "owner_package_name TEXT DEFAULT NULL,"
                 + "color_standard INTEGER, color_transfer INTEGER, color_range INTEGER,"
-                + "_hash BLOB DEFAULT NULL, is_pending INTEGER DEFAULT 0)");
+                + "_hash BLOB DEFAULT NULL, is_pending INTEGER DEFAULT 0,"
+                + "is_download INTEGER DEFAULT 0, download_uri TEXT DEFAULT NULL,"
+                + "referer_uri TEXT DEFAULT NULL)");
 
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!internal) {
@@ -819,6 +821,10 @@ public class MediaProvider extends ContentProvider {
                 + "isprivate,tags,category,language,mini_thumb_data,latitude,longitude,datetaken,"
                 + "mini_thumb_magic,bucket_id,bucket_display_name,bookmark,width,height,is_drm,"
                 + "owner_package_name,_hash,is_pending FROM files WHERE media_type=3");
+        db.execSQL("CREATE VIEW downloads AS SELECT _id,_data,_size,_display_name,title,date_added,"
+                + "date_modified,mime_type,is_drm,is_pending,NULL as width,NULL as height,"
+                + "owner_package_name,_hash,download_uri,referer_uri"
+                + " FROM files WHERE is_download=1");
     }
 
     private static void updateFromKKSchema(SQLiteDatabase db) {
@@ -881,6 +887,12 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("ALTER TABLE files ADD COLUMN is_pending INTEGER DEFAULT 0;");
     }
 
+    private static void updateAddDownloadInfo(SQLiteDatabase db, boolean internal) {
+        db.execSQL("ALTER TABLE files ADD COLUMN is_download INTEGER DEFAULT 0;");
+        db.execSQL("ALTER TABLE files ADD COLUMN download_uri TEXT DEFAULT NULL;");
+        db.execSQL("ALTER TABLE files ADD COLUMN referer_uri TEXT DEFAULT NULL;");
+    }
+
     static final int VERSION_J = 509;
     static final int VERSION_K = 700;
     static final int VERSION_L = 700;
@@ -918,6 +930,9 @@ public class MediaProvider extends ContentProvider {
             }
             if (fromVersion < 1004) {
                 updateAddHashAndPending(db, internal);
+            }
+            if (fromVersion < 1005) {
+                updateAddDownloadInfo(db, internal);
             }
         }
 
@@ -1422,6 +1437,10 @@ public class MediaProvider extends ContentProvider {
                 break;
             case AUDIO_PLAYLISTS:
                 defaultPrimary = Environment.DIRECTORY_MUSIC;
+                allowedPrimary = Arrays.asList(defaultPrimary);
+                break;
+            case DOWNLOADS:
+                defaultPrimary = Environment.DIRECTORY_DOWNLOADS;
                 allowedPrimary = Arrays.asList(defaultPrimary);
                 break;
         }
@@ -2284,6 +2303,8 @@ public class MediaProvider extends ContentProvider {
             // it be whoever is creating the content.
             initialValues.remove(FileColumns.OWNER_PACKAGE_NAME);
 
+            initialValues.remove(FileColumns.IS_DOWNLOAD);
+
             if (isCallingPackageSystem()) {
                 // When media inserted by ourselves, the best we can do is guess
                 // ownership based on path.
@@ -2545,6 +2566,15 @@ public class MediaProvider extends ContentProvider {
                 if (rowId > 0) {
                     newUri = Files.getContentUri(volumeName, rowId);
                 }
+                break;
+
+            case DOWNLOADS:
+                maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
+                initialValues.put(FileColumns.IS_DOWNLOAD, true);
+                rowId = insertFile(helper, match, uri, initialValues,
+                        FileColumns.MEDIA_TYPE_NONE, false, notifyRowIds);
+                newUri = ContentUris.withAppendedId(
+                        MediaStore.Downloads.getContentUri(volumeName), rowId);
                 break;
 
             default:
@@ -3062,6 +3092,30 @@ public class MediaProvider extends ContentProvider {
 
                 break;
 
+            case DOWNLOADS_ID:
+                appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(2));
+                includePending = true;
+                // fall-through
+            case DOWNLOADS:
+                if (type == TYPE_QUERY) {
+                    qb.setTables("downloads");
+                    if (ENFORCE_PUBLIC_API) {
+                        qb.setProjectionMap(sDownloadsColumns);
+                        qb.setProjectionGreylist(sGreylist);
+                    }
+                } else {
+                    qb.setTables("files");
+                    appendWhereStandalone(qb, FileColumns.IS_DOWNLOAD + "=1");
+                }
+                if (!allowGlobal) {
+                    appendWhereStandalone(qb, FileColumns.OWNER_PACKAGE_NAME + "=?",
+                            callingPackage);
+                }
+                if (!includePending) {
+                    appendWhereStandalone(qb, FileColumns.IS_PENDING + "=?", 0);
+                }
+                break;
+
             default:
                 throw new UnsupportedOperationException(
                         "Unknown or unsupported URL: " + uri.toString());
@@ -3555,6 +3609,8 @@ public class MediaProvider extends ContentProvider {
             // Remote callers have no direct control over owner column; we force
             // it be whoever is creating the content.
             initialValues.remove(FileColumns.OWNER_PACKAGE_NAME);
+
+            initialValues.remove(FileColumns.IS_DOWNLOAD);
         }
 
         // if the media type is being changed, check if it's being changed from image or video
@@ -5257,6 +5313,9 @@ public class MediaProvider extends ContentProvider {
     // Used only to invoke special logic for directories
     private static final int FILES_DIRECTORY = 706;
 
+    private static final int DOWNLOADS = 800;
+    private static final int DOWNLOADS_ID = 801;
+
     private static final UriMatcher HIDDEN_URI_MATCHER =
             new UriMatcher(UriMatcher.NO_MATCH);
 
@@ -5364,12 +5423,16 @@ public class MediaProvider extends ContentProvider {
 
         // Used only to trigger special logic for directories
         hiddenMatcher.addURI(AUTHORITY, "*/dir", FILES_DIRECTORY);
+
+        publicMatcher.addURI(AUTHORITY, "*/downloads", DOWNLOADS);
+        publicMatcher.addURI(AUTHORITY, "*/downloads/#", DOWNLOADS_ID);
     }
 
     private static final ArrayMap<String, String> sMediaColumns = new ArrayMap<>();
     private static final ArrayMap<String, String> sAudioColumns = new ArrayMap<>();
     private static final ArrayMap<String, String> sImagesColumns = new ArrayMap<>();
     private static final ArrayMap<String, String> sVideoColumns = new ArrayMap<>();
+    private static final ArrayMap<String, String> sDownloadsColumns = new ArrayMap<>();
 
     private static final ArrayMap<String, String> sArtistAlbumsMap = new ArrayMap<>();
     private static final ArrayMap<String, String> sPlaylistMembersMap = new ArrayMap<>();
@@ -5492,6 +5555,13 @@ public class MediaProvider extends ContentProvider {
         // TODO: defined in API, but CTS claims it should be omitted
         map.remove(MediaStore.MediaColumns.WIDTH);
         map.remove(MediaStore.MediaColumns.HEIGHT);
+    }
+
+    {
+        final Map<String, String> map = sDownloadsColumns;
+        map.putAll(sMediaColumns);
+        addMapping(map, MediaStore.Downloads.DOWNLOAD_URI);
+        addMapping(map, MediaStore.Downloads.REFERER_URI);
     }
 
     /**

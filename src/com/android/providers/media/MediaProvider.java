@@ -5576,10 +5576,11 @@ public class MediaProvider extends ContentProvider {
     static final ArrayList<Pattern> sGreylist = new ArrayList<>();
 
     {
+        final String maybeAs = "( (as )?[_a-z0-9]+)?";
         sGreylist.add(Pattern.compile(
-                "(?i)[_a-z0-9]+ as [_a-z0-9]+"));
+                "(?i)[_a-z0-9]+" + maybeAs));
         sGreylist.add(Pattern.compile(
-                "(?i)(min|max|sum|avg|total|count)\\(([_a-z0-9]+|\\*)\\)( as [_a-z0-9]+)?"));
+                "(?i)(min|max|sum|avg|total|count|cast)\\(([_a-z0-9]+" + maybeAs + "|\\*)\\)" + maybeAs));
         sGreylist.add(Pattern.compile(
                 "case when case when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added \\* \\d+ when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added / \\d+ else \\d+ end > case when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified \\* \\d+ when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified / \\d+ else \\d+ end then case when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added \\* \\d+ when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added / \\d+ else \\d+ end else case when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified \\* \\d+ when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified / \\d+ else \\d+ end end as corrected_added_modified"));
         sGreylist.add(Pattern.compile(

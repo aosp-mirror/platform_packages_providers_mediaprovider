@@ -58,6 +58,7 @@ import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.MatrixCursor;
+import android.database.TranslatingCursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteQueryBuilder;
@@ -113,7 +114,6 @@ import android.util.Pair;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.os.BackgroundThread;
 import com.android.internal.util.ArrayUtils;
-import com.android.providers.media.TranslatingCursor.Translator;
 
 import libcore.io.IoUtils;
 import libcore.net.MimeUtils;
@@ -1266,7 +1266,7 @@ public class MediaProvider extends ContentProvider {
                 && config != null) {
             final int callingPid = Binder.getCallingPid();
             final int callingUid = Binder.getCallingUid();
-            final Translator translator;
+            final TranslatingCursor.Translator translator;
             if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q) {
                 translator = (data, id) -> null;
             } else {

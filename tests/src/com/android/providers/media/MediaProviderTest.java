@@ -316,6 +316,28 @@ public class MediaProviderTest {
                 "other_table.column_a AS column_b"));
     }
 
+    @Test
+    public void testGreylist_118475754() {
+        assertTrue(isGreylistMatch(
+                "count(*) pcount"));
+        assertTrue(isGreylistMatch(
+                "foo AS bar"));
+        assertTrue(isGreylistMatch(
+                "foo bar"));
+        assertTrue(isGreylistMatch(
+                "count(foo) AS bar"));
+        assertTrue(isGreylistMatch(
+                "count(foo) bar"));
+    }
+
+    @Test
+    public void testGreylist_119522660() {
+        assertTrue(isGreylistMatch(
+                "CAST(_id AS TEXT) AS string_id"));
+        assertTrue(isGreylistMatch(
+                "cast(_id as text)"));
+    }
+
     private static boolean isGreylistMatch(String raw) {
         for (Pattern p : MediaProvider.sGreylist) {
             if (p.matcher(raw).matches()) {

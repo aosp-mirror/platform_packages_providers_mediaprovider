@@ -19,14 +19,8 @@ package com.android.providers.media;
 import static android.Manifest.permission.ACCESS_CACHE_FILESYSTEM;
 import static android.Manifest.permission.INTERACT_ACROSS_USERS;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
-import static android.Manifest.permission.READ_MEDIA_AUDIO;
-import static android.Manifest.permission.READ_MEDIA_IMAGES;
-import static android.Manifest.permission.READ_MEDIA_VIDEO;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
-import static android.Manifest.permission.WRITE_MEDIA_AUDIO;
-import static android.Manifest.permission.WRITE_MEDIA_IMAGES;
 import static android.Manifest.permission.WRITE_MEDIA_STORAGE;
-import static android.Manifest.permission.WRITE_MEDIA_VIDEO;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.os.ParcelFileDescriptor.MODE_WRITE_ONLY;
 import static android.provider.MediaStore.AUTHORITY;
@@ -4280,34 +4274,49 @@ public class MediaProvider extends ContentProvider {
         return false;
     }
 
-    private boolean checkCallingPermission(String permission, String callingPackage) {
-        if (getContext().checkCallingPermission(permission) == PERMISSION_GRANTED) {
-            switch (mAppOpsManager.noteProxyOp(AppOpsManager.permissionToOpCode(permission),
-                    callingPackage)) {
-                case AppOpsManager.MODE_ALLOWED:
-                case AppOpsManager.MODE_DEFAULT:
-                    return true;
-                default:
-                    return false;
-            }
-        } else {
+    private boolean checkCallingPermission(String readPermission, int readOp, int writeOp,
+            boolean forWrite, String callingPackage) {
+        if (!forWrite
+                && getContext().checkCallingPermission(readPermission) != PERMISSION_GRANTED) {
             return false;
+        }
+
+        final int op = forWrite ? writeOp : readOp;
+        final int mode = mAppOpsManager.noteProxyOpNoThrow(op, callingPackage);
+        switch (mode) {
+            case AppOpsManager.MODE_ALLOWED:
+                return true;
+            case AppOpsManager.MODE_DEFAULT:
+            case AppOpsManager.MODE_IGNORED:
+            case AppOpsManager.MODE_ERRORED:
+                // TODO: throw SecurityException once we have APIs for
+                // developers to request access to media they don't own
+                return false;
+            default:
+                throw new IllegalStateException(AppOpsManager.opToName(op) + " has unknown mode "
+                        + AppOpsManager.modeToName(mode));
         }
     }
 
     private boolean checkCallingPermissionAudio(boolean forWrite, String callingPackage) {
-        return checkCallingPermission(forWrite ? WRITE_MEDIA_AUDIO : READ_MEDIA_AUDIO,
-                callingPackage);
+        return checkCallingPermission(android.Manifest.permission.READ_MEDIA_AUDIO,
+                AppOpsManager.OP_READ_MEDIA_AUDIO,
+                AppOpsManager.OP_WRITE_MEDIA_AUDIO,
+                forWrite, callingPackage);
     }
 
     private boolean checkCallingPermissionVideo(boolean forWrite, String callingPackage) {
-        return checkCallingPermission(forWrite ? WRITE_MEDIA_VIDEO : READ_MEDIA_VIDEO,
-                callingPackage);
+        return checkCallingPermission(android.Manifest.permission.READ_MEDIA_VIDEO,
+                AppOpsManager.OP_READ_MEDIA_VIDEO,
+                AppOpsManager.OP_WRITE_MEDIA_VIDEO,
+                forWrite, callingPackage);
     }
 
     private boolean checkCallingPermissionImages(boolean forWrite, String callingPackage) {
-        return checkCallingPermission(forWrite ? WRITE_MEDIA_IMAGES : READ_MEDIA_IMAGES,
-                callingPackage);
+        return checkCallingPermission(android.Manifest.permission.READ_MEDIA_IMAGES,
+                AppOpsManager.OP_READ_MEDIA_IMAGES,
+                AppOpsManager.OP_WRITE_MEDIA_IMAGES,
+                forWrite, callingPackage);
     }
 
     /**

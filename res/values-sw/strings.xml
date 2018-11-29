@@ -20,9 +20,9 @@
     <string name="storage_description" msgid="4081716890357580107">"Hifadhi ya ndani"</string>
     <string name="app_label" msgid="9035307001052716210">"Hifadhi ya Maudhui"</string>
     <string name="artist_label" msgid="8105600993099120273">"Msanii"</string>
-    <string name="ringtone_default" msgid="1744846699922263043">"Mlio chaguo msingi wa simu"</string>
-    <string name="notification_sound_default" msgid="6541609166469990135">"Sauti chaguo msingi ya arifa"</string>
-    <string name="alarm_sound_default" msgid="5488847775252870314">"Sauti chaguo msingi ya kengele"</string>
+    <string name="ringtone_default" msgid="1744846699922263043">"Mlio chaguomsingi wa simu"</string>
+    <string name="notification_sound_default" msgid="6541609166469990135">"Sauti chaguomsingi ya arifa"</string>
+    <string name="alarm_sound_default" msgid="5488847775252870314">"Sauti chaguomsingi ya kengele"</string>
     <string name="root_images" msgid="5861633549189045666">"Picha"</string>
     <string name="root_videos" msgid="8792703517064649453">"Video"</string>
     <string name="root_audio" msgid="3505830755201326018">"Sauti"</string>

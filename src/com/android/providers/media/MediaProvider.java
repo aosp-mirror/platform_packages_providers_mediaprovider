@@ -17,6 +17,7 @@
 package com.android.providers.media;
 
 import static android.Manifest.permission.ACCESS_CACHE_FILESYSTEM;
+import static android.Manifest.permission.ACCESS_MEDIA_LOCATION;
 import static android.Manifest.permission.INTERACT_ACROSS_USERS;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
@@ -59,6 +60,7 @@ import android.database.sqlite.SQLiteQueryBuilder;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Point;
+import android.media.ExifInterface;
 import android.media.MediaFile;
 import android.media.MediaScanner;
 import android.media.MediaScannerConnection;
@@ -74,6 +76,7 @@ import android.os.FileUtils;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.ParcelFileDescriptor.OnCloseListener;
+import android.os.RedactingFileDescriptor;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.os.SystemProperties;
@@ -3183,6 +3186,27 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    /**
+     * Determine if given {@link Uri} has a
+     * {@link MediaColumns#OWNER_PACKAGE_NAME} column.
+     */
+    private static boolean hasOwnerPackageName(Uri uri) {
+        // It's easier to maintain this as an inverted list
+        final int table = matchUri(uri, true);
+        switch (table) {
+            case IMAGES_THUMBNAILS_ID:
+            case IMAGES_THUMBNAILS:
+            case VIDEO_THUMBNAILS_ID:
+            case VIDEO_THUMBNAILS:
+            case AUDIO_ALBUMART:
+            case AUDIO_ALBUMART_ID:
+            case AUDIO_ALBUMART_FILE_ID:
+                return false;
+            default:
+                return true;
+        }
+    }
+
     @Override
     public int delete(Uri uri, String userWhere, String[] userWhereArgs) {
         if (LOCAL_LOGV) log("delete", uri, userWhere, userWhereArgs);
@@ -3602,7 +3626,9 @@ public class MediaProvider extends ContentProvider {
 
             // Remote callers have no direct control over owner column; we force
             // it be whoever is creating the content.
-            initialValues.remove(FileColumns.OWNER_PACKAGE_NAME);
+            if (!isCallingPackageSystem()) {
+                initialValues.remove(FileColumns.OWNER_PACKAGE_NAME);
+            }
 
             initialValues.remove(FileColumns.IS_DOWNLOAD);
         }
@@ -4202,57 +4228,50 @@ public class MediaProvider extends ContentProvider {
      */
     File queryForDataFile(Uri uri, String selection, String[] selectionArgs,
             CancellationSignal signal) throws FileNotFoundException {
-        final Cursor cursor = query(
-                uri, new String[] { MediaColumns.DATA }, selection, selectionArgs, null, signal);
-        if (cursor == null) {
-            throw new FileNotFoundException("Missing cursor for " + uri);
-        }
-
-        try {
-            switch (cursor.getCount()) {
-                case 0:
-                    throw new FileNotFoundException("No entry for " + uri);
-                case 1:
-                    if (cursor.moveToFirst()) {
-                        String data = cursor.getString(0);
-                        if (data == null) {
-                            throw new FileNotFoundException("Null path for " + uri);
-                        }
-                        return new File(data);
-                    } else {
-                        throw new FileNotFoundException("Unable to read entry for " + uri);
-                    }
-                default:
-                    throw new FileNotFoundException("Multiple items at " + uri);
+        try (Cursor cursor = queryForSingleItem(uri, new String[] { MediaColumns.DATA },
+                selection, selectionArgs, signal)) {
+            final String data = cursor.getString(0);
+            if (TextUtils.isEmpty(data)) {
+                throw new FileNotFoundException("Missing path for " + uri);
+            } else {
+                return new File(data);
             }
-        } finally {
-            IoUtils.closeQuietly(cursor);
         }
     }
 
+    /**
+     * Return the {@link Uri} for the given {@code File}.
+     */
     Uri queryForMediaUri(File file, CancellationSignal signal) throws FileNotFoundException {
         final Uri uri = Files.getContentUri("external");
-        final Cursor cursor = query(uri, new String[] { MediaColumns._ID },
-                MediaColumns.DATA + "=?", new String[] { file.getAbsolutePath() }, null, signal);
-        if (cursor == null) {
-            throw new FileNotFoundException("Missing cursor for " + file);
+        try (Cursor cursor = queryForSingleItem(uri, new String[] { MediaColumns._ID },
+                MediaColumns.DATA + "=?", new String[] { file.getAbsolutePath() }, signal)) {
+            return ContentUris.withAppendedId(uri, cursor.getLong(0));
+        }
+    }
+
+    /**
+     * Query the given {@link Uri}, expecting only a single item to be found.
+     *
+     * @throws FileNotFoundException if no items were found, or multiple items
+     *             were found, or there was trouble reading the data.
+     */
+    Cursor queryForSingleItem(Uri uri, String[] projection, String selection,
+            String[] selectionArgs, CancellationSignal signal) throws FileNotFoundException {
+        final Cursor c = query(uri, projection,
+                ContentResolver.createSqlQueryBundle(selection, selectionArgs, null), signal);
+        if (c == null) {
+            throw new FileNotFoundException("Missing cursor for " + uri);
+        } else if (c.getCount() < 1) {
+            throw new FileNotFoundException("No item at " + uri);
+        } else if (c.getCount() > 1) {
+            throw new FileNotFoundException("Multiple items at " + uri);
         }
 
-        try {
-            switch (cursor.getCount()) {
-                case 0:
-                    throw new FileNotFoundException("No entry for " + file);
-                case 1:
-                    if (cursor.moveToFirst()) {
-                        return ContentUris.withAppendedId(uri, cursor.getLong(0));
-                    } else {
-                        throw new FileNotFoundException("Unable to read entry for " + file);
-                    }
-                default:
-                    throw new FileNotFoundException("Multiple items at " + file);
-            }
-        } finally {
-            IoUtils.closeQuietly(cursor);
+        if (c.moveToFirst()) {
+            return c;
+        } else {
+            throw new FileNotFoundException("Failed to read row from " + uri);
         }
     }
 
@@ -4265,10 +4284,22 @@ public class MediaProvider extends ContentProvider {
         final int modeBits = ParcelFileDescriptor.parseMode(mode);
         final boolean forWrite = (modeBits != ParcelFileDescriptor.MODE_READ_ONLY);
 
+        final boolean hasOwnerPackageName = hasOwnerPackageName(uri);
+        final String[] projection = hasOwnerPackageName
+                ? new String[] { MediaColumns.DATA, MediaColumns.OWNER_PACKAGE_NAME }
+                : new String[] { MediaColumns.DATA, "NULL" };
+
         final File file;
+        final String ownerPackageName;
         final CallingIdentity token = clearCallingIdentity();
-        try {
-            file = queryForDataFile(uri, signal);
+        try (Cursor c = queryForSingleItem(uri, projection, null, null, signal)) {
+            final String data = c.getString(0);
+            if (TextUtils.isEmpty(data)) {
+                throw new FileNotFoundException("Missing path for " + uri);
+            } else {
+                file = new File(data);
+            }
+            ownerPackageName = c.getString(1);
         } finally {
             restoreCallingIdentity(token);
         }
@@ -4281,12 +4312,33 @@ public class MediaProvider extends ContentProvider {
 
         checkAccess(uri, file, modeBits);
 
+        // Figure out if we need to redact contents
+        final boolean callerIsOwner = Objects.equals(getCallingPackageOrSelf(), ownerPackageName);
+        final boolean redactionNeeded = callerIsOwner ? false : isRedactionNeeded(uri);
+        final long[] redactionRanges = redactionNeeded ? getRedactionRanges(file) : EmptyArray.LONG;
+
+        // Yell if caller requires original, since we can't give it to them
+        // unless they have access granted above
+        if (redactionNeeded
+                && parseBoolean(uri.getQueryParameter(MediaStore.PARAM_REQUIRE_ORIGINAL))) {
+            throw new UnsupportedOperationException(
+                    "Caller must hold ACCESS_MEDIA_LOCATION permission to access original");
+        }
+
         try {
-            if (listener != null) {
-                return ParcelFileDescriptor.open(file, modeBits,
-                        BackgroundThread.getHandler(), listener);
+            // First, handle any redaction that is needed for caller
+            final ParcelFileDescriptor pfd;
+            if (redactionRanges.length > 0) {
+                pfd = RedactingFileDescriptor.open(getContext(), file, modeBits, redactionRanges);
             } else {
-                return ParcelFileDescriptor.open(file, modeBits);
+                pfd = ParcelFileDescriptor.open(file, modeBits);
+            }
+
+            // Second, wrap in any listener that we've requested
+            if (forWrite && listener != null) {
+                return ParcelFileDescriptor.fromPfd(pfd, BackgroundThread.getHandler(), listener);
+            } else {
+                return pfd;
             }
         } catch (IOException e) {
             if (e instanceof FileNotFoundException) {
@@ -4305,6 +4357,80 @@ public class MediaProvider extends ContentProvider {
         } catch (Exception e) {
             Log.e(TAG, "Couldn't delete " + path, e);
         }
+    }
+
+    private boolean isRedactionNeeded(Uri uri) {
+        // Shortcut when using old storage model; no redaction
+        if (!ENFORCE_ISOLATED_STORAGE) {
+            return false;
+        }
+
+        // System internals or callers holding permission have no redaction
+        if (isCallingPackageSystem() || getContext()
+                .checkCallingPermission(ACCESS_MEDIA_LOCATION) == PERMISSION_GRANTED) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Set of Exif tags that should be considered for redaction.
+     */
+    private static final String[] REDACTED_TAGS = new String[] {
+            ExifInterface.TAG_GPS_ALTITUDE,
+            ExifInterface.TAG_GPS_ALTITUDE_REF,
+            ExifInterface.TAG_GPS_AREA_INFORMATION,
+            ExifInterface.TAG_GPS_DOP,
+            ExifInterface.TAG_GPS_DATESTAMP,
+            ExifInterface.TAG_GPS_DEST_BEARING,
+            ExifInterface.TAG_GPS_DEST_BEARING_REF,
+            ExifInterface.TAG_GPS_DEST_DISTANCE,
+            ExifInterface.TAG_GPS_DEST_DISTANCE_REF,
+            ExifInterface.TAG_GPS_DEST_LATITUDE,
+            ExifInterface.TAG_GPS_DEST_LATITUDE_REF,
+            ExifInterface.TAG_GPS_DEST_LONGITUDE,
+            ExifInterface.TAG_GPS_DEST_LONGITUDE_REF,
+            ExifInterface.TAG_GPS_DIFFERENTIAL,
+            ExifInterface.TAG_GPS_IMG_DIRECTION,
+            ExifInterface.TAG_GPS_IMG_DIRECTION_REF,
+            ExifInterface.TAG_GPS_LATITUDE,
+            ExifInterface.TAG_GPS_LATITUDE_REF,
+            ExifInterface.TAG_GPS_LONGITUDE,
+            ExifInterface.TAG_GPS_LONGITUDE_REF,
+            ExifInterface.TAG_GPS_MAP_DATUM,
+            ExifInterface.TAG_GPS_MEASURE_MODE,
+            ExifInterface.TAG_GPS_PROCESSING_METHOD,
+            ExifInterface.TAG_GPS_SATELLITES,
+            ExifInterface.TAG_GPS_SPEED,
+            ExifInterface.TAG_GPS_SPEED_REF,
+            ExifInterface.TAG_GPS_STATUS,
+            ExifInterface.TAG_GPS_TIMESTAMP,
+            ExifInterface.TAG_GPS_TRACK,
+            ExifInterface.TAG_GPS_TRACK_REF,
+            ExifInterface.TAG_GPS_VERSION_ID,
+    };
+
+    /**
+     * Find the set of ranges that should be redacted from the given file, ready
+     * to pass to {@link RedactingFileDescriptor}.
+     */
+    private long[] getRedactionRanges(File file) {
+        long[] res = EmptyArray.LONG;
+        try {
+            final ExifInterface exif = new ExifInterface(file);
+            for (String tag : REDACTED_TAGS) {
+                final long[] range = exif.getAttributeRange(tag);
+                if (range != null) {
+                    res = Arrays.copyOf(res, res.length + 2);
+                    res[res.length - 2] = range[0];
+                    res[res.length - 1] = range[0] + range[1];
+                }
+            }
+        } catch (IOException e) {
+            Log.w(TAG, "Failed to redact Exif from " + file + ": " + e);
+        }
+        return res;
     }
 
     private boolean checkCallingPermissionGlobal(Uri uri, boolean forWrite) {
@@ -4400,6 +4526,8 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void checkAccess(Uri uri, File file, int modeBits) throws FileNotFoundException {
+        // TODO: require ownership or explicit grant for write access
+
         final boolean isWrite = (modeBits & MODE_WRITE_ONLY) != 0;
         final String path;
         try {

@@ -26,6 +26,7 @@ import android.media.IMediaScannerListener;
 import android.media.IMediaScannerService;
 import android.media.MediaScanner;
 import android.net.Uri;
+import android.os.Binder;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -46,6 +47,9 @@ import java.util.Arrays;
 
 public class MediaScannerService extends Service implements Runnable {
     private static final String TAG = "MediaScannerService";
+
+    private static final String QUERY_CALLING_PID = "calling_pid";
+    private static final String QUERY_CALLING_UID = "calling_uid";
 
     private volatile Looper mServiceLooper;
     private volatile ServiceHandler mServiceHandler;
@@ -189,6 +193,8 @@ public class MediaScannerService extends Service implements Runnable {
             Bundle args = new Bundle();
             args.putString("filepath", path);
             args.putString("mimetype", mimeType);
+            args.putInt(QUERY_CALLING_PID, Binder.getCallingPid());
+            args.putInt(QUERY_CALLING_UID, Binder.getCallingUid());
             if (listener != null) {
                 args.putIBinder("listener", listener.asBinder());
             }
@@ -216,9 +222,14 @@ public class MediaScannerService extends Service implements Runnable {
                     IBinder binder = arguments.getIBinder("listener");
                     IMediaScannerListener listener = 
                             (binder == null ? null : IMediaScannerListener.Stub.asInterface(binder));
+                    final int callingPid = arguments.getInt(QUERY_CALLING_PID);
+                    final int callingUid = arguments.getInt(QUERY_CALLING_UID);
+                    final File systemFile = getSystemService(StorageManager.class)
+                            .translateAppToSystem(new File(filePath), callingPid, callingUid);
                     Uri uri = null;
                     try {
-                        uri = scanFile(filePath, arguments.getString("mimetype"));
+                        uri = scanFile(systemFile.getAbsolutePath(),
+                                arguments.getString("mimetype"));
                     } catch (Exception e) {
                         Log.e(TAG, "Exception scanning file", e);
                     }

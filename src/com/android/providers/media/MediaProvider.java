@@ -703,7 +703,7 @@ public class MediaProvider extends ContentProvider {
                 + "color_standard INTEGER, color_transfer INTEGER, color_range INTEGER,"
                 + "_hash BLOB DEFAULT NULL, is_pending INTEGER DEFAULT 0,"
                 + "is_download INTEGER DEFAULT 0, download_uri TEXT DEFAULT NULL,"
-                + "referer_uri TEXT DEFAULT NULL)");
+                + "referer_uri TEXT DEFAULT NULL, is_audiobook INTEGER DEFAULT 0)");
 
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!internal) {
@@ -772,7 +772,7 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("CREATE VIEW audio_meta AS SELECT _id,_data,_display_name,_size,mime_type,"
                 + "date_added,is_drm,date_modified,title,title_key,duration,artist_id,composer,"
                 + "album_id,track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast,"
-                + "bookmark,album_artist,owner_package_name,_hash,is_pending"
+                + "bookmark,album_artist,owner_package_name,_hash,is_pending,is_audiobook"
                 + " FROM files WHERE media_type=2");
         db.execSQL("CREATE VIEW artists_albums_map AS SELECT DISTINCT artist_id, album_id"
                 + " FROM audio_meta");
@@ -890,6 +890,10 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("ALTER TABLE files ADD COLUMN referer_uri TEXT DEFAULT NULL;");
     }
 
+    private static void updateAddAudiobook(SQLiteDatabase db, boolean internal) {
+        db.execSQL("ALTER TABLE files ADD COLUMN is_audiobook INTEGER DEFAULT 0;");
+    }
+
     static final int VERSION_J = 509;
     static final int VERSION_K = 700;
     static final int VERSION_L = 700;
@@ -930,6 +934,9 @@ public class MediaProvider extends ContentProvider {
             }
             if (fromVersion < 1005) {
                 updateAddDownloadInfo(db, internal);
+            }
+            if (fromVersion < 1006) {
+                updateAddAudiobook(db, internal);
             }
         }
 
@@ -5621,6 +5628,7 @@ public class MediaProvider extends ContentProvider {
         addMapping(map, MediaStore.Audio.AudioColumns.IS_RINGTONE);
         addMapping(map, MediaStore.Audio.AudioColumns.IS_ALARM);
         addMapping(map, MediaStore.Audio.AudioColumns.IS_NOTIFICATION);
+        addMapping(map, MediaStore.Audio.AudioColumns.IS_AUDIOBOOK);
 
         // TODO: not actually defined in API, but CTS tested
         addMapping(map, MediaStore.Audio.AudioColumns.ALBUM_ARTIST);

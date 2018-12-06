@@ -23,7 +23,6 @@ import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_MEDIA_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
-import static android.os.ParcelFileDescriptor.MODE_WRITE_ONLY;
 import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.getVolumeName;
 
@@ -2778,9 +2777,9 @@ public class MediaProvider extends ContentProvider {
             return true;
         } else {
             try {
-                checkAccess(uri, file,
-                        ParcelFileDescriptor.MODE_READ_WRITE | ParcelFileDescriptor.MODE_CREATE);
-            } catch (FileNotFoundException e) {
+                checkAccess(uri, file, true);
+            } catch (Exception e) {
+                Log.e(TAG, "Couldn't ensure " + path, e);
                 return false;
             }
             // we will not attempt to create the first directory in the path
@@ -4327,20 +4326,20 @@ public class MediaProvider extends ContentProvider {
             if (TextUtils.isEmpty(data)) {
                 throw new FileNotFoundException("Missing path for " + uri);
             } else {
-                file = new File(data);
+                file = new File(data).getCanonicalFile();
             }
             ownerPackageName = c.getString(1);
+        } catch (IOException e) {
+            throw new FileNotFoundException(e.toString());
         } finally {
             restoreCallingIdentity(token);
         }
 
         try {
-            enforceCallingPermission(uri, forWrite);
+            checkAccess(uri, file, forWrite);
         } catch (SecurityException e) {
             throw new FileNotFoundException(e.getMessage());
         }
-
-        checkAccess(uri, file, modeBits);
 
         // Figure out if we need to redact contents
         final boolean callerIsOwner = Objects.equals(getCallingPackageOrSelf(), ownerPackageName);
@@ -4381,8 +4380,8 @@ public class MediaProvider extends ContentProvider {
 
     private void deleteIfAllowed(Uri uri, String path) {
         try {
-            File file = new File(path);
-            checkAccess(uri, file, ParcelFileDescriptor.MODE_WRITE_ONLY);
+            final File file = new File(path);
+            checkAccess(uri, file, true);
             file.delete();
         } catch (Exception e) {
             Log.e(TAG, "Couldn't delete " + path, e);
@@ -4494,7 +4493,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         final int op = forWrite ? writeOp : readOp;
-        final int mode = mAppOpsManager.noteProxyOpNoThrow(op, callingPackage);
+        final int mode = mAppOpsManager.noteOpNoThrow(op, Binder.getCallingUid(), callingPackage);
         switch (mode) {
             case AppOpsManager.MODE_ALLOWED:
                 return true;
@@ -4543,7 +4542,15 @@ public class MediaProvider extends ContentProvider {
             // Access allowed, yay!
             return;
         } else {
-            try (Cursor c = query(uri, new String[0], null, null)) {
+            final DatabaseHelper helper = getDatabaseForUri(uri);
+            final SQLiteDatabase db = helper.getReadableDatabase();
+
+            final boolean allowHidden = isCallingPackageAllowedHidden();
+            final int table = matchUri(uri, allowHidden);
+
+            final int type = forWrite ? TYPE_UPDATE : TYPE_QUERY;
+            final SQLiteQueryBuilder qb = getQueryBuilder(type, uri, table, null);
+            try (Cursor c = qb.query(db, new String[0], null, null, null, null, null)) {
                 if (c.moveToFirst()) {
                     // Access allowed, yay!
                     return;
@@ -4555,10 +4562,18 @@ public class MediaProvider extends ContentProvider {
                 "Caller " + getCallingPackage() + " has no access to " + uri);
     }
 
-    private void checkAccess(Uri uri, File file, int modeBits) throws FileNotFoundException {
-        // TODO: require ownership or explicit grant for write access
+    private void checkAccess(Uri uri, File file, boolean isWrite) throws FileNotFoundException {
+        // STOPSHIP(b/112545973): remove once feature enabled by default
+        if (ENFORCE_ISOLATED_STORAGE) {
+            // First, does caller have the needed row-level access?
+            enforceCallingPermission(uri, isWrite);
 
-        final boolean isWrite = (modeBits & MODE_WRITE_ONLY) != 0;
+            // Second, does the path look sane?
+            if (!FileUtils.contains(Environment.getStorageDirectory(), file)) {
+                checkWorldReadAccess(file.getAbsolutePath());
+            }
+        }
+
         final String path;
         try {
             path = file.getCanonicalPath();

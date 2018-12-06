@@ -894,6 +894,10 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("ALTER TABLE files ADD COLUMN is_audiobook INTEGER DEFAULT 0;");
     }
 
+    private static void updateClearLocation(SQLiteDatabase db, boolean internal) {
+        db.execSQL("UPDATE files SET latitude=NULL, longitude=NULL;");
+    }
+
     static final int VERSION_J = 509;
     static final int VERSION_K = 700;
     static final int VERSION_L = 700;
@@ -937,6 +941,9 @@ public class MediaProvider extends ContentProvider {
             }
             if (fromVersion < 1006) {
                 updateAddAudiobook(db, internal);
+            }
+            if (fromVersion < 1007) {
+                updateClearLocation(db, internal);
             }
         }
 
@@ -2309,6 +2316,14 @@ public class MediaProvider extends ContentProvider {
 
             initialValues.remove(FileColumns.IS_DOWNLOAD);
 
+            // We no longer track location metadata
+            if (initialValues.containsKey(ImageColumns.LATITUDE)) {
+                initialValues.putNull(ImageColumns.LATITUDE);
+            }
+            if (initialValues.containsKey(ImageColumns.LONGITUDE)) {
+                initialValues.putNull(ImageColumns.LONGITUDE);
+            }
+
             if (isCallingPackageSystem()) {
                 // When media inserted by ourselves, the best we can do is guess
                 // ownership based on path.
@@ -3638,6 +3653,14 @@ public class MediaProvider extends ContentProvider {
             }
 
             initialValues.remove(FileColumns.IS_DOWNLOAD);
+
+            // We no longer track location metadata
+            if (initialValues.containsKey(ImageColumns.LATITUDE)) {
+                initialValues.putNull(ImageColumns.LATITUDE);
+            }
+            if (initialValues.containsKey(ImageColumns.LONGITUDE)) {
+                initialValues.putNull(ImageColumns.LONGITUDE);
+            }
         }
 
         // if the media type is being changed, check if it's being changed from image or video

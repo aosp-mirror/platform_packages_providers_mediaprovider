@@ -101,6 +101,26 @@ public class DatabaseHelperTest {
                 values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_IMAGE);
                 assertFalse(db.insert("files", FileColumns.DATA, values) == -1);
             }
+            {
+                final ContentValues values = new ContentValues();
+                values.put(FileColumns.DATA,
+                        "/storage/emulated/0/Download/colors.txt");
+                values.put(FileColumns.DATE_ADDED, System.currentTimeMillis());
+                values.put(FileColumns.DATE_MODIFIED, System.currentTimeMillis());
+                values.put(FileColumns.DISPLAY_NAME, "colors.txt");
+                values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_NONE);
+                assertFalse(db.insert("files", FileColumns.DATA, values) == -1);
+            }
+            {
+                final ContentValues values = new ContentValues();
+                values.put(FileColumns.DATA,
+                        "/storage/0000-0000/Android/sandbox/com.example2/Download/dir/foo.mp4");
+                values.put(FileColumns.DATE_ADDED, System.currentTimeMillis());
+                values.put(FileColumns.DATE_MODIFIED, System.currentTimeMillis());
+                values.put(FileColumns.DISPLAY_NAME, "foo.mp4");
+                values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_VIDEO);
+                assertFalse(db.insert("files", FileColumns.DATA, values) == -1);
+            }
         }
 
         try (DatabaseHelper helper = new DatabaseHelperQ(getContext(), TEST_DB)) {
@@ -113,6 +133,7 @@ public class DatabaseHelperTest {
                         c.getString(c.getColumnIndexOrThrow(FileColumns.DATA)));
                 assertEquals(null,
                         c.getString(c.getColumnIndexOrThrow(FileColumns.OWNER_PACKAGE_NAME)));
+                assertEquals("0", c.getString(c.getColumnIndexOrThrow(FileColumns.IS_DOWNLOAD)));
             }
             try (Cursor c = db.query("files", null, FileColumns.DISPLAY_NAME + "='app.jpg'",
                     null, null, null, null)) {
@@ -122,6 +143,27 @@ public class DatabaseHelperTest {
                         c.getString(c.getColumnIndexOrThrow(FileColumns.DATA)));
                 assertEquals("com.example",
                         c.getString(c.getColumnIndexOrThrow(FileColumns.OWNER_PACKAGE_NAME)));
+                assertEquals("0", c.getString(c.getColumnIndexOrThrow(FileColumns.IS_DOWNLOAD)));
+            }
+            try (Cursor c = db.query("files", null, FileColumns.DISPLAY_NAME + "='colors.txt'",
+                    null, null, null, null)) {
+                assertEquals(1, c.getCount());
+                assertTrue(c.moveToFirst());
+                assertEquals("/storage/emulated/0/Download/colors.txt",
+                        c.getString(c.getColumnIndexOrThrow(FileColumns.DATA)));
+                assertEquals(null,
+                        c.getString(c.getColumnIndexOrThrow(FileColumns.OWNER_PACKAGE_NAME)));
+                assertEquals("1", c.getString(c.getColumnIndexOrThrow(FileColumns.IS_DOWNLOAD)));
+            }
+            try (Cursor c = db.query("files", null, FileColumns.DISPLAY_NAME + "='foo.mp4'",
+                    null, null, null, null)) {
+                assertEquals(1, c.getCount());
+                assertTrue(c.moveToFirst());
+                assertEquals("/storage/0000-0000/Android/sandbox/com.example2/Download/dir/foo.mp4",
+                        c.getString(c.getColumnIndexOrThrow(FileColumns.DATA)));
+                assertEquals("com.example2",
+                        c.getString(c.getColumnIndexOrThrow(FileColumns.OWNER_PACKAGE_NAME)));
+                assertEquals("1", c.getString(c.getColumnIndexOrThrow(FileColumns.IS_DOWNLOAD)));
             }
         }
     }

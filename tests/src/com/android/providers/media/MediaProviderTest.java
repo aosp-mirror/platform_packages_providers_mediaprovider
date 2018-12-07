@@ -16,6 +16,8 @@
 
 package com.android.providers.media;
 
+import static android.provider.MediaStore.Downloads.isDownload;
+import static android.provider.MediaStore.Downloads.isDownloadDir;
 import static android.provider.MediaStore.PARAM_PRIMARY;
 import static android.provider.MediaStore.PARAM_SECONDARY;
 
@@ -336,6 +338,44 @@ public class MediaProviderTest {
                 "CAST(_id AS TEXT) AS string_id"));
         assertTrue(isGreylistMatch(
                 "cast(_id as text)"));
+    }
+
+    @Test
+    public void testIsDownload() throws Exception {
+        assertTrue(isDownload("/storage/emulated/0/Download/colors.png"));
+        assertTrue(isDownload("/storage/emulated/0/Download/test.pdf"));
+        assertTrue(isDownload("/storage/emulated/0/Download/dir/foo.mp4"));
+        assertTrue(isDownload("/storage/0000-0000/Download/foo.txt"));
+        assertTrue(isDownload(
+                "/storage/emulated/0/Android/sandbox/com.example/Download/colors.png"));
+        assertTrue(isDownload(
+                "/storage/emulated/0/Android/sandbox/shared-com.uid.shared/Download/colors.png"));
+        assertTrue(isDownload(
+                "/storage/0000-0000/Android/sandbox/com.example/Download/colors.png"));
+        assertTrue(isDownload(
+                "/storage/0000-0000/Android/sandbox/shared-com.uid.shared/Download/colors.png"));
+
+
+        assertFalse(isDownload("/storage/emulated/0/Pictures/colors.png"));
+        assertFalse(isDownload("/storage/emulated/0/Pictures/Download/colors.png"));
+        assertFalse(isDownload("/storage/emulated/0/Android/data/com.example/Download/foo.txt"));
+        assertFalse(isDownload(
+                "/storage/emulated/0/Android/sandbox/com.example/dir/Download/foo.txt"));
+        assertFalse(isDownload("/storage/emulated/0/Download"));
+        assertFalse(isDownload("/storage/emulated/0/Android/sandbox/com.example/Download"));
+        assertFalse(isDownload(
+                "/storage/0000-0000/Android/sandbox/shared-com.uid.shared/Download"));
+    }
+
+    @Test
+    public void testIsDownloadDir() throws Exception {
+        assertTrue(isDownloadDir("/storage/emulated/0/Download"));
+        assertTrue(isDownloadDir("/storage/emulated/0/Android/sandbox/com.example/Download"));
+
+        assertFalse(isDownloadDir("/storage/emulated/0/Download/colors.png"));
+        assertFalse(isDownloadDir("/storage/emulated/0/Download/dir/"));
+        assertFalse(isDownloadDir(
+                "/storage/emulated/0/Android/sandbox/com.example/Download/dir/foo.txt"));
     }
 
     private static boolean isGreylistMatch(String raw) {

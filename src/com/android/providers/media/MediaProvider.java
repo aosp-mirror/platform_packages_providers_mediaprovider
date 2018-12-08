@@ -26,6 +26,7 @@ import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.getVolumeName;
 
+import android.annotation.BytesLong;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.AppOpsManager;
@@ -136,6 +137,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -3509,9 +3511,74 @@ public class MediaProvider extends ContentProvider {
                     restoreCallingIdentity(token);
                 }
             }
+            case MediaStore.GET_CONTRIBUTED_MEDIA_CALL: {
+                getContext().enforceCallingOrSelfPermission(
+                        android.Manifest.permission.CLEAR_APP_USER_DATA, TAG);
+
+                final String packageName = extras.getString(Intent.EXTRA_PACKAGE_NAME);
+                final long totalSize = forEachContributedMedia(packageName, null);
+                final Bundle res = new Bundle();
+                res.putLong(Intent.EXTRA_INDEX, totalSize);
+                return res;
+            }
+            case MediaStore.DELETE_CONTRIBUTED_MEDIA_CALL: {
+                getContext().enforceCallingOrSelfPermission(
+                        android.Manifest.permission.CLEAR_APP_USER_DATA, TAG);
+
+                final String packageName = extras.getString(Intent.EXTRA_PACKAGE_NAME);
+                forEachContributedMedia(packageName, (uri) -> {
+                    delete(uri, null, null);
+                });
+                return null;
+            }
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }
+    }
+
+    /**
+     * Execute the given operation for each media item contributed by given
+     * package. The meaning of "contributed" means it won't automatically be
+     * deleted when the app is uninstalled.
+     */
+    private @BytesLong long forEachContributedMedia(String packageName, Consumer<Uri> consumer) {
+        final SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
+        qb.setTables("files");
+        qb.appendWhere(
+                DatabaseUtils.bindSelection(FileColumns.OWNER_PACKAGE_NAME + "=?", packageName)
+                        + " AND NOT " + FileColumns.DATA + " REGEXP '"
+                        + PATTERN_OWNED_PATH.pattern() + "'");
+
+        long totalSize = 0;
+        final CallingIdentity ident = clearCallingIdentity();
+        try {
+            synchronized (mDatabases) {
+                for (int i = 0; i < mDatabases.size(); i++) {
+                    final String volumeName = mDatabases.keyAt(i);
+                    final DatabaseHelper helper = mDatabases.valueAt(i);
+                    final SQLiteDatabase db = helper.getReadableDatabase();
+                    try (Cursor c = qb.query(db,
+                            new String[] { FileColumns._ID, FileColumns.SIZE, FileColumns.DATA },
+                            null, null, null, null, null, null)) {
+                        while (c.moveToNext()) {
+                            final long id = c.getLong(0);
+                            final long size = c.getLong(1);
+                            final String data = c.getString(2);
+
+                            Log.d(TAG, "Found " + data + " from " + packageName + " in "
+                                    + helper.mName + " with size " + size);
+                            if (consumer != null) {
+                                consumer.accept(Files.getContentUri(volumeName, id));
+                            }
+                            totalSize += size;
+                        }
+                    }
+                }
+            }
+        } finally {
+            restoreCallingIdentity(ident);
+        }
+        return totalSize;
     }
 
     /*
@@ -4092,6 +4159,7 @@ public class MediaProvider extends ContentProvider {
         // Kick off metadata update when writing is finished
         OnCloseListener listener = null;
         switch (match) {
+            case IMAGES_MEDIA_ID:
             case IMAGES_THUMBNAILS_ID:
             case VIDEO_THUMBNAILS_ID: {
                 final Uri finalUri = uri;
@@ -4221,6 +4289,7 @@ public class MediaProvider extends ContentProvider {
             BitmapFactory.decodeFile(file.getAbsolutePath(), bitmapOpts);
 
             final ContentValues values = new ContentValues();
+            values.put(MediaColumns.SIZE, file.length());
             values.put(MediaColumns.WIDTH, bitmapOpts.outWidth);
             values.put(MediaColumns.HEIGHT, bitmapOpts.outHeight);
             update(uri, values, null, null);

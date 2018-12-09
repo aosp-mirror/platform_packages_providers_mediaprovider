@@ -23,10 +23,10 @@ import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_MEDIA_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
-import static android.os.ParcelFileDescriptor.MODE_WRITE_ONLY;
 import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.getVolumeName;
 
+import android.annotation.BytesLong;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.AppOpsManager;
@@ -137,6 +137,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -2778,9 +2779,9 @@ public class MediaProvider extends ContentProvider {
             return true;
         } else {
             try {
-                checkAccess(uri, file,
-                        ParcelFileDescriptor.MODE_READ_WRITE | ParcelFileDescriptor.MODE_CREATE);
-            } catch (FileNotFoundException e) {
+                checkAccess(uri, file, true);
+            } catch (Exception e) {
+                Log.e(TAG, "Couldn't ensure " + path, e);
                 return false;
             }
             // we will not attempt to create the first directory in the path
@@ -3510,9 +3511,74 @@ public class MediaProvider extends ContentProvider {
                     restoreCallingIdentity(token);
                 }
             }
+            case MediaStore.GET_CONTRIBUTED_MEDIA_CALL: {
+                getContext().enforceCallingOrSelfPermission(
+                        android.Manifest.permission.CLEAR_APP_USER_DATA, TAG);
+
+                final String packageName = extras.getString(Intent.EXTRA_PACKAGE_NAME);
+                final long totalSize = forEachContributedMedia(packageName, null);
+                final Bundle res = new Bundle();
+                res.putLong(Intent.EXTRA_INDEX, totalSize);
+                return res;
+            }
+            case MediaStore.DELETE_CONTRIBUTED_MEDIA_CALL: {
+                getContext().enforceCallingOrSelfPermission(
+                        android.Manifest.permission.CLEAR_APP_USER_DATA, TAG);
+
+                final String packageName = extras.getString(Intent.EXTRA_PACKAGE_NAME);
+                forEachContributedMedia(packageName, (uri) -> {
+                    delete(uri, null, null);
+                });
+                return null;
+            }
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }
+    }
+
+    /**
+     * Execute the given operation for each media item contributed by given
+     * package. The meaning of "contributed" means it won't automatically be
+     * deleted when the app is uninstalled.
+     */
+    private @BytesLong long forEachContributedMedia(String packageName, Consumer<Uri> consumer) {
+        final SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
+        qb.setTables("files");
+        qb.appendWhere(
+                DatabaseUtils.bindSelection(FileColumns.OWNER_PACKAGE_NAME + "=?", packageName)
+                        + " AND NOT " + FileColumns.DATA + " REGEXP '"
+                        + PATTERN_OWNED_PATH.pattern() + "'");
+
+        long totalSize = 0;
+        final CallingIdentity ident = clearCallingIdentity();
+        try {
+            synchronized (mDatabases) {
+                for (int i = 0; i < mDatabases.size(); i++) {
+                    final String volumeName = mDatabases.keyAt(i);
+                    final DatabaseHelper helper = mDatabases.valueAt(i);
+                    final SQLiteDatabase db = helper.getReadableDatabase();
+                    try (Cursor c = qb.query(db,
+                            new String[] { FileColumns._ID, FileColumns.SIZE, FileColumns.DATA },
+                            null, null, null, null, null, null)) {
+                        while (c.moveToNext()) {
+                            final long id = c.getLong(0);
+                            final long size = c.getLong(1);
+                            final String data = c.getString(2);
+
+                            Log.d(TAG, "Found " + data + " from " + packageName + " in "
+                                    + helper.mName + " with size " + size);
+                            if (consumer != null) {
+                                consumer.accept(Files.getContentUri(volumeName, id));
+                            }
+                            totalSize += size;
+                        }
+                    }
+                }
+            }
+        } finally {
+            restoreCallingIdentity(ident);
+        }
+        return totalSize;
     }
 
     /*
@@ -4093,6 +4159,7 @@ public class MediaProvider extends ContentProvider {
         // Kick off metadata update when writing is finished
         OnCloseListener listener = null;
         switch (match) {
+            case IMAGES_MEDIA_ID:
             case IMAGES_THUMBNAILS_ID:
             case VIDEO_THUMBNAILS_ID: {
                 final Uri finalUri = uri;
@@ -4222,6 +4289,7 @@ public class MediaProvider extends ContentProvider {
             BitmapFactory.decodeFile(file.getAbsolutePath(), bitmapOpts);
 
             final ContentValues values = new ContentValues();
+            values.put(MediaColumns.SIZE, file.length());
             values.put(MediaColumns.WIDTH, bitmapOpts.outWidth);
             values.put(MediaColumns.HEIGHT, bitmapOpts.outHeight);
             update(uri, values, null, null);
@@ -4327,20 +4395,20 @@ public class MediaProvider extends ContentProvider {
             if (TextUtils.isEmpty(data)) {
                 throw new FileNotFoundException("Missing path for " + uri);
             } else {
-                file = new File(data);
+                file = new File(data).getCanonicalFile();
             }
             ownerPackageName = c.getString(1);
+        } catch (IOException e) {
+            throw new FileNotFoundException(e.toString());
         } finally {
             restoreCallingIdentity(token);
         }
 
         try {
-            enforceCallingPermission(uri, forWrite);
+            checkAccess(uri, file, forWrite);
         } catch (SecurityException e) {
             throw new FileNotFoundException(e.getMessage());
         }
-
-        checkAccess(uri, file, modeBits);
 
         // Figure out if we need to redact contents
         final boolean callerIsOwner = Objects.equals(getCallingPackageOrSelf(), ownerPackageName);
@@ -4381,8 +4449,8 @@ public class MediaProvider extends ContentProvider {
 
     private void deleteIfAllowed(Uri uri, String path) {
         try {
-            File file = new File(path);
-            checkAccess(uri, file, ParcelFileDescriptor.MODE_WRITE_ONLY);
+            final File file = new File(path);
+            checkAccess(uri, file, true);
             file.delete();
         } catch (Exception e) {
             Log.e(TAG, "Couldn't delete " + path, e);
@@ -4494,7 +4562,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         final int op = forWrite ? writeOp : readOp;
-        final int mode = mAppOpsManager.noteProxyOpNoThrow(op, callingPackage);
+        final int mode = mAppOpsManager.noteOpNoThrow(op, Binder.getCallingUid(), callingPackage);
         switch (mode) {
             case AppOpsManager.MODE_ALLOWED:
                 return true;
@@ -4543,7 +4611,15 @@ public class MediaProvider extends ContentProvider {
             // Access allowed, yay!
             return;
         } else {
-            try (Cursor c = query(uri, new String[0], null, null)) {
+            final DatabaseHelper helper = getDatabaseForUri(uri);
+            final SQLiteDatabase db = helper.getReadableDatabase();
+
+            final boolean allowHidden = isCallingPackageAllowedHidden();
+            final int table = matchUri(uri, allowHidden);
+
+            final int type = forWrite ? TYPE_UPDATE : TYPE_QUERY;
+            final SQLiteQueryBuilder qb = getQueryBuilder(type, uri, table, null);
+            try (Cursor c = qb.query(db, new String[0], null, null, null, null, null)) {
                 if (c.moveToFirst()) {
                     // Access allowed, yay!
                     return;
@@ -4555,10 +4631,18 @@ public class MediaProvider extends ContentProvider {
                 "Caller " + getCallingPackage() + " has no access to " + uri);
     }
 
-    private void checkAccess(Uri uri, File file, int modeBits) throws FileNotFoundException {
-        // TODO: require ownership or explicit grant for write access
+    private void checkAccess(Uri uri, File file, boolean isWrite) throws FileNotFoundException {
+        // STOPSHIP(b/112545973): remove once feature enabled by default
+        if (ENFORCE_ISOLATED_STORAGE) {
+            // First, does caller have the needed row-level access?
+            enforceCallingPermission(uri, isWrite);
 
-        final boolean isWrite = (modeBits & MODE_WRITE_ONLY) != 0;
+            // Second, does the path look sane?
+            if (!FileUtils.contains(Environment.getStorageDirectory(), file)) {
+                checkWorldReadAccess(file.getAbsolutePath());
+            }
+        }
+
         final String path;
         try {
             path = file.getCanonicalPath();

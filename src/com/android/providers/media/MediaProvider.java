@@ -125,8 +125,10 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -159,6 +161,8 @@ public class MediaProvider extends ContentProvider {
 
     private static final Uri MEDIA_URI = Uri.parse("content://media");
     private static final Uri ALBUMART_URI = Uri.parse("content://media/external/audio/albumart");
+
+    private static final String HASH_ALGORITHM = "SHA-1";
 
     /**
      * Regex that matches paths in all well-known package-specific directories,
@@ -1074,32 +1078,39 @@ public class MediaProvider extends ContentProvider {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
-        // only support canonicalizing specific audio Uris
-        if (match != AUDIO_MEDIA_ID) {
-            return null;
-        }
-        Cursor c = query(uri, null, null, null, null);
-        String title = null;
-        Uri.Builder builder = null;
-
-        try {
-            if (c == null || c.getCount() != 1 || !c.moveToNext()) {
+        try (Cursor c = query(uri, null, null, null, null)) {
+            if (c == null || c.getCount() != 1 || !c.moveToFirst()) {
                 return null;
             }
 
+            // If we don't have a hash yet, go generate one
+            final int hashIndex = c.getColumnIndex(MediaColumns.HASH);
+            if (hashIndex >= 0 && c.isNull(hashIndex)) {
+                final CallingIdentity ident = clearCallingIdentity();
+                try (InputStream in = getContext().getContentResolver().openInputStream(uri)) {
+                    final ContentValues values = new ContentValues();
+                    values.put(MediaColumns.HASH, FileUtils.digest(in, HASH_ALGORITHM));
+                    update(uri, values, null, null);
+                } catch (IOException | NoSuchAlgorithmException e) {
+                    Log.w(TAG, "Failed to generate hash for " + uri, e);
+                } finally {
+                    restoreCallingIdentity(ident);
+                }
+            }
+
             // Construct a canonical Uri by tacking on some query parameters
-            builder = uri.buildUpon();
-            builder.appendQueryParameter(CANONICAL, "1");
-            title = getDefaultTitleFromCursor(c);
-        } finally {
-            IoUtils.closeQuietly(c);
+            if (match == AUDIO_MEDIA_ID) {
+                final String title = getDefaultTitleFromCursor(c);
+                if (!TextUtils.isEmpty(title)) {
+                    final Uri.Builder builder = uri.buildUpon();
+                    builder.appendQueryParameter(MediaStore.Audio.Media.TITLE, title);
+                    builder.appendQueryParameter(CANONICAL, "1");
+                    return builder.build();
+                }
+            }
         }
-        if (TextUtils.isEmpty(title)) {
-            return null;
-        }
-        builder.appendQueryParameter(MediaStore.Audio.Media.TITLE, title);
-        Uri newUri = builder.build();
-        return newUri;
+
+        return null;
     }
 
     @Override
@@ -4253,7 +4264,7 @@ public class MediaProvider extends ContentProvider {
                     // If that fails, try to get it from this specific file.
                     Uri newUri = ContentUris.withAppendedId(ALBUMART_URI, albumid);
                     try {
-                        pfd = openFileAndEnforcePathPermissionsHelper(newUri, mode, null, signal);
+                        pfd = openFileAndEnforcePathPermissionsHelper(newUri, match, mode, signal);
                     } catch (FileNotFoundException ex) {
                         // That didn't work, now try to get it from the specific file
                         pfd = getThumb(database, db, audiopath, albumid, null);
@@ -4265,24 +4276,8 @@ public class MediaProvider extends ContentProvider {
             return pfd;
         }
 
-        // Kick off metadata update when writing is finished
-        OnCloseListener listener = null;
-        switch (match) {
-            case IMAGES_MEDIA_ID:
-            case IMAGES_THUMBNAILS_ID:
-            case VIDEO_THUMBNAILS_ID: {
-                final Uri finalUri = uri;
-                listener = (e) -> {
-                    if (e == null) {
-                        updateImageMetadata(finalUri);
-                    }
-                };
-                break;
-            }
-        }
-
         try {
-            pfd = openFileAndEnforcePathPermissionsHelper(uri, mode, listener, signal);
+            pfd = openFileAndEnforcePathPermissionsHelper(uri, match, mode, signal);
         } catch (FileNotFoundException ex) {
             if (mode.contains("w")) {
                 // if the file couldn't be created, we shouldn't extract album art
@@ -4390,21 +4385,13 @@ public class MediaProvider extends ContentProvider {
      * Update the metadata columns for the image residing at given {@link Uri}
      * by reading data from the underlying image.
      */
-    private void updateImageMetadata(Uri uri) {
-        try {
-            final File file = queryForDataFile(uri, null);
-            final BitmapFactory.Options bitmapOpts = new BitmapFactory.Options();
-            bitmapOpts.inJustDecodeBounds = true;
-            BitmapFactory.decodeFile(file.getAbsolutePath(), bitmapOpts);
+    private void updateImageMetadata(ContentValues values, File file) {
+        final BitmapFactory.Options bitmapOpts = new BitmapFactory.Options();
+        bitmapOpts.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(file.getAbsolutePath(), bitmapOpts);
 
-            final ContentValues values = new ContentValues();
-            values.put(MediaColumns.SIZE, file.length());
-            values.put(MediaColumns.WIDTH, bitmapOpts.outWidth);
-            values.put(MediaColumns.HEIGHT, bitmapOpts.outHeight);
-            update(uri, values, null, null);
-        } catch (Exception e) {
-            Log.w(TAG, "Failed to update metadata for " + uri, e);
-        }
+        values.put(MediaColumns.WIDTH, bitmapOpts.outWidth);
+        values.put(MediaColumns.HEIGHT, bitmapOpts.outHeight);
     }
 
     private AssetFileDescriptor openThumbBlocking(ThumbTask task, int priority)
@@ -4486,8 +4473,8 @@ public class MediaProvider extends ContentProvider {
      * Replacement for {@link #openFileHelper(Uri, String)} which enforces any
      * permissions applicable to the path before returning.
      */
-    private ParcelFileDescriptor openFileAndEnforcePathPermissionsHelper(Uri uri, String mode,
-            OnCloseListener listener, CancellationSignal signal) throws FileNotFoundException {
+    private ParcelFileDescriptor openFileAndEnforcePathPermissionsHelper(Uri uri, int match,
+            String mode, CancellationSignal signal) throws FileNotFoundException {
         final int modeBits = ParcelFileDescriptor.parseMode(mode);
         final boolean forWrite = (modeBits != ParcelFileDescriptor.MODE_READ_ONLY);
 
@@ -4531,6 +4518,31 @@ public class MediaProvider extends ContentProvider {
             throw new UnsupportedOperationException(
                     "Caller must hold ACCESS_MEDIA_LOCATION permission to access original");
         }
+
+        // Kick off metadata update when writing is finished
+        final OnCloseListener listener = (e) -> {
+            if (e == null) {
+                // TODO: migrate to performing a real media scan
+                final ContentValues values = new ContentValues();
+                try {
+                    switch (match) {
+                        case IMAGES_THUMBNAILS_ID:
+                        case VIDEO_THUMBNAILS_ID:
+                            updateImageMetadata(values, file);
+                            break;
+
+                        case IMAGES_MEDIA_ID:
+                            updateImageMetadata(values, file);
+                        default:
+                            values.putNull(MediaColumns.HASH);
+                            values.put(MediaColumns.SIZE, file.length());
+                    }
+                    update(uri, values, null, null);
+                } catch (Exception e2) {
+                    Log.w(TAG, "Failed to update metadata for " + uri, e2);
+                }
+            }
+        };
 
         try {
             // First, handle any redaction that is needed for caller

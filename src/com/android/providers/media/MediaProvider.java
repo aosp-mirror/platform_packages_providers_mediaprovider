@@ -22,17 +22,23 @@ import static android.Manifest.permission.INTERACT_ACROSS_USERS;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_MEDIA_STORAGE;
+import static android.app.PendingIntent.FLAG_CANCEL_CURRENT;
+import static android.app.PendingIntent.FLAG_IMMUTABLE;
+import static android.app.PendingIntent.FLAG_ONE_SHOT;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.provider.MediaStore.AUTHORITY;
+import static android.provider.MediaStore.getVolumeName;
 import static android.provider.MediaStore.Downloads.PATTERN_DOWNLOADS_FILE;
 import static android.provider.MediaStore.Downloads.isDownload;
 import static android.provider.MediaStore.Downloads.isDownloadDir;
-import static android.provider.MediaStore.getVolumeName;
 
 import android.annotation.BytesLong;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.AppOpsManager;
+import android.app.PendingIntent;
+import android.app.RecoverableSecurityException;
+import android.app.RemoteAction;
 import android.content.BroadcastReceiver;
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
@@ -50,6 +56,7 @@ import android.content.UriMatcher;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.content.pm.PermissionGroupInfo;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -63,6 +70,7 @@ import android.database.sqlite.SQLiteQueryBuilder;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Point;
+import android.graphics.drawable.Icon;
 import android.media.ExifInterface;
 import android.media.MediaFile;
 import android.media.MediaScanner;
@@ -4500,11 +4508,7 @@ public class MediaProvider extends ContentProvider {
             restoreCallingIdentity(token);
         }
 
-        try {
-            checkAccess(uri, file, forWrite);
-        } catch (SecurityException e) {
-            throw new FileNotFoundException(e.getMessage());
-        }
+        checkAccess(uri, file, forWrite);
 
         // Figure out if we need to redact contents
         final boolean callerIsOwner = Objects.equals(getCallingPackageOrSelf(), ownerPackageName);
@@ -4731,25 +4735,72 @@ public class MediaProvider extends ContentProvider {
         if (checkCallingPermissionGlobal(uri, forWrite)) {
             // Access allowed, yay!
             return;
-        } else {
-            final DatabaseHelper helper = getDatabaseForUri(uri);
-            final SQLiteDatabase db = helper.getReadableDatabase();
+        }
 
-            final boolean allowHidden = isCallingPackageAllowedHidden();
-            final int table = matchUri(uri, allowHidden);
+        final DatabaseHelper helper = getDatabaseForUri(uri);
+        final SQLiteDatabase db = helper.getReadableDatabase();
 
-            final int type = forWrite ? TYPE_UPDATE : TYPE_QUERY;
-            final SQLiteQueryBuilder qb = getQueryBuilder(type, uri, table, null);
+        final boolean allowHidden = isCallingPackageAllowedHidden();
+        final int table = matchUri(uri, allowHidden);
+
+        // First, check to see if caller has direct write access
+        if (forWrite) {
+            final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, uri, table, null);
             try (Cursor c = qb.query(db, new String[0], null, null, null, null, null)) {
                 if (c.moveToFirst()) {
-                    // Access allowed, yay!
+                    // Direct write access granted, yay!
                     return;
                 }
             }
         }
 
-        throw new SecurityException(
-                "Caller " + getCallingPackage() + " has no access to " + uri);
+        // Second, check to see if caller has direct read access
+        final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, uri, table, null);
+        try (Cursor c = qb.query(db, new String[0], null, null, null, null, null)) {
+            if (c.moveToFirst()) {
+                if (forWrite) {
+                    // Caller has read access, but they wanted to write, and
+                    // they'll need to get the user to grant that access
+                    final Context context = getContext();
+                    final PendingIntent intent = PendingIntent.getActivity(context, 42,
+                            new Intent(null, uri, context, PermissionActivity.class),
+                            FLAG_ONE_SHOT | FLAG_CANCEL_CURRENT | FLAG_IMMUTABLE);
+
+                    final Icon icon = getCollectionIcon(uri);
+                    final RemoteAction action = new RemoteAction(icon,
+                            context.getText(R.string.grant_dialog_button_allow),
+                            context.getText(R.string.grant_dialog_button_allow),
+                            intent);
+
+                    throw new RecoverableSecurityException(new SecurityException(
+                            getCallingPackage() + " has no access to " + uri),
+                            context.getText(R.string.permission_required), action);
+                } else {
+                    // Direct read access granted, yay!
+                    return;
+                }
+            }
+        }
+
+        throw new SecurityException(getCallingPackage() + " has no access to " + uri);
+    }
+
+    private Icon getCollectionIcon(Uri uri) {
+        final PackageManager pm = getContext().getPackageManager();
+        final String type = uri.getPathSegments().get(1);
+        final String groupName;
+        switch (type) {
+            case "audio": groupName = android.Manifest.permission_group.MEDIA_AURAL; break;
+            case "video": groupName = android.Manifest.permission_group.MEDIA_VISUAL; break;
+            case "image": groupName = android.Manifest.permission_group.MEDIA_VISUAL; break;
+            default: groupName = android.Manifest.permission_group.STORAGE; break;
+        }
+        try {
+            final PermissionGroupInfo perm = pm.getPermissionGroupInfo(groupName, 0);
+            return Icon.createWithResource(perm.packageName, perm.icon);
+        } catch (NameNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void checkAccess(Uri uri, File file, boolean isWrite) throws FileNotFoundException {

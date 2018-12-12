@@ -24,6 +24,9 @@ import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_MEDIA_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.provider.MediaStore.AUTHORITY;
+import static android.provider.MediaStore.Downloads.PATTERN_DOWNLOADS_FILE;
+import static android.provider.MediaStore.Downloads.isDownload;
+import static android.provider.MediaStore.Downloads.isDownloadDir;
 import static android.provider.MediaStore.getVolumeName;
 
 import android.annotation.BytesLong;
@@ -90,6 +93,7 @@ import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
 import android.provider.MediaStore.Audio.Playlists;
+import android.provider.MediaStore.Downloads;
 import android.provider.MediaStore.Files;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.Images;
@@ -121,8 +125,10 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -155,6 +161,8 @@ public class MediaProvider extends ContentProvider {
 
     private static final Uri MEDIA_URI = Uri.parse("content://media");
     private static final Uri ALBUMART_URI = Uri.parse("content://media/external/audio/albumart");
+
+    private static final String HASH_ALGORITHM = "SHA-1";
 
     /**
      * Regex that matches paths in all well-known package-specific directories,
@@ -227,10 +235,11 @@ public class MediaProvider extends ContentProvider {
         FileColumns.DATA
     };
 
-    private static final String[] sMediaTypeDataId = new String[] {
+    private static final String[] sMediaTypeDataIdIsDownload = new String[] {
         FileColumns.MEDIA_TYPE,
         FileColumns.DATA,
-        FileColumns._ID
+        FileColumns._ID,
+        FileColumns.IS_DOWNLOAD
     };
 
     private static final String[] sPlaylistIdPlayOrder = new String[] {
@@ -289,6 +298,8 @@ public class MediaProvider extends ContentProvider {
                                     Images.Media.getContentUri(EXTERNAL_VOLUME), null);
                             context.getContentResolver().notifyChange(
                                     Video.Media.getContentUri(EXTERNAL_VOLUME), null);
+                            context.getContentResolver().notifyChange(
+                                    Downloads.getContentUri(EXTERNAL_VOLUME), null);
                             context.getContentResolver().notifyChange(
                                     Files.getContentUri(EXTERNAL_VOLUME), null);
                         } catch (Exception e) {
@@ -899,6 +910,11 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("UPDATE files SET latitude=NULL, longitude=NULL;");
     }
 
+    private static void updateSetIsDownload(SQLiteDatabase db, boolean internal) {
+        db.execSQL("UPDATE files SET is_download=1 WHERE _data REGEXP '"
+                + PATTERN_DOWNLOADS_FILE + "'");
+    }
+
     static final int VERSION_J = 509;
     static final int VERSION_K = 700;
     static final int VERSION_L = 700;
@@ -906,7 +922,7 @@ public class MediaProvider extends ContentProvider {
     static final int VERSION_N = 800;
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
-    static final int VERSION_Q = 1000;
+    static final int VERSION_Q = 1008;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -945,6 +961,9 @@ public class MediaProvider extends ContentProvider {
             }
             if (fromVersion < 1007) {
                 updateClearLocation(db, internal);
+            }
+            if (fromVersion < 1008) {
+                updateSetIsDownload(db, internal);
             }
         }
 
@@ -1059,32 +1078,39 @@ public class MediaProvider extends ContentProvider {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
-        // only support canonicalizing specific audio Uris
-        if (match != AUDIO_MEDIA_ID) {
-            return null;
-        }
-        Cursor c = query(uri, null, null, null, null);
-        String title = null;
-        Uri.Builder builder = null;
-
-        try {
-            if (c == null || c.getCount() != 1 || !c.moveToNext()) {
+        try (Cursor c = query(uri, null, null, null, null)) {
+            if (c == null || c.getCount() != 1 || !c.moveToFirst()) {
                 return null;
             }
 
+            // If we don't have a hash yet, go generate one
+            final int hashIndex = c.getColumnIndex(MediaColumns.HASH);
+            if (hashIndex >= 0 && c.isNull(hashIndex)) {
+                final CallingIdentity ident = clearCallingIdentity();
+                try (InputStream in = getContext().getContentResolver().openInputStream(uri)) {
+                    final ContentValues values = new ContentValues();
+                    values.put(MediaColumns.HASH, FileUtils.digest(in, HASH_ALGORITHM));
+                    update(uri, values, null, null);
+                } catch (IOException | NoSuchAlgorithmException e) {
+                    Log.w(TAG, "Failed to generate hash for " + uri, e);
+                } finally {
+                    restoreCallingIdentity(ident);
+                }
+            }
+
             // Construct a canonical Uri by tacking on some query parameters
-            builder = uri.buildUpon();
-            builder.appendQueryParameter(CANONICAL, "1");
-            title = getDefaultTitleFromCursor(c);
-        } finally {
-            IoUtils.closeQuietly(c);
+            if (match == AUDIO_MEDIA_ID) {
+                final String title = getDefaultTitleFromCursor(c);
+                if (!TextUtils.isEmpty(title)) {
+                    final Uri.Builder builder = uri.buildUpon();
+                    builder.appendQueryParameter(MediaStore.Audio.Media.TITLE, title);
+                    builder.appendQueryParameter(CANONICAL, "1");
+                    return builder.build();
+                }
+            }
         }
-        if (TextUtils.isEmpty(title)) {
-            return null;
-        }
-        builder.appendQueryParameter(MediaStore.Audio.Media.TITLE, title);
-        Uri newUri = builder.build();
-        return newUri;
+
+        return null;
     }
 
     @Override
@@ -1335,6 +1361,7 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_MEDIA_ID:
             case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
             case VIDEO_MEDIA_ID:
+            case DOWNLOADS_ID:
             case FILES_ID:
                 Cursor c = null;
                 try {
@@ -1380,6 +1407,8 @@ public class MediaProvider extends ContentProvider {
 
             case VIDEO_MEDIA:
                 return Video.Media.CONTENT_TYPE;
+            case DOWNLOADS:
+                return Downloads.CONTENT_TYPE;
         }
         throw new IllegalStateException("Unknown URL : " + url);
     }
@@ -1591,7 +1620,7 @@ public class MediaProvider extends ContentProvider {
             return setObjectReferences(helper, db, handle, values);
         }
 
-        ArrayList<Long> notifyRowIds = new ArrayList<Long>();
+        final ArrayList<Uri> downloadNotifyUris = new ArrayList<>();
         int numInserted = 0;
         // insert may need to call getParent(), which in turn may need to update the database,
         // so synchronize on mDirectoryCache to avoid deadlocks
@@ -1601,7 +1630,7 @@ public class MediaProvider extends ContentProvider {
                 int len = values.length;
                 for (int i = 0; i < len; i++) {
                     if (values[i] != null) {
-                        insertCommon(uri, match, values[i], notifyRowIds);
+                        insertCommon(uri, match, values[i], downloadNotifyUris);
                     }
                 }
                 numInserted = len;
@@ -1612,6 +1641,10 @@ public class MediaProvider extends ContentProvider {
         }
 
         getContext().getContentResolver().notifyChange(uri, null);
+        if (!downloadNotifyUris.isEmpty()) {
+            getContext().getContentResolver().notifyChange(
+                    ContentUris.removeId(downloadNotifyUris.get(0)), null);
+        }
         return numInserted;
     }
 
@@ -1622,8 +1655,8 @@ public class MediaProvider extends ContentProvider {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
-        ArrayList<Long> notifyRowIds = new ArrayList<Long>();
-        Uri newUri = insertCommon(uri, match, initialValues, notifyRowIds);
+        ArrayList<Uri> downloadNotifyUris = new ArrayList<>();
+        Uri newUri = insertCommon(uri, match, initialValues, downloadNotifyUris);
 
         // do not signal notification for MTP objects.
         // we will signal instead after file transfer is successful.
@@ -1640,6 +1673,10 @@ public class MediaProvider extends ContentProvider {
             // Also report the specific URIs that changed.
             if (match != MEDIA_SCANNER) {
                 getContext().getContentResolver().notifyChange(newUri, null, 0);
+                if (!downloadNotifyUris.isEmpty()) {
+                    getContext().getContentResolver().notifyChange(
+                            downloadNotifyUris.get(0), null, 0);
+                }
             }
         }
         return newUri;
@@ -1877,7 +1914,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private long insertFile(DatabaseHelper helper, int match, Uri uri, ContentValues values,
-            int mediaType, boolean notify, ArrayList<Long> notifyRowIds) {
+            int mediaType, boolean notify) {
         final SQLiteDatabase db = helper.getWritableDatabase();
 
         // Make sure all file-related columns are defined
@@ -2097,10 +2134,6 @@ public class MediaProvider extends ContentProvider {
             helper.mNumInserts++;
             rowId = db.insert("files", FileColumns.DATE_MODIFIED, values);
             if (LOCAL_LOGV) Log.v(TAG, "insertFile: values=" + values + " returned: " + rowId);
-
-            if (rowId != -1 && notify) {
-                notifyRowIds.add(rowId);
-            }
         } else {
             helper.mNumUpdates++;
             db.update("files", values, FileColumns._ID + "=?",
@@ -2267,8 +2300,17 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    private boolean maybeMarkAsDownload(@NonNull ContentValues values) {
+        final String path = values.getAsString(MediaColumns.DATA);
+        if (path != null && isDownload(path)) {
+            values.put(FileColumns.IS_DOWNLOAD, true);
+            return true;
+        }
+        return false;
+    }
+
     private Uri insertCommon(Uri uri, int match, ContentValues initialValues,
-            ArrayList<Long> notifyRowIds) {
+            ArrayList<Uri> downloadNotifyUris) {
         final String volumeName = getVolumeName(uri);
 
         long rowId;
@@ -2346,13 +2388,18 @@ public class MediaProvider extends ContentProvider {
         switch (match) {
             case IMAGES_MEDIA: {
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
+                final boolean isDownload = maybeMarkAsDownload(initialValues);
                 rowId = insertFile(helper, match, uri, initialValues,
-                        FileColumns.MEDIA_TYPE_IMAGE, true, notifyRowIds);
+                        FileColumns.MEDIA_TYPE_IMAGE, true);
                 if (rowId > 0) {
                     MediaDocumentsProvider.onMediaStoreInsert(
                             getContext(), volumeName, FileColumns.MEDIA_TYPE_IMAGE, rowId);
                     newUri = ContentUris.withAppendedId(
                             Images.Media.getContentUri(volumeName), rowId);
+                    if (isDownload && downloadNotifyUris != null) {
+                        downloadNotifyUris.add(ContentUris.withAppendedId(
+                                Downloads.getContentUri(volumeName), rowId));
+                    }
                 }
                 break;
             }
@@ -2403,13 +2450,18 @@ public class MediaProvider extends ContentProvider {
 
             case AUDIO_MEDIA: {
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
+                final boolean isDownload = maybeMarkAsDownload(initialValues);
                 rowId = insertFile(helper, match, uri, initialValues,
-                        FileColumns.MEDIA_TYPE_AUDIO, true, notifyRowIds);
+                        FileColumns.MEDIA_TYPE_AUDIO, true);
                 if (rowId > 0) {
                     MediaDocumentsProvider.onMediaStoreInsert(
                             getContext(), volumeName, FileColumns.MEDIA_TYPE_AUDIO, rowId);
                     newUri = ContentUris.withAppendedId(
                             Audio.Media.getContentUri(volumeName), rowId);
+                    if (isDownload && downloadNotifyUris != null) {
+                        downloadNotifyUris.add(ContentUris.withAppendedId(
+                                Downloads.getContentUri(volumeName), rowId));
+                    }
                     if (genre != null) {
                         updateGenre(rowId, genre);
                     }
@@ -2485,13 +2537,18 @@ public class MediaProvider extends ContentProvider {
 
             case AUDIO_PLAYLISTS: {
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
+                final boolean isDownload = maybeMarkAsDownload(initialValues);
                 ContentValues values = new ContentValues(initialValues);
                 values.put(MediaStore.Audio.Playlists.DATE_ADDED, System.currentTimeMillis() / 1000);
                 rowId = insertFile(helper, match, uri, values,
-                        FileColumns.MEDIA_TYPE_PLAYLIST, true, notifyRowIds);
+                        FileColumns.MEDIA_TYPE_PLAYLIST, true);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(
                             Audio.Playlists.getContentUri(volumeName), rowId);
+                    if (isDownload && downloadNotifyUris != null) {
+                        downloadNotifyUris.add(ContentUris.withAppendedId(
+                                Downloads.getContentUri(volumeName), rowId));
+                    }
                 }
                 break;
             }
@@ -2519,13 +2576,18 @@ public class MediaProvider extends ContentProvider {
 
             case VIDEO_MEDIA: {
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
+                final boolean isDownload = maybeMarkAsDownload(initialValues);
                 rowId = insertFile(helper, match, uri, initialValues,
-                        FileColumns.MEDIA_TYPE_VIDEO, true, notifyRowIds);
+                        FileColumns.MEDIA_TYPE_VIDEO, true);
                 if (rowId > 0) {
                     MediaDocumentsProvider.onMediaStoreInsert(
                             getContext(), volumeName, FileColumns.MEDIA_TYPE_VIDEO, rowId);
                     newUri = ContentUris.withAppendedId(
                             Video.Media.getContentUri(volumeName), rowId);
+                    if (isDownload && downloadNotifyUris != null) {
+                        downloadNotifyUris.add(ContentUris.withAppendedId(
+                                Downloads.getContentUri(volumeName), rowId));
+                    }
                 }
                 break;
             }
@@ -2560,23 +2622,34 @@ public class MediaProvider extends ContentProvider {
                 return attachedVolume;
             }
 
-            case FILES:
+            case FILES: {
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
+                final boolean isDownload = maybeMarkAsDownload(initialValues);
                 rowId = insertFile(helper, match, uri, initialValues,
-                        FileColumns.MEDIA_TYPE_NONE, true, notifyRowIds);
+                        FileColumns.MEDIA_TYPE_NONE, true);
                 if (rowId > 0) {
                     MediaDocumentsProvider.onMediaStoreInsert(
                             getContext(), volumeName, FileColumns.MEDIA_TYPE_NONE, rowId);
                     newUri = Files.getContentUri(volumeName, rowId);
+                    if (isDownload && downloadNotifyUris != null) {
+                        downloadNotifyUris.add(ContentUris.withAppendedId(
+                                Downloads.getContentUri(volumeName), rowId));
+                    }
                 }
                 break;
+            }
 
             case MTP_OBJECTS:
                 // We don't send a notification if the insert originated from MTP
+                final boolean isDownload = maybeMarkAsDownload(initialValues);
                 rowId = insertFile(helper, match, uri, initialValues,
-                        FileColumns.MEDIA_TYPE_NONE, false, notifyRowIds);
+                        FileColumns.MEDIA_TYPE_NONE, false);
                 if (rowId > 0) {
                     newUri = Files.getMtpObjectsUri(volumeName, rowId);
+                    if (isDownload && downloadNotifyUris != null) {
+                        downloadNotifyUris.add(ContentUris.withAppendedId(
+                                Downloads.getContentUri(volumeName), rowId));
+                    }
                 }
                 break;
 
@@ -2592,9 +2665,14 @@ public class MediaProvider extends ContentProvider {
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
                 initialValues.put(FileColumns.IS_DOWNLOAD, true);
                 rowId = insertFile(helper, match, uri, initialValues,
-                        FileColumns.MEDIA_TYPE_NONE, false, notifyRowIds);
-                newUri = ContentUris.withAppendedId(
+                        FileColumns.MEDIA_TYPE_NONE, false);
+                if (rowId > 0) {
+                    final int mediaType = initialValues.getAsInteger(FileColumns.MEDIA_TYPE);
+                    MediaDocumentsProvider.onMediaStoreInsert(
+                            getContext(), volumeName, mediaType, rowId);
+                    newUri = ContentUris.withAppendedId(
                         MediaStore.Downloads.getContentUri(volumeName), rowId);
+                }
                 break;
 
             default:
@@ -3204,6 +3282,12 @@ public class MediaProvider extends ContentProvider {
                         MediaStore.Audio.Media.getContentUri(volumeName),
                         MediaStore.Audio.Genres.Members.AUDIO_ID,
                         MediaStore.Audio.Genres.Members.DATA);
+            case DOWNLOADS:
+            case DOWNLOADS_ID:
+                return new TranslatingCursor.Config(
+                        Downloads.getContentUri(volumeName),
+                        Downloads._ID,
+                        Downloads.DATA);
             default:
                 return null;
         }
@@ -3287,8 +3371,8 @@ public class MediaProvider extends ContentProvider {
                 String deleteparam = uri.getQueryParameter(MediaStore.PARAM_DELETE_DATA);
                 if (deleteparam == null || ! deleteparam.equals("false")) {
                     database.mNumQueries++;
-                    Cursor c = qb.query(db, sMediaTypeDataId, userWhere, userWhereArgs, null, null,
-                            null, null);
+                    Cursor c = qb.query(db, sMediaTypeDataIdIsDownload, userWhere, userWhereArgs,
+                            null, null, null, null);
                     String [] idvalue = new String[] { "" };
                     String [] playlistvalues = new String[] { "", "" };
                     try {
@@ -3296,6 +3380,7 @@ public class MediaProvider extends ContentProvider {
                             final int mediaType = c.getInt(0);
                             final String data = c.getString(1);
                             final long id = c.getLong(2);
+                            final int isDownload = c.getInt(3);
 
                             if (mediaType == FileColumns.MEDIA_TYPE_IMAGE) {
                                 deleteIfAllowed(uri, data);
@@ -3363,6 +3448,10 @@ public class MediaProvider extends ContentProvider {
                                         IoUtils.closeQuietly(cc);
                                     }
                                 }
+                            } else if (isDownload == 1) {
+                                deleteIfAllowed(uri, data);
+                                MediaDocumentsProvider.onMediaStoreDelete(getContext(),
+                                        volumeName, mediaType, id);
                             } else if (mediaType == FileColumns.MEDIA_TYPE_PLAYLIST) {
                                 // TODO, maybe: remove the audio_playlists_cleanup trigger and
                                 // implement functionality here (clean up the playlist map)
@@ -3693,6 +3782,7 @@ public class MediaProvider extends ContentProvider {
 
         String genre = null;
         if (initialValues != null) {
+
             // Augment incoming raw filesystem paths
             for (String column : sDataColumns.keySet()) {
                 if (!initialValues.containsKey(column)) continue;
@@ -3719,6 +3809,9 @@ public class MediaProvider extends ContentProvider {
             }
 
             initialValues.remove(FileColumns.IS_DOWNLOAD);
+            if ("files".equals(qb.getTables())) {
+                maybeMarkAsDownload(initialValues);
+            }
 
             // We no longer track location metadata
             if (initialValues.containsKey(ImageColumns.LATITUDE)) {
@@ -3788,8 +3881,10 @@ public class MediaProvider extends ContentProvider {
                 } finally {
                     IoUtils.closeQuietly(cursor);
                 }
+                final boolean isDownloadDir = isDownloadDir(newPath);
                 if (oldPath != null) {
                     mDirectoryCache.remove(oldPath);
+                    final boolean wasDownloadDir = isDownloadDir(oldPath);
                     // first rename the row for the directory
                     helper.mNumUpdates++;
                     count = qb.update(db, initialValues, userWhere, userWhereArgs);
@@ -3802,19 +3897,25 @@ public class MediaProvider extends ContentProvider {
                                 oldPath + "0",
                                 // update bucket_display_name and bucket_id based on new path
                                 f.getName(),
-                                f.toString().toLowerCase().hashCode()
+                                f.toString().toLowerCase().hashCode(),
+                                isDownloadDir
                                 };
                         helper.mNumUpdates++;
                         db.execSQL("UPDATE files SET _data=?1||SUBSTR(_data, ?2)" +
                                 // also update bucket_display_name
                                 ",bucket_display_name=?5" +
                                 ",bucket_id=?6" +
+                                ",is_download=?7" +
                                 " WHERE _data >= ?3 AND _data < ?4;",
                                 bindArgs);
                     }
 
                     if (count > 0 && !db.inTransaction()) {
                         getContext().getContentResolver().notifyChange(uri, null);
+                        if (wasDownloadDir || isDownloadDir) {
+                            getContext().getContentResolver().notifyChange(
+                                    Downloads.getContentUri(volumeName), null);
+                        }
                     }
                     if (f.getName().startsWith(".")) {
                         // the new directory name is hidden
@@ -3824,6 +3925,22 @@ public class MediaProvider extends ContentProvider {
                 }
             } else if (newPath.toLowerCase(Locale.US).endsWith("/.nomedia")) {
                 processNewNoMediaPath(helper, db, newPath);
+            }
+        }
+
+        // Check if any download files are getting updated
+        // TODO: send notifyUri for exact uris that are getting changed.
+        Uri downloadNotifyUri = null;
+        if (match != DOWNLOADS && match != DOWNLOADS_ID && "files".equals(qb.getTables())) {
+            try (Cursor cursor = qb.query(db,
+                    new String[] {FileColumns._ID, FileColumns.IS_DOWNLOAD},
+                    userWhere, userWhereArgs, null, null, null)) {
+                while (cursor.moveToNext()) {
+                    if (cursor.getInt(1) == 1) {
+                        downloadNotifyUri = Downloads.getContentUri(volumeName);
+                        break;
+                    }
+                }
             }
         }
 
@@ -4026,6 +4143,9 @@ public class MediaProvider extends ContentProvider {
             if (!Objects.equals(uri, originalUri)) {
                 getContext().getContentResolver().notifyChange(originalUri, null);
             }
+            if (downloadNotifyUri != null) {
+                getContext().getContentResolver().notifyChange(downloadNotifyUri, null);
+            }
         }
 
         return count;
@@ -4144,7 +4264,7 @@ public class MediaProvider extends ContentProvider {
                     // If that fails, try to get it from this specific file.
                     Uri newUri = ContentUris.withAppendedId(ALBUMART_URI, albumid);
                     try {
-                        pfd = openFileAndEnforcePathPermissionsHelper(newUri, mode, null, signal);
+                        pfd = openFileAndEnforcePathPermissionsHelper(newUri, match, mode, signal);
                     } catch (FileNotFoundException ex) {
                         // That didn't work, now try to get it from the specific file
                         pfd = getThumb(database, db, audiopath, albumid, null);
@@ -4156,24 +4276,8 @@ public class MediaProvider extends ContentProvider {
             return pfd;
         }
 
-        // Kick off metadata update when writing is finished
-        OnCloseListener listener = null;
-        switch (match) {
-            case IMAGES_MEDIA_ID:
-            case IMAGES_THUMBNAILS_ID:
-            case VIDEO_THUMBNAILS_ID: {
-                final Uri finalUri = uri;
-                listener = (e) -> {
-                    if (e == null) {
-                        updateImageMetadata(finalUri);
-                    }
-                };
-                break;
-            }
-        }
-
         try {
-            pfd = openFileAndEnforcePathPermissionsHelper(uri, mode, listener, signal);
+            pfd = openFileAndEnforcePathPermissionsHelper(uri, match, mode, signal);
         } catch (FileNotFoundException ex) {
             if (mode.contains("w")) {
                 // if the file couldn't be created, we shouldn't extract album art
@@ -4281,21 +4385,13 @@ public class MediaProvider extends ContentProvider {
      * Update the metadata columns for the image residing at given {@link Uri}
      * by reading data from the underlying image.
      */
-    private void updateImageMetadata(Uri uri) {
-        try {
-            final File file = queryForDataFile(uri, null);
-            final BitmapFactory.Options bitmapOpts = new BitmapFactory.Options();
-            bitmapOpts.inJustDecodeBounds = true;
-            BitmapFactory.decodeFile(file.getAbsolutePath(), bitmapOpts);
+    private void updateImageMetadata(ContentValues values, File file) {
+        final BitmapFactory.Options bitmapOpts = new BitmapFactory.Options();
+        bitmapOpts.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(file.getAbsolutePath(), bitmapOpts);
 
-            final ContentValues values = new ContentValues();
-            values.put(MediaColumns.SIZE, file.length());
-            values.put(MediaColumns.WIDTH, bitmapOpts.outWidth);
-            values.put(MediaColumns.HEIGHT, bitmapOpts.outHeight);
-            update(uri, values, null, null);
-        } catch (Exception e) {
-            Log.w(TAG, "Failed to update metadata for " + uri, e);
-        }
+        values.put(MediaColumns.WIDTH, bitmapOpts.outWidth);
+        values.put(MediaColumns.HEIGHT, bitmapOpts.outHeight);
     }
 
     private AssetFileDescriptor openThumbBlocking(ThumbTask task, int priority)
@@ -4377,8 +4473,8 @@ public class MediaProvider extends ContentProvider {
      * Replacement for {@link #openFileHelper(Uri, String)} which enforces any
      * permissions applicable to the path before returning.
      */
-    private ParcelFileDescriptor openFileAndEnforcePathPermissionsHelper(Uri uri, String mode,
-            OnCloseListener listener, CancellationSignal signal) throws FileNotFoundException {
+    private ParcelFileDescriptor openFileAndEnforcePathPermissionsHelper(Uri uri, int match,
+            String mode, CancellationSignal signal) throws FileNotFoundException {
         final int modeBits = ParcelFileDescriptor.parseMode(mode);
         final boolean forWrite = (modeBits != ParcelFileDescriptor.MODE_READ_ONLY);
 
@@ -4422,6 +4518,31 @@ public class MediaProvider extends ContentProvider {
             throw new UnsupportedOperationException(
                     "Caller must hold ACCESS_MEDIA_LOCATION permission to access original");
         }
+
+        // Kick off metadata update when writing is finished
+        final OnCloseListener listener = (e) -> {
+            if (e == null) {
+                // TODO: migrate to performing a real media scan
+                final ContentValues values = new ContentValues();
+                try {
+                    switch (match) {
+                        case IMAGES_THUMBNAILS_ID:
+                        case VIDEO_THUMBNAILS_ID:
+                            updateImageMetadata(values, file);
+                            break;
+
+                        case IMAGES_MEDIA_ID:
+                            updateImageMetadata(values, file);
+                        default:
+                            values.putNull(MediaColumns.HASH);
+                            values.put(MediaColumns.SIZE, file.length());
+                    }
+                    update(uri, values, null, null);
+                } catch (Exception e2) {
+                    Log.w(TAG, "Failed to update metadata for " + uri, e2);
+                }
+            }
+        };
 
         try {
             // First, handle any redaction that is needed for caller

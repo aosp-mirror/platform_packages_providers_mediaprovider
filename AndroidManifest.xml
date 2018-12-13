@@ -114,5 +114,10 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".PermissionActivity"
+            android:theme="@style/PickerDialogTheme"
+            android:permission="android.permission.WRITE_MEDIA_STORAGE"
+            android:excludeFromRecents="true" />
     </application>
 </manifest>

@@ -3940,6 +3940,7 @@ public class MediaProvider extends ContentProvider {
         // TODO: send notifyUri for exact uris that are getting changed.
         Uri downloadNotifyUri = null;
         if (match != DOWNLOADS && match != DOWNLOADS_ID && "files".equals(qb.getTables())) {
+            helper.mNumQueries++;
             try (Cursor cursor = qb.query(db,
                     new String[] {FileColumns._ID, FileColumns.IS_DOWNLOAD},
                     userWhere, userWhereArgs, null, null, null)) {

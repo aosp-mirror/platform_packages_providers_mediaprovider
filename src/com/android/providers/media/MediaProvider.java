@@ -4755,11 +4755,26 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
+        // We only allow the user to grant access to specific media items in
+        // strongly typed collections; never to broad collections
+        boolean allowUserGrant = false;
+        final int matchUri = matchUri(uri, true);
+        switch (matchUri) {
+            case IMAGES_MEDIA_ID:
+            case AUDIO_MEDIA_ID:
+            case VIDEO_MEDIA_ID:
+                allowUserGrant = true;
+                break;
+        }
+
         // Second, check to see if caller has direct read access
         final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, uri, table, null);
         try (Cursor c = qb.query(db, new String[0], null, null, null, null, null)) {
             if (c.moveToFirst()) {
-                if (forWrite) {
+                if (!forWrite) {
+                    // Direct read access granted, yay!
+                    return;
+                } else if (allowUserGrant) {
                     // Caller has read access, but they wanted to write, and
                     // they'll need to get the user to grant that access
                     final Context context = getContext();
@@ -4776,9 +4791,6 @@ public class MediaProvider extends ContentProvider {
                     throw new RecoverableSecurityException(new SecurityException(
                             getCallingPackage() + " has no access to " + uri),
                             context.getText(R.string.permission_required), action);
-                } else {
-                    // Direct read access granted, yay!
-                    return;
                 }
             }
         }

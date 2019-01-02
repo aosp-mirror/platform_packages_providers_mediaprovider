@@ -22,27 +22,25 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.WRITE_MEDIA_IMAGES" />
 
-    <application android:process="android.process.media"
-                 android:label="@string/app_label"
-                 android:allowBackup="false"
-                 android:supportsRtl="true"
-                 android:usesCleartextTraffic="true">
-        <provider android:name="MediaProvider" android:authorities="media"
-                android:multiprocess="false" android:exported="true">
-            <grant-uri-permission android:pathPrefix="/external/" />
-            <path-permission
-                    android:pathPrefix="/external/"
-                    android:readPermission="android.permission.READ_EXTERNAL_STORAGE"
-                    android:writePermission="android.permission.WRITE_EXTERNAL_STORAGE" />
-        </provider>
+    <application
+            android:process="android.process.media"
+            android:label="@string/app_label"
+            android:allowBackup="false"
+            android:supportsRtl="true"
+            android:usesCleartextTraffic="true">
+        <provider
+                android:name=".MediaProvider"
+                android:authorities="media"
+                android:grantUriPermissions="true"
+                android:exported="true" />
 
         <provider
-            android:name="MediaDocumentsProvider"
-            android:label="@string/storage_description"
-            android:authorities="com.android.providers.media.documents"
-            android:grantUriPermissions="true"
-            android:exported="true"
-            android:permission="android.permission.MANAGE_DOCUMENTS">
+                android:name=".MediaDocumentsProvider"
+                android:label="@string/storage_description"
+                android:authorities="com.android.providers.media.documents"
+                android:grantUriPermissions="true"
+                android:exported="true"
+                android:permission="android.permission.MANAGE_DOCUMENTS">
             <intent-filter>
                 <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
             </intent-filter>

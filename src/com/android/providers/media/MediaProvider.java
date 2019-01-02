@@ -4660,9 +4660,17 @@ public class MediaProvider extends ContentProvider {
     private boolean checkCallingPermissionGlobal(Uri uri, boolean forWrite) {
         final Context context = getContext();
 
-        // Shortcut when using old storage model; everything is allowed
+        // Check permissions for legacy storage model
         if (!ENFORCE_ISOLATED_STORAGE) {
-            return true;
+            final String volumeName = MediaStore.getVolumeName(uri);
+            if (INTERNAL_VOLUME.equals(volumeName)) {
+                return true;
+            } else {
+                context.enforceCallingOrSelfPermission(
+                        forWrite ? WRITE_EXTERNAL_STORAGE : READ_EXTERNAL_STORAGE,
+                        String.valueOf(uri));
+                return true;
+            }
         }
 
         // System internals can work with all media

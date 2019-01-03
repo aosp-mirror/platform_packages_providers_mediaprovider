@@ -844,7 +844,7 @@ public class MediaProvider extends ContentProvider {
                 + " FROM files WHERE is_download=1");
     }
 
-    private static void updateFromKKSchema(SQLiteDatabase db) {
+    private static void updateCollationKeys(SQLiteDatabase db) {
         // Delete albums and artists, then clear the modification time on songs, which
         // will cause the media scanner to rescan everything, rebuilding the artist and
         // album tables along the way, while preserving playlists.
@@ -852,18 +852,15 @@ public class MediaProvider extends ContentProvider {
         // collation keys
         db.execSQL("DELETE from albums");
         db.execSQL("DELETE from artists");
-        db.execSQL("ALTER TABLE files ADD COLUMN title_resource_uri TEXT DEFAULT NULL");
-        db.execSQL("UPDATE files SET date_modified=0");
-        updateAddColorSpaces(db);
+        db.execSQL("UPDATE files SET date_modified=0;");
     }
 
-    private static void updateFromOCSchema(SQLiteDatabase db) {
+    private static void updateAddTitleResource(SQLiteDatabase db) {
         // Add the column used for title localization, and force a rescan of any
         // ringtones, alarms and notifications that may be using it.
         db.execSQL("ALTER TABLE files ADD COLUMN title_resource_uri TEXT DEFAULT NULL");
         db.execSQL("UPDATE files SET date_modified=0"
                 + " WHERE (is_alarm IS 1) OR (is_ringtone IS 1) OR (is_notification IS 1)");
-        updateAddColorSpaces(db);
     }
 
     private static void updateAddOwnerPackageName(SQLiteDatabase db, boolean internal) {
@@ -947,11 +944,13 @@ public class MediaProvider extends ContentProvider {
         if (fromVersion < 700) {
             // Anything older than KK is recreated from scratch
             createLatestSchema(db, internal);
-        } else if (fromVersion < 800) {
-            updateFromKKSchema(db);
-        } else if (fromVersion < 900) {
-            updateFromOCSchema(db);
         } else {
+            if (fromVersion < 800) {
+                updateCollationKeys(db);
+            }
+            if (fromVersion < 900) {
+                updateAddTitleResource(db);
+            }
             if (fromVersion < 1000) {
                 updateAddOwnerPackageName(db, internal);
             }

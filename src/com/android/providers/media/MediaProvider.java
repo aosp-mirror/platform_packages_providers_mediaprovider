@@ -3787,6 +3787,7 @@ public class MediaProvider extends ContentProvider {
         SQLiteDatabase db = helper.getWritableDatabase();
         SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, uri, match, null);
 
+        boolean triggerScan = false;
         String genre = null;
         if (initialValues != null) {
             // IDs are forever; nobody should be editing them
@@ -3821,6 +3822,7 @@ public class MediaProvider extends ContentProvider {
                         Log.w(TAG, "Ignoring mutation of " + column + " from "
                                 + getCallingPackageOrSelf());
                         initialValues.remove(column);
+                        triggerScan = true;
                     }
                 }
             }
@@ -4169,6 +4171,25 @@ public class MediaProvider extends ContentProvider {
             }
             if (downloadNotifyUri != null) {
                 getContext().getContentResolver().notifyChange(downloadNotifyUri, null);
+            }
+        }
+
+        // If the caller tried (and failed) to update metadata, the file on disk
+        // might have changed, to scan it to collect the latest metadata.
+        if (triggerScan) {
+            final CallingIdentity token = clearCallingIdentity();
+            try (Cursor c = queryForSingleItem(uri,
+                    new String[] { FileColumns.DATA }, null, null, null)) {
+                final String data = c.getString(0);
+                try (MediaScanner scanner = new MediaScanner(getContext(), volumeName)) {
+                    final String ext = data.substring(data.lastIndexOf('.') + 1);
+                    scanner.scanSingleFile(data,
+                            MimeUtils.guessMimeTypeFromExtension(ext));
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "Failed to update metadata for " + uri, e);
+            } finally {
+                restoreCallingIdentity(token);
             }
         }
 

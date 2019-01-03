@@ -23,14 +23,21 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.content.res.Resources;
+import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
+import android.util.Size;
 import android.view.WindowManager;
 import android.widget.ImageView;
+import android.widget.ImageView.ScaleType;
 
 import com.android.internal.app.AlertActivity;
+
+import java.io.IOException;
 
 public class PermissionActivity extends AlertActivity implements DialogInterface.OnClickListener {
     @Override
@@ -48,9 +55,31 @@ public class PermissionActivity extends AlertActivity implements DialogInterface
             return;
         }
 
-        // TODO: track down a thumbnail for this item, instead of giant thing
+        final Resources res = getResources();
         final ImageView thumbnailView = new ImageView(this);
-        thumbnailView.setImageURIAsync(getIntent().getData());
+        thumbnailView.setScaleType(ScaleType.CENTER_INSIDE);
+        thumbnailView.setPadding(
+                0, res.getDimensionPixelSize(com.android.internal.R.dimen.default_gap), 0, 0);
+        new AsyncTask<Void, Void, Bitmap>() {
+            @Override
+            protected Bitmap doInBackground(Void... params) {
+                final Size size = new Size(res.getDisplayMetrics().widthPixels,
+                        res.getDisplayMetrics().widthPixels);
+                try {
+                    return getContentResolver().loadThumbnail(getIntent().getData(), size, null);
+                } catch (IOException e) {
+                    Log.w(TAG, e);
+                    finish();
+                    return null;
+                }
+            }
+
+            @Override
+            protected void onPostExecute(Bitmap result) {
+                Log.d(TAG, "Found thumbnail " + result.getWidth() + "x" + result.getHeight());
+                thumbnailView.setImageBitmap(result);
+            }
+        }.execute();
 
         mAlertParams.mMessage = TextUtils.expandTemplate(getText(resId), label);
         mAlertParams.mPositiveButtonText = getString(R.string.grant_dialog_button_allow);
@@ -68,9 +97,11 @@ public class PermissionActivity extends AlertActivity implements DialogInterface
 
     @Override
     public void onClick(DialogInterface dialog, int which) {
+        final Uri uri = getIntent().getData();
         switch (which) {
             case BUTTON_POSITIVE:
-                grantUriPermission(getCallingPackage(), getIntent().getData(),
+                Log.d(TAG, "User allowed grant for " + uri);
+                grantUriPermission(getCallingPackage(), uri,
                         Intent.FLAG_GRANT_READ_URI_PERMISSION |
                                 Intent.FLAG_GRANT_WRITE_URI_PERMISSION |
                                 Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
@@ -78,7 +109,7 @@ public class PermissionActivity extends AlertActivity implements DialogInterface
                 finish();
                 break;
             case BUTTON_NEGATIVE:
-                Log.d(TAG, "NEG");
+                Log.d(TAG, "User declined grant for " + uri);
                 finish();
                 break;
         }

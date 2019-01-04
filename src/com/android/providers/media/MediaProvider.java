@@ -616,6 +616,29 @@ public class MediaProvider extends ContentProvider {
         for (String packageName : unknownPackages) {
             onPackageOrphaned(packageName);
         }
+
+        // Delete any expired content
+        synchronized (mDatabases) {
+            for (int i = 0; i < mDatabases.size(); i++) {
+                final String volumeName = mDatabases.keyAt(i);
+                final DatabaseHelper helper = mDatabases.valueAt(i);
+                final SQLiteDatabase db = helper.getReadableDatabase();
+
+                // We're paranoid about wildly changing clocks, so only delete
+                // media that has expired within the last week
+                final long from = ((System.currentTimeMillis() - DateUtils.WEEK_IN_MILLIS) / 1000);
+                final long to = (System.currentTimeMillis() / 1000);
+                try (Cursor c = db.query(true, "files", new String[] { "_id" },
+                        FileColumns.DATE_EXPIRES + " BETWEEN " + from + " AND " + to, null,
+                        null, null, null, null, signal)) {
+                    while (c.moveToNext()) {
+                        delete(ContentUris.withAppendedId(Files.getContentUri(volumeName),
+                                c.getLong(0)), null, null);
+                    }
+                    Log.d(TAG, "Deleted " + c.getCount() + " expired items on " + helper.mName);
+                }
+            }
+        }
     }
 
     public void onPackageOrphaned(String packageName) {
@@ -724,7 +747,8 @@ public class MediaProvider extends ContentProvider {
                 + "_hash BLOB DEFAULT NULL, is_pending INTEGER DEFAULT 0,"
                 + "is_download INTEGER DEFAULT 0, download_uri TEXT DEFAULT NULL,"
                 + "referer_uri TEXT DEFAULT NULL, is_audiobook INTEGER DEFAULT 0,"
-                + "secondary_bucket_id INTEGER DEFAULT NULL)");
+                + "secondary_bucket_id INTEGER DEFAULT NULL,date_expires INTEGER DEFAULT NULL,"
+                + "is_trashed INTEGER DEFAULT 0)");
 
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!internal) {
@@ -786,15 +810,15 @@ public class MediaProvider extends ContentProvider {
 
         if (!internal) {
             db.execSQL("CREATE VIEW audio_playlists AS SELECT _id,_data,name,date_added,"
-                    + "date_modified,owner_package_name,_hash,is_pending"
+                    + "date_modified,owner_package_name,_hash,is_pending,date_expires,is_trashed"
                     + " FROM files WHERE media_type=4");
         }
 
         db.execSQL("CREATE VIEW audio_meta AS SELECT _id,_data,_display_name,_size,mime_type,"
                 + "date_added,is_drm,date_modified,title,title_key,duration,artist_id,composer,"
                 + "album_id,track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast,"
-                + "bookmark,album_artist,owner_package_name,_hash,is_pending,is_audiobook"
-                + " FROM files WHERE media_type=2");
+                + "bookmark,album_artist,owner_package_name,_hash,is_pending,is_audiobook,"
+                + "date_expires,is_trashed FROM files WHERE media_type=2");
         db.execSQL("CREATE VIEW artists_albums_map AS SELECT DISTINCT artist_id, album_id"
                 + " FROM audio_meta");
         db.execSQL("CREATE VIEW audio as SELECT *, NULL AS width, NULL as height"
@@ -919,6 +943,11 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("ALTER TABLE files ADD COLUMN secondary_bucket_id INTEGER DEFAULT NULL;");
     }
 
+    private static void updateAddExpiresAndTrashed(SQLiteDatabase db, boolean internal) {
+        db.execSQL("ALTER TABLE files ADD COLUMN date_expires INTEGER DEFAULT NULL;");
+        db.execSQL("ALTER TABLE files ADD COLUMN is_trashed INTEGER DEFAULT 0;");
+    }
+
     static final int VERSION_J = 509;
     static final int VERSION_K = 700;
     static final int VERSION_L = 700;
@@ -973,6 +1002,9 @@ public class MediaProvider extends ContentProvider {
             }
             if (fromVersion < 1009) {
                 updateAddSecondaryBucketId(db, internal);
+            }
+            if (fromVersion < 1010) {
+                updateAddExpiresAndTrashed(db, internal);
             }
         }
 
@@ -2943,11 +2975,14 @@ public class MediaProvider extends ContentProvider {
 
         boolean includePending = parseBoolean(
                 uri.getQueryParameter(MediaStore.PARAM_INCLUDE_PENDING));
+        boolean includeTrashed = parseBoolean(
+                uri.getQueryParameter(MediaStore.PARAM_INCLUDE_TRASHED));
 
         switch (match) {
             case IMAGES_MEDIA_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 includePending = true;
+                includeTrashed = true;
                 // fall-through
             case IMAGES_MEDIA:
                 if (type == TYPE_QUERY) {
@@ -2968,6 +3003,9 @@ public class MediaProvider extends ContentProvider {
                 if (!includePending) {
                     appendWhereStandalone(qb, FileColumns.IS_PENDING + "=?", 0);
                 }
+                if (!includeTrashed) {
+                    appendWhereStandalone(qb, FileColumns.IS_TRASHED + "=?", 0);
+                }
                 break;
 
             case IMAGES_THUMBNAILS_ID:
@@ -2985,6 +3023,7 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_MEDIA_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 includePending = true;
+                includeTrashed = true;
                 // fall-through
             case AUDIO_MEDIA:
                 if (type == TYPE_QUERY) {
@@ -3004,6 +3043,9 @@ public class MediaProvider extends ContentProvider {
                 }
                 if (!includePending) {
                     appendWhereStandalone(qb, FileColumns.IS_PENDING + "=?", 0);
+                }
+                if (!includeTrashed) {
+                    appendWhereStandalone(qb, FileColumns.IS_TRASHED + "=?", 0);
                 }
                 break;
 
@@ -3047,6 +3089,7 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_PLAYLISTS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 includePending = true;
+                includeTrashed = true;
                 // fall-through
             case AUDIO_PLAYLISTS:
                 if (type == TYPE_QUERY) {
@@ -3062,6 +3105,9 @@ public class MediaProvider extends ContentProvider {
                 }
                 if (!includePending) {
                     appendWhereStandalone(qb, FileColumns.IS_PENDING + "=?", 0);
+                }
+                if (!includeTrashed) {
+                    appendWhereStandalone(qb, FileColumns.IS_TRASHED + "=?", 0);
                 }
                 break;
 
@@ -3130,6 +3176,7 @@ public class MediaProvider extends ContentProvider {
             case VIDEO_MEDIA_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 includePending = true;
+                includeTrashed = true;
                 // fall-through
             case VIDEO_MEDIA:
                 if (type == TYPE_QUERY) {
@@ -3150,6 +3197,9 @@ public class MediaProvider extends ContentProvider {
                 if (!includePending) {
                     appendWhereStandalone(qb, FileColumns.IS_PENDING + "=?", 0);
                 }
+                if (!includeTrashed) {
+                    appendWhereStandalone(qb, FileColumns.IS_TRASHED + "=?", 0);
+                }
                 break;
 
             case VIDEO_THUMBNAILS_ID:
@@ -3168,6 +3218,7 @@ public class MediaProvider extends ContentProvider {
             case MTP_OBJECTS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(2));
                 includePending = true;
+                includeTrashed = true;
                 // fall-through
             case FILES:
             case FILES_DIRECTORY:
@@ -3198,12 +3249,16 @@ public class MediaProvider extends ContentProvider {
                 if (!includePending) {
                     appendWhereStandalone(qb, FileColumns.IS_PENDING + "=?", 0);
                 }
+                if (!includeTrashed) {
+                    appendWhereStandalone(qb, FileColumns.IS_TRASHED + "=?", 0);
+                }
 
                 break;
 
             case DOWNLOADS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(2));
                 includePending = true;
+                includeTrashed = true;
                 // fall-through
             case DOWNLOADS:
                 if (type == TYPE_QUERY) {
@@ -3222,6 +3277,9 @@ public class MediaProvider extends ContentProvider {
                 }
                 if (!includePending) {
                     appendWhereStandalone(qb, FileColumns.IS_PENDING + "=?", 0);
+                }
+                if (!includeTrashed) {
+                    appendWhereStandalone(qb, FileColumns.IS_TRASHED + "=?", 0);
                 }
                 break;
 
@@ -5928,9 +5986,13 @@ public class MediaProvider extends ContentProvider {
         addMapping(map, MediaStore.MediaColumns.OWNER_PACKAGE_NAME);
         addMapping(map, MediaStore.MediaColumns.HASH);
         addMapping(map, MediaStore.MediaColumns.IS_PENDING);
+        addMapping(map, MediaStore.MediaColumns.IS_TRASHED);
+        addMapping(map, MediaStore.MediaColumns.DATE_EXPIRES);
 
         sMutableColumns.add(MediaStore.MediaColumns.DATA);
         sMutableColumns.add(MediaStore.MediaColumns.IS_PENDING);
+        sMutableColumns.add(MediaStore.MediaColumns.IS_TRASHED);
+        sMutableColumns.add(MediaStore.MediaColumns.DATE_EXPIRES);
     }
 
     {

@@ -27,6 +27,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.provider.MediaStore.Files.FileColumns;
+import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
@@ -39,7 +40,10 @@ import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4.class)
 public class DatabaseHelperTest {
+    private static final String TAG = "DatabaseHelperTest";
+
     private static final String TEST_DB = "test";
+    private static final String TEST_CLEAN_DB = "test_clean";
 
     private Context getContext() {
         return InstrumentationRegistry.getTargetContext();
@@ -190,7 +194,35 @@ public class DatabaseHelperTest {
                         c.getString(c.getColumnIndexOrThrow(FileColumns.OWNER_PACKAGE_NAME)));
                 assertEquals("1", c.getString(c.getColumnIndexOrThrow(FileColumns.IS_DOWNLOAD)));
             }
+
+            // Create a second isolated instance from scratch and assert that
+            // upgraded schema is identical
+            try (DatabaseHelper helper2 = after.getConstructor(Context.class, String.class)
+                    .newInstance(getContext(), TEST_CLEAN_DB)) {
+                SQLiteDatabase db2 = helper2.getWritableDatabase();
+
+                try (Cursor c1 = db.query("sqlite_master", null, null, null, null, null, null);
+                        Cursor c2 = db2.query("sqlite_master", null, null, null, null, null, null)) {
+                    while (c1.moveToNext() && c2.moveToNext()) {
+                        assertEquals(c2.getString(0), c1.getString(0));
+                        assertEquals(c2.getString(1), c1.getString(1));
+                        assertEquals(c2.getString(2), c1.getString(2));
+                        assertEquals(c2.getString(3), c1.getString(3));
+
+                        final String sql1 = normalize(c1.getString(4));
+                        final String sql2 = normalize(c2.getString(4));
+                        Log.v(TAG, String.valueOf(sql1));
+                        Log.v(TAG, String.valueOf(sql2));
+                        assertEquals(sql2, sql1);
+                    }
+                    assertEquals(c1.getCount(), c2.getCount());
+                }
+            }
         }
+    }
+
+    private static String normalize(String sql) {
+        return sql != null ? sql.replace(", ", ",") : null;
     }
 
     private static class DatabaseHelperO extends DatabaseHelper {
@@ -250,7 +282,7 @@ public class DatabaseHelperTest {
                 + "is_alarm INTEGER,is_notification INTEGER,is_podcast INTEGER,album_artist TEXT,"
                 + "duration INTEGER,bookmark INTEGER,artist TEXT,album TEXT,resolution TEXT,"
                 + "tags TEXT,category TEXT,language TEXT,mini_thumb_data TEXT,name TEXT,"
-                + "media_type INTEGER,old_id INTEGER,storage_id INTEGER,is_drm INTEGER,"
+                + "media_type INTEGER,old_id INTEGER,is_drm INTEGER,"
                 + "width INTEGER, height INTEGER)");
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!internal) {

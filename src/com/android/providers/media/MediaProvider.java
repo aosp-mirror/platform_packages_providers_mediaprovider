@@ -955,7 +955,7 @@ public class MediaProvider extends ContentProvider {
     static final int VERSION_N = 800;
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
-    static final int VERSION_Q = 1009;
+    static final int VERSION_Q = 1011;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -1541,11 +1541,13 @@ public class MediaProvider extends ContentProvider {
         // Force values when raw path provided
         if (!TextUtils.isEmpty(values.getAsString(MediaColumns.DATA))) {
             final String data = values.getAsString(MediaColumns.DATA);
-            final String displayName = data.substring(data.lastIndexOf('/') + 1);
-            final String ext = data.substring(data.lastIndexOf('.') + 1);
 
-            values.put(MediaColumns.DISPLAY_NAME, displayName);
-            if (TextUtils.isEmpty(values.getAsString(MediaColumns.MIME_TYPE))) {
+            if (TextUtils.isEmpty(MediaColumns.DISPLAY_NAME)) {
+                final String displayName = data.substring(data.lastIndexOf('/') + 1);
+                values.put(MediaColumns.DISPLAY_NAME, displayName);
+            }
+            if (TextUtils.isEmpty(MediaColumns.MIME_TYPE)) {
+                final String ext = data.substring(data.lastIndexOf('.') + 1);
                 values.put(MediaColumns.MIME_TYPE, MimeUtils.guessMimeTypeFromExtension(ext));
             }
         }
@@ -2400,7 +2402,9 @@ public class MediaProvider extends ContentProvider {
             // it be whoever is creating the content.
             initialValues.remove(FileColumns.OWNER_PACKAGE_NAME);
 
-            initialValues.remove(FileColumns.IS_DOWNLOAD);
+            if (!isCallingPackageSystem()) {
+                initialValues.remove(FileColumns.IS_DOWNLOAD);
+            }
 
             // We no longer track location metadata
             if (initialValues.containsKey(ImageColumns.LATITUDE)) {
@@ -3892,7 +3896,6 @@ public class MediaProvider extends ContentProvider {
             genre = initialValues.getAsString(Audio.AudioColumns.GENRE);
             initialValues.remove(Audio.AudioColumns.GENRE);
 
-            initialValues.remove(FileColumns.IS_DOWNLOAD);
             if ("files".equals(qb.getTables())) {
                 maybeMarkAsDownload(initialValues);
             }
@@ -6126,6 +6129,7 @@ public class MediaProvider extends ContentProvider {
         map.putAll(sMediaColumns);
         addMapping(map, MediaStore.Downloads.DOWNLOAD_URI);
         addMapping(map, MediaStore.Downloads.REFERER_URI);
+        addMapping(map, MediaStore.Downloads.DESCRIPTION);
     }
 
     {

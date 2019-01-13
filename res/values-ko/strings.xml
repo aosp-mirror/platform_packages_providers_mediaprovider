@@ -26,6 +26,12 @@
     <string name="root_images" msgid="5861633549189045666">"이미지"</string>
     <string name="root_videos" msgid="8792703517064649453">"동영상"</string>
     <string name="root_audio" msgid="3505830755201326018">"오디오"</string>
+    <string name="permission_required" msgid="2444058206532822316">"이 미디어 항목을 사용하려면 권한이 필요합니다."</string>
+    <string name="permission_audio" msgid="344061911159388398"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"에서 이 음악을 수정하거나 삭제하도록 허용하시겠습니까?"</string>
+    <string name="permission_video" msgid="8188037202573267740"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"에서 이 동영상을 수정하거나 삭제하도록 허용하시겠습니까?"</string>
+    <string name="permission_images" msgid="6711726334380945124"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"에서 이 이미지를 수정하거나 삭제하도록 허용하시겠습니까?"</string>
+    <string name="grant_dialog_button_allow" msgid="1644287024501033471">"허용"</string>
+    <string name="grant_dialog_button_deny" msgid="6190589471415815741">"거부"</string>
     <string name="sound_name_awaken" msgid="5266892392848526147">"잠을 깨우는 소리"</string>
     <string name="sound_name_bounce" msgid="8771447635446665231">"깡충깡충 뛰는 소리"</string>
     <string name="sound_name_drip" msgid="1744684469020662152">"물방울이 똑똑 떨어지는 소리"</string>

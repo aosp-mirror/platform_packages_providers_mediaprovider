@@ -1542,11 +1542,11 @@ public class MediaProvider extends ContentProvider {
         if (!TextUtils.isEmpty(values.getAsString(MediaColumns.DATA))) {
             final String data = values.getAsString(MediaColumns.DATA);
 
-            if (TextUtils.isEmpty(MediaColumns.DISPLAY_NAME)) {
+            if (TextUtils.isEmpty(values.getAsString(MediaColumns.DISPLAY_NAME))) {
                 final String displayName = data.substring(data.lastIndexOf('/') + 1);
                 values.put(MediaColumns.DISPLAY_NAME, displayName);
             }
-            if (TextUtils.isEmpty(MediaColumns.MIME_TYPE)) {
+            if (TextUtils.isEmpty(values.getAsString(MediaColumns.MIME_TYPE))) {
                 final String ext = data.substring(data.lastIndexOf('.') + 1);
                 values.put(MediaColumns.MIME_TYPE, MimeUtils.guessMimeTypeFromExtension(ext));
             }

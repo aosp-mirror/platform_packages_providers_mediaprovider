@@ -26,6 +26,12 @@
     <string name="root_images" msgid="5861633549189045666">"Imagens"</string>
     <string name="root_videos" msgid="8792703517064649453">"Vídeos"</string>
     <string name="root_audio" msgid="3505830755201326018">"Áudio"</string>
+    <string name="permission_required" msgid="2444058206532822316">"Permissão necessária para funcionar com este item de mídia."</string>
+    <string name="permission_audio" msgid="344061911159388398">"Permitir que o app "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" modifique ou exclua esta música?"</string>
+    <string name="permission_video" msgid="8188037202573267740">"Permitir que o app "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" modifique ou exclua este vídeo?"</string>
+    <string name="permission_images" msgid="6711726334380945124">"Permitir que o app "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" modifique ou exclua esta imagem?"</string>
+    <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Permitir"</string>
+    <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Negar"</string>
     <string name="sound_name_awaken" msgid="5266892392848526147">"Awaken"</string>
     <string name="sound_name_bounce" msgid="8771447635446665231">"Bounce"</string>
     <string name="sound_name_drip" msgid="1744684469020662152">"Drip"</string>

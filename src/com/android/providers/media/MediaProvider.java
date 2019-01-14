@@ -948,6 +948,27 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("ALTER TABLE files ADD COLUMN is_trashed INTEGER DEFAULT 0;");
     }
 
+    private static void updateFixBucketIds(SQLiteDatabase db, boolean internal) {
+        final String selection = "bucket_id IS NULL AND _data IS NOT NULL AND "
+                + "(media_type=? OR media_type=?)";
+        final String[] selectionArgs = new String[] {
+                String.valueOf(FileColumns.MEDIA_TYPE_IMAGE),
+                String.valueOf(FileColumns.MEDIA_TYPE_VIDEO)
+        };
+        final ContentValues values = new ContentValues();
+        try (Cursor cursor = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
+                selection, selectionArgs, null, null, null)) {
+            while (cursor.moveToNext()) {
+                values.clear();
+                final long id = cursor.getLong(0);
+                final String data = cursor.getString(1);
+                values.put(FileColumns.DATA, data);
+                computeBucketValues(values);
+                db.update("files", values, "_id=" + id, null);
+            }
+        }
+    }
+
     static final int VERSION_J = 509;
     static final int VERSION_K = 700;
     static final int VERSION_L = 700;
@@ -955,7 +976,7 @@ public class MediaProvider extends ContentProvider {
     static final int VERSION_N = 800;
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
-    static final int VERSION_Q = 1011;
+    static final int VERSION_Q = 1012;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -1005,6 +1026,9 @@ public class MediaProvider extends ContentProvider {
             }
             if (fromVersion < 1010) {
                 updateAddExpiresAndTrashed(db, internal);
+            }
+            if (fromVersion < 1012) {
+                updateFixBucketIds(db, internal);
             }
         }
 
@@ -1075,9 +1099,9 @@ public class MediaProvider extends ContentProvider {
 
     static void computeBucketValues(ContentValues values) {
         // Worst case we have to assume no bucket details
-        values.putNull(ImageColumns.BUCKET_ID);
-        values.putNull(ImageColumns.BUCKET_DISPLAY_NAME);
-        values.putNull(ImageColumns.SECONDARY_BUCKET_ID);
+        values.remove(ImageColumns.BUCKET_ID);
+        values.remove(ImageColumns.BUCKET_DISPLAY_NAME);
+        values.remove(ImageColumns.SECONDARY_BUCKET_ID);
 
         final String data = values.getAsString(MediaColumns.DATA);
         if (!TextUtils.isEmpty(data)) {

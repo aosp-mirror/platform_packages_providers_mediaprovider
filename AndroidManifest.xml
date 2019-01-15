@@ -2,7 +2,7 @@
         package="com.android.providers.media"
         android:sharedUserId="android.media"
         android:sharedUserLabel="@string/uid_label"
-        android:versionCode="900">
+        android:versionCode="1000">
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
@@ -18,7 +18,8 @@
     <application android:process="android.process.media"
                  android:label="@string/app_label"
                  android:allowBackup="false"
-                 android:supportsRtl="true">
+                 android:supportsRtl="true"
+                 android:usesCleartextTraffic="true">
         <provider android:name="MediaProvider" android:authorities="media"
                 android:multiprocess="false" android:exported="true">
             <grant-uri-permission android:pathPrefix="/external/" />

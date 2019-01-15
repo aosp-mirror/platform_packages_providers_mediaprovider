@@ -821,7 +821,8 @@ public class MediaProvider extends ContentProvider {
                 + "duration INTEGER,bookmark INTEGER,artist TEXT,album TEXT,resolution TEXT,"
                 + "tags TEXT,category TEXT,language TEXT,mini_thumb_data TEXT,name TEXT,"
                 + "media_type INTEGER,old_id INTEGER,is_drm INTEGER,"
-                + "width INTEGER, height INTEGER, title_resource_uri TEXT)");
+                + "width INTEGER, height INTEGER, title_resource_uri TEXT,"
+                + "color_standard INTEGER, color_transfer INTEGER, color_range INTEGER)");
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!internal) {
             db.execSQL("CREATE TABLE audio_genres (_id INTEGER PRIMARY KEY,name TEXT NOT NULL)");
@@ -925,6 +926,7 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("DELETE from artists");
         db.execSQL("ALTER TABLE files ADD COLUMN title_resource_uri TEXT DEFAULT NULL");
         db.execSQL("UPDATE files SET date_modified=0");
+        updateFromPISchema(db);
     }
 
     private static void updateFromOCSchema(SQLiteDatabase db) {
@@ -933,6 +935,14 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("ALTER TABLE files ADD COLUMN title_resource_uri TEXT DEFAULT NULL");
         db.execSQL("UPDATE files SET date_modified=0"
                 + " WHERE (is_alarm IS 1) OR (is_ringtone IS 1) OR (is_notification IS 1)");
+        updateFromPISchema(db);
+    }
+
+    private static void updateFromPISchema(SQLiteDatabase db) {
+        // Add the color aspects related column used for HDR detection etc.
+        db.execSQL("ALTER TABLE files ADD COLUMN color_standard INTEGER;");
+        db.execSQL("ALTER TABLE files ADD COLUMN color_transfer INTEGER;");
+        db.execSQL("ALTER TABLE files ADD COLUMN color_range INTEGER;");
     }
 
     /**
@@ -965,6 +975,8 @@ public class MediaProvider extends ContentProvider {
             updateFromKKSchema(db);
         } else if (fromVersion < 900) {
             updateFromOCSchema(db);
+        } else if (fromVersion < 1000) {
+            updateFromPISchema(db);
         }
 
         sanityCheck(db, fromVersion);
@@ -2918,16 +2930,7 @@ public class MediaProvider extends ContentProvider {
         // a nomedia path was removed, so clear the nomedia paths
         MediaScanner.clearMediaPathCache(false /* media */, true /* nomedia */);
         final DatabaseHelper helper;
-        String[] internalPaths = new String[] {
-            Environment.getRootDirectory() + "/media",
-            Environment.getOemDirectory() + "/media",
-        };
-
-        if (path.startsWith(internalPaths[0]) || path.startsWith(internalPaths[1])) {
-            helper = getDatabaseForUri(MediaStore.Audio.Media.INTERNAL_CONTENT_URI);
-        } else {
-            helper = getDatabaseForUri(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);
-        }
+        helper = getDatabaseForUri(MediaStore.Audio.Media.getContentUriForPath(path));
         SQLiteDatabase db = helper.getWritableDatabase();
         new ScannerClient(getContext(), db, path);
     }

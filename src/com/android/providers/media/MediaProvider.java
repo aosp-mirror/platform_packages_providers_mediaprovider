@@ -117,6 +117,7 @@ import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.LongSparseArray;
 import android.util.Pair;
 import android.util.Size;
 
@@ -229,13 +230,6 @@ public class MediaProvider extends ContentProvider {
 
     private static final String[] sDataOnlyColumn = new String[] {
         FileColumns.DATA
-    };
-
-    private static final String[] sMediaTypeDataIdIsDownload = new String[] {
-        FileColumns.MEDIA_TYPE,
-        FileColumns.DATA,
-        FileColumns._ID,
-        FileColumns.IS_DOWNLOAD
     };
 
     private static final String[] sPlaylistIdPlayOrder = new String[] {
@@ -1237,7 +1231,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, uri, table, queryArgs);
-        String limit = uri.getQueryParameter("limit");
+        String limit = uri.getQueryParameter(MediaStore.PARAM_LIMIT);
         String filter = uri.getQueryParameter("filter");
         String [] keywords = null;
         if (filter != null) {
@@ -3416,10 +3410,19 @@ public class MediaProvider extends ContentProvider {
             }
 
             SQLiteQueryBuilder qb = getQueryBuilder(TYPE_DELETE, uri, match, null);
+            final String[] projection = new String[] {
+                    FileColumns.MEDIA_TYPE,
+                    FileColumns.DATA,
+                    FileColumns._ID,
+                    FileColumns.IS_DOWNLOAD,
+                    FileColumns.MIME_TYPE,
+                    FileColumns.FORMAT
+            };
+            final LongSparseArray<String> deletedDownloadIds = new LongSparseArray<>();
             if (qb.getTables().equals("files")) {
                 String deleteparam = uri.getQueryParameter(MediaStore.PARAM_DELETE_DATA);
                 if (deleteparam == null || ! deleteparam.equals("false")) {
-                    Cursor c = qb.query(db, sMediaTypeDataIdIsDownload, userWhere, userWhereArgs,
+                    Cursor c = qb.query(db, projection, userWhere, userWhereArgs,
                             null, null, null, null);
                     String [] idvalue = new String[] { "" };
                     String [] playlistvalues = new String[] { "", "" };
@@ -3429,7 +3432,16 @@ public class MediaProvider extends ContentProvider {
                             final String data = c.getString(1);
                             final long id = c.getLong(2);
                             final int isDownload = c.getInt(3);
+                            final String mimeType = c.getString(4);
+                            final int format = c.getInt(5);
 
+                            // Only need to inform DownloadProvider about the downloads deleted on
+                            // external volume.
+                            if (MediaStore.VOLUME_EXTERNAL.equals(volumeName) && isDownload == 1) {
+                                deletedDownloadIds.put(id,
+                                        format == MtpConstants.FORMAT_ASSOCIATION ?
+                                                DocumentsContract.Document.MIME_TYPE_DIR : mimeType);
+                            }
                             if (mediaType == FileColumns.MEDIA_TYPE_IMAGE) {
                                 deleteIfAllowed(uri, data);
                                 MediaDocumentsProvider.onMediaStoreDelete(getContext(),
@@ -3522,6 +3534,26 @@ public class MediaProvider extends ContentProvider {
                 default:
                     count = deleteRecursive(qb, db, userWhere, userWhereArgs);
                     break;
+            }
+
+            if (deletedDownloadIds.size() > 0) {
+                try (ContentProviderClient client = getContext().getContentResolver()
+                     .acquireUnstableContentProviderClient(
+                             android.provider.Downloads.Impl.AUTHORITY)) {
+                    final Bundle extras = new Bundle();
+                    final long[] ids = new long[deletedDownloadIds.size()];
+                    final String[] mimeTypes = new String[deletedDownloadIds.size()];
+                    for (int i = deletedDownloadIds.size() - 1; i >= 0; --i) {
+                        ids[i] = deletedDownloadIds.keyAt(i);
+                        mimeTypes[i] = deletedDownloadIds.valueAt(i);
+                    }
+                    extras.putLongArray(android.provider.Downloads.EXTRA_IDS, ids);
+                    extras.putStringArray(android.provider.Downloads.EXTRA_MIME_TYPES, mimeTypes);
+                    client.call(android.provider.Downloads.MEDIASTORE_DOWNLOADS_DELETED_CALL,
+                            null, extras);
+                } catch (RemoteException e) {
+                    // Should not happen
+                }
             }
 
             // Since there are multiple Uris that can refer to the same files

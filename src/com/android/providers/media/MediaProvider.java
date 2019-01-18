@@ -90,7 +90,6 @@ import android.os.ParcelFileDescriptor.OnCloseListener;
 import android.os.RedactingFileDescriptor;
 import android.os.RemoteException;
 import android.os.SystemClock;
-import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.os.storage.StorageManager;
@@ -164,8 +163,7 @@ import java.util.regex.Pattern;
 public class MediaProvider extends ContentProvider {
     private static final boolean ENFORCE_PUBLIC_API = true;
 
-    private static final boolean ENFORCE_ISOLATED_STORAGE = SystemProperties
-            .getBoolean(StorageManager.PROP_ISOLATED_STORAGE, false);
+    private static final boolean ENFORCE_ISOLATED_STORAGE = StorageManager.hasIsolatedStorage();
 
     private static final Uri MEDIA_URI = Uri.parse("content://media");
     private static final Uri ALBUMART_URI = Uri.parse("content://media/external/audio/albumart");

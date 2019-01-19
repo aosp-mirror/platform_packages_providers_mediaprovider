@@ -4654,6 +4654,13 @@ public class MediaProvider extends ContentProvider {
                             String volume = srcuri.toString().substring(16, 24); // extract internal/external
                             Uri uri = Uri.parse("content://media/" + volume + "/audio/" + table + "/" + rowId);
                             getContext().getContentResolver().notifyChange(uri, null);
+                            // We have to remove the previous key from the cache otherwise we will
+                            // not be able to change between upper and lower case letters.
+                            if (isAlbum) {
+                                cache.remove(currentFancyName + albumHash);
+                            } else {
+                                cache.remove(currentFancyName);
+                            }
                         }
                     }
                     break;
@@ -4697,7 +4704,7 @@ public class MediaProvider extends ContentProvider {
             name = one;
         } else {
             // Names with accents are usually better, and conveniently sort later
-            if (one.toLowerCase().compareTo(two.toLowerCase()) > 0) {
+            if (one.toLowerCase().compareTo(two.toLowerCase()) >= 0) {
                 name = one;
             } else {
                 name = two;

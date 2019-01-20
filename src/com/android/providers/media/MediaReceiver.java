@@ -36,7 +36,7 @@ public class MediaReceiver extends BroadcastReceiver {
         } else {
             // All other operations are heavier-weight, so redirect them through
             // service to ensure they have breathing room to finish
-            intent.setComponent(new ComponentName(context, MediaScannerService.class));
+            intent.setComponent(new ComponentName(context, MediaService.class));
             context.startService(intent);
         }
     }

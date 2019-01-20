@@ -4885,6 +4885,8 @@ public class MediaProvider extends ContentProvider {
             if (!FileUtils.contains(Environment.getStorageDirectory(), file)) {
                 checkWorldReadAccess(file.getAbsolutePath());
             }
+
+            return;
         }
 
         final String path;

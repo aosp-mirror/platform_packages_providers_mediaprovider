@@ -5535,7 +5535,7 @@ public class MediaProvider extends ContentProvider {
      * @param volume to attach, either {@link #INTERNAL_VOLUME} or {@link #EXTERNAL_VOLUME}.
      * @return the content URI of the attached volume.
      */
-    private Uri attachVolume(String volume) {
+    public Uri attachVolume(String volume) {
         if (Binder.getCallingPid() != android.os.Process.myPid()) {
             throw new SecurityException(
                     "Opening and closing databases not allowed.");
@@ -5543,6 +5543,9 @@ public class MediaProvider extends ContentProvider {
 
         // Update paths to reflect currently mounted volumes
         updateStoragePaths();
+
+        // Quick sanity check for shady volume names
+        MediaStore.checkArgumentVolumeName(volume);
 
         // Quick sanity check that volume actually exists
         try {
@@ -5645,9 +5648,6 @@ public class MediaProvider extends ContentProvider {
             } else {
                 // Volume name here will be the filesystem UUID
                 String dbName = "external-" + volume + ".db";
-                if (!FileUtils.isValidExtFilename(dbName)) {
-                    throw new IllegalArgumentException("Invalid volume name " + dbName);
-                }
                 helper = new DatabaseHelper(context, dbName, false,
                         false, mObjectRemovedCallback);
             }
@@ -5701,7 +5701,7 @@ public class MediaProvider extends ContentProvider {
      *
      * @param uri The content URI of the volume, as returned by {@link #attachVolume}
      */
-    private void detachVolume(String volume) {
+    public void detachVolume(String volume) {
         if (Binder.getCallingPid() != android.os.Process.myPid()) {
             throw new SecurityException(
                     "Opening and closing databases not allowed.");
@@ -5709,6 +5709,9 @@ public class MediaProvider extends ContentProvider {
 
         // Update paths to reflect currently mounted volumes
         updateStoragePaths();
+
+        // Quick sanity check for shady volume names
+        MediaStore.checkArgumentVolumeName(volume);
 
         if (INTERNAL_VOLUME.equals(volume)) {
             throw new UnsupportedOperationException(

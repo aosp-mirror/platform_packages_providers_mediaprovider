@@ -166,7 +166,6 @@ public class MediaProvider extends ContentProvider {
     private static final boolean ENFORCE_ISOLATED_STORAGE = StorageManager.hasIsolatedStorage();
 
     private static final Uri MEDIA_URI = Uri.parse("content://media");
-    private static final Uri ALBUMART_URI = Uri.parse("content://media/external/audio/albumart");
 
     private static final String HASH_ALGORITHM = "SHA-1";
 
@@ -2440,7 +2439,7 @@ public class MediaProvider extends ContentProvider {
                 // Require that caller has write access to underlying media
                 final long imageId = initialValues.getAsLong(MediaStore.Images.Thumbnails.IMAGE_ID);
                 enforceCallingPermission(ContentUris.withAppendedId(
-                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI, imageId), true);
+                        MediaStore.Images.Media.getContentUri(volumeName), imageId), true);
 
                 ensureFileColumns(match, uri, initialValues);
 
@@ -2461,7 +2460,7 @@ public class MediaProvider extends ContentProvider {
                 // Require that caller has write access to underlying media
                 final long videoId = initialValues.getAsLong(MediaStore.Video.Thumbnails.VIDEO_ID);
                 enforceCallingPermission(ContentUris.withAppendedId(
-                        MediaStore.Video.Media.EXTERNAL_CONTENT_URI, videoId), true);
+                        MediaStore.Video.Media.getContentUri(volumeName), videoId), true);
 
                 ensureFileColumns(match, uri, initialValues);
 
@@ -2498,7 +2497,7 @@ public class MediaProvider extends ContentProvider {
                 // Require that caller has write access to underlying media
                 final long audioId = Long.parseLong(uri.getPathSegments().get(2));
                 enforceCallingPermission(ContentUris.withAppendedId(
-                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, audioId), true);
+                        MediaStore.Audio.Media.getContentUri(volumeName), audioId), true);
 
                 ContentValues values = new ContentValues(initialValues);
                 values.put(Audio.Genres.Members.AUDIO_ID, audioId);
@@ -2513,11 +2512,11 @@ public class MediaProvider extends ContentProvider {
                 // Require that caller has write access to underlying media
                 final long audioId = Long.parseLong(uri.getPathSegments().get(2));
                 enforceCallingPermission(ContentUris.withAppendedId(
-                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, audioId), true);
+                        MediaStore.Audio.Media.getContentUri(volumeName), audioId), true);
                 final long playlistId = initialValues
                         .getAsLong(MediaStore.Audio.Playlists.Members.PLAYLIST_ID);
                 enforceCallingPermission(ContentUris.withAppendedId(
-                        MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI, playlistId), true);
+                        MediaStore.Audio.Playlists.getContentUri(volumeName), playlistId), true);
 
                 ContentValues values = new ContentValues(initialValues);
                 values.put(Audio.Playlists.Members.AUDIO_ID, audioId);
@@ -2544,7 +2543,7 @@ public class MediaProvider extends ContentProvider {
                 final long audioId = initialValues
                         .getAsLong(MediaStore.Audio.Genres.Members.AUDIO_ID);
                 enforceCallingPermission(ContentUris.withAppendedId(
-                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, audioId), true);
+                        MediaStore.Audio.Media.getContentUri(volumeName), audioId), true);
 
                 Long genreId = Long.parseLong(uri.getPathSegments().get(3));
                 ContentValues values = new ContentValues(initialValues);
@@ -2580,10 +2579,10 @@ public class MediaProvider extends ContentProvider {
                 final long audioId = initialValues
                         .getAsLong(MediaStore.Audio.Playlists.Members.AUDIO_ID);
                 enforceCallingPermission(ContentUris.withAppendedId(
-                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, audioId), true);
+                        MediaStore.Audio.Media.getContentUri(volumeName), audioId), true);
                 final long playlistId = Long.parseLong(uri.getPathSegments().get(3));
                 enforceCallingPermission(ContentUris.withAppendedId(
-                        MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI, playlistId), true);
+                        MediaStore.Audio.Playlists.getContentUri(volumeName), playlistId), true);
 
                 ContentValues values = new ContentValues(initialValues);
                 values.put(Audio.Playlists.Members.PLAYLIST_ID, playlistId);
@@ -4136,14 +4135,14 @@ public class MediaProvider extends ContentProvider {
                                 switch (match) {
                                     case IMAGES_MEDIA:
                                     case IMAGES_MEDIA_ID:
-                                        delete(Images.Thumbnails.EXTERNAL_CONTENT_URI,
+                                        delete(Images.Thumbnails.getContentUri(volumeName),
                                                 Images.Thumbnails.IMAGE_ID + "=?", new String[] {
                                                         c.getString(0)
                                                 });
                                         break;
                                     case VIDEO_MEDIA:
                                     case VIDEO_MEDIA_ID:
-                                        delete(Video.Thumbnails.EXTERNAL_CONTENT_URI,
+                                        delete(Video.Thumbnails.getContentUri(volumeName),
                                                 Video.Thumbnails.VIDEO_ID + "=?", new String[] {
                                                         c.getString(0)
                                                 });
@@ -4164,7 +4163,7 @@ public class MediaProvider extends ContentProvider {
                         List <String> segments = uri.getPathSegments();
                         long playlist = Long.parseLong(segments.get(3));
                         int oldpos = Integer.parseInt(segments.get(5));
-                        return movePlaylistEntry(helper, db, playlist, oldpos, newpos);
+                        return movePlaylistEntry(volumeName, helper, db, playlist, oldpos, newpos);
                     }
                     throw new IllegalArgumentException("Need to specify " + key +
                             " when using 'move' parameter");
@@ -4208,7 +4207,7 @@ public class MediaProvider extends ContentProvider {
         return count;
     }
 
-    private int movePlaylistEntry(DatabaseHelper helper, SQLiteDatabase db,
+    private int movePlaylistEntry(String volumeName, DatabaseHelper helper, SQLiteDatabase db,
             long playlist, int from, int to) {
         if (from == to) {
             return 0;
@@ -4257,8 +4256,8 @@ public class MediaProvider extends ContentProvider {
             IoUtils.closeQuietly(c);
         }
 
-        Uri uri = MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI
-                .buildUpon().appendEncodedPath(String.valueOf(playlist)).build();
+        Uri uri = ContentUris.withAppendedId(
+                MediaStore.Audio.Playlists.getContentUri(volumeName), playlist);
         // notifyChange() must be called after the database transaction is ended
         // or the listeners will read the old data in the callback
         getContext().getContentResolver().notifyChange(uri, null);
@@ -4291,6 +4290,7 @@ public class MediaProvider extends ContentProvider {
 
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
+        final String volumeName = getVolumeName(uri);
 
         if (match == AUDIO_ALBUMART_FILE_ID) {
             // get album art for the specified media file
@@ -4318,12 +4318,15 @@ public class MediaProvider extends ContentProvider {
                     // Try to get existing album art for this album first, which
                     // could possibly have been obtained from a different file.
                     // If that fails, try to get it from this specific file.
-                    Uri newUri = ContentUris.withAppendedId(ALBUMART_URI, albumid);
+                    final Uri albumartDir = MediaStore.AUTHORITY_URI.buildUpon()
+                            .appendPath(volumeName).appendPath("audio")
+                            .appendPath("albumart").build();
+                    final Uri newUri = ContentUris.withAppendedId(albumartDir, albumid);
                     try {
                         pfd = openFileAndEnforcePathPermissionsHelper(newUri, match, mode, signal);
                     } catch (FileNotFoundException ex) {
                         // That didn't work, now try to get it from the specific file
-                        pfd = getThumb(database, db, audiopath, albumid, null);
+                        pfd = getThumb(volumeName, database, db, audiopath, albumid, null);
                     }
                 }
             } finally {
@@ -4362,7 +4365,7 @@ public class MediaProvider extends ContentProvider {
                 try {
                     if (c.moveToFirst()) {
                         String audiopath = c.getString(0);
-                        pfd = getThumb(database, db, audiopath, albumid, uri);
+                        pfd = getThumb(volumeName, database, db, audiopath, albumid, uri);
                     }
                 } finally {
                     restoreCallingIdentity(token);
@@ -5033,6 +5036,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private class ThumbData {
+        String volumeName;
         DatabaseHelper helper;
         SQLiteDatabase db;
         String path;
@@ -5153,7 +5157,8 @@ public class MediaProvider extends ContentProvider {
     }
 
     // Return a URI to write the album art to and update the database as necessary.
-    Uri getAlbumArtOutputUri(DatabaseHelper helper, SQLiteDatabase db, long album_id, Uri albumart_uri) {
+    Uri getAlbumArtOutputUri(String volumeName, DatabaseHelper helper, SQLiteDatabase db,
+            long album_id, Uri albumart_uri) {
         Uri out = null;
         // TODO: this could be done more efficiently with a call to db.replace(), which
         // replaces or inserts as needed, making it unnecessary to query() first.
@@ -5177,13 +5182,13 @@ public class MediaProvider extends ContentProvider {
             ContentValues values = new ContentValues();
             values.put("album_id", album_id);
             try {
-                final Uri uri = MediaStore.AUTHORITY_URI.buildUpon().appendPath(EXTERNAL_VOLUME)
+                final Uri uri = MediaStore.AUTHORITY_URI.buildUpon().appendPath(volumeName)
                         .appendPath("audio").appendPath("albumart").build();
                 ensureFileColumns(AUDIO_ALBUMART, uri, values);
 
                 long rowId = db.insert("album_art", MediaStore.MediaColumns.DATA, values);
                 if (rowId > 0) {
-                    out = ContentUris.withAppendedId(ALBUMART_URI, rowId);
+                    out = ContentUris.withAppendedId(uri, rowId);
                     // ensure the parent directory exists
                     String albumart_path = values.getAsString(MediaStore.MediaColumns.DATA);
                     ensureFileExists(out, albumart_path);
@@ -5220,9 +5225,10 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private ParcelFileDescriptor getThumb(DatabaseHelper helper, SQLiteDatabase db, String path,
-            long album_id, Uri albumart_uri) {
+    private ParcelFileDescriptor getThumb(String volumeName, DatabaseHelper helper,
+            SQLiteDatabase db, String path, long album_id, Uri albumart_uri) {
         ThumbData d = new ThumbData();
+        d.volumeName = volumeName;
         d.helper = helper;
         d.db = db;
         d.path = path;
@@ -5298,7 +5304,7 @@ public class MediaProvider extends ContentProvider {
             Uri out = null;
             ParcelFileDescriptor pfd = null;
             try {
-                out = getAlbumArtOutputUri(d.helper, d.db, d.album_id, d.albumart_uri);
+                out = getAlbumArtOutputUri(d.volumeName, d.helper, d.db, d.album_id, d.albumart_uri);
 
                 if (out != null) {
                     writeAlbumArt(need_to_recompress, out, compressed, bm);

@@ -73,10 +73,6 @@
                 <data android:scheme="file" />
             </intent-filter>
             <intent-filter>
-                <action android:name="android.intent.action.MEDIA_UNMOUNTED" />
-                <data android:scheme="file" />
-            </intent-filter>
-            <intent-filter>
                 <action android:name="android.intent.action.MEDIA_SCANNER_SCAN_FILE" />
                 <data android:scheme="file" />
             </intent-filter>
@@ -87,7 +83,13 @@
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
-        <service android:name="MediaScannerService" android:exported="true">
+        <service
+            android:name=".MediaService"
+            android:exported="false" />
+
+        <service
+            android:name=".MediaScannerService"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.media.IMediaScannerService" />
             </intent-filter>

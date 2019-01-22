@@ -27,13 +27,13 @@ import android.net.Uri;
 import android.os.Environment;
 import android.os.PowerManager;
 import android.os.Trace;
-import android.os.UserManager;
 import android.provider.MediaStore;
 import android.util.Log;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class MediaService extends IntentService {
     public MediaService() {
@@ -83,7 +83,7 @@ public class MediaService extends IntentService {
                 }
             }
         } catch (Exception e) {
-            Log.w(TAG, "Failed operation " + intent);
+            Log.w(TAG, "Failed operation " + intent, e);
         } finally {
             if (Log.isLoggable(TAG, Log.DEBUG)) {
                 Log.d(TAG, "End " + intent);
@@ -119,6 +119,11 @@ public class MediaService extends IntentService {
         }
 
         try {
+            try (ContentProviderClient cpc = getContentResolver()
+                    .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+                ((MediaProvider) cpc.getLocalContentProvider()).attachVolume(volumeName);
+            }
+
             ContentValues values = new ContentValues();
             values.put(MediaStore.MEDIA_SCANNER_VOLUME, volumeName);
             Uri scanUri = getContentResolver().insert(MediaStore.getMediaScannerUri(), values);
@@ -127,10 +132,6 @@ public class MediaService extends IntentService {
                 sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_STARTED, uri));
             }
 
-            try (ContentProviderClient cpc = getContentResolver()
-                    .acquireContentProviderClient(MediaStore.AUTHORITY)) {
-                ((MediaProvider) cpc.getLocalContentProvider()).attachVolume(volumeName);
-            }
             try (MediaScanner scanner = new MediaScanner(this, volumeName)) {
                 scanner.scanDirectories(resolveDirectories(volumeName));
             }
@@ -154,21 +155,10 @@ public class MediaService extends IntentService {
     }
 
     private String[] resolveDirectories(String volumeName) throws FileNotFoundException {
-        if (MediaProvider.INTERNAL_VOLUME.equals(volumeName)) {
-            return new String[] {
-                    Environment.getRootDirectory() + "/media",
-                    Environment.getOemDirectory() + "/media",
-                    Environment.getProductDirectory() + "/media",
-            };
-        } else if (getSystemService(UserManager.class).isDemoUser()) {
-            return new String[] {
-                    MediaStore.getVolumePath(volumeName).getAbsolutePath(),
-                    Environment.getDataPreloadsMediaDirectory().getAbsolutePath(),
-            };
-        } else {
-            return new String[] {
-                    MediaStore.getVolumePath(volumeName).getAbsolutePath(),
-            };
+        final ArrayList<String> res = new ArrayList<>();
+        for (File dir : MediaStore.getVolumeScanPaths(volumeName)) {
+            res.add(dir.getAbsolutePath());
         }
+        return res.toArray(new String[res.size()]);
     }
 }

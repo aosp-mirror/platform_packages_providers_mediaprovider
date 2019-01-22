@@ -484,7 +484,7 @@ public class MediaProvider extends ContentProvider {
             if (VolumeInfo.ID_EMULATED_INTERNAL.equals(vol.getId())) {
                 key = "created_default_folders";
             } else {
-                key = "created_default_folders_" + vol.getUuid();
+                key = "created_default_folders_" + vol.getNormalizedUuid();
             }
 
             final SharedPreferences prefs = PreferenceManager
@@ -1234,14 +1234,10 @@ public class MediaProvider extends ContentProvider {
         //Log.v(TAG, "query: uri="+uri+", selection="+selection);
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
         if (table == MEDIA_SCANNER) {
-            if (mMediaScannerVolume == null) {
-                return null;
-            } else {
-                // create a cursor to return volume currently being scanned by the media scanner
-                MatrixCursor c = new MatrixCursor(new String[] {MediaStore.MEDIA_SCANNER_VOLUME});
-                c.addRow(new String[] {mMediaScannerVolume});
-                return c;
-            }
+            // create a cursor to return volume currently being scanned by the media scanner
+            MatrixCursor c = new MatrixCursor(new String[] {MediaStore.MEDIA_SCANNER_VOLUME});
+            c.addRow(new String[] {mMediaScannerVolume});
+            return c;
         }
 
         // Used temporarily (until we have unique media IDs) to get an identifier
@@ -1610,6 +1606,8 @@ public class MediaProvider extends ContentProvider {
                         "Failed to build unique file: " + res + " " + displayName + " " + mimeType);
             }
             values.put(MediaColumns.DATA, res.getAbsolutePath());
+        } else {
+            assertFileColumnsSane(match, uri, values);
         }
 
         // Drop columns that aren't relevant for special tables
@@ -1621,6 +1619,27 @@ public class MediaProvider extends ContentProvider {
                 values.remove(MediaColumns.DISPLAY_NAME);
                 values.remove(MediaColumns.MIME_TYPE);
                 break;
+        }
+    }
+
+    /**
+     * Sanity check that any requested {@link MediaColumns#DATA} paths actually
+     * live on the storage volume being targeted.
+     */
+    private static void assertFileColumnsSane(int match, Uri uri, ContentValues values) {
+        if (!values.containsKey(MediaColumns.DATA)) return;
+        try {
+            // Sanity check that the requested path actually lives on volume
+            final String volumeName = MediaStore.getVolumeName(uri);
+            final Collection<File> allowed = MediaStore.getVolumeScanPaths(volumeName);
+            final File actual = new File(values.getAsString(MediaColumns.DATA))
+                    .getCanonicalFile();
+            if (!FileUtils.contains(allowed, actual)) {
+                throw new IllegalArgumentException(
+                        "Requested path " + actual + " doesn't appear under " + allowed);
+            }
+        } catch (IOException e) {
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -3870,6 +3889,9 @@ public class MediaProvider extends ContentProvider {
         // If we're not updating anything, then we can skip
         if (initialValues.isEmpty()) return 0;
 
+        // Make sure any updated paths look sane
+        assertFileColumnsSane(match, uri, initialValues);
+
         // if the media type is being changed, check if it's being changed from image or video
         // to something else
         if (initialValues.containsKey(FileColumns.MEDIA_TYPE)) {
@@ -5507,7 +5529,13 @@ public class MediaProvider extends ContentProvider {
      */
     private @NonNull DatabaseHelper getDatabaseForUri(Uri uri) {
         synchronized (mDatabases) {
-            return mDatabases.get(MediaStore.getVolumeName(uri));
+            final String volumeName = MediaStore.getVolumeName(uri);
+            final DatabaseHelper helper = mDatabases.get(volumeName);
+            if (helper != null) {
+                return helper;
+            } else {
+                throw new IllegalArgumentException("No database found for volume " + volumeName);
+            }
         }
     }
 
@@ -5556,10 +5584,13 @@ public class MediaProvider extends ContentProvider {
         MediaStore.checkArgumentVolumeName(volume);
 
         // Quick sanity check that volume actually exists
-        try {
-            MediaStore.getVolumePath(volume);
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Volume " + volume + " currently unavailable", e);
+        if (!MediaStore.VOLUME_INTERNAL.equals(volume)) {
+            try {
+                MediaStore.getVolumePath(volume);
+            } catch (IOException e) {
+                throw new IllegalArgumentException(
+                        "Volume " + volume + " currently unavailable", e);
+            }
         }
 
         DatabaseHelper helper = null;

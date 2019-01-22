@@ -1350,16 +1350,17 @@ public class MediaProvider extends ContentProvider {
             final int callingUid = Binder.getCallingUid();
             final TranslatingCursor.Translator translator;
             if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q) {
-                translator = (data, id) -> null;
+                translator = (data, idIndex, matchingColumn, cursor) -> null;
             } else {
-                translator = (data, id) -> {
+                translator = (data, idIndex, matchingColumn, cursor) -> {
                     try {
                         // Prefer translating path directly into app sandbox
                         return translateSystemToApp(data, callingPid, callingUid);
                     } catch (SecurityException e) {
                         // Otherwise use special filesystem path to redirect
                         return ContentResolver.translateDeprecatedDataPath(
-                                ContentUris.withAppendedId(config.baseUri, id));
+                                ContentUris.withAppendedId(config.baseUri,
+                                        cursor.getLong(idIndex)));
                     }
                 };
             }

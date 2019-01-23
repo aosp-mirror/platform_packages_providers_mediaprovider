@@ -69,13 +69,13 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Point;
 import android.graphics.drawable.Icon;
 import android.media.ExifInterface;
 import android.media.MediaFile;
 import android.media.MediaScanner;
 import android.media.MediaScannerConnection;
 import android.media.MediaScannerConnection.MediaScannerConnectionClient;
+import android.media.ThumbnailUtils;
 import android.mtp.MtpConstants;
 import android.net.Uri;
 import android.os.Binder;
@@ -106,7 +106,6 @@ import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.MediaColumns;
-import android.provider.MediaStore.ThumbnailConstants;
 import android.provider.MediaStore.Video;
 import android.system.ErrnoException;
 import android.system.Os;
@@ -118,10 +117,12 @@ import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.Log;
 import android.util.Pair;
+import android.util.Size;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.os.BackgroundThread;
 import com.android.internal.util.ArrayUtils;
+import com.android.internal.util.IndentingPrintWriter;
 
 import libcore.io.IoUtils;
 import libcore.net.MimeUtils;
@@ -131,6 +132,7 @@ import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -144,12 +146,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.PriorityBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -217,13 +213,10 @@ public class MediaProvider extends ContentProvider {
     private AppOpsManager mAppOpsManager;
     private PackageManager mPackageManager;
 
+    private Size mThumbSize;
+
     // In memory cache of path<->id mappings, to speed up inserts during media scan
     ArrayMap<String, Long> mDirectoryCache = new ArrayMap<String, Long>();
-
-    /**
-     * Executor that handles processing thumbnail requests.
-     */
-    private ExecutorService mThumbExecutor;
 
     private String[] mExternalStoragePaths = EmptyArray.STRING;
 
@@ -524,6 +517,12 @@ public class MediaProvider extends ContentProvider {
         mAppOpsManager = context.getSystemService(AppOpsManager.class);
         mPackageManager = context.getPackageManager();
 
+        // Reasonable thumbnail size is half of the smallest screen edge width
+        final Resources res = context.getResources();
+        final int thumbSize = (int) ((res.getConfiguration().smallestScreenWidthDp
+                * res.getDisplayMetrics().density) / 2);
+        mThumbSize = new Size(thumbSize, thumbSize);
+
         mDatabases = new ArrayMap<String, DatabaseHelper>();
         attachVolume(INTERNAL_VOLUME);
 
@@ -541,9 +540,6 @@ public class MediaProvider extends ContentProvider {
                 Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
             attachVolume(EXTERNAL_VOLUME);
         }
-
-        final BlockingQueue<Runnable> workQueue = new PriorityBlockingQueue<>();
-        mThumbExecutor = new ThreadPoolExecutor(1, 1, 10L, TimeUnit.SECONDS, workQueue);
 
         return true;
     }
@@ -2719,7 +2715,7 @@ public class MediaProvider extends ContentProvider {
 
         if (path != null && path.toLowerCase(Locale.US).endsWith("/.nomedia")) {
             // need to set the media_type of all the files below this folder to 0
-            processNewNoMediaPath(helper, db, path);
+            processNewNoMediaPath(volumeName, helper, db, path);
         }
         return newUri;
     }
@@ -2731,11 +2727,11 @@ public class MediaProvider extends ContentProvider {
      *
      * @param path The path to the new .nomedia file or hidden directory
      */
-    private void processNewNoMediaPath(final DatabaseHelper helper, final SQLiteDatabase db,
-            final String path) {
+    private void processNewNoMediaPath(final String volumeName, final DatabaseHelper helper,
+            final SQLiteDatabase db, final String path) {
         final File nomedia = new File(path);
         if (nomedia.exists()) {
-            hidePath(helper, db, path);
+            hidePath(volumeName, helper, db, path);
         } else {
             // File doesn't exist. Try again in a little while.
             // XXX there's probably a better way of doing this
@@ -2744,7 +2740,7 @@ public class MediaProvider extends ContentProvider {
                 public void run() {
                     SystemClock.sleep(2000);
                     if (nomedia.exists()) {
-                        hidePath(helper, db, path);
+                        hidePath(volumeName, helper, db, path);
                     } else {
                         Log.w(TAG, "does not exist: " + path, new Exception());
                     }
@@ -2752,7 +2748,8 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private void hidePath(DatabaseHelper helper, SQLiteDatabase db, String path) {
+    private void hidePath(String volumeName, DatabaseHelper helper, SQLiteDatabase db,
+            String path) {
         // a new nomedia path was added, so clear the media paths
         MediaScanner.clearMediaPathCache(true /* media */, false /* nomedia */);
         File nomedia = new File(path);
@@ -2767,15 +2764,11 @@ public class MediaProvider extends ContentProvider {
                 null /* groupBy */, null /* having */, null /* orderBy */);
         if(c != null) {
             if (c.getCount() != 0) {
-                Uri imagesUri = Uri.parse("content://media/external/images/media");
-                Uri videosUri = Uri.parse("content://media/external/videos/media");
                 while (c.moveToNext()) {
                     // remove thumbnail for image/video
                     long id = c.getLong(0);
-                    long mediaType = c.getLong(1);
                     Log.i(TAG, "hiding image " + id + ", removing thumbnail");
-                    removeThumbnailFor(mediaType == FileColumns.MEDIA_TYPE_IMAGE ?
-                            imagesUri : videosUri, db, id);
+                    invalidateThumbnails(Files.getContentUri(volumeName, id));
                 }
             }
             IoUtils.closeQuietly(c);
@@ -3449,35 +3442,15 @@ public class MediaProvider extends ContentProvider {
                                 MediaDocumentsProvider.onMediaStoreDelete(getContext(),
                                         volumeName, FileColumns.MEDIA_TYPE_IMAGE, id);
 
-                                idvalue[0] = String.valueOf(id);
-                                Cursor cc = db.query("thumbnails", sDataOnlyColumn,
-                                            "image_id=?", idvalue,
-                                            null /* groupBy */, null /* having */,
-                                            null /* orderBy */);
-                                try {
-                                    while (cc.moveToNext()) {
-                                        deleteIfAllowed(uri, cc.getString(0));
-                                    }
-                                    db.delete("thumbnails", "image_id=?", idvalue);
-                                } finally {
-                                    IoUtils.closeQuietly(cc);
-                                }
+                                invalidateThumbnails(
+                                        Files.getContentUri(MediaStore.getVolumeName(uri), id));
                             } else if (mediaType == FileColumns.MEDIA_TYPE_VIDEO) {
                                 deleteIfAllowed(uri, data);
                                 MediaDocumentsProvider.onMediaStoreDelete(getContext(),
                                         volumeName, FileColumns.MEDIA_TYPE_VIDEO, id);
 
-                                idvalue[0] = String.valueOf(id);
-                                Cursor cc = db.query("videothumbnails", sDataOnlyColumn,
-                                            "video_id=?", idvalue, null, null, null);
-                                try {
-                                    while (cc.moveToNext()) {
-                                        deleteIfAllowed(uri, cc.getString(0));
-                                    }
-                                    db.delete("videothumbnails", "video_id=?", idvalue);
-                                } finally {
-                                    IoUtils.closeQuietly(cc);
-                                }
+                                invalidateThumbnails(
+                                        Files.getContentUri(MediaStore.getVolumeName(uri), id));
                             } else if (mediaType == FileColumns.MEDIA_TYPE_AUDIO) {
                                 if (!database.mInternal) {
                                     MediaDocumentsProvider.onMediaStoreDelete(getContext(),
@@ -3781,7 +3754,66 @@ public class MediaProvider extends ContentProvider {
         Log.v(TAG, "/pruneDeadThumbnailFiles... ");
     }
 
-    private void removeThumbnailFor(Uri uri, SQLiteDatabase db, long id) {
+    static abstract class Thumbnailer {
+        final String directoryName;
+
+        public Thumbnailer(String directoryName) {
+            this.directoryName = directoryName;
+        }
+
+        private File getThumbnailFile(Uri uri) throws IOException {
+            final String volumeName = MediaStore.getVolumeName(uri);
+            final File volumePath = MediaStore.getVolumePath(volumeName);
+            return Environment.buildPath(volumePath, directoryName,
+                    ".thumbnails", ContentUris.parseId(uri) + ".jpg");
+        }
+
+        public abstract Bitmap getThumbnailBitmap(Uri uri, CancellationSignal signal)
+                throws IOException;
+
+        public File ensureThumbnail(Uri uri, CancellationSignal signal) throws IOException {
+            final File thumbFile = getThumbnailFile(uri);
+            thumbFile.getParentFile().mkdirs();
+            if (!thumbFile.exists()) {
+                final Bitmap thumbnail = getThumbnailBitmap(uri, signal);
+                try (OutputStream out = new FileOutputStream(thumbFile)) {
+                    thumbnail.compress(Bitmap.CompressFormat.JPEG, 75, out);
+                }
+            }
+            return thumbFile;
+        }
+
+        public void invalidateThumbnail(Uri uri) throws IOException {
+            getThumbnailFile(uri).delete();
+        }
+    }
+
+    private Thumbnailer mVideoThumbnailer = new Thumbnailer(Environment.DIRECTORY_MOVIES) {
+        @Override
+        public Bitmap getThumbnailBitmap(Uri uri, CancellationSignal signal) throws IOException {
+            return ThumbnailUtils.createVideoThumbnail(queryForDataFile(uri, signal),
+                    mThumbSize, signal);
+        }
+    };
+
+    private Thumbnailer mImageThumbnailer = new Thumbnailer(Environment.DIRECTORY_PICTURES) {
+        @Override
+        public Bitmap getThumbnailBitmap(Uri uri, CancellationSignal signal) throws IOException {
+            return ThumbnailUtils.createImageThumbnail(queryForDataFile(uri, signal),
+                    mThumbSize, signal);
+        }
+    };
+
+    private void invalidateThumbnails(Uri uri) {
+        final long id = ContentUris.parseId(uri);
+        try {
+            mVideoThumbnailer.invalidateThumbnail(uri);
+            mImageThumbnailer.invalidateThumbnail(uri);
+        } catch (IOException ignored) {
+        }
+
+        final DatabaseHelper helper = getDatabaseForUri(uri);
+        final SQLiteDatabase db = helper.getWritableDatabase();
         Cursor c = db.rawQuery("select _data from thumbnails where image_id=" + id
                 + " union all select _data from videothumbnails where video_id=" + id,
                 null /* selectionArgs */);
@@ -3911,13 +3943,13 @@ public class MediaProvider extends ContentProvider {
                     if (curMediaType == FileColumns.MEDIA_TYPE_IMAGE &&
                             newMediaType != FileColumns.MEDIA_TYPE_IMAGE) {
                         Log.i(TAG, "need to remove image thumbnail for id " + cursor.getString(0));
-                        removeThumbnailFor(Images.Media.EXTERNAL_CONTENT_URI,
-                                db, cursor.getLong(0));
+                        invalidateThumbnails(Files.getContentUri(MediaStore.getVolumeName(uri),
+                                cursor.getLong(0)));
                     } else if (curMediaType == FileColumns.MEDIA_TYPE_VIDEO &&
                             newMediaType != FileColumns.MEDIA_TYPE_VIDEO) {
                         Log.i(TAG, "need to remove video thumbnail for id " + cursor.getString(0));
-                        removeThumbnailFor(Video.Media.EXTERNAL_CONTENT_URI,
-                                db, cursor.getLong(0));
+                        invalidateThumbnails(Files.getContentUri(MediaStore.getVolumeName(uri),
+                                cursor.getLong(0)));
                     }
                 }
             } finally {
@@ -3986,12 +4018,12 @@ public class MediaProvider extends ContentProvider {
                     }
                     if (f.getName().startsWith(".")) {
                         // the new directory name is hidden
-                        processNewNoMediaPath(helper, db, newPath);
+                        processNewNoMediaPath(volumeName, helper, db, newPath);
                     }
                     return count;
                 }
             } else if (newPath.toLowerCase(Locale.US).endsWith("/.nomedia")) {
-                processNewNoMediaPath(helper, db, newPath);
+                processNewNoMediaPath(volumeName, helper, db, newPath);
             }
         }
 
@@ -4430,20 +4462,19 @@ public class MediaProvider extends ContentProvider {
         final boolean wantsThumb = (opts != null) && opts.containsKey(ContentResolver.EXTRA_SIZE)
                 && (mimeTypeFilter != null) && mimeTypeFilter.startsWith("image/");
         if (wantsThumb) {
-            switch (match) {
-                case IMAGES_MEDIA_ID: {
-                    final long imageId = Long.parseLong(uri.getPathSegments().get(3));
-                    final int kind = resolveKind(opts);
-                    return openThumbBlocking(new ImageThumbTask(this, imageId, kind, signal),
-                            PrioritizedFutureTask.PRIORITY_HIGH);
+            final CallingIdentity ident = clearCallingIdentity();
+            try {
+                switch (match) {
+                    case VIDEO_MEDIA_ID:
+                        return openTypedAssetFile(mVideoThumbnailer.ensureThumbnail(uri, signal));
+                    case IMAGES_MEDIA_ID:
+                        return openTypedAssetFile(mImageThumbnailer.ensureThumbnail(uri, signal));
                 }
-
-                case VIDEO_MEDIA_ID: {
-                    final long videoId = Long.parseLong(uri.getPathSegments().get(3));
-                    final int kind = resolveKind(opts);
-                    return openThumbBlocking(new VideoThumbTask(this, videoId, kind, signal),
-                            PrioritizedFutureTask.PRIORITY_HIGH);
-                }
+            } catch (IOException e) {
+                Log.w(TAG, e);
+                throw new FileNotFoundException(e.getMessage());
+            } finally {
+                restoreCallingIdentity(ident);
             }
         }
 
@@ -4452,17 +4483,10 @@ public class MediaProvider extends ContentProvider {
                 AssetFileDescriptor.UNKNOWN_LENGTH);
     }
 
-    /**
-     * Resolve the best thumbnail kind based on the requested dimensions.
-     */
-    private int resolveKind(Bundle opts) {
-        if (opts != null) {
-            final Point size = opts.getParcelable(ContentResolver.EXTRA_SIZE);
-            if (ThumbnailConstants.MICRO_SIZE.equals(size)) {
-                return ThumbnailConstants.MICRO_KIND;
-            }
-        }
-        return ThumbnailConstants.MINI_KIND;
+    private static AssetFileDescriptor openTypedAssetFile(File file) throws IOException {
+        return new AssetFileDescriptor(
+                ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY), 0,
+                AssetFileDescriptor.UNKNOWN_LENGTH);
     }
 
     /**
@@ -4476,21 +4500,6 @@ public class MediaProvider extends ContentProvider {
 
         values.put(MediaColumns.WIDTH, bitmapOpts.outWidth);
         values.put(MediaColumns.HEIGHT, bitmapOpts.outHeight);
-    }
-
-    private AssetFileDescriptor openThumbBlocking(ThumbTask task, int priority)
-            throws FileNotFoundException {
-        try {
-            final PrioritizedFutureTask<File> prioritizedTask =
-                    new PrioritizedFutureTask<>(task, priority);
-            mThumbExecutor.execute(prioritizedTask);
-            return new AssetFileDescriptor(
-                    ParcelFileDescriptor.open(prioritizedTask.get(),
-                            ParcelFileDescriptor.MODE_READ_ONLY),
-                    0, AssetFileDescriptor.UNKNOWN_LENGTH);
-        } catch (ExecutionException | InterruptedException e) {
-            throw new FileNotFoundException(e.getCause().getMessage());
-        }
     }
 
     /**
@@ -4603,6 +4612,8 @@ public class MediaProvider extends ContentProvider {
         final OnCloseListener listener = (e) -> {
             // We always update metadata to reflect the state on disk, even when
             // the remote writer tried claiming an exception
+            invalidateThumbnails(uri);
+
             try {
                 switch (match) {
                     case IMAGES_THUMBNAILS_ID:
@@ -6361,11 +6372,13 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public void dump(FileDescriptor fd, PrintWriter writer, String[] args) {
-        Collection<DatabaseHelper> foo = mDatabases.values();
-        for (DatabaseHelper dbh: foo) {
-            writer.println(dump(dbh, true));
+        final IndentingPrintWriter pw = new IndentingPrintWriter(writer, "  ");
+        pw.printPair("mThumbSize", mThumbSize);
+        pw.println();
+
+        for (DatabaseHelper dbh : mDatabases.values()) {
+            pw.println(dump(dbh, true));
         }
-        writer.flush();
     }
 
     private String dump(DatabaseHelper dbh, boolean dumpDbLog) {

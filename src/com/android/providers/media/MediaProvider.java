@@ -130,7 +130,6 @@ import libcore.util.EmptyArray;
 
 import java.io.File;
 import java.io.FileDescriptor;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -160,8 +159,6 @@ public class MediaProvider extends ContentProvider {
     private static final boolean ENFORCE_PUBLIC_API = true;
 
     private static final boolean ENFORCE_ISOLATED_STORAGE = StorageManager.hasIsolatedStorage();
-
-    private static final Uri MEDIA_URI = Uri.parse("content://media");
 
     private static final String HASH_ALGORITHM = "SHA-1";
 
@@ -3452,6 +3449,9 @@ public class MediaProvider extends ContentProvider {
                                     MediaDocumentsProvider.onMediaStoreDelete(getContext(),
                                             volumeName, FileColumns.MEDIA_TYPE_AUDIO, id);
 
+                                    invalidateThumbnails(
+                                            Files.getContentUri(MediaStore.getVolumeName(uri), id));
+
                                     idvalue[0] = String.valueOf(id);
                                     db.delete("audio_genres_map", "audio_id=?", idvalue);
                                     // for each playlist that the item appears in, move
@@ -3792,6 +3792,14 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    private Thumbnailer mAudioThumbnailer = new Thumbnailer(Environment.DIRECTORY_MUSIC) {
+        @Override
+        public Bitmap getThumbnailBitmap(Uri uri, CancellationSignal signal) throws IOException {
+            return ThumbnailUtils.createAudioThumbnail(queryForDataFile(uri, signal),
+                    mThumbSize, signal);
+        }
+    };
+
     private Thumbnailer mVideoThumbnailer = new Thumbnailer(Environment.DIRECTORY_MOVIES) {
         @Override
         public Bitmap getThumbnailBitmap(Uri uri, CancellationSignal signal) throws IOException {
@@ -3811,6 +3819,7 @@ public class MediaProvider extends ContentProvider {
     private void invalidateThumbnails(Uri uri) {
         final long id = ContentUris.parseId(uri);
         try {
+            mAudioThumbnailer.invalidateThumbnail(uri);
             mVideoThumbnailer.invalidateThumbnail(uri);
             mImageThumbnailer.invalidateThumbnail(uri);
         } catch (IOException ignored) {
@@ -3953,17 +3962,20 @@ public class MediaProvider extends ContentProvider {
                     null, null);
             try {
                 while (cursor != null && cursor.moveToNext()) {
+                    final long id = cursor.getLong(0);
                     final int curMediaType = cursor.getInt(1);
-                    if (curMediaType == FileColumns.MEDIA_TYPE_IMAGE &&
-                            newMediaType != FileColumns.MEDIA_TYPE_IMAGE) {
-                        Log.i(TAG, "need to remove image thumbnail for id " + cursor.getString(0));
-                        invalidateThumbnails(Files.getContentUri(MediaStore.getVolumeName(uri),
-                                cursor.getLong(0)));
-                    } else if (curMediaType == FileColumns.MEDIA_TYPE_VIDEO &&
-                            newMediaType != FileColumns.MEDIA_TYPE_VIDEO) {
-                        Log.i(TAG, "need to remove video thumbnail for id " + cursor.getString(0));
-                        invalidateThumbnails(Files.getContentUri(MediaStore.getVolumeName(uri),
-                                cursor.getLong(0)));
+
+                    switch (curMediaType) {
+                        case FileColumns.MEDIA_TYPE_AUDIO:
+                        case FileColumns.MEDIA_TYPE_VIDEO:
+                        case FileColumns.MEDIA_TYPE_IMAGE: {
+                            // If type is changing, we need to invalidate thumbnails
+                            if (curMediaType != newMediaType) {
+                                Log.i(TAG, "Invalidating thumbnails for " + id);
+                                invalidateThumbnails(
+                                        Files.getContentUri(MediaStore.getVolumeName(uri), id));
+                            }
+                        }
                     }
                 }
             } finally {
@@ -4355,99 +4367,35 @@ public class MediaProvider extends ContentProvider {
 
         uri = safeUncanonicalize(uri);
 
-        ParcelFileDescriptor pfd = null;
-
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
         final String volumeName = getVolumeName(uri);
 
-        if (match == AUDIO_ALBUMART_FILE_ID) {
-            // get album art for the specified media file
-            final DatabaseHelper helper;
-            final SQLiteDatabase db;
-            try {
-                helper = getDatabaseForUri(uri);
-                db = helper.getReadableDatabase();
-            } catch (VolumeNotFoundException e) {
-                throw e.rethrowAsIllegalArgumentException();
-            }
-
-            SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
-            int songid = Integer.parseInt(uri.getPathSegments().get(3));
-            qb.setTables("audio_meta");
-            appendWhereStandalone(qb, "_id=" + songid);
-            Cursor c = qb.query(db,
-                    new String [] {
-                        MediaStore.Audio.Media.DATA,
-                        MediaStore.Audio.Media.ALBUM_ID },
-                    null, null, null, null, null);
-            try {
-                if (c.moveToFirst()) {
-                    String audiopath = c.getString(0);
-                    int albumid = c.getInt(1);
-                    // Try to get existing album art for this album first, which
-                    // could possibly have been obtained from a different file.
-                    // If that fails, try to get it from this specific file.
-                    final Uri albumartDir = MediaStore.AUTHORITY_URI.buildUpon()
-                            .appendPath(volumeName).appendPath("audio")
-                            .appendPath("albumart").build();
-                    final Uri newUri = ContentUris.withAppendedId(albumartDir, albumid);
-                    try {
-                        pfd = openFileAndEnforcePathPermissionsHelper(newUri, match, mode, signal);
-                    } catch (FileNotFoundException ex) {
-                        // That didn't work, now try to get it from the specific file
-                        pfd = getThumb(volumeName, helper, db, audiopath, albumid, null);
-                    }
-                }
-            } finally {
-                IoUtils.closeQuietly(c);
-            }
-            return pfd;
-        }
-
-        try {
-            pfd = openFileAndEnforcePathPermissionsHelper(uri, match, mode, signal);
-        } catch (FileNotFoundException ex) {
-            if (mode.contains("w")) {
-                // if the file couldn't be created, we shouldn't extract album art
-                throw ex;
-            }
-
-            if (match == AUDIO_ALBUMART_ID) {
-                // Tried to open an album art file which does not exist. Regenerate.
-                final DatabaseHelper helper;
-                final SQLiteDatabase db;
-                try {
-                    helper = getDatabaseForUri(uri);
-                    db = helper.getReadableDatabase();
-                } catch (VolumeNotFoundException e) {
-                    throw e.rethrowAsIllegalArgumentException();
-                }
-
-                SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
-                int albumid = Integer.parseInt(uri.getPathSegments().get(3));
-                qb.setTables("audio_meta");
-                appendWhereStandalone(qb, "album_id=" + albumid);
-                Cursor c = qb.query(db,
-                        new String [] {
-                            MediaStore.Audio.Media.DATA },
-                        null, null, null, null, MediaStore.Audio.Media.TRACK);
-                final CallingIdentity token = clearCallingIdentity();
-                try {
+        // Handle some legacy cases where we need to redirect thumbnails
+        switch (match) {
+            case AUDIO_ALBUMART_ID: {
+                final Uri baseUri = MediaStore.Audio.Media.getContentUri(volumeName);
+                final long albumId = ContentUris.parseId(uri);
+                try (Cursor c = query(baseUri, new String[] { MediaStore.Audio.Media._ID },
+                        MediaStore.Audio.Media.ALBUM_ID + "=" + albumId, null, null, signal)) {
                     if (c.moveToFirst()) {
-                        String audiopath = c.getString(0);
-                        pfd = getThumb(volumeName, helper, db, audiopath, albumid, uri);
+                        final long audioId = c.getLong(0);
+                        return openAudioThumbnail(
+                                ContentUris.withAppendedId(baseUri, audioId), signal);
+                    } else {
+                        throw new FileNotFoundException("No media for album " + uri);
                     }
-                } finally {
-                    restoreCallingIdentity(token);
-                    IoUtils.closeQuietly(c);
                 }
             }
-            if (pfd == null) {
-                throw ex;
+            case AUDIO_ALBUMART_FILE_ID: {
+                final Uri baseUri = MediaStore.Audio.Media.getContentUri(volumeName);
+                final long audioId = Long.parseLong(uri.getPathSegments().get(3));
+                return openAudioThumbnail(
+                        ContentUris.withAppendedId(baseUri, audioId), signal);
             }
         }
-        return pfd;
+
+        return openFileAndEnforcePathPermissionsHelper(uri, match, mode, signal);
     }
 
     @Override
@@ -4481,6 +4429,8 @@ public class MediaProvider extends ContentProvider {
             final CallingIdentity ident = clearCallingIdentity();
             try {
                 switch (match) {
+                    case AUDIO_MEDIA_ID:
+                        return openTypedAssetFile(mAudioThumbnailer.ensureThumbnail(uri, signal));
                     case VIDEO_MEDIA_ID:
                         return openTypedAssetFile(mVideoThumbnailer.ensureThumbnail(uri, signal));
                     case IMAGES_MEDIA_ID:
@@ -4497,6 +4447,20 @@ public class MediaProvider extends ContentProvider {
         // Worst case, return the underlying file
         return new AssetFileDescriptor(openFileCommon(uri, "r", signal), 0,
                 AssetFileDescriptor.UNKNOWN_LENGTH);
+    }
+
+    private ParcelFileDescriptor openAudioThumbnail(Uri uri, CancellationSignal signal)
+            throws FileNotFoundException {
+        final CallingIdentity ident = clearCallingIdentity();
+        try {
+            return ParcelFileDescriptor.open(mAudioThumbnailer.ensureThumbnail(uri, signal),
+                    ParcelFileDescriptor.MODE_READ_ONLY);
+        } catch (IOException e) {
+            Log.w(TAG, e);
+            throw new FileNotFoundException(e.getMessage());
+        } finally {
+            restoreCallingIdentity(ident);
+        }
     }
 
     private static AssetFileDescriptor openTypedAssetFile(File file) throws IOException {
@@ -5095,313 +5059,6 @@ public class MediaProvider extends ContentProvider {
             }
             parent = parent.getParentFile();
         }
-    }
-
-    private class ThumbData {
-        String volumeName;
-        DatabaseHelper helper;
-        SQLiteDatabase db;
-        String path;
-        long album_id;
-        Uri albumart_uri;
-    }
-
-    //Return true if the artPath is the dir as it in mExternalStoragePaths
-    //for multi storage support
-    private static boolean isRootStorageDir(String[] rootPaths, String testPath) {
-        for (String rootPath : rootPaths) {
-            if (rootPath != null && rootPath.equalsIgnoreCase(testPath)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // Extract compressed image data from the audio file itself or, if that fails,
-    // look for a file "AlbumArt.jpg" in the containing directory.
-    private static byte[] getCompressedAlbumArt(Context context, String[] rootPaths, String path) {
-        byte[] compressed = null;
-
-        try {
-            File f = new File(path);
-            ParcelFileDescriptor pfd = ParcelFileDescriptor.open(f,
-                    ParcelFileDescriptor.MODE_READ_ONLY);
-
-            try (MediaScanner scanner = new MediaScanner(context, INTERNAL_VOLUME)) {
-                compressed = scanner.extractAlbumArt(pfd.getFileDescriptor());
-            }
-            pfd.close();
-
-            // If no embedded art exists, look for a suitable image file in the
-            // same directory as the media file, except if that directory is
-            // is the root directory of the sd card or the download directory.
-            // We look for, in order of preference:
-            // 0 AlbumArt.jpg
-            // 1 AlbumArt*Large.jpg
-            // 2 Any other jpg image with 'albumart' anywhere in the name
-            // 3 Any other jpg image
-            // 4 any other png image
-            if (compressed == null && path != null) {
-                int lastSlash = path.lastIndexOf('/');
-                if (lastSlash > 0) {
-
-                    String artPath = path.substring(0, lastSlash);
-                    String dwndir = Environment.getExternalStoragePublicDirectory(
-                            Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
-
-                    String bestmatch = null;
-                    synchronized (sFolderArtMap) {
-                        if (sFolderArtMap.containsKey(artPath)) {
-                            bestmatch = sFolderArtMap.get(artPath);
-                        } else if (!isRootStorageDir(rootPaths, artPath) &&
-                                !artPath.equalsIgnoreCase(dwndir)) {
-                            File dir = new File(artPath);
-                            String [] entrynames = dir.list();
-                            if (entrynames == null) {
-                                return null;
-                            }
-                            bestmatch = null;
-                            int matchlevel = 1000;
-                            for (int i = entrynames.length - 1; i >=0; i--) {
-                                String entry = entrynames[i].toLowerCase();
-                                if (entry.equals("albumart.jpg")) {
-                                    bestmatch = entrynames[i];
-                                    break;
-                                } else if (entry.startsWith("albumart")
-                                        && entry.endsWith("large.jpg")
-                                        && matchlevel > 1) {
-                                    bestmatch = entrynames[i];
-                                    matchlevel = 1;
-                                } else if (entry.contains("albumart")
-                                        && entry.endsWith(".jpg")
-                                        && matchlevel > 2) {
-                                    bestmatch = entrynames[i];
-                                    matchlevel = 2;
-                                } else if (entry.endsWith(".jpg") && matchlevel > 3) {
-                                    bestmatch = entrynames[i];
-                                    matchlevel = 3;
-                                } else if (entry.endsWith(".png") && matchlevel > 4) {
-                                    bestmatch = entrynames[i];
-                                    matchlevel = 4;
-                                }
-                            }
-                            // note that this may insert null if no album art was found
-                            sFolderArtMap.put(artPath, bestmatch);
-                        }
-                    }
-
-                    if (bestmatch != null) {
-                        File file = new File(artPath, bestmatch);
-                        if (file.exists()) {
-                            FileInputStream stream = null;
-                            try {
-                                compressed = new byte[(int)file.length()];
-                                stream = new FileInputStream(file);
-                                stream.read(compressed);
-                            } catch (IOException ex) {
-                                compressed = null;
-                            } catch (OutOfMemoryError ex) {
-                                Log.w(TAG, ex);
-                                compressed = null;
-                            } finally {
-                                if (stream != null) {
-                                    stream.close();
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (IOException e) {
-        }
-
-        return compressed;
-    }
-
-    // Return a URI to write the album art to and update the database as necessary.
-    Uri getAlbumArtOutputUri(String volumeName, DatabaseHelper helper, SQLiteDatabase db,
-            long album_id, Uri albumart_uri) {
-        Uri out = null;
-        // TODO: this could be done more efficiently with a call to db.replace(), which
-        // replaces or inserts as needed, making it unnecessary to query() first.
-        if (albumart_uri != null) {
-            Cursor c = query(albumart_uri, new String [] { MediaStore.MediaColumns.DATA },
-                    null, null, null);
-            try {
-                if (c != null && c.moveToFirst()) {
-                    String albumart_path = c.getString(0);
-                    if (ensureFileExists(albumart_uri, albumart_path)) {
-                        out = albumart_uri;
-                    }
-                } else {
-                    albumart_uri = null;
-                }
-            } finally {
-                IoUtils.closeQuietly(c);
-            }
-        }
-        if (albumart_uri == null){
-            ContentValues values = new ContentValues();
-            values.put("album_id", album_id);
-            try {
-                final Uri uri = MediaStore.AUTHORITY_URI.buildUpon().appendPath(volumeName)
-                        .appendPath("audio").appendPath("albumart").build();
-                ensureFileColumns(AUDIO_ALBUMART, uri, values);
-
-                long rowId = db.insert("album_art", MediaStore.MediaColumns.DATA, values);
-                if (rowId > 0) {
-                    out = ContentUris.withAppendedId(uri, rowId);
-                    // ensure the parent directory exists
-                    String albumart_path = values.getAsString(MediaStore.MediaColumns.DATA);
-                    ensureFileExists(out, albumart_path);
-                }
-            } catch (IllegalStateException ex) {
-                Log.e(TAG, "error creating album thumb file");
-            }
-        }
-        return out;
-    }
-
-    // Write out the album art to the output URI, recompresses the given Bitmap
-    // if necessary, otherwise writes the compressed data.
-    private void writeAlbumArt(
-            boolean need_to_recompress, Uri out, byte[] compressed, Bitmap bm) throws IOException {
-        OutputStream outstream = null;
-        // Clear calling identity as we may be handling an IPC.
-        final long identity = Binder.clearCallingIdentity();
-        try {
-            outstream = getContext().getContentResolver().openOutputStream(out);
-
-            if (!need_to_recompress) {
-                // No need to recompress here, just write out the original
-                // compressed data here.
-                outstream.write(compressed);
-            } else {
-                if (!bm.compress(Bitmap.CompressFormat.JPEG, 85, outstream)) {
-                    throw new IOException("failed to compress bitmap");
-                }
-            }
-        } finally {
-            Binder.restoreCallingIdentity(identity);
-            IoUtils.closeQuietly(outstream);
-        }
-    }
-
-    private ParcelFileDescriptor getThumb(String volumeName, DatabaseHelper helper,
-            SQLiteDatabase db, String path, long album_id, Uri albumart_uri) {
-        ThumbData d = new ThumbData();
-        d.volumeName = volumeName;
-        d.helper = helper;
-        d.db = db;
-        d.path = path;
-        d.album_id = album_id;
-        d.albumart_uri = albumart_uri;
-        return makeThumbInternal(d);
-    }
-
-    private ParcelFileDescriptor makeThumbInternal(ThumbData d) {
-        byte[] compressed = getCompressedAlbumArt(getContext(), mExternalStoragePaths, d.path);
-
-        if (compressed == null) {
-            return null;
-        }
-
-        Bitmap bm = null;
-        boolean need_to_recompress = true;
-
-        try {
-            // get the size of the bitmap
-            BitmapFactory.Options opts = new BitmapFactory.Options();
-            opts.inJustDecodeBounds = true;
-            opts.inSampleSize = 1;
-            BitmapFactory.decodeByteArray(compressed, 0, compressed.length, opts);
-
-            // request a reasonably sized output image
-            final Resources r = getContext().getResources();
-            final int maximumThumbSize = r.getDimensionPixelSize(R.dimen.maximum_thumb_size);
-            while (opts.outHeight > maximumThumbSize || opts.outWidth > maximumThumbSize) {
-                opts.outHeight /= 2;
-                opts.outWidth /= 2;
-                opts.inSampleSize *= 2;
-            }
-
-            if (opts.inSampleSize == 1) {
-                // The original album art was of proper size, we won't have to
-                // recompress the bitmap later.
-                need_to_recompress = false;
-            } else {
-                // get the image for real now
-                opts.inJustDecodeBounds = false;
-                opts.inPreferredConfig = Bitmap.Config.RGB_565;
-                bm = BitmapFactory.decodeByteArray(compressed, 0, compressed.length, opts);
-
-                if (bm != null && bm.getConfig() == null) {
-                    Bitmap nbm = bm.copy(Bitmap.Config.RGB_565, false);
-                    if (nbm != null && nbm != bm) {
-                        bm.recycle();
-                        bm = nbm;
-                    }
-                }
-            }
-        } catch (Exception e) {
-        }
-
-        if (need_to_recompress && bm == null) {
-            return null;
-        }
-
-        if (d.albumart_uri == null) {
-            // this one doesn't need to be saved (probably a song with an unknown album),
-            // so stick it in a memory file and return that
-            try {
-                return ParcelFileDescriptor.fromData(compressed, "albumthumb");
-            } catch (IOException e) {
-            }
-        } else {
-            // This one needs to actually be saved on the sd card.
-            // This is wrapped in a transaction because there are various things
-            // that could go wrong while generating the thumbnail, and we only want
-            // to update the database when all steps succeeded.
-            d.db.beginTransaction();
-            Uri out = null;
-            ParcelFileDescriptor pfd = null;
-            try {
-                out = getAlbumArtOutputUri(d.volumeName, d.helper, d.db, d.album_id, d.albumart_uri);
-
-                if (out != null) {
-                    writeAlbumArt(need_to_recompress, out, compressed, bm);
-                    getContext().getContentResolver().notifyChange(MEDIA_URI, null);
-                    pfd = openFileHelper(out, "r");
-                    d.db.setTransactionSuccessful();
-                    return pfd;
-                }
-            } catch (IOException ex) {
-                // do nothing, just return null below
-            } catch (UnsupportedOperationException ex) {
-                // do nothing, just return null below
-            } finally {
-                d.db.endTransaction();
-                if (bm != null) {
-                    bm.recycle();
-                }
-                if (pfd == null && out != null) {
-                    // Thumbnail was not written successfully, delete the entry that refers to it.
-                    // Note that this only does something if getAlbumArtOutputUri() reused an
-                    // existing entry from the database. If a new entry was created, it will
-                    // have been rolled back as part of backing out the transaction.
-
-                    // Clear calling identity as we may be handling an IPC.
-                    final long identity = Binder.clearCallingIdentity();
-                    try {
-                        getContext().getContentResolver().delete(out, null, null);
-                    } finally {
-                        Binder.restoreCallingIdentity(identity);
-                    }
-
-                }
-            }
-        }
-        return null;
     }
 
     /**

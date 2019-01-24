@@ -83,9 +83,16 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
     private static final String AUTHORITY = "com.android.providers.media.documents";
 
+    private static final String SUPPORTED_QUERY_ARGS = joinNewline(
+            DocumentsContract.QUERY_ARG_DISPLAY_NAME,
+            DocumentsContract.QUERY_ARG_FILE_SIZE_OVER,
+            DocumentsContract.QUERY_ARG_LAST_MODIFIED_AFTER,
+            DocumentsContract.QUERY_ARG_MIME_TYPES);
+
     private static final String[] DEFAULT_ROOT_PROJECTION = new String[] {
             Root.COLUMN_ROOT_ID, Root.COLUMN_FLAGS, Root.COLUMN_ICON,
-            Root.COLUMN_TITLE, Root.COLUMN_DOCUMENT_ID, Root.COLUMN_MIME_TYPES
+            Root.COLUMN_TITLE, Root.COLUMN_DOCUMENT_ID, Root.COLUMN_MIME_TYPES,
+            Root.COLUMN_QUERY_ARGS
     };
 
     private static final String[] DEFAULT_DOCUMENT_PROJECTION = new String[] {
@@ -932,6 +939,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         row.add(Root.COLUMN_TITLE, getContext().getString(R.string.root_images));
         row.add(Root.COLUMN_DOCUMENT_ID, TYPE_IMAGES_ROOT);
         row.add(Root.COLUMN_MIME_TYPES, IMAGE_MIME_TYPES);
+        row.add(Root.COLUMN_QUERY_ARGS, SUPPORTED_QUERY_ARGS);
     }
 
     private void includeVideosRoot(MatrixCursor result) {
@@ -947,6 +955,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         row.add(Root.COLUMN_TITLE, getContext().getString(R.string.root_videos));
         row.add(Root.COLUMN_DOCUMENT_ID, TYPE_VIDEOS_ROOT);
         row.add(Root.COLUMN_MIME_TYPES, VIDEO_MIME_TYPES);
+        row.add(Root.COLUMN_QUERY_ARGS, SUPPORTED_QUERY_ARGS);
     }
 
     private void includeAudioRoot(MatrixCursor result) {
@@ -962,6 +971,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         row.add(Root.COLUMN_TITLE, getContext().getString(R.string.root_audio));
         row.add(Root.COLUMN_DOCUMENT_ID, TYPE_AUDIO_ROOT);
         row.add(Root.COLUMN_MIME_TYPES, AUDIO_MIME_TYPES);
+        row.add(Root.COLUMN_QUERY_ARGS, SUPPORTED_QUERY_ARGS);
     }
 
     private void includeImagesRootDocument(MatrixCursor result) {

@@ -292,7 +292,6 @@ public class MediaProvider extends ContentProvider {
         final boolean mInternal;  // True if this is the internal database
         final boolean mEarlyUpgrade;
         final SQLiteDatabase.CustomFunction mObjectRemovedCallback;
-        boolean mUpgradeAttempted; // Used for upgrade error handling
         long mScanStartTime;
         long mScanStopTime;
 
@@ -328,38 +327,13 @@ public class MediaProvider extends ContentProvider {
         @Override
         public void onUpgrade(final SQLiteDatabase db, final int oldV, final int newV) {
             Log.v(TAG, "onUpgrade() for " + mName + " from " + oldV + " to " + newV);
-            mUpgradeAttempted = true;
             updateDatabase(mContext, db, mInternal, oldV, newV);
         }
 
         @Override
         public void onDowngrade(final SQLiteDatabase db, final int oldV, final int newV) {
             Log.v(TAG, "onDowngrade() for " + mName + " from " + oldV + " to " + newV);
-            mUpgradeAttempted = true;
             downgradeDatabase(mContext, db, mInternal, oldV, newV);
-        }
-
-        @Override
-        public synchronized SQLiteDatabase getWritableDatabase() {
-            SQLiteDatabase result = null;
-            mUpgradeAttempted = false;
-            try {
-                result = super.getWritableDatabase();
-            } catch (Exception e) {
-                if (!mUpgradeAttempted) {
-                    Log.e(TAG, "failed to open database " + mName, e);
-                    return null;
-                }
-            }
-
-            // If we failed to open the database during an upgrade, delete the file and try again.
-            // This will result in the creation of a fresh database, which will be repopulated
-            // when the media scanner runs.
-            if (result == null && mUpgradeAttempted) {
-                mContext.deleteDatabase(mName);
-                result = super.getWritableDatabase();
-            }
-            return result;
         }
 
         /**
@@ -1251,12 +1225,14 @@ public class MediaProvider extends ContentProvider {
             return c;
         }
 
-        DatabaseHelper helper = getDatabaseForUri(uri);
-        if (helper == null) {
-            return null;
+        final DatabaseHelper helper;
+        final SQLiteDatabase db;
+        try {
+            helper = getDatabaseForUri(uri);
+            db = helper.getReadableDatabase();
+        } catch (VolumeNotFoundException e) {
+            return e.translateForQuery();
         }
-        SQLiteDatabase db = helper.getReadableDatabase();
-        if (db == null) return null;
 
         if (table == MTP_OBJECT_REFERENCES) {
             final int handle = Integer.parseInt(uri.getPathSegments().get(2));
@@ -1650,14 +1626,14 @@ public class MediaProvider extends ContentProvider {
         if (match == VOLUMES) {
             return super.bulkInsert(uri, values);
         }
-        DatabaseHelper helper = getDatabaseForUri(uri);
-        if (helper == null) {
-            throw new UnsupportedOperationException(
-                    "Unknown URI: " + uri);
-        }
-        SQLiteDatabase db = helper.getWritableDatabase();
-        if (db == null) {
-            throw new IllegalStateException("Couldn't open database for " + uri);
+
+        final DatabaseHelper helper;
+        final SQLiteDatabase db;
+        try {
+            helper = getDatabaseForUri(uri);
+            db = helper.getWritableDatabase();
+        } catch (VolumeNotFoundException e) {
+            return e.translateForUpdateDelete();
         }
 
         if (match == AUDIO_PLAYLISTS_ID || match == AUDIO_PLAYLISTS_ID_MEMBERS) {
@@ -2359,14 +2335,32 @@ public class MediaProvider extends ContentProvider {
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
         if (match == MEDIA_SCANNER) {
             mMediaScannerVolume = initialValues.getAsString(MediaStore.MEDIA_SCANNER_VOLUME);
-            DatabaseHelper database = getDatabaseForUri(
-                    Uri.parse("content://media/" + mMediaScannerVolume + "/audio"));
-            if (database == null) {
-                Log.w(TAG, "no database for scanned volume " + mMediaScannerVolume);
-            } else {
-                database.mScanStartTime = SystemClock.currentTimeMicro();
+
+            final DatabaseHelper helper;
+            try {
+                helper = getDatabaseForUri(MediaStore.Files.getContentUri(mMediaScannerVolume));
+            } catch (VolumeNotFoundException e) {
+                return e.translateForInsert();
             }
+
+            helper.mScanStartTime = SystemClock.currentTimeMicro();
             return MediaStore.getMediaScannerUri();
+        }
+
+        if (match == VOLUMES) {
+            String name = initialValues.getAsString("name");
+            Uri attachedVolume = attachVolume(name);
+            if (mMediaScannerVolume != null && mMediaScannerVolume.equals(name)) {
+                final DatabaseHelper helper;
+                try {
+                    helper = getDatabaseForUri(
+                            MediaStore.Files.getContentUri(mMediaScannerVolume));
+                } catch (VolumeNotFoundException e) {
+                    return e.translateForInsert();
+                }
+                helper.mScanStartTime = SystemClock.currentTimeMicro();
+            }
+            return attachedVolume;
         }
 
         String genre = null;
@@ -2419,13 +2413,15 @@ public class MediaProvider extends ContentProvider {
         }
 
         Uri newUri = null;
-        DatabaseHelper helper = getDatabaseForUri(uri);
-        if (helper == null && match != VOLUMES) {
-            throw new UnsupportedOperationException(
-                    "Unknown URI: " + uri);
-        }
 
-        SQLiteDatabase db = match == VOLUMES ? null : helper.getWritableDatabase();
+        final DatabaseHelper helper;
+        final SQLiteDatabase db;
+        try {
+            helper = getDatabaseForUri(uri);
+            db = helper.getWritableDatabase();
+        } catch (VolumeNotFoundException e) {
+            return e.translateForInsert();
+        }
 
         switch (match) {
             case IMAGES_MEDIA: {
@@ -2641,21 +2637,6 @@ public class MediaProvider extends ContentProvider {
                 break;
             }
 
-            case VOLUMES:
-            {
-                String name = initialValues.getAsString("name");
-                Uri attachedVolume = attachVolume(name);
-                if (mMediaScannerVolume != null && mMediaScannerVolume.equals(name)) {
-                    DatabaseHelper dbhelper = getDatabaseForUri(attachedVolume);
-                    if (dbhelper == null) {
-                        Log.e(TAG, "no database for attached volume " + attachedVolume);
-                    } else {
-                        dbhelper.mScanStartTime = SystemClock.currentTimeMicro();
-                    }
-                }
-                return attachedVolume;
-            }
-
             case FILES: {
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
                 final boolean isDownload = maybeMarkAsDownload(initialValues);
@@ -2794,9 +2775,20 @@ public class MediaProvider extends ContentProvider {
     private void processRemovedNoMediaPath(final String path) {
         // a nomedia path was removed, so clear the nomedia paths
         MediaScanner.clearMediaPathCache(false /* media */, true /* nomedia */);
+
+        final String volumeName = MediaStore.getVolumeName(new File(path));
+        final Uri uri = MediaStore.Files.getContentUri(volumeName);
+
         final DatabaseHelper helper;
-        helper = getDatabaseForUri(MediaStore.Audio.Media.getContentUriForPath(path));
-        SQLiteDatabase db = helper.getWritableDatabase();
+        final SQLiteDatabase db;
+        try {
+            helper = getDatabaseForUri(uri);
+            db = helper.getWritableDatabase();
+        } catch (VolumeNotFoundException e) {
+            Log.w(TAG, e);
+            return;
+        }
+
         new ScannerClient(getContext(), db, path);
     }
 
@@ -2845,25 +2837,28 @@ public class MediaProvider extends ContentProvider {
         // batched operations are likely to need to call getParent(), which in turn may need to
         // update the database, so synchronize on mDirectoryCache to avoid deadlocks
         synchronized (mDirectoryCache) {
-            // The operations array provides no overall information about the URI(s) being operated
-            // on, so begin a transaction for ALL of the databases.
-            DatabaseHelper ihelper = getDatabaseForUri(MediaStore.Audio.Media.INTERNAL_CONTENT_URI);
-            DatabaseHelper ehelper = getDatabaseForUri(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI);
-            SQLiteDatabase idb = ihelper.getWritableDatabase();
-            idb.beginTransaction();
-            SQLiteDatabase edb = null;
+            // Open transactions on databases for requested volumes
+            final ArrayMap<String, SQLiteDatabase> transactions = new ArrayMap<>();
             try {
-                if (ehelper != null) {
-                    edb = ehelper.getWritableDatabase();
+                for (ContentProviderOperation op : operations) {
+                    final String volumeName = MediaStore.getVolumeName(op.getUri());
+                    if (!transactions.containsKey(volumeName)) {
+                        try {
+                            final DatabaseHelper helper = getDatabaseForUri(op.getUri());
+                            final SQLiteDatabase db = helper.getWritableDatabase();
+                            db.beginTransaction();
+                            transactions.put(volumeName, db);
+                        } catch (VolumeNotFoundException e) {
+                            Log.w(TAG, e.getMessage());
+                        }
+                    }
                 }
-                if (edb != null) {
-                    edb.beginTransaction();
+
+                final ContentProviderResult[] result = super.applyBatch(operations);
+                for (SQLiteDatabase db : transactions.values()) {
+                    db.setTransactionSuccessful();
                 }
-                ContentProviderResult[] result = super.applyBatch(operations);
-                idb.setTransactionSuccessful();
-                if (edb != null) {
-                    edb.setTransactionSuccessful();
-                }
+
                 // Rather than sending targeted change notifications for every Uri
                 // affected by the batch operation, just invalidate the entire internal
                 // and external name space.
@@ -2871,12 +2866,8 @@ public class MediaProvider extends ContentProvider {
                 res.notifyChange(Uri.parse("content://media/"), null);
                 return result;
             } finally {
-                try {
-                    idb.endTransaction();
-                } finally {
-                    if (edb != null) {
-                        edb.endTransaction();
-                    }
+                for (SQLiteDatabase db : transactions.values()) {
+                    db.endTransaction();
                 }
             }
         }
@@ -3386,15 +3377,18 @@ public class MediaProvider extends ContentProvider {
             if (mMediaScannerVolume == null) {
                 return 0;
             }
-            DatabaseHelper database = getDatabaseForUri(
-                    Uri.parse("content://media/" + mMediaScannerVolume + "/audio"));
-            if (database == null) {
-                Log.w(TAG, "no database for scanned volume " + mMediaScannerVolume);
-            } else {
-                database.mScanStopTime = SystemClock.currentTimeMicro();
-                String msg = dump(database, false);
-                logToDb(database.getWritableDatabase(), msg);
+
+            final DatabaseHelper helper;
+            try {
+                helper = getDatabaseForUri(MediaStore.Files.getContentUri(mMediaScannerVolume));
+            } catch (VolumeNotFoundException e) {
+                return e.translateForUpdateDelete();
             }
+
+            helper.mScanStopTime = SystemClock.currentTimeMicro();
+            String msg = dump(helper, false);
+            logToDb(helper.getWritableDatabase(), msg);
+
             if (INTERNAL_VOLUME.equals(mMediaScannerVolume)) {
                 // persist current build fingerprint as fingerprint for system (internal) sound scan
                 final SharedPreferences scanSettings =
@@ -3414,14 +3408,16 @@ public class MediaProvider extends ContentProvider {
             count = 1;
         } else {
             final String volumeName = getVolumeName(uri);
-            final boolean isExternal = "external".equals(volumeName);
 
-            DatabaseHelper database = getDatabaseForUri(uri);
-            if (database == null) {
-                throw new UnsupportedOperationException(
-                        "Unknown URI: " + uri + " match: " + match);
+            final DatabaseHelper helper;
+            final SQLiteDatabase db;
+            try {
+                helper = getDatabaseForUri(uri);
+                db = helper.getWritableDatabase();
+            } catch (VolumeNotFoundException e) {
+                return e.translateForUpdateDelete();
             }
-            SQLiteDatabase db = database.getWritableDatabase();
+
             SQLiteQueryBuilder qb = getQueryBuilder(TYPE_DELETE, uri, match, null);
             if (qb.getTables().equals("files")) {
                 String deleteparam = uri.getQueryParameter(MediaStore.PARAM_DELETE_DATA);
@@ -3452,7 +3448,7 @@ public class MediaProvider extends ContentProvider {
                                 invalidateThumbnails(
                                         Files.getContentUri(MediaStore.getVolumeName(uri), id));
                             } else if (mediaType == FileColumns.MEDIA_TYPE_AUDIO) {
-                                if (!database.mInternal) {
+                                if (!helper.mInternal) {
                                     MediaDocumentsProvider.onMediaStoreDelete(getContext(),
                                             volumeName, FileColumns.MEDIA_TYPE_AUDIO, id);
 
@@ -3705,8 +3701,16 @@ public class MediaProvider extends ContentProvider {
         final Uri thumbsUri = Images.Thumbnails.getContentUri("external");
 
         // Remove orphan entries in the thumbnails tables
-        DatabaseHelper helper = getDatabaseForUri(thumbsUri);
-        SQLiteDatabase db = helper.getWritableDatabase();
+        final DatabaseHelper helper;
+        final SQLiteDatabase db;
+        try {
+            helper = getDatabaseForUri(thumbsUri);
+            db = helper.getWritableDatabase();
+        } catch (VolumeNotFoundException e) {
+            Log.w(TAG, e);
+            return;
+        }
+
         db.execSQL("delete from thumbnails where image_id not in (select _id from images)");
         db.execSQL("delete from videothumbnails where video_id not in (select _id from video)");
 
@@ -3812,8 +3816,16 @@ public class MediaProvider extends ContentProvider {
         } catch (IOException ignored) {
         }
 
-        final DatabaseHelper helper = getDatabaseForUri(uri);
-        final SQLiteDatabase db = helper.getWritableDatabase();
+        final DatabaseHelper helper;
+        final SQLiteDatabase db;
+        try {
+            helper = getDatabaseForUri(uri);
+            db = helper.getWritableDatabase();
+        } catch (VolumeNotFoundException e) {
+            Log.w(TAG, e);
+            return;
+        }
+
         Cursor c = db.rawQuery("select _data from thumbnails where image_id=" + id
                 + " union all select _data from videothumbnails where video_id=" + id,
                 null /* selectionArgs */);
@@ -3854,13 +3866,15 @@ public class MediaProvider extends ContentProvider {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
-        DatabaseHelper helper = getDatabaseForUri(uri);
-        if (helper == null) {
-            throw new UnsupportedOperationException(
-                    "Unknown URI: " + uri);
+        final DatabaseHelper helper;
+        final SQLiteDatabase db;
+        try {
+            helper = getDatabaseForUri(uri);
+            db = helper.getWritableDatabase();
+        } catch (VolumeNotFoundException e) {
+            return e.translateForUpdateDelete();
         }
 
-        SQLiteDatabase db = helper.getWritableDatabase();
         SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, uri, match, null);
 
         boolean triggerScan = false;
@@ -4349,14 +4363,15 @@ public class MediaProvider extends ContentProvider {
 
         if (match == AUDIO_ALBUMART_FILE_ID) {
             // get album art for the specified media file
-            DatabaseHelper database = getDatabaseForUri(uri);
-            if (database == null) {
-                throw new IllegalStateException("Couldn't open database for " + uri);
+            final DatabaseHelper helper;
+            final SQLiteDatabase db;
+            try {
+                helper = getDatabaseForUri(uri);
+                db = helper.getReadableDatabase();
+            } catch (VolumeNotFoundException e) {
+                throw e.rethrowAsIllegalArgumentException();
             }
-            SQLiteDatabase db = database.getReadableDatabase();
-            if (db == null) {
-                throw new IllegalStateException("Couldn't open database for " + uri);
-            }
+
             SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
             int songid = Integer.parseInt(uri.getPathSegments().get(3));
             qb.setTables("audio_meta");
@@ -4381,7 +4396,7 @@ public class MediaProvider extends ContentProvider {
                         pfd = openFileAndEnforcePathPermissionsHelper(newUri, match, mode, signal);
                     } catch (FileNotFoundException ex) {
                         // That didn't work, now try to get it from the specific file
-                        pfd = getThumb(volumeName, database, db, audiopath, albumid, null);
+                        pfd = getThumb(volumeName, helper, db, audiopath, albumid, null);
                     }
                 }
             } finally {
@@ -4400,14 +4415,15 @@ public class MediaProvider extends ContentProvider {
 
             if (match == AUDIO_ALBUMART_ID) {
                 // Tried to open an album art file which does not exist. Regenerate.
-                DatabaseHelper database = getDatabaseForUri(uri);
-                if (database == null) {
-                    throw ex;
+                final DatabaseHelper helper;
+                final SQLiteDatabase db;
+                try {
+                    helper = getDatabaseForUri(uri);
+                    db = helper.getReadableDatabase();
+                } catch (VolumeNotFoundException e) {
+                    throw e.rethrowAsIllegalArgumentException();
                 }
-                SQLiteDatabase db = database.getReadableDatabase();
-                if (db == null) {
-                    throw new IllegalStateException("Couldn't open database for " + uri);
-                }
+
                 SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
                 int albumid = Integer.parseInt(uri.getPathSegments().get(3));
                 qb.setTables("audio_meta");
@@ -4420,7 +4436,7 @@ public class MediaProvider extends ContentProvider {
                 try {
                     if (c.moveToFirst()) {
                         String audiopath = c.getString(0);
-                        pfd = getThumb(volumeName, database, db, audiopath, albumid, uri);
+                        pfd = getThumb(volumeName, helper, db, audiopath, albumid, uri);
                     }
                 } finally {
                     restoreCallingIdentity(token);
@@ -4840,8 +4856,14 @@ public class MediaProvider extends ContentProvider {
             return;
         }
 
-        final DatabaseHelper helper = getDatabaseForUri(uri);
-        final SQLiteDatabase db = helper.getReadableDatabase();
+        final DatabaseHelper helper;
+        final SQLiteDatabase db;
+        try {
+            helper = getDatabaseForUri(uri);
+            db = helper.getReadableDatabase();
+        } catch (VolumeNotFoundException e) {
+            throw e.rethrowAsIllegalArgumentException();
+        }
 
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int table = matchUri(uri, allowHidden);
@@ -5538,6 +5560,42 @@ public class MediaProvider extends ContentProvider {
         return name;
     }
 
+    private class VolumeNotFoundException extends Exception {
+        public VolumeNotFoundException(String volumeName) {
+            super("Volume " + volumeName + " not found");
+        }
+
+        public IllegalArgumentException rethrowAsIllegalArgumentException() {
+            throw new IllegalArgumentException(getMessage());
+        }
+
+        public Cursor translateForQuery() {
+            if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q) {
+                throw new IllegalArgumentException(getMessage());
+            } else {
+                Log.w(TAG, getMessage());
+                return null;
+            }
+        }
+
+        public Uri translateForInsert() {
+            if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q) {
+                throw new IllegalArgumentException(getMessage());
+            } else {
+                Log.w(TAG, getMessage());
+                return null;
+            }
+        }
+
+        public int translateForUpdateDelete() {
+            if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q) {
+                throw new IllegalArgumentException(getMessage());
+            } else {
+                Log.w(TAG, getMessage());
+                return 0;
+            }
+        }
+    }
 
     /**
      * Looks up the database based on the given URI.
@@ -5545,14 +5603,14 @@ public class MediaProvider extends ContentProvider {
      * @param uri The requested URI
      * @returns the database for the given URI
      */
-    private @NonNull DatabaseHelper getDatabaseForUri(Uri uri) {
+    private @NonNull DatabaseHelper getDatabaseForUri(Uri uri) throws VolumeNotFoundException {
         synchronized (mDatabases) {
             final String volumeName = MediaStore.getVolumeName(uri);
             final DatabaseHelper helper = mDatabases.get(volumeName);
             if (helper != null) {
                 return helper;
             } else {
-                throw new IllegalArgumentException("No database found for volume " + volumeName);
+                throw new VolumeNotFoundException(volumeName);
             }
         }
     }

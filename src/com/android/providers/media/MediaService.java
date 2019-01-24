@@ -69,7 +69,8 @@ public class MediaService extends IntentService {
                     onPackageOrphaned(packageName);
                     break;
                 }
-                case Intent.ACTION_MEDIA_MOUNTED: {
+                case Intent.ACTION_MEDIA_MOUNTED:
+                case Intent.ACTION_MEDIA_SCANNER_SCAN_VOLUME: {
                     onScanVolume(intent.getData());
                     break;
                 }

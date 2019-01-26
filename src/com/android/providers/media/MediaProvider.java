@@ -115,6 +115,7 @@ import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.util.ArrayMap;
 import android.util.ArraySet;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.Pair;
 import android.util.Size;
@@ -489,9 +490,8 @@ public class MediaProvider extends ContentProvider {
         mPackageManager = context.getPackageManager();
 
         // Reasonable thumbnail size is half of the smallest screen edge width
-        final Resources res = context.getResources();
-        final int thumbSize = (int) ((res.getConfiguration().smallestScreenWidthDp
-                * res.getDisplayMetrics().density) / 2);
+        final DisplayMetrics metrics = context.getResources().getDisplayMetrics();
+        final int thumbSize = Math.min(metrics.widthPixels, metrics.heightPixels) / 2;
         mThumbSize = new Size(thumbSize, thumbSize);
 
         mDatabases = new ArrayMap<String, DatabaseHelper>();

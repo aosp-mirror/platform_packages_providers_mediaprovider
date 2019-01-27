@@ -23,18 +23,15 @@ import android.app.Service;
 import android.content.Intent;
 import android.media.IMediaScannerListener;
 import android.media.IMediaScannerService;
-import android.media.MediaScanner;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.storage.StorageManager;
-import android.provider.MediaStore;
 import android.util.Log;
 
 import java.io.File;
-import java.io.IOException;
 
 public class MediaScannerService extends Service {
     @Override
@@ -52,9 +49,11 @@ public class MediaScannerService extends Service {
                         final File systemFile = getSystemService(StorageManager.class)
                                 .translateAppToSystem(new File(path).getCanonicalFile(),
                                         callingPid, callingUid);
-                        res = onScanFile(Uri.fromFile(systemFile), mimeType);
-                    } catch (IOException e) {
-                        Log.w(TAG, "Failed to scan " + path);
+                        res = MediaService.onScanFile(MediaScannerService.this,
+                                Uri.fromFile(systemFile), mimeType);
+                        Log.d(TAG, "Scanned " + path + " as " + systemFile + " for " + res);
+                    } catch (Exception e) {
+                        Log.w(TAG, "Failed to scan " + path, e);
                     }
                     if (listener != null) {
                         try {
@@ -70,14 +69,5 @@ public class MediaScannerService extends Service {
                 requestScanFile(path, mimeType, null);
             }
         };
-    }
-
-    private Uri onScanFile(Uri uri, String mimeType) throws IOException {
-        final File file = new File(uri.getPath()).getCanonicalFile();
-        final String volumeName = MediaStore.getVolumeName(file);
-
-        try (MediaScanner scanner = new MediaScanner(this, volumeName)) {
-            return scanner.scanSingleFile(file.getAbsolutePath(), mimeType);
-        }
     }
 }

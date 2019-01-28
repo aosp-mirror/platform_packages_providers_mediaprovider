@@ -3563,6 +3563,40 @@ public class MediaProvider extends ContentProvider {
         if (LOCAL_LOGV) log("call", method, arg, extras);
 
         switch (method) {
+            case MediaStore.SCAN_FILE_CALL:
+            case MediaStore.SCAN_VOLUME_CALL: {
+                final CallingIdentity token = clearCallingIdentity();
+                try {
+                    final Uri uri = extras.getParcelable(Intent.EXTRA_STREAM);
+                    final File file = new File(uri.getPath());
+                    final File systemFile;
+                    if (extras.getBoolean(Intent.EXTRA_LOCAL_ONLY, false)) {
+                        systemFile = file;
+                    } else {
+                        systemFile = mStorageManager.translateAppToSystem(file.getCanonicalFile(),
+                                Binder.getCallingPid(), Binder.getCallingUid());
+                    }
+                    final Bundle res = new Bundle();
+                    switch (method) {
+                        case MediaStore.SCAN_FILE_CALL:
+                            final String path = systemFile.getAbsolutePath();
+                            final String ext = path.substring(path.lastIndexOf('.') + 1);
+                            final String mimeType = MimeUtils.guessMimeTypeFromExtension(ext);
+                            res.putParcelable(Intent.EXTRA_STREAM,
+                                    MediaService.onScanFile(getContext(), Uri.fromFile(systemFile),
+                                            mimeType));
+                            break;
+                        case MediaStore.SCAN_VOLUME_CALL:
+                            MediaService.onScanVolume(getContext(), Uri.fromFile(systemFile));
+                            break;
+                    }
+                    return res;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    restoreCallingIdentity(token);
+                }
+            }
             case MediaStore.UNHIDE_CALL: {
                 processRemovedNoMediaPath(arg);
                 return null;

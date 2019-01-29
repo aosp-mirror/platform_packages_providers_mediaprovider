@@ -3537,6 +3537,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             if (deletedDownloadIds.size() > 0) {
+                final long token = Binder.clearCallingIdentity();
                 try (ContentProviderClient client = getContext().getContentResolver()
                      .acquireUnstableContentProviderClient(
                              android.provider.Downloads.Impl.AUTHORITY)) {
@@ -3553,6 +3554,8 @@ public class MediaProvider extends ContentProvider {
                             null, extras);
                 } catch (RemoteException e) {
                     // Should not happen
+                } finally {
+                    Binder.restoreCallingIdentity(token);
                 }
             }
 

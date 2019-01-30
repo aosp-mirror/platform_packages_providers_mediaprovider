@@ -3641,16 +3641,18 @@ public class MediaProvider extends ContentProvider {
         switch (method) {
             case MediaStore.SCAN_FILE_CALL:
             case MediaStore.SCAN_VOLUME_CALL: {
+                final int callingPid = Binder.getCallingPid();
+                final int callingUid = Binder.getCallingUid();
                 final CallingIdentity token = clearCallingIdentity();
                 try {
                     final Uri uri = extras.getParcelable(Intent.EXTRA_STREAM);
                     final File file = new File(uri.getPath());
                     final File systemFile;
-                    if (extras.getBoolean(Intent.EXTRA_LOCAL_ONLY, false)) {
+                    if (extras.getBoolean(MediaStore.EXTRA_ORIGINATED_FROM_SHELL, false)) {
                         systemFile = file;
                     } else {
                         systemFile = mStorageManager.translateAppToSystem(file.getCanonicalFile(),
-                                Binder.getCallingPid(), Binder.getCallingUid());
+                                callingPid, callingUid);
                     }
                     final Bundle res = new Bundle();
                     switch (method) {

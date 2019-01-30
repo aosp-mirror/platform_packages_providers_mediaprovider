@@ -172,6 +172,12 @@ public class MediaProvider extends ContentProvider {
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|media|obb|sandbox)/([^/]+)/.*");
 
     /**
+     * Regex that matches paths under well-known storage paths.
+     */
+    private static final Pattern PATTERN_STORAGE_PATH = Pattern.compile(
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?");
+
+    /**
      * Set of {@link Cursor} columns that refer to raw filesystem paths.
      */
     private static final ArrayMap<String, Object> sDataColumns = new ArrayMap<>();
@@ -606,6 +612,7 @@ public class MediaProvider extends ContentProvider {
         Cursor c = db.query("sqlite_master", new String[] {"name"}, "type is 'trigger'",
                 null, null, null, null);
         while (c.moveToNext()) {
+            if (c.getString(0).startsWith("sqlite_")) continue;
             db.execSQL("DROP TRIGGER IF EXISTS " + c.getString(0));
         }
         c.close();
@@ -614,6 +621,7 @@ public class MediaProvider extends ContentProvider {
         c = db.query("sqlite_master", new String[] {"name"}, "type is 'view'",
                 null, null, null, null);
         while (c.moveToNext()) {
+            if (c.getString(0).startsWith("sqlite_")) continue;
             db.execSQL("DROP VIEW IF EXISTS " + c.getString(0));
         }
         c.close();
@@ -622,6 +630,7 @@ public class MediaProvider extends ContentProvider {
         c = db.query("sqlite_master", new String[] {"name"}, "type is 'index'",
                 null, null, null, null);
         while (c.moveToNext()) {
+            if (c.getString(0).startsWith("sqlite_")) continue;
             db.execSQL("DROP INDEX IF EXISTS " + c.getString(0));
         }
         c.close();
@@ -630,6 +639,7 @@ public class MediaProvider extends ContentProvider {
         c = db.query("sqlite_master", new String[] {"name"}, "type is 'table'",
                 null, null, null, null);
         while (c.moveToNext()) {
+            if (c.getString(0).startsWith("sqlite_")) continue;
             db.execSQL("DROP TABLE IF EXISTS " + c.getString(0));
         }
         c.close();
@@ -666,8 +676,9 @@ public class MediaProvider extends ContentProvider {
                 + "_hash BLOB DEFAULT NULL, is_pending INTEGER DEFAULT 0,"
                 + "is_download INTEGER DEFAULT 0, download_uri TEXT DEFAULT NULL,"
                 + "referer_uri TEXT DEFAULT NULL, is_audiobook INTEGER DEFAULT 0,"
-                + "secondary_bucket_id INTEGER DEFAULT NULL,date_expires INTEGER DEFAULT NULL,"
-                + "is_trashed INTEGER DEFAULT 0)");
+                + "date_expires INTEGER DEFAULT NULL,is_trashed INTEGER DEFAULT 0,"
+                + "group_id INTEGER DEFAULT NULL,primary_directory TEXT DEFAULT NULL,"
+                + "secondary_directory TEXT DEFAULT NULL)");
 
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!internal) {
@@ -858,35 +869,34 @@ public class MediaProvider extends ContentProvider {
                 + PATTERN_DOWNLOADS_FILE + "'");
     }
 
-    private static void updateAddSecondaryBucketId(SQLiteDatabase db, boolean internal) {
-        db.execSQL("ALTER TABLE files ADD COLUMN secondary_bucket_id INTEGER DEFAULT NULL;");
-    }
-
     private static void updateAddExpiresAndTrashed(SQLiteDatabase db, boolean internal) {
         db.execSQL("ALTER TABLE files ADD COLUMN date_expires INTEGER DEFAULT NULL;");
         db.execSQL("ALTER TABLE files ADD COLUMN is_trashed INTEGER DEFAULT 0;");
     }
 
-    private static void updateFixBucketIds(SQLiteDatabase db, boolean internal) {
-        final String selection = "bucket_id IS NULL AND _data IS NOT NULL AND "
-                + "(media_type=? OR media_type=?)";
-        final String[] selectionArgs = new String[] {
-                String.valueOf(FileColumns.MEDIA_TYPE_IMAGE),
-                String.valueOf(FileColumns.MEDIA_TYPE_VIDEO)
-        };
-        final ContentValues values = new ContentValues();
-        try (Cursor cursor = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
-                selection, selectionArgs, null, null, null)) {
-            while (cursor.moveToNext()) {
+    private static void updateAddGroupId(SQLiteDatabase db, boolean internal) {
+        db.execSQL("ALTER TABLE files ADD COLUMN group_id INTEGER DEFAULT NULL;");
+    }
+
+    private static void updateAddDirectories(SQLiteDatabase db, boolean internal) {
+        db.execSQL("ALTER TABLE files ADD COLUMN primary_directory TEXT DEFAULT NULL;");
+        db.execSQL("ALTER TABLE files ADD COLUMN secondary_directory TEXT DEFAULT NULL;");
+    }
+
+    private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
+        try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
+                null, null, null, null, null, null)) {
+            Log.d(TAG, "Recomputing " + c.getCount() + " data values");
+
+            final ContentValues values = new ContentValues();
+            while (c.moveToNext()) {
                 values.clear();
-                final long id = cursor.getLong(0);
-                final String data = cursor.getString(1);
+                final long id = c.getLong(0);
+                final String data = c.getString(1);
                 values.put(FileColumns.DATA, data);
-                computeBucketValues(values);
+                computeDataValues(values);
                 values.remove(FileColumns.DATA);
-                if (values.size() != 0) {
-                    db.update("files", values, "_id=" + id, null);
-                }
+                db.update("files", values, "_id=" + id, null);
             }
         }
     }
@@ -898,7 +908,7 @@ public class MediaProvider extends ContentProvider {
     static final int VERSION_N = 800;
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
-    static final int VERSION_Q = 1012;
+    static final int VERSION_Q = 1013;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -916,6 +926,7 @@ public class MediaProvider extends ContentProvider {
             // Anything older than KK is recreated from scratch
             createLatestSchema(db, internal);
         } else {
+            boolean recomputeDataValues = false;
             if (fromVersion < 800) {
                 updateCollationKeys(db);
             }
@@ -944,13 +955,24 @@ public class MediaProvider extends ContentProvider {
                 updateSetIsDownload(db, internal);
             }
             if (fromVersion < 1009) {
-                updateAddSecondaryBucketId(db, internal);
+                // This database version added "secondary_bucket_id", but that
+                // column name was refactored in version 1013 below, so this
+                // update step is no longer needed.
             }
             if (fromVersion < 1010) {
                 updateAddExpiresAndTrashed(db, internal);
             }
             if (fromVersion < 1012) {
-                updateFixBucketIds(db, internal);
+                recomputeDataValues = true;
+            }
+            if (fromVersion < 1013) {
+                updateAddGroupId(db, internal);
+                updateAddDirectories(db, internal);
+                recomputeDataValues = true;
+            }
+
+            if (recomputeDataValues) {
+                recomputeDataValues(db, internal);
             }
         }
 
@@ -1019,31 +1041,50 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    static void computeBucketValues(ContentValues values) {
+    static void computeDataValues(ContentValues values) {
         // Worst case we have to assume no bucket details
         values.remove(ImageColumns.BUCKET_ID);
         values.remove(ImageColumns.BUCKET_DISPLAY_NAME);
-        values.remove(ImageColumns.SECONDARY_BUCKET_ID);
+        values.remove(ImageColumns.GROUP_ID);
+        values.remove(ImageColumns.PRIMARY_DIRECTORY);
+        values.remove(ImageColumns.SECONDARY_DIRECTORY);
 
         final String data = values.getAsString(MediaColumns.DATA);
-        if (!TextUtils.isEmpty(data)) {
-            final File file = new File(data);
-            final File fileLower = new File(data.toLowerCase());
+        if (TextUtils.isEmpty(data)) return;
 
-            // Primary buckets are the parent directory
-            final String parent = fileLower.getParent();
-            if (parent != null) {
-                values.put(ImageColumns.BUCKET_ID, parent.hashCode());
-                values.put(ImageColumns.BUCKET_DISPLAY_NAME, file.getParentFile().getName());
-            }
+        final File file = new File(data);
+        final File fileLower = new File(data.toLowerCase());
 
-            // Secondary buckets are the first part of name
-            final String name = fileLower.getName();
-            final int firstDot = name.indexOf('.');
-            if (firstDot > 0) {
-                values.put(ImageColumns.SECONDARY_BUCKET_ID,
-                        name.substring(0, firstDot).hashCode());
-            }
+        // Buckets are the parent directory
+        final String parent = fileLower.getParent();
+        if (parent != null) {
+            values.put(ImageColumns.BUCKET_ID, parent.hashCode());
+            values.put(ImageColumns.BUCKET_DISPLAY_NAME, file.getParentFile().getName());
+        }
+
+        // Groups are the first part of name
+        final String name = fileLower.getName();
+        final int firstDot = name.indexOf('.');
+        if (firstDot > 0) {
+            values.put(ImageColumns.GROUP_ID,
+                    name.substring(0, firstDot).hashCode());
+        }
+
+        // Track down the relative path within the storage volume
+        Matcher matcher = PATTERN_STORAGE_PATH.matcher(data);
+        if (!matcher.find()) return;
+
+        // Directories are first two levels of storage paths
+        final String relativeData = data.substring(matcher.end());
+        final int firstSlash = relativeData.indexOf('/');
+        final int secondSlash = relativeData.indexOf('/', firstSlash + 1);
+        if (firstSlash != -1) {
+            values.put(ImageColumns.PRIMARY_DIRECTORY,
+                    relativeData.substring(0, firstSlash));
+        }
+        if (secondSlash != -1) {
+            values.put(ImageColumns.SECONDARY_DIRECTORY,
+                    relativeData.substring(firstSlash + 1, secondSlash));
         }
     }
 
@@ -2030,7 +2071,7 @@ public class MediaProvider extends ContentProvider {
 
         // compute bucket_id and bucket_display_name for all files
         String path = values.getAsString(MediaStore.MediaColumns.DATA);
-        computeBucketValues(values);
+        computeDataValues(values);
         values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);
 
         long rowId = 0;
@@ -4268,7 +4309,7 @@ public class MediaProvider extends ContentProvider {
                     values.remove(ImageColumns.BUCKET_ID);
                     values.remove(ImageColumns.BUCKET_DISPLAY_NAME);
                     // If the data is being modified update the bucket values
-                    computeBucketValues(values);
+                    computeDataValues(values);
                     computeTakenTime(values);
                     count = qb.update(db, values, userWhere, userWhereArgs);
                     // if this is a request from MediaScanner, DATA should contains file path
@@ -5868,7 +5909,7 @@ public class MediaProvider extends ContentProvider {
         addMapping(map, MediaStore.Images.ImageColumns.MINI_THUMB_MAGIC);
         addMapping(map, MediaStore.Images.ImageColumns.BUCKET_ID);
         addMapping(map, MediaStore.Images.ImageColumns.BUCKET_DISPLAY_NAME);
-        addMapping(map, MediaStore.Images.ImageColumns.SECONDARY_BUCKET_ID);
+        addMapping(map, MediaStore.Images.ImageColumns.GROUP_ID);
     }
 
     {
@@ -5889,7 +5930,7 @@ public class MediaProvider extends ContentProvider {
         addMapping(map, MediaStore.Video.VideoColumns.MINI_THUMB_MAGIC);
         addMapping(map, MediaStore.Video.VideoColumns.BUCKET_ID);
         addMapping(map, MediaStore.Video.VideoColumns.BUCKET_DISPLAY_NAME);
-        addMapping(map, MediaStore.Video.VideoColumns.SECONDARY_BUCKET_ID);
+        addMapping(map, MediaStore.Video.VideoColumns.GROUP_ID);
         addMapping(map, MediaStore.Video.VideoColumns.BOOKMARK);
 
         sMutableColumns.add(MediaStore.Video.VideoColumns.TAGS);

@@ -16,10 +16,10 @@
 
 package com.android.providers.media;
 
-import static android.provider.MediaStore.Downloads.isDownload;
-import static android.provider.MediaStore.Downloads.isDownloadDir;
 import static android.provider.MediaStore.PARAM_PRIMARY;
 import static android.provider.MediaStore.PARAM_SECONDARY;
+import static android.provider.MediaStore.Downloads.isDownload;
+import static android.provider.MediaStore.Downloads.isDownloadDir;
 
 import static com.android.providers.media.MediaProvider.ensureFileColumns;
 import static com.android.providers.media.MediaProvider.getPathOwnerPackageName;
@@ -38,6 +38,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.MediaColumns;
+import android.util.Log;
 import android.util.Pair;
 
 import androidx.test.runner.AndroidJUnit4;
@@ -49,6 +50,8 @@ import java.util.regex.Pattern;
 
 @RunWith(AndroidJUnit4.class)
 public class MediaProviderTest {
+    private static final String TAG = "MediaProviderTest";
+
     @Test
     public void testPathOwnerPackageName_None() throws Exception {
         assertEquals(null, getPathOwnerPackageName(null));
@@ -382,41 +385,105 @@ public class MediaProviderTest {
     }
 
     @Test
-    public void testComputeBucketValues() throws Exception {
-        assertComputeBucketValues("/DCIM/Camera/IMG1024.JPG",
-                "/dcim/camera", "Camera", "img1024");
-        assertComputeBucketValues("/DCIM/Camera/IMG1024.CR2",
-                "/dcim/camera", "Camera", "img1024");
-        assertComputeBucketValues("/DCIM/Camera/IMG1024.HDR.JPG",
-                "/dcim/camera", "Camera", "img1024");
-
-        assertComputeBucketValues("/DCIM/Camera/IMG1024",
-                "/dcim/camera", "Camera", null);
-        assertComputeBucketValues("/DCIM/Camera/.foo",
-                "/dcim/camera", "Camera", null);
-
-        assertComputeBucketValues("foo",
-                null, null, null);
+    public void testComputeDataValues_Grouped() throws Exception {
+        for (String data : new String[] {
+                "/storage/0000-0000/DCIM/Camera/IMG1024.JPG",
+                "/storage/0000-0000/DCIM/Camera/iMg1024.JpG",
+                "/storage/0000-0000/DCIM/Camera/IMG1024.CR2",
+                "/storage/0000-0000/DCIM/Camera/IMG1024.BURST001.JPG",
+        }) {
+            final ContentValues values = computeDataValues(data);
+            assertBucket(values, "/storage/0000-0000/DCIM/Camera", "Camera");
+            assertGroup(values, "IMG1024");
+            assertDirectories(values, "DCIM", "Camera");
+        }
     }
 
-    private static void assertComputeBucketValues(String data, String bucketId,
-            String bucketDisplayName, String secondaryBucketId) {
+    @Test
+    public void testComputeDataValues_Extensions() throws Exception {
+        ContentValues values;
+
+        values = computeDataValues("/storage/0000-0000/DCIM/Camera/IMG1024");
+        assertBucket(values, "/storage/0000-0000/DCIM/Camera", "Camera");
+        assertGroup(values, null);
+        assertDirectories(values, "DCIM", "Camera");
+
+        values = computeDataValues("/storage/0000-0000/DCIM/Camera/.foo");
+        assertBucket(values, "/storage/0000-0000/DCIM/Camera", "Camera");
+        assertGroup(values, null);
+        assertDirectories(values, "DCIM", "Camera");
+    }
+
+    @Test
+    public void testComputeDataValues_DirectoriesInvalid() throws Exception {
+        for (String data : new String[] {
+                "/storage/IMG1024.JPG",
+                "/data/media/IMG1024.JPG",
+                "IMG1024.JPG",
+        }) {
+            final ContentValues values = computeDataValues(data);
+            assertDirectories(values, null, null);
+        }
+    }
+
+    @Test
+    public void testComputeDataValues_Directories() throws Exception {
+        ContentValues values;
+
+        values = computeDataValues("/storage/emulated/0/IMG1024.JPG");
+        assertBucket(values, "/storage/emulated/0", "0");
+        assertGroup(values, "IMG1024");
+        assertDirectories(values, null, null);
+
+        values = computeDataValues("/storage/emulated/0/One/IMG1024.JPG");
+        assertBucket(values, "/storage/emulated/0/One", "One");
+        assertGroup(values, "IMG1024");
+        assertDirectories(values, "One", null);
+
+        values = computeDataValues("/storage/emulated/0/One/Two/IMG1024.JPG");
+        assertBucket(values, "/storage/emulated/0/One/Two", "Two");
+        assertGroup(values, "IMG1024");
+        assertDirectories(values, "One", "Two");
+
+        values = computeDataValues("/storage/emulated/0/One/Two/Three/IMG1024.JPG");
+        assertBucket(values, "/storage/emulated/0/One/Two/Three", "Three");
+        assertGroup(values, "IMG1024");
+        assertDirectories(values, "One", "Two");
+    }
+
+    private static ContentValues computeDataValues(String path) {
         final ContentValues values = new ContentValues();
-        values.put(MediaColumns.DATA, data);
-        MediaProvider.computeBucketValues(values);
+        values.put(MediaColumns.DATA, path);
+        MediaProvider.computeDataValues(values);
+        Log.v(TAG, "Computed values " + values);
+        return values;
+    }
+
+    private static void assertBucket(ContentValues values, String bucketId, String bucketName) {
         if (bucketId != null) {
-            assertEquals(bucketId.hashCode(), (long) values.getAsLong(ImageColumns.BUCKET_ID));
-            assertEquals(bucketDisplayName, values.getAsString(ImageColumns.BUCKET_DISPLAY_NAME));
+            assertEquals(bucketName,
+                    values.getAsString(ImageColumns.BUCKET_DISPLAY_NAME));
+            assertEquals(bucketId.toLowerCase().hashCode(),
+                    (long) values.getAsLong(ImageColumns.BUCKET_ID));
         } else {
-            assertNull(values.get(ImageColumns.BUCKET_ID));
             assertNull(values.get(ImageColumns.BUCKET_DISPLAY_NAME));
+            assertNull(values.get(ImageColumns.BUCKET_ID));
         }
-        if (secondaryBucketId != null) {
-            assertEquals(secondaryBucketId.hashCode(),
-                    (long) values.getAsLong(ImageColumns.SECONDARY_BUCKET_ID));
+    }
+
+    private static void assertGroup(ContentValues values, String groupId) {
+        if (groupId != null) {
+            assertEquals(groupId.toLowerCase().hashCode(),
+                    (long) values.getAsLong(ImageColumns.GROUP_ID));
         } else {
-            assertNull(values.get(ImageColumns.SECONDARY_BUCKET_ID));
+            assertNull(values.get(ImageColumns.GROUP_ID));
         }
+    }
+
+    private static void assertDirectories(ContentValues values, String primaryDir,
+            String secondaryDir) {
+        assertEquals(primaryDir, values.get(ImageColumns.PRIMARY_DIRECTORY));
+        assertEquals(secondaryDir, values.get(ImageColumns.SECONDARY_DIRECTORY));
     }
 
     private static boolean isGreylistMatch(String raw) {

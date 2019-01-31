@@ -34,6 +34,7 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.MediaProvider.DatabaseHelper;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,8 +51,10 @@ public class DatabaseHelperTest {
     }
 
     @Before
-    public void setUp() throws Exception {
+    @After
+    public void deleteDatabase() throws Exception {
         getContext().deleteDatabase(TEST_DB);
+        getContext().deleteDatabase(TEST_CLEAN_DB);
     }
 
     @Test

@@ -2281,7 +2281,7 @@ public class MediaProvider extends ContentProvider {
                     path = mExternalStoragePaths[0]
                             + "/Playlists/" + values.getAsString(Audio.Playlists.NAME);
                     values.put(MediaStore.MediaColumns.DATA, path);
-                    values.put(FileColumns.PARENT, getParent(helper, db, path));
+                    values.put(FileColumns.PARENT, 0);
                 } else {
                     Log.e(TAG, "path is empty in insertFile()");
                 }
@@ -2913,7 +2913,8 @@ public class MediaProvider extends ContentProvider {
         ContentValues mediatype = new ContentValues();
         mediatype.put("media_type", 0);
         int numrows = db.update("files", mediatype,
-                "_data >= ? AND _data < ?",
+                "_data >= ? AND _data < ?" +
+                " AND " + FileColumns.FORMAT + "!=" + MtpConstants.FORMAT_ABSTRACT_AV_PLAYLIST,
                 new String[] { hiddenroot  + "/", hiddenroot + "0"});
         helper.mNumUpdates += numrows;
         ContentResolver res = getContext().getContentResolver();
@@ -4654,6 +4655,13 @@ public class MediaProvider extends ContentProvider {
                             String volume = srcuri.toString().substring(16, 24); // extract internal/external
                             Uri uri = Uri.parse("content://media/" + volume + "/audio/" + table + "/" + rowId);
                             getContext().getContentResolver().notifyChange(uri, null);
+                            // We have to remove the previous key from the cache otherwise we will
+                            // not be able to change between upper and lower case letters.
+                            if (isAlbum) {
+                                cache.remove(currentFancyName + albumHash);
+                            } else {
+                                cache.remove(currentFancyName);
+                            }
                         }
                     }
                     break;
@@ -4697,7 +4705,7 @@ public class MediaProvider extends ContentProvider {
             name = one;
         } else {
             // Names with accents are usually better, and conveniently sort later
-            if (one.toLowerCase().compareTo(two.toLowerCase()) > 0) {
+            if (one.toLowerCase().compareTo(two.toLowerCase()) >= 0) {
                 name = one;
             } else {
                 name = two;

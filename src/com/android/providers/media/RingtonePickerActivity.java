@@ -503,6 +503,11 @@ public final class RingtonePickerActivity extends AlertActivity implements
      * On item selected via keys
      */
     public void onItemSelected(AdapterView parent, View view, int position, long id) {
+        // footer view
+        if (position >= mCursor.getCount() + mStaticItemCount) {
+            return;
+        }
+
         playRingtone(position, DELAY_MS_SELECTION_PLAYED);
 
         // In the buttonless (watch-only) version, preemptively set our result since we won't

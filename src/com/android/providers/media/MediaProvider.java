@@ -72,7 +72,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.drawable.Icon;
 import android.media.ExifInterface;
 import android.media.MediaFile;
-import android.media.MediaScanner;
 import android.media.MediaScannerConnection;
 import android.media.MediaScannerConnection.MediaScannerConnectionClient;
 import android.media.ThumbnailUtils;
@@ -125,6 +124,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.os.BackgroundThread;
 import com.android.internal.util.ArrayUtils;
 import com.android.internal.util.IndentingPrintWriter;
+import com.android.providers.media.scan.MediaScanner;
 
 import libcore.io.IoUtils;
 import libcore.net.MimeUtils;
@@ -2131,7 +2131,7 @@ public class MediaProvider extends ContentProvider {
             // to use that exact type, so don't override it based on mimetype
             if (!values.containsKey(FileColumns.MEDIA_TYPE) &&
                     mediaType == FileColumns.MEDIA_TYPE_NONE &&
-                    !MediaScanner.isNoMediaPath(path)) {
+                    !android.media.MediaScanner.isNoMediaPath(path)) {
                 if (MediaFile.isAudioMimeType(mimeType)) {
                     mediaType = FileColumns.MEDIA_TYPE_AUDIO;
                 } else if (MediaFile.isVideoMimeType(mimeType)) {
@@ -2764,7 +2764,7 @@ public class MediaProvider extends ContentProvider {
     private void hidePath(String volumeName, DatabaseHelper helper, SQLiteDatabase db,
             String path) {
         // a new nomedia path was added, so clear the media paths
-        MediaScanner.clearMediaPathCache(true /* media */, false /* nomedia */);
+        android.media.MediaScanner.clearMediaPathCache(true /* media */, false /* nomedia */);
         File nomedia = new File(path);
         String hiddenroot = nomedia.isDirectory() ? path : nomedia.getParent();
 
@@ -2806,7 +2806,7 @@ public class MediaProvider extends ContentProvider {
      */
     private void processRemovedNoMediaPath(final String path) {
         // a nomedia path was removed, so clear the nomedia paths
-        MediaScanner.clearMediaPathCache(false /* media */, true /* nomedia */);
+        android.media.MediaScanner.clearMediaPathCache(false /* media */, true /* nomedia */);
 
         final String volumeName = MediaStore.getVolumeName(new File(path));
         final Uri uri = MediaStore.Files.getContentUri(volumeName);
@@ -3423,11 +3423,12 @@ public class MediaProvider extends ContentProvider {
 
             if (INTERNAL_VOLUME.equals(mMediaScannerVolume)) {
                 // persist current build fingerprint as fingerprint for system (internal) sound scan
-                final SharedPreferences scanSettings =
-                        getContext().getSharedPreferences(MediaScanner.SCANNED_BUILD_PREFS_NAME,
-                                Context.MODE_PRIVATE);
+                final SharedPreferences scanSettings = getContext().getSharedPreferences(
+                        android.media.MediaScanner.SCANNED_BUILD_PREFS_NAME,
+                        Context.MODE_PRIVATE);
                 final SharedPreferences.Editor editor = scanSettings.edit();
-                editor.putString(MediaScanner.LAST_INTERNAL_SCAN_FINGERPRINT, Build.FINGERPRINT);
+                editor.putString(android.media.MediaScanner.LAST_INTERNAL_SCAN_FINGERPRINT,
+                        Build.FINGERPRINT);
                 editor.apply();
             }
             mMediaScannerVolume = null;
@@ -3657,12 +3658,8 @@ public class MediaProvider extends ContentProvider {
                     final Bundle res = new Bundle();
                     switch (method) {
                         case MediaStore.SCAN_FILE_CALL:
-                            final String path = systemFile.getAbsolutePath();
-                            final String ext = path.substring(path.lastIndexOf('.') + 1);
-                            final String mimeType = MimeUtils.guessMimeTypeFromExtension(ext);
                             res.putParcelable(Intent.EXTRA_STREAM,
-                                    MediaService.onScanFile(getContext(), Uri.fromFile(systemFile),
-                                            mimeType));
+                                    MediaScanner.instance(getContext()).scanFile(systemFile));
                             break;
                         case MediaStore.SCAN_VOLUME_CALL:
                             MediaService.onScanVolume(getContext(), Uri.fromFile(systemFile));
@@ -4385,11 +4382,7 @@ public class MediaProvider extends ContentProvider {
             try (Cursor c = queryForSingleItem(uri,
                     new String[] { FileColumns.DATA }, null, null, null)) {
                 final String data = c.getString(0);
-                try (MediaScanner scanner = new MediaScanner(getContext(), volumeName)) {
-                    final String ext = data.substring(data.lastIndexOf('.') + 1);
-                    scanner.scanSingleFile(data,
-                            MimeUtils.guessMimeTypeFromExtension(ext));
-                }
+                MediaScanner.instance(getContext()).scanFile(new File(data));
             } catch (Exception e) {
                 Log.w(TAG, "Failed to update metadata for " + uri, e);
             } finally {
@@ -4715,13 +4708,7 @@ public class MediaProvider extends ContentProvider {
                         update(uri, values, null, null);
                         break;
                     default:
-                        final String volumeName = MediaStore.getVolumeName(uri);
-                        final String data = file.getAbsolutePath();
-                        try (MediaScanner scanner = new MediaScanner(getContext(), volumeName)) {
-                            final String ext = data.substring(data.lastIndexOf('.') + 1);
-                            scanner.scanSingleFile(data,
-                                    MimeUtils.guessMimeTypeFromExtension(ext));
-                        }
+                        MediaScanner.instance(getContext()).scanFile(file);
                         break;
                 }
             } catch (Exception e2) {

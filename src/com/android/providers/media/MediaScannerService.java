@@ -50,7 +50,7 @@ public class MediaScannerService extends Service {
                                 .translateAppToSystem(new File(path).getCanonicalFile(),
                                         callingPid, callingUid);
                         res = MediaService.onScanFile(MediaScannerService.this,
-                                Uri.fromFile(systemFile), mimeType);
+                                Uri.fromFile(systemFile));
                         Log.d(TAG, "Scanned " + path + " as " + systemFile + " for " + res);
                     } catch (Exception e) {
                         Log.w(TAG, "Failed to scan " + path, e);

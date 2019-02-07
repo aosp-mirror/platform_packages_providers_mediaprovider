@@ -33,6 +33,7 @@
                 android:name=".MediaProvider"
                 android:authorities="media"
                 android:grantUriPermissions="true"
+                android:forceUriPermissions="true"
                 android:exported="true" />
 
         <provider

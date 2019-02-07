@@ -1,0 +1,7 @@
+-keep class com.android.providers.media.scan.MediaScanner {
+    *;
+}
+
+-keep class * implements com.android.providers.media.scan.MediaScanner {
+    *;
+}

@@ -24,7 +24,6 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.media.MediaScanner;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.PowerManager;
@@ -32,10 +31,12 @@ import android.os.Trace;
 import android.provider.MediaStore;
 import android.util.Log;
 
+import com.android.providers.media.scan.MediaScanner;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Collection;
 
 public class MediaService extends IntentService {
     public MediaService() {
@@ -77,7 +78,7 @@ public class MediaService extends IntentService {
                     break;
                 }
                 case Intent.ACTION_MEDIA_SCANNER_SCAN_FILE: {
-                    onScanFile(this, intent.getData(), intent.getType());
+                    onScanFile(this, intent.getData());
                     break;
                 }
                 default: {
@@ -137,8 +138,8 @@ public class MediaService extends IntentService {
                 context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_STARTED, uri));
             }
 
-            try (MediaScanner scanner = new MediaScanner(context, volumeName)) {
-                scanner.scanDirectories(resolveDirectories(volumeName));
+            for (File dir : resolveDirectories(volumeName)) {
+                MediaScanner.instance(context).scanDirectory(dir);
             }
 
             resolver.delete(scanUri, null, null);
@@ -150,20 +151,13 @@ public class MediaService extends IntentService {
         }
     }
 
-    public static Uri onScanFile(Context context, Uri uri, String mimeType) throws IOException {
+    public static Uri onScanFile(Context context, Uri uri) throws IOException {
         final File file = new File(uri.getPath()).getCanonicalFile();
-        final String volumeName = MediaStore.getVolumeName(file);
-
-        try (MediaScanner scanner = new MediaScanner(context, volumeName)) {
-            return scanner.scanSingleFile(file.getAbsolutePath(), mimeType);
-        }
+        return MediaScanner.instance(context).scanFile(file);
     }
 
-    private static String[] resolveDirectories(String volumeName) throws FileNotFoundException {
-        final ArrayList<String> res = new ArrayList<>();
-        for (File dir : MediaStore.getVolumeScanPaths(volumeName)) {
-            res.add(dir.getAbsolutePath());
-        }
-        return res.toArray(new String[res.size()]);
+    private static Collection<File> resolveDirectories(String volumeName)
+            throws FileNotFoundException {
+        return MediaStore.getVolumeScanPaths(volumeName);
     }
 }

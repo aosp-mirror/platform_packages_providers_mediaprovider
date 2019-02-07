@@ -411,7 +411,8 @@ public class ModernMediaScanner implements MediaScanner {
             op.withValue(AudioColumns.COMPOSER,
                     defeatEmpty(mmr.extractMetadata(METADATA_KEY_COMPOSER), null));
             op.withValue(AudioColumns.ALBUM,
-                    defeatEmpty(mmr.extractMetadata(METADATA_KEY_ALBUM), UNKNOWN_STRING));
+                    defeatEmpty(mmr.extractMetadata(METADATA_KEY_ALBUM),
+                            file.getParentFile().getName()));
             op.withValue(AudioColumns.TRACK,
                     defeatEmpty(mmr.extractMetadata(METADATA_KEY_CD_TRACK_NUMBER), null));
             op.withValue(AudioColumns.YEAR,

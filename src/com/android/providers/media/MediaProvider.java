@@ -678,7 +678,8 @@ public class MediaProvider extends ContentProvider {
                 + "referer_uri TEXT DEFAULT NULL, is_audiobook INTEGER DEFAULT 0,"
                 + "date_expires INTEGER DEFAULT NULL,is_trashed INTEGER DEFAULT 0,"
                 + "group_id INTEGER DEFAULT NULL,primary_directory TEXT DEFAULT NULL,"
-                + "secondary_directory TEXT DEFAULT NULL)");
+                + "secondary_directory TEXT DEFAULT NULL,document_id TEXT DEFAULT NULL,"
+                + "instance_id TEXT DEFAULT NULL,original_document_id TEXT DEFAULT NULL)");
 
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!internal) {
@@ -883,6 +884,12 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("ALTER TABLE files ADD COLUMN secondary_directory TEXT DEFAULT NULL;");
     }
 
+    private static void updateAddXmp(SQLiteDatabase db, boolean internal) {
+        db.execSQL("ALTER TABLE files ADD COLUMN document_id TEXT DEFAULT NULL;");
+        db.execSQL("ALTER TABLE files ADD COLUMN instance_id TEXT DEFAULT NULL;");
+        db.execSQL("ALTER TABLE files ADD COLUMN original_document_id TEXT DEFAULT NULL;");
+    }
+
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
                 null, null, null, null, null, null)) {
@@ -908,7 +915,7 @@ public class MediaProvider extends ContentProvider {
     static final int VERSION_N = 800;
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
-    static final int VERSION_Q = 1013;
+    static final int VERSION_Q = 1014;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -969,6 +976,9 @@ public class MediaProvider extends ContentProvider {
                 updateAddGroupId(db, internal);
                 updateAddDirectories(db, internal);
                 recomputeDataValues = true;
+            }
+            if (fromVersion < 1014) {
+                updateAddXmp(db, internal);
             }
 
             if (recomputeDataValues) {

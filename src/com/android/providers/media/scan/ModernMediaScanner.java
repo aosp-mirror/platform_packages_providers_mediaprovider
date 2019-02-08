@@ -579,7 +579,7 @@ public class ModernMediaScanner implements MediaScanner {
         final int xmpSplit = xmpMimeType.indexOf('/');
         if (xmpSplit == -1) return extMimeType;
 
-        if (extMimeType.regionMatches(0, xmpMimeType, 0, xmpSplit)) {
+        if (extMimeType.regionMatches(0, xmpMimeType, 0, xmpSplit + 1)) {
             return xmpMimeType;
         } else {
             return extMimeType;

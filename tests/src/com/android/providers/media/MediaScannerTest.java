@@ -119,6 +119,8 @@ public class MediaScannerTest {
         assertEquals("image/png",
                 ModernMediaScanner.maybeOverrideMimeType("image/png", "image"));
         assertEquals("image/png",
+                ModernMediaScanner.maybeOverrideMimeType("image/png", "im/im"));
+        assertEquals("image/png",
                 ModernMediaScanner.maybeOverrideMimeType("image/png", "audio/x-shiny"));
         assertEquals("image/x-shiny",
                 ModernMediaScanner.maybeOverrideMimeType("image/png", "image/x-shiny"));

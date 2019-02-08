@@ -1571,8 +1571,8 @@ public class MediaProvider extends ContentProvider {
         if (TextUtils.isEmpty(values.getAsString(MediaColumns.DATA))) {
             // Check for shady looking paths
             final String displayName = values.getAsString(MediaColumns.DISPLAY_NAME);
-            final String primary = uri.getQueryParameter(MediaStore.PARAM_PRIMARY);
-            final String secondary = uri.getQueryParameter(MediaStore.PARAM_SECONDARY);
+            final String primary = values.getAsString(MediaColumns.PRIMARY_DIRECTORY);
+            final String secondary = values.getAsString(MediaColumns.SECONDARY_DIRECTORY);
             if (displayName.contains("/")) {
                 throw new IllegalArgumentException("Directories not allowed: " + displayName);
             }

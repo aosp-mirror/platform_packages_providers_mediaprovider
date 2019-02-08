@@ -16,8 +16,6 @@
 
 package com.android.providers.media;
 
-import static android.provider.MediaStore.PARAM_PRIMARY;
-import static android.provider.MediaStore.PARAM_SECONDARY;
 import static android.provider.MediaStore.Downloads.isDownload;
 import static android.provider.MediaStore.Downloads.isDownloadDir;
 
@@ -41,12 +39,12 @@ import android.provider.MediaStore.MediaColumns;
 import android.util.Log;
 import android.util.Pair;
 
-import androidx.test.runner.AndroidJUnit4;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.regex.Pattern;
+
+import androidx.test.runner.AndroidJUnit4;
 
 @RunWith(AndroidJUnit4.class)
 public class MediaProviderTest {
@@ -87,39 +85,39 @@ public class MediaProviderTest {
     @Test
     public void testBuildData_Simple() throws Exception {
         final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-        assertEndsWith("/Pictures/file.png", buildFile(uri, "file", "image/png"));
-        assertEndsWith("/Pictures/file.png", buildFile(uri, "file.png", "image/png"));
-        assertEndsWith("/Pictures/file.jpg.png", buildFile(uri, "file.jpg", "image/png"));
+        assertEndsWith("/Pictures/file.png",
+                buildFile(uri, null, null, "file", "image/png"));
+        assertEndsWith("/Pictures/file.png",
+                buildFile(uri, null, null, "file.png", "image/png"));
+        assertEndsWith("/Pictures/file.jpg.png",
+                buildFile(uri, null, null, "file.jpg", "image/png"));
     }
 
     @Test
     public void testBuildData_Primary() throws Exception {
-        final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI.buildUpon()
-                .appendQueryParameter(MediaStore.PARAM_PRIMARY, Environment.DIRECTORY_DCIM).build();
-        assertEndsWith("/DCIM/IMG_1024.JPG", buildFile(uri, "IMG_1024.JPG", "image/jpeg"));
+        final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+        assertEndsWith("/DCIM/IMG_1024.JPG",
+                buildFile(uri, Environment.DIRECTORY_DCIM, null, "IMG_1024.JPG", "image/jpeg"));
     }
 
     @Test
     public void testBuildData_Secondary() throws Exception {
-        final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI.buildUpon()
-                .appendQueryParameter(PARAM_SECONDARY, Environment.DIRECTORY_SCREENSHOTS)
-                .build();
-        assertEndsWith("/Pictures/Screenshots/foo.png", buildFile(uri, "foo.png", "image/png"));
+        final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+        assertEndsWith("/Pictures/Screenshots/foo.png",
+                buildFile(uri, null, Environment.DIRECTORY_SCREENSHOTS, "foo.png", "image/png"));
     }
 
     @Test
     public void testBuildData_InvalidNames() throws Exception {
         final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
         assertThrows(IllegalArgumentException.class, () -> {
-            buildFile(uri, "foo/bar", "image/png");
+            buildFile(uri, null, null, "foo/bar", "image/png");
         });
         assertThrows(IllegalArgumentException.class, () -> {
-            buildFile(uri.buildUpon().appendQueryParameter(PARAM_PRIMARY, "foo/bar")
-                    .build(), "foo", "image/png");
+            buildFile(uri, "foo/bar", null, "foo", "image/png");
         });
         assertThrows(IllegalArgumentException.class, () -> {
-            buildFile(uri.buildUpon().appendQueryParameter(PARAM_SECONDARY, "foo/bar").build(),
-                    "foo", "image/png");
+            buildFile(uri, null, "foo/bar", "foo", "image/png");
         });
     }
 
@@ -130,17 +128,20 @@ public class MediaProviderTest {
         }) {
             if (!type.startsWith("audio/")) {
                 assertThrows(IllegalArgumentException.class, () -> {
-                    buildFile(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, "foo", type);
+                    buildFile(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                            null, null, "foo", type);
                 });
             }
             if (!type.startsWith("video/")) {
                 assertThrows(IllegalArgumentException.class, () -> {
-                    buildFile(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, "foo", type);
+                    buildFile(MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                            null, null, "foo", type);
                 });
             }
             if (!type.startsWith("image/")) {
                 assertThrows(IllegalArgumentException.class, () -> {
-                    buildFile(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "foo", type);
+                    buildFile(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                            null, null, "foo", type);
                 });
             }
         }
@@ -495,8 +496,15 @@ public class MediaProviderTest {
         return false;
     }
 
-    private static String buildFile(Uri uri, String displayName, String mimeType) {
+    private static String buildFile(Uri uri, String primaryDir, String secondaryDir,
+            String displayName, String mimeType) {
         final ContentValues values = new ContentValues();
+        if (primaryDir != null) {
+            values.put(MediaColumns.PRIMARY_DIRECTORY, primaryDir);
+        }
+        if (secondaryDir != null) {
+            values.put(MediaColumns.SECONDARY_DIRECTORY, secondaryDir);
+        }
         values.put(MediaColumns.DISPLAY_NAME, displayName);
         values.put(MediaColumns.MIME_TYPE, mimeType);
         ensureFileColumns(uri, values);

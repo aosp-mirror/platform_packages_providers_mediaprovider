@@ -178,6 +178,12 @@ public class MediaProvider extends ContentProvider {
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?");
 
     /**
+     * Regex of a selection string that matches a specific ID.
+     */
+    private static final Pattern PATTERN_SELECTION_ID = Pattern.compile(
+            "(?:image_id|video_id)\\s*=\\s*(\\d+)");
+
+    /**
      * Set of {@link Cursor} columns that refer to raw filesystem paths.
      */
     private static final ArrayMap<String, Object> sDataColumns = new ArrayMap<>();
@@ -1346,6 +1352,48 @@ public class MediaProvider extends ContentProvider {
             if (!ArrayUtils.isEmpty(projection) && projection[0].startsWith("DISTINCT ")) {
                 projection[0] = projection[0].substring("DISTINCT ".length());
                 qb.setDistinct(true);
+            }
+
+            // Some apps are generating thumbnails with getThumbnail(), but then
+            // ignoring the returned Bitmap and querying the raw table; give
+            // them a row with enough information to find the original image.
+            if ((table == IMAGES_THUMBNAILS || table == VIDEO_THUMBNAILS)
+                    && !TextUtils.isEmpty(selection)) {
+                final Matcher matcher = PATTERN_SELECTION_ID.matcher(selection);
+                if (matcher.matches()) {
+                    final long id = Long.parseLong(matcher.group(1));
+
+                    final Uri fullUri;
+                    if (table == IMAGES_THUMBNAILS) {
+                        fullUri = ContentUris.withAppendedId(
+                                Images.Media.getContentUri(volumeName), id);
+                    } else if (table == VIDEO_THUMBNAILS) {
+                        fullUri = ContentUris.withAppendedId(
+                                Video.Media.getContentUri(volumeName), id);
+                    } else {
+                        throw new IllegalArgumentException();
+                    }
+
+                    final MatrixCursor cursor = new MatrixCursor(projection);
+                    try {
+                        String data = null;
+                        if (ContentResolver.DEPRECATE_DATA_COLUMNS) {
+                            // Go through provider to escape sandbox
+                            data = ContentResolver.translateDeprecatedDataPath(
+                                    fullUri.buildUpon().appendPath("thumbnail").build());
+                        } else {
+                            // Go directly to thumbnail file on disk
+                            data = ensureThumbnail(fullUri, signal).getAbsolutePath();
+                        }
+                        cursor.newRow().add(MediaColumns._ID, null)
+                                .add(Images.Thumbnails.IMAGE_ID, id)
+                                .add(Video.Thumbnails.VIDEO_ID, id)
+                                .add(MediaColumns.DATA, data);
+                    } catch (FileNotFoundException ignored) {
+                        // Return empty cursor if we had thumbnail trouble
+                    }
+                    return cursor;
+                }
             }
         }
 
@@ -4495,18 +4543,34 @@ public class MediaProvider extends ContentProvider {
                         MediaStore.Audio.Media.ALBUM_ID + "=" + albumId, null, null, signal)) {
                     if (c.moveToFirst()) {
                         final long audioId = c.getLong(0);
-                        return openAudioThumbnail(
-                                ContentUris.withAppendedId(baseUri, audioId), signal);
+                        final Uri targetUri = ContentUris.withAppendedId(baseUri, audioId);
+                        return ParcelFileDescriptor.open(ensureThumbnail(targetUri, signal),
+                                ParcelFileDescriptor.MODE_READ_ONLY);
                     } else {
                         throw new FileNotFoundException("No media for album " + uri);
                     }
                 }
             }
             case AUDIO_ALBUMART_FILE_ID: {
-                final Uri baseUri = MediaStore.Audio.Media.getContentUri(volumeName);
                 final long audioId = Long.parseLong(uri.getPathSegments().get(3));
-                return openAudioThumbnail(
-                        ContentUris.withAppendedId(baseUri, audioId), signal);
+                final Uri targetUri = ContentUris
+                        .withAppendedId(Audio.Media.getContentUri(volumeName), audioId);
+                return ParcelFileDescriptor.open(ensureThumbnail(targetUri, signal),
+                        ParcelFileDescriptor.MODE_READ_ONLY);
+            }
+            case VIDEO_MEDIA_ID_THUMBNAIL: {
+                final long videoId = Long.parseLong(uri.getPathSegments().get(3));
+                final Uri targetUri = ContentUris
+                        .withAppendedId(Video.Media.getContentUri(volumeName), videoId);
+                return ParcelFileDescriptor.open(ensureThumbnail(targetUri, signal),
+                        ParcelFileDescriptor.MODE_READ_ONLY);
+            }
+            case IMAGES_MEDIA_ID_THUMBNAIL: {
+                final long imageId = Long.parseLong(uri.getPathSegments().get(3));
+                final Uri targetUri = ContentUris
+                        .withAppendedId(Images.Media.getContentUri(volumeName), imageId);
+                return ParcelFileDescriptor.open(ensureThumbnail(targetUri, signal),
+                        ParcelFileDescriptor.MODE_READ_ONLY);
             }
         }
 
@@ -4523,7 +4587,6 @@ public class MediaProvider extends ContentProvider {
     public AssetFileDescriptor openTypedAssetFile(Uri uri, String mimeTypeFilter, Bundle opts,
             CancellationSignal signal) throws FileNotFoundException {
         return openTypedAssetFileCommon(uri, mimeTypeFilter, opts, signal);
-
     }
 
     private AssetFileDescriptor openTypedAssetFileCommon(Uri uri, String mimeTypeFilter,
@@ -4532,31 +4595,16 @@ public class MediaProvider extends ContentProvider {
 
         uri = safeUncanonicalize(uri);
 
-        final boolean allowHidden = isCallingPackageAllowedHidden();
-        final int match = matchUri(uri, allowHidden);
-
         // TODO: enforce that caller has access to this uri
 
         // Offer thumbnail of media, when requested
         final boolean wantsThumb = (opts != null) && opts.containsKey(ContentResolver.EXTRA_SIZE)
                 && (mimeTypeFilter != null) && mimeTypeFilter.startsWith("image/");
         if (wantsThumb) {
-            final CallingIdentity ident = clearCallingIdentity();
-            try {
-                switch (match) {
-                    case AUDIO_MEDIA_ID:
-                        return openTypedAssetFile(mAudioThumbnailer.ensureThumbnail(uri, signal));
-                    case VIDEO_MEDIA_ID:
-                        return openTypedAssetFile(mVideoThumbnailer.ensureThumbnail(uri, signal));
-                    case IMAGES_MEDIA_ID:
-                        return openTypedAssetFile(mImageThumbnailer.ensureThumbnail(uri, signal));
-                }
-            } catch (IOException e) {
-                Log.w(TAG, e);
-                throw new FileNotFoundException(e.getMessage());
-            } finally {
-                restoreCallingIdentity(ident);
-            }
+            final File thumbFile = ensureThumbnail(uri, signal);
+            return new AssetFileDescriptor(
+                    ParcelFileDescriptor.open(thumbFile, ParcelFileDescriptor.MODE_READ_ONLY),
+                    0, AssetFileDescriptor.UNKNOWN_LENGTH);
         }
 
         // Worst case, return the underlying file
@@ -4564,24 +4612,29 @@ public class MediaProvider extends ContentProvider {
                 AssetFileDescriptor.UNKNOWN_LENGTH);
     }
 
-    private ParcelFileDescriptor openAudioThumbnail(Uri uri, CancellationSignal signal)
-            throws FileNotFoundException {
+    private File ensureThumbnail(Uri uri, CancellationSignal signal) throws FileNotFoundException {
+        final boolean allowHidden = isCallingPackageAllowedHidden();
+        final int match = matchUri(uri, allowHidden);
+
         final CallingIdentity ident = clearCallingIdentity();
         try {
-            return ParcelFileDescriptor.open(mAudioThumbnailer.ensureThumbnail(uri, signal),
-                    ParcelFileDescriptor.MODE_READ_ONLY);
+            final File thumbFile;
+            switch (match) {
+                case AUDIO_MEDIA_ID:
+                    return mAudioThumbnailer.ensureThumbnail(uri, signal);
+                case VIDEO_MEDIA_ID:
+                    return mVideoThumbnailer.ensureThumbnail(uri, signal);
+                case IMAGES_MEDIA_ID:
+                    return mImageThumbnailer.ensureThumbnail(uri, signal);
+                default:
+                    throw new FileNotFoundException();
+            }
         } catch (IOException e) {
             Log.w(TAG, e);
             throw new FileNotFoundException(e.getMessage());
         } finally {
             restoreCallingIdentity(ident);
         }
-    }
-
-    private static AssetFileDescriptor openTypedAssetFile(File file) throws IOException {
-        return new AssetFileDescriptor(
-                ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY), 0,
-                AssetFileDescriptor.UNKNOWN_LENGTH);
     }
 
     /**
@@ -5660,8 +5713,9 @@ public class MediaProvider extends ContentProvider {
     // a corresponding database upgrade step for it.
     private static final int IMAGES_MEDIA = 1;
     private static final int IMAGES_MEDIA_ID = 2;
-    private static final int IMAGES_THUMBNAILS = 3;
-    private static final int IMAGES_THUMBNAILS_ID = 4;
+    private static final int IMAGES_MEDIA_ID_THUMBNAIL = 3;
+    private static final int IMAGES_THUMBNAILS = 4;
+    private static final int IMAGES_THUMBNAILS_ID = 5;
 
     private static final int AUDIO_MEDIA = 100;
     private static final int AUDIO_MEDIA_ID = 101;
@@ -5688,8 +5742,9 @@ public class MediaProvider extends ContentProvider {
 
     private static final int VIDEO_MEDIA = 200;
     private static final int VIDEO_MEDIA_ID = 201;
-    private static final int VIDEO_THUMBNAILS = 202;
-    private static final int VIDEO_THUMBNAILS_ID = 203;
+    private static final int VIDEO_MEDIA_ID_THUMBNAIL = 202;
+    private static final int VIDEO_THUMBNAILS = 203;
+    private static final int VIDEO_THUMBNAILS_ID = 204;
 
     private static final int VOLUMES = 300;
     private static final int VOLUMES_ID = 301;
@@ -5766,6 +5821,7 @@ public class MediaProvider extends ContentProvider {
 
         publicMatcher.addURI(AUTHORITY, "*/images/media", IMAGES_MEDIA);
         publicMatcher.addURI(AUTHORITY, "*/images/media/#", IMAGES_MEDIA_ID);
+        publicMatcher.addURI(AUTHORITY, "*/images/media/#/thumbnail", IMAGES_MEDIA_ID_THUMBNAIL);
         publicMatcher.addURI(AUTHORITY, "*/images/thumbnails", IMAGES_THUMBNAILS);
         publicMatcher.addURI(AUTHORITY, "*/images/thumbnails/#", IMAGES_THUMBNAILS_ID);
 
@@ -5798,6 +5854,7 @@ public class MediaProvider extends ContentProvider {
 
         publicMatcher.addURI(AUTHORITY, "*/video/media", VIDEO_MEDIA);
         publicMatcher.addURI(AUTHORITY, "*/video/media/#", VIDEO_MEDIA_ID);
+        publicMatcher.addURI(AUTHORITY, "*/video/media/#/thumbnail", VIDEO_MEDIA_ID_THUMBNAIL);
         publicMatcher.addURI(AUTHORITY, "*/video/thumbnails", VIDEO_THUMBNAILS);
         publicMatcher.addURI(AUTHORITY, "*/video/thumbnails/#", VIDEO_THUMBNAILS_ID);
 

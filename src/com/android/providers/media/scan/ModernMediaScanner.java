@@ -62,7 +62,9 @@ import android.util.ArrayMap;
 import android.util.Log;
 import android.util.LongArray;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.providers.media.MediaProvider;
+import com.android.providers.media.util.XmpInterface;
 
 import libcore.net.MimeUtils;
 
@@ -411,7 +413,8 @@ public class ModernMediaScanner implements MediaScanner {
             op.withValue(AudioColumns.COMPOSER,
                     defeatEmpty(mmr.extractMetadata(METADATA_KEY_COMPOSER), null));
             op.withValue(AudioColumns.ALBUM,
-                    defeatEmpty(mmr.extractMetadata(METADATA_KEY_ALBUM), UNKNOWN_STRING));
+                    defeatEmpty(mmr.extractMetadata(METADATA_KEY_ALBUM),
+                            file.getParentFile().getName()));
             op.withValue(AudioColumns.TRACK,
                     defeatEmpty(mmr.extractMetadata(METADATA_KEY_CD_TRACK_NUMBER), null));
             op.withValue(AudioColumns.YEAR,
@@ -498,13 +501,19 @@ public class ModernMediaScanner implements MediaScanner {
                 .newInsert(MediaStore.Images.Media.getContentUri(volumeName));
         try {
             final ExifInterface exif = new ExifInterface(file);
+            final XmpInterface xmp = XmpInterface.fromContainer(exif);
 
             scanItemGeneric(op, file, attrs, mimeType);
 
+            op.withValue(MediaColumns.MIME_TYPE,
+                    maybeOverrideMimeType(mimeType, xmp.getFormat()));
             op.withValue(MediaColumns.WIDTH,
                     defeatEmpty(exif.getAttribute(ExifInterface.TAG_IMAGE_WIDTH), null));
             op.withValue(MediaColumns.HEIGHT,
                     defeatEmpty(exif.getAttribute(ExifInterface.TAG_IMAGE_LENGTH), null));
+            op.withValue(MediaColumns.DOCUMENT_ID, xmp.getDocumentId());
+            op.withValue(MediaColumns.INSTANCE_ID, xmp.getInstanceId());
+            op.withValue(MediaColumns.ORIGINAL_DOCUMENT_ID, xmp.getOriginalDocumentId());
 
             op.withValue(ImageColumns.DESCRIPTION,
                     defeatEmpty(exif.getAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION), null));
@@ -518,13 +527,13 @@ public class ModernMediaScanner implements MediaScanner {
         return op.build();
     }
 
-    static String extractExtension(File file) {
+    static @Nullable String extractExtension(File file) {
         final String name = file.getName();
         final int lastDot = name.lastIndexOf('.');
         return (lastDot == -1) ? null : name.substring(lastDot + 1);
     }
 
-    static String extractName(File file) {
+    static @NonNull String extractName(File file) {
         final String name = file.getName();
         final int lastDot = name.lastIndexOf('.');
         return (lastDot == -1) ? name : name.substring(0, lastDot);
@@ -553,6 +562,27 @@ public class ModernMediaScanner implements MediaScanner {
             return (value > 0) ? value : defaultValue;
         } catch (ParseException e) {
             return defaultValue;
+        }
+    }
+
+    /**
+     * Maybe replace the MIME type from extension with the MIME type from the
+     * XMP metadata, but only when the top-level MIME type agrees.
+     */
+    @VisibleForTesting
+    public static @NonNull String maybeOverrideMimeType(@NonNull String extMimeType,
+            @Nullable String xmpMimeType) {
+        // Ignore XMP when missing
+        if (TextUtils.isEmpty(xmpMimeType)) return extMimeType;
+
+        // Ignore XMP when invalid
+        final int xmpSplit = xmpMimeType.indexOf('/');
+        if (xmpSplit == -1) return extMimeType;
+
+        if (extMimeType.regionMatches(0, xmpMimeType, 0, xmpSplit + 1)) {
+            return xmpMimeType;
+        } else {
+            return extMimeType;
         }
     }
 

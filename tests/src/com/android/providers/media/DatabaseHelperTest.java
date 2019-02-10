@@ -29,15 +29,15 @@ import android.database.sqlite.SQLiteDatabase;
 import android.provider.MediaStore.Files.FileColumns;
 import android.util.Log;
 
-import androidx.test.InstrumentationRegistry;
-import androidx.test.runner.AndroidJUnit4;
-
 import com.android.providers.media.MediaProvider.DatabaseHelper;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import androidx.test.InstrumentationRegistry;
+import androidx.test.runner.AndroidJUnit4;
 
 @RunWith(AndroidJUnit4.class)
 public class DatabaseHelperTest {
@@ -55,6 +55,11 @@ public class DatabaseHelperTest {
     public void deleteDatabase() throws Exception {
         getContext().deleteDatabase(TEST_DB);
         getContext().deleteDatabase(TEST_CLEAN_DB);
+    }
+
+    @Test
+    public void testVersionCode() throws Exception {
+        assertEquals(getContext().getApplicationInfo().versionCode, MediaProvider.VERSION_Q);
     }
 
     @Test

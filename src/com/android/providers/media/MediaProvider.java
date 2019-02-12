@@ -147,6 +147,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -755,7 +756,9 @@ public class MediaProvider extends ContentProvider {
                 + "date_added,is_drm,date_modified,title,title_key,duration,artist_id,composer,"
                 + "album_id,track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast,"
                 + "bookmark,album_artist,owner_package_name,_hash,is_pending,is_audiobook,"
-                + "date_expires,is_trashed FROM files WHERE media_type=2");
+                + "date_expires,is_trashed,group_id,primary_directory,secondary_directory,"
+                + "document_id,instance_id,original_document_id FROM files WHERE media_type=2");
+
         db.execSQL("CREATE VIEW artists_albums_map AS SELECT DISTINCT artist_id, album_id"
                 + " FROM audio_meta");
         db.execSQL("CREATE VIEW audio as SELECT *, NULL AS width, NULL as height"
@@ -921,7 +924,7 @@ public class MediaProvider extends ContentProvider {
     static final int VERSION_N = 800;
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
-    static final int VERSION_Q = 1014;
+    static final int VERSION_Q = 1015;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -985,6 +988,9 @@ public class MediaProvider extends ContentProvider {
             }
             if (fromVersion < 1014) {
                 updateAddXmp(db, internal);
+            }
+            if (fromVersion < 1015) {
+                // Empty version bump to ensure views are recreated
             }
 
             if (recomputeDataValues) {
@@ -1089,6 +1095,9 @@ public class MediaProvider extends ContentProvider {
         // Track down the relative path within the storage volume
         Matcher matcher = PATTERN_STORAGE_PATH.matcher(data);
         if (!matcher.find()) return;
+
+        // TODO: ensure that items inside sandboxes don't get a primary or
+        // secondary directory defined
 
         // Directories are first two levels of storage paths
         final String relativeData = data.substring(matcher.end());
@@ -1503,7 +1512,15 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     static void ensureFileColumns(Uri uri, ContentValues values) {
-        ensureFileColumns(matchUri(uri, true), uri, values);
+        ensureUniqueFileColumns(matchUri(uri, true), uri, values);
+    }
+
+    private static void ensureUniqueFileColumns(int match, Uri uri, ContentValues values) {
+        ensureFileColumns(match, uri, values, true);
+    }
+
+    private static void ensureNonUniqueFileColumns(int match, Uri uri, ContentValues values) {
+        ensureFileColumns(match, uri, values, false);
     }
 
     /**
@@ -1513,7 +1530,8 @@ public class MediaProvider extends ContentProvider {
      * {@code image/*} can be inserted into
      * {@link android.provider.MediaStore.Images}.
      */
-    private static void ensureFileColumns(int match, Uri uri, ContentValues values) {
+    private static void ensureFileColumns(int match, Uri uri, ContentValues values,
+            boolean makeUnique) {
         // Figure out defaults based on Uri being modified
         String defaultMimeType = ContentResolver.MIME_TYPE_DEFAULT;
         String defaultPrimary = Environment.DIRECTORY_DOWNLOADS;
@@ -1523,6 +1541,7 @@ public class MediaProvider extends ContentProvider {
                 Environment.DIRECTORY_DOCUMENTS);
         switch (match) {
             case AUDIO_MEDIA:
+            case AUDIO_MEDIA_ID:
                 defaultMimeType = "audio/mpeg";
                 defaultPrimary = Environment.DIRECTORY_MUSIC;
                 allowedPrimary = Arrays.asList(
@@ -1533,6 +1552,7 @@ public class MediaProvider extends ContentProvider {
                         Environment.DIRECTORY_RINGTONES);
                 break;
             case VIDEO_MEDIA:
+            case VIDEO_MEDIA_ID:
                 defaultMimeType = "video/mp4";
                 defaultPrimary = Environment.DIRECTORY_MOVIES;
                 allowedPrimary = Arrays.asList(
@@ -1540,6 +1560,7 @@ public class MediaProvider extends ContentProvider {
                         Environment.DIRECTORY_MOVIES);
                 break;
             case IMAGES_MEDIA:
+            case IMAGES_MEDIA_ID:
                 defaultMimeType = "image/jpeg";
                 defaultPrimary = Environment.DIRECTORY_PICTURES;
                 allowedPrimary = Arrays.asList(
@@ -1547,30 +1568,42 @@ public class MediaProvider extends ContentProvider {
                         Environment.DIRECTORY_PICTURES);
                 break;
             case AUDIO_ALBUMART:
+            case AUDIO_ALBUMART_ID:
                 defaultMimeType = "image/jpeg";
                 defaultPrimary = Environment.DIRECTORY_MUSIC;
                 allowedPrimary = Arrays.asList(defaultPrimary);
                 defaultSecondary = ".thumbnails";
                 break;
             case VIDEO_THUMBNAILS:
+            case VIDEO_THUMBNAILS_ID:
                 defaultMimeType = "image/jpeg";
                 defaultPrimary = Environment.DIRECTORY_MOVIES;
                 allowedPrimary = Arrays.asList(defaultPrimary);
                 defaultSecondary = ".thumbnails";
                 break;
             case IMAGES_THUMBNAILS:
+            case IMAGES_THUMBNAILS_ID:
                 defaultMimeType = "image/jpeg";
                 defaultPrimary = Environment.DIRECTORY_PICTURES;
                 allowedPrimary = Arrays.asList(defaultPrimary);
                 defaultSecondary = ".thumbnails";
                 break;
             case AUDIO_PLAYLISTS:
+            case AUDIO_PLAYLISTS_ID:
                 defaultPrimary = Environment.DIRECTORY_MUSIC;
                 allowedPrimary = Arrays.asList(defaultPrimary);
                 break;
             case DOWNLOADS:
+            case DOWNLOADS_ID:
                 defaultPrimary = Environment.DIRECTORY_DOWNLOADS;
                 allowedPrimary = Arrays.asList(defaultPrimary);
+                break;
+            case FILES:
+            case FILES_ID:
+                // Use defaults above
+                break;
+            default:
+                Log.w(TAG, "Unhandled location " + uri + "; assuming generic files");
                 break;
         }
 
@@ -1663,7 +1696,11 @@ public class MediaProvider extends ContentProvider {
                 throw new IllegalStateException("Failed to create directory: " + res);
             }
             try {
-                res = FileUtils.buildUniqueFile(res, mimeType, displayName);
+                if (makeUnique) {
+                    res = FileUtils.buildUniqueFile(res, mimeType, displayName);
+                } else {
+                    res = FileUtils.buildNonUniqueFile(res, mimeType, displayName);
+                }
             } catch (FileNotFoundException e) {
                 throw new IllegalStateException(
                         "Failed to build unique file: " + res + " " + displayName + " " + mimeType);
@@ -2033,7 +2070,7 @@ public class MediaProvider extends ContentProvider {
         final SQLiteDatabase db = helper.getWritableDatabase();
 
         // Make sure all file-related columns are defined
-        ensureFileColumns(match, uri, values);
+        ensureUniqueFileColumns(match, uri, values);
 
         switch (mediaType) {
             case FileColumns.MEDIA_TYPE_IMAGE: {
@@ -2543,7 +2580,7 @@ public class MediaProvider extends ContentProvider {
                 enforceCallingPermission(ContentUris.withAppendedId(
                         MediaStore.Images.Media.getContentUri(volumeName), imageId), true);
 
-                ensureFileColumns(match, uri, initialValues);
+                ensureUniqueFileColumns(match, uri, initialValues);
 
                 rowId = db.insert("thumbnails", "name", initialValues);
                 if (rowId > 0) {
@@ -2564,7 +2601,7 @@ public class MediaProvider extends ContentProvider {
                 enforceCallingPermission(ContentUris.withAppendedId(
                         MediaStore.Video.Media.getContentUri(volumeName), videoId), true);
 
-                ensureFileColumns(match, uri, initialValues);
+                ensureUniqueFileColumns(match, uri, initialValues);
 
                 rowId = db.insert("videothumbnails", "name", initialValues);
                 if (rowId > 0) {
@@ -2718,7 +2755,7 @@ public class MediaProvider extends ContentProvider {
                     throw new UnsupportedOperationException("no internal album art allowed");
                 }
 
-                ensureFileColumns(match, uri, initialValues);
+                ensureUniqueFileColumns(match, uri, initialValues);
 
                 rowId = db.insert("album_art", MediaStore.MediaColumns.DATA, initialValues);
                 if (rowId > 0) {
@@ -4111,6 +4148,68 @@ public class MediaProvider extends ContentProvider {
 
         // If we're not updating anything, then we can skip
         if (initialValues.isEmpty()) return 0;
+
+        final boolean isThumbnail;
+        switch (match) {
+            case IMAGES_THUMBNAILS:
+            case IMAGES_THUMBNAILS_ID:
+            case VIDEO_THUMBNAILS:
+            case VIDEO_THUMBNAILS_ID:
+            case AUDIO_ALBUMART:
+            case AUDIO_ALBUMART_ID:
+                isThumbnail = true;
+                break;
+            default:
+                isThumbnail = false;
+                break;
+        }
+
+        // If we're touching columns that would change placement of a file,
+        // blend in current values and recalculate path
+        if (containsAny(initialValues.keySet(), sPlacementColumns)
+                && !initialValues.containsKey(MediaColumns.DATA)
+                && !isCallingPackageSystem()
+                && !isThumbnail) {
+            final CallingIdentity token = clearCallingIdentity();
+            try (Cursor c = queryForSingleItem(originalUri,
+                    sPlacementColumns.toArray(EmptyArray.STRING), userWhere, userWhereArgs, null)) {
+                for (int i = 0; i < c.getColumnCount(); i++) {
+                    final String column = c.getColumnName(i);
+                    if (!initialValues.containsKey(column)) {
+                        initialValues.put(column, c.getString(i));
+                    }
+                }
+            } catch (FileNotFoundException e) {
+                throw new IllegalStateException(e);
+            } finally {
+                restoreCallingIdentity(token);
+            }
+
+            // Regenerate path using blended values; this will throw if caller
+            // is attempting to place file into invalid location
+            final String beforePath = initialValues.getAsString(MediaColumns.DATA);
+            initialValues.remove(MediaColumns.DATA);
+            ensureNonUniqueFileColumns(match, uri, initialValues);
+
+            final String probePath = initialValues.getAsString(MediaColumns.DATA);
+            if (Objects.equals(beforePath, probePath)) {
+                Log.d(TAG, "Identical paths " + beforePath + "; not moving");
+            } else {
+                // Now that we've confirmed an actual movement is taking place,
+                // ensure we have a unique destination
+                initialValues.remove(MediaColumns.DATA);
+                ensureUniqueFileColumns(match, uri, initialValues);
+                final String afterPath = initialValues.getAsString(MediaColumns.DATA);
+
+                Log.d(TAG, "Moving " + beforePath + " to " + afterPath);
+                try {
+                    Os.rename(beforePath, afterPath);
+                } catch (ErrnoException e) {
+                    throw new IllegalStateException(e);
+                }
+                initialValues.put(MediaColumns.DATA, afterPath);
+            }
+        }
 
         // Make sure any updated paths look sane
         assertFileColumnsSane(match, uri, initialValues);
@@ -5882,7 +5981,18 @@ public class MediaProvider extends ContentProvider {
         publicMatcher.addURI(AUTHORITY, "*/downloads/#", DOWNLOADS_ID);
     }
 
+    /**
+     * Set of columns that can be safely mutated by external callers; all other
+     * columns are treated as read-only, since they reflect what the media
+     * scanner found on disk, and any mutations would be overwritten the next
+     * time the media was scanned.
+     */
     private static final ArraySet<String> sMutableColumns = new ArraySet<>();
+
+    /**
+     * Set of columns that affect placement of files on disk.
+     */
+    private static final ArraySet<String> sPlacementColumns = new ArraySet<>();
 
     private static final ArrayMap<String, String> sMediaColumns = new ArrayMap<>();
     private static final ArrayMap<String, String> sAudioColumns = new ArrayMap<>();
@@ -5905,6 +6015,7 @@ public class MediaProvider extends ContentProvider {
         final Map<String, String> map = sMediaColumns;
         addMapping(map, MediaStore.MediaColumns._ID);
         addMapping(map, MediaStore.MediaColumns.DATA);
+        addMapping(map, MediaStore.MediaColumns.HASH);
         addMapping(map, MediaStore.MediaColumns.SIZE);
         addMapping(map, MediaStore.MediaColumns.DISPLAY_NAME);
         addMapping(map, MediaStore.MediaColumns.TITLE);
@@ -5913,18 +6024,31 @@ public class MediaProvider extends ContentProvider {
         addMapping(map, MediaStore.MediaColumns.MIME_TYPE);
         // TODO: not actually defined in API, but CTS tested
         addMapping(map, MediaStore.MediaColumns.IS_DRM);
-        addMapping(map, MediaStore.MediaColumns.WIDTH);
-        addMapping(map, MediaStore.MediaColumns.HEIGHT);
-        addMapping(map, MediaStore.MediaColumns.OWNER_PACKAGE_NAME);
-        addMapping(map, MediaStore.MediaColumns.HASH);
         addMapping(map, MediaStore.MediaColumns.IS_PENDING);
         addMapping(map, MediaStore.MediaColumns.IS_TRASHED);
         addMapping(map, MediaStore.MediaColumns.DATE_EXPIRES);
+        addMapping(map, MediaStore.MediaColumns.WIDTH);
+        addMapping(map, MediaStore.MediaColumns.HEIGHT);
+        addMapping(map, MediaStore.MediaColumns.OWNER_PACKAGE_NAME);
+        addMapping(map, MediaStore.MediaColumns.PRIMARY_DIRECTORY);
+        addMapping(map, MediaStore.MediaColumns.SECONDARY_DIRECTORY);
+        addMapping(map, MediaStore.MediaColumns.DOCUMENT_ID);
+        addMapping(map, MediaStore.MediaColumns.INSTANCE_ID);
+        addMapping(map, MediaStore.MediaColumns.ORIGINAL_DOCUMENT_ID);
 
         sMutableColumns.add(MediaStore.MediaColumns.DATA);
+        sMutableColumns.add(MediaStore.MediaColumns.DISPLAY_NAME);
         sMutableColumns.add(MediaStore.MediaColumns.IS_PENDING);
         sMutableColumns.add(MediaStore.MediaColumns.IS_TRASHED);
         sMutableColumns.add(MediaStore.MediaColumns.DATE_EXPIRES);
+        sMutableColumns.add(MediaStore.MediaColumns.PRIMARY_DIRECTORY);
+        sMutableColumns.add(MediaStore.MediaColumns.SECONDARY_DIRECTORY);
+
+        sPlacementColumns.add(MediaStore.MediaColumns.DATA);
+        sPlacementColumns.add(MediaStore.MediaColumns.DISPLAY_NAME);
+        sPlacementColumns.add(MediaStore.MediaColumns.MIME_TYPE);
+        sPlacementColumns.add(MediaStore.MediaColumns.PRIMARY_DIRECTORY);
+        sPlacementColumns.add(MediaStore.MediaColumns.SECONDARY_DIRECTORY);
     }
 
     {
@@ -6113,6 +6237,15 @@ public class MediaProvider extends ContentProvider {
             count++;
         }
         return sql;
+    }
+
+    static <T> boolean containsAny(Set<T> a, Set<T> b) {
+        for (T i : b) {
+            if (a.contains(i)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

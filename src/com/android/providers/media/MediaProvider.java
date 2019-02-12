@@ -1514,7 +1514,7 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     static void ensureFileColumns(Uri uri, ContentValues values) {
-        ensureUniqueFileColumns(matchUri(uri, true), uri, values);
+        ensureNonUniqueFileColumns(matchUri(uri, true), uri, values);
     }
 
     private static void ensureUniqueFileColumns(int match, Uri uri, ContentValues values) {
@@ -1653,18 +1653,12 @@ public class MediaProvider extends ContentProvider {
         // Generate path when undefined
         if (TextUtils.isEmpty(values.getAsString(MediaColumns.DATA))) {
             // Check for shady looking paths
-            final String displayName = values.getAsString(MediaColumns.DISPLAY_NAME);
-            final String primary = values.getAsString(MediaColumns.PRIMARY_DIRECTORY);
-            final String secondary = values.getAsString(MediaColumns.SECONDARY_DIRECTORY);
-            if (displayName.contains("/")) {
-                throw new IllegalArgumentException("Directories not allowed: " + displayName);
-            }
-            if (primary != null && primary.contains("/")) {
-                throw new IllegalArgumentException("Directories not allowed: " + primary);
-            }
-            if (secondary != null && secondary.contains("/")) {
-                throw new IllegalArgumentException("Directories not allowed: " + secondary);
-            }
+            final String displayName = sanitizeName(
+                    values.getAsString(MediaColumns.DISPLAY_NAME));
+            final String primary = sanitizeName(
+                    values.getAsString(MediaColumns.PRIMARY_DIRECTORY));
+            final String secondary = sanitizeName(
+                    values.getAsString(MediaColumns.SECONDARY_DIRECTORY));
 
             // Require content live under specific directories
             if (primary != null) {
@@ -1721,6 +1715,18 @@ public class MediaProvider extends ContentProvider {
                 values.remove(MediaColumns.DISPLAY_NAME);
                 values.remove(MediaColumns.MIME_TYPE);
                 break;
+        }
+    }
+
+    private static @Nullable String sanitizeName(@Nullable String name) {
+        if (name == null) {
+            return null;
+        } else if (name.indexOf('/') >= 0) {
+            throw new IllegalArgumentException("Directory paths not allowed: " + name);
+        } else if (name.startsWith(".")) {
+            throw new IllegalArgumentException("Hidden files not allowed: " + name);
+        } else {
+            return FileUtils.buildValidFatFilename(name);
         }
     }
 

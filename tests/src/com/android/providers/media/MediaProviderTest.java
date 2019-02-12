@@ -119,6 +119,9 @@ public class MediaProviderTest {
         assertThrows(IllegalArgumentException.class, () -> {
             buildFile(uri, null, "foo/bar", "foo", "image/png");
         });
+        assertThrows(IllegalArgumentException.class, () -> {
+            buildFile(uri, null, null, ".hidden", "image/png");
+        });
     }
 
     @Test
@@ -145,6 +148,13 @@ public class MediaProviderTest {
                 });
             }
         }
+    }
+
+    @Test
+    public void testBuildData_Charset() throws Exception {
+        final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+        assertEndsWith("/Pictures/foo__bar/bar__baz.png",
+                buildFile(uri, null, "foo\0\0bar", "bar::baz.png", "image/png"));
     }
 
     @Test

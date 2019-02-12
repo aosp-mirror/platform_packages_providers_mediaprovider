@@ -912,7 +912,9 @@ public class MediaProvider extends ContentProvider {
                 values.put(FileColumns.DATA, data);
                 computeDataValues(values);
                 values.remove(FileColumns.DATA);
-                db.update("files", values, "_id=" + id, null);
+                if (!values.isEmpty()) {
+                    db.update("files", values, "_id=" + id, null);
+                }
             }
         }
     }

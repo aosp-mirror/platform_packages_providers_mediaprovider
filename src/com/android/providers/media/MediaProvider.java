@@ -95,6 +95,8 @@ import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.os.storage.VolumeInfo;
 import android.preference.PreferenceManager;
+import android.provider.BaseColumns;
+import android.provider.Column;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
@@ -120,6 +122,7 @@ import android.util.LongSparseArray;
 import android.util.Pair;
 import android.util.Size;
 
+import com.android.internal.annotations.GuardedBy;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.os.BackgroundThread;
 import com.android.internal.util.ArrayUtils;
@@ -138,6 +141,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.lang.reflect.Field;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -145,7 +149,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -159,8 +162,6 @@ import java.util.regex.Pattern;
  * changes with the card.
  */
 public class MediaProvider extends ContentProvider {
-    private static final boolean ENFORCE_PUBLIC_API = true;
-
     private static final boolean ENFORCE_ISOLATED_STORAGE = StorageManager.hasIsolatedStorage();
 
     private static final String HASH_ALGORITHM = "SHA-1";
@@ -757,7 +758,8 @@ public class MediaProvider extends ContentProvider {
                 + "album_id,track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast,"
                 + "bookmark,album_artist,owner_package_name,_hash,is_pending,is_audiobook,"
                 + "date_expires,is_trashed,group_id,primary_directory,secondary_directory,"
-                + "document_id,instance_id,original_document_id FROM files WHERE media_type=2");
+                + "document_id,instance_id,original_document_id,title_resource_uri"
+                + " FROM files WHERE media_type=2");
 
         db.execSQL("CREATE VIEW artists_albums_map AS SELECT DISTINCT artist_id, album_id"
                 + " FROM audio_meta");
@@ -795,11 +797,14 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("CREATE VIEW audio_genres_map_noid AS SELECT audio_id,genre_id"
                 + " FROM audio_genres_map");
 
-        db.execSQL("CREATE VIEW video AS SELECT " + String.join(",", sVideoColumns.keySet())
+        db.execSQL("CREATE VIEW video AS SELECT "
+                + String.join(",", getProjectionMap(Video.Media.class).keySet())
                 + " FROM files WHERE media_type=3");
-        db.execSQL("CREATE VIEW images AS SELECT " + String.join(",", sImagesColumns.keySet())
+        db.execSQL("CREATE VIEW images AS SELECT "
+                + String.join(",", getProjectionMap(Images.Media.class).keySet())
                 + " FROM files WHERE media_type=1");
-        db.execSQL("CREATE VIEW downloads AS SELECT " + String.join(",", sDownloadsColumns.keySet())
+        db.execSQL("CREATE VIEW downloads AS SELECT "
+                + String.join(",", getProjectionMap(Downloads.class).keySet())
                 + " FROM files WHERE is_download=1");
     }
 
@@ -926,7 +931,7 @@ public class MediaProvider extends ContentProvider {
     static final int VERSION_N = 800;
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
-    static final int VERSION_Q = 1015;
+    static final int VERSION_Q = 1016;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -992,6 +997,9 @@ public class MediaProvider extends ContentProvider {
                 updateAddXmp(db, internal);
             }
             if (fromVersion < 1015) {
+                // Empty version bump to ensure views are recreated
+            }
+            if (fromVersion < 1016) {
                 // Empty version bump to ensure views are recreated
             }
 
@@ -3078,6 +3086,7 @@ public class MediaProvider extends ContentProvider {
         qb.setStrict(true);
 
         final String callingPackage = getCallingPackageOrSelf();
+        final int callingTargetSdk = getCallingPackageTargetSdkVersion();
 
         final boolean allowGlobal = checkCallingPermissionGlobal(uri, forWrite);
 
@@ -3095,10 +3104,7 @@ public class MediaProvider extends ContentProvider {
             case IMAGES_MEDIA:
                 if (type == TYPE_QUERY) {
                     qb.setTables("images");
-                    if (ENFORCE_PUBLIC_API) {
-                        qb.setProjectionMap(sImagesColumns);
-                        qb.setProjectionGreylist(sGreylist);
-                    }
+                    qb.setProjectionMap(getProjectionMap(Images.Media.class));
                 } else {
                     qb.setTables("files");
                     appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
@@ -3119,14 +3125,22 @@ public class MediaProvider extends ContentProvider {
             case IMAGES_THUMBNAILS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 // fall-through
-            case IMAGES_THUMBNAILS:
+            case IMAGES_THUMBNAILS: {
                 qb.setTables("thumbnails");
+
+                final ArrayMap<String, String> projectionMap = new ArrayMap<>(
+                        getProjectionMap(Images.Thumbnails.class));
+                projectionMap.put(Images.Thumbnails.THUMB_DATA,
+                        "NULL AS " + Images.Thumbnails.THUMB_DATA);
+                qb.setProjectionMap(projectionMap);
+
                 if (!allowGlobal && !checkCallingPermissionImages(forWrite, callingPackage)) {
                     appendWhereStandalone(qb,
                             "image_id IN (SELECT _id FROM images WHERE owner_package_name=?)",
                             callingPackage);
                 }
                 break;
+            }
 
             case AUDIO_MEDIA_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
@@ -3136,10 +3150,7 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_MEDIA:
                 if (type == TYPE_QUERY) {
                     qb.setTables("audio");
-                    if (ENFORCE_PUBLIC_API) {
-                        qb.setProjectionMap(sAudioColumns);
-                        qb.setProjectionGreylist(sGreylist);
-                    }
+                    qb.setProjectionMap(getProjectionMap(Audio.Media.class));
                 } else {
                     qb.setTables("files");
                     appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
@@ -3162,6 +3173,7 @@ public class MediaProvider extends ContentProvider {
                 // fall-through
             case AUDIO_MEDIA_ID_GENRES:
                 qb.setTables("audio_genres");
+                qb.setProjectionMap(getProjectionMap(Audio.Genres.class));
                 appendWhereStandalone(qb, "_id IN (SELECT genre_id FROM " +
                         "audio_genres_map WHERE audio_id=?)", uri.getPathSegments().get(3));
                 break;
@@ -3171,6 +3183,7 @@ public class MediaProvider extends ContentProvider {
                 // fall-through
             case AUDIO_MEDIA_ID_PLAYLISTS:
                 qb.setTables("audio_playlists");
+                qb.setProjectionMap(getProjectionMap(Audio.Playlists.class));
                 appendWhereStandalone(qb, "_id IN (SELECT playlist_id FROM " +
                         "audio_playlists_map WHERE audio_id=?)", uri.getPathSegments().get(3));
                 break;
@@ -3180,6 +3193,7 @@ public class MediaProvider extends ContentProvider {
                 // fall-through
             case AUDIO_GENRES:
                 qb.setTables("audio_genres");
+                qb.setProjectionMap(getProjectionMap(Audio.Genres.class));
                 break;
 
             case AUDIO_GENRES_ID_MEMBERS:
@@ -3188,6 +3202,7 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_GENRES_ALL_MEMBERS:
                 if (type == TYPE_QUERY) {
                     qb.setTables("audio_genres_map_noid, audio");
+                    qb.setProjectionMap(getProjectionMap(Audio.Genres.Members.class));
                     appendWhereStandalone(qb, "audio._id = audio_id");
                 } else {
                     qb.setTables("audio_genres_map");
@@ -3202,6 +3217,7 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_PLAYLISTS:
                 if (type == TYPE_QUERY) {
                     qb.setTables("audio_playlists");
+                    qb.setProjectionMap(getProjectionMap(Audio.Playlists.class));
                 } else {
                     qb.setTables("files");
                     appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
@@ -3223,23 +3239,31 @@ public class MediaProvider extends ContentProvider {
                 appendWhereStandalone(qb, "audio_playlists_map._id=?",
                         uri.getPathSegments().get(5));
                 // fall-through
-            case AUDIO_PLAYLISTS_ID_MEMBERS:
+            case AUDIO_PLAYLISTS_ID_MEMBERS: {
                 appendWhereStandalone(qb, "playlist_id=?", uri.getPathSegments().get(3));
                 if (type == TYPE_QUERY) {
                     qb.setTables("audio_playlists_map, audio");
-                    qb.setProjectionMap(sPlaylistMembersMap);
+
+                    final ArrayMap<String, String> projectionMap = new ArrayMap<>(
+                            getProjectionMap(Audio.Playlists.Members.class));
+                    projectionMap.put(Audio.Playlists.Members._ID,
+                            "audio_playlists_map._id AS " + Audio.Playlists.Members._ID);
+                    qb.setProjectionMap(projectionMap);
+
                     appendWhereStandalone(qb, "audio._id = audio_id");
                 } else {
                     qb.setTables("audio_playlists_map");
                 }
                 break;
+            }
 
             case AUDIO_ALBUMART_ID:
                 qb.setTables("album_art");
+                qb.setProjectionMap(getProjectionMap(Audio.Thumbnails.class));
                 appendWhereStandalone(qb, "album_id=?", uri.getPathSegments().get(3));
                 break;
 
-            case AUDIO_ARTISTS_ID_ALBUMS:
+            case AUDIO_ARTISTS_ID_ALBUMS: {
                 if (type == TYPE_QUERY) {
                     final String artistId = uri.getPathSegments().get(3);
                     qb.setTables("audio LEFT OUTER JOIN album_art ON" +
@@ -3248,16 +3272,28 @@ public class MediaProvider extends ContentProvider {
                             "is_music=1 AND audio.album_id IN (SELECT album_id FROM " +
                                     "artists_albums_map WHERE artist_id=?)", artistId);
 
-                    final ArrayMap<String, String> projectionMap = new ArrayMap<>(sArtistAlbumsMap);
-                    projectionMap.put(MediaStore.Audio.Artists.Albums.NUMBER_OF_SONGS_FOR_ARTIST,
+                    final ArrayMap<String, String> projectionMap = new ArrayMap<>(
+                            getProjectionMap(Audio.Artists.Albums.class));
+                    projectionMap.put(Audio.Artists.Albums.ALBUM_ART,
+                            "album_art._data AS " + Audio.Artists.Albums.ALBUM_ART);
+                    projectionMap.put(Audio.Artists.Albums.NUMBER_OF_SONGS,
+                            "count(*) AS " + Audio.Artists.Albums.NUMBER_OF_SONGS);
+                    projectionMap.put(Audio.Artists.Albums.NUMBER_OF_SONGS_FOR_ARTIST,
                             "count(CASE WHEN artist_id==" + artistId
                                     + " THEN 'foo' ELSE NULL END) AS "
-                                    + MediaStore.Audio.Artists.Albums.NUMBER_OF_SONGS_FOR_ARTIST);
+                                    + Audio.Artists.Albums.NUMBER_OF_SONGS_FOR_ARTIST);
+                    projectionMap.put(Audio.Artists.Albums.FIRST_YEAR,
+                            "MIN(year) AS " + Audio.Artists.Albums.FIRST_YEAR);
+                    projectionMap.put(Audio.Artists.Albums.LAST_YEAR,
+                            "MAX(year) AS " + Audio.Artists.Albums.LAST_YEAR);
+                    projectionMap.put(Audio.Artists.Albums.ALBUM_ID,
+                            "audio.album_id AS " + Audio.Artists.Albums.ALBUM_ID);
                     qb.setProjectionMap(projectionMap);
                 } else {
                     throw new UnsupportedOperationException("Albums cannot be directly modified");
                 }
                 break;
+            }
 
             case AUDIO_ARTISTS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
@@ -3265,6 +3301,7 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_ARTISTS:
                 if (type == TYPE_QUERY) {
                     qb.setTables("artist_info");
+                    qb.setProjectionMap(getProjectionMap(Audio.Artists.class));
                 } else {
                     throw new UnsupportedOperationException("Artists cannot be directly modified");
                 }
@@ -3273,13 +3310,22 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_ALBUMS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 // fall-through
-            case AUDIO_ALBUMS:
+            case AUDIO_ALBUMS: {
                 if (type == TYPE_QUERY) {
                     qb.setTables("album_info");
+
+                    final ArrayMap<String, String> projectionMap = new ArrayMap<>(
+                            getProjectionMap(Audio.Albums.class));
+                    projectionMap.put(Audio.Artists.Albums.NUMBER_OF_SONGS_FOR_ARTIST,
+                            "NULL AS " + Audio.Artists.Albums.NUMBER_OF_SONGS_FOR_ARTIST);
+                    projectionMap.put(Audio.Artists.Albums.ALBUM_ID,
+                            BaseColumns._ID + " AS " + Audio.Artists.Albums.ALBUM_ID);
+                    qb.setProjectionMap(projectionMap);
                 } else {
                     throw new UnsupportedOperationException("Albums cannot be directly modified");
                 }
                 break;
+            }
 
             case VIDEO_MEDIA_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
@@ -3289,10 +3335,7 @@ public class MediaProvider extends ContentProvider {
             case VIDEO_MEDIA:
                 if (type == TYPE_QUERY) {
                     qb.setTables("video");
-                    if (ENFORCE_PUBLIC_API) {
-                        qb.setProjectionMap(sVideoColumns);
-                        qb.setProjectionGreylist(sGreylist);
-                    }
+                    qb.setProjectionMap(getProjectionMap(Video.Media.class));
                 } else {
                     qb.setTables("files");
                     appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
@@ -3315,6 +3358,7 @@ public class MediaProvider extends ContentProvider {
                 // fall-through
             case VIDEO_THUMBNAILS:
                 qb.setTables("videothumbnails");
+                qb.setProjectionMap(getProjectionMap(Video.Thumbnails.class));
                 if (!allowGlobal && !checkCallingPermissionVideo(forWrite, callingPackage)) {
                     appendWhereStandalone(qb,
                             "video_id IN (SELECT _id FROM video WHERE owner_package_name=?)",
@@ -3332,6 +3376,7 @@ public class MediaProvider extends ContentProvider {
             case FILES_DIRECTORY:
             case MTP_OBJECTS:
                 qb.setTables("files");
+                qb.setProjectionMap(getProjectionMap(Files.FileColumns.class));
 
                 final ArrayList<String> options = new ArrayList<>();
                 if (!allowGlobal) {
@@ -3371,10 +3416,7 @@ public class MediaProvider extends ContentProvider {
             case DOWNLOADS:
                 if (type == TYPE_QUERY) {
                     qb.setTables("downloads");
-                    if (ENFORCE_PUBLIC_API) {
-                        qb.setProjectionMap(sDownloadsColumns);
-                        qb.setProjectionGreylist(sGreylist);
-                    }
+                    qb.setProjectionMap(getProjectionMap(Downloads.class));
                 } else {
                     qb.setTables("files");
                     appendWhereStandalone(qb, FileColumns.IS_DOWNLOAD + "=1");
@@ -3395,6 +3437,20 @@ public class MediaProvider extends ContentProvider {
                 throw new UnsupportedOperationException(
                         "Unknown or unsupported URL: " + uri.toString());
         }
+
+        if (type == TYPE_QUERY) {
+            // To ensure we're enforcing our security model, all queries must
+            // have a projection map configured
+            if (qb.getProjectionMap() == null) {
+                throw new IllegalStateException("All queries must have a projection map");
+            }
+
+            // If caller is an older app, we're willing to let through a
+            // greylist of technically invalid columns
+            // TODO: switch to only set for legacy apps
+            qb.setProjectionGreylist(sGreylist);
+        }
+
         return qb;
     }
 
@@ -5907,7 +5963,7 @@ public class MediaProvider extends ContentProvider {
             // Detect callers asking about hidden behavior by looking closer when
             // the matchers diverge; we only care about apps that are explicitly
             // targeting a specific public API level.
-            if (ENFORCE_PUBLIC_API && !allowHidden) {
+            if (!allowHidden) {
                 throw new IllegalStateException("Unknown URL: " + uri + " is hidden API");
             }
             return hiddenMatch;
@@ -5991,53 +6047,7 @@ public class MediaProvider extends ContentProvider {
      */
     private static final ArraySet<String> sMutableColumns = new ArraySet<>();
 
-    /**
-     * Set of columns that affect placement of files on disk.
-     */
-    private static final ArraySet<String> sPlacementColumns = new ArraySet<>();
-
-    private static final ArrayMap<String, String> sMediaColumns = new ArrayMap<>();
-    private static final ArrayMap<String, String> sAudioColumns = new ArrayMap<>();
-    private static final ArrayMap<String, String> sImagesColumns = new ArrayMap<>();
-    private static final ArrayMap<String, String> sVideoColumns = new ArrayMap<>();
-    private static final ArrayMap<String, String> sDownloadsColumns = new ArrayMap<>();
-
-    private static final ArrayMap<String, String> sArtistAlbumsMap = new ArrayMap<>();
-    private static final ArrayMap<String, String> sPlaylistMembersMap = new ArrayMap<>();
-
-    private static void addMapping(Map<String, String> map, String column) {
-        map.put(column, column);
-    }
-
-    private static void addMapping(Map<String, String> map, String fromColumn, String toColumn) {
-        map.put(fromColumn, toColumn + " AS " + fromColumn);
-    }
-
     {
-        final Map<String, String> map = sMediaColumns;
-        addMapping(map, MediaStore.MediaColumns._ID);
-        addMapping(map, MediaStore.MediaColumns.DATA);
-        addMapping(map, MediaStore.MediaColumns.HASH);
-        addMapping(map, MediaStore.MediaColumns.SIZE);
-        addMapping(map, MediaStore.MediaColumns.DISPLAY_NAME);
-        addMapping(map, MediaStore.MediaColumns.TITLE);
-        addMapping(map, MediaStore.MediaColumns.DATE_ADDED);
-        addMapping(map, MediaStore.MediaColumns.DATE_MODIFIED);
-        addMapping(map, MediaStore.MediaColumns.MIME_TYPE);
-        // TODO: not actually defined in API, but CTS tested
-        addMapping(map, MediaStore.MediaColumns.IS_DRM);
-        addMapping(map, MediaStore.MediaColumns.IS_PENDING);
-        addMapping(map, MediaStore.MediaColumns.IS_TRASHED);
-        addMapping(map, MediaStore.MediaColumns.DATE_EXPIRES);
-        addMapping(map, MediaStore.MediaColumns.WIDTH);
-        addMapping(map, MediaStore.MediaColumns.HEIGHT);
-        addMapping(map, MediaStore.MediaColumns.OWNER_PACKAGE_NAME);
-        addMapping(map, MediaStore.MediaColumns.PRIMARY_DIRECTORY);
-        addMapping(map, MediaStore.MediaColumns.SECONDARY_DIRECTORY);
-        addMapping(map, MediaStore.MediaColumns.DOCUMENT_ID);
-        addMapping(map, MediaStore.MediaColumns.INSTANCE_ID);
-        addMapping(map, MediaStore.MediaColumns.ORIGINAL_DOCUMENT_ID);
-
         sMutableColumns.add(MediaStore.MediaColumns.DATA);
         sMutableColumns.add(MediaStore.MediaColumns.DISPLAY_NAME);
         sMutableColumns.add(MediaStore.MediaColumns.IS_PENDING);
@@ -6046,129 +6056,30 @@ public class MediaProvider extends ContentProvider {
         sMutableColumns.add(MediaStore.MediaColumns.PRIMARY_DIRECTORY);
         sMutableColumns.add(MediaStore.MediaColumns.SECONDARY_DIRECTORY);
 
+        sMutableColumns.add(MediaStore.Audio.AudioColumns.BOOKMARK);
+
+        sMutableColumns.add(MediaStore.Video.VideoColumns.TAGS);
+        sMutableColumns.add(MediaStore.Video.VideoColumns.CATEGORY);
+        sMutableColumns.add(MediaStore.Video.VideoColumns.BOOKMARK);
+
+        sMutableColumns.add(MediaStore.Audio.Playlists.Members.AUDIO_ID);
+        sMutableColumns.add(MediaStore.Audio.Playlists.Members.PLAY_ORDER);
+
+        sMutableColumns.add(MediaStore.Files.FileColumns.MIME_TYPE);
+        sMutableColumns.add(MediaStore.Files.FileColumns.MEDIA_TYPE);
+    }
+
+    /**
+     * Set of columns that affect placement of files on disk.
+     */
+    private static final ArraySet<String> sPlacementColumns = new ArraySet<>();
+
+    {
         sPlacementColumns.add(MediaStore.MediaColumns.DATA);
         sPlacementColumns.add(MediaStore.MediaColumns.DISPLAY_NAME);
         sPlacementColumns.add(MediaStore.MediaColumns.MIME_TYPE);
         sPlacementColumns.add(MediaStore.MediaColumns.PRIMARY_DIRECTORY);
         sPlacementColumns.add(MediaStore.MediaColumns.SECONDARY_DIRECTORY);
-    }
-
-    {
-        final Map<String, String> map = sAudioColumns;
-        map.putAll(sMediaColumns);
-        addMapping(map, MediaStore.Audio.AudioColumns.TITLE_KEY);
-        addMapping(map, MediaStore.Audio.AudioColumns.DURATION);
-        addMapping(map, MediaStore.Audio.AudioColumns.BOOKMARK);
-        addMapping(map, MediaStore.Audio.AudioColumns.ARTIST_ID);
-        addMapping(map, MediaStore.Audio.AudioColumns.ARTIST);
-        addMapping(map, MediaStore.Audio.AudioColumns.ARTIST_KEY);
-        addMapping(map, MediaStore.Audio.AudioColumns.COMPOSER);
-        addMapping(map, MediaStore.Audio.AudioColumns.ALBUM_ID);
-        addMapping(map, MediaStore.Audio.AudioColumns.ALBUM);
-        addMapping(map, MediaStore.Audio.AudioColumns.ALBUM_KEY);
-        addMapping(map, MediaStore.Audio.AudioColumns.TRACK);
-        addMapping(map, MediaStore.Audio.AudioColumns.YEAR);
-        addMapping(map, MediaStore.Audio.AudioColumns.IS_MUSIC);
-        addMapping(map, MediaStore.Audio.AudioColumns.IS_PODCAST);
-        addMapping(map, MediaStore.Audio.AudioColumns.IS_RINGTONE);
-        addMapping(map, MediaStore.Audio.AudioColumns.IS_ALARM);
-        addMapping(map, MediaStore.Audio.AudioColumns.IS_NOTIFICATION);
-        addMapping(map, MediaStore.Audio.AudioColumns.IS_AUDIOBOOK);
-
-        // TODO: not actually defined in API, but CTS tested
-        addMapping(map, MediaStore.Audio.AudioColumns.ALBUM_ARTIST);
-
-        sMutableColumns.add(MediaStore.Audio.AudioColumns.BOOKMARK);
-    }
-
-    {
-        final Map<String, String> map = sImagesColumns;
-        map.putAll(sMediaColumns);
-        addMapping(map, MediaStore.Images.ImageColumns.DESCRIPTION);
-        addMapping(map, MediaStore.Images.ImageColumns.PICASA_ID);
-        addMapping(map, MediaStore.Images.ImageColumns.IS_PRIVATE);
-        addMapping(map, MediaStore.Images.ImageColumns.LATITUDE);
-        addMapping(map, MediaStore.Images.ImageColumns.LONGITUDE);
-        addMapping(map, MediaStore.Images.ImageColumns.DATE_TAKEN);
-        addMapping(map, MediaStore.Images.ImageColumns.ORIENTATION);
-        addMapping(map, MediaStore.Images.ImageColumns.MINI_THUMB_MAGIC);
-        addMapping(map, MediaStore.Images.ImageColumns.BUCKET_ID);
-        addMapping(map, MediaStore.Images.ImageColumns.BUCKET_DISPLAY_NAME);
-        addMapping(map, MediaStore.Images.ImageColumns.GROUP_ID);
-    }
-
-    {
-        final Map<String, String> map = sVideoColumns;
-        map.putAll(sMediaColumns);
-        addMapping(map, MediaStore.Video.VideoColumns.DURATION);
-        addMapping(map, MediaStore.Video.VideoColumns.ARTIST);
-        addMapping(map, MediaStore.Video.VideoColumns.ALBUM);
-        addMapping(map, MediaStore.Video.VideoColumns.RESOLUTION);
-        addMapping(map, MediaStore.Video.VideoColumns.DESCRIPTION);
-        addMapping(map, MediaStore.Video.VideoColumns.IS_PRIVATE);
-        addMapping(map, MediaStore.Video.VideoColumns.TAGS);
-        addMapping(map, MediaStore.Video.VideoColumns.CATEGORY);
-        addMapping(map, MediaStore.Video.VideoColumns.LANGUAGE);
-        addMapping(map, MediaStore.Video.VideoColumns.LATITUDE);
-        addMapping(map, MediaStore.Video.VideoColumns.LONGITUDE);
-        addMapping(map, MediaStore.Video.VideoColumns.DATE_TAKEN);
-        addMapping(map, MediaStore.Video.VideoColumns.MINI_THUMB_MAGIC);
-        addMapping(map, MediaStore.Video.VideoColumns.BUCKET_ID);
-        addMapping(map, MediaStore.Video.VideoColumns.BUCKET_DISPLAY_NAME);
-        addMapping(map, MediaStore.Video.VideoColumns.GROUP_ID);
-        addMapping(map, MediaStore.Video.VideoColumns.BOOKMARK);
-
-        sMutableColumns.add(MediaStore.Video.VideoColumns.TAGS);
-        sMutableColumns.add(MediaStore.Video.VideoColumns.CATEGORY);
-        sMutableColumns.add(MediaStore.Video.VideoColumns.BOOKMARK);
-    }
-
-    {
-        final Map<String, String> map = sArtistAlbumsMap;
-        // TODO: defined in API, but CTS claims it should be omitted
-        // addMapping(map, MediaStore.Audio.Artists.Albums.ALBUM_ID, "audio.album_id");
-        addMapping(map, MediaStore.Audio.Artists.Albums.ALBUM);
-        addMapping(map, MediaStore.Audio.Artists.Albums.ARTIST);
-        addMapping(map, MediaStore.Audio.Artists.Albums.NUMBER_OF_SONGS, "count(*)");
-        // NOTE: NUMBER_OF_SONGS_FOR_ARTIST added dynamically at query time
-        addMapping(map, MediaStore.Audio.Artists.Albums.FIRST_YEAR, "MIN(year)");
-        addMapping(map, MediaStore.Audio.Artists.Albums.LAST_YEAR, "MAX(year)");
-        addMapping(map, MediaStore.Audio.Artists.Albums.ALBUM_KEY);
-        addMapping(map, MediaStore.Audio.Artists.Albums.ALBUM_ART, "album_art._data");
-
-        // TODO: not actually defined in API, but CTS tested
-        addMapping(map, MediaStore.Audio.Albums._ID, "audio.album_id");
-        addMapping(map, MediaStore.Audio.Media.ARTIST_ID);
-        addMapping(map, MediaStore.Audio.Media.ARTIST_KEY);
-    }
-
-    {
-        final Map<String, String> map = sPlaylistMembersMap;
-        map.putAll(sAudioColumns);
-        addMapping(map, MediaStore.Audio.Playlists.Members._ID, "audio_playlists_map._id");
-        addMapping(map, MediaStore.Audio.Playlists.Members.AUDIO_ID);
-        addMapping(map, MediaStore.Audio.Playlists.Members.PLAYLIST_ID);
-        addMapping(map, MediaStore.Audio.Playlists.Members.PLAY_ORDER);
-
-        // TODO: defined in API, but CTS claims it should be omitted
-        map.remove(MediaStore.MediaColumns.WIDTH);
-        map.remove(MediaStore.MediaColumns.HEIGHT);
-
-        sMutableColumns.add(MediaStore.Audio.Playlists.Members.AUDIO_ID);
-        sMutableColumns.add(MediaStore.Audio.Playlists.Members.PLAY_ORDER);
-    }
-
-    {
-        final Map<String, String> map = sDownloadsColumns;
-        map.putAll(sMediaColumns);
-        addMapping(map, MediaStore.Downloads.DOWNLOAD_URI);
-        addMapping(map, MediaStore.Downloads.REFERER_URI);
-        addMapping(map, MediaStore.Downloads.DESCRIPTION);
-    }
-
-    {
-        sMutableColumns.add(MediaStore.Files.FileColumns.MIME_TYPE);
-        sMutableColumns.add(MediaStore.Files.FileColumns.MEDIA_TYPE);
     }
 
     /**
@@ -6193,6 +6104,37 @@ public class MediaProvider extends ContentProvider {
                 "MAX\\(case when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified \\* \\d+ when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified / \\d+ else \\d+ end\\)"));
         sGreylist.add(Pattern.compile(
                 "\"content://media/[a-z]+/audio/media\""));
+    }
+
+    @GuardedBy("sProjectionMapCache")
+    private static final ArrayMap<Class<?>, ArrayMap<String, String>>
+            sProjectionMapCache = new ArrayMap<>();
+
+    /**
+     * Return a projection map that represents the valid columns that can be
+     * queried the given contract class. The mapping is built automatically
+     * using the {@link Column} annotation, and is designed to ensure that we
+     * always support public API commitments.
+     */
+    static ArrayMap<String, String> getProjectionMap(Class<?> clazz) {
+        synchronized (sProjectionMapCache) {
+            ArrayMap<String, String> map = sProjectionMapCache.get(clazz);
+            if (map == null) {
+                map = new ArrayMap<>();
+                sProjectionMapCache.put(clazz, map);
+                try {
+                    for (Field field : clazz.getFields()) {
+                        if (field.isAnnotationPresent(Column.class)) {
+                            final String column = (String) field.get(null);
+                            map.put(column, column);
+                        }
+                    }
+                } catch (ReflectiveOperationException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            return map;
+        }
     }
 
     /**

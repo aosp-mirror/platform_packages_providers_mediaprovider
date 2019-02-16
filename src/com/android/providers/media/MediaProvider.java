@@ -3176,6 +3176,11 @@ public class MediaProvider extends ContentProvider {
                 qb.setProjectionMap(getProjectionMap(Audio.Genres.class));
                 appendWhereStandalone(qb, "_id IN (SELECT genre_id FROM " +
                         "audio_genres_map WHERE audio_id=?)", uri.getPathSegments().get(3));
+                if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
+                    // We don't have a great way to filter parsed metadata by
+                    // owner, so callers need to hold READ_MEDIA_AUDIO
+                    appendWhereStandalone(qb, "0");
+                }
                 break;
 
             case AUDIO_MEDIA_ID_PLAYLISTS_ID:
@@ -3186,6 +3191,11 @@ public class MediaProvider extends ContentProvider {
                 qb.setProjectionMap(getProjectionMap(Audio.Playlists.class));
                 appendWhereStandalone(qb, "_id IN (SELECT playlist_id FROM " +
                         "audio_playlists_map WHERE audio_id=?)", uri.getPathSegments().get(3));
+                if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
+                    // We don't have a great way to filter parsed metadata by
+                    // owner, so callers need to hold READ_MEDIA_AUDIO
+                    appendWhereStandalone(qb, "0");
+                }
                 break;
 
             case AUDIO_GENRES_ID:
@@ -3194,6 +3204,11 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_GENRES:
                 qb.setTables("audio_genres");
                 qb.setProjectionMap(getProjectionMap(Audio.Genres.class));
+                if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
+                    // We don't have a great way to filter parsed metadata by
+                    // owner, so callers need to hold READ_MEDIA_AUDIO
+                    appendWhereStandalone(qb, "0");
+                }
                 break;
 
             case AUDIO_GENRES_ID_MEMBERS:
@@ -3206,6 +3221,11 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, "audio._id = audio_id");
                 } else {
                     qb.setTables("audio_genres_map");
+                }
+                if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
+                    // We don't have a great way to filter parsed metadata by
+                    // owner, so callers need to hold READ_MEDIA_AUDIO
+                    appendWhereStandalone(qb, "0");
                 }
                 break;
 
@@ -3254,6 +3274,11 @@ public class MediaProvider extends ContentProvider {
                 } else {
                     qb.setTables("audio_playlists_map");
                 }
+                if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
+                    // We don't have a great way to filter parsed metadata by
+                    // owner, so callers need to hold READ_MEDIA_AUDIO
+                    appendWhereStandalone(qb, "0");
+                }
                 break;
             }
 
@@ -3261,6 +3286,11 @@ public class MediaProvider extends ContentProvider {
                 qb.setTables("album_art");
                 qb.setProjectionMap(getProjectionMap(Audio.Thumbnails.class));
                 appendWhereStandalone(qb, "album_id=?", uri.getPathSegments().get(3));
+                if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
+                    // We don't have a great way to filter parsed metadata by
+                    // owner, so callers need to hold READ_MEDIA_AUDIO
+                    appendWhereStandalone(qb, "0");
+                }
                 break;
 
             case AUDIO_ARTISTS_ID_ALBUMS: {
@@ -3292,6 +3322,11 @@ public class MediaProvider extends ContentProvider {
                 } else {
                     throw new UnsupportedOperationException("Albums cannot be directly modified");
                 }
+                if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
+                    // We don't have a great way to filter parsed metadata by
+                    // owner, so callers need to hold READ_MEDIA_AUDIO
+                    appendWhereStandalone(qb, "0");
+                }
                 break;
             }
 
@@ -3304,6 +3339,11 @@ public class MediaProvider extends ContentProvider {
                     qb.setProjectionMap(getProjectionMap(Audio.Artists.class));
                 } else {
                     throw new UnsupportedOperationException("Artists cannot be directly modified");
+                }
+                if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
+                    // We don't have a great way to filter parsed metadata by
+                    // owner, so callers need to hold READ_MEDIA_AUDIO
+                    appendWhereStandalone(qb, "0");
                 }
                 break;
 
@@ -3323,6 +3363,11 @@ public class MediaProvider extends ContentProvider {
                     qb.setProjectionMap(projectionMap);
                 } else {
                     throw new UnsupportedOperationException("Albums cannot be directly modified");
+                }
+                if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
+                    // We don't have a great way to filter parsed metadata by
+                    // owner, so callers need to hold READ_MEDIA_AUDIO
+                    appendWhereStandalone(qb, "0");
                 }
                 break;
             }
@@ -3385,6 +3430,8 @@ public class MediaProvider extends ContentProvider {
                     if (checkCallingPermissionAudio(forWrite, callingPackage)) {
                         options.add(DatabaseUtils.bindSelection("media_type=?",
                                 FileColumns.MEDIA_TYPE_AUDIO));
+                        options.add(DatabaseUtils.bindSelection("media_type=?",
+                                FileColumns.MEDIA_TYPE_PLAYLIST));
                     }
                     if (checkCallingPermissionVideo(forWrite, callingPackage)) {
                         options.add(DatabaseUtils.bindSelection("media_type=?",

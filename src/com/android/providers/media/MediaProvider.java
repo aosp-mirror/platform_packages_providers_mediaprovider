@@ -5191,8 +5191,8 @@ public class MediaProvider extends ContentProvider {
 
                     final Icon icon = getCollectionIcon(uri);
                     final RemoteAction action = new RemoteAction(icon,
-                            context.getText(R.string.grant_dialog_button_allow),
-                            context.getText(R.string.grant_dialog_button_allow),
+                            context.getText(R.string.permission_required_action),
+                            context.getText(R.string.permission_required_action),
                             intent);
 
                     throw new RecoverableSecurityException(new SecurityException(

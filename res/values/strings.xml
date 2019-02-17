@@ -45,7 +45,9 @@
     <string name="root_audio">Audio</string>
 
     <!-- Message telling users that the app must request permission before working with a media item. [CHAR LIMIT=128] -->
-    <string name="permission_required">Permission required to work with this media item.</string>
+    <string name="permission_required">Permission required to modify or delete this item.</string>
+    <!-- Button text that users can click on to request permission before working with a media item. [CHAR LIMIT=32] -->
+    <string name="permission_required_action">Continue</string>
 
     <!-- Prompt asking if user will allow permission to the audio item shown below this string. [CHAR LIMIT=128] -->
     <string name="permission_audio">Allow <b><xliff:g id="app_name" example="Gmail">^1</xliff:g></b> to modify or delete this music?</string>

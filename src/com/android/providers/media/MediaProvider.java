@@ -4908,14 +4908,17 @@ public class MediaProvider extends ContentProvider {
         if (c == null) {
             throw new FileNotFoundException("Missing cursor for " + uri);
         } else if (c.getCount() < 1) {
+            IoUtils.closeQuietly(c);
             throw new FileNotFoundException("No item at " + uri);
         } else if (c.getCount() > 1) {
+            IoUtils.closeQuietly(c);
             throw new FileNotFoundException("Multiple items at " + uri);
         }
 
         if (c.moveToFirst()) {
             return c;
         } else {
+            IoUtils.closeQuietly(c);
             throw new FileNotFoundException("Failed to read row from " + uri);
         }
     }

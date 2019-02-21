@@ -16,6 +16,8 @@
 
 package com.android.providers.media;
 
+import static android.content.ContentResolver.EXTRA_SIZE;
+
 import android.annotation.Nullable;
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -63,7 +65,6 @@ import android.util.Pair;
 
 import libcore.io.IoUtils;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -896,14 +897,14 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         try {
             if (TYPE_IMAGES_BUCKET.equals(ident.type)) {
                 final long id = getImageForBucketCleared(ident.id);
-                return openOrCreateImageThumbnailCleared(id, signal);
+                return openOrCreateImageThumbnailCleared(id, sizeHint, signal);
             } else if (TYPE_IMAGE.equals(ident.type)) {
-                return openOrCreateImageThumbnailCleared(ident.id, signal);
+                return openOrCreateImageThumbnailCleared(ident.id, sizeHint, signal);
             } else if (TYPE_VIDEOS_BUCKET.equals(ident.type)) {
                 final long id = getVideoForBucketCleared(ident.id);
-                return openOrCreateVideoThumbnailCleared(id, signal);
+                return openOrCreateVideoThumbnailCleared(id, sizeHint, signal);
             } else if (TYPE_VIDEO.equals(ident.type)) {
-                return openOrCreateVideoThumbnailCleared(ident.id, signal);
+                return openOrCreateVideoThumbnailCleared(ident.id, sizeHint, signal);
             } else {
                 throw new UnsupportedOperationException("Unsupported document " + docId);
             }
@@ -1216,53 +1217,39 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         throw new FileNotFoundException("No video found for bucket");
     }
 
-    private interface ImageThumbnailQuery {
-        final String[] PROJECTION = new String[] {
-                Images.Thumbnails.DATA };
-
-        final int _DATA = 0;
-    }
-
-    private ParcelFileDescriptor openImageThumbnailCleared(long id, CancellationSignal signal)
-            throws FileNotFoundException {
+    private AssetFileDescriptor openImageThumbnailCleared(long id, Point size,
+            CancellationSignal signal) throws FileNotFoundException {
         final ContentResolver resolver = getContext().getContentResolver();
 
-        Cursor cursor = null;
-        try {
-            cursor = resolver.query(Images.Thumbnails.EXTERNAL_CONTENT_URI,
-                    ImageThumbnailQuery.PROJECTION, Images.Thumbnails.IMAGE_ID + "=" + id, null,
-                    null, signal);
-            if (cursor.moveToFirst()) {
-                final String data = cursor.getString(ImageThumbnailQuery._DATA);
-                return ParcelFileDescriptor.open(
-                        new File(data), ParcelFileDescriptor.MODE_READ_ONLY);
-            }
-        } finally {
-            IoUtils.closeQuietly(cursor);
-        }
-        return null;
+        final Uri uri = ContentUris.withAppendedId(Images.Media.EXTERNAL_CONTENT_URI, id);
+        final Bundle opts = new Bundle();
+        opts.putParcelable(EXTRA_SIZE, size);
+        return resolver.openTypedAssetFile(uri, "image/*", opts, signal);
     }
 
-    private AssetFileDescriptor openOrCreateImageThumbnailCleared(
-            long id, CancellationSignal signal) throws FileNotFoundException {
+    private AssetFileDescriptor openOrCreateImageThumbnailCleared(long id, Point size,
+            CancellationSignal signal) throws FileNotFoundException {
         final ContentResolver resolver = getContext().getContentResolver();
 
-        ParcelFileDescriptor pfd = openImageThumbnailCleared(id, signal);
-        if (pfd == null) {
+        AssetFileDescriptor afd = openImageThumbnailCleared(id, size, signal);
+
+        if (afd == null) {
             // No thumbnail yet, so generate. This is messy, since we drop the
             // Bitmap on the floor, but its the least-complicated way.
             final BitmapFactory.Options opts = new BitmapFactory.Options();
             opts.inJustDecodeBounds = true;
             Images.Thumbnails.getThumbnail(resolver, id, Images.Thumbnails.MINI_KIND, opts);
 
-            pfd = openImageThumbnailCleared(id, signal);
+            afd = openImageThumbnailCleared(id, size, signal);
         }
 
-        if (pfd == null) {
-            // Phoey, fallback to full image
-            final Uri fullUri = ContentUris.withAppendedId(Images.Media.EXTERNAL_CONTENT_URI, id);
-            pfd = resolver.openFileDescriptor(fullUri, "r", signal);
+        if (afd != null) {
+            return afd;
         }
+
+        // Phoey, fallback to full image
+        final Uri fullUri = ContentUris.withAppendedId(Images.Media.EXTERNAL_CONTENT_URI, id);
+        final ParcelFileDescriptor pfd = resolver.openFileDescriptor(fullUri, "r", signal);
 
         final int orientation = queryOrientationForImage(id, signal);
         final Bundle extras;
@@ -1304,38 +1291,21 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         throw new FileNotFoundException("No video found for bucket");
     }
 
-    private interface VideoThumbnailQuery {
-        final String[] PROJECTION = new String[] {
-                Video.Thumbnails.DATA };
-
-        final int _DATA = 0;
-    }
-
-    private AssetFileDescriptor openVideoThumbnailCleared(long id, CancellationSignal signal)
-            throws FileNotFoundException {
-        final ContentResolver resolver = getContext().getContentResolver();
-        Cursor cursor = null;
-        try {
-            cursor = resolver.query(Video.Thumbnails.EXTERNAL_CONTENT_URI,
-                    VideoThumbnailQuery.PROJECTION, Video.Thumbnails.VIDEO_ID + "=" + id, null,
-                    null, signal);
-            if (cursor.moveToFirst()) {
-                final String data = cursor.getString(VideoThumbnailQuery._DATA);
-                return new AssetFileDescriptor(ParcelFileDescriptor.open(
-                        new File(data), ParcelFileDescriptor.MODE_READ_ONLY), 0,
-                        AssetFileDescriptor.UNKNOWN_LENGTH);
-            }
-        } finally {
-            IoUtils.closeQuietly(cursor);
-        }
-        return null;
-    }
-
-    private AssetFileDescriptor openOrCreateVideoThumbnailCleared(
-            long id, CancellationSignal signal) throws FileNotFoundException {
+    private AssetFileDescriptor openVideoThumbnailCleared(long id, Point size,
+            CancellationSignal signal) throws FileNotFoundException {
         final ContentResolver resolver = getContext().getContentResolver();
 
-        AssetFileDescriptor afd = openVideoThumbnailCleared(id, signal);
+        final Uri uri = ContentUris.withAppendedId(Video.Media.EXTERNAL_CONTENT_URI, id);
+        final Bundle opts = new Bundle();
+        opts.putParcelable(EXTRA_SIZE, size);
+        return resolver.openTypedAssetFile(uri, "image/*", opts, signal);
+    }
+
+    private AssetFileDescriptor openOrCreateVideoThumbnailCleared(long id, Point size,
+            CancellationSignal signal) throws FileNotFoundException {
+        final ContentResolver resolver = getContext().getContentResolver();
+
+        AssetFileDescriptor afd = openVideoThumbnailCleared(id, size, signal);
         if (afd == null) {
             // No thumbnail yet, so generate. This is messy, since we drop the
             // Bitmap on the floor, but its the least-complicated way.
@@ -1343,9 +1313,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             opts.inJustDecodeBounds = true;
             Video.Thumbnails.getThumbnail(resolver, id, Video.Thumbnails.MINI_KIND, opts);
 
-            afd = openVideoThumbnailCleared(id, signal);
+            afd = openVideoThumbnailCleared(id, size, signal);
         }
-
         return afd;
     }
 

@@ -3163,8 +3163,13 @@ public class MediaProvider extends ContentProvider {
                             FileColumns.MEDIA_TYPE_AUDIO);
                 }
                 if (!allowGlobal && !checkCallingPermissionAudio(forWrite, callingPackage)) {
-                    appendWhereStandalone(qb, FileColumns.OWNER_PACKAGE_NAME + "=?",
-                            callingPackage);
+                    // Apps without Audio permission can only see their own
+                    // media, but we also let them see ringtone-style media to
+                    // support legacy use-cases.
+                    appendWhereStandalone(qb,
+                            DatabaseUtils.bindSelection(FileColumns.OWNER_PACKAGE_NAME
+                                    + "=? OR is_ringtone=1 OR is_alarm=1 OR is_notification=1",
+                                    callingPackage));
                 }
                 if (!includePending) {
                     appendWhereStandalone(qb, FileColumns.IS_PENDING + "=?", 0);

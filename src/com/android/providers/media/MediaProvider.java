@@ -3438,14 +3438,17 @@ public class MediaProvider extends ContentProvider {
                                 FileColumns.MEDIA_TYPE_AUDIO));
                         options.add(DatabaseUtils.bindSelection("media_type=?",
                                 FileColumns.MEDIA_TYPE_PLAYLIST));
+                        options.add("media_type=0 AND mime_type LIKE 'audio/%'");
                     }
                     if (checkCallingPermissionVideo(forWrite, callingPackage)) {
                         options.add(DatabaseUtils.bindSelection("media_type=?",
                                 FileColumns.MEDIA_TYPE_VIDEO));
+                        options.add("media_type=0 AND mime_type LIKE 'video/%'");
                     }
                     if (checkCallingPermissionImages(forWrite, callingPackage)) {
                         options.add(DatabaseUtils.bindSelection("media_type=?",
                                 FileColumns.MEDIA_TYPE_IMAGE));
+                        options.add("media_type=0 AND mime_type LIKE 'image/%'");
                     }
                 }
                 if (options.size() > 0) {

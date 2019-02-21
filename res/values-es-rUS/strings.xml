@@ -26,7 +26,8 @@
     <string name="root_images" msgid="5861633549189045666">"Imágenes"</string>
     <string name="root_videos" msgid="8792703517064649453">"Videos"</string>
     <string name="root_audio" msgid="3505830755201326018">"Audio"</string>
-    <string name="permission_required" msgid="2444058206532822316">"Se requiere permiso para usar este elemento multimedia."</string>
+    <string name="permission_required" msgid="1460820436132943754">"Se requiere permiso para modificar o borrar este elemento."</string>
+    <string name="permission_required_action" msgid="706370952366113539">"Continuar"</string>
     <string name="permission_audio" msgid="344061911159388398">"¿Quieres permitir que "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" modifique o borre esta música?"</string>
     <string name="permission_video" msgid="8188037202573267740">"¿Quieres permitir que "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" modifique o borre este video?"</string>
     <string name="permission_images" msgid="6711726334380945124">"¿Quieres permitir que "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" modifique o borre esta imagen?"</string>

@@ -26,7 +26,8 @@
     <string name="root_images" msgid="5861633549189045666">"රූප"</string>
     <string name="root_videos" msgid="8792703517064649453">"වීඩියෝ"</string>
     <string name="root_audio" msgid="3505830755201326018">"ශ්‍රව්‍යය"</string>
-    <string name="permission_required" msgid="2444058206532822316">"මෙම මාධ්‍ය අයිතමය සමගින් වැඩ කිරීමට අවසරය අවශ්‍ය වේ."</string>
+    <string name="permission_required" msgid="1460820436132943754">"මෙම අයිතමය වෙනස් කිරීමට හෝ මැකීමට අවසරය අවශ්‍යයි."</string>
+    <string name="permission_required_action" msgid="706370952366113539">"ඉදිරියට යන්න"</string>
     <string name="permission_audio" msgid="344061911159388398"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" හට මෙම සංගීතය වෙනස් කිරීමට හෝ මැකීමට ඉඩ දෙන්නද?"</string>
     <string name="permission_video" msgid="8188037202573267740"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" හට මෙම වීඩියෝව වෙනස් කිරීමට හෝ මැකීමට ඉඩ දෙන්නද?"</string>
     <string name="permission_images" msgid="6711726334380945124"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" හට මෙම රූපය වෙනස් කිරීමට හෝ මැකීමට ඉඩ දෙන්නද?"</string>

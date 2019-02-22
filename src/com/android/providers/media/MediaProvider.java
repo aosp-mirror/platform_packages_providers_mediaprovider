@@ -3694,9 +3694,13 @@ public class MediaProvider extends ContentProvider {
                             // Only need to inform DownloadProvider about the downloads deleted on
                             // external volume.
                             if (MediaStore.VOLUME_EXTERNAL.equals(volumeName) && isDownload == 1) {
-                                deletedDownloadIds.put(id,
-                                        format == MtpConstants.FORMAT_ASSOCIATION ?
-                                                DocumentsContract.Document.MIME_TYPE_DIR : mimeType);
+                                String inferredMimeType;
+                                if (mimeType == null || format == MtpConstants.FORMAT_ASSOCIATION) {
+                                    inferredMimeType = DocumentsContract.Document.MIME_TYPE_DIR;
+                                } else {
+                                    inferredMimeType = mimeType;
+                                }
+                                deletedDownloadIds.put(id, inferredMimeType);
                             }
                             if (mediaType == FileColumns.MEDIA_TYPE_IMAGE) {
                                 deleteIfAllowed(uri, data);

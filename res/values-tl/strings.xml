@@ -26,7 +26,8 @@
     <string name="root_images" msgid="5861633549189045666">"Mga Larawan"</string>
     <string name="root_videos" msgid="8792703517064649453">"Mga Video"</string>
     <string name="root_audio" msgid="3505830755201326018">"Audio"</string>
-    <string name="permission_required" msgid="2444058206532822316">"Kinakailangan ng pahintulot para magamit ang media item na ito"</string>
+    <string name="permission_required" msgid="1460820436132943754">"Kailangan ng pahintulot para mabago o ma-delete ang item na ito."</string>
+    <string name="permission_required_action" msgid="706370952366113539">"Magpatuloy"</string>
     <string name="permission_audio" msgid="344061911159388398">"Payagan ang "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" na baguhin o i-delete ang musikang ito?"</string>
     <string name="permission_video" msgid="8188037202573267740">"Payagan ang "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" na baguhin o i-delete ang video na ito?"</string>
     <string name="permission_images" msgid="6711726334380945124">"Payagan ang "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" na baguhin o i-delete ang larawang ito?"</string>

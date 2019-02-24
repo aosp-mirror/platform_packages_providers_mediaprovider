@@ -26,7 +26,8 @@
     <string name="root_images" msgid="5861633549189045666">"相片"</string>
     <string name="root_videos" msgid="8792703517064649453">"影片"</string>
     <string name="root_audio" msgid="3505830755201326018">"音訊"</string>
-    <string name="permission_required" msgid="2444058206532822316">"需要權限才能使用此媒體項目。"</string>
+    <string name="permission_required" msgid="1460820436132943754">"需要權限才能修改或刪除此項目。"</string>
+    <string name="permission_required_action" msgid="706370952366113539">"繼續"</string>
     <string name="permission_audio" msgid="344061911159388398">"要允許「<xliff:g id="APP_NAME">^1</xliff:g>」"<b></b>"修改或刪除此音樂檔案嗎？"</string>
     <string name="permission_video" msgid="8188037202573267740">"要允許「<xliff:g id="APP_NAME">^1</xliff:g>」"<b></b>"修改或刪除此影片嗎？"</string>
     <string name="permission_images" msgid="6711726334380945124">"要允許「<xliff:g id="APP_NAME">^1</xliff:g>」"<b></b>"修改或刪除此圖片嗎？"</string>

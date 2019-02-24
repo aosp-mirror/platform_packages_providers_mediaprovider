@@ -3163,8 +3163,13 @@ public class MediaProvider extends ContentProvider {
                             FileColumns.MEDIA_TYPE_AUDIO);
                 }
                 if (!allowGlobal && !checkCallingPermissionAudio(forWrite, callingPackage)) {
-                    appendWhereStandalone(qb, FileColumns.OWNER_PACKAGE_NAME + "=?",
-                            callingPackage);
+                    // Apps without Audio permission can only see their own
+                    // media, but we also let them see ringtone-style media to
+                    // support legacy use-cases.
+                    appendWhereStandalone(qb,
+                            DatabaseUtils.bindSelection(FileColumns.OWNER_PACKAGE_NAME
+                                    + "=? OR is_ringtone=1 OR is_alarm=1 OR is_notification=1",
+                                    callingPackage));
                 }
                 if (!includePending) {
                     appendWhereStandalone(qb, FileColumns.IS_PENDING + "=?", 0);
@@ -3438,14 +3443,17 @@ public class MediaProvider extends ContentProvider {
                                 FileColumns.MEDIA_TYPE_AUDIO));
                         options.add(DatabaseUtils.bindSelection("media_type=?",
                                 FileColumns.MEDIA_TYPE_PLAYLIST));
+                        options.add("media_type=0 AND mime_type LIKE 'audio/%'");
                     }
                     if (checkCallingPermissionVideo(forWrite, callingPackage)) {
                         options.add(DatabaseUtils.bindSelection("media_type=?",
                                 FileColumns.MEDIA_TYPE_VIDEO));
+                        options.add("media_type=0 AND mime_type LIKE 'video/%'");
                     }
                     if (checkCallingPermissionImages(forWrite, callingPackage)) {
                         options.add(DatabaseUtils.bindSelection("media_type=?",
                                 FileColumns.MEDIA_TYPE_IMAGE));
+                        options.add("media_type=0 AND mime_type LIKE 'image/%'");
                     }
                 }
                 if (options.size() > 0) {
@@ -3686,9 +3694,13 @@ public class MediaProvider extends ContentProvider {
                             // Only need to inform DownloadProvider about the downloads deleted on
                             // external volume.
                             if (MediaStore.VOLUME_EXTERNAL.equals(volumeName) && isDownload == 1) {
-                                deletedDownloadIds.put(id,
-                                        format == MtpConstants.FORMAT_ASSOCIATION ?
-                                                DocumentsContract.Document.MIME_TYPE_DIR : mimeType);
+                                String inferredMimeType;
+                                if (mimeType == null || format == MtpConstants.FORMAT_ASSOCIATION) {
+                                    inferredMimeType = DocumentsContract.Document.MIME_TYPE_DIR;
+                                } else {
+                                    inferredMimeType = mimeType;
+                                }
+                                deletedDownloadIds.put(id, inferredMimeType);
                             }
                             if (mediaType == FileColumns.MEDIA_TYPE_IMAGE) {
                                 deleteIfAllowed(uri, data);

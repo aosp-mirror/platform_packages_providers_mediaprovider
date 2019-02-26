@@ -21,7 +21,7 @@
     <string name="app_label" msgid="9035307001052716210">"Medielagring"</string>
     <string name="artist_label" msgid="8105600993099120273">"Musiker"</string>
     <string name="ringtone_default" msgid="1744846699922263043">"Standardringetone"</string>
-    <string name="notification_sound_default" msgid="6541609166469990135">"Standardlyd for underretninger"</string>
+    <string name="notification_sound_default" msgid="6541609166469990135">"Standardlyd for notifikationer"</string>
     <string name="alarm_sound_default" msgid="5488847775252870314">"Standardlyd for alarmer"</string>
     <string name="root_images" msgid="5861633549189045666">"Billeder"</string>
     <string name="root_videos" msgid="8792703517064649453">"Videoer"</string>

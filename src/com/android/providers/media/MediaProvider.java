@@ -3508,8 +3508,9 @@ public class MediaProvider extends ContentProvider {
 
             // If caller is an older app, we're willing to let through a
             // greylist of technically invalid columns
-            // TODO: switch to only set for legacy apps
-            qb.setProjectionGreylist(sGreylist);
+            if (getCallingPackageTargetSdkVersion() < Build.VERSION_CODES.Q) {
+                qb.setProjectionGreylist(sGreylist);
+            }
         }
 
         return qb;

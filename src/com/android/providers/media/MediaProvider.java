@@ -493,6 +493,9 @@ public class MediaProvider extends ContentProvider {
     public boolean onCreate() {
         final Context context = getContext();
 
+        // Enable verbose transport logging when requested
+        setTransportLoggingEnabled(LOCAL_LOGV);
+
         mStorageManager = context.getSystemService(StorageManager.class);
         mAppOpsManager = context.getSystemService(AppOpsManager.class);
         mPackageManager = context.getPackageManager();
@@ -1260,9 +1263,9 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        if (LOCAL_LOGV) log("query", uri, projection, selection, selectionArgs, sortOrder, signal);
-
         uri = safeUncanonicalize(uri);
+        selectionArgs = translateSelectionArgsAppToSystem(selectionArgs,
+                Binder.getCallingPid(), Binder.getCallingUid());
 
         final String volumeName = getVolumeName(uri);
         final boolean allowHidden = isCallingPackageAllowedHidden();
@@ -1761,8 +1764,6 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public int bulkInsert(Uri uri, ContentValues values[]) {
-        if (LOCAL_LOGV) log("bulkInsert", uri, values);
-
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
@@ -1816,8 +1817,6 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public Uri insert(Uri uri, ContentValues initialValues) {
-        if (LOCAL_LOGV) log("insert", uri, initialValues);
-
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
@@ -2298,7 +2297,6 @@ public class MediaProvider extends ContentProvider {
             }
 
             rowId = db.insert("files", FileColumns.DATE_MODIFIED, values);
-            if (LOCAL_LOGV) Log.v(TAG, "insertFile: values=" + values + " returned: " + rowId);
         } else {
             db.update("files", values, FileColumns._ID + "=?",
                     new String[] { Long.toString(rowId) });
@@ -2474,7 +2472,6 @@ public class MediaProvider extends ContentProvider {
 
         long rowId;
 
-        if (LOCAL_LOGV) Log.v(TAG, "insertInternal: "+uri+", initValues="+initialValues);
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
         if (match == MEDIA_SCANNER) {
             mMediaScannerVolume = initialValues.getAsString(MediaStore.MEDIA_SCANNER_VOLUME);
@@ -2975,8 +2972,6 @@ public class MediaProvider extends ContentProvider {
     @Override
     public ContentProviderResult[] applyBatch(ArrayList<ContentProviderOperation> operations)
                 throws OperationApplicationException {
-        if (LOCAL_LOGV) log("applyBatch", operations);
-
         // batched operations are likely to need to call getParent(), which in turn may need to
         // update the database, so synchronize on mDirectoryCache to avoid deadlocks
         synchronized (mDirectoryCache) {
@@ -3611,9 +3606,10 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public int delete(Uri uri, String userWhere, String[] userWhereArgs) {
-        if (LOCAL_LOGV) log("delete", uri, userWhere, userWhereArgs);
-
         uri = safeUncanonicalize(uri);
+        userWhereArgs = translateSelectionArgsAppToSystem(userWhereArgs,
+                Binder.getCallingPid(), Binder.getCallingUid());
+
         int count;
 
         final boolean allowHidden = isCallingPackageAllowedHidden();
@@ -3856,8 +3852,6 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public Bundle call(String method, String arg, Bundle extras) {
-        if (LOCAL_LOGV) log("call", method, arg, extras);
-
         switch (method) {
             case MediaStore.SCAN_FILE_CALL:
             case MediaStore.SCAN_VOLUME_CALL: {
@@ -4180,8 +4174,6 @@ public class MediaProvider extends ContentProvider {
     @Override
     public int update(Uri uri, ContentValues initialValues, String userWhere,
             String[] userWhereArgs) {
-        if (LOCAL_LOGV) log("update", uri, initialValues, userWhere, userWhereArgs);
-
         final Uri originalUri = uri;
         if ("com.google.android.GoogleCamera".equals(getCallingPackageOrSelf())) {
             if (matchUri(uri, false) == IMAGES_MEDIA_ID) {
@@ -4194,6 +4186,9 @@ public class MediaProvider extends ContentProvider {
         }
 
         uri = safeUncanonicalize(uri);
+        userWhereArgs = translateSelectionArgsAppToSystem(userWhereArgs,
+                Binder.getCallingPid(), Binder.getCallingUid());
+
         int count;
         //Log.v(TAG, "update for uri=" + uri + ", initValues=" + initialValues +
         //        ", where=" + userWhere + ", args=" + Arrays.toString(whereArgs) + " caller:" +
@@ -4749,8 +4744,6 @@ public class MediaProvider extends ContentProvider {
 
     private ParcelFileDescriptor openFileCommon(Uri uri, String mode, CancellationSignal signal)
             throws FileNotFoundException {
-        if (LOCAL_LOGV) log("openFile", uri, mode);
-
         uri = safeUncanonicalize(uri);
 
         final boolean allowHidden = isCallingPackageAllowedHidden();
@@ -4814,8 +4807,6 @@ public class MediaProvider extends ContentProvider {
 
     private AssetFileDescriptor openTypedAssetFileCommon(Uri uri, String mimeTypeFilter,
             Bundle opts, CancellationSignal signal) throws FileNotFoundException {
-        if (LOCAL_LOGV) log("openTypedAssetFile", uri, mimeTypeFilter, opts);
-
         uri = safeUncanonicalize(uri);
 
         // TODO: enforce that caller has access to this uri
@@ -6371,6 +6362,21 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    private @Nullable String[] translateSelectionArgsAppToSystem(@Nullable String[] args,
+            int pid, int uid) {
+        if (args == null) return args;
+
+        final String[] res = new String[args.length];
+        for (int i = 0; i < args.length; i++) {
+            if (PATTERN_STORAGE_PATH.matcher(args[i]).find()) {
+                res[i] = translateAppToSystem(args[i], pid, uid);
+            } else {
+                res[i] = args[i];
+            }
+        }
+        return res;
+    }
+
     private @Nullable String translateAppToSystem(@Nullable String path, int pid, int uid) {
         if (path == null) return path;
 
@@ -6385,22 +6391,6 @@ public class MediaProvider extends ContentProvider {
         final File system = new File(path);
         final File app = mStorageManager.translateSystemToApp(system, pid, uid);
         return app.getPath();
-    }
-
-    private static void log(String method, Object... args) {
-        // First, force-unparcel any bundles so we can log them
-        for (Object arg : args) {
-            if (arg instanceof Bundle) {
-                ((Bundle) arg).size();
-            }
-        }
-
-        final StringBuilder sb = new StringBuilder();
-        sb.append(method);
-        sb.append('(');
-        sb.append(Arrays.deepToString(args));
-        sb.append(')');
-        Log.v(TAG, sb.toString());
     }
 
     @Override

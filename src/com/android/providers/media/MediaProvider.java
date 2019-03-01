@@ -151,6 +151,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -1017,6 +1018,8 @@ public class MediaProvider extends ContentProvider {
 
         sanityCheck(db, fromVersion);
 
+        getOrCreateUuid(db);
+
         final long elapsedSeconds = (SystemClock.elapsedRealtime() - startTime)
                 / DateUtils.SECOND_IN_MILLIS;
         logToDb(db, "Database upgraded from version " + fromVersion + " to " + toVersion
@@ -1073,6 +1076,31 @@ public class MediaProvider extends ContentProvider {
         } finally {
             IoUtils.closeQuietly(c1);
             IoUtils.closeQuietly(c2);
+        }
+    }
+
+    private static final String XATTR_UUID = "user.uuid";
+
+    /**
+     * Return a UUID for the given database. If the database is deleted or
+     * otherwise corrupted, then a new UUID will automatically be generated.
+     */
+    private static @NonNull String getOrCreateUuid(@NonNull SQLiteDatabase db) {
+        try {
+            return new String(Os.getxattr(db.getPath(), XATTR_UUID));
+        } catch (ErrnoException e) {
+            if (e.errno == OsConstants.ENODATA) {
+                // Doesn't exist yet, so generate and persist a UUID
+                final String uuid = UUID.randomUUID().toString();
+                try {
+                    Os.setxattr(db.getPath(), XATTR_UUID, uuid.getBytes(), 0);
+                } catch (ErrnoException e2) {
+                    throw new RuntimeException(e);
+                }
+                return uuid;
+            } else {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -3892,6 +3920,23 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.RETRANSLATE_CALL: {
                 localizeTitles();
                 return null;
+            }
+            case MediaStore.GET_VERSION_CALL: {
+                final String volumeName = extras.getString(Intent.EXTRA_TEXT);
+
+                final SQLiteDatabase db;
+                try {
+                    db = getDatabaseForUri(MediaStore.Files.getContentUri(volumeName))
+                            .getReadableDatabase();
+                } catch (VolumeNotFoundException e) {
+                    throw e.rethrowAsIllegalArgumentException();
+                }
+
+                final String version = db.getVersion() + ":" + getOrCreateUuid(db);
+
+                final Bundle res = new Bundle();
+                res.putString(Intent.EXTRA_TEXT, version);
+                return res;
             }
             case MediaStore.GET_DOCUMENT_URI_CALL: {
                 final Uri mediaUri = extras.getParcelable(DocumentsContract.EXTRA_URI);

@@ -26,10 +26,8 @@
     <string name="root_images" msgid="5861633549189045666">"படங்கள்"</string>
     <string name="root_videos" msgid="8792703517064649453">"வீடியோக்கள்"</string>
     <string name="root_audio" msgid="3505830755201326018">"ஆடியோ"</string>
-    <!-- no translation found for permission_required (1460820436132943754) -->
-    <skip />
-    <!-- no translation found for permission_required_action (706370952366113539) -->
-    <skip />
+    <string name="permission_required" msgid="1460820436132943754">"இதை மாற்றவோ நீக்கவோ அனுமதி தேவை."</string>
+    <string name="permission_required_action" msgid="706370952366113539">"தொடர்க"</string>
     <string name="permission_audio" msgid="344061911159388398">"இந்த இசையை மாற்றவோ நீக்கவோ "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" ஆப்ஸை அனுமதிக்கவா?"</string>
     <string name="permission_video" msgid="8188037202573267740">"இந்த வீடியோவை மாற்றவோ நீக்கவோ "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" ஆப்ஸை அனுமதிக்கவா?"</string>
     <string name="permission_images" msgid="6711726334380945124">"இந்தப் படத்தை மாற்றவோ நீக்கவோ "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" ஆப்ஸை அனுமதிக்கவா?"</string>

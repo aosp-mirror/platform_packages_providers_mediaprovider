@@ -908,6 +908,26 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("ALTER TABLE files ADD COLUMN original_document_id TEXT DEFAULT NULL;");
     }
 
+    private static void updateSetDisplayNamesIfNull(SQLiteDatabase db, boolean internal) {
+        final String[] projection = {
+                FileColumns._ID,
+                FileColumns.DATA
+        };
+        try (Cursor c = db.query("files", projection, FileColumns.DISPLAY_NAME + " IS NULL",
+                null, null, null, null, null)) {
+            Log.d(TAG, "Setting display name for " + c.getCount() + " entries");
+
+            final ContentValues values = new ContentValues();
+            while (c.moveToNext()) {
+                values.clear();
+                final long id = c.getLong(0);
+                final String data = c.getString(1);
+                values.put(FileColumns.DISPLAY_NAME, getDisplayName(data));
+                db.update("files", values, "_id=" + id, null);
+            }
+        }
+    }
+
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
                 null, null, null, null, null, null)) {
@@ -935,7 +955,7 @@ public class MediaProvider extends ContentProvider {
     static final int VERSION_N = 800;
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
-    static final int VERSION_Q = 1016;
+    static final int VERSION_Q = 1017;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -1005,6 +1025,10 @@ public class MediaProvider extends ContentProvider {
             }
             if (fromVersion < 1016) {
                 // Empty version bump to ensure views are recreated
+            }
+            if (fromVersion < 1017) {
+                updateSetIsDownload(db, internal);
+                updateSetDisplayNamesIfNull(db, internal);
             }
 
             if (recomputeDataValues) {
@@ -1660,8 +1684,7 @@ public class MediaProvider extends ContentProvider {
             final String data = values.getAsString(MediaColumns.DATA);
 
             if (TextUtils.isEmpty(values.getAsString(MediaColumns.DISPLAY_NAME))) {
-                final String displayName = data.substring(data.lastIndexOf('/') + 1);
-                values.put(MediaColumns.DISPLAY_NAME, displayName);
+                values.put(MediaColumns.DISPLAY_NAME, getDisplayName(data));
             }
             if (TextUtils.isEmpty(values.getAsString(MediaColumns.MIME_TYPE))) {
                 final String ext = data.substring(data.lastIndexOf('.') + 1);
@@ -1919,12 +1942,21 @@ public class MediaProvider extends ContentProvider {
         values.put(FileColumns.DATA, path);
         values.put(FileColumns.PARENT, getParent(helper, db, path));
         values.put(FileColumns.OWNER_PACKAGE_NAME, getPathOwnerPackageName(path));
+        values.put(FileColumns.DISPLAY_NAME, getDisplayName(path));
+        values.put(FileColumns.IS_DOWNLOAD, isDownload(path));
         File file = new File(path);
         if (file.exists()) {
             values.put(FileColumns.DATE_MODIFIED, file.lastModified() / 1000);
         }
         long rowId = db.insert("files", FileColumns.DATE_MODIFIED, values);
         return rowId;
+    }
+
+    private static String getDisplayName(String path) {
+        if (path.endsWith("/")) {
+            path = path.substring(0, path.length() - 1);
+        }
+        return path.substring(path.lastIndexOf('/') + 1);
     }
 
     private long getParent(DatabaseHelper helper, SQLiteDatabase db, String path) {
@@ -4438,10 +4470,10 @@ public class MediaProvider extends ContentProvider {
                 } finally {
                     IoUtils.closeQuietly(cursor);
                 }
-                final boolean isDownloadDir = isDownloadDir(newPath);
+                final boolean isDownload = isDownload(newPath);
                 if (oldPath != null) {
                     mDirectoryCache.remove(oldPath);
-                    final boolean wasDownloadDir = isDownloadDir(oldPath);
+                    final boolean wasDownload = isDownload(oldPath);
                     // first rename the row for the directory
                     count = qb.update(db, initialValues, userWhere, userWhereArgs);
                     if (count > 0) {
@@ -4454,7 +4486,7 @@ public class MediaProvider extends ContentProvider {
                                 // update bucket_display_name and bucket_id based on new path
                                 f.getName(),
                                 f.toString().toLowerCase().hashCode(),
-                                isDownloadDir
+                                isDownload
                                 };
                         db.execSQL("UPDATE files SET _data=?1||SUBSTR(_data, ?2)" +
                                 // also update bucket_display_name
@@ -4467,7 +4499,7 @@ public class MediaProvider extends ContentProvider {
 
                     if (count > 0 && !db.inTransaction()) {
                         getContext().getContentResolver().notifyChange(uri, null);
-                        if (wasDownloadDir || isDownloadDir) {
+                        if (wasDownload || isDownload) {
                             getContext().getContentResolver().notifyChange(
                                     Downloads.getContentUri(volumeName), null);
                         }

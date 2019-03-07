@@ -26,6 +26,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.mtp.MtpConstants;
 import android.provider.MediaStore.Files.FileColumns;
 import android.util.Log;
 
@@ -157,6 +158,16 @@ public class DatabaseHelperTest {
                 values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_VIDEO);
                 assertFalse(db.insert("files", FileColumns.DATA, values) == -1);
             }
+            {
+                final ContentValues values = new ContentValues();
+                values.put(FileColumns.DATA,
+                        "/storage/emulated/0/Download/foo");
+                values.put(FileColumns.DATE_ADDED, System.currentTimeMillis());
+                values.put(FileColumns.DATE_ADDED, System.currentTimeMillis());
+                values.put(FileColumns.DATE_MODIFIED, System.currentTimeMillis());
+                values.put(FileColumns.FORMAT, MtpConstants.FORMAT_ASSOCIATION);
+                assertFalse(db.insert("files", FileColumns.DATA, values) == -1);
+            }
         }
 
         try (DatabaseHelper helper = after.getConstructor(Context.class, String.class)
@@ -200,6 +211,16 @@ public class DatabaseHelperTest {
                         c.getString(c.getColumnIndexOrThrow(FileColumns.DATA)));
                 assertEquals("com.example2",
                         c.getString(c.getColumnIndexOrThrow(FileColumns.OWNER_PACKAGE_NAME)));
+                assertEquals("1", c.getString(c.getColumnIndexOrThrow(FileColumns.IS_DOWNLOAD)));
+            }
+            try (Cursor c = db.query("files", null,
+                    FileColumns.DATA + "='/storage/emulated/0/Download/foo'",
+                    null, null, null, null)) {
+                assertEquals(1, c.getCount());
+                assertTrue(c.moveToFirst());
+                assertEquals(MtpConstants.FORMAT_ASSOCIATION,
+                        c.getInt(c.getColumnIndexOrThrow(FileColumns.FORMAT)));
+                assertEquals("foo", c.getString(c.getColumnIndexOrThrow(FileColumns.DISPLAY_NAME)));
                 assertEquals("1", c.getString(c.getColumnIndexOrThrow(FileColumns.IS_DOWNLOAD)));
             }
 

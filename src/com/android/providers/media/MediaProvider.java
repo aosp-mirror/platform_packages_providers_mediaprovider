@@ -6241,6 +6241,8 @@ public class MediaProvider extends ContentProvider {
                 "MAX\\(case when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified \\* \\d+ when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified when \\(date_modified >= \\d+ and date_modified < \\d+\\) then date_modified / \\d+ else \\d+ end\\)"));
         sGreylist.add(Pattern.compile(
                 "\"content://media/[a-z]+/audio/media\""));
+        sGreylist.add(Pattern.compile(
+                "substr\\(_data, length\\(_data\\)-length\\(_display_name\\), 1\\) as filename_prevchar"));
     }
 
     @GuardedBy("sProjectionMapCache")

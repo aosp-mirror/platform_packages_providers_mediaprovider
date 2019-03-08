@@ -358,6 +358,12 @@ public class MediaProviderTest {
     }
 
     @Test
+    public void testGreylist_126945991() {
+        assertTrue(isGreylistMatch(
+                "substr(_data, length(_data)-length(_display_name), 1) as filename_prevchar"));
+    }
+
+    @Test
     public void testIsDownload() throws Exception {
         assertTrue(isDownload("/storage/emulated/0/Download/colors.png"));
         assertTrue(isDownload("/storage/emulated/0/Download/test.pdf"));

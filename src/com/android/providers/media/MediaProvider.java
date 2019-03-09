@@ -6469,21 +6469,8 @@ public class MediaProvider extends ContentProvider {
      * OS media stack, and allowed certain raw access.
      */
     private boolean isCallingPackageSystem() {
-        switch (Binder.getCallingUid()) {
-            case android.os.Process.ROOT_UID:
-            case android.os.Process.SHELL_UID:
-                return true;
-        }
-        switch (getCallingPackageOrSelf()) {
-            case "com.android.providers.media":
-            case "com.android.providers.downloads":
-            case "com.android.mtp":
-            case "com.android.externalstorage":
-            case "com.android.systemui":
-                return true;
-            default:
-                return false;
-        }
+        return (getContext()
+                .checkCallingOrSelfPermission(WRITE_MEDIA_STORAGE) == PERMISSION_GRANTED);
     }
 
     private void enforceCallingOrSelfPermissionAndAppOps(String permission, String message) {

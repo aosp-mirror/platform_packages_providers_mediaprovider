@@ -30,7 +30,6 @@ import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.getVolumeName;
 import static android.provider.MediaStore.Downloads.PATTERN_DOWNLOADS_FILE;
 import static android.provider.MediaStore.Downloads.isDownload;
-import static android.provider.MediaStore.Downloads.isDownloadDir;
 
 import android.annotation.BytesLong;
 import android.annotation.NonNull;
@@ -5014,12 +5013,15 @@ public class MediaProvider extends ContentProvider {
         final boolean forWrite = (modeBits != ParcelFileDescriptor.MODE_READ_ONLY);
 
         final boolean hasOwnerPackageName = hasOwnerPackageName(uri);
-        final String[] projection = hasOwnerPackageName
-                ? new String[] { MediaColumns.DATA, MediaColumns.OWNER_PACKAGE_NAME }
-                : new String[] { MediaColumns.DATA, "NULL" };
+        final String[] projection = new String[] {
+                MediaColumns.DATA,
+                hasOwnerPackageName ? MediaColumns.OWNER_PACKAGE_NAME : "NULL",
+                hasOwnerPackageName ? MediaColumns.IS_PENDING : "0",
+        };
 
         final File file;
         final String ownerPackageName;
+        final boolean isPending;
         final CallingIdentity token = clearCallingIdentity();
         try (Cursor c = queryForSingleItem(uri, projection, null, null, signal)) {
             final String data = c.getString(0);
@@ -5029,6 +5031,7 @@ public class MediaProvider extends ContentProvider {
                 file = new File(data).getCanonicalFile();
             }
             ownerPackageName = c.getString(1);
+            isPending = c.getInt(2) != 0;
         } catch (IOException e) {
             throw new FileNotFoundException(e.toString());
         } finally {
@@ -5037,8 +5040,14 @@ public class MediaProvider extends ContentProvider {
 
         checkAccess(uri, file, forWrite);
 
-        // Figure out if we need to redact contents
+        // Require ownership if item is still pending
         final boolean callerIsOwner = Objects.equals(getCallingPackageOrSelf(), ownerPackageName);
+        if (isPending && !callerIsOwner) {
+            throw new IllegalStateException(
+                    "Only owner is able to interact with pending media " + uri);
+        }
+
+        // Figure out if we need to redact contents
         final boolean redactionNeeded = callerIsOwner ? false : isRedactionNeeded(uri);
         final long[] redactionRanges = redactionNeeded ? getRedactionRanges(file) : EmptyArray.LONG;
 

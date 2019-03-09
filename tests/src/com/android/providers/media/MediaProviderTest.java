@@ -39,6 +39,8 @@ import android.provider.MediaStore.MediaColumns;
 import android.util.Log;
 import android.util.Pair;
 
+import com.android.providers.media.MediaProvider.VolumeArgumentException;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -523,7 +525,11 @@ public class MediaProviderTest {
         }
         values.put(MediaColumns.DISPLAY_NAME, displayName);
         values.put(MediaColumns.MIME_TYPE, mimeType);
-        ensureFileColumns(uri, values);
+        try {
+            ensureFileColumns(uri, values);
+        } catch (VolumeArgumentException e) {
+            throw e.rethrowAsIllegalArgumentException();
+        }
         return values.getAsString(MediaColumns.DATA);
     }
 

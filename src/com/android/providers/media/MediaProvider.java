@@ -1319,6 +1319,7 @@ public class MediaProvider extends ContentProvider {
                 Binder.getCallingPid(), Binder.getCallingUid());
 
         final String volumeName = getVolumeName(uri);
+        final int targetSdkVersion = getCallingPackageTargetSdkVersion();
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int table = matchUri(uri, allowHidden);
 
@@ -1352,7 +1353,7 @@ public class MediaProvider extends ContentProvider {
             helper = getDatabaseForUri(uri);
             db = helper.getReadableDatabase();
         } catch (VolumeNotFoundException e) {
-            return e.translateForQuery();
+            return e.translateForQuery(targetSdkVersion);
         }
 
         if (table == MTP_OBJECT_REFERENCES) {
@@ -1575,15 +1576,17 @@ public class MediaProvider extends ContentProvider {
     }
 
     @VisibleForTesting
-    static void ensureFileColumns(Uri uri, ContentValues values) {
+    static void ensureFileColumns(Uri uri, ContentValues values) throws VolumeArgumentException {
         ensureNonUniqueFileColumns(matchUri(uri, true), uri, values);
     }
 
-    private static void ensureUniqueFileColumns(int match, Uri uri, ContentValues values) {
+    private static void ensureUniqueFileColumns(int match, Uri uri, ContentValues values)
+            throws VolumeArgumentException {
         ensureFileColumns(match, uri, values, true);
     }
 
-    private static void ensureNonUniqueFileColumns(int match, Uri uri, ContentValues values) {
+    private static void ensureNonUniqueFileColumns(int match, Uri uri, ContentValues values)
+            throws VolumeArgumentException {
         ensureFileColumns(match, uri, values, false);
     }
 
@@ -1595,7 +1598,7 @@ public class MediaProvider extends ContentProvider {
      * {@link android.provider.MediaStore.Images}.
      */
     private static void ensureFileColumns(int match, Uri uri, ContentValues values,
-            boolean makeUnique) {
+            boolean makeUnique) throws VolumeArgumentException {
         // Figure out defaults based on Uri being modified
         String defaultMimeType = ContentResolver.MIME_TYPE_DEFAULT;
         String defaultPrimary = Environment.DIRECTORY_DOWNLOADS;
@@ -1795,7 +1798,8 @@ public class MediaProvider extends ContentProvider {
      * Sanity check that any requested {@link MediaColumns#DATA} paths actually
      * live on the storage volume being targeted.
      */
-    private static void assertFileColumnsSane(int match, Uri uri, ContentValues values) {
+    private static void assertFileColumnsSane(int match, Uri uri, ContentValues values)
+            throws VolumeArgumentException {
         if (!values.containsKey(MediaColumns.DATA)) return;
         try {
             // Sanity check that the requested path actually lives on volume
@@ -1804,8 +1808,7 @@ public class MediaProvider extends ContentProvider {
             final File actual = new File(values.getAsString(MediaColumns.DATA))
                     .getCanonicalFile();
             if (!FileUtils.contains(allowed, actual)) {
-                throw new IllegalArgumentException(
-                        "Requested path " + actual + " doesn't appear under " + allowed);
+                throw new VolumeArgumentException(actual, allowed);
             }
         } catch (IOException e) {
             throw new IllegalArgumentException(e);
@@ -1814,6 +1817,7 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public int bulkInsert(Uri uri, ContentValues values[]) {
+        final int targetSdkVersion = getCallingPackageTargetSdkVersion();
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
@@ -1827,7 +1831,7 @@ public class MediaProvider extends ContentProvider {
             helper = getDatabaseForUri(uri);
             db = helper.getWritableDatabase();
         } catch (VolumeNotFoundException e) {
-            return e.translateForUpdateDelete();
+            return e.translateForUpdateDelete(targetSdkVersion);
         }
 
         if (match == AUDIO_PLAYLISTS_ID || match == AUDIO_PLAYLISTS_ID_MEMBERS) {
@@ -2144,7 +2148,16 @@ public class MediaProvider extends ContentProvider {
         final SQLiteDatabase db = helper.getWritableDatabase();
 
         // Make sure all file-related columns are defined
-        ensureUniqueFileColumns(match, uri, values);
+        try {
+            ensureUniqueFileColumns(match, uri, values);
+        } catch (VolumeArgumentException e) {
+            if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q) {
+                throw new IllegalArgumentException(e.getMessage());
+            } else {
+                Log.w(TAG, e.getMessage());
+                return 0;
+            }
+        }
 
         switch (mediaType) {
             case FileColumns.MEDIA_TYPE_IMAGE: {
@@ -2527,6 +2540,7 @@ public class MediaProvider extends ContentProvider {
 
     private Uri insertCommon(Uri uri, int match, ContentValues initialValues,
             ArrayList<Uri> downloadNotifyUris) {
+        final int targetSdkVersion = getCallingPackageTargetSdkVersion();
         final String volumeName = getVolumeName(uri);
 
         long rowId;
@@ -2539,7 +2553,7 @@ public class MediaProvider extends ContentProvider {
             try {
                 helper = getDatabaseForUri(MediaStore.Files.getContentUri(mMediaScannerVolume));
             } catch (VolumeNotFoundException e) {
-                return e.translateForInsert();
+                return e.translateForInsert(targetSdkVersion);
             }
 
             helper.mScanStartTime = SystemClock.currentTimeMicro();
@@ -2555,7 +2569,7 @@ public class MediaProvider extends ContentProvider {
                     helper = getDatabaseForUri(
                             MediaStore.Files.getContentUri(mMediaScannerVolume));
                 } catch (VolumeNotFoundException e) {
-                    return e.translateForInsert();
+                    return e.translateForInsert(targetSdkVersion);
                 }
                 helper.mScanStartTime = SystemClock.currentTimeMicro();
             }
@@ -2619,7 +2633,7 @@ public class MediaProvider extends ContentProvider {
             helper = getDatabaseForUri(uri);
             db = helper.getWritableDatabase();
         } catch (VolumeNotFoundException e) {
-            return e.translateForInsert();
+            return e.translateForInsert(targetSdkVersion);
         }
 
         switch (match) {
@@ -2652,7 +2666,11 @@ public class MediaProvider extends ContentProvider {
                 enforceCallingPermission(ContentUris.withAppendedId(
                         MediaStore.Images.Media.getContentUri(volumeName), imageId), true);
 
-                ensureUniqueFileColumns(match, uri, initialValues);
+                try {
+                    ensureUniqueFileColumns(match, uri, initialValues);
+                } catch (VolumeArgumentException e) {
+                    return e.translateForInsert(targetSdkVersion);
+                }
 
                 rowId = db.insert("thumbnails", "name", initialValues);
                 if (rowId > 0) {
@@ -2673,7 +2691,11 @@ public class MediaProvider extends ContentProvider {
                 enforceCallingPermission(ContentUris.withAppendedId(
                         MediaStore.Video.Media.getContentUri(volumeName), videoId), true);
 
-                ensureUniqueFileColumns(match, uri, initialValues);
+                try {
+                    ensureUniqueFileColumns(match, uri, initialValues);
+                } catch (VolumeArgumentException e) {
+                    return e.translateForInsert(targetSdkVersion);
+                }
 
                 rowId = db.insert("videothumbnails", "name", initialValues);
                 if (rowId > 0) {
@@ -2827,7 +2849,11 @@ public class MediaProvider extends ContentProvider {
                     throw new UnsupportedOperationException("no internal album art allowed");
                 }
 
-                ensureUniqueFileColumns(match, uri, initialValues);
+                try {
+                    ensureUniqueFileColumns(match, uri, initialValues);
+                } catch (VolumeArgumentException e) {
+                    return e.translateForInsert(targetSdkVersion);
+                }
 
                 rowId = db.insert("album_art", MediaStore.MediaColumns.DATA, initialValues);
                 if (rowId > 0) {
@@ -3671,6 +3697,7 @@ public class MediaProvider extends ContentProvider {
 
         int count;
 
+        final int targetSdkVersion = getCallingPackageTargetSdkVersion();
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
@@ -3684,7 +3711,7 @@ public class MediaProvider extends ContentProvider {
             try {
                 helper = getDatabaseForUri(MediaStore.Files.getContentUri(mMediaScannerVolume));
             } catch (VolumeNotFoundException e) {
-                return e.translateForUpdateDelete();
+                return e.translateForUpdateDelete(targetSdkVersion);
             }
 
             helper.mScanStopTime = SystemClock.currentTimeMicro();
@@ -3718,7 +3745,7 @@ public class MediaProvider extends ContentProvider {
                 helper = getDatabaseForUri(uri);
                 db = helper.getWritableDatabase();
             } catch (VolumeNotFoundException e) {
-                return e.translateForUpdateDelete();
+                return e.translateForUpdateDelete(targetSdkVersion);
             }
 
             SQLiteQueryBuilder qb = getQueryBuilder(TYPE_DELETE, uri, match, null);
@@ -4271,6 +4298,7 @@ public class MediaProvider extends ContentProvider {
         //        Binder.getCallingPid());
 
         final String volumeName = getVolumeName(uri);
+        final int targetSdkVersion = getCallingPackageTargetSdkVersion();
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
@@ -4280,7 +4308,7 @@ public class MediaProvider extends ContentProvider {
             helper = getDatabaseForUri(uri);
             db = helper.getWritableDatabase();
         } catch (VolumeNotFoundException e) {
-            return e.translateForUpdateDelete();
+            return e.translateForUpdateDelete(targetSdkVersion);
         }
 
         SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, uri, match, null);
@@ -4384,7 +4412,11 @@ public class MediaProvider extends ContentProvider {
             // is attempting to place file into invalid location
             final String beforePath = initialValues.getAsString(MediaColumns.DATA);
             initialValues.remove(MediaColumns.DATA);
-            ensureNonUniqueFileColumns(match, uri, initialValues);
+            try {
+                ensureNonUniqueFileColumns(match, uri, initialValues);
+            } catch (VolumeArgumentException e) {
+                return e.translateForUpdateDelete(targetSdkVersion);
+            }
 
             final String probePath = initialValues.getAsString(MediaColumns.DATA);
             if (Objects.equals(beforePath, probePath)) {
@@ -4393,7 +4425,11 @@ public class MediaProvider extends ContentProvider {
                 // Now that we've confirmed an actual movement is taking place,
                 // ensure we have a unique destination
                 initialValues.remove(MediaColumns.DATA);
-                ensureUniqueFileColumns(match, uri, initialValues);
+                try {
+                    ensureUniqueFileColumns(match, uri, initialValues);
+                } catch (VolumeArgumentException e) {
+                    return e.translateForUpdateDelete(targetSdkVersion);
+                }
                 final String afterPath = initialValues.getAsString(MediaColumns.DATA);
 
                 Log.d(TAG, "Moving " + beforePath + " to " + afterPath);
@@ -4407,7 +4443,11 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Make sure any updated paths look sane
-        assertFileColumnsSane(match, uri, initialValues);
+        try {
+            assertFileColumnsSane(match, uri, initialValues);
+        } catch (VolumeArgumentException e) {
+            return e.translateForUpdateDelete(targetSdkVersion);
+        }
 
         // if the media type is being changed, check if it's being changed from image or video
         // to something else
@@ -5682,17 +5722,17 @@ public class MediaProvider extends ContentProvider {
         return name;
     }
 
-    private class VolumeNotFoundException extends Exception {
-        public VolumeNotFoundException(String volumeName) {
-            super("Volume " + volumeName + " not found");
+    private static class FallbackException extends Exception {
+        public FallbackException(String message) {
+            super(message);
         }
 
         public IllegalArgumentException rethrowAsIllegalArgumentException() {
             throw new IllegalArgumentException(getMessage());
         }
 
-        public Cursor translateForQuery() {
-            if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q) {
+        public Cursor translateForQuery(int targetSdkVersion) {
+            if (targetSdkVersion >= Build.VERSION_CODES.Q) {
                 throw new IllegalArgumentException(getMessage());
             } else {
                 Log.w(TAG, getMessage());
@@ -5700,8 +5740,8 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        public Uri translateForInsert() {
-            if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q) {
+        public Uri translateForInsert(int targetSdkVersion) {
+            if (targetSdkVersion >= Build.VERSION_CODES.Q) {
                 throw new IllegalArgumentException(getMessage());
             } else {
                 Log.w(TAG, getMessage());
@@ -5709,13 +5749,25 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        public int translateForUpdateDelete() {
-            if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q) {
+        public int translateForUpdateDelete(int targetSdkVersion) {
+            if (targetSdkVersion >= Build.VERSION_CODES.Q) {
                 throw new IllegalArgumentException(getMessage());
             } else {
                 Log.w(TAG, getMessage());
                 return 0;
             }
+        }
+    }
+
+    static class VolumeNotFoundException extends FallbackException {
+        public VolumeNotFoundException(String volumeName) {
+            super("Volume " + volumeName + " not found");
+        }
+    }
+
+    static class VolumeArgumentException extends FallbackException {
+        public VolumeArgumentException(File actual, Collection<File> allowed) {
+            super("Requested path " + actual + " doesn't appear under " + allowed);
         }
     }
 

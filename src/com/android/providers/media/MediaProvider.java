@@ -30,7 +30,6 @@ import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.getVolumeName;
 import static android.provider.MediaStore.Downloads.PATTERN_DOWNLOADS_FILE;
 import static android.provider.MediaStore.Downloads.isDownload;
-import static android.provider.MediaStore.Downloads.isDownloadDir;
 
 import android.annotation.BytesLong;
 import android.annotation.NonNull;
@@ -89,6 +88,7 @@ import android.os.ParcelFileDescriptor.OnCloseListener;
 import android.os.RedactingFileDescriptor;
 import android.os.RemoteException;
 import android.os.SystemClock;
+import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.os.storage.StorageManager;
@@ -163,7 +163,9 @@ import java.util.regex.Pattern;
  * changes with the card.
  */
 public class MediaProvider extends ContentProvider {
-    private static final boolean ENFORCE_ISOLATED_STORAGE = StorageManager.hasIsolatedStorage();
+    public static final boolean ENFORCE_ISOLATED_STORAGE = StorageManager.hasIsolatedStorage();
+    public static final boolean ENABLE_MODERN_SCANNER = SystemProperties
+            .getBoolean("persist.sys.modern_scanner", false);
 
     private static final String HASH_ALGORITHM = "SHA-1";
 
@@ -2356,7 +2358,11 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
-            rowId = db.insert("files", FileColumns.DATE_MODIFIED, values);
+            if (ENABLE_MODERN_SCANNER) {
+                rowId = db.replace("files", FileColumns.DATE_MODIFIED, values);
+            } else {
+                rowId = db.insert("files", FileColumns.DATE_MODIFIED, values);
+            }
         } else {
             db.update("files", values, FileColumns._ID + "=?",
                     new String[] { Long.toString(rowId) });
@@ -2908,8 +2914,14 @@ public class MediaProvider extends ContentProvider {
      *
      * @param path The path to the new .nomedia file or hidden directory
      */
+    @Deprecated
     private void processNewNoMediaPath(final String volumeName, final DatabaseHelper helper,
             final SQLiteDatabase db, final String path) {
+        if (ENABLE_MODERN_SCANNER) {
+            MediaScanner.instance(getContext()).scanDirectory(new File(path).getParentFile());
+            return;
+        }
+
         final File nomedia = new File(path);
         if (nomedia.exists()) {
             hidePath(volumeName, helper, db, path);
@@ -2929,8 +2941,13 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    @Deprecated
     private void hidePath(String volumeName, DatabaseHelper helper, SQLiteDatabase db,
             String path) {
+        if (ENABLE_MODERN_SCANNER) {
+            throw new UnsupportedOperationException();
+        }
+
         // a new nomedia path was added, so clear the media paths
         android.media.MediaScanner.clearMediaPathCache(true /* media */, false /* nomedia */);
         File nomedia = new File(path);
@@ -2972,7 +2989,13 @@ public class MediaProvider extends ContentProvider {
      * a directory from hidden to non-hidden in the MediaScanner and MtpDatabase,
      * both of which call here.
      */
+    @Deprecated
     private void processRemovedNoMediaPath(final String path) {
+        if (ENABLE_MODERN_SCANNER) {
+            MediaScanner.instance(getContext()).scanDirectory(new File(path));
+            return;
+        }
+
         // a nomedia path was removed, so clear the nomedia paths
         android.media.MediaScanner.clearMediaPathCache(false /* media */, true /* nomedia */);
 

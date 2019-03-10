@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.providers.media;
+package com.android.providers.media.scan;
 
 import static org.junit.Assert.assertEquals;
 
@@ -37,9 +37,7 @@ import android.test.mock.MockContentProvider;
 import android.test.mock.MockContentResolver;
 import android.util.Log;
 
-import com.android.providers.media.scan.LegacyMediaScanner;
-import com.android.providers.media.scan.MediaScanner;
-import com.android.providers.media.scan.ModernMediaScanner;
+import com.android.providers.media.MediaProvider;
 import com.android.providers.media.tests.R;
 
 import org.junit.Before;
@@ -61,9 +59,7 @@ import androidx.test.runner.AndroidJUnit4;
 public class MediaScannerTest {
     private static final String TAG = "MediaScannerTest";
 
-    // TODO: scan directory-vs-files and confirm identical results
-
-    private class IsolatedContext extends ContextWrapper {
+    static class IsolatedContext extends ContextWrapper {
         private final File mDir;
         private final MockContentResolver mResolver;
         private final MediaProvider mProvider;
@@ -110,20 +106,6 @@ public class MediaScannerTest {
 
         mLegacy = new LegacyMediaScanner(new IsolatedContext(context, "legacy"));
         mModern = new ModernMediaScanner(new IsolatedContext(context, "modern"));
-    }
-
-    @Test
-    public void testOverrideMimeType() throws Exception {
-        assertEquals("image/png",
-                ModernMediaScanner.maybeOverrideMimeType("image/png", null));
-        assertEquals("image/png",
-                ModernMediaScanner.maybeOverrideMimeType("image/png", "image"));
-        assertEquals("image/png",
-                ModernMediaScanner.maybeOverrideMimeType("image/png", "im/im"));
-        assertEquals("image/png",
-                ModernMediaScanner.maybeOverrideMimeType("image/png", "audio/x-shiny"));
-        assertEquals("image/x-shiny",
-                ModernMediaScanner.maybeOverrideMimeType("image/png", "image/x-shiny"));
     }
 
     /**
@@ -257,7 +239,7 @@ public class MediaScannerTest {
         }
     }
 
-    private static void stage(int resId, File file) throws IOException {
+    static void stage(int resId, File file) throws IOException {
         final Context context = InstrumentationRegistry.getContext();
         try (InputStream source = context.getResources().openRawResource(resId);
                 OutputStream target = new FileOutputStream(file)) {

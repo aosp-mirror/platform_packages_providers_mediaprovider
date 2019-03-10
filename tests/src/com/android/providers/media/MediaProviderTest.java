@@ -39,6 +39,8 @@ import android.provider.MediaStore.MediaColumns;
 import android.util.Log;
 import android.util.Pair;
 
+import com.android.providers.media.MediaProvider.VolumeArgumentException;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -358,6 +360,12 @@ public class MediaProviderTest {
     }
 
     @Test
+    public void testGreylist_126945991() {
+        assertTrue(isGreylistMatch(
+                "substr(_data, length(_data)-length(_display_name), 1) as filename_prevchar"));
+    }
+
+    @Test
     public void testIsDownload() throws Exception {
         assertTrue(isDownload("/storage/emulated/0/Download/colors.png"));
         assertTrue(isDownload("/storage/emulated/0/Download/test.pdf"));
@@ -517,7 +525,11 @@ public class MediaProviderTest {
         }
         values.put(MediaColumns.DISPLAY_NAME, displayName);
         values.put(MediaColumns.MIME_TYPE, mimeType);
-        ensureFileColumns(uri, values);
+        try {
+            ensureFileColumns(uri, values);
+        } catch (VolumeArgumentException e) {
+            throw e.rethrowAsIllegalArgumentException();
+        }
         return values.getAsString(MediaColumns.DATA);
     }
 

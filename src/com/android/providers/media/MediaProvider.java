@@ -2358,11 +2358,7 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
-            if (ENABLE_MODERN_SCANNER) {
-                rowId = db.replace("files", FileColumns.DATE_MODIFIED, values);
-            } else {
-                rowId = db.insert("files", FileColumns.DATE_MODIFIED, values);
-            }
+            rowId = db.insert("files", FileColumns.DATE_MODIFIED, values);
         } else {
             db.update("files", values, FileColumns._ID + "=?",
                     new String[] { Long.toString(rowId) });

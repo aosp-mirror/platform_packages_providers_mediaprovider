@@ -33,13 +33,14 @@ import static android.media.MediaMetadataRetriever.METADATA_KEY_TITLE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_YEAR;
+import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.UNKNOWN_STRING;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.content.ContentProviderClient;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
+import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.OperationApplicationException;
@@ -50,6 +51,7 @@ import android.media.MediaFile;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.Environment;
+import android.os.RemoteException;
 import android.os.Trace;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio.AudioColumns;
@@ -63,7 +65,6 @@ import android.util.Log;
 import android.util.LongArray;
 
 import com.android.internal.annotations.VisibleForTesting;
-import com.android.providers.media.MediaProvider;
 import com.android.providers.media.util.XmpInterface;
 
 import libcore.net.MimeUtils;
@@ -79,8 +80,10 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.regex.Pattern;
 
 /**
  * Modern implementation of media scanner.
@@ -93,11 +96,15 @@ import java.util.TimeZone;
  */
 public class ModernMediaScanner implements MediaScanner {
     private static final String TAG = "ModernMediaScanner";
+    private static final boolean LOGW = Log.isLoggable(TAG, Log.WARN);
     private static final boolean LOGD = Log.isLoggable(TAG, Log.DEBUG);
     private static final boolean LOGV = Log.isLoggable(TAG, Log.VERBOSE);
 
-    // TODO: add playlist parsing
     // TODO: add DRM support
+
+    // TODO: deprecate PARENT column, since callers can't see directories
+    // TODO: replace PRIMARY/SECONDARY_DIRECTORY with PATH
+    // TODO: get real size column wired up for openable columns
 
     private static final SimpleDateFormat sDateFormat;
 
@@ -108,16 +115,17 @@ public class ModernMediaScanner implements MediaScanner {
 
     private static final int BATCH_SIZE = 32;
 
+    private static final Pattern PATTERN_VISIBLE = Pattern.compile(
+            "(?i)^/storage/[^/]+(?:/[0-9]+)?$");
+    private static final Pattern PATTERN_INVISIBLE = Pattern.compile(
+            "(?i)^/storage/[^/]+(?:/[0-9]+)?/Android/(?:data|obb)$");
+
     private final Context mContext;
-    private final MediaProvider mProvider;
+    private final ContentResolver mResolver;
 
     public ModernMediaScanner(Context context) {
         mContext = context;
-
-        try (ContentProviderClient cpc = context.getContentResolver()
-                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
-            mProvider = (MediaProvider) cpc.getLocalContentProvider();
-        }
+        mResolver = context.getContentResolver();
     }
 
     @Override
@@ -151,6 +159,7 @@ public class ModernMediaScanner implements MediaScanner {
 
         private final ArrayList<ContentProviderOperation> mPending = new ArrayList<>();
         private LongArray mScannedIds = new LongArray();
+        private LongArray mPlaylistIds = new LongArray();
 
         private Uri mFirstResult;
 
@@ -182,7 +191,7 @@ public class ModernMediaScanner implements MediaScanner {
             // Second, clean up any deleted or hidden files, which are all items
             // under requested location that weren't scanned above
             Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "clean");
-            try (Cursor c = mProvider.query(MediaStore.Files.getContentUri(mVolumeName),
+            try (Cursor c = mResolver.query(MediaStore.Files.getContentUri(mVolumeName),
                     new String[] { FileColumns._ID },
                     FileColumns.DATA + " LIKE ?", new String[] { mRoot.getAbsolutePath() + '%' },
                     FileColumns._ID + " DESC")) {
@@ -200,6 +209,18 @@ public class ModernMediaScanner implements MediaScanner {
                 applyPending();
             } finally {
                 Trace.traceEnd(Trace.TRACE_TAG_DATABASE);
+            }
+
+            // Third, resolve any playlists that we scanned
+            for (int i = 0; i < mPlaylistIds.size(); i++) {
+                final Uri uri = MediaStore.Files.getContentUri(mVolumeName, mPlaylistIds.get(i));
+                try {
+                    mPending.addAll(PlaylistResolver.resolvePlaylist(mResolver, uri));
+                    maybeApplyPending();
+                } catch (IOException e) {
+                    if (LOGW) Log.w(TAG, "Ignoring troubled playlist: " + uri, e);
+                }
+                applyPending();
             }
         }
 
@@ -232,7 +253,7 @@ public class ModernMediaScanner implements MediaScanner {
             // changed since they were last scanned
             final File realFile = file.toFile();
             Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "checkChanged");
-            try (Cursor c = mProvider.query(MediaStore.Files.getContentUri(mVolumeName),
+            try (Cursor c = mResolver.query(MediaStore.Files.getContentUri(mVolumeName),
                     new String[] { FileColumns._ID, FileColumns.DATE_MODIFIED, FileColumns.SIZE },
                     FileColumns.DATA + "=?", new String[] { realFile.getAbsolutePath() }, null)) {
                 if (c.moveToFirst()) {
@@ -289,15 +310,22 @@ public class ModernMediaScanner implements MediaScanner {
         private void applyPending() {
             Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "applyPending");
             try {
-                for (ContentProviderResult res : mProvider.applyBatch(mPending)) {
+                for (ContentProviderResult res : mResolver.applyBatch(AUTHORITY, mPending)) {
                     if (res.uri != null) {
                         if (mFirstResult == null) {
                             mFirstResult = res.uri;
                         }
-                        mScannedIds.add(ContentUris.parseId(res.uri));
+                        final long id = ContentUris.parseId(res.uri);
+                        mScannedIds.add(id);
+
+                        // If this was a playlist, remember it so we can resolve
+                        // its contents once all other media has been scanned
+                        if (isPlaylist(res.uri)) {
+                            mPlaylistIds.add(id);
+                        }
                     }
                 }
-            } catch (OperationApplicationException e) {
+            } catch (RemoteException | OperationApplicationException e) {
                 Log.w(TAG, "Failed to apply: " + e);
             } finally {
                 mPending.clear();
@@ -329,10 +357,10 @@ public class ModernMediaScanner implements MediaScanner {
 
             if (attrs.isDirectory()) {
                 return scanItemDirectory(file, attrs, mimeType, volumeName);
-            } else if (MediaFile.isAudioMimeType(mimeType)) {
-                return scanItemAudio(file, attrs, mimeType, volumeName);
             } else if (MediaFile.isPlayListMimeType(mimeType)) {
                 return scanItemPlaylist(file, attrs, mimeType, volumeName);
+            } else if (MediaFile.isAudioMimeType(mimeType)) {
+                return scanItemAudio(file, attrs, mimeType, volumeName);
             } else if (MediaFile.isVideoMimeType(mimeType)) {
                 return scanItemVideo(file, attrs, mimeType, volumeName);
             } else if (MediaFile.isImageMimeType(mimeType)) {
@@ -342,7 +370,7 @@ public class ModernMediaScanner implements MediaScanner {
                 return null;
             }
         } catch (IOException e) {
-            if (LOGD) Log.d(TAG, "Ignoring troubled file: " + file, e);
+            if (LOGW) Log.w(TAG, "Ignoring troubled file: " + file, e);
             return null;
         }
     }
@@ -603,6 +631,16 @@ public class ModernMediaScanner implements MediaScanner {
      * Test if this given directory should be considered hidden.
      */
     static boolean isDirectoryHidden(File dir) {
+        // Handle well-known paths that should always be visible or invisible,
+        // regardless of .nomedia presence
+        if (PATTERN_VISIBLE.matcher(dir.getAbsolutePath()).matches()) {
+            return false;
+        }
+        if (PATTERN_INVISIBLE.matcher(dir.getAbsolutePath()).matches()) {
+            return true;
+        }
+
+        // Otherwise fall back to directory name or .nomedia presence
         final String name = dir.getName();
         if (name.startsWith(".")) {
             return true;
@@ -611,5 +649,14 @@ public class ModernMediaScanner implements MediaScanner {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Test if this given {@link Uri} is a
+     * {@link android.provider.MediaStore.Audio.Playlists} item.
+     */
+    static boolean isPlaylist(Uri uri) {
+        final List<String> path = uri.getPathSegments();
+        return (path.size() == 4) && path.get(1).equals("audio") && path.get(2).equals("playlists");
     }
 }

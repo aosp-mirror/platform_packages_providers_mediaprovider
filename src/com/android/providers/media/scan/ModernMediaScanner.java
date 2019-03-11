@@ -36,6 +36,7 @@ import static android.media.MediaMetadataRetriever.METADATA_KEY_YEAR;
 import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.UNKNOWN_STRING;
 
+import android.annotation.CurrentTimeSecondsLong;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.ContentProviderOperation;
@@ -50,7 +51,9 @@ import android.media.ExifInterface;
 import android.media.MediaFile;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Environment;
+import android.os.FileUtils;
 import android.os.RemoteException;
 import android.os.Trace;
 import android.provider.MediaStore;
@@ -277,8 +280,7 @@ public class ModernMediaScanner implements MediaScanner {
                         mFirstResult = MediaStore.Files.getContentUri(mVolumeName, existingId);
                     }
 
-                    final boolean sameTime = (attrs.lastModifiedTime().toMillis()
-                            / 1000 == dateModified);
+                    final boolean sameTime = (lastModifiedTime(realFile, attrs) == dateModified);
                     final boolean sameSize = (attrs.size() == size);
                     if (attrs.isDirectory() || (sameTime && sameSize)) {
                         if (LOGV) Log.v(TAG, "Skipping unchanged " + file);
@@ -399,7 +401,7 @@ public class ModernMediaScanner implements MediaScanner {
         op.withValue(MediaColumns.DATA, file.getAbsolutePath());
         op.withValue(MediaColumns.SIZE, attrs.size());
         op.withValue(MediaColumns.TITLE, extractName(file));
-        op.withValue(MediaColumns.DATE_MODIFIED, attrs.lastModifiedTime().toMillis() / 1000);
+        op.withValue(MediaColumns.DATE_MODIFIED, lastModifiedTime(file, attrs));
         op.withValue(MediaColumns.MIME_TYPE, mimeType);
         op.withValue(MediaColumns.IS_DRM, 0);
         op.withValue(MediaColumns.WIDTH, null);
@@ -650,6 +652,20 @@ public class ModernMediaScanner implements MediaScanner {
             return xmpMimeType;
         } else {
             return extMimeType;
+        }
+    }
+
+    /**
+     * Return last modified time of given file. This value is typically read
+     * from the given {@link BasicFileAttributes}, except in the case of
+     * read-only partitions, where {@link Build#TIME} is used instead.
+     */
+    public static @CurrentTimeSecondsLong long lastModifiedTime(@NonNull File file,
+            @NonNull BasicFileAttributes attrs) {
+        if (FileUtils.contains(Environment.getStorageDirectory(), file)) {
+            return attrs.lastModifiedTime().toMillis() / 1000;
+        } else {
+            return Build.TIME / 1000;
         }
     }
 

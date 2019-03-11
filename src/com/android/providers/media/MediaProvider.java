@@ -165,7 +165,7 @@ import java.util.regex.Pattern;
 public class MediaProvider extends ContentProvider {
     public static final boolean ENFORCE_ISOLATED_STORAGE = StorageManager.hasIsolatedStorage();
     public static final boolean ENABLE_MODERN_SCANNER = SystemProperties
-            .getBoolean("persist.sys.modern_scanner", false);
+            .getBoolean("persist.sys.modern_scanner", true);
 
     private static final String HASH_ALGORITHM = "SHA-1";
 
@@ -2371,11 +2371,7 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
-            if (ENABLE_MODERN_SCANNER) {
-                rowId = db.replace("files", FileColumns.DATE_MODIFIED, values);
-            } else {
-                rowId = db.insert("files", FileColumns.DATE_MODIFIED, values);
-            }
+            rowId = db.insert("files", FileColumns.DATE_MODIFIED, values);
         } else {
             db.update("files", values, FileColumns._ID + "=?",
                     new String[] { Long.toString(rowId) });

@@ -22,36 +22,70 @@ import static com.android.providers.media.scan.ModernMediaScanner.maybeOverrideM
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.FileUtils;
+import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
 
+import com.android.internal.os.BackgroundThread;
 import com.android.providers.media.MediaProvider;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 import com.android.providers.media.tests.R;
 
+import org.junit.After;
 import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 @RunWith(AndroidJUnit4.class)
 public class ModernMediaScannerTest {
-
     // TODO: scan directory-vs-files and confirm identical results
-    // TODO: confirm scan adding, changing, removing file
-    // TODO: confirm scan adding, removing .nomedia files
+
+    private File mDir;
+
+    private Context mIsolatedContext;
+    private ContentResolver mIsolatedResolver;
+
+    private ModernMediaScanner mModern;
+
+    @Before
+    public void setUp() {
+        mDir = new File(Environment.getExternalStorageDirectory(), "test_" + System.nanoTime());
+        mDir.mkdirs();
+        FileUtils.deleteContents(mDir);
+
+        final Context context = InstrumentationRegistry.getTargetContext();
+        mIsolatedContext = new IsolatedContext(context, "modern");
+        mIsolatedResolver = mIsolatedContext.getContentResolver();
+
+        mModern = new ModernMediaScanner(mIsolatedContext);
+    }
+
+    @After
+    public void tearDown() {
+        FileUtils.deleteContents(mDir);
+    }
 
     @Test
     public void testOverrideMimeType() throws Exception {
@@ -85,39 +119,35 @@ public class ModernMediaScannerTest {
 
     @Test
     public void testPlaylistM3u() throws Exception {
+        Assume.assumeTrue(MediaProvider.ENABLE_MODERN_SCANNER);
         doPlaylist(R.raw.test_m3u, "test.m3u");
     }
 
     @Test
     public void testPlaylistPls() throws Exception {
+        Assume.assumeTrue(MediaProvider.ENABLE_MODERN_SCANNER);
         doPlaylist(R.raw.test_pls, "test.pls");
     }
 
     @Test
     public void testPlaylistWpl() throws Exception {
+        Assume.assumeTrue(MediaProvider.ENABLE_MODERN_SCANNER);
         doPlaylist(R.raw.test_wpl, "test.wpl");
     }
 
     private void doPlaylist(int res, String name) throws Exception {
-        Assume.assumeTrue(MediaProvider.ENABLE_MODERN_SCANNER);
+        final File music = new File(mDir, "Music");
+        music.mkdirs();
+        stage(R.raw.test_audio, new File(music, "001.mp3"));
+        stage(R.raw.test_audio, new File(music, "002.mp3"));
+        stage(R.raw.test_audio, new File(music, "003.mp3"));
+        stage(res, new File(music, name));
 
-        final File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
-        dir.mkdirs();
-        FileUtils.deleteContents(dir);
-
-        stage(R.raw.test_audio, new File(dir, "001.mp3"));
-        stage(R.raw.test_audio, new File(dir, "002.mp3"));
-        stage(R.raw.test_audio, new File(dir, "003.mp3"));
-        stage(res, new File(dir, name));
-
-        final Context context = InstrumentationRegistry.getTargetContext();
-        final Context isolatedContext = new IsolatedContext(context, "modern");
-        final ModernMediaScanner modern = new ModernMediaScanner(isolatedContext);
-        modern.scanDirectory(dir);
+        mModern.scanDirectory(mDir);
 
         // We should see a new playlist with all three items as members
         final long playlistId;
-        try (Cursor cursor = isolatedContext.getContentResolver().query(
+        try (Cursor cursor = mIsolatedContext.getContentResolver().query(
                 MediaStore.Files.EXTERNAL_CONTENT_URI, new String[] { FileColumns._ID },
                 FileColumns.MEDIA_TYPE + "=" + FileColumns.MEDIA_TYPE_PLAYLIST, null, null)) {
             assertTrue(cursor.moveToFirst());
@@ -126,7 +156,7 @@ public class ModernMediaScannerTest {
 
         final Uri membersUri = MediaStore.Audio.Playlists.Members
                 .getContentUri(MediaStore.VOLUME_EXTERNAL, playlistId);
-        try (Cursor cursor = isolatedContext.getContentResolver().query(membersUri, new String[] {
+        try (Cursor cursor = mIsolatedResolver.query(membersUri, new String[] {
                 MediaColumns.DISPLAY_NAME
         }, null, null, MediaStore.Audio.Playlists.Members.PLAY_ORDER + " ASC")) {
             assertEquals(3, cursor.getCount());
@@ -139,11 +169,11 @@ public class ModernMediaScannerTest {
         }
 
         // Delete one of the media files and rescan
-        new File(dir, "002.mp3").delete();
-        new File(dir, name).setLastModified(10L);
-        modern.scanDirectory(dir);
+        new File(music, "002.mp3").delete();
+        new File(music, name).setLastModified(10L);
+        mModern.scanDirectory(mDir);
 
-        try (Cursor cursor = isolatedContext.getContentResolver().query(membersUri, new String[] {
+        try (Cursor cursor = mIsolatedResolver.query(membersUri, new String[] {
                 MediaColumns.DISPLAY_NAME
         }, null, null, MediaStore.Audio.Playlists.Members.PLAY_ORDER + " ASC")) {
             assertEquals(2, cursor.getCount());
@@ -151,6 +181,115 @@ public class ModernMediaScannerTest {
             assertEquals("001.mp3", cursor.getString(0));
             cursor.moveToNext();
             assertEquals("003.mp3", cursor.getString(0));
+        }
+    }
+
+    @Test
+    public void testScan_Common() throws Exception {
+        Assume.assumeTrue(MediaProvider.ENABLE_MODERN_SCANNER);
+
+        final File file = new File(mDir, "red.jpg");
+        stage(R.raw.test_image, file);
+
+        mModern.scanDirectory(mDir);
+
+        // Confirm that we found new image and scanned it
+        final Uri uri;
+        try (Cursor cursor = mIsolatedResolver
+                .query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
+            assertEquals(1, cursor.getCount());
+            cursor.moveToFirst();
+            uri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                    cursor.getLong(cursor.getColumnIndex(MediaColumns._ID)));
+            assertEquals(1280, cursor.getLong(cursor.getColumnIndex(MediaColumns.WIDTH)));
+            assertEquals(720, cursor.getLong(cursor.getColumnIndex(MediaColumns.HEIGHT)));
+        }
+
+        // Write a totally different image and confirm that we automatically
+        // rescanned it
+        try (ParcelFileDescriptor pfd = mIsolatedResolver.openFile(uri, "wt", null)) {
+            final Bitmap bitmap = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90,
+                    new FileOutputStream(pfd.getFileDescriptor()));
+        }
+
+        // Make sure out pending scan has finished
+        final CountDownLatch latch = new CountDownLatch(1);
+        BackgroundThread.getExecutor().execute(() -> {
+            latch.countDown();
+        });
+        latch.await(10, TimeUnit.SECONDS);
+
+        try (Cursor cursor = mIsolatedResolver
+                .query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
+            assertEquals(1, cursor.getCount());
+            cursor.moveToFirst();
+            assertEquals(32, cursor.getLong(cursor.getColumnIndex(MediaColumns.WIDTH)));
+            assertEquals(32, cursor.getLong(cursor.getColumnIndex(MediaColumns.HEIGHT)));
+        }
+
+        // Delete raw file and confirm it's cleaned up
+        file.delete();
+        mModern.scanDirectory(mDir);
+        assertQueryCount(0, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+    }
+
+    @Test
+    public void testScan_Nomedia_Dir() throws Exception {
+        Assume.assumeTrue(MediaProvider.ENABLE_MODERN_SCANNER);
+
+        final File red = new File(mDir, "red");
+        final File blue = new File(mDir, "blue");
+        red.mkdirs();
+        blue.mkdirs();
+        stage(R.raw.test_image, new File(red, "red.jpg"));
+        stage(R.raw.test_image, new File(blue, "blue.jpg"));
+
+        mModern.scanDirectory(mDir);
+
+        // We should have found both images
+        assertQueryCount(2, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+
+        // Hide one directory, rescan, and confirm hidden
+        final File redNomedia = new File(red, ".nomedia");
+        redNomedia.createNewFile();
+        mModern.scanDirectory(mDir);
+        assertQueryCount(1, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+
+        // Unhide, rescan, and confirm visible again
+        redNomedia.delete();
+        mModern.scanDirectory(mDir);
+        assertQueryCount(2, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+    }
+
+    @Test
+    public void testScan_Nomedia_File() throws Exception {
+        Assume.assumeTrue(MediaProvider.ENABLE_MODERN_SCANNER);
+
+        final File image = new File(mDir, "image.jpg");
+        final File nomedia = new File(mDir, ".nomedia");
+        stage(R.raw.test_image, image);
+        nomedia.createNewFile();
+
+        // Direct scan with nomedia means no image
+        assertNull(mModern.scanFile(image));
+        assertQueryCount(0, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+
+        // Direct scan without nomedia means image
+        nomedia.delete();
+        assertNotNull(mModern.scanFile(image));
+        assertNotNull(mModern.scanFile(image));
+        assertQueryCount(1, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+
+        // Direct scan again hides it again
+        nomedia.createNewFile();
+        assertNull(mModern.scanFile(image));
+        assertQueryCount(0, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+    }
+
+    private void assertQueryCount(int expected, Uri actualUri) {
+        try (Cursor cursor = mIsolatedResolver.query(actualUri, null, null, null, null)) {
+            assertEquals(expected, cursor.getCount());
         }
     }
 }

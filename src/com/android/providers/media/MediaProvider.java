@@ -6607,6 +6607,9 @@ public class MediaProvider extends ContentProvider {
                 } finally {
                     IoUtils.closeQuietly(c);
                 }
+            } else {
+                s.append(": pid=" + android.os.Process.myPid());
+                s.append(", fingerprint=" + Build.FINGERPRINT);
             }
         }
         return s.toString();

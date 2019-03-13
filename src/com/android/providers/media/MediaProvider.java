@@ -5101,8 +5101,9 @@ public class MediaProvider extends ContentProvider {
         checkAccess(uri, file, forWrite);
 
         // Require ownership if item is still pending
+        final boolean hasOwner = (ownerPackageName != null);
         final boolean callerIsOwner = Objects.equals(getCallingPackageOrSelf(), ownerPackageName);
-        if (isPending && !callerIsOwner) {
+        if (isPending && hasOwner && !callerIsOwner) {
             throw new IllegalStateException(
                     "Only owner is able to interact with pending media " + uri);
         }

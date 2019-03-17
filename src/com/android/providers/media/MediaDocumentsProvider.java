@@ -1142,15 +1142,15 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
     private interface AlbumQuery {
         final String[] PROJECTION = new String[] {
-                BaseColumns._ID,
+                AlbumColumns.ALBUM_ID,
                 AlbumColumns.ALBUM };
 
-        final int _ID = 0;
+        final int ALBUM_ID = 0;
         final int ALBUM = 1;
     }
 
     private void includeAlbum(MatrixCursor result, Cursor cursor) {
-        final long id = cursor.getLong(AlbumQuery._ID);
+        final long id = cursor.getLong(AlbumQuery.ALBUM_ID);
         final String docId = getDocIdForIdent(TYPE_ALBUM, id);
 
         final RowBuilder row = result.newRow();

@@ -3116,35 +3116,6 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private boolean ensureFileExists(Uri uri, String path) {
-        File file = new File(path);
-        if (file.exists()) {
-            return true;
-        } else {
-            try {
-                checkAccess(uri, file, true);
-            } catch (Exception e) {
-                Log.e(TAG, "Couldn't ensure " + path, e);
-                return false;
-            }
-            // we will not attempt to create the first directory in the path
-            // (for example, do not create /sdcard if the SD card is not mounted)
-            int secondSlash = path.indexOf('/', 1);
-            if (secondSlash < 1) return false;
-            String directoryPath = path.substring(0, secondSlash);
-            File directory = new File(directoryPath);
-            if (!directory.exists())
-                return false;
-            file.getParentFile().mkdirs();
-            try {
-                return file.createNewFile();
-            } catch(IOException ioe) {
-                Log.e(TAG, "File creation failed", ioe);
-            }
-            return false;
-        }
-    }
-
     private static void appendWhereStandalone(@NonNull SQLiteQueryBuilder qb,
             @Nullable String selection, @Nullable Object... selectionArgs) {
         qb.appendWhereStandalone(DatabaseUtils.bindSelection(selection, selectionArgs));

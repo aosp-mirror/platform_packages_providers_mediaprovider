@@ -910,26 +910,6 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("ALTER TABLE files ADD COLUMN original_document_id TEXT DEFAULT NULL;");
     }
 
-    private static void updateSetDisplayNamesIfNull(SQLiteDatabase db, boolean internal) {
-        final String[] projection = {
-                FileColumns._ID,
-                FileColumns.DATA
-        };
-        try (Cursor c = db.query("files", projection, FileColumns.DISPLAY_NAME + " IS NULL",
-                null, null, null, null, null)) {
-            Log.d(TAG, "Setting display name for " + c.getCount() + " entries");
-
-            final ContentValues values = new ContentValues();
-            while (c.moveToNext()) {
-                values.clear();
-                final long id = c.getLong(0);
-                final String data = c.getString(1);
-                values.put(FileColumns.DISPLAY_NAME, getDisplayName(data));
-                db.update("files", values, "_id=" + id, null);
-            }
-        }
-    }
-
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
                 null, null, null, null, null, null)) {
@@ -1030,7 +1010,7 @@ public class MediaProvider extends ContentProvider {
             }
             if (fromVersion < 1017) {
                 updateSetIsDownload(db, internal);
-                updateSetDisplayNamesIfNull(db, internal);
+                recomputeDataValues = true;
             }
 
             if (recomputeDataValues) {
@@ -1143,6 +1123,8 @@ public class MediaProvider extends ContentProvider {
 
         final File file = new File(data);
         final File fileLower = new File(data.toLowerCase());
+
+        values.put(ImageColumns.DISPLAY_NAME, getDisplayName(data));
 
         // Buckets are the parent directory
         final String parent = fileLower.getParent();

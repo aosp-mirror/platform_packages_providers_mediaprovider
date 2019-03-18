@@ -688,12 +688,19 @@ public class ModernMediaScanner implements MediaScanner {
      * Test if this given directory should be considered hidden.
      */
     static boolean isDirectoryHidden(File dir) {
+        final File nomedia = new File(dir, ".nomedia");
+
         // Handle well-known paths that should always be visible or invisible,
         // regardless of .nomedia presence
         if (PATTERN_VISIBLE.matcher(dir.getAbsolutePath()).matches()) {
+            nomedia.delete();
             return false;
         }
         if (PATTERN_INVISIBLE.matcher(dir.getAbsolutePath()).matches()) {
+            try {
+                nomedia.createNewFile();
+            } catch (IOException ignored) {
+            }
             return true;
         }
 
@@ -702,7 +709,7 @@ public class ModernMediaScanner implements MediaScanner {
         if (name.startsWith(".")) {
             return true;
         }
-        if (new File(dir, ".nomedia").exists()) {
+        if (nomedia.exists()) {
             return true;
         }
         return false;

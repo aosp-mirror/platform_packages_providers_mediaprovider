@@ -177,10 +177,6 @@ public class MtpService extends Service {
                     " with storage " + primary.getPath() + (mUnlocked ? " unlocked" : "") + " as user " + UserHandle.myUserId());
 
             final MtpDatabase database = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME, subdirs);
-            String deviceSerialNumber = Build.getSerial();
-            if (Build.UNKNOWN.equals(deviceSerialNumber)) {
-                deviceSerialNumber = "????????";
-            }
             IUsbManager usbMgr = IUsbManager.Stub.asInterface(ServiceManager.getService(
                     Context.USB_SERVICE));
             ParcelFileDescriptor controlFd = null;
@@ -200,7 +196,7 @@ public class MtpService extends Service {
             final MtpServer server =
                     new MtpServer(database, fd, mPtpMode,
                             new OnServerTerminated(), Build.MANUFACTURER,
-                            Build.MODEL, "1.0", deviceSerialNumber);
+                            Build.MODEL, "1.0");
             database.setServer(server);
             sServerHolder = new ServerHolder(server, database);
 

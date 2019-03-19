@@ -164,6 +164,7 @@ public class ModernMediaScanner implements MediaScanner {
     private class Scan implements Runnable, FileVisitor<Path>, AutoCloseable {
         private final File mRoot;
         private final String mVolumeName;
+        private final Uri mFilesUri;
 
         private final ArrayList<ContentProviderOperation> mPending = new ArrayList<>();
         private LongArray mScannedIds = new LongArray();
@@ -174,6 +175,7 @@ public class ModernMediaScanner implements MediaScanner {
         public Scan(File root) {
             mRoot = root;
             mVolumeName = MediaStore.getVolumeName(root);
+            mFilesUri = MediaStore.setIncludePending(MediaStore.Files.getContentUri(mVolumeName));
         }
 
         @Override
@@ -199,7 +201,7 @@ public class ModernMediaScanner implements MediaScanner {
             // Second, clean up any deleted or hidden files, which are all items
             // under requested location that weren't scanned above
             Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "clean");
-            try (Cursor c = mResolver.query(MediaStore.Files.getContentUri(mVolumeName),
+            try (Cursor c = mResolver.query(mFilesUri,
                     new String[] { FileColumns._ID }, FileColumns.DATA + " LIKE ? ESCAPE '\\'",
                     new String[] { escapeForLike(mRoot.getAbsolutePath()) + '%' },
                     FileColumns._ID + " DESC")) {
@@ -262,7 +264,7 @@ public class ModernMediaScanner implements MediaScanner {
             final File realFile = file.toFile();
             long existingId = -1;
             Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "checkChanged");
-            try (Cursor c = mResolver.query(MediaStore.Files.getContentUri(mVolumeName),
+            try (Cursor c = mResolver.query(mFilesUri,
                     new String[] { FileColumns._ID, FileColumns.DATE_MODIFIED, FileColumns.SIZE },
                     FileColumns.DATA + "=?", new String[] { realFile.getAbsolutePath() }, null)) {
                 if (c.moveToFirst()) {
@@ -686,12 +688,19 @@ public class ModernMediaScanner implements MediaScanner {
      * Test if this given directory should be considered hidden.
      */
     static boolean isDirectoryHidden(File dir) {
+        final File nomedia = new File(dir, ".nomedia");
+
         // Handle well-known paths that should always be visible or invisible,
         // regardless of .nomedia presence
         if (PATTERN_VISIBLE.matcher(dir.getAbsolutePath()).matches()) {
+            nomedia.delete();
             return false;
         }
         if (PATTERN_INVISIBLE.matcher(dir.getAbsolutePath()).matches()) {
+            try {
+                nomedia.createNewFile();
+            } catch (IOException ignored) {
+            }
             return true;
         }
 
@@ -700,7 +709,7 @@ public class ModernMediaScanner implements MediaScanner {
         if (name.startsWith(".")) {
             return true;
         }
-        if (new File(dir, ".nomedia").exists()) {
+        if (nomedia.exists()) {
             return true;
         }
         return false;

@@ -910,26 +910,6 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("ALTER TABLE files ADD COLUMN original_document_id TEXT DEFAULT NULL;");
     }
 
-    private static void updateSetDisplayNamesIfNull(SQLiteDatabase db, boolean internal) {
-        final String[] projection = {
-                FileColumns._ID,
-                FileColumns.DATA
-        };
-        try (Cursor c = db.query("files", projection, FileColumns.DISPLAY_NAME + " IS NULL",
-                null, null, null, null, null)) {
-            Log.d(TAG, "Setting display name for " + c.getCount() + " entries");
-
-            final ContentValues values = new ContentValues();
-            while (c.moveToNext()) {
-                values.clear();
-                final long id = c.getLong(0);
-                final String data = c.getString(1);
-                values.put(FileColumns.DISPLAY_NAME, getDisplayName(data));
-                db.update("files", values, "_id=" + id, null);
-            }
-        }
-    }
-
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
                 null, null, null, null, null, null)) {
@@ -1030,7 +1010,7 @@ public class MediaProvider extends ContentProvider {
             }
             if (fromVersion < 1017) {
                 updateSetIsDownload(db, internal);
-                updateSetDisplayNamesIfNull(db, internal);
+                recomputeDataValues = true;
             }
 
             if (recomputeDataValues) {
@@ -1143,6 +1123,8 @@ public class MediaProvider extends ContentProvider {
 
         final File file = new File(data);
         final File fileLower = new File(data.toLowerCase());
+
+        values.put(ImageColumns.DISPLAY_NAME, getDisplayName(data));
 
         // Buckets are the parent directory
         final String parent = fileLower.getParent();
@@ -3113,35 +3095,6 @@ public class MediaProvider extends ContentProvider {
                     db.endTransaction();
                 }
             }
-        }
-    }
-
-    private boolean ensureFileExists(Uri uri, String path) {
-        File file = new File(path);
-        if (file.exists()) {
-            return true;
-        } else {
-            try {
-                checkAccess(uri, file, true);
-            } catch (Exception e) {
-                Log.e(TAG, "Couldn't ensure " + path, e);
-                return false;
-            }
-            // we will not attempt to create the first directory in the path
-            // (for example, do not create /sdcard if the SD card is not mounted)
-            int secondSlash = path.indexOf('/', 1);
-            if (secondSlash < 1) return false;
-            String directoryPath = path.substring(0, secondSlash);
-            File directory = new File(directoryPath);
-            if (!directory.exists())
-                return false;
-            file.getParentFile().mkdirs();
-            try {
-                return file.createNewFile();
-            } catch(IOException ioe) {
-                Log.e(TAG, "File creation failed", ioe);
-            }
-            return false;
         }
     }
 
@@ -6607,6 +6560,9 @@ public class MediaProvider extends ContentProvider {
                 } finally {
                     IoUtils.closeQuietly(c);
                 }
+            } else {
+                s.append(": pid=" + android.os.Process.myPid());
+                s.append(", fingerprint=" + Build.FINGERPRINT);
             }
         }
         return s.toString();

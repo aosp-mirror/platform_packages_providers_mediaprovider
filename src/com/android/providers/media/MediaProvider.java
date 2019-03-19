@@ -5261,6 +5261,15 @@ public class MediaProvider extends ContentProvider {
 
     private boolean checkCallingPermission(String readPermission, int readOp, int writeOp,
             boolean forWrite, String callingPackage) {
+        // Callers must hold both the old and new permissions, so that we can
+        // handle obscure cases like when an app targets Q but was installed on
+        // a device that was originally running on P before being upgraded to Q.
+
+        if (getContext().checkCallingPermission(forWrite ? WRITE_EXTERNAL_STORAGE
+                : READ_EXTERNAL_STORAGE) != PERMISSION_GRANTED) {
+            return false;
+        }
+
         if (!forWrite
                 && getContext().checkCallingPermission(readPermission) != PERMISSION_GRANTED) {
             return false;

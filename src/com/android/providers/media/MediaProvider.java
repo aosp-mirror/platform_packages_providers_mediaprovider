@@ -1510,19 +1510,15 @@ public class MediaProvider extends ContentProvider {
             case VIDEO_MEDIA_ID:
             case DOWNLOADS_ID:
             case FILES_ID:
-                Cursor c = null;
-                try {
-                    c = query(url, MIME_TYPE_PROJECTION, null, null, null);
-                    if (c != null && c.getCount() == 1) {
-                        c.moveToFirst();
-                        String mimeType = c.getString(1);
-                        c.deactivate();
-                        return mimeType;
-                    }
+                final CallingIdentity token = clearCallingIdentity();
+                try (Cursor cursor = queryForSingleItem(url,
+                        new String[] { MediaColumns.MIME_TYPE }, null, null, null)) {
+                    return cursor.getString(0);
+                } catch (FileNotFoundException e) {
+                    throw new IllegalArgumentException(e.getMessage());
                 } finally {
-                    IoUtils.closeQuietly(c);
+                     restoreCallingIdentity(token);
                 }
-                break;
 
             case IMAGES_MEDIA:
             case IMAGES_THUMBNAILS:
@@ -6106,11 +6102,6 @@ public class MediaProvider extends ContentProvider {
     private static final String[] PATH_PROJECTION = new String[] {
         MediaStore.MediaColumns._ID,
             MediaStore.MediaColumns.DATA,
-    };
-
-    private static final String[] MIME_TYPE_PROJECTION = new String[] {
-            MediaStore.MediaColumns._ID, // 0
-            MediaStore.MediaColumns.MIME_TYPE, // 1
     };
 
     private static final String[] READY_FLAG_PROJECTION = new String[] {

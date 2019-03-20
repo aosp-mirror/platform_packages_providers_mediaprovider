@@ -100,6 +100,7 @@ import android.provider.Column;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
+import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.Audio.Playlists;
 import android.provider.MediaStore.Downloads;
 import android.provider.MediaStore.Files;
@@ -138,11 +139,9 @@ import java.io.FileDescriptor;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Field;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -166,8 +165,6 @@ public class MediaProvider extends ContentProvider {
     public static final boolean ENFORCE_ISOLATED_STORAGE = StorageManager.hasIsolatedStorage();
     public static final boolean ENABLE_MODERN_SCANNER = SystemProperties
             .getBoolean("persist.sys.modern_scanner", true);
-
-    private static final String HASH_ALGORITHM = "SHA-1";
 
     /**
      * Regex that matches paths in all well-known package-specific directories,
@@ -1183,39 +1180,32 @@ public class MediaProvider extends ContentProvider {
     public Uri canonicalize(Uri uri) {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
-
-        try (Cursor c = query(uri, null, null, null, null)) {
-            if (c == null || c.getCount() != 1 || !c.moveToFirst()) {
-                return null;
-            }
-
-            // If we don't have a hash yet, go generate one
-            final int hashIndex = c.getColumnIndex(MediaColumns.HASH);
-            if (hashIndex >= 0 && c.isNull(hashIndex)) {
-                final CallingIdentity ident = clearCallingIdentity();
-                try (InputStream in = getContext().getContentResolver().openInputStream(uri)) {
-                    final ContentValues values = new ContentValues();
-                    values.put(MediaColumns.HASH, FileUtils.digest(in, HASH_ALGORITHM));
-                    update(uri, values, null, null);
-                } catch (IOException | NoSuchAlgorithmException e) {
-                    Log.w(TAG, "Failed to generate hash for " + uri, e);
-                } finally {
-                    restoreCallingIdentity(ident);
+        try (Cursor c = queryForSingleItem(uri, null, null, null, null)) {
+            switch (match) {
+                case AUDIO_MEDIA_ID: {
+                    final String title = getDefaultTitleFromCursor(c);
+                    if (!TextUtils.isEmpty(title)) {
+                        final Uri.Builder builder = uri.buildUpon();
+                        builder.appendQueryParameter(AudioColumns.TITLE, title);
+                        builder.appendQueryParameter(CANONICAL, "1");
+                        return builder.build();
+                    }
+                }
+                case VIDEO_MEDIA_ID:
+                case IMAGES_MEDIA_ID: {
+                    final String documentId = c
+                            .getString(c.getColumnIndexOrThrow(MediaColumns.DOCUMENT_ID));
+                    if (!TextUtils.isEmpty(documentId)) {
+                        final Uri.Builder builder = uri.buildUpon();
+                        builder.appendQueryParameter(MediaColumns.DOCUMENT_ID, documentId);
+                        builder.appendQueryParameter(CANONICAL, "1");
+                        return builder.build();
+                    }
                 }
             }
-
-            // Construct a canonical Uri by tacking on some query parameters
-            if (match == AUDIO_MEDIA_ID) {
-                final String title = getDefaultTitleFromCursor(c);
-                if (!TextUtils.isEmpty(title)) {
-                    final Uri.Builder builder = uri.buildUpon();
-                    builder.appendQueryParameter(MediaStore.Audio.Media.TITLE, title);
-                    builder.appendQueryParameter(CANONICAL, "1");
-                    return builder.build();
-                }
-            }
+        } catch (FileNotFoundException e) {
+            Log.w(TAG, e.getMessage());
         }
-
         return null;
     }
 
@@ -1224,47 +1214,62 @@ public class MediaProvider extends ContentProvider {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
-        if (uri != null && "1".equals(uri.getQueryParameter(CANONICAL))) {
-            if (match != AUDIO_MEDIA_ID) {
-                // this type of canonical Uri is not supported
-                return null;
-            }
-            String titleFromUri = uri.getQueryParameter(MediaStore.Audio.Media.TITLE);
-            if (titleFromUri == null) {
-                // the required parameter is missing
-                return null;
-            }
-            // clear the query parameters, we don't need them anymore
-            uri = uri.buildUpon().clearQuery().build();
+        // Skip when we have nothing to uncanonicalize
+        if (!"1".equals(uri.getQueryParameter(CANONICAL))) {
+            return uri;
+        }
 
-            Cursor c = query(uri, null, null, null, null);
-            try {
-                int titleIdx = c.getColumnIndex(MediaStore.Audio.Media.TITLE);
-                if (c != null && c.getCount() == 1 && c.moveToNext() &&
-                        titleFromUri.equals(getDefaultTitleFromCursor(c))) {
-                    // the result matched perfectly
-                    return uri;
+        // Extract values and then clear to avoid recursive lookups
+        final String title = uri.getQueryParameter(AudioColumns.TITLE);
+        final String documentId = uri.getQueryParameter(MediaColumns.DOCUMENT_ID);
+        uri = uri.buildUpon().clearQuery().build();
+
+        switch (match) {
+            case AUDIO_MEDIA_ID: {
+                // First check for an exact match
+                try (Cursor c = queryForSingleItem(uri, null, null, null, null)) {
+                    if (Objects.equals(title, getDefaultTitleFromCursor(c))) {
+                        return uri;
+                    }
+                } catch (FileNotFoundException e) {
+                    Log.w(TAG, "Trouble resolving " + uri + "; falling back to search: " + e);
                 }
 
-                IoUtils.closeQuietly(c);
-                // do a lookup by title
-                Uri newUri = MediaStore.Audio.Media.getContentUri(uri.getPathSegments().get(0));
-
-                c = query(newUri, null, MediaStore.Audio.Media.TITLE + "=?",
-                        new String[] {titleFromUri}, null);
-                if (c == null) {
+                // Otherwise fallback to searching
+                final Uri baseUri = ContentUris.removeId(uri);
+                try (Cursor c = queryForSingleItem(baseUri,
+                        new String[] { BaseColumns._ID },
+                        AudioColumns.TITLE + "=?", new String[] { title }, null)) {
+                    return ContentUris.withAppendedId(baseUri, c.getLong(0));
+                } catch (FileNotFoundException e) {
+                    Log.w(TAG, "Failed to resolve " + uri + ": " + e);
                     return null;
                 }
-                if (!c.moveToNext()) {
+            }
+            case VIDEO_MEDIA_ID:
+            case IMAGES_MEDIA_ID: {
+                // First check for an exact match
+                try (Cursor c = queryForSingleItem(uri, null, null, null, null)) {
+                    if (Objects.equals(title, getDefaultTitleFromCursor(c))) {
+                        return uri;
+                    }
+                } catch (FileNotFoundException e) {
+                    Log.w(TAG, "Trouble resolving " + uri + "; falling back to search: " + e);
+                }
+
+                // Otherwise fallback to searching
+                final Uri baseUri = ContentUris.removeId(uri);
+                try (Cursor c = queryForSingleItem(baseUri,
+                        new String[] { BaseColumns._ID },
+                        MediaColumns.DOCUMENT_ID + "=?", new String[] { documentId }, null)) {
+                    return ContentUris.withAppendedId(baseUri, c.getLong(0));
+                } catch (FileNotFoundException e) {
+                    Log.w(TAG, "Failed to resolve " + uri + ": " + e);
                     return null;
                 }
-                // get the first matching entry and return a Uri for it
-                long id = c.getLong(c.getColumnIndex(MediaStore.Audio.Media._ID));
-                return ContentUris.withAppendedId(newUri, id);
-            } finally {
-                IoUtils.closeQuietly(c);
             }
         }
+
         return uri;
     }
 

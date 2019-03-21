@@ -183,6 +183,13 @@ public class MediaProvider extends ContentProvider {
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?");
 
     /**
+     * Regex that matches paths for {@link MediaColumns#RELATIVE_PATH}; it
+     * captures both top-level paths and sandboxed paths.
+     */
+    private static final Pattern PATTERN_RELATIVE_PATH = Pattern.compile(
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?(Android/sandbox/([^/]+)/)?");
+
+    /**
      * Regex of a selection string that matches a specific ID.
      */
     private static final Pattern PATTERN_SELECTION_ID = Pattern.compile(
@@ -693,7 +700,8 @@ public class MediaProvider extends ContentProvider {
                 + "date_expires INTEGER DEFAULT NULL,is_trashed INTEGER DEFAULT 0,"
                 + "group_id INTEGER DEFAULT NULL,primary_directory TEXT DEFAULT NULL,"
                 + "secondary_directory TEXT DEFAULT NULL,document_id TEXT DEFAULT NULL,"
-                + "instance_id TEXT DEFAULT NULL,original_document_id TEXT DEFAULT NULL)");
+                + "instance_id TEXT DEFAULT NULL,original_document_id TEXT DEFAULT NULL,"
+                + "relative_path TEXT DEFAULT NULL)");
 
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!internal) {
@@ -764,7 +772,7 @@ public class MediaProvider extends ContentProvider {
                 + "album_id,track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast,"
                 + "bookmark,album_artist,owner_package_name,_hash,is_pending,is_audiobook,"
                 + "date_expires,is_trashed,group_id,primary_directory,secondary_directory,"
-                + "document_id,instance_id,original_document_id,title_resource_uri"
+                + "document_id,instance_id,original_document_id,title_resource_uri,relative_path"
                 + " FROM files WHERE media_type=2");
 
         db.execSQL("CREATE VIEW artists_albums_map AS SELECT DISTINCT artist_id, album_id"
@@ -910,6 +918,10 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("ALTER TABLE files ADD COLUMN original_document_id TEXT DEFAULT NULL;");
     }
 
+    private static void updateAddPath(SQLiteDatabase db, boolean internal) {
+        db.execSQL("ALTER TABLE files ADD COLUMN relative_path TEXT DEFAULT NULL;");
+    }
+
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
                 null, null, null, null, null, null)) {
@@ -937,7 +949,7 @@ public class MediaProvider extends ContentProvider {
     static final int VERSION_N = 800;
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
-    static final int VERSION_Q = 1017;
+    static final int VERSION_Q = 1018;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -1010,6 +1022,10 @@ public class MediaProvider extends ContentProvider {
             }
             if (fromVersion < 1017) {
                 updateSetIsDownload(db, internal);
+                recomputeDataValues = true;
+            }
+            if (fromVersion < 1018) {
+                updateAddPath(db, internal);
                 recomputeDataValues = true;
             }
 
@@ -1110,11 +1126,13 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    @VisibleForTesting
     static void computeDataValues(ContentValues values) {
         // Worst case we have to assume no bucket details
         values.remove(ImageColumns.BUCKET_ID);
         values.remove(ImageColumns.BUCKET_DISPLAY_NAME);
         values.remove(ImageColumns.GROUP_ID);
+        values.remove(ImageColumns.RELATIVE_PATH);
         values.remove(ImageColumns.PRIMARY_DIRECTORY);
         values.remove(ImageColumns.SECONDARY_DIRECTORY);
 
@@ -1124,13 +1142,16 @@ public class MediaProvider extends ContentProvider {
         final File file = new File(data);
         final File fileLower = new File(data.toLowerCase());
 
+        values.put(ImageColumns.RELATIVE_PATH, getRelativePath(data));
         values.put(ImageColumns.DISPLAY_NAME, getDisplayName(data));
 
         // Buckets are the parent directory
         final String parent = fileLower.getParent();
         if (parent != null) {
             values.put(ImageColumns.BUCKET_ID, parent.hashCode());
-            values.put(ImageColumns.BUCKET_DISPLAY_NAME, file.getParentFile().getName());
+            if (!TextUtils.isEmpty(values.getAsString(ImageColumns.RELATIVE_PATH))) {
+                values.put(ImageColumns.BUCKET_DISPLAY_NAME, file.getParentFile().getName());
+            }
         }
 
         // Groups are the first part of name
@@ -1141,24 +1162,16 @@ public class MediaProvider extends ContentProvider {
                     name.substring(0, firstDot).hashCode());
         }
 
-        // Track down the relative path within the storage volume
-        Matcher matcher = PATTERN_STORAGE_PATH.matcher(data);
-        if (!matcher.find()) return;
-
-        // TODO: ensure that items inside sandboxes don't get a primary or
-        // secondary directory defined
-
         // Directories are first two levels of storage paths
-        final String relativeData = data.substring(matcher.end());
-        final int firstSlash = relativeData.indexOf('/');
-        final int secondSlash = relativeData.indexOf('/', firstSlash + 1);
-        if (firstSlash != -1) {
-            values.put(ImageColumns.PRIMARY_DIRECTORY,
-                    relativeData.substring(0, firstSlash));
+        final String relativePath = values.getAsString(ImageColumns.RELATIVE_PATH);
+        if (TextUtils.isEmpty(relativePath)) return;
+
+        final String[] segments = relativePath.split("/");
+        if (segments.length > 0) {
+            values.put(ImageColumns.PRIMARY_DIRECTORY, segments[0]);
         }
-        if (secondSlash != -1) {
-            values.put(ImageColumns.SECONDARY_DIRECTORY,
-                    relativeData.substring(firstSlash + 1, secondSlash));
+        if (segments.length > 1) {
+            values.put(ImageColumns.SECONDARY_DIRECTORY, segments[1]);
         }
     }
 
@@ -1697,21 +1710,36 @@ public class MediaProvider extends ContentProvider {
 
         // Generate path when undefined
         if (TextUtils.isEmpty(values.getAsString(MediaColumns.DATA))) {
+            // Combine together deprecated columns when path undefined
+            if (TextUtils.isEmpty(values.getAsString(MediaColumns.RELATIVE_PATH))) {
+                String primary = values.getAsString(MediaColumns.PRIMARY_DIRECTORY);
+                String secondary = values.getAsString(MediaColumns.SECONDARY_DIRECTORY);
+
+                // Fall back to defaults when caller left undefined
+                if (TextUtils.isEmpty(primary)) primary = defaultPrimary;
+                if (TextUtils.isEmpty(secondary)) secondary = defaultSecondary;
+
+                if (primary != null) {
+                    if (secondary != null) {
+                        values.put(MediaColumns.RELATIVE_PATH, primary + '/' + secondary);
+                    } else {
+                        values.put(MediaColumns.RELATIVE_PATH, primary);
+                    }
+                }
+            }
+
             // Check for shady looking paths
-            final String displayName = sanitizeName(
+            final String[] relativePath = sanitizePath(
+                    values.getAsString(MediaColumns.RELATIVE_PATH));
+            final String displayName = sanitizeDisplayName(
                     values.getAsString(MediaColumns.DISPLAY_NAME));
-            final String primary = sanitizeName(
-                    values.getAsString(MediaColumns.PRIMARY_DIRECTORY));
-            final String secondary = sanitizeName(
-                    values.getAsString(MediaColumns.SECONDARY_DIRECTORY));
 
             // Require content live under specific directories
-            if (primary != null) {
-                if (!allowedPrimary.contains(primary)) {
-                    throw new IllegalArgumentException(
-                            "Primary directory " + primary + " not allowed for " + uri
-                                    + "; allowed directories are " + allowedPrimary);
-                }
+            final String primary = relativePath[0];
+            if (!allowedPrimary.contains(primary)) {
+                throw new IllegalArgumentException(
+                        "Primary directory " + primary + " not allowed for " + uri
+                                + "; allowed directories are " + allowedPrimary);
             }
 
             // Build up directory and ensure it exists
@@ -1721,16 +1749,7 @@ public class MediaProvider extends ContentProvider {
             } catch (FileNotFoundException e) {
                 throw new IllegalArgumentException(e);
             }
-            if (primary != null) {
-                res = new File(res, primary);
-            } else if (defaultPrimary != null) {
-                res = new File(res, defaultPrimary);
-            }
-            if (secondary != null) {
-                res = new File(res, secondary);
-            } else if (defaultSecondary != null) {
-                res = new File(res, defaultSecondary);
-            }
+            res = Environment.buildPath(res, relativePath);
 
             res.mkdirs();
             if (!res.exists()) {
@@ -1763,7 +1782,19 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private static @Nullable String sanitizeName(@Nullable String name) {
+    private static @NonNull String[] sanitizePath(@Nullable String path) {
+        if (path == null) {
+            return EmptyArray.STRING;
+        } else {
+            final String[] segments = path.split("/");
+            for (int i = 0; i < segments.length; i++) {
+                segments[i] = sanitizeDisplayName(segments[i]);
+            }
+            return segments;
+        }
+    }
+
+    private static @Nullable String sanitizeDisplayName(@Nullable String name) {
         if (name == null) {
             return null;
         } else if (name.indexOf('/') >= 0) {
@@ -1936,11 +1967,29 @@ public class MediaProvider extends ContentProvider {
         return rowId;
     }
 
-    private static String getDisplayName(String path) {
-        if (path.endsWith("/")) {
-            path = path.substring(0, path.length() - 1);
+    private static @Nullable String getRelativePath(@Nullable String data) {
+        if (data == null) return null;
+        final Matcher matcher = PATTERN_RELATIVE_PATH.matcher(data);
+        if (matcher.find()) {
+            final int lastSlash = data.lastIndexOf('/');
+            if (lastSlash == -1 || lastSlash < matcher.end()) {
+                // This is a file in the top-level directory, so it has an empty
+                // path, which is different than null, which means unknown path
+                return "";
+            } else {
+                return data.substring(matcher.end(), lastSlash);
+            }
+        } else {
+            return null;
         }
-        return path.substring(path.lastIndexOf('/') + 1);
+    }
+
+    private static @Nullable String getDisplayName(@Nullable String data) {
+        if (data == null) return null;
+        if (data.endsWith("/")) {
+            data = data.substring(0, data.length() - 1);
+        }
+        return data.substring(data.lastIndexOf('/') + 1);
     }
 
     private long getParent(DatabaseHelper helper, SQLiteDatabase db, String path) {
@@ -6212,6 +6261,7 @@ public class MediaProvider extends ContentProvider {
 
     {
         sMutableColumns.add(MediaStore.MediaColumns.DATA);
+        sMutableColumns.add(MediaStore.MediaColumns.RELATIVE_PATH);
         sMutableColumns.add(MediaStore.MediaColumns.DISPLAY_NAME);
         sMutableColumns.add(MediaStore.MediaColumns.IS_PENDING);
         sMutableColumns.add(MediaStore.MediaColumns.IS_TRASHED);
@@ -6239,6 +6289,7 @@ public class MediaProvider extends ContentProvider {
 
     {
         sPlacementColumns.add(MediaStore.MediaColumns.DATA);
+        sPlacementColumns.add(MediaStore.MediaColumns.RELATIVE_PATH);
         sPlacementColumns.add(MediaStore.MediaColumns.DISPLAY_NAME);
         sPlacementColumns.add(MediaStore.MediaColumns.MIME_TYPE);
         sPlacementColumns.add(MediaStore.MediaColumns.PRIMARY_DIRECTORY);

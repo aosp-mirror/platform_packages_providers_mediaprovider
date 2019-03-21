@@ -116,12 +116,6 @@ public class MediaProviderTest {
             buildFile(uri, null, null, "foo/bar", "image/png");
         });
         assertThrows(IllegalArgumentException.class, () -> {
-            buildFile(uri, "foo/bar", null, "foo", "image/png");
-        });
-        assertThrows(IllegalArgumentException.class, () -> {
-            buildFile(uri, null, "foo/bar", "foo", "image/png");
-        });
-        assertThrows(IllegalArgumentException.class, () -> {
             buildFile(uri, null, null, ".hidden", "image/png");
         });
     }
@@ -414,7 +408,7 @@ public class MediaProviderTest {
             final ContentValues values = computeDataValues(data);
             assertBucket(values, "/storage/0000-0000/DCIM/Camera", "Camera");
             assertGroup(values, "IMG1024");
-            assertDirectories(values, "DCIM", "Camera");
+            assertDirectories(values, "DCIM/Camera", "DCIM", "Camera");
         }
     }
 
@@ -425,12 +419,12 @@ public class MediaProviderTest {
         values = computeDataValues("/storage/0000-0000/DCIM/Camera/IMG1024");
         assertBucket(values, "/storage/0000-0000/DCIM/Camera", "Camera");
         assertGroup(values, null);
-        assertDirectories(values, "DCIM", "Camera");
+        assertDirectories(values, "DCIM/Camera", "DCIM", "Camera");
 
         values = computeDataValues("/storage/0000-0000/DCIM/Camera/.foo");
         assertBucket(values, "/storage/0000-0000/DCIM/Camera", "Camera");
         assertGroup(values, null);
-        assertDirectories(values, "DCIM", "Camera");
+        assertDirectories(values, "DCIM/Camera", "DCIM", "Camera");
     }
 
     @Test
@@ -441,7 +435,7 @@ public class MediaProviderTest {
                 "IMG1024.JPG",
         }) {
             final ContentValues values = computeDataValues(data);
-            assertDirectories(values, null, null);
+            assertDirectories(values, null, null, null);
         }
     }
 
@@ -449,25 +443,30 @@ public class MediaProviderTest {
     public void testComputeDataValues_Directories() throws Exception {
         ContentValues values;
 
-        values = computeDataValues("/storage/emulated/0/IMG1024.JPG");
-        assertBucket(values, "/storage/emulated/0", "0");
-        assertGroup(values, "IMG1024");
-        assertDirectories(values, null, null);
+        for (String top : new String[] {
+                "/storage/emulated/0",
+                "/storage/emulated/0/Android/sandbox/com.example",
+        }) {
+            values = computeDataValues(top + "/IMG1024.JPG");
+            assertBucket(values, top, null);
+            assertGroup(values, "IMG1024");
+            assertDirectories(values, "", null, null);
 
-        values = computeDataValues("/storage/emulated/0/One/IMG1024.JPG");
-        assertBucket(values, "/storage/emulated/0/One", "One");
-        assertGroup(values, "IMG1024");
-        assertDirectories(values, "One", null);
+            values = computeDataValues(top + "/One/IMG1024.JPG");
+            assertBucket(values, top + "/One", "One");
+            assertGroup(values, "IMG1024");
+            assertDirectories(values, "One", "One", null);
 
-        values = computeDataValues("/storage/emulated/0/One/Two/IMG1024.JPG");
-        assertBucket(values, "/storage/emulated/0/One/Two", "Two");
-        assertGroup(values, "IMG1024");
-        assertDirectories(values, "One", "Two");
+            values = computeDataValues(top + "/One/Two/IMG1024.JPG");
+            assertBucket(values, top + "/One/Two", "Two");
+            assertGroup(values, "IMG1024");
+            assertDirectories(values, "One/Two", "One", "Two");
 
-        values = computeDataValues("/storage/emulated/0/One/Two/Three/IMG1024.JPG");
-        assertBucket(values, "/storage/emulated/0/One/Two/Three", "Three");
-        assertGroup(values, "IMG1024");
-        assertDirectories(values, "One", "Two");
+            values = computeDataValues(top + "/One/Two/Three/IMG1024.JPG");
+            assertBucket(values, top + "/One/Two/Three", "Three");
+            assertGroup(values, "IMG1024");
+            assertDirectories(values, "One/Two/Three", "One", "Two");
+        }
     }
 
     private static ContentValues computeDataValues(String path) {
@@ -499,8 +498,9 @@ public class MediaProviderTest {
         }
     }
 
-    private static void assertDirectories(ContentValues values, String primaryDir,
-            String secondaryDir) {
+    private static void assertDirectories(ContentValues values, String relativePath,
+            String primaryDir, String secondaryDir) {
+        assertEquals(relativePath, values.get(ImageColumns.RELATIVE_PATH));
         assertEquals(primaryDir, values.get(ImageColumns.PRIMARY_DIRECTORY));
         assertEquals(secondaryDir, values.get(ImageColumns.SECONDARY_DIRECTORY));
     }

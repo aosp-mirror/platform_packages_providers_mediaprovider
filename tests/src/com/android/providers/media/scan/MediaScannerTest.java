@@ -239,11 +239,12 @@ public class MediaScannerTest {
         }
     }
 
-    static void stage(int resId, File file) throws IOException {
+    public static File stage(int resId, File file) throws IOException {
         final Context context = InstrumentationRegistry.getContext();
         try (InputStream source = context.getResources().openRawResource(resId);
                 OutputStream target = new FileOutputStream(file)) {
             FileUtils.copy(source, target);
         }
+        return file;
     }
 }

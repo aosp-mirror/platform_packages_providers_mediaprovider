@@ -56,7 +56,7 @@ import java.util.regex.Pattern;
 
 @RunWith(AndroidJUnit4.class)
 public class MediaProviderTest {
-    private static final String TAG = "MediaProviderTest";
+    static final String TAG = "MediaProviderTest";
 
     @Test
     public void testSchema() {

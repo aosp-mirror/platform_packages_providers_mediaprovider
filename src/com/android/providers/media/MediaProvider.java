@@ -26,6 +26,7 @@ import static android.app.PendingIntent.FLAG_CANCEL_CURRENT;
 import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.app.PendingIntent.FLAG_ONE_SHOT;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+import static android.os.Environment.buildPath;
 import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.getVolumeName;
 import static android.provider.MediaStore.Downloads.PATTERN_DOWNLOADS_FILE;
@@ -119,6 +120,7 @@ import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.LongArray;
 import android.util.LongSparseArray;
 import android.util.Pair;
 import android.util.Size;
@@ -129,6 +131,7 @@ import com.android.internal.os.BackgroundThread;
 import com.android.internal.util.ArrayUtils;
 import com.android.internal.util.IndentingPrintWriter;
 import com.android.providers.media.scan.MediaScanner;
+import com.android.providers.media.scan.ModernMediaScanner;
 
 import libcore.io.IoUtils;
 import libcore.net.MimeUtils;
@@ -533,7 +536,10 @@ public class MediaProvider extends ContentProvider {
         return true;
     }
 
-    public void onIdleMaintenance(CancellationSignal signal) {
+    public void onIdleMaintenance(@NonNull CancellationSignal signal) {
+        // Delete any stale thumbnails
+        pruneThumbnails(signal);
+
         // Finished orphaning any content whose package no longer exists
         final ArraySet<String> unknownPackages = new ArraySet<>();
         synchronized (mDatabases) {
@@ -3760,7 +3766,6 @@ public class MediaProvider extends ContentProvider {
                 editor.apply();
             }
             mMediaScannerVolume = null;
-            pruneThumbnails();
             return 1;
         }
 
@@ -4147,71 +4152,68 @@ public class MediaProvider extends ContentProvider {
         return totalSize;
     }
 
-    /*
-     * Clean up all thumbnail files for which the source image or video no longer exists.
-     * This is called at the end of a media scan.
-     */
-    private void pruneThumbnails() {
-        Log.v(TAG, "pruneThumbnails ");
+    private void pruneThumbnails(@NonNull CancellationSignal signal) {
+        synchronized (mDatabases) {
+            for (int i = 0; i < mDatabases.size(); i++) {
+                final String volumeName = mDatabases.keyAt(i);
+                final DatabaseHelper helper = mDatabases.valueAt(i);
+                final SQLiteDatabase db = helper.getReadableDatabase();
 
-        final Uri thumbsUri = Images.Thumbnails.getContentUri("external");
+                // No thumbnails on internal storage
+                if (MediaStore.VOLUME_INTERNAL.equals(volumeName)) continue;
 
-        // Remove orphan entries in the thumbnails tables
-        final DatabaseHelper helper;
-        final SQLiteDatabase db;
-        try {
-            helper = getDatabaseForUri(thumbsUri);
-            db = helper.getWritableDatabase();
-        } catch (VolumeNotFoundException e) {
-            Log.w(TAG, e);
-            return;
-        }
-
-        db.execSQL("delete from thumbnails where image_id not in (select _id from images)");
-        db.execSQL("delete from videothumbnails where video_id not in (select _id from video)");
-
-        // Remove cached thumbnails that are no longer referenced by the thumbnails tables
-        ArraySet<String> existingFiles = new ArraySet<String>();
-        try {
-            String directory = "/sdcard/DCIM/.thumbnails";
-            File dirFile = new File(directory).getCanonicalFile();
-            String[] files = dirFile.list();
-            if (files == null)
-                files = new String[0];
-
-            String dirPath = dirFile.getPath();
-            for (int i = 0; i < files.length; i++) {
-                if (files[i].endsWith(".jpg")) {
-                    String fullPathString = dirPath + "/" + files[i];
-                    existingFiles.add(fullPathString);
+                final File volumePath;
+                try {
+                    volumePath = MediaStore.getVolumePath(volumeName);
+                } catch (FileNotFoundException e) {
+                    Log.w(TAG, "Failed to resolve volume " + volumeName, e);
+                    continue;
                 }
-            }
-        } catch (IOException e) {
-            return;
-        }
 
-        for (String table : new String[] {"thumbnails", "videothumbnails"}) {
-            Cursor c = db.query(table, new String [] { "_data" },
-                    null, null, null, null, null); // where clause/args, groupby, having, orderby
-            if (c != null && c.moveToFirst()) {
-                do {
-                    String fullPathString = c.getString(0);
-                    existingFiles.remove(fullPathString);
-                } while (c.moveToNext());
-            }
-            IoUtils.closeQuietly(c);
-        }
+                // Determine all known media items
+                final LongArray knownIds = new LongArray();
+                try (Cursor c = db.query(true, "files", new String[] { BaseColumns._ID },
+                        null, null, null, null, null, null, signal)) {
+                    while (c.moveToNext()) {
+                        knownIds.add(c.getLong(0));
+                    }
+                }
 
-        for (String fileToDelete : existingFiles) {
-            if (LOCAL_LOGV)
-                Log.v(TAG, "fileToDelete is " + fileToDelete);
-            try {
-                (new File(fileToDelete)).delete();
-            } catch (SecurityException ex) {
+                final long[] knownIdsRaw = knownIds.toArray();
+                Arrays.sort(knownIdsRaw);
+
+                // Reconcile all thumbnails, deleting stale items
+                for (File thumbDir : new File[] {
+                        buildPath(volumePath, Environment.DIRECTORY_MUSIC, ".thumbnails"),
+                        buildPath(volumePath, Environment.DIRECTORY_MOVIES, ".thumbnails"),
+                        buildPath(volumePath, Environment.DIRECTORY_PICTURES, ".thumbnails"),
+                }) {
+                    // Possibly bail before digging into each directory
+                    signal.throwIfCanceled();
+
+                    for (File thumbFile : thumbDir.listFiles()) {
+                        final String name = ModernMediaScanner.extractName(thumbFile);
+                        try {
+                            final long id = Long.parseLong(name);
+                            if (Arrays.binarySearch(knownIdsRaw, id) >= 0) {
+                                // Thumbnail belongs to known media, keep it
+                                continue;
+                            }
+                        } catch (NumberFormatException e) {
+                        }
+
+                        Log.v(TAG, "Deleting stale thumbnail " + thumbFile);
+                        thumbFile.delete();
+                    }
+                }
+
+                // Also delete stale items from legacy tables
+                db.execSQL("delete from thumbnails "
+                        + "where image_id not in (select _id from images)");
+                db.execSQL("delete from videothumbnails "
+                        + "where video_id not in (select _id from video)");
             }
         }
-
-        Log.v(TAG, "/pruneDeadThumbnailFiles... ");
     }
 
     static abstract class Thumbnailer {
@@ -5983,34 +5985,6 @@ public class MediaProvider extends ContentProvider {
             }
 
             mDatabases.put(volume, helper);
-
-            if (!helper.mInternal) {
-                // clean up stray album art files: delete every file not in the database
-                File[] files = new File(
-                        new File(mExternalStoragePaths[0], Environment.DIRECTORY_MUSIC),
-                        ".thumbnails").listFiles();
-                ArraySet<String> fileSet = new ArraySet();
-                for (int i = 0; files != null && i < files.length; i++) {
-                    fileSet.add(files[i].getPath());
-                }
-
-                Cursor cursor = query(MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI,
-                        new String[] { MediaStore.Audio.Albums.ALBUM_ART }, null, null, null);
-                try {
-                    while (cursor != null && cursor.moveToNext()) {
-                        fileSet.remove(cursor.getString(0));
-                    }
-                } finally {
-                    IoUtils.closeQuietly(cursor);
-                }
-
-                Iterator<String> iterator = fileSet.iterator();
-                while (iterator.hasNext()) {
-                    String filename = iterator.next();
-                    if (LOCAL_LOGV) Log.v(TAG, "deleting obsolete album art " + filename);
-                    new File(filename).delete();
-                }
-            }
         }
 
         if (LOCAL_LOGV) Log.v(TAG, "Attached volume: " + volume);

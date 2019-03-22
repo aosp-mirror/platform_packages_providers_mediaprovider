@@ -594,13 +594,13 @@ public class ModernMediaScanner implements MediaScanner {
         }
     }
 
-    static @Nullable String extractExtension(File file) {
+    public static @Nullable String extractExtension(File file) {
         final String name = file.getName();
         final int lastDot = name.lastIndexOf('.');
         return (lastDot == -1) ? null : name.substring(lastDot + 1);
     }
 
-    static @NonNull String extractName(File file) {
+    public static @NonNull String extractName(File file) {
         final String name = file.getName();
         final int lastDot = name.lastIndexOf('.');
         return (lastDot == -1) ? name : name.substring(0, lastDot);

@@ -3397,16 +3397,24 @@ public class MediaProvider extends ContentProvider {
             }
 
             case AUDIO_ALBUMART_ID:
-                qb.setTables("album_art");
-                qb.setProjectionMap(getProjectionMap(Audio.Thumbnails.class));
                 appendWhereStandalone(qb, "album_id=?", uri.getPathSegments().get(3));
+                // fall-through
+            case AUDIO_ALBUMART: {
+                    qb.setTables("album_art");
+
+                final ArrayMap<String, String> projectionMap = new ArrayMap<>(
+                        getProjectionMap(Audio.Thumbnails.class));
+                projectionMap.put(Audio.Thumbnails._ID,
+                        "album_id AS " + Audio.Thumbnails._ID);
+                qb.setProjectionMap(projectionMap);
+
                 if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
                     // We don't have a great way to filter parsed metadata by
                     // owner, so callers need to hold READ_MEDIA_AUDIO
                     appendWhereStandalone(qb, "0");
                 }
                 break;
-
+            }
             case AUDIO_ARTISTS_ID_ALBUMS: {
                 if (type == TYPE_QUERY) {
                     final String artistId = uri.getPathSegments().get(3);

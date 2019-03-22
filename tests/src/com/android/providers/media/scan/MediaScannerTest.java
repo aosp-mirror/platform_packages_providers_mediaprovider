@@ -59,7 +59,7 @@ import androidx.test.runner.AndroidJUnit4;
 public class MediaScannerTest {
     private static final String TAG = "MediaScannerTest";
 
-    static class IsolatedContext extends ContextWrapper {
+    public static class IsolatedContext extends ContextWrapper {
         private final File mDir;
         private final MockContentResolver mResolver;
         private final MediaProvider mProvider;

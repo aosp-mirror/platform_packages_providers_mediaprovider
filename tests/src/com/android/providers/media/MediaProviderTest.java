@@ -26,11 +26,15 @@ import static com.android.providers.media.MediaProvider.recoverAbusiveGroupBy;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -39,18 +43,72 @@ import android.provider.MediaStore.MediaColumns;
 import android.util.Log;
 import android.util.Pair;
 
+import androidx.test.InstrumentationRegistry;
+import androidx.test.runner.AndroidJUnit4;
+
 import com.android.providers.media.MediaProvider.VolumeArgumentException;
+import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.regex.Pattern;
 
-import androidx.test.runner.AndroidJUnit4;
-
 @RunWith(AndroidJUnit4.class)
 public class MediaProviderTest {
     private static final String TAG = "MediaProviderTest";
+
+    @Test
+    public void testSchema() {
+        final Context context = InstrumentationRegistry.getTargetContext();
+        final Context isolatedContext = new IsolatedContext(context, "modern");
+        final ContentResolver isolatedResolver = isolatedContext.getContentResolver();
+
+        for (String path : new String[] {
+                "images/media",
+                "images/media/1",
+                "images/thumbnails",
+                "images/thumbnails/1",
+
+                "audio/media",
+                "audio/media/1",
+                "audio/media/1/genres",
+                "audio/media/1/genres/1",
+                "audio/media/1/playlists",
+                "audio/media/1/playlists/1",
+                "audio/genres",
+                "audio/genres/1",
+                "audio/genres/1/members",
+                "audio/playlists",
+                "audio/playlists/1",
+                "audio/playlists/1/members",
+                "audio/playlists/1/members/1",
+                "audio/artists",
+                "audio/artists/1",
+                "audio/artists/1/albums",
+                "audio/albums",
+                "audio/albums/1",
+                "audio/albumart",
+                "audio/albumart/1",
+
+                "video/media",
+                "video/media/1",
+                "video/thumbnails",
+                "video/thumbnails/1",
+
+                "file",
+                "file/1",
+
+                "downloads",
+                "downloads/1",
+        }) {
+            final Uri probe = MediaStore.AUTHORITY_URI.buildUpon()
+                    .appendPath(MediaStore.VOLUME_EXTERNAL).appendEncodedPath(path).build();
+            try (Cursor c = isolatedResolver.query(probe, null, null, null)) {
+                assertNotNull("probe", c);
+            }
+        }
+    }
 
     @Test
     public void testPathOwnerPackageName_None() throws Exception {

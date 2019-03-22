@@ -27,6 +27,7 @@ public interface MediaScanner {
     public Context getContext();
     public void scanDirectory(File file);
     public Uri scanFile(File file);
+    public void onDetachVolume(String volumeName);
 
     public static MediaScanner instance(Context context) {
         if (MediaProvider.ENABLE_MODERN_SCANNER) {

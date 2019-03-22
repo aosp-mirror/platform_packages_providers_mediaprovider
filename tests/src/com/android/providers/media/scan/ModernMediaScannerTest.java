@@ -39,6 +39,9 @@ import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
 
+import androidx.test.InstrumentationRegistry;
+import androidx.test.runner.AndroidJUnit4;
+
 import com.android.internal.os.BackgroundThread;
 import com.android.providers.media.MediaProvider;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
@@ -54,9 +57,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-
-import androidx.test.InstrumentationRegistry;
-import androidx.test.runner.AndroidJUnit4;
 
 @RunWith(AndroidJUnit4.class)
 public class ModernMediaScannerTest {

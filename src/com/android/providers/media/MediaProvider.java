@@ -6296,6 +6296,8 @@ public class MediaProvider extends ContentProvider {
                 "\"content://media/[a-z]+/audio/media\""));
         sGreylist.add(Pattern.compile(
                 "substr\\(_data, length\\(_data\\)-length\\(_display_name\\), 1\\) as filename_prevchar"));
+        sGreylist.add(Pattern.compile(
+                "\\*" + maybeAs));
     }
 
     @GuardedBy("sProjectionMapCache")

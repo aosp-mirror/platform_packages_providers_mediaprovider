@@ -366,6 +366,12 @@ public class MediaProviderTest {
     }
 
     @Test
+    public void testGreylist_127900881() {
+        assertTrue(isGreylistMatch(
+                "*"));
+    }
+
+    @Test
     public void testIsDownload() throws Exception {
         assertTrue(isDownload("/storage/emulated/0/Download/colors.png"));
         assertTrue(isDownload("/storage/emulated/0/Download/test.pdf"));

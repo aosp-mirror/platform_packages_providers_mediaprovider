@@ -4222,7 +4222,7 @@ public class MediaProvider extends ContentProvider {
                 // Possibly bail before digging into each directory
                 signal.throwIfCanceled();
 
-                for (File thumbFile : thumbDir.listFiles()) {
+                for (File thumbFile : FileUtils.listFilesOrEmpty(thumbDir)) {
                     final String name = ModernMediaScanner.extractName(thumbFile);
                     try {
                         final long id = Long.parseLong(name);

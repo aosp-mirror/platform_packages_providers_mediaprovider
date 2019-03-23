@@ -39,7 +39,9 @@ import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Images.ImageColumns;
+import android.provider.MediaStore.Images;
 import android.provider.MediaStore.MediaColumns;
+import android.provider.MediaStore.Video;
 import android.util.Log;
 import android.util.Pair;
 
@@ -52,6 +54,8 @@ import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Pattern;
 
 @RunWith(AndroidJUnit4.class)
@@ -108,6 +112,38 @@ public class MediaProviderTest {
                 assertNotNull("probe", c);
             }
         }
+    }
+
+    @Test
+    public void testComputeCommonPrefix_Single() {
+        assertEquals(Uri.parse("content://authority/1/2/3"),
+                MediaProvider.computeCommonPrefix(Arrays.asList(
+                        Uri.parse("content://authority/1/2/3"))));
+    }
+
+    @Test
+    public void testComputeCommonPrefix_Deeper() {
+        assertEquals(Uri.parse("content://authority/1/2/3"),
+                MediaProvider.computeCommonPrefix(Arrays.asList(
+                        Uri.parse("content://authority/1/2/3/4"),
+                        Uri.parse("content://authority/1/2/3/4/5"),
+                        Uri.parse("content://authority/1/2/3"))));
+    }
+
+    @Test
+    public void testComputeCommonPrefix_Siblings() {
+        assertEquals(Uri.parse("content://authority/1/2"),
+                MediaProvider.computeCommonPrefix(Arrays.asList(
+                        Uri.parse("content://authority/1/2/3"),
+                        Uri.parse("content://authority/1/2/99"))));
+    }
+
+    @Test
+    public void testComputeCommonPrefix_Drastic() {
+        assertEquals(Uri.parse("content://authority"),
+                MediaProvider.computeCommonPrefix(Arrays.asList(
+                        Uri.parse("content://authority/1/2/3"),
+                        Uri.parse("content://authority/99/99/99"))));
     }
 
     @Test

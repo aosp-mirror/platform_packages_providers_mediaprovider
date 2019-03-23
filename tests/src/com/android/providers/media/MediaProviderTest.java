@@ -26,31 +26,125 @@ import static com.android.providers.media.MediaProvider.recoverAbusiveGroupBy;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Images.ImageColumns;
+import android.provider.MediaStore.Images;
 import android.provider.MediaStore.MediaColumns;
+import android.provider.MediaStore.Video;
 import android.util.Log;
 import android.util.Pair;
 
+import androidx.test.InstrumentationRegistry;
+import androidx.test.runner.AndroidJUnit4;
+
 import com.android.providers.media.MediaProvider.VolumeArgumentException;
+import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Pattern;
-
-import androidx.test.runner.AndroidJUnit4;
 
 @RunWith(AndroidJUnit4.class)
 public class MediaProviderTest {
-    private static final String TAG = "MediaProviderTest";
+    static final String TAG = "MediaProviderTest";
+
+    @Test
+    public void testSchema() {
+        final Context context = InstrumentationRegistry.getTargetContext();
+        final Context isolatedContext = new IsolatedContext(context, "modern");
+        final ContentResolver isolatedResolver = isolatedContext.getContentResolver();
+
+        for (String path : new String[] {
+                "images/media",
+                "images/media/1",
+                "images/thumbnails",
+                "images/thumbnails/1",
+
+                "audio/media",
+                "audio/media/1",
+                "audio/media/1/genres",
+                "audio/media/1/genres/1",
+                "audio/media/1/playlists",
+                "audio/media/1/playlists/1",
+                "audio/genres",
+                "audio/genres/1",
+                "audio/genres/1/members",
+                "audio/playlists",
+                "audio/playlists/1",
+                "audio/playlists/1/members",
+                "audio/playlists/1/members/1",
+                "audio/artists",
+                "audio/artists/1",
+                "audio/artists/1/albums",
+                "audio/albums",
+                "audio/albums/1",
+                "audio/albumart",
+                "audio/albumart/1",
+
+                "video/media",
+                "video/media/1",
+                "video/thumbnails",
+                "video/thumbnails/1",
+
+                "file",
+                "file/1",
+
+                "downloads",
+                "downloads/1",
+        }) {
+            final Uri probe = MediaStore.AUTHORITY_URI.buildUpon()
+                    .appendPath(MediaStore.VOLUME_EXTERNAL).appendEncodedPath(path).build();
+            try (Cursor c = isolatedResolver.query(probe, null, null, null)) {
+                assertNotNull("probe", c);
+            }
+        }
+    }
+
+    @Test
+    public void testComputeCommonPrefix_Single() {
+        assertEquals(Uri.parse("content://authority/1/2/3"),
+                MediaProvider.computeCommonPrefix(Arrays.asList(
+                        Uri.parse("content://authority/1/2/3"))));
+    }
+
+    @Test
+    public void testComputeCommonPrefix_Deeper() {
+        assertEquals(Uri.parse("content://authority/1/2/3"),
+                MediaProvider.computeCommonPrefix(Arrays.asList(
+                        Uri.parse("content://authority/1/2/3/4"),
+                        Uri.parse("content://authority/1/2/3/4/5"),
+                        Uri.parse("content://authority/1/2/3"))));
+    }
+
+    @Test
+    public void testComputeCommonPrefix_Siblings() {
+        assertEquals(Uri.parse("content://authority/1/2"),
+                MediaProvider.computeCommonPrefix(Arrays.asList(
+                        Uri.parse("content://authority/1/2/3"),
+                        Uri.parse("content://authority/1/2/99"))));
+    }
+
+    @Test
+    public void testComputeCommonPrefix_Drastic() {
+        assertEquals(Uri.parse("content://authority"),
+                MediaProvider.computeCommonPrefix(Arrays.asList(
+                        Uri.parse("content://authority/1/2/3"),
+                        Uri.parse("content://authority/99/99/99"))));
+    }
 
     @Test
     public void testPathOwnerPackageName_None() throws Exception {
@@ -114,12 +208,6 @@ public class MediaProviderTest {
         final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
         assertThrows(IllegalArgumentException.class, () -> {
             buildFile(uri, null, null, "foo/bar", "image/png");
-        });
-        assertThrows(IllegalArgumentException.class, () -> {
-            buildFile(uri, "foo/bar", null, "foo", "image/png");
-        });
-        assertThrows(IllegalArgumentException.class, () -> {
-            buildFile(uri, null, "foo/bar", "foo", "image/png");
         });
         assertThrows(IllegalArgumentException.class, () -> {
             buildFile(uri, null, null, ".hidden", "image/png");
@@ -366,6 +454,12 @@ public class MediaProviderTest {
     }
 
     @Test
+    public void testGreylist_127900881() {
+        assertTrue(isGreylistMatch(
+                "*"));
+    }
+
+    @Test
     public void testIsDownload() throws Exception {
         assertTrue(isDownload("/storage/emulated/0/Download/colors.png"));
         assertTrue(isDownload("/storage/emulated/0/Download/test.pdf"));
@@ -414,7 +508,7 @@ public class MediaProviderTest {
             final ContentValues values = computeDataValues(data);
             assertBucket(values, "/storage/0000-0000/DCIM/Camera", "Camera");
             assertGroup(values, "IMG1024");
-            assertDirectories(values, "DCIM", "Camera");
+            assertDirectories(values, "DCIM/Camera", "DCIM", "Camera");
         }
     }
 
@@ -425,12 +519,12 @@ public class MediaProviderTest {
         values = computeDataValues("/storage/0000-0000/DCIM/Camera/IMG1024");
         assertBucket(values, "/storage/0000-0000/DCIM/Camera", "Camera");
         assertGroup(values, null);
-        assertDirectories(values, "DCIM", "Camera");
+        assertDirectories(values, "DCIM/Camera", "DCIM", "Camera");
 
         values = computeDataValues("/storage/0000-0000/DCIM/Camera/.foo");
         assertBucket(values, "/storage/0000-0000/DCIM/Camera", "Camera");
         assertGroup(values, null);
-        assertDirectories(values, "DCIM", "Camera");
+        assertDirectories(values, "DCIM/Camera", "DCIM", "Camera");
     }
 
     @Test
@@ -441,7 +535,7 @@ public class MediaProviderTest {
                 "IMG1024.JPG",
         }) {
             final ContentValues values = computeDataValues(data);
-            assertDirectories(values, null, null);
+            assertDirectories(values, null, null, null);
         }
     }
 
@@ -449,25 +543,30 @@ public class MediaProviderTest {
     public void testComputeDataValues_Directories() throws Exception {
         ContentValues values;
 
-        values = computeDataValues("/storage/emulated/0/IMG1024.JPG");
-        assertBucket(values, "/storage/emulated/0", "0");
-        assertGroup(values, "IMG1024");
-        assertDirectories(values, null, null);
+        for (String top : new String[] {
+                "/storage/emulated/0",
+                "/storage/emulated/0/Android/sandbox/com.example",
+        }) {
+            values = computeDataValues(top + "/IMG1024.JPG");
+            assertBucket(values, top, null);
+            assertGroup(values, "IMG1024");
+            assertDirectories(values, "", null, null);
 
-        values = computeDataValues("/storage/emulated/0/One/IMG1024.JPG");
-        assertBucket(values, "/storage/emulated/0/One", "One");
-        assertGroup(values, "IMG1024");
-        assertDirectories(values, "One", null);
+            values = computeDataValues(top + "/One/IMG1024.JPG");
+            assertBucket(values, top + "/One", "One");
+            assertGroup(values, "IMG1024");
+            assertDirectories(values, "One", "One", null);
 
-        values = computeDataValues("/storage/emulated/0/One/Two/IMG1024.JPG");
-        assertBucket(values, "/storage/emulated/0/One/Two", "Two");
-        assertGroup(values, "IMG1024");
-        assertDirectories(values, "One", "Two");
+            values = computeDataValues(top + "/One/Two/IMG1024.JPG");
+            assertBucket(values, top + "/One/Two", "Two");
+            assertGroup(values, "IMG1024");
+            assertDirectories(values, "One/Two", "One", "Two");
 
-        values = computeDataValues("/storage/emulated/0/One/Two/Three/IMG1024.JPG");
-        assertBucket(values, "/storage/emulated/0/One/Two/Three", "Three");
-        assertGroup(values, "IMG1024");
-        assertDirectories(values, "One", "Two");
+            values = computeDataValues(top + "/One/Two/Three/IMG1024.JPG");
+            assertBucket(values, top + "/One/Two/Three", "Three");
+            assertGroup(values, "IMG1024");
+            assertDirectories(values, "One/Two/Three", "One", "Two");
+        }
     }
 
     private static ContentValues computeDataValues(String path) {
@@ -499,8 +598,9 @@ public class MediaProviderTest {
         }
     }
 
-    private static void assertDirectories(ContentValues values, String primaryDir,
-            String secondaryDir) {
+    private static void assertDirectories(ContentValues values, String relativePath,
+            String primaryDir, String secondaryDir) {
+        assertEquals(relativePath, values.get(ImageColumns.RELATIVE_PATH));
         assertEquals(primaryDir, values.get(ImageColumns.PRIMARY_DIRECTORY));
         assertEquals(secondaryDir, values.get(ImageColumns.SECONDARY_DIRECTORY));
     }

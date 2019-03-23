@@ -59,7 +59,7 @@ import androidx.test.runner.AndroidJUnit4;
 public class MediaScannerTest {
     private static final String TAG = "MediaScannerTest";
 
-    static class IsolatedContext extends ContextWrapper {
+    public static class IsolatedContext extends ContextWrapper {
         private final File mDir;
         private final MockContentResolver mResolver;
         private final MediaProvider mProvider;
@@ -239,11 +239,12 @@ public class MediaScannerTest {
         }
     }
 
-    static void stage(int resId, File file) throws IOException {
+    public static File stage(int resId, File file) throws IOException {
         final Context context = InstrumentationRegistry.getContext();
         try (InputStream source = context.getResources().openRawResource(resId);
                 OutputStream target = new FileOutputStream(file)) {
             FileUtils.copy(source, target);
         }
+        return file;
     }
 }

@@ -238,7 +238,8 @@ public class MediaProvider extends ContentProvider {
     private Size mThumbSize;
 
     // In memory cache of path<->id mappings, to speed up inserts during media scan
-    ArrayMap<String, Long> mDirectoryCache = new ArrayMap<String, Long>();
+    @GuardedBy("mDirectoryCache")
+    private final ArrayMap<String, Long> mDirectoryCache = new ArrayMap<>();
 
     private String[] mExternalStoragePaths = EmptyArray.STRING;
 
@@ -291,7 +292,9 @@ public class MediaProvider extends ContentProvider {
             // clear the entire cache.
             // TODO: include the path in the callback and only remove the affected
             // entry from the cache
-            mDirectoryCache.clear();
+            synchronized (mDirectoryCache) {
+                mDirectoryCache.clear();
+            }
         }
     };
 
@@ -618,7 +621,6 @@ public class MediaProvider extends ContentProvider {
         final int thumbSize = Math.min(metrics.widthPixels, metrics.heightPixels) / 2;
         mThumbSize = new Size(thumbSize, thumbSize);
 
-        mDatabases = new ArrayMap<String, DatabaseHelper>();
         attachVolume(INTERNAL_VOLUME);
 
         IntentFilter filter = new IntentFilter();
@@ -640,25 +642,25 @@ public class MediaProvider extends ContentProvider {
     }
 
     public void onIdleMaintenance(@NonNull CancellationSignal signal) {
+        final ArrayMap<String, DatabaseHelper> databases = getAllDatabases();
+
         // Delete any stale thumbnails
         pruneThumbnails(signal);
 
         // Finished orphaning any content whose package no longer exists
         final ArraySet<String> unknownPackages = new ArraySet<>();
-        synchronized (mDatabases) {
-            for (DatabaseHelper helper : mDatabases.values()) {
-                final SQLiteDatabase db = helper.getReadableDatabase();
-                try (Cursor c = db.query(true, "files", new String[] { "owner_package_name" },
-                        null, null, null, null, null, null, signal)) {
-                    while (c.moveToNext()) {
-                        final String packageName = c.getString(0);
-                        if (TextUtils.isEmpty(packageName)) continue;
-                        try {
-                            getContext().getPackageManager().getPackageInfo(packageName,
-                                    PackageManager.MATCH_UNINSTALLED_PACKAGES);
-                        } catch (NameNotFoundException e) {
-                            unknownPackages.add(packageName);
-                        }
+        for (DatabaseHelper helper : databases.values()) {
+            final SQLiteDatabase db = helper.getReadableDatabase();
+            try (Cursor c = db.query(true, "files", new String[] { "owner_package_name" },
+                    null, null, null, null, null, null, signal)) {
+                while (c.moveToNext()) {
+                    final String packageName = c.getString(0);
+                    if (TextUtils.isEmpty(packageName)) continue;
+                    try {
+                        getContext().getPackageManager().getPackageInfo(packageName,
+                                PackageManager.MATCH_UNINSTALLED_PACKAGES);
+                    } catch (NameNotFoundException e) {
+                        unknownPackages.add(packageName);
                     }
                 }
             }
@@ -670,42 +672,40 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Delete any expired content
-        synchronized (mDatabases) {
-            for (int i = 0; i < mDatabases.size(); i++) {
-                final String volumeName = mDatabases.keyAt(i);
-                final DatabaseHelper helper = mDatabases.valueAt(i);
-                final SQLiteDatabase db = helper.getReadableDatabase();
+        for (int i = 0; i < databases.size(); i++) {
+            final String volumeName = databases.keyAt(i);
+            final DatabaseHelper helper = databases.valueAt(i);
+            final SQLiteDatabase db = helper.getReadableDatabase();
 
-                // We're paranoid about wildly changing clocks, so only delete
-                // media that has expired within the last week
-                final long from = ((System.currentTimeMillis() - DateUtils.WEEK_IN_MILLIS) / 1000);
-                final long to = (System.currentTimeMillis() / 1000);
-                try (Cursor c = db.query(true, "files", new String[] { "_id" },
-                        FileColumns.DATE_EXPIRES + " BETWEEN " + from + " AND " + to, null,
-                        null, null, null, null, signal)) {
-                    while (c.moveToNext()) {
-                        delete(ContentUris.withAppendedId(Files.getContentUri(volumeName),
-                                c.getLong(0)), null, null);
-                    }
-                    Log.d(TAG, "Deleted " + c.getCount() + " expired items on " + helper.mName);
+            // We're paranoid about wildly changing clocks, so only delete
+            // media that has expired within the last week
+            final long from = ((System.currentTimeMillis() - DateUtils.WEEK_IN_MILLIS) / 1000);
+            final long to = (System.currentTimeMillis() / 1000);
+            try (Cursor c = db.query(true, "files", new String[] { "_id" },
+                    FileColumns.DATE_EXPIRES + " BETWEEN " + from + " AND " + to, null,
+                    null, null, null, null, signal)) {
+                while (c.moveToNext()) {
+                    delete(ContentUris.withAppendedId(Files.getContentUri(volumeName),
+                            c.getLong(0)), null, null);
                 }
+                Log.d(TAG, "Deleted " + c.getCount() + " expired items on " + helper.mName);
             }
         }
     }
 
     public void onPackageOrphaned(String packageName) {
+        final ArrayMap<String, DatabaseHelper> databases = getAllDatabases();
+
         final ContentValues values = new ContentValues();
         values.putNull(FileColumns.OWNER_PACKAGE_NAME);
 
-        synchronized (mDatabases) {
-            for (DatabaseHelper helper : mDatabases.values()) {
-                final SQLiteDatabase db = helper.getWritableDatabase();
-                final int count = db.update("files", values,
-                        "owner_package_name=?", new String[] { packageName });
-                if (count > 0) {
-                    Log.d(TAG, "Orphaned " + count + " items belonging to "
-                            + packageName + " on " + helper.mName);
-                }
+        for (DatabaseHelper helper : databases.values()) {
+            final SQLiteDatabase db = helper.getWritableDatabase();
+            final int count = db.update("files", values,
+                    "owner_package_name=?", new String[] { packageName });
+            if (count > 0) {
+                Log.d(TAG, "Orphaned " + count + " items belonging to "
+                        + packageName + " on " + helper.mName);
             }
         }
     }
@@ -1970,24 +1970,19 @@ public class MediaProvider extends ContentProvider {
         }
 
         int numInserted = 0;
-        // insert may need to call getParent(), which in turn may need to update the database,
-        // so synchronize on mDirectoryCache to avoid deadlocks
-        synchronized (mDirectoryCache) {
-            helper.beginTransaction();
-            try {
-                int len = values.length;
-                for (int i = 0; i < len; i++) {
-                    if (values[i] != null) {
-                        insert(uri, values[i]);
-                    }
+        helper.beginTransaction();
+        try {
+            int len = values.length;
+            for (int i = 0; i < len; i++) {
+                if (values[i] != null) {
+                    insert(uri, values[i]);
                 }
-                numInserted = len;
-                helper.setTransactionSuccessful();
-            } finally {
-                helper.endTransaction();
             }
+            numInserted = len;
+            helper.setTransactionSuccessful();
+        } finally {
+            helper.endTransaction();
         }
-
         return numInserted;
     }
 
@@ -2227,7 +2222,8 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void localizeTitles() {
-        for (DatabaseHelper helper : mDatabases.values()) {
+        final ArrayMap<String, DatabaseHelper> databases = getAllDatabases();
+        for (DatabaseHelper helper : databases.values()) {
             final SQLiteDatabase db = helper.getWritableDatabase();
             try (Cursor c = db.query("files", new String[]{"_id", "title_resource_uri"},
                 "title_resource_uri IS NOT NULL", null, null, null, null)) {
@@ -2482,7 +2478,7 @@ public class MediaProvider extends ContentProvider {
                     new String[] { Long.toString(rowId) });
         }
         if (format == MtpConstants.FORMAT_ASSOCIATION) {
-            synchronized(mDirectoryCache) {
+            synchronized (mDirectoryCache) {
                 mDirectoryCache.put(path, rowId);
             }
         }
@@ -3164,34 +3160,30 @@ public class MediaProvider extends ContentProvider {
     @Override
     public ContentProviderResult[] applyBatch(ArrayList<ContentProviderOperation> operations)
                 throws OperationApplicationException {
-        // batched operations are likely to need to call getParent(), which in turn may need to
-        // update the database, so synchronize on mDirectoryCache to avoid deadlocks
-        synchronized (mDirectoryCache) {
-            // Open transactions on databases for requested volumes
-            final ArrayMap<String, DatabaseHelper> transactions = new ArrayMap<>();
-            try {
-                for (ContentProviderOperation op : operations) {
-                    final String volumeName = MediaStore.getVolumeName(op.getUri());
-                    if (!transactions.containsKey(volumeName)) {
-                        try {
-                            final DatabaseHelper helper = getDatabaseForUri(op.getUri());
-                            helper.beginTransaction();
-                            transactions.put(volumeName, helper);
-                        } catch (VolumeNotFoundException e) {
-                            Log.w(TAG, e.getMessage());
-                        }
+        // Open transactions on databases for requested volumes
+        final ArrayMap<String, DatabaseHelper> transactions = new ArrayMap<>();
+        try {
+            for (ContentProviderOperation op : operations) {
+                final String volumeName = MediaStore.getVolumeName(op.getUri());
+                if (!transactions.containsKey(volumeName)) {
+                    try {
+                        final DatabaseHelper helper = getDatabaseForUri(op.getUri());
+                        helper.beginTransaction();
+                        transactions.put(volumeName, helper);
+                    } catch (VolumeNotFoundException e) {
+                        Log.w(TAG, e.getMessage());
                     }
                 }
+            }
 
-                final ContentProviderResult[] result = super.applyBatch(operations);
-                for (DatabaseHelper helper : transactions.values()) {
-                    helper.setTransactionSuccessful();
-                }
-                return result;
-            } finally {
-                for (DatabaseHelper helper : transactions.values()) {
-                    helper.endTransaction();
-                }
+            final ContentProviderResult[] result = super.applyBatch(operations);
+            for (DatabaseHelper helper : transactions.values()) {
+                helper.setTransactionSuccessful();
+            }
+            return result;
+        } finally {
+            for (DatabaseHelper helper : transactions.values()) {
+                helper.endTransaction();
             }
         }
     }
@@ -4152,6 +4144,8 @@ public class MediaProvider extends ContentProvider {
      * deleted when the app is uninstalled.
      */
     private @BytesLong long forEachContributedMedia(String packageName, Consumer<Uri> consumer) {
+        final ArrayMap<String, DatabaseHelper> databases = getAllDatabases();
+
         final SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
         qb.setTables("files");
         qb.appendWhere(
@@ -4162,26 +4156,24 @@ public class MediaProvider extends ContentProvider {
         long totalSize = 0;
         final CallingIdentity ident = clearCallingIdentity();
         try {
-            synchronized (mDatabases) {
-                for (int i = 0; i < mDatabases.size(); i++) {
-                    final String volumeName = mDatabases.keyAt(i);
-                    final DatabaseHelper helper = mDatabases.valueAt(i);
-                    final SQLiteDatabase db = helper.getReadableDatabase();
-                    try (Cursor c = qb.query(db,
-                            new String[] { FileColumns._ID, FileColumns.SIZE, FileColumns.DATA },
-                            null, null, null, null, null, null)) {
-                        while (c.moveToNext()) {
-                            final long id = c.getLong(0);
-                            final long size = c.getLong(1);
-                            final String data = c.getString(2);
+            for (int i = 0; i < databases.size(); i++) {
+                final String volumeName = databases.keyAt(i);
+                final DatabaseHelper helper = databases.valueAt(i);
+                final SQLiteDatabase db = helper.getReadableDatabase();
+                try (Cursor c = qb.query(db,
+                        new String[] { FileColumns._ID, FileColumns.SIZE, FileColumns.DATA },
+                        null, null, null, null, null, null)) {
+                    while (c.moveToNext()) {
+                        final long id = c.getLong(0);
+                        final long size = c.getLong(1);
+                        final String data = c.getString(2);
 
-                            Log.d(TAG, "Found " + data + " from " + packageName + " in "
-                                    + helper.mName + " with size " + size);
-                            if (consumer != null) {
-                                consumer.accept(Files.getContentUri(volumeName, id));
-                            }
-                            totalSize += size;
+                        Log.d(TAG, "Found " + data + " from " + packageName + " in "
+                                + helper.mName + " with size " + size);
+                        if (consumer != null) {
+                            consumer.accept(Files.getContentUri(volumeName, id));
                         }
+                        totalSize += size;
                     }
                 }
             }
@@ -4192,66 +4184,65 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void pruneThumbnails(@NonNull CancellationSignal signal) {
-        synchronized (mDatabases) {
-            for (int i = 0; i < mDatabases.size(); i++) {
-                final String volumeName = mDatabases.keyAt(i);
-                final DatabaseHelper helper = mDatabases.valueAt(i);
-                final SQLiteDatabase db = helper.getReadableDatabase();
+        final ArrayMap<String, DatabaseHelper> databases = getAllDatabases();
+        for (int i = 0; i < databases.size(); i++) {
+            final String volumeName = databases.keyAt(i);
+            final DatabaseHelper helper = databases.valueAt(i);
+            final SQLiteDatabase db = helper.getReadableDatabase();
 
-                // No thumbnails on internal storage
-                if (MediaStore.VOLUME_INTERNAL.equals(volumeName)) continue;
+            // No thumbnails on internal storage
+            if (MediaStore.VOLUME_INTERNAL.equals(volumeName)) continue;
 
-                final File volumePath;
-                try {
-                    volumePath = MediaStore.getVolumePath(volumeName);
-                } catch (FileNotFoundException e) {
-                    Log.w(TAG, "Failed to resolve volume " + volumeName, e);
-                    continue;
-                }
-
-                // Determine all known media items
-                final LongArray knownIds = new LongArray();
-                try (Cursor c = db.query(true, "files", new String[] { BaseColumns._ID },
-                        null, null, null, null, null, null, signal)) {
-                    while (c.moveToNext()) {
-                        knownIds.add(c.getLong(0));
-                    }
-                }
-
-                final long[] knownIdsRaw = knownIds.toArray();
-                Arrays.sort(knownIdsRaw);
-
-                // Reconcile all thumbnails, deleting stale items
-                for (File thumbDir : new File[] {
-                        buildPath(volumePath, Environment.DIRECTORY_MUSIC, ".thumbnails"),
-                        buildPath(volumePath, Environment.DIRECTORY_MOVIES, ".thumbnails"),
-                        buildPath(volumePath, Environment.DIRECTORY_PICTURES, ".thumbnails"),
-                }) {
-                    // Possibly bail before digging into each directory
-                    signal.throwIfCanceled();
-
-                    for (File thumbFile : thumbDir.listFiles()) {
-                        final String name = ModernMediaScanner.extractName(thumbFile);
-                        try {
-                            final long id = Long.parseLong(name);
-                            if (Arrays.binarySearch(knownIdsRaw, id) >= 0) {
-                                // Thumbnail belongs to known media, keep it
-                                continue;
-                            }
-                        } catch (NumberFormatException e) {
-                        }
-
-                        Log.v(TAG, "Deleting stale thumbnail " + thumbFile);
-                        thumbFile.delete();
-                    }
-                }
-
-                // Also delete stale items from legacy tables
-                db.execSQL("delete from thumbnails "
-                        + "where image_id not in (select _id from images)");
-                db.execSQL("delete from videothumbnails "
-                        + "where video_id not in (select _id from video)");
+            final File volumePath;
+            try {
+                volumePath = MediaStore.getVolumePath(volumeName);
+            } catch (FileNotFoundException e) {
+                Log.w(TAG, "Failed to resolve volume " + volumeName, e);
+                continue;
             }
+
+            // Determine all known media items
+            final LongArray knownIds = new LongArray();
+            try (Cursor c = db.query(true, "files", new String[] { BaseColumns._ID },
+                    null, null, null, null, null, null, signal)) {
+                while (c.moveToNext()) {
+                    knownIds.add(c.getLong(0));
+                }
+            }
+
+            final long[] knownIdsRaw = knownIds.toArray();
+            Arrays.sort(knownIdsRaw);
+
+            // Reconcile all thumbnails, deleting stale items
+            for (File thumbDir : new File[] {
+                    buildPath(volumePath, Environment.DIRECTORY_MUSIC, ".thumbnails"),
+                    buildPath(volumePath, Environment.DIRECTORY_MOVIES, ".thumbnails"),
+                    buildPath(volumePath, Environment.DIRECTORY_PICTURES, ".thumbnails"),
+            }) {
+                // Possibly bail before digging into each directory
+                signal.throwIfCanceled();
+
+                for (File thumbFile : thumbDir.listFiles()) {
+                    final String name = ModernMediaScanner.extractName(thumbFile);
+                    try {
+                        final long id = Long.parseLong(name);
+                        if (Arrays.binarySearch(knownIdsRaw, id) >= 0) {
+                            // Thumbnail belongs to known media, keep it
+                            continue;
+                        }
+                    } catch (NumberFormatException e) {
+                    }
+
+                    Log.v(TAG, "Deleting stale thumbnail " + thumbFile);
+                    thumbFile.delete();
+                }
+            }
+
+            // Also delete stale items from legacy tables
+            db.execSQL("delete from thumbnails "
+                    + "where image_id not in (select _id from images)");
+            db.execSQL("delete from videothumbnails "
+                    + "where video_id not in (select _id from video)");
         }
     }
 
@@ -4568,7 +4559,9 @@ public class MediaProvider extends ContentProvider {
                 && initialValues.containsKey(FileColumns.PARENT)))) {
             String oldPath = null;
             String newPath = initialValues.getAsString(MediaStore.MediaColumns.DATA);
-            mDirectoryCache.remove(newPath);
+            synchronized (mDirectoryCache) {
+                mDirectoryCache.remove(newPath);
+            }
             // MtpDatabase will rename the directory first, so we test the new file name
             File f = new File(newPath);
             if (newPath != null && f.isDirectory()) {
@@ -4583,7 +4576,9 @@ public class MediaProvider extends ContentProvider {
                 }
                 final boolean isDownload = isDownload(newPath);
                 if (oldPath != null) {
-                    mDirectoryCache.remove(oldPath);
+                    synchronized (mDirectoryCache) {
+                        mDirectoryCache.remove(oldPath);
+                    }
                     final boolean wasDownload = isDownload(oldPath);
                     // first rename the row for the directory
                     count = qb.update(db, initialValues, userWhere, userWhereArgs);
@@ -5843,6 +5838,12 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    private @NonNull ArrayMap<String, DatabaseHelper> getAllDatabases() {
+        synchronized (mDatabases) {
+            return new ArrayMap<>(mDatabases);
+        }
+    }
+
     static boolean isMediaDatabaseName(String name) {
         if (INTERNAL_DATABASE_NAME.equals(name)) {
             return true;
@@ -6083,7 +6084,8 @@ public class MediaProvider extends ContentProvider {
     // Memory optimization - close idle connections after 30s of inactivity
     private static final int IDLE_CONNECTION_TIMEOUT_MS = 30000;
 
-    private ArrayMap<String, DatabaseHelper> mDatabases;
+    @GuardedBy("mDatabases")
+    private final ArrayMap<String, DatabaseHelper> mDatabases = new ArrayMap<>();
 
     // name of the volume currently being scanned by the media scanner (or null)
     private String mMediaScannerVolume;
@@ -6586,8 +6588,10 @@ public class MediaProvider extends ContentProvider {
         pw.printPair("mThumbSize", mThumbSize);
         pw.println();
 
-        for (DatabaseHelper dbh : mDatabases.values()) {
-            pw.println(dump(dbh, true));
+        synchronized (mDatabases) {
+            for (DatabaseHelper dbh : mDatabases.values()) {
+                pw.println(dump(dbh, true));
+            }
         }
     }
 

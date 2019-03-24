@@ -50,6 +50,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.media.ExifInterface;
 import android.media.MediaFile;
 import android.media.MediaMetadataRetriever;
+import android.mtp.MtpConstants;
 import android.net.Uri;
 import android.os.Build;
 import android.os.CancellationSignal;
@@ -201,6 +202,7 @@ public class ModernMediaScanner implements MediaScanner {
 
         private final ArrayList<ContentProviderOperation> mPending = new ArrayList<>();
         private LongArray mScannedIds = new LongArray();
+        private LongArray mUnknownIds = new LongArray();
         private LongArray mPlaylistIds = new LongArray();
 
         private Uri mFirstResult;
@@ -216,6 +218,7 @@ public class ModernMediaScanner implements MediaScanner {
         public void run() {
             // First, scan everything that should be visible under requested
             // location, tracking scanned IDs along the way
+            mSignal.throwIfCanceled();
             if (!isDirectoryHiddenRecursive(mRoot.isDirectory() ? mRoot : mRoot.getParentFile())) {
                 Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "walkFileTree");
                 try {
@@ -232,11 +235,12 @@ public class ModernMediaScanner implements MediaScanner {
             final long[] scannedIds = mScannedIds.toArray();
             Arrays.sort(scannedIds);
 
+            // Second, reconcile all items known in the database against all the
+            // items we scanned above. The query phase is split from the delete
+            // phase so that our query remains stable if we need to paginate
+            // across multiple windows.
             mSignal.throwIfCanceled();
-
-            // Second, clean up any deleted or hidden files, which are all items
-            // under requested location that weren't scanned above
-            Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "clean");
+            Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "reconcile");
             try (Cursor c = mResolver.query(mFilesUri,
                     new String[] { FileColumns._ID }, FileColumns.DATA + " LIKE ? ESCAPE '\\'",
                     new String[] { escapeForLike(mRoot.getAbsolutePath()) + '%' },
@@ -244,22 +248,33 @@ public class ModernMediaScanner implements MediaScanner {
                 while (c.moveToNext()) {
                     final long id = c.getLong(0);
                     if (Arrays.binarySearch(scannedIds, id) < 0) {
-                        if (LOGV) Log.v(TAG, "Cleaning " + id);
-                        final Uri uri = MediaStore.Files.getContentUri(mVolumeName, id).buildUpon()
-                                .appendQueryParameter(MediaStore.PARAM_DELETE_DATA, "false")
-                                .build();
-                        mPending.add(ContentProviderOperation.newDelete(uri).build());
-                        maybeApplyPending();
+                        mUnknownIds.add(id);
                     }
+                }
+            } finally {
+                Trace.traceEnd(Trace.TRACE_TAG_DATABASE);
+            }
+
+            // Third, clean all the unknown database entries found above
+            mSignal.throwIfCanceled();
+            Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "clean");
+            try {
+                for (int i = 0; i < mUnknownIds.size(); i++) {
+                    final long id = mUnknownIds.get(i);
+                    if (LOGV) Log.v(TAG, "Cleaning " + id);
+                    final Uri uri = MediaStore.Files.getContentUri(mVolumeName, id).buildUpon()
+                            .appendQueryParameter(MediaStore.PARAM_DELETE_DATA, "false")
+                            .build();
+                    mPending.add(ContentProviderOperation.newDelete(uri).build());
+                    maybeApplyPending();
                 }
                 applyPending();
             } finally {
                 Trace.traceEnd(Trace.TRACE_TAG_DATABASE);
             }
 
+            // Fourth, resolve any playlists that we scanned
             mSignal.throwIfCanceled();
-
-            // Third, resolve any playlists that we scanned
             for (int i = 0; i < mPlaylistIds.size(); i++) {
                 final Uri uri = MediaStore.Files.getContentUri(mVolumeName, mPlaylistIds.get(i));
                 try {
@@ -458,6 +473,7 @@ public class ModernMediaScanner implements MediaScanner {
         try {
             withGenericValues(op, file, attrs, mimeType);
             op.withValue(FileColumns.MEDIA_TYPE, 0);
+            op.withValue(FileColumns.FORMAT, MtpConstants.FORMAT_ASSOCIATION);
         } catch (Exception e) {
             throw new IOException(e);
         }

@@ -132,7 +132,10 @@ public class MediaService extends IntentService {
         // long external storage scan
         if (MediaProvider.EXTERNAL_VOLUME.equals(volumeName)) {
             onScanVolume(context, Uri.fromFile(Environment.getRootDirectory()));
-            ensureDefaultRingtones(context);
+            // Ensure at least one valid set of ringtones after a factory reset.
+            if (Settings.Global.getInt(resolver, Settings.Global.BOOT_COUNT, 0) == 1) {
+                ensureDefaultRingtones(context);
+            }
         }
 
         try {

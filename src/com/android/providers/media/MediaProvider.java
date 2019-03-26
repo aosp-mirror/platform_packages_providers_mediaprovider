@@ -3861,6 +3861,7 @@ public class MediaProvider extends ContentProvider {
                                         Files.getContentUri(MediaStore.getVolumeName(uri), id));
                             } else if (mediaType == FileColumns.MEDIA_TYPE_AUDIO) {
                                 if (!helper.mInternal) {
+                                    deleteIfAllowed(uri, data);
                                     MediaDocumentsProvider.onMediaStoreDelete(getContext(),
                                             volumeName, FileColumns.MEDIA_TYPE_AUDIO, id);
 

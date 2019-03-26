@@ -75,7 +75,6 @@
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_SCANNER_SCAN_FILE" />
-                <action android:name="android.intent.action.MEDIA_SCANNER_SCAN_VOLUME" />
                 <data android:scheme="file" />
             </intent-filter>
         </receiver>

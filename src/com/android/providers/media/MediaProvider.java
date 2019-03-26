@@ -1941,8 +1941,6 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    // TODO: replace bulkInsert() by translating into applyBatch()
-
     @Override
     public int bulkInsert(Uri uri, ContentValues values[]) {
         final int targetSdkVersion = getCallingPackageTargetSdkVersion();
@@ -1962,28 +1960,19 @@ public class MediaProvider extends ContentProvider {
             return e.translateForUpdateDelete(targetSdkVersion);
         }
 
-        if (match == AUDIO_PLAYLISTS_ID || match == AUDIO_PLAYLISTS_ID_MEMBERS) {
-            return playlistBulkInsert(db, uri, values);
-        } else if (match == MTP_OBJECT_REFERENCES) {
+        if (match == MTP_OBJECT_REFERENCES) {
             int handle = Integer.parseInt(uri.getPathSegments().get(2));
             return setObjectReferences(helper, db, handle, values);
         }
 
-        int numInserted = 0;
         helper.beginTransaction();
         try {
-            int len = values.length;
-            for (int i = 0; i < len; i++) {
-                if (values[i] != null) {
-                    insert(uri, values[i]);
-                }
-            }
-            numInserted = len;
+            final int result = super.bulkInsert(uri, values);
             helper.setTransactionSuccessful();
+            return result;
         } finally {
             helper.endTransaction();
         }
-        return numInserted;
     }
 
     private int playlistBulkInsert(SQLiteDatabase db, Uri uri, ContentValues values[]) {
@@ -4222,7 +4211,7 @@ public class MediaProvider extends ContentProvider {
                 // Possibly bail before digging into each directory
                 signal.throwIfCanceled();
 
-                for (File thumbFile : thumbDir.listFiles()) {
+                for (File thumbFile : FileUtils.listFilesOrEmpty(thumbDir)) {
                     final String name = ModernMediaScanner.extractName(thumbFile);
                     try {
                         final long id = Long.parseLong(name);

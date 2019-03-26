@@ -43,6 +43,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
+import java.io.IOException;
 
 @RunWith(AndroidJUnit4.class)
 public class IdleServiceTest {
@@ -70,10 +71,10 @@ public class IdleServiceTest {
         final File c = buildPath(dir, Environment.DIRECTORY_PICTURES, ".thumbnails", id + ".jpg");
         final File d = buildPath(dir, Environment.DIRECTORY_PICTURES, ".thumbnails", "random.bin");
 
-        a.createNewFile();
-        b.createNewFile();
-        c.createNewFile();
-        d.createNewFile();
+        createNewFileWithMkdirs(a);
+        createNewFileWithMkdirs(b);
+        createNewFileWithMkdirs(c);
+        createNewFileWithMkdirs(d);
 
         // Idle maintenance pass should clean up unknown files
         try (ContentProviderClient cpc = isolatedResolver
@@ -86,5 +87,10 @@ public class IdleServiceTest {
         assertFalse(b.exists());
         assertTrue(c.exists());
         assertFalse(d.exists());
+    }
+
+    private static void createNewFileWithMkdirs(File file) throws IOException {
+        file.getParentFile().mkdirs();
+        file.createNewFile();
     }
 }

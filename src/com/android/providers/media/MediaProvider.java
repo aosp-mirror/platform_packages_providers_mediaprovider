@@ -3861,6 +3861,7 @@ public class MediaProvider extends ContentProvider {
                                         Files.getContentUri(MediaStore.getVolumeName(uri), id));
                             } else if (mediaType == FileColumns.MEDIA_TYPE_AUDIO) {
                                 if (!helper.mInternal) {
+                                    deleteIfAllowed(uri, data);
                                     MediaDocumentsProvider.onMediaStoreDelete(getContext(),
                                             volumeName, FileColumns.MEDIA_TYPE_AUDIO, id);
 
@@ -5296,58 +5297,34 @@ public class MediaProvider extends ContentProvider {
         return false;
     }
 
-    private boolean checkCallingPermission(String readPermission, int readOp, int writeOp,
-            boolean forWrite, String callingPackage) {
-        // Callers must hold both the old and new permissions, so that we can
-        // handle obscure cases like when an app targets Q but was installed on
-        // a device that was originally running on P before being upgraded to Q.
-
-        if (getContext().checkCallingPermission(forWrite ? WRITE_EXTERNAL_STORAGE
-                : READ_EXTERNAL_STORAGE) != PERMISSION_GRANTED) {
-            return false;
-        }
-
-        if (!forWrite
-                && getContext().checkCallingPermission(readPermission) != PERMISSION_GRANTED) {
-            return false;
-        }
-
-        final int op = forWrite ? writeOp : readOp;
-        final int mode = mAppOpsManager.noteOpNoThrow(op, Binder.getCallingUid(), callingPackage);
-        switch (mode) {
-            case AppOpsManager.MODE_ALLOWED:
-                return true;
-            case AppOpsManager.MODE_DEFAULT:
-            case AppOpsManager.MODE_IGNORED:
-            case AppOpsManager.MODE_ERRORED:
-                // TODO: throw SecurityException once we have APIs for
-                // developers to request access to media they don't own
-                return false;
-            default:
-                throw new IllegalStateException(AppOpsManager.opToName(op) + " has unknown mode "
-                        + AppOpsManager.modeToName(mode));
-        }
-    }
-
     private boolean checkCallingPermissionAudio(boolean forWrite, String callingPackage) {
-        return checkCallingPermission(android.Manifest.permission.READ_MEDIA_AUDIO,
-                AppOpsManager.OP_READ_MEDIA_AUDIO,
-                AppOpsManager.OP_WRITE_MEDIA_AUDIO,
-                forWrite, callingPackage);
+        if (forWrite) {
+            return mStorageManager.checkPermissionWriteAudio(false, Binder.getCallingPid(),
+                    Binder.getCallingUid(), callingPackage);
+        } else {
+            return mStorageManager.checkPermissionReadAudio(false, Binder.getCallingPid(),
+                    Binder.getCallingUid(), callingPackage);
+        }
     }
 
     private boolean checkCallingPermissionVideo(boolean forWrite, String callingPackage) {
-        return checkCallingPermission(android.Manifest.permission.READ_MEDIA_VIDEO,
-                AppOpsManager.OP_READ_MEDIA_VIDEO,
-                AppOpsManager.OP_WRITE_MEDIA_VIDEO,
-                forWrite, callingPackage);
+        if (forWrite) {
+            return mStorageManager.checkPermissionWriteVideo(false, Binder.getCallingPid(),
+                    Binder.getCallingUid(), callingPackage);
+        } else {
+            return mStorageManager.checkPermissionReadVideo(false, Binder.getCallingPid(),
+                    Binder.getCallingUid(), callingPackage);
+        }
     }
 
     private boolean checkCallingPermissionImages(boolean forWrite, String callingPackage) {
-        return checkCallingPermission(android.Manifest.permission.READ_MEDIA_IMAGES,
-                AppOpsManager.OP_READ_MEDIA_IMAGES,
-                AppOpsManager.OP_WRITE_MEDIA_IMAGES,
-                forWrite, callingPackage);
+        if (forWrite) {
+            return mStorageManager.checkPermissionWriteImages(false, Binder.getCallingPid(),
+                    Binder.getCallingUid(), callingPackage);
+        } else {
+            return mStorageManager.checkPermissionReadImages(false, Binder.getCallingPid(),
+                    Binder.getCallingUid(), callingPackage);
+        }
     }
 
     /**

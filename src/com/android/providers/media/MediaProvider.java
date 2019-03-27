@@ -5391,9 +5391,6 @@ public class MediaProvider extends ContentProvider {
         final String type = uri.getPathSegments().get(1);
         final String groupName;
         switch (type) {
-            case "audio": groupName = android.Manifest.permission_group.MEDIA_AURAL; break;
-            case "video": groupName = android.Manifest.permission_group.MEDIA_VISUAL; break;
-            case "image": groupName = android.Manifest.permission_group.MEDIA_VISUAL; break;
             default: groupName = android.Manifest.permission_group.STORAGE; break;
         }
         try {

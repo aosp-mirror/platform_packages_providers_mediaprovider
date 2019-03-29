@@ -24,6 +24,7 @@ import android.content.ComponentName;
 import android.content.ContentProviderClient;
 import android.content.Context;
 import android.os.CancellationSignal;
+import android.os.OperationCanceledException;
 import android.provider.MediaStore;
 
 import java.util.concurrent.TimeUnit;
@@ -40,6 +41,7 @@ public class IdleService extends JobService {
             try (ContentProviderClient cpc = getContentResolver()
                     .acquireContentProviderClient(MediaStore.AUTHORITY)) {
                 ((MediaProvider) cpc.getLocalContentProvider()).onIdleMaintenance(mSignal);
+            } catch (OperationCanceledException ignored) {
             }
             jobFinished(params, false);
         }).start();

@@ -66,4 +66,9 @@ public class LegacyMediaScanner implements MediaScanner {
             Trace.traceEnd(Trace.TRACE_TAG_DATABASE);
         }
     }
+
+    @Override
+    public void onDetachVolume(String volumeName) {
+        // Ignored
+    }
 }

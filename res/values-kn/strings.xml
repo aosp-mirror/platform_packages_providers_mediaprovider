@@ -26,10 +26,8 @@
     <string name="root_images" msgid="5861633549189045666">"ಚಿತ್ರಗಳು"</string>
     <string name="root_videos" msgid="8792703517064649453">"ವೀಡಿಯೊಗಳು"</string>
     <string name="root_audio" msgid="3505830755201326018">"ಆಡಿಯೊ"</string>
-    <!-- no translation found for permission_required (1460820436132943754) -->
-    <skip />
-    <!-- no translation found for permission_required_action (706370952366113539) -->
-    <skip />
+    <string name="permission_required" msgid="1460820436132943754">"ಈ ಐಟಂ ಅನ್ನು ಮಾರ್ಪಡಿಸಲು ಅಥವಾ ಅಳಿಸಲು ಅನುಮತಿಯ ಅಗತ್ಯವಿದೆ."</string>
+    <string name="permission_required_action" msgid="706370952366113539">"ಮುಂದುವರಿಸಿ"</string>
     <string name="permission_audio" msgid="344061911159388398">"ಈ ಸಂಗೀತವನ್ನು ಮಾರ್ಪಡಿಸಲು ಅಥವಾ ಅಳಿಸಲು "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" ಅನ್ನು ಅನುಮತಿಸಬೇಕೆ?"</string>
     <string name="permission_video" msgid="8188037202573267740">"ವೀಡಿಯೊವನ್ನು ಮಾರ್ಪಡಿಸಲು ಅಥವಾ ಅಳಿಸಲು "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" ಅನ್ನು ಅನುಮತಿಸುವುದೇ?"</string>
     <string name="permission_images" msgid="6711726334380945124">"ಈ ಚಿತ್ರವನ್ನು ಮಾರ್ಪಡಿಸಲು ಅಥವಾ ಅಳಿಸಲು"<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" ಅನ್ನು ಅನುಮತಿಸಬೇಕೆ?"</string>

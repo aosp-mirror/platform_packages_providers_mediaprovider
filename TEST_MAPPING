@@ -1,0 +1,15 @@
+{
+    "presubmit": [
+        {
+            "name": "MediaProviderTests"
+        },
+        {
+            "name": "CtsProviderTestCases",
+            "options": [
+                {
+                    "include-annotation": "android.platform.test.annotations.Presubmit"
+                }
+            ]
+        }
+    ]
+}

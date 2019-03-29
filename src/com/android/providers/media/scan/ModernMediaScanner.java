@@ -126,9 +126,9 @@ public class ModernMediaScanner implements MediaScanner {
     private static final int BATCH_SIZE = 32;
 
     private static final Pattern PATTERN_VISIBLE = Pattern.compile(
-            "(?i)^/storage/[^/]+(?:/[0-9]+)?$");
+            "(?i)^/storage/[^/]+(?:/[0-9]+)?(?:/Android/sandbox/([^/]+))?$");
     private static final Pattern PATTERN_INVISIBLE = Pattern.compile(
-            "(?i)^/storage/[^/]+(?:/[0-9]+)?/Android/(?:data|obb)$");
+            "(?i)^/storage/[^/]+(?:/[0-9]+)?(?:/Android/sandbox/([^/]+))?/Android/(?:data|obb)$");
 
     private final Context mContext;
     private final ContentResolver mResolver;

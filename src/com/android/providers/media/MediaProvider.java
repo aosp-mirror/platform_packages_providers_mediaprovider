@@ -207,15 +207,17 @@ public class MediaProvider extends ContentProvider {
         sDataColumns.put(MediaStore.Audio.AlbumColumns.ALBUM_ART, null);
     }
 
-    private static final ArrayMap<String, String> sFolderArtMap = new ArrayMap<>();
-
     /** Resolved canonical path to external storage. */
+    @Deprecated
     private String mExternalPath;
     /** Resolved canonical path to cache storage. */
+    @Deprecated
     private String mCachePath;
     /** Resolved canonical path to legacy storage. */
+    @Deprecated
     private String mLegacyPath;
 
+    @Deprecated
     private void updateStoragePaths() {
         mExternalStoragePaths = mStorageManager.getVolumePaths();
         try {
@@ -276,10 +278,6 @@ public class MediaProvider extends ContentProvider {
             } catch (IOException e) {
                 Log.w(TAG, "Failed " + intent, e);
             }
-
-            // Unfortunately the cleanest thing we can do for now is
-            // invalidate the entire cache and rebuild it
-            sFolderArtMap.clear();
         }
     };
 

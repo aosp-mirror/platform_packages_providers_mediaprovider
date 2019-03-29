@@ -101,19 +101,32 @@ public class ModernMediaScannerTest {
                 maybeOverrideMimeType("image/png", "image/x-shiny"));
     }
 
+    private static void assertDirectoryHidden(File file) {
+        assertTrue(file.getAbsolutePath(), isDirectoryHidden(file));
+    }
+
+    private static void assertDirectoryNotHidden(File file) {
+        assertFalse(file.getAbsolutePath(), isDirectoryHidden(file));
+    }
+
     @Test
     public void testIsDirectoryHidden() throws Exception {
         for (String prefix : new String[] {
                 "/storage/emulated/0",
-                "/storage/0000-0000"
+                "/storage/emulated/0/Android/sandbox/com.example",
+                "/storage/0000-0000",
+                "/storage/0000-0000/Android/sandbox/com.example",
         }) {
-            assertFalse(isDirectoryHidden(new File(prefix)));
-            assertFalse(isDirectoryHidden(new File(prefix + "/Android/")));
-            assertFalse(isDirectoryHidden(new File(prefix + "/Android/sandbox/")));
+            assertDirectoryNotHidden(new File(prefix));
+            assertDirectoryNotHidden(new File(prefix + "/meow"));
+            assertDirectoryNotHidden(new File(prefix + "/Android"));
+            assertDirectoryNotHidden(new File(prefix + "/Android/meow"));
+            assertDirectoryNotHidden(new File(prefix + "/Android/sandbox"));
+            assertDirectoryNotHidden(new File(prefix + "/Android/sandbox/meow"));
 
-            assertTrue(isDirectoryHidden(new File(prefix + "/.hidden/")));
-            assertTrue(isDirectoryHidden(new File(prefix + "/Android/data/")));
-            assertTrue(isDirectoryHidden(new File(prefix + "/Android/obb/")));
+            assertDirectoryHidden(new File(prefix + "/.meow"));
+            assertDirectoryHidden(new File(prefix + "/Android/data"));
+            assertDirectoryHidden(new File(prefix + "/Android/obb"));
         }
     }
 

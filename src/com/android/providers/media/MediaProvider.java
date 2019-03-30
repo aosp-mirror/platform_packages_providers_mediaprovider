@@ -3221,6 +3221,7 @@ public class MediaProvider extends ContentProvider {
         if (parseBoolean(uri.getQueryParameter("distinct"))) {
             qb.setDistinct(true);
         }
+        qb.setProjectionAggregationAllowed(true);
         qb.setStrict(true);
 
         final String callingPackage = getCallingPackageOrSelf();

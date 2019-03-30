@@ -24,6 +24,7 @@ import static com.android.providers.media.MediaProvider.getPathOwnerPackageName;
 import static com.android.providers.media.MediaProvider.maybeBalance;
 import static com.android.providers.media.MediaProvider.recoverAbusiveGroupBy;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -35,13 +36,13 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Images.ImageColumns;
-import android.provider.MediaStore.Images;
 import android.provider.MediaStore.MediaColumns;
-import android.provider.MediaStore.Video;
+import android.util.ArrayMap;
 import android.util.Log;
 import android.util.Pair;
 
@@ -55,7 +56,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.regex.Pattern;
 
 @RunWith(AndroidJUnit4.class)
@@ -457,6 +457,64 @@ public class MediaProviderTest {
     public void testGreylist_127900881() {
         assertTrue(isGreylistMatch(
                 "*"));
+    }
+
+    @Test
+    public void testComputeProjection() throws Exception {
+        final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
+        final ArrayMap<String, String> map = new ArrayMap<>();
+        map.put("external", "internal");
+        builder.setProjectionMap(map);
+        builder.setProjectionAggregationAllowed(false);
+        builder.setStrict(true);
+
+        assertArrayEquals(
+                new String[] { "internal" },
+                builder.computeProjection(null));
+        assertArrayEquals(
+                new String[] { "internal" },
+                builder.computeProjection(new String[] { "external" }));
+        assertThrows(IllegalArgumentException.class, () -> {
+            builder.computeProjection(new String[] { "internal" });
+        });
+        assertThrows(IllegalArgumentException.class, () -> {
+            builder.computeProjection(new String[] { "MIN(internal)" });
+        });
+        assertThrows(IllegalArgumentException.class, () -> {
+            builder.computeProjection(new String[] { "MIN(external)" });
+        });
+        assertThrows(IllegalArgumentException.class, () -> {
+            builder.computeProjection(new String[] { "FOO(external)" });
+        });
+    }
+
+    @Test
+    public void testComputeProjection_AggregationAllowed() throws Exception {
+        final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
+        final ArrayMap<String, String> map = new ArrayMap<>();
+        map.put("external", "internal");
+        builder.setProjectionMap(map);
+        builder.setProjectionAggregationAllowed(true);
+        builder.setStrict(true);
+
+        assertArrayEquals(
+                new String[] { "internal" },
+                builder.computeProjection(null));
+        assertArrayEquals(
+                new String[] { "internal" },
+                builder.computeProjection(new String[] { "external" }));
+        assertThrows(IllegalArgumentException.class, () -> {
+            builder.computeProjection(new String[] { "internal" });
+        });
+        assertThrows(IllegalArgumentException.class, () -> {
+            builder.computeProjection(new String[] { "MIN(internal)" });
+        });
+        assertArrayEquals(
+                new String[] { "MIN(internal)" },
+                builder.computeProjection(new String[] { "MIN(external)" }));
+        assertThrows(IllegalArgumentException.class, () -> {
+            builder.computeProjection(new String[] { "FOO(external)" });
+        });
     }
 
     @Test

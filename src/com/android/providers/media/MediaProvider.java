@@ -22,6 +22,7 @@ import static android.Manifest.permission.INTERACT_ACROSS_USERS;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_MEDIA_STORAGE;
+import static android.app.AppOpsManager.OP_WRITE_EXTERNAL_STORAGE;
 import static android.app.PendingIntent.FLAG_CANCEL_CURRENT;
 import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.app.PendingIntent.FLAG_ONE_SHOT;
@@ -1590,22 +1591,18 @@ public class MediaProvider extends ContentProvider {
                 && config != null) {
             final int callingPid = Binder.getCallingPid();
             final int callingUid = Binder.getCallingUid();
-            final TranslatingCursor.Translator translator;
-            if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q) {
-                translator = (data, idIndex, matchingColumn, cursor) -> null;
-            } else {
-                translator = (data, idIndex, matchingColumn, cursor) -> {
-                    try {
-                        // Prefer translating path directly into app sandbox
-                        return translateSystemToApp(data, callingPid, callingUid);
-                    } catch (SecurityException e) {
-                        // Otherwise use special filesystem path to redirect
-                        return ContentResolver.translateDeprecatedDataPath(
-                                ContentUris.withAppendedId(config.baseUri,
-                                        cursor.getLong(idIndex)));
-                    }
-                };
-            }
+            final TranslatingCursor.Translator translator = (data, idIndex, matchingColumn,
+                    cursor) -> {
+                try {
+                    // Prefer translating path directly into app sandbox
+                    return translateSystemToApp(data, callingPid, callingUid);
+                } catch (SecurityException e) {
+                    // Otherwise use special filesystem path to redirect
+                    return ContentResolver.translateDeprecatedDataPath(
+                            ContentUris.withAppendedId(config.baseUri,
+                                    cursor.getLong(idIndex)));
+                }
+            };
             c = TranslatingCursor.query(config, translator, qb, db, projection,
                     selection, selectionArgs, groupBy, having, sortOrder, limit, signal);
         } else {
@@ -2675,17 +2672,9 @@ public class MediaProvider extends ContentProvider {
             // Augment incoming raw filesystem paths
             for (String column : sDataColumns.keySet()) {
                 if (!initialValues.containsKey(column)) continue;
-
-                if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q
-                        && !isCallingPackageSystem()) {
-                    // Modern apps don't get raw paths
-                    initialValues.remove(column);
-                } else {
-                    // Apps running in a sandbox need their paths translated
-                    initialValues.put(column, translateAppToSystem(
-                            initialValues.getAsString(column),
-                            Binder.getCallingPid(), Binder.getCallingUid()));
-                }
+                initialValues.put(column, translateAppToSystem(
+                        initialValues.getAsString(column),
+                        Binder.getCallingPid(), Binder.getCallingUid()));
             }
 
             genre = initialValues.getAsString(Audio.AudioColumns.GENRE);
@@ -4374,17 +4363,9 @@ public class MediaProvider extends ContentProvider {
             // Augment incoming raw filesystem paths
             for (String column : sDataColumns.keySet()) {
                 if (!initialValues.containsKey(column)) continue;
-
-                if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q
-                        && !isCallingPackageSystem()) {
-                    // Modern apps don't get raw paths
-                    initialValues.remove(column);
-                } else {
-                    // Apps running in a sandbox need their paths translated
-                    initialValues.put(column, translateAppToSystem(
-                            initialValues.getAsString(column),
-                            Binder.getCallingPid(), Binder.getCallingUid()));
-                }
+                initialValues.put(column, translateAppToSystem(
+                        initialValues.getAsString(column),
+                        Binder.getCallingPid(), Binder.getCallingUid()));
             }
 
             if (!isCallingPackageSystem()) {
@@ -6476,16 +6457,6 @@ public class MediaProvider extends ContentProvider {
         return Build.VERSION_CODES.CUR_DEVELOPMENT;
     }
 
-    /**
-     * Determine if calling package is sandboxed, or if they have a full view of
-     * the entire filesystem.
-     */
-    private boolean isCallingPackageSandboxed() {
-        return getContext().getPackageManager().checkPermission(
-                android.Manifest.permission.WRITE_MEDIA_STORAGE,
-                getCallingPackageOrSelf()) != PackageManager.PERMISSION_GRANTED;
-    }
-
     @Deprecated
     private boolean isCallingPackageAllowedHidden() {
         return isCallingPackageSystem();
@@ -6496,8 +6467,25 @@ public class MediaProvider extends ContentProvider {
      * OS media stack, and allowed certain raw access.
      */
     private boolean isCallingPackageSystem() {
-        return (getContext()
-                .checkCallingOrSelfPermission(WRITE_MEDIA_STORAGE) == PERMISSION_GRANTED);
+        final int uid = Binder.getCallingUid();
+        final String packageName = getCallingPackage();
+
+        // Special case to speed up when MediaProvider is calling itself; we
+        // know it always has system permissions
+        if ((packageName == null) && (uid == android.os.Process.myUid())) {
+            return true;
+        }
+
+        // Determine if caller is holding runtime permission
+        final boolean hasStorage = StorageManager.checkPermissionAndAppOp(getContext(), false, 0,
+                uid, packageName, WRITE_EXTERNAL_STORAGE, OP_WRITE_EXTERNAL_STORAGE);
+
+        // We're only willing to give out broad access if they also hold
+        // runtime permission; this is a firm CDD requirement
+        final boolean hasFull = getContext()
+                .checkCallingOrSelfPermission(WRITE_MEDIA_STORAGE) == PERMISSION_GRANTED;
+
+        return hasFull && hasStorage;
     }
 
     private void enforceCallingOrSelfPermissionAndAppOps(String permission, String message) {

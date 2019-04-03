@@ -6320,6 +6320,7 @@ public class MediaProvider extends ContentProvider {
         addGreylistPattern("\"content://media/[a-z]+/audio/media\"");
         addGreylistPattern("substr\\(_data, length\\(_data\\)-length\\(_display_name\\), 1\\) as filename_prevchar");
         addGreylistPattern("\\*" + maybeAs);
+        addGreylistPattern("case when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken \\* \\d+ when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken / \\d+ else \\d+ end");
     }
 
     @GuardedBy("sProjectionMapCache")

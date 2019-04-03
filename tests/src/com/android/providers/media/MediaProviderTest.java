@@ -466,6 +466,12 @@ public class MediaProviderTest {
     }
 
     @Test
+    public void testGreylist_129746861() {
+        assertTrue(isGreylistMatch(
+                "case when (datetaken >= 157680000 and datetaken < 1892160000) then datetaken * 1000 when (datetaken >= 157680000000 and datetaken < 1892160000000) then datetaken when (datetaken >= 157680000000000 and datetaken < 1892160000000000) then datetaken / 1000 else 0 end"));
+    }
+
+    @Test
     public void testComputeProjection() throws Exception {
         final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
         final ArrayMap<String, String> map = new ArrayMap<>();

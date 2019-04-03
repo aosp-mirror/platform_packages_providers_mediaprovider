@@ -22,6 +22,8 @@ import static android.Manifest.permission.INTERACT_ACROSS_USERS;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_MEDIA_STORAGE;
+import static android.app.AppOpsManager.MODE_ALLOWED;
+import static android.app.AppOpsManager.OP_LEGACY_STORAGE;
 import static android.app.AppOpsManager.OP_WRITE_EXTERNAL_STORAGE;
 import static android.app.PendingIntent.FLAG_CANCEL_CURRENT;
 import static android.app.PendingIntent.FLAG_IMMUTABLE;
@@ -3215,6 +3217,7 @@ public class MediaProvider extends ContentProvider {
         final int callingTargetSdk = getCallingPackageTargetSdkVersion();
 
         final boolean allowGlobal = checkCallingPermissionGlobal(uri, forWrite);
+        final boolean allowLegacy = checkCallingPermissionLegacy(uri, forWrite, callingPackage);
 
         boolean includePending = parseBoolean(
                 uri.getQueryParameter(MediaStore.PARAM_INCLUDE_PENDING));
@@ -3563,7 +3566,7 @@ public class MediaProvider extends ContentProvider {
                 qb.setProjectionMap(getProjectionMap(Files.FileColumns.class));
 
                 final ArrayList<String> options = new ArrayList<>();
-                if (!allowGlobal) {
+                if (!allowGlobal && !allowLegacy) {
                     options.add(DatabaseUtils.bindSelection("owner_package_name=?",
                             callingPackage));
                     if (checkCallingPermissionAudio(forWrite, callingPackage)) {
@@ -3610,7 +3613,7 @@ public class MediaProvider extends ContentProvider {
                     qb.setTables("files");
                     appendWhereStandalone(qb, FileColumns.IS_DOWNLOAD + "=1");
                 }
-                if (!allowGlobal) {
+                if (!allowGlobal && !allowLegacy) {
                     appendWhereStandalone(qb, FileColumns.OWNER_PACKAGE_NAME + "=?",
                             callingPackage);
                 }
@@ -5275,6 +5278,27 @@ public class MediaProvider extends ContentProvider {
         }
 
         return false;
+    }
+
+    private boolean checkCallingPermissionLegacy(Uri uri, boolean forWrite, String callingPackage) {
+        // TODO: keep this logic in sync with StorageManagerService
+        final int callingUid = Binder.getCallingUid();
+        final Context context = getContext();
+        try {
+            final boolean hasStorage = StorageManager.checkPermissionAndAppOp(context, false, 0,
+                    callingUid, callingPackage, WRITE_EXTERNAL_STORAGE, OP_WRITE_EXTERNAL_STORAGE);
+
+            final boolean hasLegacy = mAppOpsManager.checkOp(OP_LEGACY_STORAGE,
+                    callingUid, callingPackage) == MODE_ALLOWED;
+            // STOPSHIP: only use app-op once permission model has fully landed
+            final boolean requestedLegacy = !mPackageManager
+                    .getApplicationInfo(callingPackage, 0)
+                    .isExternalStorageSandboxAllowed();
+
+            return ((hasLegacy || requestedLegacy) && hasStorage);
+        } catch (NameNotFoundException ignored) {
+            return false;
+        }
     }
 
     private boolean checkCallingPermissionAudio(boolean forWrite, String callingPackage) {

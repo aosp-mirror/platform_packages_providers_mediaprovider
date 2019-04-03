@@ -142,6 +142,7 @@ import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -558,6 +559,21 @@ public class MediaProvider extends ContentProvider {
         Environment.DIRECTORY_DOWNLOADS,
         Environment.DIRECTORY_DCIM,
     };
+
+    /**
+     * This method cleans up any files created by android.media.MiniThumbFile, removed after P.
+     * It's triggered during database update only, in order to run only once.
+     */
+    private static void deleteLegacyThumbnailData() {
+        File directory = new File(Environment.getExternalStorageDirectory(), "/DCIM/.thumbnails");
+
+        FilenameFilter filter = (dir, filename) -> filename.startsWith(".thumbdata");
+        for (File f : ArrayUtils.defeatNullable(directory.listFiles(filter))) {
+            if (!f.delete()) {
+                Log.e(TAG, "Failed to delete legacy thumbnail data " + f.getAbsolutePath());
+            }
+        }
+    }
 
     /**
      * Ensure that default folders are created on mounted primary storage
@@ -1054,7 +1070,7 @@ public class MediaProvider extends ContentProvider {
     static final int VERSION_N = 800;
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
-    static final int VERSION_Q = 1018;
+    static final int VERSION_Q = 1019;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -1132,6 +1148,12 @@ public class MediaProvider extends ContentProvider {
             if (fromVersion < 1018) {
                 updateAddPath(db, internal);
                 recomputeDataValues = true;
+            }
+            if (fromVersion < 1019) {
+                // Only trigger during "external", so that it runs only once.
+                if (!internal) {
+                    deleteLegacyThumbnailData();
+                }
             }
 
             if (recomputeDataValues) {

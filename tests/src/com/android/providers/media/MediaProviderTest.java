@@ -460,6 +460,12 @@ public class MediaProviderTest {
     }
 
     @Test
+    public void testGreylist_128389972() {
+        assertTrue(isGreylistMatch(
+                " count(bucket_id) images_count"));
+    }
+
+    @Test
     public void testComputeProjection() throws Exception {
         final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
         final ArrayMap<String, String> map = new ArrayMap<>();

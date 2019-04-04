@@ -1,5 +1,6 @@
 android_test {
     name: "MediaProviderTests",
+    test_suites: ["device-tests"],
 
     manifest: "AndroidManifest.xml",
 

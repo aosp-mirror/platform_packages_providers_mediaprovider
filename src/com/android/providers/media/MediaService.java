@@ -82,8 +82,7 @@ public class MediaService extends IntentService {
                     onPackageOrphaned(packageName);
                     break;
                 }
-                case Intent.ACTION_MEDIA_MOUNTED:
-                case Intent.ACTION_MEDIA_SCANNER_SCAN_VOLUME: {
+                case Intent.ACTION_MEDIA_MOUNTED: {
                     onScanVolume(this, intent.getData());
                     break;
                 }
@@ -198,7 +197,7 @@ public class MediaService extends IntentService {
                 if (cursor.moveToFirst()) {
                     final Uri ringtoneUri = ContentUris.withAppendedId(baseUri, cursor.getLong(0));
                     RingtoneManager.setActualDefaultRingtoneUri(context, type, ringtoneUri);
-                    Settings.System.getInt(context.getContentResolver(), setting, 1);
+                    Settings.System.putInt(context.getContentResolver(), setting, 1);
                 }
             }
         }

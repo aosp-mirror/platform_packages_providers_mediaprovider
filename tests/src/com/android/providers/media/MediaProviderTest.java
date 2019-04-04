@@ -472,6 +472,12 @@ public class MediaProviderTest {
     }
 
     @Test
+    public void testGreylist_114112523() {
+        assertTrue(isGreylistMatch(
+                "audio._id AS _id"));
+    }
+
+    @Test
     public void testComputeProjection() throws Exception {
         final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
         final ArrayMap<String, String> map = new ArrayMap<>();

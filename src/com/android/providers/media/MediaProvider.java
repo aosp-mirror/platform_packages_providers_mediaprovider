@@ -75,8 +75,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.drawable.Icon;
 import android.media.ExifInterface;
 import android.media.MediaFile;
-import android.media.MediaScannerConnection;
-import android.media.MediaScannerConnection.MediaScannerConnectionClient;
 import android.media.ThumbnailUtils;
 import android.mtp.MtpConstants;
 import android.net.Uri;
@@ -3002,159 +3000,13 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (path != null && path.toLowerCase(Locale.US).endsWith("/.nomedia")) {
-            // need to set the media_type of all the files below this folder to 0
-            processNewNoMediaPath(volumeName, helper, db, path);
+            MediaScanner.instance(getContext()).scanFile(new File(path).getParentFile());
         }
 
         if (newUri != null) {
             helper.notifyChangeWithExpansion(newUri, match);
         }
         return newUri;
-    }
-
-    /*
-     * Sets the media type of all files below the newly added .nomedia file or
-     * hidden folder to 0, so the entries no longer appear in e.g. the audio and
-     * images views.
-     *
-     * @param path The path to the new .nomedia file or hidden directory
-     */
-    @Deprecated
-    private void processNewNoMediaPath(final String volumeName, final DatabaseHelper helper,
-            final SQLiteDatabase db, final String path) {
-        if (ENABLE_MODERN_SCANNER) {
-            MediaScanner.instance(getContext()).scanDirectory(new File(path).getParentFile());
-            return;
-        }
-
-        final File nomedia = new File(path);
-        if (nomedia.exists()) {
-            hidePath(volumeName, helper, db, path);
-        } else {
-            // File doesn't exist. Try again in a little while.
-            // XXX there's probably a better way of doing this
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    SystemClock.sleep(2000);
-                    if (nomedia.exists()) {
-                        hidePath(volumeName, helper, db, path);
-                    } else {
-                        Log.w(TAG, "does not exist: " + path, new Exception());
-                    }
-                }}).start();
-        }
-    }
-
-    @Deprecated
-    private void hidePath(String volumeName, DatabaseHelper helper, SQLiteDatabase db,
-            String path) {
-        if (ENABLE_MODERN_SCANNER) {
-            throw new UnsupportedOperationException();
-        }
-
-        // a new nomedia path was added, so clear the media paths
-        android.media.MediaScanner.clearMediaPathCache(true /* media */, false /* nomedia */);
-        File nomedia = new File(path);
-        String hiddenroot = nomedia.isDirectory() ? path : nomedia.getParent();
-
-        // query for images and videos that will be affected
-        Cursor c = db.query("files",
-                new String[] {"_id", "media_type"},
-                "_data >= ? AND _data < ? AND (media_type=1 OR media_type=3)"
-                + " AND mini_thumb_magic IS NOT NULL",
-                new String[] { hiddenroot  + "/", hiddenroot + "0"},
-                null /* groupBy */, null /* having */, null /* orderBy */);
-        if(c != null) {
-            if (c.getCount() != 0) {
-                while (c.moveToNext()) {
-                    // remove thumbnail for image/video
-                    long id = c.getLong(0);
-                    Log.i(TAG, "hiding image " + id + ", removing thumbnail");
-                    invalidateThumbnails(Files.getContentUri(volumeName, id));
-                }
-            }
-            IoUtils.closeQuietly(c);
-        }
-
-        // set the media type of the affected entries to 0
-        ContentValues mediatype = new ContentValues();
-        mediatype.put("media_type", 0);
-        int numrows = db.update("files", mediatype,
-                "_data >= ? AND _data < ?" +
-                " AND " + FileColumns.FORMAT + "!=" + MtpConstants.FORMAT_ABSTRACT_AV_PLAYLIST,
-                new String[] { hiddenroot  + "/", hiddenroot + "0"});
-        ContentResolver res = getContext().getContentResolver();
-        res.notifyChange(Uri.parse("content://media/"), null);
-    }
-
-    /*
-     * Rescan files for missing metadata and set their type accordingly.
-     * There is code for detecting the removal of a nomedia file or renaming of
-     * a directory from hidden to non-hidden in the MediaScanner and MtpDatabase,
-     * both of which call here.
-     */
-    @Deprecated
-    private void processRemovedNoMediaPath(final String path) {
-        if (ENABLE_MODERN_SCANNER) {
-            MediaScanner.instance(getContext()).scanDirectory(new File(path));
-            return;
-        }
-
-        // a nomedia path was removed, so clear the nomedia paths
-        android.media.MediaScanner.clearMediaPathCache(false /* media */, true /* nomedia */);
-
-        final String volumeName = MediaStore.getVolumeName(new File(path));
-        final Uri uri = MediaStore.Files.getContentUri(volumeName);
-
-        final DatabaseHelper helper;
-        final SQLiteDatabase db;
-        try {
-            helper = getDatabaseForUri(uri);
-            db = helper.getWritableDatabase();
-        } catch (VolumeNotFoundException e) {
-            Log.w(TAG, e);
-            return;
-        }
-
-        new ScannerClient(getContext(), db, path);
-    }
-
-    private static final class ScannerClient implements MediaScannerConnectionClient {
-        String mPath = null;
-        MediaScannerConnection mScannerConnection;
-        SQLiteDatabase mDb;
-
-        public ScannerClient(Context context, SQLiteDatabase db, String path) {
-            mDb = db;
-            mPath = path;
-            mScannerConnection = new MediaScannerConnection(context, this);
-            mScannerConnection.connect();
-        }
-
-        @Override
-        public void onMediaScannerConnected() {
-            Cursor c = mDb.query("files", openFileColumns,
-                    "_data >= ? AND _data < ?",
-                    new String[] { mPath + "/", mPath + "0"},
-                    null, null, null);
-            try  {
-                while (c.moveToNext()) {
-                    String d = c.getString(0);
-                    File f = new File(d);
-                    if (f.isFile()) {
-                        mScannerConnection.scanFile(d, null);
-                    }
-                }
-                mScannerConnection.disconnect();
-            } finally {
-                IoUtils.closeQuietly(c);
-            }
-        }
-
-        @Override
-        public void onScanCompleted(String path, Uri uri) {
-        }
     }
 
     @Override
@@ -4042,8 +3894,7 @@ public class MediaProvider extends ContentProvider {
                 }
             }
             case MediaStore.UNHIDE_CALL: {
-                processRemovedNoMediaPath(arg);
-                return null;
+                throw new UnsupportedOperationException();
             }
             case MediaStore.RETRANSLATE_CALL: {
                 localizeTitles();
@@ -4602,13 +4453,12 @@ public class MediaProvider extends ContentProvider {
                         helper.notifyChangeWithExpansion(uri, match);
                     }
                     if (f.getName().startsWith(".")) {
-                        // the new directory name is hidden
-                        processNewNoMediaPath(volumeName, helper, db, newPath);
+                        MediaScanner.instance(getContext()).scanFile(new File(newPath));
                     }
                     return count;
                 }
             } else if (newPath.toLowerCase(Locale.US).endsWith("/.nomedia")) {
-                processNewNoMediaPath(volumeName, helper, db, newPath);
+                MediaScanner.instance(getContext()).scanFile(new File(newPath).getParentFile());
             }
         }
 

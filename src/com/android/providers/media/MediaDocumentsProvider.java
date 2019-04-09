@@ -1020,7 +1020,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final RowBuilder row = result.newRow();
         row.add(Document.COLUMN_DOCUMENT_ID, docId);
         row.add(Document.COLUMN_DISPLAY_NAME,
-                cursor.getString(ImagesBucketQuery.BUCKET_DISPLAY_NAME));
+            cleanUpMediaBucketName(cursor.getString(ImagesBucketQuery.BUCKET_DISPLAY_NAME)));
         row.add(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
         row.add(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(ImagesBucketQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
@@ -1080,7 +1080,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final RowBuilder row = result.newRow();
         row.add(Document.COLUMN_DOCUMENT_ID, docId);
         row.add(Document.COLUMN_DISPLAY_NAME,
-                cursor.getString(VideosBucketQuery.BUCKET_DISPLAY_NAME));
+            cleanUpMediaBucketName(cursor.getString(VideosBucketQuery.BUCKET_DISPLAY_NAME)));
         row.add(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
         row.add(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(VideosBucketQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
@@ -1347,6 +1347,13 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     private String cleanUpMediaDisplayName(String displayName) {
         if (!MediaStore.UNKNOWN_STRING.equals(displayName)) {
             return displayName;
+        }
+        return getContext().getResources().getString(com.android.internal.R.string.unknownName);
+    }
+
+    private String cleanUpMediaBucketName(String bucketDisplayName) {
+        if (!TextUtils.isEmpty(bucketDisplayName)) {
+            return bucketDisplayName;
         }
         return getContext().getResources().getString(com.android.internal.R.string.unknownName);
     }

@@ -36,6 +36,7 @@ import android.os.UserHandle;
 import android.os.storage.StorageEventListener;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import com.android.internal.annotations.GuardedBy;
@@ -176,7 +177,7 @@ public class MtpService extends Service {
             Log.d(TAG, "starting MTP server in " + (mPtpMode ? "PTP mode" : "MTP mode") +
                     " with storage " + primary.getPath() + (mUnlocked ? " unlocked" : "") + " as user " + UserHandle.myUserId());
 
-            final MtpDatabase database = new MtpDatabase(this, MediaProvider.EXTERNAL_VOLUME, subdirs);
+            final MtpDatabase database = new MtpDatabase(this, MediaStore.VOLUME_EXTERNAL, subdirs);
             IUsbManager usbMgr = IUsbManager.Stub.asInterface(ServiceManager.getService(
                     Context.USB_SERVICE));
             ParcelFileDescriptor controlFd = null;

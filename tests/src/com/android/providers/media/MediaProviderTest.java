@@ -20,7 +20,7 @@ import static android.provider.MediaStore.Downloads.isDownload;
 import static android.provider.MediaStore.Downloads.isDownloadDir;
 
 import static com.android.providers.media.MediaProvider.ensureFileColumns;
-import static com.android.providers.media.MediaProvider.getPathOwnerPackageName;
+import static com.android.providers.media.MediaProvider.extractPathOwnerPackageName;
 import static com.android.providers.media.MediaProvider.maybeBalance;
 import static com.android.providers.media.MediaProvider.recoverAbusiveGroupBy;
 
@@ -146,6 +146,10 @@ public class MediaProviderTest {
                         Uri.parse("content://authority/99/99/99"))));
     }
 
+    private static String getPathOwnerPackageName(String path) {
+        return extractPathOwnerPackageName(path);
+    }
+
     @Test
     public void testPathOwnerPackageName_None() throws Exception {
         assertEquals(null, getPathOwnerPackageName(null));
@@ -180,7 +184,7 @@ public class MediaProviderTest {
 
     @Test
     public void testBuildData_Simple() throws Exception {
-        final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+        final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         assertEndsWith("/Pictures/file.png",
                 buildFile(uri, null, null, "file", "image/png"));
         assertEndsWith("/Pictures/file.png",
@@ -191,21 +195,21 @@ public class MediaProviderTest {
 
     @Test
     public void testBuildData_Primary() throws Exception {
-        final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+        final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         assertEndsWith("/DCIM/IMG_1024.JPG",
                 buildFile(uri, Environment.DIRECTORY_DCIM, null, "IMG_1024.JPG", "image/jpeg"));
     }
 
     @Test
     public void testBuildData_Secondary() throws Exception {
-        final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+        final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         assertEndsWith("/Pictures/Screenshots/foo.png",
                 buildFile(uri, null, Environment.DIRECTORY_SCREENSHOTS, "foo.png", "image/png"));
     }
 
     @Test
     public void testBuildData_InvalidNames() throws Exception {
-        final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+        final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         assertThrows(IllegalArgumentException.class, () -> {
             buildFile(uri, null, null, "foo/bar", "image/png");
         });
@@ -221,19 +225,19 @@ public class MediaProviderTest {
         }) {
             if (!type.startsWith("audio/")) {
                 assertThrows(IllegalArgumentException.class, () -> {
-                    buildFile(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    buildFile(MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
                             null, null, "foo", type);
                 });
             }
             if (!type.startsWith("video/")) {
                 assertThrows(IllegalArgumentException.class, () -> {
-                    buildFile(MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                    buildFile(MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
                             null, null, "foo", type);
                 });
             }
             if (!type.startsWith("image/")) {
                 assertThrows(IllegalArgumentException.class, () -> {
-                    buildFile(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                    buildFile(MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
                             null, null, "foo", type);
                 });
             }
@@ -242,7 +246,7 @@ public class MediaProviderTest {
 
     @Test
     public void testBuildData_Charset() throws Exception {
-        final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+        final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         assertEndsWith("/Pictures/foo__bar/bar__baz.png",
                 buildFile(uri, null, "foo\0\0bar", "bar::baz.png", "image/png"));
     }
@@ -536,6 +540,15 @@ public class MediaProviderTest {
     }
 
     @Test
+    public void testBindList() {
+        assertEquals("()", MediaProvider.bindList());
+        assertEquals("( 'foo' )", MediaProvider.bindList("foo"));
+        assertEquals("( 'foo' , 'bar' )", MediaProvider.bindList("foo", "bar"));
+        assertEquals("( 'foo' , 'bar' , 'baz' )", MediaProvider.bindList("foo", "bar", "baz"));
+        assertEquals("( 'foo' , NULL , 42 )", MediaProvider.bindList("foo", null, 42));
+    }
+
+    @Test
     public void testIsDownload() throws Exception {
         assertTrue(isDownload("/storage/emulated/0/Download/colors.png"));
         assertTrue(isDownload("/storage/emulated/0/Download/test.pdf"));
@@ -582,6 +595,7 @@ public class MediaProviderTest {
                 "/storage/0000-0000/DCIM/Camera/IMG1024.BURST001.JPG",
         }) {
             final ContentValues values = computeDataValues(data);
+            assertVolume(values, "0000-0000");
             assertBucket(values, "/storage/0000-0000/DCIM/Camera", "Camera");
             assertGroup(values, "IMG1024");
             assertDirectories(values, "DCIM/Camera", "DCIM", "Camera");
@@ -593,11 +607,13 @@ public class MediaProviderTest {
         ContentValues values;
 
         values = computeDataValues("/storage/0000-0000/DCIM/Camera/IMG1024");
+        assertVolume(values, "0000-0000");
         assertBucket(values, "/storage/0000-0000/DCIM/Camera", "Camera");
         assertGroup(values, null);
         assertDirectories(values, "DCIM/Camera", "DCIM", "Camera");
 
         values = computeDataValues("/storage/0000-0000/DCIM/Camera/.foo");
+        assertVolume(values, "0000-0000");
         assertBucket(values, "/storage/0000-0000/DCIM/Camera", "Camera");
         assertGroup(values, null);
         assertDirectories(values, "DCIM/Camera", "DCIM", "Camera");
@@ -624,21 +640,25 @@ public class MediaProviderTest {
                 "/storage/emulated/0/Android/sandbox/com.example",
         }) {
             values = computeDataValues(top + "/IMG1024.JPG");
+            assertVolume(values, MediaStore.VOLUME_EXTERNAL_PRIMARY);
             assertBucket(values, top, null);
             assertGroup(values, "IMG1024");
             assertDirectories(values, "", null, null);
 
             values = computeDataValues(top + "/One/IMG1024.JPG");
+            assertVolume(values, MediaStore.VOLUME_EXTERNAL_PRIMARY);
             assertBucket(values, top + "/One", "One");
             assertGroup(values, "IMG1024");
             assertDirectories(values, "One", "One", null);
 
             values = computeDataValues(top + "/One/Two/IMG1024.JPG");
+            assertVolume(values, MediaStore.VOLUME_EXTERNAL_PRIMARY);
             assertBucket(values, top + "/One/Two", "Two");
             assertGroup(values, "IMG1024");
             assertDirectories(values, "One/Two", "One", "Two");
 
             values = computeDataValues(top + "/One/Two/Three/IMG1024.JPG");
+            assertVolume(values, MediaStore.VOLUME_EXTERNAL_PRIMARY);
             assertBucket(values, top + "/One/Two/Three", "Three");
             assertGroup(values, "IMG1024");
             assertDirectories(values, "One/Two/Three", "One", "Two");
@@ -672,6 +692,10 @@ public class MediaProviderTest {
         } else {
             assertNull(values.get(ImageColumns.GROUP_ID));
         }
+    }
+
+    private static void assertVolume(ContentValues values, String volumeName) {
+        assertEquals(volumeName, values.getAsString(ImageColumns.VOLUME_NAME));
     }
 
     private static void assertDirectories(ContentValues values, String relativePath,

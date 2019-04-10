@@ -4056,6 +4056,11 @@ public class MediaProvider extends ContentProvider {
         final int modeBits = ParcelFileDescriptor.parseMode(mode);
 
         File file = queryForDataFile(uri);
+        try {
+            file = file.getCanonicalFile();
+        } catch (IOException e) {
+            throw new FileNotFoundException("Failed to get cannonical path for " + uri);
+        }
 
         checkAccess(uri, file, modeBits);
 

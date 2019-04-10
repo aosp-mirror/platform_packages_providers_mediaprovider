@@ -62,7 +62,7 @@ public class IdleServiceTest {
                 new File(dir, System.nanoTime() + ".jpg"));
         values.put(MediaColumns.DATA, file.getAbsolutePath());
         final Uri uri = isolatedResolver.insert(
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+                MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), values);
         final long id = ContentUris.parseId(uri);
 
         // Touch some thumbnail files

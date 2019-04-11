@@ -32,7 +32,7 @@
     <string name="permission_video" msgid="8188037202573267740"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" қолданбасына осы бейнені өзгертуге немесе жоюға рұқсат берілсін бе?"</string>
     <string name="permission_images" msgid="6711726334380945124"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" қолданбасына осы суретті өзгертуге немесе жоюға рұқсат берілсін бе?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Рұқсат беру"</string>
-    <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Келіспеу"</string>
+    <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Тыйым салу"</string>
     <string name="sound_name_awaken" msgid="5266892392848526147">"Ояу"</string>
     <string name="sound_name_bounce" msgid="8771447635446665231">"Секіру"</string>
     <string name="sound_name_drip" msgid="1744684469020662152">"Тамшы"</string>

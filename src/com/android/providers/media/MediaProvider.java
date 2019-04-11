@@ -191,6 +191,12 @@ public class MediaProvider extends ContentProvider {
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?(Android/sandbox/([^/]+)/)?");
 
     /**
+     * Regex that matches paths under well-known storage paths.
+     */
+    private static final Pattern PATTERN_VOLUME_NAME = Pattern.compile(
+            "(?i)^/storage/([^/]+)/");
+
+    /**
      * Regex of a selection string that matches a specific ID.
      */
     private static final Pattern PATTERN_SELECTION_ID = Pattern.compile(
@@ -478,6 +484,9 @@ public class MediaProvider extends ContentProvider {
          * notified to also notify all relevant views.
          */
         public void notifyChangeWithExpansion(Uri uri, int match) {
+            // TODO: require notifications to be sent for specific volume, and
+            // then expand into broader collections here
+
             // Start by always notifying the base item
             notifyChange(uri);
 
@@ -636,7 +645,9 @@ public class MediaProvider extends ContentProvider {
         final int thumbSize = Math.min(metrics.widthPixels, metrics.heightPixels) / 2;
         mThumbSize = new Size(thumbSize, thumbSize);
 
-        attachVolume(INTERNAL_VOLUME);
+        // TODO: rename to single database file
+        mDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false,
+                false, mObjectRemovedCallback);
 
         IntentFilter filter = new IntentFilter();
         filter.addDataScheme("file");
@@ -646,37 +657,36 @@ public class MediaProvider extends ContentProvider {
         filter.addAction(Intent.ACTION_MEDIA_UNMOUNTED);
         context.registerReceiver(mUnmountReceiver, filter);
 
-        // open external database if external storage is mounted
+        attachVolume(MediaStore.VOLUME_INTERNAL);
+
         String state = Environment.getExternalStorageState();
         if (Environment.MEDIA_MOUNTED.equals(state) ||
                 Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
-            attachVolume(EXTERNAL_VOLUME);
+            attachVolume(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         }
 
         return true;
     }
 
     public void onIdleMaintenance(@NonNull CancellationSignal signal) {
-        final ArrayMap<String, DatabaseHelper> databases = getAllDatabases();
+        final DatabaseHelper helper = mDatabase;
+        final SQLiteDatabase db = helper.getReadableDatabase();
 
         // Delete any stale thumbnails
         pruneThumbnails(signal);
 
         // Finished orphaning any content whose package no longer exists
         final ArraySet<String> unknownPackages = new ArraySet<>();
-        for (DatabaseHelper helper : databases.values()) {
-            final SQLiteDatabase db = helper.getReadableDatabase();
-            try (Cursor c = db.query(true, "files", new String[] { "owner_package_name" },
-                    null, null, null, null, null, null, signal)) {
-                while (c.moveToNext()) {
-                    final String packageName = c.getString(0);
-                    if (TextUtils.isEmpty(packageName)) continue;
-                    try {
-                        getContext().getPackageManager().getPackageInfo(packageName,
-                                PackageManager.MATCH_UNINSTALLED_PACKAGES);
-                    } catch (NameNotFoundException e) {
-                        unknownPackages.add(packageName);
-                    }
+        try (Cursor c = db.query(true, "files", new String[] { "owner_package_name" },
+                null, null, null, null, null, null, signal)) {
+            while (c.moveToNext()) {
+                final String packageName = c.getString(0);
+                if (TextUtils.isEmpty(packageName)) continue;
+                try {
+                    getContext().getPackageManager().getPackageInfo(packageName,
+                            PackageManager.MATCH_UNINSTALLED_PACKAGES);
+                } catch (NameNotFoundException e) {
+                    unknownPackages.add(packageName);
                 }
             }
         }
@@ -687,41 +697,35 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Delete any expired content
-        for (int i = 0; i < databases.size(); i++) {
-            final String volumeName = databases.keyAt(i);
-            final DatabaseHelper helper = databases.valueAt(i);
-            final SQLiteDatabase db = helper.getReadableDatabase();
 
-            // We're paranoid about wildly changing clocks, so only delete
-            // media that has expired within the last week
-            final long from = ((System.currentTimeMillis() - DateUtils.WEEK_IN_MILLIS) / 1000);
-            final long to = (System.currentTimeMillis() / 1000);
-            try (Cursor c = db.query(true, "files", new String[] { "_id" },
-                    FileColumns.DATE_EXPIRES + " BETWEEN " + from + " AND " + to, null,
-                    null, null, null, null, signal)) {
-                while (c.moveToNext()) {
-                    delete(ContentUris.withAppendedId(Files.getContentUri(volumeName),
-                            c.getLong(0)), null, null);
-                }
-                Log.d(TAG, "Deleted " + c.getCount() + " expired items on " + helper.mName);
+        // We're paranoid about wildly changing clocks, so only delete
+        // media that has expired within the last week
+        final long from = ((System.currentTimeMillis() - DateUtils.WEEK_IN_MILLIS) / 1000);
+        final long to = (System.currentTimeMillis() / 1000);
+        try (Cursor c = db.query(true, "files", new String[] { "volume_name", "_id" },
+                FileColumns.DATE_EXPIRES + " BETWEEN " + from + " AND " + to, null,
+                null, null, null, null, signal)) {
+            while (c.moveToNext()) {
+                final String volumeName = c.getString(0);
+                final long id = c.getLong(1);
+                delete(Files.getContentUri(volumeName, id), null, null);
             }
+            Log.d(TAG, "Deleted " + c.getCount() + " expired items on " + helper.mName);
         }
     }
 
     public void onPackageOrphaned(String packageName) {
-        final ArrayMap<String, DatabaseHelper> databases = getAllDatabases();
+        final DatabaseHelper helper = mDatabase;
+        final SQLiteDatabase db = helper.getWritableDatabase();
 
         final ContentValues values = new ContentValues();
         values.putNull(FileColumns.OWNER_PACKAGE_NAME);
 
-        for (DatabaseHelper helper : databases.values()) {
-            final SQLiteDatabase db = helper.getWritableDatabase();
-            final int count = db.update("files", values,
-                    "owner_package_name=?", new String[] { packageName });
-            if (count > 0) {
-                Log.d(TAG, "Orphaned " + count + " items belonging to "
-                        + packageName + " on " + helper.mName);
-            }
+        final int count = db.update("files", values,
+                "owner_package_name=?", new String[] { packageName });
+        if (count > 0) {
+            Log.d(TAG, "Orphaned " + count + " items belonging to "
+                    + packageName + " on " + helper.mName);
         }
     }
 
@@ -822,7 +826,7 @@ public class MediaProvider extends ContentProvider {
                 + "group_id INTEGER DEFAULT NULL,primary_directory TEXT DEFAULT NULL,"
                 + "secondary_directory TEXT DEFAULT NULL,document_id TEXT DEFAULT NULL,"
                 + "instance_id TEXT DEFAULT NULL,original_document_id TEXT DEFAULT NULL,"
-                + "relative_path TEXT DEFAULT NULL)");
+                + "relative_path TEXT DEFAULT NULL,volume_name TEXT DEFAULT NULL)");
 
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!internal) {
@@ -884,8 +888,8 @@ public class MediaProvider extends ContentProvider {
 
         if (!internal) {
             db.execSQL("CREATE VIEW audio_playlists AS SELECT _id,_data,name,date_added,"
-                    + "date_modified,owner_package_name,_hash,is_pending,date_expires,is_trashed"
-                    + " FROM files WHERE media_type=4");
+                    + "date_modified,owner_package_name,_hash,is_pending,date_expires,is_trashed,"
+                    + "volume_name FROM files WHERE media_type=4");
         }
 
         db.execSQL("CREATE VIEW audio_meta AS SELECT _id,_data,_display_name,_size,mime_type,"
@@ -893,8 +897,8 @@ public class MediaProvider extends ContentProvider {
                 + "album_id,track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast,"
                 + "bookmark,album_artist,owner_package_name,_hash,is_pending,is_audiobook,"
                 + "date_expires,is_trashed,group_id,primary_directory,secondary_directory,"
-                + "document_id,instance_id,original_document_id,title_resource_uri,relative_path"
-                + " FROM files WHERE media_type=2");
+                + "document_id,instance_id,original_document_id,title_resource_uri,relative_path,"
+                + "volume_name FROM files WHERE media_type=2");
 
         db.execSQL("CREATE VIEW artists_albums_map AS SELECT DISTINCT artist_id, album_id"
                 + " FROM audio_meta");
@@ -1043,6 +1047,10 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("ALTER TABLE files ADD COLUMN relative_path TEXT DEFAULT NULL;");
     }
 
+    private static void updateAddVolumeName(SQLiteDatabase db, boolean internal) {
+        db.execSQL("ALTER TABLE files ADD COLUMN volume_name TEXT DEFAULT NULL;");
+    }
+
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
                 null, null, null, null, null, null)) {
@@ -1070,7 +1078,7 @@ public class MediaProvider extends ContentProvider {
     static final int VERSION_N = 800;
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
-    static final int VERSION_Q = 1019;
+    static final int VERSION_Q = 1020;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -1154,6 +1162,10 @@ public class MediaProvider extends ContentProvider {
                 if (!internal) {
                     deleteLegacyThumbnailData();
                 }
+            }
+            if (fromVersion < 1020) {
+                updateAddVolumeName(db, internal);
+                recomputeDataValues = true;
             }
 
             if (recomputeDataValues) {
@@ -1259,6 +1271,7 @@ public class MediaProvider extends ContentProvider {
         values.remove(ImageColumns.BUCKET_ID);
         values.remove(ImageColumns.BUCKET_DISPLAY_NAME);
         values.remove(ImageColumns.GROUP_ID);
+        values.remove(ImageColumns.VOLUME_NAME);
         values.remove(ImageColumns.RELATIVE_PATH);
         values.remove(ImageColumns.PRIMARY_DIRECTORY);
         values.remove(ImageColumns.SECONDARY_DIRECTORY);
@@ -1269,8 +1282,9 @@ public class MediaProvider extends ContentProvider {
         final File file = new File(data);
         final File fileLower = new File(data.toLowerCase());
 
-        values.put(ImageColumns.RELATIVE_PATH, getRelativePath(data));
-        values.put(ImageColumns.DISPLAY_NAME, getDisplayName(data));
+        values.put(ImageColumns.VOLUME_NAME, extractVolumeName(data));
+        values.put(ImageColumns.RELATIVE_PATH, extractRelativePath(data));
+        values.put(ImageColumns.DISPLAY_NAME, extractDisplayName(data));
 
         // Buckets are the parent directory
         final String parent = fileLower.getParent();
@@ -1299,23 +1313,6 @@ public class MediaProvider extends ContentProvider {
         }
         if (segments.length > 1) {
             values.put(ImageColumns.SECONDARY_DIRECTORY, segments[1]);
-        }
-    }
-
-    /**
-     * Copy taken time from date_modified if we lost the original value (e.g. after factory reset)
-     * This works for both video and image tables.
-     *
-     * @param values the content values, where taken time is updated.
-     */
-    private static void computeTakenTime(ContentValues values) {
-        if (! values.containsKey(Images.Media.DATE_TAKEN)) {
-            // This only happens when MediaScanner finds an image file that doesn't have any useful
-            // reference to get this value. (e.g. GPSTimeStamp)
-            Long lastModified = values.getAsLong(MediaColumns.DATE_MODIFIED);
-            if (lastModified != null) {
-                values.put(Images.Media.DATE_TAKEN, lastModified * 1000);
-            }
         }
     }
 
@@ -1799,8 +1796,10 @@ public class MediaProvider extends ContentProvider {
                 break;
         }
 
+        final String resolvedVolumeName = resolveVolumeName(uri);
+
         if (TextUtils.isEmpty(values.getAsString(MediaColumns.DATA))
-                && INTERNAL_VOLUME.equals(MediaStore.getVolumeName(uri))) {
+                && MediaStore.VOLUME_INTERNAL.equals(resolvedVolumeName)) {
             // TODO: promote this to top-level check
             throw new UnsupportedOperationException(
                     "Writing to internal storage is not supported.");
@@ -1811,7 +1810,7 @@ public class MediaProvider extends ContentProvider {
             final String data = values.getAsString(MediaColumns.DATA);
 
             if (TextUtils.isEmpty(values.getAsString(MediaColumns.DISPLAY_NAME))) {
-                values.put(MediaColumns.DISPLAY_NAME, getDisplayName(data));
+                values.put(MediaColumns.DISPLAY_NAME, extractDisplayName(data));
             }
             if (TextUtils.isEmpty(values.getAsString(MediaColumns.MIME_TYPE))) {
                 final String ext = data.substring(data.lastIndexOf('.') + 1);
@@ -1876,7 +1875,7 @@ public class MediaProvider extends ContentProvider {
             // Build up directory and ensure it exists
             File res;
             try {
-                res = MediaStore.getVolumePath(MediaStore.getVolumeName(uri));
+                res = MediaStore.getVolumePath(resolvedVolumeName);
             } catch (FileNotFoundException e) {
                 throw new IllegalArgumentException(e);
             }
@@ -1946,7 +1945,7 @@ public class MediaProvider extends ContentProvider {
         if (!values.containsKey(MediaColumns.DATA)) return;
         try {
             // Sanity check that the requested path actually lives on volume
-            final String volumeName = MediaStore.getVolumeName(uri);
+            final String volumeName = resolveVolumeName(uri);
             final Collection<File> allowed = MediaStore.getVolumeScanPaths(volumeName);
             final File actual = new File(values.getAsString(MediaColumns.DATA))
                     .getCanonicalFile();
@@ -2035,8 +2034,10 @@ public class MediaProvider extends ContentProvider {
         values.put(FileColumns.FORMAT, MtpConstants.FORMAT_ASSOCIATION);
         values.put(FileColumns.DATA, path);
         values.put(FileColumns.PARENT, getParent(helper, db, path));
-        values.put(FileColumns.OWNER_PACKAGE_NAME, getPathOwnerPackageName(path));
-        values.put(FileColumns.DISPLAY_NAME, getDisplayName(path));
+        values.put(FileColumns.OWNER_PACKAGE_NAME, extractPathOwnerPackageName(path));
+        values.put(FileColumns.VOLUME_NAME, extractVolumeName(path));
+        values.put(FileColumns.RELATIVE_PATH, extractRelativePath(path));
+        values.put(FileColumns.DISPLAY_NAME, extractDisplayName(path));
         values.put(FileColumns.IS_DOWNLOAD, isDownload(path));
         File file = new File(path);
         if (file.exists()) {
@@ -2046,7 +2047,22 @@ public class MediaProvider extends ContentProvider {
         return rowId;
     }
 
-    private static @Nullable String getRelativePath(@Nullable String data) {
+    private static @Nullable String extractVolumeName(@Nullable String data) {
+        if (data == null) return null;
+        final Matcher matcher = PATTERN_VOLUME_NAME.matcher(data);
+        if (matcher.find()) {
+            final String volumeName = matcher.group(1);
+            if (volumeName.equals("emulated")) {
+                return MediaStore.VOLUME_EXTERNAL_PRIMARY;
+            } else {
+                return StorageVolume.normalizeUuid(volumeName);
+            }
+        } else {
+            return MediaStore.VOLUME_INTERNAL;
+        }
+    }
+
+    private static @Nullable String extractRelativePath(@Nullable String data) {
         if (data == null) return null;
         final Matcher matcher = PATTERN_RELATIVE_PATH.matcher(data);
         if (matcher.find()) {
@@ -2063,7 +2079,7 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private static @Nullable String getDisplayName(@Nullable String data) {
+    private static @Nullable String extractDisplayName(@Nullable String data) {
         if (data == null) return null;
         if (data.endsWith("/")) {
             data = data.substring(0, data.length() - 1);
@@ -2228,26 +2244,25 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void localizeTitles() {
-        final ArrayMap<String, DatabaseHelper> databases = getAllDatabases();
-        for (DatabaseHelper helper : databases.values()) {
-            final SQLiteDatabase db = helper.getWritableDatabase();
-            try (Cursor c = db.query("files", new String[]{"_id", "title_resource_uri"},
-                "title_resource_uri IS NOT NULL", null, null, null, null)) {
-                while (c.moveToNext()) {
-                    final String id = c.getString(0);
-                    final String titleResourceUri = c.getString(1);
-                    final ContentValues values = new ContentValues();
-                    try {
-                        final String localizedTitle = getLocalizedTitle(titleResourceUri);
-                        values.put("title_key", MediaStore.Audio.keyFor(localizedTitle));
-                        // do a final trim of the title, in case it started with the special
-                        // "sort first" character (ascii \001)
-                        values.put("title", localizedTitle.trim());
-                        db.update("files", values, "_id=?", new String[]{id});
-                    } catch (Exception e) {
-                        Log.e(TAG, "Error updating localized title for " + titleResourceUri
-                            + ", keeping old localization");
-                    }
+        final DatabaseHelper helper = mDatabase;
+        final SQLiteDatabase db = helper.getWritableDatabase();
+
+        try (Cursor c = db.query("files", new String[]{"_id", "title_resource_uri"},
+            "title_resource_uri IS NOT NULL", null, null, null, null)) {
+            while (c.moveToNext()) {
+                final String id = c.getString(0);
+                final String titleResourceUri = c.getString(1);
+                final ContentValues values = new ContentValues();
+                try {
+                    final String localizedTitle = getLocalizedTitle(titleResourceUri);
+                    values.put("title_key", MediaStore.Audio.keyFor(localizedTitle));
+                    // do a final trim of the title, in case it started with the special
+                    // "sort first" character (ascii \001)
+                    values.put("title", localizedTitle.trim());
+                    db.update("files", values, "_id=?", new String[]{id});
+                } catch (Exception e) {
+                    Log.e(TAG, "Error updating localized title for " + titleResourceUri
+                        + ", keeping old localization");
                 }
             }
         }
@@ -2272,7 +2287,6 @@ public class MediaProvider extends ContentProvider {
         switch (mediaType) {
             case FileColumns.MEDIA_TYPE_IMAGE: {
                 values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);
-                computeTakenTime(values);
                 break;
             }
 
@@ -2356,7 +2370,6 @@ public class MediaProvider extends ContentProvider {
             }
 
             case FileColumns.MEDIA_TYPE_VIDEO: {
-                computeTakenTime(values);
                 break;
             }
         }
@@ -2461,11 +2474,6 @@ public class MediaProvider extends ContentProvider {
                     values.put(FileColumns.DATE_MODIFIED, file.lastModified() / 1000);
                     if (!values.containsKey(FileColumns.SIZE)) {
                         values.put(FileColumns.SIZE, file.length());
-                    }
-                    // make sure date taken time is set
-                    if (mediaType == FileColumns.MEDIA_TYPE_IMAGE
-                            || mediaType == FileColumns.MEDIA_TYPE_VIDEO) {
-                        computeTakenTime(values);
                     }
                 }
             }
@@ -2579,7 +2587,7 @@ public class MediaProvider extends ContentProvider {
             valuesList = newValues;
         }
         return playlistBulkInsert(db,
-                Audio.Playlists.Members.getContentUri(EXTERNAL_VOLUME, playlistId),
+                Audio.Playlists.Members.getContentUri(MediaStore.VOLUME_EXTERNAL, playlistId),
                 valuesList);
     }
 
@@ -2622,7 +2630,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     @VisibleForTesting
-    static @Nullable String getPathOwnerPackageName(@Nullable String path) {
+    static @Nullable String extractPathOwnerPackageName(@Nullable String path) {
         if (path == null) return null;
         final Matcher m = PATTERN_OWNED_PATH.matcher(path);
         if (m.matches()) {
@@ -2648,13 +2656,23 @@ public class MediaProvider extends ContentProvider {
         return false;
     }
 
+    private static @NonNull String resolveVolumeName(@NonNull Uri uri) {
+        final String volumeName = getVolumeName(uri);
+        if (MediaStore.VOLUME_EXTERNAL.equals(volumeName)) {
+            return MediaStore.VOLUME_EXTERNAL_PRIMARY;
+        } else {
+            return volumeName;
+        }
+    }
+
     @Override
     public Uri insert(Uri uri, ContentValues initialValues) {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
         final int targetSdkVersion = getCallingPackageTargetSdkVersion();
-        final String volumeName = getVolumeName(uri);
+        final String originalVolumeName = getVolumeName(uri);
+        final String resolvedVolumeName = resolveVolumeName(uri);
 
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
         if (match == MEDIA_SCANNER) {
@@ -2722,7 +2740,7 @@ public class MediaProvider extends ContentProvider {
             if (isCallingPackageSystem()) {
                 // When media inserted by ourselves, the best we can do is guess
                 // ownership based on path.
-                ownerPackageName = getPathOwnerPackageName(path);
+                ownerPackageName = extractPathOwnerPackageName(path);
             } else {
                 ownerPackageName = getCallingPackageOrSelf();
             }
@@ -2748,9 +2766,9 @@ public class MediaProvider extends ContentProvider {
                         FileColumns.MEDIA_TYPE_IMAGE, true);
                 if (rowId > 0) {
                     MediaDocumentsProvider.onMediaStoreInsert(
-                            getContext(), volumeName, FileColumns.MEDIA_TYPE_IMAGE, rowId);
+                            getContext(), resolvedVolumeName, FileColumns.MEDIA_TYPE_IMAGE, rowId);
                     newUri = ContentUris.withAppendedId(
-                            Images.Media.getContentUri(volumeName), rowId);
+                            Images.Media.getContentUri(originalVolumeName), rowId);
                 }
                 break;
             }
@@ -2764,7 +2782,7 @@ public class MediaProvider extends ContentProvider {
                 // Require that caller has write access to underlying media
                 final long imageId = initialValues.getAsLong(MediaStore.Images.Thumbnails.IMAGE_ID);
                 enforceCallingPermission(ContentUris.withAppendedId(
-                        MediaStore.Images.Media.getContentUri(volumeName), imageId), true);
+                        MediaStore.Images.Media.getContentUri(resolvedVolumeName), imageId), true);
 
                 try {
                     ensureUniqueFileColumns(match, uri, initialValues);
@@ -2775,7 +2793,7 @@ public class MediaProvider extends ContentProvider {
                 rowId = db.insert("thumbnails", "name", initialValues);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(Images.Thumbnails.
-                            getContentUri(volumeName), rowId);
+                            getContentUri(originalVolumeName), rowId);
                 }
                 break;
             }
@@ -2789,7 +2807,7 @@ public class MediaProvider extends ContentProvider {
                 // Require that caller has write access to underlying media
                 final long videoId = initialValues.getAsLong(MediaStore.Video.Thumbnails.VIDEO_ID);
                 enforceCallingPermission(ContentUris.withAppendedId(
-                        MediaStore.Video.Media.getContentUri(volumeName), videoId), true);
+                        MediaStore.Video.Media.getContentUri(resolvedVolumeName), videoId), true);
 
                 try {
                     ensureUniqueFileColumns(match, uri, initialValues);
@@ -2800,7 +2818,7 @@ public class MediaProvider extends ContentProvider {
                 rowId = db.insert("videothumbnails", "name", initialValues);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(Video.Thumbnails.
-                            getContentUri(volumeName), rowId);
+                            getContentUri(originalVolumeName), rowId);
                 }
                 break;
             }
@@ -2812,9 +2830,9 @@ public class MediaProvider extends ContentProvider {
                         FileColumns.MEDIA_TYPE_AUDIO, true);
                 if (rowId > 0) {
                     MediaDocumentsProvider.onMediaStoreInsert(
-                            getContext(), volumeName, FileColumns.MEDIA_TYPE_AUDIO, rowId);
+                            getContext(), resolvedVolumeName, FileColumns.MEDIA_TYPE_AUDIO, rowId);
                     newUri = ContentUris.withAppendedId(
-                            Audio.Media.getContentUri(volumeName), rowId);
+                            Audio.Media.getContentUri(originalVolumeName), rowId);
                     if (genre != null) {
                         updateGenre(rowId, genre);
                     }
@@ -2826,7 +2844,7 @@ public class MediaProvider extends ContentProvider {
                 // Require that caller has write access to underlying media
                 final long audioId = Long.parseLong(uri.getPathSegments().get(2));
                 enforceCallingPermission(ContentUris.withAppendedId(
-                        MediaStore.Audio.Media.getContentUri(volumeName), audioId), true);
+                        MediaStore.Audio.Media.getContentUri(resolvedVolumeName), audioId), true);
 
                 ContentValues values = new ContentValues(initialValues);
                 values.put(Audio.Genres.Members.AUDIO_ID, audioId);
@@ -2841,11 +2859,11 @@ public class MediaProvider extends ContentProvider {
                 // Require that caller has write access to underlying media
                 final long audioId = Long.parseLong(uri.getPathSegments().get(2));
                 enforceCallingPermission(ContentUris.withAppendedId(
-                        MediaStore.Audio.Media.getContentUri(volumeName), audioId), true);
+                        MediaStore.Audio.Media.getContentUri(resolvedVolumeName), audioId), true);
                 final long playlistId = initialValues
                         .getAsLong(MediaStore.Audio.Playlists.Members.PLAYLIST_ID);
                 enforceCallingPermission(ContentUris.withAppendedId(
-                        MediaStore.Audio.Playlists.getContentUri(volumeName), playlistId), true);
+                        MediaStore.Audio.Playlists.getContentUri(resolvedVolumeName), playlistId), true);
 
                 ContentValues values = new ContentValues(initialValues);
                 values.put(Audio.Playlists.Members.AUDIO_ID, audioId);
@@ -2862,7 +2880,7 @@ public class MediaProvider extends ContentProvider {
                 rowId = db.insert("audio_genres", "audio_id", initialValues);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(
-                            Audio.Genres.getContentUri(volumeName), rowId);
+                            Audio.Genres.getContentUri(originalVolumeName), rowId);
                 }
                 break;
             }
@@ -2872,7 +2890,7 @@ public class MediaProvider extends ContentProvider {
                 final long audioId = initialValues
                         .getAsLong(MediaStore.Audio.Genres.Members.AUDIO_ID);
                 enforceCallingPermission(ContentUris.withAppendedId(
-                        MediaStore.Audio.Media.getContentUri(volumeName), audioId), true);
+                        MediaStore.Audio.Media.getContentUri(resolvedVolumeName), audioId), true);
 
                 Long genreId = Long.parseLong(uri.getPathSegments().get(3));
                 ContentValues values = new ContentValues(initialValues);
@@ -2893,7 +2911,7 @@ public class MediaProvider extends ContentProvider {
                         FileColumns.MEDIA_TYPE_PLAYLIST, true);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(
-                            Audio.Playlists.getContentUri(volumeName), rowId);
+                            Audio.Playlists.getContentUri(originalVolumeName), rowId);
                 }
                 break;
             }
@@ -2904,10 +2922,10 @@ public class MediaProvider extends ContentProvider {
                 final long audioId = initialValues
                         .getAsLong(MediaStore.Audio.Playlists.Members.AUDIO_ID);
                 enforceCallingPermission(ContentUris.withAppendedId(
-                        MediaStore.Audio.Media.getContentUri(volumeName), audioId), true);
+                        MediaStore.Audio.Media.getContentUri(resolvedVolumeName), audioId), true);
                 final long playlistId = Long.parseLong(uri.getPathSegments().get(3));
                 enforceCallingPermission(ContentUris.withAppendedId(
-                        MediaStore.Audio.Playlists.getContentUri(volumeName), playlistId), true);
+                        MediaStore.Audio.Playlists.getContentUri(resolvedVolumeName), playlistId), true);
 
                 ContentValues values = new ContentValues(initialValues);
                 values.put(Audio.Playlists.Members.PLAYLIST_ID, playlistId);
@@ -2925,9 +2943,9 @@ public class MediaProvider extends ContentProvider {
                         FileColumns.MEDIA_TYPE_VIDEO, true);
                 if (rowId > 0) {
                     MediaDocumentsProvider.onMediaStoreInsert(
-                            getContext(), volumeName, FileColumns.MEDIA_TYPE_VIDEO, rowId);
+                            getContext(), resolvedVolumeName, FileColumns.MEDIA_TYPE_VIDEO, rowId);
                     newUri = ContentUris.withAppendedId(
-                            Video.Media.getContentUri(volumeName), rowId);
+                            Video.Media.getContentUri(originalVolumeName), rowId);
                 }
                 break;
             }
@@ -2957,8 +2975,8 @@ public class MediaProvider extends ContentProvider {
                         FileColumns.MEDIA_TYPE_NONE, true);
                 if (rowId > 0) {
                     MediaDocumentsProvider.onMediaStoreInsert(
-                            getContext(), volumeName, FileColumns.MEDIA_TYPE_NONE, rowId);
-                    newUri = Files.getContentUri(volumeName, rowId);
+                            getContext(), resolvedVolumeName, FileColumns.MEDIA_TYPE_NONE, rowId);
+                    newUri = Files.getContentUri(originalVolumeName, rowId);
                 }
                 break;
             }
@@ -2969,7 +2987,7 @@ public class MediaProvider extends ContentProvider {
                 rowId = insertFile(helper, match, uri, initialValues,
                         FileColumns.MEDIA_TYPE_NONE, false);
                 if (rowId > 0) {
-                    newUri = Files.getMtpObjectsUri(volumeName, rowId);
+                    newUri = Files.getMtpObjectsUri(originalVolumeName, rowId);
                 }
                 break;
 
@@ -2977,7 +2995,7 @@ public class MediaProvider extends ContentProvider {
                 rowId = insertDirectory(helper, helper.getWritableDatabase(),
                         initialValues.getAsString(FileColumns.DATA));
                 if (rowId > 0) {
-                    newUri = Files.getContentUri(volumeName, rowId);
+                    newUri = Files.getContentUri(originalVolumeName, rowId);
                 }
                 break;
 
@@ -2989,9 +3007,9 @@ public class MediaProvider extends ContentProvider {
                 if (rowId > 0) {
                     final int mediaType = initialValues.getAsInteger(FileColumns.MEDIA_TYPE);
                     MediaDocumentsProvider.onMediaStoreInsert(
-                            getContext(), volumeName, mediaType, rowId);
+                            getContext(), resolvedVolumeName, mediaType, rowId);
                     newUri = ContentUris.withAppendedId(
-                        MediaStore.Downloads.getContentUri(volumeName), rowId);
+                        MediaStore.Downloads.getContentUri(originalVolumeName), rowId);
                 }
                 break;
 
@@ -3045,6 +3063,19 @@ public class MediaProvider extends ContentProvider {
         qb.appendWhereStandalone(DatabaseUtils.bindSelection(selection, selectionArgs));
     }
 
+    static @NonNull String bindList(@NonNull Object... args) {
+        final StringBuilder sb = new StringBuilder();
+        sb.append('(');
+        for (int i = 0; i < args.length; i++) {
+            sb.append('?');
+            if (i < args.length - 1) {
+                sb.append(',');
+            }
+        }
+        sb.append(')');
+        return DatabaseUtils.bindSelection(sb.toString(), args);
+    }
+
     private static boolean parseBoolean(String value) {
         if (value == null) return false;
         if ("1".equals(value)) return true;
@@ -3090,6 +3121,15 @@ public class MediaProvider extends ContentProvider {
         final String callingPackage = getCallingPackageOrSelf();
         final int callingTargetSdk = getCallingPackageTargetSdkVersion();
 
+        // TODO: throw when requesting a currently unmounted volume
+        final String volumeName = MediaStore.getVolumeName(uri);
+        final String includeVolumes;
+        if (MediaStore.VOLUME_EXTERNAL.equals(volumeName)) {
+            includeVolumes = bindList(MediaStore.getExternalVolumeNames(getContext()).toArray());
+        } else {
+            includeVolumes = bindList(volumeName);
+        }
+
         final boolean allowGlobal = checkCallingPermissionGlobal(uri, forWrite);
         final boolean allowLegacy = checkCallingPermissionLegacy(uri, forWrite, callingPackage);
 
@@ -3097,6 +3137,7 @@ public class MediaProvider extends ContentProvider {
                 uri.getQueryParameter(MediaStore.PARAM_INCLUDE_PENDING));
         boolean includeTrashed = parseBoolean(
                 uri.getQueryParameter(MediaStore.PARAM_INCLUDE_TRASHED));
+        boolean includeAllVolumes = false;
 
         switch (match) {
             case IMAGES_MEDIA_ID:
@@ -3122,6 +3163,9 @@ public class MediaProvider extends ContentProvider {
                 }
                 if (!includeTrashed) {
                     appendWhereStandalone(qb, FileColumns.IS_TRASHED + "=?", 0);
+                }
+                if (!includeAllVolumes) {
+                    appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
                 }
                 break;
 
@@ -3173,6 +3217,9 @@ public class MediaProvider extends ContentProvider {
                 }
                 if (!includeTrashed) {
                     appendWhereStandalone(qb, FileColumns.IS_TRASHED + "=?", 0);
+                }
+                if (!includeAllVolumes) {
+                    appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
                 }
                 break;
 
@@ -3261,6 +3308,9 @@ public class MediaProvider extends ContentProvider {
                 if (!includeTrashed) {
                     appendWhereStandalone(qb, FileColumns.IS_TRASHED + "=?", 0);
                 }
+                if (!includeAllVolumes) {
+                    appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
+                }
                 break;
 
             case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
@@ -3294,7 +3344,7 @@ public class MediaProvider extends ContentProvider {
                 appendWhereStandalone(qb, "album_id=?", uri.getPathSegments().get(3));
                 // fall-through
             case AUDIO_ALBUMART: {
-                    qb.setTables("album_art");
+                qb.setTables("album_art");
 
                 final ArrayMap<String, String> projectionMap = new ArrayMap<>(
                         getProjectionMap(Audio.Thumbnails.class));
@@ -3412,6 +3462,9 @@ public class MediaProvider extends ContentProvider {
                 if (!includeTrashed) {
                     appendWhereStandalone(qb, FileColumns.IS_TRASHED + "=?", 0);
                 }
+                if (!includeAllVolumes) {
+                    appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
+                }
                 break;
 
             case VIDEO_THUMBNAILS_ID:
@@ -3471,6 +3524,9 @@ public class MediaProvider extends ContentProvider {
                 if (!includeTrashed) {
                     appendWhereStandalone(qb, FileColumns.IS_TRASHED + "=?", 0);
                 }
+                if (!includeAllVolumes) {
+                    appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
+                }
 
                 break;
 
@@ -3496,6 +3552,9 @@ public class MediaProvider extends ContentProvider {
                 }
                 if (!includeTrashed) {
                     appendWhereStandalone(qb, FileColumns.IS_TRASHED + "=?", 0);
+                }
+                if (!includeAllVolumes) {
+                    appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
                 }
                 break;
 
@@ -3644,7 +3703,7 @@ public class MediaProvider extends ContentProvider {
             String msg = dump(helper, false);
             logToDb(helper.getWritableDatabase(), msg);
 
-            if (INTERNAL_VOLUME.equals(mMediaScannerVolume)) {
+            if (MediaStore.VOLUME_INTERNAL.equals(mMediaScannerVolume)) {
                 // persist current build fingerprint as fingerprint for system (internal) sound scan
                 final SharedPreferences scanSettings = getContext().getSharedPreferences(
                         android.media.MediaScanner.SCANNED_BUILD_PREFS_NAME,
@@ -3701,7 +3760,7 @@ public class MediaProvider extends ContentProvider {
 
                             // Only need to inform DownloadProvider about the downloads deleted on
                             // external volume.
-                            if (MediaStore.VOLUME_EXTERNAL.equals(volumeName) && isDownload == 1) {
+                            if (isDownload == 1) {
                                 String inferredMimeType;
                                 if (mimeType == null || format == MtpConstants.FORMAT_ASSOCIATION) {
                                     inferredMimeType = DocumentsContract.Document.MIME_TYPE_DIR;
@@ -3998,7 +4057,8 @@ public class MediaProvider extends ContentProvider {
      * deleted when the app is uninstalled.
      */
     private @BytesLong long forEachContributedMedia(String packageName, Consumer<Uri> consumer) {
-        final ArrayMap<String, DatabaseHelper> databases = getAllDatabases();
+        final DatabaseHelper helper = mDatabase;
+        final SQLiteDatabase db = helper.getReadableDatabase();
 
         final SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
         qb.setTables("files");
@@ -4010,25 +4070,21 @@ public class MediaProvider extends ContentProvider {
         long totalSize = 0;
         final CallingIdentity ident = clearCallingIdentity();
         try {
-            for (int i = 0; i < databases.size(); i++) {
-                final String volumeName = databases.keyAt(i);
-                final DatabaseHelper helper = databases.valueAt(i);
-                final SQLiteDatabase db = helper.getReadableDatabase();
-                try (Cursor c = qb.query(db,
-                        new String[] { FileColumns._ID, FileColumns.SIZE, FileColumns.DATA },
-                        null, null, null, null, null, null)) {
-                    while (c.moveToNext()) {
-                        final long id = c.getLong(0);
-                        final long size = c.getLong(1);
-                        final String data = c.getString(2);
+            try (Cursor c = qb.query(db, new String[] {
+                    FileColumns.VOLUME_NAME, FileColumns._ID, FileColumns.SIZE, FileColumns.DATA
+            }, null, null, null, null, null, null)) {
+                while (c.moveToNext()) {
+                    final String volumeName = c.getString(0);
+                    final long id = c.getLong(1);
+                    final long size = c.getLong(2);
+                    final String data = c.getString(3);
 
-                        Log.d(TAG, "Found " + data + " from " + packageName + " in "
-                                + helper.mName + " with size " + size);
-                        if (consumer != null) {
-                            consumer.accept(Files.getContentUri(volumeName, id));
-                        }
-                        totalSize += size;
+                    Log.d(TAG, "Found " + data + " from " + packageName + " in "
+                            + helper.mName + " with size " + size);
+                    if (consumer != null) {
+                        consumer.accept(Files.getContentUri(volumeName, id));
                     }
+                    totalSize += size;
                 }
             }
         } finally {
@@ -4038,15 +4094,22 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void pruneThumbnails(@NonNull CancellationSignal signal) {
-        final ArrayMap<String, DatabaseHelper> databases = getAllDatabases();
-        for (int i = 0; i < databases.size(); i++) {
-            final String volumeName = databases.keyAt(i);
-            final DatabaseHelper helper = databases.valueAt(i);
-            final SQLiteDatabase db = helper.getReadableDatabase();
+        final DatabaseHelper helper = mDatabase;
+        final SQLiteDatabase db = helper.getReadableDatabase();
 
-            // No thumbnails on internal storage
-            if (MediaStore.VOLUME_INTERNAL.equals(volumeName)) continue;
+        // Determine all known media items
+        final LongArray knownIds = new LongArray();
+        try (Cursor c = db.query(true, "files", new String[] { BaseColumns._ID },
+                null, null, null, null, null, null, signal)) {
+            while (c.moveToNext()) {
+                knownIds.add(c.getLong(0));
+            }
+        }
 
+        final long[] knownIdsRaw = knownIds.toArray();
+        Arrays.sort(knownIdsRaw);
+
+        for (String volumeName : MediaStore.getExternalVolumeNames(getContext())) {
             final File volumePath;
             try {
                 volumePath = MediaStore.getVolumePath(volumeName);
@@ -4054,18 +4117,6 @@ public class MediaProvider extends ContentProvider {
                 Log.w(TAG, "Failed to resolve volume " + volumeName, e);
                 continue;
             }
-
-            // Determine all known media items
-            final LongArray knownIds = new LongArray();
-            try (Cursor c = db.query(true, "files", new String[] { BaseColumns._ID },
-                    null, null, null, null, null, null, signal)) {
-                while (c.moveToNext()) {
-                    knownIds.add(c.getLong(0));
-                }
-            }
-
-            final long[] knownIdsRaw = knownIds.toArray();
-            Arrays.sort(knownIdsRaw);
 
             // Reconcile all thumbnails, deleting stale items
             for (File thumbDir : new File[] {
@@ -4091,13 +4142,13 @@ public class MediaProvider extends ContentProvider {
                     thumbFile.delete();
                 }
             }
-
-            // Also delete stale items from legacy tables
-            db.execSQL("delete from thumbnails "
-                    + "where image_id not in (select _id from images)");
-            db.execSQL("delete from videothumbnails "
-                    + "where video_id not in (select _id from video)");
         }
+
+        // Also delete stale items from legacy tables
+        db.execSQL("delete from thumbnails "
+                + "where image_id not in (select _id from images)");
+        db.execSQL("delete from videothumbnails "
+                + "where video_id not in (select _id from video)");
     }
 
     static abstract class Thumbnailer {
@@ -4108,7 +4159,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         private File getThumbnailFile(Uri uri) throws IOException {
-            final String volumeName = MediaStore.getVolumeName(uri);
+            final String volumeName = resolveVolumeName(uri);
             final File volumePath = MediaStore.getVolumePath(volumeName);
             return Environment.buildPath(volumePath, directoryName,
                     ".thumbnails", ContentUris.parseId(uri) + ".jpg");
@@ -4596,7 +4647,6 @@ public class MediaProvider extends ContentProvider {
                     values.remove(ImageColumns.BUCKET_DISPLAY_NAME);
                     // If the data is being modified update the bucket values
                     computeDataValues(values);
-                    computeTakenTime(values);
                     count = qb.update(db, values, userWhere, userWhereArgs);
                     // if this is a request from MediaScanner, DATA should contains file path
                     // we only process update request from media scanner, otherwise the requests
@@ -5127,7 +5177,7 @@ public class MediaProvider extends ContentProvider {
         // Check permissions for legacy storage model
         if (!ENFORCE_ISOLATED_STORAGE) {
             final String volumeName = MediaStore.getVolumeName(uri);
-            if (INTERNAL_VOLUME.equals(volumeName)) {
+            if (MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
                 return true;
             } else {
                 context.enforceCallingOrSelfPermission(
@@ -5659,28 +5709,14 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    /**
-     * Looks up the database based on the given URI.
-     *
-     * @param uri The requested URI
-     * @returns the database for the given URI
-     */
     private @NonNull DatabaseHelper getDatabaseForUri(Uri uri) throws VolumeNotFoundException {
-        synchronized (mDatabases) {
-            final String volumeName = MediaStore.getVolumeName(uri);
-            final DatabaseHelper helper = mDatabases.get(volumeName);
-            if (helper != null) {
-                return helper;
-            } else {
+        final String volumeName = resolveVolumeName(uri);
+        synchronized (mAttachedVolumeNames) {
+            if (!mAttachedVolumeNames.contains(volumeName)) {
                 throw new VolumeNotFoundException(volumeName);
             }
         }
-    }
-
-    private @NonNull ArrayMap<String, DatabaseHelper> getAllDatabases() {
-        synchronized (mDatabases) {
-            return new ArrayMap<>(mDatabases);
-        }
+        return mDatabase;
     }
 
     static boolean isMediaDatabaseName(String name) {
@@ -5707,14 +5743,6 @@ public class MediaProvider extends ContentProvider {
         attachVolume(MediaStore.getVolumeName(uri));
     }
 
-    /**
-     * Attach the database for a volume (internal or external).
-     * Does nothing if the volume is already attached, otherwise
-     * checks the volume ID and sets up the corresponding database.
-     *
-     * @param volume to attach, either {@link #INTERNAL_VOLUME} or {@link #EXTERNAL_VOLUME}.
-     * @return the content URI of the attached volume.
-     */
     public Uri attachVolume(String volume) {
         if (Binder.getCallingPid() != android.os.Process.myPid()) {
             throw new SecurityException(
@@ -5737,127 +5765,24 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        DatabaseHelper helper = null;
-        synchronized (mDatabases) {
-            helper = mDatabases.get(volume);
-            if (helper != null) {
-                if (!INTERNAL_VOLUME.equals(volume)) {
-                    ensureDefaultFolders(volume, helper, helper.getWritableDatabase());
-                }
-                return Uri.parse("content://media/" + volume);
-            }
-
-            Context context = getContext();
-            if (INTERNAL_VOLUME.equals(volume)) {
-                helper = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, true,
-                        false, mObjectRemovedCallback);
-            } else if (EXTERNAL_VOLUME.equals(volume)) {
-                // Only extract FAT volume ID for primary public
-                final VolumeInfo vol = mStorageManager.getPrimaryPhysicalVolume();
-                if (vol != null) {
-                    final StorageVolume actualVolume = mStorageManager.getPrimaryVolume();
-                    final int volumeId = actualVolume.getFatVolumeId();
-
-                    // Must check for failure!
-                    // If the volume is not (yet) mounted, this will create a new
-                    // external-ffffffff.db database instead of the one we expect.  Then, if
-                    // android.process.media is later killed and respawned, the real external
-                    // database will be attached, containing stale records, or worse, be empty.
-                    if (volumeId == -1) {
-                        String state = Environment.getExternalStorageState();
-                        if (Environment.MEDIA_MOUNTED.equals(state) ||
-                                Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
-                            // This may happen if external storage was _just_ mounted.  It may also
-                            // happen if the volume ID is _actually_ 0xffffffff, in which case it
-                            // must be changed since FileUtils::getFatVolumeId doesn't allow for
-                            // that.  It may also indicate that FileUtils::getFatVolumeId is broken
-                            // (missing ioctl), which is also impossible to disambiguate.
-                            Log.e(TAG, "Can't obtain external volume ID even though it's mounted.");
-                        } else {
-                            Log.i(TAG, "External volume is not (yet) mounted, cannot attach.");
-                        }
-
-                        throw new IllegalArgumentException("Can't obtain external volume ID for " +
-                                volume + " volume.");
-                    }
-
-                    // generate database name based on volume ID
-                    String dbName = "external-" + Integer.toHexString(volumeId) + ".db";
-                    helper = new DatabaseHelper(context, dbName, false,
-                            false, mObjectRemovedCallback);
-                    mVolumeId = volumeId;
-                } else {
-                    // external database name should be EXTERNAL_DATABASE_NAME
-                    // however earlier releases used the external-XXXXXXXX.db naming
-                    // for devices without removable storage, and in that case we need to convert
-                    // to this new convention
-                    File dbFile = context.getDatabasePath(EXTERNAL_DATABASE_NAME);
-                    if (!dbFile.exists()
-                            && android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
-                        // find the most recent external database and rename it to
-                        // EXTERNAL_DATABASE_NAME, and delete any other older
-                        // external database files
-                        File recentDbFile = null;
-                        for (String database : context.databaseList()) {
-                            if (database.startsWith("external-") && database.endsWith(".db")) {
-                                File file = context.getDatabasePath(database);
-                                if (recentDbFile == null) {
-                                    recentDbFile = file;
-                                } else if (file.lastModified() > recentDbFile.lastModified()) {
-                                    context.deleteDatabase(recentDbFile.getName());
-                                    recentDbFile = file;
-                                } else {
-                                    context.deleteDatabase(file.getName());
-                                }
-                            }
-                        }
-                        if (recentDbFile != null) {
-                            if (recentDbFile.renameTo(dbFile)) {
-                                Log.d(TAG, "renamed database " + recentDbFile.getName() +
-                                        " to " + EXTERNAL_DATABASE_NAME);
-                            } else {
-                                Log.e(TAG, "Failed to rename database " + recentDbFile.getName() +
-                                        " to " + EXTERNAL_DATABASE_NAME);
-                                // This shouldn't happen, but if it does, continue using
-                                // the file under its old name
-                                dbFile = recentDbFile;
-                            }
-                        }
-                        // else DatabaseHelper will create one named EXTERNAL_DATABASE_NAME
-                    }
-                    helper = new DatabaseHelper(context, dbFile.getName(), false,
-                            false, mObjectRemovedCallback);
-                }
-            } else {
-                // Volume name here will be the filesystem UUID
-                String dbName = "external-" + volume + ".db";
-                helper = new DatabaseHelper(context, dbName, false,
-                        false, mObjectRemovedCallback);
-            }
-
-            mDatabases.put(volume, helper);
+        synchronized (mAttachedVolumeNames) {
+            mAttachedVolumeNames.add(volume);
         }
 
         final Uri uri = MediaStore.AUTHORITY_URI.buildUpon().appendPath(volume).build();
         getContext().getContentResolver().notifyChange(uri, null);
         if (LOCAL_LOGV) Log.v(TAG, "Attached volume: " + volume);
-        if (!INTERNAL_VOLUME.equals(volume)) {
+        if (!MediaStore.VOLUME_INTERNAL.equals(volume)) {
+            final DatabaseHelper helper = mDatabase;
             ensureDefaultFolders(volume, helper, helper.getWritableDatabase());
         }
-        return Uri.parse("content://media/" + volume);
+        return uri;
     }
 
     private void detachVolume(Uri uri) {
         detachVolume(MediaStore.getVolumeName(uri));
     }
 
-    /**
-     * Detach the database for a volume (must be external).
-     * Does nothing if the volume is already detached, otherwise
-     * closes the database and sends a notification to listeners.
-     *
-     * @param uri The content URI of the volume, as returned by {@link #attachVolume}
-     */
     public void detachVolume(String volume) {
         if (Binder.getCallingPid() != android.os.Process.myPid()) {
             throw new SecurityException(
@@ -5870,7 +5795,7 @@ public class MediaProvider extends ContentProvider {
         // Quick sanity check for shady volume names
         MediaStore.checkArgumentVolumeName(volume);
 
-        if (INTERNAL_VOLUME.equals(volume)) {
+        if (MediaStore.VOLUME_INTERNAL.equals(volume)) {
             throw new UnsupportedOperationException(
                     "Deleting the internal volume is not allowed");
         }
@@ -5878,20 +5803,8 @@ public class MediaProvider extends ContentProvider {
         // Signal any scanning to shut down
         MediaScanner.instance(getContext()).onDetachVolume(volume);
 
-        synchronized (mDatabases) {
-            DatabaseHelper database = mDatabases.get(volume);
-            if (database == null) return;
-
-            try {
-                // touch the database file to show it is most recently used
-                File file = new File(database.getReadableDatabase().getPath());
-                file.setLastModified(System.currentTimeMillis());
-            } catch (Exception e) {
-                Log.e(TAG, "Can't touch database file", e);
-            }
-
-            mDatabases.remove(volume);
-            database.close();
+        synchronized (mAttachedVolumeNames) {
+            mAttachedVolumeNames.remove(volume);
         }
 
         final Uri uri = MediaStore.AUTHORITY_URI.buildUpon().appendPath(volume).build();
@@ -5923,17 +5836,16 @@ public class MediaProvider extends ContentProvider {
     // Memory optimization - close idle connections after 30s of inactivity
     private static final int IDLE_CONNECTION_TIMEOUT_MS = 30000;
 
-    @GuardedBy("mDatabases")
-    private final ArrayMap<String, DatabaseHelper> mDatabases = new ArrayMap<>();
+    @GuardedBy("mAttachedVolumeNames")
+    private final ArraySet<String> mAttachedVolumeNames = new ArraySet<>();
+
+    private DatabaseHelper mDatabase;
 
     // name of the volume currently being scanned by the media scanner (or null)
     private String mMediaScannerVolume;
 
     // current FAT volume ID
     private int mVolumeId = -1;
-
-    static final String INTERNAL_VOLUME = "internal";
-    static final String EXTERNAL_VOLUME = "external";
 
     // WARNING: the values of IMAGES_MEDIA, AUDIO_MEDIA, and VIDEO_MEDIA and AUDIO_PLAYLISTS
     // are stored in the "files" table, so do not renumber them unless you also add
@@ -6429,13 +6341,9 @@ public class MediaProvider extends ContentProvider {
     public void dump(FileDescriptor fd, PrintWriter writer, String[] args) {
         final IndentingPrintWriter pw = new IndentingPrintWriter(writer, "  ");
         pw.printPair("mThumbSize", mThumbSize);
-        pw.println();
 
-        synchronized (mDatabases) {
-            for (DatabaseHelper dbh : mDatabases.values()) {
-                pw.println(dump(dbh, true));
-            }
-        }
+        pw.println();
+        pw.println(dump(mDatabase, true));
     }
 
     private String dump(DatabaseHelper dbh, boolean dumpDbLog) {

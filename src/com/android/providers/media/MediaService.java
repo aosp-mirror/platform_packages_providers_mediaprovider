@@ -129,7 +129,7 @@ public class MediaService extends IntentService {
         // If we're about to scan primary external storage, scan internal first
         // to ensure that we have ringtones ready to roll before a possibly very
         // long external storage scan
-        if (MediaProvider.EXTERNAL_VOLUME.equals(volumeName)) {
+        if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equals(volumeName)) {
             onScanVolume(context, Uri.fromFile(Environment.getRootDirectory()));
             ensureDefaultRingtones(context);
         }
@@ -144,7 +144,7 @@ public class MediaService extends IntentService {
             values.put(MediaStore.MEDIA_SCANNER_VOLUME, volumeName);
             Uri scanUri = resolver.insert(MediaStore.getMediaScannerUri(), values);
 
-            if (!MediaProvider.INTERNAL_VOLUME.equals(volumeName)) {
+            if (!MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
                 context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_STARTED, uri));
             }
 
@@ -155,7 +155,7 @@ public class MediaService extends IntentService {
             resolver.delete(scanUri, null, null);
 
         } finally {
-            if (!MediaProvider.INTERNAL_VOLUME.equals(volumeName)) {
+            if (!MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
                 context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_FINISHED, uri));
             }
         }

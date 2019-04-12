@@ -1105,6 +1105,11 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("ALTER TABLE files ADD COLUMN volume_name TEXT DEFAULT NULL;");
     }
 
+    private static void updateDirsMimeType(SQLiteDatabase db, boolean internal) {
+        db.execSQL("UPDATE files SET mime_type=NULL WHERE format="
+                + MtpConstants.FORMAT_ASSOCIATION);
+    }
+
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
                 null, null, null, null, null, null)) {
@@ -1132,7 +1137,7 @@ public class MediaProvider extends ContentProvider {
     static final int VERSION_N = 800;
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
-    static final int VERSION_Q = 1021;
+    static final int VERSION_Q = 1022;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -1223,6 +1228,9 @@ public class MediaProvider extends ContentProvider {
             }
             if (fromVersion < 1021) {
                 // Empty version bump to ensure views are recreated
+            }
+            if (fromVersion < 1022) {
+                updateDirsMimeType(db, internal);
             }
 
             if (recomputeDataValues) {
@@ -1880,13 +1888,17 @@ public class MediaProvider extends ContentProvider {
             values.put(MediaColumns.DISPLAY_NAME,
                     String.valueOf(System.currentTimeMillis()));
         }
-        if (TextUtils.isEmpty(values.getAsString(MediaColumns.MIME_TYPE))) {
+        final Integer formatObject = values.getAsInteger(FileColumns.FORMAT);
+        final int format = formatObject == null ? 0 : formatObject.intValue();
+        if (format == MtpConstants.FORMAT_ASSOCIATION) {
+            values.putNull(MediaColumns.MIME_TYPE);
+        } else if (TextUtils.isEmpty(values.getAsString(MediaColumns.MIME_TYPE))) {
             values.put(MediaColumns.MIME_TYPE, defaultMimeType);
         }
 
         // Sanity check MIME type against table
         final String mimeType = values.getAsString(MediaColumns.MIME_TYPE);
-        if (!defaultMimeType.equals(ContentResolver.MIME_TYPE_DEFAULT)) {
+        if (mimeType != null && !defaultMimeType.equals(ContentResolver.MIME_TYPE_DEFAULT)) {
             final String[] split = defaultMimeType.split("/");
             if (!mimeType.startsWith(split[0])) {
                 throw new IllegalArgumentException(
@@ -2462,7 +2474,7 @@ public class MediaProvider extends ContentProvider {
         }
         if (format != 0) {
             values.put(FileColumns.FORMAT, format);
-            if (mimeType == null) {
+            if (mimeType == null && format != MtpConstants.FORMAT_ASSOCIATION) {
                 mimeType = MediaFile.getMimeTypeForFormatCode(format);
             }
         }
@@ -3798,7 +3810,6 @@ public class MediaProvider extends ContentProvider {
                     FileColumns._ID,
                     FileColumns.IS_DOWNLOAD,
                     FileColumns.MIME_TYPE,
-                    FileColumns.FORMAT
             };
             final LongSparseArray<String> deletedDownloadIds = new LongSparseArray<>();
             if (qb.getTables().equals("files")) {
@@ -3815,18 +3826,11 @@ public class MediaProvider extends ContentProvider {
                             final long id = c.getLong(2);
                             final int isDownload = c.getInt(3);
                             final String mimeType = c.getString(4);
-                            final int format = c.getInt(5);
 
                             // Only need to inform DownloadProvider about the downloads deleted on
                             // external volume.
                             if (isDownload == 1) {
-                                String inferredMimeType;
-                                if (mimeType == null || format == MtpConstants.FORMAT_ASSOCIATION) {
-                                    inferredMimeType = DocumentsContract.Document.MIME_TYPE_DIR;
-                                } else {
-                                    inferredMimeType = mimeType;
-                                }
-                                deletedDownloadIds.put(id, inferredMimeType);
+                                deletedDownloadIds.put(id, mimeType);
                             }
                             if (mediaType == FileColumns.MEDIA_TYPE_IMAGE) {
                                 deleteIfAllowed(uri, data);

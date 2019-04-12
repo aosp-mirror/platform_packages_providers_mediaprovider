@@ -5097,12 +5097,6 @@ public class MediaProvider extends ContentProvider {
             return false;
         }
 
-        // Temporary whitelist until prebuilts can be updated
-        // STOPSHIP(b/112545973): remove once feature enabled by default
-        if ("com.google.android.apps.photos".equals(getCallingPackage())) {
-            return false;
-        }
-
         // System internals or callers holding permission have no redaction
         if (isCallingPackageSystem() || getContext()
                 .checkCallingPermission(ACCESS_MEDIA_LOCATION) == PERMISSION_GRANTED) {

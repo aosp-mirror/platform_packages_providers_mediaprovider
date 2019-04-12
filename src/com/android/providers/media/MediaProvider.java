@@ -898,7 +898,8 @@ public class MediaProvider extends ContentProvider {
                 + "bookmark,album_artist,owner_package_name,_hash,is_pending,is_audiobook,"
                 + "date_expires,is_trashed,group_id,primary_directory,secondary_directory,"
                 + "document_id,instance_id,original_document_id,title_resource_uri,relative_path,"
-                + "volume_name FROM files WHERE media_type=2");
+                + "volume_name,datetaken,bucket_id,bucket_display_name,group_id,orientation"
+                + " FROM files WHERE media_type=2");
 
         db.execSQL("CREATE VIEW artists_albums_map AS SELECT DISTINCT artist_id, album_id"
                 + " FROM audio_meta");
@@ -1078,7 +1079,7 @@ public class MediaProvider extends ContentProvider {
     static final int VERSION_N = 800;
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
-    static final int VERSION_Q = 1020;
+    static final int VERSION_Q = 1021;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -1166,6 +1167,9 @@ public class MediaProvider extends ContentProvider {
             if (fromVersion < 1020) {
                 updateAddVolumeName(db, internal);
                 recomputeDataValues = true;
+            }
+            if (fromVersion < 1021) {
+                // Empty version bump to ensure views are recreated
             }
 
             if (recomputeDataValues) {

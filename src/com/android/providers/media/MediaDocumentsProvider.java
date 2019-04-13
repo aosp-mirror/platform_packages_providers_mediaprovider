@@ -176,6 +176,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
     @Override
     public boolean onCreate() {
+        notifyRootsChanged(getContext());
         return true;
     }
 
@@ -236,14 +237,17 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             final Uri uri = DocumentsContract.buildDocumentUri(
                     AUTHORITY, getDocIdForIdent(TYPE_IMAGE, id));
             context.revokeUriPermission(uri, ~0);
+            notifyRootsChanged(context);
         } else if (type == FileColumns.MEDIA_TYPE_VIDEO) {
             final Uri uri = DocumentsContract.buildDocumentUri(
                     AUTHORITY, getDocIdForIdent(TYPE_VIDEO, id));
             context.revokeUriPermission(uri, ~0);
+            notifyRootsChanged(context);
         } else if (type == FileColumns.MEDIA_TYPE_AUDIO) {
             final Uri uri = DocumentsContract.buildDocumentUri(
                     AUTHORITY, getDocIdForIdent(TYPE_AUDIO, id));
             context.revokeUriPermission(uri, ~0);
+            notifyRootsChanged(context);
         }
     }
 

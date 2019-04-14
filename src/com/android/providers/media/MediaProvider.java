@@ -4952,7 +4952,8 @@ public class MediaProvider extends ContentProvider {
      * Return the {@link Uri} for the given {@code File}.
      */
     Uri queryForMediaUri(File file, CancellationSignal signal) throws FileNotFoundException {
-        final Uri uri = Files.getContentUri("external");
+        final String volumeName = MediaStore.getVolumeName(file);
+        final Uri uri = Files.getContentUri(volumeName);
         try (Cursor cursor = queryForSingleItem(uri, new String[] { MediaColumns._ID },
                 MediaColumns.DATA + "=?", new String[] { file.getAbsolutePath() }, signal)) {
             return ContentUris.withAppendedId(uri, cursor.getLong(0));

@@ -19,15 +19,19 @@ package com.android.providers.media;
 import static com.android.providers.media.MediaProvider.TAG;
 
 import android.app.Activity;
+import android.content.ContentResolver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Resources;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.MediaStore.MediaColumns;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Size;
@@ -60,14 +64,12 @@ public class PermissionActivity extends AlertActivity implements DialogInterface
         thumbnailView.setScaleType(ScaleType.CENTER_INSIDE);
         thumbnailView.setPadding(
                 0, res.getDimensionPixelSize(com.android.internal.R.dimen.default_gap), 0, 0);
-        new AsyncTask<Void, Void, Bitmap>() {
+        new AsyncTask<Void, Void, Thumbnail>() {
             @Override
-            protected Bitmap doInBackground(Void... params) {
-                final Size size = new Size(res.getDisplayMetrics().widthPixels,
-                        res.getDisplayMetrics().widthPixels);
+            protected Thumbnail doInBackground(Void... params) {
                 try {
-                    return getContentResolver().loadThumbnail(getIntent().getData(), size, null);
-                } catch (IOException e) {
+                    return new Thumbnail(PermissionActivity.this, getIntent().getData());
+                } catch (Exception e) {
                     Log.w(TAG, e);
                     finish();
                     return null;
@@ -75,9 +77,12 @@ public class PermissionActivity extends AlertActivity implements DialogInterface
             }
 
             @Override
-            protected void onPostExecute(Bitmap result) {
-                Log.d(TAG, "Found thumbnail " + result.getWidth() + "x" + result.getHeight());
-                thumbnailView.setImageBitmap(result);
+            protected void onPostExecute(Thumbnail result) {
+                if (result == null) return;
+                Log.d(TAG, "Found " + result.bitmap.getWidth() + "x" + result.bitmap.getHeight()
+                        + " with description " + result.contentDescription);
+                thumbnailView.setImageBitmap(result.bitmap);
+                thumbnailView.setContentDescription(result.contentDescription);
             }
         }.execute();
 
@@ -140,5 +145,31 @@ public class PermissionActivity extends AlertActivity implements DialogInterface
             case "images": return R.string.permission_images;
         }
         throw new NameNotFoundException("Unknown media type " + uri);
+    }
+
+    private static class Thumbnail {
+        public final Bitmap bitmap;
+        public final CharSequence contentDescription;
+
+        public Thumbnail(Context context, Uri uri) {
+            final Resources res = context.getResources();
+            final ContentResolver resolver = context.getContentResolver();
+
+            final Size size = new Size(res.getDisplayMetrics().widthPixels,
+                    res.getDisplayMetrics().widthPixels);
+            try {
+                bitmap = resolver.loadThumbnail(uri, size, null);
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+            try (Cursor c = resolver.query(uri,
+                    new String[] { MediaColumns.DISPLAY_NAME }, null, null)) {
+                if (c.moveToFirst()) {
+                    contentDescription = c.getString(0);
+                } else {
+                    throw new IllegalStateException();
+                }
+            }
+        }
     }
 }

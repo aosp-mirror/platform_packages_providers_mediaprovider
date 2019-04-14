@@ -91,7 +91,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
 
@@ -591,7 +590,7 @@ public class ModernMediaScanner implements MediaScanner {
                     defeatEmpty(mmr.extractMetadata(METADATA_KEY_ALBUM),
                             file.getParentFile().getName()));
             op.withValue(VideoColumns.RESOLUTION, mmr.extractMetadata(METADATA_KEY_VIDEO_WIDTH)
-                    + "x" + mmr.extractMetadata(METADATA_KEY_VIDEO_HEIGHT));
+                    + "\u00d7" + mmr.extractMetadata(METADATA_KEY_VIDEO_HEIGHT));
             op.withValue(VideoColumns.DESCRIPTION, null);
             op.withValue(VideoColumns.DATE_TAKEN,
                     parseDate(mmr.extractMetadata(METADATA_KEY_DATE),
@@ -631,7 +630,7 @@ public class ModernMediaScanner implements MediaScanner {
             op.withValue(ImageColumns.DESCRIPTION,
                     defeatEmpty(exif.getAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION), null));
             op.withValue(ImageColumns.DATE_TAKEN,
-                    defeatEmpty(exif.getGpsDateTime(), exif.getDateTime()));
+                    defeatEmpty(exif.getDateTimeOriginal(), null));
             op.withValue(ImageColumns.ORIENTATION,
                     parseOrientation(exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, -1)));
         } catch (Exception e) {
@@ -672,16 +671,24 @@ public class ModernMediaScanner implements MediaScanner {
         return (lastDot == -1) ? name : name.substring(0, lastDot);
     }
 
-    private static Object defeatEmpty(String value, Object defaultValue) {
-        return TextUtils.isEmpty(value) ? defaultValue : value;
+    private static Object defeatEmpty(Object value, Object defaultValue) {
+        if (value == null) {
+            return defaultValue;
+        } else if (value instanceof String && ((String) value).length() == 0) {
+            return defaultValue;
+        } else if (value instanceof Number && ((Number) value).intValue() == -1) {
+            return defaultValue;
+        } else {
+            return value;
+        }
     }
 
-    private static Object defeatEmptyOrZero(String value, Object defaultValue) {
-        return TextUtils.isEmpty(value) || Objects.equals("0", value) ? defaultValue : value;
-    }
-
-    private static long defeatEmpty(long value, long defaultValue) {
-        return (value == -1) ? defaultValue : value;
+    private static Object defeatEmptyOrZero(Object value, Object defaultValue) {
+        if (value instanceof Number && ((Number) value).intValue() == 0) {
+            return defaultValue;
+        } else {
+            return defeatEmpty(value, defaultValue);
+        }
     }
 
     private static int parseOrientation(int orientation) {

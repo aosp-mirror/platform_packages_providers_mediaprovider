@@ -4314,6 +4314,12 @@ public class MediaProvider extends ContentProvider {
                         initialValues.remove(column);
                         triggerScan = true;
                     }
+
+                    // If we're publishing this item, perform a blocking scan to
+                    // make sure metadata is updated
+                    if (MediaColumns.IS_PENDING.equals(column)) {
+                        triggerScan = true;
+                    }
                 }
             }
 

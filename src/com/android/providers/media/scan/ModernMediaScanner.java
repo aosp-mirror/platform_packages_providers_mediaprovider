@@ -39,7 +39,6 @@ import static android.provider.MediaStore.UNKNOWN_STRING;
 import android.annotation.CurrentTimeSecondsLong;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.content.ContentProvider;
 import android.content.ContentProviderClient;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
@@ -59,6 +58,7 @@ import android.os.CancellationSignal;
 import android.os.Environment;
 import android.os.FileUtils;
 import android.os.OperationCanceledException;
+import android.os.RemoteException;
 import android.os.Trace;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio.AudioColumns;
@@ -194,7 +194,7 @@ public class ModernMediaScanner implements MediaScanner {
      */
     private class Scan implements Runnable, FileVisitor<Path>, AutoCloseable {
         private final ContentProviderClient mClient;
-        private final ContentProvider mProvider;
+        private final ContentResolver mResolver;
 
         private final File mRoot;
         private final String mVolumeName;
@@ -211,7 +211,7 @@ public class ModernMediaScanner implements MediaScanner {
         public Scan(File root) {
             mClient = mContext.getContentResolver()
                     .acquireContentProviderClient(MediaStore.AUTHORITY);
-            mProvider = mClient.getLocalContentProvider();
+            mResolver = ContentResolver.wrap(mClient.getLocalContentProvider());
 
             mRoot = root;
             mVolumeName = MediaStore.getVolumeName(root);
@@ -246,7 +246,7 @@ public class ModernMediaScanner implements MediaScanner {
             // across multiple windows.
             mSignal.throwIfCanceled();
             Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "reconcile");
-            try (Cursor c = mProvider.query(mFilesUri,
+            try (Cursor c = mResolver.query(mFilesUri,
                     new String[] { FileColumns._ID }, FileColumns.DATA + " LIKE ? ESCAPE '\\'",
                     new String[] { escapeForLike(mRoot.getAbsolutePath()) + '%' },
                     FileColumns._ID + " DESC", mSignal)) {
@@ -284,7 +284,7 @@ public class ModernMediaScanner implements MediaScanner {
                 final Uri uri = MediaStore.Files.getContentUri(mVolumeName, mPlaylistIds.get(i));
                 try {
                     mPending.addAll(
-                            PlaylistResolver.resolvePlaylist(ContentResolver.wrap(mProvider), uri));
+                            PlaylistResolver.resolvePlaylist(mResolver, uri));
                     maybeApplyPending();
                 } catch (IOException e) {
                     if (LOGW) Log.w(TAG, "Ignoring troubled playlist: " + uri, e);
@@ -328,7 +328,7 @@ public class ModernMediaScanner implements MediaScanner {
             final File realFile = file.toFile();
             long existingId = -1;
             Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "checkChanged");
-            try (Cursor c = mProvider.query(mFilesUri,
+            try (Cursor c = mResolver.query(mFilesUri,
                     new String[] { FileColumns._ID, FileColumns.DATE_MODIFIED, FileColumns.SIZE },
                     FileColumns.DATA + "=?", new String[] { realFile.getAbsolutePath() }, null)) {
                 if (c.moveToFirst()) {
@@ -393,7 +393,7 @@ public class ModernMediaScanner implements MediaScanner {
         private void applyPending() {
             Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "applyPending");
             try {
-                for (ContentProviderResult res : mProvider.applyBatch(AUTHORITY, mPending)) {
+                for (ContentProviderResult res : mResolver.applyBatch(AUTHORITY, mPending)) {
                     if (res.uri != null) {
                         if (mFirstResult == null) {
                             mFirstResult = res.uri;
@@ -408,7 +408,7 @@ public class ModernMediaScanner implements MediaScanner {
                         }
                     }
                 }
-            } catch (OperationApplicationException e) {
+            } catch (RemoteException | OperationApplicationException e) {
                 Log.w(TAG, "Failed to apply: " + e);
             } finally {
                 mPending.clear();
@@ -482,6 +482,7 @@ public class ModernMediaScanner implements MediaScanner {
             withGenericValues(op, file, attrs, mimeType);
             op.withValue(FileColumns.MEDIA_TYPE, 0);
             op.withValue(FileColumns.FORMAT, MtpConstants.FORMAT_ASSOCIATION);
+            op.withValue(FileColumns.MIME_TYPE, null);
         } catch (Exception e) {
             throw new IOException(e);
         }

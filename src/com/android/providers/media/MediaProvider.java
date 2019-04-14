@@ -3119,7 +3119,6 @@ public class MediaProvider extends ContentProvider {
         qb.setStrict(true);
 
         final String callingPackage = getCallingPackageOrSelf();
-        final int callingTargetSdk = getCallingPackageTargetSdkVersion();
 
         // TODO: throw when requesting a currently unmounted volume
         final String volumeName = MediaStore.getVolumeName(uri);
@@ -5206,21 +5205,13 @@ public class MediaProvider extends ContentProvider {
         // TODO: keep this logic in sync with StorageManagerService
         final int callingUid = Binder.getCallingUid();
         final Context context = getContext();
-        try {
-            final boolean hasStorage = StorageManager.checkPermissionAndAppOp(context, false, 0,
-                    callingUid, callingPackage, WRITE_EXTERNAL_STORAGE, OP_WRITE_EXTERNAL_STORAGE);
 
-            final boolean hasLegacy = mAppOpsManager.checkOp(OP_LEGACY_STORAGE,
-                    callingUid, callingPackage) == MODE_ALLOWED;
-            // STOPSHIP: only use app-op once permission model has fully landed
-            final boolean requestedLegacy = !mPackageManager
-                    .getApplicationInfo(callingPackage, 0)
-                    .isExternalStorageSandboxAllowed();
+        final boolean hasStorage = StorageManager.checkPermissionAndAppOp(context, false, 0,
+                callingUid, callingPackage, WRITE_EXTERNAL_STORAGE, OP_WRITE_EXTERNAL_STORAGE);
+        final boolean hasLegacy = mAppOpsManager.checkOp(OP_LEGACY_STORAGE,
+                callingUid, callingPackage) == MODE_ALLOWED;
 
-            return ((hasLegacy || requestedLegacy) && hasStorage);
-        } catch (NameNotFoundException ignored) {
-            return false;
-        }
+        return (hasLegacy && hasStorage);
     }
 
     private boolean checkCallingPermissionAudio(boolean forWrite, String callingPackage) {

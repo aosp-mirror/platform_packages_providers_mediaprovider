@@ -194,7 +194,7 @@ public class MediaProvider extends ContentProvider {
      * Regex that matches paths under well-known storage paths.
      */
     private static final Pattern PATTERN_VOLUME_NAME = Pattern.compile(
-            "(?i)^/storage/([^/]+)/");
+            "(?i)^/storage/([^/]+)");
 
     /**
      * Regex of a selection string that matches a specific ID.
@@ -279,12 +279,15 @@ public class MediaProvider extends ContentProvider {
     private BroadcastReceiver mUnmountReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            try {
-                final File file = new File(intent.getData().getPath()).getCanonicalFile();
-                final String volumeName = MediaStore.getVolumeName(file);
+            final StorageVolume sv = intent.getParcelableExtra(StorageVolume.EXTRA_STORAGE_VOLUME);
+            if (sv != null) {
+                final String volumeName;
+                if (sv.isPrimary()) {
+                    volumeName = MediaStore.VOLUME_EXTERNAL_PRIMARY;
+                } else {
+                    volumeName = MediaStore.checkArgumentVolumeName(sv.getNormalizedUuid());
+                }
                 detachVolume(volumeName);
-            } catch (IOException e) {
-                Log.w(TAG, "Failed " + intent, e);
             }
         }
     };
@@ -649,7 +652,7 @@ public class MediaProvider extends ContentProvider {
         mDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false,
                 false, mObjectRemovedCallback);
 
-        IntentFilter filter = new IntentFilter();
+        final IntentFilter filter = new IntentFilter();
         filter.addDataScheme("file");
         filter.addAction(Intent.ACTION_MEDIA_EJECT);
         filter.addAction(Intent.ACTION_MEDIA_BAD_REMOVAL);
@@ -659,10 +662,9 @@ public class MediaProvider extends ContentProvider {
 
         attachVolume(MediaStore.VOLUME_INTERNAL);
 
-        String state = Environment.getExternalStorageState();
-        if (Environment.MEDIA_MOUNTED.equals(state) ||
-                Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
-            attachVolume(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        // Attach all currently mounted external volumes
+        for (String volumeName : MediaStore.getExternalVolumeNames(context)) {
+            attachVolume(volumeName);
         }
 
         return true;
@@ -898,7 +900,8 @@ public class MediaProvider extends ContentProvider {
                 + "bookmark,album_artist,owner_package_name,_hash,is_pending,is_audiobook,"
                 + "date_expires,is_trashed,group_id,primary_directory,secondary_directory,"
                 + "document_id,instance_id,original_document_id,title_resource_uri,relative_path,"
-                + "volume_name FROM files WHERE media_type=2");
+                + "volume_name,datetaken,bucket_id,bucket_display_name,group_id,orientation"
+                + " FROM files WHERE media_type=2");
 
         db.execSQL("CREATE VIEW artists_albums_map AS SELECT DISTINCT artist_id, album_id"
                 + " FROM audio_meta");
@@ -1078,7 +1081,7 @@ public class MediaProvider extends ContentProvider {
     static final int VERSION_N = 800;
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
-    static final int VERSION_Q = 1020;
+    static final int VERSION_Q = 1021;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -1166,6 +1169,9 @@ public class MediaProvider extends ContentProvider {
             if (fromVersion < 1020) {
                 updateAddVolumeName(db, internal);
                 recomputeDataValues = true;
+            }
+            if (fromVersion < 1021) {
+                // Empty version bump to ensure views are recreated
             }
 
             if (recomputeDataValues) {
@@ -4310,6 +4316,12 @@ public class MediaProvider extends ContentProvider {
                         initialValues.remove(column);
                         triggerScan = true;
                     }
+
+                    // If we're publishing this item, perform a blocking scan to
+                    // make sure metadata is updated
+                    if (MediaColumns.IS_PENDING.equals(column)) {
+                        triggerScan = true;
+                    }
                 }
             }
 
@@ -4942,7 +4954,8 @@ public class MediaProvider extends ContentProvider {
      * Return the {@link Uri} for the given {@code File}.
      */
     Uri queryForMediaUri(File file, CancellationSignal signal) throws FileNotFoundException {
-        final Uri uri = Files.getContentUri("external");
+        final String volumeName = MediaStore.getVolumeName(file);
+        final Uri uri = Files.getContentUri(volumeName);
         try (Cursor cursor = queryForSingleItem(uri, new String[] { MediaColumns._ID },
                 MediaColumns.DATA + "=?", new String[] { file.getAbsolutePath() }, signal)) {
             return ContentUris.withAppendedId(uri, cursor.getLong(0));
@@ -5094,12 +5107,6 @@ public class MediaProvider extends ContentProvider {
     private boolean isRedactionNeeded(Uri uri) {
         // Shortcut when using old storage model; no redaction
         if (!ENFORCE_ISOLATED_STORAGE) {
-            return false;
-        }
-
-        // Temporary whitelist until prebuilts can be updated
-        // STOPSHIP(b/112545973): remove once feature enabled by default
-        if ("com.google.android.apps.photos".equals(getCallingPackage())) {
             return false;
         }
 
@@ -6341,8 +6348,10 @@ public class MediaProvider extends ContentProvider {
     public void dump(FileDescriptor fd, PrintWriter writer, String[] args) {
         final IndentingPrintWriter pw = new IndentingPrintWriter(writer, "  ");
         pw.printPair("mThumbSize", mThumbSize);
-
         pw.println();
+        pw.printPair("mAttachedVolumeNames", mAttachedVolumeNames);
+        pw.println();
+
         pw.println(dump(mDatabase, true));
     }
 

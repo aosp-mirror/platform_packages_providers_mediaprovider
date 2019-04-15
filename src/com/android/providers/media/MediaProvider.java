@@ -675,6 +675,19 @@ public class MediaProvider extends ContentProvider {
         final DatabaseHelper helper = mDatabase;
         final SQLiteDatabase db = helper.getReadableDatabase();
 
+        // Scan all volumes to resolve any staleness
+        for (String volumeName : MediaStore.getExternalVolumeNames(getContext())) {
+            // Possibly bail before digging into each volume
+            signal.throwIfCanceled();
+
+            try {
+                final File file = MediaStore.getVolumePath(volumeName);
+                MediaService.onScanVolume(getContext(), Uri.fromFile(file));
+            } catch (IOException e) {
+                Log.w(TAG, e);
+            }
+        }
+
         // Delete any stale thumbnails
         pruneThumbnails(signal);
 

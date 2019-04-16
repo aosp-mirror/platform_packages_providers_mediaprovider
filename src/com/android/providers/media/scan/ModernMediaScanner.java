@@ -702,6 +702,7 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     private static long parseDate(String date, long defaultValue) {
+        if (TextUtils.isEmpty(date)) return defaultValue;
         try {
             final long value = sDateFormat.parse(date).getTime();
             return (value > 0) ? value : defaultValue;

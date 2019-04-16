@@ -277,7 +277,7 @@ public class MediaProvider extends ContentProvider {
 
     private static final String CANONICAL = "canonical";
 
-    private BroadcastReceiver mUnmountReceiver = new BroadcastReceiver() {
+    private BroadcastReceiver mMediaReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             final StorageVolume sv = intent.getParcelableExtra(StorageVolume.EXTRA_STORAGE_VOLUME);
@@ -288,7 +288,18 @@ public class MediaProvider extends ContentProvider {
                 } else {
                     volumeName = MediaStore.checkArgumentVolumeName(sv.getNormalizedUuid());
                 }
-                detachVolume(volumeName);
+
+                switch (intent.getAction()) {
+                    case Intent.ACTION_MEDIA_MOUNTED:
+                        attachVolume(volumeName);
+                        break;
+                    case Intent.ACTION_MEDIA_UNMOUNTED:
+                    case Intent.ACTION_MEDIA_EJECT:
+                    case Intent.ACTION_MEDIA_REMOVED:
+                    case Intent.ACTION_MEDIA_BAD_REMOVAL:
+                        detachVolume(volumeName);
+                        break;
+                }
             }
         }
     };
@@ -654,12 +665,14 @@ public class MediaProvider extends ContentProvider {
                 false, mObjectRemovedCallback);
 
         final IntentFilter filter = new IntentFilter();
+        filter.setPriority(10);
         filter.addDataScheme("file");
-        filter.addAction(Intent.ACTION_MEDIA_EJECT);
-        filter.addAction(Intent.ACTION_MEDIA_BAD_REMOVAL);
-        filter.addAction(Intent.ACTION_MEDIA_REMOVED);
         filter.addAction(Intent.ACTION_MEDIA_UNMOUNTED);
-        context.registerReceiver(mUnmountReceiver, filter);
+        filter.addAction(Intent.ACTION_MEDIA_MOUNTED);
+        filter.addAction(Intent.ACTION_MEDIA_EJECT);
+        filter.addAction(Intent.ACTION_MEDIA_REMOVED);
+        filter.addAction(Intent.ACTION_MEDIA_BAD_REMOVAL);
+        context.registerReceiver(mMediaReceiver, filter);
 
         attachVolume(MediaStore.VOLUME_INTERNAL);
 

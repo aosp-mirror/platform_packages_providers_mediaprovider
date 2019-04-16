@@ -488,9 +488,32 @@ public class MediaProvider extends ContentProvider {
          * notified to also notify all relevant views.
          */
         public void notifyChangeWithExpansion(Uri uri, int match) {
-            // TODO: require notifications to be sent for specific volume, and
-            // then expand into broader collections here
+            notifyChangeWithExpansionInternal(uri, match);
 
+            try {
+                // When targeting a specific volume, we need to expand to also
+                // notify the top-level view
+                final String volumeName = getVolumeName(uri);
+                switch (volumeName) {
+                    case MediaStore.VOLUME_INTERNAL:
+                    case MediaStore.VOLUME_EXTERNAL:
+                        // Already a top-level view, no need to expand
+                        break;
+                    default:
+                        final List<String> segments = new ArrayList<>(uri.getPathSegments());
+                        segments.set(0, MediaStore.VOLUME_EXTERNAL);
+                        final Uri.Builder builder = uri.buildUpon().path(null);
+                        for (String segment : segments) {
+                            builder.appendPath(segment);
+                        }
+                        notifyChangeWithExpansionInternal(builder.build(), match);
+                        break;
+                }
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+
+        private void notifyChangeWithExpansionInternal(Uri uri, int match) {
             // Start by always notifying the base item
             notifyChange(uri);
 
@@ -552,6 +575,7 @@ public class MediaProvider extends ContentProvider {
          * clustered and sent when the transaction completes.
          */
         public void notifyChange(Uri uri) {
+            if (LOCAL_LOGV) Log.v(TAG, "Notifying " + uri);
             final List<Uri> uris = mNotifyChanges.get();
             if (uris != null) {
                 uris.add(uri);

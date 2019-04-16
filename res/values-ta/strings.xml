@@ -36,10 +36,8 @@
     <string name="sound_name_sway" msgid="348448316663085643">"ஸ்வே"</string>
     <string name="sound_name_wag" msgid="2730733083078126563">"வேக்"</string>
     <string name="add_ringtone_text" msgid="8077717303037760418">"ரிங்டோனைச் சேர்"</string>
-    <!-- no translation found for add_alarm_text (2440919366091720815) -->
-    <skip />
-    <!-- no translation found for add_notification_text (5013822215567515665) -->
-    <skip />
+    <string name="add_alarm_text" msgid="2440919366091720815">"அலாரத்தைச் சேர்"</string>
+    <string name="add_notification_text" msgid="5013822215567515665">"அறிவிப்பைச் சேர்"</string>
     <string name="delete_ringtone_text" msgid="2963662097583300181">"நீக்கு"</string>
     <string name="unable_to_add_ringtone" msgid="6256097521165711269">"தனிப்பயன் ரிங்டோனைச் சேர்க்க முடியவில்லை"</string>
     <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"தனிப்பயன் ரிங்டோனை நீக்க முடியவில்லை"</string>

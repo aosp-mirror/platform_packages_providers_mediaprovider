@@ -25,7 +25,7 @@
     <string name="alarm_sound_default" msgid="5488847775252870314">"Զարթուցիչի կանխադրված ձայնը"</string>
     <string name="root_images" msgid="5861633549189045666">"Պատկերներ"</string>
     <string name="root_videos" msgid="8792703517064649453">"Տեսանյութեր"</string>
-    <string name="root_audio" msgid="3505830755201326018">"Ձայնանյութեր"</string>
+    <string name="root_audio" msgid="3505830755201326018">"Աուդիո"</string>
     <string name="sound_name_awaken" msgid="5266892392848526147">"Awaken"</string>
     <string name="sound_name_bounce" msgid="8771447635446665231">"Bounce"</string>
     <string name="sound_name_drip" msgid="1744684469020662152">"Drip"</string>
@@ -36,10 +36,8 @@
     <string name="sound_name_sway" msgid="348448316663085643">"Sway"</string>
     <string name="sound_name_wag" msgid="2730733083078126563">"Wag"</string>
     <string name="add_ringtone_text" msgid="8077717303037760418">"Ավելացնել զանգերանգ"</string>
-    <!-- no translation found for add_alarm_text (2440919366091720815) -->
-    <skip />
-    <!-- no translation found for add_notification_text (5013822215567515665) -->
-    <skip />
+    <string name="add_alarm_text" msgid="2440919366091720815">"Ավելացնել զարթուցիչ"</string>
+    <string name="add_notification_text" msgid="5013822215567515665">"Ավելացնել ծանուցում"</string>
     <string name="delete_ringtone_text" msgid="2963662097583300181">"Ջնջել"</string>
     <string name="unable_to_add_ringtone" msgid="6256097521165711269">"Հնարավոր չէ հատուկ զանգերանգ ավելացնել"</string>
     <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"Հնարավոր չէ ջնջել հատուկ զանգերանգը"</string>

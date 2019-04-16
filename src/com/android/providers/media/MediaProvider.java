@@ -4843,19 +4843,12 @@ public class MediaProvider extends ContentProvider {
         // Handle some legacy cases where we need to redirect thumbnails
         switch (match) {
             case AUDIO_ALBUMART_ID: {
-                final Uri baseUri = MediaStore.Audio.Media.getContentUri(volumeName);
-                final long albumId = ContentUris.parseId(uri);
-                try (Cursor c = query(baseUri, new String[] { MediaStore.Audio.Media._ID },
-                        MediaStore.Audio.Media.ALBUM_ID + "=" + albumId, null, null, signal)) {
-                    if (c.moveToFirst()) {
-                        final long audioId = c.getLong(0);
-                        final Uri targetUri = ContentUris.withAppendedId(baseUri, audioId);
-                        return ParcelFileDescriptor.open(ensureThumbnail(targetUri, signal),
-                                ParcelFileDescriptor.MODE_READ_ONLY);
-                    } else {
-                        throw new FileNotFoundException("No media for album " + uri);
-                    }
-                }
+                final long albumId = Long.parseLong(uri.getPathSegments().get(3));
+                final Uri targetUri = ContentUris
+                        .withAppendedId(Audio.Albums.getContentUri(volumeName), albumId);
+                return ParcelFileDescriptor.open(ensureThumbnail(targetUri, signal),
+                        ParcelFileDescriptor.MODE_READ_ONLY);
+
             }
             case AUDIO_ALBUMART_FILE_ID: {
                 final long audioId = Long.parseLong(uri.getPathSegments().get(3));
@@ -4924,6 +4917,21 @@ public class MediaProvider extends ContentProvider {
         try {
             final File thumbFile;
             switch (match) {
+                case AUDIO_ALBUMS_ID: {
+                    final String volumeName = MediaStore.getVolumeName(uri);
+                    final Uri baseUri = MediaStore.Audio.Media.getContentUri(volumeName);
+                    final long albumId = ContentUris.parseId(uri);
+                    try (Cursor c = query(baseUri, new String[] { MediaStore.Audio.Media._ID },
+                            MediaStore.Audio.Media.ALBUM_ID + "=" + albumId, null, null, signal)) {
+                        if (c.moveToFirst()) {
+                            final long audioId = c.getLong(0);
+                            final Uri targetUri = ContentUris.withAppendedId(baseUri, audioId);
+                            return mAudioThumbnailer.ensureThumbnail(targetUri, signal);
+                        } else {
+                            throw new FileNotFoundException("No media for album " + uri);
+                        }
+                    }
+                }
                 case AUDIO_MEDIA_ID:
                     return mAudioThumbnailer.ensureThumbnail(uri, signal);
                 case VIDEO_MEDIA_ID:

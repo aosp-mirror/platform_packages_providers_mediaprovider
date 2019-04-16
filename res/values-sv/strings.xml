@@ -29,17 +29,15 @@
     <string name="sound_name_awaken" msgid="5266892392848526147">"Awaken"</string>
     <string name="sound_name_bounce" msgid="8771447635446665231">"Bounce"</string>
     <string name="sound_name_drip" msgid="1744684469020662152">"Drip"</string>
-    <string name="sound_name_gallop" msgid="2664454314532060876">"Gallop"</string>
+    <string name="sound_name_gallop" msgid="2664454314532060876">"Galopp"</string>
     <string name="sound_name_nudge" msgid="5445751598250698244">"Nudge"</string>
     <string name="sound_name_orbit" msgid="4623457897813255481">"Orbit"</string>
     <string name="sound_name_rise" msgid="2200258555031675806">"Rise"</string>
     <string name="sound_name_sway" msgid="348448316663085643">"Sway"</string>
     <string name="sound_name_wag" msgid="2730733083078126563">"Wag"</string>
     <string name="add_ringtone_text" msgid="8077717303037760418">"Lägg till ringsignal"</string>
-    <!-- no translation found for add_alarm_text (2440919366091720815) -->
-    <skip />
-    <!-- no translation found for add_notification_text (5013822215567515665) -->
-    <skip />
+    <string name="add_alarm_text" msgid="2440919366091720815">"Lägg till alarm"</string>
+    <string name="add_notification_text" msgid="5013822215567515665">"Lägg till avisering"</string>
     <string name="delete_ringtone_text" msgid="2963662097583300181">"Radera"</string>
     <string name="unable_to_add_ringtone" msgid="6256097521165711269">"Det gick inte att lägga till en egen ringsignal"</string>
     <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"Det gick inte att radera den egna ringsignalen"</string>

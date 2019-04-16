@@ -36,10 +36,8 @@
     <string name="sound_name_sway" msgid="348448316663085643">"ပုခက်လွှဲသံ"</string>
     <string name="sound_name_wag" msgid="2730733083078126563">"လှုပ်ခါသံ"</string>
     <string name="add_ringtone_text" msgid="8077717303037760418">"ဖုန်းမြည်သံကို ထည့်ရန်"</string>
-    <!-- no translation found for add_alarm_text (2440919366091720815) -->
-    <skip />
-    <!-- no translation found for add_notification_text (5013822215567515665) -->
-    <skip />
+    <string name="add_alarm_text" msgid="2440919366091720815">"နှိုးစက်ထည့်ရန်"</string>
+    <string name="add_notification_text" msgid="5013822215567515665">"အကြောင်းကြားချက် ထည့်ရန်"</string>
     <string name="delete_ringtone_text" msgid="2963662097583300181">"ဖျက်ရန်"</string>
     <string name="unable_to_add_ringtone" msgid="6256097521165711269">"စိတ်ကြိုက်ဖုန်းမြည်သံကို ထည့်သွင်း၍မရပါ"</string>
     <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"စိတ်ကြိုက်ဖုန်းမြည်သံကို ဖျက်၍မရပါ"</string>

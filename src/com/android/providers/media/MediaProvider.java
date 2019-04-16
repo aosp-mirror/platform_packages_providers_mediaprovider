@@ -194,7 +194,7 @@ public class MediaProvider extends ContentProvider {
      * Regex that matches paths under well-known storage paths.
      */
     private static final Pattern PATTERN_VOLUME_NAME = Pattern.compile(
-            "(?i)^/storage/([^/]+)/");
+            "(?i)^/storage/([^/]+)");
 
     /**
      * Regex of a selection string that matches a specific ID.
@@ -279,12 +279,15 @@ public class MediaProvider extends ContentProvider {
     private BroadcastReceiver mUnmountReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            try {
-                final File file = new File(intent.getData().getPath()).getCanonicalFile();
-                final String volumeName = MediaStore.getVolumeName(file);
+            final StorageVolume sv = intent.getParcelableExtra(StorageVolume.EXTRA_STORAGE_VOLUME);
+            if (sv != null) {
+                final String volumeName;
+                if (sv.isPrimary()) {
+                    volumeName = MediaStore.VOLUME_EXTERNAL_PRIMARY;
+                } else {
+                    volumeName = MediaStore.checkArgumentVolumeName(sv.getNormalizedUuid());
+                }
                 detachVolume(volumeName);
-            } catch (IOException e) {
-                Log.w(TAG, "Failed " + intent, e);
             }
         }
     };
@@ -649,7 +652,7 @@ public class MediaProvider extends ContentProvider {
         mDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false,
                 false, mObjectRemovedCallback);
 
-        IntentFilter filter = new IntentFilter();
+        final IntentFilter filter = new IntentFilter();
         filter.addDataScheme("file");
         filter.addAction(Intent.ACTION_MEDIA_EJECT);
         filter.addAction(Intent.ACTION_MEDIA_BAD_REMOVAL);
@@ -659,10 +662,9 @@ public class MediaProvider extends ContentProvider {
 
         attachVolume(MediaStore.VOLUME_INTERNAL);
 
-        String state = Environment.getExternalStorageState();
-        if (Environment.MEDIA_MOUNTED.equals(state) ||
-                Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
-            attachVolume(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        // Attach all currently mounted external volumes
+        for (String volumeName : MediaStore.getExternalVolumeNames(context)) {
+            attachVolume(volumeName);
         }
 
         return true;
@@ -4381,6 +4383,8 @@ public class MediaProvider extends ContentProvider {
             // Regenerate path using blended values; this will throw if caller
             // is attempting to place file into invalid location
             final String beforePath = initialValues.getAsString(MediaColumns.DATA);
+            final String beforeVolume = extractVolumeName(beforePath);
+            final String beforeOwner = extractPathOwnerPackageName(beforePath);
             initialValues.remove(MediaColumns.DATA);
             try {
                 ensureNonUniqueFileColumns(match, uri, initialValues);
@@ -4389,8 +4393,16 @@ public class MediaProvider extends ContentProvider {
             }
 
             final String probePath = initialValues.getAsString(MediaColumns.DATA);
+            final String probeVolume = extractVolumeName(probePath);
+            final String probeOwner = extractPathOwnerPackageName(probePath);
             if (Objects.equals(beforePath, probePath)) {
                 Log.d(TAG, "Identical paths " + beforePath + "; not moving");
+            } else if (!Objects.equals(beforeVolume, probeVolume)) {
+                throw new IllegalArgumentException("Changing volume from " + beforePath + " to "
+                        + probePath + " not allowed");
+            } else if (!Objects.equals(beforeOwner, probeOwner)) {
+                throw new IllegalArgumentException("Changing ownership from " + beforePath + " to "
+                        + probePath + " not allowed");
             } else {
                 // Now that we've confirmed an actual movement is taking place,
                 // ensure we have a unique destination
@@ -6346,8 +6358,10 @@ public class MediaProvider extends ContentProvider {
     public void dump(FileDescriptor fd, PrintWriter writer, String[] args) {
         final IndentingPrintWriter pw = new IndentingPrintWriter(writer, "  ");
         pw.printPair("mThumbSize", mThumbSize);
-
         pw.println();
+        pw.printPair("mAttachedVolumeNames", mAttachedVolumeNames);
+        pw.println();
+
         pw.println(dump(mDatabase, true));
     }
 

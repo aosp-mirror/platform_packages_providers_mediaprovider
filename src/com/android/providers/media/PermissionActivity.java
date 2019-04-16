@@ -36,8 +36,10 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.util.Size;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ImageView.ScaleType;
+import android.widget.TextView;
 
 import com.android.internal.app.AlertActivity;
 
@@ -60,15 +62,14 @@ public class PermissionActivity extends AlertActivity implements DialogInterface
         }
 
         final Resources res = getResources();
-        final ImageView thumbnailView = new ImageView(this);
-        thumbnailView.setScaleType(ScaleType.CENTER_INSIDE);
-        thumbnailView.setPadding(
-                0, res.getDimensionPixelSize(com.android.internal.R.dimen.default_gap), 0, 0);
-        new AsyncTask<Void, Void, Thumbnail>() {
+        final FrameLayout view = new FrameLayout(this);
+        final int padding = res.getDimensionPixelSize(com.android.internal.R.dimen.default_gap);
+        view.setPadding(padding, padding, padding, padding);
+        new AsyncTask<Void, Void, Description>() {
             @Override
-            protected Thumbnail doInBackground(Void... params) {
+            protected Description doInBackground(Void... params) {
                 try {
-                    return new Thumbnail(PermissionActivity.this, getIntent().getData());
+                    return new Description(PermissionActivity.this, getIntent().getData());
                 } catch (Exception e) {
                     Log.w(TAG, e);
                     finish();
@@ -77,12 +78,25 @@ public class PermissionActivity extends AlertActivity implements DialogInterface
             }
 
             @Override
-            protected void onPostExecute(Thumbnail result) {
+            protected void onPostExecute(Description result) {
                 if (result == null) return;
-                Log.d(TAG, "Found " + result.bitmap.getWidth() + "x" + result.bitmap.getHeight()
-                        + " with description " + result.contentDescription);
-                thumbnailView.setImageBitmap(result.bitmap);
-                thumbnailView.setContentDescription(result.contentDescription);
+
+                if (result.thumbnail != null) {
+                    Log.d(TAG, "Found thumbnail " + result.thumbnail.getWidth() + "x"
+                            + result.thumbnail.getHeight());
+
+                    final ImageView child = new ImageView(PermissionActivity.this);
+                    child.setScaleType(ScaleType.CENTER_INSIDE);
+                    child.setImageBitmap(result.thumbnail);
+                    child.setContentDescription(result.contentDescription);
+                    view.addView(child);
+                } else {
+                    Log.d(TAG, "Found description " + result.contentDescription);
+
+                    final TextView child = new TextView(PermissionActivity.this);
+                    child.setText(result.contentDescription);
+                    view.addView(child);
+                }
             }
         }.execute();
 
@@ -92,7 +106,7 @@ public class PermissionActivity extends AlertActivity implements DialogInterface
         mAlertParams.mNegativeButtonText = getString(R.string.grant_dialog_button_deny);
         mAlertParams.mNegativeButtonListener = this;
         mAlertParams.mCancelable = false;
-        mAlertParams.mView = thumbnailView;
+        mAlertParams.mView = view;
         setupAlert();
 
         getWindow().setCloseOnTouchOutside(false);
@@ -147,28 +161,30 @@ public class PermissionActivity extends AlertActivity implements DialogInterface
         throw new NameNotFoundException("Unknown media type " + uri);
     }
 
-    private static class Thumbnail {
-        public final Bitmap bitmap;
-        public final CharSequence contentDescription;
+    private static class Description {
+        public Bitmap thumbnail;
+        public CharSequence contentDescription;
 
-        public Thumbnail(Context context, Uri uri) {
+        public Description(Context context, Uri uri) {
             final Resources res = context.getResources();
             final ContentResolver resolver = context.getContentResolver();
 
             final Size size = new Size(res.getDisplayMetrics().widthPixels,
                     res.getDisplayMetrics().widthPixels);
             try {
-                bitmap = resolver.loadThumbnail(uri, size, null);
+                thumbnail = resolver.loadThumbnail(uri, size, null);
             } catch (IOException e) {
-                throw new IllegalStateException(e);
+                Log.w(TAG, e);
             }
             try (Cursor c = resolver.query(uri,
                     new String[] { MediaColumns.DISPLAY_NAME }, null, null)) {
                 if (c.moveToFirst()) {
                     contentDescription = c.getString(0);
-                } else {
-                    throw new IllegalStateException();
                 }
+            }
+
+            if (TextUtils.isEmpty(contentDescription)) {
+                throw new IllegalStateException();
             }
         }
     }

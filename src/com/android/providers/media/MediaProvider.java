@@ -3737,7 +3737,17 @@ public class MediaProvider extends ContentProvider {
         }
 
         {
-            SQLiteQueryBuilder qb = getQueryBuilder(TYPE_DELETE, uri, match, null);
+            final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_DELETE, uri, match, null);
+
+            // Give callers interacting with a specific media item a chance to
+            // escalate access if they don't already have it
+            switch (match) {
+                case AUDIO_MEDIA_ID:
+                case VIDEO_MEDIA_ID:
+                case IMAGES_MEDIA_ID:
+                    enforceCallingPermission(uri, true);
+            }
+
             final String[] projection = new String[] {
                     FileColumns.MEDIA_TYPE,
                     FileColumns.DATA,
@@ -4284,7 +4294,16 @@ public class MediaProvider extends ContentProvider {
             return e.translateForUpdateDelete(targetSdkVersion);
         }
 
-        SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, uri, match, null);
+        final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, uri, match, null);
+
+        // Give callers interacting with a specific media item a chance to
+        // escalate access if they don't already have it
+        switch (match) {
+            case AUDIO_MEDIA_ID:
+            case VIDEO_MEDIA_ID:
+            case IMAGES_MEDIA_ID:
+                enforceCallingPermission(uri, true);
+        }
 
         boolean triggerScan = false;
         String genre = null;

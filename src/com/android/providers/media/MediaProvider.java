@@ -251,6 +251,7 @@ public class MediaProvider extends ContentProvider {
     @GuardedBy("mDirectoryCache")
     private final ArrayMap<String, Long> mDirectoryCache = new ArrayMap<>();
 
+    @Deprecated
     private String[] mExternalStoragePaths = EmptyArray.STRING;
 
     private static final String[] sMediaTableColumns = new String[] {
@@ -276,7 +277,7 @@ public class MediaProvider extends ContentProvider {
 
     private static final String CANONICAL = "canonical";
 
-    private BroadcastReceiver mUnmountReceiver = new BroadcastReceiver() {
+    private BroadcastReceiver mMediaReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             final StorageVolume sv = intent.getParcelableExtra(StorageVolume.EXTRA_STORAGE_VOLUME);
@@ -287,7 +288,18 @@ public class MediaProvider extends ContentProvider {
                 } else {
                     volumeName = MediaStore.checkArgumentVolumeName(sv.getNormalizedUuid());
                 }
-                detachVolume(volumeName);
+
+                switch (intent.getAction()) {
+                    case Intent.ACTION_MEDIA_MOUNTED:
+                        attachVolume(volumeName);
+                        break;
+                    case Intent.ACTION_MEDIA_UNMOUNTED:
+                    case Intent.ACTION_MEDIA_EJECT:
+                    case Intent.ACTION_MEDIA_REMOVED:
+                    case Intent.ACTION_MEDIA_BAD_REMOVAL:
+                        detachVolume(volumeName);
+                        break;
+                }
             }
         }
     };
@@ -653,12 +665,14 @@ public class MediaProvider extends ContentProvider {
                 false, mObjectRemovedCallback);
 
         final IntentFilter filter = new IntentFilter();
+        filter.setPriority(10);
         filter.addDataScheme("file");
-        filter.addAction(Intent.ACTION_MEDIA_EJECT);
-        filter.addAction(Intent.ACTION_MEDIA_BAD_REMOVAL);
-        filter.addAction(Intent.ACTION_MEDIA_REMOVED);
         filter.addAction(Intent.ACTION_MEDIA_UNMOUNTED);
-        context.registerReceiver(mUnmountReceiver, filter);
+        filter.addAction(Intent.ACTION_MEDIA_MOUNTED);
+        filter.addAction(Intent.ACTION_MEDIA_EJECT);
+        filter.addAction(Intent.ACTION_MEDIA_REMOVED);
+        filter.addAction(Intent.ACTION_MEDIA_BAD_REMOVAL);
+        context.registerReceiver(mMediaReceiver, filter);
 
         attachVolume(MediaStore.VOLUME_INTERNAL);
 
@@ -673,6 +687,19 @@ public class MediaProvider extends ContentProvider {
     public void onIdleMaintenance(@NonNull CancellationSignal signal) {
         final DatabaseHelper helper = mDatabase;
         final SQLiteDatabase db = helper.getReadableDatabase();
+
+        // Scan all volumes to resolve any staleness
+        for (String volumeName : MediaStore.getExternalVolumeNames(getContext())) {
+            // Possibly bail before digging into each volume
+            signal.throwIfCanceled();
+
+            try {
+                final File file = MediaStore.getVolumePath(volumeName);
+                MediaService.onScanVolume(getContext(), Uri.fromFile(file));
+            } catch (IOException e) {
+                Log.w(TAG, e);
+            }
+        }
 
         // Delete any stale thumbnails
         pruneThumbnails(signal);
@@ -2094,46 +2121,31 @@ public class MediaProvider extends ContentProvider {
     }
 
     private long getParent(DatabaseHelper helper, SQLiteDatabase db, String path) {
-        int lastSlash = path.lastIndexOf('/');
-        if (lastSlash > 0) {
-            String parentPath = path.substring(0, lastSlash);
-            for (int i = 0; i < mExternalStoragePaths.length; i++) {
-                if (parentPath.equals(mExternalStoragePaths[i])) {
-                    return 0;
-                }
-            }
-            synchronized(mDirectoryCache) {
-                Long cid = mDirectoryCache.get(parentPath);
-                if (cid != null) {
-                    if (LOCAL_LOGV) Log.v(TAG, "Returning cached entry for " + parentPath);
-                    return cid;
-                }
-
-                String selection = MediaStore.MediaColumns.DATA + "=?";
-                String [] selargs = { parentPath };
-                Cursor c = db.query("files", sIdOnlyColumn, selection, selargs, null, null, null);
-                try {
-                    long id;
-                    if (c == null || c.getCount() == 0) {
-                        // parent isn't in the database - so add it
-                        id = insertDirectory(helper, db, parentPath);
-                        if (LOCAL_LOGV) Log.v(TAG, "Inserted " + parentPath);
-                    } else {
-                        if (c.getCount() > 1) {
-                            Log.e(TAG, "more than one match for " + parentPath);
-                        }
-                        c.moveToFirst();
-                        id = c.getLong(0);
-                        if (LOCAL_LOGV) Log.v(TAG, "Queried " + parentPath);
-                    }
-                    mDirectoryCache.put(parentPath, id);
-                    return id;
-                } finally {
-                    IoUtils.closeQuietly(c);
-                }
-            }
+        final String parentPath = new File(path).getParent();
+        if (Objects.equals("/", parentPath)) {
+            return -1;
         } else {
-            return 0;
+            synchronized (mDirectoryCache) {
+                Long id = mDirectoryCache.get(parentPath);
+                if (id != null) {
+                    return id;
+                }
+            }
+
+            final long id;
+            try (Cursor c = db.query("files", new String[] { FileColumns._ID },
+                    FileColumns.DATA + "=?", new String[] { parentPath }, null, null, null)) {
+                if (c.moveToFirst()) {
+                    id = c.getLong(0);
+                } else {
+                    id = insertDirectory(helper, db, parentPath);
+                }
+            }
+
+            synchronized (mDirectoryCache) {
+                mDirectoryCache.put(parentPath, id);
+            }
+            return id;
         }
     }
 
@@ -3738,7 +3750,17 @@ public class MediaProvider extends ContentProvider {
         }
 
         {
-            SQLiteQueryBuilder qb = getQueryBuilder(TYPE_DELETE, uri, match, null);
+            final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_DELETE, uri, match, null);
+
+            // Give callers interacting with a specific media item a chance to
+            // escalate access if they don't already have it
+            switch (match) {
+                case AUDIO_MEDIA_ID:
+                case VIDEO_MEDIA_ID:
+                case IMAGES_MEDIA_ID:
+                    enforceCallingPermission(uri, true);
+            }
+
             final String[] projection = new String[] {
                     FileColumns.MEDIA_TYPE,
                     FileColumns.DATA,
@@ -4285,7 +4307,16 @@ public class MediaProvider extends ContentProvider {
             return e.translateForUpdateDelete(targetSdkVersion);
         }
 
-        SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, uri, match, null);
+        final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, uri, match, null);
+
+        // Give callers interacting with a specific media item a chance to
+        // escalate access if they don't already have it
+        switch (match) {
+            case AUDIO_MEDIA_ID:
+            case VIDEO_MEDIA_ID:
+            case IMAGES_MEDIA_ID:
+                enforceCallingPermission(uri, true);
+        }
 
         boolean triggerScan = false;
         String genre = null;
@@ -4825,19 +4856,12 @@ public class MediaProvider extends ContentProvider {
         // Handle some legacy cases where we need to redirect thumbnails
         switch (match) {
             case AUDIO_ALBUMART_ID: {
-                final Uri baseUri = MediaStore.Audio.Media.getContentUri(volumeName);
-                final long albumId = ContentUris.parseId(uri);
-                try (Cursor c = query(baseUri, new String[] { MediaStore.Audio.Media._ID },
-                        MediaStore.Audio.Media.ALBUM_ID + "=" + albumId, null, null, signal)) {
-                    if (c.moveToFirst()) {
-                        final long audioId = c.getLong(0);
-                        final Uri targetUri = ContentUris.withAppendedId(baseUri, audioId);
-                        return ParcelFileDescriptor.open(ensureThumbnail(targetUri, signal),
-                                ParcelFileDescriptor.MODE_READ_ONLY);
-                    } else {
-                        throw new FileNotFoundException("No media for album " + uri);
-                    }
-                }
+                final long albumId = Long.parseLong(uri.getPathSegments().get(3));
+                final Uri targetUri = ContentUris
+                        .withAppendedId(Audio.Albums.getContentUri(volumeName), albumId);
+                return ParcelFileDescriptor.open(ensureThumbnail(targetUri, signal),
+                        ParcelFileDescriptor.MODE_READ_ONLY);
+
             }
             case AUDIO_ALBUMART_FILE_ID: {
                 final long audioId = Long.parseLong(uri.getPathSegments().get(3));
@@ -4906,6 +4930,21 @@ public class MediaProvider extends ContentProvider {
         try {
             final File thumbFile;
             switch (match) {
+                case AUDIO_ALBUMS_ID: {
+                    final String volumeName = MediaStore.getVolumeName(uri);
+                    final Uri baseUri = MediaStore.Audio.Media.getContentUri(volumeName);
+                    final long albumId = ContentUris.parseId(uri);
+                    try (Cursor c = query(baseUri, new String[] { MediaStore.Audio.Media._ID },
+                            MediaStore.Audio.Media.ALBUM_ID + "=" + albumId, null, null, signal)) {
+                        if (c.moveToFirst()) {
+                            final long audioId = c.getLong(0);
+                            final Uri targetUri = ContentUris.withAppendedId(baseUri, audioId);
+                            return mAudioThumbnailer.ensureThumbnail(targetUri, signal);
+                        } else {
+                            throw new FileNotFoundException("No media for album " + uri);
+                        }
+                    }
+                }
                 case AUDIO_MEDIA_ID:
                     return mAudioThumbnailer.ensureThumbnail(uri, signal);
                 case VIDEO_MEDIA_ID:
@@ -5443,6 +5482,7 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    @Deprecated
     private boolean isOtherUserExternalDir(String path) {
         List<VolumeInfo> volumes = mStorageManager.getVolumes();
         for (VolumeInfo volume : volumes) {
@@ -5461,6 +5501,7 @@ public class MediaProvider extends ContentProvider {
         return false;
     }
 
+    @Deprecated
     private boolean isSecondaryExternalPath(String path) {
         for (int i = 1; i < mExternalStoragePaths.length; i++) {
             if (path.startsWith(mExternalStoragePaths[i])) {

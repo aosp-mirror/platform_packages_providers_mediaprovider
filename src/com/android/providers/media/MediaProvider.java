@@ -2727,12 +2727,19 @@ public class MediaProvider extends ContentProvider {
         String path = null;
         String ownerPackageName = null;
         if (initialValues != null) {
-            // Augment incoming raw filesystem paths
+            // Ignore or augment incoming raw filesystem paths
             for (String column : sDataColumns.keySet()) {
                 if (!initialValues.containsKey(column)) continue;
-                initialValues.put(column, translateAppToSystem(
-                        initialValues.getAsString(column),
-                        Binder.getCallingPid(), Binder.getCallingUid()));
+
+                if (isCallingPackageSystem() || isCallingPackageLegacy()) {
+                    initialValues.put(column, translateAppToSystem(
+                            initialValues.getAsString(column),
+                            Binder.getCallingPid(), Binder.getCallingUid()));
+                } else {
+                    Log.w(TAG, "Ignoring mutation of  " + column + " from "
+                            + getCallingPackageOrSelf());
+                    initialValues.remove(column);
+                }
             }
 
             genre = initialValues.getAsString(Audio.AudioColumns.GENRE);
@@ -4324,12 +4331,19 @@ public class MediaProvider extends ContentProvider {
             // IDs are forever; nobody should be editing them
             initialValues.remove(MediaColumns._ID);
 
-            // Augment incoming raw filesystem paths
+            // Ignore or augment incoming raw filesystem paths
             for (String column : sDataColumns.keySet()) {
                 if (!initialValues.containsKey(column)) continue;
-                initialValues.put(column, translateAppToSystem(
-                        initialValues.getAsString(column),
-                        Binder.getCallingPid(), Binder.getCallingUid()));
+
+                if (isCallingPackageSystem() || isCallingPackageLegacy()) {
+                    initialValues.put(column, translateAppToSystem(
+                            initialValues.getAsString(column),
+                            Binder.getCallingPid(), Binder.getCallingUid()));
+                } else {
+                    Log.w(TAG, "Ignoring mutation of  " + column + " from "
+                            + getCallingPackageOrSelf());
+                    initialValues.remove(column);
+                }
             }
 
             if (!isCallingPackageSystem()) {
@@ -6346,6 +6360,13 @@ public class MediaProvider extends ContentProvider {
                 .checkCallingOrSelfPermission(WRITE_MEDIA_STORAGE) == PERMISSION_GRANTED;
 
         return hasFull && hasStorage;
+    }
+
+    /**
+     * Determine if calling package name has legacy access to storage devices.
+     */
+    private boolean isCallingPackageLegacy() {
+        return checkCallingPermissionLegacy(null, true, getCallingPackageOrSelf());
     }
 
     private void enforceCallingOrSelfPermissionAndAppOps(String permission, String message) {

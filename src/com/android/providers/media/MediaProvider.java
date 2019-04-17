@@ -4383,6 +4383,8 @@ public class MediaProvider extends ContentProvider {
             // Regenerate path using blended values; this will throw if caller
             // is attempting to place file into invalid location
             final String beforePath = initialValues.getAsString(MediaColumns.DATA);
+            final String beforeVolume = extractVolumeName(beforePath);
+            final String beforeOwner = extractPathOwnerPackageName(beforePath);
             initialValues.remove(MediaColumns.DATA);
             try {
                 ensureNonUniqueFileColumns(match, uri, initialValues);
@@ -4391,8 +4393,16 @@ public class MediaProvider extends ContentProvider {
             }
 
             final String probePath = initialValues.getAsString(MediaColumns.DATA);
+            final String probeVolume = extractVolumeName(probePath);
+            final String probeOwner = extractPathOwnerPackageName(probePath);
             if (Objects.equals(beforePath, probePath)) {
                 Log.d(TAG, "Identical paths " + beforePath + "; not moving");
+            } else if (!Objects.equals(beforeVolume, probeVolume)) {
+                throw new IllegalArgumentException("Changing volume from " + beforePath + " to "
+                        + probePath + " not allowed");
+            } else if (!Objects.equals(beforeOwner, probeOwner)) {
+                throw new IllegalArgumentException("Changing ownership from " + beforePath + " to "
+                        + probePath + " not allowed");
             } else {
                 // Now that we've confirmed an actual movement is taking place,
                 // ensure we have a unique destination

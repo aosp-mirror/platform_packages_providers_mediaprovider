@@ -654,9 +654,12 @@ public class ModernMediaScanner implements MediaScanner {
 
     private static @NonNull ContentProviderOperation.Builder newUpsert(Uri uri, long existingId) {
         if (existingId == -1) {
-            return ContentProviderOperation.newInsert(uri);
+            return ContentProviderOperation.newInsert(uri)
+                    .withFailureAllowed(true);
         } else {
-            return ContentProviderOperation.newUpdate(ContentUris.withAppendedId(uri, existingId));
+            return ContentProviderOperation.newUpdate(ContentUris.withAppendedId(uri, existingId))
+                    .withExpectedCount(1)
+                    .withFailureAllowed(true);
         }
     }
 
@@ -702,6 +705,7 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     private static long parseDate(String date, long defaultValue) {
+        if (TextUtils.isEmpty(date)) return defaultValue;
         try {
             final long value = sDateFormat.parse(date).getTime();
             return (value > 0) ? value : defaultValue;

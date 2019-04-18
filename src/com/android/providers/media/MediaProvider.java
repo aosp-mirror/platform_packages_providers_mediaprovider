@@ -499,9 +499,32 @@ public class MediaProvider extends ContentProvider {
          * notified to also notify all relevant views.
          */
         public void notifyChangeWithExpansion(Uri uri, int match) {
-            // TODO: require notifications to be sent for specific volume, and
-            // then expand into broader collections here
+            notifyChangeWithExpansionInternal(uri, match);
 
+            try {
+                // When targeting a specific volume, we need to expand to also
+                // notify the top-level view
+                final String volumeName = getVolumeName(uri);
+                switch (volumeName) {
+                    case MediaStore.VOLUME_INTERNAL:
+                    case MediaStore.VOLUME_EXTERNAL:
+                        // Already a top-level view, no need to expand
+                        break;
+                    default:
+                        final List<String> segments = new ArrayList<>(uri.getPathSegments());
+                        segments.set(0, MediaStore.VOLUME_EXTERNAL);
+                        final Uri.Builder builder = uri.buildUpon().path(null);
+                        for (String segment : segments) {
+                            builder.appendPath(segment);
+                        }
+                        notifyChangeWithExpansionInternal(builder.build(), match);
+                        break;
+                }
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+
+        private void notifyChangeWithExpansionInternal(Uri uri, int match) {
             // Start by always notifying the base item
             notifyChange(uri);
 
@@ -563,6 +586,7 @@ public class MediaProvider extends ContentProvider {
          * clustered and sent when the transaction completes.
          */
         public void notifyChange(Uri uri) {
+            if (LOCAL_LOGV) Log.v(TAG, "Notifying " + uri);
             final List<Uri> uris = mNotifyChanges.get();
             if (uris != null) {
                 uris.add(uri);
@@ -2727,12 +2751,19 @@ public class MediaProvider extends ContentProvider {
         String path = null;
         String ownerPackageName = null;
         if (initialValues != null) {
-            // Augment incoming raw filesystem paths
+            // Ignore or augment incoming raw filesystem paths
             for (String column : sDataColumns.keySet()) {
                 if (!initialValues.containsKey(column)) continue;
-                initialValues.put(column, translateAppToSystem(
-                        initialValues.getAsString(column),
-                        Binder.getCallingPid(), Binder.getCallingUid()));
+
+                if (isCallingPackageSystem() || isCallingPackageLegacy()) {
+                    initialValues.put(column, translateAppToSystem(
+                            initialValues.getAsString(column),
+                            Binder.getCallingPid(), Binder.getCallingUid()));
+                } else {
+                    Log.w(TAG, "Ignoring mutation of  " + column + " from "
+                            + getCallingPackageOrSelf());
+                    initialValues.remove(column);
+                }
             }
 
             genre = initialValues.getAsString(Audio.AudioColumns.GENRE);
@@ -3137,7 +3168,6 @@ public class MediaProvider extends ContentProvider {
         qb.setStrict(true);
 
         final String callingPackage = getCallingPackageOrSelf();
-        final int callingTargetSdk = getCallingPackageTargetSdkVersion();
 
         // TODO: throw when requesting a currently unmounted volume
         final String volumeName = MediaStore.getVolumeName(uri);
@@ -4324,12 +4354,19 @@ public class MediaProvider extends ContentProvider {
             // IDs are forever; nobody should be editing them
             initialValues.remove(MediaColumns._ID);
 
-            // Augment incoming raw filesystem paths
+            // Ignore or augment incoming raw filesystem paths
             for (String column : sDataColumns.keySet()) {
                 if (!initialValues.containsKey(column)) continue;
-                initialValues.put(column, translateAppToSystem(
-                        initialValues.getAsString(column),
-                        Binder.getCallingPid(), Binder.getCallingUid()));
+
+                if (isCallingPackageSystem() || isCallingPackageLegacy()) {
+                    initialValues.put(column, translateAppToSystem(
+                            initialValues.getAsString(column),
+                            Binder.getCallingPid(), Binder.getCallingUid()));
+                } else {
+                    Log.w(TAG, "Ignoring mutation of  " + column + " from "
+                            + getCallingPackageOrSelf());
+                    initialValues.remove(column);
+                }
             }
 
             if (!isCallingPackageSystem()) {
@@ -5262,21 +5299,13 @@ public class MediaProvider extends ContentProvider {
         // TODO: keep this logic in sync with StorageManagerService
         final int callingUid = Binder.getCallingUid();
         final Context context = getContext();
-        try {
-            final boolean hasStorage = StorageManager.checkPermissionAndAppOp(context, false, 0,
-                    callingUid, callingPackage, WRITE_EXTERNAL_STORAGE, OP_WRITE_EXTERNAL_STORAGE);
 
-            final boolean hasLegacy = mAppOpsManager.checkOp(OP_LEGACY_STORAGE,
-                    callingUid, callingPackage) == MODE_ALLOWED;
-            // STOPSHIP: only use app-op once permission model has fully landed
-            final boolean requestedLegacy = !mPackageManager
-                    .getApplicationInfo(callingPackage, 0)
-                    .isExternalStorageSandboxAllowed();
+        final boolean hasStorage = StorageManager.checkPermissionAndAppOp(context, false, 0,
+                callingUid, callingPackage, WRITE_EXTERNAL_STORAGE, OP_WRITE_EXTERNAL_STORAGE);
+        final boolean hasLegacy = mAppOpsManager.checkOp(OP_LEGACY_STORAGE,
+                callingUid, callingPackage) == MODE_ALLOWED;
 
-            return ((hasLegacy || requestedLegacy) && hasStorage);
-        } catch (NameNotFoundException ignored) {
-            return false;
-        }
+        return (hasLegacy && hasStorage);
     }
 
     private boolean checkCallingPermissionAudio(boolean forWrite, String callingPackage) {
@@ -6346,6 +6375,13 @@ public class MediaProvider extends ContentProvider {
                 .checkCallingOrSelfPermission(WRITE_MEDIA_STORAGE) == PERMISSION_GRANTED;
 
         return hasFull && hasStorage;
+    }
+
+    /**
+     * Determine if calling package name has legacy access to storage devices.
+     */
+    private boolean isCallingPackageLegacy() {
+        return checkCallingPermissionLegacy(null, true, getCallingPackageOrSelf());
     }
 
     private void enforceCallingOrSelfPermissionAndAppOps(String permission, String message) {

@@ -3180,6 +3180,7 @@ public class MediaProvider extends ContentProvider {
 
         final boolean allowGlobal = checkCallingPermissionGlobal(uri, forWrite);
         final boolean allowLegacy = checkCallingPermissionLegacy(uri, forWrite, callingPackage);
+        final boolean allowLegacyRead = allowLegacy && !forWrite;
 
         boolean includePending = parseBoolean(
                 uri.getQueryParameter(MediaStore.PARAM_INCLUDE_PENDING));
@@ -3536,14 +3537,18 @@ public class MediaProvider extends ContentProvider {
                 // fall-through
             case FILES:
             case FILES_DIRECTORY:
-            case MTP_OBJECTS:
+            case MTP_OBJECTS: {
                 qb.setTables("files");
                 qb.setProjectionMap(getProjectionMap(Files.FileColumns.class));
 
                 final ArrayList<String> options = new ArrayList<>();
-                if (!allowGlobal && !allowLegacy) {
+                if (!allowGlobal && !allowLegacyRead) {
                     options.add(DatabaseUtils.bindSelection("owner_package_name=?",
                             callingPackage));
+                    if (allowLegacy) {
+                        options.add(DatabaseUtils.bindSelection("volume_name=?",
+                                MediaStore.VOLUME_EXTERNAL_PRIMARY));
+                    }
                     if (checkCallingPermissionAudio(forWrite, callingPackage)) {
                         options.add(DatabaseUtils.bindSelection("media_type=?",
                                 FileColumns.MEDIA_TYPE_AUDIO));
@@ -3575,15 +3580,14 @@ public class MediaProvider extends ContentProvider {
                 if (!includeAllVolumes) {
                     appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
                 }
-
                 break;
-
+            }
             case DOWNLOADS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(2));
                 includePending = true;
                 includeTrashed = true;
                 // fall-through
-            case DOWNLOADS:
+            case DOWNLOADS: {
                 if (type == TYPE_QUERY) {
                     qb.setTables("downloads");
                     qb.setProjectionMap(getProjectionMap(Downloads.class));
@@ -3591,10 +3595,20 @@ public class MediaProvider extends ContentProvider {
                     qb.setTables("files");
                     appendWhereStandalone(qb, FileColumns.IS_DOWNLOAD + "=1");
                 }
-                if (!allowGlobal && !allowLegacy) {
-                    appendWhereStandalone(qb, FileColumns.OWNER_PACKAGE_NAME + "=?",
-                            callingPackage);
+
+                final ArrayList<String> options = new ArrayList<>();
+                if (!allowGlobal && !allowLegacyRead) {
+                    options.add(DatabaseUtils.bindSelection("owner_package_name=?",
+                            callingPackage));
+                    if (allowLegacy) {
+                        options.add(DatabaseUtils.bindSelection("volume_name=?",
+                                MediaStore.VOLUME_EXTERNAL_PRIMARY));
+                    }
                 }
+                if (options.size() > 0) {
+                    appendWhereStandalone(qb, TextUtils.join(" OR ", options));
+                }
+
                 if (!includePending) {
                     appendWhereStandalone(qb, FileColumns.IS_PENDING + "=?", 0);
                 }
@@ -3605,7 +3619,7 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
                 }
                 break;
-
+            }
             default:
                 throw new UnsupportedOperationException(
                         "Unknown or unsupported URL: " + uri.toString());

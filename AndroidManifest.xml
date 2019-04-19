@@ -2,7 +2,7 @@
         package="com.android.providers.media"
         android:sharedUserId="android.media"
         android:sharedUserLabel="@string/uid_label"
-        android:versionCode="1021">
+        android:versionCode="1022">
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.RECEIVE_DEVICE_CUSTOMIZATION_READY" />
@@ -13,7 +13,6 @@
     <uses-permission android:name="android.permission.ACCESS_MTP" />
     <uses-permission android:name="android.permission.MANAGE_USERS" />
     <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.USE_RESERVED_DISK" />
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />

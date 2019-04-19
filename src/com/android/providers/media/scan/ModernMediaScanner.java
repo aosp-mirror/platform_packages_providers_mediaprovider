@@ -680,6 +680,8 @@ public class ModernMediaScanner implements MediaScanner {
             return defaultValue;
         } else if (value instanceof String && ((String) value).length() == 0) {
             return defaultValue;
+        } else if (value instanceof String && ((String) value).equals("-1")) {
+            return defaultValue;
         } else if (value instanceof Number && ((Number) value).intValue() == -1) {
             return defaultValue;
         } else {
@@ -688,7 +690,9 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     private static Object defeatEmptyOrZero(Object value, Object defaultValue) {
-        if (value instanceof Number && ((Number) value).intValue() == 0) {
+        if (value instanceof String && ((String) value).equals("0")) {
+            return defaultValue;
+        } else if (value instanceof Number && ((Number) value).intValue() == 0) {
             return defaultValue;
         } else {
             return defeatEmpty(value, defaultValue);

@@ -195,7 +195,8 @@ public class MediaService extends IntentService {
                     MediaColumns.DISPLAY_NAME + "=?",
                     new String[] { filename }, null)) {
                 if (cursor.moveToFirst()) {
-                    final Uri ringtoneUri = ContentUris.withAppendedId(baseUri, cursor.getLong(0));
+                    final Uri ringtoneUri = context.getContentResolver().canonicalizeOrElse(
+                            ContentUris.withAppendedId(baseUri, cursor.getLong(0)));
                     RingtoneManager.setActualDefaultRingtoneUri(context, type, ringtoneUri);
                     Settings.System.putInt(context.getContentResolver(), setting, 1);
                 }

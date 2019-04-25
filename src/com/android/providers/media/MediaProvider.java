@@ -2448,9 +2448,17 @@ public class MediaProvider extends ContentProvider {
         }
         values.put(FileColumns.TITLE, title);
 
-        String mimeType = values.getAsString(MediaStore.MediaColumns.MIME_TYPE);
-        Integer formatObject = values.getAsInteger(FileColumns.FORMAT);
-        int format = (formatObject == null ? 0 : formatObject.intValue());
+        String mimeType = null;
+        int format = MtpConstants.FORMAT_ASSOCIATION;
+        if (path != null && new File(path).isDirectory()) {
+            values.put(FileColumns.FORMAT, MtpConstants.FORMAT_ASSOCIATION);
+            values.putNull(MediaStore.MediaColumns.MIME_TYPE);
+        } else {
+            mimeType = values.getAsString(MediaStore.MediaColumns.MIME_TYPE);
+            final Integer formatObject = values.getAsInteger(FileColumns.FORMAT);
+            format = (formatObject == null ? 0 : formatObject.intValue());
+        }
+
         if (format == 0) {
             if (TextUtils.isEmpty(path)) {
                 // special case device created playlists

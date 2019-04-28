@@ -30,6 +30,7 @@ import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.app.PendingIntent.FLAG_ONE_SHOT;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.os.Environment.buildPath;
+import static android.os.Trace.TRACE_TAG_DATABASE;
 import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.getVolumeName;
 import static android.provider.MediaStore.Downloads.PATTERN_DOWNLOADS_FILE;
@@ -38,6 +39,7 @@ import static android.provider.MediaStore.Downloads.isDownload;
 import android.annotation.BytesLong;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.app.AppGlobals;
 import android.app.AppOpsManager;
 import android.app.PendingIntent;
 import android.app.RecoverableSecurityException;
@@ -91,6 +93,7 @@ import android.os.RedactingFileDescriptor;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.os.SystemProperties;
+import android.os.Trace;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.os.storage.StorageManager;
@@ -482,7 +485,12 @@ public class MediaProvider extends ContentProvider {
             if (uris != null) {
                 final Uri uri = computeCommonPrefix(uris);
                 if (uri != null) {
-                    mContext.getContentResolver().notifyChange(uri, null);
+                    Trace.traceBegin(TRACE_TAG_DATABASE, "setTransactionSuccessful");
+                    try {
+                        mContext.getContentResolver().notifyChange(uri, null);
+                    } finally {
+                        Trace.traceEnd(TRACE_TAG_DATABASE);
+                    }
                 }
             }
             mNotifyChanges.remove();
@@ -490,94 +498,6 @@ public class MediaProvider extends ContentProvider {
 
         public void endTransaction() {
             getWritableDatabase().endTransaction();
-        }
-
-        /**
-         * Notify that the given {@link Uri} has changed, and observers should
-         * be notified. Since media items can be exposed through multiple
-         * collections or views, this method expands the single item being
-         * notified to also notify all relevant views.
-         */
-        public void notifyChangeWithExpansion(Uri uri, int match) {
-            notifyChangeWithExpansionInternal(uri, match);
-
-            try {
-                // When targeting a specific volume, we need to expand to also
-                // notify the top-level view
-                final String volumeName = getVolumeName(uri);
-                switch (volumeName) {
-                    case MediaStore.VOLUME_INTERNAL:
-                    case MediaStore.VOLUME_EXTERNAL:
-                        // Already a top-level view, no need to expand
-                        break;
-                    default:
-                        final List<String> segments = new ArrayList<>(uri.getPathSegments());
-                        segments.set(0, MediaStore.VOLUME_EXTERNAL);
-                        final Uri.Builder builder = uri.buildUpon().path(null);
-                        for (String segment : segments) {
-                            builder.appendPath(segment);
-                        }
-                        notifyChangeWithExpansionInternal(builder.build(), match);
-                        break;
-                }
-            } catch (IllegalArgumentException ignored) {
-            }
-        }
-
-        private void notifyChangeWithExpansionInternal(Uri uri, int match) {
-            // Start by always notifying the base item
-            notifyChange(uri);
-
-            // Some items can be exposed through multiple collections,
-            // so we need to notify all possible views of those items
-            switch (match) {
-                case AUDIO_MEDIA_ID:
-                case VIDEO_MEDIA_ID:
-                case IMAGES_MEDIA_ID: {
-                    final String volumeName = getVolumeName(uri);
-                    final long id = ContentUris.parseId(uri);
-                    notifyChange(Files.getContentUri(volumeName, id));
-                    notifyChange(Downloads.getContentUri(volumeName, id));
-                    break;
-                }
-                case AUDIO_MEDIA:
-                case VIDEO_MEDIA:
-                case IMAGES_MEDIA: {
-                    final String volumeName = getVolumeName(uri);
-                    notifyChange(Files.getContentUri(volumeName));
-                    notifyChange(Downloads.getContentUri(volumeName));
-                    break;
-                }
-                case FILES_ID:
-                case DOWNLOADS_ID: {
-                    final String volumeName = getVolumeName(uri);
-                    final long id = ContentUris.parseId(uri);
-                    notifyChange(Audio.Media.getContentUri(volumeName, id));
-                    notifyChange(Video.Media.getContentUri(volumeName, id));
-                    notifyChange(Images.Media.getContentUri(volumeName, id));
-                    break;
-                }
-                case FILES:
-                case DOWNLOADS: {
-                    final String volumeName = getVolumeName(uri);
-                    notifyChange(Audio.Media.getContentUri(volumeName));
-                    notifyChange(Video.Media.getContentUri(volumeName));
-                    notifyChange(Images.Media.getContentUri(volumeName));
-                }
-            }
-
-            // Any changing audio items mean we probably need to invalidate all
-            // indexed views built from that media
-            switch (match) {
-                case AUDIO_MEDIA:
-                case AUDIO_MEDIA_ID: {
-                    final String volumeName = getVolumeName(uri);
-                    notifyChange(Audio.Genres.getContentUri(volumeName));
-                    notifyChange(Audio.Playlists.getContentUri(volumeName));
-                    notifyChange(Audio.Artists.getContentUri(volumeName));
-                    notifyChange(Audio.Albums.getContentUri(volumeName));
-                }
-            }
         }
 
         /**
@@ -591,7 +511,101 @@ public class MediaProvider extends ContentProvider {
             if (uris != null) {
                 uris.add(uri);
             } else {
-                mContext.getContentResolver().notifyChange(uri, null);
+                Trace.traceBegin(TRACE_TAG_DATABASE, "notifyChange");
+                try {
+                    mContext.getContentResolver().notifyChange(uri, null);
+                } finally {
+                    Trace.traceEnd(TRACE_TAG_DATABASE);
+                }
+            }
+        }
+    }
+
+    /**
+     * Apply {@link Consumer#accept} to the given {@link Uri}.
+     * <p>
+     * Since media items can be exposed through multiple collections or views,
+     * this method expands the single item being accepted to also accept all
+     * relevant views.
+     */
+    public static void acceptWithExpansion(Consumer<Uri> consumer, Uri uri, int match) {
+        acceptWithExpansionInternal(consumer, uri, match);
+
+        try {
+            // When targeting a specific volume, we need to expand to also
+            // notify the top-level view
+            final String volumeName = getVolumeName(uri);
+            switch (volumeName) {
+                case MediaStore.VOLUME_INTERNAL:
+                case MediaStore.VOLUME_EXTERNAL:
+                    // Already a top-level view, no need to expand
+                    break;
+                default:
+                    final List<String> segments = new ArrayList<>(uri.getPathSegments());
+                    segments.set(0, MediaStore.VOLUME_EXTERNAL);
+                    final Uri.Builder builder = uri.buildUpon().path(null);
+                    for (String segment : segments) {
+                        builder.appendPath(segment);
+                    }
+                    acceptWithExpansionInternal(consumer, builder.build(), match);
+                    break;
+            }
+        } catch (IllegalArgumentException ignored) {
+        }
+    }
+
+    private static void acceptWithExpansionInternal(Consumer<Uri> consumer, Uri uri, int match) {
+        // Start by always notifying the base item
+        consumer.accept(uri);
+
+        // Some items can be exposed through multiple collections,
+        // so we need to notify all possible views of those items
+        switch (match) {
+            case AUDIO_MEDIA_ID:
+            case VIDEO_MEDIA_ID:
+            case IMAGES_MEDIA_ID: {
+                final String volumeName = getVolumeName(uri);
+                final long id = ContentUris.parseId(uri);
+                consumer.accept(Files.getContentUri(volumeName, id));
+                consumer.accept(Downloads.getContentUri(volumeName, id));
+                break;
+            }
+            case AUDIO_MEDIA:
+            case VIDEO_MEDIA:
+            case IMAGES_MEDIA: {
+                final String volumeName = getVolumeName(uri);
+                consumer.accept(Files.getContentUri(volumeName));
+                consumer.accept(Downloads.getContentUri(volumeName));
+                break;
+            }
+            case FILES_ID:
+            case DOWNLOADS_ID: {
+                final String volumeName = getVolumeName(uri);
+                final long id = ContentUris.parseId(uri);
+                consumer.accept(Audio.Media.getContentUri(volumeName, id));
+                consumer.accept(Video.Media.getContentUri(volumeName, id));
+                consumer.accept(Images.Media.getContentUri(volumeName, id));
+                break;
+            }
+            case FILES:
+            case DOWNLOADS: {
+                final String volumeName = getVolumeName(uri);
+                consumer.accept(Audio.Media.getContentUri(volumeName));
+                consumer.accept(Video.Media.getContentUri(volumeName));
+                consumer.accept(Images.Media.getContentUri(volumeName));
+            }
+        }
+
+        // Any changing audio items mean we probably need to invalidate all
+        // indexed views built from that media
+        switch (match) {
+            case AUDIO_MEDIA:
+            case AUDIO_MEDIA_ID: {
+                final String volumeName = getVolumeName(uri);
+                consumer.accept(Audio.Genres.getContentUri(volumeName));
+                consumer.accept(Audio.Playlists.getContentUri(volumeName));
+                consumer.accept(Audio.Artists.getContentUri(volumeName));
+                consumer.accept(Audio.Albums.getContentUri(volumeName));
             }
         }
     }
@@ -845,6 +859,11 @@ public class MediaProvider extends ContentProvider {
     }
 
     private static void createLatestSchema(SQLiteDatabase db, boolean internal) {
+        // We're about to start all ID numbering from scratch, so revoke any
+        // outstanding permission grants to ensure we don't leak data
+        AppGlobals.getInitialApplication().revokeUriPermission(MediaStore.AUTHORITY_URI,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+
         makePristineSchema(db);
 
         db.execSQL("CREATE TABLE android_metadata (locale TEXT)");
@@ -3093,7 +3112,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (newUri != null) {
-            helper.notifyChangeWithExpansion(newUri, match);
+            acceptWithExpansion(helper::notifyChange, newUri, match);
         }
         return newUri;
     }
@@ -3850,6 +3869,15 @@ public class MediaProvider extends ContentProvider {
                             final int isDownload = c.getInt(3);
                             final String mimeType = c.getString(4);
 
+                            // Invalidate thumbnails and revoke all outstanding grants
+                            final Uri deletedUri = Files.getContentUri(volumeName, id);
+                            invalidateThumbnails(deletedUri);
+                            acceptWithExpansion((expandedUri) -> {
+                                getContext().revokeUriPermission(expandedUri,
+                                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                                | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                            }, deletedUri, match);
+
                             // Only need to inform DownloadProvider about the downloads deleted on
                             // external volume.
                             if (isDownload == 1) {
@@ -3859,24 +3887,15 @@ public class MediaProvider extends ContentProvider {
                                 deleteIfAllowed(uri, data);
                                 MediaDocumentsProvider.onMediaStoreDelete(getContext(),
                                         volumeName, FileColumns.MEDIA_TYPE_IMAGE, id);
-
-                                invalidateThumbnails(
-                                        Files.getContentUri(MediaStore.getVolumeName(uri), id));
                             } else if (mediaType == FileColumns.MEDIA_TYPE_VIDEO) {
                                 deleteIfAllowed(uri, data);
                                 MediaDocumentsProvider.onMediaStoreDelete(getContext(),
                                         volumeName, FileColumns.MEDIA_TYPE_VIDEO, id);
-
-                                invalidateThumbnails(
-                                        Files.getContentUri(MediaStore.getVolumeName(uri), id));
                             } else if (mediaType == FileColumns.MEDIA_TYPE_AUDIO) {
                                 if (!helper.mInternal) {
                                     deleteIfAllowed(uri, data);
                                     MediaDocumentsProvider.onMediaStoreDelete(getContext(),
                                             volumeName, FileColumns.MEDIA_TYPE_AUDIO, id);
-
-                                    invalidateThumbnails(
-                                            Files.getContentUri(MediaStore.getVolumeName(uri), id));
 
                                     idvalue[0] = String.valueOf(id);
                                     db.delete("audio_genres_map", "audio_id=?", idvalue);
@@ -3975,7 +3994,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (count > 0) {
-            helper.notifyChangeWithExpansion(uri, match);
+            acceptWithExpansion(helper::notifyChange, uri, match);
         }
         return count;
     }
@@ -4296,6 +4315,15 @@ public class MediaProvider extends ContentProvider {
     };
 
     private void invalidateThumbnails(Uri uri) {
+        Trace.traceBegin(TRACE_TAG_DATABASE, "invalidateThumbnails");
+        try {
+            invalidateThumbnailsInternal(uri);
+        } finally {
+            Trace.traceEnd(TRACE_TAG_DATABASE);
+        }
+    }
+
+    private void invalidateThumbnailsInternal(Uri uri) {
         final long id = ContentUris.parseId(uri);
         try {
             mAudioThumbnailer.invalidateThumbnail(uri);
@@ -4314,18 +4342,18 @@ public class MediaProvider extends ContentProvider {
             return;
         }
 
-        Cursor c = db.rawQuery("select _data from thumbnails where image_id=" + id
-                + " union all select _data from videothumbnails where video_id=" + id,
-                null /* selectionArgs */);
-        if (c != null) {
+        final String idString = Long.toString(id);
+        try (Cursor c = db.rawQuery("select _data from thumbnails where image_id=?"
+                + " union all select _data from videothumbnails where video_id=?",
+                new String[] { idString, idString })) {
             while (c.moveToNext()) {
                 String path = c.getString(0);
                 deleteIfAllowed(uri, path);
             }
-            IoUtils.closeQuietly(c);
-            db.execSQL("delete from thumbnails where image_id=" + id);
-            db.execSQL("delete from videothumbnails where video_id=" + id);
         }
+
+        db.execSQL("delete from thumbnails where image_id=?", new String[] { idString });
+        db.execSQL("delete from videothumbnails where video_id=?", new String[] { idString });
     }
 
     @Override
@@ -4376,6 +4404,7 @@ public class MediaProvider extends ContentProvider {
                 enforceCallingPermission(uri, true);
         }
 
+        boolean triggerInvalidate = false;
         boolean triggerScan = false;
         String genre = null;
         if (initialValues != null) {
@@ -4461,6 +4490,18 @@ public class MediaProvider extends ContentProvider {
                 && !initialValues.containsKey(MediaColumns.DATA)
                 && !isCallingPackageSystem()
                 && !isThumbnail) {
+            // We only support movement under well-defined collections
+            switch (match) {
+                case AUDIO_MEDIA_ID:
+                case VIDEO_MEDIA_ID:
+                case IMAGES_MEDIA_ID:
+                case DOWNLOADS_ID:
+                    break;
+                default:
+                    throw new IllegalArgumentException("Movement of " + uri
+                            + " which isn't part of well-defined collection not allowed");
+            }
+
             final CallingIdentity token = clearCallingIdentity();
             try (Cursor c = queryForSingleItem(originalUri,
                     sPlacementColumns.toArray(EmptyArray.STRING), userWhere, userWhereArgs, null)) {
@@ -4537,28 +4578,27 @@ public class MediaProvider extends ContentProvider {
             MediaDocumentsProvider.onMediaStoreInsert(
                     getContext(), volumeName, newMediaType, -1);
 
-            Cursor cursor = qb.query(db, sMediaTableColumns, userWhere, userWhereArgs, null, null,
-                    null, null);
-            try {
-                while (cursor != null && cursor.moveToNext()) {
-                    final long id = cursor.getLong(0);
-                    final int curMediaType = cursor.getInt(1);
+            // If we're changing media types, invalidate any thumbnails
+            triggerInvalidate = true;
+        }
 
-                    switch (curMediaType) {
-                        case FileColumns.MEDIA_TYPE_AUDIO:
-                        case FileColumns.MEDIA_TYPE_VIDEO:
-                        case FileColumns.MEDIA_TYPE_IMAGE: {
-                            // If type is changing, we need to invalidate thumbnails
-                            if (curMediaType != newMediaType) {
-                                Log.i(TAG, "Invalidating thumbnails for " + id);
-                                invalidateThumbnails(
-                                        Files.getContentUri(MediaStore.getVolumeName(uri), id));
-                            }
-                        }
-                    }
+        if (initialValues.containsKey(FileColumns.DATA)) {
+            // If we're changing paths, invalidate any thumbnails
+            triggerInvalidate = true;
+        }
+
+        // Since the update mutation may prevent us from matching items after
+        // it's applied, we need to snapshot affected IDs here
+        final LongArray updatedIds = new LongArray();
+        if (triggerInvalidate || triggerScan) {
+            final CallingIdentity token = clearCallingIdentity();
+            try (Cursor c = qb.query(db, new String[] { FileColumns._ID },
+                    userWhere, userWhereArgs, null, null, null)) {
+                while (c.moveToNext()) {
+                    updatedIds.add(c.getLong(0));
                 }
             } finally {
-                IoUtils.closeQuietly(cursor);
+                restoreCallingIdentity(token);
             }
         }
 
@@ -4619,7 +4659,7 @@ public class MediaProvider extends ContentProvider {
                     }
 
                     if (count > 0) {
-                        helper.notifyChangeWithExpansion(uri, match);
+                        acceptWithExpansion(helper::notifyChange, uri, match);
                     }
                     if (f.getName().startsWith(".")) {
                         MediaScanner.instance(getContext()).scanFile(new File(newPath));
@@ -4766,33 +4806,6 @@ public class MediaProvider extends ContentProvider {
                     // If the data is being modified update the bucket values
                     computeDataValues(values);
                     count = qb.update(db, values, userWhere, userWhereArgs);
-                    // if this is a request from MediaScanner, DATA should contains file path
-                    // we only process update request from media scanner, otherwise the requests
-                    // could be duplicate.
-                    if (count > 0 && values.getAsString(MediaStore.MediaColumns.DATA) != null) {
-                        // Invalidate any thumbnails so they get regenerated
-                        try (Cursor c = qb.query(db, READY_FLAG_PROJECTION, userWhere,
-                                userWhereArgs, null, null, null, null)) {
-                            while (c.moveToNext()) {
-                                switch (match) {
-                                    case IMAGES_MEDIA:
-                                    case IMAGES_MEDIA_ID:
-                                        delete(Images.Thumbnails.getContentUri(volumeName),
-                                                Images.Thumbnails.IMAGE_ID + "=?", new String[] {
-                                                        c.getString(0)
-                                                });
-                                        break;
-                                    case VIDEO_MEDIA:
-                                    case VIDEO_MEDIA_ID:
-                                        delete(Video.Thumbnails.getContentUri(volumeName),
-                                                Video.Thumbnails.VIDEO_ID + "=?", new String[] {
-                                                        c.getString(0)
-                                                });
-                                        break;
-                                }
-                            }
-                        }
-                    }
                 }
                 break;
 
@@ -4818,21 +4831,30 @@ public class MediaProvider extends ContentProvider {
 
         // If the caller tried (and failed) to update metadata, the file on disk
         // might have changed, to scan it to collect the latest metadata.
-        if (triggerScan) {
+        if (triggerInvalidate || triggerScan) {
             final CallingIdentity token = clearCallingIdentity();
-            try (Cursor c = queryForSingleItem(uri,
-                    new String[] { FileColumns.DATA }, null, null, null)) {
-                final String data = c.getString(0);
-                MediaScanner.instance(getContext()).scanFile(new File(data));
-            } catch (Exception e) {
-                Log.w(TAG, "Failed to update metadata for " + uri, e);
+            try {
+                for (int i = 0; i < updatedIds.size(); i++) {
+                    final long updatedId = updatedIds.get(i);
+                    final Uri updatedUri = Files.getContentUri(volumeName, updatedId);
+                    invalidateThumbnails(updatedUri);
+
+                    if (triggerScan) {
+                        try (Cursor c = queryForSingleItem(updatedUri,
+                                new String[] { FileColumns.DATA }, null, null, null)) {
+                            MediaScanner.instance(getContext()).scanFile(new File(c.getString(0)));
+                        } catch (Exception e) {
+                            Log.w(TAG, "Failed to update metadata for " + updatedUri, e);
+                        }
+                    }
+                }
             } finally {
                 restoreCallingIdentity(token);
             }
         }
 
         if (count > 0) {
-            helper.notifyChangeWithExpansion(uri, match);
+            acceptWithExpansion(helper::notifyChange, uri, match);
         }
         return count;
     }
@@ -4991,6 +5013,7 @@ public class MediaProvider extends ContentProvider {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
+        Trace.traceBegin(TRACE_TAG_DATABASE, "ensureThumbnail");
         final CallingIdentity ident = clearCallingIdentity();
         try {
             final File thumbFile;
@@ -5024,6 +5047,7 @@ public class MediaProvider extends ContentProvider {
             throw new FileNotFoundException(e.getMessage());
         } finally {
             restoreCallingIdentity(ident);
+            Trace.traceEnd(TRACE_TAG_DATABASE);
         }
     }
 
@@ -5194,7 +5218,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             // Second, wrap in any listener that we've requested
-            if (forWrite && listener != null) {
+            if (!isPending && forWrite && listener != null) {
                 return ParcelFileDescriptor.fromPfd(pfd, BackgroundThread.getHandler(), listener);
             } else {
                 return pfd;
@@ -5275,6 +5299,7 @@ public class MediaProvider extends ContentProvider {
      * to pass to {@link RedactingFileDescriptor}.
      */
     private long[] getRedactionRanges(File file) {
+        Trace.traceBegin(TRACE_TAG_DATABASE, "getRedactionRanges");
         long[] res = EmptyArray.LONG;
         try {
             final ExifInterface exif = new ExifInterface(file);
@@ -5289,6 +5314,7 @@ public class MediaProvider extends ContentProvider {
         } catch (IOException e) {
             Log.w(TAG, "Failed to redact Exif from " + file + ": " + e);
         }
+        Trace.traceEnd(TRACE_TAG_DATABASE);
         return res;
     }
 
@@ -5372,6 +5398,15 @@ public class MediaProvider extends ContentProvider {
      * @throws SecurityException if access isn't allowed.
      */
     private void enforceCallingPermission(Uri uri, boolean forWrite) {
+        Trace.traceBegin(TRACE_TAG_DATABASE, "enforceCallingPermission");
+        try {
+            enforceCallingPermissionInternal(uri, forWrite);
+        } finally {
+            Trace.traceEnd(TRACE_TAG_DATABASE);
+        }
+    }
+
+    private void enforceCallingPermissionInternal(Uri uri, boolean forWrite) {
         // Try a simple global check first before falling back to performing a
         // simple query to probe for access.
         if (checkCallingPermissionGlobal(uri, forWrite)) {
@@ -6033,12 +6068,6 @@ public class MediaProvider extends ContentProvider {
             MediaStore.MediaColumns.DATA,
     };
 
-    private static final String[] READY_FLAG_PROJECTION = new String[] {
-            MediaStore.MediaColumns._ID,
-            MediaStore.MediaColumns.DATA,
-            Images.Media.MINI_THUMB_MAGIC
-    };
-
     private static final String OBJECT_REFERENCES_QUERY =
         "SELECT " + Audio.Playlists.Members.AUDIO_ID + " FROM audio_playlists_map"
         + " WHERE " + Audio.Playlists.Members.PLAYLIST_ID + "=?"
@@ -6412,6 +6441,7 @@ public class MediaProvider extends ContentProvider {
         return checkCallingPermissionLegacy(null, true, getCallingPackageOrSelf());
     }
 
+    @Deprecated
     private void enforceCallingOrSelfPermissionAndAppOps(String permission, String message) {
         getContext().enforceCallingOrSelfPermission(permission, message);
 

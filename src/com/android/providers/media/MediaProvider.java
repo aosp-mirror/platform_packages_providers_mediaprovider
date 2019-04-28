@@ -5199,7 +5199,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             // Second, wrap in any listener that we've requested
-            if (forWrite && listener != null) {
+            if (!isPending && forWrite && listener != null) {
                 return ParcelFileDescriptor.fromPfd(pfd, BackgroundThread.getHandler(), listener);
             } else {
                 return pfd;

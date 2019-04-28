@@ -4461,6 +4461,18 @@ public class MediaProvider extends ContentProvider {
                 && !initialValues.containsKey(MediaColumns.DATA)
                 && !isCallingPackageSystem()
                 && !isThumbnail) {
+            // We only support movement under well-defined collections
+            switch (match) {
+                case AUDIO_MEDIA_ID:
+                case VIDEO_MEDIA_ID:
+                case IMAGES_MEDIA_ID:
+                case DOWNLOADS_ID:
+                    break;
+                default:
+                    throw new IllegalArgumentException("Movement of " + uri
+                            + " which isn't part of well-defined collection not allowed");
+            }
+
             final CallingIdentity token = clearCallingIdentity();
             try (Cursor c = queryForSingleItem(originalUri,
                     sPlacementColumns.toArray(EmptyArray.STRING), userWhere, userWhereArgs, null)) {

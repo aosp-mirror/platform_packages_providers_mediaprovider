@@ -30,6 +30,7 @@ import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.app.PendingIntent.FLAG_ONE_SHOT;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.os.Environment.buildPath;
+import static android.os.Trace.TRACE_TAG_DATABASE;
 import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.getVolumeName;
 import static android.provider.MediaStore.Downloads.PATTERN_DOWNLOADS_FILE;
@@ -91,6 +92,7 @@ import android.os.RedactingFileDescriptor;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.os.SystemProperties;
+import android.os.Trace;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.os.storage.StorageManager;
@@ -482,7 +484,12 @@ public class MediaProvider extends ContentProvider {
             if (uris != null) {
                 final Uri uri = computeCommonPrefix(uris);
                 if (uri != null) {
-                    mContext.getContentResolver().notifyChange(uri, null);
+                    Trace.traceBegin(TRACE_TAG_DATABASE, "setTransactionSuccessful");
+                    try {
+                        mContext.getContentResolver().notifyChange(uri, null);
+                    } finally {
+                        Trace.traceEnd(TRACE_TAG_DATABASE);
+                    }
                 }
             }
             mNotifyChanges.remove();
@@ -591,7 +598,12 @@ public class MediaProvider extends ContentProvider {
             if (uris != null) {
                 uris.add(uri);
             } else {
-                mContext.getContentResolver().notifyChange(uri, null);
+                Trace.traceBegin(TRACE_TAG_DATABASE, "notifyChange");
+                try {
+                    mContext.getContentResolver().notifyChange(uri, null);
+                } finally {
+                    Trace.traceEnd(TRACE_TAG_DATABASE);
+                }
             }
         }
     }
@@ -4296,6 +4308,15 @@ public class MediaProvider extends ContentProvider {
     };
 
     private void invalidateThumbnails(Uri uri) {
+        Trace.traceBegin(TRACE_TAG_DATABASE, "invalidateThumbnails");
+        try {
+            invalidateThumbnailsInternal(uri);
+        } finally {
+            Trace.traceEnd(TRACE_TAG_DATABASE);
+        }
+    }
+
+    private void invalidateThumbnailsInternal(Uri uri) {
         final long id = ContentUris.parseId(uri);
         try {
             mAudioThumbnailer.invalidateThumbnail(uri);
@@ -4314,18 +4335,18 @@ public class MediaProvider extends ContentProvider {
             return;
         }
 
-        Cursor c = db.rawQuery("select _data from thumbnails where image_id=" + id
-                + " union all select _data from videothumbnails where video_id=" + id,
-                null /* selectionArgs */);
-        if (c != null) {
+        final String idString = Long.toString(id);
+        try (Cursor c = db.rawQuery("select _data from thumbnails where image_id=?"
+                + " union all select _data from videothumbnails where video_id=?",
+                new String[] { idString, idString })) {
             while (c.moveToNext()) {
                 String path = c.getString(0);
                 deleteIfAllowed(uri, path);
             }
-            IoUtils.closeQuietly(c);
-            db.execSQL("delete from thumbnails where image_id=" + id);
-            db.execSQL("delete from videothumbnails where video_id=" + id);
         }
+
+        db.execSQL("delete from thumbnails where image_id=?", new String[] { idString });
+        db.execSQL("delete from videothumbnails where video_id=?", new String[] { idString });
     }
 
     @Override
@@ -4376,6 +4397,7 @@ public class MediaProvider extends ContentProvider {
                 enforceCallingPermission(uri, true);
         }
 
+        boolean triggerInvalidate = false;
         boolean triggerScan = false;
         String genre = null;
         if (initialValues != null) {
@@ -4537,28 +4559,27 @@ public class MediaProvider extends ContentProvider {
             MediaDocumentsProvider.onMediaStoreInsert(
                     getContext(), volumeName, newMediaType, -1);
 
-            Cursor cursor = qb.query(db, sMediaTableColumns, userWhere, userWhereArgs, null, null,
-                    null, null);
-            try {
-                while (cursor != null && cursor.moveToNext()) {
-                    final long id = cursor.getLong(0);
-                    final int curMediaType = cursor.getInt(1);
+            // If we're changing media types, invalidate any thumbnails
+            triggerInvalidate = true;
+        }
 
-                    switch (curMediaType) {
-                        case FileColumns.MEDIA_TYPE_AUDIO:
-                        case FileColumns.MEDIA_TYPE_VIDEO:
-                        case FileColumns.MEDIA_TYPE_IMAGE: {
-                            // If type is changing, we need to invalidate thumbnails
-                            if (curMediaType != newMediaType) {
-                                Log.i(TAG, "Invalidating thumbnails for " + id);
-                                invalidateThumbnails(
-                                        Files.getContentUri(MediaStore.getVolumeName(uri), id));
-                            }
-                        }
-                    }
+        if (initialValues.containsKey(FileColumns.DATA)) {
+            // If we're changing paths, invalidate any thumbnails
+            triggerInvalidate = true;
+        }
+
+        // Since the update mutation may prevent us from matching items after
+        // it's applied, we need to snapshot affected IDs here
+        final LongArray updatedIds = new LongArray();
+        if (triggerInvalidate || triggerScan) {
+            final CallingIdentity token = clearCallingIdentity();
+            try (Cursor c = qb.query(db, new String[] { FileColumns._ID },
+                    userWhere, userWhereArgs, null, null, null)) {
+                while (c.moveToNext()) {
+                    updatedIds.add(c.getLong(0));
                 }
             } finally {
-                IoUtils.closeQuietly(cursor);
+                restoreCallingIdentity(token);
             }
         }
 
@@ -4766,33 +4787,6 @@ public class MediaProvider extends ContentProvider {
                     // If the data is being modified update the bucket values
                     computeDataValues(values);
                     count = qb.update(db, values, userWhere, userWhereArgs);
-                    // if this is a request from MediaScanner, DATA should contains file path
-                    // we only process update request from media scanner, otherwise the requests
-                    // could be duplicate.
-                    if (count > 0 && values.getAsString(MediaStore.MediaColumns.DATA) != null) {
-                        // Invalidate any thumbnails so they get regenerated
-                        try (Cursor c = qb.query(db, READY_FLAG_PROJECTION, userWhere,
-                                userWhereArgs, null, null, null, null)) {
-                            while (c.moveToNext()) {
-                                switch (match) {
-                                    case IMAGES_MEDIA:
-                                    case IMAGES_MEDIA_ID:
-                                        delete(Images.Thumbnails.getContentUri(volumeName),
-                                                Images.Thumbnails.IMAGE_ID + "=?", new String[] {
-                                                        c.getString(0)
-                                                });
-                                        break;
-                                    case VIDEO_MEDIA:
-                                    case VIDEO_MEDIA_ID:
-                                        delete(Video.Thumbnails.getContentUri(volumeName),
-                                                Video.Thumbnails.VIDEO_ID + "=?", new String[] {
-                                                        c.getString(0)
-                                                });
-                                        break;
-                                }
-                            }
-                        }
-                    }
                 }
                 break;
 
@@ -4818,14 +4812,23 @@ public class MediaProvider extends ContentProvider {
 
         // If the caller tried (and failed) to update metadata, the file on disk
         // might have changed, to scan it to collect the latest metadata.
-        if (triggerScan) {
+        if (triggerInvalidate || triggerScan) {
             final CallingIdentity token = clearCallingIdentity();
-            try (Cursor c = queryForSingleItem(uri,
-                    new String[] { FileColumns.DATA }, null, null, null)) {
-                final String data = c.getString(0);
-                MediaScanner.instance(getContext()).scanFile(new File(data));
-            } catch (Exception e) {
-                Log.w(TAG, "Failed to update metadata for " + uri, e);
+            try {
+                for (int i = 0; i < updatedIds.size(); i++) {
+                    final long updatedId = updatedIds.get(i);
+                    final Uri updatedUri = Files.getContentUri(volumeName, updatedId);
+                    invalidateThumbnails(updatedUri);
+
+                    if (triggerScan) {
+                        try (Cursor c = queryForSingleItem(updatedUri,
+                                new String[] { FileColumns.DATA }, null, null, null)) {
+                            MediaScanner.instance(getContext()).scanFile(new File(c.getString(0)));
+                        } catch (Exception e) {
+                            Log.w(TAG, "Failed to update metadata for " + updatedUri, e);
+                        }
+                    }
+                }
             } finally {
                 restoreCallingIdentity(token);
             }
@@ -4991,6 +4994,7 @@ public class MediaProvider extends ContentProvider {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
+        Trace.traceBegin(TRACE_TAG_DATABASE, "ensureThumbnail");
         final CallingIdentity ident = clearCallingIdentity();
         try {
             final File thumbFile;
@@ -5024,6 +5028,7 @@ public class MediaProvider extends ContentProvider {
             throw new FileNotFoundException(e.getMessage());
         } finally {
             restoreCallingIdentity(ident);
+            Trace.traceEnd(TRACE_TAG_DATABASE);
         }
     }
 
@@ -5275,6 +5280,7 @@ public class MediaProvider extends ContentProvider {
      * to pass to {@link RedactingFileDescriptor}.
      */
     private long[] getRedactionRanges(File file) {
+        Trace.traceBegin(TRACE_TAG_DATABASE, "getRedactionRanges");
         long[] res = EmptyArray.LONG;
         try {
             final ExifInterface exif = new ExifInterface(file);
@@ -5289,6 +5295,7 @@ public class MediaProvider extends ContentProvider {
         } catch (IOException e) {
             Log.w(TAG, "Failed to redact Exif from " + file + ": " + e);
         }
+        Trace.traceEnd(TRACE_TAG_DATABASE);
         return res;
     }
 
@@ -5372,6 +5379,15 @@ public class MediaProvider extends ContentProvider {
      * @throws SecurityException if access isn't allowed.
      */
     private void enforceCallingPermission(Uri uri, boolean forWrite) {
+        Trace.traceBegin(TRACE_TAG_DATABASE, "enforceCallingPermission");
+        try {
+            enforceCallingPermissionInternal(uri, forWrite);
+        } finally {
+            Trace.traceEnd(TRACE_TAG_DATABASE);
+        }
+    }
+
+    private void enforceCallingPermissionInternal(Uri uri, boolean forWrite) {
         // Try a simple global check first before falling back to performing a
         // simple query to probe for access.
         if (checkCallingPermissionGlobal(uri, forWrite)) {
@@ -6033,12 +6049,6 @@ public class MediaProvider extends ContentProvider {
             MediaStore.MediaColumns.DATA,
     };
 
-    private static final String[] READY_FLAG_PROJECTION = new String[] {
-            MediaStore.MediaColumns._ID,
-            MediaStore.MediaColumns.DATA,
-            Images.Media.MINI_THUMB_MAGIC
-    };
-
     private static final String OBJECT_REFERENCES_QUERY =
         "SELECT " + Audio.Playlists.Members.AUDIO_ID + " FROM audio_playlists_map"
         + " WHERE " + Audio.Playlists.Members.PLAYLIST_ID + "=?"
@@ -6412,6 +6422,7 @@ public class MediaProvider extends ContentProvider {
         return checkCallingPermissionLegacy(null, true, getCallingPackageOrSelf());
     }
 
+    @Deprecated
     private void enforceCallingOrSelfPermissionAndAppOps(String permission, String message) {
         getContext().enforceCallingOrSelfPermission(permission, message);
 

@@ -2790,10 +2790,6 @@ public class MediaProvider extends ContentProvider {
             initialValues.remove(Audio.AudioColumns.GENRE);
             path = initialValues.getAsString(MediaStore.MediaColumns.DATA);
 
-            // Remote callers have no direct control over owner column; we force
-            // it be whoever is creating the content.
-            initialValues.remove(FileColumns.OWNER_PACKAGE_NAME);
-
             if (!isCallingPackageSystem()) {
                 initialValues.remove(FileColumns.IS_DOWNLOAD);
             }
@@ -2809,8 +2805,14 @@ public class MediaProvider extends ContentProvider {
             if (isCallingPackageSystem()) {
                 // When media inserted by ourselves, the best we can do is guess
                 // ownership based on path.
-                ownerPackageName = extractPathOwnerPackageName(path);
+                ownerPackageName = initialValues.getAsString(FileColumns.OWNER_PACKAGE_NAME);
+                if (TextUtils.isEmpty(ownerPackageName)) {
+                    ownerPackageName = extractPathOwnerPackageName(path);
+                }
             } else {
+                // Remote callers have no direct control over owner column; we force
+                // it be whoever is creating the content.
+                initialValues.remove(FileColumns.OWNER_PACKAGE_NAME);
                 ownerPackageName = getCallingPackageOrSelf();
             }
         }
@@ -3962,7 +3964,7 @@ public class MediaProvider extends ContentProvider {
                     }
                     extras.putLongArray(android.provider.Downloads.EXTRA_IDS, ids);
                     extras.putStringArray(android.provider.Downloads.EXTRA_MIME_TYPES, mimeTypes);
-                    client.call(android.provider.Downloads.MEDIASTORE_DOWNLOADS_DELETED_CALL,
+                    client.call(android.provider.Downloads.CALL_MEDIASTORE_DOWNLOADS_DELETED,
                             null, extras);
                 } catch (RemoteException e) {
                     // Should not happen

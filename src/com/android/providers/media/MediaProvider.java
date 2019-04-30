@@ -4431,11 +4431,30 @@ public class MediaProvider extends ContentProvider {
                 // force it be whoever is creating the content.
                 initialValues.remove(MediaColumns.OWNER_PACKAGE_NAME);
 
+                // We default to filtering mutable columns, except when we know
+                // the single item being updated is pending; when it's finally
+                // published we'll overwrite these values.
+                final boolean filterMutableColumns;
+                switch (match) {
+                    case AUDIO_MEDIA_ID:
+                    case VIDEO_MEDIA_ID:
+                    case IMAGES_MEDIA_ID:
+                        try (Cursor c = queryForSingleItem(originalUri,
+                                new String[] { MediaColumns.IS_PENDING }, null, null, null)) {
+                            filterMutableColumns = (c.getInt(0) == 0);
+                        } catch (FileNotFoundException e) {
+                            throw new IllegalStateException(e);
+                        }
+                        break;
+                    default:
+                        filterMutableColumns = true;
+                }
+
                 // Column values controlled by media scanner aren't writable by
                 // apps, since any edits here don't reflect the metadata on
                 // disk, and they'd be overwritten during a rescan.
                 for (String column : new ArraySet<>(initialValues.keySet())) {
-                    if (!sMutableColumns.contains(column)) {
+                    if (filterMutableColumns && !sMutableColumns.contains(column)) {
                         Log.w(TAG, "Ignoring mutation of " + column + " from "
                                 + getCallingPackageOrSelf());
                         initialValues.remove(column);

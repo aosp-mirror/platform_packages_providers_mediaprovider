@@ -76,7 +76,7 @@ import com.android.internal.annotations.GuardedBy;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.providers.media.util.XmpInterface;
 
-import libcore.net.MimeUtils;
+import libcore.net.MimeMap;
 
 import java.io.File;
 import java.io.IOException;
@@ -435,7 +435,7 @@ public class ModernMediaScanner implements MediaScanner {
             if (attrs.isDirectory()) {
                 mimeType = null;
             } else {
-                mimeType = MimeUtils.guessMimeTypeFromExtension(extractExtension(file));
+                mimeType = MimeMap.getDefault().guessMimeTypeFromExtension(extractExtension(file));
             }
 
             if (attrs.isDirectory()) {

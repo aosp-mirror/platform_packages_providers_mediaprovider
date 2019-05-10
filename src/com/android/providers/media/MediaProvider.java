@@ -138,7 +138,7 @@ import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
 
 import libcore.io.IoUtils;
-import libcore.net.MimeUtils;
+import libcore.net.MimeMap;
 import libcore.util.EmptyArray;
 
 import java.io.File;
@@ -1898,7 +1898,8 @@ public class MediaProvider extends ContentProvider {
             }
             if (TextUtils.isEmpty(values.getAsString(MediaColumns.MIME_TYPE))) {
                 final String ext = data.substring(data.lastIndexOf('.') + 1);
-                values.put(MediaColumns.MIME_TYPE, MimeUtils.guessMimeTypeFromExtension(ext));
+                values.put(MediaColumns.MIME_TYPE,
+                    MimeMap.getDefault().guessMimeTypeFromExtension(ext));
             }
         }
 

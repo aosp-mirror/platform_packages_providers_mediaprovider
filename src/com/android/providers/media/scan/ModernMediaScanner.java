@@ -435,7 +435,7 @@ public class ModernMediaScanner implements MediaScanner {
             if (attrs.isDirectory()) {
                 mimeType = null;
             } else {
-                mimeType = MimeMap.getDefault().guessMimeTypeFromExtension(extractExtension(file));
+                mimeType = MediaFile.getMimeTypeForFile(file.getPath());
             }
 
             if (attrs.isDirectory()) {

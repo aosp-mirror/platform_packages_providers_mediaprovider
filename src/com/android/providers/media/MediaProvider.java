@@ -1897,9 +1897,7 @@ public class MediaProvider extends ContentProvider {
                 values.put(MediaColumns.DISPLAY_NAME, extractDisplayName(data));
             }
             if (TextUtils.isEmpty(values.getAsString(MediaColumns.MIME_TYPE))) {
-                final String ext = data.substring(data.lastIndexOf('.') + 1);
-                values.put(MediaColumns.MIME_TYPE,
-                    MimeMap.getDefault().guessMimeTypeFromExtension(ext));
+                values.put(MediaColumns.MIME_TYPE, MediaFile.getMimeTypeForFile(data));
             }
         }
 

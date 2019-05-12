@@ -35,7 +35,10 @@ import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_YEAR;
 import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.UNKNOWN_STRING;
+import static android.text.format.DateUtils.HOUR_IN_MILLIS;
+import static android.text.format.DateUtils.MINUTE_IN_MILLIS;
 
+import android.annotation.CurrentTimeMillisLong;
 import android.annotation.CurrentTimeSecondsLong;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -689,7 +692,7 @@ public class ModernMediaScanner implements MediaScanner {
             withOptionalValue(op, MediaColumns.HEIGHT,
                     parseOptional(exif.getAttribute(ExifInterface.TAG_IMAGE_LENGTH)));
             withOptionalValue(op, MediaColumns.DATE_TAKEN,
-                    parseOptional(exif.getDateTimeOriginal()));
+                    parseOptionalDateTaken(exif, lastModifiedTime(file, attrs) * 1000));
             withOptionalValue(op, MediaColumns.ORIENTATION,
                     parseOptionalOrientation(exif.getAttributeInt(ExifInterface.TAG_ORIENTATION,
                             ExifInterface.ORIENTATION_UNDEFINED)));
@@ -763,6 +766,39 @@ public class ModernMediaScanner implements MediaScanner {
             return Optional.empty();
         } else {
             return parseOptional(value);
+        }
+    }
+
+    /**
+     * Try our best to calculate {@link MediaColumns#DATE_TAKEN} in reference to
+     * the epoch, making our best guess from unrelated fields when offset
+     * information isn't directly available.
+     */
+    static @NonNull Optional<Long> parseOptionalDateTaken(@NonNull ExifInterface exif,
+            @CurrentTimeMillisLong long lastModifiedTime) {
+        final long originalTime = exif.getDateTimeOriginal();
+        if (exif.hasAttribute(ExifInterface.TAG_OFFSET_TIME_ORIGINAL)) {
+            // We have known offset information, return it directly!
+            return Optional.of(originalTime);
+        } else {
+            // Otherwise we need to guess the offset from unrelated fields
+            final long smallestZone = 15 * MINUTE_IN_MILLIS;
+            final long gpsTime = exif.getGpsDateTime();
+            if (gpsTime > 0) {
+                final long offset = gpsTime - originalTime;
+                if (Math.abs(offset) < 24 * HOUR_IN_MILLIS) {
+                    final long rounded = Math.round((float) offset / smallestZone) * smallestZone;
+                    return Optional.of(originalTime + rounded);
+                }
+            }
+            if (lastModifiedTime > 0) {
+                final long offset = lastModifiedTime - originalTime;
+                if (Math.abs(offset) < 24 * HOUR_IN_MILLIS) {
+                    final long rounded = Math.round((float) offset / smallestZone) * smallestZone;
+                    return Optional.of(originalTime + rounded);
+                }
+            }
+            return Optional.empty();
         }
     }
 

@@ -1410,6 +1410,12 @@ public class MediaProvider extends ContentProvider {
     public Uri canonicalize(Uri uri) {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
+
+        // Skip when we have nothing to canonicalize
+        if ("1".equals(uri.getQueryParameter(CANONICAL))) {
+            return uri;
+        }
+
         try (Cursor c = queryForSingleItem(uri, null, null, null, null)) {
             switch (match) {
                 case AUDIO_MEDIA_ID: {

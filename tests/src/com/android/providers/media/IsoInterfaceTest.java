@@ -17,7 +17,6 @@
 package com.android.providers.media;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 import android.content.Context;
 import android.os.FileUtils;
@@ -34,22 +33,11 @@ import org.junit.runner.RunWith;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
 @RunWith(AndroidJUnit4.class)
 public class IsoInterfaceTest {
-    @Test
-    public void testInvalid() throws Exception {
-        try {
-            final File file = stageFile(R.raw.test_image);
-            final IsoInterface mp4 = IsoInterface.fromFile(file);
-            fail();
-        } catch (IOException expected) {
-        }
-    }
-
     @Test
     public void testRepeated() throws Exception {
         final File file = stageFile(R.raw.test_video);

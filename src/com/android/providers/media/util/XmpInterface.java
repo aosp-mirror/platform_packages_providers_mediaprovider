@@ -36,6 +36,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 /**
  * Parser for Extensible Metadata Platform (XMP) metadata. Designed to mirror
@@ -112,6 +113,21 @@ public class XmpInterface {
         if (exif.hasAttribute(ExifInterface.TAG_XMP)) {
             buf = exif.getAttributeBytes(ExifInterface.TAG_XMP);
         } else {
+            buf = EmptyArray.BYTE;
+        }
+        return new XmpInterface(new ByteArrayInputStream(buf));
+    }
+
+    public static @NonNull XmpInterface fromContainer(@NonNull IsoInterface iso)
+            throws IOException {
+        byte[] buf = null;
+        if (buf == null) {
+            buf = iso.getBoxBytes(UUID.fromString("be7acfcb-97a9-42e8-9c71-999491e3afac"));
+        }
+        if (buf == null) {
+            buf = iso.getBoxBytes(IsoInterface.BOX_XMP);
+        }
+        if (buf == null) {
             buf = EmptyArray.BYTE;
         }
         return new XmpInterface(new ByteArrayInputStream(buf));

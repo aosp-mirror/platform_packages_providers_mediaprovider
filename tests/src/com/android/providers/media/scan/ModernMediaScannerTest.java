@@ -19,6 +19,7 @@ package com.android.providers.media.scan;
 import static com.android.providers.media.scan.MediaScannerTest.stage;
 import static com.android.providers.media.scan.ModernMediaScanner.isDirectoryHidden;
 import static com.android.providers.media.scan.ModernMediaScanner.maybeOverrideMimeType;
+import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalDateTaken;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -31,6 +32,7 @@ import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.FileUtils;
@@ -99,6 +101,103 @@ public class ModernMediaScannerTest {
                 maybeOverrideMimeType("image/png", "audio/x-shiny"));
         assertEquals("image/x-shiny",
                 maybeOverrideMimeType("image/png", "image/x-shiny"));
+    }
+
+    @Test
+    public void testParseDateTaken_Complete() throws Exception {
+        final File file = File.createTempFile("test", ".jpg");
+        final ExifInterface exif = new ExifInterface(file);
+        exif.setAttribute(ExifInterface.TAG_DATETIME_ORIGINAL, "2016:01:28 09:17:34");
+
+        // Offset is recorded, test both zeros
+        exif.setAttribute(ExifInterface.TAG_OFFSET_TIME_ORIGINAL, "-00:00");
+        assertEquals(1453972654000L, (long) parseOptionalDateTaken(exif, 0L).get());
+        exif.setAttribute(ExifInterface.TAG_OFFSET_TIME_ORIGINAL, "+00:00");
+        assertEquals(1453972654000L, (long) parseOptionalDateTaken(exif, 0L).get());
+
+        // Offset is recorded, test both directions
+        exif.setAttribute(ExifInterface.TAG_OFFSET_TIME_ORIGINAL, "-07:00");
+        assertEquals(1453972654000L + 25200000L, (long) parseOptionalDateTaken(exif, 0L).get());
+        exif.setAttribute(ExifInterface.TAG_OFFSET_TIME_ORIGINAL, "+07:00");
+        assertEquals(1453972654000L - 25200000L, (long) parseOptionalDateTaken(exif, 0L).get());
+    }
+
+    @Test
+    public void testParseDateTaken_Gps() throws Exception {
+        final File file = File.createTempFile("test", ".jpg");
+        final ExifInterface exif = new ExifInterface(file);
+        exif.setAttribute(ExifInterface.TAG_DATETIME_ORIGINAL, "2016:01:28 09:17:34");
+
+        // GPS tells us we're in UTC
+        exif.setAttribute(ExifInterface.TAG_GPS_DATESTAMP, "2016:01:28");
+        exif.setAttribute(ExifInterface.TAG_GPS_TIMESTAMP, "09:14:00");
+        assertEquals(1453972654000L, (long) parseOptionalDateTaken(exif, 0L).get());
+        exif.setAttribute(ExifInterface.TAG_GPS_DATESTAMP, "2016:01:28");
+        exif.setAttribute(ExifInterface.TAG_GPS_TIMESTAMP, "09:20:00");
+        assertEquals(1453972654000L, (long) parseOptionalDateTaken(exif, 0L).get());
+
+        // GPS tells us we're in -7
+        exif.setAttribute(ExifInterface.TAG_GPS_DATESTAMP, "2016:01:28");
+        exif.setAttribute(ExifInterface.TAG_GPS_TIMESTAMP, "16:14:00");
+        assertEquals(1453972654000L + 25200000L, (long) parseOptionalDateTaken(exif, 0L).get());
+        exif.setAttribute(ExifInterface.TAG_GPS_DATESTAMP, "2016:01:28");
+        exif.setAttribute(ExifInterface.TAG_GPS_TIMESTAMP, "16:20:00");
+        assertEquals(1453972654000L + 25200000L, (long) parseOptionalDateTaken(exif, 0L).get());
+
+        // GPS tells us we're in +7
+        exif.setAttribute(ExifInterface.TAG_GPS_DATESTAMP, "2016:01:28");
+        exif.setAttribute(ExifInterface.TAG_GPS_TIMESTAMP, "02:14:00");
+        assertEquals(1453972654000L - 25200000L, (long) parseOptionalDateTaken(exif, 0L).get());
+        exif.setAttribute(ExifInterface.TAG_GPS_DATESTAMP, "2016:01:28");
+        exif.setAttribute(ExifInterface.TAG_GPS_TIMESTAMP, "02:20:00");
+        assertEquals(1453972654000L - 25200000L, (long) parseOptionalDateTaken(exif, 0L).get());
+
+        // GPS beyond 24 hours isn't helpful
+        exif.setAttribute(ExifInterface.TAG_GPS_DATESTAMP, "2016:01:27");
+        exif.setAttribute(ExifInterface.TAG_GPS_TIMESTAMP, "09:17:34");
+        assertFalse(parseOptionalDateTaken(exif, 0L).isPresent());
+        exif.setAttribute(ExifInterface.TAG_GPS_DATESTAMP, "2016:01:29");
+        exif.setAttribute(ExifInterface.TAG_GPS_TIMESTAMP, "09:17:34");
+        assertFalse(parseOptionalDateTaken(exif, 0L).isPresent());
+    }
+
+    @Test
+    public void testParseDateTaken_File() throws Exception {
+        final File file = File.createTempFile("test", ".jpg");
+        final ExifInterface exif = new ExifInterface(file);
+        exif.setAttribute(ExifInterface.TAG_DATETIME_ORIGINAL, "2016:01:28 09:17:34");
+
+        // Modified tells us we're in UTC
+        assertEquals(1453972654000L,
+                (long) parseOptionalDateTaken(exif, 1453972654000L - 60000L).get());
+        assertEquals(1453972654000L,
+                (long) parseOptionalDateTaken(exif, 1453972654000L + 60000L).get());
+
+        // Modified tells us we're in -7
+        assertEquals(1453972654000L + 25200000L,
+                (long) parseOptionalDateTaken(exif, 1453972654000L + 25200000L - 60000L).get());
+        assertEquals(1453972654000L + 25200000L,
+                (long) parseOptionalDateTaken(exif, 1453972654000L + 25200000L + 60000L).get());
+
+        // Modified tells us we're in +7
+        assertEquals(1453972654000L - 25200000L,
+                (long) parseOptionalDateTaken(exif, 1453972654000L - 25200000L - 60000L).get());
+        assertEquals(1453972654000L - 25200000L,
+                (long) parseOptionalDateTaken(exif, 1453972654000L - 25200000L + 60000L).get());
+
+        // Modified beyond 24 hours isn't helpful
+        assertFalse(parseOptionalDateTaken(exif, 1453972654000L - 86400000L).isPresent());
+        assertFalse(parseOptionalDateTaken(exif, 1453972654000L + 86400000L).isPresent());
+    }
+
+    @Test
+    public void testParseDateTaken_Hopeless() throws Exception {
+        final File file = File.createTempFile("test", ".jpg");
+        final ExifInterface exif = new ExifInterface(file);
+        exif.setAttribute(ExifInterface.TAG_DATETIME_ORIGINAL, "2016:01:28 09:17:34");
+
+        // Offset is completely missing, and no useful GPS or modified time
+        assertFalse(parseOptionalDateTaken(exif, 0L).isPresent());
     }
 
     private static void assertDirectoryHidden(File file) {

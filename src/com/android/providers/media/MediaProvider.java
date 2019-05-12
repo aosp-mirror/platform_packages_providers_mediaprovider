@@ -1897,8 +1897,7 @@ public class MediaProvider extends ContentProvider {
                 values.put(MediaColumns.DISPLAY_NAME, extractDisplayName(data));
             }
             if (TextUtils.isEmpty(values.getAsString(MediaColumns.MIME_TYPE))) {
-                final String ext = data.substring(data.lastIndexOf('.') + 1);
-                values.put(MediaColumns.MIME_TYPE, MimeUtils.guessMimeTypeFromExtension(ext));
+                values.put(MediaColumns.MIME_TYPE, MediaFile.getMimeTypeForFile(data));
             }
         }
 
@@ -3173,6 +3172,18 @@ public class MediaProvider extends ContentProvider {
         return false;
     }
 
+    private String getSharedPackages(String callingPackage) {
+        try {
+            int callingPackageUid = getContext().getPackageManager().getPackageUid(callingPackage,
+                    0);
+            String[] sharedPackages = getContext().getPackageManager()
+                    .getPackagesForUid(callingPackageUid);
+            return bindList((Object[]) sharedPackages);
+        } catch (NameNotFoundException e) {
+            return bindList(callingPackage);
+        }
+    }
+
     private static final int TYPE_QUERY = 0;
     private static final int TYPE_UPDATE = 1;
     private static final int TYPE_DELETE = 2;
@@ -3218,7 +3229,7 @@ public class MediaProvider extends ContentProvider {
         } else {
             includeVolumes = bindList(volumeName);
         }
-
+        final String sharedPackages = getSharedPackages(callingPackage);
         final boolean allowGlobal = checkCallingPermissionGlobal(uri, forWrite);
         final boolean allowLegacy = checkCallingPermissionLegacy(uri, forWrite, callingPackage);
         final boolean allowLegacyRead = allowLegacy && !forWrite;
@@ -3245,8 +3256,8 @@ public class MediaProvider extends ContentProvider {
                             FileColumns.MEDIA_TYPE_IMAGE);
                 }
                 if (!allowGlobal && !checkCallingPermissionImages(forWrite, callingPackage)) {
-                    appendWhereStandalone(qb, FileColumns.OWNER_PACKAGE_NAME + "=?",
-                            callingPackage);
+                    appendWhereStandalone(qb, FileColumns.OWNER_PACKAGE_NAME + " IN "
+                            + sharedPackages);
                 }
                 if (!includePending) {
                     appendWhereStandalone(qb, FileColumns.IS_PENDING + "=?", 0);
@@ -3273,8 +3284,8 @@ public class MediaProvider extends ContentProvider {
 
                 if (!allowGlobal && !checkCallingPermissionImages(forWrite, callingPackage)) {
                     appendWhereStandalone(qb,
-                            "image_id IN (SELECT _id FROM images WHERE owner_package_name=?)",
-                            callingPackage);
+                            "image_id IN (SELECT _id FROM images WHERE owner_package_name IN "
+                                    + sharedPackages + ")");
                 }
                 break;
             }
@@ -3299,8 +3310,8 @@ public class MediaProvider extends ContentProvider {
                     // support legacy use-cases.
                     appendWhereStandalone(qb,
                             DatabaseUtils.bindSelection(FileColumns.OWNER_PACKAGE_NAME
-                                    + "=? OR is_ringtone=1 OR is_alarm=1 OR is_notification=1",
-                                    callingPackage));
+                                    + " IN " + sharedPackages
+                                    + " OR is_ringtone=1 OR is_alarm=1 OR is_notification=1"));
                 }
                 if (!includePending) {
                     appendWhereStandalone(qb, FileColumns.IS_PENDING + "=?", 0);
@@ -3389,8 +3400,8 @@ public class MediaProvider extends ContentProvider {
                             FileColumns.MEDIA_TYPE_PLAYLIST);
                 }
                 if (!allowGlobal && !checkCallingPermissionAudio(forWrite, callingPackage)) {
-                    appendWhereStandalone(qb, FileColumns.OWNER_PACKAGE_NAME + "=?",
-                            callingPackage);
+                    appendWhereStandalone(qb, FileColumns.OWNER_PACKAGE_NAME + " IN "
+                            + sharedPackages);
                 }
                 if (!includePending) {
                     appendWhereStandalone(qb, FileColumns.IS_PENDING + "=?", 0);
@@ -3543,8 +3554,8 @@ public class MediaProvider extends ContentProvider {
                             FileColumns.MEDIA_TYPE_VIDEO);
                 }
                 if (!allowGlobal && !checkCallingPermissionVideo(forWrite, callingPackage)) {
-                    appendWhereStandalone(qb, FileColumns.OWNER_PACKAGE_NAME + "=?",
-                            callingPackage);
+                    appendWhereStandalone(qb, FileColumns.OWNER_PACKAGE_NAME + " IN "
+                            + sharedPackages);
                 }
                 if (!includePending) {
                     appendWhereStandalone(qb, FileColumns.IS_PENDING + "=?", 0);
@@ -3565,8 +3576,8 @@ public class MediaProvider extends ContentProvider {
                 qb.setProjectionMap(getProjectionMap(Video.Thumbnails.class));
                 if (!allowGlobal && !checkCallingPermissionVideo(forWrite, callingPackage)) {
                     appendWhereStandalone(qb,
-                            "video_id IN (SELECT _id FROM video WHERE owner_package_name=?)",
-                            callingPackage);
+                            "video_id IN (SELECT _id FROM video WHERE owner_package_name IN "
+                                    + sharedPackages + ")");
                 }
                 break;
 
@@ -3584,8 +3595,8 @@ public class MediaProvider extends ContentProvider {
 
                 final ArrayList<String> options = new ArrayList<>();
                 if (!allowGlobal && !allowLegacyRead) {
-                    options.add(DatabaseUtils.bindSelection("owner_package_name=?",
-                            callingPackage));
+                    options.add(DatabaseUtils.bindSelection("owner_package_name IN "
+                            + sharedPackages));
                     if (allowLegacy) {
                         options.add(DatabaseUtils.bindSelection("volume_name=?",
                                 MediaStore.VOLUME_EXTERNAL_PRIMARY));
@@ -3639,8 +3650,8 @@ public class MediaProvider extends ContentProvider {
 
                 final ArrayList<String> options = new ArrayList<>();
                 if (!allowGlobal && !allowLegacyRead) {
-                    options.add(DatabaseUtils.bindSelection("owner_package_name=?",
-                            callingPackage));
+                    options.add(DatabaseUtils.bindSelection("owner_package_name IN "
+                            + sharedPackages));
                     if (allowLegacy) {
                         options.add(DatabaseUtils.bindSelection("volume_name=?",
                                 MediaStore.VOLUME_EXTERNAL_PRIMARY));

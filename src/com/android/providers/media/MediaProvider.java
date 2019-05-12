@@ -291,7 +291,11 @@ public class MediaProvider extends ContentProvider {
                 if (sv.isPrimary()) {
                     volumeName = MediaStore.VOLUME_EXTERNAL_PRIMARY;
                 } else {
-                    volumeName = MediaStore.checkArgumentVolumeName(sv.getNormalizedUuid());
+                    try {
+                        volumeName = MediaStore.checkArgumentVolumeName(sv.getNormalizedUuid());
+                    } catch (IllegalArgumentException ignored) {
+                        return;
+                    }
                 }
 
                 switch (intent.getAction()) {

@@ -19,7 +19,6 @@ package com.android.providers.media.util;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.media.ExifInterface;
-import android.os.ParcelFileDescriptor;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
@@ -32,6 +31,7 @@ import libcore.io.Memory;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileDescriptor;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -49,6 +49,7 @@ public class IsoInterface {
     private static final String TAG = "IsoInterface";
     private static final boolean LOGV = Log.isLoggable(TAG, Log.VERBOSE);
 
+    public static final int BOX_FTYP = 0x66747970;
     public static final int BOX_UUID = 0x75756964;
     public static final int BOX_META = 0x6d657461;
     public static final int BOX_XMP = 0x584d505f;
@@ -194,13 +195,15 @@ public class IsoInterface {
 
     private IsoInterface(@NonNull FileDescriptor fd) throws IOException {
         try {
-            final long end = Os.lseek(fd, 0, OsConstants.SEEK_END);
-
             Os.lseek(fd, 4, OsConstants.SEEK_SET);
-            if (readInt(fd) != 0x66747970) {
-                throw new IOException("Missing 'ftyp' header");
+            if (readInt(fd) != BOX_FTYP) {
+                if (LOGV) {
+                    Log.w(TAG, "Missing 'ftyp' header");
+                }
+                return;
             }
 
+            final long end = Os.lseek(fd, 0, OsConstants.SEEK_END);
             Os.lseek(fd, 0, OsConstants.SEEK_SET);
             Box box;
             while ((box = parseNextBox(fd, end, "")) != null) {
@@ -223,10 +226,14 @@ public class IsoInterface {
 
     public static @NonNull IsoInterface fromFile(@NonNull File file)
             throws IOException {
-        try (ParcelFileDescriptor pfd = ParcelFileDescriptor.open(file,
-                ParcelFileDescriptor.MODE_READ_ONLY)) {
-            return new IsoInterface(pfd.getFileDescriptor());
+        try (FileInputStream is = new FileInputStream(file)) {
+            return fromFileDescriptor(is.getFD());
         }
+    }
+
+    public static @NonNull IsoInterface fromFileDescriptor(@NonNull FileDescriptor fd)
+            throws IOException {
+        return new IsoInterface(fd);
     }
 
     /**

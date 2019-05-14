@@ -145,7 +145,6 @@ import com.android.providers.media.util.IsoInterface;
 import com.android.providers.media.util.XmpInterface;
 
 import libcore.io.IoUtils;
-import libcore.net.MimeMap;
 import libcore.util.EmptyArray;
 
 import java.io.File;

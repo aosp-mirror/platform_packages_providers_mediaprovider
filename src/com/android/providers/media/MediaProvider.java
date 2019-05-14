@@ -136,6 +136,7 @@ import com.android.internal.util.ArrayUtils;
 import com.android.internal.util.IndentingPrintWriter;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
+import com.android.providers.media.util.IsoInterface;
 
 import libcore.io.IoUtils;
 import libcore.net.MimeUtils;
@@ -143,6 +144,7 @@ import libcore.util.EmptyArray;
 
 import java.io.File;
 import java.io.FileDescriptor;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
@@ -5290,7 +5292,7 @@ public class MediaProvider extends ContentProvider {
     /**
      * Set of Exif tags that should be considered for redaction.
      */
-    private static final String[] REDACTED_TAGS = new String[] {
+    private static final String[] REDACTED_EXIF_TAGS = new String[] {
             ExifInterface.TAG_GPS_ALTITUDE,
             ExifInterface.TAG_GPS_ALTITUDE_REF,
             ExifInterface.TAG_GPS_AREA_INFORMATION,
@@ -5322,6 +5324,18 @@ public class MediaProvider extends ContentProvider {
             ExifInterface.TAG_GPS_TRACK,
             ExifInterface.TAG_GPS_TRACK_REF,
             ExifInterface.TAG_GPS_VERSION_ID,
+            ExifInterface.TAG_XMP,
+    };
+
+    /**
+     * Set of ISO boxes that should be considered for redaction.
+     */
+    private static final int[] REDACTED_ISO_BOXES = new int[] {
+            IsoInterface.BOX_LOCI,
+            IsoInterface.BOX_XYZ,
+            IsoInterface.BOX_GPS,
+            IsoInterface.BOX_GPS0,
+            IsoInterface.BOX_XMP,
     };
 
     /**
@@ -5330,22 +5344,27 @@ public class MediaProvider extends ContentProvider {
      */
     private long[] getRedactionRanges(File file) {
         Trace.traceBegin(TRACE_TAG_DATABASE, "getRedactionRanges");
-        long[] res = EmptyArray.LONG;
-        try {
-            final ExifInterface exif = new ExifInterface(file);
-            for (String tag : REDACTED_TAGS) {
+        final LongArray res = new LongArray();
+        try (FileInputStream is = new FileInputStream(file)) {
+            final ExifInterface exif = new ExifInterface(is.getFD());
+            for (String tag : REDACTED_EXIF_TAGS) {
                 final long[] range = exif.getAttributeRange(tag);
                 if (range != null) {
-                    res = Arrays.copyOf(res, res.length + 2);
-                    res[res.length - 2] = range[0];
-                    res[res.length - 1] = range[0] + range[1];
+                    res.add(range[0]);
+                    res.add(range[0] + range[1]);
                 }
             }
+
+            final IsoInterface iso = IsoInterface.fromFileDescriptor(is.getFD());
+            for (int box : REDACTED_ISO_BOXES) {
+                final long[] ranges = iso.getBoxRanges(box);
+                res.addAll(LongArray.wrap(ranges));
+            }
         } catch (IOException e) {
-            Log.w(TAG, "Failed to redact Exif from " + file + ": " + e);
+            Log.w(TAG, "Failed to redact " + file + ": " + e);
         }
         Trace.traceEnd(TRACE_TAG_DATABASE);
-        return res;
+        return res.toArray();
     }
 
     private boolean checkCallingPermissionGlobal(Uri uri, boolean forWrite) {

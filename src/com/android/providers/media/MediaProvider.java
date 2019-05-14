@@ -139,7 +139,6 @@ import com.android.providers.media.scan.ModernMediaScanner;
 import com.android.providers.media.util.IsoInterface;
 
 import libcore.io.IoUtils;
-import libcore.net.MimeUtils;
 import libcore.util.EmptyArray;
 
 import java.io.File;

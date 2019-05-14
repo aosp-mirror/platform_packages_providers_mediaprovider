@@ -210,12 +210,10 @@ public class MediaProviderTest {
     @Test
     public void testBuildData_InvalidNames() throws Exception {
         final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
-        assertThrows(IllegalArgumentException.class, () -> {
-            buildFile(uri, null, null, "foo/bar", "image/png");
-        });
-        assertThrows(IllegalArgumentException.class, () -> {
-            buildFile(uri, null, null, ".hidden", "image/png");
-        });
+        assertEndsWith("/Pictures/foo_bar.png",
+            buildFile(uri, null, null, "foo/bar", "image/png"));
+        assertEndsWith("/Pictures/_.hidden.png",
+            buildFile(uri, null, null, ".hidden", "image/png"));
     }
 
     @Test

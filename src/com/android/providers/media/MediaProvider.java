@@ -477,7 +477,7 @@ public class MediaProvider extends ContentProvider {
          * {@link ContentResolver#notifyChange}, but are instead being collected
          * due to an ongoing transaction.
          */
-        private ThreadLocal<List<Uri>> mNotifyChanges = new ThreadLocal<>();
+        private final ThreadLocal<List<Uri>> mNotifyChanges = new ThreadLocal<>();
 
         public void beginTransaction() {
             getWritableDatabase().beginTransaction();
@@ -488,15 +488,11 @@ public class MediaProvider extends ContentProvider {
             getWritableDatabase().setTransactionSuccessful();
             final List<Uri> uris = mNotifyChanges.get();
             if (uris != null) {
-                final Uri uri = computeCommonPrefix(uris);
-                if (uri != null) {
-                    Trace.traceBegin(TRACE_TAG_DATABASE, "setTransactionSuccessful");
-                    try {
-                        mContext.getContentResolver().notifyChange(uri, null);
-                    } finally {
-                        Trace.traceEnd(TRACE_TAG_DATABASE);
+                BackgroundThread.getExecutor().execute(() -> {
+                    for (Uri uri : uris) {
+                        notifyChangeInternal(uri);
                     }
-                }
+                });
             }
             mNotifyChanges.remove();
         }
@@ -516,12 +512,18 @@ public class MediaProvider extends ContentProvider {
             if (uris != null) {
                 uris.add(uri);
             } else {
-                Trace.traceBegin(TRACE_TAG_DATABASE, "notifyChange");
-                try {
-                    mContext.getContentResolver().notifyChange(uri, null);
-                } finally {
-                    Trace.traceEnd(TRACE_TAG_DATABASE);
-                }
+                BackgroundThread.getExecutor().execute(() -> {
+                    notifyChangeInternal(uri);
+                });
+            }
+        }
+
+        private void notifyChangeInternal(Uri uri) {
+            Trace.traceBegin(TRACE_TAG_DATABASE, "notifyChange");
+            try {
+                mContext.getContentResolver().notifyChange(uri, null);
+            } finally {
+                Trace.traceEnd(TRACE_TAG_DATABASE);
             }
         }
     }
@@ -533,7 +535,8 @@ public class MediaProvider extends ContentProvider {
      * this method expands the single item being accepted to also accept all
      * relevant views.
      */
-    public static void acceptWithExpansion(Consumer<Uri> consumer, Uri uri, int match) {
+    public static void acceptWithExpansion(Consumer<Uri> consumer, Uri uri) {
+        final int match = matchUri(uri, true);
         acceptWithExpansionInternal(consumer, uri, match);
 
         try {
@@ -598,6 +601,7 @@ public class MediaProvider extends ContentProvider {
                 consumer.accept(Audio.Media.getContentUri(volumeName));
                 consumer.accept(Video.Media.getContentUri(volumeName));
                 consumer.accept(Images.Media.getContentUri(volumeName));
+                break;
             }
         }
 
@@ -611,6 +615,7 @@ public class MediaProvider extends ContentProvider {
                 consumer.accept(Audio.Playlists.getContentUri(volumeName));
                 consumer.accept(Audio.Artists.getContentUri(volumeName));
                 consumer.accept(Audio.Albums.getContentUri(volumeName));
+                break;
             }
         }
     }
@@ -3121,7 +3126,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (newUri != null) {
-            acceptWithExpansion(helper::notifyChange, newUri, match);
+            acceptWithExpansion(helper::notifyChange, newUri);
         }
         return newUri;
     }
@@ -3897,7 +3902,7 @@ public class MediaProvider extends ContentProvider {
                                 getContext().revokeUriPermission(expandedUri,
                                         Intent.FLAG_GRANT_READ_URI_PERMISSION
                                                 | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                            }, deletedUri, match);
+                            }, deletedUri);
 
                             // Only need to inform DownloadProvider about the downloads deleted on
                             // external volume.
@@ -4015,7 +4020,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (count > 0) {
-            acceptWithExpansion(helper::notifyChange, uri, match);
+            acceptWithExpansion(helper::notifyChange, uri);
         }
         return count;
     }
@@ -4699,7 +4704,7 @@ public class MediaProvider extends ContentProvider {
                     }
 
                     if (count > 0) {
-                        acceptWithExpansion(helper::notifyChange, uri, match);
+                        acceptWithExpansion(helper::notifyChange, uri);
                     }
                     if (f.getName().startsWith(".")) {
                         MediaScanner.instance(getContext()).scanFile(new File(newPath));
@@ -4894,7 +4899,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (count > 0) {
-            acceptWithExpansion(helper::notifyChange, uri, match);
+            acceptWithExpansion(helper::notifyChange, uri);
         }
         return count;
     }

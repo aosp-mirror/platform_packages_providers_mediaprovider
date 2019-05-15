@@ -99,6 +99,7 @@ import android.os.UserManager;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.os.storage.VolumeInfo;
+import android.os.storage.VolumeRecord;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.provider.Column;
@@ -774,10 +775,8 @@ public class MediaProvider extends ContentProvider {
             onPackageOrphaned(packageName);
         }
 
-        // Delete any expired content
-
-        // We're paranoid about wildly changing clocks, so only delete
-        // media that has expired within the last week
+        // Delete any expired content; we're paranoid about wildly changing
+        // clocks, so only delete items within the last week
         final long from = ((System.currentTimeMillis() - DateUtils.WEEK_IN_MILLIS) / 1000);
         final long to = (System.currentTimeMillis() / 1000);
         try (Cursor c = db.query(true, "files", new String[] { "volume_name", "_id" },
@@ -789,6 +788,23 @@ public class MediaProvider extends ContentProvider {
                 delete(Files.getContentUri(volumeName, id), null, null);
             }
             Log.d(TAG, "Deleted " + c.getCount() + " expired items on " + helper.mName);
+        }
+
+        // Forget any stale volumes
+        final long lastWeek = System.currentTimeMillis() - DateUtils.WEEK_IN_MILLIS;
+        for (VolumeRecord rec : mStorageManager.getVolumeRecords()) {
+            // Skip volumes without valid UUIDs
+            if (TextUtils.isEmpty(rec.fsUuid)) continue;
+
+            // Skip volumes that are currently mounted
+            final VolumeInfo vol = mStorageManager.findVolumeByUuid(rec.fsUuid);
+            if (vol != null && vol.isMountedReadable()) continue;
+
+            if (rec.lastSeenMillis > 0 && rec.lastSeenMillis < lastWeek) {
+                final int num = db.delete("files", FileColumns.VOLUME_NAME + "=?",
+                        new String[] { rec.getNormalizedFsUuid() });
+                Log.d(TAG, "Forgot " + num + " stale items from " + rec.fsUuid);
+            }
         }
     }
 

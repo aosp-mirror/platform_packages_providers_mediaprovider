@@ -139,7 +139,6 @@ import com.android.providers.media.scan.ModernMediaScanner;
 import com.android.providers.media.util.IsoInterface;
 
 import libcore.io.IoUtils;
-import libcore.net.MimeMap;
 import libcore.util.EmptyArray;
 
 import java.io.File;
@@ -2026,10 +2025,9 @@ public class MediaProvider extends ContentProvider {
     private static @Nullable String sanitizeDisplayName(@Nullable String name) {
         if (name == null) {
             return null;
-        } else if (name.indexOf('/') >= 0) {
-            throw new IllegalArgumentException("Directory paths not allowed: " + name);
         } else if (name.startsWith(".")) {
-            throw new IllegalArgumentException("Hidden files not allowed: " + name);
+            // The resulting file must not be hidden.
+            return FileUtils.buildValidFatFilename("_" + name);
         } else {
             return FileUtils.buildValidFatFilename(name);
         }

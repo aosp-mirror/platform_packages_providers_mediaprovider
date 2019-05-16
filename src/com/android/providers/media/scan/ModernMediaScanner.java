@@ -685,7 +685,7 @@ public class ModernMediaScanner implements MediaScanner {
         op.withValue(ImageColumns.DESCRIPTION, null);
 
         try (FileInputStream is = new FileInputStream(file)) {
-            final ExifInterface exif = new ExifInterface(is.getFD());
+            final ExifInterface exif = new ExifInterface(is);
 
             withOptionalValue(op, MediaColumns.WIDTH,
                     parseOptional(exif.getAttribute(ExifInterface.TAG_IMAGE_WIDTH)));

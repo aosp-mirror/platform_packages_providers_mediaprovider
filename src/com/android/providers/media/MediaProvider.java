@@ -889,6 +889,7 @@ public class MediaProvider extends ContentProvider {
         // outstanding permission grants to ensure we don't leak data
         AppGlobals.getInitialApplication().revokeUriPermission(MediaStore.AUTHORITY_URI,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        MediaDocumentsProvider.revokeAllUriGrants(AppGlobals.getInitialApplication());
 
         makePristineSchema(db);
 

@@ -22,6 +22,7 @@ import android.annotation.Nullable;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
+import android.content.Intent;
 import android.content.MimeTypeFilter;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
@@ -249,6 +250,11 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             context.revokeUriPermission(uri, ~0);
             notifyRootsChanged(context);
         }
+    }
+
+    static void revokeAllUriGrants(Context context) {
+        context.revokeUriPermission(DocumentsContract.buildBaseDocumentUri(AUTHORITY),
+                Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
     }
 
     private static class Ident {

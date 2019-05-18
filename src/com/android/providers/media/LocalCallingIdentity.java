@@ -34,6 +34,10 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.storage.StorageManager;
 
+import com.android.internal.util.ArrayUtils;
+
+import libcore.util.EmptyArray;
+
 public class LocalCallingIdentity {
     public final int pid;
     public final int uid;
@@ -54,6 +58,10 @@ public class LocalCallingIdentity {
                 callingPackage);
     }
 
+    public static LocalCallingIdentity fromExternal(int uid, String packageName) {
+        return new LocalCallingIdentity(-1, uid, packageName);
+    }
+
     public static LocalCallingIdentity fromSelf() {
         final LocalCallingIdentity ident = new LocalCallingIdentity(
                 android.os.Process.myPid(),
@@ -64,7 +72,7 @@ public class LocalCallingIdentity {
         ident.packageNameResolved = true;
         ident.targetSdkVersion = Build.VERSION_CODES.CUR_DEVELOPMENT;
         ident.targetSdkVersionResolved = true;
-        ident.hasPermission = PERMISSION_IS_SYSTEM;
+        ident.hasPermission = ~(PERMISSION_IS_LEGACY | PERMISSION_IS_REDACTION_NEEDED);
         ident.hasPermissionResolved = ~0;
 
         return ident;
@@ -90,6 +98,21 @@ public class LocalCallingIdentity {
         getContext().getSystemService(AppOpsManager.class)
                 .checkPackage(uid, packageNameUnchecked);
         return packageNameUnchecked;
+    }
+
+    private String[] sharedPackageNames;
+    private boolean sharedPackageNamesResolved;
+
+    public String[] getSharedPackageNames() {
+        if (!sharedPackageNamesResolved) {
+            sharedPackageNames = getSharedPackageNamesInternal();
+            sharedPackageNamesResolved = true;
+        }
+        return sharedPackageNames;
+    }
+
+    private String[] getSharedPackageNamesInternal() {
+        return ArrayUtils.defeatNullable(getContext().getPackageManager().getPackagesForUid(uid));
     }
 
     private int targetSdkVersion;
@@ -204,5 +227,19 @@ public class LocalCallingIdentity {
             return false;
         }
         return true;
+    }
+
+    private long[] ownedIds = EmptyArray.LONG;
+
+    public boolean isOwned(long id) {
+        return ArrayUtils.contains(ownedIds, id);
+    }
+
+    public void setOwned(long id, boolean owned) {
+        if (owned) {
+            ownedIds = ArrayUtils.appendLong(ownedIds, id);
+        } else {
+            ownedIds = ArrayUtils.removeLong(ownedIds, id);
+        }
     }
 }

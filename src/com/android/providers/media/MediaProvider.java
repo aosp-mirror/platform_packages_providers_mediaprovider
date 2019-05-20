@@ -4444,7 +4444,6 @@ public class MediaProvider extends ContentProvider {
 
     private int updateInternal(Uri uri, ContentValues initialValues, String userWhere,
             String[] userWhereArgs) {
-        final Uri originalUri = uri;
         if ("com.google.android.GoogleCamera".equals(getCallingPackageOrSelf())) {
             if (matchUri(uri, false) == IMAGES_MEDIA_ID) {
                 Log.w(TAG, "Working around app bug in b/111966296");
@@ -4514,8 +4513,9 @@ public class MediaProvider extends ContentProvider {
                 // We default to filtering mutable columns, except when we know
                 // the single item being updated is pending; when it's finally
                 // published we'll overwrite these values.
+                final Uri finalUri = uri;
                 final Supplier<Boolean> isPending = new CachedSupplier<>(() -> {
-                    return isPending(originalUri);
+                    return isPending(finalUri);
                 });
 
                 // Column values controlled by media scanner aren't writable by
@@ -4598,7 +4598,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             final LocalCallingIdentity token = clearLocalCallingIdentity();
-            try (Cursor c = queryForSingleItem(originalUri,
+            try (Cursor c = queryForSingleItem(uri,
                     sPlacementColumns.toArray(EmptyArray.STRING), userWhere, userWhereArgs, null)) {
                 for (int i = 0; i < c.getColumnCount(); i++) {
                     final String column = c.getColumnName(i);

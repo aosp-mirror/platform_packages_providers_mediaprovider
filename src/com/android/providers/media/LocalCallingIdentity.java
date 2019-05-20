@@ -193,6 +193,10 @@ public class LocalCallingIdentity {
     }
 
     private boolean isSystemInternal() {
+        if (uid == android.os.Process.SYSTEM_UID) {
+            return true;
+        }
+
         // Special case to speed up when MediaProvider is calling itself; we
         // know it always has system permissions
         if (uid == android.os.Process.myUid()) {

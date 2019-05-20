@@ -52,10 +52,18 @@ public class LocalCallingIdentity {
     public static LocalCallingIdentity fromBinder(ContentProvider provider) {
         String callingPackage = provider.getCallingPackageUnchecked();
         if (callingPackage == null) {
-            callingPackage = AppGlobals.getInitialApplication().getOpPackageName();
+            callingPackage = getContext().getOpPackageName();
         }
         return new LocalCallingIdentity(Binder.getCallingPid(), Binder.getCallingUid(),
                 callingPackage);
+    }
+
+    public static LocalCallingIdentity fromExternal(int uid) {
+        final String[] sharedPackageNames = getContext().getPackageManager().getPackagesForUid(uid);
+        if (ArrayUtils.isEmpty(sharedPackageNames)) {
+            throw new IllegalArgumentException("UID " + uid + " has no associated package");
+        }
+        return fromExternal(uid, sharedPackageNames[0]);
     }
 
     public static LocalCallingIdentity fromExternal(int uid, String packageName) {
@@ -78,7 +86,7 @@ public class LocalCallingIdentity {
         return ident;
     }
 
-    private Context getContext() {
+    private static Context getContext() {
         return AppGlobals.getInitialApplication();
     }
 

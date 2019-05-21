@@ -1852,9 +1852,7 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public String getType(Uri url) {
-        final boolean allowHidden = isCallingPackageAllowedHidden();
-        final int match = matchUri(url, allowHidden);
-
+        final int match = matchUri(url, true);
         switch (match) {
             case IMAGES_MEDIA_ID:
             case AUDIO_MEDIA_ID:

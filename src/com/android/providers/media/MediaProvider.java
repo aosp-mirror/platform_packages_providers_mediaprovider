@@ -775,8 +775,9 @@ public class MediaProvider extends ContentProvider {
         final int thumbSize = Math.min(metrics.widthPixels, metrics.heightPixels) / 2;
         mThumbSize = new Size(thumbSize, thumbSize);
 
-        // TODO: rename to single database file
-        mDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false,
+        mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, false,
+                false, mObjectRemovedCallback);
+        mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false,
                 false, mObjectRemovedCallback);
 
         final IntentFilter filter = new IntentFilter();
@@ -830,7 +831,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     public void onIdleMaintenance(@NonNull CancellationSignal signal) {
-        final DatabaseHelper helper = mDatabase;
+        final DatabaseHelper helper = mExternalDatabase;
         final SQLiteDatabase db = helper.getReadableDatabase();
 
         // Scan all volumes to resolve any staleness
@@ -904,7 +905,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     public void onPackageOrphaned(String packageName) {
-        final DatabaseHelper helper = mDatabase;
+        final DatabaseHelper helper = mExternalDatabase;
         final SQLiteDatabase db = helper.getWritableDatabase();
 
         final ContentValues values = new ContentValues();
@@ -2445,7 +2446,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void localizeTitles() {
-        final DatabaseHelper helper = mDatabase;
+        final DatabaseHelper helper = mInternalDatabase;
         final SQLiteDatabase db = helper.getWritableDatabase();
 
         try (Cursor c = db.query("files", new String[]{"_id", "title_resource_uri"},
@@ -4246,7 +4247,7 @@ public class MediaProvider extends ContentProvider {
      * deleted when the app is uninstalled.
      */
     private @BytesLong long forEachContributedMedia(String packageName, Consumer<Uri> consumer) {
-        final DatabaseHelper helper = mDatabase;
+        final DatabaseHelper helper = mExternalDatabase;
         final SQLiteDatabase db = helper.getReadableDatabase();
 
         final SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
@@ -4283,7 +4284,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void pruneThumbnails(@NonNull CancellationSignal signal) {
-        final DatabaseHelper helper = mDatabase;
+        final DatabaseHelper helper = mExternalDatabase;
         final SQLiteDatabase db = helper.getReadableDatabase();
 
         // Determine all known media items
@@ -5894,7 +5895,11 @@ public class MediaProvider extends ContentProvider {
                 throw new VolumeNotFoundException(volumeName);
             }
         }
-        return mDatabase;
+        if (MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
+            return mInternalDatabase;
+        } else {
+            return mExternalDatabase;
+        }
     }
 
     static boolean isMediaDatabaseName(String name) {
@@ -5948,7 +5953,7 @@ public class MediaProvider extends ContentProvider {
         getContext().getContentResolver().notifyChange(uri, null);
         if (LOCAL_LOGV) Log.v(TAG, "Attached volume: " + volume);
         if (!MediaStore.VOLUME_INTERNAL.equals(volume)) {
-            final DatabaseHelper helper = mDatabase;
+            final DatabaseHelper helper = mInternalDatabase;
             ensureDefaultFolders(volume, helper, helper.getWritableDatabase());
         }
         return uri;
@@ -6011,7 +6016,8 @@ public class MediaProvider extends ContentProvider {
     @GuardedBy("mAttachedVolumeNames")
     private final ArraySet<String> mAttachedVolumeNames = new ArraySet<>();
 
-    private DatabaseHelper mDatabase;
+    private DatabaseHelper mInternalDatabase;
+    private DatabaseHelper mExternalDatabase;
 
     // name of the volume currently being scanned by the media scanner (or null)
     private String mMediaScannerVolume;
@@ -6434,7 +6440,8 @@ public class MediaProvider extends ContentProvider {
         pw.printPair("mAttachedVolumeNames", mAttachedVolumeNames);
         pw.println();
 
-        pw.println(dump(mDatabase, true));
+        pw.println(dump(mInternalDatabase, true));
+        pw.println(dump(mExternalDatabase, true));
     }
 
     private String dump(DatabaseHelper dbh, boolean dumpDbLog) {

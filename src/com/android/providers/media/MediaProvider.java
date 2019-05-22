@@ -988,6 +988,16 @@ public class MediaProvider extends ContentProvider {
         AppGlobals.getInitialApplication().revokeUriPermission(MediaStore.AUTHORITY_URI,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         MediaDocumentsProvider.revokeAllUriGrants(AppGlobals.getInitialApplication());
+        BackgroundThread.getHandler().post(() -> {
+            try (ContentProviderClient client = AppGlobals.getInitialApplication()
+                    .getContentResolver().acquireContentProviderClient(
+                            android.provider.Downloads.Impl.AUTHORITY)) {
+                client.call(android.provider.Downloads.CALL_REVOKE_MEDIASTORE_URI_PERMS,
+                        null, null);
+            } catch (RemoteException e) {
+                // Should not happen
+            }
+        });
 
         makePristineSchema(db);
 

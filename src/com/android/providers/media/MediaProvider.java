@@ -66,6 +66,7 @@ import android.content.pm.PermissionGroupInfo;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.database.AbstractCursor;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.MatrixCursor;
@@ -774,8 +775,9 @@ public class MediaProvider extends ContentProvider {
         final int thumbSize = Math.min(metrics.widthPixels, metrics.heightPixels) / 2;
         mThumbSize = new Size(thumbSize, thumbSize);
 
-        // TODO: rename to single database file
-        mDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false,
+        mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, false,
+                false, mObjectRemovedCallback);
+        mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false,
                 false, mObjectRemovedCallback);
 
         final IntentFilter filter = new IntentFilter();
@@ -829,7 +831,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     public void onIdleMaintenance(@NonNull CancellationSignal signal) {
-        final DatabaseHelper helper = mDatabase;
+        final DatabaseHelper helper = mExternalDatabase;
         final SQLiteDatabase db = helper.getReadableDatabase();
 
         // Scan all volumes to resolve any staleness
@@ -903,7 +905,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     public void onPackageOrphaned(String packageName) {
-        final DatabaseHelper helper = mDatabase;
+        final DatabaseHelper helper = mExternalDatabase;
         final SQLiteDatabase db = helper.getWritableDatabase();
 
         final ContentValues values = new ContentValues();
@@ -1251,6 +1253,13 @@ public class MediaProvider extends ContentProvider {
                 + MtpConstants.FORMAT_ASSOCIATION);
     }
 
+    private static void updateRelativePath(SQLiteDatabase db, boolean internal) {
+        db.execSQL("UPDATE files"
+                + " SET " + MediaColumns.RELATIVE_PATH + "=" + MediaColumns.RELATIVE_PATH + "||'/'"
+                + " WHERE " + MediaColumns.RELATIVE_PATH + " IS NOT NULL"
+                + " AND " + MediaColumns.RELATIVE_PATH + " NOT LIKE '%/';");
+    }
+
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
                 null, null, null, null, null, null)) {
@@ -1278,7 +1287,7 @@ public class MediaProvider extends ContentProvider {
     static final int VERSION_N = 800;
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
-    static final int VERSION_Q = 1022;
+    static final int VERSION_Q = 1023;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -1372,6 +1381,9 @@ public class MediaProvider extends ContentProvider {
             }
             if (fromVersion < 1022) {
                 updateDirsMimeType(db, internal);
+            }
+            if (fromVersion < 1023) {
+                updateRelativePath(db, internal);
             }
 
             if (recomputeDataValues) {
@@ -1496,7 +1508,8 @@ public class MediaProvider extends ContentProvider {
         final String parent = fileLower.getParent();
         if (parent != null) {
             values.put(ImageColumns.BUCKET_ID, parent.hashCode());
-            if (!TextUtils.isEmpty(values.getAsString(ImageColumns.RELATIVE_PATH))) {
+            // The relative path for files in the top directory is "/"
+            if (!"/".equals(values.getAsString(ImageColumns.RELATIVE_PATH))) {
                 values.put(ImageColumns.BUCKET_DISPLAY_NAME, file.getParentFile().getName());
             }
         }
@@ -1826,14 +1839,8 @@ public class MediaProvider extends ContentProvider {
                 selection, selectionArgs, groupBy, having, sortOrder, limit, signal);
 
         if (c != null) {
-            final boolean localCaller = (mCallingIdentity.get().uid == android.os.Process.myUid());
-            final boolean noNotify = "1".equals(uri.getQueryParameter("nonotify"));
-            if (localCaller || noNotify) {
-                // Local callers are only transient in nature, and don't need to
-                // hear about content updates
-            } else {
-                c.setNotificationUri(getContext().getContentResolver(), uri);
-            }
+            ((AbstractCursor) c).setNotificationUris(getContext().getContentResolver(),
+                    Arrays.asList(uri), UserHandle.myUserId(), false);
         }
 
         return c;
@@ -1841,9 +1848,7 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public String getType(Uri url) {
-        final boolean allowHidden = isCallingPackageAllowedHidden();
-        final int match = matchUri(url, allowHidden);
-
+        final int match = matchUri(url, true);
         switch (match) {
             case IMAGES_MEDIA_ID:
             case AUDIO_MEDIA_ID:
@@ -2056,9 +2061,9 @@ public class MediaProvider extends ContentProvider {
 
                 if (primary != null) {
                     if (secondary != null) {
-                        values.put(MediaColumns.RELATIVE_PATH, primary + '/' + secondary);
+                        values.put(MediaColumns.RELATIVE_PATH, primary + '/' + secondary + '/');
                     } else {
-                        values.put(MediaColumns.RELATIVE_PATH, primary);
+                        values.put(MediaColumns.RELATIVE_PATH, primary + '/');
                     }
                 }
             }
@@ -2274,11 +2279,11 @@ public class MediaProvider extends ContentProvider {
         if (matcher.find()) {
             final int lastSlash = data.lastIndexOf('/');
             if (lastSlash == -1 || lastSlash < matcher.end()) {
-                // This is a file in the top-level directory, so it has an empty
-                // path, which is different than null, which means unknown path
-                return "";
+                // This is a file in the top-level directory, so relative path is "/"
+                // which is different than null, which means unknown path
+                return "/";
             } else {
-                return data.substring(matcher.end(), lastSlash);
+                return data.substring(matcher.end(), lastSlash + 1);
             }
         } else {
             return null;
@@ -2435,7 +2440,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void localizeTitles() {
-        final DatabaseHelper helper = mDatabase;
+        final DatabaseHelper helper = mInternalDatabase;
         final SQLiteDatabase db = helper.getWritableDatabase();
 
         try (Cursor c = db.query("files", new String[]{"_id", "title_resource_uri"},
@@ -4236,7 +4241,7 @@ public class MediaProvider extends ContentProvider {
      * deleted when the app is uninstalled.
      */
     private @BytesLong long forEachContributedMedia(String packageName, Consumer<Uri> consumer) {
-        final DatabaseHelper helper = mDatabase;
+        final DatabaseHelper helper = mExternalDatabase;
         final SQLiteDatabase db = helper.getReadableDatabase();
 
         final SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
@@ -4273,7 +4278,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void pruneThumbnails(@NonNull CancellationSignal signal) {
-        final DatabaseHelper helper = mDatabase;
+        final DatabaseHelper helper = mExternalDatabase;
         final SQLiteDatabase db = helper.getReadableDatabase();
 
         // Determine all known media items
@@ -5884,7 +5889,11 @@ public class MediaProvider extends ContentProvider {
                 throw new VolumeNotFoundException(volumeName);
             }
         }
-        return mDatabase;
+        if (MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
+            return mInternalDatabase;
+        } else {
+            return mExternalDatabase;
+        }
     }
 
     static boolean isMediaDatabaseName(String name) {
@@ -5938,7 +5947,7 @@ public class MediaProvider extends ContentProvider {
         getContext().getContentResolver().notifyChange(uri, null);
         if (LOCAL_LOGV) Log.v(TAG, "Attached volume: " + volume);
         if (!MediaStore.VOLUME_INTERNAL.equals(volume)) {
-            final DatabaseHelper helper = mDatabase;
+            final DatabaseHelper helper = mInternalDatabase;
             ensureDefaultFolders(volume, helper, helper.getWritableDatabase());
         }
         return uri;
@@ -6001,7 +6010,8 @@ public class MediaProvider extends ContentProvider {
     @GuardedBy("mAttachedVolumeNames")
     private final ArraySet<String> mAttachedVolumeNames = new ArraySet<>();
 
-    private DatabaseHelper mDatabase;
+    private DatabaseHelper mInternalDatabase;
+    private DatabaseHelper mExternalDatabase;
 
     // name of the volume currently being scanned by the media scanner (or null)
     private String mMediaScannerVolume;
@@ -6424,7 +6434,8 @@ public class MediaProvider extends ContentProvider {
         pw.printPair("mAttachedVolumeNames", mAttachedVolumeNames);
         pw.println();
 
-        pw.println(dump(mDatabase, true));
+        pw.println(dump(mInternalDatabase, true));
+        pw.println(dump(mExternalDatabase, true));
     }
 
     private String dump(DatabaseHelper dbh, boolean dumpDbLog) {

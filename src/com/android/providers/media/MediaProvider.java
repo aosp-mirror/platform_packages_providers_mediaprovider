@@ -1251,6 +1251,13 @@ public class MediaProvider extends ContentProvider {
                 + MtpConstants.FORMAT_ASSOCIATION);
     }
 
+    private static void updateRelativePath(SQLiteDatabase db, boolean internal) {
+        db.execSQL("UPDATE files"
+                + " SET " + MediaColumns.RELATIVE_PATH + "=" + MediaColumns.RELATIVE_PATH + "||'/'"
+                + " WHERE " + MediaColumns.RELATIVE_PATH + " IS NOT NULL"
+                + " AND " + MediaColumns.RELATIVE_PATH + " NOT LIKE '%/';");
+    }
+
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
                 null, null, null, null, null, null)) {
@@ -1278,7 +1285,7 @@ public class MediaProvider extends ContentProvider {
     static final int VERSION_N = 800;
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
-    static final int VERSION_Q = 1022;
+    static final int VERSION_Q = 1023;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -1372,6 +1379,9 @@ public class MediaProvider extends ContentProvider {
             }
             if (fromVersion < 1022) {
                 updateDirsMimeType(db, internal);
+            }
+            if (fromVersion < 1023) {
+                updateRelativePath(db, internal);
             }
 
             if (recomputeDataValues) {
@@ -1496,7 +1506,8 @@ public class MediaProvider extends ContentProvider {
         final String parent = fileLower.getParent();
         if (parent != null) {
             values.put(ImageColumns.BUCKET_ID, parent.hashCode());
-            if (!TextUtils.isEmpty(values.getAsString(ImageColumns.RELATIVE_PATH))) {
+            // The relative path for files in the top directory is "/"
+            if (!"/".equals(values.getAsString(ImageColumns.RELATIVE_PATH))) {
                 values.put(ImageColumns.BUCKET_DISPLAY_NAME, file.getParentFile().getName());
             }
         }
@@ -1841,9 +1852,7 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public String getType(Uri url) {
-        final boolean allowHidden = isCallingPackageAllowedHidden();
-        final int match = matchUri(url, allowHidden);
-
+        final int match = matchUri(url, true);
         switch (match) {
             case IMAGES_MEDIA_ID:
             case AUDIO_MEDIA_ID:
@@ -2056,9 +2065,9 @@ public class MediaProvider extends ContentProvider {
 
                 if (primary != null) {
                     if (secondary != null) {
-                        values.put(MediaColumns.RELATIVE_PATH, primary + '/' + secondary);
+                        values.put(MediaColumns.RELATIVE_PATH, primary + '/' + secondary + '/');
                     } else {
-                        values.put(MediaColumns.RELATIVE_PATH, primary);
+                        values.put(MediaColumns.RELATIVE_PATH, primary + '/');
                     }
                 }
             }
@@ -2274,11 +2283,11 @@ public class MediaProvider extends ContentProvider {
         if (matcher.find()) {
             final int lastSlash = data.lastIndexOf('/');
             if (lastSlash == -1 || lastSlash < matcher.end()) {
-                // This is a file in the top-level directory, so it has an empty
-                // path, which is different than null, which means unknown path
-                return "";
+                // This is a file in the top-level directory, so relative path is "/"
+                // which is different than null, which means unknown path
+                return "/";
             } else {
-                return data.substring(matcher.end(), lastSlash);
+                return data.substring(matcher.end(), lastSlash + 1);
             }
         } else {
             return null;

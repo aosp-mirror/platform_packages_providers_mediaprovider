@@ -142,6 +142,7 @@ import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.IsoInterface;
+import com.android.providers.media.util.XmpInterface;
 
 import libcore.io.IoUtils;
 import libcore.net.MimeMap;
@@ -5418,7 +5419,6 @@ public class MediaProvider extends ContentProvider {
             ExifInterface.TAG_GPS_TRACK,
             ExifInterface.TAG_GPS_TRACK_REF,
             ExifInterface.TAG_GPS_VERSION_ID,
-            ExifInterface.TAG_XMP,
     };
 
     /**
@@ -5429,7 +5429,6 @@ public class MediaProvider extends ContentProvider {
             IsoInterface.BOX_XYZ,
             IsoInterface.BOX_GPS,
             IsoInterface.BOX_GPS0,
-            IsoInterface.BOX_XMP,
     };
 
     /**
@@ -5454,6 +5453,13 @@ public class MediaProvider extends ContentProvider {
                 final long[] ranges = iso.getBoxRanges(box);
                 res.addAll(LongArray.wrap(ranges));
             }
+
+            // Redact xmp where present
+            final Set<String> redactedXmpTags = new ArraySet<>(Arrays.asList(REDACTED_EXIF_TAGS));
+            final XmpInterface exifXmp = XmpInterface.fromContainer(exif, redactedXmpTags);
+            res.addAll(exifXmp.getRedactionRanges());
+            final XmpInterface isoXmp = XmpInterface.fromContainer(iso, redactedXmpTags);
+            res.addAll(isoXmp.getRedactionRanges());
         } catch (IOException e) {
             Log.w(TAG, "Failed to redact " + file + ": " + e);
         }

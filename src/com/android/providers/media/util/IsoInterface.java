@@ -253,6 +253,17 @@ public class IsoInterface {
         return res.toArray();
     }
 
+    public @NonNull long[] getBoxRanges(@NonNull UUID uuid) {
+        LongArray res = new LongArray();
+        for (Box box : mFlattened) {
+            if (box.type == BOX_UUID && Objects.equals(box.uuid, uuid)) {
+                res.add(box.range[0] + 8 + 16);
+                res.add(box.range[0] + box.range[1]);
+            }
+        }
+        return res.toArray();
+    }
+
     /**
      * Return contents of the first box of requested type.
      */

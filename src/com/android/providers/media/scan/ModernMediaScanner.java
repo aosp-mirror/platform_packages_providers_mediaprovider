@@ -33,6 +33,7 @@ import static android.media.MediaMetadataRetriever.METADATA_KEY_TITLE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_YEAR;
+import static android.os.Trace.TRACE_TAG_DATABASE;
 import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.UNKNOWN_STRING;
 import static android.text.format.DateUtils.HOUR_IN_MILLIS;
@@ -212,6 +213,7 @@ public class ModernMediaScanner implements MediaScanner {
         private final Uri mFilesUri;
         private final CancellationSignal mSignal;
 
+        private final boolean mSingleFile;
         private final ArrayList<ContentProviderOperation> mPending = new ArrayList<>();
         private LongArray mScannedIds = new LongArray();
         private LongArray mUnknownIds = new LongArray();
@@ -220,6 +222,8 @@ public class ModernMediaScanner implements MediaScanner {
         private Uri mFirstResult;
 
         public Scan(File root) {
+            Trace.traceBegin(TRACE_TAG_DATABASE, "ctor");
+
             mClient = mContext.getContentResolver()
                     .acquireContentProviderClient(MediaStore.AUTHORITY);
             mResolver = ContentResolver.wrap(mClient.getLocalContentProvider());
@@ -228,14 +232,36 @@ public class ModernMediaScanner implements MediaScanner {
             mVolumeName = MediaStore.getVolumeName(root);
             mFilesUri = MediaStore.setIncludePending(MediaStore.Files.getContentUri(mVolumeName));
             mSignal = getOrCreateSignal(mVolumeName);
+
+            mSingleFile = mRoot.isFile();
+
+            Trace.traceEnd(TRACE_TAG_DATABASE);
         }
 
         @Override
         public void run() {
             // First, scan everything that should be visible under requested
             // location, tracking scanned IDs along the way
+            walkFileTree();
+
+            // Second, reconcile all items known in the database against all the
+            // items we scanned above
+            if (mSingleFile && mScannedIds.size() == 1) {
+                // We can safely skip this step if the scan targeted a single
+                // file which we scanned above
+            } else {
+                reconcileAndClean();
+            }
+
+            // Third, resolve any playlists that we scanned
+            if (mPlaylistIds.size() > 0) {
+                resolvePlaylists();
+            }
+        }
+
+        private void walkFileTree() {
             mSignal.throwIfCanceled();
-            if (!isDirectoryHiddenRecursive(mRoot.isDirectory() ? mRoot : mRoot.getParentFile())) {
+            if (!isDirectoryHiddenRecursive(mSingleFile ? mRoot.getParentFile() : mRoot)) {
                 Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "walkFileTree");
                 try {
                     Files.walkFileTree(mRoot.toPath(), this);
@@ -247,14 +273,14 @@ public class ModernMediaScanner implements MediaScanner {
                 }
                 applyPending();
             }
+        }
 
+        private void reconcileAndClean() {
             final long[] scannedIds = mScannedIds.toArray();
             Arrays.sort(scannedIds);
 
-            // Second, reconcile all items known in the database against all the
-            // items we scanned above. The query phase is split from the delete
-            // phase so that our query remains stable if we need to paginate
-            // across multiple windows.
+            // The query phase is split from the delete phase so that our query
+            // remains stable if we need to paginate across multiple windows.
             mSignal.throwIfCanceled();
             Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "reconcile");
             try (Cursor c = mResolver.query(mFilesUri,
@@ -288,8 +314,9 @@ public class ModernMediaScanner implements MediaScanner {
             } finally {
                 Trace.traceEnd(Trace.TRACE_TAG_DATABASE);
             }
+        }
 
-            // Fourth, resolve any playlists that we scanned
+        private void resolvePlaylists() {
             mSignal.throwIfCanceled();
             for (int i = 0; i < mPlaylistIds.size(); i++) {
                 final Uri uri = MediaStore.Files.getContentUri(mVolumeName, mPlaylistIds.get(i));
@@ -685,12 +712,12 @@ public class ModernMediaScanner implements MediaScanner {
         op.withValue(ImageColumns.DESCRIPTION, null);
 
         try (FileInputStream is = new FileInputStream(file)) {
-            final ExifInterface exif = new ExifInterface(is.getFD());
+            final ExifInterface exif = new ExifInterface(is);
 
             withOptionalValue(op, MediaColumns.WIDTH,
-                    parseOptional(exif.getAttribute(ExifInterface.TAG_IMAGE_WIDTH)));
+                    parseOptionalOrZero(exif.getAttribute(ExifInterface.TAG_IMAGE_WIDTH)));
             withOptionalValue(op, MediaColumns.HEIGHT,
-                    parseOptional(exif.getAttribute(ExifInterface.TAG_IMAGE_LENGTH)));
+                    parseOptionalOrZero(exif.getAttribute(ExifInterface.TAG_IMAGE_LENGTH)));
             withOptionalValue(op, MediaColumns.DATE_TAKEN,
                     parseOptionalDateTaken(exif, lastModifiedTime(file, attrs) * 1000));
             withOptionalValue(op, MediaColumns.ORIENTATION,
@@ -872,13 +899,18 @@ public class ModernMediaScanner implements MediaScanner {
      * Test if any parents of given directory should be considered hidden.
      */
     static boolean isDirectoryHiddenRecursive(File dir) {
-        while (dir != null) {
-            if (isDirectoryHidden(dir)) {
-                return true;
+        Trace.traceBegin(TRACE_TAG_DATABASE, "isDirectoryHiddenRecursive");
+        try {
+            while (dir != null) {
+                if (isDirectoryHidden(dir)) {
+                    return true;
+                }
+                dir = dir.getParentFile();
             }
-            dir = dir.getParentFile();
+            return false;
+        } finally {
+            Trace.traceEnd(TRACE_TAG_DATABASE);
         }
-        return false;
     }
 
     /**

@@ -22,6 +22,7 @@ import android.annotation.Nullable;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
+import android.content.Intent;
 import android.content.MimeTypeFilter;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
@@ -62,6 +63,8 @@ import android.text.format.DateFormat;
 import android.text.format.DateUtils;
 import android.util.Log;
 import android.util.Pair;
+
+import com.android.internal.os.BackgroundThread;
 
 import libcore.io.IoUtils;
 
@@ -213,42 +216,51 @@ public class MediaDocumentsProvider extends DocumentsProvider {
      * refresh to clear a previously reported {@link Root#FLAG_EMPTY}.
      */
     static void onMediaStoreInsert(Context context, String volumeName, int type, long id) {
-        if (!"external".equals(volumeName)) return;
+        BackgroundThread.getExecutor().execute(() -> {
+            if (!"external".equals(volumeName)) return;
 
-        if (type == FileColumns.MEDIA_TYPE_IMAGE && sReturnedImagesEmpty) {
-            sReturnedImagesEmpty = false;
-            notifyRootsChanged(context);
-        } else if (type == FileColumns.MEDIA_TYPE_VIDEO && sReturnedVideosEmpty) {
-            sReturnedVideosEmpty = false;
-            notifyRootsChanged(context);
-        } else if (type == FileColumns.MEDIA_TYPE_AUDIO && sReturnedAudioEmpty) {
-            sReturnedAudioEmpty = false;
-            notifyRootsChanged(context);
-        }
+            if (type == FileColumns.MEDIA_TYPE_IMAGE && sReturnedImagesEmpty) {
+                sReturnedImagesEmpty = false;
+                notifyRootsChanged(context);
+            } else if (type == FileColumns.MEDIA_TYPE_VIDEO && sReturnedVideosEmpty) {
+                sReturnedVideosEmpty = false;
+                notifyRootsChanged(context);
+            } else if (type == FileColumns.MEDIA_TYPE_AUDIO && sReturnedAudioEmpty) {
+                sReturnedAudioEmpty = false;
+                notifyRootsChanged(context);
+            }
+        });
     }
 
     /**
      * When deleting an item, we need to revoke any outstanding Uri grants.
      */
     static void onMediaStoreDelete(Context context, String volumeName, int type, long id) {
-        if (!"external".equals(volumeName)) return;
+        BackgroundThread.getExecutor().execute(() -> {
+            if (!"external".equals(volumeName)) return;
 
-        if (type == FileColumns.MEDIA_TYPE_IMAGE) {
-            final Uri uri = DocumentsContract.buildDocumentUri(
-                    AUTHORITY, getDocIdForIdent(TYPE_IMAGE, id));
-            context.revokeUriPermission(uri, ~0);
-            notifyRootsChanged(context);
-        } else if (type == FileColumns.MEDIA_TYPE_VIDEO) {
-            final Uri uri = DocumentsContract.buildDocumentUri(
-                    AUTHORITY, getDocIdForIdent(TYPE_VIDEO, id));
-            context.revokeUriPermission(uri, ~0);
-            notifyRootsChanged(context);
-        } else if (type == FileColumns.MEDIA_TYPE_AUDIO) {
-            final Uri uri = DocumentsContract.buildDocumentUri(
-                    AUTHORITY, getDocIdForIdent(TYPE_AUDIO, id));
-            context.revokeUriPermission(uri, ~0);
-            notifyRootsChanged(context);
-        }
+            if (type == FileColumns.MEDIA_TYPE_IMAGE) {
+                final Uri uri = DocumentsContract.buildDocumentUri(
+                        AUTHORITY, getDocIdForIdent(TYPE_IMAGE, id));
+                context.revokeUriPermission(uri, ~0);
+                notifyRootsChanged(context);
+            } else if (type == FileColumns.MEDIA_TYPE_VIDEO) {
+                final Uri uri = DocumentsContract.buildDocumentUri(
+                        AUTHORITY, getDocIdForIdent(TYPE_VIDEO, id));
+                context.revokeUriPermission(uri, ~0);
+                notifyRootsChanged(context);
+            } else if (type == FileColumns.MEDIA_TYPE_AUDIO) {
+                final Uri uri = DocumentsContract.buildDocumentUri(
+                        AUTHORITY, getDocIdForIdent(TYPE_AUDIO, id));
+                context.revokeUriPermission(uri, ~0);
+                notifyRootsChanged(context);
+            }
+        });
+    }
+
+    static void revokeAllUriGrants(Context context) {
+        context.revokeUriPermission(DocumentsContract.buildBaseDocumentUri(AUTHORITY),
+                Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
     }
 
     private static class Ident {

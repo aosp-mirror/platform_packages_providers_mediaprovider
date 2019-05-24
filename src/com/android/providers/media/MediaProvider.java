@@ -66,6 +66,7 @@ import android.content.pm.PermissionGroupInfo;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.database.AbstractCursor;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.MatrixCursor;
@@ -986,6 +987,16 @@ public class MediaProvider extends ContentProvider {
         AppGlobals.getInitialApplication().revokeUriPermission(MediaStore.AUTHORITY_URI,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         MediaDocumentsProvider.revokeAllUriGrants(AppGlobals.getInitialApplication());
+        BackgroundThread.getHandler().post(() -> {
+            try (ContentProviderClient client = AppGlobals.getInitialApplication()
+                    .getContentResolver().acquireContentProviderClient(
+                            android.provider.Downloads.Impl.AUTHORITY)) {
+                client.call(android.provider.Downloads.CALL_REVOKE_MEDIASTORE_URI_PERMS,
+                        null, null);
+            } catch (RemoteException e) {
+                // Should not happen
+            }
+        });
 
         makePristineSchema(db);
 
@@ -1838,14 +1849,8 @@ public class MediaProvider extends ContentProvider {
                 selection, selectionArgs, groupBy, having, sortOrder, limit, signal);
 
         if (c != null) {
-            final boolean localCaller = (mCallingIdentity.get().uid == android.os.Process.myUid());
-            final boolean noNotify = "1".equals(uri.getQueryParameter("nonotify"));
-            if (localCaller || noNotify) {
-                // Local callers are only transient in nature, and don't need to
-                // hear about content updates
-            } else {
-                c.setNotificationUri(getContext().getContentResolver(), uri);
-            }
+            ((AbstractCursor) c).setNotificationUris(getContext().getContentResolver(),
+                    Arrays.asList(uri), UserHandle.myUserId(), false);
         }
 
         return c;

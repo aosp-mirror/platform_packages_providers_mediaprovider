@@ -142,6 +142,7 @@ import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.IsoInterface;
+import com.android.providers.media.util.XmpInterface;
 
 import libcore.io.IoUtils;
 import libcore.util.EmptyArray;
@@ -1914,17 +1915,17 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     static void ensureFileColumns(Uri uri, ContentValues values) throws VolumeArgumentException {
-        ensureNonUniqueFileColumns(matchUri(uri, true), uri, values);
+        ensureNonUniqueFileColumns(matchUri(uri, true), uri, values, null /* currentPath */);
     }
 
     private static void ensureUniqueFileColumns(int match, Uri uri, ContentValues values)
             throws VolumeArgumentException {
-        ensureFileColumns(match, uri, values, true);
+        ensureFileColumns(match, uri, values, true, null /* currentPath */);
     }
 
-    private static void ensureNonUniqueFileColumns(int match, Uri uri, ContentValues values)
-            throws VolumeArgumentException {
-        ensureFileColumns(match, uri, values, false);
+    private static void ensureNonUniqueFileColumns(int match, Uri uri, ContentValues values,
+            @Nullable String currentPath) throws VolumeArgumentException {
+        ensureFileColumns(match, uri, values, false, currentPath);
     }
 
     /**
@@ -1935,7 +1936,7 @@ public class MediaProvider extends ContentProvider {
      * {@link android.provider.MediaStore.Images}.
      */
     private static void ensureFileColumns(int match, Uri uri, ContentValues values,
-            boolean makeUnique) throws VolumeArgumentException {
+            boolean makeUnique, @Nullable String currentPath) throws VolumeArgumentException {
         Trace.traceBegin(TRACE_TAG_DATABASE, "ensureFileColumns");
 
         // Figure out defaults based on Uri being modified
@@ -2078,21 +2079,12 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
-            // Check for shady looking paths
             final String[] relativePath = sanitizePath(
                     values.getAsString(MediaColumns.RELATIVE_PATH));
             final String displayName = sanitizeDisplayName(
                     values.getAsString(MediaColumns.DISPLAY_NAME));
 
-            // Require content live under specific directories
-            final String primary = relativePath[0];
-            if (!allowedPrimary.contains(primary)) {
-                throw new IllegalArgumentException(
-                        "Primary directory " + primary + " not allowed for " + uri
-                                + "; allowed directories are " + allowedPrimary);
-            }
-
-            // Build up directory and ensure it exists
+            // Create result file
             File res;
             try {
                 res = getVolumePath(resolvedVolumeName);
@@ -2100,11 +2092,6 @@ public class MediaProvider extends ContentProvider {
                 throw new IllegalArgumentException(e);
             }
             res = Environment.buildPath(res, relativePath);
-
-            res.mkdirs();
-            if (!res.exists()) {
-                throw new IllegalStateException("Failed to create directory: " + res);
-            }
             try {
                 if (makeUnique) {
                     res = FileUtils.buildUniqueFile(res, mimeType, displayName);
@@ -2114,6 +2101,23 @@ public class MediaProvider extends ContentProvider {
             } catch (FileNotFoundException e) {
                 throw new IllegalStateException(
                         "Failed to build unique file: " + res + " " + displayName + " " + mimeType);
+            }
+
+            // Check for shady looking paths
+
+            // Require content live under specific directories, but allow in-place updates of
+            // existing content that lives in the invalid directory.
+            final String primary = relativePath[0];
+            if (!res.getAbsolutePath().equals(currentPath) && !allowedPrimary.contains(primary)) {
+                throw new IllegalArgumentException(
+                        "Primary directory " + primary + " not allowed for " + uri
+                                + "; allowed directories are " + allowedPrimary);
+            }
+
+            // Ensure all parent folders of result file exist
+            res.getParentFile().mkdirs();
+            if (!res.getParentFile().exists()) {
+                throw new IllegalStateException("Failed to create directory: " + res);
             }
             values.put(MediaColumns.DATA, res.getAbsolutePath());
         } else {
@@ -4633,7 +4637,7 @@ public class MediaProvider extends ContentProvider {
             final String beforeOwner = extractPathOwnerPackageName(beforePath);
             initialValues.remove(MediaColumns.DATA);
             try {
-                ensureNonUniqueFileColumns(match, uri, initialValues);
+                ensureNonUniqueFileColumns(match, uri, initialValues, beforePath);
             } catch (VolumeArgumentException e) {
                 return e.translateForUpdateDelete(targetSdkVersion);
             }
@@ -5417,7 +5421,6 @@ public class MediaProvider extends ContentProvider {
             ExifInterface.TAG_GPS_TRACK,
             ExifInterface.TAG_GPS_TRACK_REF,
             ExifInterface.TAG_GPS_VERSION_ID,
-            ExifInterface.TAG_XMP,
     };
 
     /**
@@ -5428,7 +5431,6 @@ public class MediaProvider extends ContentProvider {
             IsoInterface.BOX_XYZ,
             IsoInterface.BOX_GPS,
             IsoInterface.BOX_GPS0,
-            IsoInterface.BOX_XMP,
     };
 
     /**
@@ -5453,6 +5455,13 @@ public class MediaProvider extends ContentProvider {
                 final long[] ranges = iso.getBoxRanges(box);
                 res.addAll(LongArray.wrap(ranges));
             }
+
+            // Redact xmp where present
+            final Set<String> redactedXmpTags = new ArraySet<>(Arrays.asList(REDACTED_EXIF_TAGS));
+            final XmpInterface exifXmp = XmpInterface.fromContainer(exif, redactedXmpTags);
+            res.addAll(exifXmp.getRedactionRanges());
+            final XmpInterface isoXmp = XmpInterface.fromContainer(iso, redactedXmpTags);
+            res.addAll(isoXmp.getRedactionRanges());
         } catch (IOException e) {
             Log.w(TAG, "Failed to redact " + file + ": " + e);
         }

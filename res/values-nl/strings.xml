@@ -42,10 +42,10 @@
     <string name="sound_name_rise" msgid="2200258555031675806">"Rise"</string>
     <string name="sound_name_sway" msgid="348448316663085643">"Sway"</string>
     <string name="sound_name_wag" msgid="2730733083078126563">"Wag"</string>
-    <string name="add_ringtone_text" msgid="8077717303037760418">"Beltoon toevoegen"</string>
+    <string name="add_ringtone_text" msgid="8077717303037760418">"Ringtone toevoegen"</string>
     <string name="add_alarm_text" msgid="2440919366091720815">"Wekker toevoegen"</string>
     <string name="add_notification_text" msgid="5013822215567515665">"Melding toevoegen"</string>
     <string name="delete_ringtone_text" msgid="2963662097583300181">"Verwijderen"</string>
-    <string name="unable_to_add_ringtone" msgid="6256097521165711269">"Toevoegen van aangepaste beltoon is mislukt"</string>
-    <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"Verwijderen van aangepaste beltoon is mislukt"</string>
+    <string name="unable_to_add_ringtone" msgid="6256097521165711269">"Toevoegen van aangepaste ringtone is mislukt"</string>
+    <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"Verwijderen van aangepaste ringtone is mislukt"</string>
 </resources>

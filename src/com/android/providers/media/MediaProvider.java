@@ -2814,10 +2814,10 @@ public class MediaProvider extends ContentProvider {
             Audio.Genres.NAME, // 1
     };
 
-    private void updateGenre(long rowId, String genre) {
+    private void updateGenre(long rowId, String genre, String volumeName) {
         Uri uri = null;
         Cursor cursor = null;
-        Uri genresUri = MediaStore.Audio.Genres.getContentUri("external");
+        Uri genresUri = MediaStore.Audio.Genres.getContentUri(volumeName);
         try {
             // see if the genre already exists
             cursor = query(genresUri, GENRE_LOOKUP_PROJECTION, MediaStore.Audio.Genres.NAME + "=?",
@@ -3068,7 +3068,7 @@ public class MediaProvider extends ContentProvider {
                     newUri = ContentUris.withAppendedId(
                             Audio.Media.getContentUri(originalVolumeName), rowId);
                     if (genre != null) {
-                        updateGenre(rowId, genre);
+                        updateGenre(rowId, genre, resolvedVolumeName);
                     }
                 }
                 break;
@@ -4900,7 +4900,7 @@ public class MediaProvider extends ContentProvider {
                     if (genre != null) {
                         if (count == 1 && match == AUDIO_MEDIA_ID) {
                             long rowId = Long.parseLong(uri.getPathSegments().get(3));
-                            updateGenre(rowId, genre);
+                            updateGenre(rowId, genre, volumeName);
                         } else {
                             // can't handle genres for bulk update or for non-audio files
                             Log.w(TAG, "ignoring genre in update: count = "

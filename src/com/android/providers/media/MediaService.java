@@ -121,8 +121,6 @@ public class MediaService extends IntentService {
     }
 
     public static void onScanVolume(Context context, Uri uri) throws IOException {
-        final ContentResolver resolver = context.getContentResolver();
-
         final File file = new File(uri.getPath()).getCanonicalFile();
         final String volumeName = MediaStore.getVolumeName(file);
 
@@ -134,11 +132,11 @@ public class MediaService extends IntentService {
             ensureDefaultRingtones(context);
         }
 
-        try {
-            try (ContentProviderClient cpc = resolver
-                    .acquireContentProviderClient(MediaStore.AUTHORITY)) {
-                ((MediaProvider) cpc.getLocalContentProvider()).attachVolume(volumeName);
-            }
+        try (ContentProviderClient cpc = context.getContentResolver()
+                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+            ((MediaProvider) cpc.getLocalContentProvider()).attachVolume(volumeName);
+
+            final ContentResolver resolver = ContentResolver.wrap(cpc.getLocalContentProvider());
 
             ContentValues values = new ContentValues();
             values.put(MediaStore.MEDIA_SCANNER_VOLUME, volumeName);

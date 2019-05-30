@@ -5940,7 +5940,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     public Uri attachVolume(String volume) {
-        if (Binder.getCallingPid() != android.os.Process.myPid()) {
+        if (mCallingIdentity.get().pid != android.os.Process.myPid()) {
             throw new SecurityException(
                     "Opening and closing databases not allowed.");
         }
@@ -5977,7 +5977,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     public void detachVolume(String volume) {
-        if (Binder.getCallingPid() != android.os.Process.myPid()) {
+        if (mCallingIdentity.get().pid != android.os.Process.myPid()) {
             throw new SecurityException(
                     "Opening and closing databases not allowed.");
         }

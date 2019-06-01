@@ -137,10 +137,10 @@ public class IsoInterface {
             return null;
         }
 
-        final int len = readInt(fd);
+        final long len = Integer.toUnsignedLong(readInt(fd));
         final int type = readInt(fd);
 
-        if (len == 0) {
+        if (len <= 0) {
             throw new IOException("Invalid box length");
         }
 
@@ -168,13 +168,13 @@ public class IsoInterface {
                 Log.v(TAG, prefix + "  UUID " + box.uuid);
             }
 
-            box.data = new byte[len - 8 - 16];
+            box.data = new byte[(int) (len - 8 - 16)];
             IoBridge.read(fd, box.data, 0, box.data.length);
         }
 
         // Parse XMP box
         if (type == BOX_XMP) {
-            box.data = new byte[len - 8];
+            box.data = new byte[(int) (len - 8)];
             IoBridge.read(fd, box.data, 0, box.data.length);
         }
 

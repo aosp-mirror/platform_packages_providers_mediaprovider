@@ -138,19 +138,14 @@ public class IsoInterface {
         }
 
         final long len = Integer.toUnsignedLong(readInt(fd));
-        final int type = readInt(fd);
-
-        if (len <= 0) {
-            throw new IOException("Invalid box length");
-        }
-
-        if (pos + len > end) {
-            Log.w(TAG, "Invalid box " + typeToString(type) + " of length " + len
+        if (len <= 0 || pos + len > end) {
+            Log.w(TAG, "Invalid box at " + pos + " of length " + len
                     + " reached beyond end of parent " + end);
             return null;
         }
 
         // Skip past legacy data on 'meta' box
+        final int type = readInt(fd);
         if (type == BOX_META) {
             readInt(fd);
         }

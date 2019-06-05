@@ -767,10 +767,6 @@ public class MediaProvider extends ContentProvider {
         // Enable verbose transport logging when requested
         setTransportLoggingEnabled(LOCAL_LOGV);
 
-        // Shift call statistics back to the original caller
-        Binder.setProxyTransactListener(
-                new Binder.PropagateWorkSourceTransactListener());
-
         mStorageManager = context.getSystemService(StorageManager.class);
         mAppOpsManager = context.getSystemService(AppOpsManager.class);
         mPackageManager = context.getPackageManager();

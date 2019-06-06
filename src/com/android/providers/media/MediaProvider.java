@@ -23,9 +23,9 @@ import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.os.Environment.buildPath;
 import static android.os.Trace.TRACE_TAG_DATABASE;
 import static android.provider.MediaStore.AUTHORITY;
-import static android.provider.MediaStore.getVolumeName;
 import static android.provider.MediaStore.Downloads.PATTERN_DOWNLOADS_FILE;
 import static android.provider.MediaStore.Downloads.isDownload;
+import static android.provider.MediaStore.getVolumeName;
 
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED;
@@ -167,6 +167,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -781,7 +782,7 @@ public class MediaProvider extends ContentProvider {
         final int thumbSize = Math.min(metrics.widthPixels, metrics.heightPixels) / 2;
         mThumbSize = new Size(thumbSize, thumbSize);
 
-        mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, false,
+        mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, true,
                 false, mObjectRemovedCallback);
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false,
                 false, mObjectRemovedCallback);
@@ -2487,6 +2488,9 @@ public class MediaProvider extends ContentProvider {
             int mediaType, boolean notify) {
         final SQLiteDatabase db = helper.getWritableDatabase();
 
+        boolean wasPathEmpty = !values.containsKey(MediaStore.MediaColumns.DATA)
+                || TextUtils.isEmpty(values.getAsString(MediaStore.MediaColumns.DATA));
+
         // Make sure all file-related columns are defined
         try {
             ensureUniqueFileColumns(match, uri, values);
@@ -2621,7 +2625,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (format == 0) {
-            if (TextUtils.isEmpty(path)) {
+            if (TextUtils.isEmpty(path) || wasPathEmpty) {
                 // special case device created playlists
                 if (mediaType == FileColumns.MEDIA_TYPE_PLAYLIST) {
                     values.put(FileColumns.FORMAT, MtpConstants.FORMAT_ABSTRACT_AV_PLAYLIST);
@@ -2630,8 +2634,6 @@ public class MediaProvider extends ContentProvider {
                             + "/Playlists/" + values.getAsString(Audio.Playlists.NAME);
                     values.put(MediaStore.MediaColumns.DATA, path);
                     values.put(FileColumns.PARENT, 0);
-                } else {
-                    Log.e(TAG, "path is empty in insertFile()");
                 }
             } else {
                 format = MediaFile.getFormatCode(path, mimeType);
@@ -2809,9 +2811,16 @@ public class MediaProvider extends ContentProvider {
             System.arraycopy(valuesList, 0, newValues, 0, added);
             valuesList = newValues;
         }
-        return playlistBulkInsert(db,
+
+        int rowsChanged = playlistBulkInsert(db,
                 Audio.Playlists.Members.getContentUri(MediaStore.VOLUME_EXTERNAL, playlistId),
                 valuesList);
+
+        if (rowsChanged > 0) {
+            updatePlaylistDateModifiedToNow(db, playlistId);
+        }
+
+        return rowsChanged;
     }
 
     private static final String[] GENRE_LOOKUP_PROJECTION = new String[] {
@@ -3110,6 +3119,7 @@ public class MediaProvider extends ContentProvider {
                         values);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(uri, rowId);
+                    updatePlaylistDateModifiedToNow(db, playlistId);
                 }
                 break;
             }
@@ -3171,6 +3181,7 @@ public class MediaProvider extends ContentProvider {
                 rowId = db.insert("audio_playlists_map", "playlist_id", values);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(uri, rowId);
+                    updatePlaylistDateModifiedToNow(db, playlistId);
                 }
                 break;
             }
@@ -4013,12 +4024,17 @@ public class MediaProvider extends ContentProvider {
                                                 "audio_id=?", idvalue, null, null, null);
                                     try {
                                         while (cc.moveToNext()) {
-                                            playlistvalues[0] = "" + cc.getLong(0);
-                                            playlistvalues[1] = "" + cc.getInt(1);
-                                            db.execSQL("UPDATE audio_playlists_map" +
+                                            long playlistId = cc.getLong(0);
+                                            playlistvalues[0] = String.valueOf(playlistId);
+                                            playlistvalues[1] = String.valueOf(cc.getInt(1));
+                                            int rowsChanged = db.executeSql("UPDATE audio_playlists_map" +
                                                     " SET play_order=play_order-1" +
                                                     " WHERE playlist_id=? AND play_order>?",
                                                     playlistvalues);
+
+                                            if (rowsChanged > 0) {
+                                                updatePlaylistDateModifiedToNow(db, playlistId);
+                                            }
                                         }
                                         db.delete("audio_playlists_map", "audio_id=?", idvalue);
                                     } finally {
@@ -4071,6 +4087,13 @@ public class MediaProvider extends ContentProvider {
                     count = deleteRecursive(qb, db, userWhere, userWhereArgs);
                     break;
 
+                case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
+                    long playlistId = Long.parseLong(uri.getPathSegments().get(3));
+                    count = deleteRecursive(qb, db, userWhere, userWhereArgs);
+                    if (count > 0) {
+                        updatePlaylistDateModifiedToNow(db, playlistId);
+                    }
+                    break;
                 default:
                     count = deleteRecursive(qb, db, userWhere, userWhereArgs);
                     break;
@@ -4553,7 +4576,17 @@ public class MediaProvider extends ContentProvider {
                         Log.w(TAG, "Ignoring mutation of " + column + " from "
                                 + getCallingPackageOrSelf());
                         initialValues.remove(column);
-                        triggerScan = true;
+
+                        switch (match) {
+                            default:
+                                triggerScan = true;
+                                break;
+                            // If entry is a playlist, do not re-scan to match previous behavior
+                            // and allow persistence of database-only edits until real re-scan
+                            case AUDIO_MEDIA_ID_PLAYLISTS_ID:
+                            case AUDIO_PLAYLISTS_ID:
+                                break;
+                        }
                     }
 
                     // If we're publishing this item, perform a blocking scan to
@@ -4931,6 +4964,21 @@ public class MediaProvider extends ContentProvider {
                 }
                 break;
 
+            case AUDIO_MEDIA_ID_PLAYLISTS_ID:
+            case AUDIO_PLAYLISTS_ID:
+                long playlistId = ContentUris.parseId(uri);
+                count = qb.update(db, initialValues, userWhere, userWhereArgs);
+                if (count > 0) {
+                    updatePlaylistDateModifiedToNow(db, playlistId);
+                }
+                break;
+            case AUDIO_PLAYLISTS_ID_MEMBERS:
+                long playlistIdMembers = Long.parseLong(uri.getPathSegments().get(3));
+                count = qb.update(db, initialValues, userWhere, userWhereArgs);
+                if (count > 0) {
+                    updatePlaylistDateModifiedToNow(db, playlistIdMembers);
+                }
+                break;
             case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
                 String moveit = uri.getQueryParameter("move");
                 if (moveit != null) {
@@ -4940,7 +4988,12 @@ public class MediaProvider extends ContentProvider {
                         List <String> segments = uri.getPathSegments();
                         long playlist = Long.parseLong(segments.get(3));
                         int oldpos = Integer.parseInt(segments.get(5));
-                        return movePlaylistEntry(volumeName, helper, db, playlist, oldpos, newpos);
+                        int rowsChanged = movePlaylistEntry(volumeName, helper, db, playlist, oldpos, newpos);
+                        if (rowsChanged > 0) {
+                            updatePlaylistDateModifiedToNow(db, playlist);
+                        }
+
+                        return rowsChanged;
                     }
                     throw new IllegalArgumentException("Need to specify " + key +
                             " when using 'move' parameter");
@@ -5043,9 +5096,20 @@ public class MediaProvider extends ContentProvider {
         return numlines;
     }
 
-    private static final String[] openFileColumns = new String[] {
-        MediaStore.MediaColumns.DATA,
-    };
+    private void updatePlaylistDateModifiedToNow(SQLiteDatabase database, long playlistId) {
+        ContentValues values = new ContentValues();
+        values.put(
+                FileColumns.DATE_MODIFIED,
+                TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis())
+        );
+
+        database.update(
+                MediaStore.Files.TABLE,
+                values,
+                MediaStore.Files.FileColumns._ID + "=?",
+                new String[]{String.valueOf(playlistId)}
+        );
+    }
 
     @Override
     public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
@@ -6230,6 +6294,7 @@ public class MediaProvider extends ContentProvider {
         sMutableColumns.add(MediaStore.Video.VideoColumns.CATEGORY);
         sMutableColumns.add(MediaStore.Video.VideoColumns.BOOKMARK);
 
+        sMutableColumns.add(MediaStore.Audio.Playlists.NAME);
         sMutableColumns.add(MediaStore.Audio.Playlists.Members.AUDIO_ID);
         sMutableColumns.add(MediaStore.Audio.Playlists.Members.PLAY_ORDER);
 

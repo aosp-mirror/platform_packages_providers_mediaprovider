@@ -284,8 +284,13 @@ public class ModernMediaScanner implements MediaScanner {
             mSignal.throwIfCanceled();
             Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "reconcile");
             try (Cursor c = mResolver.query(mFilesUri,
-                    new String[] { FileColumns._ID }, FileColumns.DATA + " LIKE ? ESCAPE '\\'",
-                    new String[] { escapeForLike(mRoot.getAbsolutePath()) + '%' },
+                    new String[]{FileColumns._ID},
+                    FileColumns.FORMAT + "!=? AND " + FileColumns.DATA + " LIKE ? ESCAPE '\\'",
+                    new String[]{
+                            // Ignore abstract playlists which don't have files on disk
+                            String.valueOf(MtpConstants.FORMAT_ABSTRACT_AV_PLAYLIST),
+                            escapeForLike(mRoot.getAbsolutePath()) + '%'
+                    },
                     FileColumns._ID + " DESC", mSignal)) {
                 while (c.moveToNext()) {
                     final long id = c.getLong(0);
@@ -431,18 +436,27 @@ public class ModernMediaScanner implements MediaScanner {
         private void applyPending() {
             Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "applyPending");
             try {
-                for (ContentProviderResult res : mResolver.applyBatch(AUTHORITY, mPending)) {
-                    if (res.uri != null) {
-                        if (mFirstResult == null) {
-                            mFirstResult = res.uri;
-                        }
-                        final long id = ContentUris.parseId(res.uri);
-                        mScannedIds.add(id);
+                ContentProviderResult[] results = mResolver.applyBatch(AUTHORITY, mPending);
+                for (int index = 0; index < results.length; index++) {
+                    ContentProviderResult result = results[index];
+                    ContentProviderOperation operation = mPending.get(index);
 
-                        // If this was a playlist, remember it so we can resolve
-                        // its contents once all other media has been scanned
-                        if (isPlaylist(res.uri)) {
-                            mPlaylistIds.add(id);
+                    Uri uri = result.uri;
+                    if (uri != null) {
+                        if (mFirstResult == null) {
+                            mFirstResult = uri;
+                        }
+                        final long id = ContentUris.parseId(uri);
+                        mScannedIds.add(id);
+                    }
+
+                    // Some operations don't return a URI, so check the original if necessary
+                    Uri uriToCheck = uri == null ? operation.getUri() : uri;
+                    if (uriToCheck != null) {
+                        if (isPlaylist(uriToCheck)) {
+                            // If this was a playlist, remember it so we can resolve
+                            // its contents once all other media has been scanned
+                            mPlaylistIds.add(ContentUris.parseId(uriToCheck));
                         }
                     }
                 }

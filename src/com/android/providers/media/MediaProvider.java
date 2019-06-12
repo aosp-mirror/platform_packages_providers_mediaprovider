@@ -4158,6 +4158,7 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.SCAN_FILE_CALL:
             case MediaStore.SCAN_VOLUME_CALL: {
                 final LocalCallingIdentity token = clearLocalCallingIdentity();
+                final CallingIdentity providerToken = clearCallingIdentity();
                 try {
                     final Uri uri = extras.getParcelable(Intent.EXTRA_STREAM);
                     final File file = new File(uri.getPath());
@@ -4175,6 +4176,7 @@ public class MediaProvider extends ContentProvider {
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 } finally {
+                    restoreCallingIdentity(providerToken);
                     restoreLocalCallingIdentity(token);
                 }
             }

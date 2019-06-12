@@ -508,11 +508,13 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             // Special case to be able to pull longs out of a cursor, as long is not a supported
             // field of getType.
             if (ExifInterface.TAG_DATETIME.equals(bundleTag)) {
-                // formate string to be consistent with how EXIF interface formats the date.
-                long date = cursor.getLong(index);
-                String format = DateFormat.getBestDateTimePattern(Locale.getDefault(),
-                    "MMM dd, yyyy, hh:mm");
-                metadata.putString(bundleTag, DateFormat.format(format, date).toString());
+                if (!cursor.isNull(index)) {
+                    // format string to be consistent with how EXIF interface formats the date.
+                    long date = cursor.getLong(index);
+                    String format = DateFormat.getBestDateTimePattern(Locale.getDefault(),
+                            "MMM dd, yyyy, hh:mm");
+                    metadata.putString(bundleTag, DateFormat.format(format, date).toString());
+                }
                 continue;
             }
 

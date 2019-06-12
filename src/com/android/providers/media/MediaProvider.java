@@ -462,13 +462,13 @@ public class MediaProvider extends ContentProvider {
         @Override
         public void onOpen(SQLiteDatabase db) {
 
-            if (mInternal) return;  // The internal database is kept separately.
-
             if (mEarlyUpgrade) return; // Doing early upgrade.
 
             if (mObjectRemovedCallback != null) {
                 db.addCustomFunction("_OBJECT_REMOVED", 1, mObjectRemovedCallback);
             }
+
+            if (mInternal) return;  // The internal database is kept separately.
 
             // the code below is only needed on devices with removable storage
             if (!Environment.isExternalStorageRemovable()) return;

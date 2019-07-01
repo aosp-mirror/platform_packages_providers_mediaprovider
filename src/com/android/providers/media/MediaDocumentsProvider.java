@@ -16,10 +16,14 @@
 
 package com.android.providers.media;
 
+import static android.content.ContentResolver.EXTRA_SIZE;
+
 import android.annotation.Nullable;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
+import android.content.Intent;
+import android.content.MimeTypeFilter;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.database.MatrixCursor;
@@ -58,16 +62,19 @@ import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.text.format.DateUtils;
 import android.util.Log;
+import android.util.Pair;
+
+import com.android.internal.os.BackgroundThread;
 
 import libcore.io.IoUtils;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -80,9 +87,16 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
     private static final String AUTHORITY = "com.android.providers.media.documents";
 
+    private static final String SUPPORTED_QUERY_ARGS = joinNewline(
+            DocumentsContract.QUERY_ARG_DISPLAY_NAME,
+            DocumentsContract.QUERY_ARG_FILE_SIZE_OVER,
+            DocumentsContract.QUERY_ARG_LAST_MODIFIED_AFTER,
+            DocumentsContract.QUERY_ARG_MIME_TYPES);
+
     private static final String[] DEFAULT_ROOT_PROJECTION = new String[] {
             Root.COLUMN_ROOT_ID, Root.COLUMN_FLAGS, Root.COLUMN_ICON,
-            Root.COLUMN_TITLE, Root.COLUMN_DOCUMENT_ID, Root.COLUMN_MIME_TYPES
+            Root.COLUMN_TITLE, Root.COLUMN_DOCUMENT_ID, Root.COLUMN_MIME_TYPES,
+            Root.COLUMN_QUERY_ARGS
     };
 
     private static final String[] DEFAULT_DOCUMENT_PROJECTION = new String[] {
@@ -165,6 +179,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
     @Override
     public boolean onCreate() {
+        notifyRootsChanged(getContext());
         return true;
     }
 
@@ -201,39 +216,51 @@ public class MediaDocumentsProvider extends DocumentsProvider {
      * refresh to clear a previously reported {@link Root#FLAG_EMPTY}.
      */
     static void onMediaStoreInsert(Context context, String volumeName, int type, long id) {
-        if (!"external".equals(volumeName)) return;
+        BackgroundThread.getExecutor().execute(() -> {
+            if (!"external".equals(volumeName)) return;
 
-        if (type == FileColumns.MEDIA_TYPE_IMAGE && sReturnedImagesEmpty) {
-            sReturnedImagesEmpty = false;
-            notifyRootsChanged(context);
-        } else if (type == FileColumns.MEDIA_TYPE_VIDEO && sReturnedVideosEmpty) {
-            sReturnedVideosEmpty = false;
-            notifyRootsChanged(context);
-        } else if (type == FileColumns.MEDIA_TYPE_AUDIO && sReturnedAudioEmpty) {
-            sReturnedAudioEmpty = false;
-            notifyRootsChanged(context);
-        }
+            if (type == FileColumns.MEDIA_TYPE_IMAGE && sReturnedImagesEmpty) {
+                sReturnedImagesEmpty = false;
+                notifyRootsChanged(context);
+            } else if (type == FileColumns.MEDIA_TYPE_VIDEO && sReturnedVideosEmpty) {
+                sReturnedVideosEmpty = false;
+                notifyRootsChanged(context);
+            } else if (type == FileColumns.MEDIA_TYPE_AUDIO && sReturnedAudioEmpty) {
+                sReturnedAudioEmpty = false;
+                notifyRootsChanged(context);
+            }
+        });
     }
 
     /**
      * When deleting an item, we need to revoke any outstanding Uri grants.
      */
     static void onMediaStoreDelete(Context context, String volumeName, int type, long id) {
-        if (!"external".equals(volumeName)) return;
+        BackgroundThread.getExecutor().execute(() -> {
+            if (!"external".equals(volumeName)) return;
 
-        if (type == FileColumns.MEDIA_TYPE_IMAGE) {
-            final Uri uri = DocumentsContract.buildDocumentUri(
-                    AUTHORITY, getDocIdForIdent(TYPE_IMAGE, id));
-            context.revokeUriPermission(uri, ~0);
-        } else if (type == FileColumns.MEDIA_TYPE_VIDEO) {
-            final Uri uri = DocumentsContract.buildDocumentUri(
-                    AUTHORITY, getDocIdForIdent(TYPE_VIDEO, id));
-            context.revokeUriPermission(uri, ~0);
-        } else if (type == FileColumns.MEDIA_TYPE_AUDIO) {
-            final Uri uri = DocumentsContract.buildDocumentUri(
-                    AUTHORITY, getDocIdForIdent(TYPE_AUDIO, id));
-            context.revokeUriPermission(uri, ~0);
-        }
+            if (type == FileColumns.MEDIA_TYPE_IMAGE) {
+                final Uri uri = DocumentsContract.buildDocumentUri(
+                        AUTHORITY, getDocIdForIdent(TYPE_IMAGE, id));
+                context.revokeUriPermission(uri, ~0);
+                notifyRootsChanged(context);
+            } else if (type == FileColumns.MEDIA_TYPE_VIDEO) {
+                final Uri uri = DocumentsContract.buildDocumentUri(
+                        AUTHORITY, getDocIdForIdent(TYPE_VIDEO, id));
+                context.revokeUriPermission(uri, ~0);
+                notifyRootsChanged(context);
+            } else if (type == FileColumns.MEDIA_TYPE_AUDIO) {
+                final Uri uri = DocumentsContract.buildDocumentUri(
+                        AUTHORITY, getDocIdForIdent(TYPE_AUDIO, id));
+                context.revokeUriPermission(uri, ~0);
+                notifyRootsChanged(context);
+            }
+        });
+    }
+
+    static void revokeAllUriGrants(Context context) {
+        context.revokeUriPermission(DocumentsContract.buildBaseDocumentUri(AUTHORITY),
+                Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
     }
 
     private static class Ident {
@@ -264,6 +291,88 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
     private static String[] resolveDocumentProjection(String[] projection) {
         return projection != null ? projection : DEFAULT_DOCUMENT_PROJECTION;
+    }
+
+    private static Pair<String, String[]> buildSearchSelection(String displayName,
+            String[] mimeTypes, long lastModifiedAfter, long fileSizeOver, String columnDisplayName,
+            String columnMimeType, String columnLastModified, String columnFileSize) {
+        StringBuilder selection = new StringBuilder();
+        final ArrayList<String> selectionArgs = new ArrayList<>();
+
+        if (!displayName.isEmpty()) {
+            selection.append(columnDisplayName + " LIKE ?");
+            selectionArgs.add("%" + displayName + "%");
+        }
+
+        if (lastModifiedAfter != -1) {
+            if (selection.length() > 0) {
+                selection.append(" AND ");
+            }
+
+            // The units of DATE_MODIFIED are seconds since 1970.
+            // The units of lastModified are milliseconds since 1970.
+            selection.append(columnLastModified + " > " + lastModifiedAfter / 1000);
+        }
+
+        if (fileSizeOver != -1) {
+            if (selection.length() > 0) {
+                selection.append(" AND ");
+            }
+
+            selection.append(columnFileSize + " > " + fileSizeOver);
+        }
+
+        if (mimeTypes != null && mimeTypes.length > 0) {
+            for (int i = 0; i < mimeTypes.length; i++) {
+                final String type = mimeTypes[i];
+                if (i == 0) {
+                    if (selection.length() > 0) {
+                        selection.append(" AND ");
+                    }
+                    selection.append(columnMimeType + " IN ( ?");
+                } else {
+                    selection.append(", ?");
+                }
+                selectionArgs.add(type);
+            }
+            selection.append(" )");
+        }
+
+        return new Pair<>(selection.toString(), selectionArgs.toArray(new String[0]));
+    }
+
+    /**
+     * Check whether filter mime type and get the matched mime types.
+     * If we don't need to filter mime type, the matchedMimeTypes will be empty.
+     *
+     * @param mimeTypes the mime types to test
+     * @param filter the filter. It is "image/*" or "video/*" or "audio/*".
+     * @param matchedMimeTypes the matched mime types will add into this.
+     * @return true, should do mime type filter. false, no need.
+     */
+    private static boolean shouldFilterMimeType(String[] mimeTypes, String filter,
+            List<String> matchedMimeTypes) {
+        matchedMimeTypes.clear();
+        boolean shouldQueryMimeType = true;
+        if (mimeTypes != null) {
+            for (int i = 0; i < mimeTypes.length; i++) {
+                // If the mime type is "*/*" or "image/*" or "video/*" or "audio/*",
+                // we don't need to filter mime type.
+                if (TextUtils.equals(mimeTypes[i], "*/*") ||
+                        TextUtils.equals(mimeTypes[i], filter)) {
+                    matchedMimeTypes.clear();
+                    shouldQueryMimeType = false;
+                    break;
+                }
+                if (MimeTypeFilter.matches(mimeTypes[i], filter)) {
+                    matchedMimeTypes.add(mimeTypes[i]);
+                }
+            }
+        } else {
+            shouldQueryMimeType = false;
+        }
+
+        return shouldQueryMimeType;
     }
 
     private Uri getUriForDocumentId(String docId) {
@@ -679,38 +788,85 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     }
 
     @Override
-    public Cursor querySearchDocuments(String rootId, String query, String[] projection)
+    public Cursor querySearchDocuments(String rootId, String[] projection, Bundle queryArgs)
             throws FileNotFoundException {
         final ContentResolver resolver = getContext().getContentResolver();
         final MatrixCursor result = new MatrixCursor(resolveDocumentProjection(projection));
 
         final long token = Binder.clearCallingIdentity();
-        final String[] queryArgs = new String[] { "%" + query + "%" };
+
+        final String displayName = queryArgs.getString(DocumentsContract.QUERY_ARG_DISPLAY_NAME,
+                "" /* defaultValue */);
+        final long lastModifiedAfter = queryArgs.getLong(
+                DocumentsContract.QUERY_ARG_LAST_MODIFIED_AFTER, -1 /* defaultValue */);
+        final long fileSizeOver = queryArgs.getLong(DocumentsContract.QUERY_ARG_FILE_SIZE_OVER,
+                -1 /* defaultValue */);
+        final String[] mimeTypes = queryArgs.getStringArray(DocumentsContract.QUERY_ARG_MIME_TYPES);
+        final ArrayList<String> matchedMimeTypes = new ArrayList<>();
+
         Cursor cursor = null;
         try {
             if (TYPE_IMAGES_ROOT.equals(rootId)) {
-                cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI, ImageQuery.PROJECTION,
-                        ImageColumns.DISPLAY_NAME + " LIKE ?", queryArgs,
-                        ImageColumns.DATE_MODIFIED + " DESC");
-                copyNotificationUri(result, cursor);
-                while (cursor.moveToNext()) {
-                    includeImage(result, cursor);
+                final boolean shouldFilterMimeType = shouldFilterMimeType(mimeTypes, "image/*",
+                        matchedMimeTypes);
+
+                // If the queried mime types didn't match the root, we don't need to
+                // query the provider. Ex: the queried mime type is "video/*", but the root
+                // is images root.
+                if (mimeTypes == null || !shouldFilterMimeType || matchedMimeTypes.size() > 0) {
+                    final Pair<String, String[]> selectionPair = buildSearchSelection(displayName,
+                            matchedMimeTypes.toArray(new String[0]), lastModifiedAfter,
+                            fileSizeOver, ImageColumns.DISPLAY_NAME, ImageColumns.MIME_TYPE,
+                            ImageColumns.DATE_MODIFIED, ImageColumns.SIZE);
+
+                    cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
+                            ImageQuery.PROJECTION,
+                            selectionPair.first, selectionPair.second,
+                            ImageColumns.DATE_MODIFIED + " DESC");
+
+                    copyNotificationUri(result, cursor);
+                    while (cursor.moveToNext()) {
+                        includeImage(result, cursor);
+                    }
                 }
             } else if (TYPE_VIDEOS_ROOT.equals(rootId)) {
-                cursor = resolver.query(Video.Media.EXTERNAL_CONTENT_URI, VideoQuery.PROJECTION,
-                        VideoColumns.DISPLAY_NAME + " LIKE ?", queryArgs,
-                        VideoColumns.DATE_MODIFIED + " DESC");
-                copyNotificationUri(result, cursor);
-                while (cursor.moveToNext()) {
-                    includeVideo(result, cursor);
+                final boolean shouldFilterMimeType = shouldFilterMimeType(mimeTypes, "video/*",
+                        matchedMimeTypes);
+
+                // If the queried mime types didn't match the root, we don't need to
+                // query the provider.
+                if (mimeTypes == null || !shouldFilterMimeType || matchedMimeTypes.size() > 0) {
+                    final Pair<String, String[]> selectionPair = buildSearchSelection(displayName,
+                            matchedMimeTypes.toArray(new String[0]), lastModifiedAfter,
+                            fileSizeOver, VideoColumns.DISPLAY_NAME, VideoColumns.MIME_TYPE,
+                            VideoColumns.DATE_MODIFIED, VideoColumns.SIZE);
+                    cursor = resolver.query(Video.Media.EXTERNAL_CONTENT_URI, VideoQuery.PROJECTION,
+                            selectionPair.first, selectionPair.second,
+                            VideoColumns.DATE_MODIFIED + " DESC");
+                    copyNotificationUri(result, cursor);
+                    while (cursor.moveToNext()) {
+                        includeVideo(result, cursor);
+                    }
                 }
             } else if (TYPE_AUDIO_ROOT.equals(rootId)) {
-                cursor = resolver.query(Audio.Media.EXTERNAL_CONTENT_URI, SongQuery.PROJECTION,
-                        AudioColumns.TITLE + " LIKE ?", queryArgs,
-                        AudioColumns.DATE_MODIFIED + " DESC");
-                copyNotificationUri(result, cursor);
-                while (cursor.moveToNext()) {
-                    includeAudio(result, cursor);
+                final boolean shouldFilterMimeType = shouldFilterMimeType(mimeTypes, "audio/*",
+                        matchedMimeTypes);
+
+                // If the queried mime types didn't match the root, we don't need to
+                // query the provider.
+                if (mimeTypes == null || !shouldFilterMimeType || matchedMimeTypes.size() > 0) {
+                    final Pair<String, String[]> selectionPair = buildSearchSelection(displayName,
+                            matchedMimeTypes.toArray(new String[0]), lastModifiedAfter,
+                            fileSizeOver, AudioColumns.TITLE, AudioColumns.MIME_TYPE,
+                            AudioColumns.DATE_MODIFIED, AudioColumns.SIZE);
+
+                    cursor = resolver.query(Audio.Media.EXTERNAL_CONTENT_URI, SongQuery.PROJECTION,
+                            selectionPair.first, selectionPair.second,
+                            AudioColumns.DATE_MODIFIED + " DESC");
+                    copyNotificationUri(result, cursor);
+                    while (cursor.moveToNext()) {
+                        includeAudio(result, cursor);
+                    }
                 }
             } else {
                 throw new UnsupportedOperationException("Unsupported root " + rootId);
@@ -719,6 +875,14 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             IoUtils.closeQuietly(cursor);
             Binder.restoreCallingIdentity(token);
         }
+
+        final String[] handledQueryArgs = DocumentsContract.getHandledQueryArguments(queryArgs);
+        if (handledQueryArgs.length > 0) {
+            final Bundle extras = new Bundle();
+            extras.putStringArray(ContentResolver.EXTRA_HONORED_ARGS, handledQueryArgs);
+            result.setExtras(extras);
+        }
+
         return result;
     }
 
@@ -749,14 +913,14 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         try {
             if (TYPE_IMAGES_BUCKET.equals(ident.type)) {
                 final long id = getImageForBucketCleared(ident.id);
-                return openOrCreateImageThumbnailCleared(id, signal);
+                return openOrCreateImageThumbnailCleared(id, sizeHint, signal);
             } else if (TYPE_IMAGE.equals(ident.type)) {
-                return openOrCreateImageThumbnailCleared(ident.id, signal);
+                return openOrCreateImageThumbnailCleared(ident.id, sizeHint, signal);
             } else if (TYPE_VIDEOS_BUCKET.equals(ident.type)) {
                 final long id = getVideoForBucketCleared(ident.id);
-                return openOrCreateVideoThumbnailCleared(id, signal);
+                return openOrCreateVideoThumbnailCleared(id, sizeHint, signal);
             } else if (TYPE_VIDEO.equals(ident.type)) {
-                return openOrCreateVideoThumbnailCleared(ident.id, signal);
+                return openOrCreateVideoThumbnailCleared(ident.id, sizeHint, signal);
             } else {
                 throw new UnsupportedOperationException("Unsupported document " + docId);
             }
@@ -792,6 +956,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         row.add(Root.COLUMN_TITLE, getContext().getString(R.string.root_images));
         row.add(Root.COLUMN_DOCUMENT_ID, TYPE_IMAGES_ROOT);
         row.add(Root.COLUMN_MIME_TYPES, IMAGE_MIME_TYPES);
+        row.add(Root.COLUMN_QUERY_ARGS, SUPPORTED_QUERY_ARGS);
     }
 
     private void includeVideosRoot(MatrixCursor result) {
@@ -807,6 +972,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         row.add(Root.COLUMN_TITLE, getContext().getString(R.string.root_videos));
         row.add(Root.COLUMN_DOCUMENT_ID, TYPE_VIDEOS_ROOT);
         row.add(Root.COLUMN_MIME_TYPES, VIDEO_MIME_TYPES);
+        row.add(Root.COLUMN_QUERY_ARGS, SUPPORTED_QUERY_ARGS);
     }
 
     private void includeAudioRoot(MatrixCursor result) {
@@ -822,6 +988,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         row.add(Root.COLUMN_TITLE, getContext().getString(R.string.root_audio));
         row.add(Root.COLUMN_DOCUMENT_ID, TYPE_AUDIO_ROOT);
         row.add(Root.COLUMN_MIME_TYPES, AUDIO_MIME_TYPES);
+        row.add(Root.COLUMN_QUERY_ARGS, SUPPORTED_QUERY_ARGS);
     }
 
     private void includeImagesRootDocument(MatrixCursor result) {
@@ -869,7 +1036,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final RowBuilder row = result.newRow();
         row.add(Document.COLUMN_DOCUMENT_ID, docId);
         row.add(Document.COLUMN_DISPLAY_NAME,
-                cursor.getString(ImagesBucketQuery.BUCKET_DISPLAY_NAME));
+            cleanUpMediaBucketName(cursor.getString(ImagesBucketQuery.BUCKET_DISPLAY_NAME)));
         row.add(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
         row.add(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(ImagesBucketQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
@@ -929,7 +1096,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final RowBuilder row = result.newRow();
         row.add(Document.COLUMN_DOCUMENT_ID, docId);
         row.add(Document.COLUMN_DISPLAY_NAME,
-                cursor.getString(VideosBucketQuery.BUCKET_DISPLAY_NAME));
+            cleanUpMediaBucketName(cursor.getString(VideosBucketQuery.BUCKET_DISPLAY_NAME)));
         row.add(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
         row.add(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(VideosBucketQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
@@ -991,15 +1158,15 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
     private interface AlbumQuery {
         final String[] PROJECTION = new String[] {
-                BaseColumns._ID,
+                AlbumColumns.ALBUM_ID,
                 AlbumColumns.ALBUM };
 
-        final int _ID = 0;
+        final int ALBUM_ID = 0;
         final int ALBUM = 1;
     }
 
     private void includeAlbum(MatrixCursor result, Cursor cursor) {
-        final long id = cursor.getLong(AlbumQuery._ID);
+        final long id = cursor.getLong(AlbumQuery.ALBUM_ID);
         final String docId = getDocIdForIdent(TYPE_ALBUM, id);
 
         final RowBuilder row = result.newRow();
@@ -1066,53 +1233,39 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         throw new FileNotFoundException("No video found for bucket");
     }
 
-    private interface ImageThumbnailQuery {
-        final String[] PROJECTION = new String[] {
-                Images.Thumbnails.DATA };
-
-        final int _DATA = 0;
-    }
-
-    private ParcelFileDescriptor openImageThumbnailCleared(long id, CancellationSignal signal)
-            throws FileNotFoundException {
+    private AssetFileDescriptor openImageThumbnailCleared(long id, Point size,
+            CancellationSignal signal) throws FileNotFoundException {
         final ContentResolver resolver = getContext().getContentResolver();
 
-        Cursor cursor = null;
-        try {
-            cursor = resolver.query(Images.Thumbnails.EXTERNAL_CONTENT_URI,
-                    ImageThumbnailQuery.PROJECTION, Images.Thumbnails.IMAGE_ID + "=" + id, null,
-                    null, signal);
-            if (cursor.moveToFirst()) {
-                final String data = cursor.getString(ImageThumbnailQuery._DATA);
-                return ParcelFileDescriptor.open(
-                        new File(data), ParcelFileDescriptor.MODE_READ_ONLY);
-            }
-        } finally {
-            IoUtils.closeQuietly(cursor);
-        }
-        return null;
+        final Uri uri = ContentUris.withAppendedId(Images.Media.EXTERNAL_CONTENT_URI, id);
+        final Bundle opts = new Bundle();
+        opts.putParcelable(EXTRA_SIZE, size);
+        return resolver.openTypedAssetFile(uri, "image/*", opts, signal);
     }
 
-    private AssetFileDescriptor openOrCreateImageThumbnailCleared(
-            long id, CancellationSignal signal) throws FileNotFoundException {
+    private AssetFileDescriptor openOrCreateImageThumbnailCleared(long id, Point size,
+            CancellationSignal signal) throws FileNotFoundException {
         final ContentResolver resolver = getContext().getContentResolver();
 
-        ParcelFileDescriptor pfd = openImageThumbnailCleared(id, signal);
-        if (pfd == null) {
+        AssetFileDescriptor afd = openImageThumbnailCleared(id, size, signal);
+
+        if (afd == null) {
             // No thumbnail yet, so generate. This is messy, since we drop the
             // Bitmap on the floor, but its the least-complicated way.
             final BitmapFactory.Options opts = new BitmapFactory.Options();
             opts.inJustDecodeBounds = true;
             Images.Thumbnails.getThumbnail(resolver, id, Images.Thumbnails.MINI_KIND, opts);
 
-            pfd = openImageThumbnailCleared(id, signal);
+            afd = openImageThumbnailCleared(id, size, signal);
         }
 
-        if (pfd == null) {
-            // Phoey, fallback to full image
-            final Uri fullUri = ContentUris.withAppendedId(Images.Media.EXTERNAL_CONTENT_URI, id);
-            pfd = resolver.openFileDescriptor(fullUri, "r", signal);
+        if (afd != null) {
+            return afd;
         }
+
+        // Phoey, fallback to full image
+        final Uri fullUri = ContentUris.withAppendedId(Images.Media.EXTERNAL_CONTENT_URI, id);
+        final ParcelFileDescriptor pfd = resolver.openFileDescriptor(fullUri, "r", signal);
 
         final int orientation = queryOrientationForImage(id, signal);
         final Bundle extras;
@@ -1154,38 +1307,21 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         throw new FileNotFoundException("No video found for bucket");
     }
 
-    private interface VideoThumbnailQuery {
-        final String[] PROJECTION = new String[] {
-                Video.Thumbnails.DATA };
-
-        final int _DATA = 0;
-    }
-
-    private AssetFileDescriptor openVideoThumbnailCleared(long id, CancellationSignal signal)
-            throws FileNotFoundException {
-        final ContentResolver resolver = getContext().getContentResolver();
-        Cursor cursor = null;
-        try {
-            cursor = resolver.query(Video.Thumbnails.EXTERNAL_CONTENT_URI,
-                    VideoThumbnailQuery.PROJECTION, Video.Thumbnails.VIDEO_ID + "=" + id, null,
-                    null, signal);
-            if (cursor.moveToFirst()) {
-                final String data = cursor.getString(VideoThumbnailQuery._DATA);
-                return new AssetFileDescriptor(ParcelFileDescriptor.open(
-                        new File(data), ParcelFileDescriptor.MODE_READ_ONLY), 0,
-                        AssetFileDescriptor.UNKNOWN_LENGTH);
-            }
-        } finally {
-            IoUtils.closeQuietly(cursor);
-        }
-        return null;
-    }
-
-    private AssetFileDescriptor openOrCreateVideoThumbnailCleared(
-            long id, CancellationSignal signal) throws FileNotFoundException {
+    private AssetFileDescriptor openVideoThumbnailCleared(long id, Point size,
+            CancellationSignal signal) throws FileNotFoundException {
         final ContentResolver resolver = getContext().getContentResolver();
 
-        AssetFileDescriptor afd = openVideoThumbnailCleared(id, signal);
+        final Uri uri = ContentUris.withAppendedId(Video.Media.EXTERNAL_CONTENT_URI, id);
+        final Bundle opts = new Bundle();
+        opts.putParcelable(EXTRA_SIZE, size);
+        return resolver.openTypedAssetFile(uri, "image/*", opts, signal);
+    }
+
+    private AssetFileDescriptor openOrCreateVideoThumbnailCleared(long id, Point size,
+            CancellationSignal signal) throws FileNotFoundException {
+        final ContentResolver resolver = getContext().getContentResolver();
+
+        AssetFileDescriptor afd = openVideoThumbnailCleared(id, size, signal);
         if (afd == null) {
             // No thumbnail yet, so generate. This is messy, since we drop the
             // Bitmap on the floor, but its the least-complicated way.
@@ -1193,9 +1329,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             opts.inJustDecodeBounds = true;
             Video.Thumbnails.getThumbnail(resolver, id, Video.Thumbnails.MINI_KIND, opts);
 
-            afd = openVideoThumbnailCleared(id, signal);
+            afd = openVideoThumbnailCleared(id, size, signal);
         }
-
         return afd;
     }
 
@@ -1228,6 +1363,13 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     private String cleanUpMediaDisplayName(String displayName) {
         if (!MediaStore.UNKNOWN_STRING.equals(displayName)) {
             return displayName;
+        }
+        return getContext().getResources().getString(com.android.internal.R.string.unknownName);
+    }
+
+    private String cleanUpMediaBucketName(String bucketDisplayName) {
+        if (!TextUtils.isEmpty(bucketDisplayName)) {
+            return bucketDisplayName;
         }
         return getContext().getResources().getString(com.android.internal.R.string.unknownName);
     }

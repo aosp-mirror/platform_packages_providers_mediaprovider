@@ -26,6 +26,13 @@
     <string name="root_images" msgid="5861633549189045666">"Imagini"</string>
     <string name="root_videos" msgid="8792703517064649453">"Videoclipuri"</string>
     <string name="root_audio" msgid="3505830755201326018">"Conținut audio"</string>
+    <string name="permission_required" msgid="1460820436132943754">"Este necesară permisiunea ca să modificați sau să ștergeți acest element."</string>
+    <string name="permission_required_action" msgid="706370952366113539">"Continuați"</string>
+    <string name="permission_audio" msgid="344061911159388398">"Permiteți aplicației "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" să modifice sau să șteargă muzica?"</string>
+    <string name="permission_video" msgid="8188037202573267740">"Permiteți aplicației "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" să modifice sau să șteargă acest video?"</string>
+    <string name="permission_images" msgid="6711726334380945124">"Permiteți aplicației "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" să modifice sau să șteargă această imagine?"</string>
+    <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Permiteți"</string>
+    <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Refuzați"</string>
     <string name="sound_name_awaken" msgid="5266892392848526147">"Awaken"</string>
     <string name="sound_name_bounce" msgid="8771447635446665231">"Bounce"</string>
     <string name="sound_name_drip" msgid="1744684469020662152">"Drip"</string>
@@ -36,6 +43,8 @@
     <string name="sound_name_sway" msgid="348448316663085643">"Sway"</string>
     <string name="sound_name_wag" msgid="2730733083078126563">"Wag"</string>
     <string name="add_ringtone_text" msgid="8077717303037760418">"Adăugați un ton de sonerie"</string>
+    <string name="add_alarm_text" msgid="2440919366091720815">"Adăugați o alarmă"</string>
+    <string name="add_notification_text" msgid="5013822215567515665">"Adăugați o notificare"</string>
     <string name="delete_ringtone_text" msgid="2963662097583300181">"Ștergeți"</string>
     <string name="unable_to_add_ringtone" msgid="6256097521165711269">"Nu se poate adăuga tonul de sonerie personalizat"</string>
     <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"Nu se poate șterge tonul de sonerie personalizat"</string>

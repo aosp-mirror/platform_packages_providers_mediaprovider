@@ -44,6 +44,23 @@
     <!-- Title for documents backend that offers audio. [CHAR LIMIT=24] -->
     <string name="root_audio">Audio</string>
 
+    <!-- Message telling users that the app must request permission before working with a media item. [CHAR LIMIT=128] -->
+    <string name="permission_required">Permission required to modify or delete this item.</string>
+    <!-- Button text that users can click on to request permission before working with a media item. [CHAR LIMIT=32] -->
+    <string name="permission_required_action">Continue</string>
+
+    <!-- Prompt asking if user will allow permission to the audio item shown below this string. [CHAR LIMIT=128] -->
+    <string name="permission_audio">Allow <b><xliff:g id="app_name" example="Gmail">^1</xliff:g></b> to modify or delete this music?</string>
+    <!-- Prompt asking if user will allow permission to the video item shown below this string. [CHAR LIMIT=128] -->
+    <string name="permission_video">Allow <b><xliff:g id="app_name" example="Gmail">^1</xliff:g></b> to modify or delete this video?</string>
+    <!-- Prompt asking if user will allow permission to the image item shown below this string. [CHAR LIMIT=128] -->
+    <string name="permission_images">Allow <b><xliff:g id="app_name" example="Gmail">^1</xliff:g></b> to modify or delete this image?</string>
+
+    <!-- Title for the dialog button to allow a permission grant. [CHAR LIMIT=15]  -->
+    <string name="grant_dialog_button_allow">Allow</string>
+    <!-- Title for the dialog button to deny a permission grant. [CHAR LIMIT=15]  -->
+    <string name="grant_dialog_button_deny">Deny</string>
+
     <!-- Strings of localized sound names below:
          VERY IMPORTANT: the lower case version of the names must match the resource
                          name as extracted from the metadata or the file name, all

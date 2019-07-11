@@ -5366,7 +5366,8 @@ public class MediaProvider extends ContentProvider {
 
         // Figure out if we need to redact contents
         final boolean redactionNeeded = callerIsOwner ? false : isRedactionNeeded(uri);
-        final long[] redactionRanges = redactionNeeded ? getRedactionRanges(file) : EmptyArray.LONG;
+        final RedactionInfo redactionInfo = redactionNeeded ? getRedactionRanges(file)
+                : new RedactionInfo(EmptyArray.LONG, EmptyArray.LONG);
 
         // Yell if caller requires original, since we can't give it to them
         // unless they have access granted above
@@ -5402,8 +5403,13 @@ public class MediaProvider extends ContentProvider {
         try {
             // First, handle any redaction that is needed for caller
             final ParcelFileDescriptor pfd;
-            if (redactionRanges.length > 0) {
-                pfd = RedactingFileDescriptor.open(getContext(), file, modeBits, redactionRanges);
+            if (redactionInfo.redactionRanges.length > 0) {
+                pfd = RedactingFileDescriptor.open(
+                        getContext(),
+                        file,
+                        modeBits,
+                        redactionInfo.redactionRanges,
+                        redactionInfo.freeOffsets);
             } else {
                 pfd = ParcelFileDescriptor.open(file, modeBits);
             }
@@ -5503,13 +5509,19 @@ public class MediaProvider extends ContentProvider {
             IsoInterface.BOX_GPS0,
     };
 
-    /**
-     * Find the set of ranges that should be redacted from the given file, ready
-     * to pass to {@link RedactingFileDescriptor}.
-     */
-    private long[] getRedactionRanges(File file) {
+    private static final class RedactionInfo {
+        public final long[] redactionRanges;
+        public final long[] freeOffsets;
+        public RedactionInfo(long[] redactionRanges, long[] freeOffsets) {
+            this.redactionRanges = redactionRanges;
+            this.freeOffsets = freeOffsets;
+        }
+    }
+
+    private RedactionInfo getRedactionRanges(File file) {
         Trace.traceBegin(TRACE_TAG_DATABASE, "getRedactionRanges");
         final LongArray res = new LongArray();
+        final LongArray freeOffsets = new LongArray();
         try (FileInputStream is = new FileInputStream(file)) {
             final ExifInterface exif = new ExifInterface(is.getFD());
             for (String tag : REDACTED_EXIF_TAGS) {
@@ -5523,7 +5535,12 @@ public class MediaProvider extends ContentProvider {
             final IsoInterface iso = IsoInterface.fromFileDescriptor(is.getFD());
             for (int box : REDACTED_ISO_BOXES) {
                 final long[] ranges = iso.getBoxRanges(box);
-                res.addAll(LongArray.wrap(ranges));
+                for (int i = 0; i < ranges.length; i += 2) {
+                    long boxTypeOffset = ranges[i] - 4;
+                    freeOffsets.add(boxTypeOffset);
+                    res.add(boxTypeOffset);
+                    res.add(ranges[i + 1]);
+                }
             }
 
             // Redact xmp where present
@@ -5536,7 +5553,7 @@ public class MediaProvider extends ContentProvider {
             Log.w(TAG, "Failed to redact " + file + ": " + e);
         }
         Trace.traceEnd(TRACE_TAG_DATABASE);
-        return res.toArray();
+        return new RedactionInfo(res.toArray(), freeOffsets.toArray());
     }
 
     private boolean checkCallingPermissionGlobal(Uri uri, boolean forWrite) {

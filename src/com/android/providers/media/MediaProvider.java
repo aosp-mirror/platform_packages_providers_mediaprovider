@@ -827,8 +827,12 @@ public class MediaProvider extends ContentProvider {
     }
 
     public LocalCallingIdentity clearLocalCallingIdentity() {
+        return clearLocalCallingIdentity(LocalCallingIdentity.fromSelf());
+    }
+
+    public LocalCallingIdentity clearLocalCallingIdentity(LocalCallingIdentity replacement) {
         final LocalCallingIdentity token = mCallingIdentity.get();
-        mCallingIdentity.set(LocalCallingIdentity.fromSelf());
+        mCallingIdentity.set(replacement);
         return token;
     }
 
@@ -1660,6 +1664,43 @@ public class MediaProvider extends ContentProvider {
             return newUri;
         }
         return uri;
+    }
+
+    @Override
+    public int checkUriPermission(@NonNull Uri uri, int uid, @Intent.AccessUriMode int modeFlags) {
+        final LocalCallingIdentity token = clearLocalCallingIdentity(
+                LocalCallingIdentity.fromExternal(uid));
+        try {
+            final boolean allowHidden = isCallingPackageAllowedHidden();
+            final int table = matchUri(uri, allowHidden);
+
+            final DatabaseHelper helper;
+            final SQLiteDatabase db;
+            try {
+                helper = getDatabaseForUri(uri);
+                db = helper.getReadableDatabase();
+            } catch (VolumeNotFoundException e) {
+                return PackageManager.PERMISSION_DENIED;
+            }
+
+            final int type;
+            if ((modeFlags & Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != 0) {
+                type = TYPE_UPDATE;
+            } else {
+                type = TYPE_QUERY;
+            }
+
+            final SQLiteQueryBuilder qb = getQueryBuilder(type, uri, table, null);
+            try (Cursor c = qb.query(db,
+                    new String[] { BaseColumns._ID }, null, null, null, null, null)) {
+                if (c.getCount() == 1) {
+                    return PackageManager.PERMISSION_GRANTED;
+                }
+            }
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
+        return PackageManager.PERMISSION_DENIED;
     }
 
     @Override

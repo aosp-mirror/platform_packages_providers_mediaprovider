@@ -282,14 +282,15 @@ public class ModernMediaScanner implements MediaScanner {
             // remains stable if we need to paginate across multiple windows.
             mSignal.throwIfCanceled();
             Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "reconcile");
-            try (Cursor c = mResolver.query(mFilesUri,
-                    new String[]{FileColumns._ID},
-                    FileColumns.FORMAT + "!=? AND " + FileColumns.DATA + " LIKE ? ESCAPE '\\'",
-                    new String[]{
-                            // Ignore abstract playlists which don't have files on disk
-                            String.valueOf(MtpConstants.FORMAT_ABSTRACT_AV_PLAYLIST),
-                            escapeForLike(mRoot.getAbsolutePath()) + '%'
-                    },
+
+            // Ignore abstract playlists which don't have files on disk
+            final String formatClause = "ifnull(" + FileColumns.FORMAT + ","
+                    + MtpConstants.FORMAT_UNDEFINED + ") != "
+                    + MtpConstants.FORMAT_ABSTRACT_AV_PLAYLIST;
+            final String dataClause = FileColumns.DATA + " LIKE ? ESCAPE '\\'";
+            try (Cursor c = mResolver.query(mFilesUri, new String[] { FileColumns._ID },
+                    formatClause + " AND " + dataClause,
+                    new String[] { escapeForLike(mRoot.getAbsolutePath()) + '%' },
                     FileColumns._ID + " DESC", mSignal)) {
                 while (c.moveToNext()) {
                     final long id = c.getLong(0);

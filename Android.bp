@@ -3,6 +3,10 @@ android_app {
 
     manifest: "AndroidManifest.xml",
 
+    static_libs: [
+        "androidx.appcompat_appcompat",
+    ],
+
     resource_dirs: [
         "res",
     ],

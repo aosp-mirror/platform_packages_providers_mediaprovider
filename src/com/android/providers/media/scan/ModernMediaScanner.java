@@ -41,8 +41,6 @@ import static android.text.format.DateUtils.MINUTE_IN_MILLIS;
 
 import android.annotation.CurrentTimeMillisLong;
 import android.annotation.CurrentTimeSecondsLong;
-import android.annotation.NonNull;
-import android.annotation.Nullable;
 import android.content.ContentProviderClient;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
@@ -76,12 +74,13 @@ import android.util.ArrayMap;
 import android.util.Log;
 import android.util.LongArray;
 
-import com.android.internal.annotations.GuardedBy;
-import com.android.internal.annotations.VisibleForTesting;
+import androidx.annotation.GuardedBy;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
+
 import com.android.providers.media.util.IsoInterface;
 import com.android.providers.media.util.XmpInterface;
-
-import libcore.net.MimeMap;
 
 import java.io.File;
 import java.io.FileInputStream;

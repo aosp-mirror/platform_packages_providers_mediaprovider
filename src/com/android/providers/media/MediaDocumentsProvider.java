@@ -18,7 +18,6 @@ package com.android.providers.media;
 
 import static android.content.ContentResolver.EXTRA_SIZE;
 
-import android.annotation.Nullable;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
@@ -36,6 +35,7 @@ import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.CancellationSignal;
+import android.os.FileUtils;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.UserHandle;
@@ -64,9 +64,9 @@ import android.text.format.DateUtils;
 import android.util.Log;
 import android.util.Pair;
 
-import com.android.internal.os.BackgroundThread;
+import androidx.annotation.Nullable;
 
-import libcore.io.IoUtils;
+import com.android.internal.os.BackgroundThread;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -428,7 +428,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         } catch (IOException io) {
             return null;
         } finally {
-            IoUtils.closeQuietly(stream);
+            FileUtils.closeQuietly(stream);
         }
     }
 
@@ -489,7 +489,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                     DocumentsContract.METADATA_TYPES,
                     new String[]{tagType});
         } finally {
-            IoUtils.closeQuietly(cursor);
+            FileUtils.closeQuietly(cursor);
             Binder.restoreCallingIdentity(token);
         }
         return result;
@@ -638,7 +638,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 throw new UnsupportedOperationException("Unsupported document " + docId);
             }
         } finally {
-            IoUtils.closeQuietly(cursor);
+            FileUtils.closeQuietly(cursor);
             Binder.restoreCallingIdentity(token);
         }
         return result;
@@ -729,7 +729,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 throw new UnsupportedOperationException("Unsupported document " + docId);
             }
         } finally {
-            IoUtils.closeQuietly(cursor);
+            FileUtils.closeQuietly(cursor);
             Binder.restoreCallingIdentity(token);
         }
         return result;
@@ -783,7 +783,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 throw new UnsupportedOperationException("Unsupported root " + rootId);
             }
         } finally {
-            IoUtils.closeQuietly(cursor);
+            FileUtils.closeQuietly(cursor);
             Binder.restoreCallingIdentity(token);
         }
         return result;
@@ -874,7 +874,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 throw new UnsupportedOperationException("Unsupported root " + rootId);
             }
         } finally {
-            IoUtils.closeQuietly(cursor);
+            FileUtils.closeQuietly(cursor);
             Binder.restoreCallingIdentity(token);
         }
 
@@ -940,7 +940,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                     BaseColumns._ID }, null, null, null);
             return (cursor == null) || (cursor.getCount() == 0);
         } finally {
-            IoUtils.closeQuietly(cursor);
+            FileUtils.closeQuietly(cursor);
             Binder.restoreCallingIdentity(token);
         }
     }
@@ -1230,7 +1230,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 return cursor.getLong(ImagesBucketThumbnailQuery._ID);
             }
         } finally {
-            IoUtils.closeQuietly(cursor);
+            FileUtils.closeQuietly(cursor);
         }
         throw new FileNotFoundException("No video found for bucket");
     }
@@ -1304,7 +1304,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 return cursor.getLong(VideosBucketThumbnailQuery._ID);
             }
         } finally {
-            IoUtils.closeQuietly(cursor);
+            FileUtils.closeQuietly(cursor);
         }
         throw new FileNotFoundException("No video found for bucket");
     }
@@ -1358,7 +1358,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 return 0;
             }
         } finally {
-            IoUtils.closeQuietly(cursor);
+            FileUtils.closeQuietly(cursor);
         }
     }
 

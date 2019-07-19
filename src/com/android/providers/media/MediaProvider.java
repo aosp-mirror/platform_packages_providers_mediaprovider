@@ -23,9 +23,9 @@ import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.os.Environment.buildPath;
 import static android.os.Trace.TRACE_TAG_DATABASE;
 import static android.provider.MediaStore.AUTHORITY;
+import static android.provider.MediaStore.getVolumeName;
 import static android.provider.MediaStore.Downloads.PATTERN_DOWNLOADS_FILE;
 import static android.provider.MediaStore.Downloads.isDownload;
-import static android.provider.MediaStore.getVolumeName;
 
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED;
@@ -38,8 +38,6 @@ import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_VIDEO;
 
 import android.annotation.BytesLong;
-import android.annotation.NonNull;
-import android.annotation.Nullable;
 import android.app.AppGlobals;
 import android.app.AppOpsManager;
 import android.app.AppOpsManager.OnOpActiveChangedListener;
@@ -133,8 +131,11 @@ import android.util.Pair;
 import android.util.Size;
 import android.util.SparseArray;
 
-import com.android.internal.annotations.GuardedBy;
-import com.android.internal.annotations.VisibleForTesting;
+import androidx.annotation.GuardedBy;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
+
 import com.android.internal.os.BackgroundThread;
 import com.android.internal.util.ArrayUtils;
 import com.android.internal.util.IndentingPrintWriter;
@@ -144,7 +145,6 @@ import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.IsoInterface;
 import com.android.providers.media.util.XmpInterface;
 
-import libcore.io.IoUtils;
 import libcore.util.EmptyArray;
 
 import java.io.File;
@@ -1473,8 +1473,8 @@ public class MediaProvider extends ContentProvider {
                 db.execSQL("DELETE FROM audio_meta;");
             }
         } finally {
-            IoUtils.closeQuietly(c1);
-            IoUtils.closeQuietly(c2);
+            FileUtils.closeQuietly(c1);
+            FileUtils.closeQuietly(c2);
         }
     }
 
@@ -2781,7 +2781,7 @@ public class MediaProvider extends ContentProvider {
                         new String[] { Long.toString(playlistId) } );
             }
         } finally {
-            IoUtils.closeQuietly(c);
+            FileUtils.closeQuietly(c);
         }
         return null;
     }
@@ -2803,7 +2803,7 @@ public class MediaProvider extends ContentProvider {
                 playlistId = c.getLong(0);
             }
         } finally {
-            IoUtils.closeQuietly(c);
+            FileUtils.closeQuietly(c);
         }
         if (playlistId == 0) {
             return 0;
@@ -2834,7 +2834,7 @@ public class MediaProvider extends ContentProvider {
                     audioId = c.getLong(0);
                 }
             } finally {
-                IoUtils.closeQuietly(c);
+                FileUtils.closeQuietly(c);
             }
             if (audioId != 0) {
                 ContentValues v = new ContentValues();
@@ -2890,7 +2890,7 @@ public class MediaProvider extends ContentProvider {
                 uri = Uri.withAppendedPath(uri, MediaStore.Audio.Genres.Members.CONTENT_DIRECTORY);
             }
         } finally {
-            IoUtils.closeQuietly(cursor);
+            FileUtils.closeQuietly(cursor);
         }
 
         if (uri != null) {
@@ -4078,7 +4078,7 @@ public class MediaProvider extends ContentProvider {
                                         }
                                         db.delete("audio_playlists_map", "audio_id=?", idvalue);
                                     } finally {
-                                        IoUtils.closeQuietly(cc);
+                                        FileUtils.closeQuietly(cc);
                                     }
                                 }
                             } else if (isDownload == 1) {
@@ -4091,7 +4091,7 @@ public class MediaProvider extends ContentProvider {
                             }
                         }
                     } finally {
-                        IoUtils.closeQuietly(c);
+                        FileUtils.closeQuietly(c);
                     }
                     // Do not allow deletion if the file/object is referenced as parent
                     // by some other entries. It could cause database corruption.
@@ -4121,7 +4121,7 @@ public class MediaProvider extends ContentProvider {
                                 deleteIfAllowed(uri, c.getString(0));
                             }
                         } finally {
-                            IoUtils.closeQuietly(c);
+                            FileUtils.closeQuietly(c);
                         }
                     }
                     count = deleteRecursive(qb, db, userWhere, userWhereArgs);
@@ -4824,7 +4824,7 @@ public class MediaProvider extends ContentProvider {
                         oldPath = cursor.getString(1);
                     }
                 } finally {
-                    IoUtils.closeQuietly(cursor);
+                    FileUtils.closeQuietly(cursor);
                 }
                 final boolean isDownload = isDownload(newPath);
                 if (oldPath != null) {
@@ -4927,7 +4927,7 @@ public class MediaProvider extends ContentProvider {
                                                 Log.e(TAG, "" + numrows + " rows for " + uri);
                                             }
                                         } finally {
-                                            IoUtils.closeQuietly(c);
+                                            FileUtils.closeQuietly(c);
                                         }
                                     }
                                 }
@@ -5095,7 +5095,7 @@ public class MediaProvider extends ContentProvider {
                     from + ",1");
             c.moveToFirst();
             int from_play_order = c.getInt(0);
-            IoUtils.closeQuietly(c);
+            FileUtils.closeQuietly(c);
             c = db.query("audio_playlists_map",
                     new String [] {"play_order" },
                     "playlist_id=?", new String[] {"" + playlist}, null, null, "play_order",
@@ -5126,7 +5126,7 @@ public class MediaProvider extends ContentProvider {
             db.setTransactionSuccessful();
         } finally {
             db.endTransaction();
-            IoUtils.closeQuietly(c);
+            FileUtils.closeQuietly(c);
         }
 
         Uri uri = ContentUris.withAppendedId(
@@ -5345,17 +5345,17 @@ public class MediaProvider extends ContentProvider {
         if (c == null) {
             throw new FileNotFoundException("Missing cursor for " + uri);
         } else if (c.getCount() < 1) {
-            IoUtils.closeQuietly(c);
+            FileUtils.closeQuietly(c);
             throw new FileNotFoundException("No item at " + uri);
         } else if (c.getCount() > 1) {
-            IoUtils.closeQuietly(c);
+            FileUtils.closeQuietly(c);
             throw new FileNotFoundException("Multiple items at " + uri);
         }
 
         if (c.moveToFirst()) {
             return c;
         } else {
-            IoUtils.closeQuietly(c);
+            FileUtils.closeQuietly(c);
             throw new FileNotFoundException("Failed to read row from " + uri);
         }
     }
@@ -5928,7 +5928,7 @@ public class MediaProvider extends ContentProvider {
                     break;
             }
         } finally {
-            IoUtils.closeQuietly(c);
+            FileUtils.closeQuietly(c);
         }
 
         if (cache != null && ! isUnknown) {
@@ -6604,7 +6604,7 @@ public class MediaProvider extends ContentProvider {
                     s.append("couldn't get row count, ");
                 }
             } finally {
-                IoUtils.closeQuietly(c);
+                FileUtils.closeQuietly(c);
             }
             if (dbh.mScanStartTime != 0) {
                 s.append("scan started " + DateUtils.formatDateTime(getContext(),
@@ -6639,7 +6639,7 @@ public class MediaProvider extends ContentProvider {
                         }
                     }
                 } finally {
-                    IoUtils.closeQuietly(c);
+                    FileUtils.closeQuietly(c);
                 }
             } else {
                 s.append(": pid=" + android.os.Process.myPid());

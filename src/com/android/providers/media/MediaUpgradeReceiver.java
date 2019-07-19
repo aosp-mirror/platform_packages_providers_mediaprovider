@@ -16,16 +16,14 @@
 
 package com.android.providers.media;
 
-import java.io.File;
-
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
-import android.os.RemoteException;
 import android.util.Log;
-import android.util.Slog;
+
+import java.io.File;
 
 /**
  * This will be launched during system boot, after the core system has
@@ -63,7 +61,7 @@ public class MediaUpgradeReceiver extends BroadcastReceiver {
                 String file = files[i];
                 if (MediaProvider.isMediaDatabaseName(file)) {
                     long startTime = System.currentTimeMillis();
-                    Slog.i(TAG, "---> Start upgrade of media database " + file);
+                    Log.i(TAG, "---> Start upgrade of media database " + file);
                     SQLiteDatabase db = null;
                     try {
                         MediaProvider.DatabaseHelper helper = new MediaProvider.DatabaseHelper(
@@ -77,7 +75,7 @@ public class MediaUpgradeReceiver extends BroadcastReceiver {
                             db.close();
                         }
                     }
-                    Slog.i(TAG, "<--- Finished upgrade of media database " + file
+                    Log.i(TAG, "<--- Finished upgrade of media database " + file
                             + " in " + (System.currentTimeMillis()-startTime) + "ms");
                 }
             }

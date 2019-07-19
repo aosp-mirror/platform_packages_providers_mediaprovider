@@ -16,7 +16,6 @@
 
 package com.android.providers.media;
 
-import android.annotation.NonNull;
 import android.app.ActivityManager;
 import android.app.Service;
 import android.content.Context;
@@ -37,7 +36,9 @@ import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.util.Log;
 
-import com.android.internal.annotations.GuardedBy;
+import androidx.annotation.GuardedBy;
+import androidx.annotation.NonNull;
+
 import com.android.internal.util.Preconditions;
 
 import java.io.File;

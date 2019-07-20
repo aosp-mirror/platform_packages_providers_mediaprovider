@@ -19,17 +19,15 @@ package com.android.providers.media.util;
 import static org.xmlpull.v1.XmlPullParser.END_DOCUMENT;
 import static org.xmlpull.v1.XmlPullParser.END_TAG;
 import static org.xmlpull.v1.XmlPullParser.START_TAG;
-import static org.xmlpull.v1.XmlPullParser.TEXT;
 
-import android.annotation.NonNull;
-import android.annotation.Nullable;
 import android.media.ExifInterface;
 import android.text.TextUtils;
-import android.util.IntArray;
 import android.util.LongArray;
 import android.util.Xml;
 
-import com.android.internal.annotations.VisibleForTesting;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import libcore.util.EmptyArray;
 

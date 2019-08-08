@@ -18,14 +18,13 @@ package com.android.providers.media;
 
 import android.app.Service;
 import android.content.Intent;
-import android.media.MediaScannerConnection;
-import android.media.MediaScannerConnection.OnScanCompletedListener;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.FileUtils;
 import android.os.IBinder;
+import android.provider.MediaStore;
 import android.provider.Settings.System;
 import android.util.Log;
 
@@ -37,7 +36,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.concurrent.SynchronousQueue;
 
 /**
  * Service to copy and set customization of default sounds
@@ -103,32 +101,7 @@ public class RingtoneOverlayService extends Service {
     }
 
     private Uri scanFile(@NonNull final File file) {
-        SynchronousQueue<Uri> queue = new SynchronousQueue<>();
-
-        if (DEBUG) Log.d(TAG, "Scanning " + file.getAbsolutePath());
-        MediaScannerConnection.scanFile(this, new String[] { file.getAbsolutePath() }, null,
-                new OnScanCompletedListener() {
-                    @Override
-                    public void onScanCompleted(String path, Uri uri) {
-                        if (uri == null) {
-                            file.delete();
-                            return;
-                        }
-                        try {
-                            queue.put(uri);
-                        } catch (InterruptedException e) {
-                            Log.w(TAG, "Unable to put new Uri in queue", e);
-                        }
-                    }
-                });
-
-        try {
-            return queue.take();
-        } catch (InterruptedException e) {
-            Log.w(TAG, "Unable to take new Uri from queue", e);
-        }
-
-        return null;
+        return MediaStore.scanFile(this, file);
     }
 
     private void set(@NonNull final String name, @NonNull final Uri uri) {

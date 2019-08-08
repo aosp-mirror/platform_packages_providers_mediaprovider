@@ -221,7 +221,7 @@ public class ModernMediaScanner implements MediaScanner {
         private Uri mFirstResult;
 
         public Scan(File root) {
-            Trace.traceBegin(TRACE_TAG_DATABASE, "ctor");
+            Trace.beginSection("ctor");
 
             mClient = mContext.getContentResolver()
                     .acquireContentProviderClient(MediaStore.AUTHORITY);
@@ -234,7 +234,7 @@ public class ModernMediaScanner implements MediaScanner {
 
             mSingleFile = mRoot.isFile();
 
-            Trace.traceEnd(TRACE_TAG_DATABASE);
+            Trace.endSection();
         }
 
         @Override
@@ -261,14 +261,14 @@ public class ModernMediaScanner implements MediaScanner {
         private void walkFileTree() {
             mSignal.throwIfCanceled();
             if (!isDirectoryHiddenRecursive(mSingleFile ? mRoot.getParentFile() : mRoot)) {
-                Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "walkFileTree");
+                Trace.beginSection("walkFileTree");
                 try {
                     Files.walkFileTree(mRoot.toPath(), this);
                 } catch (IOException e) {
                     // This should never happen, so yell loudly
                     throw new IllegalStateException(e);
                 } finally {
-                    Trace.traceEnd(Trace.TRACE_TAG_DATABASE);
+                    Trace.endSection();
                 }
                 applyPending();
             }
@@ -281,7 +281,7 @@ public class ModernMediaScanner implements MediaScanner {
             // The query phase is split from the delete phase so that our query
             // remains stable if we need to paginate across multiple windows.
             mSignal.throwIfCanceled();
-            Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "reconcile");
+            Trace.beginSection("reconcile");
 
             // Ignore abstract playlists which don't have files on disk
             final String formatClause = "ifnull(" + FileColumns.FORMAT + ","
@@ -299,12 +299,12 @@ public class ModernMediaScanner implements MediaScanner {
                     }
                 }
             } finally {
-                Trace.traceEnd(Trace.TRACE_TAG_DATABASE);
+                Trace.endSection();
             }
 
             // Third, clean all the unknown database entries found above
             mSignal.throwIfCanceled();
-            Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "clean");
+            Trace.beginSection("clean");
             try {
                 for (int i = 0; i < mUnknownIds.size(); i++) {
                     final long id = mUnknownIds.get(i);
@@ -317,7 +317,7 @@ public class ModernMediaScanner implements MediaScanner {
                 }
                 applyPending();
             } finally {
-                Trace.traceEnd(Trace.TRACE_TAG_DATABASE);
+                Trace.endSection();
             }
         }
 
@@ -370,7 +370,7 @@ public class ModernMediaScanner implements MediaScanner {
             // changed since they were last scanned
             final File realFile = file.toFile();
             long existingId = -1;
-            Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "checkChanged");
+            Trace.beginSection("checkChanged");
             try (Cursor c = mResolver.query(mFilesUri,
                     new String[] { FileColumns._ID, FileColumns.DATE_MODIFIED, FileColumns.SIZE },
                     FileColumns.DATA + "=?", new String[] { realFile.getAbsolutePath() }, null)) {
@@ -397,15 +397,15 @@ public class ModernMediaScanner implements MediaScanner {
                     }
                 }
             } finally {
-                Trace.traceEnd(Trace.TRACE_TAG_DATABASE);
+                Trace.endSection();
             }
 
             final ContentProviderOperation op;
-            Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "scanItem");
+            Trace.beginSection("scanItem");
             try {
                 op = scanItem(existingId, file.toFile(), attrs, mVolumeName);
             } finally {
-                Trace.traceEnd(Trace.TRACE_TAG_DATABASE);
+                Trace.endSection();
             }
             if (op != null) {
                 mPending.add(op);
@@ -434,7 +434,7 @@ public class ModernMediaScanner implements MediaScanner {
         }
 
         private void applyPending() {
-            Trace.traceBegin(Trace.TRACE_TAG_DATABASE, "applyPending");
+            Trace.beginSection("applyPending");
             try {
                 ContentProviderResult[] results = mResolver.applyBatch(AUTHORITY, mPending);
                 for (int index = 0; index < results.length; index++) {
@@ -464,7 +464,7 @@ public class ModernMediaScanner implements MediaScanner {
                 Log.w(TAG, "Failed to apply: " + e);
             } finally {
                 mPending.clear();
-                Trace.traceEnd(Trace.TRACE_TAG_DATABASE);
+                Trace.endSection();
             }
         }
     }
@@ -913,7 +913,7 @@ public class ModernMediaScanner implements MediaScanner {
      * Test if any parents of given directory should be considered hidden.
      */
     static boolean isDirectoryHiddenRecursive(File dir) {
-        Trace.traceBegin(TRACE_TAG_DATABASE, "isDirectoryHiddenRecursive");
+        Trace.beginSection("isDirectoryHiddenRecursive");
         try {
             while (dir != null) {
                 if (isDirectoryHidden(dir)) {
@@ -923,7 +923,7 @@ public class ModernMediaScanner implements MediaScanner {
             }
             return false;
         } finally {
-            Trace.traceEnd(TRACE_TAG_DATABASE);
+            Trace.endSection();
         }
     }
 

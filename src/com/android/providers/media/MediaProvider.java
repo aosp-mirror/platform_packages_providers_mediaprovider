@@ -166,6 +166,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -588,11 +589,11 @@ public class MediaProvider extends ContentProvider {
         }
 
         private void notifyChangeInternal(Uri uri) {
-            Trace.traceBegin(TRACE_TAG_DATABASE, "notifyChange");
+            Trace.beginSection("notifyChange");
             try {
                 mContext.getContentResolver().notifyChange(uri, null);
             } finally {
-                Trace.traceEnd(TRACE_TAG_DATABASE);
+                Trace.endSection();
             }
         }
     }
@@ -1712,11 +1713,11 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public Cursor query(Uri uri, String[] projection, Bundle queryArgs, CancellationSignal signal) {
-        Trace.traceBegin(TRACE_TAG_DATABASE, "query");
+        Trace.beginSection("query");
         try {
             return queryInternal(uri, projection, queryArgs, signal);
         } finally {
-            Trace.traceEnd(TRACE_TAG_DATABASE);
+            Trace.endSection();
         }
     }
 
@@ -1983,7 +1984,7 @@ public class MediaProvider extends ContentProvider {
      */
     private static void ensureFileColumns(int match, Uri uri, ContentValues values,
             boolean makeUnique, @Nullable String currentPath) throws VolumeArgumentException {
-        Trace.traceBegin(TRACE_TAG_DATABASE, "ensureFileColumns");
+        Trace.beginSection("ensureFileColumns");
 
         // Figure out defaults based on Uri being modified
         String defaultMimeType = ContentResolver.MIME_TYPE_DEFAULT;
@@ -2181,7 +2182,7 @@ public class MediaProvider extends ContentProvider {
                 break;
         }
 
-        Trace.traceEnd(TRACE_TAG_DATABASE);
+        Trace.endSection();
     }
 
     private static @NonNull String[] sanitizePath(@Nullable String path) {
@@ -2939,11 +2940,11 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public Uri insert(Uri uri, ContentValues initialValues) {
-        Trace.traceBegin(TRACE_TAG_DATABASE, "insert");
+        Trace.beginSection("insert");
         try {
             return insertInternal(uri, initialValues);
         } finally {
-            Trace.traceEnd(TRACE_TAG_DATABASE);
+            Trace.endSection();
         }
     }
 
@@ -3403,11 +3404,11 @@ public class MediaProvider extends ContentProvider {
      * </ul>
      */
     private SQLiteQueryBuilder getQueryBuilder(int type, Uri uri, int match, Bundle queryArgs) {
-        Trace.traceBegin(TRACE_TAG_DATABASE, "getQueryBuilder");
+        Trace.beginSection("getQueryBuilder");
         try {
             return getQueryBuilderInternal(type, uri, match, queryArgs);
         } finally {
-            Trace.traceEnd(TRACE_TAG_DATABASE);
+            Trace.endSection();
         }
     }
 
@@ -3926,11 +3927,11 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public int delete(Uri uri, String userWhere, String[] userWhereArgs) {
-        Trace.traceBegin(TRACE_TAG_DATABASE, "insert");
+        Trace.beginSection("insert");
         try {
             return deleteInternal(uri, userWhere, userWhereArgs);
         } finally {
-            Trace.traceEnd(TRACE_TAG_DATABASE);
+            Trace.endSection();
         }
     }
 
@@ -4195,6 +4196,18 @@ public class MediaProvider extends ContentProvider {
     @Override
     public Bundle call(String method, String arg, Bundle extras) {
         switch (method) {
+            case MediaStore.WAIT_FOR_IDLE_CALL: {
+                final CountDownLatch latch = new CountDownLatch(1);
+                BackgroundThread.getExecutor().execute(() -> {
+                    latch.countDown();
+                });
+                try {
+                    latch.await(30, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    throw new IllegalStateException(e);
+                }
+                return null;
+            }
             case MediaStore.SCAN_FILE_CALL:
             case MediaStore.SCAN_VOLUME_CALL: {
                 final LocalCallingIdentity token = clearLocalCallingIdentity();
@@ -4478,11 +4491,11 @@ public class MediaProvider extends ContentProvider {
     };
 
     private void invalidateThumbnails(Uri uri) {
-        Trace.traceBegin(TRACE_TAG_DATABASE, "invalidateThumbnails");
+        Trace.beginSection("invalidateThumbnails");
         try {
             invalidateThumbnailsInternal(uri);
         } finally {
-            Trace.traceEnd(TRACE_TAG_DATABASE);
+            Trace.endSection();
         }
     }
 
@@ -4522,11 +4535,11 @@ public class MediaProvider extends ContentProvider {
     @Override
     public int update(Uri uri, ContentValues initialValues, String userWhere,
             String[] userWhereArgs) {
-        Trace.traceBegin(TRACE_TAG_DATABASE, "update");
+        Trace.beginSection("update");
         try {
             return updateInternal(uri, initialValues, userWhere, userWhereArgs);
         } finally {
-            Trace.traceEnd(TRACE_TAG_DATABASE);
+            Trace.endSection();
         }
     }
 
@@ -4592,7 +4605,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             if (!isCallingPackageSystem()) {
-                Trace.traceBegin(TRACE_TAG_DATABASE, "filter");
+                Trace.beginSection("filter");
 
                 // Remote callers have no direct control over owner column; we
                 // force it be whoever is creating the content.
@@ -4638,7 +4651,7 @@ public class MediaProvider extends ContentProvider {
                     }
                 }
 
-                Trace.traceEnd(TRACE_TAG_DATABASE);
+                Trace.endSection();
             }
 
             genre = initialValues.getAsString(Audio.AudioColumns.GENRE);
@@ -4681,7 +4694,7 @@ public class MediaProvider extends ContentProvider {
                 && !initialValues.containsKey(MediaColumns.DATA)
                 && !isCallingPackageSystem()
                 && !isThumbnail) {
-            Trace.traceBegin(TRACE_TAG_DATABASE, "movement");
+            Trace.beginSection("movement");
 
             // We only support movement under well-defined collections
             switch (match) {
@@ -4753,7 +4766,7 @@ public class MediaProvider extends ContentProvider {
                 initialValues.put(MediaColumns.DATA, afterPath);
             }
 
-            Trace.traceEnd(TRACE_TAG_DATABASE);
+            Trace.endSection();
         }
 
         // Make sure any updated paths look sane
@@ -4786,7 +4799,7 @@ public class MediaProvider extends ContentProvider {
         // it's applied, we need to snapshot affected IDs here
         final LongArray updatedIds = new LongArray();
         if (triggerInvalidate || triggerScan) {
-            Trace.traceBegin(TRACE_TAG_DATABASE, "snapshot");
+            Trace.beginSection("snapshot");
             final LocalCallingIdentity token = clearLocalCallingIdentity();
             try (Cursor c = qb.query(db, new String[] { FileColumns._ID },
                     userWhere, userWhereArgs, null, null, null)) {
@@ -4795,7 +4808,7 @@ public class MediaProvider extends ContentProvider {
                 }
             } finally {
                 restoreLocalCallingIdentity(token);
-                Trace.traceEnd(TRACE_TAG_DATABASE);
+                Trace.endSection();
             }
         }
 
@@ -5049,7 +5062,7 @@ public class MediaProvider extends ContentProvider {
         // If the caller tried (and failed) to update metadata, the file on disk
         // might have changed, to scan it to collect the latest metadata.
         if (triggerInvalidate || triggerScan) {
-            Trace.traceBegin(TRACE_TAG_DATABASE, "invalidate");
+            Trace.beginSection("invalidate");
             final LocalCallingIdentity token = clearLocalCallingIdentity();
             try {
                 for (int i = 0; i < updatedIds.size(); i++) {
@@ -5070,7 +5083,7 @@ public class MediaProvider extends ContentProvider {
                 }
             } finally {
                 restoreLocalCallingIdentity(token);
-                Trace.traceEnd(TRACE_TAG_DATABASE);
+                Trace.endSection();
             }
         }
 
@@ -5245,7 +5258,7 @@ public class MediaProvider extends ContentProvider {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
-        Trace.traceBegin(TRACE_TAG_DATABASE, "ensureThumbnail");
+        Trace.beginSection("ensureThumbnail");
         final LocalCallingIdentity token = clearLocalCallingIdentity();
         try {
             final File thumbFile;
@@ -5279,7 +5292,7 @@ public class MediaProvider extends ContentProvider {
             throw new FileNotFoundException(e.getMessage());
         } finally {
             restoreLocalCallingIdentity(token);
-            Trace.traceEnd(TRACE_TAG_DATABASE);
+            Trace.endSection();
         }
     }
 
@@ -5560,7 +5573,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private RedactionInfo getRedactionRanges(File file) {
-        Trace.traceBegin(TRACE_TAG_DATABASE, "getRedactionRanges");
+        Trace.beginSection("getRedactionRanges");
         final LongArray res = new LongArray();
         final LongArray freeOffsets = new LongArray();
         try (FileInputStream is = new FileInputStream(file)) {
@@ -5593,7 +5606,7 @@ public class MediaProvider extends ContentProvider {
         } catch (IOException e) {
             Log.w(TAG, "Failed to redact " + file + ": " + e);
         }
-        Trace.traceEnd(TRACE_TAG_DATABASE);
+        Trace.endSection();
         return new RedactionInfo(res.toArray(), freeOffsets.toArray());
     }
 
@@ -5666,11 +5679,11 @@ public class MediaProvider extends ContentProvider {
      * @throws SecurityException if access isn't allowed.
      */
     private void enforceCallingPermission(Uri uri, boolean forWrite) {
-        Trace.traceBegin(TRACE_TAG_DATABASE, "enforceCallingPermission");
+        Trace.beginSection("enforceCallingPermission");
         try {
             enforceCallingPermissionInternal(uri, forWrite);
         } finally {
-            Trace.traceEnd(TRACE_TAG_DATABASE);
+            Trace.endSection();
         }
     }
 

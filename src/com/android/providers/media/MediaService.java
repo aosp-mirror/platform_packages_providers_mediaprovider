@@ -66,7 +66,7 @@ public class MediaService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
         mWakeLock.acquire();
-        Trace.traceBegin(Trace.TRACE_TAG_DATABASE, intent.getAction());
+        Trace.beginSection(intent.getAction());
         if (Log.isLoggable(TAG, Log.INFO)) {
             Log.i(TAG, "Begin " + intent);
         }
@@ -101,7 +101,7 @@ public class MediaService extends IntentService {
             if (Log.isLoggable(TAG, Log.INFO)) {
                 Log.i(TAG, "End " + intent);
             }
-            Trace.traceEnd(Trace.TRACE_TAG_DATABASE);
+            Trace.endSection();
             mWakeLock.release();
         }
     }

@@ -21,7 +21,6 @@ import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.app.PendingIntent.FLAG_ONE_SHOT;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.os.Environment.buildPath;
-import static android.os.Trace.TRACE_TAG_DATABASE;
 import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.getVolumeName;
 import static android.provider.MediaStore.Downloads.PATTERN_DOWNLOADS_FILE;
@@ -382,21 +381,6 @@ public class MediaProvider extends ContentProvider {
         }
     };
 
-    private final SQLiteDatabase.CustomFunction mObjectRemovedCallback =
-                new SQLiteDatabase.CustomFunction() {
-        @Override
-        public void callback(String[] args) {
-            // We could remove only the deleted entry from the cache, but that
-            // requires the path, which we don't have here, so instead we just
-            // clear the entire cache.
-            // TODO: include the path in the callback and only remove the affected
-            // entry from the cache
-            synchronized (mDirectoryCache) {
-                mDirectoryCache.clear();
-            }
-        }
-    };
-
     /**
      * Wrapper class for a specific database (associated with one particular
      * external card, or with internal storage).  Can open the actual database
@@ -408,7 +392,6 @@ public class MediaProvider extends ContentProvider {
         final int mVersion;
         final boolean mInternal;  // True if this is the internal database
         final boolean mEarlyUpgrade;
-        final SQLiteDatabase.CustomFunction mObjectRemovedCallback;
         long mScanStartTime;
         long mScanStopTime;
 
@@ -417,20 +400,18 @@ public class MediaProvider extends ContentProvider {
         ArrayMap<String, Long> mAlbumCache = new ArrayMap<String, Long>();
 
         public DatabaseHelper(Context context, String name, boolean internal,
-                boolean earlyUpgrade, SQLiteDatabase.CustomFunction objectRemovedCallback) {
-            this(context, name, getDatabaseVersion(context), internal, earlyUpgrade,
-                    objectRemovedCallback);
+                boolean earlyUpgrade) {
+            this(context, name, getDatabaseVersion(context), internal, earlyUpgrade);
         }
 
         public DatabaseHelper(Context context, String name, int version, boolean internal,
-                boolean earlyUpgrade, SQLiteDatabase.CustomFunction objectRemovedCallback) {
+                boolean earlyUpgrade) {
             super(context, name, null, version);
             mContext = context;
             mName = name;
             mVersion = version;
             mInternal = internal;
             mEarlyUpgrade = earlyUpgrade;
-            mObjectRemovedCallback = objectRemovedCallback;
             setWriteAheadLoggingEnabled(true);
             setIdleConnectionTimeout(IDLE_CONNECTION_TIMEOUT_MS);
         }
@@ -462,13 +443,7 @@ public class MediaProvider extends ContentProvider {
          */
         @Override
         public void onOpen(SQLiteDatabase db) {
-
             if (mEarlyUpgrade) return; // Doing early upgrade.
-
-            if (mObjectRemovedCallback != null) {
-                db.addCustomFunction("_OBJECT_REMOVED", 1, mObjectRemovedCallback);
-            }
-
             if (mInternal) return;  // The internal database is kept separately.
 
             // the code below is only needed on devices with removable storage
@@ -782,10 +757,8 @@ public class MediaProvider extends ContentProvider {
         final int thumbSize = Math.min(metrics.widthPixels, metrics.heightPixels) / 2;
         mThumbSize = new Size(thumbSize, thumbSize);
 
-        mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, true,
-                false, mObjectRemovedCallback);
-        mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false,
-                false, mObjectRemovedCallback);
+        mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, true, false);
+        mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false, false);
 
         final IntentFilter filter = new IntentFilter();
         filter.setPriority(10);
@@ -912,6 +885,10 @@ public class MediaProvider extends ContentProvider {
                         new String[] { rec.getNormalizedFsUuid() });
                 Log.d(TAG, "Forgot " + num + " stale items from " + rec.fsUuid);
             }
+        }
+
+        synchronized (mDirectoryCache) {
+            mDirectoryCache.clear();
         }
     }
 
@@ -1054,14 +1031,6 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("CREATE TABLE audio_playlists_map (_id INTEGER PRIMARY KEY,"
                     + "audio_id INTEGER NOT NULL,playlist_id INTEGER NOT NULL,"
                     + "play_order INTEGER NOT NULL)");
-            db.execSQL("CREATE TRIGGER audio_genres_cleanup DELETE ON audio_genres BEGIN DELETE"
-                    + " FROM audio_genres_map WHERE genre_id = old._id;END");
-            db.execSQL("CREATE TRIGGER audio_playlists_cleanup DELETE ON files"
-                    + " WHEN old.media_type=4"
-                    + " BEGIN DELETE FROM audio_playlists_map WHERE playlist_id = old._id;"
-                    + "SELECT _DELETE_FILE(old._data);END");
-            db.execSQL("CREATE TRIGGER files_cleanup DELETE ON files"
-                    + " BEGIN SELECT _OBJECT_REMOVED(old._id);END");
         }
 
         db.execSQL("CREATE INDEX image_id_index on thumbnails(image_id)");
@@ -1082,12 +1051,8 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("CREATE INDEX title_idx ON files(title)");
         db.execSQL("CREATE INDEX titlekey_index ON files(title_key)");
 
-        db.execSQL("CREATE TRIGGER albumart_cleanup1 DELETE ON albums BEGIN DELETE FROM album_art"
-                + " WHERE album_id = old.album_id;END");
-        db.execSQL("CREATE TRIGGER albumart_cleanup2 DELETE ON album_art"
-                + " BEGIN SELECT _DELETE_FILE(old._data);END");
-
         createLatestViews(db, internal);
+        createLatestTriggers(db, internal);
     }
 
     private static void makePristineViews(SQLiteDatabase db) {
@@ -1163,6 +1128,35 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("CREATE VIEW downloads AS SELECT "
                 + String.join(",", getProjectionMap(Downloads.class).keySet())
                 + " FROM files WHERE is_download=1");
+    }
+
+    private static void makePristineTriggers(SQLiteDatabase db) {
+        // drop all triggers
+        Cursor c = db.query("sqlite_master", new String[] {"name"}, "type is 'trigger'",
+                null, null, null, null);
+        while (c.moveToNext()) {
+            if (c.getString(0).startsWith("sqlite_")) continue;
+            db.execSQL("DROP TRIGGER IF EXISTS " + c.getString(0));
+        }
+        c.close();
+    }
+
+    private static void createLatestTriggers(SQLiteDatabase db, boolean internal) {
+        makePristineTriggers(db);
+
+        if (!internal) {
+            db.execSQL("CREATE TRIGGER audio_genres_cleanup DELETE ON audio_genres BEGIN DELETE"
+                    + " FROM audio_genres_map WHERE genre_id = old._id;END");
+            db.execSQL("CREATE TRIGGER audio_playlists_cleanup DELETE ON files"
+                    + " WHEN old.media_type=4"
+                    + " BEGIN DELETE FROM audio_playlists_map WHERE playlist_id = old._id;"
+                    + "SELECT _DELETE_FILE(old._data);END");
+        }
+
+        db.execSQL("CREATE TRIGGER albumart_cleanup1 DELETE ON albums BEGIN DELETE FROM album_art"
+                + " WHERE album_id = old.album_id;END");
+        db.execSQL("CREATE TRIGGER albumart_cleanup2 DELETE ON album_art"
+                + " BEGIN SELECT _DELETE_FILE(old._data);END");
     }
 
     private static void updateCollationKeys(SQLiteDatabase db) {
@@ -1309,6 +1303,7 @@ public class MediaProvider extends ContentProvider {
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
     static final int VERSION_Q = 1023;
+    static final int VERSION_R = 1100;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -1406,15 +1401,19 @@ public class MediaProvider extends ContentProvider {
             if (fromVersion < 1023) {
                 updateRelativePath(db, internal);
             }
+            if (fromVersion < 1100) {
+                // Empty version bump to ensure triggers are recreated
+            }
 
             if (recomputeDataValues) {
                 recomputeDataValues(db, internal);
             }
         }
 
-        // Always recreate latest views during upgrade; they're cheap and it's
-        // an easy way to ensure they're defined consistently
+        // Always recreate latest views and triggers during upgrade; they're
+        // cheap and it's an easy way to ensure they're defined consistently
         createLatestViews(db, internal);
+        createLatestTriggers(db, internal);
 
         sanityCheck(db, fromVersion);
 
@@ -4178,18 +4177,22 @@ public class MediaProvider extends ContentProvider {
      */
     private int deleteRecursive(SQLiteQueryBuilder qb, SQLiteDatabase db, String userWhere,
             String[] userWhereArgs) {
-        db.beginTransaction();
-        try {
-            int n = 0;
-            int total = 0;
-            do {
-                n = qb.delete(db, userWhere, userWhereArgs);
-                total += n;
-            } while (n > 0);
-            db.setTransactionSuccessful();
-            return total;
-        } finally {
-            db.endTransaction();
+        synchronized (mDirectoryCache) {
+            mDirectoryCache.clear();
+
+            db.beginTransaction();
+            try {
+                int n = 0;
+                int total = 0;
+                do {
+                    n = qb.delete(db, userWhere, userWhereArgs);
+                    total += n;
+                } while (n > 0);
+                db.setTransactionSuccessful();
+                return total;
+            } finally {
+                db.endTransaction();
+            }
         }
     }
 

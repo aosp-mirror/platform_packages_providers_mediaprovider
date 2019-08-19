@@ -66,7 +66,7 @@ public class MediaUpgradeReceiver extends BroadcastReceiver {
                     try {
                         MediaProvider.DatabaseHelper helper = new MediaProvider.DatabaseHelper(
                                 context, file, MediaProvider.isInternalMediaDatabaseName(file),
-                                false, null);
+                                false);
                         db = helper.getWritableDatabase();
                     } catch (Throwable t) {
                         Log.wtf(TAG, "Error during upgrade of media db " + file, t);

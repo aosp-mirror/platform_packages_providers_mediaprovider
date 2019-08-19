@@ -8,6 +8,8 @@ android_app {
         "androidx.core_core",
     ],
 
+    jni_libs: ["libfuse_jni"],
+
     resource_dirs: [
         "res",
     ],

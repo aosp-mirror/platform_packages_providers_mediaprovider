@@ -95,6 +95,7 @@ import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.os.storage.VolumeInfo;
 import android.os.storage.VolumeRecord;
+import android.os.SystemProperties;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.provider.Column;
@@ -229,6 +230,10 @@ public class MediaProvider extends ContentProvider {
     private static final Set<String> sCachedExternalVolumeNames = new ArraySet<>();
     @GuardedBy("sCacheLock")
     private static final Map<String, Collection<File>> sCachedVolumeScanPaths = new ArrayMap<>();
+
+    static {
+        System.loadLibrary("fuse_jni");
+    }
 
     private void updateVolumes() {
         synchronized (sCacheLock) {
@@ -770,13 +775,17 @@ public class MediaProvider extends ContentProvider {
                 updateVolumes();
             }
         });
-        updateVolumes();
 
-        attachVolume(MediaStore.VOLUME_INTERNAL);
-
-        // Attach all currently mounted external volumes
-        for (String volumeName : getExternalVolumeNames()) {
-            attachVolume(volumeName);
+        if (SystemProperties.getBoolean("persist.sys.fuse", false)) {
+            // #updateVolume and #attachVolume touch /storage/emulated which could be a
+            // FUSE mount that has not yet been initialized. We could hang on this call and block
+            // the main thread preventing the ExternalStorageServiceImpl from starting and thus the
+            // FUSE daemon.
+            BackgroundThread.getHandler().post(this::updateAndAttachVolumes);
+        } else {
+            // TODO(b/135341433): Remove this property after figuring out why we errno when running
+            // in #getOrCreateUuid when running sdcardfs
+            updateAndAttachVolumes();
         }
 
         // Watch for performance-sensitive activity
@@ -785,6 +794,14 @@ public class MediaProvider extends ContentProvider {
         }, context.getMainExecutor(), mActiveListener);
 
         return true;
+    }
+
+    private void updateAndAttachVolumes() {
+        updateVolumes();
+        attachVolume(MediaStore.VOLUME_INTERNAL);
+        for (String volumeName : getExternalVolumeNames()) {
+            attachVolume(volumeName);
+        }
     }
 
     @Override

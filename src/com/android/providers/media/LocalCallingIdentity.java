@@ -35,8 +35,6 @@ import android.os.storage.StorageManager;
 
 import com.android.internal.util.ArrayUtils;
 
-import libcore.util.EmptyArray;
-
 public class LocalCallingIdentity {
     public final Context context;
     public final int pid;
@@ -239,7 +237,7 @@ public class LocalCallingIdentity {
         return true;
     }
 
-    private long[] ownedIds = EmptyArray.LONG;
+    private long[] ownedIds = new long[0];
 
     public boolean isOwned(long id) {
         return ArrayUtils.contains(ownedIds, id);

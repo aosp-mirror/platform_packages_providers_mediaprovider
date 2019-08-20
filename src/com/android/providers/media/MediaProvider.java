@@ -143,8 +143,6 @@ import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.IsoInterface;
 import com.android.providers.media.util.XmpInterface;
 
-import libcore.util.EmptyArray;
-
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
@@ -2186,7 +2184,7 @@ public class MediaProvider extends ContentProvider {
 
     private static @NonNull String[] sanitizePath(@Nullable String path) {
         if (path == null) {
-            return EmptyArray.STRING;
+            return new String[0];
         } else {
             final String[] segments = path.split("/");
             for (int i = 0; i < segments.length; i++) {
@@ -4713,7 +4711,7 @@ public class MediaProvider extends ContentProvider {
 
             final LocalCallingIdentity token = clearLocalCallingIdentity();
             try (Cursor c = queryForSingleItem(uri,
-                    sPlacementColumns.toArray(EmptyArray.STRING), userWhere, userWhereArgs, null)) {
+                    sPlacementColumns.toArray(new String[0]), userWhere, userWhereArgs, null)) {
                 for (int i = 0; i < c.getColumnCount(); i++) {
                     final String column = c.getColumnName(i);
                     if (!initialValues.containsKey(column)) {
@@ -5424,7 +5422,7 @@ public class MediaProvider extends ContentProvider {
         // Figure out if we need to redact contents
         final boolean redactionNeeded = callerIsOwner ? false : isRedactionNeeded(uri);
         final RedactionInfo redactionInfo = redactionNeeded ? getRedactionRanges(file)
-                : new RedactionInfo(EmptyArray.LONG, EmptyArray.LONG);
+                : new RedactionInfo(new long[0], new long[0]);
 
         // Yell if caller requires original, since we can't give it to them
         // unless they have access granted above

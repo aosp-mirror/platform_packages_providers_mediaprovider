@@ -29,8 +29,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
-import libcore.util.EmptyArray;
-
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -75,7 +73,7 @@ public class XmpInterface {
     private String mOriginalDocumentId;
 
     private XmpInterface(@NonNull InputStream in) throws IOException {
-        this(in, Collections.emptySet(), EmptyArray.LONG);
+        this(in, Collections.emptySet(), new long[0]);
     }
 
     private XmpInterface(
@@ -158,8 +156,8 @@ public class XmpInterface {
             buf = exif.getAttributeBytes(ExifInterface.TAG_XMP);
             xmpOffsets = exif.getAttributeRange(ExifInterface.TAG_XMP);
         } else {
-            buf = EmptyArray.BYTE;
-            xmpOffsets = EmptyArray.LONG;
+            buf = new byte[0];
+            xmpOffsets = new long[0];
         }
         return new XmpInterface(new ByteArrayInputStream(buf), redactedExifTags, xmpOffsets);
     }
@@ -172,7 +170,7 @@ public class XmpInterface {
     public static @NonNull XmpInterface fromContainer(@NonNull IsoInterface iso,
             @NonNull Set<String> redactedExifTags) throws IOException {
         byte[] buf = null;
-        long[] xmpOffsets = EmptyArray.LONG;
+        long[] xmpOffsets = new long[0];
         if (buf == null) {
             UUID uuid = UUID.fromString("be7acfcb-97a9-42e8-9c71-999491e3afac");
             buf = iso.getBoxBytes(uuid);
@@ -183,8 +181,8 @@ public class XmpInterface {
             xmpOffsets = iso.getBoxRanges(IsoInterface.BOX_XMP);
         }
         if (buf == null) {
-            buf = EmptyArray.BYTE;
-            xmpOffsets = EmptyArray.LONG;
+            buf = new byte[0];
+            xmpOffsets = new long[0];
         }
         return new XmpInterface(new ByteArrayInputStream(buf), redactedExifTags, xmpOffsets);
     }

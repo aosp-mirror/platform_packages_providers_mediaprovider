@@ -37,7 +37,6 @@ import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_VIDEO;
 
 import android.annotation.BytesLong;
-import android.app.AppGlobals;
 import android.app.AppOpsManager;
 import android.app.AppOpsManager.OnOpActiveChangedListener;
 import android.app.PendingIntent;
@@ -296,7 +295,7 @@ public class MediaProvider extends ContentProvider {
         synchronized (mCachedCallingIdentity) {
             if (active) {
                 mCachedCallingIdentity.put(uid,
-                        LocalCallingIdentity.fromExternal(uid, packageName));
+                        LocalCallingIdentity.fromExternal(getContext(), uid, packageName));
             } else {
                 mCachedCallingIdentity.remove(uid);
             }
@@ -319,7 +318,8 @@ public class MediaProvider extends ContentProvider {
                 synchronized (mCachedCallingIdentity) {
                     final LocalCallingIdentity cached = mCachedCallingIdentity
                             .get(Binder.getCallingUid());
-                    return (cached != null) ? cached : LocalCallingIdentity.fromBinder(this);
+                    return (cached != null) ? cached
+                            : LocalCallingIdentity.fromBinder(getContext(), this);
                 }
             });
 
@@ -801,7 +801,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     public LocalCallingIdentity clearLocalCallingIdentity() {
-        return clearLocalCallingIdentity(LocalCallingIdentity.fromSelf());
+        return clearLocalCallingIdentity(LocalCallingIdentity.fromSelf(getContext()));
     }
 
     public LocalCallingIdentity clearLocalCallingIdentity(LocalCallingIdentity replacement) {
@@ -969,19 +969,19 @@ public class MediaProvider extends ContentProvider {
         c.close();
     }
 
-    private static void createLatestSchema(SQLiteDatabase db, boolean internal) {
+    private static void createLatestSchema(Context context, SQLiteDatabase db, boolean internal) {
         // We're about to start all ID numbering from scratch, so revoke any
         // outstanding permission grants to ensure we don't leak data
-        AppGlobals.getInitialApplication().revokeUriPermission(MediaStore.AUTHORITY_URI,
+        context.revokeUriPermission(MediaStore.AUTHORITY_URI,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-        MediaDocumentsProvider.revokeAllUriGrants(AppGlobals.getInitialApplication());
+        MediaDocumentsProvider.revokeAllUriGrants(context);
         BackgroundThread.getHandler().post(() -> {
-            try (ContentProviderClient client = AppGlobals.getInitialApplication()
+            try (ContentProviderClient client = context
                     .getContentResolver().acquireContentProviderClient(
                             android.provider.Downloads.Impl.AUTHORITY)) {
                 client.call(android.provider.Downloads.CALL_REVOKE_MEDIASTORE_URI_PERMS,
                         null, null);
-            } catch (RemoteException e) {
+            } catch (NullPointerException | RemoteException e) {
                 // Should not happen
             }
         });
@@ -1319,7 +1319,7 @@ public class MediaProvider extends ContentProvider {
 
         if (fromVersion < 700) {
             // Anything older than KK is recreated from scratch
-            createLatestSchema(db, internal);
+            createLatestSchema(context, db, internal);
         } else {
             boolean recomputeDataValues = false;
             if (fromVersion < 800) {
@@ -1430,7 +1430,7 @@ public class MediaProvider extends ContentProvider {
         final long startTime = SystemClock.elapsedRealtime();
 
         // The best we can do is wipe and start over
-        createLatestSchema(db, internal);
+        createLatestSchema(context, db, internal);
 
         final long elapsedSeconds = (SystemClock.elapsedRealtime() - startTime)
                 / DateUtils.SECOND_IN_MILLIS;
@@ -1669,7 +1669,7 @@ public class MediaProvider extends ContentProvider {
     @Override
     public int checkUriPermission(@NonNull Uri uri, int uid, @Intent.AccessUriMode int modeFlags) {
         final LocalCallingIdentity token = clearLocalCallingIdentity(
-                LocalCallingIdentity.fromExternal(uid));
+                LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
             final boolean allowHidden = isCallingPackageAllowedHidden();
             final int table = matchUri(uri, allowHidden);

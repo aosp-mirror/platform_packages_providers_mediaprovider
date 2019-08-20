@@ -353,8 +353,7 @@ public class DatabaseHelperTest {
     }
 
     /**
-     * Snapshot of
-     * {@link MediaProvider#createLatestSchema(SQLiteDatabase, boolean)} as of
+     * Snapshot of {@link MediaProvider#createLatestSchema} as of
      * {@link android.os.Build.VERSION_CODES#O}.
      */
     private static void createOSchema(SQLiteDatabase db, boolean internal) {
@@ -477,8 +476,7 @@ public class DatabaseHelperTest {
     }
 
     /**
-     * Snapshot of
-     * {@link MediaProvider#createLatestSchema(SQLiteDatabase, boolean)} as of
+     * Snapshot of {@link MediaProvider#createLatestSchema} as of
      * {@link android.os.Build.VERSION_CODES#P}.
      */
     private static void createPSchema(SQLiteDatabase db, boolean internal) {
@@ -601,8 +599,7 @@ public class DatabaseHelperTest {
     }
 
     /**
-     * Snapshot of
-     * {@link MediaProvider#createLatestSchema(SQLiteDatabase, boolean)} as of
+     * Snapshot of {@link MediaProvider#createLatestSchema} as of
      * {@link android.os.Build.VERSION_CODES#Q}.
      */
     private static void createQSchema(SQLiteDatabase db, boolean internal) {

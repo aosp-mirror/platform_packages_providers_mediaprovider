@@ -33,7 +33,7 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.storage.StorageManager;
 
-import com.android.internal.util.ArrayUtils;
+import com.android.providers.media.util.LongArray;
 
 public class LocalCallingIdentity {
     public final Context context;
@@ -59,7 +59,7 @@ public class LocalCallingIdentity {
 
     public static LocalCallingIdentity fromExternal(Context context, int uid) {
         final String[] sharedPackageNames = context.getPackageManager().getPackagesForUid(uid);
-        if (ArrayUtils.isEmpty(sharedPackageNames)) {
+        if (sharedPackageNames == null || sharedPackageNames.length == 0) {
             throw new IllegalArgumentException("UID " + uid + " has no associated package");
         }
         return fromExternal(context, uid, sharedPackageNames[0]);
@@ -116,7 +116,8 @@ public class LocalCallingIdentity {
     }
 
     private String[] getSharedPackageNamesInternal() {
-        return ArrayUtils.defeatNullable(context.getPackageManager().getPackagesForUid(uid));
+        final String[] packageNames = context.getPackageManager().getPackagesForUid(uid);
+        return (packageNames != null) ? packageNames : new String[0];
     }
 
     private int targetSdkVersion;
@@ -237,17 +238,22 @@ public class LocalCallingIdentity {
         return true;
     }
 
-    private long[] ownedIds = new long[0];
+    private LongArray ownedIds = new LongArray();
 
     public boolean isOwned(long id) {
-        return ArrayUtils.contains(ownedIds, id);
+        return ownedIds.indexOf(id) != -1;
     }
 
     public void setOwned(long id, boolean owned) {
+        final int index = ownedIds.indexOf(id);
         if (owned) {
-            ownedIds = ArrayUtils.appendLong(ownedIds, id);
+            if (index == -1) {
+                ownedIds.add(id);
+            }
         } else {
-            ownedIds = ArrayUtils.removeLong(ownedIds, id);
+            if (index != -1) {
+                ownedIds.remove(index);
+            }
         }
     }
 }

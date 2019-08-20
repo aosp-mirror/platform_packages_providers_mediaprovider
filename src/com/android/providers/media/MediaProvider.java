@@ -123,7 +123,6 @@ import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.util.LongArray;
 import android.util.LongSparseArray;
 import android.util.Pair;
 import android.util.Size;
@@ -134,13 +133,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
-import com.android.internal.os.BackgroundThread;
-import com.android.internal.util.ArrayUtils;
-import com.android.internal.util.IndentingPrintWriter;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
+import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.IsoInterface;
+import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.XmpInterface;
 
 import java.io.File;
@@ -682,8 +680,9 @@ public class MediaProvider extends ContentProvider {
     private static void deleteLegacyThumbnailData() {
         File directory = new File(Environment.getExternalStorageDirectory(), "/DCIM/.thumbnails");
 
-        FilenameFilter filter = (dir, filename) -> filename.startsWith(".thumbdata");
-        for (File f : ArrayUtils.defeatNullable(directory.listFiles(filter))) {
+        final FilenameFilter filter = (dir, filename) -> filename.startsWith(".thumbdata");
+        final File[] files = directory.listFiles(filter);
+        for (File f : (files != null) ? files : new File[0]) {
             if (!f.delete()) {
                 Log.e(TAG, "Failed to delete legacy thumbnail data " + f.getAbsolutePath());
             }
@@ -1841,7 +1840,8 @@ public class MediaProvider extends ContentProvider {
 
             // Some apps are abusing the first column to inject "DISTINCT";
             // gracefully lift them out.
-            if (!ArrayUtils.isEmpty(projection) && projection[0].startsWith("DISTINCT ")) {
+            if ((projection != null) && (projection.length > 0)
+                    && projection[0].startsWith("DISTINCT ")) {
                 projection[0] = projection[0].substring("DISTINCT ".length());
                 qb.setDistinct(true);
             }
@@ -6590,14 +6590,10 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public void dump(FileDescriptor fd, PrintWriter writer, String[] args) {
-        final IndentingPrintWriter pw = new IndentingPrintWriter(writer, "  ");
-        pw.printPair("mThumbSize", mThumbSize);
-        pw.println();
-        pw.printPair("mAttachedVolumeNames", mAttachedVolumeNames);
-        pw.println();
-
-        pw.println(dump(mInternalDatabase, true));
-        pw.println(dump(mExternalDatabase, true));
+        writer.println("mThumbSize=" + mThumbSize);
+        writer.println("mAttachedVolumeNames=" + mAttachedVolumeNames);
+        writer.println(dump(mInternalDatabase, true));
+        writer.println(dump(mExternalDatabase, true));
     }
 
     private String dump(DatabaseHelper dbh, boolean dumpDbLog) {

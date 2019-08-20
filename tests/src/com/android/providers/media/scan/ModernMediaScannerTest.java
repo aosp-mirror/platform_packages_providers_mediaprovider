@@ -44,7 +44,6 @@ import android.provider.MediaStore.MediaColumns;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.internal.os.BackgroundThread;
 import com.android.providers.media.MediaProvider;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 import com.android.providers.media.tests.R;
@@ -57,8 +56,6 @@ import org.junit.runner.RunWith;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 @RunWith(AndroidJUnit4.class)
 public class ModernMediaScannerTest {
@@ -326,11 +323,7 @@ public class ModernMediaScannerTest {
         }
 
         // Make sure out pending scan has finished
-        final CountDownLatch latch = new CountDownLatch(1);
-        BackgroundThread.getExecutor().execute(() -> {
-            latch.countDown();
-        });
-        latch.await(10, TimeUnit.SECONDS);
+        MediaStore.waitForIdle(mIsolatedContext);
 
         try (Cursor cursor = mIsolatedResolver
                 .query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {

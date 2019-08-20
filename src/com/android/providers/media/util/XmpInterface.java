@@ -22,7 +22,6 @@ import static org.xmlpull.v1.XmlPullParser.START_TAG;
 
 import android.media.ExifInterface;
 import android.text.TextUtils;
-import android.util.LongArray;
 import android.util.Xml;
 
 import androidx.annotation.NonNull;

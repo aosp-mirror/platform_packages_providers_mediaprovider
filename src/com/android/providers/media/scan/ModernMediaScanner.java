@@ -71,7 +71,6 @@ import android.provider.MediaStore.Video.VideoColumns;
 import android.text.TextUtils;
 import android.util.ArrayMap;
 import android.util.Log;
-import android.util.LongArray;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
@@ -79,6 +78,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.util.IsoInterface;
+import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.XmpInterface;
 
 import java.io.File;

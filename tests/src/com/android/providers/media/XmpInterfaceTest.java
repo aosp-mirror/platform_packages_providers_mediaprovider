@@ -22,12 +22,13 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import android.content.Context;
-import android.content.res.AssetFileDescriptor;
 import android.media.ExifInterface;
 import android.os.FileUtils;
-import android.util.LongArray;
 import android.util.ArraySet;
 import android.util.Xml;
+
+import androidx.test.InstrumentationRegistry;
+import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.tests.R;
 import com.android.providers.media.util.IsoInterface;
@@ -36,8 +37,6 @@ import com.android.providers.media.util.XmpInterface;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.xmlpull.v1.XmlPullParser;
-import org.xmlpull.v1.XmlPullParserException;
-import org.xmlpull.v1.XmlPullParserFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -45,12 +44,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
-
-import androidx.test.InstrumentationRegistry;
-import androidx.test.runner.AndroidJUnit4;
 
 @RunWith(AndroidJUnit4.class)
 public class XmpInterfaceTest {

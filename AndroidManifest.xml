@@ -83,13 +83,6 @@
             android:name=".MediaService"
             android:exported="false" />
 
-        <service
-            android:name=".MediaScannerService"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.media.IMediaScannerService" />
-            </intent-filter>
-        </service>
 
         <service android:name="RingtoneOverlayService" />
 

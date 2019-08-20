@@ -19,9 +19,9 @@ package com.android.providers.media;
 import static com.android.providers.media.MediaProvider.TAG;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ContentResolver;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -35,24 +35,30 @@ import android.provider.MediaStore.MediaColumns;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Size;
+import android.view.KeyEvent;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ImageView.ScaleType;
 import android.widget.TextView;
 
-import com.android.internal.app.AlertActivity;
-
 import java.io.IOException;
 
-public class PermissionActivity extends AlertActivity implements DialogInterface.OnClickListener {
+public class PermissionActivity extends Activity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // Strategy borrowed from PermissionController
+        getWindow().addSystemFlags(
+                WindowManager.LayoutParams.SYSTEM_FLAG_HIDE_NON_SYSTEM_OVERLAY_WINDOWS);
+        setFinishOnTouchOutside(false);
+
+        final Uri uri;
         final CharSequence label;
         final int resId;
         try {
+            uri = getIntent().getData();
             label = getCallingLabel();
             resId = getMessageId();
         } catch (Exception e) {
@@ -63,13 +69,13 @@ public class PermissionActivity extends AlertActivity implements DialogInterface
 
         final Resources res = getResources();
         final FrameLayout view = new FrameLayout(this);
-        final int padding = res.getDimensionPixelSize(com.android.internal.R.dimen.default_gap);
+        final int padding = res.getDimensionPixelSize(R.dimen.default_gap);
         view.setPadding(padding, padding, padding, padding);
         new AsyncTask<Void, Void, Description>() {
             @Override
             protected Description doInBackground(Void... params) {
                 try {
-                    return new Description(PermissionActivity.this, getIntent().getData());
+                    return new Description(PermissionActivity.this, uri);
                 } catch (Exception e) {
                     Log.w(TAG, e);
                     finish();
@@ -100,38 +106,38 @@ public class PermissionActivity extends AlertActivity implements DialogInterface
             }
         }.execute();
 
-        mAlertParams.mMessage = TextUtils.expandTemplate(getText(resId), label);
-        mAlertParams.mPositiveButtonText = getString(R.string.grant_dialog_button_allow);
-        mAlertParams.mPositiveButtonListener = this;
-        mAlertParams.mNegativeButtonText = getString(R.string.grant_dialog_button_deny);
-        mAlertParams.mNegativeButtonListener = this;
-        mAlertParams.mCancelable = false;
-        mAlertParams.mView = view;
-        setupAlert();
-
-        getWindow().setCloseOnTouchOutside(false);
-        getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM);
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage(TextUtils.expandTemplate(getText(resId), label));
+        builder.setPositiveButton(getString(R.string.grant_dialog_button_allow),
+                (dialog, which) -> {
+                    Log.d(TAG, "User allowed grant for " + uri);
+                    grantUriPermission(getCallingPackage(), uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION |
+                                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION |
+                                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+                    setResult(Activity.RESULT_OK);
+                    finish();
+                });
+        builder.setNegativeButton(getString(R.string.grant_dialog_button_deny),
+                (dialog, which) -> {
+                    Log.d(TAG, "User declined grant for " + uri);
+                    finish();
+                });
+        builder.setCancelable(false);
+        builder.setView(view);
+        builder.show();
     }
 
     @Override
-    public void onClick(DialogInterface dialog, int which) {
-        final Uri uri = getIntent().getData();
-        switch (which) {
-            case BUTTON_POSITIVE:
-                Log.d(TAG, "User allowed grant for " + uri);
-                grantUriPermission(getCallingPackage(), uri,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION |
-                                Intent.FLAG_GRANT_WRITE_URI_PERMISSION |
-                                Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-                setResult(Activity.RESULT_OK);
-                finish();
-                break;
-            case BUTTON_NEGATIVE:
-                Log.d(TAG, "User declined grant for " + uri);
-                finish();
-                break;
-        }
+    public boolean onKeyDown(int keyCode, KeyEvent event)  {
+        // Strategy borrowed from PermissionController
+        return keyCode == KeyEvent.KEYCODE_BACK;
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event)  {
+        // Strategy borrowed from PermissionController
+        return keyCode == KeyEvent.KEYCODE_BACK;
     }
 
     private CharSequence getCallingLabel() throws NameNotFoundException {

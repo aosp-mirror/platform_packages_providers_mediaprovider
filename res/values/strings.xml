@@ -27,16 +27,6 @@
     <!-- Description line for music artists in the search/suggestion results -->
     <string name="artist_label">Artist</string>
 
-    <!-- Choice in the ringtone picker.  If chosen, the default ringtone will be used. -->
-    <string name="ringtone_default">Default ringtone</string>
-
-    <!-- Choice in the notification sound picker.  If chosen, the default notification sound will be
-         used. -->
-    <string name="notification_sound_default">Default notification sound</string>
-
-    <!-- Choice in the alarm sound picker.  If chosen, the default alarm sound will be used. -->
-    <string name="alarm_sound_default">Default alarm sound</string>
-
     <!-- Title for documents backend that offers images. [CHAR LIMIT=24] -->
     <string name="root_images">Images</string>
     <!-- Title for documents backend that offers videos. [CHAR LIMIT=24] -->
@@ -60,99 +50,4 @@
     <string name="grant_dialog_button_allow">Allow</string>
     <!-- Title for the dialog button to deny a permission grant. [CHAR LIMIT=15]  -->
     <string name="grant_dialog_button_deny">Deny</string>
-
-    <!-- Strings of localized sound names below:
-         VERY IMPORTANT: the lower case version of the names must match the resource
-                         name as extracted from the metadata or the file name, all
-                         non-alphanumeric characters are replaced by "_", each
-                         resource name is preceded by "sound_name_".
-    -->
-
-    <!-- Name of alarm in the alarm sound picker: theme:motion, style:ambient tempo:flowing -->
-    <string name="sound_name_awaken">Awaken</string>
-    <!-- Name of alarm in the alarm sound picker: theme:motion, style:soft pure tones
-         tempo:initially downtempo -->
-    <string name="sound_name_bounce">Bounce</string>
-    <!-- Name of alarm in the alarm sound picker: theme:motion, style:traditional tempo:mid -->
-    <string name="sound_name_drip">Drip</string>
-    <!-- Name of alarm in the alarm sound picker: theme:motion, style:rhythmic tempo:up-tempo -->
-    <string name="sound_name_gallop">Gallop</string>
-    <!-- Name of alarm in the alarm sound picker: theme:motion, style:traditional tempo:mid -->
-    <string name="sound_name_nudge">Nudge</string>
-    <!-- Name of alarm in the alarm sound picker: theme:motion, style:traditional tempo:mid -->
-    <string name="sound_name_orbit">Orbit</string>
-    <!-- Name of alarm in the alarm sound picker: theme:motion, style:digital tempo:mid -->
-    <string name="sound_name_rise">Rise</string>
-    <!-- Name of alarm in the alarm sound picker: theme:motion, style:musical tempo:swaying -->
-    <string name="sound_name_sway">Sway</string>
-    <!-- Name of alarm in the alarm sound picker: theme:motion, style:sound design tempo:mid -->
-    <string name="sound_name_wag">Wag</string>
-
-    <!-- Text for the RingtonePicker item that allows adding a new ringtone. -->
-    <string name="add_ringtone_text">Add ringtone</string>
-    <!-- Text for the RingtonePicker item that allows adding a new alarm. -->
-    <string name="add_alarm_text">Add alarm</string>
-    <!-- Text for the RingtonePicker item that allows adding a new notification. -->
-    <string name="add_notification_text">Add notification</string>
-    <!-- Text for the RingtonePicker item ContextMenu that allows deleting a custom ringtone. -->
-    <string name="delete_ringtone_text">Delete</string>
-    <!-- Text for the Toast displayed when adding a custom ringtone fails. -->
-    <string name="unable_to_add_ringtone">Unable to add custom ringtone</string>
-    <!-- Text for the Toast displayed when deleting a custom ringtone fails. -->
-    <string name="unable_to_delete_ringtone">Unable to delete custom ringtone</string>
-
-    <!--  When adding sounds as overlays, you can use the resources defined below.
-          For the translation of the names to be picked up by the RingtonePicker:
-          - in the sound files, set the "TITLE" tag as "alarm_XX" or "notification_XX"
-            or "ringtone_XX",
-          - in the overlay for packages/providers/MediaProvider/res/values/strings.xml
-            define the strings for the names "sound_name_alarm_XX" etc -->
-    <add-resource type="string" name="sound_name_alarm_01" />
-    <add-resource type="string" name="sound_name_alarm_02" />
-    <add-resource type="string" name="sound_name_alarm_03" />
-    <add-resource type="string" name="sound_name_alarm_04" />
-    <add-resource type="string" name="sound_name_alarm_05" />
-    <add-resource type="string" name="sound_name_alarm_06" />
-    <add-resource type="string" name="sound_name_alarm_07" />
-    <add-resource type="string" name="sound_name_alarm_08" />
-    <add-resource type="string" name="sound_name_alarm_09" />
-    <add-resource type="string" name="sound_name_alarm_10" />
-    <add-resource type="string" name="sound_name_alarm_11" />
-    <add-resource type="string" name="sound_name_alarm_12" />
-    <add-resource type="string" name="sound_name_alarm_13" />
-    <add-resource type="string" name="sound_name_alarm_14" />
-    <add-resource type="string" name="sound_name_alarm_15" />
-
-    <add-resource type="string" name="sound_name_notification_01" />
-    <add-resource type="string" name="sound_name_notification_02" />
-    <add-resource type="string" name="sound_name_notification_03" />
-    <add-resource type="string" name="sound_name_notification_04" />
-    <add-resource type="string" name="sound_name_notification_05" />
-    <add-resource type="string" name="sound_name_notification_06" />
-    <add-resource type="string" name="sound_name_notification_07" />
-    <add-resource type="string" name="sound_name_notification_08" />
-    <add-resource type="string" name="sound_name_notification_09" />
-    <add-resource type="string" name="sound_name_notification_10" />
-    <add-resource type="string" name="sound_name_notification_11" />
-    <add-resource type="string" name="sound_name_notification_12" />
-    <add-resource type="string" name="sound_name_notification_13" />
-    <add-resource type="string" name="sound_name_notification_14" />
-    <add-resource type="string" name="sound_name_notification_15" />
-
-    <add-resource type="string" name="sound_name_ringtone_01" />
-    <add-resource type="string" name="sound_name_ringtone_02" />
-    <add-resource type="string" name="sound_name_ringtone_03" />
-    <add-resource type="string" name="sound_name_ringtone_04" />
-    <add-resource type="string" name="sound_name_ringtone_05" />
-    <add-resource type="string" name="sound_name_ringtone_06" />
-    <add-resource type="string" name="sound_name_ringtone_07" />
-    <add-resource type="string" name="sound_name_ringtone_08" />
-    <add-resource type="string" name="sound_name_ringtone_09" />
-    <add-resource type="string" name="sound_name_ringtone_10" />
-    <add-resource type="string" name="sound_name_ringtone_11" />
-    <add-resource type="string" name="sound_name_ringtone_12" />
-    <add-resource type="string" name="sound_name_ringtone_13" />
-    <add-resource type="string" name="sound_name_ringtone_14" />
-    <add-resource type="string" name="sound_name_ringtone_15" />
-
 </resources>

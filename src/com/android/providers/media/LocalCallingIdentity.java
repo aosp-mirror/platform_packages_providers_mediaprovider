@@ -17,12 +17,16 @@
 package com.android.providers.media;
 
 import static android.Manifest.permission.ACCESS_MEDIA_LOCATION;
-import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
-import static android.Manifest.permission.WRITE_MEDIA_STORAGE;
-import static android.app.AppOpsManager.MODE_ALLOWED;
-import static android.app.AppOpsManager.OP_LEGACY_STORAGE;
-import static android.app.AppOpsManager.OP_WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+
+import static com.android.providers.media.util.PermissionUtils.checkPermissionLegacy;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionReadAudio;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionReadImages;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionReadVideo;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionSystem;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteAudio;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteImages;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteVideo;
 
 import android.app.AppOpsManager;
 import android.content.ContentProvider;
@@ -31,7 +35,6 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Binder;
 import android.os.Build;
-import android.os.storage.StorageManager;
 
 import com.android.providers.media.util.LongArray;
 
@@ -175,58 +178,28 @@ public class LocalCallingIdentity {
             case PERMISSION_IS_REDACTION_NEEDED:
                 return isRedactionNeededInternal();
             case PERMISSION_READ_AUDIO:
-                return context.getSystemService(StorageManager.class)
-                        .checkPermissionReadAudio(false, pid, uid, getPackageName());
+                return checkPermissionReadAudio(context, pid, uid, getPackageName());
             case PERMISSION_READ_VIDEO:
-                return context.getSystemService(StorageManager.class)
-                        .checkPermissionReadVideo(false, pid, uid, getPackageName());
+                return checkPermissionReadVideo(context, pid, uid, getPackageName());
             case PERMISSION_READ_IMAGES:
-                return context.getSystemService(StorageManager.class)
-                        .checkPermissionReadImages(false, pid, uid, getPackageName());
+                return checkPermissionReadImages(context, pid, uid, getPackageName());
             case PERMISSION_WRITE_AUDIO:
-                return context.getSystemService(StorageManager.class)
-                        .checkPermissionWriteAudio(false, pid, uid, getPackageName());
+                return checkPermissionWriteAudio(context, pid, uid, getPackageName());
             case PERMISSION_WRITE_VIDEO:
-                return context.getSystemService(StorageManager.class)
-                        .checkPermissionWriteVideo(false, pid, uid, getPackageName());
+                return checkPermissionWriteVideo(context, pid, uid, getPackageName());
             case PERMISSION_WRITE_IMAGES:
-                return context.getSystemService(StorageManager.class)
-                        .checkPermissionWriteImages(false, pid, uid, getPackageName());
+                return checkPermissionWriteImages(context, pid, uid, getPackageName());
             default:
                 return false;
         }
     }
 
     private boolean isSystemInternal() {
-        if (uid == android.os.Process.SYSTEM_UID) {
-            return true;
-        }
-
-        // Special case to speed up when MediaProvider is calling itself; we
-        // know it always has system permissions
-        if (uid == android.os.Process.myUid()) {
-            return true;
-        }
-
-        // Determine if caller is holding runtime permission
-        final boolean hasStorage = StorageManager.checkPermissionAndAppOp(context, false, 0,
-                uid, getPackageName(), WRITE_EXTERNAL_STORAGE, OP_WRITE_EXTERNAL_STORAGE);
-
-        // We're only willing to give out broad access if they also hold
-        // runtime permission; this is a firm CDD requirement
-        final boolean hasFull = context
-                .checkPermission(WRITE_MEDIA_STORAGE, pid, uid) == PERMISSION_GRANTED;
-
-        return hasFull && hasStorage;
+        return checkPermissionSystem(context, pid, uid, getPackageName());
     }
 
     private boolean isLegacyInternal() {
-        // TODO: keep this logic in sync with StorageManagerService
-        final boolean hasStorage = StorageManager.checkPermissionAndAppOp(context, false, 0,
-                uid, getPackageName(), WRITE_EXTERNAL_STORAGE, OP_WRITE_EXTERNAL_STORAGE);
-        final boolean hasLegacy = context.getSystemService(AppOpsManager.class)
-                .checkOp(OP_LEGACY_STORAGE, uid, getPackageName()) == MODE_ALLOWED;
-        return (hasLegacy && hasStorage);
+        return checkPermissionLegacy(context, pid, uid, getPackageName());
     }
 
     private boolean isRedactionNeededInternal() {

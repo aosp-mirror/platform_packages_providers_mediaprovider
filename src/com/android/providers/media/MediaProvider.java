@@ -167,6 +167,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -4155,6 +4156,18 @@ public class MediaProvider extends ContentProvider {
     @Override
     public Bundle call(String method, String arg, Bundle extras) {
         switch (method) {
+            case MediaStore.WAIT_FOR_IDLE_CALL: {
+                final CountDownLatch latch = new CountDownLatch(1);
+                BackgroundThread.getExecutor().execute(() -> {
+                    latch.countDown();
+                });
+                try {
+                    latch.await(30, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    throw new IllegalStateException(e);
+                }
+                return null;
+            }
             case MediaStore.SCAN_FILE_CALL:
             case MediaStore.SCAN_VOLUME_CALL: {
                 final LocalCallingIdentity token = clearLocalCallingIdentity();

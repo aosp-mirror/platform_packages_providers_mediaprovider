@@ -33,7 +33,6 @@ import static android.media.MediaMetadataRetriever.METADATA_KEY_TITLE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_YEAR;
-import static android.os.Trace.TRACE_TAG_DATABASE;
 import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.UNKNOWN_STRING;
 import static android.text.format.DateUtils.HOUR_IN_MILLIS;
@@ -72,7 +71,6 @@ import android.provider.MediaStore.Video.VideoColumns;
 import android.text.TextUtils;
 import android.util.ArrayMap;
 import android.util.Log;
-import android.util.LongArray;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
@@ -80,6 +78,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.util.IsoInterface;
+import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.XmpInterface;
 
 import java.io.File;

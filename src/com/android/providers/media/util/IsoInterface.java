@@ -21,13 +21,9 @@ import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
 import android.util.Log;
-import android.util.LongArray;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
-import libcore.io.IoBridge;
-import libcore.io.Memory;
 
 import java.io.EOFException;
 import java.io.File;
@@ -165,13 +161,13 @@ public class IsoInterface {
             }
 
             box.data = new byte[(int) (len - 8 - 16)];
-            IoBridge.read(fd, box.data, 0, box.data.length);
+            Os.read(fd, box.data, 0, box.data.length);
         }
 
         // Parse XMP box
         if (type == BOX_XMP) {
             box.data = new byte[(int) (len - 8)];
-            IoBridge.read(fd, box.data, 0, box.data.length);
+            Os.read(fd, box.data, 0, box.data.length);
         }
 
         // Recursively parse any children boxes

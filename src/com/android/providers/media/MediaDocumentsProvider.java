@@ -66,7 +66,7 @@ import android.util.Pair;
 
 import androidx.annotation.Nullable;
 
-import com.android.internal.os.BackgroundThread;
+import com.android.providers.media.util.BackgroundThread;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;

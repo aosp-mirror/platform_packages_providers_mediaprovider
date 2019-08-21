@@ -2,7 +2,7 @@
         package="com.android.providers.media"
         android:sharedUserId="android.media"
         android:sharedUserLabel="@string/uid_label"
-        android:versionCode="1023">
+        android:versionCode="1100">
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.RECEIVE_DEVICE_CUSTOMIZATION_READY" />
@@ -83,13 +83,6 @@
             android:name=".MediaService"
             android:exported="false" />
 
-        <service
-            android:name=".MediaScannerService"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.media.IMediaScannerService" />
-            </intent-filter>
-        </service>
 
         <service android:name="RingtoneOverlayService" />
 

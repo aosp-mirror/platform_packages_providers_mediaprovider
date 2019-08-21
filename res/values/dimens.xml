@@ -9,4 +9,6 @@
     <!-- maximum size for album art. the real size of the albumart will be divided by two
     until both width and height are below this value. -->
     <dimen name="maximum_thumb_size">320dip</dimen>
+
+    <dimen name="default_gap">8dip</dimen>
 </resources>

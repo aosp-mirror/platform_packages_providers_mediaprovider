@@ -21,7 +21,6 @@ import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.app.PendingIntent.FLAG_ONE_SHOT;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.os.Environment.buildPath;
-import static android.os.Trace.TRACE_TAG_DATABASE;
 import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.getVolumeName;
 import static android.provider.MediaStore.Downloads.PATTERN_DOWNLOADS_FILE;
@@ -38,7 +37,6 @@ import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_VIDEO;
 
 import android.annotation.BytesLong;
-import android.app.AppGlobals;
 import android.app.AppOpsManager;
 import android.app.AppOpsManager.OnOpActiveChangedListener;
 import android.app.PendingIntent;
@@ -125,7 +123,6 @@ import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.util.LongArray;
 import android.util.LongSparseArray;
 import android.util.Pair;
 import android.util.Size;
@@ -136,16 +133,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
-import com.android.internal.os.BackgroundThread;
-import com.android.internal.util.ArrayUtils;
-import com.android.internal.util.IndentingPrintWriter;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
+import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.IsoInterface;
+import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.XmpInterface;
-
-import libcore.util.EmptyArray;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -297,7 +291,7 @@ public class MediaProvider extends ContentProvider {
         synchronized (mCachedCallingIdentity) {
             if (active) {
                 mCachedCallingIdentity.put(uid,
-                        LocalCallingIdentity.fromExternal(uid, packageName));
+                        LocalCallingIdentity.fromExternal(getContext(), uid, packageName));
             } else {
                 mCachedCallingIdentity.remove(uid);
             }
@@ -320,7 +314,8 @@ public class MediaProvider extends ContentProvider {
                 synchronized (mCachedCallingIdentity) {
                     final LocalCallingIdentity cached = mCachedCallingIdentity
                             .get(Binder.getCallingUid());
-                    return (cached != null) ? cached : LocalCallingIdentity.fromBinder(this);
+                    return (cached != null) ? cached
+                            : LocalCallingIdentity.fromBinder(getContext(), this);
                 }
             });
 
@@ -382,21 +377,6 @@ public class MediaProvider extends ContentProvider {
         }
     };
 
-    private final SQLiteDatabase.CustomFunction mObjectRemovedCallback =
-                new SQLiteDatabase.CustomFunction() {
-        @Override
-        public void callback(String[] args) {
-            // We could remove only the deleted entry from the cache, but that
-            // requires the path, which we don't have here, so instead we just
-            // clear the entire cache.
-            // TODO: include the path in the callback and only remove the affected
-            // entry from the cache
-            synchronized (mDirectoryCache) {
-                mDirectoryCache.clear();
-            }
-        }
-    };
-
     /**
      * Wrapper class for a specific database (associated with one particular
      * external card, or with internal storage).  Can open the actual database
@@ -408,7 +388,6 @@ public class MediaProvider extends ContentProvider {
         final int mVersion;
         final boolean mInternal;  // True if this is the internal database
         final boolean mEarlyUpgrade;
-        final SQLiteDatabase.CustomFunction mObjectRemovedCallback;
         long mScanStartTime;
         long mScanStopTime;
 
@@ -417,20 +396,18 @@ public class MediaProvider extends ContentProvider {
         ArrayMap<String, Long> mAlbumCache = new ArrayMap<String, Long>();
 
         public DatabaseHelper(Context context, String name, boolean internal,
-                boolean earlyUpgrade, SQLiteDatabase.CustomFunction objectRemovedCallback) {
-            this(context, name, getDatabaseVersion(context), internal, earlyUpgrade,
-                    objectRemovedCallback);
+                boolean earlyUpgrade) {
+            this(context, name, getDatabaseVersion(context), internal, earlyUpgrade);
         }
 
         public DatabaseHelper(Context context, String name, int version, boolean internal,
-                boolean earlyUpgrade, SQLiteDatabase.CustomFunction objectRemovedCallback) {
+                boolean earlyUpgrade) {
             super(context, name, null, version);
             mContext = context;
             mName = name;
             mVersion = version;
             mInternal = internal;
             mEarlyUpgrade = earlyUpgrade;
-            mObjectRemovedCallback = objectRemovedCallback;
             setWriteAheadLoggingEnabled(true);
             setIdleConnectionTimeout(IDLE_CONNECTION_TIMEOUT_MS);
         }
@@ -462,13 +439,7 @@ public class MediaProvider extends ContentProvider {
          */
         @Override
         public void onOpen(SQLiteDatabase db) {
-
             if (mEarlyUpgrade) return; // Doing early upgrade.
-
-            if (mObjectRemovedCallback != null) {
-                db.addCustomFunction("_OBJECT_REMOVED", 1, mObjectRemovedCallback);
-            }
-
             if (mInternal) return;  // The internal database is kept separately.
 
             // the code below is only needed on devices with removable storage
@@ -709,8 +680,9 @@ public class MediaProvider extends ContentProvider {
     private static void deleteLegacyThumbnailData() {
         File directory = new File(Environment.getExternalStorageDirectory(), "/DCIM/.thumbnails");
 
-        FilenameFilter filter = (dir, filename) -> filename.startsWith(".thumbdata");
-        for (File f : ArrayUtils.defeatNullable(directory.listFiles(filter))) {
+        final FilenameFilter filter = (dir, filename) -> filename.startsWith(".thumbdata");
+        final File[] files = directory.listFiles(filter);
+        for (File f : (files != null) ? files : new File[0]) {
             if (!f.delete()) {
                 Log.e(TAG, "Failed to delete legacy thumbnail data " + f.getAbsolutePath());
             }
@@ -782,10 +754,8 @@ public class MediaProvider extends ContentProvider {
         final int thumbSize = Math.min(metrics.widthPixels, metrics.heightPixels) / 2;
         mThumbSize = new Size(thumbSize, thumbSize);
 
-        mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, true,
-                false, mObjectRemovedCallback);
-        mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false,
-                false, mObjectRemovedCallback);
+        mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, true, false);
+        mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false, false);
 
         final IntentFilter filter = new IntentFilter();
         filter.setPriority(10);
@@ -828,7 +798,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     public LocalCallingIdentity clearLocalCallingIdentity() {
-        return clearLocalCallingIdentity(LocalCallingIdentity.fromSelf());
+        return clearLocalCallingIdentity(LocalCallingIdentity.fromSelf(getContext()));
     }
 
     public LocalCallingIdentity clearLocalCallingIdentity(LocalCallingIdentity replacement) {
@@ -913,6 +883,10 @@ public class MediaProvider extends ContentProvider {
                 Log.d(TAG, "Forgot " + num + " stale items from " + rec.fsUuid);
             }
         }
+
+        synchronized (mDirectoryCache) {
+            mDirectoryCache.clear();
+        }
     }
 
     public void onPackageOrphaned(String packageName) {
@@ -992,19 +966,19 @@ public class MediaProvider extends ContentProvider {
         c.close();
     }
 
-    private static void createLatestSchema(SQLiteDatabase db, boolean internal) {
+    private static void createLatestSchema(Context context, SQLiteDatabase db, boolean internal) {
         // We're about to start all ID numbering from scratch, so revoke any
         // outstanding permission grants to ensure we don't leak data
-        AppGlobals.getInitialApplication().revokeUriPermission(MediaStore.AUTHORITY_URI,
+        context.revokeUriPermission(MediaStore.AUTHORITY_URI,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-        MediaDocumentsProvider.revokeAllUriGrants(AppGlobals.getInitialApplication());
+        MediaDocumentsProvider.revokeAllUriGrants(context);
         BackgroundThread.getHandler().post(() -> {
-            try (ContentProviderClient client = AppGlobals.getInitialApplication()
+            try (ContentProviderClient client = context
                     .getContentResolver().acquireContentProviderClient(
                             android.provider.Downloads.Impl.AUTHORITY)) {
                 client.call(android.provider.Downloads.CALL_REVOKE_MEDIASTORE_URI_PERMS,
                         null, null);
-            } catch (RemoteException e) {
+            } catch (NullPointerException | RemoteException e) {
                 // Should not happen
             }
         });
@@ -1054,14 +1028,6 @@ public class MediaProvider extends ContentProvider {
             db.execSQL("CREATE TABLE audio_playlists_map (_id INTEGER PRIMARY KEY,"
                     + "audio_id INTEGER NOT NULL,playlist_id INTEGER NOT NULL,"
                     + "play_order INTEGER NOT NULL)");
-            db.execSQL("CREATE TRIGGER audio_genres_cleanup DELETE ON audio_genres BEGIN DELETE"
-                    + " FROM audio_genres_map WHERE genre_id = old._id;END");
-            db.execSQL("CREATE TRIGGER audio_playlists_cleanup DELETE ON files"
-                    + " WHEN old.media_type=4"
-                    + " BEGIN DELETE FROM audio_playlists_map WHERE playlist_id = old._id;"
-                    + "SELECT _DELETE_FILE(old._data);END");
-            db.execSQL("CREATE TRIGGER files_cleanup DELETE ON files"
-                    + " BEGIN SELECT _OBJECT_REMOVED(old._id);END");
         }
 
         db.execSQL("CREATE INDEX image_id_index on thumbnails(image_id)");
@@ -1082,12 +1048,8 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("CREATE INDEX title_idx ON files(title)");
         db.execSQL("CREATE INDEX titlekey_index ON files(title_key)");
 
-        db.execSQL("CREATE TRIGGER albumart_cleanup1 DELETE ON albums BEGIN DELETE FROM album_art"
-                + " WHERE album_id = old.album_id;END");
-        db.execSQL("CREATE TRIGGER albumart_cleanup2 DELETE ON album_art"
-                + " BEGIN SELECT _DELETE_FILE(old._data);END");
-
         createLatestViews(db, internal);
+        createLatestTriggers(db, internal);
     }
 
     private static void makePristineViews(SQLiteDatabase db) {
@@ -1163,6 +1125,35 @@ public class MediaProvider extends ContentProvider {
         db.execSQL("CREATE VIEW downloads AS SELECT "
                 + String.join(",", getProjectionMap(Downloads.class).keySet())
                 + " FROM files WHERE is_download=1");
+    }
+
+    private static void makePristineTriggers(SQLiteDatabase db) {
+        // drop all triggers
+        Cursor c = db.query("sqlite_master", new String[] {"name"}, "type is 'trigger'",
+                null, null, null, null);
+        while (c.moveToNext()) {
+            if (c.getString(0).startsWith("sqlite_")) continue;
+            db.execSQL("DROP TRIGGER IF EXISTS " + c.getString(0));
+        }
+        c.close();
+    }
+
+    private static void createLatestTriggers(SQLiteDatabase db, boolean internal) {
+        makePristineTriggers(db);
+
+        if (!internal) {
+            db.execSQL("CREATE TRIGGER audio_genres_cleanup DELETE ON audio_genres BEGIN DELETE"
+                    + " FROM audio_genres_map WHERE genre_id = old._id;END");
+            db.execSQL("CREATE TRIGGER audio_playlists_cleanup DELETE ON files"
+                    + " WHEN old.media_type=4"
+                    + " BEGIN DELETE FROM audio_playlists_map WHERE playlist_id = old._id;"
+                    + "SELECT _DELETE_FILE(old._data);END");
+        }
+
+        db.execSQL("CREATE TRIGGER albumart_cleanup1 DELETE ON albums BEGIN DELETE FROM album_art"
+                + " WHERE album_id = old.album_id;END");
+        db.execSQL("CREATE TRIGGER albumart_cleanup2 DELETE ON album_art"
+                + " BEGIN SELECT _DELETE_FILE(old._data);END");
     }
 
     private static void updateCollationKeys(SQLiteDatabase db) {
@@ -1309,6 +1300,7 @@ public class MediaProvider extends ContentProvider {
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
     static final int VERSION_Q = 1023;
+    static final int VERSION_R = 1100;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -1324,7 +1316,7 @@ public class MediaProvider extends ContentProvider {
 
         if (fromVersion < 700) {
             // Anything older than KK is recreated from scratch
-            createLatestSchema(db, internal);
+            createLatestSchema(context, db, internal);
         } else {
             boolean recomputeDataValues = false;
             if (fromVersion < 800) {
@@ -1406,15 +1398,19 @@ public class MediaProvider extends ContentProvider {
             if (fromVersion < 1023) {
                 updateRelativePath(db, internal);
             }
+            if (fromVersion < 1100) {
+                // Empty version bump to ensure triggers are recreated
+            }
 
             if (recomputeDataValues) {
                 recomputeDataValues(db, internal);
             }
         }
 
-        // Always recreate latest views during upgrade; they're cheap and it's
-        // an easy way to ensure they're defined consistently
+        // Always recreate latest views and triggers during upgrade; they're
+        // cheap and it's an easy way to ensure they're defined consistently
         createLatestViews(db, internal);
+        createLatestTriggers(db, internal);
 
         sanityCheck(db, fromVersion);
 
@@ -1431,7 +1427,7 @@ public class MediaProvider extends ContentProvider {
         final long startTime = SystemClock.elapsedRealtime();
 
         // The best we can do is wipe and start over
-        createLatestSchema(db, internal);
+        createLatestSchema(context, db, internal);
 
         final long elapsedSeconds = (SystemClock.elapsedRealtime() - startTime)
                 / DateUtils.SECOND_IN_MILLIS;
@@ -1670,7 +1666,7 @@ public class MediaProvider extends ContentProvider {
     @Override
     public int checkUriPermission(@NonNull Uri uri, int uid, @Intent.AccessUriMode int modeFlags) {
         final LocalCallingIdentity token = clearLocalCallingIdentity(
-                LocalCallingIdentity.fromExternal(uid));
+                LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
             final boolean allowHidden = isCallingPackageAllowedHidden();
             final int table = matchUri(uri, allowHidden);
@@ -1844,7 +1840,8 @@ public class MediaProvider extends ContentProvider {
 
             // Some apps are abusing the first column to inject "DISTINCT";
             // gracefully lift them out.
-            if (!ArrayUtils.isEmpty(projection) && projection[0].startsWith("DISTINCT ")) {
+            if ((projection != null) && (projection.length > 0)
+                    && projection[0].startsWith("DISTINCT ")) {
                 projection[0] = projection[0].substring("DISTINCT ".length());
                 qb.setDistinct(true);
             }
@@ -2187,7 +2184,7 @@ public class MediaProvider extends ContentProvider {
 
     private static @NonNull String[] sanitizePath(@Nullable String path) {
         if (path == null) {
-            return EmptyArray.STRING;
+            return new String[0];
         } else {
             final String[] segments = path.split("/");
             for (int i = 0; i < segments.length; i++) {
@@ -4178,18 +4175,22 @@ public class MediaProvider extends ContentProvider {
      */
     private int deleteRecursive(SQLiteQueryBuilder qb, SQLiteDatabase db, String userWhere,
             String[] userWhereArgs) {
-        db.beginTransaction();
-        try {
-            int n = 0;
-            int total = 0;
-            do {
-                n = qb.delete(db, userWhere, userWhereArgs);
-                total += n;
-            } while (n > 0);
-            db.setTransactionSuccessful();
-            return total;
-        } finally {
-            db.endTransaction();
+        synchronized (mDirectoryCache) {
+            mDirectoryCache.clear();
+
+            db.beginTransaction();
+            try {
+                int n = 0;
+                int total = 0;
+                do {
+                    n = qb.delete(db, userWhere, userWhereArgs);
+                    total += n;
+                } while (n > 0);
+                db.setTransactionSuccessful();
+                return total;
+            } finally {
+                db.endTransaction();
+            }
         }
     }
 
@@ -4710,7 +4711,7 @@ public class MediaProvider extends ContentProvider {
 
             final LocalCallingIdentity token = clearLocalCallingIdentity();
             try (Cursor c = queryForSingleItem(uri,
-                    sPlacementColumns.toArray(EmptyArray.STRING), userWhere, userWhereArgs, null)) {
+                    sPlacementColumns.toArray(new String[0]), userWhere, userWhereArgs, null)) {
                 for (int i = 0; i < c.getColumnCount(); i++) {
                     final String column = c.getColumnName(i);
                     if (!initialValues.containsKey(column)) {
@@ -5421,7 +5422,7 @@ public class MediaProvider extends ContentProvider {
         // Figure out if we need to redact contents
         final boolean redactionNeeded = callerIsOwner ? false : isRedactionNeeded(uri);
         final RedactionInfo redactionInfo = redactionNeeded ? getRedactionRanges(file)
-                : new RedactionInfo(EmptyArray.LONG, EmptyArray.LONG);
+                : new RedactionInfo(new long[0], new long[0]);
 
         // Yell if caller requires original, since we can't give it to them
         // unless they have access granted above
@@ -6589,14 +6590,10 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public void dump(FileDescriptor fd, PrintWriter writer, String[] args) {
-        final IndentingPrintWriter pw = new IndentingPrintWriter(writer, "  ");
-        pw.printPair("mThumbSize", mThumbSize);
-        pw.println();
-        pw.printPair("mAttachedVolumeNames", mAttachedVolumeNames);
-        pw.println();
-
-        pw.println(dump(mInternalDatabase, true));
-        pw.println(dump(mExternalDatabase, true));
+        writer.println("mThumbSize=" + mThumbSize);
+        writer.println("mAttachedVolumeNames=" + mAttachedVolumeNames);
+        writer.println(dump(mInternalDatabase, true));
+        writer.println(dump(mExternalDatabase, true));
     }
 
     private String dump(DatabaseHelper dbh, boolean dumpDbLog) {

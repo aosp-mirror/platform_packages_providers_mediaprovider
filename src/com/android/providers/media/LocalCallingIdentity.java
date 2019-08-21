@@ -24,7 +24,6 @@ import static android.app.AppOpsManager.OP_LEGACY_STORAGE;
 import static android.app.AppOpsManager.OP_WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
-import android.app.AppGlobals;
 import android.app.AppOpsManager;
 import android.content.ContentProvider;
 import android.content.Context;
@@ -34,47 +33,48 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.storage.StorageManager;
 
-import com.android.internal.util.ArrayUtils;
-
-import libcore.util.EmptyArray;
+import com.android.providers.media.util.LongArray;
 
 public class LocalCallingIdentity {
+    public final Context context;
     public final int pid;
     public final int uid;
     public final String packageNameUnchecked;
 
-    private LocalCallingIdentity(int pid, int uid, String packageNameUnchecked) {
+    private LocalCallingIdentity(Context context, int pid, int uid, String packageNameUnchecked) {
+        this.context = context;
         this.pid = pid;
         this.uid = uid;
         this.packageNameUnchecked = packageNameUnchecked;
     }
 
-    public static LocalCallingIdentity fromBinder(ContentProvider provider) {
+    public static LocalCallingIdentity fromBinder(Context context, ContentProvider provider) {
         String callingPackage = provider.getCallingPackageUnchecked();
         if (callingPackage == null) {
-            callingPackage = getContext().getOpPackageName();
+            callingPackage = context.getOpPackageName();
         }
-        return new LocalCallingIdentity(Binder.getCallingPid(), Binder.getCallingUid(),
+        return new LocalCallingIdentity(context, Binder.getCallingPid(), Binder.getCallingUid(),
                 callingPackage);
     }
 
-    public static LocalCallingIdentity fromExternal(int uid) {
-        final String[] sharedPackageNames = getContext().getPackageManager().getPackagesForUid(uid);
-        if (ArrayUtils.isEmpty(sharedPackageNames)) {
+    public static LocalCallingIdentity fromExternal(Context context, int uid) {
+        final String[] sharedPackageNames = context.getPackageManager().getPackagesForUid(uid);
+        if (sharedPackageNames == null || sharedPackageNames.length == 0) {
             throw new IllegalArgumentException("UID " + uid + " has no associated package");
         }
-        return fromExternal(uid, sharedPackageNames[0]);
+        return fromExternal(context, uid, sharedPackageNames[0]);
     }
 
-    public static LocalCallingIdentity fromExternal(int uid, String packageName) {
-        return new LocalCallingIdentity(-1, uid, packageName);
+    public static LocalCallingIdentity fromExternal(Context context, int uid, String packageName) {
+        return new LocalCallingIdentity(context, -1, uid, packageName);
     }
 
-    public static LocalCallingIdentity fromSelf() {
+    public static LocalCallingIdentity fromSelf(Context context) {
         final LocalCallingIdentity ident = new LocalCallingIdentity(
+                context,
                 android.os.Process.myPid(),
                 android.os.Process.myUid(),
-                AppGlobals.getInitialApplication().getOpPackageName());
+                context.getOpPackageName());
 
         ident.packageName = ident.packageNameUnchecked;
         ident.packageNameResolved = true;
@@ -84,10 +84,6 @@ public class LocalCallingIdentity {
         ident.hasPermissionResolved = ~0;
 
         return ident;
-    }
-
-    private static Context getContext() {
-        return AppGlobals.getInitialApplication();
     }
 
     private String packageName;
@@ -103,7 +99,7 @@ public class LocalCallingIdentity {
 
     private String getPackageNameInternal() {
         // Verify that package name is actually owned by UID
-        getContext().getSystemService(AppOpsManager.class)
+        context.getSystemService(AppOpsManager.class)
                 .checkPackage(uid, packageNameUnchecked);
         return packageNameUnchecked;
     }
@@ -120,7 +116,8 @@ public class LocalCallingIdentity {
     }
 
     private String[] getSharedPackageNamesInternal() {
-        return ArrayUtils.defeatNullable(getContext().getPackageManager().getPackagesForUid(uid));
+        final String[] packageNames = context.getPackageManager().getPackagesForUid(uid);
+        return (packageNames != null) ? packageNames : new String[0];
     }
 
     private int targetSdkVersion;
@@ -136,7 +133,7 @@ public class LocalCallingIdentity {
 
     private int getTargetSdkVersionInternal() {
         try {
-            final ApplicationInfo ai = getContext().getPackageManager()
+            final ApplicationInfo ai = context.getPackageManager()
                     .getApplicationInfo(getPackageName(), 0);
             if (ai != null) {
                 return ai.targetSdkVersion;
@@ -178,22 +175,22 @@ public class LocalCallingIdentity {
             case PERMISSION_IS_REDACTION_NEEDED:
                 return isRedactionNeededInternal();
             case PERMISSION_READ_AUDIO:
-                return AppGlobals.getInitialApplication().getSystemService(StorageManager.class)
+                return context.getSystemService(StorageManager.class)
                         .checkPermissionReadAudio(false, pid, uid, getPackageName());
             case PERMISSION_READ_VIDEO:
-                return AppGlobals.getInitialApplication().getSystemService(StorageManager.class)
+                return context.getSystemService(StorageManager.class)
                         .checkPermissionReadVideo(false, pid, uid, getPackageName());
             case PERMISSION_READ_IMAGES:
-                return AppGlobals.getInitialApplication().getSystemService(StorageManager.class)
+                return context.getSystemService(StorageManager.class)
                         .checkPermissionReadImages(false, pid, uid, getPackageName());
             case PERMISSION_WRITE_AUDIO:
-                return AppGlobals.getInitialApplication().getSystemService(StorageManager.class)
+                return context.getSystemService(StorageManager.class)
                         .checkPermissionWriteAudio(false, pid, uid, getPackageName());
             case PERMISSION_WRITE_VIDEO:
-                return AppGlobals.getInitialApplication().getSystemService(StorageManager.class)
+                return context.getSystemService(StorageManager.class)
                         .checkPermissionWriteVideo(false, pid, uid, getPackageName());
             case PERMISSION_WRITE_IMAGES:
-                return AppGlobals.getInitialApplication().getSystemService(StorageManager.class)
+                return context.getSystemService(StorageManager.class)
                         .checkPermissionWriteImages(false, pid, uid, getPackageName());
             default:
                 return false;
@@ -212,12 +209,12 @@ public class LocalCallingIdentity {
         }
 
         // Determine if caller is holding runtime permission
-        final boolean hasStorage = StorageManager.checkPermissionAndAppOp(getContext(), false, 0,
+        final boolean hasStorage = StorageManager.checkPermissionAndAppOp(context, false, 0,
                 uid, getPackageName(), WRITE_EXTERNAL_STORAGE, OP_WRITE_EXTERNAL_STORAGE);
 
         // We're only willing to give out broad access if they also hold
         // runtime permission; this is a firm CDD requirement
-        final boolean hasFull = getContext()
+        final boolean hasFull = context
                 .checkPermission(WRITE_MEDIA_STORAGE, pid, uid) == PERMISSION_GRANTED;
 
         return hasFull && hasStorage;
@@ -225,33 +222,38 @@ public class LocalCallingIdentity {
 
     private boolean isLegacyInternal() {
         // TODO: keep this logic in sync with StorageManagerService
-        final boolean hasStorage = StorageManager.checkPermissionAndAppOp(getContext(), false, 0,
+        final boolean hasStorage = StorageManager.checkPermissionAndAppOp(context, false, 0,
                 uid, getPackageName(), WRITE_EXTERNAL_STORAGE, OP_WRITE_EXTERNAL_STORAGE);
-        final boolean hasLegacy = getContext().getSystemService(AppOpsManager.class)
+        final boolean hasLegacy = context.getSystemService(AppOpsManager.class)
                 .checkOp(OP_LEGACY_STORAGE, uid, getPackageName()) == MODE_ALLOWED;
         return (hasLegacy && hasStorage);
     }
 
     private boolean isRedactionNeededInternal() {
         // System internals or callers holding permission have no redaction
-        if (hasPermission(PERMISSION_IS_SYSTEM) || getContext()
-                .checkPermission(ACCESS_MEDIA_LOCATION, pid, uid) == PERMISSION_GRANTED) {
+        if (hasPermission(PERMISSION_IS_SYSTEM)
+                || context.checkPermission(ACCESS_MEDIA_LOCATION, pid, uid) == PERMISSION_GRANTED) {
             return false;
         }
         return true;
     }
 
-    private long[] ownedIds = EmptyArray.LONG;
+    private LongArray ownedIds = new LongArray();
 
     public boolean isOwned(long id) {
-        return ArrayUtils.contains(ownedIds, id);
+        return ownedIds.indexOf(id) != -1;
     }
 
     public void setOwned(long id, boolean owned) {
+        final int index = ownedIds.indexOf(id);
         if (owned) {
-            ownedIds = ArrayUtils.appendLong(ownedIds, id);
+            if (index == -1) {
+                ownedIds.add(id);
+            }
         } else {
-            ownedIds = ArrayUtils.removeLong(ownedIds, id);
+            if (index != -1) {
+                ownedIds.remove(index);
+            }
         }
     }
 }

@@ -30,19 +30,11 @@ public class MediaReceiver extends BroadcastReceiver {
             // Register our idle maintenance service
             IdleService.scheduleIdlePass(context);
 
-        } else if (Intent.ACTION_DEVICE_CUSTOMIZATION_READY.equals(action)) {
-            initResourceRingtones(context);
-
         } else {
             // All other operations are heavier-weight, so redirect them through
             // service to ensure they have breathing room to finish
             intent.setComponent(new ComponentName(context, MediaService.class));
             context.startService(intent);
         }
-    }
-
-    private void initResourceRingtones(Context context) {
-        context.startService(
-                new Intent(context, RingtoneOverlayService.class));
     }
 }

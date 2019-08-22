@@ -38,8 +38,6 @@ import static android.provider.MediaStore.UNKNOWN_STRING;
 import static android.text.format.DateUtils.HOUR_IN_MILLIS;
 import static android.text.format.DateUtils.MINUTE_IN_MILLIS;
 
-import android.annotation.CurrentTimeMillisLong;
-import android.annotation.CurrentTimeSecondsLong;
 import android.content.ContentProviderClient;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
@@ -57,7 +55,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.CancellationSignal;
 import android.os.Environment;
-import android.os.FileUtils;
 import android.os.OperationCanceledException;
 import android.os.RemoteException;
 import android.os.Trace;
@@ -77,6 +74,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.IsoInterface;
 import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.XmpInterface;
@@ -765,11 +763,11 @@ public class ModernMediaScanner implements MediaScanner {
     private static @NonNull ContentProviderOperation.Builder newUpsert(Uri uri, long existingId) {
         if (existingId == -1) {
             return ContentProviderOperation.newInsert(uri)
-                    .withFailureAllowed(true);
+                    .withExceptionAllowed(true);
         } else {
             return ContentProviderOperation.newUpdate(ContentUris.withAppendedId(uri, existingId))
                     .withExpectedCount(1)
-                    .withFailureAllowed(true);
+                    .withExceptionAllowed(true);
         }
     }
 
@@ -815,7 +813,7 @@ public class ModernMediaScanner implements MediaScanner {
      * information isn't directly available.
      */
     static @NonNull Optional<Long> parseOptionalDateTaken(@NonNull ExifInterface exif,
-            @CurrentTimeMillisLong long lastModifiedTime) {
+            long lastModifiedTime) {
         final long originalTime = exif.getDateTimeOriginal();
         if (exif.hasAttribute(ExifInterface.TAG_OFFSET_TIME_ORIGINAL)) {
             // We have known offset information, return it directly!
@@ -899,7 +897,7 @@ public class ModernMediaScanner implements MediaScanner {
      * from the given {@link BasicFileAttributes}, except in the case of
      * read-only partitions, where {@link Build#TIME} is used instead.
      */
-    public static @CurrentTimeSecondsLong long lastModifiedTime(@NonNull File file,
+    public static long lastModifiedTime(@NonNull File file,
             @NonNull BasicFileAttributes attrs) {
         if (FileUtils.contains(Environment.getStorageDirectory(), file)) {
             return attrs.lastModifiedTime().toMillis() / 1000;

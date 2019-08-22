@@ -23,7 +23,6 @@ import static org.junit.Assert.fail;
 
 import android.content.Context;
 import android.media.ExifInterface;
-import android.os.FileUtils;
 import android.util.ArraySet;
 import android.util.Xml;
 
@@ -31,6 +30,7 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.tests.R;
+import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.IsoInterface;
 import com.android.providers.media.util.XmpInterface;
 

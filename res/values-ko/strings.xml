@@ -20,9 +20,6 @@
     <string name="storage_description" msgid="4081716890357580107">"로컬 저장소"</string>
     <string name="app_label" msgid="9035307001052716210">"미디어 저장소"</string>
     <string name="artist_label" msgid="8105600993099120273">"아티스트"</string>
-    <string name="ringtone_default" msgid="1744846699922263043">"기본 벨소리"</string>
-    <string name="notification_sound_default" msgid="6541609166469990135">"기본 알림 소리"</string>
-    <string name="alarm_sound_default" msgid="5488847775252870314">"기본 알람 소리"</string>
     <string name="root_images" msgid="5861633549189045666">"이미지"</string>
     <string name="root_videos" msgid="8792703517064649453">"동영상"</string>
     <string name="root_audio" msgid="3505830755201326018">"오디오"</string>
@@ -33,19 +30,4 @@
     <string name="permission_images" msgid="6711726334380945124"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"에서 이 이미지를 수정하거나 삭제하도록 허용하시겠습니까?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"허용"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"거부"</string>
-    <string name="sound_name_awaken" msgid="5266892392848526147">"잠을 깨우는 소리"</string>
-    <string name="sound_name_bounce" msgid="8771447635446665231">"깡충깡충 뛰는 소리"</string>
-    <string name="sound_name_drip" msgid="1744684469020662152">"물방울이 똑똑 떨어지는 소리"</string>
-    <string name="sound_name_gallop" msgid="2664454314532060876">"말 달리는 소리"</string>
-    <string name="sound_name_nudge" msgid="5445751598250698244">"쿡쿡 찌르는 소리"</string>
-    <string name="sound_name_orbit" msgid="4623457897813255481">"궤도를 도는 소리"</string>
-    <string name="sound_name_rise" msgid="2200258555031675806">"점점 커지는 소리"</string>
-    <string name="sound_name_sway" msgid="348448316663085643">"천천히 흔들리는 소리"</string>
-    <string name="sound_name_wag" msgid="2730733083078126563">"개가 꼬리를 흔드는 소리"</string>
-    <string name="add_ringtone_text" msgid="8077717303037760418">"벨소리 추가"</string>
-    <string name="add_alarm_text" msgid="2440919366091720815">"알람 추가"</string>
-    <string name="add_notification_text" msgid="5013822215567515665">"알림 추가"</string>
-    <string name="delete_ringtone_text" msgid="2963662097583300181">"삭제"</string>
-    <string name="unable_to_add_ringtone" msgid="6256097521165711269">"맞춤 벨소리를 추가할 수 없습니다."</string>
-    <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"맞춤 벨소리를 삭제할 수 없습니다."</string>
 </resources>

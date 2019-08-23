@@ -20,9 +20,6 @@
     <string name="storage_description" msgid="4081716890357580107">"Bộ nhớ cục bộ"</string>
     <string name="app_label" msgid="9035307001052716210">"Bộ nhớ phương tiện"</string>
     <string name="artist_label" msgid="8105600993099120273">"Nghệ sĩ"</string>
-    <string name="ringtone_default" msgid="1744846699922263043">"Nhạc chuông mặc định"</string>
-    <string name="notification_sound_default" msgid="6541609166469990135">"Âm thanh thông báo mặc định"</string>
-    <string name="alarm_sound_default" msgid="5488847775252870314">"Âm thanh báo thức mặc định"</string>
     <string name="root_images" msgid="5861633549189045666">"Hình ảnh"</string>
     <string name="root_videos" msgid="8792703517064649453">"Video"</string>
     <string name="root_audio" msgid="3505830755201326018">"Âm thanh"</string>
@@ -33,19 +30,4 @@
     <string name="permission_images" msgid="6711726334380945124">"Bạn có muốn cho phép "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" sửa đổi hoặc xóa hình ảnh này không?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Cho phép"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Từ chối"</string>
-    <string name="sound_name_awaken" msgid="5266892392848526147">"Khuấy động"</string>
-    <string name="sound_name_bounce" msgid="8771447635446665231">"Nhún nhẩy"</string>
-    <string name="sound_name_drip" msgid="1744684469020662152">"Nhỏ giọt"</string>
-    <string name="sound_name_gallop" msgid="2664454314532060876">"Phi nước đại"</string>
-    <string name="sound_name_nudge" msgid="5445751598250698244">"Dịch chuyển"</string>
-    <string name="sound_name_orbit" msgid="4623457897813255481">"Quỹ đạo"</string>
-    <string name="sound_name_rise" msgid="2200258555031675806">"Trỗi dậy"</string>
-    <string name="sound_name_sway" msgid="348448316663085643">"Đu đưa"</string>
-    <string name="sound_name_wag" msgid="2730733083078126563">"Thoảng qua"</string>
-    <string name="add_ringtone_text" msgid="8077717303037760418">"Thêm nhạc chuông"</string>
-    <string name="add_alarm_text" msgid="2440919366091720815">"Thêm báo thức"</string>
-    <string name="add_notification_text" msgid="5013822215567515665">"Thêm thông báo"</string>
-    <string name="delete_ringtone_text" msgid="2963662097583300181">"Xóa"</string>
-    <string name="unable_to_add_ringtone" msgid="6256097521165711269">"Không thể thêm nhạc chuông tùy chỉnh"</string>
-    <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"Không thể xóa nhạc chuông tùy chỉnh"</string>
 </resources>

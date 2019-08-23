@@ -20,9 +20,6 @@
     <string name="storage_description" msgid="4081716890357580107">"স্থানীয় সঞ্চয়াগাৰ"</string>
     <string name="app_label" msgid="9035307001052716210">"মিডিয়া সঞ্চয়াগাৰ"</string>
     <string name="artist_label" msgid="8105600993099120273">"শিল্পী"</string>
-    <string name="ringtone_default" msgid="1744846699922263043">"ডিফ\'ল্ট ৰিংট\'ন"</string>
-    <string name="notification_sound_default" msgid="6541609166469990135">"জাননীৰ ডিফ\'ল্ট ধ্বনি"</string>
-    <string name="alarm_sound_default" msgid="5488847775252870314">"এলাৰ্মৰ ডিফ\'ল্ট ধ্বনি"</string>
     <string name="root_images" msgid="5861633549189045666">"প্ৰতিচ্ছবিসমূহ"</string>
     <string name="root_videos" msgid="8792703517064649453">"ভিডিঅ\'সমূহ"</string>
     <string name="root_audio" msgid="3505830755201326018">"অডিঅ’"</string>
@@ -33,19 +30,4 @@
     <string name="permission_images" msgid="6711726334380945124"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"ক এই ছবিখন সংশোধন কৰিবলৈ বা মচিবলৈ অনুমতি দিবনে?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"অনুমতি দিয়ক"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"অস্বীকাৰ কৰক"</string>
-    <string name="sound_name_awaken" msgid="5266892392848526147">"জাগি উঠাৰ ধ্বনি"</string>
-    <string name="sound_name_bounce" msgid="8771447635446665231">"বাউঞ্চ ধ্বনি"</string>
-    <string name="sound_name_drip" msgid="1744684469020662152">"ড্ৰিপ ধ্বনি"</string>
-    <string name="sound_name_gallop" msgid="2664454314532060876">"গেল\'প ধ্বনি"</string>
-    <string name="sound_name_nudge" msgid="5445751598250698244">"নাজ ধ্বনি"</string>
-    <string name="sound_name_orbit" msgid="4623457897813255481">"অৰবিট ধ্বনি"</string>
-    <string name="sound_name_rise" msgid="2200258555031675806">"ৰাইজ ধ্বনি"</string>
-    <string name="sound_name_sway" msgid="348448316663085643">"শ্ব\'ৱে ধ্বনি"</string>
-    <string name="sound_name_wag" msgid="2730733083078126563">"ৱাগ ধ্বনি"</string>
-    <string name="add_ringtone_text" msgid="8077717303037760418">"ৰিংট\'ন যোগ কৰক"</string>
-    <string name="add_alarm_text" msgid="2440919366091720815">"এলাৰ্ম যোগ কৰক"</string>
-    <string name="add_notification_text" msgid="5013822215567515665">"জাননী যোগ কৰক"</string>
-    <string name="delete_ringtone_text" msgid="2963662097583300181">"মচক"</string>
-    <string name="unable_to_add_ringtone" msgid="6256097521165711269">"নিজৰ উপযোগিতা অনুযায়ী তৈয়াৰ কৰা ৰিংট\'ন যোগ কৰিব পৰা নগ\'ল"</string>
-    <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"নিজৰ উপযোগিতা অনুযায়ী তৈয়াৰ কৰা ৰিংট\'ন মচিব পৰা নগ\'ল"</string>
 </resources>

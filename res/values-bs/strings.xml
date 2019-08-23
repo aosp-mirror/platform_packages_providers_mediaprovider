@@ -20,9 +20,6 @@
     <string name="storage_description" msgid="4081716890357580107">"Lokalna pohrana"</string>
     <string name="app_label" msgid="9035307001052716210">"Medijska pohrana"</string>
     <string name="artist_label" msgid="8105600993099120273">"Umjetnik"</string>
-    <string name="ringtone_default" msgid="1744846699922263043">"Zadana melodija zvona"</string>
-    <string name="notification_sound_default" msgid="6541609166469990135">"Zadani zvuk obavještenja"</string>
-    <string name="alarm_sound_default" msgid="5488847775252870314">"Zadani zvuk alarma"</string>
     <string name="root_images" msgid="5861633549189045666">"Slike"</string>
     <string name="root_videos" msgid="8792703517064649453">"Videozapisi"</string>
     <string name="root_audio" msgid="3505830755201326018">"Zvuk"</string>
@@ -33,19 +30,4 @@
     <string name="permission_images" msgid="6711726334380945124">"Dozvoliti aplikaciji "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" da izmijeni ili izbriše ovu sliku?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Dozvoli"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Odbij"</string>
-    <string name="sound_name_awaken" msgid="5266892392848526147">"Probuđen"</string>
-    <string name="sound_name_bounce" msgid="8771447635446665231">"Odskakanje"</string>
-    <string name="sound_name_drip" msgid="1744684469020662152">"Kapanje"</string>
-    <string name="sound_name_gallop" msgid="2664454314532060876">"Galop"</string>
-    <string name="sound_name_nudge" msgid="5445751598250698244">"Gurkanje"</string>
-    <string name="sound_name_orbit" msgid="4623457897813255481">"Kruženje"</string>
-    <string name="sound_name_rise" msgid="2200258555031675806">"Uspon"</string>
-    <string name="sound_name_sway" msgid="348448316663085643">"Njihanje"</string>
-    <string name="sound_name_wag" msgid="2730733083078126563">"Klaćenje"</string>
-    <string name="add_ringtone_text" msgid="8077717303037760418">"Dodaj melodiju zvona"</string>
-    <string name="add_alarm_text" msgid="2440919366091720815">"Dodajte alarm"</string>
-    <string name="add_notification_text" msgid="5013822215567515665">"Dodajte obavještenje"</string>
-    <string name="delete_ringtone_text" msgid="2963662097583300181">"Izbriši"</string>
-    <string name="unable_to_add_ringtone" msgid="6256097521165711269">"Nije moguće dodati prilagođenu melodiju zvona"</string>
-    <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"Nije moguće izbrisati prilagođenu melodiju zvona"</string>
 </resources>

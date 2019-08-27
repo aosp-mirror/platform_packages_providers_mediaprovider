@@ -17,7 +17,6 @@
 package com.android.providers.media.util;
 
 import android.os.Handler;
-import android.os.HandlerExecutor;
 import android.os.HandlerThread;
 
 import java.util.concurrent.Executor;

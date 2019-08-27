@@ -22,7 +22,6 @@ import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
-import android.content.MimeTypeFilter;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.database.MatrixCursor;
@@ -35,7 +34,6 @@ import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.CancellationSignal;
-import android.os.FileUtils;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.UserHandle;
@@ -65,8 +63,10 @@ import android.util.Log;
 import android.util.Pair;
 
 import androidx.annotation.Nullable;
+import androidx.core.content.MimeTypeFilter;
 
 import com.android.providers.media.util.BackgroundThread;
+import com.android.providers.media.util.FileUtils;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -184,7 +184,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     }
 
     private void enforceShellRestrictions() {
-        if (UserHandle.getCallingAppId() == android.os.Process.SHELL_UID
+        final int callingAppId = UserHandle.getAppId(Binder.getCallingUid());
+        if (callingAppId == android.os.Process.SHELL_UID
                 && getContext().getSystemService(UserManager.class)
                         .hasUserRestriction(UserManager.DISALLOW_USB_FILE_TRANSFER)) {
             throw new SecurityException(

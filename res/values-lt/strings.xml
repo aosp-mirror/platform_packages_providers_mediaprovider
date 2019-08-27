@@ -20,9 +20,6 @@
     <string name="storage_description" msgid="4081716890357580107">"Vietinė saugykla"</string>
     <string name="app_label" msgid="9035307001052716210">"Medijos saugykla"</string>
     <string name="artist_label" msgid="8105600993099120273">"Atlikėjas"</string>
-    <string name="ringtone_default" msgid="1744846699922263043">"Numatytasis skambėjimo tonas"</string>
-    <string name="notification_sound_default" msgid="6541609166469990135">"Numatytasis pranešimo garsas"</string>
-    <string name="alarm_sound_default" msgid="5488847775252870314">"Numatytasis signalo garsas"</string>
     <string name="root_images" msgid="5861633549189045666">"Vaizdai"</string>
     <string name="root_videos" msgid="8792703517064649453">"Vaizdo įrašai"</string>
     <string name="root_audio" msgid="3505830755201326018">"Garsas"</string>
@@ -33,19 +30,4 @@
     <string name="permission_images" msgid="6711726334380945124">"Leisti "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" keisti arba ištrinti šį vaizdą?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Leisti"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Atmesti"</string>
-    <string name="sound_name_awaken" msgid="5266892392848526147">"Budinantis"</string>
-    <string name="sound_name_bounce" msgid="8771447635446665231">"Šuolis"</string>
-    <string name="sound_name_drip" msgid="1744684469020662152">"Lašėjimas"</string>
-    <string name="sound_name_gallop" msgid="2664454314532060876">"Šuoliai"</string>
-    <string name="sound_name_nudge" msgid="5445751598250698244">"Stumtelėjimas"</string>
-    <string name="sound_name_orbit" msgid="4623457897813255481">"Orbita"</string>
-    <string name="sound_name_rise" msgid="2200258555031675806">"Pakilimas"</string>
-    <string name="sound_name_sway" msgid="348448316663085643">"Supimas"</string>
-    <string name="sound_name_wag" msgid="2730733083078126563">"Mostai"</string>
-    <string name="add_ringtone_text" msgid="8077717303037760418">"Pridėti skambėjimo toną"</string>
-    <string name="add_alarm_text" msgid="2440919366091720815">"Pridėti signalą"</string>
-    <string name="add_notification_text" msgid="5013822215567515665">"Pridėti pranešimą"</string>
-    <string name="delete_ringtone_text" msgid="2963662097583300181">"Ištrinti"</string>
-    <string name="unable_to_add_ringtone" msgid="6256097521165711269">"Nepavyksta pridėti tinkinto skambėjimo tono"</string>
-    <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"Nepavyksta ištrinti tinkinto skambėjimo tono"</string>
 </resources>

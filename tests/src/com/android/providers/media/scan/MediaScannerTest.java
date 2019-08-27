@@ -27,7 +27,6 @@ import android.database.DatabaseUtils;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.FileUtils;
 import android.os.SystemClock;
 import android.provider.BaseColumns;
 import android.provider.MediaStore;
@@ -37,8 +36,12 @@ import android.test.mock.MockContentProvider;
 import android.test.mock.MockContentResolver;
 import android.util.Log;
 
+import androidx.test.InstrumentationRegistry;
+import androidx.test.runner.AndroidJUnit4;
+
 import com.android.providers.media.MediaProvider;
 import com.android.providers.media.tests.R;
+import com.android.providers.media.util.FileUtils;
 
 import org.junit.Before;
 import org.junit.Ignore;
@@ -51,9 +54,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
-
-import androidx.test.InstrumentationRegistry;
-import androidx.test.runner.AndroidJUnit4;
 
 @RunWith(AndroidJUnit4.class)
 public class MediaScannerTest {
@@ -186,7 +186,8 @@ public class MediaScannerTest {
         scanDirectory(scanner, scanDir, "Initial");
         scanDirectory(scanner, scanDir, "No-op");
 
-        FileUtils.deleteContentsAndDir(dir);
+        FileUtils.deleteContents(dir);
+        dir.delete();
         scanDirectory(scanner, scanDir, "Clean");
     }
 

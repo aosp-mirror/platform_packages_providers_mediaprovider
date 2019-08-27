@@ -2,7 +2,7 @@
         package="com.android.providers.media"
         android:sharedUserId="android.media"
         android:sharedUserLabel="@string/uid_label"
-        android:versionCode="1100">
+        android:versionCode="1101">
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.RECEIVE_DEVICE_CUSTOMIZATION_READY" />
@@ -56,7 +56,8 @@
         <receiver android:name=".MediaReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.DEVICE_CUSTOMIZATION_READY"/>
+            </intent-filter>
+            <intent-filter>
                 <action android:name="android.intent.action.LOCALE_CHANGED" />
             </intent-filter>
             <intent-filter>
@@ -82,19 +83,6 @@
         <service
             android:name=".MediaService"
             android:exported="false" />
-
-
-        <service android:name="RingtoneOverlayService" />
-
-        <activity android:name="RingtonePickerActivity"
-                android:theme="@style/PickerDialogTheme"
-                android:enabled="@*android:bool/config_defaultRingtonePickerEnabled"
-                android:excludeFromRecents="true">
-            <intent-filter>
-                <action android:name="android.intent.action.RINGTONE_PICKER" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
 
         <activity
             android:name=".PermissionActivity"

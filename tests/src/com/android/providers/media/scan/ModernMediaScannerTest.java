@@ -35,7 +35,6 @@ import android.graphics.Bitmap;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Environment;
-import android.os.FileUtils;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
@@ -47,6 +46,7 @@ import androidx.test.runner.AndroidJUnit4;
 import com.android.providers.media.MediaProvider;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 import com.android.providers.media.tests.R;
+import com.android.providers.media.util.FileUtils;
 
 import org.junit.After;
 import org.junit.Assume;

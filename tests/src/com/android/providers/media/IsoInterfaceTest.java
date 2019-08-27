@@ -19,12 +19,12 @@ package com.android.providers.media;
 import static org.junit.Assert.assertEquals;
 
 import android.content.Context;
-import android.os.FileUtils;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.tests.R;
+import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.IsoInterface;
 import com.android.providers.media.util.XmpInterface;
 

@@ -10,6 +10,14 @@
                     "include-annotation": "android.platform.test.annotations.Presubmit"
                 }
             ]
+        },
+        {
+            "name": "CtsProviderTestCases",
+            "options": [
+                {
+                     "exclude-filter": "android.provider.cts.MediaStore_Images_ThumbnailsTest"
+                }
+            ]
         }
     ]
 }

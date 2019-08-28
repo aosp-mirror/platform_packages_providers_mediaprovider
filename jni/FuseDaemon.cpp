@@ -48,7 +48,7 @@
 #include <cutils/log.h>
 #include <cutils/multiuser.h>
 
-using namespace std;
+using std::string;
 
 #define FUSE_TRACE 1
 
@@ -283,7 +283,7 @@ static struct node* make_node_entry(fuse_req_t req,
     struct fuse* fuse = get_fuse(req);
     struct node* node;
 
-    memset(e, 0, sizeof(e));
+    memset(e, 0, sizeof(*e));
     if (lstat(path.c_str(), &e->attr) < 0) {
         return NULL;
     }
@@ -948,7 +948,7 @@ static void do_readdir_common(fuse_req_t req,
                               bool plus) {
     struct fuse* fuse = get_fuse(req);
     struct dirhandle* h = reinterpret_cast<struct dirhandle*>(fi->fh);
-    size_t len = min<size_t>(size, READDIR_BUF);
+    size_t len = std::min<size_t>(size, READDIR_BUF);
     char buf[READDIR_BUF];
     size_t used = 0;
     struct dirent* de;

@@ -40,6 +40,11 @@ cc_library_shared {
         "-DFUSE_USE_VERSION=34",
     ],
 
+    tidy: true,
+    tidy_checks: [
+        "-google-runtime-int",
+    ],
+
 // Uncommenting the line below complains about libfuse not part of the NDK also seems
 // libnativehelper isn't either :(
 // sdk_version: "current",

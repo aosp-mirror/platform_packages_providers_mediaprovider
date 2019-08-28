@@ -7,7 +7,7 @@
             "name": "CtsProviderTestCases",
             "options": [
                 {
-                    "include-annotation": "android.platform.test.annotations.Presubmit"
+                    "include-filter": "android.provider.cts.media."
                 }
             ]
         }

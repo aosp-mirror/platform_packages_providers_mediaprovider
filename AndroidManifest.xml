@@ -84,6 +84,13 @@
             android:name=".MediaService"
             android:exported="false" />
 
+        <service android:name=".fuse.ExternalStorageServiceImpl"
+                 android:permission="android.permission.BIND_EXTERNAL_STORAGE_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.storage.ExternalStorageService" />
+            </intent-filter>
+        </service>
+
         <activity
             android:name=".PermissionActivity"
             android:theme="@style/PickerDialogTheme"

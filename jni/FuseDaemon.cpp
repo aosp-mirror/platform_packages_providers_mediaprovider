@@ -48,12 +48,7 @@
 #include <cutils/log.h>
 #include <cutils/multiuser.h>
 
-#include <android-base/logging.h>
-#include <private/android_filesystem_config.h>
-
-#include <android-base/logging.h>
-
-using namespace std;
+using std::string;
 
 #define FUSE_TRACE 1
 
@@ -288,7 +283,7 @@ static struct node* make_node_entry(fuse_req_t req,
     struct fuse* fuse = get_fuse(req);
     struct node* node;
 
-    memset(e, 0, sizeof(e));
+    memset(e, 0, sizeof(*e));
     if (lstat(path.c_str(), &e->attr) < 0) {
         return NULL;
     }
@@ -511,7 +506,6 @@ static void pf_setattr(fuse_req_t req,
     }
 
     // attr_from_stat ??
-
     fuse_reply_attr(req, attr, 10);
 }
 /*
@@ -786,7 +780,8 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
 
 static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
                     struct fuse_file_info* fi) {
-    LOG(INFO) << "pf_read";
+    struct fuse* fuse = get_fuse(req);
+    TRACE("[%s] READ \n", fuse->dest_path.c_str());
     struct handle* h = reinterpret_cast<struct handle*>(fi->fh);
     struct fuse_bufvec buf = FUSE_BUFVEC_INIT(size);
 
@@ -905,8 +900,8 @@ static void pf_fsyncdir(fuse_req_t req,
 static void pf_opendir(fuse_req_t req,
                        fuse_ino_t ino,
                        struct fuse_file_info* fi) {
-    LOG(INFO) << "pf_opendir";
     struct fuse* fuse = get_fuse(req);
+    TRACE("[%s] OPENDIR\n", fuse->dest_path.c_str());
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     struct node* node;
     string path;
@@ -953,13 +948,12 @@ static void do_readdir_common(fuse_req_t req,
                               bool plus) {
     struct fuse* fuse = get_fuse(req);
     struct dirhandle* h = reinterpret_cast<struct dirhandle*>(fi->fh);
-    size_t len = min(size, READDIR_BUF);
+    size_t len = std::min<size_t>(size, READDIR_BUF);
     char buf[READDIR_BUF];
     size_t used = 0;
     struct dirent* de;
     struct fuse_entry_param e;
 
-    LOG(INFO) << "do_readdir_common";
     TRACE("[%s] READDIR %p\n", fuse->dest_path.c_str(), h);
     if (off != h->next_off) {
         TRACE("[%s] calling seekdir(%"
@@ -1204,27 +1198,28 @@ FuseDaemon::FuseDaemon(JNIEnv* env, jobject mediaProvider) {
     //g_mp = new MediaProviderWrapper(env, mediaProvider);
 }
 
-FuseDaemon::~FuseDaemon() {}
+void FuseDaemon::Stop() {}
 
-void FuseDaemon::Start(int fd) {
+void FuseDaemon::Start(const int fd, const std::string& dest_path, const std::string& source_path) {
     struct fuse_args args;
     struct fuse_cmdline_opts opts;
-    string source_path = "/data/media/";
-    string dest_path = "/mnt/user/0/emulated";
 
     struct stat stat;
-    auto ret = lstat(source_path.c_str(), &stat);
 
-    if (ret == -1)
-        PLOG(ERROR) << "ERROR: failed to stat source (\"%s\")" << source_path.c_str();
+    if (lstat(source_path.c_str(), &stat)) {
+        ALOGE("ERROR: failed to stat source %s\n", source_path.c_str());
+        return;
+    }
 
-    if (!S_ISDIR(stat.st_mode))
-        PLOG(ERROR) << "ERROR: source is not a directory";
+    if (!S_ISDIR(stat.st_mode)) {
+        ALOGE("ERROR: source is not a directory\n");
+        return;
+    }
 
     args = FUSE_ARGS_INIT(0, nullptr);
     if (fuse_opt_add_arg(&args, source_path.c_str())
-            || fuse_opt_add_arg(&args, "-odebug")) {
-        LOG(INFO) << "err";
+        || fuse_opt_add_arg(&args, "-odebug")) {
+        ALOGE("ERROR: failed to set options\n");
         return;
     }
 
@@ -1247,15 +1242,18 @@ void FuseDaemon::Start(int fd) {
 
     umask(0);
 
-    LOG(INFO) << "Starting fuse...\n";
+    ALOGD("Starting fuse...\n");
     struct fuse_session
             * se = fuse_session_new(&args, &ops, sizeof(ops), &fuse_default);
     se->fd = fd;
     se->mountpoint = strdup(dest_path.c_str());
-    //fuse_session_mount(se, fuse_default.dest_path.c_str());
+
+    // Single thread. Useful for debugging
+    // fuse_session_loop(se);
+    // Multi-threaded
     fuse_session_loop_mt(se, &config);
-    //fuse_session_unmount(se);
-    LOG(INFO) << "Fuse is done...\n";
+
+    ALOGD("Ending fuse\n");
     return;
 }
 } //namespace fuse

@@ -44,8 +44,14 @@
 #include <unistd.h>
 
 #include <iostream>
+#include <vector>
 
+#include "MediaProviderWrapper.h"
+#include "libfuse_jni/RedactionInfo.h"
+
+using mediaprovider::fuse::RedactionInfo;
 using std::string;
+using std::vector;
 
 // logging macros to avoid duplication.
 #define TRACE LOG(DEBUG)
@@ -55,6 +61,7 @@ using std::string;
 
 struct handle {
     int fd;
+    std::unique_ptr<RedactionInfo> ri;
 };
 
 struct dirhandle {
@@ -108,6 +115,13 @@ struct fuse {
      * Accesses must be guarded by |lock|.
      */
     __u32 inode_ctr;
+
+    /*
+     * Used to make JNI calls to MediaProvider.
+     * Responsibility of freeing this object falls on corresponding
+     * FuseDaemon object.
+     */
+    mediaprovider::fuse::MediaProviderWrapper* mp;
 };
 
 static inline const char* safe_name(struct node* n) {
@@ -725,15 +739,13 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         fuse_reply_err(req, errno);
         return;
     }
-
+    // Initialize ri as nullptr to know that redaction info has not been checked yet.
+    h->ri = nullptr;
     fi->fh = ptr_to_id(h);
     fuse_reply_open(req, fi);
 }
 
-static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
-                    struct fuse_file_info* fi) {
-    struct fuse* fuse = get_fuse(req);
-    TRACE_FUSE(fuse) << "READ";
+static void do_read(fuse_req_t req, size_t size, off_t off, struct fuse_file_info* fi) {
     struct handle* h = reinterpret_cast<struct handle*>(fi->fh);
     struct fuse_bufvec buf = FUSE_BUFVEC_INIT(size);
 
@@ -744,6 +756,124 @@ static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
 
     fuse_reply_data(req, &buf, (enum fuse_buf_copy_flags) 0);
 }
+
+static bool range_contains(const RedactionRange& rr, off_t off) {
+    return rr.first <= off && off <= rr.second;
+}
+
+/**
+ * Sets the parameters for a fuse_buf that reads from memory, including flags.
+ * Dynamically allocates memory of the given size, initialized with 0s and sets
+ * buf.mem to point at it. Adds the pointer of the allocated memory to a vector of
+ * unique_ptrs to be automatically freed later on.
+ */
+static void create_mem_fuse_buf(size_t size, fuse_buf* buf,
+                                std::vector<std::unique_ptr<void, decltype(free)*>>* mem_ptrs) {
+    buf->size = size;
+    // TODO(b/140799126): consider allocating the same memory for all buffers?
+    buf->mem = calloc(size, sizeof(char));
+    // automatically free this memory
+    mem_ptrs->push_back(std::unique_ptr<void, decltype(free)*>(buf->mem, free));
+    buf->flags = static_cast<fuse_buf_flags>(0 /*read from fuse_buf.mem*/);
+    buf->pos = -1;
+    buf->fd = -1;
+}
+
+/**
+ * Sets the parameters for a fuse_buf that reads from file, including flags.
+ */
+static void create_file_fuse_buf(size_t size, off_t pos, int fd, fuse_buf* buf) {
+    buf->size = size;
+    buf->fd = fd;
+    buf->pos = pos;
+    buf->flags = static_cast<fuse_buf_flags>(FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK);
+    buf->mem = nullptr;
+}
+
+static void do_read_with_redaction(fuse_req_t req, size_t size, off_t off, fuse_file_info* fi) {
+    struct handle* h = reinterpret_cast<struct handle*>(fi->fh);
+    auto overlapping_rr = h->ri->getOverlappingRedactionRanges(size, off);
+
+    if (overlapping_rr->size() <= 0) {
+        // no relevant redaction ranges for this request
+        do_read(req, size, off, fi);
+        return;
+    }
+    // the number of buffers we need, if the read doesn't start or end with
+    //  a redaction range.
+    int num_bufs = overlapping_rr->size() * 2 + 1;
+    if (overlapping_rr->front().first <= off) {
+        // the beginning of the read request is redacted
+        num_bufs--;
+    }
+    if (overlapping_rr->back().second >= off + size) {
+        // the end of the read request is redacted
+        num_bufs--;
+    }
+    auto bufvec_ptr = std::unique_ptr<fuse_bufvec, decltype(free)*>{
+            reinterpret_cast<fuse_bufvec*>(
+                    malloc(sizeof(fuse_bufvec) + (num_bufs - 1) * sizeof(fuse_buf))),
+            free};
+    fuse_bufvec& bufvec = *bufvec_ptr;
+
+    // initialize bufvec
+    bufvec.count = num_bufs;
+    bufvec.idx = 0;
+    bufvec.off = 0;
+    // automatically free all allocated memory buffers
+    std::vector<std::unique_ptr<void, decltype(free)*>> mem_ptrs;
+
+    int rr_idx = 0;
+    off_t start = off;
+    // Add a dummy redaction range to make sure we don't go out of vector
+    // limits when computing the end of the last non-redacted range.
+    // This ranges is invalid because its starting point is larger than it's ending point.
+    overlapping_rr->push_back(RedactionRange(LLONG_MAX, LLONG_MAX - 1));
+
+    for (int i = 0; i < num_bufs; ++i) {
+        off_t end;
+        if (range_contains(overlapping_rr->at(rr_idx), start)) {
+            // Handle a redacted range
+            // end should be the end of the redacted range, but can't be out of
+            // the read request bounds
+            end = std::min(static_cast<off_t>(off + size - 1), overlapping_rr->at(rr_idx).second);
+            create_mem_fuse_buf(/*size*/ end - start + 1, &(bufvec.buf[i]), &mem_ptrs);
+            ++rr_idx;
+        } else {
+            // Handle a non-redacted range
+            // end should be right before the next redaction range starts or
+            // the end of the read request
+            end = std::min(static_cast<off_t>(off + size - 1),
+                    overlapping_rr->at(rr_idx).first - 1);
+            create_file_fuse_buf(/*size*/ end - start + 1, start, h->fd, &(bufvec.buf[i]));
+        }
+        start = end + 1;
+    }
+
+    fuse_reply_data(req, &bufvec, static_cast<fuse_buf_copy_flags>(0));
+}
+
+static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
+                    struct fuse_file_info* fi) {
+    struct handle* h = reinterpret_cast<struct handle*>(fi->fh);
+    struct fuse* fuse = get_fuse(req);
+    TRACE_FUSE(fuse) << "READ";
+    if (!h->ri) {
+        h->ri = fuse->mp->GetRedactionInfo(req->ctx.uid, h->fd);
+        if (!h->ri) {
+            errno = EIO;
+            fuse_reply_err(req, errno);
+            return;
+        }
+    }
+
+    if (h->ri->isRedactionNeeded()) {
+        do_read_with_redaction(req, size, off, fi);
+    } else {
+        do_read(req, size, off, fi);
+    }
+}
+
 /*
 static void pf_write(fuse_req_t req, fuse_ino_t ino, const char* buf,
                        size_t size, off_t off, struct fuse_file_info* fi)
@@ -1147,10 +1277,7 @@ static struct fuse_loop_config config = {
         .max_idle_threads = 10,
 };
 
-FuseDaemon::FuseDaemon(JNIEnv* env, jobject mediaProvider) {
-    //TODO: restore the next line when merging the MediaProviderWrapper code
-    //g_mp = new MediaProviderWrapper(env, mediaProvider);
-}
+FuseDaemon::FuseDaemon(JNIEnv* env, jobject mediaProvider) : mp(env, mediaProvider) {}
 
 void FuseDaemon::Stop() {}
 
@@ -1194,6 +1321,8 @@ void FuseDaemon::Start(const int fd, const std::string& dest_path, const std::st
     fuse_default.source_path = source_path;
 
     fuse_default.dest_path = dest_path;
+
+    fuse_default.mp = &mp;
 
     umask(0);
 

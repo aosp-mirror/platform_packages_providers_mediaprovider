@@ -21,11 +21,15 @@ cc_library_shared {
         "jni_init.cpp",
         "com_android_providers_media_FuseDaemon.cpp",
         "FuseDaemon.cpp",
+        "MediaProviderWrapper.cpp",
+        "RedactionInfo.cpp",
     ],
 
     header_libs: [
         "libnativehelper_header_only",
     ],
+
+    export_include_dirs: ["include"],
 
     shared_libs: [
         "liblog",

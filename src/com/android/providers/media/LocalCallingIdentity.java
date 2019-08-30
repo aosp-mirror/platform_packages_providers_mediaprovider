@@ -35,6 +35,7 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Binder;
 import android.os.Build;
+import android.os.SystemProperties;
 
 import com.android.providers.media.util.LongArray;
 
@@ -61,6 +62,9 @@ public class LocalCallingIdentity {
     }
 
     public static LocalCallingIdentity fromExternal(Context context, int uid) {
+        if (uid == 0) {
+            return forAdbdRoot();
+        }
         final String[] sharedPackageNames = context.getPackageManager().getPackagesForUid(uid);
         if (sharedPackageNames == null || sharedPackageNames.length == 0) {
             throw new IllegalArgumentException("UID " + uid + " has no associated package");
@@ -98,6 +102,28 @@ public class LocalCallingIdentity {
             packageNameResolved = true;
         }
         return packageName;
+    }
+
+
+    private static LocalCallingIdentity forAdbdRoot() {
+        final LocalCallingIdentity ident = new LocalCallingIdentity(
+                null /*context - can be null since all permissions are resolved*/,
+                1 /*init pid*/,
+                0 /*shell uid when adb is root*/,
+                "com.android.shell");
+
+        ident.packageName = ident.packageNameUnchecked;
+        ident.packageNameResolved = true;
+        ident.targetSdkVersion = Build.VERSION_CODES.CUR_DEVELOPMENT;
+        ident.targetSdkVersionResolved = true;
+        // Redaction is not needed by default
+        ident.hasPermission = ~(PERMISSION_IS_LEGACY | PERMISSION_IS_REDACTION_NEEDED);
+        if (SystemProperties.getBoolean("persist.sys.fuse.shell-root.redaction-needed", false)) {
+            ident.hasPermission |= PERMISSION_IS_REDACTION_NEEDED;
+        }
+        ident.hasPermissionResolved = ~0;
+
+        return ident;
     }
 
     private String getPackageNameInternal() {

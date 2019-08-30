@@ -23,10 +23,17 @@ cc_library_shared {
         "FuseDaemon.cpp",
     ],
 
+    header_libs: [
+        "libnativehelper_header_only",
+    ],
+
     shared_libs: [
         "liblog",
-        "libnativehelper",
         "libfuse",
+    ],
+
+    static_libs: [
+        "libbase_ndk",
     ],
 
     cflags: [
@@ -45,7 +52,6 @@ cc_library_shared {
         "-google-runtime-int",
     ],
 
-// Uncommenting the line below complains about libfuse not part of the NDK also seems
-// libnativehelper isn't either :(
-// sdk_version: "current",
+    sdk_version: "current",
+    stl: "c++_static",
 }

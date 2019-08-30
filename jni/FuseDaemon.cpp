@@ -44,15 +44,16 @@
 #include <unistd.h>
 #include <iostream>
 
-#include <cutils/fs.h>
-#include <cutils/log.h>
-#include <cutils/multiuser.h>
+#include <android/log.h>
 
 using std::string;
 
 #define FUSE_TRACE 1
 
 #if FUSE_TRACE
+// TODO(narayan): Move this and our ALOGE definition to using android-base
+// logging macros to avoid duplication.
+#define ALOGD(...) __android_log_print(ANDROID_LOG_DEBUG, "FuseDaemon", __VA_ARGS__)
 #define TRACE(x...) ALOGD(x)
 #else
 #define TRACE(x...) \
@@ -60,6 +61,7 @@ using std::string;
     } while (0)
 #endif
 
+#define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR, "FuseDaemon", __VA_ARGS__)
 #define ERROR(x...) ALOGE(x)
 
 #define FUSE_UNKNOWN_INO 0xffffffff

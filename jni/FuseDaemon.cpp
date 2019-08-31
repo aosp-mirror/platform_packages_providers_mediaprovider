@@ -318,12 +318,12 @@ namespace fuse {
  */
 
 static void pf_init(void* userdata, struct fuse_conn_info* conn) {
+    // We don't want a getattr request with every read request
+    conn->want &= ~FUSE_CAP_AUTO_INVAL_DATA;
     unsigned mask =
             (FUSE_CAP_SPLICE_WRITE | FUSE_CAP_SPLICE_MOVE | FUSE_CAP_SPLICE_READ
-                    |
-                            FUSE_CAP_ASYNC_READ | FUSE_CAP_ATOMIC_O_TRUNC
-                    | FUSE_CAP_WRITEBACK_CACHE |
-                    FUSE_CAP_EXPORT_SUPPORT | FUSE_CAP_FLOCK_LOCKS);
+             | FUSE_CAP_ASYNC_READ | FUSE_CAP_ATOMIC_O_TRUNC | FUSE_CAP_WRITEBACK_CACHE
+             | FUSE_CAP_EXPORT_SUPPORT | FUSE_CAP_FLOCK_LOCKS);
     conn->want |= conn->capable & mask;
 }
 
@@ -505,7 +505,7 @@ static void pf_setattr(fuse_req_t req,
         }
     }
 
-    // attr_from_stat ??
+    lstat(path.c_str(), attr);
     fuse_reply_attr(req, attr, 10);
 }
 /*
@@ -1050,13 +1050,22 @@ static void pf_listxattr(fuse_req_t req, fuse_ino_t ino, size_t size)
 static void pf_removexattr(fuse_req_t req, fuse_ino_t ino, const char* name)
 {
     cout << "TODO:" << __func__;
+}*/
+
+static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
+    struct fuse* fuse = get_fuse(req);
+    const struct fuse_ctx* ctx = fuse_req_ctx(req);
+
+    pthread_mutex_lock(&fuse->lock);
+    struct node* node = lookup_node_by_id_locked(fuse, ino);
+    string path = get_node_path_locked(node);
+    TRACE("[%s] ACCESS %s", fuse->dest_path.c_str(), path.c_str());
+    pthread_mutex_unlock(&fuse->lock);
+
+    int res = access(path.c_str(), F_OK);
+    fuse_reply_err(req, res ? errno : 0);
 }
-*//*
-static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask)
-{
-    cout << "TODO:" << __func__;
-}
-*/
+
 static void pf_create(fuse_req_t req,
                       fuse_ino_t parent,
                       const char* name,
@@ -1175,8 +1184,8 @@ static struct fuse_lowlevel_ops ops{
         /*.setxattr = pf_setxattr,
         .getxattr = pf_getxattr,
         .listxattr = pf_listxattr,
-        .removexattr = pf_removexattr,
-        .access = pf_access,*/
+        .removexattr = pf_removexattr,*/
+        .access = pf_access,
         .create = pf_create,
         /*.getlk = pf_getlk,
         .setlk = pf_setlk,

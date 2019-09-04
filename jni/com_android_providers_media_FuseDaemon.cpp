@@ -18,12 +18,11 @@
 #define LOG_TAG "FuseDaemon"
 
 #include "FuseDaemon.h"
+#include "android-base/logging.h"
 
 #include <string>
 
-#include <nativehelper/JNIHelp.h>
 #include <nativehelper/scoped_utf_chars.h>
-#include <cutils/log.h>
 
 namespace mediaprovider {
 namespace {
@@ -33,14 +32,14 @@ static jclass gFuseDaemonClass;
 
 jlong com_android_providers_media_FuseDaemon_new(JNIEnv* env, jobject self,
         jobject mediaProvider) {
-    ALOGD("Creating the FUSE daemon...\n");
+    LOG(DEBUG) << "Creating the FUSE daemon...";
     return reinterpret_cast<jlong>(new fuse::FuseDaemon(env, mediaProvider));
 }
 
 void com_android_providers_media_FuseDaemon_start(
         JNIEnv* env, jobject self, jlong java_daemon, jint fd, jstring java_upper_path,
         jstring java_lower_path) {
-    ALOGD("Starting the FUSE daemon...");
+    LOG(DEBUG) << "Starting the FUSE daemon...";
     fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
 
     ScopedUtfChars utf_chars_upper_path(env, java_upper_path);
@@ -60,14 +59,14 @@ void com_android_providers_media_FuseDaemon_start(
 
 void com_android_providers_media_FuseDaemon_stop(
         JNIEnv* env, jobject self, jlong java_daemon) {
-    ALOGD("Stopping the FUSE daemon...");
+    LOG(DEBUG) << "Stopping the FUSE daemon...";
     fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
     daemon->Stop();
 }
 
 void com_android_providers_media_FuseDaemon_delete(
         JNIEnv* env, jobject self, jlong java_daemon) {
-    ALOGD("Destroying the FUSE daemon...");
+    LOG(DEBUG) << "Destroying the FUSE daemon...";
     fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
     delete daemon;
 }
@@ -98,6 +97,14 @@ const JNINativeMethod methods[] = {
 
 void register_android_providers_media_FuseDaemon(JNIEnv* env) {
     gFuseDaemonClass = static_cast<jclass>(env->NewGlobalRef(env->FindClass(CLASS_NAME)));
-    jniRegisterNativeMethods(env, CLASS_NAME, methods, NELEM(methods));
+
+    if (gFuseDaemonClass == nullptr) {
+        LOG(FATAL) << "Unable to find class : " << CLASS_NAME;
+    }
+
+    if (env->RegisterNatives(
+            gFuseDaemonClass, methods, sizeof(methods) / sizeof(methods[0])) < 0) {
+        LOG(FATAL) << "Unable to register native methods";
+    }
 }
 }  // namespace mediaprovider

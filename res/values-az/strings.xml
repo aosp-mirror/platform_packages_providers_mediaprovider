@@ -26,6 +26,13 @@
     <string name="root_images" msgid="5861633549189045666">"Təsvirlər"</string>
     <string name="root_videos" msgid="8792703517064649453">"Videolar"</string>
     <string name="root_audio" msgid="3505830755201326018">"Audio"</string>
+    <string name="permission_required" msgid="1460820436132943754">"Bu elementi dəyişmək və ya silmək üçün icazə tələb edilir."</string>
+    <string name="permission_required_action" msgid="706370952366113539">"Davam edin"</string>
+    <string name="permission_audio" msgid="344061911159388398">"Bu musiqini dəyişmək və ya silmək üçün "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" tətbiqinə icazə verilsin?"</string>
+    <string name="permission_video" msgid="8188037202573267740">"Bu videonu dəyişmək və ya silmək üçün "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" tətbiqinə icazə verilsin?"</string>
+    <string name="permission_images" msgid="6711726334380945124">"Bu şəkli dəyişmək və ya silmək üçün "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" tətbiqinə icazə verilsin?"</string>
+    <string name="grant_dialog_button_allow" msgid="1644287024501033471">"İcazə verin"</string>
+    <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Rədd edin"</string>
     <string name="sound_name_awaken" msgid="5266892392848526147">"Oyatma"</string>
     <string name="sound_name_bounce" msgid="8771447635446665231">"Sıçrayış"</string>
     <string name="sound_name_drip" msgid="1744684469020662152">"Damcılatma"</string>
@@ -36,6 +43,8 @@
     <string name="sound_name_sway" msgid="348448316663085643">"Yellənmə"</string>
     <string name="sound_name_wag" msgid="2730733083078126563">"Fırlatma"</string>
     <string name="add_ringtone_text" msgid="8077717303037760418">"Zəng səsi daxil edin"</string>
+    <string name="add_alarm_text" msgid="2440919366091720815">"Siqnal əlavə edin"</string>
+    <string name="add_notification_text" msgid="5013822215567515665">"Bildiriş əlavə edin"</string>
     <string name="delete_ringtone_text" msgid="2963662097583300181">"Silin"</string>
     <string name="unable_to_add_ringtone" msgid="6256097521165711269">"Fərdi zəng səsi əlavə etmək mümkün deyil"</string>
     <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"Fərdi zəng səsini silmək mümkün deyil"</string>

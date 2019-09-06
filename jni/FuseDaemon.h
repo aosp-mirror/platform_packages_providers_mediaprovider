@@ -39,7 +39,8 @@ public:
      * Stop the FUSE daemon and clean up resources.
      */
     void Stop();
-private:
+
+  private:
     FuseDaemon(const FuseDaemon&) = delete;
     void operator=(const FuseDaemon&) = delete;
 };

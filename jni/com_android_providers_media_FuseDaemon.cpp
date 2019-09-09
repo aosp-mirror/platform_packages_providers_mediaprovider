@@ -17,12 +17,12 @@
 // Need to use LOGE_EX.
 #define LOG_TAG "FuseDaemon"
 
-#include "FuseDaemon.h"
-#include "android-base/logging.h"
+#include <nativehelper/scoped_utf_chars.h>
 
 #include <string>
 
-#include <nativehelper/scoped_utf_chars.h>
+#include "FuseDaemon.h"
+#include "android-base/logging.h"
 
 namespace mediaprovider {
 namespace {
@@ -30,15 +30,14 @@ namespace {
 constexpr const char* CLASS_NAME = "com/android/providers/media/fuse/FuseDaemon";
 static jclass gFuseDaemonClass;
 
-jlong com_android_providers_media_FuseDaemon_new(JNIEnv* env, jobject self,
-        jobject mediaProvider) {
+jlong com_android_providers_media_FuseDaemon_new(JNIEnv* env, jobject self, jobject mediaProvider) {
     LOG(DEBUG) << "Creating the FUSE daemon...";
     return reinterpret_cast<jlong>(new fuse::FuseDaemon(env, mediaProvider));
 }
 
-void com_android_providers_media_FuseDaemon_start(
-        JNIEnv* env, jobject self, jlong java_daemon, jint fd, jstring java_upper_path,
-        jstring java_lower_path) {
+void com_android_providers_media_FuseDaemon_start(JNIEnv* env, jobject self, jlong java_daemon,
+                                                  jint fd, jstring java_upper_path,
+                                                  jstring java_lower_path) {
     LOG(DEBUG) << "Starting the FUSE daemon...";
     fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
 
@@ -57,15 +56,13 @@ void com_android_providers_media_FuseDaemon_start(
     daemon->Start(fd, string_upper_path, string_lower_path);
 }
 
-void com_android_providers_media_FuseDaemon_stop(
-        JNIEnv* env, jobject self, jlong java_daemon) {
+void com_android_providers_media_FuseDaemon_stop(JNIEnv* env, jobject self, jlong java_daemon) {
     LOG(DEBUG) << "Stopping the FUSE daemon...";
     fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
     daemon->Stop();
 }
 
-void com_android_providers_media_FuseDaemon_delete(
-        JNIEnv* env, jobject self, jlong java_daemon) {
+void com_android_providers_media_FuseDaemon_delete(JNIEnv* env, jobject self, jlong java_daemon) {
     LOG(DEBUG) << "Destroying the FUSE daemon...";
     fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
     delete daemon;
@@ -102,8 +99,7 @@ void register_android_providers_media_FuseDaemon(JNIEnv* env) {
         LOG(FATAL) << "Unable to find class : " << CLASS_NAME;
     }
 
-    if (env->RegisterNatives(
-            gFuseDaemonClass, methods, sizeof(methods) / sizeof(methods[0])) < 0) {
+    if (env->RegisterNatives(gFuseDaemonClass, methods, sizeof(methods) / sizeof(methods[0])) < 0) {
         LOG(FATAL) << "Unable to register native methods";
     }
 }

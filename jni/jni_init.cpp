@@ -16,16 +16,15 @@
 
 #define LOG_TAG "FuseDaemon"
 
+#include "android-base/logging.h"
 #include "jni.h"
 
-#include "android-base/logging.h"
-
 namespace mediaprovider {
-    int register_android_providers_media_FuseDaemon(JNIEnv* env);
+int register_android_providers_media_FuseDaemon(JNIEnv* env);
 }
 
 extern "C" jint JNI_OnLoad(JavaVM* vm, void* /* reserved */) {
-    JNIEnv *env;
+    JNIEnv* env;
     if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK) {
         LOG(ERROR) << "ERROR: GetEnv failed";
         return JNI_ERR;

@@ -16,13 +16,13 @@
 
 #include "FuseDaemon.h"
 
-#include <fuse_i.h>
-#include <fuse_lowlevel.h>
-
+#include <android/log.h>
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <fuse_i.h>
+#include <fuse_lowlevel.h>
 #include <inttypes.h>
 #include <limits.h>
 #include <linux/fuse.h>
@@ -42,9 +42,8 @@
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <unistd.h>
-#include <iostream>
 
-#include <android/log.h>
+#include <iostream>
 
 using std::string;
 
@@ -322,10 +321,9 @@ namespace fuse {
 static void pf_init(void* userdata, struct fuse_conn_info* conn) {
     // We don't want a getattr request with every read request
     conn->want &= ~FUSE_CAP_AUTO_INVAL_DATA;
-    unsigned mask =
-            (FUSE_CAP_SPLICE_WRITE | FUSE_CAP_SPLICE_MOVE | FUSE_CAP_SPLICE_READ
-             | FUSE_CAP_ASYNC_READ | FUSE_CAP_ATOMIC_O_TRUNC | FUSE_CAP_WRITEBACK_CACHE
-             | FUSE_CAP_EXPORT_SUPPORT | FUSE_CAP_FLOCK_LOCKS);
+    unsigned mask = (FUSE_CAP_SPLICE_WRITE | FUSE_CAP_SPLICE_MOVE | FUSE_CAP_SPLICE_READ |
+                     FUSE_CAP_ASYNC_READ | FUSE_CAP_ATOMIC_O_TRUNC | FUSE_CAP_WRITEBACK_CACHE |
+                     FUSE_CAP_EXPORT_SUPPORT | FUSE_CAP_FLOCK_LOCKS);
     conn->want |= conn->capable & mask;
 }
 
@@ -1167,36 +1165,35 @@ static void pf_fallocate(fuse_req_t req, fuse_ino_t ino, int mode,
 */
 
 static struct fuse_lowlevel_ops ops{
-        .init = pf_init,
-        /*.destroy = pf_destroy,*/
-        .lookup = pf_lookup, .forget = pf_forget, .forget_multi = pf_forget_multi,
-        .getattr = pf_getattr, .setattr = pf_setattr,
-        /*.readlink = pf_readlink,*/
-        .mknod = pf_mknod, .mkdir = pf_mkdir, .unlink = pf_unlink, .rmdir = pf_rmdir,
-        /*.symlink = pf_symlink,*/
-        .rename = pf_rename,
-        /*.link = pf_link,*/
-        .open = pf_open, .read = pf_read,
-        /*.write = pf_write,*/
-        .write_buf = pf_write_buf,
-        /*.copy_file_range = pf_copy_file_range,*/
-        .flush = pf_flush, .release = pf_release, .fsync = pf_fsync, .fsyncdir = pf_fsyncdir,
-        .opendir = pf_opendir, .readdir = pf_readdir, .readdirplus = pf_readdirplus,
-        .releasedir = pf_releasedir, .statfs = pf_statfs,
-        /*.setxattr = pf_setxattr,
-        .getxattr = pf_getxattr,
-        .listxattr = pf_listxattr,
-        .removexattr = pf_removexattr,*/
-        .access = pf_access,
-        .create = pf_create,
-        /*.getlk = pf_getlk,
-        .setlk = pf_setlk,
-        .bmap = pf_bmap,
-        .ioctl = pf_ioctl,
-        .poll = pf_poll,
-        .retrieve_reply = pf_retrieve_reply,*/
-        /*.flock = pf_flock,
-        .fallocate = pf_fallocate,*/
+    .init = pf_init,
+    /*.destroy = pf_destroy,*/
+    .lookup = pf_lookup, .forget = pf_forget, .forget_multi = pf_forget_multi,
+    .getattr = pf_getattr, .setattr = pf_setattr,
+    /*.readlink = pf_readlink,*/
+    .mknod = pf_mknod, .mkdir = pf_mkdir, .unlink = pf_unlink, .rmdir = pf_rmdir,
+    /*.symlink = pf_symlink,*/
+    .rename = pf_rename,
+    /*.link = pf_link,*/
+    .open = pf_open, .read = pf_read,
+    /*.write = pf_write,*/
+    .write_buf = pf_write_buf,
+    /*.copy_file_range = pf_copy_file_range,*/
+    .flush = pf_flush, .release = pf_release, .fsync = pf_fsync, .fsyncdir = pf_fsyncdir,
+    .opendir = pf_opendir, .readdir = pf_readdir, .readdirplus = pf_readdirplus,
+    .releasedir = pf_releasedir, .statfs = pf_statfs,
+    /*.setxattr = pf_setxattr,
+    .getxattr = pf_getxattr,
+    .listxattr = pf_listxattr,
+    .removexattr = pf_removexattr,*/
+    .access = pf_access, .create = pf_create,
+    /*.getlk = pf_getlk,
+    .setlk = pf_setlk,
+    .bmap = pf_bmap,
+    .ioctl = pf_ioctl,
+    .poll = pf_poll,
+    .retrieve_reply = pf_retrieve_reply,*/
+    /*.flock = pf_flock,
+    .fallocate = pf_fallocate,*/
 };
 
 static struct fuse_loop_config config = {
@@ -1228,8 +1225,7 @@ void FuseDaemon::Start(const int fd, const std::string& dest_path, const std::st
     }
 
     args = FUSE_ARGS_INIT(0, nullptr);
-    if (fuse_opt_add_arg(&args, source_path.c_str())
-        || fuse_opt_add_arg(&args, "-odebug")) {
+    if (fuse_opt_add_arg(&args, source_path.c_str()) || fuse_opt_add_arg(&args, "-odebug")) {
         ALOGE("ERROR: failed to set options\n");
         return;
     }
@@ -1268,4 +1264,4 @@ void FuseDaemon::Start(const int fd, const std::string& dest_path, const std::st
     return;
 }
 } //namespace fuse
-} //namespace mediaprovider
+}  // namespace mediaprovider

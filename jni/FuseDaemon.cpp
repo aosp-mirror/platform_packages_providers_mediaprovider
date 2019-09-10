@@ -16,7 +16,7 @@
 
 #include "FuseDaemon.h"
 
-#include <android/log.h>
+#include <android-base/logging.h>
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
@@ -47,21 +47,9 @@
 
 using std::string;
 
-#define FUSE_TRACE 1
-
-#if FUSE_TRACE
-// TODO(narayan): Move this and our ALOGE definition to using android-base
 // logging macros to avoid duplication.
-#define ALOGD(...) __android_log_print(ANDROID_LOG_DEBUG, "FuseDaemon", __VA_ARGS__)
-#define TRACE(x...) ALOGD(x)
-#else
-#define TRACE(x...) \
-    do {            \
-    } while (0)
-#endif
-
-#define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR, "FuseDaemon", __VA_ARGS__)
-#define ERROR(x...) ALOGE(x)
+#define TRACE LOG(DEBUG)
+#define TRACE_FUSE(__fuse) TRACE << "[" << __fuse->dest_path << "] "
 
 #define FUSE_UNKNOWN_INO 0xffffffff
 
@@ -122,23 +110,27 @@ struct fuse {
     __u32 inode_ctr;
 };
 
+static inline const char* safe_name(struct node* n) {
+    return n ? n->name.c_str() : "?";
+}
+
 static inline __u64 ptr_to_id(void* ptr) {
     return (__u64)(uintptr_t) ptr;
 }
 
 static void acquire_node_locked(struct node* node) {
     node->refcount++;
-    TRACE("ACQUIRE %p (%s) rc=%d\n", node, node->name.c_str(), node->refcount);
+    TRACE << "ACQUIRE " << node << " " << node->name << " rc=" << node->refcount;
 }
 
 static void remove_node_from_parent_locked(struct node* node);
 
 static void release_node_n_locked(struct node* node, int count) {
-    TRACE("RELEASE %p (%s) rc=%d\n", node, node->name.c_str(), node->refcount);
+    TRACE << "RELEASE " << node << " " << node->name << " rc=" << node->refcount;
     if (node->refcount >= count) {
         node->refcount -= count;
         if (!node->refcount) {
-            TRACE("DESTROY %p (%s)\n", node, node->name.c_str());
+            TRACE << "DESTROY " << node << " (" << node->name << ")";
             remove_node_from_parent_locked(node);
 
             /* TODO: remove debugging - poison memory */
@@ -146,16 +138,16 @@ static void release_node_n_locked(struct node* node, int count) {
             free(node);
         }
     } else {
-        ERROR("Zero refcnt %p\n", node);
+        LOG(ERROR) << "Zero refcnt " << node;
     }
 }
 
 static void release_node_locked(struct node* node) {
-    TRACE("RELEASE %p (%s) rc=%d\n", node, node->name.c_str(), node->refcount);
+    TRACE << "RELEASE " << node << " " << node->name << " rc=" << node->refcount;
     if (node->refcount > 0) {
         node->refcount--;
         if (!node->refcount) {
-            TRACE("DESTROY %p (%s)\n", node, node->name.c_str());
+            TRACE << "DESTROY " << node << " (" << node->name << ")";
             remove_node_from_parent_locked(node);
 
             /* TODO: remove debugging - poison memory */
@@ -163,7 +155,7 @@ static void release_node_locked(struct node* node) {
             free(node);
         }
     } else {
-        ERROR("Zero refcnt %p\n", node);
+        LOG(ERROR) << "Zero refcnt " << node;
     }
 }
 
@@ -217,7 +209,7 @@ struct node* create_node_locked(struct fuse* fuse,
     // Detect overflows in the inode counter. "4 billion nodes should be enough
     // for everybody".
     if (fuse->inode_ctr == 0) {
-        ERROR("No more inode numbers available");
+        LOG(ERROR) << "No more inode numbers available";
         return NULL;
     }
 
@@ -348,10 +340,8 @@ static struct node* do_lookup(fuse_req_t req,
     pthread_mutex_lock(&fuse->lock);
     parent_node = lookup_node_by_id_locked(fuse, parent);
     parent_path = get_node_path_locked(parent_node);
-    TRACE("[%s] LOOKUP %s @ %"
-                  PRIx64
-                  " (%s)\n", fuse->dest_path.c_str(), name, parent,
-          parent_node ? parent_node->name.c_str() : "?");
+    TRACE_FUSE(fuse) << "LOOKUP " << name << " @ " << parent << " (" << safe_name(parent_node)
+                     << ")";
     pthread_mutex_unlock(&fuse->lock);
 
     child_path = parent_path + "/" + name;
@@ -370,12 +360,7 @@ static void pf_lookup(fuse_req_t req, fuse_ino_t parent, const char* name) {
 
 static void do_forget(struct fuse* fuse, fuse_ino_t ino, uint64_t nlookup) {
     struct node* node = lookup_node_by_id_locked(fuse, ino);
-    TRACE("[%s] FORGET #%"
-                  PRIu64
-                  " @ %"
-                  PRIx64
-                  " (%s)\n", fuse->dest_path.c_str(), nlookup, ino,
-          node ? node->name.c_str() : "?");
+    TRACE_FUSE(fuse) << "FORGET #" << nlookup << " @ " << ino << " (" << safe_name(node) << ")";
     if (node) {
         __u64 n = nlookup;
         release_node_n_locked(node, n);
@@ -418,10 +403,7 @@ static void pf_getattr(fuse_req_t req,
     pthread_mutex_lock(&fuse->lock);
     node = lookup_node_by_id_locked(fuse, ino);
     path = get_node_path_locked(node);
-    TRACE("[%s] GETATTR @ %"
-                  PRIu64
-                  " (%s)\n", fuse->dest_path.c_str(), ino,
-          node ? node->name.c_str() : "?");
+    TRACE_FUSE(fuse) << "GETATTR @ " << ino << " (" << safe_name(node) << ")";
     pthread_mutex_unlock(&fuse->lock);
 
     if (!node) fuse_reply_err(req, ENOENT);
@@ -449,10 +431,7 @@ static void pf_setattr(fuse_req_t req,
     pthread_mutex_lock(&fuse->lock);
     node = lookup_node_by_id_locked(fuse, ino);
     path = get_node_path_locked(node);
-    TRACE("[%s] SETATTR  valid=%x @ %"
-                  PRIx64
-                  " (%s)\n", fuse->dest_path.c_str(), to_set, ino,
-          node ? node->name.c_str() : "?");
+    TRACE_FUSE(fuse) << "SETATTR valid=" << to_set << " @ " << ino << "(" << safe_name(node) << ")";
     pthread_mutex_unlock(&fuse->lock);
 
     if (!node) {
@@ -494,11 +473,8 @@ static void pf_setattr(fuse_req_t req,
                 // times[1].tv_nsec = attr->st_mtime.tv_nsec;
             }
         }
-        TRACE("[%s] Calling utimensat on %s with atime %ld, mtime=%ld\n",
-              fuse->dest_path.c_str(),
-              path.c_str(),
-              times[0].tv_sec,
-              times[1].tv_sec);
+        TRACE_FUSE(fuse) << "Calling utimensat on " << path << " with atime " << times[0].tv_sec
+                         << " mtime=" << times[1].tv_sec;
         if (utimensat(-1, path.c_str(), times, 0) < 0) {
             fuse_reply_err(req, errno);
             return;
@@ -529,10 +505,8 @@ static void pf_mknod(fuse_req_t req,
     pthread_mutex_lock(&fuse->lock);
     parent_node = lookup_node_by_id_locked(fuse, parent);
     parent_path = get_node_path_locked(parent_node);
-    TRACE("[%s] MKNOD %s 0%o @ %"
-                  PRIx64
-                  " (%s)\n", fuse->dest_path.c_str(), name, mode, parent,
-          parent_node ? parent_node->name.c_str() : "?");
+    TRACE_FUSE(fuse) << "MKNOD " << name << " 0" << std::oct << mode << " @ " << parent << " ("
+                     << safe_name(parent_node) << ")";
     pthread_mutex_unlock(&fuse->lock);
 
     if (!parent_node) {
@@ -566,10 +540,8 @@ static void pf_mkdir(fuse_req_t req,
     pthread_mutex_lock(&fuse->lock);
     parent_node = lookup_node_by_id_locked(fuse, parent);
     parent_path = get_node_path_locked(parent_node);
-    TRACE("[%s] MKDIR %s 0%o @ %"
-                  PRIx64
-                  " (%s)\n", fuse->dest_path.c_str(), name, mode, parent,
-          parent_node ? parent_node->name.c_str() : "?");
+    TRACE_FUSE(fuse) << "MKDIR " << name << " 0" << std::oct << mode << " @ " << parent << " ("
+                     << safe_name(parent_node) << ")";
     pthread_mutex_unlock(&fuse->lock);
 
     child_path = parent_path + "/" + name;
@@ -597,10 +569,7 @@ static void pf_unlink(fuse_req_t req, fuse_ino_t parent, const char* name) {
     pthread_mutex_lock(&fuse->lock);
     parent_node = lookup_node_by_id_locked(fuse, parent);
     parent_path = get_node_path_locked(parent_node);
-    TRACE("[%s] UNLINK %s @ %"
-                  PRIx64
-                  " (%s)\n", fuse->dest_path.c_str(), name, parent,
-          parent_node ? parent_node->name.c_str() : "?");
+    TRACE_FUSE(fuse) << "UNLINK " << name << " @ " << parent << "(" << safe_name(parent_node) << ")";
     pthread_mutex_unlock(&fuse->lock);
 
     child_path = parent_path + "/" + name;
@@ -630,10 +599,7 @@ static void pf_rmdir(fuse_req_t req, fuse_ino_t parent, const char* name) {
     pthread_mutex_lock(&fuse->lock);
     parent_node = lookup_node_by_id_locked(fuse, parent);
     parent_path = get_node_path_locked(parent_node);
-    TRACE("[%s] RMDIR %s @ %"
-                  PRIx64
-                  " (%s)\n", fuse->dest_path.c_str(), name, parent,
-          parent_node ? parent_node->name.c_str() : "?");
+    TRACE_FUSE(fuse) << "RMDIR " << name << " @ " << parent << "(" << safe_name(parent_node) << ")";
     pthread_mutex_unlock(&fuse->lock);
 
     child_path = parent_path + "/" + name;
@@ -680,18 +646,9 @@ static void pf_rename(fuse_req_t req,
     old_parent_path = get_node_path_locked(old_parent_node);
     new_parent_node = lookup_node_by_id_locked(fuse, newparent);
     new_parent_path = get_node_path_locked(new_parent_node);
-    TRACE("[%s] RENAME %s->%s @ %"
-                  PRIx64
-                  " (%s) -> %"
-                  PRIx64
-                  " (%s)\n",
-          fuse->dest_path.c_str(),
-          name,
-          newname,
-          parent,
-          old_parent_node ? old_parent_node->name.c_str() : "?",
-          newparent,
-          new_parent_node ? new_parent_node->name.c_str() : "?");
+    TRACE_FUSE(fuse) << "RENAME " << name << " -> " << newname << " @ " << parent << " ("
+                     << safe_name(old_parent_node) << ") -> " << newparent << " ("
+                     << safe_name(new_parent_node) << ")";
     if (!old_parent_node || !new_parent_node) {
         res = ENOENT;
         goto lookup_error;
@@ -704,10 +661,7 @@ static void pf_rename(fuse_req_t req,
 
     new_child_path = new_parent_path + "/" + newname;
 
-    TRACE("[%s] RENAME %s->%s\n",
-          old_child_path.c_str(),
-          fuse->dest_path.c_str(),
-          new_child_path.c_str());
+    TRACE_FUSE(fuse) << "RENAME " << old_child_path << " -> " << new_child_path;
     res = rename(old_child_path.c_str(), new_child_path.c_str());
     if (res < 0) {
         res = errno;
@@ -750,10 +704,8 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     pthread_mutex_lock(&fuse->lock);
     node = lookup_node_by_id_locked(fuse, ino);
     path = get_node_path_locked(node);
-    TRACE("[%s] OPEN 0%o @ %"
-                  PRIx64
-                  " (%s)\n", fuse->dest_path.c_str(), fi->flags, ino,
-          node ? node->name.c_str() : "?");
+    TRACE_FUSE(fuse) << "OPEN 0" << std::oct << fi->flags << " @ " << ino << " (" << safe_name(node)
+                     << ")";
     pthread_mutex_unlock(&fuse->lock);
 
     if (!node) {
@@ -766,7 +718,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         fuse_reply_err(req, ENOMEM);
         return;
     }
-    TRACE("[%s] OPEN %s\n", fuse->dest_path.c_str(), path.c_str());
+    TRACE_FUSE(fuse) << "OPEN " << path;
     h->fd = open(path.c_str(), fi->flags);
     if (h->fd < 0) {
         delete h;
@@ -781,7 +733,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
 static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
                     struct fuse_file_info* fi) {
     struct fuse* fuse = get_fuse(req);
-    TRACE("[%s] READ \n", fuse->dest_path.c_str());
+    TRACE_FUSE(fuse) << "READ";
     struct handle* h = reinterpret_cast<struct handle*>(fi->fh);
     struct fuse_bufvec buf = FUSE_BUFVEC_INIT(size);
 
@@ -854,7 +806,7 @@ static void pf_flush(fuse_req_t req,
                      fuse_ino_t ino,
                      struct fuse_file_info* fi) {
     struct fuse* fuse = get_fuse(req);
-    TRACE("[%s] FLUSH is noop\n", fuse->dest_path.c_str());
+    TRACE_FUSE(fuse) << "FLUSH is a noop";
     fuse_reply_err(req, 0);
 }
 
@@ -864,7 +816,7 @@ static void pf_release(fuse_req_t req,
     struct fuse* fuse = get_fuse(req);
     struct handle* h = reinterpret_cast<struct handle*>(fi->fh);
 
-    TRACE("[%s] RELEASE %p(%d)\n", fuse->dest_path.c_str(), h, h->fd);
+    TRACE_FUSE(fuse) << "RELEASE " << h << "(" << h->fd << ")";
     close(h->fd);
     delete h;
     fuse_reply_err(req, 0);
@@ -901,7 +853,7 @@ static void pf_opendir(fuse_req_t req,
                        fuse_ino_t ino,
                        struct fuse_file_info* fi) {
     struct fuse* fuse = get_fuse(req);
-    TRACE("[%s] OPENDIR\n", fuse->dest_path.c_str());
+    TRACE_FUSE(fuse) << "OPENDIR";
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     struct node* node;
     string path;
@@ -910,10 +862,8 @@ static void pf_opendir(fuse_req_t req,
     pthread_mutex_lock(&fuse->lock);
     node = lookup_node_by_id_locked(fuse, ino);
     path = get_node_path_locked(node);
-    TRACE("[%s] OPENDIR @ %"
-                  PRIx64
-                  " (%s)\n", fuse->dest_path.c_str(), ino,
-          node ? node->name.c_str() : "?");
+
+    TRACE_FUSE(fuse) << "OPENDIR @ " << ino << " (" << safe_name(node) << ")";
     pthread_mutex_unlock(&fuse->lock);
 
     if (!node) {
@@ -926,7 +876,7 @@ static void pf_opendir(fuse_req_t req,
         fuse_reply_err(req, ENOMEM);
         return;
     }
-    TRACE("[%s] OPENDIR %s\n", fuse->dest_path.c_str(), path.c_str());
+    TRACE_FUSE(fuse) << "OPENDIR " << path;
     h->d = opendir(path.c_str());
     if (!h->d) {
         delete h;
@@ -954,11 +904,9 @@ static void do_readdir_common(fuse_req_t req,
     struct dirent* de;
     struct fuse_entry_param e;
 
-    TRACE("[%s] READDIR %p\n", fuse->dest_path.c_str(), h);
+    TRACE_FUSE(fuse) << "READDIR " << h;
     if (off != h->next_off) {
-        TRACE("[%s] calling seekdir(%"
-                      PRIu64
-                      ")\n", fuse->dest_path.c_str(), off);
+        TRACE_FUSE(fuse) << " calling seekdir(" << h->d << ", " << off << ")";
         seekdir(h->d, off);
     }
     while (used < len && (de = readdir(h->d)) != NULL) {
@@ -1014,7 +962,7 @@ static void pf_releasedir(fuse_req_t req,
     struct fuse* fuse = get_fuse(req);
     struct dirhandle* h = reinterpret_cast<struct dirhandle*>(fi->fh);
 
-    TRACE("[%s] RELEASEDIR %p\n", fuse->dest_path.c_str(), h);
+    TRACE_FUSE(fuse) << "RELEASEDIR " << h;
     closedir(h->d);
     delete h;
     fuse_reply_err(req, 0);
@@ -1059,7 +1007,7 @@ static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
     pthread_mutex_lock(&fuse->lock);
     struct node* node = lookup_node_by_id_locked(fuse, ino);
     string path = get_node_path_locked(node);
-    TRACE("[%s] ACCESS %s", fuse->dest_path.c_str(), path.c_str());
+    TRACE_FUSE(fuse) << "ACCESS " << path;
     pthread_mutex_unlock(&fuse->lock);
 
     int res = access(path.c_str(), F_OK);
@@ -1082,10 +1030,8 @@ static void pf_create(fuse_req_t req,
     pthread_mutex_lock(&fuse->lock);
     parent_node = lookup_node_by_id_locked(fuse, parent);
     parent_path = get_node_path_locked(parent_node);
-    TRACE("[%s] MKNOD %s 0%o @ %"
-                  PRIx64
-                  " (%s)\n", fuse->dest_path.c_str(), name, mode, parent,
-          parent_node ? parent_node->name.c_str() : "?");
+    TRACE_FUSE(fuse) << "CREATE " << name << " 0" << std::oct << mode << " @ " << parent << " ("
+                     << safe_name(parent_node) << ")";
     pthread_mutex_unlock(&fuse->lock);
 
     child_path = parent_path + "/" + name;
@@ -1212,21 +1158,23 @@ void FuseDaemon::Start(const int fd, const std::string& dest_path, const std::st
     struct fuse_args args;
     struct fuse_cmdline_opts opts;
 
+    SetMinimumLogSeverity(android::base::DEBUG);
+
     struct stat stat;
 
     if (lstat(source_path.c_str(), &stat)) {
-        ALOGE("ERROR: failed to stat source %s\n", source_path.c_str());
+        LOG(ERROR) << "ERROR: failed to stat source " << source_path;
         return;
     }
 
     if (!S_ISDIR(stat.st_mode)) {
-        ALOGE("ERROR: source is not a directory\n");
+        LOG(ERROR) << "ERROR: source is not a directory";
         return;
     }
 
     args = FUSE_ARGS_INIT(0, nullptr);
     if (fuse_opt_add_arg(&args, source_path.c_str()) || fuse_opt_add_arg(&args, "-odebug")) {
-        ALOGE("ERROR: failed to set options\n");
+        LOG(ERROR) << "ERROR: failed to set options";
         return;
     }
 
@@ -1249,7 +1197,7 @@ void FuseDaemon::Start(const int fd, const std::string& dest_path, const std::st
 
     umask(0);
 
-    ALOGD("Starting fuse...\n");
+    LOG(INFO) << "Starting fuse...";
     struct fuse_session
             * se = fuse_session_new(&args, &ops, sizeof(ops), &fuse_default);
     se->fd = fd;
@@ -1260,7 +1208,7 @@ void FuseDaemon::Start(const int fd, const std::string& dest_path, const std::st
     // Multi-threaded
     fuse_session_loop_mt(se, &config);
 
-    ALOGD("Ending fuse\n");
+    LOG(INFO) << "Ending fuse...";
     return;
 }
 } //namespace fuse

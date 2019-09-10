@@ -95,7 +95,6 @@ import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.os.storage.VolumeInfo;
 import android.os.storage.VolumeRecord;
-import android.os.SystemProperties;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.provider.Column;
@@ -289,8 +288,6 @@ public class MediaProvider extends ContentProvider {
     @GuardedBy("mCachedCallingIdentity")
     private final SparseArray<LocalCallingIdentity> mCachedCallingIdentity = new SparseArray<>();
 
-    private static volatile long sBackgroundDelay = 0;
-
     private final OnOpActiveChangedListener mActiveListener = (code, uid, packageName, active) -> {
         synchronized (mCachedCallingIdentity) {
             if (active) {
@@ -298,12 +295,6 @@ public class MediaProvider extends ContentProvider {
                         LocalCallingIdentity.fromExternal(getContext(), uid, packageName));
             } else {
                 mCachedCallingIdentity.remove(uid);
-            }
-
-            if (mCachedCallingIdentity.size() > 0) {
-                sBackgroundDelay = 10 * DateUtils.SECOND_IN_MILLIS;
-            } else {
-                sBackgroundDelay = 0;
             }
         }
     };
@@ -533,11 +524,11 @@ public class MediaProvider extends ContentProvider {
             getWritableDatabase().setTransactionSuccessful();
             final List<Uri> uris = mNotifyChanges.get();
             if (uris != null) {
-                BackgroundThread.getHandler().postDelayed(() -> {
+                BackgroundThread.getExecutor().execute(() -> {
                     for (Uri uri : uris) {
                         notifyChangeInternal(uri);
                     }
-                }, sBackgroundDelay);
+                });
             }
             mNotifyChanges.remove();
         }
@@ -557,9 +548,9 @@ public class MediaProvider extends ContentProvider {
             if (uris != null) {
                 uris.add(uri);
             } else {
-                BackgroundThread.getHandler().postDelayed(() -> {
+                BackgroundThread.getExecutor().execute(() -> {
                     notifyChangeInternal(uri);
-                }, sBackgroundDelay);
+                });
             }
         }
 

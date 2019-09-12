@@ -19,13 +19,14 @@
 
 #include <string>
 
+#include "MediaProviderWrapper.h"
 #include "jni.h"
 
 namespace mediaprovider {
 namespace fuse {
 
 class FuseDaemon final {
-public:
+  public:
     FuseDaemon(JNIEnv* env, jobject mediaProvider);
 
     ~FuseDaemon() {
@@ -43,6 +44,7 @@ public:
   private:
     FuseDaemon(const FuseDaemon&) = delete;
     void operator=(const FuseDaemon&) = delete;
+    MediaProviderWrapper mp;
 };
 
 }  // namespace fuse

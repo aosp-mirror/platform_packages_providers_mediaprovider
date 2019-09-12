@@ -5507,6 +5507,10 @@ public class MediaProvider extends ContentProvider {
         return mCallingIdentity.get().hasPermission(PERMISSION_IS_REDACTION_NEEDED);
     }
 
+    private boolean isRedactionNeeded() {
+        return mCallingIdentity.get().hasPermission(PERMISSION_IS_REDACTION_NEEDED);
+    }
+
     /**
      * Set of Exif tags that should be considered for redaction.
      */
@@ -5563,40 +5567,83 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private RedactionInfo getRedactionRanges(File file) {
+    /**
+     * Calculate the ranges that need to be redacted for the given file and user that wants to
+     * access the file.
+     *
+     * @param uid UID of the package wanting to access the file
+     * @param fd File descriptor of the file to be read
+     * @return Ranges that should be redacted, or null if an error happens.
+     *
+     * Called from JNI in jni/MediaProviderWrapper.cpp
+     */
+    @NonNull
+    public long[] getRedactionRanges(int uid, int fd) {
+        LocalCallingIdentity token =
+                clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
+
+        long[] res = new long[0];
+        try {
+            if (isRedactionNeeded()) {
+                // Going through ParcelFileDescriptor because it allows creation from native fd
+                ParcelFileDescriptor pfd = null;
+                try {
+                    pfd = ParcelFileDescriptor.fromFd(fd);
+                    try (FileInputStream is = new FileInputStream(pfd.getFileDescriptor())) {
+                        res = getRedactionRanges(is).redactionRanges;
+                    }
+                } catch (IOException e) {
+                    Log.e(TAG, "Failed to redact: " + e);
+                    return null;
+                }
+            }
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
+        return res;
+    }
+
+    private static RedactionInfo getRedactionRanges(File file) {
+        try (FileInputStream is = new FileInputStream(file)) {
+            return getRedactionRanges(is);
+        } catch (IOException e) {
+            Log.w(TAG, "Failed to redact " + file + " : " + e);
+            return new RedactionInfo(new long[0], new long[0]);
+        }
+    }
+
+    private static RedactionInfo getRedactionRanges(FileInputStream is) throws IOException {
         Trace.beginSection("getRedactionRanges");
         final LongArray res = new LongArray();
         final LongArray freeOffsets = new LongArray();
-        try (FileInputStream is = new FileInputStream(file)) {
-            final ExifInterface exif = new ExifInterface(is.getFD());
-            for (String tag : REDACTED_EXIF_TAGS) {
-                final long[] range = exif.getAttributeRange(tag);
-                if (range != null) {
-                    res.add(range[0]);
-                    res.add(range[0] + range[1]);
-                }
-            }
 
-            final IsoInterface iso = IsoInterface.fromFileDescriptor(is.getFD());
-            for (int box : REDACTED_ISO_BOXES) {
-                final long[] ranges = iso.getBoxRanges(box);
-                for (int i = 0; i < ranges.length; i += 2) {
-                    long boxTypeOffset = ranges[i] - 4;
-                    freeOffsets.add(boxTypeOffset);
-                    res.add(boxTypeOffset);
-                    res.add(ranges[i + 1]);
-                }
+        final ExifInterface exif = new ExifInterface(is.getFD());
+        for (String tag : REDACTED_EXIF_TAGS) {
+            final long[] range = exif.getAttributeRange(tag);
+            if (range != null) {
+                res.add(range[0]);
+                res.add(range[0] + range[1]);
             }
-
-            // Redact xmp where present
-            final Set<String> redactedXmpTags = new ArraySet<>(Arrays.asList(REDACTED_EXIF_TAGS));
-            final XmpInterface exifXmp = XmpInterface.fromContainer(exif, redactedXmpTags);
-            res.addAll(exifXmp.getRedactionRanges());
-            final XmpInterface isoXmp = XmpInterface.fromContainer(iso, redactedXmpTags);
-            res.addAll(isoXmp.getRedactionRanges());
-        } catch (IOException e) {
-            Log.w(TAG, "Failed to redact " + file + ": " + e);
         }
+
+        final IsoInterface iso = IsoInterface.fromFileDescriptor(is.getFD());
+        for (int box : REDACTED_ISO_BOXES) {
+            final long[] ranges = iso.getBoxRanges(box);
+            for (int i = 0; i < ranges.length; i += 2) {
+                long boxTypeOffset = ranges[i] - 4;
+                freeOffsets.add(boxTypeOffset);
+                res.add(boxTypeOffset);
+                res.add(ranges[i + 1]);
+            }
+        }
+
+        // Redact xmp where present
+        final Set<String> redactedXmpTags = new ArraySet<>(Arrays.asList(REDACTED_EXIF_TAGS));
+        final XmpInterface exifXmp = XmpInterface.fromContainer(exif, redactedXmpTags);
+        res.addAll(exifXmp.getRedactionRanges());
+        final XmpInterface isoXmp = XmpInterface.fromContainer(iso, redactedXmpTags);
+        res.addAll(isoXmp.getRedactionRanges());
+
         Trace.endSection();
         return new RedactionInfo(res.toArray(), freeOffsets.toArray());
     }

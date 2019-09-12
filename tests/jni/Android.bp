@@ -1,0 +1,10 @@
+cc_test {
+    name: "RedactionInfoTest",
+    test_suites: ["device-tests"],
+    srcs: ["RedactionInfoTest.cpp"],
+    cflags: ["-Wall", "-Werror"],
+    shared_libs: [
+        "libfuse_jni",
+    ],
+    test_config: "RedactionInfoTest.xml",
+}

@@ -480,41 +480,11 @@ public class MediaProviderTest {
     }
 
     @Test
-    public void testComputeProjection() throws Exception {
-        final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
-        final ArrayMap<String, String> map = new ArrayMap<>();
-        map.put("external", "internal");
-        builder.setProjectionMap(map);
-        builder.setProjectionAggregationAllowed(false);
-        builder.setStrict(true);
-
-        assertArrayEquals(
-                new String[] { "internal" },
-                builder.computeProjection(null));
-        assertArrayEquals(
-                new String[] { "internal" },
-                builder.computeProjection(new String[] { "external" }));
-        assertThrows(IllegalArgumentException.class, () -> {
-            builder.computeProjection(new String[] { "internal" });
-        });
-        assertThrows(IllegalArgumentException.class, () -> {
-            builder.computeProjection(new String[] { "MIN(internal)" });
-        });
-        assertThrows(IllegalArgumentException.class, () -> {
-            builder.computeProjection(new String[] { "MIN(external)" });
-        });
-        assertThrows(IllegalArgumentException.class, () -> {
-            builder.computeProjection(new String[] { "FOO(external)" });
-        });
-    }
-
-    @Test
     public void testComputeProjection_AggregationAllowed() throws Exception {
         final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
         final ArrayMap<String, String> map = new ArrayMap<>();
         map.put("external", "internal");
         builder.setProjectionMap(map);
-        builder.setProjectionAggregationAllowed(true);
         builder.setStrict(true);
 
         assertArrayEquals(

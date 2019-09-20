@@ -1033,24 +1033,21 @@ static void do_readdir_common(fuse_req_t req,
     size_t used = 0;
     struct dirent* de;
     struct fuse_entry_param e;
+    size_t entry_size = 0;
 
     TRACE_FUSE(fuse) << "READDIR " << h;
     if (off != h->next_off) {
         TRACE_FUSE(fuse) << " calling seekdir(" << h->d << ", " << off << ")";
         seekdir(h->d, off);
     }
-    while (used < len && (de = readdir(h->d)) != NULL) {
+    while ((de = readdir(h->d)) != NULL) {
         off += 1;
         errno = 0;
         h->next_off = de->d_off;
         if (plus) {
             if (do_lookup(req, ino, de->d_name, &e))
-                used += fuse_add_direntry_plus(req,
-                                               buf + used,
-                                               len - used,
-                                               de->d_name,
-                                               &e,
-                                               de->d_off);
+                entry_size = fuse_add_direntry_plus(req, buf + used, len - used, de->d_name, &e,
+                                                    de->d_off);
             else {
                 fuse_reply_err(req, errno);
                 return;
@@ -1058,13 +1055,15 @@ static void do_readdir_common(fuse_req_t req,
         } else {
             e.attr.st_ino = FUSE_UNKNOWN_INO;
             e.attr.st_mode = de->d_type << 12;
-            used += fuse_add_direntry(req,
-                                      buf + used,
-                                      len - used,
-                                      de->d_name,
-                                      &e.attr,
-                                      de->d_off);
+            entry_size =
+                    fuse_add_direntry(req, buf + used, len - used, de->d_name, &e.attr, de->d_off);
         }
+        // If buffer in fuse_add_direntry[_plus] is not large enough then
+        // the entry is not added to buffer but the size of the entry is still
+        // returned. Check available buffer size + returned entry size is less
+        // than actual buffer size to confirm entry is added to buffer.
+        if (used + entry_size > len) break;
+        used += entry_size;
     }
 
     if (!de && errno != 0)

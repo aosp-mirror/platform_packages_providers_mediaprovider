@@ -683,9 +683,9 @@ static void pf_rename(fuse_req_t req,
     }
 
     pthread_mutex_lock(&fuse->lock);
+    child_node->name = newname;
     if (parent != newparent) {
         remove_node_from_parent_locked(child_node);
-        child_node->name = newname;
         // do any location based fixups here
         add_node_to_parent_locked(child_node, new_parent_node);
     }

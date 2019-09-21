@@ -5578,7 +5578,7 @@ public class MediaProvider extends ContentProvider {
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @NonNull
-    public long[] getRedactionRanges(int uid, int fd) {
+    public long[] getRedactionRanges(int uid, int fd) throws IOException {
         LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
 
@@ -5594,7 +5594,7 @@ public class MediaProvider extends ContentProvider {
                     }
                 } catch (IOException e) {
                     Log.e(TAG, "Failed to redact: " + e);
-                    return null;
+                    throw new IOException("Failed to redact: ", e);
                 }
             }
         } finally {

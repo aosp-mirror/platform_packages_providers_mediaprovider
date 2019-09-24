@@ -31,6 +31,7 @@ import static com.android.providers.media.util.PermissionUtils.checkPermissionWr
 import android.app.AppOpsManager;
 import android.content.ContentProvider;
 import android.content.Context;
+import android.content.PermissionChecker;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Binder;
@@ -230,8 +231,9 @@ public class LocalCallingIdentity {
 
     private boolean isRedactionNeededInternal() {
         // System internals or callers holding permission have no redaction
-        if (hasPermission(PERMISSION_IS_SYSTEM)
-                || context.checkPermission(ACCESS_MEDIA_LOCATION, pid, uid) == PERMISSION_GRANTED) {
+        if (hasPermission(PERMISSION_IS_SYSTEM) || PermissionChecker.checkPermission(context,
+                ACCESS_MEDIA_LOCATION, pid, uid, getPackageName())
+                == PermissionChecker.PERMISSION_GRANTED) {
             return false;
         }
         return true;

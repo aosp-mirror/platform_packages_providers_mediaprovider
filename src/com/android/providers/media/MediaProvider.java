@@ -767,16 +767,10 @@ public class MediaProvider extends ContentProvider {
             }
         });
 
-        if (SystemProperties.getBoolean("persist.sys.fuse", false)) {
-            // #updateVolume and #attachVolume touch /storage/emulated which could be a
-            // FUSE mount that has not yet been initialized. We could hang on this call and block
-            // the main thread preventing the ExternalStorageServiceImpl from starting and thus the
-            // FUSE daemon.
-            BackgroundThread.getHandler().post(this::updateAndAttachVolumes);
-        } else {
-            // TODO(b/135341433): Remove this property after figuring out why we errno when running
-            // in #getOrCreateUuid when running sdcardfs
-            updateAndAttachVolumes();
+        updateVolumes();
+        attachVolume(MediaStore.VOLUME_INTERNAL);
+        for (String volumeName : getExternalVolumeNames()) {
+            attachVolume(volumeName);
         }
 
         // Watch for performance-sensitive activity
@@ -785,14 +779,6 @@ public class MediaProvider extends ContentProvider {
         }, context.getMainExecutor(), mActiveListener);
 
         return true;
-    }
-
-    private void updateAndAttachVolumes() {
-        updateVolumes();
-        attachVolume(MediaStore.VOLUME_INTERNAL);
-        for (String volumeName : getExternalVolumeNames()) {
-            attachVolume(volumeName);
-        }
     }
 
     @Override

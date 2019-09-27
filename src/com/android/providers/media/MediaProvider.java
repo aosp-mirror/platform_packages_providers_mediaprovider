@@ -285,8 +285,10 @@ public class MediaProvider extends ContentProvider {
     private final OnOpActiveChangedListener mActiveListener = (code, uid, packageName, active) -> {
         synchronized (mCachedCallingIdentity) {
             if (active) {
+                // TODO moltmann: Set correct featureId
                 mCachedCallingIdentity.put(uid,
-                        LocalCallingIdentity.fromExternal(getContext(), uid, packageName));
+                        LocalCallingIdentity.fromExternal(getContext(), uid, packageName,
+                                null));
             } else {
                 mCachedCallingIdentity.remove(uid);
             }
@@ -688,17 +690,17 @@ public class MediaProvider extends ContentProvider {
     }
 
     @Override
-    protected int enforceReadPermissionInner(Uri uri, String callingPkg, IBinder callerToken)
-            throws SecurityException {
+    protected int enforceReadPermissionInner(Uri uri, String callingPkg,
+            @Nullable String featureId, IBinder callerToken) throws SecurityException {
         enforceShellRestrictions();
-        return super.enforceReadPermissionInner(uri, callingPkg, callerToken);
+        return super.enforceReadPermissionInner(uri, callingPkg, featureId, callerToken);
     }
 
     @Override
-    protected int enforceWritePermissionInner(Uri uri, String callingPkg, IBinder callerToken)
-            throws SecurityException {
+    protected int enforceWritePermissionInner(Uri uri, String callingPkg,
+            @Nullable String featureId, IBinder callerToken) throws SecurityException {
         enforceShellRestrictions();
-        return super.enforceWritePermissionInner(uri, callingPkg, callerToken);
+        return super.enforceWritePermissionInner(uri, callingPkg, featureId, callerToken);
     }
 
     @VisibleForTesting

@@ -983,7 +983,6 @@ static void pf_opendir(fuse_req_t req,
                        fuse_ino_t ino,
                        struct fuse_file_info* fi) {
     struct fuse* fuse = get_fuse(req);
-    TRACE_FUSE(fuse) << "OPENDIR";
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     struct node* node;
     string path;
@@ -993,7 +992,7 @@ static void pf_opendir(fuse_req_t req,
     node = lookup_node_by_id_locked(fuse, ino);
     path = get_node_path_locked(node);
 
-    TRACE_FUSE(fuse) << "OPENDIR @ " << ino << " (" << safe_name(node) << ")";
+    TRACE_FUSE(fuse) << "OPENDIR @ " << ino << " (" << safe_name(node) << ")" << path;
     pthread_mutex_unlock(&fuse->lock);
 
     if (!node) {
@@ -1006,7 +1005,7 @@ static void pf_opendir(fuse_req_t req,
         fuse_reply_err(req, ENOMEM);
         return;
     }
-    TRACE_FUSE(fuse) << "OPENDIR " << path;
+
     h->d = opendir(path.c_str());
     if (!h->d) {
         delete h;

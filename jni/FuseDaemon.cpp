@@ -742,6 +742,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     // Initialize ri as nullptr to know that redaction info has not been checked yet.
     h->ri = nullptr;
     fi->fh = ptr_to_id(h);
+    fi->keep_cache = 1;
     fuse_reply_open(req, fi);
 }
 
@@ -1181,6 +1182,7 @@ static void pf_create(fuse_req_t req,
     }
 
     fi->fh = ptr_to_id(h);
+    fi->keep_cache = 1;
     if (make_node_entry(req, parent_node, name, child_path, &e)) {
         fuse_reply_create(req, &e, fi);
     } else {

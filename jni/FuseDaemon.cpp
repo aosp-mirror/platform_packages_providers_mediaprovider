@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/inotify.h>
+#include <sys/mman.h>
 #include <sys/mount.h>
 #include <sys/param.h>
 #include <sys/resource.h>
@@ -58,6 +59,8 @@ using std::vector;
 #define TRACE_FUSE(__fuse) TRACE << "[" << __fuse->dest_path << "] "
 
 #define FUSE_UNKNOWN_INO 0xffffffff
+
+constexpr size_t MAX_READ_SIZE = 128 * 1024;
 
 struct handle {
     int fd;
@@ -122,6 +125,12 @@ struct fuse {
      * FuseDaemon object.
      */
     mediaprovider::fuse::MediaProviderWrapper* mp;
+
+    /*
+     * Points to a range of zeroized bytes, used by pf_read to represent redacted ranges.
+     * The memory is read only and should never be modified.
+     */
+    char* zero_addr;
 };
 
 static inline const char* safe_name(struct node* n) {
@@ -331,6 +340,8 @@ static void pf_init(void* userdata, struct fuse_conn_info* conn) {
                      FUSE_CAP_ASYNC_READ | FUSE_CAP_ATOMIC_O_TRUNC | FUSE_CAP_WRITEBACK_CACHE |
                      FUSE_CAP_EXPORT_SUPPORT | FUSE_CAP_FLOCK_LOCKS);
     conn->want |= conn->capable & mask;
+    LOG(INFO) << "conn->max_read = " << conn->max_read;
+    conn->max_read = MAX_READ_SIZE;
 }
 
 /*
@@ -742,6 +753,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     // Initialize ri as nullptr to know that redaction info has not been checked yet.
     h->ri = nullptr;
     fi->fh = ptr_to_id(h);
+    fi->keep_cache = 1;
     fuse_reply_open(req, fi);
 }
 
@@ -763,17 +775,12 @@ static bool range_contains(const RedactionRange& rr, off_t off) {
 
 /**
  * Sets the parameters for a fuse_buf that reads from memory, including flags.
- * Dynamically allocates memory of the given size, initialized with 0s and sets
- * buf.mem to point at it. Adds the pointer of the allocated memory to a vector of
- * unique_ptrs to be automatically freed later on.
+ * Makes buf->mem point to an already mapped region of zeroized memory.
+ * This memory is read only.
  */
-static void create_mem_fuse_buf(size_t size, fuse_buf* buf,
-                                std::vector<std::unique_ptr<void, decltype(free)*>>* mem_ptrs) {
+static void create_mem_fuse_buf(size_t size, fuse_buf* buf, struct fuse* fuse) {
     buf->size = size;
-    // TODO(b/140799126): consider allocating the same memory for all buffers?
-    buf->mem = calloc(size, sizeof(char));
-    // automatically free this memory
-    mem_ptrs->push_back(std::unique_ptr<void, decltype(free)*>(buf->mem, free));
+    buf->mem = fuse->zero_addr;
     buf->flags = static_cast<fuse_buf_flags>(0 /*read from fuse_buf.mem*/);
     buf->pos = -1;
     buf->fd = -1;
@@ -820,8 +827,6 @@ static void do_read_with_redaction(fuse_req_t req, size_t size, off_t off, fuse_
     bufvec.count = num_bufs;
     bufvec.idx = 0;
     bufvec.off = 0;
-    // automatically free all allocated memory buffers
-    std::vector<std::unique_ptr<void, decltype(free)*>> mem_ptrs;
 
     int rr_idx = 0;
     off_t start = off;
@@ -837,7 +842,7 @@ static void do_read_with_redaction(fuse_req_t req, size_t size, off_t off, fuse_
             // end should be the end of the redacted range, but can't be out of
             // the read request bounds
             end = std::min(static_cast<off_t>(off + size - 1), overlapping_rr->at(rr_idx).second);
-            create_mem_fuse_buf(/*size*/ end - start + 1, &(bufvec.buf[i]), &mem_ptrs);
+            create_mem_fuse_buf(/*size*/ end - start + 1, &(bufvec.buf[i]), get_fuse(req));
             ++rr_idx;
         } else {
             // Handle a non-redacted range
@@ -1180,6 +1185,7 @@ static void pf_create(fuse_req_t req,
     }
 
     fi->fh = ptr_to_id(h);
+    fi->keep_cache = 1;
     if (make_node_entry(req, parent_node, name, child_path, &e)) {
         fuse_reply_create(req, &e, fi);
     } else {
@@ -1298,7 +1304,8 @@ void FuseDaemon::Start(const int fd, const std::string& dest_path, const std::st
     }
 
     args = FUSE_ARGS_INIT(0, nullptr);
-    if (fuse_opt_add_arg(&args, source_path.c_str()) || fuse_opt_add_arg(&args, "-odebug")) {
+    if (fuse_opt_add_arg(&args, source_path.c_str()) || fuse_opt_add_arg(&args, "-odebug") ||
+            fuse_opt_add_arg(&args, ("-omax_read=" + std::to_string(MAX_READ_SIZE)).c_str())) {
         LOG(ERROR) << "ERROR: failed to set options";
         return;
     }
@@ -1324,6 +1331,15 @@ void FuseDaemon::Start(const int fd, const std::string& dest_path, const std::st
 
     umask(0);
 
+    // Used by pf_read: redacted ranges are represented by zeroized ranges of bytes,
+    // so we mmap the maximum length of redacted ranges in the beginning and save memory allocations
+    // on each read.
+    fuse_default.zero_addr = static_cast<char*>(mmap(
+            NULL, MAX_READ_SIZE, PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE, /*fd*/ -1, /*off*/ 0));
+    if (fuse_default.zero_addr == MAP_FAILED) {
+        LOG(FATAL) << "mmap failed - could not start fuse! errno = " << errno;
+    }
+
     LOG(INFO) << "Starting fuse...";
     struct fuse_session
             * se = fuse_session_new(&args, &ops, sizeof(ops), &fuse_default);
@@ -1334,6 +1350,10 @@ void FuseDaemon::Start(const int fd, const std::string& dest_path, const std::st
     // fuse_session_loop(se);
     // Multi-threaded
     fuse_session_loop_mt(se, &config);
+
+    if (!munmap(fuse_default.zero_addr, MAX_READ_SIZE)) {
+        LOG(ERROR) << "munmap failed! errno = " << errno;
+    }
 
     LOG(INFO) << "Ending fuse...";
     return;

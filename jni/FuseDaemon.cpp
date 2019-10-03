@@ -56,7 +56,7 @@ using std::vector;
 
 // logging macros to avoid duplication.
 #define TRACE LOG(DEBUG)
-#define TRACE_FUSE(__fuse) TRACE << "[" << __fuse->dest_path << "] "
+#define TRACE_FUSE(__fuse) TRACE << "[" << __fuse->path << "] "
 
 #define FUSE_UNKNOWN_INO 0xffffffff
 
@@ -94,8 +94,7 @@ struct node {
 /* Single FUSE mount */
 struct fuse {
     pthread_mutex_t lock;
-    string source_path;
-    string dest_path;
+    string path;
 
     __u64 next_generation;
     struct node root;
@@ -340,7 +339,6 @@ static void pf_init(void* userdata, struct fuse_conn_info* conn) {
                      FUSE_CAP_ASYNC_READ | FUSE_CAP_ATOMIC_O_TRUNC | FUSE_CAP_WRITEBACK_CACHE |
                      FUSE_CAP_EXPORT_SUPPORT | FUSE_CAP_FLOCK_LOCKS);
     conn->want |= conn->capable & mask;
-    LOG(INFO) << "conn->max_read = " << conn->max_read;
     conn->max_read = MAX_READ_SIZE;
 }
 
@@ -1285,7 +1283,7 @@ FuseDaemon::FuseDaemon(JNIEnv* env, jobject mediaProvider) : mp(env, mediaProvid
 
 void FuseDaemon::Stop() {}
 
-void FuseDaemon::Start(const int fd, const std::string& dest_path, const std::string& source_path) {
+void FuseDaemon::Start(const int fd, const std::string& path) {
     struct fuse_args args;
     struct fuse_cmdline_opts opts;
 
@@ -1293,8 +1291,8 @@ void FuseDaemon::Start(const int fd, const std::string& dest_path, const std::st
 
     struct stat stat;
 
-    if (lstat(source_path.c_str(), &stat)) {
-        LOG(ERROR) << "ERROR: failed to stat source " << source_path;
+    if (lstat(path.c_str(), &stat)) {
+        LOG(ERROR) << "ERROR: failed to stat source " << path;
         return;
     }
 
@@ -1304,32 +1302,25 @@ void FuseDaemon::Start(const int fd, const std::string& dest_path, const std::st
     }
 
     args = FUSE_ARGS_INIT(0, nullptr);
-    if (fuse_opt_add_arg(&args, source_path.c_str()) || fuse_opt_add_arg(&args, "-odebug") ||
-            fuse_opt_add_arg(&args, ("-omax_read=" + std::to_string(MAX_READ_SIZE)).c_str())) {
+    if (fuse_opt_add_arg(&args, path.c_str()) || fuse_opt_add_arg(&args, "-odebug") ||
+        fuse_opt_add_arg(&args, ("-omax_read=" + std::to_string(MAX_READ_SIZE)).c_str())) {
         LOG(ERROR) << "ERROR: failed to set options";
         return;
     }
 
     struct fuse fuse_default;
     memset(&fuse_default, 0, sizeof(fuse_default));
+    memset(&fuse_default.root, 0, sizeof(fuse_default.root));
 
     pthread_mutex_init(&fuse_default.lock, NULL);
 
     fuse_default.next_generation = 0;
     fuse_default.inode_ctr = 1;
-
-    memset(&fuse_default.root, 0, sizeof(fuse_default.root));
     fuse_default.root.nid = FUSE_ROOT_ID; /* 1 */
     fuse_default.root.refcount = 2;
-    fuse_default.root.name = source_path;
-
-    fuse_default.source_path = source_path;
-
-    fuse_default.dest_path = dest_path;
-
+    fuse_default.root.name = path;
+    fuse_default.path = path;
     fuse_default.mp = &mp;
-
-    umask(0);
 
     // Used by pf_read: redacted ranges are represented by zeroized ranges of bytes,
     // so we mmap the maximum length of redacted ranges in the beginning and save memory allocations
@@ -1340,19 +1331,21 @@ void FuseDaemon::Start(const int fd, const std::string& dest_path, const std::st
         LOG(FATAL) << "mmap failed - could not start fuse! errno = " << errno;
     }
 
+    umask(0);
+
     LOG(INFO) << "Starting fuse...";
     struct fuse_session
             * se = fuse_session_new(&args, &ops, sizeof(ops), &fuse_default);
     se->fd = fd;
-    se->mountpoint = strdup(dest_path.c_str());
+    se->mountpoint = strdup(path.c_str());
 
     // Single thread. Useful for debugging
     // fuse_session_loop(se);
     // Multi-threaded
     fuse_session_loop_mt(se, &config);
 
-    if (!munmap(fuse_default.zero_addr, MAX_READ_SIZE)) {
-        LOG(ERROR) << "munmap failed! errno = " << errno;
+    if (munmap(fuse_default.zero_addr, MAX_READ_SIZE)) {
+        PLOG(ERROR) << "munmap failed!";
     }
 
     LOG(INFO) << "Ending fuse...";

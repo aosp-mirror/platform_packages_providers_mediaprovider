@@ -35,7 +35,7 @@ class FuseDaemon final {
     /**
      * Start the FUSE daemon loop that will handle filesystem calls.
      */
-    void Start(const int fd, const std::string& dest_path, const std::string& source_path);
+    void Start(const int fd, const std::string& path);
     /**
      * Stop the FUSE daemon and clean up resources.
      */

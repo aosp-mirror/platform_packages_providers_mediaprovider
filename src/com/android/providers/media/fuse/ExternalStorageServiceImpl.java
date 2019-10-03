@@ -39,10 +39,16 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
             @NonNull String lowerFileSystemPath) {
         synchronized (mLock) {
             if (mFuseDaemons.containsKey(sessionId)) {
+                Log.w(TAG, "Session already started with id: " + sessionId);
                 return;
             }
-            FuseDaemon daemon = new FuseDaemon(getContentResolver(), deviceFd, upperFileSystemPath,
-                    lowerFileSystemPath);
+
+            Log.i(TAG, "Starting session for id: " + sessionId);
+            // We only use the upperFileSystemPath because the media process is mounted as
+            // REMOUNT_MODE_PASS_THROUGH which guarantees that all /storage paths are bind
+            // mounts of the lower filesystem.
+            FuseDaemon daemon = new FuseDaemon(getContentResolver(), sessionId, this, deviceFd,
+                    upperFileSystemPath);
             new Thread(daemon).start();
             mFuseDaemons.put(sessionId, daemon);
         }
@@ -53,6 +59,7 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
         synchronized (mLock) {
             FuseDaemon daemon = mFuseDaemons.get(sessionId);
             if (daemon != null) {
+                Log.i(TAG, "Ending session for id: " + sessionId);
                 daemon.stop();
                 mFuseDaemons.remove(sessionId);
             } else {

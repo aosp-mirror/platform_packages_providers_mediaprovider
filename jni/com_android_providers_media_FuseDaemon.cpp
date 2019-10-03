@@ -36,24 +36,17 @@ jlong com_android_providers_media_FuseDaemon_new(JNIEnv* env, jobject self, jobj
 }
 
 void com_android_providers_media_FuseDaemon_start(JNIEnv* env, jobject self, jlong java_daemon,
-                                                  jint fd, jstring java_upper_path,
-                                                  jstring java_lower_path) {
+                                                  jint fd, jstring java_path) {
     LOG(DEBUG) << "Starting the FUSE daemon...";
     fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
 
-    ScopedUtfChars utf_chars_upper_path(env, java_upper_path);
-    if (!utf_chars_upper_path.c_str()) {
+    ScopedUtfChars utf_chars_path(env, java_path);
+    if (!utf_chars_path.c_str()) {
         return;
     }
-    const std::string& string_upper_path = std::string(utf_chars_upper_path.c_str());
+    const std::string& string_path = std::string(utf_chars_path.c_str());
 
-    ScopedUtfChars utf_chars_lower_path(env, java_lower_path);
-    if (!utf_chars_lower_path.c_str()) {
-        return;
-    }
-    const std::string& string_lower_path = std::string(utf_chars_lower_path.c_str());
-
-    daemon->Start(fd, string_upper_path, string_lower_path);
+    daemon->Start(fd, string_path);
 }
 
 void com_android_providers_media_FuseDaemon_stop(JNIEnv* env, jobject self, jlong java_daemon) {
@@ -69,27 +62,14 @@ void com_android_providers_media_FuseDaemon_delete(JNIEnv* env, jobject self, jl
 }
 
 const JNINativeMethod methods[] = {
-    {
-        "native_new",
-        "(Lcom/android/providers/media/MediaProvider;)J",
-        reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_new)
-    },
-    {
-        "native_start",
-        "(JILjava/lang/String;Ljava/lang/String;)V",
-        reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_start)
-    },
-    {
-        "native_stop",
-        "(J)V",
-        reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_stop)
-    },
-    {
-        "native_delete",
-        "(J)V",
-        reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_delete)
-    }
-};
+        {"native_new", "(Lcom/android/providers/media/MediaProvider;)J",
+         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_new)},
+        {"native_start", "(JILjava/lang/String;)V",
+         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_start)},
+        {"native_stop", "(J)V",
+         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_stop)},
+        {"native_delete", "(J)V",
+         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_delete)}};
 }  // namespace
 
 void register_android_providers_media_FuseDaemon(JNIEnv* env) {

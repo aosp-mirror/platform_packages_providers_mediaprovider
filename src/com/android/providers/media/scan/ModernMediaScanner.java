@@ -81,8 +81,6 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.providers.media.util.IsoInterface;
 import com.android.providers.media.util.XmpInterface;
 
-import libcore.net.MimeMap;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;

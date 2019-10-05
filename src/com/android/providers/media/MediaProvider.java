@@ -70,6 +70,7 @@ import android.database.sqlite.SQLiteQueryBuilder;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Icon;
+import android.icu.util.ULocale;
 import android.media.ExifInterface;
 import android.media.MediaFile;
 import android.media.ThumbnailUtils;
@@ -404,7 +405,6 @@ public class MediaProvider extends ContentProvider {
             mInternal = internal;
             mEarlyUpgrade = earlyUpgrade;
             setWriteAheadLoggingEnabled(true);
-            setIdleConnectionTimeout(IDLE_CONNECTION_TIMEOUT_MS);
         }
 
         @Override
@@ -1713,7 +1713,7 @@ public class MediaProvider extends ContentProvider {
             sortOrder = queryArgs.getString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER);
             if (sortOrder == null
                     && queryArgs.containsKey(ContentResolver.QUERY_ARG_SORT_COLUMNS)) {
-                sortOrder = ContentResolver.createSqlSortClause(queryArgs);
+                sortOrder = createSqlSortClause(queryArgs);
             }
         }
 
@@ -4351,6 +4351,37 @@ public class MediaProvider extends ContentProvider {
         return totalSize;
     }
 
+    /**
+     * Ensure that all local databases have a custom collator registered for the
+     * given {@link ULocale} locale.
+     *
+     * @return the corresponding custom collation name to be used in
+     *         {@code ORDER BY} clauses.
+     */
+    private @NonNull String ensureCustomCollator(@NonNull String locale) {
+        // Quick sanity check that requested locale looks sane
+        new ULocale(locale);
+
+        final String collationName = "custom_" + locale.replaceAll("[^a-zA-Z]", "");
+        synchronized (mCustomCollators) {
+            if (!mCustomCollators.contains(collationName)) {
+                for (DatabaseHelper helper : new DatabaseHelper[] {
+                        mInternalDatabase,
+                        mExternalDatabase
+                }) {
+                    final SQLiteDatabase db = helper.getReadableDatabase();
+                    try (Cursor c = db.rawQuery("SELECT icu_load_collation(?, ?);",
+                            new String[] { locale, collationName }, null)) {
+                        while (c.moveToNext()) {
+                        }
+                    }
+                }
+                mCustomCollators.add(collationName);
+            }
+        }
+        return collationName;
+    }
+
     private void pruneThumbnails(@NonNull CancellationSignal signal) {
         final DatabaseHelper helper = mExternalDatabase;
         final SQLiteDatabase db = helper.getReadableDatabase();
@@ -6193,6 +6224,8 @@ public class MediaProvider extends ContentProvider {
 
     @GuardedBy("mAttachedVolumeNames")
     private final ArraySet<String> mAttachedVolumeNames = new ArraySet<>();
+    @GuardedBy("mCustomCollators")
+    private final ArraySet<String> mCustomCollators = new ArraySet<>();
 
     private DatabaseHelper mInternalDatabase;
     private DatabaseHelper mExternalDatabase;
@@ -6517,6 +6550,47 @@ public class MediaProvider extends ContentProvider {
             }
         }
         return false;
+    }
+
+    @VisibleForTesting
+    String createSqlSortClause(Bundle queryArgs) {
+        String[] columns = queryArgs.getStringArray(ContentResolver.QUERY_ARG_SORT_COLUMNS);
+        if (columns == null || columns.length == 0) {
+            throw new IllegalArgumentException("Can't create sort clause without columns.");
+        }
+
+        String sortOrder = TextUtils.join(", ", columns);
+
+        if (queryArgs.containsKey(ContentResolver.QUERY_ARG_SORT_LOCALE)) {
+            final String collatorName = ensureCustomCollator(
+                    queryArgs.getString(ContentResolver.QUERY_ARG_SORT_LOCALE));
+            sortOrder += " COLLATE " + collatorName;
+        } else {
+            // Interpret PRIMARY and SECONDARY collation strength as no-case collation based
+            // on their javadoc descriptions.
+            int collation = queryArgs.getInt(
+                    ContentResolver.QUERY_ARG_SORT_COLLATION, java.text.Collator.IDENTICAL);
+            if (collation == java.text.Collator.PRIMARY
+                    || collation == java.text.Collator.SECONDARY) {
+                sortOrder += " COLLATE NOCASE";
+            }
+        }
+
+        int sortDir = queryArgs.getInt(ContentResolver.QUERY_ARG_SORT_DIRECTION, Integer.MIN_VALUE);
+        if (sortDir != Integer.MIN_VALUE) {
+            switch (sortDir) {
+                case ContentResolver.QUERY_SORT_DIRECTION_ASCENDING:
+                    sortOrder += " ASC";
+                    break;
+                case ContentResolver.QUERY_SORT_DIRECTION_DESCENDING:
+                    sortOrder += " DESC";
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported sort direction value."
+                            + " See ContentResolver documentation for details.");
+            }
+        }
+        return sortOrder;
     }
 
     /**

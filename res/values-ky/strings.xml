@@ -29,5 +29,5 @@
     <string name="permission_video" msgid="8188037202573267740"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" колдонмосуна бул музыканы өзгөртүп же өчүрүүгө уруксат берилсинби?"</string>
     <string name="permission_images" msgid="6711726334380945124"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" колдонмосуна бул музыканы өзгөртүүгө же өчүрүүгө уруксат берилсинби?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Уруксат берүү"</string>
-    <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Жок"</string>
+    <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Тыюу салынат"</string>
 </resources>

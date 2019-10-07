@@ -16,7 +16,7 @@
 
 package com.android.providers.media;
 
-import static com.android.providers.media.MediaProvider.makePristineSchema;
+import static com.android.providers.media.DatabaseHelper.makePristineSchema;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -34,8 +34,6 @@ import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
-
-import com.android.providers.media.MediaProvider.DatabaseHelper;
 
 import org.junit.After;
 import org.junit.Before;
@@ -66,7 +64,7 @@ public class DatabaseHelperTest {
 
     @Test
     public void testVersionCode() throws Exception {
-        assertEquals(getContext().getApplicationInfo().versionCode, MediaProvider.VERSION_R);
+        assertEquals(getContext().getApplicationInfo().versionCode, DatabaseHelper.VERSION_R);
     }
 
     @Test
@@ -315,7 +313,7 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperO extends DatabaseHelper {
         public DatabaseHelperO(Context context, String name) {
-            super(context, name, MediaProvider.VERSION_O, false, false);
+            super(context, name, DatabaseHelper.VERSION_O, false, false);
         }
 
         @Override
@@ -326,7 +324,7 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperP extends DatabaseHelper {
         public DatabaseHelperP(Context context, String name) {
-            super(context, name, MediaProvider.VERSION_P, false, false);
+            super(context, name, DatabaseHelper.VERSION_P, false, false);
         }
 
         @Override
@@ -337,7 +335,7 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperQ extends DatabaseHelper {
         public DatabaseHelperQ(Context context, String name) {
-            super(context, name, MediaProvider.VERSION_Q, false, false);
+            super(context, name, DatabaseHelper.VERSION_Q, false, false);
         }
 
         @Override
@@ -348,7 +346,7 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperR extends DatabaseHelper {
         public DatabaseHelperR(Context context, String name) {
-            super(context, name, MediaProvider.VERSION_R, false, false);
+            super(context, name, DatabaseHelper.VERSION_R, false, false);
         }
     }
 

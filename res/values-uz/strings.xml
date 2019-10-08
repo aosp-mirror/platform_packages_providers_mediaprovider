@@ -26,6 +26,13 @@
     <string name="root_images" msgid="5861633549189045666">"Rasmlar"</string>
     <string name="root_videos" msgid="8792703517064649453">"Videolar"</string>
     <string name="root_audio" msgid="3505830755201326018">"Audio"</string>
+    <string name="permission_required" msgid="1460820436132943754">"Media faylni tahrirlash yoki olib tashlash uchun ruxsat zarur."</string>
+    <string name="permission_required_action" msgid="706370952366113539">"Davom etish"</string>
+    <string name="permission_audio" msgid="344061911159388398"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" ilovasiga bu audio faylni tahrirlashi yoki olib tashlashi uchun ruxsat berilsinmi?"</string>
+    <string name="permission_video" msgid="8188037202573267740"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" ilovasiga bu videoni tahrirlashi yoki olib tashlashi uchun ruxsat berilsinmi?"</string>
+    <string name="permission_images" msgid="6711726334380945124"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" ilovasiga bu rasmni tahrirlashi yoki olib tashlashi uchun ruxsat berilsinmi?"</string>
+    <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Ruxsat"</string>
+    <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Rad etish"</string>
     <string name="sound_name_awaken" msgid="5266892392848526147">"Uyg‘otish"</string>
     <string name="sound_name_bounce" msgid="8771447635446665231">"Sakrash"</string>
     <string name="sound_name_drip" msgid="1744684469020662152">"Tomish"</string>
@@ -36,6 +43,8 @@
     <string name="sound_name_sway" msgid="348448316663085643">"Chayqalish"</string>
     <string name="sound_name_wag" msgid="2730733083078126563">"Silkitish"</string>
     <string name="add_ringtone_text" msgid="8077717303037760418">"Rington qo‘shish"</string>
+    <string name="add_alarm_text" msgid="2440919366091720815">"Signal qo‘shish"</string>
+    <string name="add_notification_text" msgid="5013822215567515665">"Bildirishnoma qo‘shish"</string>
     <string name="delete_ringtone_text" msgid="2963662097583300181">"O‘chirish"</string>
     <string name="unable_to_add_ringtone" msgid="6256097521165711269">"Maxsus rington qo‘shib bo‘lmadi"</string>
     <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"Maxsus ringtonni o‘chirib bo‘lmadi"</string>

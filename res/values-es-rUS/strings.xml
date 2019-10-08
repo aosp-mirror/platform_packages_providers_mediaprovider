@@ -26,6 +26,13 @@
     <string name="root_images" msgid="5861633549189045666">"Imágenes"</string>
     <string name="root_videos" msgid="8792703517064649453">"Videos"</string>
     <string name="root_audio" msgid="3505830755201326018">"Audio"</string>
+    <string name="permission_required" msgid="1460820436132943754">"Se requiere permiso para modificar o borrar este elemento."</string>
+    <string name="permission_required_action" msgid="706370952366113539">"Continuar"</string>
+    <string name="permission_audio" msgid="344061911159388398">"¿Quieres permitir que "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" modifique o borre esta música?"</string>
+    <string name="permission_video" msgid="8188037202573267740">"¿Quieres permitir que "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" modifique o borre este video?"</string>
+    <string name="permission_images" msgid="6711726334380945124">"¿Quieres permitir que "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" modifique o borre esta imagen?"</string>
+    <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Permitir"</string>
+    <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Denegar"</string>
     <string name="sound_name_awaken" msgid="5266892392848526147">"Awaken"</string>
     <string name="sound_name_bounce" msgid="8771447635446665231">"Bounce"</string>
     <string name="sound_name_drip" msgid="1744684469020662152">"Drip"</string>
@@ -36,6 +43,8 @@
     <string name="sound_name_sway" msgid="348448316663085643">"Sway"</string>
     <string name="sound_name_wag" msgid="2730733083078126563">"Wag"</string>
     <string name="add_ringtone_text" msgid="8077717303037760418">"Agregar tono"</string>
+    <string name="add_alarm_text" msgid="2440919366091720815">"Agregar alarma"</string>
+    <string name="add_notification_text" msgid="5013822215567515665">"Agregar notificación"</string>
     <string name="delete_ringtone_text" msgid="2963662097583300181">"Borrar"</string>
     <string name="unable_to_add_ringtone" msgid="6256097521165711269">"No se puede agregar el tono personalizado"</string>
     <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"No se puede borrar el tono personalizado"</string>

@@ -17,253 +17,57 @@
 
 package com.android.providers.media;
 
+import static com.android.providers.media.MediaProvider.TAG;
+
 import android.app.Service;
-import android.content.ContentProviderClient;
-import android.content.ContentValues;
-import android.content.Context;
 import android.content.Intent;
 import android.media.IMediaScannerListener;
 import android.media.IMediaScannerService;
-import android.media.MediaScanner;
 import android.net.Uri;
-import android.os.Bundle;
-import android.os.Environment;
-import android.os.Handler;
+import android.os.AsyncTask;
+import android.os.Binder;
 import android.os.IBinder;
-import android.os.Looper;
-import android.os.Message;
-import android.os.PowerManager;
-import android.os.Process;
-import android.os.UserManager;
+import android.os.RemoteException;
 import android.os.storage.StorageManager;
-import android.provider.MediaStore;
 import android.util.Log;
 
-import com.android.internal.util.ArrayUtils;
-
 import java.io.File;
-import java.util.Arrays;
 
-public class MediaScannerService extends Service implements Runnable {
-    private static final String TAG = "MediaScannerService";
-
-    private volatile Looper mServiceLooper;
-    private volatile ServiceHandler mServiceHandler;
-    private PowerManager.WakeLock mWakeLock;
-    private String[] mExternalStoragePaths;
-    
-    private void openDatabase(String volumeName) {
-        try {
-            ContentValues values = new ContentValues();
-            values.put("name", volumeName);
-            getContentResolver().insert(Uri.parse("content://media/"), values);
-        } catch (IllegalArgumentException ex) {
-            Log.w(TAG, "failed to open media database");
-        }         
-    }
-
-    private void scan(String[] directories, String volumeName) {
-        Uri uri = Uri.parse("file://" + directories[0]);
-        // don't sleep while scanning
-        mWakeLock.acquire();
-
-        try {
-            ContentValues values = new ContentValues();
-            values.put(MediaStore.MEDIA_SCANNER_VOLUME, volumeName);
-            Uri scanUri = getContentResolver().insert(MediaStore.getMediaScannerUri(), values);
-
-            sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_STARTED, uri));
-
-            try {
-                if (volumeName.equals(MediaProvider.EXTERNAL_VOLUME)) {
-                    openDatabase(volumeName);
-                }
-
-                try (MediaScanner scanner = new MediaScanner(this, volumeName)) {
-                    scanner.scanDirectories(directories);
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "exception in MediaScanner.scan()", e);
-            }
-
-            getContentResolver().delete(scanUri, null, null);
-
-        } finally {
-            sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_FINISHED, uri));
-            mWakeLock.release();
-        }
-    }
-    
-    @Override
-    public void onCreate() {
-        PowerManager pm = (PowerManager)getSystemService(Context.POWER_SERVICE);
-        mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
-        StorageManager storageManager = (StorageManager)getSystemService(Context.STORAGE_SERVICE);
-        mExternalStoragePaths = storageManager.getVolumePaths();
-
-        // Start up the thread running the service.  Note that we create a
-        // separate thread because the service normally runs in the process's
-        // main thread, which we don't want to block.
-        Thread thr = new Thread(null, this, "MediaScannerService");
-        thr.start();
-    }
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        while (mServiceHandler == null) {
-            synchronized (this) {
-                try {
-                    wait(100);
-                } catch (InterruptedException e) {
-                }
-            }
-        }
-
-        if (intent == null) {
-            Log.e(TAG, "Intent is null in onStartCommand: ",
-                new NullPointerException());
-            return Service.START_NOT_STICKY;
-        }
-
-        Message msg = mServiceHandler.obtainMessage();
-        msg.arg1 = startId;
-        msg.obj = intent.getExtras();
-        mServiceHandler.sendMessage(msg);
-
-        // Try again later if we are killed before we can finish scanning.
-        return Service.START_REDELIVER_INTENT;
-    }
-
-    @Override
-    public void onDestroy() {
-        // Make sure thread has started before telling it to quit.
-        while (mServiceLooper == null) {
-            synchronized (this) {
-                try {
-                    wait(100);
-                } catch (InterruptedException e) {
-                }
-            }
-        }
-        mServiceLooper.quit();
-    }
-
-    @Override
-    public void run() {
-        // reduce priority below other background threads to avoid interfering
-        // with other services at boot time.
-        Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND +
-                Process.THREAD_PRIORITY_LESS_FAVORABLE);
-        Looper.prepare();
-
-        mServiceLooper = Looper.myLooper();
-        mServiceHandler = new ServiceHandler();
-
-        Looper.loop();
-    }
-
-    private Uri scanFile(String path, String mimeType) {
-        String volumeName = MediaProvider.EXTERNAL_VOLUME;
-
-        try (MediaScanner scanner = new MediaScanner(this, volumeName)) {
-            // make sure the file path is in canonical form
-            String canonicalPath = new File(path).getCanonicalPath();
-            return scanner.scanSingleFile(canonicalPath, mimeType);
-        } catch (Exception e) {
-            Log.e(TAG, "bad path " + path + " in scanFile()", e);
-            return null;
-        }
-    }
-
+public class MediaScannerService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
-        return mBinder;
-    }
-    
-    private final IMediaScannerService.Stub mBinder = 
-            new IMediaScannerService.Stub() {
-        public void requestScanFile(String path, String mimeType, IMediaScannerListener listener) {
-            if (false) {
-                Log.d(TAG, "IMediaScannerService.scanFile: " + path + " mimeType: " + mimeType);
-            }
-            Bundle args = new Bundle();
-            args.putString("filepath", path);
-            args.putString("mimetype", mimeType);
-            if (listener != null) {
-                args.putIBinder("listener", listener.asBinder());
-            }
-            startService(new Intent(MediaScannerService.this,
-                    MediaScannerService.class).putExtras(args));
-        }
+        return new IMediaScannerService.Stub() {
+            @Override
+            public void requestScanFile(String path, String mimeType,
+                    IMediaScannerListener listener) {
+                final int callingPid = Binder.getCallingPid();
+                final int callingUid = Binder.getCallingUid();
 
-        public void scanFile(String path, String mimeType) {
-            requestScanFile(path, mimeType, null);
-        }
-    };
-
-    private final class ServiceHandler extends Handler {
-        @Override
-        public void handleMessage(Message msg) {
-            Bundle arguments = (Bundle) msg.obj;
-            if (arguments == null) {
-                Log.e(TAG, "null intent, b/20953950");
-                return;
-            }
-            String filePath = arguments.getString("filepath");
-            
-            try {
-                if (filePath != null) {
-                    IBinder binder = arguments.getIBinder("listener");
-                    IMediaScannerListener listener = 
-                            (binder == null ? null : IMediaScannerListener.Stub.asInterface(binder));
-                    Uri uri = null;
+                AsyncTask.execute(() -> {
+                    Uri res = null;
                     try {
-                        uri = scanFile(filePath, arguments.getString("mimetype"));
+                        final File systemFile = getSystemService(StorageManager.class)
+                                .translateAppToSystem(new File(path).getCanonicalFile(),
+                                        callingPid, callingUid);
+                        res = MediaService.onScanFile(MediaScannerService.this,
+                                Uri.fromFile(systemFile));
+                        Log.d(TAG, "Scanned " + path + " as " + systemFile + " for " + res);
                     } catch (Exception e) {
-                        Log.e(TAG, "Exception scanning file", e);
+                        Log.w(TAG, "Failed to scan " + path, e);
                     }
                     if (listener != null) {
-                        listener.scanCompleted(filePath, uri);
-                    }
-                } else if (arguments.getBoolean(MediaStore.RETRANSLATE_CALL)) {
-                    ContentProviderClient mediaProvider = getBaseContext().getContentResolver()
-                        .acquireContentProviderClient(MediaStore.AUTHORITY);
-                    mediaProvider.call(MediaStore.RETRANSLATE_CALL, null, null);
-                } else {
-                    String volume = arguments.getString("volume");
-                    String[] directories = null;
-
-                    if (MediaProvider.INTERNAL_VOLUME.equals(volume)) {
-                        // scan internal media storage
-                        directories = new String[] {
-                                Environment.getRootDirectory() + "/media",
-                                Environment.getOemDirectory() + "/media",
-                                Environment.getProductDirectory() + "/media",
-                        };
-                    }
-                    else if (MediaProvider.EXTERNAL_VOLUME.equals(volume)) {
-                        // scan external storage volumes
-                        if (getSystemService(UserManager.class).isDemoUser()) {
-                            directories = ArrayUtils.appendElement(String.class,
-                                    mExternalStoragePaths,
-                                    Environment.getDataPreloadsMediaDirectory().getAbsolutePath());
-                        } else {
-                            directories = mExternalStoragePaths;
+                        try {
+                            listener.scanCompleted(path, res);
+                        } catch (RemoteException ignored) {
                         }
                     }
-
-                    if (directories != null) {
-                        if (false) Log.d(TAG, "start scanning volume " + volume + ": "
-                                + Arrays.toString(directories));
-                        scan(directories, volume);
-                        if (false) Log.d(TAG, "done scanning volume " + volume);
-                    }
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Exception in handleMessage", e);
+                });
             }
 
-            stopSelf(msg.arg1);
-        }
+            @Override
+            public void scanFile(String path, String mimeType) {
+                requestScanFile(path, mimeType, null);
+            }
+        };
     }
 }

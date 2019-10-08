@@ -12,6 +12,10 @@ android_app {
         "src/**/*.java",
     ],
 
+    optimize: {
+        proguard_flags_files: ["proguard.flags"],
+    },
+
     platform_apis: true,
 
     certificate: "media",

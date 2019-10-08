@@ -26,6 +26,13 @@
     <string name="root_images" msgid="5861633549189045666">"Irudiak"</string>
     <string name="root_videos" msgid="8792703517064649453">"Bideoak"</string>
     <string name="root_audio" msgid="3505830755201326018">"Audioa"</string>
+    <string name="permission_required" msgid="1460820436132943754">"Baimena behar da elementu hau aldatu edo ezabatzeko."</string>
+    <string name="permission_required_action" msgid="706370952366113539">"Egin aurrera"</string>
+    <string name="permission_audio" msgid="344061911159388398"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" aplikazioari musika hau aldatzea edo ezabatzea baimendu nahi diozu?"</string>
+    <string name="permission_video" msgid="8188037202573267740"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" aplikazioari bideo hau aldatzea edo ezabatzea baimendu nahi diozu?"</string>
+    <string name="permission_images" msgid="6711726334380945124"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" aplikazioari irudi hau aldatzea edo ezabatzea baimendu nahi diozu?"</string>
+    <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Baimendu"</string>
+    <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Ukatu"</string>
     <string name="sound_name_awaken" msgid="5266892392848526147">"Esnatu"</string>
     <string name="sound_name_bounce" msgid="8771447635446665231">"Errebotea"</string>
     <string name="sound_name_drip" msgid="1744684469020662152">"Tantaka"</string>
@@ -36,6 +43,8 @@
     <string name="sound_name_sway" msgid="348448316663085643">"Kulunka"</string>
     <string name="sound_name_wag" msgid="2730733083078126563">"Mugimendua"</string>
     <string name="add_ringtone_text" msgid="8077717303037760418">"Gehitu tonua"</string>
+    <string name="add_alarm_text" msgid="2440919366091720815">"Gehitu alarma"</string>
+    <string name="add_notification_text" msgid="5013822215567515665">"Gehitu jakinarazpena"</string>
     <string name="delete_ringtone_text" msgid="2963662097583300181">"Ezabatu"</string>
     <string name="unable_to_add_ringtone" msgid="6256097521165711269">"Ezin da gehitu tonu pertsonalizatua"</string>
     <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"Ezin da ezabatu tonu pertsonalizatua"</string>

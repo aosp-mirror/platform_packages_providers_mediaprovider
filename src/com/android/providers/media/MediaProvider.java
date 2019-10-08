@@ -139,6 +139,8 @@ import com.android.providers.media.util.IsoInterface;
 import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.XmpInterface;
 
+import com.google.common.hash.Hashing;
+
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
@@ -148,6 +150,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -689,6 +692,64 @@ public class MediaProvider extends ContentProvider {
     }
 
     @VisibleForTesting
+    void computeAudioLocalizedValues(ContentValues values) {
+        try {
+            final String title = values.getAsString(AudioColumns.TITLE);
+            final String titleRes = values.getAsString(AudioColumns.TITLE_RESOURCE_URI);
+
+            if (!TextUtils.isEmpty(titleRes)) {
+                final String localized = getLocalizedTitle(titleRes);
+                if (!TextUtils.isEmpty(localized)) {
+                    values.put(AudioColumns.TITLE, localized);
+                }
+            } else {
+                final String localized = getLocalizedTitle(title);
+                if (!TextUtils.isEmpty(localized)) {
+                    values.put(AudioColumns.TITLE, localized);
+                    values.put(AudioColumns.TITLE_RESOURCE_URI, title);
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to localize title", e);
+        }
+    }
+
+    @VisibleForTesting
+    static void computeAudioKeyValues(ContentValues values) {
+        computeAudioKeyValue(values,
+                AudioColumns.TITLE, AudioColumns.TITLE_KEY, null);
+        computeAudioKeyValue(values,
+                AudioColumns.ALBUM, AudioColumns.ALBUM_KEY, AudioColumns.ALBUM_ID);
+        computeAudioKeyValue(values,
+                AudioColumns.ARTIST, AudioColumns.ARTIST_KEY, AudioColumns.ARTIST_ID);
+        computeAudioKeyValue(values,
+                AudioColumns.GENRE, AudioColumns.GENRE_KEY, AudioColumns.GENRE_ID);
+    }
+
+    private static void computeAudioKeyValue(@NonNull ContentValues values, @NonNull String focus,
+            @Nullable String focusKey, @Nullable String focusId) {
+        if (focusKey != null) values.remove(focusKey);
+        if (focusId != null) values.remove(focusId);
+
+        final String value = values.getAsString(focus);
+        if (TextUtils.isEmpty(value)) return;
+
+        final String key = Audio.keyFor(value);
+        if (key == null) return;
+
+        if (focusKey != null) {
+            values.put(focusKey, key);
+        }
+        if (focusId != null) {
+            // Many apps break if we generate negative IDs, so trim off the
+            // highest bit to ensure we're always unsigned
+            final long id = Hashing.farmHashFingerprint64()
+                    .hashString(key, StandardCharsets.UTF_8).asLong() & ~(1 << 63);
+            values.put(focusId, id);
+        }
+    }
+
+    @VisibleForTesting
     static void computeDataValues(ContentValues values) {
         // Worst case we have to assume no bucket details
         values.remove(ImageColumns.BUCKET_ID);
@@ -886,13 +947,15 @@ public class MediaProvider extends ContentProvider {
         Trace.beginSection("query");
         try {
             return queryInternal(uri, projection, queryArgs, signal);
+        } catch (FallbackException e) {
+            return e.translateForQuery(getCallingPackageTargetSdkVersion());
         } finally {
             Trace.endSection();
         }
     }
 
     private Cursor queryInternal(Uri uri, String[] projection, Bundle queryArgs,
-            CancellationSignal signal) {
+            CancellationSignal signal) throws FallbackException {
         String selection = null;
         String[] selectionArgs = null;
         String sortOrder = null;
@@ -938,14 +1001,8 @@ public class MediaProvider extends ContentProvider {
             return c;
         }
 
-        final DatabaseHelper helper;
-        final SQLiteDatabase db;
-        try {
-            helper = getDatabaseForUri(uri);
-            db = helper.getReadableDatabase();
-        } catch (VolumeNotFoundException e) {
-            return e.translateForQuery(targetSdkVersion);
-        }
+        final DatabaseHelper helper = getDatabaseForUri(uri);
+        final SQLiteDatabase db = helper.getReadableDatabase();
 
         if (table == MTP_OBJECT_REFERENCES) {
             final int handle = Integer.parseInt(uri.getPathSegments().get(2));
@@ -1000,10 +1057,6 @@ public class MediaProvider extends ContentProvider {
         }
 
         String groupBy = null;
-        if (table == AUDIO_ARTISTS_ID_ALBUMS) {
-            groupBy = "audio.album_id";
-        }
-
         if (getCallingPackageTargetSdkVersion() < Build.VERSION_CODES.Q) {
             // Some apps are abusing the "WHERE" clause by injecting "GROUP BY"
             // clauses; gracefully lift them out.
@@ -1676,11 +1729,9 @@ public class MediaProvider extends ContentProvider {
                 final String titleResourceUri = c.getString(1);
                 final ContentValues values = new ContentValues();
                 try {
-                    final String localizedTitle = getLocalizedTitle(titleResourceUri);
-                    values.put("title_key", MediaStore.Audio.keyFor(localizedTitle));
-                    // do a final trim of the title, in case it started with the special
-                    // "sort first" character (ascii \001)
-                    values.put("title", localizedTitle.trim());
+                    values.put(AudioColumns.TITLE_RESOURCE_URI, titleResourceUri);
+                    computeAudioLocalizedValues(values);
+                    computeAudioKeyValues(values);
                     db.update("files", values, "_id=?", new String[]{id});
                 } catch (Exception e) {
                     Log.e(TAG, "Error updating localized title for " + titleResourceUri
@@ -1710,91 +1761,9 @@ public class MediaProvider extends ContentProvider {
         }
 
         switch (mediaType) {
-            case FileColumns.MEDIA_TYPE_IMAGE: {
-                values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);
-                break;
-            }
-
             case FileColumns.MEDIA_TYPE_AUDIO: {
-                // SQLite Views are read-only, so we need to deconstruct this
-                // insert and do inserts into the underlying tables.
-                // If doing this here turns out to be a performance bottleneck,
-                // consider moving this to native code and using triggers on
-                // the view.
-                String albumartist = values.getAsString(MediaStore.Audio.Media.ALBUM_ARTIST);
-                String compilation = values.getAsString(MediaStore.Audio.Media.COMPILATION);
-                values.remove(MediaStore.Audio.Media.COMPILATION);
-
-                // Insert the artist into the artist table and remove it from
-                // the input values
-                Object so = values.get("artist");
-                String s = (so == null ? "" : so.toString());
-                values.remove("artist");
-                long artistRowId;
-                ArrayMap<String, Long> artistCache = helper.mArtistCache;
-                String path = values.getAsString(MediaStore.MediaColumns.DATA);
-                synchronized(artistCache) {
-                    Long temp = artistCache.get(s);
-                    if (temp == null) {
-                        artistRowId = getKeyIdForName(helper, db,
-                                "artists", "artist_key", "artist",
-                                s, s, path, 0, null, artistCache, uri);
-                    } else {
-                        artistRowId = temp.longValue();
-                    }
-                }
-                String artist = s;
-
-                // Do the same for the album field
-                so = values.get("album");
-                s = (so == null ? "" : so.toString());
-                values.remove("album");
-                long albumRowId;
-                ArrayMap<String, Long> albumCache = helper.mAlbumCache;
-                synchronized(albumCache) {
-                    int albumhash = 0;
-                    if (albumartist != null) {
-                        albumhash = albumartist.hashCode();
-                    } else if (compilation != null && compilation.equals("1")) {
-                        // nothing to do, hash already set
-                    } else {
-                        albumhash = path.substring(0, path.lastIndexOf('/')).hashCode();
-                    }
-                    String cacheName = s + albumhash;
-                    Long temp = albumCache.get(cacheName);
-                    if (temp == null) {
-                        albumRowId = getKeyIdForName(helper, db,
-                                "albums", "album_key", "album",
-                                s, cacheName, path, albumhash, artist, albumCache, uri);
-                    } else {
-                        albumRowId = temp;
-                    }
-                }
-
-                values.put("artist_id", Integer.toString((int)artistRowId));
-                values.put("album_id", Integer.toString((int)albumRowId));
-                so = values.getAsString("title");
-                s = (so == null ? "" : so.toString());
-
-                try {
-                    final String localizedTitle = getLocalizedTitle(s);
-                    if (localizedTitle != null) {
-                        values.put("title_resource_uri", s);
-                        s = localizedTitle;
-                    } else {
-                        values.putNull("title_resource_uri");
-                    }
-                } catch (Exception e) {
-                    values.put("title_resource_uri", s);
-                }
-                values.put("title_key", MediaStore.Audio.keyFor(s));
-                // do a final trim of the title, in case it started with the special
-                // "sort first" character (ascii \001)
-                values.put("title", s.trim());
-                break;
-            }
-
-            case FileColumns.MEDIA_TYPE_VIDEO: {
+                computeAudioLocalizedValues(values);
+                computeAudioKeyValues(values);
                 break;
             }
         }
@@ -2029,44 +1998,6 @@ public class MediaProvider extends ContentProvider {
         return rowsChanged;
     }
 
-    private static final String[] GENRE_LOOKUP_PROJECTION = new String[] {
-            Audio.Genres._ID, // 0
-            Audio.Genres.NAME, // 1
-    };
-
-    private void updateGenre(long rowId, String genre, String volumeName) {
-        Uri uri = null;
-        Cursor cursor = null;
-        Uri genresUri = MediaStore.Audio.Genres.getContentUri(volumeName);
-        try {
-            // see if the genre already exists
-            cursor = query(genresUri, GENRE_LOOKUP_PROJECTION, MediaStore.Audio.Genres.NAME + "=?",
-                            new String[] { genre }, null);
-            if (cursor == null || cursor.getCount() == 0) {
-                // genre does not exist, so create the genre in the genre table
-                ContentValues values = new ContentValues();
-                values.put(MediaStore.Audio.Genres.NAME, genre);
-                uri = insert(genresUri, values);
-            } else {
-                // genre already exists, so compute its Uri
-                cursor.moveToNext();
-                uri = ContentUris.withAppendedId(genresUri, cursor.getLong(0));
-            }
-            if (uri != null) {
-                uri = Uri.withAppendedPath(uri, MediaStore.Audio.Genres.Members.CONTENT_DIRECTORY);
-            }
-        } finally {
-            FileUtils.closeQuietly(cursor);
-        }
-
-        if (uri != null) {
-            // add entry to audio_genre_map
-            ContentValues values = new ContentValues();
-            values.put(MediaStore.Audio.Genres.Members.AUDIO_ID, Long.valueOf(rowId));
-            insert(uri, values);
-        }
-    }
-
     @VisibleForTesting
     static @Nullable String extractPathOwnerPackageName(@Nullable String path) {
         if (path == null) return null;
@@ -2108,12 +2039,14 @@ public class MediaProvider extends ContentProvider {
         Trace.beginSection("insert");
         try {
             return insertInternal(uri, initialValues);
+        } catch (FallbackException e) {
+            return e.translateForInsert(getCallingPackageTargetSdkVersion());
         } finally {
             Trace.endSection();
         }
     }
 
-    private Uri insertInternal(Uri uri, ContentValues initialValues) {
+    private Uri insertInternal(Uri uri, ContentValues initialValues) throws FallbackException {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
@@ -2125,12 +2058,8 @@ public class MediaProvider extends ContentProvider {
         if (match == MEDIA_SCANNER) {
             mMediaScannerVolume = initialValues.getAsString(MediaStore.MEDIA_SCANNER_VOLUME);
 
-            final DatabaseHelper helper;
-            try {
-                helper = getDatabaseForUri(MediaStore.Files.getContentUri(mMediaScannerVolume));
-            } catch (VolumeNotFoundException e) {
-                return e.translateForInsert(targetSdkVersion);
-            }
+            final DatabaseHelper helper = getDatabaseForUri(
+                    MediaStore.Files.getContentUri(mMediaScannerVolume));
 
             helper.mScanStartTime = SystemClock.elapsedRealtime();
             return MediaStore.getMediaScannerUri();
@@ -2140,19 +2069,13 @@ public class MediaProvider extends ContentProvider {
             String name = initialValues.getAsString("name");
             Uri attachedVolume = attachVolume(name);
             if (mMediaScannerVolume != null && mMediaScannerVolume.equals(name)) {
-                final DatabaseHelper helper;
-                try {
-                    helper = getDatabaseForUri(
-                            MediaStore.Files.getContentUri(mMediaScannerVolume));
-                } catch (VolumeNotFoundException e) {
-                    return e.translateForInsert(targetSdkVersion);
-                }
+                final DatabaseHelper helper = getDatabaseForUri(
+                        MediaStore.Files.getContentUri(mMediaScannerVolume));
                 helper.mScanStartTime = SystemClock.elapsedRealtime();
             }
             return attachedVolume;
         }
 
-        String genre = null;
         String path = null;
         String ownerPackageName = null;
         if (initialValues != null) {
@@ -2169,8 +2092,6 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
-            genre = initialValues.getAsString(Audio.AudioColumns.GENRE);
-            initialValues.remove(Audio.AudioColumns.GENRE);
             path = initialValues.getAsString(MediaStore.MediaColumns.DATA);
 
             if (!isCallingPackageSystem()) {
@@ -2203,14 +2124,8 @@ public class MediaProvider extends ContentProvider {
         long rowId = -1;
         Uri newUri = null;
 
-        final DatabaseHelper helper;
-        final SQLiteDatabase db;
-        try {
-            helper = getDatabaseForUri(uri);
-            db = helper.getWritableDatabase();
-        } catch (VolumeNotFoundException e) {
-            return e.translateForInsert(targetSdkVersion);
-        }
+        final DatabaseHelper helper = getDatabaseForUri(uri);
+        final SQLiteDatabase db = helper.getWritableDatabase();
 
         switch (match) {
             case IMAGES_MEDIA: {
@@ -2238,11 +2153,7 @@ public class MediaProvider extends ContentProvider {
                 enforceCallingPermission(ContentUris.withAppendedId(
                         MediaStore.Images.Media.getContentUri(resolvedVolumeName), imageId), true);
 
-                try {
-                    ensureUniqueFileColumns(match, uri, initialValues);
-                } catch (VolumeArgumentException e) {
-                    return e.translateForInsert(targetSdkVersion);
-                }
+                ensureUniqueFileColumns(match, uri, initialValues);
 
                 rowId = db.insert("thumbnails", "name", initialValues);
                 if (rowId > 0) {
@@ -2263,11 +2174,7 @@ public class MediaProvider extends ContentProvider {
                 enforceCallingPermission(ContentUris.withAppendedId(
                         MediaStore.Video.Media.getContentUri(resolvedVolumeName), videoId), true);
 
-                try {
-                    ensureUniqueFileColumns(match, uri, initialValues);
-                } catch (VolumeArgumentException e) {
-                    return e.translateForInsert(targetSdkVersion);
-                }
+                ensureUniqueFileColumns(match, uri, initialValues);
 
                 rowId = db.insert("videothumbnails", "name", initialValues);
                 if (rowId > 0) {
@@ -2287,26 +2194,12 @@ public class MediaProvider extends ContentProvider {
                             getContext(), resolvedVolumeName, FileColumns.MEDIA_TYPE_AUDIO, rowId);
                     newUri = ContentUris.withAppendedId(
                             Audio.Media.getContentUri(originalVolumeName), rowId);
-                    if (genre != null) {
-                        updateGenre(rowId, genre, resolvedVolumeName);
-                    }
                 }
                 break;
             }
 
             case AUDIO_MEDIA_ID_GENRES: {
-                // Require that caller has write access to underlying media
-                final long audioId = Long.parseLong(uri.getPathSegments().get(2));
-                enforceCallingPermission(ContentUris.withAppendedId(
-                        MediaStore.Audio.Media.getContentUri(resolvedVolumeName), audioId), true);
-
-                ContentValues values = new ContentValues(initialValues);
-                values.put(Audio.Genres.Members.AUDIO_ID, audioId);
-                rowId = db.insert("audio_genres_map", "genre_id", values);
-                if (rowId > 0) {
-                    newUri = ContentUris.withAppendedId(uri, rowId);
-                }
-                break;
+                throw new FallbackException("Genres are read-only", Build.VERSION_CODES.R);
             }
 
             case AUDIO_MEDIA_ID_PLAYLISTS: {
@@ -2331,30 +2224,11 @@ public class MediaProvider extends ContentProvider {
             }
 
             case AUDIO_GENRES: {
-                // NOTE: No permission enforcement on genres
-                rowId = db.insert("audio_genres", "audio_id", initialValues);
-                if (rowId > 0) {
-                    newUri = ContentUris.withAppendedId(
-                            Audio.Genres.getContentUri(originalVolumeName), rowId);
-                }
-                break;
+                throw new FallbackException("Genres are read-only", Build.VERSION_CODES.R);
             }
 
             case AUDIO_GENRES_ID_MEMBERS: {
-                // Require that caller has write access to underlying media
-                final long audioId = initialValues
-                        .getAsLong(MediaStore.Audio.Genres.Members.AUDIO_ID);
-                enforceCallingPermission(ContentUris.withAppendedId(
-                        MediaStore.Audio.Media.getContentUri(resolvedVolumeName), audioId), true);
-
-                Long genreId = Long.parseLong(uri.getPathSegments().get(3));
-                ContentValues values = new ContentValues(initialValues);
-                values.put(Audio.Genres.Members.GENRE_ID, genreId);
-                rowId = db.insert("audio_genres_map", "genre_id", values);
-                if (rowId > 0) {
-                    newUri = ContentUris.withAppendedId(uri, rowId);
-                }
-                break;
+                throw new FallbackException("Genres are read-only", Build.VERSION_CODES.R);
             }
 
             case AUDIO_PLAYLISTS: {
@@ -2411,11 +2285,7 @@ public class MediaProvider extends ContentProvider {
                     throw new UnsupportedOperationException("no internal album art allowed");
                 }
 
-                try {
-                    ensureUniqueFileColumns(match, uri, initialValues);
-                } catch (VolumeArgumentException e) {
-                    return e.translateForInsert(targetSdkVersion);
-                }
+                ensureUniqueFileColumns(match, uri, initialValues);
 
                 rowId = db.insert("album_art", MediaStore.MediaColumns.DATA, initialValues);
                 if (rowId > 0) {
@@ -2701,10 +2571,14 @@ public class MediaProvider extends ContentProvider {
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(5));
                 // fall-through
             case AUDIO_MEDIA_ID_GENRES:
-                qb.setTables("audio_genres");
-                qb.setProjectionMap(getProjectionMap(Audio.Genres.class));
+                if (type == TYPE_QUERY) {
+                    qb.setTables("audio_genres");
+                    qb.setProjectionMap(getProjectionMap(Audio.Genres.class));
+                } else {
+                    throw new UnsupportedOperationException("Genres cannot be directly modified");
+                }
                 appendWhereStandalone(qb, "_id IN (SELECT genre_id FROM " +
-                        "audio_genres_map WHERE audio_id=?)", uri.getPathSegments().get(3));
+                        "audio WHERE _id=?)", uri.getPathSegments().get(3));
                 if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
                     // We don't have a great way to filter parsed metadata by
                     // owner, so callers need to hold READ_MEDIA_AUDIO
@@ -2745,11 +2619,15 @@ public class MediaProvider extends ContentProvider {
                 // fall-through
             case AUDIO_GENRES_ALL_MEMBERS:
                 if (type == TYPE_QUERY) {
-                    qb.setTables("audio_genres_map_noid, audio");
-                    qb.setProjectionMap(getProjectionMap(Audio.Genres.Members.class));
-                    appendWhereStandalone(qb, "audio._id = audio_id");
+                    qb.setTables("audio");
+
+                    final ArrayMap<String, String> projectionMap = new ArrayMap<>(
+                            getProjectionMap(Audio.Genres.Members.class));
+                    projectionMap.put(Audio.Genres.Members.AUDIO_ID,
+                            "_id AS " + Audio.Genres.Members.AUDIO_ID);
+                    qb.setProjectionMap(projectionMap);
                 } else {
-                    qb.setTables("audio_genres_map");
+                    throw new UnsupportedOperationException("Genres cannot be directly modified");
                 }
                 if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
                     // We don't have a great way to filter parsed metadata by
@@ -2835,30 +2713,11 @@ public class MediaProvider extends ContentProvider {
             }
             case AUDIO_ARTISTS_ID_ALBUMS: {
                 if (type == TYPE_QUERY) {
-                    final String artistId = uri.getPathSegments().get(3);
-                    qb.setTables("audio LEFT OUTER JOIN album_art ON" +
-                            " audio.album_id=album_art.album_id");
-                    appendWhereStandalone(qb,
-                            "is_music=1 AND audio.album_id IN (SELECT album_id FROM " +
-                                    "artists_albums_map WHERE artist_id=?)", artistId);
+                    qb.setTables("audio_albums");
+                    qb.setProjectionMap(getProjectionMap(Audio.Artists.Albums.class));
 
-                    final ArrayMap<String, String> projectionMap = new ArrayMap<>(
-                            getProjectionMap(Audio.Artists.Albums.class));
-                    projectionMap.put(Audio.Artists.Albums.ALBUM_ART,
-                            "album_art._data AS " + Audio.Artists.Albums.ALBUM_ART);
-                    projectionMap.put(Audio.Artists.Albums.NUMBER_OF_SONGS,
-                            "count(*) AS " + Audio.Artists.Albums.NUMBER_OF_SONGS);
-                    projectionMap.put(Audio.Artists.Albums.NUMBER_OF_SONGS_FOR_ARTIST,
-                            "count(CASE WHEN artist_id==" + artistId
-                                    + " THEN 'foo' ELSE NULL END) AS "
-                                    + Audio.Artists.Albums.NUMBER_OF_SONGS_FOR_ARTIST);
-                    projectionMap.put(Audio.Artists.Albums.FIRST_YEAR,
-                            "MIN(year) AS " + Audio.Artists.Albums.FIRST_YEAR);
-                    projectionMap.put(Audio.Artists.Albums.LAST_YEAR,
-                            "MAX(year) AS " + Audio.Artists.Albums.LAST_YEAR);
-                    projectionMap.put(Audio.Artists.Albums.ALBUM_ID,
-                            "audio.album_id AS " + Audio.Artists.Albums.ALBUM_ID);
-                    qb.setProjectionMap(projectionMap);
+                    final String artistId = uri.getPathSegments().get(3);
+                    appendWhereStandalone(qb, "artist_id=?", artistId);
                 } else {
                     throw new UnsupportedOperationException("Albums cannot be directly modified");
                 }
@@ -2875,7 +2734,7 @@ public class MediaProvider extends ContentProvider {
                 // fall-through
             case AUDIO_ARTISTS:
                 if (type == TYPE_QUERY) {
-                    qb.setTables("artist_info");
+                    qb.setTables("audio_artists");
                     qb.setProjectionMap(getProjectionMap(Audio.Artists.class));
                 } else {
                     throw new UnsupportedOperationException("Artists cannot be directly modified");
@@ -2892,15 +2751,8 @@ public class MediaProvider extends ContentProvider {
                 // fall-through
             case AUDIO_ALBUMS: {
                 if (type == TYPE_QUERY) {
-                    qb.setTables("album_info");
-
-                    final ArrayMap<String, String> projectionMap = new ArrayMap<>(
-                            getProjectionMap(Audio.Albums.class));
-                    projectionMap.put(Audio.Artists.Albums.NUMBER_OF_SONGS_FOR_ARTIST,
-                            "NULL AS " + Audio.Artists.Albums.NUMBER_OF_SONGS_FOR_ARTIST);
-                    projectionMap.put(Audio.Artists.Albums.ALBUM_ID,
-                            BaseColumns._ID + " AS " + Audio.Artists.Albums.ALBUM_ID);
-                    qb.setProjectionMap(projectionMap);
+                    qb.setTables("audio_albums");
+                    qb.setProjectionMap(getProjectionMap(Audio.Albums.class));
                 } else {
                     throw new UnsupportedOperationException("Albums cannot be directly modified");
                 }
@@ -3093,12 +2945,15 @@ public class MediaProvider extends ContentProvider {
         Trace.beginSection("insert");
         try {
             return deleteInternal(uri, userWhere, userWhereArgs);
+        } catch (FallbackException e) {
+            return e.translateForUpdateDelete(getCallingPackageTargetSdkVersion());
         } finally {
             Trace.endSection();
         }
     }
 
-    private int deleteInternal(Uri uri, String userWhere, String[] userWhereArgs) {
+    private int deleteInternal(Uri uri, String userWhere, String[] userWhereArgs)
+            throws FallbackException {
         uri = safeUncanonicalize(uri);
 
         int count;
@@ -3114,12 +2969,8 @@ public class MediaProvider extends ContentProvider {
                 return 0;
             }
 
-            final DatabaseHelper helper;
-            try {
-                helper = getDatabaseForUri(MediaStore.Files.getContentUri(mMediaScannerVolume));
-            } catch (VolumeNotFoundException e) {
-                return e.translateForUpdateDelete(targetSdkVersion);
-            }
+            final DatabaseHelper helper = getDatabaseForUri(
+                    MediaStore.Files.getContentUri(mMediaScannerVolume));
 
             helper.mScanStopTime = SystemClock.elapsedRealtime();
             String msg = dump(helper, false);
@@ -3144,14 +2995,8 @@ public class MediaProvider extends ContentProvider {
             count = 1;
         }
 
-        final DatabaseHelper helper;
-        final SQLiteDatabase db;
-        try {
-            helper = getDatabaseForUri(uri);
-            db = helper.getWritableDatabase();
-        } catch (VolumeNotFoundException e) {
-            return e.translateForUpdateDelete(targetSdkVersion);
-        }
+        final DatabaseHelper helper = getDatabaseForUri(uri);
+        final SQLiteDatabase db = helper.getWritableDatabase();
 
         {
             final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_DELETE, uri, match, null);
@@ -3220,7 +3065,6 @@ public class MediaProvider extends ContentProvider {
                                             volumeName, FileColumns.MEDIA_TYPE_AUDIO, id);
 
                                     idvalue[0] = String.valueOf(id);
-                                    db.delete("audio_genres_map", "audio_id=?", idvalue);
                                     // for each playlist that the item appears in, move
                                     // all the items behind it forward by one
                                     Cursor cc = db.query("audio_playlists_map",
@@ -3269,8 +3113,7 @@ public class MediaProvider extends ContentProvider {
                     count = deleteRecursive(qb, db, userWhere, userWhereArgs);
                     break;
                 case AUDIO_GENRES_ID_MEMBERS:
-                    count = deleteRecursive(qb, db, userWhere, userWhereArgs);
-                    break;
+                    throw new FallbackException("Genres are read-only", Build.VERSION_CODES.R);
 
                 case IMAGES_THUMBNAILS_ID:
                 case IMAGES_THUMBNAILS:
@@ -3737,13 +3580,15 @@ public class MediaProvider extends ContentProvider {
         Trace.beginSection("update");
         try {
             return updateInternal(uri, initialValues, userWhere, userWhereArgs);
+        } catch (FallbackException e) {
+            return e.translateForUpdateDelete(getCallingPackageTargetSdkVersion());
         } finally {
             Trace.endSection();
         }
     }
 
     private int updateInternal(Uri uri, ContentValues initialValues, String userWhere,
-            String[] userWhereArgs) {
+            String[] userWhereArgs) throws FallbackException {
         if ("com.google.android.GoogleCamera".equals(getCallingPackageOrSelf())) {
             if (matchUri(uri, false) == IMAGES_MEDIA_ID) {
                 Log.w(TAG, "Working around app bug in b/111966296");
@@ -3763,14 +3608,8 @@ public class MediaProvider extends ContentProvider {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
-        final DatabaseHelper helper;
-        final SQLiteDatabase db;
-        try {
-            helper = getDatabaseForUri(uri);
-            db = helper.getWritableDatabase();
-        } catch (VolumeNotFoundException e) {
-            return e.translateForUpdateDelete(targetSdkVersion);
-        }
+        final DatabaseHelper helper = getDatabaseForUri(uri);
+        final SQLiteDatabase db = helper.getWritableDatabase();
 
         final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, uri, match, null);
 
@@ -3785,7 +3624,6 @@ public class MediaProvider extends ContentProvider {
 
         boolean triggerInvalidate = false;
         boolean triggerScan = false;
-        String genre = null;
         if (initialValues != null) {
             // IDs are forever; nobody should be editing them
             initialValues.remove(MediaColumns._ID);
@@ -3852,9 +3690,6 @@ public class MediaProvider extends ContentProvider {
 
                 Trace.endSection();
             }
-
-            genre = initialValues.getAsString(Audio.AudioColumns.GENRE);
-            initialValues.remove(Audio.AudioColumns.GENRE);
 
             if ("files".equals(qb.getTables())) {
                 maybeMarkAsDownload(initialValues);
@@ -3927,12 +3762,9 @@ public class MediaProvider extends ContentProvider {
             final String beforePath = initialValues.getAsString(MediaColumns.DATA);
             final String beforeVolume = extractVolumeName(beforePath);
             final String beforeOwner = extractPathOwnerPackageName(beforePath);
+
             initialValues.remove(MediaColumns.DATA);
-            try {
-                ensureNonUniqueFileColumns(match, uri, initialValues, beforePath);
-            } catch (VolumeArgumentException e) {
-                return e.translateForUpdateDelete(targetSdkVersion);
-            }
+            ensureNonUniqueFileColumns(match, uri, initialValues, beforePath);
 
             final String probePath = initialValues.getAsString(MediaColumns.DATA);
             final String probeVolume = extractVolumeName(probePath);
@@ -3949,11 +3781,8 @@ public class MediaProvider extends ContentProvider {
                 // Now that we've confirmed an actual movement is taking place,
                 // ensure we have a unique destination
                 initialValues.remove(MediaColumns.DATA);
-                try {
-                    ensureUniqueFileColumns(match, uri, initialValues);
-                } catch (VolumeArgumentException e) {
-                    return e.translateForUpdateDelete(targetSdkVersion);
-                }
+                ensureUniqueFileColumns(match, uri, initialValues);
+
                 final String afterPath = initialValues.getAsString(MediaColumns.DATA);
 
                 Log.d(TAG, "Moving " + beforePath + " to " + afterPath);
@@ -3969,11 +3798,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Make sure any updated paths look sane
-        try {
-            assertFileColumnsSane(match, uri, initialValues);
-        } catch (VolumeArgumentException e) {
-            return e.translateForUpdateDelete(targetSdkVersion);
-        }
+        assertFileColumnsSane(match, uri, initialValues);
 
         // if the media type is being changed, check if it's being changed from image or video
         // to something else
@@ -4080,144 +3905,22 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
+        final ContentValues values = new ContentValues(initialValues);
         switch (match) {
             case AUDIO_MEDIA:
-            case AUDIO_MEDIA_ID:
-                {
-                    ContentValues values = new ContentValues(initialValues);
-                    String albumartist = values.getAsString(MediaStore.Audio.Media.ALBUM_ARTIST);
-                    String compilation = values.getAsString(MediaStore.Audio.Media.COMPILATION);
-                    values.remove(MediaStore.Audio.Media.COMPILATION);
-
-                    // Insert the artist into the artist table and remove it from
-                    // the input values
-                    String artist = values.getAsString("artist");
-                    values.remove("artist");
-                    if (artist != null) {
-                        long artistRowId;
-                        ArrayMap<String, Long> artistCache = helper.mArtistCache;
-                        synchronized(artistCache) {
-                            Long temp = artistCache.get(artist);
-                            if (temp == null) {
-                                artistRowId = getKeyIdForName(helper, db,
-                                        "artists", "artist_key", "artist",
-                                        artist, artist, null, 0, null, artistCache, uri);
-                            } else {
-                                artistRowId = temp.longValue();
-                            }
-                        }
-                        values.put("artist_id", Integer.toString((int)artistRowId));
-                    }
-
-                    // Do the same for the album field.
-                    String so = values.getAsString("album");
-                    values.remove("album");
-                    if (so != null) {
-                        String path = values.getAsString(MediaStore.MediaColumns.DATA);
-                        int albumHash = 0;
-                        if (albumartist != null) {
-                            albumHash = albumartist.hashCode();
-                        } else if (compilation != null && compilation.equals("1")) {
-                            // nothing to do, hash already set
-                        } else {
-                            if (path == null) {
-                                if (match == AUDIO_MEDIA) {
-                                    Log.w(TAG, "Possible multi row album name update without"
-                                            + " path could give wrong album key");
-                                } else {
-                                    //Log.w(TAG, "Specify path to avoid extra query");
-                                    Cursor c = query(uri,
-                                            new String[] { MediaStore.Audio.Media.DATA},
-                                            null, null, null);
-                                    if (c != null) {
-                                        try {
-                                            int numrows = c.getCount();
-                                            if (numrows == 1) {
-                                                c.moveToFirst();
-                                                path = c.getString(0);
-                                            } else {
-                                                Log.e(TAG, "" + numrows + " rows for " + uri);
-                                            }
-                                        } finally {
-                                            FileUtils.closeQuietly(c);
-                                        }
-                                    }
-                                }
-                            }
-                            if (path != null) {
-                                albumHash = path.substring(0, path.lastIndexOf('/')).hashCode();
-                            }
-                        }
-
-                        String s = so.toString();
-                        long albumRowId;
-                        ArrayMap<String, Long> albumCache = helper.mAlbumCache;
-                        synchronized(albumCache) {
-                            String cacheName = s + albumHash;
-                            Long temp = albumCache.get(cacheName);
-                            if (temp == null) {
-                                albumRowId = getKeyIdForName(helper, db,
-                                        "albums", "album_key", "album",
-                                        s, cacheName, path, albumHash, artist, albumCache, uri);
-                            } else {
-                                albumRowId = temp.longValue();
-                            }
-                        }
-                        values.put("album_id", Integer.toString((int)albumRowId));
-                    }
-
-                    // don't allow the title_key field to be updated directly
-                    values.remove("title_key");
-                    // If the title field is modified, update the title_key
-                    so = values.getAsString("title");
-                    if (so != null) {
-                        try {
-                            final String localizedTitle = getLocalizedTitle(so);
-                            if (localizedTitle != null) {
-                                values.put("title_resource_uri", so);
-                                so = localizedTitle;
-                            } else {
-                                values.putNull("title_resource_uri");
-                            }
-                        } catch (Exception e) {
-                            values.put("title_resource_uri", so);
-                        }
-                        values.put("title_key", MediaStore.Audio.keyFor(so));
-                        // do a final trim of the title, in case it started with the special
-                        // "sort first" character (ascii \001)
-                        values.put("title", so.trim());
-                    }
-
-                    count = qb.update(db, values, userWhere, userWhereArgs);
-                    if (genre != null) {
-                        if (count == 1 && match == AUDIO_MEDIA_ID) {
-                            long rowId = Long.parseLong(uri.getPathSegments().get(3));
-                            updateGenre(rowId, genre, volumeName);
-                        } else {
-                            // can't handle genres for bulk update or for non-audio files
-                            Log.w(TAG, "ignoring genre in update: count = "
-                                    + count + " match = " + match);
-                        }
-                    }
-                }
-                break;
+            case AUDIO_MEDIA_ID: {
+                computeAudioLocalizedValues(values);
+                computeAudioKeyValues(values);
+                // fall-through
+            }
             case IMAGES_MEDIA:
             case IMAGES_MEDIA_ID:
             case VIDEO_MEDIA:
-            case VIDEO_MEDIA_ID:
-                {
-                    ContentValues values = new ContentValues(initialValues);
-                    // Don't allow bucket id or display name to be updated directly.
-                    // The same names are used for both images and table columns, so
-                    // we use the ImageColumns constants here.
-                    values.remove(ImageColumns.BUCKET_ID);
-                    values.remove(ImageColumns.BUCKET_DISPLAY_NAME);
-                    // If the data is being modified update the bucket values
-                    computeDataValues(values);
-                    count = qb.update(db, values, userWhere, userWhereArgs);
-                }
+            case VIDEO_MEDIA_ID: {
+                computeDataValues(values);
+                count = qb.update(db, values, userWhere, userWhereArgs);
                 break;
-
+            }
             case AUDIO_MEDIA_ID_PLAYLISTS_ID:
             case AUDIO_PLAYLISTS_ID:
                 long playlistId = ContentUris.parseId(uri);
@@ -5082,165 +4785,12 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    /**
-     * Look up the artist or album entry for the given name, creating that entry
-     * if it does not already exists.
-     * @param db        The database
-     * @param table     The table to store the key/name pair in.
-     * @param keyField  The name of the key-column
-     * @param nameField The name of the name-column
-     * @param rawName   The name that the calling app was trying to insert into the database
-     * @param cacheName The string that will be inserted in to the cache
-     * @param path      The full path to the file being inserted in to the audio table
-     * @param albumHash A hash to distinguish between different albums of the same name
-     * @param artist    The name of the artist, if known
-     * @param cache     The cache to add this entry to
-     * @param srcuri    The Uri that prompted the call to this method, used for determining whether this is
-     *                  the internal or external database
-     * @return          The row ID for this artist/album, or -1 if the provided name was invalid
-     */
-    private long getKeyIdForName(DatabaseHelper helper, SQLiteDatabase db,
-            String table, String keyField, String nameField,
-            String rawName, String cacheName, String path, int albumHash,
-            String artist, ArrayMap<String, Long> cache, Uri srcuri) {
-        long rowId;
-
-        if (rawName == null || rawName.length() == 0) {
-            rawName = MediaStore.UNKNOWN_STRING;
-        }
-        String k = MediaStore.Audio.keyFor(rawName);
-
-        if (k == null) {
-            // shouldn't happen, since we only get null keys for null inputs
-            Log.e(TAG, "null key", new Exception());
-            return -1;
-        }
-
-        boolean isAlbum = table.equals("albums");
-        boolean isUnknown = MediaStore.UNKNOWN_STRING.equals(rawName);
-
-        // To distinguish same-named albums, we append a hash. The hash is based
-        // on the "album artist" tag if present, otherwise on the "compilation" tag
-        // if present, otherwise on the path.
-        // Ideally we would also take things like CDDB ID in to account, so
-        // we can group files from the same album that aren't in the same
-        // folder, but this is a quick and easy start that works immediately
-        // without requiring support from the mp3, mp4 and Ogg meta data
-        // readers, as long as the albums are in different folders.
-        if (isAlbum) {
-            k = k + albumHash;
-            if (isUnknown) {
-                k = k + artist;
-            }
-        }
-
-        String [] selargs = { k };
-        Cursor c = db.query(table, null, keyField + "=?", selargs, null, null, null);
-
-        try {
-            switch (c.getCount()) {
-                case 0: {
-                        // insert new entry into table
-                        ContentValues otherValues = new ContentValues();
-                        otherValues.put(keyField, k);
-                        otherValues.put(nameField, rawName);
-                        rowId = db.insert(table, "duration", otherValues);
-                        if (rowId > 0) {
-                            String volume = srcuri.toString().substring(16, 24); // extract internal/external
-                            Uri uri = Uri.parse("content://media/" + volume + "/audio/" + table + "/" + rowId);
-                            getContext().getContentResolver().notifyChange(uri, null);
-                        }
-                    }
-                    break;
-                case 1: {
-                        // Use the existing entry
-                        c.moveToFirst();
-                        rowId = c.getLong(0);
-
-                        // Determine whether the current rawName is better than what's
-                        // currently stored in the table, and update the table if it is.
-                        String currentFancyName = c.getString(2);
-                        String bestName = makeBestName(rawName, currentFancyName);
-                        if (!bestName.equals(currentFancyName)) {
-                            // update the table with the new name
-                            ContentValues newValues = new ContentValues();
-                            newValues.put(nameField, bestName);
-                            db.update(table, newValues, "rowid="+Integer.toString((int)rowId), null);
-                            String volume = srcuri.toString().substring(16, 24); // extract internal/external
-                            Uri uri = Uri.parse("content://media/" + volume + "/audio/" + table + "/" + rowId);
-                            getContext().getContentResolver().notifyChange(uri, null);
-                            // We have to remove the previous key from the cache otherwise we will
-                            // not be able to change between upper and lower case letters.
-                            if (isAlbum) {
-                                cache.remove(currentFancyName + albumHash);
-                            } else {
-                                cache.remove(currentFancyName);
-                            }
-                        }
-                    }
-                    break;
-                default:
-                    // corrupt database
-                    Log.e(TAG, "Multiple entries in table " + table + " for key " + k);
-                    rowId = -1;
-                    break;
-            }
-        } finally {
-            FileUtils.closeQuietly(c);
-        }
-
-        if (cache != null && ! isUnknown) {
-            cache.put(cacheName, rowId);
-        }
-        return rowId;
-    }
-
-    /**
-     * Returns the best string to use for display, given two names.
-     * Note that this function does not necessarily return either one
-     * of the provided names; it may decide to return a better alternative
-     * (for example, specifying the inputs "Police" and "Police, The" will
-     * return "The Police")
-     *
-     * The basic assumptions are:
-     * - longer is better ("The police" is better than "Police")
-     * - prefix is better ("The Police" is better than "Police, The")
-     * - accents are better ("Mot&ouml;rhead" is better than "Motorhead")
-     *
-     * @param one The first of the two names to consider
-     * @param two The last of the two names to consider
-     * @return The actual name to use
-     */
-    String makeBestName(String one, String two) {
-        String name;
-
-        // Longer names are usually better.
-        if (one.length() > two.length()) {
-            name = one;
-        } else {
-            // Names with accents are usually better, and conveniently sort later
-            if (one.toLowerCase().compareTo(two.toLowerCase()) >= 0) {
-                name = one;
-            } else {
-                name = two;
-            }
-        }
-
-        // Prefixes are better than postfixes.
-        if (name.endsWith(", the") || name.endsWith(",the") ||
-            name.endsWith(", an") || name.endsWith(",an") ||
-            name.endsWith(", a") || name.endsWith(",a")) {
-            String fix = name.substring(1 + name.lastIndexOf(','));
-            name = fix.trim() + " " + name.substring(0, name.lastIndexOf(','));
-        }
-
-        // TODO: word-capitalize the resulting name
-        return name;
-    }
-
     private static class FallbackException extends Exception {
-        public FallbackException(String message) {
+        private final int mThrowSdkVersion;
+
+        public FallbackException(String message, int throwSdkVersion) {
             super(message);
+            mThrowSdkVersion = throwSdkVersion;
         }
 
         public IllegalArgumentException rethrowAsIllegalArgumentException() {
@@ -5248,7 +4798,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         public Cursor translateForQuery(int targetSdkVersion) {
-            if (targetSdkVersion >= Build.VERSION_CODES.Q) {
+            if (targetSdkVersion >= mThrowSdkVersion) {
                 throw new IllegalArgumentException(getMessage());
             } else {
                 Log.w(TAG, getMessage());
@@ -5257,7 +4807,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         public Uri translateForInsert(int targetSdkVersion) {
-            if (targetSdkVersion >= Build.VERSION_CODES.Q) {
+            if (targetSdkVersion >= mThrowSdkVersion) {
                 throw new IllegalArgumentException(getMessage());
             } else {
                 Log.w(TAG, getMessage());
@@ -5266,7 +4816,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         public int translateForUpdateDelete(int targetSdkVersion) {
-            if (targetSdkVersion >= Build.VERSION_CODES.Q) {
+            if (targetSdkVersion >= mThrowSdkVersion) {
                 throw new IllegalArgumentException(getMessage());
             } else {
                 Log.w(TAG, getMessage());
@@ -5277,13 +4827,14 @@ public class MediaProvider extends ContentProvider {
 
     static class VolumeNotFoundException extends FallbackException {
         public VolumeNotFoundException(String volumeName) {
-            super("Volume " + volumeName + " not found");
+            super("Volume " + volumeName + " not found", Build.VERSION_CODES.Q);
         }
     }
 
     static class VolumeArgumentException extends FallbackException {
         public VolumeArgumentException(File actual, Collection<File> allowed) {
-            super("Requested path " + actual + " doesn't appear under " + allowed);
+            super("Requested path " + actual + " doesn't appear under " + allowed,
+                    Build.VERSION_CODES.Q);
         }
     }
 

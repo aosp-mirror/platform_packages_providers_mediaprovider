@@ -6,6 +6,7 @@ android_app {
     static_libs: [
         "androidx.appcompat_appcompat",
         "androidx.core_core",
+        "guava",
     ],
 
     jni_libs: [

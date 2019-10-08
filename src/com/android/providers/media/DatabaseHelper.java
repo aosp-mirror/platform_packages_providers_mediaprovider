@@ -39,6 +39,7 @@ import android.os.RemoteException;
 import android.os.SystemClock;
 import android.os.Trace;
 import android.provider.MediaStore;
+import android.provider.MediaStore.Audio;
 import android.provider.MediaStore.Downloads;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.Images;
@@ -48,14 +49,12 @@ import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
 import android.text.format.DateUtils;
-import android.util.ArrayMap;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.util.BackgroundThread;
-import com.android.providers.media.util.FileUtils;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -77,9 +76,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     // 60 days in milliseconds (1000 * 60 * 60 * 24 * 60)
     private static final long OBSOLETE_DATABASE_DB = 5184000000L;
 
-    // Memory optimization - close idle connections after 30s of inactivity
-    private static final int IDLE_CONNECTION_TIMEOUT_MS = 30000;
-
     final Context mContext;
     final String mName;
     final int mVersion;
@@ -87,10 +83,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     final boolean mEarlyUpgrade;
     long mScanStartTime;
     long mScanStopTime;
-
-    // In memory caches of artist and album data.
-    ArrayMap<String, Long> mArtistCache = new ArrayMap<String, Long>();
-    ArrayMap<String, Long> mAlbumCache = new ArrayMap<String, Long>();
 
     public DatabaseHelper(Context context, String name, boolean internal,
             boolean earlyUpgrade) {
@@ -350,10 +342,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("CREATE TABLE android_metadata (locale TEXT)");
         db.execSQL("CREATE TABLE thumbnails (_id INTEGER PRIMARY KEY,_data TEXT,image_id INTEGER,"
                 + "kind INTEGER,width INTEGER,height INTEGER)");
-        db.execSQL("CREATE TABLE artists (artist_id INTEGER PRIMARY KEY,"
-                + "artist_key TEXT NOT NULL UNIQUE,artist TEXT NOT NULL)");
-        db.execSQL("CREATE TABLE albums (album_id INTEGER PRIMARY KEY,"
-                + "album_key TEXT NOT NULL UNIQUE,album TEXT NOT NULL)");
         db.execSQL("CREATE TABLE album_art (album_id INTEGER PRIMARY KEY,_data TEXT)");
         db.execSQL("CREATE TABLE videothumbnails (_id INTEGER PRIMARY KEY,_data TEXT,"
                 + "video_id INTEGER,kind INTEGER,width INTEGER,height INTEGER)");
@@ -379,27 +367,22 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + "group_id INTEGER DEFAULT NULL,primary_directory TEXT DEFAULT NULL,"
                 + "secondary_directory TEXT DEFAULT NULL,document_id TEXT DEFAULT NULL,"
                 + "instance_id TEXT DEFAULT NULL,original_document_id TEXT DEFAULT NULL,"
-                + "relative_path TEXT DEFAULT NULL,volume_name TEXT DEFAULT NULL)");
+                + "relative_path TEXT DEFAULT NULL,volume_name TEXT DEFAULT NULL,"
+                + "artist_key TEXT DEFAULT NULL,album_key TEXT DEFAULT NULL,"
+                + "genre TEXT DEFAULT NULL,genre_key TEXT DEFAULT NULL,genre_id INTEGER)");
 
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!internal) {
-            db.execSQL("CREATE TABLE audio_genres (_id INTEGER PRIMARY KEY,name TEXT NOT NULL)");
-            db.execSQL("CREATE TABLE audio_genres_map (_id INTEGER PRIMARY KEY,"
-                    + "audio_id INTEGER NOT NULL,genre_id INTEGER NOT NULL,"
-                    + "UNIQUE (audio_id,genre_id) ON CONFLICT IGNORE)");
             db.execSQL("CREATE TABLE audio_playlists_map (_id INTEGER PRIMARY KEY,"
                     + "audio_id INTEGER NOT NULL,playlist_id INTEGER NOT NULL,"
                     + "play_order INTEGER NOT NULL)");
         }
 
         db.execSQL("CREATE INDEX image_id_index on thumbnails(image_id)");
-        db.execSQL("CREATE INDEX album_idx on albums(album)");
-        db.execSQL("CREATE INDEX albumkey_index on albums(album_key)");
-        db.execSQL("CREATE INDEX artist_idx on artists(artist)");
-        db.execSQL("CREATE INDEX artistkey_index on artists(artist_key)");
         db.execSQL("CREATE INDEX video_id_index on videothumbnails(video_id)");
         db.execSQL("CREATE INDEX album_id_idx ON files(album_id)");
         db.execSQL("CREATE INDEX artist_id_idx ON files(artist_id)");
+        db.execSQL("CREATE INDEX genre_id_idx ON files(genre_id)");
         db.execSQL("CREATE INDEX bucket_index on files(bucket_id,media_type,datetaken, _id)");
         db.execSQL("CREATE INDEX bucket_name on files(bucket_id,media_type,bucket_display_name)");
         db.execSQL("CREATE INDEX format_index ON files(format)");
@@ -433,31 +416,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     + "volume_name FROM files WHERE media_type=4");
         }
 
-        db.execSQL("CREATE VIEW audio_meta AS SELECT _id,_data,_display_name,_size,mime_type,"
-                + "date_added,is_drm,date_modified,title,title_key,duration,artist_id,composer,"
-                + "album_id,track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast,"
-                + "bookmark,album_artist,owner_package_name,_hash,is_pending,is_audiobook,"
-                + "date_expires,is_trashed,group_id,primary_directory,secondary_directory,"
-                + "document_id,instance_id,original_document_id,title_resource_uri,relative_path,"
-                + "volume_name,datetaken,bucket_id,bucket_display_name,group_id,orientation"
-                + " FROM files WHERE media_type=2");
-
-        db.execSQL("CREATE VIEW artists_albums_map AS SELECT DISTINCT artist_id, album_id"
-                + " FROM audio_meta");
-        db.execSQL("CREATE VIEW audio as SELECT *, NULL AS width, NULL as height"
-                + " FROM audio_meta LEFT OUTER JOIN artists"
-                + " ON audio_meta.artist_id=artists.artist_id LEFT OUTER JOIN albums"
-                + " ON audio_meta.album_id=albums.album_id");
-        db.execSQL("CREATE VIEW album_info AS SELECT audio.album_id AS _id, album, album_key,"
-                + " MIN(year) AS minyear, MAX(year) AS maxyear, artist, artist_id, artist_key,"
-                + " count(*) AS numsongs,album_art._data AS album_art FROM audio"
-                + " LEFT OUTER JOIN album_art ON audio.album_id=album_art.album_id WHERE is_music=1"
-                + " GROUP BY audio.album_id");
         db.execSQL("CREATE VIEW searchhelpertitle AS SELECT * FROM audio ORDER BY title_key");
-        db.execSQL("CREATE VIEW artist_info AS SELECT artist_id AS _id, artist, artist_key,"
-                + " COUNT(DISTINCT album_key) AS number_of_albums, COUNT(*) AS number_of_tracks"
-                + " FROM audio"
-                + " WHERE is_music=1 GROUP BY artist_key");
         db.execSQL("CREATE VIEW search AS SELECT _id,'artist' AS mime_type,artist,NULL AS album,"
                 + "NULL AS title,artist AS text1,NULL AS text2,number_of_albums AS data1,"
                 + "number_of_tracks AS data2,artist_key AS match,"
@@ -475,9 +434,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + "'content://media/external/audio/media/'||searchhelpertitle._id"
                 + " AS suggest_intent_data,"
                 + "3 AS grouporder FROM searchhelpertitle WHERE (title != '')");
-        db.execSQL("CREATE VIEW audio_genres_map_noid AS SELECT audio_id,genre_id"
-                + " FROM audio_genres_map");
 
+        db.execSQL("CREATE VIEW audio AS SELECT "
+                + String.join(",", MediaProvider.getProjectionMap(Audio.Media.class).keySet())
+                + " FROM files WHERE media_type=2");
         db.execSQL("CREATE VIEW video AS SELECT "
                 + String.join(",", MediaProvider.getProjectionMap(Video.Media.class).keySet())
                 + " FROM files WHERE media_type=3");
@@ -487,6 +447,34 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("CREATE VIEW downloads AS SELECT "
                 + String.join(",", MediaProvider.getProjectionMap(Downloads.class).keySet())
                 + " FROM files WHERE is_download=1");
+
+        db.execSQL("CREATE VIEW audio_artists AS SELECT "
+                + "  artist_id AS " + Audio.Artists._ID
+                + ", artist AS " + Audio.Artists.ARTIST
+                + ", artist_key AS " + Audio.Artists.ARTIST_KEY
+                + ", COUNT(DISTINCT album_id) AS " + Audio.Artists.NUMBER_OF_ALBUMS
+                + ", COUNT(DISTINCT _id) AS " + Audio.Artists.NUMBER_OF_TRACKS
+                + " FROM audio GROUP BY artist_id");
+
+        db.execSQL("CREATE VIEW audio_albums AS SELECT "
+                + "  album_id AS " + Audio.Albums._ID
+                + ", album_id AS " + Audio.Albums.ALBUM_ID
+                + ", album AS " + Audio.Albums.ALBUM
+                + ", album_key AS " + Audio.Albums.ALBUM_KEY
+                + ", artist_id AS " + Audio.Albums.ARTIST_ID
+                + ", artist AS " + Audio.Albums.ARTIST
+                + ", artist_key AS " + Audio.Albums.ARTIST_KEY
+                + ", COUNT(DISTINCT _id) AS " + Audio.Albums.NUMBER_OF_SONGS
+                + ", COUNT(DISTINCT _id) AS " + Audio.Albums.NUMBER_OF_SONGS_FOR_ARTIST
+                + ", MIN(year) AS " + Audio.Albums.FIRST_YEAR
+                + ", MAX(year) AS " + Audio.Albums.LAST_YEAR
+                + ", NULL AS " + Audio.Albums.ALBUM_ART
+                + " FROM audio GROUP BY album_id");
+
+        db.execSQL("CREATE VIEW audio_genres AS SELECT "
+                + "  genre_id AS " + Audio.Genres._ID
+                + ", genre AS " + Audio.Genres.NAME
+                + " FROM audio GROUP BY genre_id");
     }
 
     private static void makePristineTriggers(SQLiteDatabase db) {
@@ -502,20 +490,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     private static void createLatestTriggers(SQLiteDatabase db, boolean internal) {
         makePristineTriggers(db);
-
-        if (!internal) {
-            db.execSQL("CREATE TRIGGER audio_genres_cleanup DELETE ON audio_genres BEGIN DELETE"
-                    + " FROM audio_genres_map WHERE genre_id = old._id;END");
-            db.execSQL("CREATE TRIGGER audio_playlists_cleanup DELETE ON files"
-                    + " WHEN old.media_type=4"
-                    + " BEGIN DELETE FROM audio_playlists_map WHERE playlist_id = old._id;"
-                    + "SELECT _DELETE_FILE(old._data);END");
-        }
-
-        db.execSQL("CREATE TRIGGER albumart_cleanup1 DELETE ON albums BEGIN DELETE FROM album_art"
-                + " WHERE album_id = old.album_id;END");
-        db.execSQL("CREATE TRIGGER albumart_cleanup2 DELETE ON album_art"
-                + " BEGIN SELECT _DELETE_FILE(old._data);END");
     }
 
     private static void updateCollationKeys(SQLiteDatabase db) {
@@ -638,6 +612,30 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("UPDATE files SET primary_directory=NULL, secondary_directory=NULL;");
     }
 
+    private static void updateRestructureAudio(SQLiteDatabase db, boolean internal) {
+        db.execSQL("ALTER TABLE files ADD COLUMN artist_key TEXT DEFAULT NULL;");
+        db.execSQL("ALTER TABLE files ADD COLUMN album_key TEXT DEFAULT NULL;");
+        db.execSQL("ALTER TABLE files ADD COLUMN genre TEXT DEFAULT NULL;");
+        db.execSQL("ALTER TABLE files ADD COLUMN genre_key TEXT DEFAULT NULL;");
+        db.execSQL("ALTER TABLE files ADD COLUMN genre_id INTEGER;");
+
+        db.execSQL("DROP TABLE IF EXISTS artists;");
+        db.execSQL("DROP TABLE IF EXISTS albums;");
+        db.execSQL("DROP TABLE IF EXISTS audio_genres;");
+        db.execSQL("DROP TABLE IF EXISTS audio_genres_map;");
+
+        db.execSQL("CREATE INDEX genre_id_idx ON files(genre_id)");
+
+        db.execSQL("DROP INDEX IF EXISTS album_idx");
+        db.execSQL("DROP INDEX IF EXISTS albumkey_index");
+        db.execSQL("DROP INDEX IF EXISTS artist_idx");
+        db.execSQL("DROP INDEX IF EXISTS artistkey_index");
+
+        // Since we're radically changing how the schema is defined, the
+        // simplest path forward is to rescan all audio files
+        db.execSQL("UPDATE files SET date_modified=0 WHERE media_type=2;");
+    }
+
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
                 null, null, null, null, null, null)) {
@@ -666,7 +664,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
     static final int VERSION_Q = 1023;
-    static final int VERSION_R = 1101;
+    static final int VERSION_R = 1102;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -770,6 +768,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             if (fromVersion < 1101) {
                 updateClearDirectories(db, internal);
             }
+            if (fromVersion < 1102) {
+                updateRestructureAudio(db, internal);
+            }
 
             if (recomputeDataValues) {
                 recomputeDataValues(db, internal);
@@ -780,8 +781,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         // cheap and it's an easy way to ensure they're defined consistently
         createLatestViews(db, internal);
         createLatestTriggers(db, internal);
-
-        sanityCheck(db, fromVersion);
 
         getOrCreateUuid(db);
 
@@ -814,34 +813,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         // delete all but the last 500 rows
         db.execSQL("DELETE FROM log WHERE rowid IN" +
                 " (SELECT rowid FROM log ORDER BY rowid DESC LIMIT 500,-1);");
-    }
-
-    /**
-     * Perform a simple sanity check on the database. Currently this tests
-     * whether all the _data entries in audio_meta are unique
-     */
-    private static void sanityCheck(SQLiteDatabase db, int fromVersion) {
-        Cursor c1 = null;
-        Cursor c2 = null;
-        try {
-            c1 = db.query("audio_meta", new String[] {"count(*)"},
-                    null, null, null, null, null);
-            c2 = db.query("audio_meta", new String[] {"count(distinct _data)"},
-                    null, null, null, null, null);
-            c1.moveToFirst();
-            c2.moveToFirst();
-            int num1 = c1.getInt(0);
-            int num2 = c2.getInt(0);
-            if (num1 != num2) {
-                Log.e(TAG, "audio_meta._data column is not unique while upgrading" +
-                        " from schema " +fromVersion + " : " + num1 +"/" + num2);
-                // Delete all audio_meta rows so they will be rebuilt by the media scanner
-                db.execSQL("DELETE FROM audio_meta;");
-            }
-        } finally {
-            FileUtils.closeQuietly(c1);
-            FileUtils.closeQuietly(c2);
-        }
     }
 
     private static final String XATTR_UUID = "user.uuid";

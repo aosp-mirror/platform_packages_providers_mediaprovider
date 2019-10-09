@@ -47,7 +47,7 @@ public class MediaUpgradeReceiver extends BroadcastReceiver {
         // Lookup the last known database version
         SharedPreferences prefs = context.getSharedPreferences(TAG, Context.MODE_PRIVATE);
         int prefVersion = prefs.getInt(PREF_DB_VERSION, 0);
-        int dbVersion = MediaProvider.getDatabaseVersion(context);
+        int dbVersion = DatabaseHelper.getDatabaseVersion(context);
         if (prefVersion == dbVersion) {
             return;
         }
@@ -64,7 +64,7 @@ public class MediaUpgradeReceiver extends BroadcastReceiver {
                     Log.i(TAG, "---> Start upgrade of media database " + file);
                     SQLiteDatabase db = null;
                     try {
-                        MediaProvider.DatabaseHelper helper = new MediaProvider.DatabaseHelper(
+                        DatabaseHelper helper = new DatabaseHelper(
                                 context, file, MediaProvider.isInternalMediaDatabaseName(file),
                                 false);
                         db = helper.getWritableDatabase();

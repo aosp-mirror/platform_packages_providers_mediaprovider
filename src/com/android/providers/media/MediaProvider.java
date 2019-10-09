@@ -22,7 +22,6 @@ import static android.app.PendingIntent.FLAG_ONE_SHOT;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.getVolumeName;
-import static android.provider.MediaStore.Downloads.PATTERN_DOWNLOADS_FILE;
 import static android.provider.MediaStore.Downloads.isDownload;
 
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY;
@@ -65,7 +64,6 @@ import android.database.AbstractCursor;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -146,7 +144,6 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -159,7 +156,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -181,32 +177,26 @@ public class MediaProvider extends ContentProvider {
      * Regex that matches paths in all well-known package-specific directories,
      * and which captures the package name as the first group.
      */
-    private static final Pattern PATTERN_OWNED_PATH = Pattern.compile(
+    static final Pattern PATTERN_OWNED_PATH = Pattern.compile(
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|media|obb|sandbox)/([^/]+)/.*");
-
-    /**
-     * Regex that matches paths under well-known storage paths.
-     */
-    private static final Pattern PATTERN_STORAGE_PATH = Pattern.compile(
-            "(?i)^/storage/[^/]+/(?:[0-9]+/)?");
 
     /**
      * Regex that matches paths for {@link MediaColumns#RELATIVE_PATH}; it
      * captures both top-level paths and sandboxed paths.
      */
-    private static final Pattern PATTERN_RELATIVE_PATH = Pattern.compile(
+    static final Pattern PATTERN_RELATIVE_PATH = Pattern.compile(
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?(Android/sandbox/([^/]+)/)?");
 
     /**
      * Regex that matches paths under well-known storage paths.
      */
-    private static final Pattern PATTERN_VOLUME_NAME = Pattern.compile(
+    static final Pattern PATTERN_VOLUME_NAME = Pattern.compile(
             "(?i)^/storage/([^/]+)");
 
     /**
      * Regex of a selection string that matches a specific ID.
      */
-    private static final Pattern PATTERN_SELECTION_ID = Pattern.compile(
+    static final Pattern PATTERN_SELECTION_ID = Pattern.compile(
             "(?:image_id|video_id)\\s*=\\s*(\\d+)");
 
     /**
@@ -324,10 +314,6 @@ public class MediaProvider extends ContentProvider {
             FileColumns.MEDIA_TYPE,
     };
 
-    private static final String[] sIdOnlyColumn = new String[] {
-        FileColumns._ID
-    };
-
     private static final String[] sDataOnlyColumn = new String[] {
         FileColumns.DATA
     };
@@ -372,197 +358,6 @@ public class MediaProvider extends ContentProvider {
             }
         }
     };
-
-    /**
-     * Wrapper class for a specific database (associated with one particular
-     * external card, or with internal storage).  Can open the actual database
-     * on demand, create and upgrade the schema, etc.
-     */
-    static class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
-        final Context mContext;
-        final String mName;
-        final int mVersion;
-        final boolean mInternal;  // True if this is the internal database
-        final boolean mEarlyUpgrade;
-        long mScanStartTime;
-        long mScanStopTime;
-
-        // In memory caches of artist and album data.
-        ArrayMap<String, Long> mArtistCache = new ArrayMap<String, Long>();
-        ArrayMap<String, Long> mAlbumCache = new ArrayMap<String, Long>();
-
-        public DatabaseHelper(Context context, String name, boolean internal,
-                boolean earlyUpgrade) {
-            this(context, name, getDatabaseVersion(context), internal, earlyUpgrade);
-        }
-
-        public DatabaseHelper(Context context, String name, int version, boolean internal,
-                boolean earlyUpgrade) {
-            super(context, name, null, version);
-            mContext = context;
-            mName = name;
-            mVersion = version;
-            mInternal = internal;
-            mEarlyUpgrade = earlyUpgrade;
-            setWriteAheadLoggingEnabled(true);
-        }
-
-        @Override
-        public void onCreate(final SQLiteDatabase db) {
-            Log.v(TAG, "onCreate() for " + mName);
-            updateDatabase(mContext, db, mInternal, 0, mVersion);
-        }
-
-        @Override
-        public void onUpgrade(final SQLiteDatabase db, final int oldV, final int newV) {
-            Log.v(TAG, "onUpgrade() for " + mName + " from " + oldV + " to " + newV);
-            updateDatabase(mContext, db, mInternal, oldV, newV);
-        }
-
-        @Override
-        public void onDowngrade(final SQLiteDatabase db, final int oldV, final int newV) {
-            Log.v(TAG, "onDowngrade() for " + mName + " from " + oldV + " to " + newV);
-            downgradeDatabase(mContext, db, mInternal, oldV, newV);
-        }
-
-        /**
-         * For devices that have removable storage, we support keeping multiple databases
-         * to allow users to switch between a number of cards.
-         * On such devices, touch this particular database and garbage collect old databases.
-         * An LRU cache system is used to clean up databases for old external
-         * storage volumes.
-         */
-        @Override
-        public void onOpen(SQLiteDatabase db) {
-            if (mEarlyUpgrade) return; // Doing early upgrade.
-            if (mInternal) return;  // The internal database is kept separately.
-
-            // the code below is only needed on devices with removable storage
-            if (!Environment.isExternalStorageRemovable()) return;
-
-            // touch the database file to show it is most recently used
-            File file = new File(db.getPath());
-            long now = System.currentTimeMillis();
-            file.setLastModified(now);
-
-            // delete least recently used databases if we are over the limit
-            String[] databases = mContext.databaseList();
-            // Don't delete wal auxiliary files(db-shm and db-wal) directly because db file may
-            // not be deleted, and it will cause Disk I/O error when accessing this database.
-            List<String> dbList = new ArrayList<String>();
-            for (String database : databases) {
-                if (database != null && database.endsWith(".db")) {
-                    dbList.add(database);
-                }
-            }
-            databases = dbList.toArray(new String[0]);
-            int count = databases.length;
-            int limit = MAX_EXTERNAL_DATABASES;
-
-            // delete external databases that have not been used in the past two months
-            long twoMonthsAgo = now - OBSOLETE_DATABASE_DB;
-            for (int i = 0; i < databases.length; i++) {
-                File other = mContext.getDatabasePath(databases[i]);
-                if (INTERNAL_DATABASE_NAME.equals(databases[i]) || file.equals(other)) {
-                    databases[i] = null;
-                    count--;
-                    if (file.equals(other)) {
-                        // reduce limit to account for the existence of the database we
-                        // are about to open, which we removed from the list.
-                        limit--;
-                    }
-                } else {
-                    long time = other.lastModified();
-                    if (time < twoMonthsAgo) {
-                        if (LOCAL_LOGV) Log.v(TAG, "Deleting old database " + databases[i]);
-                        mContext.deleteDatabase(databases[i]);
-                        databases[i] = null;
-                        count--;
-                    }
-                }
-            }
-
-            // delete least recently used databases until
-            // we are no longer over the limit
-            while (count > limit) {
-                int lruIndex = -1;
-                long lruTime = 0;
-
-                for (int i = 0; i < databases.length; i++) {
-                    if (databases[i] != null) {
-                        long time = mContext.getDatabasePath(databases[i]).lastModified();
-                        if (lruTime == 0 || time < lruTime) {
-                            lruIndex = i;
-                            lruTime = time;
-                        }
-                    }
-                }
-
-                // delete least recently used database
-                if (lruIndex != -1) {
-                    if (LOCAL_LOGV) Log.v(TAG, "Deleting old database " + databases[lruIndex]);
-                    mContext.deleteDatabase(databases[lruIndex]);
-                    databases[lruIndex] = null;
-                    count--;
-                }
-            }
-        }
-
-        /**
-         * List of {@link Uri} that would have been sent directly via
-         * {@link ContentResolver#notifyChange}, but are instead being collected
-         * due to an ongoing transaction.
-         */
-        private final ThreadLocal<List<Uri>> mNotifyChanges = new ThreadLocal<>();
-
-        public void beginTransaction() {
-            getWritableDatabase().beginTransaction();
-            mNotifyChanges.set(new ArrayList<>());
-        }
-
-        public void setTransactionSuccessful() {
-            getWritableDatabase().setTransactionSuccessful();
-            final List<Uri> uris = mNotifyChanges.get();
-            if (uris != null) {
-                BackgroundThread.getExecutor().execute(() -> {
-                    for (Uri uri : uris) {
-                        notifyChangeInternal(uri);
-                    }
-                });
-            }
-            mNotifyChanges.remove();
-        }
-
-        public void endTransaction() {
-            getWritableDatabase().endTransaction();
-        }
-
-        /**
-         * Notify that the given {@link Uri} has changed. This enqueues the
-         * notification if currently inside a transaction, and they'll be
-         * clustered and sent when the transaction completes.
-         */
-        public void notifyChange(Uri uri) {
-            if (LOCAL_LOGV) Log.v(TAG, "Notifying " + uri);
-            final List<Uri> uris = mNotifyChanges.get();
-            if (uris != null) {
-                uris.add(uri);
-            } else {
-                BackgroundThread.getExecutor().execute(() -> {
-                    notifyChangeInternal(uri);
-                });
-            }
-        }
-
-        private void notifyChangeInternal(Uri uri) {
-            Trace.beginSection("notifyChange");
-            try {
-                mContext.getContentResolver().notifyChange(uri, null);
-            } finally {
-                Trace.endSection();
-            }
-        }
-    }
 
     /**
      * Apply {@link Consumer#accept} to the given {@link Uri}.
@@ -669,22 +464,6 @@ public class MediaProvider extends ContentProvider {
     };
 
     /**
-     * This method cleans up any files created by android.media.MiniThumbFile, removed after P.
-     * It's triggered during database update only, in order to run only once.
-     */
-    private static void deleteLegacyThumbnailData() {
-        File directory = new File(Environment.getExternalStorageDirectory(), "/DCIM/.thumbnails");
-
-        final FilenameFilter filter = (dir, filename) -> filename.startsWith(".thumbdata");
-        final File[] files = directory.listFiles(filter);
-        for (File f : (files != null) ? files : new File[0]) {
-            if (!f.delete()) {
-                Log.e(TAG, "Failed to delete legacy thumbnail data " + f.getAbsolutePath());
-            }
-        }
-    }
-
-    /**
      * Ensure that default folders are created on mounted primary storage
      * devices. We only do this once per volume so we don't annoy the user if
      * deleted manually.
@@ -717,15 +496,6 @@ public class MediaProvider extends ContentProvider {
             }
         } catch (IOException e) {
             Log.w(TAG, "Failed to ensure default folders for " + volumeName, e);
-        }
-    }
-
-    public static int getDatabaseVersion(Context context) {
-        try {
-            return context.getPackageManager().getPackageInfo(
-                    context.getPackageName(), 0).versionCode;
-        } catch (NameNotFoundException e) {
-            throw new RuntimeException("couldn't get version code for " + context);
         }
     }
 
@@ -916,586 +686,6 @@ public class MediaProvider extends ContentProvider {
             throws SecurityException {
         enforceShellRestrictions();
         return super.enforceWritePermissionInner(uri, callingPkg, callerToken);
-    }
-
-    @VisibleForTesting
-    static void makePristineSchema(SQLiteDatabase db) {
-        // drop all triggers
-        Cursor c = db.query("sqlite_master", new String[] {"name"}, "type is 'trigger'",
-                null, null, null, null);
-        while (c.moveToNext()) {
-            if (c.getString(0).startsWith("sqlite_")) continue;
-            db.execSQL("DROP TRIGGER IF EXISTS " + c.getString(0));
-        }
-        c.close();
-
-        // drop all views
-        c = db.query("sqlite_master", new String[] {"name"}, "type is 'view'",
-                null, null, null, null);
-        while (c.moveToNext()) {
-            if (c.getString(0).startsWith("sqlite_")) continue;
-            db.execSQL("DROP VIEW IF EXISTS " + c.getString(0));
-        }
-        c.close();
-
-        // drop all indexes
-        c = db.query("sqlite_master", new String[] {"name"}, "type is 'index'",
-                null, null, null, null);
-        while (c.moveToNext()) {
-            if (c.getString(0).startsWith("sqlite_")) continue;
-            db.execSQL("DROP INDEX IF EXISTS " + c.getString(0));
-        }
-        c.close();
-
-        // drop all tables
-        c = db.query("sqlite_master", new String[] {"name"}, "type is 'table'",
-                null, null, null, null);
-        while (c.moveToNext()) {
-            if (c.getString(0).startsWith("sqlite_")) continue;
-            db.execSQL("DROP TABLE IF EXISTS " + c.getString(0));
-        }
-        c.close();
-    }
-
-    private static void createLatestSchema(Context context, SQLiteDatabase db, boolean internal) {
-        // We're about to start all ID numbering from scratch, so revoke any
-        // outstanding permission grants to ensure we don't leak data
-        context.revokeUriPermission(MediaStore.AUTHORITY_URI,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-        MediaDocumentsProvider.revokeAllUriGrants(context);
-        BackgroundThread.getHandler().post(() -> {
-            try (ContentProviderClient client = context
-                    .getContentResolver().acquireContentProviderClient(
-                            android.provider.Downloads.Impl.AUTHORITY)) {
-                client.call(android.provider.Downloads.CALL_REVOKE_MEDIASTORE_URI_PERMS,
-                        null, null);
-            } catch (NullPointerException | RemoteException e) {
-                // Should not happen
-            }
-        });
-
-        makePristineSchema(db);
-
-        db.execSQL("CREATE TABLE android_metadata (locale TEXT)");
-        db.execSQL("CREATE TABLE thumbnails (_id INTEGER PRIMARY KEY,_data TEXT,image_id INTEGER,"
-                + "kind INTEGER,width INTEGER,height INTEGER)");
-        db.execSQL("CREATE TABLE artists (artist_id INTEGER PRIMARY KEY,"
-                + "artist_key TEXT NOT NULL UNIQUE,artist TEXT NOT NULL)");
-        db.execSQL("CREATE TABLE albums (album_id INTEGER PRIMARY KEY,"
-                + "album_key TEXT NOT NULL UNIQUE,album TEXT NOT NULL)");
-        db.execSQL("CREATE TABLE album_art (album_id INTEGER PRIMARY KEY,_data TEXT)");
-        db.execSQL("CREATE TABLE videothumbnails (_id INTEGER PRIMARY KEY,_data TEXT,"
-                + "video_id INTEGER,kind INTEGER,width INTEGER,height INTEGER)");
-        db.execSQL("CREATE TABLE files (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + "_data TEXT UNIQUE COLLATE NOCASE,_size INTEGER,format INTEGER,parent INTEGER,"
-                + "date_added INTEGER,date_modified INTEGER,mime_type TEXT,title TEXT,"
-                + "description TEXT,_display_name TEXT,picasa_id TEXT,orientation INTEGER,"
-                + "latitude DOUBLE,longitude DOUBLE,datetaken INTEGER,mini_thumb_magic INTEGER,"
-                + "bucket_id TEXT,bucket_display_name TEXT,isprivate INTEGER,title_key TEXT,"
-                + "artist_id INTEGER,album_id INTEGER,composer TEXT,track INTEGER,"
-                + "year INTEGER CHECK(year!=0),is_ringtone INTEGER,is_music INTEGER,"
-                + "is_alarm INTEGER,is_notification INTEGER,is_podcast INTEGER,album_artist TEXT,"
-                + "duration INTEGER,bookmark INTEGER,artist TEXT,album TEXT,resolution TEXT,"
-                + "tags TEXT,category TEXT,language TEXT,mini_thumb_data TEXT,name TEXT,"
-                + "media_type INTEGER,old_id INTEGER,is_drm INTEGER,"
-                + "width INTEGER, height INTEGER, title_resource_uri TEXT,"
-                + "owner_package_name TEXT DEFAULT NULL,"
-                + "color_standard INTEGER, color_transfer INTEGER, color_range INTEGER,"
-                + "_hash BLOB DEFAULT NULL, is_pending INTEGER DEFAULT 0,"
-                + "is_download INTEGER DEFAULT 0, download_uri TEXT DEFAULT NULL,"
-                + "referer_uri TEXT DEFAULT NULL, is_audiobook INTEGER DEFAULT 0,"
-                + "date_expires INTEGER DEFAULT NULL,is_trashed INTEGER DEFAULT 0,"
-                + "group_id INTEGER DEFAULT NULL,primary_directory TEXT DEFAULT NULL,"
-                + "secondary_directory TEXT DEFAULT NULL,document_id TEXT DEFAULT NULL,"
-                + "instance_id TEXT DEFAULT NULL,original_document_id TEXT DEFAULT NULL,"
-                + "relative_path TEXT DEFAULT NULL,volume_name TEXT DEFAULT NULL)");
-
-        db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
-        if (!internal) {
-            db.execSQL("CREATE TABLE audio_genres (_id INTEGER PRIMARY KEY,name TEXT NOT NULL)");
-            db.execSQL("CREATE TABLE audio_genres_map (_id INTEGER PRIMARY KEY,"
-                    + "audio_id INTEGER NOT NULL,genre_id INTEGER NOT NULL,"
-                    + "UNIQUE (audio_id,genre_id) ON CONFLICT IGNORE)");
-            db.execSQL("CREATE TABLE audio_playlists_map (_id INTEGER PRIMARY KEY,"
-                    + "audio_id INTEGER NOT NULL,playlist_id INTEGER NOT NULL,"
-                    + "play_order INTEGER NOT NULL)");
-        }
-
-        db.execSQL("CREATE INDEX image_id_index on thumbnails(image_id)");
-        db.execSQL("CREATE INDEX album_idx on albums(album)");
-        db.execSQL("CREATE INDEX albumkey_index on albums(album_key)");
-        db.execSQL("CREATE INDEX artist_idx on artists(artist)");
-        db.execSQL("CREATE INDEX artistkey_index on artists(artist_key)");
-        db.execSQL("CREATE INDEX video_id_index on videothumbnails(video_id)");
-        db.execSQL("CREATE INDEX album_id_idx ON files(album_id)");
-        db.execSQL("CREATE INDEX artist_id_idx ON files(artist_id)");
-        db.execSQL("CREATE INDEX bucket_index on files(bucket_id,media_type,datetaken, _id)");
-        db.execSQL("CREATE INDEX bucket_name on files(bucket_id,media_type,bucket_display_name)");
-        db.execSQL("CREATE INDEX format_index ON files(format)");
-        db.execSQL("CREATE INDEX media_type_index ON files(media_type)");
-        db.execSQL("CREATE INDEX parent_index ON files(parent)");
-        db.execSQL("CREATE INDEX path_index ON files(_data)");
-        db.execSQL("CREATE INDEX sort_index ON files(datetaken ASC, _id ASC)");
-        db.execSQL("CREATE INDEX title_idx ON files(title)");
-        db.execSQL("CREATE INDEX titlekey_index ON files(title_key)");
-
-        createLatestViews(db, internal);
-        createLatestTriggers(db, internal);
-    }
-
-    private static void makePristineViews(SQLiteDatabase db) {
-        // drop all views
-        Cursor c = db.query("sqlite_master", new String[] {"name"}, "type is 'view'",
-                null, null, null, null);
-        while (c.moveToNext()) {
-            db.execSQL("DROP VIEW IF EXISTS " + c.getString(0));
-        }
-        c.close();
-    }
-
-    private static void createLatestViews(SQLiteDatabase db, boolean internal) {
-        makePristineViews(db);
-
-        if (!internal) {
-            db.execSQL("CREATE VIEW audio_playlists AS SELECT _id,_data,name,date_added,"
-                    + "date_modified,owner_package_name,_hash,is_pending,date_expires,is_trashed,"
-                    + "volume_name FROM files WHERE media_type=4");
-        }
-
-        db.execSQL("CREATE VIEW audio_meta AS SELECT _id,_data,_display_name,_size,mime_type,"
-                + "date_added,is_drm,date_modified,title,title_key,duration,artist_id,composer,"
-                + "album_id,track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast,"
-                + "bookmark,album_artist,owner_package_name,_hash,is_pending,is_audiobook,"
-                + "date_expires,is_trashed,group_id,primary_directory,secondary_directory,"
-                + "document_id,instance_id,original_document_id,title_resource_uri,relative_path,"
-                + "volume_name,datetaken,bucket_id,bucket_display_name,group_id,orientation"
-                + " FROM files WHERE media_type=2");
-
-        db.execSQL("CREATE VIEW artists_albums_map AS SELECT DISTINCT artist_id, album_id"
-                + " FROM audio_meta");
-        db.execSQL("CREATE VIEW audio as SELECT *, NULL AS width, NULL as height"
-                + " FROM audio_meta LEFT OUTER JOIN artists"
-                + " ON audio_meta.artist_id=artists.artist_id LEFT OUTER JOIN albums"
-                + " ON audio_meta.album_id=albums.album_id");
-        db.execSQL("CREATE VIEW album_info AS SELECT audio.album_id AS _id, album, album_key,"
-                + " MIN(year) AS minyear, MAX(year) AS maxyear, artist, artist_id, artist_key,"
-                + " count(*) AS numsongs,album_art._data AS album_art FROM audio"
-                + " LEFT OUTER JOIN album_art ON audio.album_id=album_art.album_id WHERE is_music=1"
-                + " GROUP BY audio.album_id");
-        db.execSQL("CREATE VIEW searchhelpertitle AS SELECT * FROM audio ORDER BY title_key");
-        db.execSQL("CREATE VIEW artist_info AS SELECT artist_id AS _id, artist, artist_key,"
-                + " COUNT(DISTINCT album_key) AS number_of_albums, COUNT(*) AS number_of_tracks"
-                + " FROM audio"
-                + " WHERE is_music=1 GROUP BY artist_key");
-        db.execSQL("CREATE VIEW search AS SELECT _id,'artist' AS mime_type,artist,NULL AS album,"
-                + "NULL AS title,artist AS text1,NULL AS text2,number_of_albums AS data1,"
-                + "number_of_tracks AS data2,artist_key AS match,"
-                + "'content://media/external/audio/artists/'||_id AS suggest_intent_data,"
-                + "1 AS grouporder FROM artist_info WHERE (artist!='<unknown>')"
-                + " UNION ALL SELECT _id,'album' AS mime_type,artist,album,"
-                + "NULL AS title,album AS text1,artist AS text2,NULL AS data1,"
-                + "NULL AS data2,artist_key||' '||album_key AS match,"
-                + "'content://media/external/audio/albums/'||_id AS suggest_intent_data,"
-                + "2 AS grouporder FROM album_info"
-                + " WHERE (album!='<unknown>')"
-                + " UNION ALL SELECT searchhelpertitle._id AS _id,mime_type,artist,album,title,"
-                + "title AS text1,artist AS text2,NULL AS data1,"
-                + "NULL AS data2,artist_key||' '||album_key||' '||title_key AS match,"
-                + "'content://media/external/audio/media/'||searchhelpertitle._id"
-                + " AS suggest_intent_data,"
-                + "3 AS grouporder FROM searchhelpertitle WHERE (title != '')");
-        db.execSQL("CREATE VIEW audio_genres_map_noid AS SELECT audio_id,genre_id"
-                + " FROM audio_genres_map");
-
-        db.execSQL("CREATE VIEW video AS SELECT "
-                + String.join(",", getProjectionMap(Video.Media.class).keySet())
-                + " FROM files WHERE media_type=3");
-        db.execSQL("CREATE VIEW images AS SELECT "
-                + String.join(",", getProjectionMap(Images.Media.class).keySet())
-                + " FROM files WHERE media_type=1");
-        db.execSQL("CREATE VIEW downloads AS SELECT "
-                + String.join(",", getProjectionMap(Downloads.class).keySet())
-                + " FROM files WHERE is_download=1");
-    }
-
-    private static void makePristineTriggers(SQLiteDatabase db) {
-        // drop all triggers
-        Cursor c = db.query("sqlite_master", new String[] {"name"}, "type is 'trigger'",
-                null, null, null, null);
-        while (c.moveToNext()) {
-            if (c.getString(0).startsWith("sqlite_")) continue;
-            db.execSQL("DROP TRIGGER IF EXISTS " + c.getString(0));
-        }
-        c.close();
-    }
-
-    private static void createLatestTriggers(SQLiteDatabase db, boolean internal) {
-        makePristineTriggers(db);
-
-        if (!internal) {
-            db.execSQL("CREATE TRIGGER audio_genres_cleanup DELETE ON audio_genres BEGIN DELETE"
-                    + " FROM audio_genres_map WHERE genre_id = old._id;END");
-            db.execSQL("CREATE TRIGGER audio_playlists_cleanup DELETE ON files"
-                    + " WHEN old.media_type=4"
-                    + " BEGIN DELETE FROM audio_playlists_map WHERE playlist_id = old._id;"
-                    + "SELECT _DELETE_FILE(old._data);END");
-        }
-
-        db.execSQL("CREATE TRIGGER albumart_cleanup1 DELETE ON albums BEGIN DELETE FROM album_art"
-                + " WHERE album_id = old.album_id;END");
-        db.execSQL("CREATE TRIGGER albumart_cleanup2 DELETE ON album_art"
-                + " BEGIN SELECT _DELETE_FILE(old._data);END");
-    }
-
-    private static void updateCollationKeys(SQLiteDatabase db) {
-        // Delete albums and artists, then clear the modification time on songs, which
-        // will cause the media scanner to rescan everything, rebuilding the artist and
-        // album tables along the way, while preserving playlists.
-        // We need this rescan because ICU also changed, and now generates different
-        // collation keys
-        db.execSQL("DELETE from albums");
-        db.execSQL("DELETE from artists");
-        db.execSQL("UPDATE files SET date_modified=0;");
-    }
-
-    private static void updateAddTitleResource(SQLiteDatabase db) {
-        // Add the column used for title localization, and force a rescan of any
-        // ringtones, alarms and notifications that may be using it.
-        db.execSQL("ALTER TABLE files ADD COLUMN title_resource_uri TEXT");
-        db.execSQL("UPDATE files SET date_modified=0"
-                + " WHERE (is_alarm IS 1) OR (is_ringtone IS 1) OR (is_notification IS 1)");
-    }
-
-    private static void updateAddOwnerPackageName(SQLiteDatabase db, boolean internal) {
-        db.execSQL("ALTER TABLE files ADD COLUMN owner_package_name TEXT DEFAULT NULL");
-
-        // Derive new column value based on well-known paths
-        try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
-                FileColumns.DATA + " REGEXP '" + PATTERN_OWNED_PATH.pattern() + "'",
-                null, null, null, null, null)) {
-            Log.d(TAG, "Updating " + c.getCount() + " entries with well-known owners");
-
-            final Matcher m = PATTERN_OWNED_PATH.matcher("");
-            final ContentValues values = new ContentValues();
-
-            while (c.moveToNext()) {
-                final long id = c.getLong(0);
-                final String data = c.getString(1);
-                m.reset(data);
-                if (m.matches()) {
-                    final String packageName = m.group(1);
-                    values.clear();
-                    values.put(FileColumns.OWNER_PACKAGE_NAME, packageName);
-                    db.update("files", values, "_id=" + id, null);
-                }
-            }
-        }
-    }
-
-    private static void updateAddColorSpaces(SQLiteDatabase db) {
-        // Add the color aspects related column used for HDR detection etc.
-        db.execSQL("ALTER TABLE files ADD COLUMN color_standard INTEGER;");
-        db.execSQL("ALTER TABLE files ADD COLUMN color_transfer INTEGER;");
-        db.execSQL("ALTER TABLE files ADD COLUMN color_range INTEGER;");
-    }
-
-    private static void updateAddHashAndPending(SQLiteDatabase db, boolean internal) {
-        db.execSQL("ALTER TABLE files ADD COLUMN _hash BLOB DEFAULT NULL;");
-        db.execSQL("ALTER TABLE files ADD COLUMN is_pending INTEGER DEFAULT 0;");
-    }
-
-    private static void updateAddDownloadInfo(SQLiteDatabase db, boolean internal) {
-        db.execSQL("ALTER TABLE files ADD COLUMN is_download INTEGER DEFAULT 0;");
-        db.execSQL("ALTER TABLE files ADD COLUMN download_uri TEXT DEFAULT NULL;");
-        db.execSQL("ALTER TABLE files ADD COLUMN referer_uri TEXT DEFAULT NULL;");
-    }
-
-    private static void updateAddAudiobook(SQLiteDatabase db, boolean internal) {
-        db.execSQL("ALTER TABLE files ADD COLUMN is_audiobook INTEGER DEFAULT 0;");
-    }
-
-    private static void updateClearLocation(SQLiteDatabase db, boolean internal) {
-        db.execSQL("UPDATE files SET latitude=NULL, longitude=NULL;");
-    }
-
-    private static void updateSetIsDownload(SQLiteDatabase db, boolean internal) {
-        db.execSQL("UPDATE files SET is_download=1 WHERE _data REGEXP '"
-                + PATTERN_DOWNLOADS_FILE + "'");
-    }
-
-    private static void updateAddExpiresAndTrashed(SQLiteDatabase db, boolean internal) {
-        db.execSQL("ALTER TABLE files ADD COLUMN date_expires INTEGER DEFAULT NULL;");
-        db.execSQL("ALTER TABLE files ADD COLUMN is_trashed INTEGER DEFAULT 0;");
-    }
-
-    private static void updateAddGroupId(SQLiteDatabase db, boolean internal) {
-        db.execSQL("ALTER TABLE files ADD COLUMN group_id INTEGER DEFAULT NULL;");
-    }
-
-    private static void updateAddDirectories(SQLiteDatabase db, boolean internal) {
-        db.execSQL("ALTER TABLE files ADD COLUMN primary_directory TEXT DEFAULT NULL;");
-        db.execSQL("ALTER TABLE files ADD COLUMN secondary_directory TEXT DEFAULT NULL;");
-    }
-
-    private static void updateAddXmp(SQLiteDatabase db, boolean internal) {
-        db.execSQL("ALTER TABLE files ADD COLUMN document_id TEXT DEFAULT NULL;");
-        db.execSQL("ALTER TABLE files ADD COLUMN instance_id TEXT DEFAULT NULL;");
-        db.execSQL("ALTER TABLE files ADD COLUMN original_document_id TEXT DEFAULT NULL;");
-    }
-
-    private static void updateAddPath(SQLiteDatabase db, boolean internal) {
-        db.execSQL("ALTER TABLE files ADD COLUMN relative_path TEXT DEFAULT NULL;");
-    }
-
-    private static void updateAddVolumeName(SQLiteDatabase db, boolean internal) {
-        db.execSQL("ALTER TABLE files ADD COLUMN volume_name TEXT DEFAULT NULL;");
-    }
-
-    private static void updateDirsMimeType(SQLiteDatabase db, boolean internal) {
-        db.execSQL("UPDATE files SET mime_type=NULL WHERE format="
-                + MtpConstants.FORMAT_ASSOCIATION);
-    }
-
-    private static void updateRelativePath(SQLiteDatabase db, boolean internal) {
-        db.execSQL("UPDATE files"
-                + " SET " + MediaColumns.RELATIVE_PATH + "=" + MediaColumns.RELATIVE_PATH + "||'/'"
-                + " WHERE " + MediaColumns.RELATIVE_PATH + " IS NOT NULL"
-                + " AND " + MediaColumns.RELATIVE_PATH + " NOT LIKE '%/';");
-    }
-
-    private static void updateClearDirectories(SQLiteDatabase db, boolean internal) {
-        db.execSQL("UPDATE files SET primary_directory=NULL, secondary_directory=NULL;");
-    }
-
-    private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
-        try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
-                null, null, null, null, null, null)) {
-            Log.d(TAG, "Recomputing " + c.getCount() + " data values");
-
-            final ContentValues values = new ContentValues();
-            while (c.moveToNext()) {
-                values.clear();
-                final long id = c.getLong(0);
-                final String data = c.getString(1);
-                values.put(FileColumns.DATA, data);
-                computeDataValues(values);
-                values.remove(FileColumns.DATA);
-                if (!values.isEmpty()) {
-                    db.update("files", values, "_id=" + id, null);
-                }
-            }
-        }
-    }
-
-    static final int VERSION_J = 509;
-    static final int VERSION_K = 700;
-    static final int VERSION_L = 700;
-    static final int VERSION_M = 800;
-    static final int VERSION_N = 800;
-    static final int VERSION_O = 800;
-    static final int VERSION_P = 900;
-    static final int VERSION_Q = 1023;
-    static final int VERSION_R = 1101;
-
-    /**
-     * This method takes care of updating all the tables in the database to the
-     * current version, creating them if necessary.
-     * This method can only update databases at schema 700 or higher, which was
-     * used by the KitKat release. Older database will be cleared and recreated.
-     * @param db Database
-     * @param internal True if this is the internal media database
-     */
-    private static void updateDatabase(Context context, SQLiteDatabase db, boolean internal,
-            int fromVersion, int toVersion) {
-        final long startTime = SystemClock.elapsedRealtime();
-
-        if (fromVersion < 700) {
-            // Anything older than KK is recreated from scratch
-            createLatestSchema(context, db, internal);
-        } else {
-            boolean recomputeDataValues = false;
-            if (fromVersion < 800) {
-                updateCollationKeys(db);
-            }
-            if (fromVersion < 900) {
-                updateAddTitleResource(db);
-            }
-            if (fromVersion < 1000) {
-                updateAddOwnerPackageName(db, internal);
-            }
-            if (fromVersion < 1003) {
-                updateAddColorSpaces(db);
-            }
-            if (fromVersion < 1004) {
-                updateAddHashAndPending(db, internal);
-            }
-            if (fromVersion < 1005) {
-                updateAddDownloadInfo(db, internal);
-            }
-            if (fromVersion < 1006) {
-                updateAddAudiobook(db, internal);
-            }
-            if (fromVersion < 1007) {
-                updateClearLocation(db, internal);
-            }
-            if (fromVersion < 1008) {
-                updateSetIsDownload(db, internal);
-            }
-            if (fromVersion < 1009) {
-                // This database version added "secondary_bucket_id", but that
-                // column name was refactored in version 1013 below, so this
-                // update step is no longer needed.
-            }
-            if (fromVersion < 1010) {
-                updateAddExpiresAndTrashed(db, internal);
-            }
-            if (fromVersion < 1012) {
-                recomputeDataValues = true;
-            }
-            if (fromVersion < 1013) {
-                updateAddGroupId(db, internal);
-                updateAddDirectories(db, internal);
-                recomputeDataValues = true;
-            }
-            if (fromVersion < 1014) {
-                updateAddXmp(db, internal);
-            }
-            if (fromVersion < 1015) {
-                // Empty version bump to ensure views are recreated
-            }
-            if (fromVersion < 1016) {
-                // Empty version bump to ensure views are recreated
-            }
-            if (fromVersion < 1017) {
-                updateSetIsDownload(db, internal);
-                recomputeDataValues = true;
-            }
-            if (fromVersion < 1018) {
-                updateAddPath(db, internal);
-                recomputeDataValues = true;
-            }
-            if (fromVersion < 1019) {
-                // Only trigger during "external", so that it runs only once.
-                if (!internal) {
-                    deleteLegacyThumbnailData();
-                }
-            }
-            if (fromVersion < 1020) {
-                updateAddVolumeName(db, internal);
-                recomputeDataValues = true;
-            }
-            if (fromVersion < 1021) {
-                // Empty version bump to ensure views are recreated
-            }
-            if (fromVersion < 1022) {
-                updateDirsMimeType(db, internal);
-            }
-            if (fromVersion < 1023) {
-                updateRelativePath(db, internal);
-            }
-            if (fromVersion < 1100) {
-                // Empty version bump to ensure triggers are recreated
-            }
-            if (fromVersion < 1101) {
-                updateClearDirectories(db, internal);
-            }
-
-            if (recomputeDataValues) {
-                recomputeDataValues(db, internal);
-            }
-        }
-
-        // Always recreate latest views and triggers during upgrade; they're
-        // cheap and it's an easy way to ensure they're defined consistently
-        createLatestViews(db, internal);
-        createLatestTriggers(db, internal);
-
-        sanityCheck(db, fromVersion);
-
-        getOrCreateUuid(db);
-
-        final long elapsedSeconds = (SystemClock.elapsedRealtime() - startTime)
-                / DateUtils.SECOND_IN_MILLIS;
-        logToDb(db, "Database upgraded from version " + fromVersion + " to " + toVersion
-                + " in " + elapsedSeconds + " seconds");
-    }
-
-    private static void downgradeDatabase(Context context, SQLiteDatabase db, boolean internal,
-            int fromVersion, int toVersion) {
-        final long startTime = SystemClock.elapsedRealtime();
-
-        // The best we can do is wipe and start over
-        createLatestSchema(context, db, internal);
-
-        final long elapsedSeconds = (SystemClock.elapsedRealtime() - startTime)
-                / DateUtils.SECOND_IN_MILLIS;
-        logToDb(db, "Database downgraded from version " + fromVersion + " to " + toVersion
-                + " in " + elapsedSeconds + " seconds");
-    }
-
-    /**
-     * Write a persistent diagnostic message to the log table.
-     */
-    static void logToDb(SQLiteDatabase db, String message) {
-        db.execSQL("INSERT OR REPLACE" +
-                " INTO log (time,message) VALUES (strftime('%Y-%m-%d %H:%M:%f','now'),?);",
-                new String[] { message });
-        // delete all but the last 500 rows
-        db.execSQL("DELETE FROM log WHERE rowid IN" +
-                " (SELECT rowid FROM log ORDER BY rowid DESC LIMIT 500,-1);");
-    }
-
-    /**
-     * Perform a simple sanity check on the database. Currently this tests
-     * whether all the _data entries in audio_meta are unique
-     */
-    private static void sanityCheck(SQLiteDatabase db, int fromVersion) {
-        Cursor c1 = null;
-        Cursor c2 = null;
-        try {
-            c1 = db.query("audio_meta", new String[] {"count(*)"},
-                    null, null, null, null, null);
-            c2 = db.query("audio_meta", new String[] {"count(distinct _data)"},
-                    null, null, null, null, null);
-            c1.moveToFirst();
-            c2.moveToFirst();
-            int num1 = c1.getInt(0);
-            int num2 = c2.getInt(0);
-            if (num1 != num2) {
-                Log.e(TAG, "audio_meta._data column is not unique while upgrading" +
-                        " from schema " +fromVersion + " : " + num1 +"/" + num2);
-                // Delete all audio_meta rows so they will be rebuilt by the media scanner
-                db.execSQL("DELETE FROM audio_meta;");
-            }
-        } finally {
-            FileUtils.closeQuietly(c1);
-            FileUtils.closeQuietly(c2);
-        }
-    }
-
-    private static final String XATTR_UUID = "user.uuid";
-
-    /**
-     * Return a UUID for the given database. If the database is deleted or
-     * otherwise corrupted, then a new UUID will automatically be generated.
-     */
-    private static @NonNull String getOrCreateUuid(@NonNull SQLiteDatabase db) {
-        try {
-            return new String(Os.getxattr(db.getPath(), XATTR_UUID));
-        } catch (ErrnoException e) {
-            if (e.errno == OsConstants.ENODATA) {
-                // Doesn't exist yet, so generate and persist a UUID
-                final String uuid = UUID.randomUUID().toString();
-                try {
-                    Os.setxattr(db.getPath(), XATTR_UUID, uuid.getBytes(), 0);
-                } catch (ErrnoException e2) {
-                    throw new RuntimeException(e);
-                }
-                return uuid;
-            } else {
-                throw new RuntimeException(e);
-            }
-        }
     }
 
     @VisibleForTesting
@@ -1744,7 +934,7 @@ public class MediaProvider extends ContentProvider {
 
         if (table == VERSION) {
             MatrixCursor c = new MatrixCursor(new String[] {"version"});
-            c.addRow(new Integer[] {getDatabaseVersion(getContext())});
+            c.addRow(new Integer[] {DatabaseHelper.getDatabaseVersion(getContext())});
             return c;
         }
 
@@ -3933,7 +3123,7 @@ public class MediaProvider extends ContentProvider {
 
             helper.mScanStopTime = SystemClock.elapsedRealtime();
             String msg = dump(helper, false);
-            logToDb(helper.getWritableDatabase(), msg);
+            DatabaseHelper.logToDb(helper.getWritableDatabase(), msg);
 
             if (MediaStore.VOLUME_INTERNAL.equals(mMediaScannerVolume)) {
                 // persist current build fingerprint as fingerprint for system (internal) sound scan
@@ -4228,7 +3418,7 @@ public class MediaProvider extends ContentProvider {
                     throw e.rethrowAsIllegalArgumentException();
                 }
 
-                final String version = db.getVersion() + ":" + getOrCreateUuid(db);
+                final String version = db.getVersion() + ":" + DatabaseHelper.getOrCreateUuid(db);
 
                 final Bundle res = new Bundle();
                 res.putString(Intent.EXTRA_TEXT, version);
@@ -6209,18 +5399,8 @@ public class MediaProvider extends ContentProvider {
     public static final String TAG = "MediaProvider";
     public static final boolean LOCAL_LOGV = Log.isLoggable(TAG, Log.VERBOSE);
 
-    private static final String INTERNAL_DATABASE_NAME = "internal.db";
-    private static final String EXTERNAL_DATABASE_NAME = "external.db";
-
-    // maximum number of cached external databases to keep
-    private static final int MAX_EXTERNAL_DATABASES = 3;
-
-    // Delete databases that have not been used in two months
-    // 60 days in milliseconds (1000 * 60 * 60 * 24 * 60)
-    private static final long OBSOLETE_DATABASE_DB = 5184000000L;
-
-    // Memory optimization - close idle connections after 30s of inactivity
-    private static final int IDLE_CONNECTION_TIMEOUT_MS = 30000;
+    static final String INTERNAL_DATABASE_NAME = "internal.db";
+    static final String EXTERNAL_DATABASE_NAME = "external.db";
 
     @GuardedBy("mAttachedVolumeNames")
     private final ArraySet<String> mAttachedVolumeNames = new ArraySet<>();

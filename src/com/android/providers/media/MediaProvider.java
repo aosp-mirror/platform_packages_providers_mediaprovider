@@ -127,6 +127,7 @@ import android.util.Size;
 import android.util.SparseArray;
 
 import androidx.annotation.GuardedBy;
+import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
@@ -4462,7 +4463,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Calculate the ranges that need to be redacted for the given file and user that wants to
+     * Calculates the ranges that need to be redacted for the given file and user that wants to
      * access the file.
      *
      * @param uid UID of the package wanting to access the file
@@ -4471,6 +4472,7 @@ public class MediaProvider extends ContentProvider {
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
+    @Keep
     @NonNull
     public long[] getRedactionRanges(int uid, int fd) throws IOException {
         LocalCallingIdentity token =
@@ -4540,6 +4542,142 @@ public class MediaProvider extends ContentProvider {
 
         Trace.endSection();
         return new RedactionInfo(res.toArray(), freeOffsets.toArray());
+    }
+
+    /**
+     * @throws IllegalStateException if path is invalid or doesn't match a volume.
+     */
+    @NonNull
+    private static Uri getContentUriForFile(@NonNull String filePath, @NonNull String mimeType) {
+        final String volName = MediaStore.getVolumeName(new File(filePath));
+        // We ignore the subtype for our purposes
+        int firstSlash = mimeType.indexOf('/');
+        if (firstSlash < 0) {
+            // This shouldn't happen, but we resort to the non-media files URI as a default
+            return Files.getContentUri(volName);
+        }
+        final String type = mimeType.substring(0, firstSlash).toLowerCase(Locale.ROOT);
+        switch (type) {
+            case "image":
+                return Images.Media.getContentUri(volName);
+            case "video":
+                return Video.Media.getContentUri(volName);
+            case "audio":
+                return Audio.Media.getContentUri(volName);
+            default:
+                return Files.getContentUri(volName);
+        }
+    }
+
+    private boolean fileExists(@NonNull String absolutePath, @NonNull Uri contentUri) {
+        // We don't care about specific columns in the match,
+        // we just want to check IF there's a match
+        final String[] projection = {};
+        final String selection = FileColumns.DATA + " = ?";
+        final String[] selectionArgs = {absolutePath};
+
+        try (final Cursor c = query(contentUri, projection, selection, selectionArgs, null)) {
+            // Shouldn't return null
+            return c.getCount() > 0;
+        }
+    }
+
+    private static int createFileInAppSpecificDir(@NonNull String path) {
+        try {
+            final File toCreate = new File(path);
+            if (toCreate.createNewFile()) {
+                // TODO(b/142807069): should we scan this file after it's been closed?
+                return ParcelFileDescriptor
+                        .open(toCreate,
+                                ParcelFileDescriptor.MODE_WRITE_ONLY
+                                        | ParcelFileDescriptor.MODE_CREATE)
+                        .detachFd();
+            } else {
+                return -OsConstants.EEXIST;
+            }
+        } catch (IOException e) {
+            Log.e(TAG, "I/O Exception while creating file = " + path, e);
+            return -OsConstants.EIO;
+        }
+    }
+
+    /**
+     * Creates file with the given {@link path} on behalf of the app with the given {@link uid}.
+     * Checks if the file path is legal for the given app and file type.
+     *
+     * @param path the path of the file
+     * @param uid UID of the app requesting to create the file
+     * @return In case of success, file descriptor of the newly created file, open for writing.
+     * If the operation is illegal or not permitted, returns the appropriate negated {@code errno}
+     * value:
+     * <ul>
+     * <li>ENOENT if the app tries to create file in other app's external dir
+     * <li>EEXIST if the file already exists
+     * <li>EPERM if the file type doesn't match the relative path
+     * <li>EIO in case of any other I/O exception
+     * </ul>
+     *
+     * @throws IllegalStateException if given path is invalid.
+     *
+     * Called from JNI in jni/MediaProviderWrapper.cpp
+     */
+    @Keep
+    public int createFile(@NonNull String path, int uid) {
+        final LocalCallingIdentity token =
+                clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
+        try {
+            // Returns null if the path doesn't correspond to an app specific directory
+            final String appSpecificDir = extractPathOwnerPackageName(path);
+
+            if (appSpecificDir != null) {
+                for (String packageName : mCallingIdentity.get().getSharedPackageNames()) {
+                    if (appSpecificDir.toLowerCase().equals(packageName.toLowerCase())) {
+                        return createFileInAppSpecificDir(path);
+                    }
+                }
+                Log.e(TAG, "Cannot create file under other app's external directory!");
+                // We treat this error as if the directory doesn't exist to make it harder for
+                // apps to snoop around whether other apps exist or not.
+                return -OsConstants.ENOENT;
+            }
+
+            final String mimeType = MediaFile.getMimeTypeForFile(path);
+            final Uri contentUri = getContentUriForFile(path, mimeType);
+            if (fileExists(path, contentUri)) {
+                return -OsConstants.EEXIST;
+            }
+
+            final String displayName = extractDisplayName(path);
+            final String callingPackageName = getCallingPackageOrSelf();
+            final String relativePath = extractRelativePath(path);
+
+            // TODO(b/142850883): Use IS_PENDING.
+            ContentValues values = new ContentValues();
+            values.put(FileColumns.RELATIVE_PATH, relativePath);
+            values.put(FileColumns.DISPLAY_NAME, displayName);
+            values.put(FileColumns.OWNER_PACKAGE_NAME, callingPackageName);
+            values.put(MediaColumns.MIME_TYPE, mimeType);
+
+            final Uri item = insert(contentUri, values);
+            if (item == null) {
+                return -OsConstants.EPERM;
+            }
+            // File has been created and inserted into the database, now we need to open it and
+            // return the FD to the caller
+            ParcelFileDescriptor pfd = openFile(item, "w");
+            if (pfd == null) {
+                return -OsConstants.EIO;
+            }
+            return pfd.detachFd();
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "createFile failed", e);
+            return -OsConstants.EPERM;
+        } catch (FileNotFoundException ignored) {
+            // Can't happen since we don't get to #openFile unless #insert succeeds
+            return -OsConstants.EIO;
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
     }
 
     private boolean checkCallingPermissionGlobal(Uri uri, boolean forWrite) {

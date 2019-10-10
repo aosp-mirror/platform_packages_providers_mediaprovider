@@ -1181,11 +1181,13 @@ static void pf_create(fuse_req_t req,
         return;
     }
     mode = (mode & (~0777)) | 0664;
-    h->fd = open(child_path.c_str(),
-                 O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC,
-                 mode);
+    // TODO(b/142863102): implement mechanism to pass fi->flags to MediaProvider
+    // and use them when opening the file on the app's behalf.
+    h->fd = fuse->mp->CreateFile(child_path.c_str(), ctx->uid);
     if (h->fd < 0) {
+        errno = -h->fd;
         delete h;
+        PLOG(DEBUG) << "Could not create file: " << child_path;
         fuse_reply_err(req, errno);
         return;
     }

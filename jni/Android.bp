@@ -22,6 +22,7 @@ cc_library_shared {
         "com_android_providers_media_FuseDaemon.cpp",
         "FuseDaemon.cpp",
         "MediaProviderWrapper.cpp",
+        "ReaddirHelper.cpp",
         "RedactionInfo.cpp",
     ],
 

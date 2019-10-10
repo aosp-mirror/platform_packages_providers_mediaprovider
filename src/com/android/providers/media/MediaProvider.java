@@ -961,6 +961,102 @@ public class MediaProvider extends ContentProvider {
         return uri;
     }
 
+    private ArraySet<String> getDirectories(Bundle queryArgs, Uri uri, String[] projection,
+                                            String path) {
+        ArraySet<String> directoryEntrySet = new ArraySet<>();
+        try (final Cursor cursor = query(uri, projection, queryArgs, null)) {
+            while(cursor.moveToNext()) {
+                // Obtain directories with media/non-media files in the given directory.
+                // Get media/non-media files from child directories of the given directory and
+                // extract child directory name from media/non-media file.
+                String directoryName = cursor.getString(cursor.getColumnIndex(
+                    MediaStore.MediaColumns.RELATIVE_PATH)).
+                    replaceAll("^" + path + "/?([^/]+)/.*", "$1");
+                directoryEntrySet.add(directoryName);
+            }
+        }
+        return directoryEntrySet;
+    }
+
+    private ArrayList<String> getFiles(Bundle queryArgs, Uri uri, String[] projection,
+                                       String path) {
+        ArrayList<String> directoryEntryList = new ArrayList<>();
+        try (final Cursor cursor = query(uri, projection, queryArgs, null)) {
+            while(cursor.moveToNext()) {
+                // Use display name for both Media & Non Media Files
+                directoryEntryList.add(cursor.getString(cursor.getColumnIndex(
+                        MediaStore.MediaColumns.DISPLAY_NAME)));
+            }
+        }
+        return directoryEntryList;
+    }
+
+    /**
+     * Gets directory entries of a directory path from media provider database.
+     *
+     * @param path path of the directory
+     * @param uid UID of the calling process
+     * @return directory entries, a list of directory entry names in the given directory path.
+     * First part of the list contains regular files, and second part contains directories. "" is
+     * used to separate the first part of this list with the second. An example return string[] is
+     * ["FileName1", "FileName2", ..., "", "DirectoryName1", "DirectoryName2", ...]
+     * An empty list is returned if directory path is unknown to MediaProvider or no directory
+     * entries are visible to the calling app or the given directory is empty.
+     *
+     * Called from JNI in jni/MediaProviderWrapper.cpp
+     */
+    @Keep
+    public String[] getDirectoryEntries(String path, int uid) {
+        final LocalCallingIdentity token = clearLocalCallingIdentity(
+                LocalCallingIdentity.fromExternal(getContext(), uid));
+        String[] directoryEntries = {};
+        try {
+            // Modify the path to match the relative path format
+            // TODO:(b/142806973) This code assumes path always has a leading '/', Remove this code
+            // when relative path extraction is done in MediaProvider.
+            path = path.substring(1);
+            // Escape '(' & ')'to avoid regex conflicts
+            path = path.replace("(","\\(").replace(")", "\\)");
+
+            Bundle queryArgs = new Bundle();
+
+            // Get file names in the given directory. Get file entries from MediaProvider database
+            // with MediaColumns.RELATIVE_PATH as the given path.
+            String[] projection = {MediaStore.MediaColumns.DISPLAY_NAME};
+            String selection = MediaStore.MediaColumns.RELATIVE_PATH +
+                    " REGEXP '^" + path + "/?' and mime_type not like 'null'";
+            queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, selection);
+            // TODO:(b/142806973) Extract URI/Volume name from the path
+            ArrayList<String> directoryEntryList = getFiles(queryArgs,
+                    MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL),
+                    projection, path);
+            directoryEntryList.add("");
+
+            // Get directories in the given directory by querying MediaProvider database. Get file
+            // entries with MediaColumns.RELATIVE_PATH same as one of the subdirectories of the
+            // given directory. Extract directory names from the returned RELATIVE_PATH.
+            // Subdirectories can have multiple files, avoid duplicates in query results by
+            // grouping results by MediaColumns.RELATIVE_PATH.
+            // TODO:(b/144350275) readdir() should list empty directories.
+            projection[0] = MediaStore.MediaColumns.RELATIVE_PATH;
+            String groupBy = MediaStore.MediaColumns.RELATIVE_PATH;
+            selection =  MediaStore.MediaColumns.RELATIVE_PATH +
+                    " REGEXP '^" + path + "/?([^/]+/)([^/]+/)*$' and mime_type not like 'null'";
+            queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, selection);
+            queryArgs.putString(ContentResolver.QUERY_ARG_SQL_GROUP_BY, groupBy);
+            // TODO:(b/142806973) Extract URI/Volume name from the path
+            directoryEntryList.addAll(getDirectories(queryArgs,
+                      MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL),
+                      projection, path));
+
+            directoryEntries = directoryEntryList.toArray(
+                    new String[directoryEntryList.size()]);
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
+        return directoryEntries;
+    }
+
     @Override
     public int checkUriPermission(@NonNull Uri uri, int uid, @Intent.AccessUriMode int modeFlags) {
         final LocalCallingIdentity token = clearLocalCallingIdentity(

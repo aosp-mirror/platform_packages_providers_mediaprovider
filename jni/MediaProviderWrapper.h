@@ -28,6 +28,7 @@
 #include <string>
 #include <thread>
 
+#include "libfuse_jni/ReaddirHelper.h"
 #include "libfuse_jni/RedactionInfo.h"
 
 namespace mediaprovider {
@@ -78,6 +79,20 @@ class MediaProviderWrapper final {
      * @return 0 upon success, or negated errno error code if operation fails.
      */
     int DeleteFile(const std::string& path, uid_t uid);
+
+    /**
+     * Gets directory entries for given relative path from MediaProvider database.
+     *
+     * @param uid UID of the calling app.
+     * @param path Relative path of the directory.
+     * @param dirp pointer to directory stream
+     * @return DirectoryEntries with list of directory entries on success,
+     * DirectoryEntries with an empty list if directory path is unknown to MediaProvider
+     * or no directory entries are visible to the calling app.
+     */
+    std::vector<std::shared_ptr<DirectoryEntry>> GetDirectoryEntries(uid_t uid,
+                                                                     const std::string& path,
+                                                                     DIR* dirp);
 
     /**
      * Determines if the given UID is allowed to open the file denoted by the given path.
@@ -135,6 +150,7 @@ class MediaProviderWrapper final {
     jmethodID mid_scan_file_;
     jmethodID mid_is_dir_op_allowed_;
     jmethodID mid_is_opendir_allowed_;
+    jmethodID mid_get_directory_entries_;
     /**
      * All JNI calls are delegated to this thread
      */

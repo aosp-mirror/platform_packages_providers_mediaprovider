@@ -17,12 +17,15 @@
 #define LOG_TAG "MediaProviderWrapper"
 
 #include "MediaProviderWrapper.h"
+#include "libfuse_jni/ReaddirHelper.h"
 
 #include <android-base/logging.h>
 #include <android-base/properties.h>
 #include <jni.h>
 #include <nativehelper/scoped_local_ref.h>
 #include <nativehelper/scoped_primitive_array.h>
+#include <nativehelper/scoped_utf_chars.h>
+
 #include <pthread.h>
 
 #include <mutex>
@@ -154,6 +157,44 @@ int isDirectoryOperationAllowedInternal(JNIEnv* env, jobject media_provider_obje
     return res;
 }
 
+std::vector<std::shared_ptr<DirectoryEntry>> getDirectoryEntriesInternal(
+        JNIEnv* env, jobject media_provider_object, jmethodID mid_get_directory_entries, uid_t uid,
+        const string& path) {
+    std::vector<std::shared_ptr<DirectoryEntry>> directory_entries;
+    ScopedLocalRef<jstring> path_jstring(env, env->NewStringUTF(path.c_str()));
+
+    ScopedLocalRef<jobjectArray> directory_entry_list(
+            env,
+            static_cast<jobjectArray>(env->CallObjectMethod(
+                    media_provider_object, mid_get_directory_entries, path_jstring.get(), uid)));
+
+    if (CheckForJniException(env)) {
+        LOG(ERROR) << "Exception occurred while calling MediaProvider#getDirectoryEntries";
+        return directory_entries;
+    }
+
+    int de_count = env->GetArrayLength(directory_entry_list.get());
+    // directory_entry_list is a list of strings with directory entry names.
+    // First part of the list contains files and second part has directories.
+    // "" separates the first part of this list from second.
+    int type = DT_REG;
+    for (int i = 0; i < de_count; i++) {
+        ScopedLocalRef<jstring> d_name_jstring(
+                env, (jstring)env->GetObjectArrayElement(directory_entry_list.get(), i));
+        ScopedUtfChars d_name(env, d_name_jstring.get());
+
+        if (d_name.c_str() == nullptr) {
+            LOG(ERROR) << "Error reading directory entry from MediaProvider at index " << i;
+            continue;
+        }
+        if (d_name.c_str()[0] == '\0') {
+            type = DT_DIR;
+            continue;
+        }
+        directory_entries.push_back(std::make_shared<DirectoryEntry>(d_name.c_str(), type));
+    }
+    return directory_entries;
+}
 }  // namespace
 /*****************************************************************************************/
 /******************************* Public API Implementation *******************************/
@@ -189,6 +230,9 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
                                          "(Ljava/lang/String;I)I", /*is_static*/ false);
     mid_is_opendir_allowed_ = CacheMethod(env, "isOpendirAllowed", "(Ljava/lang/String;I)I",
                                           /*is_static*/ false);
+    mid_get_directory_entries_ =
+            CacheMethod(env, "getDirectoryEntries", "(Ljava/lang/String;I)[Ljava/lang/String;",
+                        /*is_static*/ false);
 
     jni_tasks_welcome_ = true;
     request_terminate_jni_thread_ = false;
@@ -323,6 +367,21 @@ int MediaProviderWrapper::IsDeletingDirAllowed(const string& path, uid_t uid) {
         LOG(DEBUG) << "Checking if UID = " << uid << " can delete dir " << path;
         res = isDirectoryOperationAllowedInternal(env, media_provider_object_,
                                                   mid_is_dir_op_allowed_, path, uid);
+    });
+    return res;
+}
+
+std::vector<std::shared_ptr<DirectoryEntry>> MediaProviderWrapper::GetDirectoryEntries(
+        uid_t uid, const string& path, DIR* dirp) {
+    if (shouldBypassMediaProvider(uid)) {
+        return getDirectoryEntriesFromLowerFs(dirp);
+    }
+
+    // Default value in case JNI thread was being terminated
+    std::vector<std::shared_ptr<DirectoryEntry>> res;
+    PostAndWaitForTask([this, uid, path, &res](JNIEnv* env) {
+        res = getDirectoryEntriesInternal(env, media_provider_object_, mid_get_directory_entries_,
+                                          uid, path);
     });
 
     return res;

@@ -26,6 +26,7 @@ import static android.media.MediaMetadataRetriever.METADATA_KEY_COLOR_TRANSFER;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_COMPILATION;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_COMPOSER;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_DATE;
+import static android.media.MediaMetadataRetriever.METADATA_KEY_DISC_NUMBER;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_DURATION;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_GENRE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_IS_DRM;
@@ -628,7 +629,7 @@ public class ModernMediaScanner implements MediaScanner {
                 withOptionalValue(op, AudioColumns.ALBUM,
                         parseOptional(mmr.extractMetadata(METADATA_KEY_ALBUM)));
                 withOptionalValue(op, AudioColumns.TRACK,
-                        parseOptional(mmr.extractMetadata(METADATA_KEY_CD_TRACK_NUMBER)));
+                        parseOptionalTrack(mmr));
                 withOptionalValue(op, AudioColumns.YEAR,
                         parseOptionalOrZero(mmr.extractMetadata(METADATA_KEY_YEAR)));
                 withOptionalValue(op, AudioColumns.GENRE,
@@ -807,6 +808,24 @@ public class ModernMediaScanner implements MediaScanner {
         }
     }
 
+    private static @NonNull Optional<Integer> parseOptionalNumerator(@Nullable String value) {
+        final Optional<String> parsedValue = parseOptional(value);
+        if (parsedValue.isPresent()) {
+            value = parsedValue.get();
+            final int fractionIndex = value.indexOf('/');
+            if (fractionIndex != -1) {
+                value = value.substring(0, fractionIndex);
+            }
+            try {
+                return Optional.of(Integer.parseInt(value));
+            } catch (NumberFormatException ignored) {
+                return Optional.empty();
+            }
+        } else {
+            return Optional.empty();
+        }
+    }
+
     /**
      * Try our best to calculate {@link MediaColumns#DATE_TAKEN} in reference to
      * the epoch, making our best guess from unrelated fields when offset
@@ -868,6 +887,19 @@ public class ModernMediaScanner implements MediaScanner {
             return (value > 0) ? Optional.of(value) : Optional.empty();
         } catch (ParseException e) {
             return Optional.empty();
+        }
+    }
+
+    private static @NonNull Optional<Integer> parseOptionalTrack(
+            @NonNull MediaMetadataRetriever mmr) {
+        final Optional<Integer> disc = parseOptionalNumerator(
+                mmr.extractMetadata(METADATA_KEY_DISC_NUMBER));
+        final Optional<Integer> track = parseOptionalNumerator(
+                mmr.extractMetadata(METADATA_KEY_CD_TRACK_NUMBER));
+        if (disc.isPresent() && track.isPresent()) {
+            return Optional.of((disc.get() * 1000) + track.get());
+        } else {
+            return track;
         }
     }
 

@@ -46,7 +46,7 @@ class RedactionInfo {
      * This means that this array's length should be TWICE the value of
      * redaction_ranges_num
      */
-    RedactionInfo(int redaction_ranges_num, off64_t* redaction_ranges);
+    RedactionInfo(int redaction_ranges_num, const off64_t* redaction_ranges);
     /**
      * Constructs a new instance of RedactionInfo with no redaction ranges.
      */
@@ -80,8 +80,8 @@ class RedactionInfo {
     int size();
 
   private:
-    std::vector<RedactionRange> redactionRanges;
-    void processRedactionRanges(int redaction_ranges_num, off64_t* redaction_ranges);
+    std::vector<RedactionRange> redaction_ranges_;
+    void processRedactionRanges(int redaction_ranges_num, const off64_t* redaction_ranges);
     bool hasOverlapWithReadRequest(size_t size, off64_t off);
 };
 

@@ -33,6 +33,8 @@ import static com.android.providers.media.LocalCallingIdentity.PERMISSION_READ_V
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_AUDIO;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_IMAGES;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_VIDEO;
+import static com.android.providers.media.util.FileUtils.extractDisplayName;
+import static com.android.providers.media.util.FileUtils.extractFileName;
 
 import android.app.AppOpsManager;
 import android.app.AppOpsManager.OnOpActiveChangedListener;
@@ -137,6 +139,7 @@ import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.IsoInterface;
 import com.android.providers.media.util.LongArray;
+import com.android.providers.media.util.MimeUtils;
 import com.android.providers.media.util.XmpInterface;
 
 import java.io.File;
@@ -1249,7 +1252,7 @@ public class MediaProvider extends ContentProvider {
                 values.put(MediaColumns.DISPLAY_NAME, extractDisplayName(data));
             }
             if (TextUtils.isEmpty(values.getAsString(MediaColumns.MIME_TYPE))) {
-                values.put(MediaColumns.MIME_TYPE, MediaFile.getMimeTypeForFile(data));
+                values.put(MediaColumns.MIME_TYPE, MimeUtils.resolveMimeType(new File(data)));
             }
         }
 
@@ -1514,14 +1517,6 @@ public class MediaProvider extends ContentProvider {
         } else {
             return null;
         }
-    }
-
-    private static @Nullable String extractDisplayName(@Nullable String data) {
-        if (data == null) return null;
-        if (data.endsWith("/")) {
-            data = data.substring(0, data.length() - 1);
-        }
-        return data.substring(data.lastIndexOf('/') + 1);
     }
 
     private long getParent(DatabaseHelper helper, SQLiteDatabase db, String path) {
@@ -1815,7 +1810,7 @@ public class MediaProvider extends ContentProvider {
 
         String title = values.getAsString(MediaStore.MediaColumns.TITLE);
         if (title == null && path != null) {
-            title = MediaFile.getFileTitle(path);
+            title = extractFileName(path);
         }
         values.put(FileColumns.TITLE, title);
 
@@ -1857,7 +1852,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (mimeType == null && path != null && format != MtpConstants.FORMAT_ASSOCIATION) {
-            mimeType = MediaFile.getMimeTypeForFile(path);
+            mimeType = MimeUtils.resolveMimeType(new File(path));
         }
 
         if (mimeType != null) {
@@ -1867,13 +1862,13 @@ public class MediaProvider extends ContentProvider {
             // to use that exact type, so don't override it based on mimetype
             if (!values.containsKey(FileColumns.MEDIA_TYPE) &&
                     mediaType == FileColumns.MEDIA_TYPE_NONE) {
-                if (MediaFile.isAudioMimeType(mimeType)) {
+                if (MimeUtils.isAudioMimeType(mimeType)) {
                     mediaType = FileColumns.MEDIA_TYPE_AUDIO;
-                } else if (MediaFile.isVideoMimeType(mimeType)) {
+                } else if (MimeUtils.isVideoMimeType(mimeType)) {
                     mediaType = FileColumns.MEDIA_TYPE_VIDEO;
-                } else if (MediaFile.isImageMimeType(mimeType)) {
+                } else if (MimeUtils.isImageMimeType(mimeType)) {
                     mediaType = FileColumns.MEDIA_TYPE_IMAGE;
-                } else if (MediaFile.isPlayListMimeType(mimeType)) {
+                } else if (MimeUtils.isPlayListMimeType(mimeType)) {
                     mediaType = FileColumns.MEDIA_TYPE_PLAYLIST;
                 }
             }

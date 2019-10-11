@@ -8,9 +8,6 @@
             "options": [
                 {
                     "include-annotation": "android.platform.test.annotations.Presubmit"
-                },
-                {
-                     "exclude-filter": "android.provider.cts.MediaStore_Images_ThumbnailsTest"
                 }
             ]
         }

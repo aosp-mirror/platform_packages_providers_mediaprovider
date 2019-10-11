@@ -1866,8 +1866,7 @@ public class MediaProvider extends ContentProvider {
             // If 'values' contained the media type, then the caller wants us
             // to use that exact type, so don't override it based on mimetype
             if (!values.containsKey(FileColumns.MEDIA_TYPE) &&
-                    mediaType == FileColumns.MEDIA_TYPE_NONE &&
-                    !android.media.MediaScanner.isNoMediaPath(path)) {
+                    mediaType == FileColumns.MEDIA_TYPE_NONE) {
                 if (MediaFile.isAudioMimeType(mimeType)) {
                     mediaType = FileColumns.MEDIA_TYPE_AUDIO;
                 } else if (MediaFile.isVideoMimeType(mimeType)) {
@@ -3125,16 +3124,6 @@ public class MediaProvider extends ContentProvider {
             String msg = dump(helper, false);
             DatabaseHelper.logToDb(helper.getWritableDatabase(), msg);
 
-            if (MediaStore.VOLUME_INTERNAL.equals(mMediaScannerVolume)) {
-                // persist current build fingerprint as fingerprint for system (internal) sound scan
-                final SharedPreferences scanSettings = getContext().getSharedPreferences(
-                        android.media.MediaScanner.SCANNED_BUILD_PREFS_NAME,
-                        Context.MODE_PRIVATE);
-                final SharedPreferences.Editor editor = scanSettings.edit();
-                editor.putString(android.media.MediaScanner.LAST_INTERNAL_SCAN_FINGERPRINT,
-                        Build.FINGERPRINT);
-                editor.apply();
-            }
             mMediaScannerVolume = null;
             return 1;
         }

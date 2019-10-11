@@ -26,10 +26,19 @@ android_app {
         proguard_flags_files: ["proguard.flags"],
     },
 
+    plugins: [
+        "compat-changeid-annotation-processor",
+    ],
+
     platform_apis: true,
     // sdk_version: "system_current",
 
     certificate: "media",
 
     privileged: true,
+}
+
+platform_compat_config {
+    name: "media-provider-platform-compat-config",
+    src: ":MediaProvider",
 }

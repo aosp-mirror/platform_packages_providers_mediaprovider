@@ -16,6 +16,10 @@
 
 package com.android.providers.media.util;
 
+import static com.android.providers.media.util.FileUtils.extractDisplayName;
+import static com.android.providers.media.util.FileUtils.extractFileExtension;
+import static com.android.providers.media.util.FileUtils.extractFileName;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -159,6 +163,87 @@ public class FileUtilsTest {
         assertNameEquals("test.foo.bar", FileUtils.buildUniqueFile(mTarget, "test.foo.bar"));
         new File(mTarget, "test.foo.bar").createNewFile();
         assertNameEquals("test.foo (1).bar", FileUtils.buildUniqueFile(mTarget, "test.foo.bar"));
+    }
+
+    @Test
+    public void testExtractDisplayName() throws Exception {
+        for (String probe : new String[] {
+                "foo.bar.baz",
+                "/foo.bar.baz",
+                "/foo.bar.baz/",
+                "/sdcard/foo.bar.baz",
+                "/sdcard/foo.bar.baz/",
+        }) {
+            assertEquals(probe, "foo.bar.baz", extractDisplayName(probe));
+        }
+    }
+
+    @Test
+    public void testExtractFileName() throws Exception {
+        for (String probe : new String[] {
+                "foo",
+                "/foo",
+                "/sdcard/foo",
+                "foo.bar",
+                "/foo.bar",
+                "/sdcard/foo.bar",
+        }) {
+            assertEquals(probe, "foo", extractFileName(probe));
+        }
+    }
+
+    @Test
+    public void testExtractFileName_empty() throws Exception {
+        for (String probe : new String[] {
+                "",
+                "/",
+                ".bar",
+                "/.bar",
+                "/sdcard/.bar",
+        }) {
+            assertEquals(probe, "", extractFileName(probe));
+        }
+    }
+
+    @Test
+    public void testExtractFileExtension() throws Exception {
+        for (String probe : new String[] {
+                ".bar",
+                "foo.bar",
+                "/.bar",
+                "/foo.bar",
+                "/sdcard/.bar",
+                "/sdcard/foo.bar",
+                "/sdcard/foo.baz.bar",
+                "/sdcard/foo..bar",
+        }) {
+            assertEquals(probe, "bar", extractFileExtension(probe));
+        }
+    }
+
+    @Test
+    public void testExtractFileExtension_none() throws Exception {
+        for (String probe : new String[] {
+                "",
+                "/",
+                "/sdcard/",
+                "bar",
+                "/bar",
+                "/sdcard/bar",
+        }) {
+            assertEquals(probe, null, extractFileExtension(probe));
+        }
+    }
+
+    @Test
+    public void testExtractFileExtension_empty() throws Exception {
+        for (String probe : new String[] {
+                "foo.",
+                "/foo.",
+                "/sdcard/foo.",
+        }) {
+            assertEquals(probe, "", extractFileExtension(probe));
+        }
     }
 
     private static void assertNameEquals(String expected, File actual) {

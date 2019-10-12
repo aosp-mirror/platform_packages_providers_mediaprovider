@@ -18,12 +18,10 @@ package com.android.providers.media.scan;
 
 import android.content.Context;
 import android.net.Uri;
-import android.os.Trace;
-import android.provider.MediaStore;
-import android.webkit.MimeTypeMap;
 
 import java.io.File;
 
+@Deprecated
 public class LegacyMediaScanner implements MediaScanner {
     private final Context mContext;
 
@@ -38,36 +36,16 @@ public class LegacyMediaScanner implements MediaScanner {
 
     @Override
     public void scanDirectory(File file) {
-        final String path = file.getAbsolutePath();
-        final String volumeName = MediaStore.getVolumeName(file);
-
-        Trace.beginSection("scanDirectory");
-        try (android.media.MediaScanner scanner =
-                new android.media.MediaScanner(mContext, volumeName)) {
-            scanner.scanDirectories(new String[] { path });
-        } finally {
-            Trace.endSection();
-        }
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public Uri scanFile(File file) {
-        final String path = file.getAbsolutePath();
-        final String volumeName = MediaStore.getVolumeName(file);
-
-        Trace.beginSection("scanFile");
-        try (android.media.MediaScanner scanner =
-                new android.media.MediaScanner(mContext, volumeName)) {
-            final String ext = path.substring(path.lastIndexOf('.') + 1);
-            return scanner.scanSingleFile(path,
-                    MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext));
-        } finally {
-            Trace.endSection();
-        }
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void onDetachVolume(String volumeName) {
-        // Ignored
+        throw new UnsupportedOperationException();
     }
 }

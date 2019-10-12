@@ -20,7 +20,9 @@
 
 #include <android-base/logging.h>
 #include <jni.h>
+#include <nativehelper/scoped_primitive_array.h>
 
+#include <pthread.h>
 #include <mutex>
 #include <unordered_map>
 
@@ -41,63 +43,27 @@ bool CheckForJniException(JNIEnv* env) {
     return false;
 }
 
-}  // namespace
-/*****************************************************************************************/
-/******************************* Public API Implementation *******************************/
-/*****************************************************************************************/
+std::unique_ptr<RedactionInfo> getRedactionInfoInternal(JNIEnv* env, jobject media_provider_object,
+                                                        jmethodID mid_get_redaction_ranges,
+                                                        uid_t uid, int fd) {
+    LOG(DEBUG) << "Computing redaction ranges for uid = " << uid << " fd = " << fd;
+    ScopedLongArrayRO redaction_ranges(
+            env, static_cast<jlongArray>(env->CallObjectMethod(media_provider_object,
+                                                               mid_get_redaction_ranges, uid, fd)));
 
-MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject mediaProvider) {
-    if (!mediaProvider) {
-        LOG(FATAL) << "MediaProvider is null!";
+    if (lseek(fd, 0, SEEK_SET)) {
+        return nullptr;
     }
-    env->GetJavaVM(&jvm);
-    if (CheckForJniException(env)) {
-        LOG(FATAL) << "Could not get JavaVM!";
-    }
-    mediaProviderObject = reinterpret_cast<jobject>(env->NewGlobalRef(mediaProvider));
-    mediaProviderClass = env->FindClass("com/android/providers/media/MediaProvider");
-    if (!mediaProviderClass) {
-        LOG(FATAL) << "Could not find class MediaProvider";
-    }
-    mediaProviderClass = reinterpret_cast<jclass>(env->NewGlobalRef(mediaProviderClass));
-
-    // Cache methods - Before calling a method, make sure you cache it here
-    mid_getRedactionRanges = CacheMethod(env, "getRedactionRanges", "(II)[J", /*isStatic*/ false);
-
-    LOG(INFO) << "Successfully initialized MediaProviderWrapper";
-}
-
-MediaProviderWrapper::~MediaProviderWrapper() {
-    JNIEnv* env;
-    jvm->AttachCurrentThread(&env, NULL);
-    env->DeleteGlobalRef(mediaProviderObject);
-    env->DeleteGlobalRef(mediaProviderClass);
-    jvm->DetachCurrentThread();
-}
-
-std::unique_ptr<RedactionInfo> MediaProviderWrapper::GetRedactionInfo(uid_t uid, int fd) {
-    LOG(DEBUG) << "Computing redaction ranges for fd = " << fd << " uid = " << uid;
-    JNIEnv* env;
-    jvm->AttachCurrentThread(&env, NULL);
-
-    // TODO: Consider using ScopedLocalRef?
-    jlongArray redactionRangesObj = static_cast<jlongArray>(
-            env->CallObjectMethod(mediaProviderObject, mid_getRedactionRanges, uid, fd));
-    lseek(fd, 0, SEEK_SET);
     if (CheckForJniException(env)) {
         LOG(ERROR) << "Exception occurred while calling MediaProvider#getRedactionRanges";
-        jvm->DetachCurrentThread();
         return nullptr;
     }
 
-    jsize redactionRangesSize = env->GetArrayLength(redactionRangesObj);
-    off64_t* redactionRanges = (off64_t*)env->GetLongArrayElements(redactionRangesObj, 0);
-
-    std::unique_ptr<RedactionInfo> ri = nullptr;
-    if (redactionRangesSize % 2) {
+    std::unique_ptr<RedactionInfo> ri;
+    if (redaction_ranges.size() % 2) {
         LOG(ERROR) << "Error while calculating redaction ranges: array length is uneven";
-    } else if (redactionRangesSize > 0) {
-        ri = std::make_unique<RedactionInfo>(redactionRangesSize / 2, redactionRanges);
+    } else if (redaction_ranges.size() > 0) {
+        ri = std::make_unique<RedactionInfo>(redaction_ranges.size() / 2, redaction_ranges.get());
         LOG(DEBUG) << "Redaction ranges computed. Number of ranges = " << ri->size();
     } else {
         // No ranges to redact
@@ -105,29 +71,142 @@ std::unique_ptr<RedactionInfo> MediaProviderWrapper::GetRedactionInfo(uid_t uid,
         LOG(DEBUG) << "Redaction ranges computed. No ranges to redact.";
     }
 
-    env->ReleaseLongArrayElements(redactionRangesObj, (jlong*)redactionRanges, 0);
-    jvm->DetachCurrentThread();
     return ri;
+}
+
+}  // namespace
+/*****************************************************************************************/
+/******************************* Public API Implementation *******************************/
+/*****************************************************************************************/
+
+MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) {
+    if (!media_provider) {
+        LOG(FATAL) << "MediaProvider is null!";
+    }
+    JavaVM* jvm;
+    env->GetJavaVM(&jvm);
+    if (CheckForJniException(env)) {
+        LOG(FATAL) << "Could not get JavaVM!";
+    }
+    media_provider_object_ = reinterpret_cast<jobject>(env->NewGlobalRef(media_provider));
+    media_provider_class_ = env->FindClass("com/android/providers/media/MediaProvider");
+    if (!media_provider_class_) {
+        LOG(FATAL) << "Could not find class MediaProvider";
+    }
+    media_provider_class_ = reinterpret_cast<jclass>(env->NewGlobalRef(media_provider_class_));
+
+    // Cache methods - Before calling a method, make sure you cache it here
+    mid_get_redaction_ranges_ =
+            CacheMethod(env, "getRedactionRanges", "(II)[J", /*is_static*/ false);
+
+    jni_tasks_welcome_ = true;
+    jni_thread_terminated_ = false;
+
+    jni_thread_ = std::thread(&MediaProviderWrapper::JniThreadLoop, this, jvm);
+    pthread_setname_np(jni_thread_.native_handle(), "media_provider_jni_thr");
+    LOG(INFO) << "Successfully initialized MediaProviderWrapper";
+}
+
+MediaProviderWrapper::~MediaProviderWrapper() {
+    {
+        std::lock_guard<std::mutex> guard(jni_task_lock_);
+        jni_tasks_welcome_ = false;
+    }
+
+    // Threads might slip in here and try to post a task, but it will be rejected
+    // because the flag value has already been changed. This ensures that the
+    // termination task is the last task in the queue.
+
+    LOG(DEBUG) << "Posting task to terminate JNI thread";
+    PostAndWaitForTask([this](JNIEnv* env) {
+        env->DeleteGlobalRef(media_provider_object_);
+        env->DeleteGlobalRef(media_provider_class_);
+        jni_thread_terminated_ = true;
+    });
+
+    LOG(INFO) << "Successfully destroyed MediaProviderWrapper";
+}
+
+std::unique_ptr<RedactionInfo> MediaProviderWrapper::GetRedactionInfo(uid_t uid, int fd) {
+    std::unique_ptr<RedactionInfo> res;
+
+    // TODO: Consider what to do if task doesn't get posted. This could happen
+    // if MediaProviderWrapper's d'tor was called and before it's done, a thread slipped in
+    // and requested to read a file.
+    PostAndWaitForTask([this, uid, fd, &res](JNIEnv* env) {
+        auto ri = getRedactionInfoInternal(env, media_provider_object_, mid_get_redaction_ranges_,
+                                           uid, fd);
+        res = std::move(ri);
+    });
+
+    return res;
 }
 
 /*****************************************************************************************/
 /******************************** Private member functions *******************************/
 /*****************************************************************************************/
+/**
+ * Handles the synchronization details of posting a task to the JNI thread and waiting for its
+ * result.
+ */
+bool MediaProviderWrapper::PostAndWaitForTask(const JniTask& t) {
+    bool task_done = false;
+    std::condition_variable cond_task_done;
+
+    std::unique_lock<std::mutex> lock(jni_task_lock_);
+    if (!jni_tasks_welcome_) return false;
+
+    jni_tasks_.push([&task_done, &cond_task_done, &t](JNIEnv* env) {
+        t(env);
+        task_done = true;
+        cond_task_done.notify_one();
+    });
+
+    // trigger the call to jni_thread_
+    pending_task_cond_.notify_one();
+
+    // wait for the call to be performed
+    cond_task_done.wait(lock, [&task_done] { return task_done; });
+    return true;
+}
+
+/**
+ * Main loop for jni_thread_.
+ * This method makes the running thread sleep until another thread calls
+ * this.pending_task_cond_.notify_one(), the calling thread must manually wait for the result.
+ */
+void MediaProviderWrapper::JniThreadLoop(JavaVM* jvm) {
+    JNIEnv* env;
+    jvm->AttachCurrentThread(&env, NULL);
+
+    while (!jni_thread_terminated_) {
+        std::unique_lock<std::mutex> cond_lock(jni_task_lock_);
+        pending_task_cond_.wait(cond_lock, [this] { return !jni_tasks_.empty(); });
+
+        JniTask task = jni_tasks_.front();
+        jni_tasks_.pop();
+        cond_lock.unlock();
+
+        task(env);
+    }
+
+    jvm->DetachCurrentThread();
+}
 
 /**
  * Finds MediaProvider method and adds it to methods map so it can be quickly called later.
  */
-jmethodID MediaProviderWrapper::CacheMethod(JNIEnv* env, const char methodName[],
-                                            const char signature[], bool isStatic) {
+jmethodID MediaProviderWrapper::CacheMethod(JNIEnv* env, const char method_name[],
+                                            const char signature[], bool is_static) {
     jmethodID mid;
-    if (isStatic) {
-        mid = env->GetStaticMethodID(mediaProviderClass, methodName, signature);
+    if (is_static) {
+        mid = env->GetStaticMethodID(media_provider_class_, method_name, signature);
     } else {
-        mid = env->GetMethodID(mediaProviderClass, methodName, signature);
+        mid = env->GetMethodID(media_provider_class_, method_name, signature);
     }
     if (!mid) {
         // SHOULD NOT HAPPEN!
-        LOG(FATAL) << "Error caching method: " << methodName << signature;
+        LOG(FATAL) << "Error caching method: " << method_name << signature;
     }
     return mid;
 }

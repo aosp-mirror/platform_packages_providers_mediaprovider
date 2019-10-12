@@ -16,12 +16,13 @@
 
 package com.android.providers.media.fuse;
 
-import android.annotation.NonNull;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.os.OperationCanceledException;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
+
+import androidx.annotation.NonNull;
 
 import com.android.internal.util.Preconditions;
 import com.android.providers.media.MediaProvider;

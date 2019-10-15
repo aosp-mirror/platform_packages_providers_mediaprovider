@@ -765,7 +765,7 @@ public class MediaProvider extends ContentProvider {
         if (TextUtils.isEmpty(data)) return;
 
         final File file = new File(data);
-        final File fileLower = new File(data.toLowerCase());
+        final File fileLower = new File(data.toLowerCase(Locale.ROOT));
 
         values.put(ImageColumns.VOLUME_NAME, extractVolumeName(data));
         values.put(ImageColumns.RELATIVE_PATH, extractRelativePath(data));
@@ -2341,7 +2341,7 @@ public class MediaProvider extends ContentProvider {
         // permission checks for this caller
         mCallingIdentity.get().setOwned(rowId, true);
 
-        if (path != null && path.toLowerCase(Locale.US).endsWith("/.nomedia")) {
+        if (path != null && path.toLowerCase(Locale.ROOT).endsWith("/.nomedia")) {
             MediaScanner.instance(getContext()).scanFile(new File(path).getParentFile());
         }
 
@@ -3864,7 +3864,7 @@ public class MediaProvider extends ContentProvider {
                                 oldPath + "0",
                                 // update bucket_display_name and bucket_id based on new path
                                 f.getName(),
-                                f.toString().toLowerCase().hashCode(),
+                                f.toString().toLowerCase(Locale.ROOT).hashCode(),
                                 isDownload
                                 };
                         db.execSQL("UPDATE files SET _data=?1||SUBSTR(_data, ?2)" +
@@ -3884,7 +3884,7 @@ public class MediaProvider extends ContentProvider {
                     }
                     return count;
                 }
-            } else if (newPath.toLowerCase(Locale.US).endsWith("/.nomedia")) {
+            } else if (newPath.toLowerCase(Locale.ROOT).endsWith("/.nomedia")) {
                 MediaScanner.instance(getContext()).scanFile(new File(newPath).getParentFile());
             }
         }

@@ -19,8 +19,6 @@ package com.android.providers.media.scan;
 import android.content.Context;
 import android.net.Uri;
 
-import com.android.providers.media.MediaProvider;
-
 import java.io.File;
 
 public interface MediaScanner {
@@ -28,12 +26,4 @@ public interface MediaScanner {
     public void scanDirectory(File file);
     public Uri scanFile(File file);
     public void onDetachVolume(String volumeName);
-
-    public static MediaScanner instance(Context context) {
-        if (MediaProvider.ENABLE_MODERN_SCANNER) {
-            return new ModernMediaScanner(context);
-        } else {
-            return new LegacyMediaScanner(context);
-        }
-    }
 }

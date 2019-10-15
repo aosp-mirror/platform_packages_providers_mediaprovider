@@ -87,7 +87,6 @@ import android.os.ParcelFileDescriptor.OnCloseListener;
 import android.os.RedactingFileDescriptor;
 import android.os.RemoteException;
 import android.os.SystemClock;
-import android.os.SystemProperties;
 import android.os.Trace;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -176,9 +175,6 @@ import java.util.regex.Pattern;
  * changes with the card.
  */
 public class MediaProvider extends ContentProvider {
-    public static final boolean ENABLE_MODERN_SCANNER = SystemProperties
-            .getBoolean("persist.sys.modern_scanner", true);
-
     /**
      * Regex that matches paths in all well-known package-specific directories,
      * and which captures the package name as the first group.
@@ -522,6 +518,8 @@ public class MediaProvider extends ContentProvider {
         final int thumbSize = Math.min(metrics.widthPixels, metrics.heightPixels) / 2;
         mThumbSize = new Size(thumbSize, thumbSize);
 
+        mMediaScanner = new ModernMediaScanner(context);
+
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, true, false);
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false, false);
 
@@ -668,6 +666,14 @@ public class MediaProvider extends ContentProvider {
             Log.d(TAG, "Orphaned " + count + " items belonging to "
                     + packageName + " on " + helper.mName);
         }
+    }
+
+    public void scanDirectory(File file) {
+        mMediaScanner.scanDirectory(file);
+    }
+
+    public Uri scanFile(File file) {
+        return mMediaScanner.scanFile(file);
     }
 
     private void enforceShellRestrictions() {
@@ -2342,7 +2348,7 @@ public class MediaProvider extends ContentProvider {
         mCallingIdentity.get().setOwned(rowId, true);
 
         if (path != null && path.toLowerCase(Locale.ROOT).endsWith("/.nomedia")) {
-            MediaScanner.instance(getContext()).scanFile(new File(path).getParentFile());
+            mMediaScanner.scanFile(new File(path).getParentFile());
         }
 
         if (newUri != null) {
@@ -3212,8 +3218,7 @@ public class MediaProvider extends ContentProvider {
                     final Bundle res = new Bundle();
                     switch (method) {
                         case MediaStore.SCAN_FILE_CALL:
-                            res.putParcelable(Intent.EXTRA_STREAM,
-                                    MediaScanner.instance(getContext()).scanFile(file));
+                            res.putParcelable(Intent.EXTRA_STREAM, scanFile(file));
                             break;
                         case MediaStore.SCAN_VOLUME_CALL:
                             MediaService.onScanVolume(getContext(), Uri.fromFile(file));
@@ -3880,12 +3885,12 @@ public class MediaProvider extends ContentProvider {
                         acceptWithExpansion(helper::notifyChange, uri);
                     }
                     if (f.getName().startsWith(".")) {
-                        MediaScanner.instance(getContext()).scanFile(new File(newPath));
+                        mMediaScanner.scanFile(new File(newPath));
                     }
                     return count;
                 }
             } else if (newPath.toLowerCase(Locale.ROOT).endsWith("/.nomedia")) {
-                MediaScanner.instance(getContext()).scanFile(new File(newPath).getParentFile());
+                mMediaScanner.scanFile(new File(newPath).getParentFile());
             }
         }
 
@@ -3961,7 +3966,7 @@ public class MediaProvider extends ContentProvider {
                     if (triggerScan) {
                         try (Cursor c = queryForSingleItem(updatedUri,
                                 new String[] { FileColumns.DATA }, null, null, null)) {
-                            MediaScanner.instance(getContext()).scanFile(new File(c.getString(0)));
+                            mMediaScanner.scanFile(new File(c.getString(0)));
                         } catch (Exception e) {
                             Log.w(TAG, "Failed to update metadata for " + updatedUri, e);
                         }
@@ -4331,7 +4336,7 @@ public class MediaProvider extends ContentProvider {
                         update(uri, values, null, null);
                         break;
                     default:
-                        MediaScanner.instance(getContext()).scanFile(file);
+                        mMediaScanner.scanFile(file);
                         break;
                 }
             } catch (Exception e2) {
@@ -4912,7 +4917,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Signal any scanning to shut down
-        MediaScanner.instance(getContext()).onDetachVolume(volume);
+        mMediaScanner.onDetachVolume(volume);
 
         synchronized (mAttachedVolumeNames) {
             mAttachedVolumeNames.remove(volume);
@@ -4941,6 +4946,8 @@ public class MediaProvider extends ContentProvider {
     private final ArraySet<String> mAttachedVolumeNames = new ArraySet<>();
     @GuardedBy("mCustomCollators")
     private final ArraySet<String> mCustomCollators = new ArraySet<>();
+
+    private MediaScanner mMediaScanner;
 
     private DatabaseHelper mInternalDatabase;
     private DatabaseHelper mExternalDatabase;

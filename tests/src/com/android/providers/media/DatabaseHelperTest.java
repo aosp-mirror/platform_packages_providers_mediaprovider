@@ -49,6 +49,8 @@ public class DatabaseHelperTest {
     private static final String TEST_DOWNGRADE_DB = "test_downgrade";
     private static final String TEST_CLEAN_DB = "test_clean";
 
+    private static final String SQLITE_MASTER_ORDER_BY = "type,name,tbl_name";
+
     private Context getContext() {
         return InstrumentationRegistry.getTargetContext();
     }
@@ -287,19 +289,20 @@ public class DatabaseHelperTest {
                     .newInstance(getContext(), TEST_CLEAN_DB)) {
                 SQLiteDatabase db2 = helper2.getWritableDatabase();
 
-                try (Cursor c1 = db.query("sqlite_master", null, null, null, null, null, null);
-                        Cursor c2 = db2.query("sqlite_master", null, null, null, null, null, null)) {
+                try (Cursor c1 = db.query("sqlite_master",
+                        null, null, null, null, null, SQLITE_MASTER_ORDER_BY);
+                        Cursor c2 = db2.query("sqlite_master",
+                                null, null, null, null, null, SQLITE_MASTER_ORDER_BY)) {
                     while (c1.moveToNext() && c2.moveToNext()) {
-                        assertEquals(c2.getString(0), c1.getString(0));
-                        assertEquals(c2.getString(1), c1.getString(1));
-                        assertEquals(c2.getString(2), c1.getString(2));
-                        assertEquals(c2.getString(3), c1.getString(3));
-
                         final String sql1 = normalize(c1.getString(4));
                         final String sql2 = normalize(c2.getString(4));
                         Log.v(TAG, String.valueOf(sql1));
                         Log.v(TAG, String.valueOf(sql2));
                         assertEquals(sql2, sql1);
+
+                        assertEquals(c2.getString(0), c1.getString(0));
+                        assertEquals(c2.getString(1), c1.getString(1));
+                        assertEquals(c2.getString(2), c1.getString(2));
                     }
                     assertEquals(c1.getCount(), c2.getCount());
                 }

@@ -604,7 +604,6 @@ public class ModernMediaScanner implements MediaScanner {
         withGenericValues(op, file, attrs, mimeType);
         op.withValue(AudioColumns.ARTIST, UNKNOWN_STRING);
         op.withValue(AudioColumns.ALBUM_ARTIST, null);
-        op.withValue(AudioColumns.COMPILATION, null);
         op.withValue(AudioColumns.COMPOSER, null);
         op.withValue(AudioColumns.ALBUM, file.getParentFile().getName());
         op.withValue(AudioColumns.TRACK, null);
@@ -638,8 +637,6 @@ public class ModernMediaScanner implements MediaScanner {
                         parseOptional(mmr.extractMetadata(METADATA_KEY_ARTIST)));
                 withOptionalValue(op, AudioColumns.ALBUM_ARTIST,
                         parseOptional(mmr.extractMetadata(METADATA_KEY_ALBUMARTIST)));
-                withOptionalValue(op, AudioColumns.COMPILATION,
-                        parseOptional(mmr.extractMetadata(METADATA_KEY_COMPILATION)));
                 withOptionalValue(op, AudioColumns.COMPOSER,
                         parseOptional(mmr.extractMetadata(METADATA_KEY_COMPOSER)));
                 withOptionalValue(op, AudioColumns.ALBUM,

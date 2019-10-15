@@ -17,6 +17,7 @@
 #include "FuseDaemon.h"
 
 #include <android-base/logging.h>
+#include <android-base/properties.h>
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
@@ -61,6 +62,7 @@ using std::vector;
 #define FUSE_UNKNOWN_INO 0xffffffff
 
 constexpr size_t MAX_READ_SIZE = 128 * 1024;
+static constexpr const char* kPropRedactionEnabled = "persist.sys.fuse.redaction-enabled";
 
 struct handle {
     int fd;
@@ -862,7 +864,13 @@ static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
     struct fuse* fuse = get_fuse(req);
     TRACE_FUSE(fuse) << "READ";
     if (!h->ri) {
-        h->ri = fuse->mp->GetRedactionInfo(req->ctx.uid, h->fd);
+        if (android::base::GetBoolProperty(kPropRedactionEnabled, true)) {
+            h->ri = fuse->mp->GetRedactionInfo(req->ctx.uid, h->fd);
+        } else {
+            // If redaction is not enabled, we just use empty redaction ranges
+            // which mean that we will always use do_read instead of do_read_with_redaction
+            h->ri = std::make_unique<RedactionInfo>();
+        }
         if (!h->ri) {
             errno = EIO;
             fuse_reply_err(req, errno);

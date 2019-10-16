@@ -41,8 +41,6 @@ import android.provider.MediaStore.MediaColumns;
 import android.provider.Settings;
 import android.util.Log;
 
-import com.android.providers.media.scan.MediaScanner;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -134,7 +132,8 @@ public class MediaService extends IntentService {
 
         try (ContentProviderClient cpc = context.getContentResolver()
                 .acquireContentProviderClient(MediaStore.AUTHORITY)) {
-            ((MediaProvider) cpc.getLocalContentProvider()).attachVolume(volumeName);
+            final MediaProvider provider = ((MediaProvider) cpc.getLocalContentProvider());
+            provider.attachVolume(volumeName);
 
             final ContentResolver resolver = ContentResolver.wrap(cpc.getLocalContentProvider());
 
@@ -147,7 +146,7 @@ public class MediaService extends IntentService {
             }
 
             for (File dir : resolveDirectories(volumeName)) {
-                MediaScanner.instance(context).scanDirectory(dir);
+                provider.scanDirectory(dir);
             }
 
             resolver.delete(scanUri, null, null);
@@ -161,7 +160,11 @@ public class MediaService extends IntentService {
 
     public static Uri onScanFile(Context context, Uri uri) throws IOException {
         final File file = new File(uri.getPath()).getCanonicalFile();
-        return MediaScanner.instance(context).scanFile(file);
+        try (ContentProviderClient cpc = context.getContentResolver()
+                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+            final MediaProvider provider = ((MediaProvider) cpc.getLocalContentProvider());
+            return provider.scanFile(file);
+        }
     }
 
     private static Collection<File> resolveDirectories(String volumeName)
@@ -172,7 +175,7 @@ public class MediaService extends IntentService {
     /**
      * Ensure that we've set ringtones at least once after initial scan.
      */
-    private static void ensureDefaultRingtones(Context context) {
+    static void ensureDefaultRingtones(Context context) {
         for (int type : new int[] {
                 TYPE_RINGTONE,
                 TYPE_NOTIFICATION,

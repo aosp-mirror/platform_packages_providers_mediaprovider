@@ -33,6 +33,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.Objects;
 
 public class FileUtils {
@@ -300,7 +301,7 @@ public class FileUtils {
                 name = displayName.substring(0, lastDot);
                 ext = displayName.substring(lastDot + 1);
                 mimeTypeFromExt = MimeTypeMap.getSingleton().getMimeTypeFromExtension(
-                        ext.toLowerCase());
+                        ext.toLowerCase(Locale.ROOT));
             } else {
                 name = displayName;
                 ext = null;

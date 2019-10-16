@@ -56,6 +56,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 @RunWith(AndroidJUnit4.class)
@@ -645,7 +646,7 @@ public class MediaProviderTest {
         if (bucketId != null) {
             assertEquals(bucketName,
                     values.getAsString(ImageColumns.BUCKET_DISPLAY_NAME));
-            assertEquals(bucketId.toLowerCase().hashCode(),
+            assertEquals(bucketId.toLowerCase(Locale.ROOT).hashCode(),
                     (long) values.getAsLong(ImageColumns.BUCKET_ID));
         } else {
             assertNull(values.get(ImageColumns.BUCKET_DISPLAY_NAME));
@@ -655,7 +656,7 @@ public class MediaProviderTest {
 
     private static void assertGroup(ContentValues values, String groupId) {
         if (groupId != null) {
-            assertEquals(groupId.toLowerCase().hashCode(),
+            assertEquals(groupId.toLowerCase(Locale.ROOT).hashCode(),
                     (long) values.getAsLong(ImageColumns.GROUP_ID));
         } else {
             assertNull(values.get(ImageColumns.GROUP_ID));

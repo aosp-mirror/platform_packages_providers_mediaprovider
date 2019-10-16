@@ -517,7 +517,7 @@ public class ModernMediaScanner implements MediaScanner {
             } else {
                 return scanItemFile(existingId, file, attrs, mimeType, volumeName);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             if (LOGW) Log.w(TAG, "Ignoring troubled file: " + file, e);
             return null;
         }
@@ -571,7 +571,7 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     private static @NonNull ContentProviderOperation scanItemDirectory(long existingId, File file,
-            BasicFileAttributes attrs, String mimeType, String volumeName) throws IOException {
+            BasicFileAttributes attrs, String mimeType, String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(
                 MediaStore.Files.getContentUri(volumeName), existingId);
         try {
@@ -580,7 +580,7 @@ public class ModernMediaScanner implements MediaScanner {
             op.withValue(FileColumns.FORMAT, MtpConstants.FORMAT_ASSOCIATION);
             op.withValue(FileColumns.MIME_TYPE, null);
         } catch (Exception e) {
-            throw new IOException(e);
+            if (LOGW) Log.w(TAG, "Trouble scanning file: " + file, e);
         }
         return op.build();
     }
@@ -597,7 +597,7 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     private static @NonNull ContentProviderOperation scanItemAudio(long existingId, File file,
-            BasicFileAttributes attrs, String mimeType, String volumeName) throws IOException {
+            BasicFileAttributes attrs, String mimeType, String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(
                 MediaStore.Audio.Media.getContentUri(volumeName), existingId);
 
@@ -655,26 +655,26 @@ public class ModernMediaScanner implements MediaScanner {
             withXmpValues(op, xmp, mimeType);
 
         } catch (Exception e) {
-            throw new IOException(e);
+            if (LOGW) Log.w(TAG, "Trouble scanning file: " + file, e);
         }
         return op.build();
     }
 
     private static @NonNull ContentProviderOperation scanItemPlaylist(long existingId, File file,
-            BasicFileAttributes attrs, String mimeType, String volumeName) throws IOException {
+            BasicFileAttributes attrs, String mimeType, String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(
                 MediaStore.Audio.Playlists.getContentUri(volumeName), existingId);
         try {
             withGenericValues(op, file, attrs, mimeType);
             op.withValue(PlaylistsColumns.NAME, extractName(file));
         } catch (Exception e) {
-            throw new IOException(e);
+            if (LOGW) Log.w(TAG, "Trouble scanning file: " + file, e);
         }
         return op.build();
     }
 
     private static @NonNull ContentProviderOperation scanItemVideo(long existingId, File file,
-            BasicFileAttributes attrs, String mimeType, String volumeName) throws IOException {
+            BasicFileAttributes attrs, String mimeType, String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(
                 MediaStore.Video.Media.getContentUri(volumeName), existingId);
 
@@ -723,13 +723,13 @@ public class ModernMediaScanner implements MediaScanner {
             withXmpValues(op, xmp, mimeType);
 
         } catch (Exception e) {
-            throw new IOException(e);
+            if (LOGW) Log.w(TAG, "Trouble scanning file: " + file, e);
         }
         return op.build();
     }
 
     private static @NonNull ContentProviderOperation scanItemImage(long existingId, File file,
-            BasicFileAttributes attrs, String mimeType, String volumeName) throws IOException {
+            BasicFileAttributes attrs, String mimeType, String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(
                 MediaStore.Images.Media.getContentUri(volumeName), existingId);
 
@@ -757,19 +757,19 @@ public class ModernMediaScanner implements MediaScanner {
             withXmpValues(op, xmp, mimeType);
 
         } catch (Exception e) {
-            throw new IOException(e);
+            if (LOGW) Log.w(TAG, "Trouble scanning file: " + file, e);
         }
         return op.build();
     }
 
     private static @NonNull ContentProviderOperation scanItemFile(long existingId, File file,
-            BasicFileAttributes attrs, String mimeType, String volumeName) throws IOException {
+            BasicFileAttributes attrs, String mimeType, String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(
                 MediaStore.Files.getContentUri(volumeName), existingId);
         try {
             withGenericValues(op, file, attrs, mimeType);
         } catch (Exception e) {
-            throw new IOException(e);
+            if (LOGW) Log.w(TAG, "Trouble scanning file: " + file, e);
         }
         return op.build();
     }

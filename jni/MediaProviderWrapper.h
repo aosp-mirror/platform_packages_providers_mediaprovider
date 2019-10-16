@@ -70,12 +70,23 @@ class MediaProviderWrapper final {
      */
     int CreateFile(const std::string& path, uid_t uid);
 
+    /**
+     * Delete the file denoted by the given path on behalf of the given UID.
+     *
+     * @param path the path of the file to be deleted
+     * @param uid UID of the calling app
+     * @return 0 upon success,
+     * or negated errno error code if operation fails.
+     */
+    int DeleteFile(const std::string& path, uid_t uid);
+
   private:
     jclass media_provider_class_;
     jobject media_provider_object_;
-    /** Add MediaProvider method IDs that you want to cache here **/
+    /** Cached MediaProvider method IDs **/
     jmethodID mid_get_redaction_ranges_;
     jmethodID mid_create_file_;
+    jmethodID mid_delete_file_;
     /**
      * All JNI calls are delegated to this thread
      */

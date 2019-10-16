@@ -599,7 +599,8 @@ static void pf_unlink(fuse_req_t req, fuse_ino_t parent, const char* name) {
 
     child_path = parent_path + "/" + name;
 
-    if (unlink(child_path.c_str()) < 0) {
+    errno = -fuse->mp->DeleteFile(child_path, ctx->uid);
+    if (errno) {
         fuse_reply_err(req, errno);
         return;
     }

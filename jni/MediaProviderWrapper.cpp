@@ -89,6 +89,20 @@ int createFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid
     return fd;
 }
 
+int deleteFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_delete_file,
+                       const string& path, uid_t uid) {
+    LOG(DEBUG) << "Delete file for UID = " << uid << ". Path = " << path;
+    ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
+    int res = env->CallIntMethod(media_provider_object, mid_delete_file, j_path.get(), uid);
+
+    if (CheckForJniException(env)) {
+        LOG(DEBUG) << "Java exception while deleting file";
+        return -EFAULT;
+    }
+    LOG(DEBUG) << "res = " << res;
+    return res;
+}
+
 }  // namespace
 /*****************************************************************************************/
 /******************************* Public API Implementation *******************************/
@@ -114,6 +128,7 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
     mid_get_redaction_ranges_ =
             CacheMethod(env, "getRedactionRanges", "(II)[J", /*is_static*/ false);
     mid_create_file_ = CacheMethod(env, "createFile", "(Ljava/lang/String;I)I", /*is_static*/ false);
+    mid_delete_file_ = CacheMethod(env, "deleteFile", "(Ljava/lang/String;I)I", /*is_static*/ false);
 
     jni_tasks_welcome_ = true;
     jni_thread_terminated_ = false;
@@ -163,6 +178,16 @@ int MediaProviderWrapper::CreateFile(const string& path, uid_t uid) {
 
     PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
         res = createFileInternal(env, media_provider_object_, mid_create_file_, path, uid);
+    });
+
+    return res;
+}
+
+int MediaProviderWrapper::DeleteFile(const string& path, uid_t uid) {
+    int res = -EIO;  // Default value in case JNI thread was being terminated
+
+    PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
+        res = deleteFileInternal(env, media_provider_object_, mid_delete_file_, path, uid);
     });
 
     return res;

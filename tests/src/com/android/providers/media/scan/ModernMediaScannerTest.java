@@ -228,19 +228,16 @@ public class ModernMediaScannerTest {
 
     @Test
     public void testPlaylistM3u() throws Exception {
-        Assume.assumeTrue(MediaProvider.ENABLE_MODERN_SCANNER);
         doPlaylist(R.raw.test_m3u, "test.m3u");
     }
 
     @Test
     public void testPlaylistPls() throws Exception {
-        Assume.assumeTrue(MediaProvider.ENABLE_MODERN_SCANNER);
         doPlaylist(R.raw.test_pls, "test.pls");
     }
 
     @Test
     public void testPlaylistWpl() throws Exception {
-        Assume.assumeTrue(MediaProvider.ENABLE_MODERN_SCANNER);
         doPlaylist(R.raw.test_wpl, "test.wpl");
     }
 
@@ -295,8 +292,6 @@ public class ModernMediaScannerTest {
 
     @Test
     public void testScan_Common() throws Exception {
-        Assume.assumeTrue(MediaProvider.ENABLE_MODERN_SCANNER);
-
         final File file = new File(mDir, "red.jpg");
         stage(R.raw.test_image, file);
 
@@ -341,8 +336,6 @@ public class ModernMediaScannerTest {
 
     @Test
     public void testScan_Nomedia_Dir() throws Exception {
-        Assume.assumeTrue(MediaProvider.ENABLE_MODERN_SCANNER);
-
         final File red = new File(mDir, "red");
         final File blue = new File(mDir, "blue");
         red.mkdirs();
@@ -369,8 +362,6 @@ public class ModernMediaScannerTest {
 
     @Test
     public void testScan_Nomedia_File() throws Exception {
-        Assume.assumeTrue(MediaProvider.ENABLE_MODERN_SCANNER);
-
         final File image = new File(mDir, "image.jpg");
         final File nomedia = new File(mDir, ".nomedia");
         stage(R.raw.test_image, image);

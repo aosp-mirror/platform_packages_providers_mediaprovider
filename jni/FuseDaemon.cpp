@@ -1455,8 +1455,6 @@ static void fuse_logger(enum fuse_log_level level, const char* fmt, va_list ap) 
 
 FuseDaemon::FuseDaemon(JNIEnv* env, jobject mediaProvider) : mp(env, mediaProvider) {}
 
-void FuseDaemon::Stop() {}
-
 void FuseDaemon::Start(const int fd, const std::string& path) {
     struct fuse_args args;
     struct fuse_cmdline_opts opts;
@@ -1513,22 +1511,30 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
     fuse_to_android_loglevel.insert({FUSE_LOG_DEBUG, ANDROID_LOG_VERBOSE});
     fuse_set_log_func(fuse_logger);
 
-    LOG(INFO) << "Starting fuse...";
     struct fuse_session
             * se = fuse_session_new(&args, &ops, sizeof(ops), &fuse_default);
+    if (!se) {
+        PLOG(ERROR) << "Failed to create session ";
+        return;
+    }
     se->fd = fd;
     se->mountpoint = strdup(path.c_str());
 
     // Single thread. Useful for debugging
     // fuse_session_loop(se);
     // Multi-threaded
+    LOG(INFO) << "Starting fuse...";
     fuse_session_loop_mt(se, &config);
+    LOG(INFO) << "Ending fuse...";
 
     if (munmap(fuse_default.zero_addr, MAX_READ_SIZE)) {
         PLOG(ERROR) << "munmap failed!";
     }
 
-    LOG(INFO) << "Ending fuse...";
+    fuse_opt_free_args(&args);
+    fuse_session_destroy(se);
+    LOG(INFO) << "Ended fuse";
+    return;
 }
 } //namespace fuse
 }  // namespace mediaprovider

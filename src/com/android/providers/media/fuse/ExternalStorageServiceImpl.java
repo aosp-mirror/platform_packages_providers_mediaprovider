@@ -16,11 +16,16 @@
 
 package com.android.providers.media.fuse;
 
+import android.content.ContentProviderClient;
+import android.os.OperationCanceledException;
 import android.os.ParcelFileDescriptor;
+import android.provider.MediaStore;
 import android.service.storage.ExternalStorageService;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+
+import com.android.providers.media.MediaProvider;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -38,34 +43,53 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
     public void onStartSession(String sessionId, @SessionFlag int flag,
             @NonNull ParcelFileDescriptor deviceFd, @NonNull String upperFileSystemPath,
             @NonNull String lowerFileSystemPath) {
+        MediaProvider mediaProvider = getMediaProvider();
+
         synchronized (mLock) {
             if (mFuseDaemons.containsKey(sessionId)) {
                 Log.w(TAG, "Session already started with id: " + sessionId);
-                return;
+            } else {
+                Log.i(TAG, "Starting session for id: " + sessionId);
+                // We only use the upperFileSystemPath because the media process is mounted as
+                // REMOUNT_MODE_PASS_THROUGH which guarantees that all /storage paths are bind
+                // mounts of the lower filesystem.
+                FuseDaemon daemon = new FuseDaemon(mediaProvider, this, deviceFd, sessionId,
+                        upperFileSystemPath);
+                daemon.start();
+                mFuseDaemons.put(sessionId, daemon);
             }
-
-            Log.i(TAG, "Starting session for id: " + sessionId);
-            // We only use the upperFileSystemPath because the media process is mounted as
-            // REMOUNT_MODE_PASS_THROUGH which guarantees that all /storage paths are bind
-            // mounts of the lower filesystem.
-            FuseDaemon daemon = new FuseDaemon(getContentResolver(), sessionId, this, deviceFd,
-                    upperFileSystemPath);
-            new Thread(daemon).start();
-            mFuseDaemons.put(sessionId, daemon);
         }
     }
 
     @Override
     public void onEndSession(String sessionId) {
+        FuseDaemon daemon = onExitSession(sessionId);
+
+        if (daemon == null) {
+            Log.w(TAG, "Session already ended with id: " + sessionId);
+        } else {
+            Log.i(TAG, "Ending session for id: " + sessionId);
+            // The FUSE daemon cannot end the FUSE session itself, but if the FUSE filesystem
+            // is unmounted, the FUSE thread started in #onStartSession will exit and we can
+            // this allows us wait for confirmation. This blocks the client until the session has
+            // exited for sure
+            daemon.waitForExit();
+        }
+    }
+
+    public FuseDaemon onExitSession(String sessionId) {
+        Log.i(TAG, "Exiting session for id: " + sessionId);
         synchronized (mLock) {
-            FuseDaemon daemon = mFuseDaemons.get(sessionId);
-            if (daemon != null) {
-                Log.i(TAG, "Ending session for id: " + sessionId);
-                daemon.stop();
-                mFuseDaemons.remove(sessionId);
-            } else {
-                Log.w(TAG, "No session with id: " + sessionId);
-            }
+            return mFuseDaemons.remove(sessionId);
+        }
+    }
+
+    private MediaProvider getMediaProvider() {
+        try (ContentProviderClient cpc =
+                getContentResolver().acquireContentProviderClient(MediaStore.AUTHORITY)) {
+            return (MediaProvider) cpc.getLocalContentProvider();
+        } catch (OperationCanceledException e) {
+            throw new IllegalStateException("Failed to acquire MediaProvider", e);
         }
     }
 }

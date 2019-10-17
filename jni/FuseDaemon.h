@@ -29,17 +29,12 @@ class FuseDaemon final {
   public:
     FuseDaemon(JNIEnv* env, jobject mediaProvider);
 
-    ~FuseDaemon() {
-        // TODO(b/135341433): Ensure daemon is stopped and all resources are cleaned up
-    }
+    ~FuseDaemon() = default;
+
     /**
      * Start the FUSE daemon loop that will handle filesystem calls.
      */
     void Start(const int fd, const std::string& path);
-    /**
-     * Stop the FUSE daemon and clean up resources.
-     */
-    void Stop();
 
   private:
     FuseDaemon(const FuseDaemon&) = delete;

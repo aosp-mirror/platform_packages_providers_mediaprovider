@@ -20,9 +20,10 @@
 
 #include <android-base/logging.h>
 #include <jni.h>
+#include <nativehelper/scoped_local_ref.h>
 #include <nativehelper/scoped_primitive_array.h>
-
 #include <pthread.h>
+
 #include <mutex>
 #include <unordered_map>
 
@@ -74,6 +75,20 @@ std::unique_ptr<RedactionInfo> getRedactionInfoInternal(JNIEnv* env, jobject med
     return ri;
 }
 
+int createFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_create_file,
+                       const string& path, uid_t uid) {
+    LOG(DEBUG) << "Create file for UID = " << uid << ". Path = " << path;
+    ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
+    int fd = env->CallIntMethod(media_provider_object, mid_create_file, j_path.get(), uid);
+
+    if (CheckForJniException(env)) {
+        LOG(DEBUG) << "Java exception while creating file";
+        return -EFAULT;
+    }
+    LOG(DEBUG) << "fd = " << fd;
+    return fd;
+}
+
 }  // namespace
 /*****************************************************************************************/
 /******************************* Public API Implementation *******************************/
@@ -98,6 +113,7 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
     // Cache methods - Before calling a method, make sure you cache it here
     mid_get_redaction_ranges_ =
             CacheMethod(env, "getRedactionRanges", "(II)[J", /*is_static*/ false);
+    mid_create_file_ = CacheMethod(env, "createFile", "(Ljava/lang/String;I)I", /*is_static*/ false);
 
     jni_tasks_welcome_ = true;
     jni_thread_terminated_ = false;
@@ -137,6 +153,16 @@ std::unique_ptr<RedactionInfo> MediaProviderWrapper::GetRedactionInfo(uid_t uid,
         auto ri = getRedactionInfoInternal(env, media_provider_object_, mid_get_redaction_ranges_,
                                            uid, fd);
         res = std::move(ri);
+    });
+
+    return res;
+}
+
+int MediaProviderWrapper::CreateFile(const string& path, uid_t uid) {
+    int res = -EIO;  // Default value in case JNI thread was being terminated
+
+    PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
+        res = createFileInternal(env, media_provider_object_, mid_create_file_, path, uid);
     });
 
     return res;

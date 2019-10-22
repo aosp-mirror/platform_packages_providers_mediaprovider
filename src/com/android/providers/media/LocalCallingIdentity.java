@@ -36,6 +36,7 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Binder;
 import android.os.Build;
+import android.os.Process;
 import android.os.SystemProperties;
 
 import com.android.providers.media.util.LongArray;
@@ -64,7 +65,7 @@ public class LocalCallingIdentity {
 
     public static LocalCallingIdentity fromExternal(Context context, int uid) {
         if (uid == 0) {
-            return forAdbdRoot();
+            return forAdbdRoot(context);
         }
         final String[] sharedPackageNames = context.getPackageManager().getPackagesForUid(uid);
         if (sharedPackageNames == null || sharedPackageNames.length == 0) {
@@ -105,13 +106,9 @@ public class LocalCallingIdentity {
         return packageName;
     }
 
-
-    private static LocalCallingIdentity forAdbdRoot() {
+    private static LocalCallingIdentity forAdbdRoot(Context context) {
         final LocalCallingIdentity ident = new LocalCallingIdentity(
-                null /*context - can be null since all permissions are resolved*/,
-                1 /*init pid*/,
-                0 /*shell uid when adb is root*/,
-                "com.android.shell");
+                context, 1 /*init pid*/, Process.SHELL_UID, "com.android.shell");
 
         ident.packageName = ident.packageNameUnchecked;
         ident.packageNameResolved = true;
@@ -123,7 +120,6 @@ public class LocalCallingIdentity {
             ident.hasPermission |= PERMISSION_IS_REDACTION_NEEDED;
         }
         ident.hasPermissionResolved = ~0;
-
         return ident;
     }
 

@@ -60,11 +60,22 @@ class MediaProviderWrapper final {
      */
     std::unique_ptr<RedactionInfo> GetRedactionInfo(uid_t uid, int fd);
 
+    /**
+     * Create a new file under the given path for the given UID.
+     *
+     * @param path the path of the file to be created
+     * @param uid UID of the calling app
+     * @return opened file descriptor of the newly created file,
+     * or negated errno error code if operation fails.
+     */
+    int CreateFile(const std::string& path, uid_t uid);
+
   private:
     jclass media_provider_class_;
     jobject media_provider_object_;
     /** Add MediaProvider method IDs that you want to cache here **/
     jmethodID mid_get_redaction_ranges_;
+    jmethodID mid_create_file_;
     /**
      * All JNI calls are delegated to this thread
      */

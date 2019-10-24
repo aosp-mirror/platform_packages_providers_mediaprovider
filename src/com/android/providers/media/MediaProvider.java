@@ -4688,6 +4688,72 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    private static int deleteFileInAppSpecificDir(@NonNull String path) {
+        final File toDelete = new File(path);
+        if (toDelete.delete()) {
+            return 0;
+        } else {
+            return -OsConstants.ENOENT;
+        }
+    }
+
+    /**
+     * Deletes file with the given {@link path} on behalf of the app with the given {@link uid}.
+     * <p>Before deleting, checks if app has permissions to delete this file.
+     *
+     * @param path the path of the file
+     * @param uid UID of the app requesting to delete the file
+     * @return 0 upon success.
+     * In case of error, return the appropriate negated {@code errno} value:
+     * <ul>
+     * <li>ENOENT if the file does not exist or if the app tries to delete file in another app's
+     * external dir
+     * <li>EPERM a security exception was thrown by {@link delete}
+     * </ul>
+     *
+     * Called from JNI in jni/MediaProviderWrapper.cpp
+     */
+    @Keep
+    public int deleteFile(@NonNull String path, int uid) {
+        final LocalCallingIdentity token =
+                clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
+        try {
+            // Check if app is deleting a file under an app specific directory
+            final String appSpecificDir = extractPathOwnerPackageName(path);
+
+            // Trying to create file under some app's external storage dir
+            if (appSpecificDir != null) {
+                for (String packageName : mCallingIdentity.get().getSharedPackageNames()) {
+                    if (appSpecificDir.toLowerCase().equals(packageName.toLowerCase())) {
+                        return deleteFileInAppSpecificDir(path);
+                    }
+                }
+                Log.e(TAG, "Cannot delete files from other app's specific directory!");
+                // We treat this error as if the directory doesn't exist to make it harder for
+                // apps to snoop around whether other apps exist or not.
+                return -OsConstants.ENOENT;
+            }
+
+            final String mimeType = MediaFile.getMimeTypeForFile(path);
+            final Uri contentUri = getContentUriForFile(path, mimeType);
+            final String where = FileColumns.DATA + " = ?";
+            final String[] whereArgs = {path};
+
+            if (delete(contentUri, where, whereArgs) == 0) {
+                return -OsConstants.ENOENT;
+            } else {
+                // success - 1 file was deleted
+                return 0;
+            }
+
+        } catch (SecurityException e) {
+            Log.e(TAG, "File deletion not allowed", e);
+            return -OsConstants.EPERM;
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
+    }
+
     private boolean checkCallingPermissionGlobal(Uri uri, boolean forWrite) {
         // System internals can work with all media
         if (isCallingPackageSystem()) {

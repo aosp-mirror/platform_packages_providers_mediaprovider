@@ -64,7 +64,10 @@ using std::vector;
 constexpr size_t MAX_READ_SIZE = 128 * 1024;
 static constexpr const char* kPropRedactionEnabled = "persist.sys.fuse.redaction-enabled";
 
-struct handle {
+class handle {
+  public:
+    handle(const string& path) : path(path), fd(-1), ri(){};
+    string path;
     int fd;
     std::unique_ptr<RedactionInfo> ri;
 };
@@ -725,7 +728,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     struct fuse_open_out out;
-    struct handle* h;
+    handle* h;
 
     pthread_mutex_lock(&fuse->lock);
     node = lookup_node_by_id_locked(fuse, ino);
@@ -739,7 +742,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         return;
     }
 
-    h = new handle();
+    h = new handle(path);
     if (!h) {
         fuse_reply_err(req, ENOMEM);
         return;
@@ -759,7 +762,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
 }
 
 static void do_read(fuse_req_t req, size_t size, off_t off, struct fuse_file_info* fi) {
-    struct handle* h = reinterpret_cast<struct handle*>(fi->fh);
+    handle* h = reinterpret_cast<handle*>(fi->fh);
     struct fuse_bufvec buf = FUSE_BUFVEC_INIT(size);
 
     buf.buf[0].fd = h->fd;
@@ -799,7 +802,7 @@ static void create_file_fuse_buf(size_t size, off_t pos, int fd, fuse_buf* buf) 
 }
 
 static void do_read_with_redaction(fuse_req_t req, size_t size, off_t off, fuse_file_info* fi) {
-    struct handle* h = reinterpret_cast<struct handle*>(fi->fh);
+    handle* h = reinterpret_cast<handle*>(fi->fh);
     auto overlapping_rr = h->ri->getOverlappingRedactionRanges(size, off);
 
     if (overlapping_rr->size() <= 0) {
@@ -861,12 +864,12 @@ static void do_read_with_redaction(fuse_req_t req, size_t size, off_t off, fuse_
 
 static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
                     struct fuse_file_info* fi) {
-    struct handle* h = reinterpret_cast<struct handle*>(fi->fh);
+    handle* h = reinterpret_cast<handle*>(fi->fh);
     struct fuse* fuse = get_fuse(req);
     TRACE_FUSE(fuse) << "READ";
     if (!h->ri) {
         if (android::base::GetBoolProperty(kPropRedactionEnabled, true)) {
-            h->ri = fuse->mp->GetRedactionInfo(req->ctx.uid, h->fd);
+            h->ri = fuse->mp->GetRedactionInfo(h->path, req->ctx.uid);
         } else {
             // If redaction is not enabled, we just use empty redaction ranges
             // which mean that we will always use do_read instead of do_read_with_redaction
@@ -899,7 +902,7 @@ static void pf_write_buf(fuse_req_t req,
                          struct fuse_bufvec* bufv,
                          off_t off,
                          struct fuse_file_info* fi) {
-    struct handle* h = reinterpret_cast<struct handle*>(fi->fh);
+    handle* h = reinterpret_cast<handle*>(fi->fh);
     struct fuse_bufvec buf = FUSE_BUFVEC_INIT(fuse_buf_size(bufv));
     ssize_t size;
 
@@ -922,8 +925,8 @@ static void pf_copy_file_range(fuse_req_t req, fuse_ino_t ino_in,
                                  struct fuse_file_info* fi_out, size_t len,
                                  int flags)
 {
-    struct handle* h_in = reinterpret_cast<struct handle *>(fi_in->fh);
-    struct handle* h_out = reinterpret_cast<struct handle *>(fi_out->fh);
+    handle* h_in = reinterpret_cast<handle *>(fi_in->fh);
+    handle* h_out = reinterpret_cast<handle *>(fi_out->fh);
     struct fuse_bufvec buf_in = FUSE_BUFVEC_INIT(len);
     struct fuse_bufvec buf_out = FUSE_BUFVEC_INIT(len);
     ssize_t size;
@@ -956,7 +959,7 @@ static void pf_release(fuse_req_t req,
                        fuse_ino_t ino,
                        struct fuse_file_info* fi) {
     struct fuse* fuse = get_fuse(req);
-    struct handle* h = reinterpret_cast<struct handle*>(fi->fh);
+    handle* h = reinterpret_cast<handle*>(fi->fh);
 
     TRACE_FUSE(fuse) << "RELEASE " << h << "(" << h->fd << ")";
     close(h->fd);
@@ -975,7 +978,7 @@ static void pf_fsync(fuse_req_t req,
                      fuse_ino_t ino,
                      int datasync,
                      struct fuse_file_info* fi) {
-    struct handle* h = reinterpret_cast<struct handle*>(fi->fh);
+    handle* h = reinterpret_cast<handle*>(fi->fh);
     int err = do_sync_common(h->fd, datasync);
 
     fuse_reply_err(req, err);
@@ -1165,7 +1168,7 @@ static void pf_create(fuse_req_t req,
     string parent_path;
     string child_path;
     struct fuse_entry_param e;
-    struct handle* h;
+    handle* h;
 
     pthread_mutex_lock(&fuse->lock);
     parent_node = lookup_node_by_id_locked(fuse, parent);
@@ -1176,7 +1179,7 @@ static void pf_create(fuse_req_t req,
 
     child_path = parent_path + "/" + name;
 
-    h = new handle();
+    h = new handle(child_path);
     if (!h) {
         fuse_reply_err(req, ENOMEM);
         return;

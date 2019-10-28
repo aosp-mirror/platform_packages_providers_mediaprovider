@@ -58,7 +58,7 @@ class MediaProviderWrapper final {
      * @return RedactionInfo on success, nullptr on failure to calculate
      * redaction ranges (e.g. exception was thrown in Java world)
      */
-    std::unique_ptr<RedactionInfo> GetRedactionInfo(uid_t uid, int fd);
+    std::unique_ptr<RedactionInfo> GetRedactionInfo(const std::string& path, uid_t uid);
 
     /**
      * Create a new file under the given path for the given UID.

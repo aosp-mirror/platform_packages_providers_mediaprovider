@@ -105,10 +105,9 @@ class MediaProviderWrapper final {
      */
     std::atomic<bool> jni_tasks_welcome_;
     /**
-     * JNI thread keeps running until it finishes a task after which this value
-     * is set to false
+     * JNI thread keeps running until it receives a task that sets this flag to true.
      */
-    std::atomic<bool> jni_thread_terminated_;
+    std::atomic<bool> request_terminate_jni_thread_;
     /**
      * All member variables prefixed with jni should be guarded by this lock.
      */

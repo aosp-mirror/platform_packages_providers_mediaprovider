@@ -129,7 +129,7 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
     mid_delete_file_ = CacheMethod(env, "deleteFile", "(Ljava/lang/String;I)I", /*is_static*/ false);
 
     jni_tasks_welcome_ = true;
-    jni_thread_terminated_ = false;
+    request_terminate_jni_thread_ = false;
 
     jni_thread_ = std::thread(&MediaProviderWrapper::JniThreadLoop, this, jvm);
     pthread_setname_np(jni_thread_.native_handle(), "media_provider_jni_thr");
@@ -150,8 +150,11 @@ MediaProviderWrapper::~MediaProviderWrapper() {
     PostAndWaitForTask([this](JNIEnv* env) {
         env->DeleteGlobalRef(media_provider_object_);
         env->DeleteGlobalRef(media_provider_class_);
-        jni_thread_terminated_ = true;
+        request_terminate_jni_thread_ = true;
     });
+
+    // wait for the thread to actually terminate
+    jni_thread_.join();
 
     LOG(INFO) << "Successfully destroyed MediaProviderWrapper";
 }
@@ -229,7 +232,7 @@ void MediaProviderWrapper::JniThreadLoop(JavaVM* jvm) {
     JNIEnv* env;
     jvm->AttachCurrentThread(&env, NULL);
 
-    while (!jni_thread_terminated_) {
+    while (!request_terminate_jni_thread_) {
         std::unique_lock<std::mutex> cond_lock(jni_task_lock_);
         pending_task_cond_.wait(cond_lock, [this] { return !jni_tasks_.empty(); });
 

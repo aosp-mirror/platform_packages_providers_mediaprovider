@@ -17,7 +17,6 @@
 package com.android.providers.media;
 
 import static android.Manifest.permission.ACCESS_MEDIA_LOCATION;
-import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 import static com.android.providers.media.util.PermissionUtils.checkPermissionLegacy;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadAudio;
@@ -28,6 +27,7 @@ import static com.android.providers.media.util.PermissionUtils.checkPermissionWr
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteImages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteVideo;
 
+import android.annotation.Nullable;
 import android.app.AppOpsManager;
 import android.content.ContentProvider;
 import android.content.Context;
@@ -46,12 +46,15 @@ public class LocalCallingIdentity {
     public final int pid;
     public final int uid;
     public final String packageNameUnchecked;
+    public @Nullable String featureId;
 
-    private LocalCallingIdentity(Context context, int pid, int uid, String packageNameUnchecked) {
+    private LocalCallingIdentity(Context context, int pid, int uid, String packageNameUnchecked,
+            @Nullable String featureId) {
         this.context = context;
         this.pid = pid;
         this.uid = uid;
         this.packageNameUnchecked = packageNameUnchecked;
+        this.featureId = featureId;
     }
 
     public static LocalCallingIdentity fromBinder(Context context, ContentProvider provider) {
@@ -59,8 +62,12 @@ public class LocalCallingIdentity {
         if (callingPackage == null) {
             callingPackage = context.getOpPackageName();
         }
+        String callingFeatureId = provider.getCallingFeatureId();
+        if (callingFeatureId == null) {
+            callingFeatureId = context.getFeatureId();
+        }
         return new LocalCallingIdentity(context, Binder.getCallingPid(), Binder.getCallingUid(),
-                callingPackage);
+                callingPackage, callingFeatureId);
     }
 
     public static LocalCallingIdentity fromExternal(Context context, int uid) {
@@ -71,11 +78,12 @@ public class LocalCallingIdentity {
         if (sharedPackageNames == null || sharedPackageNames.length == 0) {
             throw new IllegalArgumentException("UID " + uid + " has no associated package");
         }
-        return fromExternal(context, uid, sharedPackageNames[0]);
+        return fromExternal(context, uid, sharedPackageNames[0], null);
     }
 
-    public static LocalCallingIdentity fromExternal(Context context, int uid, String packageName) {
-        return new LocalCallingIdentity(context, -1, uid, packageName);
+    public static LocalCallingIdentity fromExternal(Context context, int uid, String packageName,
+            @Nullable String featureId) {
+        return new LocalCallingIdentity(context, -1, uid, packageName, featureId);
     }
 
     public static LocalCallingIdentity fromSelf(Context context) {
@@ -83,10 +91,12 @@ public class LocalCallingIdentity {
                 context,
                 android.os.Process.myPid(),
                 android.os.Process.myUid(),
-                context.getOpPackageName());
+                context.getOpPackageName(),
+                context.getFeatureId());
 
         ident.packageName = ident.packageNameUnchecked;
         ident.packageNameResolved = true;
+        ident.featureId = ident.featureId;
         ident.targetSdkVersion = Build.VERSION_CODES.CUR_DEVELOPMENT;
         ident.targetSdkVersionResolved = true;
         ident.hasPermission = ~(PERMISSION_IS_LEGACY | PERMISSION_IS_REDACTION_NEEDED);
@@ -107,8 +117,8 @@ public class LocalCallingIdentity {
     }
 
     private static LocalCallingIdentity forAdbdRoot(Context context) {
-        final LocalCallingIdentity ident = new LocalCallingIdentity(
-                context, 1 /*init pid*/, Process.SHELL_UID, "com.android.shell");
+        final LocalCallingIdentity ident = new LocalCallingIdentity(context, 1 /*init pid*/,
+                Process.SHELL_UID, "com.android.shell", null);
 
         ident.packageName = ident.packageNameUnchecked;
         ident.packageNameResolved = true;

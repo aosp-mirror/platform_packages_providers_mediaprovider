@@ -194,17 +194,17 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     }
 
     @Override
-    protected int enforceReadPermissionInner(Uri uri, String callingPkg, IBinder callerToken)
-            throws SecurityException {
+    protected int enforceReadPermissionInner(Uri uri, String callingPkg,
+            @Nullable String featureId, IBinder callerToken) throws SecurityException {
         enforceShellRestrictions();
-        return super.enforceReadPermissionInner(uri, callingPkg, callerToken);
+        return super.enforceReadPermissionInner(uri, callingPkg, featureId, callerToken);
     }
 
     @Override
-    protected int enforceWritePermissionInner(Uri uri, String callingPkg, IBinder callerToken)
-            throws SecurityException {
+    protected int enforceWritePermissionInner(Uri uri, String callingPkg,
+            @Nullable String featureId, IBinder callerToken) throws SecurityException {
         enforceShellRestrictions();
-        return super.enforceWritePermissionInner(uri, callingPkg, callerToken);
+        return super.enforceWritePermissionInner(uri, callingPkg, featureId, callerToken);
     }
 
     private static void notifyRootsChanged(Context context) {

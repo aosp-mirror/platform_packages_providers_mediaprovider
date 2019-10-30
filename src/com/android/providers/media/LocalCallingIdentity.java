@@ -238,8 +238,8 @@ public class LocalCallingIdentity {
     private boolean isRedactionNeededInternal() {
         // System internals or callers holding permission have no redaction
         if (hasPermission(PERMISSION_IS_SYSTEM) || PermissionChecker.checkPermissionForDataDelivery(
-                context, ACCESS_MEDIA_LOCATION, pid, uid, getPackageName(), null /*message*/)
-                        == PermissionChecker.PERMISSION_GRANTED) {
+                context, ACCESS_MEDIA_LOCATION, pid, uid, getPackageName(), featureId,
+                null /*message*/) == PermissionChecker.PERMISSION_GRANTED) {
             return false;
         }
         return true;

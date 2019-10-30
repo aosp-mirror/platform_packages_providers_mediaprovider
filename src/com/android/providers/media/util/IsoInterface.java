@@ -34,6 +34,7 @@ import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.UUID;
@@ -188,7 +189,14 @@ public class IsoInterface {
     private IsoInterface(@NonNull FileDescriptor fd) throws IOException {
         try {
             Os.lseek(fd, 4, OsConstants.SEEK_SET);
-            if (readInt(fd) != BOX_FTYP) {
+            boolean hasFtypHeader;
+            try {
+                hasFtypHeader = readInt(fd) == BOX_FTYP;
+            } catch (EOFException e) {
+                hasFtypHeader = false;
+            }
+
+            if (!hasFtypHeader) {
                 if (LOGV) {
                     Log.w(TAG, "Missing 'ftyp' header");
                 }
@@ -278,5 +286,36 @@ public class IsoInterface {
             }
         }
         return null;
+    }
+
+    /**
+     * Returns whether IsoInterface currently supports parsing data from the specified mime type
+     * or not.
+     *
+     * @param mimeType the string value of mime type
+     */
+    public static boolean isSupportedMimeType(@NonNull String mimeType) {
+        if (mimeType == null) {
+            throw new NullPointerException("mimeType shouldn't be null");
+        }
+
+        switch (mimeType.toLowerCase(Locale.ROOT)) {
+            case "audio/3gp2":
+            case "audio/3gpp":
+            case "audio/3gpp2":
+            case "audio/aac":
+            case "audio/mp4":
+            case "audio/mpeg":
+            case "video/3gp2":
+            case "video/3gpp":
+            case "video/3gpp2":
+            case "video/mj2":
+            case "video/mp4":
+            case "video/mpeg":
+            case "video/x-flv":
+                return true;
+            default:
+                return false;
+        }
     }
 }

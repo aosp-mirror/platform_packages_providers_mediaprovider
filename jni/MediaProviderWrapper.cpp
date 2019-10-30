@@ -46,15 +46,13 @@ bool CheckForJniException(JNIEnv* env) {
 
 std::unique_ptr<RedactionInfo> getRedactionInfoInternal(JNIEnv* env, jobject media_provider_object,
                                                         jmethodID mid_get_redaction_ranges,
-                                                        uid_t uid, int fd) {
-    LOG(DEBUG) << "Computing redaction ranges for uid = " << uid << " fd = " << fd;
+                                                        uid_t uid, const string& path) {
+    LOG(DEBUG) << "Computing redaction ranges for uid = " << uid << " file = " << path;
+    ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
     ScopedLongArrayRO redaction_ranges(
-            env, static_cast<jlongArray>(env->CallObjectMethod(media_provider_object,
-                                                               mid_get_redaction_ranges, uid, fd)));
+            env, static_cast<jlongArray>(env->CallObjectMethod(
+                         media_provider_object, mid_get_redaction_ranges, j_path.get(), uid)));
 
-    if (lseek(fd, 0, SEEK_SET)) {
-        return nullptr;
-    }
     if (CheckForJniException(env)) {
         LOG(ERROR) << "Exception occurred while calling MediaProvider#getRedactionRanges";
         return nullptr;
@@ -126,7 +124,7 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
 
     // Cache methods - Before calling a method, make sure you cache it here
     mid_get_redaction_ranges_ =
-            CacheMethod(env, "getRedactionRanges", "(II)[J", /*is_static*/ false);
+            CacheMethod(env, "getRedactionRanges", "(Ljava/lang/String;I)[J", /*is_static*/ false);
     mid_create_file_ = CacheMethod(env, "createFile", "(Ljava/lang/String;I)I", /*is_static*/ false);
     mid_delete_file_ = CacheMethod(env, "deleteFile", "(Ljava/lang/String;I)I", /*is_static*/ false);
 
@@ -158,15 +156,16 @@ MediaProviderWrapper::~MediaProviderWrapper() {
     LOG(INFO) << "Successfully destroyed MediaProviderWrapper";
 }
 
-std::unique_ptr<RedactionInfo> MediaProviderWrapper::GetRedactionInfo(uid_t uid, int fd) {
+std::unique_ptr<RedactionInfo> MediaProviderWrapper::GetRedactionInfo(const string& path,
+                                                                      uid_t uid) {
     std::unique_ptr<RedactionInfo> res;
 
     // TODO: Consider what to do if task doesn't get posted. This could happen
     // if MediaProviderWrapper's d'tor was called and before it's done, a thread slipped in
     // and requested to read a file.
-    PostAndWaitForTask([this, uid, fd, &res](JNIEnv* env) {
+    PostAndWaitForTask([this, uid, &path, &res](JNIEnv* env) {
         auto ri = getRedactionInfoInternal(env, media_provider_object_, mid_get_redaction_ranges_,
-                                           uid, fd);
+                                           uid, path);
         res = std::move(ri);
     });
 

@@ -46,6 +46,9 @@
 #include <unistd.h>
 
 #include <iostream>
+#include <map>
+#include <queue>
+#include <thread>
 #include <vector>
 
 #include "MediaProviderWrapper.h"
@@ -64,7 +67,10 @@ using std::vector;
 constexpr size_t MAX_READ_SIZE = 128 * 1024;
 static constexpr const char* kPropRedactionEnabled = "persist.sys.fuse.redaction-enabled";
 
-struct handle {
+class handle {
+  public:
+    handle(const string& path) : path(path), fd(-1), ri(){};
+    string path;
     int fd;
     std::unique_ptr<RedactionInfo> ri;
 };
@@ -75,6 +81,8 @@ struct dirhandle {
 };
 
 struct node {
+    node() : refcount(0), nid(0), gen(0), ino(0), next(0), child(0), parent(0), deleted(false) {}
+
     __u32 refcount;
     __u64 nid;
     __u64 gen;
@@ -93,8 +101,135 @@ struct node {
     bool deleted;
 };
 
+/*
+ * In order to avoid double caching with fuse, call fadvise on the file handles
+ * in the underlying file system. However, if this is done on every read/write,
+ * the fadvises cause a very significant slowdown in tests (specifically fio
+ * seq_write). So call fadvise on the file handles with the most reads/writes
+ * only after a threshold is passed.
+ */
+class FAdviser {
+  public:
+    FAdviser() : thread_(MessageLoop, this), total_size_(0) {}
+
+    ~FAdviser() {
+        SendMessage(Message::quit);
+        thread_.join();
+    }
+
+    void Record(int fd, size_t size) { SendMessage(Message::record, fd, size); }
+
+    void Close(int fd) { SendMessage(Message::close, fd); }
+
+  private:
+    std::thread thread_;
+
+    struct Message {
+        enum Type { record, close, quit };
+        Type type;
+        int fd;
+        size_t size;
+    };
+
+    void RecordImpl(int fd, size_t size) {
+        total_size_ += size;
+
+        // Find or create record in files_
+        // Remove record from sizes_ if it exists, adjusting size appropriately
+        auto file = files_.find(fd);
+        if (file != files_.end()) {
+            auto old_size = file->second;
+            size += old_size->first;
+            sizes_.erase(old_size);
+        } else {
+            file = files_.insert(Files::value_type(fd, sizes_.end())).first;
+        }
+
+        // Now (re) insert record in sizes_
+        auto new_size = sizes_.insert(Sizes::value_type(size, fd));
+        file->second = new_size;
+
+        if (total_size_ < threshold_) return;
+
+        LOG(INFO) << "Threshold exceeded - fadvising " << total_size_;
+        while (!sizes_.empty() && total_size_ > target_) {
+            auto size = --sizes_.end();
+            total_size_ -= size->first;
+            posix_fadvise(size->second, 0, 0, POSIX_FADV_DONTNEED);
+            files_.erase(size->second);
+            sizes_.erase(size);
+        }
+        LOG(INFO) << "Threshold now " << total_size_;
+    }
+
+    void CloseImpl(int fd) {
+        auto file = files_.find(fd);
+        if (file == files_.end()) return;
+
+        total_size_ -= file->second->first;
+        sizes_.erase(file->second);
+        files_.erase(file);
+    }
+
+    void MessageLoopImpl() {
+        while (1) {
+            Message message;
+
+            {
+                std::unique_lock<std::mutex> lock(mutex_);
+                cv_.wait(lock, [this] { return !queue_.empty(); });
+                message = queue_.front();
+                queue_.pop();
+            }
+
+            switch (message.type) {
+                case Message::record:
+                    RecordImpl(message.fd, message.size);
+                    break;
+
+                case Message::close:
+                    CloseImpl(message.fd);
+                    break;
+
+                case Message::quit:
+                    return;
+            }
+        }
+    }
+
+    static int MessageLoop(FAdviser* ptr) {
+        ptr->MessageLoopImpl();
+        return 0;
+    }
+
+    void SendMessage(Message::Type type, int fd = -1, size_t size = 0) {
+        {
+            std::unique_lock<std::mutex> lock(mutex_);
+            Message message = {type, fd, size};
+            queue_.push(message);
+        }
+        cv_.notify_one();
+    }
+
+    std::queue<Message> queue_;
+    std::mutex mutex_;
+    std::condition_variable cv_;
+
+    typedef std::multimap<size_t, int> Sizes;
+    typedef std::map<int, Sizes::iterator> Files;
+
+    Files files_;
+    Sizes sizes_;
+    size_t total_size_;
+
+    const size_t threshold_ = 64 * 1024 * 1024;
+    const size_t target_ = 32 * 1024 * 1024;
+};
+
 /* Single FUSE mount */
 struct fuse {
+    fuse() : next_generation(0), inode_ctr(0), mp(0), zero_addr(0) {}
+
     pthread_mutex_t lock;
     string path;
 
@@ -132,6 +267,8 @@ struct fuse {
      * The memory is read only and should never be modified.
      */
     char* zero_addr;
+
+    FAdviser fadviser;
 };
 
 static inline const char* safe_name(struct node* n) {
@@ -156,10 +293,7 @@ static void release_node_n_locked(struct node* node, int count) {
         if (!node->refcount) {
             TRACE << "DESTROY " << node << " (" << node->name << ")";
             remove_node_from_parent_locked(node);
-
-            /* TODO: remove debugging - poison memory */
-            memset(node, 0xfc, sizeof(*node));
-            free(node);
+            delete (node);
         }
     } else {
         LOG(ERROR) << "Zero refcnt " << node;
@@ -173,10 +307,7 @@ static void release_node_locked(struct node* node) {
         if (!node->refcount) {
             TRACE << "DESTROY " << node << " (" << node->name << ")";
             remove_node_from_parent_locked(node);
-
-            /* TODO: remove debugging - poison memory */
-            memset(node, 0xfc, sizeof(*node));
-            free(node);
+            delete (node);
         }
     } else {
         LOG(ERROR) << "Zero refcnt " << node;
@@ -237,7 +368,7 @@ struct node* create_node_locked(struct fuse* fuse,
         return NULL;
     }
 
-    node = (struct node*) calloc(1, sizeof(struct node));
+    node = new ::node();
     if (!node) {
         return NULL;
     }
@@ -725,7 +856,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     struct fuse_open_out out;
-    struct handle* h;
+    handle* h;
 
     pthread_mutex_lock(&fuse->lock);
     node = lookup_node_by_id_locked(fuse, ino);
@@ -739,7 +870,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         return;
     }
 
-    h = new handle();
+    h = new handle(path);
     if (!h) {
         fuse_reply_err(req, ENOMEM);
         return;
@@ -759,7 +890,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
 }
 
 static void do_read(fuse_req_t req, size_t size, off_t off, struct fuse_file_info* fi) {
-    struct handle* h = reinterpret_cast<struct handle*>(fi->fh);
+    handle* h = reinterpret_cast<handle*>(fi->fh);
     struct fuse_bufvec buf = FUSE_BUFVEC_INIT(size);
 
     buf.buf[0].fd = h->fd;
@@ -799,7 +930,7 @@ static void create_file_fuse_buf(size_t size, off_t pos, int fd, fuse_buf* buf) 
 }
 
 static void do_read_with_redaction(fuse_req_t req, size_t size, off_t off, fuse_file_info* fi) {
-    struct handle* h = reinterpret_cast<struct handle*>(fi->fh);
+    handle* h = reinterpret_cast<handle*>(fi->fh);
     auto overlapping_rr = h->ri->getOverlappingRedactionRanges(size, off);
 
     if (overlapping_rr->size() <= 0) {
@@ -861,12 +992,12 @@ static void do_read_with_redaction(fuse_req_t req, size_t size, off_t off, fuse_
 
 static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
                     struct fuse_file_info* fi) {
-    struct handle* h = reinterpret_cast<struct handle*>(fi->fh);
+    handle* h = reinterpret_cast<handle*>(fi->fh);
     struct fuse* fuse = get_fuse(req);
     TRACE_FUSE(fuse) << "READ";
     if (!h->ri) {
         if (android::base::GetBoolProperty(kPropRedactionEnabled, true)) {
-            h->ri = fuse->mp->GetRedactionInfo(req->ctx.uid, h->fd);
+            h->ri = fuse->mp->GetRedactionInfo(h->path, req->ctx.uid);
         } else {
             // If redaction is not enabled, we just use empty redaction ranges
             // which mean that we will always use do_read instead of do_read_with_redaction
@@ -878,6 +1009,8 @@ static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
             return;
         }
     }
+
+    fuse->fadviser.Record(h->fd, size);
 
     if (h->ri->isRedactionNeeded()) {
         do_read_with_redaction(req, size, off, fi);
@@ -899,9 +1032,10 @@ static void pf_write_buf(fuse_req_t req,
                          struct fuse_bufvec* bufv,
                          off_t off,
                          struct fuse_file_info* fi) {
-    struct handle* h = reinterpret_cast<struct handle*>(fi->fh);
+    handle* h = reinterpret_cast<handle*>(fi->fh);
     struct fuse_bufvec buf = FUSE_BUFVEC_INIT(fuse_buf_size(bufv));
     ssize_t size;
+    struct fuse* fuse = get_fuse(req);
 
     buf.buf[0].fd = h->fd;
     buf.buf[0].pos = off;
@@ -911,8 +1045,10 @@ static void pf_write_buf(fuse_req_t req,
 
     if (size < 0)
         fuse_reply_err(req, -size);
-    else
+    else {
         fuse_reply_write(req, size);
+        fuse->fadviser.Record(h->fd, size);
+    }
 }
 // Haven't tested this one. Not sure what calls it.
 #if 0
@@ -922,8 +1058,8 @@ static void pf_copy_file_range(fuse_req_t req, fuse_ino_t ino_in,
                                  struct fuse_file_info* fi_out, size_t len,
                                  int flags)
 {
-    struct handle* h_in = reinterpret_cast<struct handle *>(fi_in->fh);
-    struct handle* h_out = reinterpret_cast<struct handle *>(fi_out->fh);
+    handle* h_in = reinterpret_cast<handle *>(fi_in->fh);
+    handle* h_out = reinterpret_cast<handle *>(fi_out->fh);
     struct fuse_bufvec buf_in = FUSE_BUFVEC_INIT(len);
     struct fuse_bufvec buf_out = FUSE_BUFVEC_INIT(len);
     ssize_t size;
@@ -956,9 +1092,10 @@ static void pf_release(fuse_req_t req,
                        fuse_ino_t ino,
                        struct fuse_file_info* fi) {
     struct fuse* fuse = get_fuse(req);
-    struct handle* h = reinterpret_cast<struct handle*>(fi->fh);
+    handle* h = reinterpret_cast<handle*>(fi->fh);
 
     TRACE_FUSE(fuse) << "RELEASE " << h << "(" << h->fd << ")";
+    fuse->fadviser.Close(h->fd);
     close(h->fd);
     delete h;
     fuse_reply_err(req, 0);
@@ -975,7 +1112,7 @@ static void pf_fsync(fuse_req_t req,
                      fuse_ino_t ino,
                      int datasync,
                      struct fuse_file_info* fi) {
-    struct handle* h = reinterpret_cast<struct handle*>(fi->fh);
+    handle* h = reinterpret_cast<handle*>(fi->fh);
     int err = do_sync_common(h->fd, datasync);
 
     fuse_reply_err(req, err);
@@ -1165,7 +1302,7 @@ static void pf_create(fuse_req_t req,
     string parent_path;
     string child_path;
     struct fuse_entry_param e;
-    struct handle* h;
+    handle* h;
 
     pthread_mutex_lock(&fuse->lock);
     parent_node = lookup_node_by_id_locked(fuse, parent);
@@ -1176,7 +1313,7 @@ static void pf_create(fuse_req_t req,
 
     child_path = parent_path + "/" + name;
 
-    h = new handle();
+    h = new handle(child_path);
     if (!h) {
         fuse_reply_err(req, ENOMEM);
         return;
@@ -1320,11 +1457,7 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
     }
 
     struct fuse fuse_default;
-    memset(&fuse_default, 0, sizeof(fuse_default));
-    memset(&fuse_default.root, 0, sizeof(fuse_default.root));
-
     pthread_mutex_init(&fuse_default.lock, NULL);
-
     fuse_default.next_generation = 0;
     fuse_default.inode_ctr = 1;
     fuse_default.root.nid = FUSE_ROOT_ID; /* 1 */
@@ -1360,7 +1493,6 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
     }
 
     LOG(INFO) << "Ending fuse...";
-    return;
 }
 } //namespace fuse
 }  // namespace mediaprovider

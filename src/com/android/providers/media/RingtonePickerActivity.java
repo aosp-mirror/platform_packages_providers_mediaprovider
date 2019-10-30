@@ -154,10 +154,7 @@ public final class RingtonePickerActivity extends AlertActivity implements
             if (which == mCursor.getCount() + mStaticItemCount) {
                 // The "Add new ringtone" item was clicked. Start a file picker intent to select
                 // only audio files (MIME type "audio/*")
-                final Intent chooseFile = new Intent(Intent.ACTION_GET_CONTENT);
-                chooseFile.setType("audio/*");
-                chooseFile.putExtra(Intent.EXTRA_MIME_TYPES,
-                        new String[] { "audio/*", "application/ogg" });
+                final Intent chooseFile = getMediaFilePickerIntent();
                 startActivityForResult(chooseFile, ADD_FILE_REQUEST_CODE);
                 return;
             }
@@ -375,7 +372,8 @@ public final class RingtonePickerActivity extends AlertActivity implements
             setSuccessResultWithRingtone(getCurrentlySelectedRingtoneUri());
         }
         // If external storage is available, add a button to install sounds from storage.
-        if(Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+        if(resolvesMediaFilePicker()
+                && Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
             addNewSoundItem(listView);
         }
 
@@ -631,6 +629,18 @@ public final class RingtonePickerActivity extends AlertActivity implements
         if (ringtoneManagerPos < 0) return ringtoneManagerPos;
 
         return ringtoneManagerPos + mStaticItemCount;
+    }
+
+    private Intent getMediaFilePickerIntent() {
+        final Intent chooseFile = new Intent(Intent.ACTION_GET_CONTENT);
+        chooseFile.setType("audio/*");
+        chooseFile.putExtra(Intent.EXTRA_MIME_TYPES,
+                new String[] { "audio/*", "application/ogg" });
+        return chooseFile;
+    }
+
+    private boolean resolvesMediaFilePicker() {
+        return getMediaFilePickerIntent().resolveActivity(getPackageManager()) != null;
     }
 
     private static class LocalizedCursor extends CursorWrapper {

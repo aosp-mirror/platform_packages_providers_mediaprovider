@@ -80,6 +80,24 @@ class MediaProviderWrapper final {
      */
     int DeleteFile(const std::string& path, uid_t uid);
 
+    /**
+     * Determines if the given UID is allowed to open the file denoted by the given path.
+     *
+     * @param path the path of the file to be opened
+     * @param uid UID of the calling app
+     * @param for_write specifies if the file is to be opened for write
+     * @return 0 upon success or negated errno value upon failure.
+     */
+    int IsOpenAllowed(const std::string& path, uid_t uid, bool for_write);
+
+    /**
+     * Potentially triggers a scan of the file before closing it and reconciles it with the
+     * MediaProvider database.
+     *
+     * @param path the path of the file to be scanned
+     */
+    void ScanFile(const std::string& path);
+
   private:
     jclass media_provider_class_;
     jobject media_provider_object_;
@@ -87,6 +105,8 @@ class MediaProviderWrapper final {
     jmethodID mid_get_redaction_ranges_;
     jmethodID mid_create_file_;
     jmethodID mid_delete_file_;
+    jmethodID mid_is_open_allowed_;
+    jmethodID mid_scan_file_;
     /**
      * All JNI calls are delegated to this thread
      */
@@ -113,18 +133,24 @@ class MediaProviderWrapper final {
      */
     std::mutex jni_task_lock_;
     /**
-     * Auxiliary for caching MediaProvider methods
+     * Auxiliary for caching MediaProvider methods.
      */
     jmethodID CacheMethod(JNIEnv* env, const char method_name[], const char signature[],
                           bool is_static);
     /**
-     * Main loop for the JNI thread
+     * Main loop for the JNI thread.
      */
     void JniThreadLoop(JavaVM* jvm);
     /**
-     * Mechanism for posting JNI tasks and waiting until they're done
+     * Mechanism for posting JNI tasks and waiting until they're done.
+     * @return true if task was successfully posted and performed, false otherwise.
      */
     bool PostAndWaitForTask(const JniTask& t);
+    /**
+     * Mechanism for posting JNI tasks that don't have a response.
+     * There's no guarantee that the task will be actually performed.
+     */
+    void PostAsyncTask(const JniTask& t);
 };
 
 }  // namespace fuse

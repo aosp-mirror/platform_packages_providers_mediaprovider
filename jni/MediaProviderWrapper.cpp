@@ -101,6 +101,33 @@ int deleteFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid
     return res;
 }
 
+int isOpenAllowedInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_is_open_allowed,
+                          const string& path, uid_t uid, bool for_write) {
+    LOG(DEBUG) << "Checking if UID = " << uid << " can open file " << path << " for "
+               << (for_write ? "write" : "read only");
+    ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
+    int res = env->CallIntMethod(media_provider_object, mid_is_open_allowed, j_path.get(), uid,
+                                 for_write);
+
+    if (CheckForJniException(env)) {
+        LOG(DEBUG) << "Java exception while checking permissions for file";
+        return -EFAULT;
+    }
+    LOG(DEBUG) << "res = " << res;
+    return res;
+}
+
+void scanFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_scan_file,
+                      const string& path) {
+    LOG(DEBUG) << "Notifying MediaProvider that a file has been modified. path = " << path;
+    ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
+    env->CallObjectMethod(media_provider_object, mid_scan_file, j_path.get());
+    if (CheckForJniException(env)) {
+        LOG(DEBUG) << "Java exception while checking permissions for file";
+    }
+    LOG(DEBUG) << "MediaProvider has been notified";
+}
+
 }  // namespace
 /*****************************************************************************************/
 /******************************* Public API Implementation *******************************/
@@ -127,6 +154,10 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
             CacheMethod(env, "getRedactionRanges", "(Ljava/lang/String;I)[J", /*is_static*/ false);
     mid_create_file_ = CacheMethod(env, "createFile", "(Ljava/lang/String;I)I", /*is_static*/ false);
     mid_delete_file_ = CacheMethod(env, "deleteFile", "(Ljava/lang/String;I)I", /*is_static*/ false);
+    mid_is_open_allowed_ = CacheMethod(env, "isOpenAllowed", "(Ljava/lang/String;IZ)I",
+                                       /*is_static*/ false);
+    mid_scan_file_ = CacheMethod(env, "scanFile", "(Ljava/lang/String;)Landroid/net/Uri;",
+                                 /*is_static*/ false);
 
     jni_tasks_welcome_ = true;
     request_terminate_jni_thread_ = false;
@@ -147,7 +178,9 @@ MediaProviderWrapper::~MediaProviderWrapper() {
     // termination task is the last task in the queue.
 
     LOG(DEBUG) << "Posting task to terminate JNI thread";
-    PostAndWaitForTask([this](JNIEnv* env) {
+    // async task doesn't check jni_tasks_welcome_ - but we will wait for the thread to terminate
+    // anyway
+    PostAsyncTask([this](JNIEnv* env) {
         env->DeleteGlobalRef(media_provider_object_);
         env->DeleteGlobalRef(media_provider_class_);
         request_terminate_jni_thread_ = true;
@@ -161,7 +194,8 @@ MediaProviderWrapper::~MediaProviderWrapper() {
 
 std::unique_ptr<RedactionInfo> MediaProviderWrapper::GetRedactionInfo(const string& path,
                                                                       uid_t uid) {
-    std::unique_ptr<RedactionInfo> res;
+    // Default value in case JNI thread was being terminated, causes the read to fail.
+    std::unique_ptr<RedactionInfo> res = nullptr;
 
     // TODO: Consider what to do if task doesn't get posted. This could happen
     // if MediaProviderWrapper's d'tor was called and before it's done, a thread slipped in
@@ -195,6 +229,25 @@ int MediaProviderWrapper::DeleteFile(const string& path, uid_t uid) {
     return res;
 }
 
+int MediaProviderWrapper::IsOpenAllowed(const std::string& path, uid_t uid, bool for_write) {
+    int res = -EIO;  // Default value in case JNI thread was being terminated
+
+    PostAndWaitForTask([this, &path, uid, for_write, &res](JNIEnv* env) {
+        res = isOpenAllowedInternal(env, media_provider_object_, mid_is_open_allowed_, path, uid,
+                                    for_write);
+    });
+
+    return res;
+}
+
+void MediaProviderWrapper::ScanFile(const std::string& path) {
+    // Don't send in path by reference, since the memory might be deleted before we get the chances
+    // to perfrom the task.
+    PostAsyncTask([this, path](JNIEnv* env) {
+        scanFileInternal(env, media_provider_object_, mid_scan_file_, path);
+    });
+}
+
 /*****************************************************************************************/
 /******************************** Private member functions *******************************/
 /*****************************************************************************************/
@@ -221,6 +274,17 @@ bool MediaProviderWrapper::PostAndWaitForTask(const JniTask& t) {
     // wait for the call to be performed
     cond_task_done.wait(lock, [&task_done] { return task_done; });
     return true;
+}
+
+/**
+ * Handles the synchronization details of posting an async task to the JNI thread.
+ */
+void MediaProviderWrapper::PostAsyncTask(const JniTask& t) {
+    std::unique_lock<std::mutex> lock(jni_task_lock_);
+
+    jni_tasks_.push(t);
+    // trigger the call to jni_thread_
+    pending_task_cond_.notify_one();
 }
 
 /**

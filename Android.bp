@@ -29,6 +29,7 @@ android_app {
 
     plugins: [
         "compat-changeid-annotation-processor",
+        "java_api_finder",
     ],
 
     platform_apis: true,

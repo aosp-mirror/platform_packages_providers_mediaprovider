@@ -369,7 +369,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + "instance_id TEXT DEFAULT NULL,original_document_id TEXT DEFAULT NULL,"
                 + "relative_path TEXT DEFAULT NULL,volume_name TEXT DEFAULT NULL,"
                 + "artist_key TEXT DEFAULT NULL,album_key TEXT DEFAULT NULL,"
-                + "genre TEXT DEFAULT NULL,genre_key TEXT DEFAULT NULL,genre_id INTEGER)");
+                + "genre TEXT DEFAULT NULL,genre_key TEXT DEFAULT NULL,genre_id INTEGER,"
+                + "author TEXT DEFAULT NULL, bitrate INTEGER DEFAULT NULL,"
+                + "capture_framerate REAL DEFAULT NULL, cd_track_number TEXT DEFAULT NULL,"
+                + "compilation INTEGER DEFAULT NULL, disc_number TEXT DEFAULT NULL,"
+                + "is_favorite INTEGER DEFAULT 0, num_tracks INTEGER DEFAULT NULL,"
+                + "writer TEXT DEFAULT NULL, exposure_time TEXT DEFAULT NULL,"
+                + "f_number TEXT DEFAULT NULL, iso INTEGER DEFAULT NULL)");
 
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!internal) {
@@ -636,6 +642,21 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("UPDATE files SET date_modified=0 WHERE media_type=2;");
     }
 
+    private static void updateAddMetadata(SQLiteDatabase db, boolean internal) {
+        db.execSQL("ALTER TABLE files ADD COLUMN author TEXT DEFAULT NULL;");
+        db.execSQL("ALTER TABLE files ADD COLUMN bitrate INTEGER DEFAULT NULL;");
+        db.execSQL("ALTER TABLE files ADD COLUMN capture_framerate REAL DEFAULT NULL;");
+        db.execSQL("ALTER TABLE files ADD COLUMN cd_track_number TEXT DEFAULT NULL;");
+        db.execSQL("ALTER TABLE files ADD COLUMN compilation INTEGER DEFAULT NULL;");
+        db.execSQL("ALTER TABLE files ADD COLUMN disc_number TEXT DEFAULT NULL;");
+        db.execSQL("ALTER TABLE files ADD COLUMN is_favorite INTEGER DEFAULT 0;");
+        db.execSQL("ALTER TABLE files ADD COLUMN num_tracks INTEGER DEFAULT NULL;");
+        db.execSQL("ALTER TABLE files ADD COLUMN writer TEXT DEFAULT NULL;");
+        db.execSQL("ALTER TABLE files ADD COLUMN exposure_time TEXT DEFAULT NULL;");
+        db.execSQL("ALTER TABLE files ADD COLUMN f_number TEXT DEFAULT NULL;");
+        db.execSQL("ALTER TABLE files ADD COLUMN iso INTEGER DEFAULT NULL;");
+    }
+
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
                 null, null, null, null, null, null)) {
@@ -664,7 +685,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
     static final int VERSION_Q = 1023;
-    static final int VERSION_R = 1102;
+    static final int VERSION_R = 1103;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -770,6 +791,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1102) {
                 updateRestructureAudio(db, internal);
+            }
+            if (fromVersion < 1103) {
+                updateAddMetadata(db, internal);
             }
 
             if (recomputeDataValues) {

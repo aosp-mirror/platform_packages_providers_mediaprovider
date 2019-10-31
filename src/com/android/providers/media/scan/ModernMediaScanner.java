@@ -19,6 +19,9 @@ package com.android.providers.media.scan;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_ALBUM;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_ARTIST;
+import static android.media.MediaMetadataRetriever.METADATA_KEY_AUTHOR;
+import static android.media.MediaMetadataRetriever.METADATA_KEY_BITRATE;
+import static android.media.MediaMetadataRetriever.METADATA_KEY_CAPTURE_FRAMERATE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_COLOR_RANGE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_COLOR_STANDARD;
@@ -29,10 +32,14 @@ import static android.media.MediaMetadataRetriever.METADATA_KEY_DATE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_DISC_NUMBER;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_DURATION;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_GENRE;
+import static android.media.MediaMetadataRetriever.METADATA_KEY_IMAGE_HEIGHT;
+import static android.media.MediaMetadataRetriever.METADATA_KEY_IMAGE_WIDTH;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_IS_DRM;
+import static android.media.MediaMetadataRetriever.METADATA_KEY_NUM_TRACKS;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_TITLE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH;
+import static android.media.MediaMetadataRetriever.METADATA_KEY_WRITER;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_YEAR;
 import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.UNKNOWN_STRING;
@@ -527,23 +534,89 @@ public class ModernMediaScanner implements MediaScanner {
      * Populate the given {@link ContentProviderOperation} with the generic
      * {@link MediaColumns} values that can be determined directly from the file
      * or its attributes.
+     * <p>
+     * This is typically the first set of values defined so that we correctly
+     * clear any values that had been set by a previous scan and which are no
+     * longer present in the media item.
      */
     private static void withGenericValues(ContentProviderOperation.Builder op,
             File file, BasicFileAttributes attrs, String mimeType) {
         op.withValue(MediaColumns.DATA, file.getAbsolutePath());
         op.withValue(MediaColumns.SIZE, attrs.size());
-        op.withValue(MediaColumns.TITLE, extractName(file));
         op.withValue(MediaColumns.DATE_MODIFIED, lastModifiedTime(file, attrs));
         op.withValue(MediaColumns.DATE_TAKEN, null);
         op.withValue(MediaColumns.MIME_TYPE, mimeType);
         op.withValue(MediaColumns.IS_DRM, 0);
         op.withValue(MediaColumns.WIDTH, null);
         op.withValue(MediaColumns.HEIGHT, null);
+        op.withValue(MediaColumns.RESOLUTION, null);
         op.withValue(MediaColumns.DOCUMENT_ID, null);
         op.withValue(MediaColumns.INSTANCE_ID, null);
         op.withValue(MediaColumns.ORIGINAL_DOCUMENT_ID, null);
-        op.withValue(MediaColumns.DURATION, null);
         op.withValue(MediaColumns.ORIENTATION, null);
+
+        op.withValue(MediaColumns.CD_TRACK_NUMBER, null);
+        op.withValue(MediaColumns.ALBUM, null);
+        op.withValue(MediaColumns.ARTIST, null);
+        op.withValue(MediaColumns.AUTHOR, null);
+        op.withValue(MediaColumns.COMPOSER, null);
+        op.withValue(MediaColumns.GENRE, null);
+        op.withValue(MediaColumns.TITLE, extractName(file));
+        op.withValue(MediaColumns.YEAR, null);
+        op.withValue(MediaColumns.DURATION, null);
+        op.withValue(MediaColumns.NUM_TRACKS, null);
+        op.withValue(MediaColumns.WRITER, null);
+        op.withValue(MediaColumns.ALBUM_ARTIST, null);
+        op.withValue(MediaColumns.DISC_NUMBER, null);
+        op.withValue(MediaColumns.COMPILATION, null);
+        op.withValue(MediaColumns.BITRATE, null);
+        op.withValue(MediaColumns.CAPTURE_FRAMERATE, null);
+    }
+
+    /**
+     * Populate the given {@link ContentProviderOperation} with the generic
+     * {@link MediaColumns} values using the given
+     * {@link MediaMetadataRetriever}.
+     */
+    private static void withRetrieverValues(ContentProviderOperation.Builder op,
+            MediaMetadataRetriever mmr) {
+        withOptionalValue(op, MediaColumns.DATE_TAKEN,
+                parseOptionalDate(mmr.extractMetadata(METADATA_KEY_DATE)));
+        withOptionalValue(op, MediaColumns.IS_DRM,
+                parseOptional(mmr.extractMetadata(METADATA_KEY_IS_DRM)));
+
+        withOptionalValue(op, MediaColumns.CD_TRACK_NUMBER,
+                parseOptional(mmr.extractMetadata(METADATA_KEY_CD_TRACK_NUMBER)));
+        withOptionalValue(op, MediaColumns.ALBUM,
+                parseOptional(mmr.extractMetadata(METADATA_KEY_ALBUM)));
+        withOptionalValue(op, MediaColumns.ARTIST,
+                parseOptional(mmr.extractMetadata(METADATA_KEY_ARTIST)));
+        withOptionalValue(op, MediaColumns.AUTHOR,
+                parseOptional(mmr.extractMetadata(METADATA_KEY_AUTHOR)));
+        withOptionalValue(op, MediaColumns.COMPOSER,
+                parseOptional(mmr.extractMetadata(METADATA_KEY_COMPOSER)));
+        withOptionalValue(op, MediaColumns.GENRE,
+                parseOptional(mmr.extractMetadata(METADATA_KEY_GENRE)));
+        withOptionalValue(op, MediaColumns.TITLE,
+                parseOptional(mmr.extractMetadata(METADATA_KEY_TITLE)));
+        withOptionalValue(op, MediaColumns.YEAR,
+                parseOptionalOrZero(mmr.extractMetadata(METADATA_KEY_YEAR)));
+        withOptionalValue(op, MediaColumns.DURATION,
+                parseOptional(mmr.extractMetadata(METADATA_KEY_DURATION)));
+        withOptionalValue(op, MediaColumns.NUM_TRACKS,
+                parseOptional(mmr.extractMetadata(METADATA_KEY_NUM_TRACKS)));
+        withOptionalValue(op, MediaColumns.WRITER,
+                parseOptional(mmr.extractMetadata(METADATA_KEY_WRITER)));
+        withOptionalValue(op, MediaColumns.ALBUM_ARTIST,
+                parseOptional(mmr.extractMetadata(METADATA_KEY_ALBUMARTIST)));
+        withOptionalValue(op, MediaColumns.DISC_NUMBER,
+                parseOptional(mmr.extractMetadata(METADATA_KEY_DISC_NUMBER)));
+        withOptionalValue(op, MediaColumns.COMPILATION,
+                parseOptional(mmr.extractMetadata(METADATA_KEY_COMPILATION)));
+        withOptionalValue(op, MediaColumns.BITRATE,
+                parseOptional(mmr.extractMetadata(METADATA_KEY_BITRATE)));
+        withOptionalValue(op, MediaColumns.CAPTURE_FRAMERATE,
+                parseOptional(mmr.extractMetadata(METADATA_KEY_CAPTURE_FRAMERATE)));
     }
 
     /**
@@ -574,8 +647,9 @@ public class ModernMediaScanner implements MediaScanner {
             BasicFileAttributes attrs, String mimeType, String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(
                 MediaStore.Files.getContentUri(volumeName), existingId);
+        withGenericValues(op, file, attrs, mimeType);
+
         try {
-            withGenericValues(op, file, attrs, mimeType);
             op.withValue(FileColumns.MEDIA_TYPE, 0);
             op.withValue(FileColumns.FORMAT, MtpConstants.FORMAT_ASSOCIATION);
             op.withValue(FileColumns.MIME_TYPE, null);
@@ -600,15 +674,10 @@ public class ModernMediaScanner implements MediaScanner {
             BasicFileAttributes attrs, String mimeType, String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(
                 MediaStore.Audio.Media.getContentUri(volumeName), existingId);
-
         withGenericValues(op, file, attrs, mimeType);
-        op.withValue(AudioColumns.ARTIST, UNKNOWN_STRING);
-        op.withValue(AudioColumns.ALBUM_ARTIST, null);
-        op.withValue(AudioColumns.COMPOSER, null);
-        op.withValue(AudioColumns.ALBUM, file.getParentFile().getName());
-        op.withValue(AudioColumns.TRACK, null);
-        op.withValue(AudioColumns.YEAR, null);
-        op.withValue(AudioColumns.GENRE, null);
+
+        op.withValue(MediaColumns.ARTIST, UNKNOWN_STRING);
+        op.withValue(MediaColumns.ALBUM, file.getParentFile().getName());
 
         final String lowPath = file.getAbsolutePath().toLowerCase(Locale.ROOT);
         boolean anyMatch = false;
@@ -626,27 +695,10 @@ public class ModernMediaScanner implements MediaScanner {
             try (MediaMetadataRetriever mmr = new MediaMetadataRetriever()) {
                 mmr.setDataSource(is.getFD());
 
-                withOptionalValue(op, MediaColumns.TITLE,
-                        parseOptional(mmr.extractMetadata(METADATA_KEY_TITLE)));
-                withOptionalValue(op, MediaColumns.IS_DRM,
-                        parseOptional(mmr.extractMetadata(METADATA_KEY_IS_DRM)));
-                withOptionalValue(op, MediaColumns.DURATION,
-                        parseOptional(mmr.extractMetadata(METADATA_KEY_DURATION)));
+                withRetrieverValues(op, mmr);
 
-                withOptionalValue(op, AudioColumns.ARTIST,
-                        parseOptional(mmr.extractMetadata(METADATA_KEY_ARTIST)));
-                withOptionalValue(op, AudioColumns.ALBUM_ARTIST,
-                        parseOptional(mmr.extractMetadata(METADATA_KEY_ALBUMARTIST)));
-                withOptionalValue(op, AudioColumns.COMPOSER,
-                        parseOptional(mmr.extractMetadata(METADATA_KEY_COMPOSER)));
-                withOptionalValue(op, AudioColumns.ALBUM,
-                        parseOptional(mmr.extractMetadata(METADATA_KEY_ALBUM)));
                 withOptionalValue(op, AudioColumns.TRACK,
                         parseOptionalTrack(mmr));
-                withOptionalValue(op, AudioColumns.YEAR,
-                        parseOptionalOrZero(mmr.extractMetadata(METADATA_KEY_YEAR)));
-                withOptionalValue(op, AudioColumns.GENRE,
-                        parseOptional(mmr.extractMetadata(METADATA_KEY_GENRE)));
             }
 
             // Also hunt around for XMP metadata
@@ -664,8 +716,9 @@ public class ModernMediaScanner implements MediaScanner {
             BasicFileAttributes attrs, String mimeType, String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(
                 MediaStore.Audio.Playlists.getContentUri(volumeName), existingId);
+        withGenericValues(op, file, attrs, mimeType);
+
         try {
-            withGenericValues(op, file, attrs, mimeType);
             op.withValue(PlaylistsColumns.NAME, extractName(file));
         } catch (Exception e) {
             if (LOGW) Log.w(TAG, "Trouble scanning file: " + file, e);
@@ -677,11 +730,10 @@ public class ModernMediaScanner implements MediaScanner {
             BasicFileAttributes attrs, String mimeType, String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(
                 MediaStore.Video.Media.getContentUri(volumeName), existingId);
-
         withGenericValues(op, file, attrs, mimeType);
-        op.withValue(VideoColumns.ARTIST, UNKNOWN_STRING);
-        op.withValue(VideoColumns.ALBUM, file.getParentFile().getName());
-        op.withValue(VideoColumns.RESOLUTION, null);
+
+        op.withValue(MediaColumns.ARTIST, UNKNOWN_STRING);
+        op.withValue(MediaColumns.ALBUM, file.getParentFile().getName());
         op.withValue(VideoColumns.COLOR_STANDARD, null);
         op.withValue(VideoColumns.COLOR_TRANSFER, null);
         op.withValue(VideoColumns.COLOR_RANGE, null);
@@ -690,25 +742,15 @@ public class ModernMediaScanner implements MediaScanner {
             try (MediaMetadataRetriever mmr = new MediaMetadataRetriever()) {
                 mmr.setDataSource(is.getFD());
 
-                withOptionalValue(op, MediaColumns.TITLE,
-                        parseOptional(mmr.extractMetadata(METADATA_KEY_TITLE)));
-                withOptionalValue(op, MediaColumns.IS_DRM,
-                        parseOptional(mmr.extractMetadata(METADATA_KEY_IS_DRM)));
+                withRetrieverValues(op, mmr);
+
                 withOptionalValue(op, MediaColumns.WIDTH,
                         parseOptional(mmr.extractMetadata(METADATA_KEY_VIDEO_WIDTH)));
                 withOptionalValue(op, MediaColumns.HEIGHT,
                         parseOptional(mmr.extractMetadata(METADATA_KEY_VIDEO_HEIGHT)));
-                withOptionalValue(op, MediaColumns.DURATION,
-                        parseOptional(mmr.extractMetadata(METADATA_KEY_DURATION)));
-                withOptionalValue(op, MediaColumns.DATE_TAKEN,
-                        parseOptionalDate(mmr.extractMetadata(METADATA_KEY_DATE)));
+                withOptionalValue(op, MediaColumns.RESOLUTION,
+                        parseOptionalVideoResolution(mmr));
 
-                withOptionalValue(op, VideoColumns.ARTIST,
-                        parseOptional(mmr.extractMetadata(METADATA_KEY_ARTIST)));
-                withOptionalValue(op, VideoColumns.ALBUM,
-                        parseOptional(mmr.extractMetadata(METADATA_KEY_ALBUM)));
-                withOptionalValue(op, VideoColumns.RESOLUTION,
-                        parseOptionalResolution(mmr));
                 withOptionalValue(op, VideoColumns.COLOR_STANDARD,
                         parseOptional(mmr.extractMetadata(METADATA_KEY_COLOR_STANDARD)));
                 withOptionalValue(op, VideoColumns.COLOR_TRANSFER,
@@ -732,17 +774,20 @@ public class ModernMediaScanner implements MediaScanner {
             BasicFileAttributes attrs, String mimeType, String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(
                 MediaStore.Images.Media.getContentUri(volumeName), existingId);
-
         withGenericValues(op, file, attrs, mimeType);
+
         op.withValue(ImageColumns.DESCRIPTION, null);
 
         try (FileInputStream is = new FileInputStream(file)) {
+            // TODO: examine unsupported formats using MediaMetadataRetriever
             final ExifInterface exif = new ExifInterface(is);
 
             withOptionalValue(op, MediaColumns.WIDTH,
                     parseOptionalOrZero(exif.getAttribute(ExifInterface.TAG_IMAGE_WIDTH)));
             withOptionalValue(op, MediaColumns.HEIGHT,
                     parseOptionalOrZero(exif.getAttribute(ExifInterface.TAG_IMAGE_LENGTH)));
+            withOptionalValue(op, MediaColumns.RESOLUTION,
+                    parseOptionalResolution(exif));
             withOptionalValue(op, MediaColumns.DATE_TAKEN,
                     parseOptionalDateTaken(exif, lastModifiedTime(file, attrs) * 1000));
             withOptionalValue(op, MediaColumns.ORIENTATION,
@@ -751,6 +796,12 @@ public class ModernMediaScanner implements MediaScanner {
 
             withOptionalValue(op, ImageColumns.DESCRIPTION,
                     parseOptional(exif.getAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION)));
+            withOptionalValue(op, ImageColumns.EXPOSURE_TIME,
+                    parseOptional(exif.getAttribute(ExifInterface.TAG_EXPOSURE_TIME)));
+            withOptionalValue(op, ImageColumns.F_NUMBER,
+                    parseOptional(exif.getAttribute(ExifInterface.TAG_F_NUMBER)));
+            withOptionalValue(op, ImageColumns.ISO,
+                    parseOptional(exif.getAttribute(ExifInterface.TAG_ISO_SPEED_RATINGS)));
 
             // Also hunt around for XMP metadata
             final XmpInterface xmp = XmpInterface.fromContainer(exif);
@@ -766,11 +817,8 @@ public class ModernMediaScanner implements MediaScanner {
             BasicFileAttributes attrs, String mimeType, String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(
                 MediaStore.Files.getContentUri(volumeName), existingId);
-        try {
-            withGenericValues(op, file, attrs, mimeType);
-        } catch (Exception e) {
-            if (LOGW) Log.w(TAG, "Trouble scanning file: " + file, e);
-        }
+        withGenericValues(op, file, attrs, mimeType);
+
         return op.build();
     }
 
@@ -882,10 +930,34 @@ public class ModernMediaScanner implements MediaScanner {
         }
     }
 
-    private static @NonNull Optional<String> parseOptionalResolution(
+    private static @NonNull Optional<String> parseOptionalVideoResolution(
             @NonNull MediaMetadataRetriever mmr) {
         final Optional<?> width = parseOptional(mmr.extractMetadata(METADATA_KEY_VIDEO_WIDTH));
         final Optional<?> height = parseOptional(mmr.extractMetadata(METADATA_KEY_VIDEO_HEIGHT));
+        if (width.isPresent() && height.isPresent()) {
+            return Optional.of(width.get() + "\u00d7" + height.get());
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    private static @NonNull Optional<String> parseOptionalImageResolution(
+            @NonNull MediaMetadataRetriever mmr) {
+        final Optional<?> width = parseOptional(mmr.extractMetadata(METADATA_KEY_IMAGE_WIDTH));
+        final Optional<?> height = parseOptional(mmr.extractMetadata(METADATA_KEY_IMAGE_HEIGHT));
+        if (width.isPresent() && height.isPresent()) {
+            return Optional.of(width.get() + "\u00d7" + height.get());
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    private static @NonNull Optional<String> parseOptionalResolution(
+            @NonNull ExifInterface exif) {
+        final Optional<?> width = parseOptionalOrZero(
+                exif.getAttribute(ExifInterface.TAG_IMAGE_WIDTH));
+        final Optional<?> height = parseOptionalOrZero(
+                exif.getAttribute(ExifInterface.TAG_IMAGE_LENGTH));
         if (width.isPresent() && height.isPresent()) {
             return Optional.of(width.get() + "\u00d7" + height.get());
         } else {

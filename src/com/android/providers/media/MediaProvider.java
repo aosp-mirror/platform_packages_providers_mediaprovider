@@ -285,8 +285,10 @@ public class MediaProvider extends ContentProvider {
     private final OnOpActiveChangedListener mActiveListener = (code, uid, packageName, active) -> {
         synchronized (mCachedCallingIdentity) {
             if (active) {
+                // TODO moltmann: Set correct featureId
                 mCachedCallingIdentity.put(uid,
-                        LocalCallingIdentity.fromExternal(getContext(), uid, packageName));
+                        LocalCallingIdentity.fromExternal(getContext(), uid, packageName,
+                                null));
             } else {
                 mCachedCallingIdentity.remove(uid);
             }
@@ -688,17 +690,17 @@ public class MediaProvider extends ContentProvider {
     }
 
     @Override
-    protected int enforceReadPermissionInner(Uri uri, String callingPkg, IBinder callerToken)
-            throws SecurityException {
+    protected int enforceReadPermissionInner(Uri uri, String callingPkg,
+            @Nullable String featureId, IBinder callerToken) throws SecurityException {
         enforceShellRestrictions();
-        return super.enforceReadPermissionInner(uri, callingPkg, callerToken);
+        return super.enforceReadPermissionInner(uri, callingPkg, featureId, callerToken);
     }
 
     @Override
-    protected int enforceWritePermissionInner(Uri uri, String callingPkg, IBinder callerToken)
-            throws SecurityException {
+    protected int enforceWritePermissionInner(Uri uri, String callingPkg,
+            @Nullable String featureId, IBinder callerToken) throws SecurityException {
         enforceShellRestrictions();
-        return super.enforceWritePermissionInner(uri, callingPkg, callerToken);
+        return super.enforceWritePermissionInner(uri, callingPkg, featureId, callerToken);
     }
 
     @VisibleForTesting
@@ -1775,15 +1777,6 @@ public class MediaProvider extends ContentProvider {
         computeDataValues(values);
         values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);
 
-        long rowId = 0;
-        Integer i = values.getAsInteger(
-                MediaStore.MediaColumns.MEDIA_SCANNER_NEW_OBJECT_ID);
-        if (i != null) {
-            rowId = i.intValue();
-            values = new ContentValues(values);
-            values.remove(MediaStore.MediaColumns.MEDIA_SCANNER_NEW_OBJECT_ID);
-        }
-
         String title = values.getAsString(MediaStore.MediaColumns.TITLE);
         if (title == null && path != null) {
             title = extractFileName(path);
@@ -1851,7 +1844,8 @@ public class MediaProvider extends ContentProvider {
         }
         values.put(FileColumns.MEDIA_TYPE, mediaType);
 
-        if (rowId == 0) {
+        final long rowId;
+        {
             if (mediaType == FileColumns.MEDIA_TYPE_PLAYLIST) {
                 String name = values.getAsString(Audio.Playlists.NAME);
                 if (name == null && path == null) {
@@ -1888,9 +1882,6 @@ public class MediaProvider extends ContentProvider {
             }
 
             rowId = db.insert("files", FileColumns.DATE_MODIFIED, values);
-        } else {
-            db.update("files", values, FileColumns._ID + "=?",
-                    new String[] { Long.toString(rowId) });
         }
         if (format == MtpConstants.FORMAT_ASSOCIATION) {
             synchronized (mDirectoryCache) {
@@ -5410,7 +5401,7 @@ public class MediaProvider extends ContentProvider {
      * using the {@link Column} annotation, and is designed to ensure that we
      * always support public API commitments.
      */
-    static ArrayMap<String, String> getProjectionMap(Class<?> clazz) {
+    public static ArrayMap<String, String> getProjectionMap(Class<?> clazz) {
         synchronized (sProjectionMapCache) {
             ArrayMap<String, String> map = sProjectionMapCache.get(clazz);
             if (map == null) {

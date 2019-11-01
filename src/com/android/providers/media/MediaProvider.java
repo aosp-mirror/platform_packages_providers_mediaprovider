@@ -177,6 +177,12 @@ import java.util.regex.Pattern;
  */
 public class MediaProvider extends ContentProvider {
     /**
+     * Regex that matches any valid path in external storage,
+     * and captures the top-level directory as the first group.
+     */
+    static final Pattern PATTERN_TOP_LEVEL_DIR = Pattern.compile(
+            "(?i)^/storage/[^/]+/[0-9]+/?([^/]+)/.*");
+    /**
      * Regex that matches paths in all well-known package-specific directories,
      * and which captures the package name as the first group.
      */
@@ -201,6 +207,23 @@ public class MediaProvider extends ContentProvider {
      */
     static final Pattern PATTERN_SELECTION_ID = Pattern.compile(
             "(?:image_id|video_id)\\s*=\\s*(\\d+)");
+
+    /**
+     * These directory names aren't declared in Environment as final variables, and so we need to
+     * have the same values in separate final variables in order to have them considered constant
+     * expressions.
+     */
+    private static final String DIRECTORY_MUSIC = "Music";
+    private static final String DIRECTORY_PODCASTS = "Podcasts";
+    private static final String DIRECTORY_RINGTONES = "Ringtones";
+    private static final String DIRECTORY_ALARMS = "Alarms";
+    private static final String DIRECTORY_NOTIFICATIONS = "Notifications";
+    private static final String DIRECTORY_PICTURES = "Pictures";
+    private static final String DIRECTORY_MOVIES = "Movies";
+    private static final String DIRECTORY_DOWNLOADS = "Download";
+    private static final String DIRECTORY_DCIM = "DCIM";
+    private static final String DIRECTORY_DOCUMENTS = "Documents";
+    private static final String DIRECTORY_AUDIOBOOKS = "Audiobooks";
 
     /**
      * Set of {@link Cursor} columns that refer to raw filesystem paths.
@@ -4646,28 +4669,57 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     * Returns the name of the top level directory, or null if the path doesn't go through the
+     * external storage directory.
+     */
+    @Nullable
+    private static String extractTopLevelDir(String path) {
+        Matcher m = PATTERN_TOP_LEVEL_DIR.matcher(path);
+        if (m.matches()) {
+            return m.group(1);
+        }
+        return null;
+    }
+
+    /**
      * @throws IllegalStateException if path is invalid or doesn't match a volume.
      */
     @NonNull
     private static Uri getContentUriForFile(@NonNull String filePath, @NonNull String mimeType) {
         final String volName = MediaStore.getVolumeName(new File(filePath));
-        // We ignore the subtype for our purposes
-        int firstSlash = mimeType.indexOf('/');
-        if (firstSlash < 0) {
-            // This shouldn't happen, but we resort to the non-media files URI as a default
+        final String topLevelDir = extractTopLevelDir(filePath);
+        if (topLevelDir == null) {
+            // If the file path doesn't match the external storage directory, we use the files URI
+            // as default and let #insert enforce the restrictions
             return Files.getContentUri(volName);
         }
-        final String type = mimeType.substring(0, firstSlash).toLowerCase(Locale.ROOT);
-        switch (type) {
-            case "image":
-                return Images.Media.getContentUri(volName);
-            case "video":
-                return Video.Media.getContentUri(volName);
-            case "audio":
+
+        switch (topLevelDir) {
+            case DIRECTORY_MUSIC:
+            case DIRECTORY_PODCASTS:
+            case DIRECTORY_RINGTONES:
+            case DIRECTORY_ALARMS:
+            case DIRECTORY_NOTIFICATIONS:
+            case DIRECTORY_AUDIOBOOKS:
                 return Audio.Media.getContentUri(volName);
+            //TODO(b/143864294)
+            case DIRECTORY_PICTURES:
+                return Images.Media.getContentUri(volName);
+            case DIRECTORY_MOVIES:
+                return Video.Media.getContentUri(volName);
+            case DIRECTORY_DCIM:
+                if (mimeType.toLowerCase(Locale.ROOT).startsWith("image")) {
+                    return Images.Media.getContentUri(volName);
+                } else {
+                    return Video.Media.getContentUri(volName);
+                }
+            case DIRECTORY_DOWNLOADS:
+            case DIRECTORY_DOCUMENTS:
+                break;
             default:
-                return Files.getContentUri(volName);
+                Log.w(TAG, "Forgot to handle a top level directory in getContentUriForFile?");
         }
+        return Files.getContentUri(volName);
     }
 
     private boolean fileExists(@NonNull String absolutePath, @NonNull Uri contentUri) {
@@ -4732,7 +4784,8 @@ public class MediaProvider extends ContentProvider {
 
             if (appSpecificDir != null) {
                 for (String packageName : mCallingIdentity.get().getSharedPackageNames()) {
-                    if (appSpecificDir.toLowerCase().equals(packageName.toLowerCase())) {
+                    if (appSpecificDir.toLowerCase(Locale.ROOT)
+                            .equals(packageName.toLowerCase(Locale.ROOT))) {
                         return createFileInAppSpecificDir(path);
                     }
                 }
@@ -4816,7 +4869,8 @@ public class MediaProvider extends ContentProvider {
             // Trying to create file under some app's external storage dir
             if (appSpecificDir != null) {
                 for (String packageName : mCallingIdentity.get().getSharedPackageNames()) {
-                    if (appSpecificDir.toLowerCase().equals(packageName.toLowerCase())) {
+                    if (appSpecificDir.toLowerCase(Locale.ROOT)
+                            .equals(packageName.toLowerCase(Locale.ROOT))) {
                         return deleteFileInAppSpecificDir(path);
                     }
                 }

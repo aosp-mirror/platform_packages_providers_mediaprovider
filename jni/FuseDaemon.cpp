@@ -69,7 +69,7 @@ static constexpr const char* kPropRedactionEnabled = "persist.sys.fuse.redaction
 
 class handle {
   public:
-    handle(const string& path) : path(path), fd(-1), ri(){};
+    handle(const string& path) : path(path), fd(-1), ri(nullptr){};
     string path;
     int fd;
     std::unique_ptr<RedactionInfo> ri;
@@ -453,6 +453,10 @@ static struct node* make_node_entry(fuse_req_t req,
     pthread_mutex_unlock(&fuse->lock);
 
     return node;
+}
+
+static inline bool is_requesting_write(int flags) {
+    return flags & (O_WRONLY | O_RDWR);
 }
 
 namespace mediaprovider {
@@ -875,15 +879,20 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         fuse_reply_err(req, ENOMEM);
         return;
     }
+
+    if (fi->flags & O_DIRECT) {
+        fi->flags &= ~O_DIRECT;
+        fi->direct_io = true;
+    }
+
     TRACE_FUSE(fuse) << "OPEN " << path;
-    h->fd = open(path.c_str(), fi->flags);
-    if (h->fd < 0) {
+    errno = -fuse->mp->IsOpenAllowed(h->path, ctx->uid, is_requesting_write(fi->flags));
+    if (errno || (h->fd = open(path.c_str(), fi->flags)) < 0) {
         delete h;
         fuse_reply_err(req, errno);
         return;
     }
-    // Initialize ri as nullptr to know that redaction info has not been checked yet.
-    h->ri = nullptr;
+
     fi->fh = ptr_to_id(h);
     fi->keep_cache = 1;
     fuse_reply_open(req, fi);
@@ -1095,8 +1104,12 @@ static void pf_release(fuse_req_t req,
     handle* h = reinterpret_cast<handle*>(fi->fh);
 
     TRACE_FUSE(fuse) << "RELEASE " << h << "(" << h->fd << ")";
+
     fuse->fadviser.Close(h->fd);
     close(h->fd);
+    if (is_requesting_write(fi->flags)) {
+        fuse->mp->ScanFile(h->path);
+    }
     delete h;
     fuse_reply_err(req, 0);
 }
@@ -1321,6 +1334,7 @@ static void pf_create(fuse_req_t req,
     mode = (mode & (~0777)) | 0664;
     // TODO(b/142863102): implement mechanism to pass fi->flags to MediaProvider
     // and use them when opening the file on the app's behalf.
+
     h->fd = fuse->mp->CreateFile(child_path.c_str(), ctx->uid);
     if (h->fd < 0) {
         errno = -h->fd;

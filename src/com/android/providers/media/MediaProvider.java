@@ -679,6 +679,19 @@ public class MediaProvider extends ContentProvider {
         return mMediaScanner.scanFile(file);
     }
 
+    /**
+     * Makes MediaScanner scan the given file.
+     * @param file path of the file to be scanned
+     * @return URI of the item corresponding to the file if it was successfully scanned and indexed,
+     * null otherwise.
+     *
+     * Called from JNI in jni/MediaProviderWrapper.cpp
+     */
+    @Keep
+    public Uri scanFile(String file) {
+        return scanFile(new File(file));
+    }
+
     private void enforceShellRestrictions() {
         final int callingAppId = UserHandle.getAppId(Binder.getCallingUid());
         if (callingAppId == android.os.Process.SHELL_UID
@@ -4260,6 +4273,20 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     * Compares {@code itemOwner} with package name of {@link LocalCallingIdentity} and throws
+     * {@link IllegalStateException} if it doesn't match.
+     * Make sure to set calling identity properly before calling.
+     */
+    private void requireOwnershipForItem(@Nullable String itemOwner, Uri item) {
+        final boolean hasOwner = (itemOwner != null);
+        final boolean callerIsOwner = Objects.equals(getCallingPackageOrSelf(), itemOwner);
+        if (hasOwner && !callerIsOwner) {
+            throw new IllegalStateException(
+                    "Only owner is able to interact with pending item " + item);
+        }
+    }
+
+    /**
      * Replacement for {@link #openFileHelper(Uri, String)} which enforces any
      * permissions applicable to the path before returning.
      */
@@ -4296,14 +4323,11 @@ public class MediaProvider extends ContentProvider {
 
         checkAccess(uri, file, forWrite);
 
-        // Require ownership if item is still pending
-        final boolean hasOwner = (ownerPackageName != null);
-        final boolean callerIsOwner = Objects.equals(getCallingPackageOrSelf(), ownerPackageName);
-        if (isPending && hasOwner && !callerIsOwner) {
-            throw new IllegalStateException(
-                    "Only owner is able to interact with pending media " + uri);
+        if (isPending) {
+            requireOwnershipForItem(ownerPackageName, uri);
         }
 
+        final boolean callerIsOwner = Objects.equals(getCallingPackageOrSelf(), ownerPackageName);
         // Figure out if we need to redact contents
         final boolean redactionNeeded = callerIsOwner ? false : isRedactionNeeded(uri);
         final RedactionInfo redactionInfo;
@@ -4549,6 +4573,79 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     * Checks if the app identified by the given UID is allowed to open the given file for the given
+     * access mode.
+     *
+     * @param path the path of the file to be opened
+     * @param uid UID of the app requesting to open the file
+     * @param forWrite specifies if the file is to be opened for write
+     * @return 0 upon success. If the operation is illegal or not permitted, returns
+     * -{@link OsConstants.ENOENT} to prevent malicious apps from distinguishing whether a file
+     * they have no access to exists or not.
+     *
+     * Called from JNI in jni/MediaProviderWrapper.cpp
+     */
+    @Keep
+    public int isOpenAllowed(String path, int uid, boolean forWrite) {
+        final LocalCallingIdentity token =
+                clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
+        try {
+            // Returns null if the path doesn't correspond to an app specific directory
+            final String appSpecificDir = extractPathOwnerPackageName(path);
+
+            if (appSpecificDir != null) {
+                // Files in app specific directories aren't necessarily in the database,
+                // and an app always has access to its own directory (and never to other apps'
+                // directories)
+                for (String packageName : mCallingIdentity.get().getSharedPackageNames()) {
+                    if (appSpecificDir.toLowerCase().equals(packageName.toLowerCase())) {
+                        return 0;
+                    }
+                }
+                Log.e(TAG, "Cannot open file under other app's external directory!");
+                // We treat this error as if the directory doesn't exist to make it harder for
+                // apps to snoop around whether other apps exist or not.
+                return -OsConstants.ENOENT;
+            }
+            final String mimeType = MediaFile.getMimeTypeForFile(path);
+            final Uri contentUri = getContentUriForFile(path, mimeType);
+            final String[] projection = new String[]{
+                    MediaColumns._ID,
+                    MediaColumns.OWNER_PACKAGE_NAME,
+                    MediaColumns.IS_PENDING};
+            final String selection = MediaColumns.DATA + "=?";
+            final String[] selectionArgs = new String[] { path };
+            final Uri fileUri;
+            boolean isPending = false;
+            String ownerPackageName = null;
+            try (final Cursor c = queryForSingleItem(contentUri, projection, selection,
+                    selectionArgs, null)) {
+                fileUri = ContentUris.withAppendedId(contentUri, c.getInt(0));
+                ownerPackageName = c.getString(1);
+                isPending = c.getInt(2) != 0;
+            }
+
+            final File file = new File(path);
+            checkAccess(fileUri, file, forWrite);
+
+            if (isPending) {
+                requireOwnershipForItem(ownerPackageName, fileUri);
+            }
+            return 0;
+        } catch (FileNotFoundException e) {
+            Log.e(TAG, "Couldn't find file: " + path);
+            // It's an illegal state because FuseDaemon shouldn't forward the request if
+            // the file doesn't exist.
+            throw new IllegalStateException(e);
+        } catch (IllegalStateException | SecurityException e) {
+            Log.e(TAG, "Permission to access file: " + path + " is denied");
+            return -OsConstants.ENOENT;
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
+    }
+
+    /**
      * @throws IllegalStateException if path is invalid or doesn't match a volume.
      */
     @NonNull
@@ -4655,7 +4752,6 @@ public class MediaProvider extends ContentProvider {
             final String callingPackageName = getCallingPackageOrSelf();
             final String relativePath = extractRelativePath(path);
 
-            // TODO(b/142850883): Use IS_PENDING.
             ContentValues values = new ContentValues();
             values.put(FileColumns.RELATIVE_PATH, relativePath);
             values.put(FileColumns.DISPLAY_NAME, displayName);

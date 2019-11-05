@@ -1407,20 +1407,19 @@ static void pf_fallocate(fuse_req_t req, fuse_ino_t ino, int mode,
 static struct fuse_lowlevel_ops ops{
     .init = pf_init,
     /*.destroy = pf_destroy,*/
-    .lookup = pf_lookup, .forget = pf_forget, .forget_multi = pf_forget_multi,
-    .getattr = pf_getattr, .setattr = pf_setattr,
+    .lookup = pf_lookup, .forget = pf_forget, .getattr = pf_getattr,
+    .setattr = pf_setattr,
     /*.readlink = pf_readlink,*/
-    .mknod = pf_mknod, .mkdir = pf_mkdir, .unlink = pf_unlink, .rmdir = pf_rmdir,
+    .mknod = pf_mknod, .mkdir = pf_mkdir, .unlink = pf_unlink,
+    .rmdir = pf_rmdir,
     /*.symlink = pf_symlink,*/
     .rename = pf_rename,
     /*.link = pf_link,*/
     .open = pf_open, .read = pf_read,
     /*.write = pf_write,*/
-    .write_buf = pf_write_buf,
-    /*.copy_file_range = pf_copy_file_range,*/
-    .flush = pf_flush, .release = pf_release, .fsync = pf_fsync, .fsyncdir = pf_fsyncdir,
-    .opendir = pf_opendir, .readdir = pf_readdir, .readdirplus = pf_readdirplus,
-    .releasedir = pf_releasedir, .statfs = pf_statfs,
+    .flush = pf_flush, .release = pf_release, .fsync = pf_fsync,
+    .opendir = pf_opendir, .readdir = pf_readdir, .releasedir = pf_releasedir,
+    .fsyncdir = pf_fsyncdir, .statfs = pf_statfs,
     /*.setxattr = pf_setxattr,
     .getxattr = pf_getxattr,
     .listxattr = pf_listxattr,
@@ -1430,10 +1429,14 @@ static struct fuse_lowlevel_ops ops{
     .setlk = pf_setlk,
     .bmap = pf_bmap,
     .ioctl = pf_ioctl,
-    .poll = pf_poll,
-    .retrieve_reply = pf_retrieve_reply,*/
+    .poll = pf_poll,*/
+    .write_buf = pf_write_buf,
+    /*.retrieve_reply = pf_retrieve_reply,*/
+    .forget_multi = pf_forget_multi,
     /*.flock = pf_flock,
     .fallocate = pf_fallocate,*/
+    .readdirplus = pf_readdirplus,
+    /*.copy_file_range = pf_copy_file_range,*/
 };
 
 static struct fuse_loop_config config = {

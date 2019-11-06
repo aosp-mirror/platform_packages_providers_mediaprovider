@@ -1332,12 +1332,16 @@ static void pf_create(fuse_req_t req,
         return;
     }
     mode = (mode & (~0777)) | 0664;
-    // TODO(b/142863102): implement mechanism to pass fi->flags to MediaProvider
-    // and use them when opening the file on the app's behalf.
 
-    h->fd = fuse->mp->CreateFile(child_path.c_str(), ctx->uid);
-    if (h->fd < 0) {
-        errno = -h->fd;
+    int mp_return_code = fuse->mp->InsertFile(child_path.c_str(), ctx->uid);
+    if (mp_return_code || ((h->fd = open(child_path.c_str(), fi->flags, mode)) < 0)) {
+        if (mp_return_code) {
+            errno = -mp_return_code;
+            // In this case, we know open was not called.
+        } else {
+            // In this case, we know that open has failed, so we want to undo the file insertion.
+            fuse->mp->DeleteFile(child_path.c_str(), ctx->uid);
+        }
         delete h;
         PLOG(DEBUG) << "Could not create file: " << child_path;
         fuse_reply_err(req, errno);

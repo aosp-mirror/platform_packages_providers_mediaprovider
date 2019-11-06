@@ -73,18 +73,18 @@ std::unique_ptr<RedactionInfo> getRedactionInfoInternal(JNIEnv* env, jobject med
     return ri;
 }
 
-int createFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_create_file,
+int insertFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_insert_file,
                        const string& path, uid_t uid) {
-    LOG(DEBUG) << "Create file for UID = " << uid << ". Path = " << path;
+    LOG(DEBUG) << "Inserting file for UID = " << uid << ". Path = " << path;
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
-    int fd = env->CallIntMethod(media_provider_object, mid_create_file, j_path.get(), uid);
+    int res = env->CallIntMethod(media_provider_object, mid_insert_file, j_path.get(), uid);
 
     if (CheckForJniException(env)) {
         LOG(DEBUG) << "Java exception while creating file";
         return -EFAULT;
     }
-    LOG(DEBUG) << "fd = " << fd;
-    return fd;
+    LOG(DEBUG) << "res = " << res;
+    return res;
 }
 
 int deleteFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_delete_file,
@@ -150,9 +150,10 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
     media_provider_class_ = reinterpret_cast<jclass>(env->NewGlobalRef(media_provider_class_));
 
     // Cache methods - Before calling a method, make sure you cache it here
-    mid_get_redaction_ranges_ =
-            CacheMethod(env, "getRedactionRanges", "(Ljava/lang/String;I)[J", /*is_static*/ false);
-    mid_create_file_ = CacheMethod(env, "createFile", "(Ljava/lang/String;I)I", /*is_static*/ false);
+    mid_get_redaction_ranges_ = CacheMethod(env, "getRedactionRanges", "(Ljava/lang/String;I)[J",
+                                            /*is_static*/ false);
+    mid_insert_file_ = CacheMethod(env, "insertFileIfNecessary", "(Ljava/lang/String;I)I",
+                                   /*is_static*/ false);
     mid_delete_file_ = CacheMethod(env, "deleteFile", "(Ljava/lang/String;I)I", /*is_static*/ false);
     mid_is_open_allowed_ = CacheMethod(env, "isOpenAllowed", "(Ljava/lang/String;IZ)I",
                                        /*is_static*/ false);
@@ -209,11 +210,11 @@ std::unique_ptr<RedactionInfo> MediaProviderWrapper::GetRedactionInfo(const stri
     return res;
 }
 
-int MediaProviderWrapper::CreateFile(const string& path, uid_t uid) {
+int MediaProviderWrapper::InsertFile(const string& path, uid_t uid) {
     int res = -EIO;  // Default value in case JNI thread was being terminated
 
     PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
-        res = createFileInternal(env, media_provider_object_, mid_create_file_, path, uid);
+        res = insertFileInternal(env, media_provider_object_, mid_insert_file_, path, uid);
     });
 
     return res;

@@ -18,11 +18,13 @@
 
 #include <android-base/logging.h>
 #include <android-base/properties.h>
+#include <android/log.h>
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <fuse_i.h>
+#include <fuse_log.h>
 #include <fuse_lowlevel.h>
 #include <inttypes.h>
 #include <limits.h>
@@ -49,6 +51,7 @@
 #include <map>
 #include <queue>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 #include "MediaProviderWrapper.h"
@@ -1444,6 +1447,12 @@ static struct fuse_loop_config config = {
         .max_idle_threads = 10,
 };
 
+static std::unordered_map<enum fuse_log_level, enum android_LogPriority> fuse_to_android_loglevel;
+
+static void fuse_logger(enum fuse_log_level level, const char* fmt, va_list ap) {
+    __android_log_vprint(fuse_to_android_loglevel.at(level), LOG_TAG, fmt, ap);
+}
+
 FuseDaemon::FuseDaemon(JNIEnv* env, jobject mediaProvider) : mp(env, mediaProvider) {}
 
 void FuseDaemon::Stop() {}
@@ -1493,6 +1502,16 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
     }
 
     umask(0);
+
+    // Custom logging for libfuse
+    fuse_to_android_loglevel.insert({FUSE_LOG_EMERG, ANDROID_LOG_FATAL});
+    fuse_to_android_loglevel.insert({FUSE_LOG_ALERT, ANDROID_LOG_ERROR});
+    fuse_to_android_loglevel.insert({FUSE_LOG_CRIT, ANDROID_LOG_ERROR});
+    fuse_to_android_loglevel.insert({FUSE_LOG_WARNING, ANDROID_LOG_WARN});
+    fuse_to_android_loglevel.insert({FUSE_LOG_NOTICE, ANDROID_LOG_INFO});
+    fuse_to_android_loglevel.insert({FUSE_LOG_INFO, ANDROID_LOG_DEBUG});
+    fuse_to_android_loglevel.insert({FUSE_LOG_DEBUG, ANDROID_LOG_VERBOSE});
+    fuse_set_log_func(fuse_logger);
 
     LOG(INFO) << "Starting fuse...";
     struct fuse_session

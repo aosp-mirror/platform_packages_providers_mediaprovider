@@ -28,9 +28,9 @@
     <string name="root_audio" msgid="3505830755201326018">"Audioa"</string>
     <string name="permission_required" msgid="1460820436132943754">"Baimena behar da elementu hau aldatu edo ezabatzeko."</string>
     <string name="permission_required_action" msgid="706370952366113539">"Egin aurrera"</string>
-    <string name="permission_audio" msgid="344061911159388398"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" aplikazioari musika hau aldatzeko edo ezabatzeko baimena eman nahi diozu?"</string>
-    <string name="permission_video" msgid="8188037202573267740"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" aplikazioari bideo hau aldatzeko edo ezabatzeko baimena eman nahi diozu?"</string>
-    <string name="permission_images" msgid="6711726334380945124"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" aplikazioari irudi hau aldatzeko edo ezabatzeko baimena eman nahi diozu?"</string>
+    <string name="permission_audio" msgid="344061911159388398">"Musika hau aldatzeko edo ezabatzeko baimena eman nahi diozu "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" aplikazioari?"</string>
+    <string name="permission_video" msgid="8188037202573267740">"Bideo hau aldatzeko edo ezabatzeko baimena eman nahi diozu "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" aplikazioari?"</string>
+    <string name="permission_images" msgid="6711726334380945124">"Irudi hau aldatzeko edo ezabatzeko baimena eman nahi diozu "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" aplikazioari?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Baimendu"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Ukatu"</string>
     <string name="sound_name_awaken" msgid="5266892392848526147">"Esnatu"</string>

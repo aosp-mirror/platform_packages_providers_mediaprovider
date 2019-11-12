@@ -18,6 +18,10 @@
     <target_preparer class="com.android.tradefed.targetprep.TestAppInstallSetup">
         <option name="test-file-name" value="FuseDaemonTest.apk" />
     </target_preparer>
+    <target_preparer class="com.android.tradefed.targetprep.RunCommandTargetPreparer">
+        <option name="run-command" value="mkdir -p /sdcard/Android/data/com.android.shell/files" />
+        <option name="teardown-command" value="rm -r /sdcard/Android/data/com.android.shell" />
+    </target_preparer>
     <test class="com.android.tradefed.testtype.AndroidJUnitTest" >
         <option name="package" value="com.android.tests.fused" />
         <option name="runner" value="androidx.test.runner.AndroidJUnitRunner" />

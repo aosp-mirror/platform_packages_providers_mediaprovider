@@ -192,12 +192,6 @@ public class FilePathAccessTest {
         } finally {
             executeShellCommand("rm " + file1);
         }
-
-        // Similarly, shell can't create a file under this package's directory
-        final File file3 = new File(EXTERNAL_FILES_DIR, NONMEDIA_FILE_NAME);
-        executeShellCommand("touch " + file3);
-        assertThat(executeShellCommand("ls " + EXTERNAL_FILES_DIR)
-                .contains(NONMEDIA_FILE_NAME)).isFalse();
     }
 
     /**

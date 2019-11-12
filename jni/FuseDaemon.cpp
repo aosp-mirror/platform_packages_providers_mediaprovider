@@ -17,7 +17,6 @@
 #include "FuseDaemon.h"
 
 #include <android-base/logging.h>
-#include <android-base/properties.h>
 #include <android/log.h>
 #include <ctype.h>
 #include <dirent.h>
@@ -68,7 +67,6 @@ using std::vector;
 #define FUSE_UNKNOWN_INO 0xffffffff
 
 constexpr size_t MAX_READ_SIZE = 128 * 1024;
-static constexpr const char* kPropRedactionEnabled = "persist.sys.fuse.redaction-enabled";
 
 class handle {
   public:
@@ -1008,13 +1006,8 @@ static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
     struct fuse* fuse = get_fuse(req);
     TRACE_FUSE(fuse) << "READ";
     if (!h->ri) {
-        if (android::base::GetBoolProperty(kPropRedactionEnabled, true)) {
-            h->ri = fuse->mp->GetRedactionInfo(h->path, req->ctx.uid);
-        } else {
-            // If redaction is not enabled, we just use empty redaction ranges
-            // which mean that we will always use do_read instead of do_read_with_redaction
-            h->ri = std::make_unique<RedactionInfo>();
-        }
+        h->ri = fuse->mp->GetRedactionInfo(h->path, req->ctx.uid);
+
         if (!h->ri) {
             errno = EIO;
             fuse_reply_err(req, errno);
@@ -1106,7 +1099,8 @@ static void pf_release(fuse_req_t req,
     struct fuse* fuse = get_fuse(req);
     handle* h = reinterpret_cast<handle*>(fi->fh);
 
-    TRACE_FUSE(fuse) << "RELEASE " << h << "(" << h->fd << ")";
+    TRACE_FUSE(fuse) << "RELEASE "
+                     << "0" << std::oct << fi->flags << " " << h << "(" << h->fd << ")";
 
     fuse->fadviser.Close(h->fd);
     close(h->fd);
@@ -1323,8 +1317,8 @@ static void pf_create(fuse_req_t req,
     pthread_mutex_lock(&fuse->lock);
     parent_node = lookup_node_by_id_locked(fuse, parent);
     parent_path = get_node_path_locked(parent_node);
-    TRACE_FUSE(fuse) << "CREATE " << name << " 0" << std::oct << mode << " @ " << parent << " ("
-                     << safe_name(parent_node) << ")";
+    TRACE_FUSE(fuse) << "CREATE " << name << " 0" << std::oct << fi->flags << " @ " << parent
+                     << " (" << safe_name(parent_node) << ")";
     pthread_mutex_unlock(&fuse->lock);
 
     child_path = parent_path + "/" + name;
@@ -1335,7 +1329,6 @@ static void pf_create(fuse_req_t req,
         return;
     }
     mode = (mode & (~0777)) | 0664;
-
     int mp_return_code = fuse->mp->InsertFile(child_path.c_str(), ctx->uid);
     if (mp_return_code || ((h->fd = open(child_path.c_str(), fi->flags, mode)) < 0)) {
         if (mp_return_code) {

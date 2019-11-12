@@ -23,6 +23,7 @@
             android:label="@string/app_label"
             android:allowBackup="false"
             android:supportsRtl="true"
+            android:persistent="true"
             android:usesCleartextTraffic="true">
         <provider
                 android:name=".MediaProvider"

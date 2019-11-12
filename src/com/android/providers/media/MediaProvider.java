@@ -20,7 +20,6 @@ import static android.app.PendingIntent.FLAG_CANCEL_CURRENT;
 import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.app.PendingIntent.FLAG_ONE_SHOT;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
-import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.getVolumeName;
 import static android.provider.MediaStore.Downloads.isDownload;
 
@@ -59,6 +58,7 @@ import android.content.UriMatcher;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.PermissionGroupInfo;
+import android.content.pm.ProviderInfo;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -394,7 +394,7 @@ public class MediaProvider extends ContentProvider {
      * this method expands the single item being accepted to also accept all
      * relevant views.
      */
-    public static void acceptWithExpansion(Consumer<Uri> consumer, Uri uri) {
+    public void acceptWithExpansion(Consumer<Uri> consumer, Uri uri) {
         final int match = matchUri(uri, true);
         acceptWithExpansionInternal(consumer, uri, match);
 
@@ -528,6 +528,16 @@ public class MediaProvider extends ContentProvider {
     }
 
     @Override
+    public void attachInfo(Context context, ProviderInfo info) {
+        super.attachInfo(context, info);
+
+        Log.v(TAG, "Attached " + info.authority + " from " + info.applicationInfo.packageName);
+
+        mLegacyProvider = Objects.equals(info.authority, MediaStore.AUTHORITY_LEGACY);
+        mUriMatcher = new LocalUriMatcher(info.authority);
+    }
+
+    @Override
     public boolean onCreate() {
         final Context context = getContext();
 
@@ -546,8 +556,10 @@ public class MediaProvider extends ContentProvider {
 
         mMediaScanner = new ModernMediaScanner(context);
 
-        mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, true, false);
-        mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false, false);
+        mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME,
+                true, false, mLegacyProvider);
+        mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME,
+                false, false, mLegacyProvider);
 
         final IntentFilter filter = new IntentFilter();
         filter.setPriority(10);
@@ -1234,7 +1246,9 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     static void ensureFileColumns(Uri uri, ContentValues values) throws VolumeArgumentException {
-        ensureNonUniqueFileColumns(matchUri(uri, true), uri, values, null /* currentPath */);
+        final LocalUriMatcher matcher = new LocalUriMatcher(MediaStore.AUTHORITY);
+        final int match = matcher.matchUri(uri, true);
+        ensureNonUniqueFileColumns(match, uri, values, null /* currentPath */);
     }
 
     private static void ensureUniqueFileColumns(int match, Uri uri, ContentValues values)
@@ -2950,6 +2964,12 @@ public class MediaProvider extends ContentProvider {
             if (getCallingPackageTargetSdkVersion() < Build.VERSION_CODES.Q) {
                 qb.setProjectionGreylist(sGreylist);
             }
+
+            // If we're the legacy provider, and the caller is the system, then
+            // we're willing to let them access any columns they want
+            if (mLegacyProvider && isCallingPackageSystem()) {
+                qb.setProjectionGreylist(sGreylist);
+            }
         }
 
         return qb;
@@ -2959,7 +2979,7 @@ public class MediaProvider extends ContentProvider {
      * Determine if given {@link Uri} has a
      * {@link MediaColumns#OWNER_PACKAGE_NAME} column.
      */
-    private static boolean hasOwnerPackageName(Uri uri) {
+    private boolean hasOwnerPackageName(Uri uri) {
         // It's easier to maintain this as an inverted list
         final int table = matchUri(uri, true);
         switch (table) {
@@ -3932,31 +3952,33 @@ public class MediaProvider extends ContentProvider {
 
         final ContentValues values = new ContentValues(initialValues);
         switch (match) {
-            case AUDIO_MEDIA:
             case AUDIO_MEDIA_ID: {
                 computeAudioLocalizedValues(values);
                 computeAudioKeyValues(values);
                 // fall-through
             }
-            case IMAGES_MEDIA:
+            case AUDIO_PLAYLISTS_ID:
+            case VIDEO_MEDIA_ID:
             case IMAGES_MEDIA_ID:
-            case VIDEO_MEDIA:
-            case VIDEO_MEDIA_ID: {
+            case FILES_ID:
+            case DOWNLOADS_ID: {
                 computeDataValues(values);
-                count = qb.update(db, values, userWhere, userWhereArgs);
                 break;
             }
+        }
+
+        switch (match) {
             case AUDIO_MEDIA_ID_PLAYLISTS_ID:
             case AUDIO_PLAYLISTS_ID:
                 long playlistId = ContentUris.parseId(uri);
-                count = qb.update(db, initialValues, userWhere, userWhereArgs);
+                count = qb.update(db, values, userWhere, userWhereArgs);
                 if (count > 0) {
                     updatePlaylistDateModifiedToNow(db, playlistId);
                 }
                 break;
             case AUDIO_PLAYLISTS_ID_MEMBERS:
                 long playlistIdMembers = Long.parseLong(uri.getPathSegments().get(3));
-                count = qb.update(db, initialValues, userWhere, userWhereArgs);
+                count = qb.update(db, values, userWhere, userWhereArgs);
                 if (count > 0) {
                     updatePlaylistDateModifiedToNow(db, playlistIdMembers);
                 }
@@ -3965,8 +3987,8 @@ public class MediaProvider extends ContentProvider {
                 String moveit = uri.getQueryParameter("move");
                 if (moveit != null) {
                     String key = MediaStore.Audio.Playlists.Members.PLAY_ORDER;
-                    if (initialValues.containsKey(key)) {
-                        int newpos = initialValues.getAsInteger(key);
+                    if (values.containsKey(key)) {
+                        int newpos = values.getAsInteger(key);
                         List <String> segments = uri.getPathSegments();
                         long playlist = Long.parseLong(segments.get(3));
                         int oldpos = Integer.parseInt(segments.get(5));
@@ -3982,7 +4004,7 @@ public class MediaProvider extends ContentProvider {
                 }
                 // fall through
             default:
-                count = qb.update(db, initialValues, userWhere, userWhereArgs);
+                count = qb.update(db, values, userWhere, userWhereArgs);
                 break;
         }
 
@@ -5344,11 +5366,9 @@ public class MediaProvider extends ContentProvider {
     private static final int DOWNLOADS = 800;
     private static final int DOWNLOADS_ID = 801;
 
-    private static final UriMatcher HIDDEN_URI_MATCHER =
-            new UriMatcher(UriMatcher.NO_MATCH);
-
-    private static final UriMatcher PUBLIC_URI_MATCHER =
-            new UriMatcher(UriMatcher.NO_MATCH);
+    /** Flag if we're running as {@link MediaStore#AUTHORITY_LEGACY} */
+    private boolean mLegacyProvider;
+    private LocalUriMatcher mUriMatcher;
 
     private static final String[] PATH_PROJECTION = new String[] {
         MediaStore.MediaColumns._ID,
@@ -5360,91 +5380,97 @@ public class MediaProvider extends ContentProvider {
         + " WHERE " + Audio.Playlists.Members.PLAYLIST_ID + "=?"
         + " ORDER BY " + Audio.Playlists.Members.PLAY_ORDER;
 
-    private static int matchUri(Uri uri, boolean allowHidden) {
-        final int publicMatch = PUBLIC_URI_MATCHER.match(uri);
-        if (publicMatch != UriMatcher.NO_MATCH) {
-            return publicMatch;
-        }
-
-        final int hiddenMatch = HIDDEN_URI_MATCHER.match(uri);
-        if (hiddenMatch != UriMatcher.NO_MATCH) {
-            // Detect callers asking about hidden behavior by looking closer when
-            // the matchers diverge; we only care about apps that are explicitly
-            // targeting a specific public API level.
-            if (!allowHidden) {
-                throw new IllegalStateException("Unknown URL: " + uri + " is hidden API");
-            }
-            return hiddenMatch;
-        }
-
-        return UriMatcher.NO_MATCH;
+    private int matchUri(Uri uri, boolean allowHidden) {
+        return mUriMatcher.matchUri(uri, allowHidden);
     }
 
-    static {
-        final UriMatcher publicMatcher = PUBLIC_URI_MATCHER;
-        final UriMatcher hiddenMatcher = HIDDEN_URI_MATCHER;
+    static class LocalUriMatcher {
+        private final UriMatcher mPublic = new UriMatcher(UriMatcher.NO_MATCH);
+        private final UriMatcher mHidden = new UriMatcher(UriMatcher.NO_MATCH);
 
-        publicMatcher.addURI(AUTHORITY, "*/images/media", IMAGES_MEDIA);
-        publicMatcher.addURI(AUTHORITY, "*/images/media/#", IMAGES_MEDIA_ID);
-        publicMatcher.addURI(AUTHORITY, "*/images/media/#/thumbnail", IMAGES_MEDIA_ID_THUMBNAIL);
-        publicMatcher.addURI(AUTHORITY, "*/images/thumbnails", IMAGES_THUMBNAILS);
-        publicMatcher.addURI(AUTHORITY, "*/images/thumbnails/#", IMAGES_THUMBNAILS_ID);
+        public int matchUri(Uri uri, boolean allowHidden) {
+            final int publicMatch = mPublic.match(uri);
+            if (publicMatch != UriMatcher.NO_MATCH) {
+                return publicMatch;
+            }
 
-        publicMatcher.addURI(AUTHORITY, "*/audio/media", AUDIO_MEDIA);
-        publicMatcher.addURI(AUTHORITY, "*/audio/media/#", AUDIO_MEDIA_ID);
-        publicMatcher.addURI(AUTHORITY, "*/audio/media/#/genres", AUDIO_MEDIA_ID_GENRES);
-        publicMatcher.addURI(AUTHORITY, "*/audio/media/#/genres/#", AUDIO_MEDIA_ID_GENRES_ID);
-        hiddenMatcher.addURI(AUTHORITY, "*/audio/media/#/playlists", AUDIO_MEDIA_ID_PLAYLISTS);
-        hiddenMatcher.addURI(AUTHORITY, "*/audio/media/#/playlists/#", AUDIO_MEDIA_ID_PLAYLISTS_ID);
-        publicMatcher.addURI(AUTHORITY, "*/audio/genres", AUDIO_GENRES);
-        publicMatcher.addURI(AUTHORITY, "*/audio/genres/#", AUDIO_GENRES_ID);
-        publicMatcher.addURI(AUTHORITY, "*/audio/genres/#/members", AUDIO_GENRES_ID_MEMBERS);
-        // TODO: not actually defined in API, but CTS tested
-        publicMatcher.addURI(AUTHORITY, "*/audio/genres/all/members", AUDIO_GENRES_ALL_MEMBERS);
-        publicMatcher.addURI(AUTHORITY, "*/audio/playlists", AUDIO_PLAYLISTS);
-        publicMatcher.addURI(AUTHORITY, "*/audio/playlists/#", AUDIO_PLAYLISTS_ID);
-        publicMatcher.addURI(AUTHORITY, "*/audio/playlists/#/members", AUDIO_PLAYLISTS_ID_MEMBERS);
-        publicMatcher.addURI(AUTHORITY, "*/audio/playlists/#/members/#", AUDIO_PLAYLISTS_ID_MEMBERS_ID);
-        publicMatcher.addURI(AUTHORITY, "*/audio/artists", AUDIO_ARTISTS);
-        publicMatcher.addURI(AUTHORITY, "*/audio/artists/#", AUDIO_ARTISTS_ID);
-        publicMatcher.addURI(AUTHORITY, "*/audio/artists/#/albums", AUDIO_ARTISTS_ID_ALBUMS);
-        publicMatcher.addURI(AUTHORITY, "*/audio/albums", AUDIO_ALBUMS);
-        publicMatcher.addURI(AUTHORITY, "*/audio/albums/#", AUDIO_ALBUMS_ID);
-        // TODO: not actually defined in API, but CTS tested
-        publicMatcher.addURI(AUTHORITY, "*/audio/albumart", AUDIO_ALBUMART);
-        // TODO: not actually defined in API, but CTS tested
-        publicMatcher.addURI(AUTHORITY, "*/audio/albumart/#", AUDIO_ALBUMART_ID);
-        // TODO: not actually defined in API, but CTS tested
-        publicMatcher.addURI(AUTHORITY, "*/audio/media/#/albumart", AUDIO_ALBUMART_FILE_ID);
+            final int hiddenMatch = mHidden.match(uri);
+            if (hiddenMatch != UriMatcher.NO_MATCH) {
+                // Detect callers asking about hidden behavior by looking closer when
+                // the matchers diverge; we only care about apps that are explicitly
+                // targeting a specific public API level.
+                if (!allowHidden) {
+                    throw new IllegalStateException("Unknown URL: " + uri + " is hidden API");
+                }
+                return hiddenMatch;
+            }
 
-        publicMatcher.addURI(AUTHORITY, "*/video/media", VIDEO_MEDIA);
-        publicMatcher.addURI(AUTHORITY, "*/video/media/#", VIDEO_MEDIA_ID);
-        publicMatcher.addURI(AUTHORITY, "*/video/media/#/thumbnail", VIDEO_MEDIA_ID_THUMBNAIL);
-        publicMatcher.addURI(AUTHORITY, "*/video/thumbnails", VIDEO_THUMBNAILS);
-        publicMatcher.addURI(AUTHORITY, "*/video/thumbnails/#", VIDEO_THUMBNAILS_ID);
+            return UriMatcher.NO_MATCH;
+        }
 
-        publicMatcher.addURI(AUTHORITY, "*/media_scanner", MEDIA_SCANNER);
+        public LocalUriMatcher(String auth) {
+            mPublic.addURI(auth, "*/images/media", IMAGES_MEDIA);
+            mPublic.addURI(auth, "*/images/media/#", IMAGES_MEDIA_ID);
+            mPublic.addURI(auth, "*/images/media/#/thumbnail", IMAGES_MEDIA_ID_THUMBNAIL);
+            mPublic.addURI(auth, "*/images/thumbnails", IMAGES_THUMBNAILS);
+            mPublic.addURI(auth, "*/images/thumbnails/#", IMAGES_THUMBNAILS_ID);
 
-        // NOTE: technically hidden, since Uri is never exposed
-        publicMatcher.addURI(AUTHORITY, "*/fs_id", FS_ID);
-        // NOTE: technically hidden, since Uri is never exposed
-        publicMatcher.addURI(AUTHORITY, "*/version", VERSION);
+            mPublic.addURI(auth, "*/audio/media", AUDIO_MEDIA);
+            mPublic.addURI(auth, "*/audio/media/#", AUDIO_MEDIA_ID);
+            mPublic.addURI(auth, "*/audio/media/#/genres", AUDIO_MEDIA_ID_GENRES);
+            mPublic.addURI(auth, "*/audio/media/#/genres/#", AUDIO_MEDIA_ID_GENRES_ID);
+            mHidden.addURI(auth, "*/audio/media/#/playlists", AUDIO_MEDIA_ID_PLAYLISTS);
+            mHidden.addURI(auth, "*/audio/media/#/playlists/#", AUDIO_MEDIA_ID_PLAYLISTS_ID);
+            mPublic.addURI(auth, "*/audio/genres", AUDIO_GENRES);
+            mPublic.addURI(auth, "*/audio/genres/#", AUDIO_GENRES_ID);
+            mPublic.addURI(auth, "*/audio/genres/#/members", AUDIO_GENRES_ID_MEMBERS);
+            // TODO: not actually defined in API, but CTS tested
+            mPublic.addURI(auth, "*/audio/genres/all/members", AUDIO_GENRES_ALL_MEMBERS);
+            mPublic.addURI(auth, "*/audio/playlists", AUDIO_PLAYLISTS);
+            mPublic.addURI(auth, "*/audio/playlists/#", AUDIO_PLAYLISTS_ID);
+            mPublic.addURI(auth, "*/audio/playlists/#/members", AUDIO_PLAYLISTS_ID_MEMBERS);
+            mPublic.addURI(auth, "*/audio/playlists/#/members/#", AUDIO_PLAYLISTS_ID_MEMBERS_ID);
+            mPublic.addURI(auth, "*/audio/artists", AUDIO_ARTISTS);
+            mPublic.addURI(auth, "*/audio/artists/#", AUDIO_ARTISTS_ID);
+            mPublic.addURI(auth, "*/audio/artists/#/albums", AUDIO_ARTISTS_ID_ALBUMS);
+            mPublic.addURI(auth, "*/audio/albums", AUDIO_ALBUMS);
+            mPublic.addURI(auth, "*/audio/albums/#", AUDIO_ALBUMS_ID);
+            // TODO: not actually defined in API, but CTS tested
+            mPublic.addURI(auth, "*/audio/albumart", AUDIO_ALBUMART);
+            // TODO: not actually defined in API, but CTS tested
+            mPublic.addURI(auth, "*/audio/albumart/#", AUDIO_ALBUMART_ID);
+            // TODO: not actually defined in API, but CTS tested
+            mPublic.addURI(auth, "*/audio/media/#/albumart", AUDIO_ALBUMART_FILE_ID);
 
-        hiddenMatcher.addURI(AUTHORITY, "*", VOLUMES_ID);
-        hiddenMatcher.addURI(AUTHORITY, null, VOLUMES);
+            mPublic.addURI(auth, "*/video/media", VIDEO_MEDIA);
+            mPublic.addURI(auth, "*/video/media/#", VIDEO_MEDIA_ID);
+            mPublic.addURI(auth, "*/video/media/#/thumbnail", VIDEO_MEDIA_ID_THUMBNAIL);
+            mPublic.addURI(auth, "*/video/thumbnails", VIDEO_THUMBNAILS);
+            mPublic.addURI(auth, "*/video/thumbnails/#", VIDEO_THUMBNAILS_ID);
 
-        // Used by MTP implementation
-        publicMatcher.addURI(AUTHORITY, "*/file", FILES);
-        publicMatcher.addURI(AUTHORITY, "*/file/#", FILES_ID);
-        hiddenMatcher.addURI(AUTHORITY, "*/object", MTP_OBJECTS);
-        hiddenMatcher.addURI(AUTHORITY, "*/object/#", MTP_OBJECTS_ID);
-        hiddenMatcher.addURI(AUTHORITY, "*/object/#/references", MTP_OBJECT_REFERENCES);
+            mPublic.addURI(auth, "*/media_scanner", MEDIA_SCANNER);
 
-        // Used only to trigger special logic for directories
-        hiddenMatcher.addURI(AUTHORITY, "*/dir", FILES_DIRECTORY);
+            // NOTE: technically hidden, since Uri is never exposed
+            mPublic.addURI(auth, "*/fs_id", FS_ID);
+            // NOTE: technically hidden, since Uri is never exposed
+            mPublic.addURI(auth, "*/version", VERSION);
 
-        publicMatcher.addURI(AUTHORITY, "*/downloads", DOWNLOADS);
-        publicMatcher.addURI(AUTHORITY, "*/downloads/#", DOWNLOADS_ID);
+            mHidden.addURI(auth, "*", VOLUMES_ID);
+            mHidden.addURI(auth, null, VOLUMES);
+
+            // Used by MTP implementation
+            mPublic.addURI(auth, "*/file", FILES);
+            mPublic.addURI(auth, "*/file/#", FILES_ID);
+            mHidden.addURI(auth, "*/object", MTP_OBJECTS);
+            mHidden.addURI(auth, "*/object/#", MTP_OBJECTS_ID);
+            mHidden.addURI(auth, "*/object/#/references", MTP_OBJECT_REFERENCES);
+
+            // Used only to trigger special logic for directories
+            mHidden.addURI(auth, "*/dir", FILES_DIRECTORY);
+
+            mPublic.addURI(auth, "*/downloads", DOWNLOADS);
+            mPublic.addURI(auth, "*/downloads/#", DOWNLOADS_ID);
+        }
     }
 
     /**

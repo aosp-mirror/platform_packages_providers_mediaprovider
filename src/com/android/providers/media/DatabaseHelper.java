@@ -28,7 +28,6 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -49,12 +48,14 @@ import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
 import android.text.format.DateUtils;
+import android.util.ArraySet;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.util.BackgroundThread;
+import com.android.providers.media.util.DatabaseUtils;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -69,6 +70,8 @@ import java.util.regex.Matcher;
  * on demand, create and upgrade the schema, etc.
  */
 public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
+    // TODO: yell loudly if someone attempts to obtain on the main thread
+
     // maximum number of cached external databases to keep
     private static final int MAX_EXTERNAL_DATABASES = 3;
 
@@ -81,41 +84,44 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     final int mVersion;
     final boolean mInternal;  // True if this is the internal database
     final boolean mEarlyUpgrade;
+    final boolean mLegacyProvider;
     long mScanStartTime;
     long mScanStopTime;
 
-    public DatabaseHelper(Context context, String name, boolean internal,
-            boolean earlyUpgrade) {
-        this(context, name, getDatabaseVersion(context), internal, earlyUpgrade);
+    public DatabaseHelper(Context context, String name,
+            boolean internal, boolean earlyUpgrade, boolean legacyProvider) {
+        this(context, name, getDatabaseVersion(context), internal, earlyUpgrade, legacyProvider);
     }
 
-    public DatabaseHelper(Context context, String name, int version, boolean internal,
-            boolean earlyUpgrade) {
+    @VisibleForTesting
+    public DatabaseHelper(Context context, String name, int version,
+            boolean internal, boolean earlyUpgrade, boolean legacyProvider) {
         super(context, name, null, version);
         mContext = context;
         mName = name;
         mVersion = version;
         mInternal = internal;
         mEarlyUpgrade = earlyUpgrade;
+        mLegacyProvider = legacyProvider;
         setWriteAheadLoggingEnabled(true);
     }
 
     @Override
     public void onCreate(final SQLiteDatabase db) {
         Log.v(TAG, "onCreate() for " + mName);
-        updateDatabase(mContext, db, mInternal, 0, mVersion);
+        updateDatabase(db, 0, mVersion);
     }
 
     @Override
     public void onUpgrade(final SQLiteDatabase db, final int oldV, final int newV) {
         Log.v(TAG, "onUpgrade() for " + mName + " from " + oldV + " to " + newV);
-        updateDatabase(mContext, db, mInternal, oldV, newV);
+        updateDatabase(db, oldV, newV);
     }
 
     @Override
     public void onDowngrade(final SQLiteDatabase db, final int oldV, final int newV) {
         Log.v(TAG, "onDowngrade() for " + mName + " from " + oldV + " to " + newV);
-        downgradeDatabase(mContext, db, mInternal, oldV, newV);
+        downgradeDatabase(db, oldV, newV);
     }
 
     /**
@@ -272,13 +278,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
     }
 
+    @Deprecated
     public static int getDatabaseVersion(Context context) {
-        try {
-            return context.getPackageManager().getPackageInfo(
-                    context.getPackageName(), 0).versionCode;
-        } catch (NameNotFoundException e) {
-            throw new RuntimeException("couldn't get version code for " + context);
-        }
+        // We now use static versions defined internally instead of the
+        // versionCode from the manifest
+        return VERSION_LATEST;
     }
 
     @VisibleForTesting
@@ -320,14 +324,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         c.close();
     }
 
-    private static void createLatestSchema(Context context, SQLiteDatabase db, boolean internal) {
+    private void createLatestSchema(SQLiteDatabase db) {
         // We're about to start all ID numbering from scratch, so revoke any
         // outstanding permission grants to ensure we don't leak data
-        context.revokeUriPermission(MediaStore.AUTHORITY_URI,
+        mContext.revokeUriPermission(MediaStore.AUTHORITY_URI,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-        MediaDocumentsProvider.revokeAllUriGrants(context);
+        MediaDocumentsProvider.revokeAllUriGrants(mContext);
         BackgroundThread.getHandler().post(() -> {
-            try (ContentProviderClient client = context
+            try (ContentProviderClient client = mContext
                     .getContentResolver().acquireContentProviderClient(
                             android.provider.Downloads.Impl.AUTHORITY)) {
                 client.call(android.provider.Downloads.CALL_REVOKE_MEDIASTORE_URI_PERMS,
@@ -378,7 +382,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + "f_number TEXT DEFAULT NULL, iso INTEGER DEFAULT NULL)");
 
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
-        if (!internal) {
+        if (!mInternal) {
             db.execSQL("CREATE TABLE audio_playlists_map (_id INTEGER PRIMARY KEY,"
                     + "audio_id INTEGER NOT NULL,playlist_id INTEGER NOT NULL,"
                     + "play_order INTEGER NOT NULL)");
@@ -399,8 +403,103 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("CREATE INDEX title_idx ON files(title)");
         db.execSQL("CREATE INDEX titlekey_index ON files(title_key)");
 
-        createLatestViews(db, internal);
-        createLatestTriggers(db, internal);
+        createLatestViews(db, mInternal);
+        createLatestTriggers(db, mInternal);
+
+        // Since this code is used by both the legacy and modern providers, we
+        // only want to migrate when we're running as the modern provider
+        if (!mLegacyProvider) {
+            migrateFromLegacy(db);
+        }
+    }
+
+    /**
+     * Migrate important information from {@link MediaStore#AUTHORITY_LEGACY},
+     * if present on this device. We only do this once during early database
+     * creation, to help us preserve information like {@link MediaColumns#_ID}
+     * and {@link MediaColumns#IS_FAVORITE}.
+     */
+    private void migrateFromLegacy(SQLiteDatabase db) {
+        // TODO: focus this migration on secondary volumes once we have separate
+        // databases for each volume; for now only migrate primary storage
+
+        try (ContentProviderClient client = mContext.getContentResolver()
+                .acquireContentProviderClient(MediaStore.AUTHORITY_LEGACY)) {
+            if (client == null) {
+                Log.d(TAG, "No legacy provider available for migration");
+                return;
+            }
+
+            final String volumeName = mInternal ? MediaStore.VOLUME_INTERNAL
+                    : MediaStore.VOLUME_EXTERNAL;
+
+            Uri queryUri = MediaStore.Files.getContentUri(volumeName);
+            queryUri = MediaStore.setIncludePending(queryUri);
+            queryUri = MediaStore.setIncludeTrashed(queryUri);
+            queryUri = MediaStore.rewriteToLegacy(queryUri);
+
+            db.beginTransaction();
+            Log.d(TAG, "Starting migration from legacy provider");
+            try (Cursor c = client.query(queryUri, sMigrateColumns.toArray(new String[0]),
+                    null, null, null)) {
+                final ContentValues values = new ContentValues();
+                while (c.moveToNext()) {
+                    values.clear();
+                    for (String column : sMigrateColumns) {
+                        DatabaseUtils.copyFromCursorToContentValues(column, c, values);
+                    }
+
+                    if (db.insert("files", null, values) == -1) {
+                        // We only have one shot to migrate data, so log and
+                        // keep marching forward
+                        Log.w(TAG, "Failed to insert " + values + "; continuing");
+                    }
+                }
+
+                db.setTransactionSuccessful();
+                Log.d(TAG, "Finished migration from legacy provider");
+            } catch (RemoteException e) {
+                throw new IllegalStateException(e);
+            } finally {
+                db.endTransaction();
+            }
+        } catch (Exception e) {
+            // We have to guard ourselves against any weird behavior of the
+            // legacy provider by trying to catch everything
+            Log.w(TAG, "Failed migration from legacy provider: " + e);
+        }
+    }
+
+    /**
+     * Set of columns that should be migrated from the legacy provider,
+     * including core information to identify each media item, followed by
+     * columns that can be edited by users. (We omit columns here that are
+     * marked as "readOnly" in the {@link MediaStore} annotations, since those
+     * will be regenerated by the first scan after upgrade.)
+     */
+    private static final ArraySet<String> sMigrateColumns = new ArraySet<>();
+
+    {
+        sMigrateColumns.add(MediaStore.MediaColumns._ID);
+        sMigrateColumns.add(MediaStore.MediaColumns.DATA);
+        sMigrateColumns.add(MediaStore.MediaColumns.VOLUME_NAME);
+        sMigrateColumns.add(MediaStore.Files.FileColumns.MEDIA_TYPE);
+
+        sMigrateColumns.add(MediaStore.MediaColumns.DATE_ADDED);
+        sMigrateColumns.add(MediaStore.MediaColumns.DATE_EXPIRES);
+        sMigrateColumns.add(MediaStore.MediaColumns.IS_PENDING);
+        sMigrateColumns.add(MediaStore.MediaColumns.IS_TRASHED);
+        sMigrateColumns.add(MediaStore.MediaColumns.IS_FAVORITE);
+        sMigrateColumns.add(MediaStore.MediaColumns.OWNER_PACKAGE_NAME);
+
+        sMigrateColumns.add(MediaStore.Audio.AudioColumns.BOOKMARK);
+
+        sMigrateColumns.add(MediaStore.Video.VideoColumns.TAGS);
+        sMigrateColumns.add(MediaStore.Video.VideoColumns.CATEGORY);
+        sMigrateColumns.add(MediaStore.Video.VideoColumns.BOOKMARK);
+
+        sMigrateColumns.add(MediaStore.DownloadColumns.DOWNLOAD_URI);
+        sMigrateColumns.add(MediaStore.DownloadColumns.REFERER_URI);
     }
 
     private static void makePristineViews(SQLiteDatabase db) {
@@ -686,6 +785,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_P = 900;
     static final int VERSION_Q = 1023;
     static final int VERSION_R = 1103;
+    static final int VERSION_LATEST = VERSION_R;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -693,15 +793,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * This method can only update databases at schema 700 or higher, which was
      * used by the KitKat release. Older database will be cleared and recreated.
      * @param db Database
-     * @param internal True if this is the internal media database
      */
-    private static void updateDatabase(Context context, SQLiteDatabase db, boolean internal,
-            int fromVersion, int toVersion) {
+    private void updateDatabase(SQLiteDatabase db, int fromVersion, int toVersion) {
         final long startTime = SystemClock.elapsedRealtime();
+        final boolean internal = mInternal;
 
         if (fromVersion < 700) {
             // Anything older than KK is recreated from scratch
-            createLatestSchema(context, db, internal);
+            createLatestSchema(db);
         } else {
             boolean recomputeDataValues = false;
             if (fromVersion < 800) {
@@ -814,12 +913,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + " in " + elapsedSeconds + " seconds");
     }
 
-    private static void downgradeDatabase(Context context, SQLiteDatabase db, boolean internal,
-            int fromVersion, int toVersion) {
+    private void downgradeDatabase(SQLiteDatabase db, int fromVersion, int toVersion) {
         final long startTime = SystemClock.elapsedRealtime();
 
         // The best we can do is wipe and start over
-        createLatestSchema(context, db, internal);
+        createLatestSchema(db);
 
         final long elapsedSeconds = (SystemClock.elapsedRealtime() - startTime)
                 / DateUtils.SECOND_IN_MILLIS;

@@ -27,33 +27,41 @@ import static org.junit.Assert.fail;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.system.ErrnoException;
+import android.system.Os;
+import android.system.OsConstants;
 import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
+
+import com.google.common.io.ByteStreams;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 @RunWith(AndroidJUnit4.class)
 public class FilePathAccessTest {
     static final String TAG = "FilePathAccessTest";
+    static final String THIS_PACKAGE_NAME = FilePathAccessTest.class.getPackage().getName();
 
-    static final File EXTERNALE_STORAGE_DIR = Environment.getExternalStorageDirectory();
+    static final File EXTERNAL_STORAGE_DIR = Environment.getExternalStorageDirectory();
 
-    static final File DCIM_DIR = new File(EXTERNALE_STORAGE_DIR, Environment.DIRECTORY_DCIM);
-    static final File MUSIC_DIR = new File(EXTERNALE_STORAGE_DIR, Environment.DIRECTORY_MUSIC);
-    static final File MOVIES_DIR = new File(EXTERNALE_STORAGE_DIR, Environment.DIRECTORY_MOVIES);
-    static final File DOWNLOAD_DIR = new File(EXTERNALE_STORAGE_DIR,
+    static final File DCIM_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_DCIM);
+    static final File MUSIC_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_MUSIC);
+    static final File MOVIES_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_MOVIES);
+    static final File DOWNLOAD_DIR = new File(EXTERNAL_STORAGE_DIR,
             Environment.DIRECTORY_DOWNLOADS);
 
     static final File EXTERNAL_FILES_DIR = getContext().getExternalFilesDir(null);
@@ -62,6 +70,12 @@ public class FilePathAccessTest {
     static final String VIDEO_FILE_NAME = "FilePathAccessTest_file.mp4";
     static final String IMAGE_FILE_NAME = "FilePathAccessTest_file.jpg";
     static final String NONMEDIA_FILE_NAME = "FilePathAccessTest_file.pdf";
+
+    static final String STR_DATA1 = "Just some random text";
+    static final String STR_DATA2 = "More arbitrary stuff";
+
+    static final byte[] BYTES_DATA1 = STR_DATA1.getBytes();
+    static final byte[] BYTES_DATA2 = STR_DATA2.getBytes();
 
     // skips all test cases if FUSE is not active.
     @Before
@@ -75,30 +89,30 @@ public class FilePathAccessTest {
     @Test
     public void testTypePathConformity() throws Exception {
         // Only music files can be created in Music
-        assertThrows(IOException.class, () -> {
+        assertThrows(IOException.class, "Operation not permitted", () -> {
             new File(MUSIC_DIR, NONMEDIA_FILE_NAME).createNewFile();
         });
-        assertThrows(IOException.class, () -> {
+        assertThrows(IOException.class, "Operation not permitted", () -> {
             new File(MUSIC_DIR, VIDEO_FILE_NAME).createNewFile();
         });
-        assertThrows(IOException.class, () -> {
+        assertThrows(IOException.class, "Operation not permitted", () -> {
             new File(MUSIC_DIR, IMAGE_FILE_NAME).createNewFile();
         });
         // Only video files can be created in Movies
-        assertThrows(IOException.class, () -> {
+        assertThrows(IOException.class, "Operation not permitted", () -> {
             new File(MOVIES_DIR, NONMEDIA_FILE_NAME).createNewFile();
         });
-        assertThrows(IOException.class, () -> {
+        assertThrows(IOException.class, "Operation not permitted", () -> {
             new File(MOVIES_DIR, MUSIC_FILE_NAME).createNewFile();
         });
-        assertThrows(IOException.class, () -> {
+        assertThrows(IOException.class, "Operation not permitted", () -> {
             new File(MOVIES_DIR, IMAGE_FILE_NAME).createNewFile();
         });
         // Only image and video files can be created in DCIM
-        assertThrows(IOException.class, () -> {
+        assertThrows(IOException.class, "Operation not permitted", () -> {
             new File(DCIM_DIR, NONMEDIA_FILE_NAME).createNewFile();
         });
-        assertThrows(IOException.class, () -> {
+        assertThrows(IOException.class, "Operation not permitted", () -> {
             new File(DCIM_DIR, MUSIC_FILE_NAME).createNewFile();
         });
 
@@ -106,6 +120,20 @@ public class FilePathAccessTest {
         assertCanCreateFile(new File(MUSIC_DIR, MUSIC_FILE_NAME));
         assertCanCreateFile(new File(MOVIES_DIR, VIDEO_FILE_NAME));
         assertCanCreateFile(new File(DOWNLOAD_DIR, NONMEDIA_FILE_NAME));
+
+        // No file whatsoever can be created in the top level directory
+        assertThrows(IOException.class, "Operation not permitted", () -> {
+            new File(EXTERNAL_STORAGE_DIR, NONMEDIA_FILE_NAME).createNewFile();
+        });
+        assertThrows(IOException.class, "Operation not permitted", () -> {
+            new File(EXTERNAL_STORAGE_DIR, MUSIC_FILE_NAME).createNewFile();
+        });
+        assertThrows(IOException.class, "Operation not permitted", () -> {
+            new File(EXTERNAL_STORAGE_DIR, IMAGE_FILE_NAME).createNewFile();
+        });
+        assertThrows(IOException.class, "Operation not permitted", () -> {
+            new File(EXTERNAL_STORAGE_DIR, VIDEO_FILE_NAME).createNewFile();
+        });
     }
 
     /**
@@ -121,26 +149,13 @@ public class FilePathAccessTest {
             // Ensure the file is properly deleted and can be created again
             assertThat(file.createNewFile()).isTrue();
 
-            final byte data1[] = "Just some random text".getBytes();
-            final byte data2[] = "More arbitrary stuff".getBytes();
-
             // Write to file
             try (final FileOutputStream fos = new FileOutputStream(file)) {
-                fos.write(data1);
-                fos.write(data2);
+                fos.write(BYTES_DATA1);
             }
 
             // Read the same data from file
-            try (final FileInputStream fis = new FileInputStream(file)) {
-                final byte readData[] = new byte[data1.length + data2.length];
-                assertThat(fis.read(readData)).isEqualTo(readData.length);
-                for (int i = 0; i < data1.length; ++i) {
-                    assertThat(readData[i]).isEqualTo(data1[i]);
-                }
-                for (int i = 0; i < data2.length; ++i) {
-                    assertThat(readData[data1.length + i]).isEqualTo(data2[i]);
-                }
-            }
+            assertFileContent(file, BYTES_DATA1);
         } finally {
             if (file.exists()) {
                 assertThat(file.delete()).isTrue();
@@ -154,31 +169,35 @@ public class FilePathAccessTest {
      */
     @Test
     public void testCreateFileInOtherAppExternalDir() throws Exception {
-        // We're cheating here and using /sdcard/Android/data because there's no legal way to
-        // access other app's external files dir.
-        final String externalDir = EXTERNALE_STORAGE_DIR.toString() + "/Android/data/";
-        // This package may not readily exist in an AOSP build - it doesn't matter since we should
-        // get the same error ;)
-        final String otherPackageName = "com.google.android.apps.maps";
-        final File file1 = new File(externalDir + otherPackageName + '/' + NONMEDIA_FILE_NAME);
+        // Creating a file in a non existent package dir should return ENOENT, as expected
+        final File nonexistentPackageFileDir = new File(EXTERNAL_FILES_DIR.getPath()
+                .replace(THIS_PACKAGE_NAME, "no.such.package"));
+        final File file1 = new File(nonexistentPackageFileDir, NONMEDIA_FILE_NAME);
+        assertThrows(IOException.class, "No such file or directory",
+                () -> { file1.createNewFile(); });
+
+        // Creating a file in an existent package dir should give the same error string to avoid
+        // leaking installed app names, and we know the following directory exists because shell
+        // mkdirs it in test setup
+        final File shellPackageFileDir = new File(EXTERNAL_FILES_DIR.getPath()
+                .replace(THIS_PACKAGE_NAME, "com.android.shell"));
+        final File file2 = new File(shellPackageFileDir, NONMEDIA_FILE_NAME);
+        assertThrows(IOException.class, "No such file or directory",
+                () -> { file1.createNewFile(); });
         try {
-            file1.createNewFile();
-            fail("Creating file expected to fail!");
-        } catch (IOException e) {
-            assertThat(e.getMessage()).contains("No such file or directory");
+            // On the other hand, shell can create the file
+            executeShellCommand("touch " + file2);
+            assertThat(executeShellCommand("ls " + shellPackageFileDir))
+                    .contains(NONMEDIA_FILE_NAME);
+        } finally {
+            executeShellCommand("rm " + file1);
         }
 
-        // Ensure that the app would get the same error regardless of whether the other
-        // app's external directory exists or not
-        final String nonexistentOtherPackageName = "no.such.package";
-        final File file2 = new File(externalDir + nonexistentOtherPackageName + '/'
-                + NONMEDIA_FILE_NAME);
-        try {
-            file2.createNewFile();
-            fail("Creating file expected to fail!");
-        } catch (IOException e) {
-            assertThat(e.getMessage()).contains("No such file or directory");
-        }
+        // Similarly, shell can't create a file under this package's directory
+        final File file3 = new File(EXTERNAL_FILES_DIR, NONMEDIA_FILE_NAME);
+        executeShellCommand("touch " + file3);
+        assertThat(executeShellCommand("ls " + EXTERNAL_FILES_DIR)
+                .contains(NONMEDIA_FILE_NAME)).isFalse();
     }
 
     /**
@@ -206,13 +225,10 @@ public class FilePathAccessTest {
                         .isEqualTo("com.android.tests.fused");
             }
 
-            final byte data1[] = "Just some random text".getBytes();
-            final byte data2[] = "More arbitrary stuff".getBytes();
-
             // Try to write random data to the file
             try (final FileOutputStream fos = new FileOutputStream(imageFile)) {
-                fos.write(data1);
-                fos.write(data2);
+                fos.write(BYTES_DATA1);
+                fos.write(BYTES_DATA2);
             }
             // Closing the file after writing will trigger a MediaScanner scan that updates the
             // file's entry in MediaProvider's database
@@ -220,14 +236,8 @@ public class FilePathAccessTest {
             // When FileOutputStream is closed, a MediaScanner scan is triggered on the JNI thread.
             // To avoid race conditions with the query check, we add another JNI task that will be
             // synchronized on the same JNI thread.
-            try (final FileInputStream fis = new FileInputStream(imageFile)) {
-                final byte readData[] = new byte[data1.length + data2.length];
-                assertThat(fis.read(readData)).isEqualTo(readData.length);
-                for (int i = 0; i < data1.length; ++i)
-                    assertThat(readData[i]).isEqualTo(data1[i]);
-                for (int i = 0; i < data2.length; ++i)
-                    assertThat(readData[data1.length + i]).isEqualTo(data2[i]);
-            }
+            final byte[] expected = (STR_DATA1 + STR_DATA2).getBytes();
+            assertFileContent(imageFile, expected);
 
             // Ensure that the scan was completed and the file's size was updated.
             try (final Cursor c = cr.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
@@ -236,7 +246,7 @@ public class FilePathAccessTest {
                 assertThat(c.getCount()).isEqualTo(1);
                 c.moveToFirst();
                 assertThat(c.getInt(c.getColumnIndex(MediaColumns.SIZE)))
-                        .isEqualTo(data1.length + data2.length);
+                        .isEqualTo(BYTES_DATA1.length + BYTES_DATA2.length);
             }
         } finally {
             imageFile.delete();
@@ -246,6 +256,51 @@ public class FilePathAccessTest {
                 /* projection */new String[] {MediaColumns.OWNER_PACKAGE_NAME},
                 selection, selectionArgs, null)) {
             assertThat(c.getCount()).isEqualTo(0);
+        }
+    }
+
+    @Test
+    public void testLowLevelFileIO() throws Exception {
+        String filePath = new File(DOWNLOAD_DIR, NONMEDIA_FILE_NAME).toString();
+        try {
+            int createFlags = OsConstants.O_CREAT | OsConstants.O_RDWR;
+            int createExclFlags = createFlags | OsConstants.O_EXCL;
+
+            FileDescriptor fd = Os.open(filePath, createExclFlags, OsConstants.S_IRWXU);
+            Os.close(fd);
+            assertThrows(ErrnoException.class, () -> {
+                Os.open(filePath, createExclFlags, OsConstants.S_IRWXU);
+            });
+
+            fd = Os.open(filePath, createFlags, OsConstants.S_IRWXU);
+            try {
+                assertThat(Os.write(fd, ByteBuffer.wrap(BYTES_DATA1)))
+                        .isEqualTo(BYTES_DATA1.length);
+                assertFileContent(fd, BYTES_DATA1);
+            } finally {
+                Os.close(fd);
+            }
+            // should just append the data
+            fd = Os.open(filePath, createFlags | OsConstants.O_APPEND, OsConstants.S_IRWXU);
+            try {
+                assertThat(Os.write(fd, ByteBuffer.wrap(BYTES_DATA2)))
+                        .isEqualTo(BYTES_DATA2.length);
+                final byte[] expected = (STR_DATA1 + STR_DATA2).getBytes();
+                assertFileContent(fd, expected);
+            } finally {
+                Os.close(fd);
+            }
+            // should overwrite everything
+            fd = Os.open(filePath, createFlags | OsConstants.O_TRUNC, OsConstants.S_IRWXU);
+            try {
+                final byte[] otherData = "this is different data".getBytes();
+                assertThat(Os.write(fd, ByteBuffer.wrap(otherData))).isEqualTo(otherData.length);
+                assertFileContent(fd, otherData);
+            } finally {
+                Os.close(fd);
+            }
+        } finally {
+            new File(filePath).delete();
         }
     }
 
@@ -266,8 +321,34 @@ public class FilePathAccessTest {
             assertThat(file.delete()).isTrue();
         } else {
             Log.w(TAG, "Couldn't assertCanCreateFile(" + file + ") because file existed prior to "
-                + "running the test!");
+                    + "running the test!");
         }
+    }
+
+    /**
+     * Asserts the entire content of the file equals exactly {@code expectedContent}.
+     */
+    private static void assertFileContent(File file, byte[] expectedContent) throws IOException {
+        try (final FileInputStream fis = new FileInputStream(file)) {
+            assertInputStreamContent(fis, expectedContent);
+        }
+    }
+
+    /**
+     * Asserts the entire content of the file equals exactly {@code expectedContent}.
+     * <p>Sets {@code fd} to beginning of file first.
+     */
+    private static void assertFileContent(FileDescriptor fd, byte[] expectedContent)
+            throws IOException, ErrnoException {
+        Os.lseek(fd, 0, OsConstants.SEEK_SET);
+        try (final FileInputStream fis = new FileInputStream(fd)) {
+            assertInputStreamContent(fis, expectedContent);
+        }
+    }
+
+    private static void assertInputStreamContent(InputStream in, byte[] expectedContent)
+            throws IOException {
+        assertThat(ByteStreams.toByteArray(in)).isEqualTo(expectedContent);
     }
 
     /**
@@ -284,14 +365,27 @@ public class FilePathAccessTest {
 
     private static <T extends Exception> void assertThrows(Class<T> clazz, Operation<T> r)
             throws Exception {
+        assertThrows(clazz, "", r);
+    }
+
+    private static <T extends Exception> void assertThrows(Class<T> clazz, String errMsg,
+            Operation<T> r) throws Exception {
         try {
             r.run();
             fail("Expected " + clazz + " to be thrown");
         } catch (Exception e) {
-            if (!clazz.isAssignableFrom(e.getClass())) {
+            if (!clazz.isAssignableFrom(e.getClass()) || !e.getMessage().contains(errMsg)) {
+                Log.e(TAG, "Expected " + clazz + " exception with error message: " + errMsg, e);
                 throw e;
             }
         }
     }
 
+    private static String executeShellCommand(String cmd) throws Exception {
+        try (FileInputStream output = new FileInputStream (InstrumentationRegistry
+                .getInstrumentation().getUiAutomation()
+                .executeShellCommand(cmd).getFileDescriptor())) {
+            return new String(ByteStreams.toByteArray(output));
+        }
+    }
 }

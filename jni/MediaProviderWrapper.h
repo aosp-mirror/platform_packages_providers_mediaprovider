@@ -61,22 +61,21 @@ class MediaProviderWrapper final {
     std::unique_ptr<RedactionInfo> GetRedactionInfo(const std::string& path, uid_t uid);
 
     /**
-     * Create a new file under the given path for the given UID.
+     * Inserts a new entry for the given path and UID.
      *
      * @param path the path of the file to be created
      * @param uid UID of the calling app
-     * @return opened file descriptor of the newly created file,
+     * @return 0 if the operation succeeded,
      * or negated errno error code if operation fails.
      */
-    int CreateFile(const std::string& path, uid_t uid);
+    int InsertFile(const std::string& path, uid_t uid);
 
     /**
      * Delete the file denoted by the given path on behalf of the given UID.
      *
      * @param path the path of the file to be deleted
      * @param uid UID of the calling app
-     * @return 0 upon success,
-     * or negated errno error code if operation fails.
+     * @return 0 upon success, or negated errno error code if operation fails.
      */
     int DeleteFile(const std::string& path, uid_t uid);
 
@@ -103,7 +102,7 @@ class MediaProviderWrapper final {
     jobject media_provider_object_;
     /** Cached MediaProvider method IDs **/
     jmethodID mid_get_redaction_ranges_;
-    jmethodID mid_create_file_;
+    jmethodID mid_insert_file_;
     jmethodID mid_delete_file_;
     jmethodID mid_is_open_allowed_;
     jmethodID mid_scan_file_;

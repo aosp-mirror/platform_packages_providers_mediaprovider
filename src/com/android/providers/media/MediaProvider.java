@@ -1456,6 +1456,11 @@ public class MediaProvider extends ContentProvider {
             return new String[0];
         } else {
             final String[] segments = path.split("/");
+            // If the path corresponds to the top level directory, then we return an empty path
+            // which denotes the top level directory
+            if (segments.length == 0) {
+                return new String[] { "" };
+            }
             for (int i = 0; i < segments.length; i++) {
                 segments[i] = sanitizeDisplayName(segments[i]);
             }
@@ -4617,18 +4622,7 @@ public class MediaProvider extends ContentProvider {
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
             if (appSpecificDir != null) {
-                // Files in app specific directories aren't necessarily in the database,
-                // and an app always has access to its own directory (and never to other apps'
-                // directories)
-                for (String packageName : mCallingIdentity.get().getSharedPackageNames()) {
-                    if (appSpecificDir.toLowerCase().equals(packageName.toLowerCase())) {
-                        return 0;
-                    }
-                }
-                Log.e(TAG, "Cannot open file under other app's external directory!");
-                // We treat this error as if the directory doesn't exist to make it harder for
-                // apps to snoop around whether other apps exist or not.
-                return -OsConstants.ENOENT;
+                return checkAppSpecificDirAccess(appSpecificDir);
             }
             final String mimeType = MediaFile.getMimeTypeForFile(path);
             final Uri contentUri = getContentUriForFile(path, mimeType);
@@ -4666,6 +4660,24 @@ public class MediaProvider extends ContentProvider {
         } finally {
             restoreLocalCallingIdentity(token);
         }
+    }
+
+    /**
+     * Returns 0 if access is allowed, -ENOENT otherwise.
+     * <p> Assumes that {@code mCallingIdentity} has been properly set to reflect the calling
+     * package.
+     */
+    private int checkAppSpecificDirAccess(String appSpecificDir) {
+        for (String packageName : mCallingIdentity.get().getSharedPackageNames()) {
+            if (appSpecificDir.toLowerCase(Locale.ROOT)
+                    .equals(packageName.toLowerCase(Locale.ROOT))) {
+                return 0;
+            }
+        }
+        Log.e(TAG, "Cannot access file under another app's external directory!");
+        // We treat this error as if the directory doesn't exist to make it harder for
+        // apps to snoop around whether other apps exist or not.
+        return -OsConstants.ENOENT;
     }
 
     /**
@@ -4735,34 +4747,16 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private static int createFileInAppSpecificDir(@NonNull String path) {
-        try {
-            final File toCreate = new File(path);
-            if (toCreate.createNewFile()) {
-                // TODO(b/142807069): should we scan this file after it's been closed?
-                return ParcelFileDescriptor
-                        .open(toCreate,
-                                ParcelFileDescriptor.MODE_WRITE_ONLY
-                                        | ParcelFileDescriptor.MODE_CREATE)
-                        .detachFd();
-            } else {
-                return -OsConstants.EEXIST;
-            }
-        } catch (IOException e) {
-            Log.e(TAG, "I/O Exception while creating file = " + path, e);
-            return -OsConstants.EIO;
-        }
-    }
-
     /**
-     * Creates file with the given {@link path} on behalf of the app with the given {@link uid}.
-     * Checks if the file path is legal for the given app and file type.
+     * Enforces file creation restrictions (see return values) for the given file on behalf of the
+     * app with the given {@code uid}. If the file is is added to the shared storage, creates a
+     * database entry for it.
+     * <p> Does NOT create file.
      *
      * @param path the path of the file
      * @param uid UID of the app requesting to create the file
-     * @return In case of success, file descriptor of the newly created file, open for writing.
-     * If the operation is illegal or not permitted, returns the appropriate negated {@code errno}
-     * value:
+     * @return In case of success, 0. If the operation is illegal or not permitted, returns the
+     * appropriate negated {@code errno} value:
      * <ul>
      * <li>ENOENT if the app tries to create file in other app's external dir
      * <li>EEXIST if the file already exists
@@ -4775,24 +4769,16 @@ public class MediaProvider extends ContentProvider {
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public int createFile(@NonNull String path, int uid) {
+    public int insertFileIfNecessary(@NonNull String path, int uid) {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
             // Returns null if the path doesn't correspond to an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
+            // App dirs are not indexed, so we don't create an entry for the file.
             if (appSpecificDir != null) {
-                for (String packageName : mCallingIdentity.get().getSharedPackageNames()) {
-                    if (appSpecificDir.toLowerCase(Locale.ROOT)
-                            .equals(packageName.toLowerCase(Locale.ROOT))) {
-                        return createFileInAppSpecificDir(path);
-                    }
-                }
-                Log.e(TAG, "Cannot create file under other app's external directory!");
-                // We treat this error as if the directory doesn't exist to make it harder for
-                // apps to snoop around whether other apps exist or not.
-                return -OsConstants.ENOENT;
+                return checkAppSpecificDirAccess(appSpecificDir);
             }
 
             final String mimeType = MediaFile.getMimeTypeForFile(path);
@@ -4815,19 +4801,10 @@ public class MediaProvider extends ContentProvider {
             if (item == null) {
                 return -OsConstants.EPERM;
             }
-            // File has been created and inserted into the database, now we need to open it and
-            // return the FD to the caller
-            ParcelFileDescriptor pfd = openFile(item, "w");
-            if (pfd == null) {
-                return -OsConstants.EIO;
-            }
-            return pfd.detachFd();
+            return 0;
         } catch (IllegalArgumentException e) {
-            Log.e(TAG, "createFile failed", e);
+            Log.e(TAG, "insertFileIfNecessary failed", e);
             return -OsConstants.EPERM;
-        } catch (FileNotFoundException ignored) {
-            // Can't happen since we don't get to #openFile unless #insert succeeds
-            return -OsConstants.EIO;
         } finally {
             restoreLocalCallingIdentity(token);
         }
@@ -4868,16 +4845,12 @@ public class MediaProvider extends ContentProvider {
 
             // Trying to create file under some app's external storage dir
             if (appSpecificDir != null) {
-                for (String packageName : mCallingIdentity.get().getSharedPackageNames()) {
-                    if (appSpecificDir.toLowerCase(Locale.ROOT)
-                            .equals(packageName.toLowerCase(Locale.ROOT))) {
-                        return deleteFileInAppSpecificDir(path);
-                    }
+                int negErrno = checkAppSpecificDirAccess(appSpecificDir);
+                if (negErrno == 0) {
+                    return deleteFileInAppSpecificDir(path);
+                } else {
+                    return negErrno;
                 }
-                Log.e(TAG, "Cannot delete files from other app's specific directory!");
-                // We treat this error as if the directory doesn't exist to make it harder for
-                // apps to snoop around whether other apps exist or not.
-                return -OsConstants.ENOENT;
             }
 
             final String mimeType = MediaFile.getMimeTypeForFile(path);

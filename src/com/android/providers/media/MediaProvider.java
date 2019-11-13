@@ -274,9 +274,13 @@ public class MediaProvider extends ContentProvider {
     }
 
     public static File getVolumePath(String volumeName) throws FileNotFoundException {
-        synchronized (sCacheLock) {
-            return MediaStore.getVolumePath(sCachedVolumes, volumeName);
-        }
+        // TODO(b/144275217): A more performant invocation is
+        // MediaStore#getVolumePath(sCachedVolumes, volumeName) since we avoid a binder
+        // to StorageManagerService to getVolumeList. We need to delay the mount broadcasts
+        // from StorageManagerService so that sCachedVolumes is up to date in
+        // onVolumeStateChanged before we to call this method, otherwise we would crash
+        // when we don't find volumeName yet
+        return MediaStore.getVolumePath(volumeName);
     }
 
     public static Set<String> getExternalVolumeNames() {
@@ -501,7 +505,7 @@ public class MediaProvider extends ContentProvider {
             final File path = getVolumePath(volumeName);
             final StorageVolume vol = mStorageManager.getStorageVolume(path);
             final String key;
-            if (VolumeInfo.ID_EMULATED_INTERNAL.equals(vol.getId())) {
+            if (vol == null || vol.isPrimary()) {
                 key = "created_default_folders";
             } else {
                 key = "created_default_folders_" + vol.getNormalizedUuid();

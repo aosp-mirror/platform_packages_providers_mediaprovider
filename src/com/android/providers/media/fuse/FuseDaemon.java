@@ -16,11 +16,8 @@
 
 package com.android.providers.media.fuse;
 
-import android.content.ContentProviderClient;
-import android.content.ContentResolver;
-import android.os.OperationCanceledException;
 import android.os.ParcelFileDescriptor;
-import android.provider.MediaStore;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -30,58 +27,66 @@ import com.android.providers.media.MediaProvider;
 /**
  * Starts a FUSE session to handle FUSE messages from the kernel.
  */
-public final class FuseDaemon implements Runnable {
-    public static final String TAG = "FuseDaemon";
+public final class FuseDaemon extends Thread {
+    public static final String TAG = "FuseDaemonThread";
 
-    private final Object mLock = new Object();
-    private final ExternalStorageServiceImpl mService;
-    private final String mSessionId;
+    private final MediaProvider mMediaProvider;
     private final int mFuseDeviceFd;
     private final String mPath;
-    private long mNativeFuseDaemon;
+    private final ExternalStorageServiceImpl mService;
 
-    public FuseDaemon(@NonNull ContentResolver resolver, @NonNull String sessionId,
+    public FuseDaemon(@NonNull MediaProvider mediaProvider,
             @NonNull ExternalStorageServiceImpl service, @NonNull ParcelFileDescriptor fd,
-            @NonNull String path) {
-        Preconditions.checkNotNull(resolver);
+            @NonNull String sessionId, @NonNull String path) {
+        mMediaProvider = Preconditions.checkNotNull(mediaProvider);
         mService = Preconditions.checkNotNull(service);
-        mSessionId = Preconditions.checkNotNull(sessionId);;
+        setName(Preconditions.checkNotNull(sessionId));
         mFuseDeviceFd = Preconditions.checkNotNull(fd).detachFd();
         mPath = Preconditions.checkNotNull(path);
-
-        try (ContentProviderClient cpc =
-                resolver.acquireContentProviderClient(MediaStore.AUTHORITY)) {
-            mNativeFuseDaemon = native_new((MediaProvider) cpc.getLocalContentProvider());
-        } catch (OperationCanceledException e) {
-            throw new IllegalStateException("Failed to acquire content provider", e);
-        }
     }
 
-    /** Starts a FUSE session. Does not return until {@link #stop} is called. */
+    /** Starts a FUSE session. Does not return until the lower filesystem is unmounted. */
     @Override
     public void run() {
-        native_start(mNativeFuseDaemon, mFuseDeviceFd, mPath);
-        mService.onEndSession(mSessionId);
-    }
-
-    /** Stops any running FUSE sessions, causing {@link #run} to return. */
-    public void stop() {
-        native_stop(mNativeFuseDaemon);
-    }
-
-    // TODO(b/135341433): Don't use finalizer. Consider Cleaner and PhantomReference
-    @Override
-    public void finalize() throws Throwable {
-        synchronized (mLock) {
-            if (mNativeFuseDaemon != 0) {
-                native_delete(mNativeFuseDaemon);
-                mNativeFuseDaemon = 0;
-            }
+        long ptr = native_new(mMediaProvider);
+        if (ptr == 0) {
+            return;
         }
+
+        Log.i(TAG, "Starting thread for " + getName() + " ...");
+        native_start(ptr, mFuseDeviceFd, mPath); // Blocks
+        Log.i(TAG, "Exiting thread for " + getName() + " ...");
+
+        // Cleanup
+        if (ptr != 0) {
+            native_delete(ptr);
+        }
+        mService.onExitSession(getName());
+        Log.i(TAG, "Exited thread for " + getName());
+    }
+
+    /** Waits for any running FUSE sessions to return. */
+    public void waitForExit() {
+        Log.i(TAG, "Waiting 5s for thread " + getName() + " to exit...");
+
+        try {
+            join(5000);
+        } catch (InterruptedException e) {
+            Log.e(TAG, "Interrupted while waiting for thread " + getName()
+                    + " to exit. Terminating process", e);
+            System.exit(1);
+        }
+
+        if (isAlive()) {
+            Log.i(TAG, "Failed to exit thread " + getName()
+                    + " successfully. Terminating process");
+            System.exit(1);
+        }
+
+        Log.i(TAG, "Exited thread " + getName() + " successfully");
     }
 
     private native long native_new(MediaProvider mediaProvider);
     private native void native_start(long daemon, int deviceFd, String path);
-    private native void native_stop(long daemon);
     private native void native_delete(long daemon);
 }

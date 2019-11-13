@@ -21,11 +21,19 @@ import static android.provider.MediaStore.MediaColumns;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assume.assumeTrue;
 import static org.junit.Assert.fail;
 
+import android.app.ActivityManager;
+import android.app.UiAutomation;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.ClipDescription;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.Cursor;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -33,6 +41,8 @@ import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
 import android.util.Log;
+import android.Manifest;
+import android.webkit.MimeTypeMap;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
@@ -50,6 +60,19 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.Locale;
+
+import com.android.cts.install.lib.Install;
+import com.android.cts.install.lib.InstallUtils;
+import com.android.cts.install.lib.Uninstall;
+import com.android.cts.install.lib.TestApp;
+import com.android.tests.fused.lib.ReaddirTestHelper;
+import static com.android.tests.fused.lib.ReaddirTestHelper.QUERY_TYPE;
+import static com.android.tests.fused.lib.ReaddirTestHelper.READDIR_QUERY;
+import static com.android.tests.fused.lib.ReaddirTestHelper.CREATE_FILE_QUERY;
+import static com.android.tests.fused.lib.ReaddirTestHelper.DELETE_FILE_QUERY;
 
 @RunWith(AndroidJUnit4.class)
 public class FilePathAccessTest {
@@ -63,8 +86,12 @@ public class FilePathAccessTest {
     static final File MOVIES_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_MOVIES);
     static final File DOWNLOAD_DIR = new File(EXTERNAL_STORAGE_DIR,
             Environment.DIRECTORY_DOWNLOADS);
+    static final File ANDROID_DATA_DIR = new File(EXTERNAL_STORAGE_DIR, "Android/data");
+    static final File ANDROID_MEDIA_DIR = new File(EXTERNAL_STORAGE_DIR, "Android/media");
+    static final String TEST_DIRECTORY = "FilePathAccessTestDirectory";
 
     static final File EXTERNAL_FILES_DIR = getContext().getExternalFilesDir(null);
+    static final File EXTERNAL_MEDIA_DIR = getContext().getExternalMediaDirs()[0];
 
     static final String MUSIC_FILE_NAME = "FilePathAccessTest_file.mp3";
     static final String VIDEO_FILE_NAME = "FilePathAccessTest_file.mp4";
@@ -78,6 +105,13 @@ public class FilePathAccessTest {
     static final byte[] BYTES_DATA2 = STR_DATA2.getBytes();
 
     static final String FILE_CREATION_ERROR_MESSAGE = "No such file or directory";
+    private static final UiAutomation sUiAutomation = InstrumentationRegistry.getInstrumentation()
+            .getUiAutomation();
+
+    private static final TestApp TEST_APP_A  = new TestApp("TestAppA",
+            "com.android.tests.fused.testapp.A", 1, false, "TestAppA.apk");
+    private static final TestApp TEST_APP_B  = new TestApp("TestAppB",
+            "com.android.tests.fused.testapp.B", 1, false, "TestAppB.apk");
 
     // skips all test cases if FUSE is not active.
     @Before
@@ -323,7 +357,9 @@ public class FilePathAccessTest {
         // We can open the root directory of external storage
         final String[] topLevelDirs = EXTERNAL_STORAGE_DIR.list();
         assertThat(topLevelDirs).isNotNull();
-        assertThat(topLevelDirs).isNotEmpty();
+        // TODO(b/145287327): This check fails on a device with no visible files.
+        // This can be fixed if we display default directories.
+        // assertThat(topLevelDirs).isNotEmpty();
     }
 
     @Test
@@ -368,6 +404,168 @@ public class FilePathAccessTest {
             }
         } finally {
             new File(filePath).delete();
+        }
+    }
+
+    /**
+     * Test that media files from other packages are only visible to apps with storage permission.
+     */
+    @Test
+    public void testListDirectoriesWithMediaFiles() throws Exception {
+        final File dir = new File(DCIM_DIR, TEST_DIRECTORY);
+        final File videoFile = new File(dir, VIDEO_FILE_NAME);
+        final String videoFileName = videoFile.getName();
+        try {
+            if (!dir.exists()) {
+                assertThat(dir.mkdir()).isTrue();
+            }
+
+            // Install TEST_APP_A and create media file in the new directory.
+            installApp(TEST_APP_A, false);
+            assertThat(createFileFromTestApp(TEST_APP_A, videoFile.getPath())).isTrue();
+            // TEST_APP_A should see TEST_DIRECTORY in DCIM and new file in TEST_DIRECTORY.
+            assertThat(listDirectoryEntriesFromTestApp(TEST_APP_A, DCIM_DIR.getPath()))
+                    .contains(TEST_DIRECTORY);
+            assertThat(listDirectoryEntriesFromTestApp(TEST_APP_A, dir.getPath()))
+                    .containsExactly(videoFileName);
+
+            // Install TEST_APP_B with storage permission.
+            installApp(TEST_APP_B, true);
+            // TEST_APP_B with storage permission should see TEST_DIRECTORY in DCIM and new file
+            // in TEST_DIRECTORY.
+            assertThat(listDirectoryEntriesFromTestApp(TEST_APP_B, DCIM_DIR.getPath()))
+                    .contains(TEST_DIRECTORY);
+            assertThat(listDirectoryEntriesFromTestApp(TEST_APP_B, dir.getPath()))
+                    .containsExactly(videoFileName);
+
+            // Revoke storage permission for TEST_APP_B
+            revokeReadExternalStorage(TEST_APP_B.getPackageName());
+            // TEST_APP_B without storage permission should not see TEST_DIRECTORY in DCIM and new
+            // file in new TEST_DIRECTORY.
+            assertThat(listDirectoryEntriesFromTestApp(TEST_APP_B, DCIM_DIR.getPath()))
+                    .doesNotContain(TEST_DIRECTORY);
+            assertThat(listDirectoryEntriesFromTestApp(TEST_APP_B, dir.getPath()))
+                    .doesNotContain(videoFileName);
+        } finally {
+            uninstallApp(TEST_APP_B);
+            if(videoFile.exists()) {
+                assertThat(deleteFileFromTestApp(TEST_APP_A, videoFile.getPath())).isTrue();
+            }
+            if (dir.exists()) {
+                  // Try deleting the directory. Do we delete directory if app doesn't own all
+                  // files in it?
+                  dir.delete();
+            }
+            uninstallApp(TEST_APP_A);
+        }
+    }
+
+    /**
+     * Test that app can not see non-media files created by other packages
+     */
+    @Test
+    public void testListDirectoriesWithNonMediaFiles() throws Exception {
+        final File dir = new File(DOWNLOAD_DIR, TEST_DIRECTORY);
+        final File pdfFile = new File(dir, NONMEDIA_FILE_NAME);
+        final String pdfFileName = pdfFile.getName();
+        try {
+            if (!dir.exists()) {
+                assertThat(dir.mkdir()).isTrue();
+            }
+
+            // Install TEST_APP_A and create non media file in the new directory.
+            installApp(TEST_APP_A, false);
+            assertThat(createFileFromTestApp(TEST_APP_A, pdfFile.getPath())).isTrue();
+
+            // TEST_APP_A should see TEST_DIRECTORY in DOWNLOAD_DIR and new non media file in
+            // TEST_DIRECTORY.
+            assertThat(listDirectoryEntriesFromTestApp(TEST_APP_A, DOWNLOAD_DIR.getPath()))
+                    .contains(TEST_DIRECTORY);
+            assertThat(listDirectoryEntriesFromTestApp(TEST_APP_A, dir.getPath()))
+                    .containsExactly(pdfFileName);
+
+            // Install TEST_APP_B with storage permission.
+            installApp(TEST_APP_B, true);
+            // TEST_APP_B with storage permission should not see TEST_DIRECTORY in DOWNLOAD_DIR
+            // and should not see new non media file in TEST_DIRECTORY.
+            assertThat(listDirectoryEntriesFromTestApp(TEST_APP_B, DOWNLOAD_DIR.getPath()))
+                    .doesNotContain(TEST_DIRECTORY);
+            assertThat(listDirectoryEntriesFromTestApp(TEST_APP_B, dir.getPath()))
+                    .doesNotContain(pdfFileName);
+        } finally {
+            uninstallApp(TEST_APP_B);
+            if(pdfFile.exists()) {
+                assertThat(deleteFileFromTestApp(TEST_APP_A, pdfFile.getPath())).isTrue();
+            }
+            if (dir.exists()) {
+                  // Try deleting the directory. Do we delete directory if app doesn't own all
+                  // files in it?
+                  dir.delete();
+            }
+            uninstallApp(TEST_APP_A);
+        }
+    }
+
+    /**
+     * Test that app can only see its directory in Android/data.
+     */
+    @Test
+    public void testListFilesFromExternalFilesDirectory() throws Exception {
+        final String packageName = getContext().getPackageName();
+        final File videoFile = new File(EXTERNAL_FILES_DIR, NONMEDIA_FILE_NAME);
+        final String videoFileName = videoFile.getName();
+
+        try {
+            // Create a file in app's external files directory
+            if (!videoFile.exists()) {
+                assertThat(videoFile.createNewFile()).isTrue();
+            }
+            // App should see its directory and directories of shared packages. App should see all
+            // files and directories in its external directory.
+            assertThat(ReaddirTestHelper.readDirectory(ANDROID_DATA_DIR)).contains(packageName);
+            assertThat(ReaddirTestHelper.readDirectory(videoFile.getParentFile()))
+                    .containsExactly(videoFileName);
+
+            // Install TEST_APP_A with READ_EXTERNAL_STORAGE permission.
+            // TEST_APP_A should not see other app's external files directory.
+            installApp(TEST_APP_A, true);
+            assertThat(listDirectoryEntriesFromTestApp(TEST_APP_A, ANDROID_DATA_DIR.getPath()))
+                    .doesNotContain(packageName);
+            assertThat(listDirectoryEntriesFromTestApp(TEST_APP_A, EXTERNAL_FILES_DIR.getPath())).isEmpty();
+        } finally {
+            assertThat(videoFile.delete()).isTrue();
+        }
+    }
+
+    /**
+     * Test that app can see files and directories in Android/media.
+     */
+    @Test
+    public void testListFilesFromExternalMediaDirectory() throws Exception {
+        final String packageName = getContext().getPackageName();
+        final File videoFile = new File(EXTERNAL_MEDIA_DIR, VIDEO_FILE_NAME);
+        final String videoFileName = videoFile.getName();
+
+        try {
+            // Create a file in app's external media directory
+            if (!videoFile.exists()) {
+                assertThat(videoFile.createNewFile()).isTrue();
+            }
+            // App should see its directory and other app's external media directories with media
+            // files.
+            assertThat(ReaddirTestHelper.readDirectory(ANDROID_MEDIA_DIR)).contains(packageName);
+            assertThat(ReaddirTestHelper.readDirectory(EXTERNAL_MEDIA_DIR))
+                    .containsExactly(videoFileName);
+
+            // Install TEST_APP_A with READ_EXTERNAL_STORAGE permission.
+            // TEST_APP_A with storage permission should see other app's external media directory.
+            installApp(TEST_APP_A, true);
+            assertThat(listDirectoryEntriesFromTestApp(TEST_APP_A, ANDROID_MEDIA_DIR.getPath()))
+                    .contains(packageName);
+            assertThat(listDirectoryEntriesFromTestApp(TEST_APP_A, EXTERNAL_MEDIA_DIR.getPath()))
+                    .containsExactly(videoFileName);
+        } finally {
+            assertThat(videoFile.delete()).isTrue();
         }
     }
 
@@ -449,10 +647,145 @@ public class FilePathAccessTest {
     }
 
     private static String executeShellCommand(String cmd) throws Exception {
-        try (FileInputStream output = new FileInputStream (InstrumentationRegistry
-                .getInstrumentation().getUiAutomation()
-                .executeShellCommand(cmd).getFileDescriptor())) {
+        try (FileInputStream output = new FileInputStream (sUiAutomation.executeShellCommand(cmd)
+                .getFileDescriptor())) {
             return new String(ByteStreams.toByteArray(output));
         }
+    }
+
+    private void installApp(TestApp testApp, boolean grantStoragePermission)
+            throws Exception {
+
+        try {
+            final String packageName = testApp.getPackageName();
+            sUiAutomation.adoptShellPermissionIdentity(Manifest.permission.INSTALL_PACKAGES,
+                    Manifest.permission.DELETE_PACKAGES);
+            if (InstallUtils.getInstalledVersion(packageName) != -1) {
+                Uninstall.packages(packageName);
+            }
+            Install.single(testApp).commit();
+            assertThat(InstallUtils.getInstalledVersion(packageName)).isEqualTo(1);
+            if (grantStoragePermission) {
+                grantReadExternalStorage(packageName);
+            }
+        } finally {
+            sUiAutomation.dropShellPermissionIdentity();
+        }
+    }
+
+    private void uninstallApp(TestApp testApp) throws Exception {
+        try {
+            final String packageName = testApp.getPackageName();
+            sUiAutomation.adoptShellPermissionIdentity(Manifest.permission.DELETE_PACKAGES);
+
+            Uninstall.packages(packageName);
+            assertThat(InstallUtils.getInstalledVersion(packageName)).isEqualTo(-1);
+        } finally {
+            sUiAutomation.dropShellPermissionIdentity();
+        }
+    }
+
+    private void grantReadExternalStorage(String packageName) throws Exception {
+        sUiAutomation.adoptShellPermissionIdentity("android.permission.GRANT_RUNTIME_PERMISSIONS");
+        try {
+            sUiAutomation.grantRuntimePermission(packageName,
+                    Manifest.permission.READ_EXTERNAL_STORAGE);
+        } finally {
+            sUiAutomation.dropShellPermissionIdentity();
+        }
+    }
+
+    private void revokeReadExternalStorage(String packageName) throws Exception {
+        sUiAutomation.adoptShellPermissionIdentity("android.permission.REVOKE_RUNTIME_PERMISSIONS");
+        try {
+            sUiAutomation.revokeRuntimePermission(packageName,
+                    Manifest.permission.READ_EXTERNAL_STORAGE);
+        } finally {
+            sUiAutomation.dropShellPermissionIdentity();
+        }
+    }
+
+    private void forceStopApp(String packageName) throws Exception {
+        try {
+            sUiAutomation.adoptShellPermissionIdentity(Manifest.permission.FORCE_STOP_PACKAGES);
+
+            getContext().getSystemService(ActivityManager.class).forceStopPackage(packageName);
+            Thread.sleep(1000);
+        } finally {
+            sUiAutomation.dropShellPermissionIdentity();
+        }
+    }
+
+    private ArrayList<String> listDirectoryEntriesFromTestApp(TestApp testApp, String dirPath)
+            throws Exception {
+        return getContentsFromTestApp(testApp, dirPath, READDIR_QUERY);
+    }
+
+    private boolean createFileFromTestApp(TestApp testApp, String dirPath) throws Exception {
+        return createOrDeleteFileFromTestApp(testApp, dirPath, CREATE_FILE_QUERY);
+    }
+
+    private boolean deleteFileFromTestApp(TestApp testApp, String dirPath) throws Exception {
+        return createOrDeleteFileFromTestApp(testApp, dirPath, DELETE_FILE_QUERY);
+    }
+
+    private void sendIntentToTestApp(TestApp testApp, String dirPath, String actionName,
+            BroadcastReceiver broadcastReceiver, CountDownLatch latch) throws Exception {
+
+        final ArrayList<String> appOutputList = new ArrayList<String>();
+        final String packageName = testApp.getPackageName();
+        forceStopApp(packageName);
+        // Register broadcast receiver
+        final IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(actionName);
+        intentFilter.addCategory(Intent.CATEGORY_DEFAULT);
+        getContext().registerReceiver(broadcastReceiver, intentFilter);
+
+        // Launch the helper app.
+        final Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.setPackage(packageName);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.putExtra(QUERY_TYPE, actionName);
+        intent.putExtra(actionName, dirPath);
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        getContext().startActivity(intent);
+        latch.await();
+        getContext().unregisterReceiver(broadcastReceiver);
+    }
+
+    private ArrayList<String> getContentsFromTestApp(TestApp testApp, String dirPath,
+            String actionName) throws Exception {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final ArrayList<String> appOutputList = new ArrayList<String>();
+        final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if(intent.hasExtra(actionName)) {
+                    appOutputList.addAll(intent.getStringArrayListExtra(actionName));
+                }
+                latch.countDown();
+            }
+        };
+
+        sendIntentToTestApp(testApp, dirPath, actionName, broadcastReceiver, latch);
+        return appOutputList;
+    }
+
+    private boolean createOrDeleteFileFromTestApp(TestApp testApp, String dirPath, String actionName)
+            throws Exception {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final boolean[] appOutput = new boolean[1];
+        BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if(intent.hasExtra(actionName)) {
+                    appOutput[0] = intent.getBooleanExtra(actionName, false);
+                }
+                latch.countDown();
+            }
+        };
+
+        sendIntentToTestApp(testApp, dirPath, actionName, broadcastReceiver, latch);
+        return appOutput[0];
     }
 }

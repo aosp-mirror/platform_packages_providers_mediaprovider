@@ -51,15 +51,6 @@ struct DirectoryEntry {
  */
 std::vector<std::shared_ptr<DirectoryEntry>> getDirectoryEntriesFromLowerFs(DIR* d);
 
-/**
- * Checks if the given path is indexed by MediaProvider database.
- *
- * TODO(b/142806973): App based filtering of directory contents can not be done for
- * some of the paths here. Remove/Modify this function to obtain the filtering option
- * information from MediaProvider instead of comparing raw path.
- */
-bool IsDirectoryEntryFilteringNeeded(const std::string& path);
-
 }  // namespace fuse
 }  // namespace mediaprovider
 #endif

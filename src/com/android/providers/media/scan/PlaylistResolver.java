@@ -74,6 +74,10 @@ public class PlaylistResolver {
             file = new File(cursor.getString(1));
         }
 
+        if (mimeType == null) {
+            throw new IOException("Unsupported playlist of type " + mimeType);
+        }
+
         switch (mimeType) {
             case "audio/x-mpegurl":
             case "audio/mpegurl":

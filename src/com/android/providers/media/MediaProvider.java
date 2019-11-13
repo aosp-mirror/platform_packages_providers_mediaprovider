@@ -4527,7 +4527,7 @@ public class MediaProvider extends ContentProvider {
      * access the file.
      *
      * @param uid UID of the package wanting to access the file
-     * @param fd File descriptor of the file to be read
+     * @param path File path
      * @return Ranges that should be redacted.
      *
      * @throws IOException if an error occurs while calculating the redaction ranges
@@ -4612,7 +4612,7 @@ public class MediaProvider extends ContentProvider {
      * @param uid UID of the app requesting to open the file
      * @param forWrite specifies if the file is to be opened for write
      * @return 0 upon success. If the operation is illegal or not permitted, returns
-     * -{@link OsConstants.ENOENT} to prevent malicious apps from distinguishing whether a file
+     * -{@link OsConstants#ENOENT} to prevent malicious apps from distinguishing whether a file
      * they have no access to exists or not.
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
@@ -4824,7 +4824,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Deletes file with the given {@link path} on behalf of the app with the given {@link uid}.
+     * Deletes file with the given {@code path} on behalf of the app with the given {@code uid}.
      * <p>Before deleting, checks if app has permissions to delete this file.
      *
      * @param path the path of the file
@@ -4834,7 +4834,7 @@ public class MediaProvider extends ContentProvider {
      * <ul>
      * <li>ENOENT if the file does not exist or if the app tries to delete file in another app's
      * external dir
-     * <li>EPERM a security exception was thrown by {@link delete}
+     * <li>EPERM a security exception was thrown by {@link #delete}
      * </ul>
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp

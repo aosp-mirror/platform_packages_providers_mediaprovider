@@ -18,7 +18,6 @@ package com.android.providers.media;
 
 import static com.android.providers.media.MediaProvider.TAG;
 
-import android.app.IntentService;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -27,34 +26,26 @@ import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Environment;
-import android.os.PowerManager;
 import android.os.Trace;
 import android.provider.MediaStore;
 import android.util.Log;
+
+import androidx.core.app.JobIntentService;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Collection;
 
-public class MediaService extends IntentService {
-    public MediaService() {
-        super(TAG);
-    }
+public class MediaService extends JobIntentService {
+    private static final int JOB_ID = -300;
 
-    private PowerManager.WakeLock mWakeLock;
-
-    @Override
-    public void onCreate() {
-        super.onCreate();
-
-        mWakeLock = getSystemService(PowerManager.class).newWakeLock(
-                PowerManager.PARTIAL_WAKE_LOCK, TAG);
+    public static void enqueueWork(Context context, Intent work) {
+        enqueueWork(context, MediaService.class, JOB_ID, work);
     }
 
     @Override
-    protected void onHandleIntent(Intent intent) {
-        mWakeLock.acquire();
+    protected void onHandleWork(Intent intent) {
         Trace.beginSection(intent.getAction());
         if (Log.isLoggable(TAG, Log.INFO)) {
             Log.i(TAG, "Begin " + intent);
@@ -91,7 +82,6 @@ public class MediaService extends IntentService {
                 Log.i(TAG, "End " + intent);
             }
             Trace.endSection();
-            mWakeLock.release();
         }
     }
 

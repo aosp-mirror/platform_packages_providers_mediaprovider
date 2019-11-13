@@ -83,7 +83,8 @@
 
         <service
             android:name=".MediaService"
-            android:exported="false" />
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
 
         <service android:name=".fuse.ExternalStorageServiceImpl"
                  android:permission="android.permission.BIND_EXTERNAL_STORAGE_SERVICE">

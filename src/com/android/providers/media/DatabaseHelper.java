@@ -239,9 +239,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         final List<Uri> uris = mNotifyChanges.get();
         if (uris != null) {
             BackgroundThread.getExecutor().execute(() -> {
-                for (Uri uri : uris) {
-                    notifyChangeInternal(uri);
-                }
+                notifyChangeInternal(uris);
             });
         }
         mNotifyChanges.remove();
@@ -263,15 +261,24 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             uris.add(uri);
         } else {
             BackgroundThread.getExecutor().execute(() -> {
-                notifyChangeInternal(uri);
+                notifySingleChangeInternal(uri);
             });
         }
     }
 
-    private void notifyChangeInternal(Uri uri) {
+    private void notifySingleChangeInternal(Uri uri) {
+        Trace.beginSection("notifySingleChange");
+        try {
+            mContext.getContentResolver().notifyChange(uri, null, 0);
+        } finally {
+            Trace.endSection();
+        }
+    }
+
+    private void notifyChangeInternal(Iterable<Uri> uris) {
         Trace.beginSection("notifyChange");
         try {
-            mContext.getContentResolver().notifyChange(uri, null);
+            mContext.getContentResolver().notifyChange(uris, null, 0);
         } finally {
             Trace.endSection();
         }

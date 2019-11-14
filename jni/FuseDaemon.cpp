@@ -17,7 +17,6 @@
 #include "FuseDaemon.h"
 
 #include <android-base/logging.h>
-#include <android-base/properties.h>
 #include <android/log.h>
 #include <ctype.h>
 #include <dirent.h>
@@ -68,7 +67,6 @@ using std::vector;
 #define FUSE_UNKNOWN_INO 0xffffffff
 
 constexpr size_t MAX_READ_SIZE = 128 * 1024;
-static constexpr const char* kPropRedactionEnabled = "persist.sys.fuse.redaction-enabled";
 
 class handle {
   public:
@@ -1008,13 +1006,8 @@ static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
     struct fuse* fuse = get_fuse(req);
     TRACE_FUSE(fuse) << "READ";
     if (!h->ri) {
-        if (android::base::GetBoolProperty(kPropRedactionEnabled, true)) {
-            h->ri = fuse->mp->GetRedactionInfo(h->path, req->ctx.uid);
-        } else {
-            // If redaction is not enabled, we just use empty redaction ranges
-            // which mean that we will always use do_read instead of do_read_with_redaction
-            h->ri = std::make_unique<RedactionInfo>();
-        }
+        h->ri = fuse->mp->GetRedactionInfo(h->path, req->ctx.uid);
+
         if (!h->ri) {
             errno = EIO;
             fuse_reply_err(req, errno);
@@ -1106,7 +1099,8 @@ static void pf_release(fuse_req_t req,
     struct fuse* fuse = get_fuse(req);
     handle* h = reinterpret_cast<handle*>(fi->fh);
 
-    TRACE_FUSE(fuse) << "RELEASE " << h << "(" << h->fd << ")";
+    TRACE_FUSE(fuse) << "RELEASE "
+                     << "0" << std::oct << fi->flags << " " << h << "(" << h->fd << ")";
 
     fuse->fadviser.Close(h->fd);
     close(h->fd);
@@ -1323,8 +1317,8 @@ static void pf_create(fuse_req_t req,
     pthread_mutex_lock(&fuse->lock);
     parent_node = lookup_node_by_id_locked(fuse, parent);
     parent_path = get_node_path_locked(parent_node);
-    TRACE_FUSE(fuse) << "CREATE " << name << " 0" << std::oct << mode << " @ " << parent << " ("
-                     << safe_name(parent_node) << ")";
+    TRACE_FUSE(fuse) << "CREATE " << name << " 0" << std::oct << fi->flags << " @ " << parent
+                     << " (" << safe_name(parent_node) << ")";
     pthread_mutex_unlock(&fuse->lock);
 
     child_path = parent_path + "/" + name;
@@ -1335,7 +1329,6 @@ static void pf_create(fuse_req_t req,
         return;
     }
     mode = (mode & (~0777)) | 0664;
-
     int mp_return_code = fuse->mp->InsertFile(child_path.c_str(), ctx->uid);
     if (mp_return_code || ((h->fd = open(child_path.c_str(), fi->flags, mode)) < 0)) {
         if (mp_return_code) {
@@ -1459,8 +1452,6 @@ static void fuse_logger(enum fuse_log_level level, const char* fmt, va_list ap) 
 
 FuseDaemon::FuseDaemon(JNIEnv* env, jobject mediaProvider) : mp(env, mediaProvider) {}
 
-void FuseDaemon::Stop() {}
-
 void FuseDaemon::Start(const int fd, const std::string& path) {
     struct fuse_args args;
     struct fuse_cmdline_opts opts;
@@ -1517,22 +1508,30 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
     fuse_to_android_loglevel.insert({FUSE_LOG_DEBUG, ANDROID_LOG_VERBOSE});
     fuse_set_log_func(fuse_logger);
 
-    LOG(INFO) << "Starting fuse...";
     struct fuse_session
             * se = fuse_session_new(&args, &ops, sizeof(ops), &fuse_default);
+    if (!se) {
+        PLOG(ERROR) << "Failed to create session ";
+        return;
+    }
     se->fd = fd;
     se->mountpoint = strdup(path.c_str());
 
     // Single thread. Useful for debugging
     // fuse_session_loop(se);
     // Multi-threaded
+    LOG(INFO) << "Starting fuse...";
     fuse_session_loop_mt(se, &config);
+    LOG(INFO) << "Ending fuse...";
 
     if (munmap(fuse_default.zero_addr, MAX_READ_SIZE)) {
         PLOG(ERROR) << "munmap failed!";
     }
 
-    LOG(INFO) << "Ending fuse...";
+    fuse_opt_free_args(&args);
+    fuse_session_destroy(se);
+    LOG(INFO) << "Ended fuse";
+    return;
 }
 } //namespace fuse
 }  // namespace mediaprovider

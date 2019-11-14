@@ -16,8 +16,10 @@
 
 package com.android.providers.media.util;
 
+import android.content.ContentValues;
 import android.database.Cursor;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 public class DatabaseUtils {
@@ -136,6 +138,18 @@ public class DatabaseUtils {
             return Cursor.FIELD_TYPE_INTEGER;
         } else {
             return Cursor.FIELD_TYPE_STRING;
+        }
+    }
+
+    public static void copyFromCursorToContentValues(@NonNull String column, @NonNull Cursor cursor,
+            @NonNull ContentValues values) {
+        final int index = cursor.getColumnIndex(column);
+        if (index != -1) {
+            if (cursor.isNull(index)) {
+                values.putNull(column);
+            } else {
+                values.put(column, cursor.getString(index));
+            }
         }
     }
 }

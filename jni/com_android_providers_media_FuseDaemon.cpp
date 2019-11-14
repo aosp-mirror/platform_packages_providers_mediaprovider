@@ -15,7 +15,7 @@
  */
 
 // Need to use LOGE_EX.
-#define LOG_TAG "FuseDaemon"
+#define LOG_TAG "FuseDaemonJNI"
 
 #include <nativehelper/scoped_utf_chars.h>
 
@@ -49,12 +49,6 @@ void com_android_providers_media_FuseDaemon_start(JNIEnv* env, jobject self, jlo
     daemon->Start(fd, string_path);
 }
 
-void com_android_providers_media_FuseDaemon_stop(JNIEnv* env, jobject self, jlong java_daemon) {
-    LOG(DEBUG) << "Stopping the FUSE daemon...";
-    fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
-    daemon->Stop();
-}
-
 void com_android_providers_media_FuseDaemon_delete(JNIEnv* env, jobject self, jlong java_daemon) {
     LOG(DEBUG) << "Destroying the FUSE daemon...";
     fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
@@ -66,8 +60,6 @@ const JNINativeMethod methods[] = {
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_new)},
         {"native_start", "(JILjava/lang/String;)V",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_start)},
-        {"native_stop", "(J)V",
-         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_stop)},
         {"native_delete", "(J)V",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_delete)}};
 }  // namespace

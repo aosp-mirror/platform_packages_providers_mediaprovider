@@ -19,6 +19,7 @@
 #include "MediaProviderWrapper.h"
 
 #include <android-base/logging.h>
+#include <android-base/properties.h>
 #include <jni.h>
 #include <nativehelper/scoped_local_ref.h>
 #include <nativehelper/scoped_primitive_array.h>
@@ -29,11 +30,22 @@
 
 namespace mediaprovider {
 namespace fuse {
+using android::base::GetBoolProperty;
 using std::string;
 
 namespace {
 
+constexpr const char* kPropRedactionEnabled = "persist.sys.fuse.redaction-enabled";
+constexpr const char* kPropShellBypass = "persist.sys.fuse.shell-bypass";
+
+constexpr uid_t ROOT_UID = 0;
+constexpr uid_t SHELL_UID = 2000;
+
 /** Private helper functions **/
+
+inline bool shouldBypassMediaProvider(uid_t uid) {
+    return (uid == SHELL_UID && GetBoolProperty(kPropShellBypass, false)) || uid == ROOT_UID;
+}
 
 bool CheckForJniException(JNIEnv* env) {
     if (env->ExceptionCheck()) {
@@ -195,6 +207,10 @@ MediaProviderWrapper::~MediaProviderWrapper() {
 
 std::unique_ptr<RedactionInfo> MediaProviderWrapper::GetRedactionInfo(const string& path,
                                                                       uid_t uid) {
+    if (shouldBypassMediaProvider(uid) || !GetBoolProperty(kPropRedactionEnabled, true)) {
+        return std::make_unique<RedactionInfo>();
+    }
+
     // Default value in case JNI thread was being terminated, causes the read to fail.
     std::unique_ptr<RedactionInfo> res = nullptr;
 
@@ -211,6 +227,10 @@ std::unique_ptr<RedactionInfo> MediaProviderWrapper::GetRedactionInfo(const stri
 }
 
 int MediaProviderWrapper::InsertFile(const string& path, uid_t uid) {
+    if (shouldBypassMediaProvider(uid)) {
+        return 0;
+    }
+
     int res = -EIO;  // Default value in case JNI thread was being terminated
 
     PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
@@ -222,6 +242,11 @@ int MediaProviderWrapper::InsertFile(const string& path, uid_t uid) {
 
 int MediaProviderWrapper::DeleteFile(const string& path, uid_t uid) {
     int res = -EIO;  // Default value in case JNI thread was being terminated
+    if (shouldBypassMediaProvider(uid)) {
+        res = unlink(path.c_str());
+        ScanFile(path);
+        return res;
+    }
 
     PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
         res = deleteFileInternal(env, media_provider_object_, mid_delete_file_, path, uid);
@@ -231,6 +256,10 @@ int MediaProviderWrapper::DeleteFile(const string& path, uid_t uid) {
 }
 
 int MediaProviderWrapper::IsOpenAllowed(const std::string& path, uid_t uid, bool for_write) {
+    if (shouldBypassMediaProvider(uid)) {
+        return 0;
+    }
+
     int res = -EIO;  // Default value in case JNI thread was being terminated
 
     PostAndWaitForTask([this, &path, uid, for_write, &res](JNIEnv* env) {

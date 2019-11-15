@@ -97,6 +97,24 @@ class MediaProviderWrapper final {
      */
     void ScanFile(const std::string& path);
 
+    /**
+     * Determines if the given UID is allowed to create a directory with the given path.
+     *
+     * @param path the path of the directory to be created
+     * @param uid UID of the calling app
+     * @return 0 if it's allowed, or negated errno error code if operation isn't allowed.
+     */
+    int IsCreatingDirAllowed(const std::string& path, uid_t uid);
+
+    /**
+     * Determines if the given UID is allowed to delete the directory with the given path.
+     *
+     * @param path the path of the directory to be deleted
+     * @param uid UID of the calling app
+     * @return 0 if it's allowed, or negated errno error code if operation isn't allowed.
+     */
+    int IsDeletingDirAllowed(const std::string& path, uid_t uid);
+
   private:
     jclass media_provider_class_;
     jobject media_provider_object_;
@@ -106,6 +124,7 @@ class MediaProviderWrapper final {
     jmethodID mid_delete_file_;
     jmethodID mid_is_open_allowed_;
     jmethodID mid_scan_file_;
+    jmethodID mid_is_dir_op_allowed_;
     /**
      * All JNI calls are delegated to this thread
      */

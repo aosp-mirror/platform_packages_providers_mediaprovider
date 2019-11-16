@@ -38,6 +38,8 @@ import static com.android.providers.media.LocalCallingIdentity.PERMISSION_READ_V
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_AUDIO;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_IMAGES;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_VIDEO;
+import static com.android.providers.media.scan.MediaScanner.REASON_DEMAND;
+import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractFileName;
 
@@ -145,6 +147,7 @@ import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.IsoInterface;
 import com.android.providers.media.util.LongArray;
+import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
 import com.android.providers.media.util.XmpInterface;
 
@@ -639,6 +642,8 @@ public class MediaProvider extends ContentProvider {
     }
 
     public void onIdleMaintenance(@NonNull CancellationSignal signal) {
+        final long startTime = SystemClock.elapsedRealtime();
+
         final DatabaseHelper helper = mExternalDatabase;
         final SQLiteDatabase db = helper.getReadableDatabase();
 
@@ -649,14 +654,15 @@ public class MediaProvider extends ContentProvider {
 
             try {
                 final File file = getVolumePath(volumeName);
-                MediaService.onScanVolume(getContext(), Uri.fromFile(file));
+                MediaService.onScanVolume(getContext(), Uri.fromFile(file), REASON_IDLE);
             } catch (IOException e) {
                 Log.w(TAG, e);
             }
         }
 
         // Delete any stale thumbnails
-        pruneThumbnails(signal);
+        final int staleThumbnails = pruneThumbnails(signal);
+        Log.d(TAG, "Pruned " + staleThumbnails + " unknown thumbnails");
 
         // Finished orphaning any content whose package no longer exists
         final ArraySet<String> unknownPackages = new ArraySet<>();
@@ -674,15 +680,17 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        Log.d(TAG, "Found " + unknownPackages.size() + " unknown packages");
         for (String packageName : unknownPackages) {
             onPackageOrphaned(packageName);
         }
+        final int stalePackages = unknownPackages.size();
+        Log.d(TAG, "Pruned " + stalePackages + " unknown packages");
 
         // Delete any expired content; we're paranoid about wildly changing
         // clocks, so only delete items within the last week
         final long from = ((System.currentTimeMillis() - DateUtils.WEEK_IN_MILLIS) / 1000);
         final long to = (System.currentTimeMillis() / 1000);
+        final int expiredMedia;
         try (Cursor c = db.query(true, "files", new String[] { "volume_name", "_id" },
                 FileColumns.DATE_EXPIRES + " BETWEEN " + from + " AND " + to, null,
                 null, null, null, null, signal)) {
@@ -691,7 +699,8 @@ public class MediaProvider extends ContentProvider {
                 final long id = c.getLong(1);
                 delete(Files.getContentUri(volumeName, id), null, null);
             }
-            Log.d(TAG, "Deleted " + c.getCount() + " expired items on " + helper.mName);
+            expiredMedia = c.getCount();
+            Log.d(TAG, "Deleted " + expiredMedia + " expired items on " + helper.mName);
         }
 
         // Forget any stale volumes
@@ -714,6 +723,10 @@ public class MediaProvider extends ContentProvider {
         synchronized (mDirectoryCache) {
             mDirectoryCache.clear();
         }
+
+        final long durationMillis = (SystemClock.elapsedRealtime() - startTime);
+        Metrics.logIdleMaintenance(MediaStore.VOLUME_EXTERNAL, helper.getItemCount(),
+                durationMillis, staleThumbnails, expiredMedia);
     }
 
     public void onPackageOrphaned(String packageName) {
@@ -731,12 +744,12 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    public void scanDirectory(File file) {
-        mMediaScanner.scanDirectory(file);
+    public void scanDirectory(File file, int reason) {
+        mMediaScanner.scanDirectory(file, reason);
     }
 
-    public Uri scanFile(File file) {
-        return mMediaScanner.scanFile(file);
+    public Uri scanFile(File file, int reason) {
+        return mMediaScanner.scanFile(file, reason);
     }
 
     /**
@@ -749,7 +762,7 @@ public class MediaProvider extends ContentProvider {
      */
     @Keep
     public Uri scanFile(String file) {
-        return scanFile(new File(file));
+        return scanFile(new File(file), REASON_DEMAND);
     }
 
     private void enforceShellRestrictions() {
@@ -2602,7 +2615,7 @@ public class MediaProvider extends ContentProvider {
         mCallingIdentity.get().setOwned(rowId, true);
 
         if (path != null && path.toLowerCase(Locale.ROOT).endsWith("/.nomedia")) {
-            mMediaScanner.scanFile(new File(path).getParentFile());
+            mMediaScanner.scanFile(new File(path).getParentFile(), REASON_DEMAND);
         }
 
         if (newUri != null) {
@@ -3267,8 +3280,9 @@ public class MediaProvider extends ContentProvider {
                     FileColumns.IS_DOWNLOAD,
                     FileColumns.MIME_TYPE,
             };
+            final boolean isFilesTable = qb.getTables().equals("files");
             final LongSparseArray<String> deletedDownloadIds = new LongSparseArray<>();
-            if (qb.getTables().equals("files")) {
+            if (isFilesTable) {
                 String deleteparam = uri.getQueryParameter(MediaStore.PARAM_DELETE_DATA);
                 if (deleteparam == null || ! deleteparam.equals("false")) {
                     Cursor c = qb.query(db, projection, userWhere, userWhereArgs,
@@ -3418,6 +3432,11 @@ public class MediaProvider extends ContentProvider {
                     Binder.restoreCallingIdentity(token);
                 }
             }
+
+            if (isFilesTable && !isCallingPackageSystem()) {
+                Metrics.logDeletion(volumeName, System.currentTimeMillis(),
+                        getCallingPackageOrSelf(), count);
+            }
         }
 
         if (count > 0) {
@@ -3478,10 +3497,11 @@ public class MediaProvider extends ContentProvider {
                     final Bundle res = new Bundle();
                     switch (method) {
                         case MediaStore.SCAN_FILE_CALL:
-                            res.putParcelable(Intent.EXTRA_STREAM, scanFile(file));
+                            res.putParcelable(Intent.EXTRA_STREAM, scanFile(file, REASON_DEMAND));
                             break;
                         case MediaStore.SCAN_VOLUME_CALL:
-                            MediaService.onScanVolume(getContext(), Uri.fromFile(file));
+                            MediaService.onScanVolume(getContext(),
+                                    Uri.fromFile(file), REASON_DEMAND);
                             break;
                     }
                     return res;
@@ -3664,7 +3684,9 @@ public class MediaProvider extends ContentProvider {
         return collationName;
     }
 
-    private void pruneThumbnails(@NonNull CancellationSignal signal) {
+    private int pruneThumbnails(@NonNull CancellationSignal signal) {
+        int prunedCount = 0;
+
         final DatabaseHelper helper = mExternalDatabase;
         final SQLiteDatabase db = helper.getReadableDatabase();
 
@@ -3712,6 +3734,7 @@ public class MediaProvider extends ContentProvider {
 
                     Log.v(TAG, "Deleting stale thumbnail " + thumbFile);
                     thumbFile.delete();
+                    prunedCount++;
                 }
             }
         }
@@ -3721,6 +3744,8 @@ public class MediaProvider extends ContentProvider {
                 + "where image_id not in (select _id from images)");
         db.execSQL("delete from videothumbnails "
                 + "where video_id not in (select _id from video)");
+
+        return prunedCount;
     }
 
     static abstract class Thumbnailer {
@@ -4145,12 +4170,12 @@ public class MediaProvider extends ContentProvider {
                         acceptWithExpansion(helper::notifyChange, uri);
                     }
                     if (f.getName().startsWith(".")) {
-                        mMediaScanner.scanFile(new File(newPath));
+                        mMediaScanner.scanFile(new File(newPath), REASON_DEMAND);
                     }
                     return count;
                 }
             } else if (newPath.toLowerCase(Locale.ROOT).endsWith("/.nomedia")) {
-                mMediaScanner.scanFile(new File(newPath).getParentFile());
+                mMediaScanner.scanFile(new File(newPath).getParentFile(), REASON_DEMAND);
             }
         }
 
@@ -4228,7 +4253,7 @@ public class MediaProvider extends ContentProvider {
                     if (triggerScan) {
                         try (Cursor c = queryForSingleItem(updatedUri,
                                 new String[] { FileColumns.DATA }, null, null, null)) {
-                            mMediaScanner.scanFile(new File(c.getString(0)));
+                            mMediaScanner.scanFile(new File(c.getString(0)), REASON_DEMAND);
                         } catch (Exception e) {
                             Log.w(TAG, "Failed to update metadata for " + updatedUri, e);
                         }
@@ -4617,7 +4642,7 @@ public class MediaProvider extends ContentProvider {
                         update(uri, values, null, null);
                         break;
                     default:
-                        mMediaScanner.scanFile(file);
+                        mMediaScanner.scanFile(file, REASON_DEMAND);
                         break;
                 }
             } catch (Exception e2) {

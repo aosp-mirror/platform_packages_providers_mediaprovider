@@ -21,8 +21,6 @@ import static android.provider.MediaStore.Downloads.isDownloadDir;
 
 import static com.android.providers.media.MediaProvider.ensureFileColumns;
 import static com.android.providers.media.MediaProvider.extractPathOwnerPackageName;
-import static com.android.providers.media.MediaProvider.maybeBalance;
-import static com.android.providers.media.MediaProvider.recoverAbusiveGroupBy;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -248,118 +246,6 @@ public class MediaProviderTest {
         final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         assertEndsWith("/Pictures/foo__bar/bar__baz.png",
                 buildFile(uri, "Pictures/foo\0\0bar", "bar::baz.png", "image/png"));
-    }
-
-    @Test
-    public void testRecoverAbusiveGroupBy_Conflicting() throws Exception {
-        // Abusive group is fine
-        recoverAbusiveGroupBy(Pair.create("foo=bar GROUP BY foo", null));
-
-        // Official group is fine
-        recoverAbusiveGroupBy(Pair.create("foo=bar", "foo"));
-
-        // Conflicting groups should yell
-        try {
-            recoverAbusiveGroupBy(Pair.create("foo=bar GROUP BY foo", "foo"));
-            fail("Expected IAE when conflicting groups defined");
-        } catch (IllegalArgumentException expected) {
-        }
-    }
-
-    @Test
-    public void testRecoverAbusiveGroupBy_Buckets() throws Exception {
-        final Pair<String, String> input = Pair.create(
-                "(media_type = 1 OR media_type = 3) AND bucket_display_name IS NOT NULL AND bucket_id IS NOT NULL AND _data NOT LIKE \"%/DCIM/%\" ) GROUP BY (bucket_id",
-                null);
-        final Pair<String, String> expected = Pair.create(
-                "((media_type = 1 OR media_type = 3) AND bucket_display_name IS NOT NULL AND bucket_id IS NOT NULL AND _data NOT LIKE \"%/DCIM/%\" )",
-                "(bucket_id)");
-        assertEquals(expected, recoverAbusiveGroupBy(input));
-    }
-
-    @Test
-    public void testRecoverAbusiveGroupBy_BucketsByPath() throws Exception {
-        final Pair<String, String> input = Pair.create(
-                "_data LIKE ? AND _data IS NOT NULL) GROUP BY (bucket_id",
-                null);
-        final Pair<String, String> expected = Pair.create(
-                "(_data LIKE ? AND _data IS NOT NULL)",
-                "(bucket_id)");
-        assertEquals(expected, recoverAbusiveGroupBy(input));
-    }
-
-    @Test
-    public void testRecoverAbusiveGroupBy_113651872() throws Exception {
-        final Pair<String, String> input = Pair.create(
-                "(LOWER(SUBSTR(_data, -4))=? OR LOWER(SUBSTR(_data, -5))=? OR LOWER(SUBSTR(_data, -4))=?) AND LOWER(SUBSTR(_data, 1, 65))!=?) GROUP BY (bucket_id),(bucket_display_name",
-                null);
-        final Pair<String, String> expected = Pair.create(
-                "((LOWER(SUBSTR(_data, -4))=? OR LOWER(SUBSTR(_data, -5))=? OR LOWER(SUBSTR(_data, -4))=?) AND LOWER(SUBSTR(_data, 1, 65))!=?)",
-                "(bucket_id),(bucket_display_name)");
-        assertEquals(expected, recoverAbusiveGroupBy(input));
-    }
-
-    @Test
-    public void testRecoverAbusiveGroupBy_113652519() throws Exception {
-        final Pair<String, String> input = Pair.create(
-                "1) GROUP BY 1,(2",
-                null);
-        final Pair<String, String> expected = Pair.create(
-                "(1)",
-                "1,(2)");
-        assertEquals(expected, recoverAbusiveGroupBy(input));
-    }
-
-    @Test
-    public void testRecoverAbusiveGroupBy_113652519_longer() throws Exception {
-        final Pair<String, String> input = Pair.create(
-                "mime_type IN ( ?, ?, ? ) AND 1) GROUP BY 1,(2",
-                null);
-        final Pair<String, String> expected = Pair.create(
-                "(mime_type IN ( ?, ?, ? ) AND 1)",
-                "1,(2)");
-        assertEquals(expected, recoverAbusiveGroupBy(input));
-    }
-
-    @Test
-    public void testRecoverAbusiveGroupBy_115340326() throws Exception {
-        final Pair<String, String> input = Pair.create(
-                "(1) GROUP BY bucket_id,(bucket_display_name)",
-                null);
-        final Pair<String, String> expected = Pair.create(
-                "(1)",
-                "bucket_id,(bucket_display_name)");
-        assertEquals(expected, recoverAbusiveGroupBy(input));
-    }
-
-    @Test
-    public void testRecoverAbusiveGroupBy_116845885() throws Exception {
-        final Pair<String, String> input = Pair.create(
-                "(title like 'C360%' or title like 'getInstance%') group by ((datetaken+19800000)/86400000)",
-                null);
-        final Pair<String, String> expected = Pair.create(
-                "(title like 'C360%' or title like 'getInstance%')",
-                "((datetaken+19800000)/86400000)");
-        assertEquals(expected, recoverAbusiveGroupBy(input));
-    }
-
-    @Test
-    public void testMaybeBalance() throws Exception {
-        assertEquals(null, maybeBalance(null));
-        assertEquals("", maybeBalance(""));
-
-        assertEquals("()", maybeBalance(")"));
-        assertEquals("()", maybeBalance("("));
-        assertEquals("()", maybeBalance("()"));
-
-        assertEquals("(1==1)", maybeBalance("1==1)"));
-        assertEquals("((foo)bar)baz", maybeBalance("foo)bar)baz"));
-        assertEquals("foo(bar(baz))", maybeBalance("foo(bar(baz"));
-
-        assertEquals("IN '('", maybeBalance("IN '('"));
-        assertEquals("IN ('(')", maybeBalance("IN ('('"));
-        assertEquals("IN (\")\")", maybeBalance("IN (\")\""));
-        assertEquals("IN ('\"(')", maybeBalance("IN ('\"('"));
     }
 
     @Test

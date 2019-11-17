@@ -19,6 +19,12 @@ package com.android.providers.media;
 import static android.app.PendingIntent.FLAG_CANCEL_CURRENT;
 import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.app.PendingIntent.FLAG_ONE_SHOT;
+import static android.content.ContentResolver.QUERY_ARG_SQL_GROUP_BY;
+import static android.content.ContentResolver.QUERY_ARG_SQL_HAVING;
+import static android.content.ContentResolver.QUERY_ARG_SQL_LIMIT;
+import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
+import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS;
+import static android.content.ContentResolver.QUERY_ARG_SQL_SORT_ORDER;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.provider.MediaStore.getVolumeName;
 import static android.provider.MediaStore.Downloads.isDownload;
@@ -121,7 +127,6 @@ import android.util.ArraySet;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.LongSparseArray;
-import android.util.Pair;
 import android.util.Size;
 import android.util.SparseArray;
 
@@ -1020,19 +1025,12 @@ public class MediaProvider extends ContentProvider {
 
     private Cursor queryInternal(Uri uri, String[] projection, Bundle queryArgs,
             CancellationSignal signal) throws FallbackException {
-        String selection = null;
-        String[] selectionArgs = null;
-        String sortOrder = null;
-
-        if (queryArgs != null) {
-            selection = queryArgs.getString(ContentResolver.QUERY_ARG_SQL_SELECTION);
-            selectionArgs = queryArgs.getStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS);
-            sortOrder = queryArgs.getString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER);
-            if (sortOrder == null
-                    && queryArgs.containsKey(ContentResolver.QUERY_ARG_SORT_COLUMNS)) {
-                sortOrder = createSqlSortClause(queryArgs);
-            }
+        if (queryArgs == null) {
+            queryArgs = new Bundle();
         }
+
+        final ArraySet<String> honoredArgs = new ArraySet<>();
+        DatabaseUtils.resolveQueryArgs(queryArgs, honoredArgs::add, this::ensureCustomCollator);
 
         uri = safeUncanonicalize(uri);
 
@@ -1074,7 +1072,6 @@ public class MediaProvider extends ContentProvider {
         }
 
         SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, uri, table, queryArgs);
-        String limit = uri.getQueryParameter(MediaStore.PARAM_LIMIT);
         String filter = uri.getQueryParameter("filter");
         String [] keywords = null;
         if (filter != null) {
@@ -1120,14 +1117,16 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        String groupBy = null;
-        if (getCallingPackageTargetSdkVersion() < Build.VERSION_CODES.Q) {
+        if (targetSdkVersion < Build.VERSION_CODES.R) {
+            // Some apps are abusing the Uri query parameters to inject LIMIT
+            // clauses; gracefully lift them out.
+            DatabaseUtils.recoverAbusiveLimit(uri, queryArgs);
+        }
+
+        if (targetSdkVersion < Build.VERSION_CODES.Q) {
             // Some apps are abusing the "WHERE" clause by injecting "GROUP BY"
             // clauses; gracefully lift them out.
-            final Pair<String, String> selectionAndGroupBy = recoverAbusiveGroupBy(
-                    Pair.create(selection, groupBy));
-            selection = selectionAndGroupBy.first;
-            groupBy = selectionAndGroupBy.second;
+            DatabaseUtils.recoverAbusiveSelection(queryArgs);
 
             // Some apps are abusing the first column to inject "DISTINCT";
             // gracefully lift them out.
@@ -1140,6 +1139,7 @@ public class MediaProvider extends ContentProvider {
             // Some apps are generating thumbnails with getThumbnail(), but then
             // ignoring the returned Bitmap and querying the raw table; give
             // them a row with enough information to find the original image.
+            final String selection = queryArgs.getString(QUERY_ARG_SQL_SELECTION);
             if ((table == IMAGES_THUMBNAILS || table == VIDEO_THUMBNAILS)
                     && !TextUtils.isEmpty(selection)) {
                 final Matcher matcher = PATTERN_SELECTION_ID.matcher(selection);
@@ -1180,13 +1180,24 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        final String having = null;
+        final String selection = queryArgs.getString(QUERY_ARG_SQL_SELECTION);
+        final String[] selectionArgs = queryArgs.getStringArray(QUERY_ARG_SQL_SELECTION_ARGS);
+        final String groupBy = queryArgs.getString(QUERY_ARG_SQL_GROUP_BY);
+        final String having = queryArgs.getString(QUERY_ARG_SQL_HAVING);
+        final String sortOrder = queryArgs.getString(QUERY_ARG_SQL_SORT_ORDER);
+        final String limit = queryArgs.getString(QUERY_ARG_SQL_LIMIT);
+
         final Cursor c = qb.query(db, projection,
                 selection, selectionArgs, groupBy, having, sortOrder, limit, signal);
 
         if (c != null) {
             ((AbstractCursor) c).setNotificationUris(getContext().getContentResolver(),
                     Arrays.asList(uri), UserHandle.myUserId(), false);
+
+            final Bundle extras = new Bundle();
+            extras.putStringArray(ContentResolver.EXTRA_HONORED_ARGS,
+                    honoredArgs.toArray(new String[honoredArgs.size()]));
+            c.setExtras(extras);
         }
 
         return c;
@@ -5244,8 +5255,10 @@ public class MediaProvider extends ContentProvider {
         getContext().getContentResolver().notifyChange(uri, null);
         if (LOCAL_LOGV) Log.v(TAG, "Attached volume: " + volume);
         if (!MediaStore.VOLUME_INTERNAL.equals(volume)) {
-            final DatabaseHelper helper = mInternalDatabase;
-            ensureDefaultFolders(volume, helper, helper.getWritableDatabase());
+            BackgroundThread.getExecutor().execute(() -> {
+                final DatabaseHelper helper = mExternalDatabase;
+                ensureDefaultFolders(volume, helper, helper.getWritableDatabase());
+            });
         }
         return uri;
     }
@@ -5575,52 +5588,6 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    /**
-     * Simple attempt to balance the given SQL expression by adding parenthesis
-     * when needed.
-     * <p>
-     * Since this is only used for recovering from abusive apps, we're not
-     * interested in trying to build a fully valid SQL parser up in Java. It'll
-     * give up when it encounters complex SQL, such as string literals.
-     */
-    @VisibleForTesting
-    static @Nullable String maybeBalance(@Nullable String sql) {
-        if (sql == null) return null;
-
-        int count = 0;
-        char literal = '\0';
-        for (int i = 0; i < sql.length(); i++) {
-            final char c = sql.charAt(i);
-
-            if (c == '\'' || c == '"') {
-                if (literal == '\0') {
-                    // Start literal
-                    literal = c;
-                } else if (literal == c) {
-                    // End literal
-                    literal = '\0';
-                }
-            }
-
-            if (literal == '\0') {
-                if (c == '(') {
-                    count++;
-                } else if (c == ')') {
-                    count--;
-                }
-            }
-        }
-        while (count > 0) {
-            sql = sql + ")";
-            count--;
-        }
-        while (count < 0) {
-            sql = "(" + sql;
-            count++;
-        }
-        return sql;
-    }
-
     static <T> boolean containsAny(Set<T> a, Set<T> b) {
         for (T i : b) {
             if (a.contains(i)) {
@@ -5628,80 +5595,6 @@ public class MediaProvider extends ContentProvider {
             }
         }
         return false;
-    }
-
-    @VisibleForTesting
-    String createSqlSortClause(Bundle queryArgs) {
-        String[] columns = queryArgs.getStringArray(ContentResolver.QUERY_ARG_SORT_COLUMNS);
-        if (columns == null || columns.length == 0) {
-            throw new IllegalArgumentException("Can't create sort clause without columns.");
-        }
-
-        String sortOrder = TextUtils.join(", ", columns);
-
-        if (queryArgs.containsKey(ContentResolver.QUERY_ARG_SORT_LOCALE)) {
-            final String collatorName = ensureCustomCollator(
-                    queryArgs.getString(ContentResolver.QUERY_ARG_SORT_LOCALE));
-            sortOrder += " COLLATE " + collatorName;
-        } else {
-            // Interpret PRIMARY and SECONDARY collation strength as no-case collation based
-            // on their javadoc descriptions.
-            int collation = queryArgs.getInt(
-                    ContentResolver.QUERY_ARG_SORT_COLLATION, java.text.Collator.IDENTICAL);
-            if (collation == java.text.Collator.PRIMARY
-                    || collation == java.text.Collator.SECONDARY) {
-                sortOrder += " COLLATE NOCASE";
-            }
-        }
-
-        int sortDir = queryArgs.getInt(ContentResolver.QUERY_ARG_SORT_DIRECTION, Integer.MIN_VALUE);
-        if (sortDir != Integer.MIN_VALUE) {
-            switch (sortDir) {
-                case ContentResolver.QUERY_SORT_DIRECTION_ASCENDING:
-                    sortOrder += " ASC";
-                    break;
-                case ContentResolver.QUERY_SORT_DIRECTION_DESCENDING:
-                    sortOrder += " DESC";
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unsupported sort direction value."
-                            + " See ContentResolver documentation for details.");
-            }
-        }
-        return sortOrder;
-    }
-
-    /**
-     * Gracefully recover from abusive callers that are smashing invalid
-     * {@code GROUP BY} clauses into {@code WHERE} clauses.
-     */
-    @VisibleForTesting
-    static Pair<String, String> recoverAbusiveGroupBy(Pair<String, String> selectionAndGroupBy) {
-        final String origSelection = selectionAndGroupBy.first;
-        final String origGroupBy = selectionAndGroupBy.second;
-
-        final int index = (origSelection != null)
-                ? origSelection.toUpperCase().indexOf(" GROUP BY ") : -1;
-        if (index != -1) {
-            String selection = origSelection.substring(0, index);
-            String groupBy = origSelection.substring(index + " GROUP BY ".length());
-
-            // Try balancing things out
-            selection = maybeBalance(selection);
-            groupBy = maybeBalance(groupBy);
-
-            // Yell if we already had a group by requested
-            if (!TextUtils.isEmpty(origGroupBy)) {
-                throw new IllegalArgumentException(
-                        "Abusive '" + groupBy + "' conflicts with requested '" + origGroupBy + "'");
-            }
-
-            Log.w(TAG, "Recovered abusive '" + selection + "' and '" + groupBy + "' from '"
-                    + origSelection + "'");
-            return Pair.create(selection, groupBy);
-        } else {
-            return selectionAndGroupBy;
-        }
     }
 
     @VisibleForTesting

@@ -34,6 +34,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.mtp.MtpConstants;
 import android.net.Uri;
 import android.os.Environment;
+import android.os.Looper;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.os.Trace;
@@ -70,8 +71,6 @@ import java.util.regex.Matcher;
  * on demand, create and upgrade the schema, etc.
  */
 public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
-    // TODO: yell loudly if someone attempts to obtain on the main thread
-
     // maximum number of cached external databases to keep
     private static final int MAX_EXTERNAL_DATABASES = 3;
 
@@ -104,6 +103,22 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         mEarlyUpgrade = earlyUpgrade;
         mLegacyProvider = legacyProvider;
         setWriteAheadLoggingEnabled(true);
+    }
+
+    @Override
+    public SQLiteDatabase getReadableDatabase() {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            Log.wtf(TAG, "Database operations must not happen on main thread", new Throwable());
+        }
+        return super.getReadableDatabase();
+    }
+
+    @Override
+    public SQLiteDatabase getWritableDatabase() {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            Log.wtf(TAG, "Database operations must not happen on main thread", new Throwable());
+        }
+        return super.getReadableDatabase();
     }
 
     @Override
@@ -224,9 +239,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         final List<Uri> uris = mNotifyChanges.get();
         if (uris != null) {
             BackgroundThread.getExecutor().execute(() -> {
-                for (Uri uri : uris) {
-                    notifyChangeInternal(uri);
-                }
+                notifyChangeInternal(uris);
             });
         }
         mNotifyChanges.remove();
@@ -248,15 +261,24 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             uris.add(uri);
         } else {
             BackgroundThread.getExecutor().execute(() -> {
-                notifyChangeInternal(uri);
+                notifySingleChangeInternal(uri);
             });
         }
     }
 
-    private void notifyChangeInternal(Uri uri) {
+    private void notifySingleChangeInternal(Uri uri) {
+        Trace.beginSection("notifySingleChange");
+        try {
+            mContext.getContentResolver().notifyChange(uri, null, 0);
+        } finally {
+            Trace.endSection();
+        }
+    }
+
+    private void notifyChangeInternal(Iterable<Uri> uris) {
         Trace.beginSection("notifyChange");
         try {
-            mContext.getContentResolver().notifyChange(uri, null);
+            mContext.getContentResolver().notifyChange(uris, null, 0);
         } finally {
             Trace.endSection();
         }

@@ -84,6 +84,8 @@ public class MediaScannerTest {
                     return Bundle.EMPTY;
                 }
             });
+
+            MediaStore.waitForIdle(this);
         }
 
         @Override

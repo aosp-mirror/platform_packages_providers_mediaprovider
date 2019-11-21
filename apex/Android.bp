@@ -1,0 +1,22 @@
+
+apex {
+    name: "com.android.mediaprovider",
+    manifest: "apex_manifest.json",
+
+    key: "com.android.mediaprovider.key",
+    certificate: ":com.android.mediaprovider.certificate",
+    file_contexts: ":com.android.mediaprovider-file_contexts",
+
+    apps: ["MediaProvider"],
+}
+
+apex_key {
+    name: "com.android.mediaprovider.key",
+    public_key: "com.android.mediaprovider.avbpubkey",
+    private_key: "com.android.mediaprovider.pem",
+}
+
+android_app_certificate {
+    name: "com.android.mediaprovider.certificate",
+    certificate: "com.android.mediaprovider",
+}

@@ -111,11 +111,16 @@ public class LegacyProviderMigrationTest {
             }
 
             legacyFile = new File(values.getAsString(MediaColumns.DATA));
-       }
+        }
 
         // Clear data on the modern provider so that the initial scan recovers
         // metadata from the legacy provider
         executeShellCommand("pm clear " + modernProvider.applicationInfo.packageName, ui);
+
+        // And make sure that we've restarted after clearing data above
+        MediaStore.suicide(context);
+
+        // And force a scan to confirm upgraded data survives
         MediaStore.scanVolume(context, legacyFile);
 
         // Confirm that details from legacy provider have migrated
@@ -124,10 +129,11 @@ public class LegacyProviderMigrationTest {
             try (Cursor cursor = modern.query(collectionUri, null, MediaColumns.DATA + "=?",
                     new String[] { legacyFile.getAbsolutePath() }, null)) {
                 assertTrue(cursor.moveToFirst());
+                final ContentValues actualValues = new ContentValues();
                 for (String key : values.keySet()) {
-                    assertEquals(key, String.valueOf(values.get(key)),
-                            cursor.getString(cursor.getColumnIndexOrThrow(key)));
+                    actualValues.put(key, cursor.getString(cursor.getColumnIndexOrThrow(key)));
                 }
+                assertEquals(values, actualValues);
             }
         }
     }

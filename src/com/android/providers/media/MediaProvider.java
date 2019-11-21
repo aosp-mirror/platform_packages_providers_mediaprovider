@@ -150,6 +150,7 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
+import com.android.providers.media.scan.NullMediaScanner;
 import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
@@ -566,12 +567,12 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public void attachInfo(Context context, ProviderInfo info) {
-        super.attachInfo(context, info);
-
         Log.v(TAG, "Attached " + info.authority + " from " + info.applicationInfo.packageName);
 
         mLegacyProvider = Objects.equals(info.authority, MediaStore.AUTHORITY_LEGACY);
         mUriMatcher = new LocalUriMatcher(info.authority);
+
+        super.attachInfo(context, info);
     }
 
     @Override
@@ -591,7 +592,13 @@ public class MediaProvider extends ContentProvider {
         final int thumbSize = Math.min(metrics.widthPixels, metrics.heightPixels) / 2;
         mThumbSize = new Size(thumbSize, thumbSize);
 
-        mMediaScanner = new ModernMediaScanner(context);
+        if (mLegacyProvider) {
+            // When running in legacy mode, we're simply keeping the old
+            // database intact, and so we should perform no scanning operations
+            mMediaScanner = new NullMediaScanner(context);
+        } else {
+            mMediaScanner = new ModernMediaScanner(context);
+        }
 
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME,
                 true, false, mLegacyProvider);
@@ -3719,6 +3726,10 @@ public class MediaProvider extends ContentProvider {
                     delete(uri, null, null);
                 });
                 return null;
+            }
+            case MediaStore.SUICIDE_CALL: {
+                Log.v(TAG, "Suicide requested!");
+                android.os.Process.killProcess(android.os.Process.myPid());
             }
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);

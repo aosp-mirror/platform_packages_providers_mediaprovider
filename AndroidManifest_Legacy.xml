@@ -1,0 +1,22 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+        package="com.android.providers.media"
+        android:sharedUserId="android.media">
+
+    <!-- This "legacy" instance is retained on the device to preserve the
+         database contents before MediaProvider was migrated into a
+         Mainline module.  This ensures that we can reconstruct information
+         such as IDs and other user-generated content. -->
+
+    <application
+            android:label="@string/app_label"
+            android:process="android.process.media"
+            android:allowBackup="false"
+            android:supportsRtl="true"
+            android:usesCleartextTraffic="true">
+        <provider
+                android:name="com.android.providers.media.MediaProvider"
+                android:authorities="media_legacy"
+                android:exported="true"
+                android:permission="android.permission.WRITE_MEDIA_STORAGE" />
+    </application>
+</manifest>

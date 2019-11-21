@@ -4,6 +4,9 @@
             "name": "MediaProviderTests"
         },
         {
+            "name": "MediaProviderClientTests"
+        },
+        {
             "name": "CtsProviderTestCases",
             "options": [
                 {

@@ -1,8 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-        package="com.android.providers.media"
-        android:sharedUserId="android.media"
-        android:sharedUserLabel="@string/uid_label"
-        android:versionCode="1103">
+        package="com.android.providers.media.module">
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
@@ -22,20 +19,19 @@
     <uses-permission android:name="android.permission.USE_RESERVED_DISK" />
 
     <application
-            android:process="android.process.media"
             android:label="@string/app_label"
             android:allowBackup="false"
             android:supportsRtl="true"
             android:usesCleartextTraffic="true">
         <provider
-                android:name=".MediaProvider"
+                android:name="com.android.providers.media.MediaProvider"
                 android:authorities="media"
                 android:grantUriPermissions="true"
                 android:forceUriPermissions="true"
                 android:exported="true" />
 
         <provider
-                android:name=".MediaDocumentsProvider"
+                android:name="com.android.providers.media.MediaDocumentsProvider"
                 android:label="@string/storage_description"
                 android:authorities="com.android.providers.media.documents"
                 android:grantUriPermissions="true"
@@ -56,7 +52,7 @@
             </intent-filter>
         </receiver>
 
-        <receiver android:name=".MediaReceiver">
+        <receiver android:name="com.android.providers.media.MediaReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
@@ -79,16 +75,16 @@
         </receiver>
 
         <service
-            android:name=".IdleService"
+            android:name="com.android.providers.media.IdleService"
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
         <service
-            android:name=".MediaService"
+            android:name="com.android.providers.media.MediaService"
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
-        <service android:name=".fuse.ExternalStorageServiceImpl"
+        <service android:name="com.android.providers.media.fuse.ExternalStorageServiceImpl"
                  android:permission="android.permission.BIND_EXTERNAL_STORAGE_SERVICE">
             <intent-filter>
                 <action android:name="android.service.storage.ExternalStorageService" />
@@ -96,7 +92,7 @@
         </service>
 
         <activity
-            android:name=".PermissionActivity"
+            android:name="com.android.providers.media.PermissionActivity"
             android:theme="@style/PickerDialogTheme"
             android:permission="android.permission.WRITE_MEDIA_STORAGE"
             android:excludeFromRecents="true" />

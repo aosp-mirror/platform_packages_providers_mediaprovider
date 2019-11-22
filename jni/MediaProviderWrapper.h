@@ -115,6 +115,15 @@ class MediaProviderWrapper final {
      */
     int IsDeletingDirAllowed(const std::string& path, uid_t uid);
 
+    /**
+     * Determines if the given UID is allowed to open the directory with the given path.
+     *
+     * @param path the path of the directory to be opened
+     * @param uid UID of the calling app
+     * @return 0 if it's allowed, or negated errno error code if operation isn't allowed.
+     */
+    int IsOpendirAllowed(const std::string& path, uid_t uid);
+
   private:
     jclass media_provider_class_;
     jobject media_provider_object_;
@@ -125,6 +134,7 @@ class MediaProviderWrapper final {
     jmethodID mid_is_open_allowed_;
     jmethodID mid_scan_file_;
     jmethodID mid_is_dir_op_allowed_;
+    jmethodID mid_is_opendir_allowed_;
     /**
      * All JNI calls are delegated to this thread
      */

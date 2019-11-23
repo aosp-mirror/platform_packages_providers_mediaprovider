@@ -19,7 +19,6 @@ package com.android.providers.media;
 import static android.provider.MediaStore.Downloads.isDownload;
 import static android.provider.MediaStore.Downloads.isDownloadDir;
 
-import static com.android.providers.media.MediaProvider.ensureFileColumns;
 import static com.android.providers.media.MediaProvider.extractPathOwnerPackageName;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -602,7 +601,7 @@ public class MediaProviderTest {
         values.put(MediaColumns.DISPLAY_NAME, displayName);
         values.put(MediaColumns.MIME_TYPE, mimeType);
         try {
-            ensureFileColumns(uri, values);
+            new MediaProvider().ensureFileColumns(uri, values);
         } catch (VolumeArgumentException e) {
             throw e.rethrowAsIllegalArgumentException();
         }

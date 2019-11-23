@@ -33,6 +33,7 @@ import static android.provider.MediaStore.MATCH_ONLY;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_FAVORITE;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
+import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.getVolumeName;
 import static android.provider.MediaStore.Downloads.isDownload;
 
@@ -1169,7 +1170,7 @@ public class MediaProvider extends ContentProvider {
                 type = TYPE_QUERY;
             }
 
-            final SQLiteQueryBuilder qb = getQueryBuilder(type, table, uri, Bundle.EMPTY);
+            final SQLiteQueryBuilder qb = getQueryBuilder(type, table, uri, Bundle.EMPTY, null);
             try (Cursor c = qb.query(db,
                     new String[] { BaseColumns._ID }, null, null, null, null, null)) {
                 if (c.getCount() == 1) {
@@ -1203,7 +1204,7 @@ public class MediaProvider extends ContentProvider {
 
     private Cursor queryInternal(Uri uri, String[] projection, Bundle queryArgs,
             CancellationSignal signal) throws FallbackException {
-        queryArgs = (queryArgs != null) ? queryArgs : new Bundle();
+        queryArgs = (queryArgs != null) ? queryArgs : Bundle.EMPTY;
 
         final ArraySet<String> honoredArgs = new ArraySet<>();
         DatabaseUtils.resolveQueryArgs(queryArgs, honoredArgs::add, this::ensureCustomCollator);
@@ -1247,7 +1248,8 @@ public class MediaProvider extends ContentProvider {
             return getObjectReferences(helper, db, handle);
         }
 
-        SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, table, uri, queryArgs);
+        final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, table, uri, queryArgs,
+                honoredArgs::add);
         String filter = uri.getQueryParameter("filter");
         String [] keywords = null;
         if (filter != null) {
@@ -1436,20 +1438,22 @@ public class MediaProvider extends ContentProvider {
     }
 
     @VisibleForTesting
-    static void ensureFileColumns(Uri uri, ContentValues values) throws VolumeArgumentException {
+    void ensureFileColumns(@NonNull Uri uri, @NonNull ContentValues values)
+            throws VolumeArgumentException {
         final LocalUriMatcher matcher = new LocalUriMatcher(MediaStore.AUTHORITY);
         final int match = matcher.matchUri(uri, true);
-        ensureNonUniqueFileColumns(match, uri, values, null /* currentPath */);
+        ensureNonUniqueFileColumns(match, uri, Bundle.EMPTY, values, null /* currentPath */);
     }
 
-    private static void ensureUniqueFileColumns(int match, Uri uri, ContentValues values)
+    private void ensureUniqueFileColumns(int match, @NonNull Uri uri, @NonNull Bundle extras,
+            @NonNull ContentValues values) throws VolumeArgumentException {
+        ensureFileColumns(match, uri, extras, values, true, null /* currentPath */);
+    }
+
+    private void ensureNonUniqueFileColumns(int match, @NonNull Uri uri,
+            @NonNull Bundle extras, @NonNull ContentValues values, @Nullable String currentPath)
             throws VolumeArgumentException {
-        ensureFileColumns(match, uri, values, true, null /* currentPath */);
-    }
-
-    private static void ensureNonUniqueFileColumns(int match, Uri uri, ContentValues values,
-            @Nullable String currentPath) throws VolumeArgumentException {
-        ensureFileColumns(match, uri, values, false, currentPath);
+        ensureFileColumns(match, uri, extras, values, false, currentPath);
     }
 
     /**
@@ -1459,9 +1463,14 @@ public class MediaProvider extends ContentProvider {
      * {@code image/*} can be inserted into
      * {@link android.provider.MediaStore.Images}.
      */
-    private static void ensureFileColumns(int match, Uri uri, ContentValues values,
-            boolean makeUnique, @Nullable String currentPath) throws VolumeArgumentException {
+    private void ensureFileColumns(int match, @NonNull Uri uri, @NonNull Bundle extras,
+            @NonNull ContentValues values, boolean makeUnique, @Nullable String currentPath)
+            throws VolumeArgumentException {
         Trace.beginSection("ensureFileColumns");
+
+        Objects.requireNonNull(uri);
+        Objects.requireNonNull(extras);
+        Objects.requireNonNull(values);
 
         // Figure out defaults based on Uri being modified
         String defaultMimeType = ClipDescription.MIMETYPE_UNKNOWN;
@@ -1621,12 +1630,53 @@ public class MediaProvider extends ContentProvider {
                         "Failed to build unique file: " + res + " " + displayName + " " + mimeType);
             }
 
-            // Check for shady looking paths
+            // Require that content lives under well-defined directories to help
+            // keep the user's content organized
 
-            // Require content live under specific directories, but allow in-place updates of
-            // existing content that lives in the invalid directory.
+            // Start by saying unchanged paths are valid
+            boolean validPath = res.getAbsolutePath().equals(currentPath);
+
+            // Next, consider allowing based on allowed primary directory
             final String primary = relativePath[0];
-            if (!res.getAbsolutePath().equals(currentPath) && !allowedPrimary.contains(primary)) {
+            if (!validPath) {
+                validPath = allowedPrimary.contains(primary);
+            }
+
+            // Next, consider allowing paths when referencing a related item
+            final Uri relatedUri = extras.getParcelable(QUERY_ARG_RELATED_URI);
+            if (!validPath && relatedUri != null) {
+                try (Cursor c = queryForSingleItem(relatedUri, new String[] {
+                        MediaColumns.MIME_TYPE,
+                        MediaColumns.RELATIVE_PATH,
+                }, null, null, null)) {
+                    // If top-level MIME type matches, and relative path
+                    // matches, then allow caller to place things here
+
+                    final String expectedType = MimeUtils.extractPrimaryType(
+                            c.getString(0));
+                    final String actualType = MimeUtils.extractPrimaryType(
+                            values.getAsString(MediaColumns.MIME_TYPE));
+                    if (!Objects.equals(expectedType, actualType)) {
+                        throw new IllegalArgumentException("Placement of " + actualType
+                                + " item not allowed in relation to " + expectedType + " item");
+                    }
+
+                    final String expectedPath = c.getString(1);
+                    final String actualPath = values.getAsString(MediaColumns.RELATIVE_PATH);
+                    if (!Objects.equals(expectedPath, actualPath)) {
+                        throw new IllegalArgumentException("Placement of " + actualPath
+                                + " item not allowed in relation to " + expectedPath + " item");
+                    }
+
+                    // If we didn't see any trouble above, then we'll allow it
+                    validPath = true;
+                } catch (FileNotFoundException e) {
+                    Log.w(TAG, "Failed to find related item " + relatedUri + ": " + e);
+                }
+            }
+
+            // Nothing left to check; caller can't use this path
+            if (!validPath) {
                 throw new IllegalArgumentException(
                         "Primary directory " + primary + " not allowed for " + uri
                                 + "; allowed directories are " + allowedPrimary);
@@ -2010,14 +2060,15 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private long insertFile(SQLiteQueryBuilder qb, SQLiteDatabase db, int match, Uri uri,
-            ContentValues values, int mediaType, boolean notify) {
+    private long insertFile(@NonNull SQLiteQueryBuilder qb, @NonNull SQLiteDatabase db, int match,
+            @NonNull Uri uri, @NonNull Bundle extras, @NonNull ContentValues values,
+            int mediaType, boolean notify) {
         boolean wasPathEmpty = !values.containsKey(MediaStore.MediaColumns.DATA)
                 || TextUtils.isEmpty(values.getAsString(MediaStore.MediaColumns.DATA));
 
         // Make sure all file-related columns are defined
         try {
-            ensureUniqueFileColumns(match, uri, values);
+            ensureUniqueFileColumns(match, uri, extras, values);
         } catch (VolumeArgumentException e) {
             if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q) {
                 throw new IllegalArgumentException(e.getMessage());
@@ -2399,13 +2450,13 @@ public class MediaProvider extends ContentProvider {
         final DatabaseHelper helper = getDatabaseForUri(uri);
         final SQLiteDatabase db = helper.getWritableDatabase();
 
-        final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_INSERT, match, uri, extras);
+        final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_INSERT, match, uri, extras, null);
 
         switch (match) {
             case IMAGES_MEDIA: {
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
                 final boolean isDownload = maybeMarkAsDownload(initialValues);
-                rowId = insertFile(qb, db, match, uri, initialValues,
+                rowId = insertFile(qb, db, match, uri, extras, initialValues,
                         FileColumns.MEDIA_TYPE_IMAGE, true);
                 if (rowId > 0) {
                     MediaDocumentsProvider.onMediaStoreInsert(
@@ -2428,7 +2479,7 @@ public class MediaProvider extends ContentProvider {
                         MediaStore.Images.Media.getContentUri(resolvedVolumeName), imageId),
                         extras, true);
 
-                ensureUniqueFileColumns(match, uri, initialValues);
+                ensureUniqueFileColumns(match, uri, extras, initialValues);
 
                 rowId = qb.insert(db, initialValues);
                 if (rowId > 0) {
@@ -2450,7 +2501,7 @@ public class MediaProvider extends ContentProvider {
                         MediaStore.Video.Media.getContentUri(resolvedVolumeName), videoId),
                         Bundle.EMPTY, true);
 
-                ensureUniqueFileColumns(match, uri, initialValues);
+                ensureUniqueFileColumns(match, uri, extras, initialValues);
 
                 rowId = qb.insert(db, initialValues);
                 if (rowId > 0) {
@@ -2463,7 +2514,7 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_MEDIA: {
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
                 final boolean isDownload = maybeMarkAsDownload(initialValues);
-                rowId = insertFile(qb, db, match, uri, initialValues,
+                rowId = insertFile(qb, db, match, uri, extras, initialValues,
                         FileColumns.MEDIA_TYPE_AUDIO, true);
                 if (rowId > 0) {
                     MediaDocumentsProvider.onMediaStoreInsert(
@@ -2513,7 +2564,7 @@ public class MediaProvider extends ContentProvider {
                 final boolean isDownload = maybeMarkAsDownload(initialValues);
                 ContentValues values = new ContentValues(initialValues);
                 values.put(MediaStore.Audio.Playlists.DATE_ADDED, System.currentTimeMillis() / 1000);
-                rowId = insertFile(qb, db, match, uri, values,
+                rowId = insertFile(qb, db, match, uri, extras, values,
                         FileColumns.MEDIA_TYPE_PLAYLIST, true);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(
@@ -2548,7 +2599,7 @@ public class MediaProvider extends ContentProvider {
             case VIDEO_MEDIA: {
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
                 final boolean isDownload = maybeMarkAsDownload(initialValues);
-                rowId = insertFile(qb, db, match, uri, initialValues,
+                rowId = insertFile(qb, db, match, uri, extras, initialValues,
                         FileColumns.MEDIA_TYPE_VIDEO, true);
                 if (rowId > 0) {
                     MediaDocumentsProvider.onMediaStoreInsert(
@@ -2564,7 +2615,7 @@ public class MediaProvider extends ContentProvider {
                     throw new UnsupportedOperationException("no internal album art allowed");
                 }
 
-                ensureUniqueFileColumns(match, uri, initialValues);
+                ensureUniqueFileColumns(match, uri, extras, initialValues);
 
                 rowId = qb.insert(db, initialValues);
                 if (rowId > 0) {
@@ -2576,7 +2627,7 @@ public class MediaProvider extends ContentProvider {
             case FILES: {
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
                 final boolean isDownload = maybeMarkAsDownload(initialValues);
-                rowId = insertFile(qb, db, match, uri, initialValues,
+                rowId = insertFile(qb, db, match, uri, extras, initialValues,
                         FileColumns.MEDIA_TYPE_NONE, true);
                 if (rowId > 0) {
                     MediaDocumentsProvider.onMediaStoreInsert(
@@ -2589,7 +2640,7 @@ public class MediaProvider extends ContentProvider {
             case MTP_OBJECTS:
                 // We don't send a notification if the insert originated from MTP
                 final boolean isDownload = maybeMarkAsDownload(initialValues);
-                rowId = insertFile(qb, db, match, uri, initialValues,
+                rowId = insertFile(qb, db, match, uri, extras, initialValues,
                         FileColumns.MEDIA_TYPE_NONE, false);
                 if (rowId > 0) {
                     newUri = Files.getMtpObjectsUri(originalVolumeName, rowId);
@@ -2607,7 +2658,7 @@ public class MediaProvider extends ContentProvider {
             case DOWNLOADS:
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
                 initialValues.put(FileColumns.IS_DOWNLOAD, true);
-                rowId = insertFile(qb, db, match, uri, initialValues,
+                rowId = insertFile(qb, db, match, uri, extras, initialValues,
                         FileColumns.MEDIA_TYPE_NONE, false);
                 if (rowId > 0) {
                     final int mediaType = initialValues.getAsInteger(FileColumns.MEDIA_TYPE);
@@ -2736,17 +2787,17 @@ public class MediaProvider extends ContentProvider {
      * </ul>
      */
     private @NonNull SQLiteQueryBuilder getQueryBuilder(int type, int match,
-            @NonNull Uri uri, @NonNull Bundle extras) {
+            @NonNull Uri uri, @NonNull Bundle extras, @Nullable Consumer<String> honored) {
         Trace.beginSection("getQueryBuilder");
         try {
-            return getQueryBuilderInternal(type, match, uri, extras);
+            return getQueryBuilderInternal(type, match, uri, extras, honored);
         } finally {
             Trace.endSection();
         }
     }
 
     private @NonNull SQLiteQueryBuilder getQueryBuilderInternal(int type, int match,
-            @NonNull Uri uri, @NonNull Bundle extras) {
+            @NonNull Uri uri, @NonNull Bundle extras, @Nullable Consumer<String> honored) {
         final boolean forWrite;
         switch (type) {
             case TYPE_QUERY: forWrite = false; break;
@@ -2814,6 +2865,11 @@ public class MediaProvider extends ContentProvider {
                 appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending);
                 appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed);
                 appendWhereStandaloneMatch(qb, FileColumns.IS_FAVORITE, matchFavorite);
+                if (honored != null) {
+                    honored.accept(QUERY_ARG_MATCH_PENDING);
+                    honored.accept(QUERY_ARG_MATCH_TRASHED);
+                    honored.accept(QUERY_ARG_MATCH_FAVORITE);
+                }
                 if (!includeAllVolumes) {
                     appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
                 }
@@ -2865,6 +2921,11 @@ public class MediaProvider extends ContentProvider {
                 appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending);
                 appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed);
                 appendWhereStandaloneMatch(qb, FileColumns.IS_FAVORITE, matchFavorite);
+                if (honored != null) {
+                    honored.accept(QUERY_ARG_MATCH_PENDING);
+                    honored.accept(QUERY_ARG_MATCH_TRASHED);
+                    honored.accept(QUERY_ARG_MATCH_FAVORITE);
+                }
                 if (!includeAllVolumes) {
                     appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
                 }
@@ -2960,6 +3021,11 @@ public class MediaProvider extends ContentProvider {
                 appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending);
                 appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed);
                 appendWhereStandaloneMatch(qb, FileColumns.IS_FAVORITE, matchFavorite);
+                if (honored != null) {
+                    honored.accept(QUERY_ARG_MATCH_PENDING);
+                    honored.accept(QUERY_ARG_MATCH_TRASHED);
+                    honored.accept(QUERY_ARG_MATCH_FAVORITE);
+                }
                 if (!includeAllVolumes) {
                     appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
                 }
@@ -3085,6 +3151,11 @@ public class MediaProvider extends ContentProvider {
                 appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending);
                 appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed);
                 appendWhereStandaloneMatch(qb, FileColumns.IS_FAVORITE, matchFavorite);
+                if (honored != null) {
+                    honored.accept(QUERY_ARG_MATCH_PENDING);
+                    honored.accept(QUERY_ARG_MATCH_TRASHED);
+                    honored.accept(QUERY_ARG_MATCH_FAVORITE);
+                }
                 if (!includeAllVolumes) {
                     appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
                 }
@@ -3148,6 +3219,11 @@ public class MediaProvider extends ContentProvider {
                 appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending);
                 appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed);
                 appendWhereStandaloneMatch(qb, FileColumns.IS_FAVORITE, matchFavorite);
+                if (honored != null) {
+                    honored.accept(QUERY_ARG_MATCH_PENDING);
+                    honored.accept(QUERY_ARG_MATCH_TRASHED);
+                    honored.accept(QUERY_ARG_MATCH_FAVORITE);
+                }
                 if (!includeAllVolumes) {
                     appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
                 }
@@ -3183,6 +3259,11 @@ public class MediaProvider extends ContentProvider {
                 appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending);
                 appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed);
                 appendWhereStandaloneMatch(qb, FileColumns.IS_FAVORITE, matchFavorite);
+                if (honored != null) {
+                    honored.accept(QUERY_ARG_MATCH_PENDING);
+                    honored.accept(QUERY_ARG_MATCH_TRASHED);
+                    honored.accept(QUERY_ARG_MATCH_FAVORITE);
+                }
                 if (!includeAllVolumes) {
                     appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
                 }
@@ -3301,7 +3382,7 @@ public class MediaProvider extends ContentProvider {
         final SQLiteDatabase db = helper.getWritableDatabase();
 
         {
-            final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_DELETE, match, uri, extras);
+            final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_DELETE, match, uri, extras, null);
 
             // Give callers interacting with a specific media item a chance to
             // escalate access if they don't already have it
@@ -3903,6 +3984,10 @@ public class MediaProvider extends ContentProvider {
             @Nullable Bundle extras) throws FallbackException {
         extras = (extras != null) ? extras : Bundle.EMPTY;
 
+        // Related items are only considered for new media creation, and they
+        // can't be leveraged to move existing content into blocked locations
+        extras.remove(QUERY_ARG_RELATED_URI);
+
         final String userWhere = extras.getString(QUERY_ARG_SQL_SELECTION);
         final String[] userWhereArgs = extras.getStringArray(QUERY_ARG_SQL_SELECTION_ARGS);
 
@@ -3928,7 +4013,7 @@ public class MediaProvider extends ContentProvider {
         final DatabaseHelper helper = getDatabaseForUri(uri);
         final SQLiteDatabase db = helper.getWritableDatabase();
 
-        final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, match, uri, extras);
+        final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, match, uri, extras, null);
 
         // Give callers interacting with a specific media item a chance to
         // escalate access if they don't already have it
@@ -4081,7 +4166,7 @@ public class MediaProvider extends ContentProvider {
             final String beforeOwner = extractPathOwnerPackageName(beforePath);
 
             initialValues.remove(MediaColumns.DATA);
-            ensureNonUniqueFileColumns(match, uri, initialValues, beforePath);
+            ensureNonUniqueFileColumns(match, uri, extras, initialValues, beforePath);
 
             final String probePath = initialValues.getAsString(MediaColumns.DATA);
             final String probeVolume = extractVolumeName(probePath);
@@ -4098,7 +4183,7 @@ public class MediaProvider extends ContentProvider {
                 // Now that we've confirmed an actual movement is taking place,
                 // ensure we have a unique destination
                 initialValues.remove(MediaColumns.DATA);
-                ensureUniqueFileColumns(match, uri, initialValues);
+                ensureUniqueFileColumns(match, uri, extras, initialValues);
 
                 final String afterPath = initialValues.getAsString(MediaColumns.DATA);
 
@@ -5377,6 +5462,9 @@ public class MediaProvider extends ContentProvider {
 
     private void enforceCallingPermissionInternal(@NonNull Uri uri, @NonNull Bundle extras,
             boolean forWrite) {
+        Objects.requireNonNull(uri);
+        Objects.requireNonNull(extras);
+
         // Try a simple global check first before falling back to performing a
         // simple query to probe for access.
         if (checkCallingPermissionGlobal(uri, forWrite)) {
@@ -5398,7 +5486,7 @@ public class MediaProvider extends ContentProvider {
 
         // First, check to see if caller has direct write access
         if (forWrite) {
-            final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, table, uri, extras);
+            final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, table, uri, extras, null);
             try (Cursor c = qb.query(db, new String[0], null, null, null, null, null)) {
                 if (c.moveToFirst()) {
                     // Direct write access granted, yay!
@@ -5420,7 +5508,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Second, check to see if caller has direct read access
-        final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, table, uri, extras);
+        final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, table, uri, extras, null);
         try (Cursor c = qb.query(db, new String[0], null, null, null, null, null)) {
             if (c.moveToFirst()) {
                 if (!forWrite) {

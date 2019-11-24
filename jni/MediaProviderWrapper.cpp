@@ -140,6 +140,20 @@ void scanFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_
     LOG(DEBUG) << "MediaProvider has been notified";
 }
 
+int isDirectoryOperationAllowedInternal(JNIEnv* env, jobject media_provider_object,
+                                        jmethodID mid_is_dir_op_allowed, const string& path,
+                                        uid_t uid) {
+    ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
+    int res = env->CallIntMethod(media_provider_object, mid_is_dir_op_allowed, j_path.get(), uid);
+
+    if (CheckForJniException(env)) {
+        LOG(DEBUG) << "Java exception while checking permissions for creating/deleting dir";
+        return -EFAULT;
+    }
+    LOG(DEBUG) << "res = " << res;
+    return res;
+}
+
 }  // namespace
 /*****************************************************************************************/
 /******************************* Public API Implementation *******************************/
@@ -171,6 +185,8 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
                                        /*is_static*/ false);
     mid_scan_file_ = CacheMethod(env, "scanFile", "(Ljava/lang/String;)Landroid/net/Uri;",
                                  /*is_static*/ false);
+    mid_is_dir_op_allowed_ = CacheMethod(env, "isDirectoryOperationAllowed",
+                                         "(Ljava/lang/String;I)I", /*is_static*/ false);
 
     jni_tasks_welcome_ = true;
     request_terminate_jni_thread_ = false;
@@ -255,7 +271,7 @@ int MediaProviderWrapper::DeleteFile(const string& path, uid_t uid) {
     return res;
 }
 
-int MediaProviderWrapper::IsOpenAllowed(const std::string& path, uid_t uid, bool for_write) {
+int MediaProviderWrapper::IsOpenAllowed(const string& path, uid_t uid, bool for_write) {
     if (shouldBypassMediaProvider(uid)) {
         return 0;
     }
@@ -270,12 +286,44 @@ int MediaProviderWrapper::IsOpenAllowed(const std::string& path, uid_t uid, bool
     return res;
 }
 
-void MediaProviderWrapper::ScanFile(const std::string& path) {
+void MediaProviderWrapper::ScanFile(const string& path) {
     // Don't send in path by reference, since the memory might be deleted before we get the chances
     // to perfrom the task.
     PostAsyncTask([this, path](JNIEnv* env) {
         scanFileInternal(env, media_provider_object_, mid_scan_file_, path);
     });
+}
+
+int MediaProviderWrapper::IsCreatingDirAllowed(const string& path, uid_t uid) {
+    if (shouldBypassMediaProvider(uid)) {
+        return 0;
+    }
+
+    int res = -EIO;  // Default value in case JNI thread was being terminated
+
+    PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
+        LOG(DEBUG) << "Checking if UID = " << uid << " can create dir " << path;
+        res = isDirectoryOperationAllowedInternal(env, media_provider_object_,
+                                                  mid_is_dir_op_allowed_, path, uid);
+    });
+
+    return res;
+}
+
+int MediaProviderWrapper::IsDeletingDirAllowed(const string& path, uid_t uid) {
+    if (shouldBypassMediaProvider(uid)) {
+        return 0;
+    }
+
+    int res = -EIO;  // Default value in case JNI thread was being terminated
+
+    PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
+        LOG(DEBUG) << "Checking if UID = " << uid << " can delete dir " << path;
+        res = isDirectoryOperationAllowedInternal(env, media_provider_object_,
+                                                  mid_is_dir_op_allowed_, path, uid);
+    });
+
+    return res;
 }
 
 /*****************************************************************************************/

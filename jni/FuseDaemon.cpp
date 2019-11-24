@@ -707,8 +707,9 @@ static void pf_mkdir(fuse_req_t req,
 
     child_path = parent_path + "/" + name;
 
+    errno = -fuse->mp->IsCreatingDirAllowed(child_path, ctx->uid);
     mode = (mode & (~0777)) | 0775;
-    if (mkdir(child_path.c_str(), mode) < 0) {
+    if (errno || mkdir(child_path.c_str(), mode) < 0) {
         fuse_reply_err(req, errno);
         return;
     }
@@ -766,7 +767,8 @@ static void pf_rmdir(fuse_req_t req, fuse_ino_t parent, const char* name) {
 
     child_path = parent_path + "/" + name;
 
-    if (rmdir(child_path.c_str()) < 0) {
+    errno = -fuse->mp->IsDeletingDirAllowed(child_path, ctx->uid);
+    if (errno || rmdir(child_path.c_str()) < 0) {
         fuse_reply_err(req, errno);
         return;
     }

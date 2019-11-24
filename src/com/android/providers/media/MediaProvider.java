@@ -192,7 +192,7 @@ public class MediaProvider extends ContentProvider {
      * and which captures the package name as the first group.
      */
     static final Pattern PATTERN_OWNED_PATH = Pattern.compile(
-            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|media|obb|sandbox)/([^/]+)/.*");
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|media|obb|sandbox)/([^/]+)(/.*)?");
 
     /**
      * Regex that matches paths for {@link MediaColumns#RELATIVE_PATH}; it
@@ -4659,8 +4659,14 @@ public class MediaProvider extends ContentProvider {
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
             if (appSpecificDir != null) {
-                return checkAppSpecificDirAccess(appSpecificDir);
+                if (isCallingIdentitySharedPackageName(appSpecificDir)) {
+                    return 0;
+                } else {
+                    Log.e(TAG, "Can't open a file in another app's external directory!");
+                    return -OsConstants.ENOENT;
+                }
             }
+
             final String mimeType = MediaFile.getMimeTypeForFile(path);
             final Uri contentUri = getContentUriForFile(path, mimeType);
             final String[] projection = new String[]{
@@ -4700,21 +4706,19 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Returns 0 if access is allowed, -ENOENT otherwise.
+     * Returns {@code true} if {@link #mCallingIdentity#getSharedPackages(String)} contains the
+     * given package name, {@code false} otherwise.
      * <p> Assumes that {@code mCallingIdentity} has been properly set to reflect the calling
      * package.
      */
-    private int checkAppSpecificDirAccess(String appSpecificDir) {
-        for (String packageName : mCallingIdentity.get().getSharedPackageNames()) {
-            if (appSpecificDir.toLowerCase(Locale.ROOT)
-                    .equals(packageName.toLowerCase(Locale.ROOT))) {
-                return 0;
+    private boolean isCallingIdentitySharedPackageName(@NonNull String packageName) {
+        for (String sharedPkgName : mCallingIdentity.get().getSharedPackageNames()) {
+            if (packageName.toLowerCase(Locale.ROOT)
+                    .equals(sharedPkgName.toLowerCase(Locale.ROOT))) {
+                return true;
             }
         }
-        Log.e(TAG, "Cannot access file under another app's external directory!");
-        // We treat this error as if the directory doesn't exist to make it harder for
-        // apps to snoop around whether other apps exist or not.
-        return -OsConstants.ENOENT;
+        return false;
     }
 
     /**
@@ -4795,10 +4799,10 @@ public class MediaProvider extends ContentProvider {
      * @return In case of success, 0. If the operation is illegal or not permitted, returns the
      * appropriate negated {@code errno} value:
      * <ul>
-     * <li>ENOENT if the app tries to create file in other app's external dir
-     * <li>EEXIST if the file already exists
-     * <li>EPERM if the file type doesn't match the relative path
-     * <li>EIO in case of any other I/O exception
+     * <li>{@link OsConstants#ENOENT} if the app tries to create file in other app's external dir
+     * <li>{@link OsConstants#EEXIST} if the file already exists
+     * <li>{@link OsConstants#EPERM} if the file type doesn't match the relative path
+     * <li>{@link OsConstants#EIO} in case of any other I/O exception
      * </ul>
      *
      * @throws IllegalStateException if given path is invalid.
@@ -4815,7 +4819,12 @@ public class MediaProvider extends ContentProvider {
 
             // App dirs are not indexed, so we don't create an entry for the file.
             if (appSpecificDir != null) {
-                return checkAppSpecificDirAccess(appSpecificDir);
+                if (isCallingIdentitySharedPackageName(appSpecificDir)) {
+                    return 0;
+                } else {
+                    Log.e(TAG, "Can't create a file in another app's external directory");
+                    return -OsConstants.ENOENT;
+                }
             }
 
             final String mimeType = MediaFile.getMimeTypeForFile(path);
@@ -4865,9 +4874,9 @@ public class MediaProvider extends ContentProvider {
      * @return 0 upon success.
      * In case of error, return the appropriate negated {@code errno} value:
      * <ul>
-     * <li>ENOENT if the file does not exist or if the app tries to delete file in another app's
-     * external dir
-     * <li>EPERM a security exception was thrown by {@link #delete}
+     * <li>{@link OsConstants#ENOENT} if the file does not exist or if the app tries to delete file in another
+     * app's external dir
+     * <li>{@link OsConstants#EPERM} a security exception was thrown by {@link #delete}
      * </ul>
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
@@ -4882,11 +4891,11 @@ public class MediaProvider extends ContentProvider {
 
             // Trying to create file under some app's external storage dir
             if (appSpecificDir != null) {
-                int negErrno = checkAppSpecificDirAccess(appSpecificDir);
-                if (negErrno == 0) {
+                if (isCallingIdentitySharedPackageName(appSpecificDir)) {
                     return deleteFileInAppSpecificDir(path);
                 } else {
-                    return negErrno;
+                    Log.e(TAG, "Can't delete a file in another app's external directory!");
+                    return -OsConstants.ENOENT;
                 }
             }
 
@@ -4905,6 +4914,50 @@ public class MediaProvider extends ContentProvider {
         } catch (SecurityException e) {
             Log.e(TAG, "File deletion not allowed", e);
             return -OsConstants.EPERM;
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
+    }
+
+    /**
+     * Checks if the app with the given UID is allowed to create or delete the directory with the
+     * given path.
+     *
+     * @param path File path of the directory that the app wants to create/delete
+     * @param uid UID of the app that wants to create/delete the directory
+     * @return 0 if the operation is allowed, or the following negated {@code errno} values:
+     * <ul>
+     * <li>{@link OsConstants#EACCES} if the app tries to create/delete a dir in another app's
+     * external directory.
+     * <li>{@link OsConstants#EPERM} if the app tries to create/delete a top-level directory.
+     * </ul>
+     *
+     * Called from JNI in jni/MediaProviderWrapper.cpp
+     */
+    @Keep
+    public int isDirectoryOperationAllowed(@NonNull String path, int uid) {
+        final LocalCallingIdentity token =
+                clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
+        try {
+            // Returns null if the path doesn't correspond to an app specific directory
+            final String appSpecificDir = extractPathOwnerPackageName(path);
+
+            // App dirs are not indexed, so we don't create an entry for the file.
+            if (appSpecificDir != null) {
+                if (isCallingIdentitySharedPackageName(appSpecificDir)) {
+                    return 0;
+                } else {
+                    Log.e(TAG, "Can't modify another app's specific directory!");
+                    return -OsConstants.EACCES;
+                }
+            }
+
+            final String[] relativePath = sanitizePath(extractRelativePath(path));
+            if (relativePath.length == 1 && TextUtils.isEmpty(relativePath[0])) {
+                Log.e(TAG, "Creating or deleting a top level directory is not allowed!");
+                return -OsConstants.EPERM;
+            }
+            return 0;
         } finally {
             restoreLocalCallingIdentity(token);
         }

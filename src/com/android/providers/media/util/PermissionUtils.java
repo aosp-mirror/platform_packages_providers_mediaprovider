@@ -63,13 +63,22 @@ public class PermissionUtils {
         return hasFull && hasStorage;
     }
 
-    public static boolean checkPermissionLegacy(Context context,
+    public static boolean checkPermissionWriteStorage(Context context,
             int pid, int uid, String packageName) {
-        final boolean hasStorage = checkPermissionAndAppOp(context, pid,
+        return checkPermissionAndAppOp(context, pid,
                 uid, packageName, WRITE_EXTERNAL_STORAGE, OPSTR_WRITE_EXTERNAL_STORAGE);
-        final boolean hasLegacy = context.getSystemService(AppOpsManager.class)
+    }
+
+    public static boolean checkPermissionReadStorage(Context context,
+            int pid, int uid, String packageName) {
+        return checkPermissionAndAppOp(context, pid,
+                uid, packageName, READ_EXTERNAL_STORAGE, OPSTR_READ_EXTERNAL_STORAGE);
+    }
+
+    public static boolean checkIsLegacyStorageGranted(Context context, int uid,
+            String packageName) {
+        return context.getSystemService(AppOpsManager.class)
                 .unsafeCheckOp(OPSTR_LEGACY_STORAGE, uid, packageName) == MODE_ALLOWED;
-        return (hasLegacy && hasStorage);
     }
 
     public static boolean checkPermissionReadAudio(Context context,

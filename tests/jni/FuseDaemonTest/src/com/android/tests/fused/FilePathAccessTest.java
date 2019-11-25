@@ -40,7 +40,6 @@ import androidx.test.runner.AndroidJUnit4;
 import com.google.common.io.ByteStreams;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -84,7 +83,7 @@ public class FilePathAccessTest {
     @Before
     public void assumeFuseIsOn() {
         assumeTrue(getBoolean("sys.fuse_snapshot", false));
-        EXTERNAL_STORAGE_DIR.mkdirs();
+        EXTERNAL_FILES_DIR.mkdirs();
     }
 
     /**
@@ -292,6 +291,39 @@ public class FilePathAccessTest {
     public void testDeleteNonemptyDir() throws Exception {
         // TODO(b/142806973): use multi app infra which will be introduced in ag/9730872 to try and
         // delete directories that have files contributed by other apps
+    }
+
+    /**
+     * This test relies on the fact that {@link File#list} uses opendir internally, and that it
+     * returns {@code null} if opendir fails.
+     */
+    @Test
+    public void testOpendirRestrictions() throws Exception {
+        // Opening a non existent package directory should fail, as expected
+        final File nonexistentPackageFileDir = new File(EXTERNAL_FILES_DIR.getPath()
+                .replace(THIS_PACKAGE_NAME, "no.such.package"));
+        assertThat(nonexistentPackageFileDir.list()).isNull();
+
+        // Opening another package's external directory should fail as well, even if it exists
+        final File shellPackageFileDir = new File(EXTERNAL_FILES_DIR.getPath()
+                .replace(THIS_PACKAGE_NAME, "com.android.shell"));
+        assertThat(shellPackageFileDir.list()).isNull();
+
+        // We can open our own external files directory
+        final String[] filesList = EXTERNAL_FILES_DIR.list();
+        assertThat(filesList).isNotNull();
+        assertThat(filesList).isEmpty();
+
+        // We can open any public directory in external storage
+        assertThat(DCIM_DIR.list()).isNotNull();
+        assertThat(DOWNLOAD_DIR.list()).isNotNull();
+        assertThat(MOVIES_DIR.list()).isNotNull();
+        assertThat(MUSIC_DIR.list()).isNotNull();
+
+        // We can open the root directory of external storage
+        final String[] topLevelDirs = EXTERNAL_STORAGE_DIR.list();
+        assertThat(topLevelDirs).isNotNull();
+        assertThat(topLevelDirs).isNotEmpty();
     }
 
     @Test

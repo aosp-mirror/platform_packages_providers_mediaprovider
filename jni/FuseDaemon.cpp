@@ -1167,8 +1167,8 @@ static void pf_opendir(fuse_req_t req,
         return;
     }
 
-    h->d = opendir(path.c_str());
-    if (!h->d) {
+    errno = -fuse->mp->IsOpendirAllowed(path, ctx->uid);
+    if (errno || !(h->d = opendir(path.c_str()))) {
         delete h;
         fuse_reply_err(req, errno);
         return;

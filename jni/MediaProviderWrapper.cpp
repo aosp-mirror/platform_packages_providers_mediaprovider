@@ -147,7 +147,7 @@ int isDirectoryOperationAllowedInternal(JNIEnv* env, jobject media_provider_obje
     int res = env->CallIntMethod(media_provider_object, mid_is_dir_op_allowed, j_path.get(), uid);
 
     if (CheckForJniException(env)) {
-        LOG(DEBUG) << "Java exception while checking permissions for creating/deleting dir";
+        LOG(DEBUG) << "Java exception while checking permissions for creating/deleting/opening dir";
         return -EFAULT;
     }
     LOG(DEBUG) << "res = " << res;
@@ -187,6 +187,8 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
                                  /*is_static*/ false);
     mid_is_dir_op_allowed_ = CacheMethod(env, "isDirectoryOperationAllowed",
                                          "(Ljava/lang/String;I)I", /*is_static*/ false);
+    mid_is_opendir_allowed_ = CacheMethod(env, "isOpendirAllowed", "(Ljava/lang/String;I)I",
+                                          /*is_static*/ false);
 
     jni_tasks_welcome_ = true;
     request_terminate_jni_thread_ = false;
@@ -321,6 +323,22 @@ int MediaProviderWrapper::IsDeletingDirAllowed(const string& path, uid_t uid) {
         LOG(DEBUG) << "Checking if UID = " << uid << " can delete dir " << path;
         res = isDirectoryOperationAllowedInternal(env, media_provider_object_,
                                                   mid_is_dir_op_allowed_, path, uid);
+    });
+
+    return res;
+}
+
+int MediaProviderWrapper::IsOpendirAllowed(const string& path, uid_t uid) {
+    if (shouldBypassMediaProvider(uid)) {
+        return 0;
+    }
+
+    int res = -EIO;  // Default value in case JNI thread was being terminated
+
+    PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
+        LOG(DEBUG) << "Checking if UID = " << uid << " can open dir " << path;
+        res = isDirectoryOperationAllowedInternal(env, media_provider_object_,
+                                                  mid_is_opendir_allowed_, path, uid);
     });
 
     return res;

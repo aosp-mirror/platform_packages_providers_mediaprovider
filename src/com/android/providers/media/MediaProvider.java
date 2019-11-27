@@ -279,13 +279,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     public static File getVolumePath(String volumeName) throws FileNotFoundException {
-        // TODO(b/144275217): A more performant invocation is
-        // MediaStore#getVolumePath(sCachedVolumes, volumeName) since we avoid a binder
-        // to StorageManagerService to getVolumeList. We need to delay the mount broadcasts
-        // from StorageManagerService so that sCachedVolumes is up to date in
-        // onVolumeStateChanged before we to call this method, otherwise we would crash
-        // when we don't find volumeName yet
-        return MediaStore.getVolumePath(volumeName);
+        return MediaStore.getVolumePath(sCachedVolumes, volumeName);
     }
 
     public static Set<String> getExternalVolumeNames() {
@@ -4947,7 +4941,7 @@ public class MediaProvider extends ContentProvider {
                 if (isCallingIdentitySharedPackageName(appSpecificDir)) {
                     return 0;
                 } else {
-                    Log.e(TAG, "Can't modify another app's specific directory!");
+                    Log.e(TAG, "Can't modify another app's external directory!");
                     return -OsConstants.EACCES;
                 }
             }
@@ -4956,6 +4950,38 @@ public class MediaProvider extends ContentProvider {
             if (relativePath.length == 1 && TextUtils.isEmpty(relativePath[0])) {
                 Log.e(TAG, "Creating or deleting a top level directory is not allowed!");
                 return -OsConstants.EPERM;
+            }
+            return 0;
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
+    }
+
+    /**
+     * Checks whether the app with the given UID is allowed to open the directory denoted by the
+     * given path.
+     *
+     * @param path directory's path
+     * @param uid UID of the requesting app
+     * @return 0 if it's allowed to open the diretory, -{@link OsConstants#ENOENT}  otherwise.
+     *
+     * Called from JNI in jni/MediaProviderWrapper.cpp
+     */
+    @Keep
+    public int isOpendirAllowed(@NonNull String path, int uid) {
+        final LocalCallingIdentity token =
+                clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
+        try {
+            // Returns null if the path doesn't correspond to an app specific directory
+            final String appSpecificDir = extractPathOwnerPackageName(path);
+
+            if (appSpecificDir != null) {
+                if (isCallingIdentitySharedPackageName(appSpecificDir)) {
+                    return 0;
+                } else {
+                    Log.e(TAG, "Can't access another app's external directory!");
+                    return -OsConstants.ENOENT;
+                }
             }
             return 0;
         } finally {

@@ -54,8 +54,10 @@
 #include <vector>
 
 #include "MediaProviderWrapper.h"
+#include "libfuse_jni/ReaddirHelper.h"
 #include "libfuse_jni/RedactionInfo.h"
 
+using mediaprovider::fuse::DirectoryEntry;
 using mediaprovider::fuse::RedactionInfo;
 using std::string;
 using std::vector;
@@ -79,6 +81,11 @@ class handle {
 struct dirhandle {
     DIR* d;
     off_t next_off;
+    // Fuse readdir() is called multiple times based on the size of the buffer and
+    // number of directory entries in the given directory. 'de' holds the list
+    // of directory entries for the directory handle and this list is available
+    // across subsequent readdir() calls for the same directory handle.
+    std::vector<std::shared_ptr<DirectoryEntry>> de;
 };
 
 struct node {
@@ -343,10 +350,8 @@ static void get_node_path_locked_helper(struct node* node, string& path) {
     path += node->name + "/";
 }
 
-/* Gets the absolute path to a node into the provided buffer.
- *
- * Populates 'buf' with the path and returns the length of the path on success,
- * or returns -1 if the path is too long for the provided buffer.
+/*
+ * Gets the absolute path to a node into the provided buffer.
  */
 static string get_node_path_locked(struct node* node) {
     string path;
@@ -354,6 +359,34 @@ static string get_node_path_locked(struct node* node) {
     path.reserve(PATH_MAX);
     if (node->parent) get_node_path_locked_helper(node->parent, path);
     path += node->name;
+    return path;
+}
+
+static void get_node_relative_path_locked_helper(const struct node& node, string* path) {
+    if (node.nid == FUSE_ROOT_ID) {
+        return;
+    } else if (node.parent && node.parent->nid == FUSE_ROOT_ID) {
+        *path += "/";
+    } else {
+        if (node.parent) get_node_relative_path_locked_helper(*node.parent, path);
+        *path += node.name + "/";
+    }
+}
+
+/* Gets the relative path of the given node.
+ *
+ * Relative path is path of the node in terms /storage/emulated/<userid>/. An empty string is
+ * returned for paths beyond /storage/emulated/<userid>/ for example /storage/emulated/ or
+ * /storage/emulated/obb.
+ * TODO(b/142806973): Remove this when this functionality will be handled by
+ * MediaProvider.
+ */
+static string get_node_relative_path_locked(const struct node& node) {
+    string path;
+
+    path.reserve(PATH_MAX);
+    get_node_relative_path_locked_helper(node, &path);
+    if (path.size() > 1) path.erase(path.size() - 1);
     return path;
 }
 
@@ -1191,32 +1224,58 @@ static void do_readdir_common(fuse_req_t req,
     size_t len = std::min<size_t>(size, READDIR_BUF);
     char buf[READDIR_BUF];
     size_t used = 0;
-    struct dirent* de;
+    std::shared_ptr<DirectoryEntry> de;
+
     struct fuse_entry_param e;
     size_t entry_size = 0;
 
-    TRACE_FUSE(fuse) << "READDIR " << h;
-    if (off != h->next_off) {
-        TRACE_FUSE(fuse) << " calling seekdir(" << h->d << ", " << off << ")";
-        seekdir(h->d, off);
+    pthread_mutex_lock(&fuse->lock);
+    struct node* node = lookup_node_by_id_locked(fuse, ino);
+    string path = get_node_path_locked(node);
+    pthread_mutex_unlock(&fuse->lock);
+    TRACE_FUSE(fuse) << "READDIR @" << ino << " " << path << " at offset " << off;
+    // Get all directory entries from MediaProvider on first readdir() call of
+    // directory handle. h->next_off = 0 indicates that current readdir() call
+    // is first readdir() call for the directory handle, Avoid multiple JNI calls
+    // for single directory handle.
+    if (h->next_off == 0) {
+        pthread_mutex_lock(&fuse->lock);
+        node = lookup_node_by_id_locked(fuse, ino);
+        string relative_path = get_node_relative_path_locked(*node);
+        pthread_mutex_unlock(&fuse->lock);
+        // TODO(b/142806973): Move this check to MediaProvider.
+        if (!IsDirectoryEntryFilteringNeeded(relative_path))
+            h->de = getDirectoryEntriesFromLowerFs(h->d);
+        else
+            h->de = fuse->mp->GetDirectoryEntries(req->ctx.uid, relative_path, h->d);
     }
-    while ((de = readdir(h->d)) != NULL) {
-        off += 1;
+    // If the last entry in the previous readdir() call was rejected due to
+    // buffer capacity constraints, update directory offset to start from
+    // previously rejected entry. Directory offset can also change if there was
+    // a seekdir on the given directory handle.
+    if (off != h->next_off) {
+        h->next_off = off;
+    }
+    const int num_directory_entries = h->de.size();
+
+    while (h->next_off < num_directory_entries) {
+        de = h->de[h->next_off];
         errno = 0;
-        h->next_off = de->d_off;
+        entry_size = 0;
+        h->next_off++;
         if (plus) {
-            if (do_lookup(req, ino, de->d_name, &e))
-                entry_size = fuse_add_direntry_plus(req, buf + used, len - used, de->d_name, &e,
-                                                    de->d_off);
+            if (do_lookup(req, ino, de->d_name.c_str(), &e))
+                entry_size = fuse_add_direntry_plus(req, buf + used, len - used, de->d_name.c_str(),
+                                                    &e, h->next_off);
             else {
                 fuse_reply_err(req, errno);
                 return;
             }
         } else {
             e.attr.st_ino = FUSE_UNKNOWN_INO;
-            e.attr.st_mode = de->d_type << 12;
-            entry_size =
-                    fuse_add_direntry(req, buf + used, len - used, de->d_name, &e.attr, de->d_off);
+            e.attr.st_mode = de->d_type;
+            entry_size = fuse_add_direntry(req, buf + used, len - used, de->d_name.c_str(), &e.attr,
+                                           h->next_off);
         }
         // If buffer in fuse_add_direntry[_plus] is not large enough then
         // the entry is not added to buffer but the size of the entry is still
@@ -1226,7 +1285,7 @@ static void do_readdir_common(fuse_req_t req,
         used += entry_size;
     }
 
-    if (!de && errno != 0)
+    if (errno)
         fuse_reply_err(req, errno);
     else
         fuse_reply_buf(req, buf, used);

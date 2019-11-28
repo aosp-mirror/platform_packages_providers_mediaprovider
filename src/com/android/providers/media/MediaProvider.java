@@ -4630,6 +4630,8 @@ public class MediaProvider extends ContentProvider {
                 final XmpInterface isoXmp = XmpInterface.fromContainer(iso, redactedXmpTags);
                 res.addAll(isoXmp.getRedactionRanges());
             }
+        } catch (FileNotFoundException ignored) {
+            // If file not found, then there's nothing to redact
         } catch (IOException e) {
             throw new IOException("Failed to redact " + file, e);
         }

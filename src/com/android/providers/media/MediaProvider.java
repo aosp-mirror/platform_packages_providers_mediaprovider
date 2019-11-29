@@ -93,6 +93,7 @@ import android.os.ParcelFileDescriptor.OnCloseListener;
 import android.os.RedactingFileDescriptor;
 import android.os.RemoteException;
 import android.os.SystemClock;
+import android.os.SystemProperties;
 import android.os.Trace;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -212,6 +213,11 @@ public class MediaProvider extends ContentProvider {
      */
     static final Pattern PATTERN_SELECTION_ID = Pattern.compile(
             "(?:image_id|video_id)\\s*=\\s*(\\d+)");
+
+    /**
+     * Property that indicates whether fuse is enabled.
+     */
+    private static final String PROP_FUSE = "persist.sys.fuse";
 
     /**
      * These directory names aren't declared in Environment as final variables, and so we need to
@@ -4444,6 +4450,9 @@ public class MediaProvider extends ContentProvider {
     /**
      * Replacement for {@link #openFileHelper(Uri, String)} which enforces any
      * permissions applicable to the path before returning.
+     *
+     * <p>This function should never be called from the fuse thread since it tries to open
+     * a "/mnt/user" path.
      */
     private ParcelFileDescriptor openFileAndEnforcePathPermissionsHelper(Uri uri, int match,
             String mode, CancellationSignal signal) throws FileNotFoundException {
@@ -4527,12 +4536,22 @@ public class MediaProvider extends ContentProvider {
             // First, handle any redaction that is needed for caller
             final ParcelFileDescriptor pfd;
             if (redactionInfo.redactionRanges.length > 0) {
-                pfd = RedactingFileDescriptor.open(
-                        getContext(),
-                        file,
-                        modeBits,
-                        redactionInfo.redactionRanges,
-                        redactionInfo.freeOffsets);
+                if (SystemProperties.getBoolean(PROP_FUSE, false)) {
+                    // If fuse is enabled, we can provide an fd that points to the fuse
+                    // file system and handle redaction in the fuse handler when the caller reads.
+                    File fuseFile = new File(file.getPath().replaceFirst("/storage/",
+                            "/mnt/user/" + UserHandle.myUserId() + "/"));
+                    pfd = ParcelFileDescriptor.open(fuseFile, modeBits);
+                } else {
+                    // TODO(b/135341978): Remove this and associated code
+                    // when fuse is on by default.
+                    pfd = RedactingFileDescriptor.open(
+                            getContext(),
+                            file,
+                            modeBits,
+                            redactionInfo.redactionRanges,
+                            redactionInfo.freeOffsets);
+                }
             } else {
                 pfd = ParcelFileDescriptor.open(file, modeBits);
             }

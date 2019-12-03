@@ -61,6 +61,7 @@ import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.Logging;
+import com.android.providers.media.util.MimeUtils;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -1005,6 +1006,33 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
     }
 
+    private static void recomputeMediaTypeValues(SQLiteDatabase db) {
+        // Only update the files with MEDIA_TYPE_NONE.
+        final String selection = FileColumns.MEDIA_TYPE + "=?";
+        final String[] selectionArgs = new String[]{String.valueOf(FileColumns.MEDIA_TYPE_NONE)};
+
+        try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.MIME_TYPE },
+                selection, selectionArgs, null, null, null, null)) {
+            Log.d(TAG, "Recomputing " + c.getCount() + " MediaType values");
+
+            final ContentValues values = new ContentValues();
+            while (c.moveToNext()) {
+                values.clear();
+                final long id = c.getLong(0);
+                final String mimeType = c.getString(1);
+                // Only update Document and Subtitle media type
+                if (MimeUtils.isDocumentMimeType(mimeType)) {
+                    values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_DOCUMENT);
+                } else if (MimeUtils.isSubtitleMimeType(mimeType)) {
+                    values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_SUBTITLE);
+                }
+                if (!values.isEmpty()) {
+                    db.update("files", values, "_id=" + id, null);
+                }
+            }
+        }
+    }
+
     static final int VERSION_J = 509;
     static final int VERSION_K = 700;
     static final int VERSION_L = 700;
@@ -1013,7 +1041,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
     static final int VERSION_Q = 1023;
-    static final int VERSION_R = 1110;
+    static final int VERSION_R = 1111;
     static final int VERSION_LATEST = VERSION_R;
 
     /**
@@ -1143,6 +1171,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1110) {
                 // Empty version bump to ensure triggers are recreated
+            }
+            if (fromVersion < 1111) {
+                recomputeMediaTypeValues(db);
             }
 
             if (recomputeDataValues) {

@@ -274,7 +274,13 @@ public class MediaProvider extends ContentProvider {
     }
 
     public static File getVolumePath(String volumeName) throws FileNotFoundException {
-        return MediaStore.getVolumePath(sCachedVolumes, volumeName);
+        // TODO(b/144275217): A more performant invocation is
+        // MediaStore#getVolumePath(sCachedVolumes, volumeName) since we avoid a binder
+        // to StorageManagerService to getVolumeList. We need to delay the mount broadcasts
+        // from StorageManagerService so that sCachedVolumes is up to date in
+        // onVolumeStateChanged before we to call this method, otherwise we would crash
+        // when we don't find volumeName yet
+        return MediaStore.getVolumePath(volumeName);
     }
 
     public static Set<String> getExternalVolumeNames() {

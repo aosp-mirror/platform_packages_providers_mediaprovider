@@ -159,17 +159,18 @@ int isDirectoryOperationAllowedInternal(JNIEnv* env, jobject media_provider_obje
 
 std::vector<std::shared_ptr<DirectoryEntry>> getDirectoryEntriesInternal(
         JNIEnv* env, jobject media_provider_object, jmethodID mid_get_directory_entries, uid_t uid,
-        const string& path) {
+        const string& path, DIR* dirp) {
+    LOG(DEBUG) << "Getting directory entries for UID = " << uid << ". Path = " << path;
     std::vector<std::shared_ptr<DirectoryEntry>> directory_entries;
-    ScopedLocalRef<jstring> path_jstring(env, env->NewStringUTF(path.c_str()));
+    ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
 
     ScopedLocalRef<jobjectArray> directory_entry_list(
-            env,
-            static_cast<jobjectArray>(env->CallObjectMethod(
-                    media_provider_object, mid_get_directory_entries, path_jstring.get(), uid)));
+            env, static_cast<jobjectArray>(env->CallObjectMethod(
+                         media_provider_object, mid_get_directory_entries, j_path.get(), uid)));
 
     if (CheckForJniException(env)) {
         LOG(ERROR) << "Exception occurred while calling MediaProvider#getDirectoryEntries";
+        directory_entries.push_back(std::make_shared<DirectoryEntry>("", EBADF));
         return directory_entries;
     }
 
@@ -177,17 +178,36 @@ std::vector<std::shared_ptr<DirectoryEntry>> getDirectoryEntriesInternal(
     // directory_entry_list is a list of strings with directory entry names.
     // First part of the list contains files and second part has directories.
     // "" separates the first part of this list from second.
+    // A list with only '/' indicates that directory path is not indexed by MediaProvider
+    // database and directory entries should be obtained from lower file system.
+    if (de_count == 1) {
+        ScopedLocalRef<jstring> j_d_name(
+                env, (jstring)env->GetObjectArrayElement(directory_entry_list.get(), 0));
+        ScopedUtfChars d_name(env, j_d_name.get());
+        if (d_name.c_str() == nullptr) {
+            LOG(ERROR) << "Error reading directory entry from MediaProvider at index 0";
+            directory_entries.insert(directory_entries.begin(),
+                                     std::make_shared<DirectoryEntry>("", EBADF));
+            return directory_entries;
+        } else if (d_name.c_str()[0] == '/') {
+            return getDirectoryEntriesFromLowerFs(dirp);
+        }
+    }
+
     int type = DT_REG;
     for (int i = 0; i < de_count; i++) {
-        ScopedLocalRef<jstring> d_name_jstring(
+        ScopedLocalRef<jstring> j_d_name(
                 env, (jstring)env->GetObjectArrayElement(directory_entry_list.get(), i));
-        ScopedUtfChars d_name(env, d_name_jstring.get());
+        ScopedUtfChars d_name(env, j_d_name.get());
 
         if (d_name.c_str() == nullptr) {
             LOG(ERROR) << "Error reading directory entry from MediaProvider at index " << i;
-            continue;
-        }
-        if (d_name.c_str()[0] == '\0') {
+            directory_entries.resize(0);
+            directory_entries.insert(directory_entries.begin(),
+                                     std::make_shared<DirectoryEntry>("", EBADF));
+            break;
+        } else if (d_name.c_str()[0] == '\0') {
+            // Separator found, next directory entries are directories.
             type = DT_DIR;
             continue;
         }
@@ -379,9 +399,9 @@ std::vector<std::shared_ptr<DirectoryEntry>> MediaProviderWrapper::GetDirectoryE
 
     // Default value in case JNI thread was being terminated
     std::vector<std::shared_ptr<DirectoryEntry>> res;
-    PostAndWaitForTask([this, uid, path, &res](JNIEnv* env) {
+    PostAndWaitForTask([this, uid, path, dirp, &res](JNIEnv* env) {
         res = getDirectoryEntriesInternal(env, media_provider_object_, mid_get_directory_entries_,
-                                          uid, path);
+                                          uid, path, dirp);
     });
 
     return res;

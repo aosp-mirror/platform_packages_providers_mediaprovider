@@ -362,34 +362,6 @@ static string get_node_path_locked(struct node* node) {
     return path;
 }
 
-static void get_node_relative_path_locked_helper(const struct node& node, string* path) {
-    if (node.nid == FUSE_ROOT_ID) {
-        return;
-    } else if (node.parent && node.parent->nid == FUSE_ROOT_ID) {
-        *path += "/";
-    } else {
-        if (node.parent) get_node_relative_path_locked_helper(*node.parent, path);
-        *path += node.name + "/";
-    }
-}
-
-/* Gets the relative path of the given node.
- *
- * Relative path is path of the node in terms /storage/emulated/<userid>/. An empty string is
- * returned for paths beyond /storage/emulated/<userid>/ for example /storage/emulated/ or
- * /storage/emulated/obb.
- * TODO(b/142806973): Remove this when this functionality will be handled by
- * MediaProvider.
- */
-static string get_node_relative_path_locked(const struct node& node) {
-    string path;
-
-    path.reserve(PATH_MAX);
-    get_node_relative_path_locked_helper(node, &path);
-    if (path.size() > 1) path.erase(path.size() - 1);
-    return path;
-}
-
 struct node* create_node_locked(struct fuse* fuse,
                                 struct node* parent,
                                 const string& name) {
@@ -1225,6 +1197,7 @@ static void do_readdir_common(fuse_req_t req,
     char buf[READDIR_BUF];
     size_t used = 0;
     std::shared_ptr<DirectoryEntry> de;
+    errno = 0;
 
     struct fuse_entry_param e;
     size_t entry_size = 0;
@@ -1239,26 +1212,22 @@ static void do_readdir_common(fuse_req_t req,
     // is first readdir() call for the directory handle, Avoid multiple JNI calls
     // for single directory handle.
     if (h->next_off == 0) {
-        pthread_mutex_lock(&fuse->lock);
-        node = lookup_node_by_id_locked(fuse, ino);
-        string relative_path = get_node_relative_path_locked(*node);
-        pthread_mutex_unlock(&fuse->lock);
-        // TODO(b/142806973): Move this check to MediaProvider.
-        if (!IsDirectoryEntryFilteringNeeded(relative_path))
-            h->de = getDirectoryEntriesFromLowerFs(h->d);
-        else
-            h->de = fuse->mp->GetDirectoryEntries(req->ctx.uid, relative_path, h->d);
+        h->de = fuse->mp->GetDirectoryEntries(req->ctx.uid, path, h->d);
     }
     // If the last entry in the previous readdir() call was rejected due to
     // buffer capacity constraints, update directory offset to start from
     // previously rejected entry. Directory offset can also change if there was
-    // a seekdir on the given directory handle.
+    // a seekdir() on the given directory handle.
     if (off != h->next_off) {
         h->next_off = off;
     }
     const int num_directory_entries = h->de.size();
+    // Check for errors. Any error/exception occurred while obtaining directory
+    // entries will be indicated by marking first directory entry name as empty
+    // string. In the erroneous case corresponding d_type will hold error number.
+    if (num_directory_entries && h->de[0]->d_name.empty()) errno = h->de[0]->d_type;
 
-    while (h->next_off < num_directory_entries) {
+    while (errno == 0 && h->next_off < num_directory_entries) {
         de = h->de[h->next_off];
         errno = 0;
         entry_size = 0;

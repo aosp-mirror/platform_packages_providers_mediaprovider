@@ -35,7 +35,12 @@ std::vector<std::shared_ptr<DirectoryEntry>> getDirectoryEntriesFromLowerFs(DIR*
         errno = 0;
         struct dirent* entry = readdir(dirp);
         if (entry == nullptr) {
-            if (errno) PLOG(ERROR) << "DEBUG: readdir(): readdir failed with %d" << errno;
+            if (errno) {
+                PLOG(ERROR) << "DEBUG: readdir(): readdir failed with %d" << errno;
+                directory_entries.resize(0);
+                directory_entries.insert(directory_entries.begin(),
+                                         std::make_shared<DirectoryEntry>("", errno));
+            }
             break;
         }
         // Ignore '.' & '..' to maintain consistency with directory entries
@@ -44,10 +49,6 @@ std::vector<std::shared_ptr<DirectoryEntry>> getDirectoryEntriesFromLowerFs(DIR*
         directory_entries.push_back(std::make_shared<DirectoryEntry>(entry->d_name, entry->d_type));
     }
     return directory_entries;
-}
-
-bool IsDirectoryEntryFilteringNeeded(const std::string& path) {
-    return !path.empty() && (path.find("/Android/data") != 0) && (path.find("/Android/obb") != 0);
 }
 
 }  // namespace fuse

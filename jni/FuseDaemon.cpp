@@ -1563,6 +1563,7 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
     fuse_to_android_loglevel.insert({FUSE_LOG_EMERG, ANDROID_LOG_FATAL});
     fuse_to_android_loglevel.insert({FUSE_LOG_ALERT, ANDROID_LOG_ERROR});
     fuse_to_android_loglevel.insert({FUSE_LOG_CRIT, ANDROID_LOG_ERROR});
+    fuse_to_android_loglevel.insert({FUSE_LOG_ERR, ANDROID_LOG_ERROR});
     fuse_to_android_loglevel.insert({FUSE_LOG_WARNING, ANDROID_LOG_WARN});
     fuse_to_android_loglevel.insert({FUSE_LOG_NOTICE, ANDROID_LOG_INFO});
     fuse_to_android_loglevel.insert({FUSE_LOG_INFO, ANDROID_LOG_DEBUG});

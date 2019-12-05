@@ -16,6 +16,8 @@
 
 package com.android.providers.media.scan;
 
+import static com.android.providers.media.scan.MediaScanner.REASON_UNKNOWN;
+
 import static org.junit.Assert.assertEquals;
 
 import android.content.ContentResolver;
@@ -198,7 +200,7 @@ public class MediaScannerTest {
         final long beforeTime = SystemClock.elapsedRealtime();
         final int[] beforeCounts = getCounts(context);
 
-        scanner.scanDirectory(dir);
+        scanner.scanDirectory(dir, REASON_UNKNOWN);
 
         final long deltaTime = SystemClock.elapsedRealtime() - beforeTime;
         final int[] deltaCounts = subtract(getCounts(context), beforeCounts);

@@ -21,6 +21,7 @@ android_app {
     srcs: [
         "src/**/*.aidl",
         "src/**/*.java",
+        ":statslog-mediaprovider-java-gen",
     ],
 
     optimize: {
@@ -43,4 +44,11 @@ android_app {
 platform_compat_config {
     name: "media-provider-platform-compat-config",
     src: ":MediaProvider",
+}
+
+genrule {
+    name: "statslog-mediaprovider-java-gen",
+    tools: ["stats-log-api-gen"],
+    cmd: "$(location stats-log-api-gen) --java $(out) --module mediaprovider --javaPackage com.android.providers.media --javaClass MediaProviderStatsLog",
+    out: ["com/android/providers/media/MediaProviderStatsLog.java"],
 }

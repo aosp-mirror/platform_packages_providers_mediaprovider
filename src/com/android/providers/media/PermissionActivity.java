@@ -31,6 +31,7 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
 import android.text.TextUtils;
 import android.util.Log;
@@ -41,6 +42,8 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ImageView.ScaleType;
 import android.widget.TextView;
+
+import com.android.providers.media.util.Metrics;
 
 import java.io.IOException;
 
@@ -111,6 +114,8 @@ public class PermissionActivity extends Activity {
         builder.setPositiveButton(getString(R.string.grant_dialog_button_allow),
                 (dialog, which) -> {
                     Log.d(TAG, "User allowed grant for " + uri);
+                    Metrics.logPermissionGranted(MediaStore.getVolumeName(uri),
+                            System.currentTimeMillis(), getCallingPackage(), 1);
                     grantUriPermission(getCallingPackage(), uri,
                             Intent.FLAG_GRANT_READ_URI_PERMISSION |
                                     Intent.FLAG_GRANT_WRITE_URI_PERMISSION |
@@ -121,6 +126,8 @@ public class PermissionActivity extends Activity {
         builder.setNegativeButton(getString(R.string.grant_dialog_button_deny),
                 (dialog, which) -> {
                     Log.d(TAG, "User declined grant for " + uri);
+                    Metrics.logPermissionDenied(MediaStore.getVolumeName(uri),
+                            System.currentTimeMillis(), getCallingPackage(), 1);
                     finish();
                 });
         builder.setCancelable(false);

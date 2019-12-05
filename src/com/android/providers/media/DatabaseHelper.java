@@ -57,6 +57,7 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.DatabaseUtils;
+import com.android.providers.media.util.Metrics;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -81,6 +82,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     final Context mContext;
     final String mName;
     final int mVersion;
+    final String mVolumeName;
     final boolean mInternal;  // True if this is the internal database
     final boolean mEarlyUpgrade;
     final boolean mLegacyProvider;
@@ -99,6 +101,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         mContext = context;
         mName = name;
         mVersion = version;
+        mVolumeName = internal ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL;
         mInternal = internal;
         mEarlyUpgrade = earlyUpgrade;
         mLegacyProvider = legacyProvider;
@@ -452,10 +455,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 return;
             }
 
-            final String volumeName = mInternal ? MediaStore.VOLUME_INTERNAL
-                    : MediaStore.VOLUME_EXTERNAL;
-
-            Uri queryUri = MediaStore.Files.getContentUri(volumeName);
+            Uri queryUri = MediaStore.Files.getContentUri(mVolumeName);
             queryUri = MediaStore.setIncludePending(queryUri);
             queryUri = MediaStore.setIncludeTrashed(queryUri);
             queryUri = MediaStore.rewriteToLegacy(queryUri);
@@ -929,10 +929,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
         getOrCreateUuid(db);
 
-        final long elapsedSeconds = (SystemClock.elapsedRealtime() - startTime)
-                / DateUtils.SECOND_IN_MILLIS;
+        final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
+        final long elapsedSeconds = elapsedMillis / DateUtils.SECOND_IN_MILLIS;
         logToDb(db, "Database upgraded from version " + fromVersion + " to " + toVersion
                 + " in " + elapsedSeconds + " seconds");
+        Metrics.logSchemaChange(mVolumeName, fromVersion, toVersion,
+                getItemCount(db), elapsedMillis);
     }
 
     private void downgradeDatabase(SQLiteDatabase db, int fromVersion, int toVersion) {
@@ -941,10 +943,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         // The best we can do is wipe and start over
         createLatestSchema(db);
 
-        final long elapsedSeconds = (SystemClock.elapsedRealtime() - startTime)
-                / DateUtils.SECOND_IN_MILLIS;
+        final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
+        final long elapsedSeconds = elapsedMillis / DateUtils.SECOND_IN_MILLIS;
         logToDb(db, "Database downgraded from version " + fromVersion + " to " + toVersion
                 + " in " + elapsedSeconds + " seconds");
+        Metrics.logSchemaChange(mVolumeName, fromVersion, toVersion,
+                getItemCount(db), elapsedMillis);
     }
 
     /**
@@ -982,5 +986,27 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    /**
+     * Return total number of items tracked inside this database. This includes
+     * only real media items, and does not include directories.
+     */
+    public long getItemCount() {
+        return getItemCount(getReadableDatabase());
+    }
+
+    /**
+     * Return total number of items tracked inside this database. This includes
+     * only real media items, and does not include directories.
+     */
+    private long getItemCount(SQLiteDatabase db) {
+        try (Cursor c = db.query(false, "files", new String[] { "COUNT(_id)" },
+                FileColumns.MIME_TYPE + " IS NOT NULL", null, null, null, null, null, null)) {
+            if (c.moveToFirst()) {
+                return c.getLong(0);
+            }
+        }
+        return 0;
     }
 }

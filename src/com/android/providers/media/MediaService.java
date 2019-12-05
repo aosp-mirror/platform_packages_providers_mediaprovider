@@ -17,6 +17,8 @@
 package com.android.providers.media;
 
 import static com.android.providers.media.MediaProvider.TAG;
+import static com.android.providers.media.scan.MediaScanner.REASON_DEMAND;
+import static com.android.providers.media.scan.MediaScanner.REASON_MOUNTED;
 
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
@@ -63,7 +65,7 @@ public class MediaService extends JobIntentService {
                     break;
                 }
                 case Intent.ACTION_MEDIA_MOUNTED: {
-                    onScanVolume(this, intent.getData());
+                    onScanVolume(this, intent.getData(), REASON_MOUNTED);
                     break;
                 }
                 case Intent.ACTION_MEDIA_SCANNER_SCAN_FILE: {
@@ -99,7 +101,7 @@ public class MediaService extends JobIntentService {
         }
     }
 
-    public static void onScanVolume(Context context, Uri uri) throws IOException {
+    public static void onScanVolume(Context context, Uri uri, int reason) throws IOException {
         final File file = new File(uri.getPath()).getCanonicalFile();
         final String volumeName = MediaStore.getVolumeName(file);
 
@@ -107,7 +109,7 @@ public class MediaService extends JobIntentService {
         // to ensure that we have ringtones ready to roll before a possibly very
         // long external storage scan
         if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equals(volumeName)) {
-            onScanVolume(context, Uri.fromFile(Environment.getRootDirectory()));
+            onScanVolume(context, Uri.fromFile(Environment.getRootDirectory()), reason);
             RingtoneManager.ensureDefaultRingtones(context);
         }
 
@@ -127,7 +129,7 @@ public class MediaService extends JobIntentService {
             }
 
             for (File dir : resolveDirectories(volumeName)) {
-                provider.scanDirectory(dir);
+                provider.scanDirectory(dir, reason);
             }
 
             resolver.delete(scanUri, null, null);
@@ -144,7 +146,7 @@ public class MediaService extends JobIntentService {
         try (ContentProviderClient cpc = context.getContentResolver()
                 .acquireContentProviderClient(MediaStore.AUTHORITY)) {
             final MediaProvider provider = ((MediaProvider) cpc.getLocalContentProvider());
-            return provider.scanFile(file);
+            return provider.scanFile(file, REASON_DEMAND);
         }
     }
 

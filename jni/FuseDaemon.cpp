@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#define ATRACE_TAG ATRACE_TAG_APP
 #define LOG_TAG "FuseDaemon"
 
 #include "FuseDaemon.h"
 
 #include <android-base/logging.h>
 #include <android/log.h>
+#include <android/trace.h>
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
@@ -65,6 +67,20 @@ using std::vector;
 // logging macros to avoid duplication.
 #define TRACE LOG(DEBUG)
 #define TRACE_FUSE(__fuse) TRACE << "[" << __fuse->path << "] "
+
+#define ATRACE_NAME(name) ScopedTrace ___tracer(name)
+#define ATRACE_CALL() ATRACE_NAME(__FUNCTION__)
+
+class ScopedTrace {
+  public:
+    inline ScopedTrace(const char *name) {
+      ATrace_beginSection(name);
+    }
+
+    inline ~ScopedTrace() {
+      ATrace_endSection();
+    }
+};
 
 #define FUSE_UNKNOWN_INO 0xffffffff
 
@@ -544,6 +560,7 @@ static struct node* do_lookup(fuse_req_t req,
 }
 
 static void pf_lookup(fuse_req_t req, fuse_ino_t parent, const char* name) {
+    ATRACE_CALL();
     struct fuse_entry_param e;
 
     if (do_lookup(req, parent, name, &e))
@@ -562,6 +579,7 @@ static void do_forget(struct fuse* fuse, fuse_ino_t ino, uint64_t nlookup) {
 }
 
 static void pf_forget(fuse_req_t req, fuse_ino_t ino, uint64_t nlookup) {
+    ATRACE_CALL();
     struct node* node;
     struct fuse* fuse = get_fuse(req);
 
@@ -574,6 +592,7 @@ static void pf_forget(fuse_req_t req, fuse_ino_t ino, uint64_t nlookup) {
 static void pf_forget_multi(fuse_req_t req,
                             size_t count,
                             struct fuse_forget_data* forgets) {
+    ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
 
     pthread_mutex_lock(&fuse->lock);
@@ -588,6 +607,7 @@ static void pf_forget_multi(fuse_req_t req,
 static void pf_getattr(fuse_req_t req,
                        fuse_ino_t ino,
                        struct fuse_file_info* fi) {
+    ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     struct node* node;
@@ -615,6 +635,7 @@ static void pf_setattr(fuse_req_t req,
                        struct stat* attr,
                        int to_set,
                        struct fuse_file_info* fi) {
+    ATRACE_CALL();
     struct node* node;
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
@@ -689,6 +710,7 @@ static void pf_mknod(fuse_req_t req,
                      const char* name,
                      mode_t mode,
                      dev_t rdev) {
+    ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     struct node* parent_node;
@@ -724,6 +746,7 @@ static void pf_mkdir(fuse_req_t req,
                      fuse_ino_t parent,
                      const char* name,
                      mode_t mode) {
+    ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     struct node* parent_node;
@@ -754,6 +777,7 @@ static void pf_mkdir(fuse_req_t req,
 }
 
 static void pf_unlink(fuse_req_t req, fuse_ino_t parent, const char* name) {
+    ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     struct node* parent_node;
@@ -785,6 +809,7 @@ static void pf_unlink(fuse_req_t req, fuse_ino_t parent, const char* name) {
 }
 
 static void pf_rmdir(fuse_req_t req, fuse_ino_t parent, const char* name) {
+    ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     struct node* child_node;
@@ -827,6 +852,7 @@ static void pf_rename(fuse_req_t req,
                       fuse_ino_t newparent,
                       const char* newname,
                       unsigned int flags) {
+    ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     struct node* old_parent_node;
@@ -891,6 +917,7 @@ static void pf_link(fuse_req_t req, fuse_ino_t ino, fuse_ino_t newparent,
 */
 
 static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
+    ATRACE_CALL();
     struct node* node;
     string path;
     struct fuse* fuse = get_fuse(req);
@@ -1037,6 +1064,7 @@ static void do_read_with_redaction(fuse_req_t req, size_t size, off_t off, fuse_
 
 static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
                     struct fuse_file_info* fi) {
+    ATRACE_CALL();
     handle* h = reinterpret_cast<handle*>(fi->fh);
     struct fuse* fuse = get_fuse(req);
     TRACE_FUSE(fuse) << "READ";
@@ -1072,6 +1100,7 @@ static void pf_write_buf(fuse_req_t req,
                          struct fuse_bufvec* bufv,
                          off_t off,
                          struct fuse_file_info* fi) {
+    ATRACE_CALL();
     handle* h = reinterpret_cast<handle*>(fi->fh);
     struct fuse_bufvec buf = FUSE_BUFVEC_INIT(fuse_buf_size(bufv));
     ssize_t size;
@@ -1123,6 +1152,7 @@ static void pf_copy_file_range(fuse_req_t req, fuse_ino_t ino_in,
 static void pf_flush(fuse_req_t req,
                      fuse_ino_t ino,
                      struct fuse_file_info* fi) {
+    ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     TRACE_FUSE(fuse) << "FLUSH is a noop";
     fuse_reply_err(req, 0);
@@ -1131,6 +1161,7 @@ static void pf_flush(fuse_req_t req,
 static void pf_release(fuse_req_t req,
                        fuse_ino_t ino,
                        struct fuse_file_info* fi) {
+    ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     handle* h = reinterpret_cast<handle*>(fi->fh);
 
@@ -1157,6 +1188,7 @@ static void pf_fsync(fuse_req_t req,
                      fuse_ino_t ino,
                      int datasync,
                      struct fuse_file_info* fi) {
+    ATRACE_CALL();
     handle* h = reinterpret_cast<handle*>(fi->fh);
     int err = do_sync_common(h->fd, datasync);
 
@@ -1176,6 +1208,7 @@ static void pf_fsyncdir(fuse_req_t req,
 static void pf_opendir(fuse_req_t req,
                        fuse_ino_t ino,
                        struct fuse_file_info* fi) {
+    ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     struct node* node;
@@ -1293,6 +1326,7 @@ static void do_readdir_common(fuse_req_t req,
 
 static void pf_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
                        struct fuse_file_info* fi) {
+    ATRACE_CALL();
     do_readdir_common(req, ino, size, off, fi, false);
 }
 
@@ -1301,12 +1335,14 @@ static void pf_readdirplus(fuse_req_t req,
                            size_t size,
                            off_t off,
                            struct fuse_file_info* fi) {
+    ATRACE_CALL();
     do_readdir_common(req, ino, size, off, fi, true);
 }
 
 static void pf_releasedir(fuse_req_t req,
                           fuse_ino_t ino,
                           struct fuse_file_info* fi) {
+    ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     struct dirhandle* h = reinterpret_cast<struct dirhandle*>(fi->fh);
 
@@ -1317,6 +1353,7 @@ static void pf_releasedir(fuse_req_t req,
 }
 
 static void pf_statfs(fuse_req_t req, fuse_ino_t ino) {
+    ATRACE_CALL();
     struct statvfs st;
     struct fuse* fuse = get_fuse(req);
 
@@ -1349,6 +1386,7 @@ static void pf_removexattr(fuse_req_t req, fuse_ino_t ino, const char* name)
 }*/
 
 static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
+    ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
 
@@ -1367,6 +1405,7 @@ static void pf_create(fuse_req_t req,
                       const char* name,
                       mode_t mode,
                       struct fuse_file_info* fi) {
+    ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     struct node* parent_node;

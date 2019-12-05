@@ -53,6 +53,7 @@ import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -517,6 +518,32 @@ public class MediaProviderTest {
             assertBucket(values, top + "/One/Two/Three", "Three");
             assertGroup(values, "IMG1024");
             assertRelativePath(values, "One/Two/Three/");
+        }
+    }
+
+    @Test
+    public void testRelativePathForInvalidDirectories() throws Exception {
+        for (String data : new String[] {
+            "/storage/IMG1024.JPG",
+            "/data/media/IMG1024.JPG",
+            "IMG1024.JPG",
+            "storage/emulated/",
+        }) {
+            assertEquals(MediaProvider.extractRelativePathForDirectory(data), null);
+        }
+    }
+
+    @Test
+    public void testRelativePathForValidDirectories() throws Exception {
+        for (Pair<String, String> top: new ArrayList<Pair<String, String>>() {{
+            add(new Pair("/storage/emulated/0", new String("")));
+            add(new Pair("/storage/emulated/0/DCIM", "DCIM/"));
+            add(new Pair("/storage/emulated/0/DCIM/Camera", "DCIM/Camera/"));
+            add(new Pair("/storage/emulated/0/Android/media/com.example/Foo",
+                    "Android/media/com.example/Foo/"));
+            add(new Pair("/storage/0000-0000/DCIM/Camera", "DCIM/Camera/"));
+        }}) {
+            assertEquals(top.second, MediaProvider.extractRelativePathForDirectory(top.first));
         }
     }
 

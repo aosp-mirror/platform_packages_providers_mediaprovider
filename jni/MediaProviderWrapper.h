@@ -20,6 +20,7 @@
 #include <jni.h>
 #include <sys/types.h>
 
+#include <dirent.h>
 #include <atomic>
 #include <condition_variable>
 #include <functional>
@@ -85,10 +86,12 @@ class MediaProviderWrapper final {
      *
      * @param uid UID of the calling app.
      * @param path Relative path of the directory.
-     * @param dirp pointer to directory stream
+     * @param dirp Pointer to directory stream, used to query lower file system.
      * @return DirectoryEntries with list of directory entries on success,
      * DirectoryEntries with an empty list if directory path is unknown to MediaProvider
      * or no directory entries are visible to the calling app.
+     * An empty string in first directory entry name indicates the error occurred while obtaining
+     * directory entries, directory entry type will hold the corresponding errno information.
      */
     std::vector<std::shared_ptr<DirectoryEntry>> GetDirectoryEntries(uid_t uid,
                                                                      const std::string& path,

@@ -15,17 +15,20 @@
 -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.android.tests.fused" >
+    package="com.android.tests.fused.testapp.A"
+    android:versionCode="1"
+    android:versionName="1.0" >
 
-    <application>
-        <receiver android:name="com.android.cts.install.lib.LocalIntentSender"
-                  android:exported="true" />
-        <uses-library android:name="android.test.runner" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+
+    <application android:label="TestAppA">
+        <activity android:name="com.android.tests.fused.FilePathAccessTestHelper">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
     </application>
-
-
-    <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
-                     android:targetPackage="com.android.tests.fused"
-                     android:label="Tests for file path access when FuseDaemon is active"/>
-
 </manifest>
+

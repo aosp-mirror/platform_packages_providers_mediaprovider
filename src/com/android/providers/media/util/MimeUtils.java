@@ -41,6 +41,14 @@ public class MimeUtils {
         return mimeType;
     }
 
+    public static @NonNull String extractPrimaryType(@NonNull String mimeType) {
+        final int slash = mimeType.indexOf('/');
+        if (slash == -1) {
+            throw new IllegalArgumentException();
+        }
+        return mimeType.substring(0, slash);
+    }
+
     public static boolean isAudioMimeType(@Nullable String mimeType) {
         if (mimeType == null) return false;
         return mimeType.startsWith("audio/");

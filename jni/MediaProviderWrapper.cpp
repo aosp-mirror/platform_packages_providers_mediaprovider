@@ -258,7 +258,6 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
     request_terminate_jni_thread_ = false;
 
     jni_thread_ = std::thread(&MediaProviderWrapper::JniThreadLoop, this, jvm);
-    pthread_setname_np(jni_thread_.native_handle(), "media_provider_jni_thr");
     LOG(INFO) << "Successfully initialized MediaProviderWrapper";
 }
 
@@ -470,6 +469,7 @@ void MediaProviderWrapper::PostAsyncTask(const JniTask& t) {
 void MediaProviderWrapper::JniThreadLoop(JavaVM* jvm) {
     JNIEnv* env;
     jvm->AttachCurrentThread(&env, NULL);
+    pthread_setname_np(pthread_self(), "jni_loop");
 
     while (!request_terminate_jni_thread_) {
         std::unique_lock<std::mutex> cond_lock(jni_task_lock_);

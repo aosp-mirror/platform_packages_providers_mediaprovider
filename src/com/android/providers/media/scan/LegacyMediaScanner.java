@@ -35,12 +35,12 @@ public class LegacyMediaScanner implements MediaScanner {
     }
 
     @Override
-    public void scanDirectory(File file) {
+    public void scanDirectory(File file, int reason) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public Uri scanFile(File file) {
+    public Uri scanFile(File file, int reason) {
         throw new UnsupportedOperationException();
     }
 

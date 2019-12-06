@@ -65,6 +65,7 @@ import android.os.CancellationSignal;
 import android.os.Environment;
 import android.os.OperationCanceledException;
 import android.os.RemoteException;
+import android.os.SystemClock;
 import android.os.Trace;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio.AudioColumns;
@@ -86,6 +87,7 @@ import com.android.providers.media.util.AutoCloseableSupplier;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.IsoInterface;
 import com.android.providers.media.util.LongArray;
+import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
 import com.android.providers.media.util.XmpInterface;
 
@@ -168,16 +170,16 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @Override
-    public void scanDirectory(File file) {
-        try (Scan scan = new Scan(file)) {
+    public void scanDirectory(File file, int reason) {
+        try (Scan scan = new Scan(file, reason)) {
             scan.run();
         } catch (OperationCanceledException ignored) {
         }
     }
 
     @Override
-    public Uri scanFile(File file) {
-        try (Scan scan = new Scan(file)) {
+    public Uri scanFile(File file, int reason) {
+        try (Scan scan = new Scan(file, reason)) {
             scan.run();
             return scan.mFirstResult;
         } catch (OperationCanceledException ignored) {
@@ -217,6 +219,7 @@ public class ModernMediaScanner implements MediaScanner {
         private final AutoCloseableSupplier<DrmManagerClient> mDrmClient;
 
         private final File mRoot;
+        private final int mReason;
         private final String mVolumeName;
         private final Uri mFilesUri;
         private final CancellationSignal mSignal;
@@ -229,7 +232,12 @@ public class ModernMediaScanner implements MediaScanner {
 
         private Uri mFirstResult;
 
-        public Scan(File root) {
+        private int mFileCount;
+        private int mInsertCount;
+        private int mUpdateCount;
+        private int mDeleteCount;
+
+        public Scan(File root, int reason) {
             Trace.beginSection("ctor");
 
             mClient = mContext.getContentResolver()
@@ -244,6 +252,7 @@ public class ModernMediaScanner implements MediaScanner {
             };
 
             mRoot = root;
+            mReason = reason;
             mVolumeName = MediaStore.getVolumeName(root);
             mFilesUri = MediaStore.setIncludePending(MediaStore.Files.getContentUri(mVolumeName));
             mSignal = getOrCreateSignal(mVolumeName);
@@ -255,6 +264,8 @@ public class ModernMediaScanner implements MediaScanner {
 
         @Override
         public void run() {
+            final long startTime = SystemClock.elapsedRealtime();
+
             // First, scan everything that should be visible under requested
             // location, tracking scanned IDs along the way
             walkFileTree();
@@ -271,6 +282,12 @@ public class ModernMediaScanner implements MediaScanner {
             // Third, resolve any playlists that we scanned
             if (mPlaylistIds.size() > 0) {
                 resolvePlaylists();
+            }
+
+            if (!mSingleFile) {
+                final long durationMillis = SystemClock.elapsedRealtime() - startTime;
+                Metrics.logScan(mVolumeName, mReason, mFileCount, durationMillis,
+                        mInsertCount, mUpdateCount, mDeleteCount);
             }
         }
 
@@ -328,7 +345,7 @@ public class ModernMediaScanner implements MediaScanner {
                     final Uri uri = MediaStore.Files.getContentUri(mVolumeName, id).buildUpon()
                             .appendQueryParameter(MediaStore.PARAM_DELETE_DATA, "false")
                             .build();
-                    mPending.add(ContentProviderOperation.newDelete(uri).build());
+                    addPending(ContentProviderOperation.newDelete(uri).build());
                     maybeApplyPending();
                 }
                 applyPending();
@@ -342,8 +359,7 @@ public class ModernMediaScanner implements MediaScanner {
             for (int i = 0; i < mPlaylistIds.size(); i++) {
                 final Uri uri = MediaStore.Files.getContentUri(mVolumeName, mPlaylistIds.get(i));
                 try {
-                    mPending.addAll(
-                            PlaylistResolver.resolvePlaylist(mResolver, uri));
+                    PlaylistResolver.resolvePlaylist(mResolver, uri).forEach(this::addPending);
                     maybeApplyPending();
                 } catch (IOException e) {
                     if (LOGW) Log.w(TAG, "Ignoring troubled playlist: " + uri, e);
@@ -382,6 +398,7 @@ public class ModernMediaScanner implements MediaScanner {
         public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
                 throws IOException {
             if (LOGV) Log.v(TAG, "Visiting " + file);
+            mFileCount++;
 
             // Skip files that have already been scanned, and which haven't
             // changed since they were last scanned
@@ -425,7 +442,7 @@ public class ModernMediaScanner implements MediaScanner {
                 Trace.endSection();
             }
             if (op != null) {
-                mPending.add(op);
+                addPending(op);
                 maybeApplyPending();
             }
             return FileVisitResult.CONTINUE;
@@ -442,6 +459,14 @@ public class ModernMediaScanner implements MediaScanner {
         public FileVisitResult postVisitDirectory(Path dir, IOException exc)
                 throws IOException {
             return FileVisitResult.CONTINUE;
+        }
+
+        private void addPending(ContentProviderOperation op) {
+            mPending.add(op);
+
+            if (op.isInsert()) mInsertCount++;
+            if (op.isUpdate()) mUpdateCount++;
+            if (op.isDelete()) mDeleteCount++;
         }
 
         private void maybeApplyPending() {

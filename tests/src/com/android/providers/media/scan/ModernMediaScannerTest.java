@@ -16,6 +16,7 @@
 
 package com.android.providers.media.scan;
 
+import static com.android.providers.media.scan.MediaScanner.REASON_UNKNOWN;
 import static com.android.providers.media.scan.MediaScannerTest.stage;
 import static com.android.providers.media.scan.ModernMediaScanner.isDirectoryHidden;
 import static com.android.providers.media.scan.ModernMediaScanner.maybeOverrideMimeType;
@@ -43,13 +44,11 @@ import android.provider.MediaStore.MediaColumns;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.providers.media.MediaProvider;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 import com.android.providers.media.tests.R;
 import com.android.providers.media.util.FileUtils;
 
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -249,7 +248,7 @@ public class ModernMediaScannerTest {
         stage(R.raw.test_audio, new File(music, "003.mp3"));
         stage(res, new File(music, name));
 
-        mModern.scanDirectory(mDir);
+        mModern.scanDirectory(mDir, REASON_UNKNOWN);
 
         // We should see a new playlist with all three items as members
         final long playlistId;
@@ -277,7 +276,7 @@ public class ModernMediaScannerTest {
         // Delete one of the media files and rescan
         new File(music, "002.mp3").delete();
         new File(music, name).setLastModified(10L);
-        mModern.scanDirectory(mDir);
+        mModern.scanDirectory(mDir, REASON_UNKNOWN);
 
         try (Cursor cursor = mIsolatedResolver.query(membersUri, new String[] {
                 MediaColumns.DISPLAY_NAME
@@ -295,7 +294,7 @@ public class ModernMediaScannerTest {
         final File file = new File(mDir, "red.jpg");
         stage(R.raw.test_image, file);
 
-        mModern.scanDirectory(mDir);
+        mModern.scanDirectory(mDir, REASON_UNKNOWN);
 
         // Confirm that we found new image and scanned it
         final Uri uri;
@@ -330,7 +329,7 @@ public class ModernMediaScannerTest {
 
         // Delete raw file and confirm it's cleaned up
         file.delete();
-        mModern.scanDirectory(mDir);
+        mModern.scanDirectory(mDir, REASON_UNKNOWN);
         assertQueryCount(0, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
     }
 
@@ -343,7 +342,7 @@ public class ModernMediaScannerTest {
         stage(R.raw.test_image, new File(red, "red.jpg"));
         stage(R.raw.test_image, new File(blue, "blue.jpg"));
 
-        mModern.scanDirectory(mDir);
+        mModern.scanDirectory(mDir, REASON_UNKNOWN);
 
         // We should have found both images
         assertQueryCount(2, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
@@ -351,12 +350,12 @@ public class ModernMediaScannerTest {
         // Hide one directory, rescan, and confirm hidden
         final File redNomedia = new File(red, ".nomedia");
         redNomedia.createNewFile();
-        mModern.scanDirectory(mDir);
+        mModern.scanDirectory(mDir, REASON_UNKNOWN);
         assertQueryCount(1, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
 
         // Unhide, rescan, and confirm visible again
         redNomedia.delete();
-        mModern.scanDirectory(mDir);
+        mModern.scanDirectory(mDir, REASON_UNKNOWN);
         assertQueryCount(2, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
     }
 
@@ -368,18 +367,18 @@ public class ModernMediaScannerTest {
         nomedia.createNewFile();
 
         // Direct scan with nomedia means no image
-        assertNull(mModern.scanFile(image));
+        assertNull(mModern.scanFile(image, REASON_UNKNOWN));
         assertQueryCount(0, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
 
         // Direct scan without nomedia means image
         nomedia.delete();
-        assertNotNull(mModern.scanFile(image));
-        assertNotNull(mModern.scanFile(image));
+        assertNotNull(mModern.scanFile(image, REASON_UNKNOWN));
+        assertNotNull(mModern.scanFile(image, REASON_UNKNOWN));
         assertQueryCount(1, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
 
         // Direct scan again hides it again
         nomedia.createNewFile();
-        assertNull(mModern.scanFile(image));
+        assertNull(mModern.scanFile(image, REASON_UNKNOWN));
         assertQueryCount(0, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
     }
 

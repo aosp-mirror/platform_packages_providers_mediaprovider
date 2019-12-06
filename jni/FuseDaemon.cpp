@@ -1142,9 +1142,9 @@ static void pf_release(fuse_req_t req,
 
     fuse->fadviser.Close(h->fd);
     close(h->fd);
-    if (is_requesting_write(fi->flags)) {
-        fuse->mp->ScanFile(h->path);
-    }
+
+    // TODO(b/145737191): Figure out if we need to scan files on close, and how to do it properly
+
     delete h;
     fuse_reply_err(req, 0);
 }

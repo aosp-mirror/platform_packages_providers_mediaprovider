@@ -261,24 +261,9 @@ public class FilePathAccessTest {
                 fos.write(BYTES_DATA1);
                 fos.write(BYTES_DATA2);
             }
-            // Closing the file after writing will trigger a MediaScanner scan that updates the
-            // file's entry in MediaProvider's database
 
-            // When FileOutputStream is closed, a MediaScanner scan is triggered on the JNI thread.
-            // To avoid race conditions with the query check, we add another JNI task that will be
-            // synchronized on the same JNI thread.
             final byte[] expected = (STR_DATA1 + STR_DATA2).getBytes();
             assertFileContent(imageFile, expected);
-
-            // Ensure that the scan was completed and the file's size was updated.
-            try (final Cursor c = cr.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                    /* projection */new String[] {MediaColumns.SIZE},
-                    selection, selectionArgs, null)) {
-                assertThat(c.getCount()).isEqualTo(1);
-                c.moveToFirst();
-                assertThat(c.getInt(c.getColumnIndex(MediaColumns.SIZE)))
-                        .isEqualTo(BYTES_DATA1.length + BYTES_DATA2.length);
-            }
         } finally {
             imageFile.delete();
         }
@@ -551,6 +536,7 @@ public class FilePathAccessTest {
             if (!videoFile.exists()) {
                 assertThat(videoFile.createNewFile()).isTrue();
             }
+
             // App should see its directory and other app's external media directories with media
             // files.
             assertThat(ReaddirTestHelper.readDirectory(ANDROID_MEDIA_DIR)).contains(packageName);
@@ -559,13 +545,20 @@ public class FilePathAccessTest {
 
             // Install TEST_APP_A with READ_EXTERNAL_STORAGE permission.
             // TEST_APP_A with storage permission should see other app's external media directory.
-            installApp(TEST_APP_A, true);
-            assertThat(listDirectoryEntriesFromTestApp(TEST_APP_A, ANDROID_MEDIA_DIR.getPath()))
-                    .contains(packageName);
-            assertThat(listDirectoryEntriesFromTestApp(TEST_APP_A, EXTERNAL_MEDIA_DIR.getPath()))
-                    .containsExactly(videoFileName);
+
+            // TODO(b/145757667): Uncomment this when we start indexing Android/media files.
+            //  For context, this used to work when we used to scan files after closing them, but
+            //  now, since we don't, videoFileName is not indexed by MediaProvider, which means
+            //  that Android/media/<pkg-name> is empty and so MediaProvider can't see it.
+            //  We also can't use ContentResolver#insert since MediaProvider doesn't allow videos
+            //  under primary directory Android.
+//            installApp(TEST_APP_A, true);
+//            assertThat(listDirectoryEntriesFromTestApp(TEST_APP_A, ANDROID_MEDIA_DIR.getPath()))
+//                    .contains(packageName);
+//            assertThat(listDirectoryEntriesFromTestApp(TEST_APP_A, EXTERNAL_MEDIA_DIR.getPath()))
+//                    .containsExactly(videoFileName);
         } finally {
-            assertThat(videoFile.delete()).isTrue();
+            videoFile.delete();
         }
     }
 

@@ -3442,22 +3442,21 @@ public class MediaProvider extends ContentProvider {
                                                 | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
                             }, deletedUri);
 
+                            deleteIfAllowed(uri, extras, data);
+
                             // Only need to inform DownloadProvider about the downloads deleted on
                             // external volume.
                             if (isDownload == 1) {
                                 deletedDownloadIds.put(id, mimeType);
                             }
                             if (mediaType == FileColumns.MEDIA_TYPE_IMAGE) {
-                                deleteIfAllowed(uri, extras, data);
                                 MediaDocumentsProvider.onMediaStoreDelete(getContext(),
                                         volumeName, FileColumns.MEDIA_TYPE_IMAGE, id);
                             } else if (mediaType == FileColumns.MEDIA_TYPE_VIDEO) {
-                                deleteIfAllowed(uri, extras, data);
                                 MediaDocumentsProvider.onMediaStoreDelete(getContext(),
                                         volumeName, FileColumns.MEDIA_TYPE_VIDEO, id);
                             } else if (mediaType == FileColumns.MEDIA_TYPE_AUDIO) {
                                 if (!helper.mInternal) {
-                                    deleteIfAllowed(uri, extras, data);
                                     MediaDocumentsProvider.onMediaStoreDelete(getContext(),
                                             volumeName, FileColumns.MEDIA_TYPE_AUDIO, id);
 
@@ -3487,7 +3486,6 @@ public class MediaProvider extends ContentProvider {
                                     }
                                 }
                             } else if (isDownload == 1) {
-                                deleteIfAllowed(uri, extras, data);
                                 MediaDocumentsProvider.onMediaStoreDelete(getContext(),
                                         volumeName, mediaType, id);
                             } else if (mediaType == FileColumns.MEDIA_TYPE_PLAYLIST) {

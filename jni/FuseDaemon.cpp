@@ -1301,10 +1301,10 @@ static void do_readdir_common(fuse_req_t req,
         entry_size = 0;
         h->next_off++;
         if (plus) {
-            if (do_lookup(req, ino, de->d_name.c_str(), &e))
+            if (do_lookup(req, ino, de->d_name.c_str(), &e)) {
                 entry_size = fuse_add_direntry_plus(req, buf + used, len - used, de->d_name.c_str(),
                                                     &e, h->next_off);
-            else {
+            } else {
                 // Ignore lookup errors on
                 // 1. non-existing files returned from MediaProvider database.
                 // 2. path that doesn't match FuseDaemon UID and calling uid.

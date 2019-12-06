@@ -105,7 +105,6 @@ public class FuseDaemonHostTest extends FuseDaemonBaseHostTest {
     }
 
     @Test
-    @Ignore("b/146189163")
     public void testListFilesFromExternalFilesDirectory() throws Exception {
         runDeviceTest("testListFilesFromExternalFilesDirectory");
     }

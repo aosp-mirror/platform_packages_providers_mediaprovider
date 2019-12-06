@@ -397,32 +397,26 @@ public class FilePathAccessTest {
             installApp(TEST_APP_A, false);
             assertThat(createFileAs(TEST_APP_A, videoFile.getPath())).isTrue();
             // TEST_APP_A should see TEST_DIRECTORY in DCIM and new file in TEST_DIRECTORY.
-            assertThat(listAs(TEST_APP_A, DCIM_DIR.getPath()))
-                    .contains(TEST_DIRECTORY);
-            assertThat(listAs(TEST_APP_A, dir.getPath()))
-                    .containsExactly(videoFileName);
+            assertThat(listAs(TEST_APP_A, DCIM_DIR.getPath())).contains(TEST_DIRECTORY);
+            assertThat(listAs(TEST_APP_A, dir.getPath())).containsExactly(videoFileName);
 
             // Install TEST_APP_B with storage permission.
             installApp(TEST_APP_B, true);
             // TEST_APP_B with storage permission should see TEST_DIRECTORY in DCIM and new file
             // in TEST_DIRECTORY.
-            assertThat(listAs(TEST_APP_B, DCIM_DIR.getPath()))
-                    .contains(TEST_DIRECTORY);
-            assertThat(listAs(TEST_APP_B, dir.getPath()))
-                    .containsExactly(videoFileName);
+            assertThat(listAs(TEST_APP_B, DCIM_DIR.getPath())).contains(TEST_DIRECTORY);
+            assertThat(listAs(TEST_APP_B, dir.getPath())).containsExactly(videoFileName);
 
             // Revoke storage permission for TEST_APP_B
             revokeReadExternalStorage(TEST_APP_B.getPackageName());
-            // TEST_APP_B without storage permission should not see TEST_DIRECTORY in DCIM and new
-            // file in new TEST_DIRECTORY.
-            assertThat(listAs(TEST_APP_B, DCIM_DIR.getPath()))
-                    .doesNotContain(TEST_DIRECTORY);
-            assertThat(listAs(TEST_APP_B, dir.getPath()))
-                    .doesNotContain(videoFileName);
+            // TEST_APP_B without storage permission should see TEST_DIRECTORY in DCIM and should
+            // not see new file in new TEST_DIRECTORY.
+            assertThat(listAs(TEST_APP_B, DCIM_DIR.getPath())).contains(TEST_DIRECTORY);
+            assertThat(listAs(TEST_APP_B, dir.getPath())).doesNotContain(videoFileName);
         } finally {
             uninstallApp(TEST_APP_B);
             if(videoFile.exists()) {
-                assertThat(deleteFileAs(TEST_APP_A, videoFile.getPath())).isTrue();
+                deleteFileAs(TEST_APP_A, videoFile.getPath());
             }
             if (dir.exists()) {
                   // Try deleting the directory. Do we delete directory if app doesn't own all
@@ -452,27 +446,21 @@ public class FilePathAccessTest {
 
             // TEST_APP_A should see TEST_DIRECTORY in DOWNLOAD_DIR and new non media file in
             // TEST_DIRECTORY.
-            assertThat(listAs(TEST_APP_A, DOWNLOAD_DIR.getPath()))
-                    .contains(TEST_DIRECTORY);
-            assertThat(listAs(TEST_APP_A, dir.getPath()))
-                    .containsExactly(pdfFileName);
+            assertThat(listAs(TEST_APP_A, DOWNLOAD_DIR.getPath())).contains(TEST_DIRECTORY);
+            assertThat(listAs(TEST_APP_A, dir.getPath())).containsExactly(pdfFileName);
 
             // Install TEST_APP_B with storage permission.
             installApp(TEST_APP_B, true);
-            // TEST_APP_B with storage permission should not see TEST_DIRECTORY in DOWNLOAD_DIR
+            // TEST_APP_B with storage permission should see TEST_DIRECTORY in DOWNLOAD_DIR
             // and should not see new non media file in TEST_DIRECTORY.
-            assertThat(listAs(TEST_APP_B, DOWNLOAD_DIR.getPath()))
-                    .doesNotContain(TEST_DIRECTORY);
-            assertThat(listAs(TEST_APP_B, dir.getPath()))
-                    .doesNotContain(pdfFileName);
+            assertThat(listAs(TEST_APP_B, DOWNLOAD_DIR.getPath())).contains(TEST_DIRECTORY);
+            assertThat(listAs(TEST_APP_B, dir.getPath())).doesNotContain(pdfFileName);
         } finally {
             uninstallApp(TEST_APP_B);
             if(pdfFile.exists()) {
-                assertThat(deleteFileAs(TEST_APP_A, pdfFile.getPath())).isTrue();
+                deleteFileAs(TEST_APP_A, pdfFile.getPath());
             }
             if (dir.exists()) {
-                  // Try deleting the directory. Do we delete directory if app doesn't own all
-                  // files in it?
                   dir.delete();
             }
             uninstallApp(TEST_APP_A);
@@ -495,19 +483,18 @@ public class FilePathAccessTest {
             }
             // App should see its directory and directories of shared packages. App should see all
             // files and directories in its external directory.
-            assertThat(ReaddirTestHelper.readDirectory(ANDROID_DATA_DIR)).contains(packageName);
             assertThat(ReaddirTestHelper.readDirectory(videoFile.getParentFile()))
                     .containsExactly(videoFileName);
 
             // Install TEST_APP_A with READ_EXTERNAL_STORAGE permission.
             // TEST_APP_A should not see other app's external files directory.
             installApp(TEST_APP_A, true);
-            assertThat(listAs(TEST_APP_A, ANDROID_DATA_DIR.getPath()))
-                    .doesNotContain(packageName);
-            assertThat(listAs(TEST_APP_A, EXTERNAL_FILES_DIR.getPath()))
-                    .isEmpty();
+            // TODO(b/146497700): This is passing because ReaddirTestHelper ignores IOException and
+            //  returns empty list.
+            assertThat(listAs(TEST_APP_A, ANDROID_DATA_DIR.getPath())).doesNotContain(packageName);
+            assertThat(listAs(TEST_APP_A, EXTERNAL_FILES_DIR.getPath())).isEmpty();
         } finally {
-            assertThat(videoFile.delete()).isTrue();
+            videoFile.delete();
         }
     }
 
@@ -528,7 +515,8 @@ public class FilePathAccessTest {
 
             // App should see its directory and other app's external media directories with media
             // files.
-            assertThat(ReaddirTestHelper.readDirectory(ANDROID_MEDIA_DIR)).contains(packageName);
+            // TODO(b/145757667): Uncomment this when we start indexing Android/media files.
+            // assertThat(ReaddirTestHelper.readDirectory(ANDROID_MEDIA_DIR)).contains(packageName);
             assertThat(ReaddirTestHelper.readDirectory(EXTERNAL_MEDIA_DIR))
                     .containsExactly(videoFileName);
 

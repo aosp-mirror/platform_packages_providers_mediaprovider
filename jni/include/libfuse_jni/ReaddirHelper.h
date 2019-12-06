@@ -44,12 +44,18 @@ struct DirectoryEntry {
 };
 
 /**
- * Gets directory entries from lower file system.
+ * Adds directory entries from lower file system to the list.
  *
- * This will be used for FUSE root node and other paths which are not indexed by
- * MediaProvider database.
+ * If a filter is specified, directory entries must satisfy the given filter. If filter is null,
+ * all directory entries(except '.' & '..') are returned.
  */
-std::vector<std::shared_ptr<DirectoryEntry>> getDirectoryEntriesFromLowerFs(DIR* d);
+void addDirectoryEntriesFromLowerFs(DIR* dirp, bool (*const filter)(const dirent&),
+        std::vector<std::shared_ptr<DirectoryEntry>>* directory_entries);
+
+/**
+ * Checks if the given dirent is directory.
+ */
+bool isDirectory(const dirent& entry);
 
 }  // namespace fuse
 }  // namespace mediaprovider

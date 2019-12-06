@@ -2164,7 +2164,7 @@ public class MediaProvider extends ContentProvider {
                     mediaType = FileColumns.MEDIA_TYPE_VIDEO;
                 } else if (MimeUtils.isImageMimeType(mimeType)) {
                     mediaType = FileColumns.MEDIA_TYPE_IMAGE;
-                } else if (MimeUtils.isPlayListMimeType(mimeType)) {
+                } else if (MimeUtils.isPlaylistMimeType(mimeType)) {
                     mediaType = FileColumns.MEDIA_TYPE_PLAYLIST;
                 }
             }
@@ -3854,7 +3854,7 @@ public class MediaProvider extends ContentProvider {
 
                 final File[] files = thumbDir.listFiles();
                 for (File thumbFile : (files != null) ? files : new File[0]) {
-                    final String name = ModernMediaScanner.extractName(thumbFile);
+                    final String name = FileUtils.extractFileName(thumbFile.getName());
                     try {
                         final long id = Long.parseLong(name);
                         if (Arrays.binarySearch(knownIdsRaw, id) >= 0) {

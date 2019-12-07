@@ -17,6 +17,7 @@
 package com.android.providers.media.util;
 
 import android.content.ClipDescription;
+import android.provider.MediaStore.Files.FileColumns;
 import android.webkit.MimeTypeMap;
 
 import androidx.annotation.NonNull;
@@ -39,6 +40,27 @@ public class MimeUtils {
         if (mimeType == null) return ClipDescription.MIMETYPE_UNKNOWN;
 
         return mimeType;
+    }
+
+    /**
+     * Resolve the {@link FileColumns#MEDIA_TYPE} of the given MIME type. This
+     * carefully checks for more specific types before generic ones, such as
+     * treating {@code audio/mpegurl} as a playlist instead of an audio file.
+     */
+    public static int resolveMediaType(@NonNull String mimeType) {
+        if (isPlaylistMimeType(mimeType)) {
+            return FileColumns.MEDIA_TYPE_PLAYLIST;
+        } else if (isSubtitleMimeType(mimeType)) {
+            return FileColumns.MEDIA_TYPE_SUBTITLE;
+        } else if (isAudioMimeType(mimeType)) {
+            return FileColumns.MEDIA_TYPE_AUDIO;
+        } else if (isVideoMimeType(mimeType)) {
+            return FileColumns.MEDIA_TYPE_VIDEO;
+        } else if (isImageMimeType(mimeType)) {
+            return FileColumns.MEDIA_TYPE_IMAGE;
+        } else {
+            return FileColumns.MEDIA_TYPE_NONE;
+        }
     }
 
     public static @NonNull String extractPrimaryType(@NonNull String mimeType) {
@@ -73,6 +95,23 @@ public class MimeUtils {
             case "audio/mpegurl":
             case "audio/x-mpegurl":
             case "audio/x-scpls":
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    public static boolean isSubtitleMimeType(@Nullable String mimeType) {
+        if (mimeType == null) return false;
+        switch (mimeType) {
+            case "application/lrc":
+            case "application/smil+xml":
+            case "application/ttml+xml":
+            case "application/x-extension-cap":
+            case "application/x-extension-srt":
+            case "application/x-extension-sub":
+            case "application/x-extension-vtt":
+            case "text/vtt":
                 return true;
             default:
                 return false;

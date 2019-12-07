@@ -511,6 +511,10 @@ public class ModernMediaScanner implements MediaScanner {
                     ContentProviderResult result = results[index];
                     ContentProviderOperation operation = mPending.get(index);
 
+                    if (result.exception != null) {
+                        Log.w(TAG, "Failed to apply " + operation + ": " + result.exception);
+                    }
+
                     Uri uri = result.uri;
                     if (uri != null) {
                         if (mFirstResult == null) {
@@ -554,16 +558,22 @@ public class ModernMediaScanner implements MediaScanner {
 
         if (attrs.isDirectory()) {
             return scanItemDirectory(existingId, file, attrs, mimeType, volumeName);
-        } else if (MimeUtils.isPlaylistMimeType(mimeType)) {
-            return scanItemPlaylist(existingId, file, attrs, mimeType, volumeName);
-        } else if (MimeUtils.isAudioMimeType(mimeType)) {
-            return scanItemAudio(existingId, file, attrs, mimeType, volumeName);
-        } else if (MimeUtils.isVideoMimeType(mimeType)) {
-            return scanItemVideo(existingId, file, attrs, mimeType, volumeName);
-        } else if (MimeUtils.isImageMimeType(mimeType)) {
-            return scanItemImage(existingId, file, attrs, mimeType, volumeName);
-        } else {
-            return scanItemFile(existingId, file, attrs, mimeType, volumeName);
+        }
+
+        final int mediaType = MimeUtils.resolveMediaType(mimeType);
+        switch (mediaType) {
+            case FileColumns.MEDIA_TYPE_AUDIO:
+                return scanItemAudio(existingId, file, attrs, mimeType, volumeName);
+            case FileColumns.MEDIA_TYPE_VIDEO:
+                return scanItemVideo(existingId, file, attrs, mimeType, volumeName);
+            case FileColumns.MEDIA_TYPE_IMAGE:
+                return scanItemImage(existingId, file, attrs, mimeType, volumeName);
+            case FileColumns.MEDIA_TYPE_PLAYLIST:
+                return scanItemPlaylist(existingId, file, attrs, mimeType, volumeName);
+            case FileColumns.MEDIA_TYPE_SUBTITLE:
+                return scanItemSubtitle(existingId, file, attrs, mimeType, volumeName);
+            default:
+                return scanItemFile(existingId, file, attrs, mimeType, volumeName);
         }
     }
 
@@ -762,6 +772,15 @@ public class ModernMediaScanner implements MediaScanner {
         } catch (Exception e) {
             logTroubleScanning(file, e);
         }
+        return op;
+    }
+
+    private static @NonNull ContentProviderOperation.Builder scanItemSubtitle(long existingId,
+            File file, BasicFileAttributes attrs, String mimeType, String volumeName) {
+        final ContentProviderOperation.Builder op = newUpsert(
+                MediaStore.Files.getContentUri(volumeName), existingId);
+        withGenericValues(op, file, attrs, mimeType);
+
         return op;
     }
 

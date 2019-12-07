@@ -19,8 +19,8 @@ package com.android.providers.media.scan;
 import static com.android.providers.media.scan.MediaScanner.REASON_UNKNOWN;
 import static com.android.providers.media.scan.MediaScannerTest.stage;
 import static com.android.providers.media.scan.ModernMediaScanner.isDirectoryHidden;
-import static com.android.providers.media.scan.ModernMediaScanner.maybeOverrideMimeType;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalDateTaken;
+import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalMimeType;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -87,16 +87,14 @@ public class ModernMediaScannerTest {
 
     @Test
     public void testOverrideMimeType() throws Exception {
-        assertEquals("image/png",
-                maybeOverrideMimeType("image/png", null));
-        assertEquals("image/png",
-                maybeOverrideMimeType("image/png", "image"));
-        assertEquals("image/png",
-                maybeOverrideMimeType("image/png", "im/im"));
-        assertEquals("image/png",
-                maybeOverrideMimeType("image/png", "audio/x-shiny"));
+        assertFalse(parseOptionalMimeType("image/png", null).isPresent());
+        assertFalse(parseOptionalMimeType("image/png", "image").isPresent());
+        assertFalse(parseOptionalMimeType("image/png", "im/im").isPresent());
+        assertFalse(parseOptionalMimeType("image/png", "audio/x-shiny").isPresent());
+
+        assertTrue(parseOptionalMimeType("image/png", "image/x-shiny").isPresent());
         assertEquals("image/x-shiny",
-                maybeOverrideMimeType("image/png", "image/x-shiny"));
+                parseOptionalMimeType("image/png", "image/x-shiny").get());
     }
 
     @Test

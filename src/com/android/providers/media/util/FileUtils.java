@@ -346,6 +346,9 @@ public class FileUtils {
 
     public static @Nullable String extractDisplayName(@Nullable String data) {
         if (data == null) return null;
+        if (data.indexOf('/') == -1) {
+            return data;
+        }
         if (data.endsWith("/")) {
             data = data.substring(0, data.length() - 1);
         }

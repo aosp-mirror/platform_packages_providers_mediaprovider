@@ -64,27 +64,15 @@ public class MimeUtils {
         return mimeType.startsWith("image/");
     }
 
-    public static boolean isPlayListMimeType(@Nullable String mimeType) {
+    public static boolean isPlaylistMimeType(@Nullable String mimeType) {
         if (mimeType == null) return false;
         switch (mimeType) {
-            case "application/vnd.ms-wpl":
-            case "audio/x-mpegurl":
-            case "audio/mpegurl":
-            case "application/x-mpegurl":
             case "application/vnd.apple.mpegurl":
+            case "application/vnd.ms-wpl":
+            case "application/x-mpegurl":
+            case "audio/mpegurl":
+            case "audio/x-mpegurl":
             case "audio/x-scpls":
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    public static boolean isDrmMimeType(@Nullable String mimeType) {
-        if (mimeType == null) return false;
-        switch (mimeType) {
-            case "application/x-android-drm-fl":
-            case "application/vnd.oma.drm.message":
-            case "application/vnd.oma.drm.content":
                 return true;
             default:
                 return false;

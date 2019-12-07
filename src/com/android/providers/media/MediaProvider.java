@@ -713,20 +713,21 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Forget any stale volumes
-        final long lastWeek = System.currentTimeMillis() - DateUtils.WEEK_IN_MILLIS;
-        for (VolumeRecord rec : mStorageManager.getVolumeRecords()) {
-            // Skip volumes without valid UUIDs
-            if (TextUtils.isEmpty(rec.fsUuid)) continue;
-
-            // Skip volumes that are currently mounted
-            final VolumeInfo vol = mStorageManager.findVolumeByUuid(rec.fsUuid);
-            if (vol != null && vol.isMountedReadable()) continue;
-
-            if (rec.lastSeenMillis > 0 && rec.lastSeenMillis < lastWeek) {
-                final int num = db.delete("files", FileColumns.VOLUME_NAME + "=?",
-                        new String[] { rec.getNormalizedFsUuid() });
-                Log.d(TAG, "Forgot " + num + " stale items from " + rec.fsUuid);
+        final Set<String> recentVolumeNames = MediaStore.getRecentExternalVolumeNames(getContext());
+        final Set<String> knownVolumeNames = new ArraySet<>();
+        try (Cursor c = db.query(true, "files", new String[] { MediaColumns.VOLUME_NAME },
+                null, null, null, null, null, null, signal)) {
+            while (c.moveToNext()) {
+                knownVolumeNames.add(c.getString(0));
             }
+        }
+        final Set<String> staleVolumeNames = new ArraySet<>();
+        staleVolumeNames.addAll(knownVolumeNames);
+        staleVolumeNames.removeAll(recentVolumeNames);
+        for (String staleVolumeName : staleVolumeNames) {
+            final int num = db.delete("files", FileColumns.VOLUME_NAME + "=?",
+                    new String[] { staleVolumeName });
+            Log.d(TAG, "Forgot " + num + " stale items from " + staleVolumeName);
         }
 
         synchronized (mDirectoryCache) {

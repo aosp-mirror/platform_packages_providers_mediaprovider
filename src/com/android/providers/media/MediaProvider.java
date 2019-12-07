@@ -390,7 +390,7 @@ public class MediaProvider extends ContentProvider {
     };
 
     private static final String ID_NOT_PARENT_CLAUSE =
-            "_id NOT IN (SELECT parent FROM files)";
+            "_id NOT IN (SELECT parent FROM files WHERE parent IS NOT NULL)";
 
     private static final String CANONICAL = "canonical";
 

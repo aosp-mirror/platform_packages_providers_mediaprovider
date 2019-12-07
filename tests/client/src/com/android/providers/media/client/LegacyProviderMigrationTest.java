@@ -23,14 +23,17 @@ import static org.junit.Assert.assertTrue;
 
 import android.app.UiAutomation;
 import android.content.ContentProviderClient;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.pm.ProviderInfo;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.provider.BaseColumns;
 import android.provider.MediaStore;
+import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Video.VideoColumns;
 import android.util.Log;
@@ -40,6 +43,7 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -62,10 +66,98 @@ import java.nio.charset.StandardCharsets;
 public class LegacyProviderMigrationTest {
     private static final String TAG = "LegacyTest";
 
-    // TODO(144247087): expand to verify pending items are migrated
+    // TODO: expand test to cover secondary storage devices
+    private String mVolumeName = MediaStore.VOLUME_EXTERNAL_PRIMARY;
+
+    private Uri mExternalAudio;
+    private Uri mExternalVideo;
+    private Uri mExternalImages;
+
+    @Before
+    public void setUp() throws Exception {
+        Log.d(TAG, "Using volume " + mVolumeName);
+        mExternalAudio = MediaStore.Audio.Media.getContentUri(mVolumeName);
+        mExternalVideo = MediaStore.Video.Media.getContentUri(mVolumeName);
+        mExternalImages = MediaStore.Images.Media.getContentUri(mVolumeName);
+    }
+
+    @Test
+    public void testLegacy_Pending() throws Exception {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DISPLAY_NAME, "test" + System.nanoTime() + ".png");
+        values.put(MediaColumns.MIME_TYPE, "image/png");
+        values.put(MediaColumns.OWNER_PACKAGE_NAME,
+                InstrumentationRegistry.getContext().getPackageName());
+        values.put(MediaColumns.IS_PENDING, String.valueOf(1));
+        doLegacy(mExternalImages, values);
+    }
+
+    @Test
+    public void testLegacy_Trashed() throws Exception {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DISPLAY_NAME, "test" + System.nanoTime() + ".png");
+        values.put(MediaColumns.MIME_TYPE, "image/png");
+        values.put(MediaColumns.OWNER_PACKAGE_NAME,
+                InstrumentationRegistry.getContext().getPackageName());
+        values.put(MediaColumns.IS_TRASHED, String.valueOf(1));
+        doLegacy(mExternalImages, values);
+    }
+
+    @Test
+    public void testLegacy_Favorite() throws Exception {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DISPLAY_NAME, "test" + System.nanoTime() + ".png");
+        values.put(MediaColumns.MIME_TYPE, "image/png");
+        values.put(MediaColumns.OWNER_PACKAGE_NAME,
+                InstrumentationRegistry.getContext().getPackageName());
+        values.put(MediaColumns.IS_FAVORITE, String.valueOf(1));
+        doLegacy(mExternalImages, values);
+    }
+
+    @Test
+    public void testLegacy_Orphaned() throws Exception {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DISPLAY_NAME, "test" + System.nanoTime() + ".png");
+        values.put(MediaColumns.MIME_TYPE, "image/png");
+        values.putNull(MediaColumns.OWNER_PACKAGE_NAME);
+        doLegacy(mExternalImages, values);
+    }
+
+    @Test
+    public void testLegacy_Audio() throws Exception {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DISPLAY_NAME, "test" + System.nanoTime() + ".mp3");
+        values.put(MediaColumns.MIME_TYPE, "audio/mpeg");
+        values.put(MediaColumns.OWNER_PACKAGE_NAME,
+                InstrumentationRegistry.getContext().getPackageName());
+        values.put(AudioColumns.BOOKMARK, String.valueOf(42));
+        doLegacy(mExternalAudio, values);
+    }
 
     @Test
     public void testLegacy_Video() throws Exception {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DISPLAY_NAME, "test" + System.nanoTime() + ".mp4");
+        values.put(MediaColumns.MIME_TYPE, "video/mp4");
+        values.put(MediaColumns.OWNER_PACKAGE_NAME,
+                InstrumentationRegistry.getContext().getPackageName());
+        values.put(VideoColumns.BOOKMARK, String.valueOf(42));
+        values.put(VideoColumns.TAGS, "My Tags");
+        values.put(VideoColumns.CATEGORY, "My Category");
+        doLegacy(mExternalVideo, values);
+    }
+
+    @Test
+    public void testLegacy_Image() throws Exception {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DISPLAY_NAME, "test" + System.nanoTime() + ".png");
+        values.put(MediaColumns.MIME_TYPE, "image/png");
+        values.put(MediaColumns.OWNER_PACKAGE_NAME,
+                InstrumentationRegistry.getContext().getPackageName());
+        doLegacy(mExternalImages, values);
+    }
+
+    private void doLegacy(Uri collectionUri, ContentValues values) throws Exception {
         final Context context = InstrumentationRegistry.getTargetContext();
         final UiAutomation ui = InstrumentationRegistry.getInstrumentation().getUiAutomation();
 
@@ -77,20 +169,6 @@ public class LegacyProviderMigrationTest {
         // Only continue if we have both providers to test against
         Assume.assumeNotNull(legacyProvider);
         Assume.assumeNotNull(modernProvider);
-
-        final Uri collectionUri = MediaStore.Video.Media
-                .getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
-        final long now = System.currentTimeMillis();
-
-        final ContentValues values = new ContentValues();
-        values.put(MediaColumns.DISPLAY_NAME, "test" + System.nanoTime() + ".mp4");
-        values.put(MediaColumns.MIME_TYPE, "video/mp4");
-        values.put(MediaColumns.OWNER_PACKAGE_NAME,
-                InstrumentationRegistry.getContext().getPackageName());
-        values.put(VideoColumns.IS_FAVORITE, String.valueOf(1));
-        values.put(VideoColumns.BOOKMARK, String.valueOf(42));
-        values.put(VideoColumns.TAGS, "My Tags");
-        values.put(VideoColumns.CATEGORY, "My Category");
 
         // Create a well-known entry in legacy provider, and write data into
         // place to ensure the file is created on disk
@@ -126,8 +204,16 @@ public class LegacyProviderMigrationTest {
         // Confirm that details from legacy provider have migrated
         try (ContentProviderClient modern = context.getContentResolver()
                 .acquireContentProviderClient(MediaStore.AUTHORITY)) {
-            try (Cursor cursor = modern.query(collectionUri, null, MediaColumns.DATA + "=?",
-                    new String[] { legacyFile.getAbsolutePath() }, null)) {
+            final Bundle extras = new Bundle();
+            extras.putString(ContentResolver.QUERY_ARG_SQL_SELECTION,
+                    MediaColumns.DATA + "=?");
+            extras.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS,
+                    new String[] { legacyFile.getAbsolutePath() });
+            extras.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE);
+            extras.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
+            extras.putInt(MediaStore.QUERY_ARG_MATCH_FAVORITE, MediaStore.MATCH_INCLUDE);
+
+            try (Cursor cursor = modern.query(collectionUri, null, extras, null)) {
                 assertTrue(cursor.moveToFirst());
                 final ContentValues actualValues = new ContentValues();
                 for (String key : values.keySet()) {

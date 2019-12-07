@@ -1,7 +1,7 @@
 #!/bin/bash
 
 level=$1
-uid=$(adb shell cat /data/system/packages.list |grep "com.android.providers.media " |cut -b 29-33)
+uids=$(adb shell cat /data/system/packages.list |grep -Po "providers.media[a-z\.]* \K\d+")
 
 if [ $level == "on" ] || [ $level == "extreme" ]
 then
@@ -14,12 +14,18 @@ fi
 
 if [ $level == "extreme" ]
 then
-    adb shell setprop db.log.slow_query_threshold.$uid 0
+    for uid in $uids;
+        do adb shell setprop db.log.slow_query_threshold.$uid 0;
+    done
     adb shell setprop db.log.bindargs 1
 else
-    adb shell setprop db.log.slow_query_threshold.$uid 10000
+    for uid in $uids;
+        do adb shell setprop db.log.slow_query_threshold.$uid 10000;
+    done
     adb shell setprop db.log.bindargs 0
 fi
 
 # Kill process to kick new settings into place
 adb shell am force-stop com.android.providers.media
+adb shell am force-stop com.android.providers.media.module
+adb shell am force-stop com.google.android.providers.media.module

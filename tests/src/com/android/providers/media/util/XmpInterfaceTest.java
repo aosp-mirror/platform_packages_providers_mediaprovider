@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.providers.media;
+package com.android.providers.media.util;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;

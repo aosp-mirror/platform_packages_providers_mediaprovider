@@ -34,6 +34,7 @@ import android.os.ParcelFileDescriptor;
 import android.provider.BaseColumns;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio.AudioColumns;
+import android.provider.MediaStore.DownloadColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Video.VideoColumns;
 import android.util.Log;
@@ -72,6 +73,7 @@ public class LegacyProviderMigrationTest {
     private Uri mExternalAudio;
     private Uri mExternalVideo;
     private Uri mExternalImages;
+    private Uri mExternalDownloads;
 
     @Before
     public void setUp() throws Exception {
@@ -79,6 +81,7 @@ public class LegacyProviderMigrationTest {
         mExternalAudio = MediaStore.Audio.Media.getContentUri(mVolumeName);
         mExternalVideo = MediaStore.Video.Media.getContentUri(mVolumeName);
         mExternalImages = MediaStore.Images.Media.getContentUri(mVolumeName);
+        mExternalDownloads = MediaStore.Downloads.getContentUri(mVolumeName);
     }
 
     @Test
@@ -155,6 +158,16 @@ public class LegacyProviderMigrationTest {
         values.put(MediaColumns.OWNER_PACKAGE_NAME,
                 InstrumentationRegistry.getContext().getPackageName());
         doLegacy(mExternalImages, values);
+    }
+
+    @Test
+    public void testLegacy_Download() throws Exception {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DISPLAY_NAME, "test" + System.nanoTime() + ".iso");
+        values.put(MediaColumns.MIME_TYPE, "application/x-iso9660-image");
+        values.put(DownloadColumns.DOWNLOAD_URI, "http://example.com/download");
+        values.put(DownloadColumns.REFERER_URI, "http://example.com/referer");
+        doLegacy(mExternalDownloads, values);
     }
 
     private void doLegacy(Uri collectionUri, ContentValues values) throws Exception {

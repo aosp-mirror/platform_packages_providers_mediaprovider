@@ -1,6 +1,9 @@
 android_test {
     name: "MediaProviderClientTests",
-    test_suites: ["device-tests"],
+    test_suites: [
+        "device-tests",
+        "mts",
+    ],
 
     manifest: "AndroidManifest.xml",
 

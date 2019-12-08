@@ -713,20 +713,21 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Forget any stale volumes
-        final long lastWeek = System.currentTimeMillis() - DateUtils.WEEK_IN_MILLIS;
-        for (VolumeRecord rec : mStorageManager.getVolumeRecords()) {
-            // Skip volumes without valid UUIDs
-            if (TextUtils.isEmpty(rec.fsUuid)) continue;
-
-            // Skip volumes that are currently mounted
-            final VolumeInfo vol = mStorageManager.findVolumeByUuid(rec.fsUuid);
-            if (vol != null && vol.isMountedReadable()) continue;
-
-            if (rec.lastSeenMillis > 0 && rec.lastSeenMillis < lastWeek) {
-                final int num = db.delete("files", FileColumns.VOLUME_NAME + "=?",
-                        new String[] { rec.getNormalizedFsUuid() });
-                Log.d(TAG, "Forgot " + num + " stale items from " + rec.fsUuid);
+        final Set<String> recentVolumeNames = MediaStore.getRecentExternalVolumeNames(getContext());
+        final Set<String> knownVolumeNames = new ArraySet<>();
+        try (Cursor c = db.query(true, "files", new String[] { MediaColumns.VOLUME_NAME },
+                null, null, null, null, null, null, signal)) {
+            while (c.moveToNext()) {
+                knownVolumeNames.add(c.getString(0));
             }
+        }
+        final Set<String> staleVolumeNames = new ArraySet<>();
+        staleVolumeNames.addAll(knownVolumeNames);
+        staleVolumeNames.removeAll(recentVolumeNames);
+        for (String staleVolumeName : staleVolumeNames) {
+            final int num = db.delete("files", FileColumns.VOLUME_NAME + "=?",
+                    new String[] { staleVolumeName });
+            Log.d(TAG, "Forgot " + num + " stale items from " + staleVolumeName);
         }
 
         synchronized (mDirectoryCache) {
@@ -1543,6 +1544,7 @@ public class MediaProvider extends ContentProvider {
                 break;
             case AUDIO_PLAYLISTS:
             case AUDIO_PLAYLISTS_ID:
+                defaultMimeType = "audio/mpegurl";
                 defaultPrimary = Environment.DIRECTORY_MUSIC;
                 allowedPrimary = Arrays.asList(defaultPrimary);
                 break;
@@ -1596,7 +1598,8 @@ public class MediaProvider extends ContentProvider {
 
         // Sanity check MIME type against table
         final String mimeType = values.getAsString(MediaColumns.MIME_TYPE);
-        if (mimeType != null && !defaultMimeType.equals(ClipDescription.MIMETYPE_UNKNOWN)) {
+        if (mimeType != null && !defaultMimeType.equals(ClipDescription.MIMETYPE_UNKNOWN)
+                && !MimeUtils.isPlaylistMimeType(mimeType)) {
             final String[] split = defaultMimeType.split("/");
             if (!mimeType.startsWith(split[0])) {
                 throw new IllegalArgumentException(
@@ -2122,19 +2125,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (format == 0) {
-            if (TextUtils.isEmpty(path) || wasPathEmpty) {
-                // special case device created playlists
-                if (mediaType == FileColumns.MEDIA_TYPE_PLAYLIST) {
-                    values.put(FileColumns.FORMAT, MtpConstants.FORMAT_ABSTRACT_AV_PLAYLIST);
-                    // create a file path for the benefit of MTP
-                    path = Environment.getExternalStorageDirectory()
-                            + "/Playlists/" + values.getAsString(Audio.Playlists.NAME);
-                    values.put(MediaStore.MediaColumns.DATA, path);
-                    values.put(FileColumns.PARENT, 0);
-                }
-            } else {
-                format = MediaFile.getFormatCode(path, mimeType);
-            }
+            format = MediaFile.getFormatCode(path, mimeType);
         }
         if (path != null && path.endsWith("/")) {
             Log.e(TAG, "directory has trailing slash: " + path);
@@ -2153,23 +2144,10 @@ public class MediaProvider extends ContentProvider {
 
         if (mimeType != null) {
             values.put(FileColumns.MIME_TYPE, mimeType);
-
-            // If 'values' contained the media type, then the caller wants us
-            // to use that exact type, so don't override it based on mimetype
-            if (!values.containsKey(FileColumns.MEDIA_TYPE) &&
-                    mediaType == FileColumns.MEDIA_TYPE_NONE) {
-                if (MimeUtils.isAudioMimeType(mimeType)) {
-                    mediaType = FileColumns.MEDIA_TYPE_AUDIO;
-                } else if (MimeUtils.isVideoMimeType(mimeType)) {
-                    mediaType = FileColumns.MEDIA_TYPE_VIDEO;
-                } else if (MimeUtils.isImageMimeType(mimeType)) {
-                    mediaType = FileColumns.MEDIA_TYPE_IMAGE;
-                } else if (MimeUtils.isPlaylistMimeType(mimeType)) {
-                    mediaType = FileColumns.MEDIA_TYPE_PLAYLIST;
-                }
-            }
+            values.put(FileColumns.MEDIA_TYPE, MimeUtils.resolveMediaType(mimeType));
+        } else {
+            values.put(FileColumns.MEDIA_TYPE, mediaType);
         }
-        values.put(FileColumns.MEDIA_TYPE, mediaType);
 
         final long rowId;
         {
@@ -3212,11 +3190,15 @@ public class MediaProvider extends ContentProvider {
                                 FileColumns.MEDIA_TYPE_AUDIO));
                         options.add(DatabaseUtils.bindSelection("media_type=?",
                                 FileColumns.MEDIA_TYPE_PLAYLIST));
+                        options.add(DatabaseUtils.bindSelection("media_type=?",
+                                FileColumns.MEDIA_TYPE_SUBTITLE));
                         options.add("media_type=0 AND mime_type LIKE 'audio/%'");
                     }
                     if (checkCallingPermissionVideo(forWrite, callingPackage)) {
                         options.add(DatabaseUtils.bindSelection("media_type=?",
                                 FileColumns.MEDIA_TYPE_VIDEO));
+                        options.add(DatabaseUtils.bindSelection("media_type=?",
+                                FileColumns.MEDIA_TYPE_SUBTITLE));
                         options.add("media_type=0 AND mime_type LIKE 'video/%'");
                     }
                     if (checkCallingPermissionImages(forWrite, callingPackage)) {

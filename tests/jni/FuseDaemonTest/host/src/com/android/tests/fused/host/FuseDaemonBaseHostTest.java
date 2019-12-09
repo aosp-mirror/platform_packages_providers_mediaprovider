@@ -37,27 +37,30 @@ import java.util.concurrent.TimeUnit;
  */
 @RunWith(DeviceJUnit4ClassRunner.class)
 abstract public class FuseDaemonBaseHostTest extends BaseHostJUnit4Test {
-    private static final String PROP_FUSE_SNAPSHOT = "sys.fuse_snapshot";
-    private static final String PROP_FUSE = "persist.sys.fflag.override.settings_fuse";
+    private static final String PROP_FUSE = "persist.sys.fuse";
+    private static final String PROP_SETTINGS_FUSE = "persist.sys.fflag.override.settings_fuse";
     private static ITestDevice sDevice = null;
     // Flag to determine whether FUSE was initially enabled, so we know what state to restore the
     // device to when we're done. 0 means we haven't checked yet, 1 is enabled and -1 is disabled.
     private static int sFuseInitialState = 0;
 
     private boolean isFuseEnabled() throws Exception {
-        String enabled = getDevice().getProperty(PROP_FUSE_SNAPSHOT);
+        String enabled = getDevice().getProperty(PROP_FUSE);
+        if (enabled == null) {
+            return false; // current default value of PROP_FUSE
+        }
         return enabled.contains("true") || enabled.contains("1");
     }
 
     /* {@link #sDevice} must be initialized before calling this method */
     private static void toggleFuse(boolean enable) throws Exception {
         final String strEnable = enable ? "true" : "false";
-        if (strEnable.equals(sDevice.getProperty(PROP_FUSE))) {
+        if (strEnable.equals(sDevice.getProperty(PROP_SETTINGS_FUSE))) {
             return;
         }
         // root settings will be reset once device has rebooted
         sDevice.enableAdbRoot();
-        sDevice.setProperty(PROP_FUSE, (enable ? "true" : "false"));
+        sDevice.setProperty(PROP_SETTINGS_FUSE, (enable ? "true" : "false"));
         Thread.sleep(TimeUnit.SECONDS.toMillis(1));
         sDevice.reboot();
     }

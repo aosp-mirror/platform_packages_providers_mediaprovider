@@ -295,9 +295,6 @@ std::unique_ptr<RedactionInfo> MediaProviderWrapper::GetRedactionInfo(const stri
     // Default value in case JNI thread was being terminated, causes the read to fail.
     std::unique_ptr<RedactionInfo> res = nullptr;
 
-    // TODO: Consider what to do if task doesn't get posted. This could happen
-    // if MediaProviderWrapper's d'tor was called and before it's done, a thread slipped in
-    // and requested to read a file.
     PostAndWaitForTask([this, uid, &path, &res](JNIEnv* env) {
         auto ri = getRedactionInfoInternal(env, media_provider_object_, mid_get_redaction_ranges_,
                                            uid, path);

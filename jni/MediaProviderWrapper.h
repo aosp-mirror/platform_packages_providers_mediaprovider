@@ -53,10 +53,10 @@ class MediaProviderWrapper final {
     ~MediaProviderWrapper();
 
     /**
-     * Computes and returns the RedactionInfo for a given FD and UID.
+     * Computes and returns the RedactionInfo for a given file and UID.
      *
      * @param uid UID of the app requesting the read
-     * @param fd FD of the requested file
+     * @param path path of the requested file
      * @return RedactionInfo on success, nullptr on failure to calculate
      * redaction ranges (e.g. exception was thrown in Java world)
      */

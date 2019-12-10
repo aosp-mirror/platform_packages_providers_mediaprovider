@@ -4,6 +4,9 @@
             "name": "MediaProviderTests"
         },
         {
+            "name": "MediaProviderClientTests"
+        },
+        {
             "name": "CtsProviderTestCases",
             "options": [
                 {
@@ -12,7 +15,7 @@
             ]
         },
         {
-            "name": "FuseDaemonTest"
+            "name": "FuseDaemonHostTest"
         }
     ]
 }

@@ -33,6 +33,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.mtp.MtpConstants;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.Looper;
 import android.os.RemoteException;
@@ -455,15 +456,18 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 return;
             }
 
-            Uri queryUri = MediaStore.Files.getContentUri(mVolumeName);
-            queryUri = MediaStore.setIncludePending(queryUri);
-            queryUri = MediaStore.setIncludeTrashed(queryUri);
-            queryUri = MediaStore.rewriteToLegacy(queryUri);
+            final Uri queryUri = MediaStore
+                    .rewriteToLegacy(MediaStore.Files.getContentUri(mVolumeName));
 
-            db.beginTransaction();
+            final Bundle extras = new Bundle();
+            extras.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE);
+            extras.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
+            extras.putInt(MediaStore.QUERY_ARG_MATCH_FAVORITE, MediaStore.MATCH_INCLUDE);
+
+            db.execSQL("SAVEPOINT before_migrate");
             Log.d(TAG, "Starting migration from legacy provider");
             try (Cursor c = client.query(queryUri, sMigrateColumns.toArray(new String[0]),
-                    null, null, null)) {
+                    extras, null)) {
                 final ContentValues values = new ContentValues();
                 while (c.moveToNext()) {
                     values.clear();
@@ -478,17 +482,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     }
                 }
 
-                db.setTransactionSuccessful();
+                db.execSQL("RELEASE before_migrate");
                 Log.d(TAG, "Finished migration from legacy provider");
-            } catch (RemoteException e) {
-                throw new IllegalStateException(e);
-            } finally {
-                db.endTransaction();
+            } catch (Exception e) {
+                // We have to guard ourselves against any weird behavior of the
+                // legacy provider by trying to catch everything
+                db.execSQL("ROLLBACK TO before_migrate");
+                Log.w(TAG, "Failed migration from legacy provider: " + e);
             }
-        } catch (Exception e) {
-            // We have to guard ourselves against any weird behavior of the
-            // legacy provider by trying to catch everything
-            Log.w(TAG, "Failed migration from legacy provider: " + e);
         }
     }
 

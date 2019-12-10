@@ -63,6 +63,7 @@ import android.media.MediaMetadataRetriever;
 import android.mtp.MtpConstants;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Environment;
 import android.os.OperationCanceledException;
@@ -264,7 +265,7 @@ public class ModernMediaScanner implements MediaScanner {
             mRoot = root;
             mReason = reason;
             mVolumeName = MediaStore.getVolumeName(root);
-            mFilesUri = MediaStore.setIncludePending(MediaStore.Files.getContentUri(mVolumeName));
+            mFilesUri = MediaStore.Files.getContentUri(mVolumeName);
             mSignal = getOrCreateSignal(mVolumeName);
 
             mSingleFile = mRoot.isFile();
@@ -331,10 +332,20 @@ public class ModernMediaScanner implements MediaScanner {
                     + MtpConstants.FORMAT_UNDEFINED + ") != "
                     + MtpConstants.FORMAT_ABSTRACT_AV_PLAYLIST;
             final String dataClause = FileColumns.DATA + " LIKE ? ESCAPE '\\'";
+
+            final Bundle queryArgs = new Bundle();
+            queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SELECTION,
+                    formatClause + " AND " + dataClause);
+            queryArgs.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS,
+                    new String[] { escapeForLike(mRoot.getAbsolutePath()) + '%' });
+            queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,
+                    FileColumns._ID + " DESC");
+            queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE);
+            queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
+            queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_FAVORITE, MediaStore.MATCH_INCLUDE);
+
             try (Cursor c = mResolver.query(mFilesUri, new String[] { FileColumns._ID },
-                    formatClause + " AND " + dataClause,
-                    new String[] { escapeForLike(mRoot.getAbsolutePath()) + '%' },
-                    FileColumns._ID + " DESC", mSignal)) {
+                    queryArgs, mSignal)) {
                 while (c.moveToNext()) {
                     final long id = c.getLong(0);
                     if (Arrays.binarySearch(scannedIds, id) < 0) {
@@ -414,9 +425,19 @@ public class ModernMediaScanner implements MediaScanner {
             final File realFile = file.toFile();
             long existingId = -1;
             Trace.beginSection("checkChanged");
+
+            final Bundle queryArgs = new Bundle();
+            queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SELECTION,
+                    FileColumns.DATA + "=?");
+            queryArgs.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS,
+                    new String[] { realFile.getAbsolutePath() });
+            queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE);
+            queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
+            queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_FAVORITE, MediaStore.MATCH_INCLUDE);
+
             try (Cursor c = mResolver.query(mFilesUri,
                     new String[] { FileColumns._ID, FileColumns.DATE_MODIFIED, FileColumns.SIZE },
-                    FileColumns.DATA + "=?", new String[] { realFile.getAbsolutePath() }, null)) {
+                    queryArgs, mSignal)) {
                 if (c.moveToFirst()) {
                     existingId = c.getLong(0);
                     final long dateModified = c.getLong(1);

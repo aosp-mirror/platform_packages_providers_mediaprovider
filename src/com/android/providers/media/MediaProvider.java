@@ -37,7 +37,9 @@ import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.getVolumeName;
 import static android.provider.MediaStore.Downloads.isDownload;
 
-import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY;
+import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY_GRANTED;
+import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY_WRITE;
+import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY_READ;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_SYSTEM;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_READ_AUDIO;
@@ -150,6 +152,7 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
+import com.android.providers.media.scan.NullMediaScanner;
 import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
@@ -389,7 +392,7 @@ public class MediaProvider extends ContentProvider {
     };
 
     private static final String ID_NOT_PARENT_CLAUSE =
-            "_id NOT IN (SELECT parent FROM files)";
+            "_id NOT IN (SELECT parent FROM files WHERE parent IS NOT NULL)";
 
     private static final String CANONICAL = "canonical";
 
@@ -566,12 +569,12 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public void attachInfo(Context context, ProviderInfo info) {
-        super.attachInfo(context, info);
-
         Log.v(TAG, "Attached " + info.authority + " from " + info.applicationInfo.packageName);
 
         mLegacyProvider = Objects.equals(info.authority, MediaStore.AUTHORITY_LEGACY);
         mUriMatcher = new LocalUriMatcher(info.authority);
+
+        super.attachInfo(context, info);
     }
 
     @Override
@@ -591,7 +594,13 @@ public class MediaProvider extends ContentProvider {
         final int thumbSize = Math.min(metrics.widthPixels, metrics.heightPixels) / 2;
         mThumbSize = new Size(thumbSize, thumbSize);
 
-        mMediaScanner = new ModernMediaScanner(context);
+        if (mLegacyProvider) {
+            // When running in legacy mode, we're simply keeping the old
+            // database intact, and so we should perform no scanning operations
+            mMediaScanner = new NullMediaScanner(context);
+        } else {
+            mMediaScanner = new ModernMediaScanner(context);
+        }
 
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME,
                 true, false, mLegacyProvider);
@@ -1094,6 +1103,8 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token = clearLocalCallingIdentity(
                 LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
+            //TODO(b/144990065): enforce based on target SDK
+
             // Get relative path for the contents of given directory.
             final String relativePath = extractRelativePathForDirectory(path);
             final String[] relativePathSegments = sanitizePath(relativePath);
@@ -2397,7 +2408,7 @@ public class MediaProvider extends ContentProvider {
             for (String column : sDataColumns.keySet()) {
                 if (!initialValues.containsKey(column)) continue;
 
-                if (isCallingPackageSystem() || isCallingPackageLegacy()) {
+                if (isCallingPackageSystem() || isCallingPackageLegacyWrite()) {
                     // Mutation allowed
                 } else {
                     Log.w(TAG, "Ignoring mutation of  " + column + " from "
@@ -2817,7 +2828,7 @@ public class MediaProvider extends ContentProvider {
         }
         final String sharedPackages = getSharedPackages(callingPackage);
         final boolean allowGlobal = checkCallingPermissionGlobal(uri, forWrite);
-        final boolean allowLegacy = checkCallingPermissionLegacy(uri, forWrite, callingPackage);
+        final boolean allowLegacy = checkCallingPermissionLegacyWrite(uri, forWrite, callingPackage);
         final boolean allowLegacyRead = allowLegacy && !forWrite;
 
         int matchPending = extras.getInt(QUERY_ARG_MATCH_PENDING, MATCH_DEFAULT);
@@ -3720,6 +3731,10 @@ public class MediaProvider extends ContentProvider {
                 });
                 return null;
             }
+            case MediaStore.SUICIDE_CALL: {
+                Log.v(TAG, "Suicide requested!");
+                android.os.Process.killProcess(android.os.Process.myPid());
+            }
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }
@@ -4039,7 +4054,7 @@ public class MediaProvider extends ContentProvider {
             for (String column : sDataColumns.keySet()) {
                 if (!initialValues.containsKey(column)) continue;
 
-                if (isCallingPackageSystem() || isCallingPackageLegacy()) {
+                if (isCallingPackageSystem() || isCallingPackageLegacyWrite()) {
                     // Mutation allowed
                 } else {
                     Log.w(TAG, "Ignoring mutation of  " + column + " from "
@@ -4859,6 +4874,25 @@ public class MediaProvider extends ContentProvider {
         return mCallingIdentity.get().hasPermission(PERMISSION_IS_REDACTION_NEEDED);
     }
 
+    private boolean isCallingPackageRequestingLegacy() {
+        return mCallingIdentity.get().hasPermission(PERMISSION_IS_LEGACY_GRANTED);
+    }
+
+    /**
+     * Returns true if the calling identity is an app targeting Q or older versions AND is
+     * requesting legacy storage, i.e. apps targeting R or newer are not allowed to request legacy
+     * storage.
+     */
+    private boolean shouldBypassFuseRestrictions(boolean forWrite) {
+        int targetSdk = getCallingPackageTargetSdkVersion();
+        boolean isRequestingLegacyStorage = forWrite ? isCallingPackageLegacyWrite()
+                : isCallingPackageLegacyRead();
+
+        // TODO(b/137755945): We should let file managers bypass FUSE restrictions as well.
+        //  Remember to change the documentation above when this is addressed.
+        return targetSdk <= Build.VERSION_CODES.Q && isRequestingLegacyStorage;
+    }
+
     /**
      * Set of Exif tags that should be considered for redaction.
      */
@@ -4936,7 +4970,7 @@ public class MediaProvider extends ContentProvider {
         final File file = new File(path);
         long[] res = new long[0];
         try {
-            if (isRedactionNeeded()) {
+            if (isRedactionNeeded() && !shouldBypassFuseRestrictions(/*forWrite*/ false)) {
                 res = getRedactionRanges(file).redactionRanges;
             }
         } finally {
@@ -5008,7 +5042,8 @@ public class MediaProvider extends ContentProvider {
      * @param forWrite specifies if the file is to be opened for write
      * @return 0 upon success. If the operation is illegal or not permitted, returns
      * -{@link OsConstants#ENOENT} to prevent malicious apps from distinguishing whether a file
-     * they have no access to exists or not.
+     * they have no access to exists or not, or {@link OsConstants#EACCES} or if the calling package
+     * is a legacy app that doesn't have right storage permission.
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
@@ -5017,6 +5052,10 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
+            if (shouldBypassFuseRestrictions(forWrite)) {
+                return 0;
+            }
+
             // Returns null if the path doesn't correspond to an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
@@ -5027,6 +5066,12 @@ public class MediaProvider extends ContentProvider {
                     Log.e(TAG, "Can't open a file in another app's external directory!");
                     return -OsConstants.ENOENT;
                 }
+            }
+
+            // Legacy apps that made is this far don't have the right storage permission and hence
+            // are not allowed to access anything other than their external app directory
+            if (isCallingPackageRequestingLegacy()) {
+                return -OsConstants.EACCES;
             }
 
             final String mimeType = MediaFile.getMimeTypeForFile(path);
@@ -5189,7 +5234,8 @@ public class MediaProvider extends ContentProvider {
      * <ul>
      * <li>{@link OsConstants#ENOENT} if the app tries to create file in other app's external dir
      * <li>{@link OsConstants#EEXIST} if the file already exists
-     * <li>{@link OsConstants#EPERM} if the file type doesn't match the relative path
+     * <li>{@link OsConstants#EPERM} if the file type doesn't match the relative path, or if the
+     * calling package is a legacy app that doesn't have WRITE_EXTERNAL_STORAGE permission.
      * <li>{@link OsConstants#EIO} in case of any other I/O exception
      * </ul>
      *
@@ -5202,6 +5248,10 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
+            if (shouldBypassFuseRestrictions(/*forWrite*/ true)) {
+                return 0;
+            }
+
             // Returns null if the path doesn't correspond to an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
@@ -5213,6 +5263,11 @@ public class MediaProvider extends ContentProvider {
                     Log.e(TAG, "Can't create a file in another app's external directory");
                     return -OsConstants.ENOENT;
                 }
+            }
+
+            // Legacy apps that made it this far don't have the required permissions
+            if (isCallingPackageRequestingLegacy()) {
+                return -OsConstants.EPERM;
             }
 
             final String mimeType = MediaFile.getMimeTypeForFile(path);
@@ -5244,7 +5299,7 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private static int deleteFileInAppSpecificDir(@NonNull String path) {
+    private static int deleteFileUnchecked(@NonNull String path) {
         final File toDelete = new File(path);
         if (toDelete.delete()) {
             return 0;
@@ -5262,9 +5317,10 @@ public class MediaProvider extends ContentProvider {
      * @return 0 upon success.
      * In case of error, return the appropriate negated {@code errno} value:
      * <ul>
-     * <li>{@link OsConstants#ENOENT} if the file does not exist or if the app tries to delete file in another
-     * app's external dir
-     * <li>{@link OsConstants#EPERM} a security exception was thrown by {@link #delete}
+     * <li>{@link OsConstants#ENOENT} if the file does not exist or if the app tries to delete file
+     * in another app's external dir
+     * <li>{@link OsConstants#EPERM} a security exception was thrown by {@link #delete}, or if the
+     * calling package is a legacy app that doesn't have WRITE_EXTERNAL_STORAGE permission.
      * </ul>
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
@@ -5274,17 +5330,27 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
+            if (shouldBypassFuseRestrictions(/*forWrite*/ true)) {
+                return deleteFileUnchecked(path);
+            }
+
             // Check if app is deleting a file under an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
-            // Trying to create file under some app's external storage dir
+            // Trying to delete file under some app's external storage dir
             if (appSpecificDir != null) {
                 if (isCallingIdentitySharedPackageName(appSpecificDir)) {
-                    return deleteFileInAppSpecificDir(path);
+                    return deleteFileUnchecked(path);
                 } else {
                     Log.e(TAG, "Can't delete a file in another app's external directory!");
                     return -OsConstants.ENOENT;
                 }
+            }
+
+            // Legacy apps that made is this far don't have the right storage permission and hence
+            // are not allowed to access anything other than their external app directory
+            if (isCallingPackageRequestingLegacy()) {
+                return -OsConstants.EPERM;
             }
 
             final String mimeType = MediaFile.getMimeTypeForFile(path);
@@ -5316,7 +5382,8 @@ public class MediaProvider extends ContentProvider {
      * @return 0 if the operation is allowed, or the following negated {@code errno} values:
      * <ul>
      * <li>{@link OsConstants#EACCES} if the app tries to create/delete a dir in another app's
-     * external directory.
+     * external directory, or if the calling package is a legacy app that doesn't have
+     * WRITE_EXTERNAL_STORAGE permission.
      * <li>{@link OsConstants#EPERM} if the app tries to create/delete a top-level directory.
      * </ul>
      *
@@ -5327,6 +5394,10 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
+            if (shouldBypassFuseRestrictions(/*forWrite*/ true)) {
+                return 0;
+            }
+
             // Returns null if the path doesn't correspond to an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
@@ -5338,6 +5409,12 @@ public class MediaProvider extends ContentProvider {
                     Log.e(TAG, "Can't modify another app's external directory!");
                     return -OsConstants.EACCES;
                 }
+            }
+
+            // Legacy apps that made is this far don't have the right storage permission and hence
+            // are not allowed to access anything other than their external app directory
+            if (isCallingPackageRequestingLegacy()) {
+                return -OsConstants.EACCES;
             }
 
             final String[] relativePath = sanitizePath(extractRelativePath(path));
@@ -5357,7 +5434,9 @@ public class MediaProvider extends ContentProvider {
      *
      * @param path directory's path
      * @param uid UID of the requesting app
-     * @return 0 if it's allowed to open the diretory, -{@link OsConstants#ENOENT}  otherwise.
+     * @return 0 if it's allowed to open the diretory, -{@link OsConstants#EACCES} if the calling
+     * package is a legacy app that doesn't have READ_EXTERNAL_STORAGE permission,
+     * -{@link OsConstants#ENOENT}  otherwise.
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
@@ -5366,6 +5445,10 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
+            if (shouldBypassFuseRestrictions(/*forWrite*/ false)) {
+                return 0;
+            }
+
             // Returns null if the path doesn't correspond to an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
@@ -5381,6 +5464,13 @@ public class MediaProvider extends ContentProvider {
                     return -OsConstants.ENOENT;
                 }
             }
+
+            // Legacy apps that made is this far don't have the right storage permission and hence
+            // are not allowed to access anything other than their external app directory
+            if (isCallingPackageRequestingLegacy()) {
+                return -OsConstants.EACCES;
+            }
+
             return 0;
         } finally {
             restoreLocalCallingIdentity(token);
@@ -5419,8 +5509,9 @@ public class MediaProvider extends ContentProvider {
         return false;
     }
 
-    private boolean checkCallingPermissionLegacy(Uri uri, boolean forWrite, String callingPackage) {
-        return mCallingIdentity.get().hasPermission(PERMISSION_IS_LEGACY);
+    private boolean checkCallingPermissionLegacyWrite(Uri uri, boolean forWrite,
+            String callingPackage) {
+        return mCallingIdentity.get().hasPermission(PERMISSION_IS_LEGACY_WRITE);
     }
 
     @Deprecated
@@ -6132,8 +6223,13 @@ public class MediaProvider extends ContentProvider {
     }
 
     @Deprecated
-    private boolean isCallingPackageLegacy() {
-        return mCallingIdentity.get().hasPermission(PERMISSION_IS_LEGACY);
+    private boolean isCallingPackageLegacyWrite() {
+        return mCallingIdentity.get().hasPermission(PERMISSION_IS_LEGACY_WRITE);
+    }
+
+    @Deprecated
+    private boolean isCallingPackageLegacyRead() {
+        return mCallingIdentity.get().hasPermission(PERMISSION_IS_LEGACY_READ);
     }
 
     @Override

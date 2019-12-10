@@ -194,9 +194,7 @@ public class FilePathAccessTest {
             // Read the same data from file
             assertFileContent(file, BYTES_DATA1);
         } finally {
-            if (file.exists()) {
-                assertThat(file.delete()).isTrue();
-            }
+            file.delete();
         }
     }
 
@@ -227,7 +225,7 @@ public class FilePathAccessTest {
             assertThat(executeShellCommand("ls " + shellPackageFileDir))
                     .contains(NONMEDIA_FILE_NAME);
         } finally {
-            executeShellCommand("rm " + file1);
+            executeShellCommand("rm " + file2);
         }
     }
 

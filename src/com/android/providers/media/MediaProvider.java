@@ -4888,9 +4888,11 @@ public class MediaProvider extends ContentProvider {
         boolean isRequestingLegacyStorage = forWrite ? isCallingPackageLegacyWrite()
                 : isCallingPackageLegacyRead();
 
-        // TODO(b/137755945): We should let file managers bypass FUSE restrictions as well.
-        //  Remember to change the documentation above when this is addressed.
-        return targetSdk <= Build.VERSION_CODES.Q && isRequestingLegacyStorage;
+        // TODO(b/137755945): Check that the following additional condition is true:
+        // (targetSdk <= Build.VERSION_CODES.Q || isInstalledAsTestApp during adb install)
+        // We should also let file managers bypass FUSE restrictions as well.
+        // Remember to change the documentation above when this is addressed.
+        return isRequestingLegacyStorage;
     }
 
     /**

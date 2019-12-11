@@ -18,6 +18,7 @@ package com.android.tests.fused.host;
 
 import static org.junit.Assert.assertTrue;
 
+import com.android.tradefed.device.ITestDevice;
 import com.android.tradefed.testtype.DeviceJUnit4ClassRunner;
 
 import org.junit.After;
@@ -112,6 +113,20 @@ public class FuseDaemonHostTest extends FuseDaemonBaseHostTest {
     @Test
     public void testListFilesFromExternalMediaDirectory() throws Exception {
         runDeviceTest("testListFilesFromExternalMediaDirectory");
+    }
+
+    @Test
+    public void testListUnsupportedFileType() throws Exception {
+        final ITestDevice device = getDevice();
+        final boolean isAdbRoot = device.isAdbRoot() ? true : false;
+        // Adb shell should run as 'root' for test to bypass some of FUSE & MediaProvider checks.
+        if (!isAdbRoot) {
+            device.enableAdbRoot();
+        }
+        runDeviceTest("testListUnsupportedFileType");
+        if (!isAdbRoot) {
+            device.disableAdbRoot();
+        }
     }
 
     @Test

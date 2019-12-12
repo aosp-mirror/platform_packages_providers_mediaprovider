@@ -928,6 +928,26 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         return;
     }
 
+    // We don't redact if the caller was granted write permission for this file
+    if (is_requesting_write(fi->flags)) {
+        h->ri = std::make_unique<RedactionInfo>();
+    } else {
+        h->ri = fuse->mp->GetRedactionInfo(h->path, req->ctx.uid);
+    }
+
+    if (!h->ri) {
+        errno = EFAULT;
+        close(h->fd);
+        fuse_reply_err(req, errno);
+        return;
+    }
+
+    // In case we have any redaction ranges, we don't want to read cached content as we might
+    // accidentally access un-redacted content.
+    if (h->ri->isRedactionNeeded()) {
+        fi->direct_io = true;
+    }
+
     fi->fh = ptr_to_id(h);
     fi->keep_cache = 1;
     fuse_reply_open(req, fi);
@@ -1040,15 +1060,6 @@ static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
     handle* h = reinterpret_cast<handle*>(fi->fh);
     struct fuse* fuse = get_fuse(req);
     TRACE_FUSE(fuse) << "READ";
-    if (!h->ri) {
-        h->ri = fuse->mp->GetRedactionInfo(h->path, req->ctx.uid);
-
-        if (!h->ri) {
-            errno = EIO;
-            fuse_reply_err(req, errno);
-            return;
-        }
-    }
 
     fuse->fadviser.Record(h->fd, size);
 

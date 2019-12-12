@@ -4964,10 +4964,18 @@ public class MediaProvider extends ContentProvider {
     @Keep
     @NonNull
     public long[] getRedactionRanges(String path, int uid) throws IOException {
+        final File file = new File(path);
+
+        // When we're calculating redaction ranges for MediaProvider, it means we're actually
+        // calculating redaction ranges for another app that called to MediaProvider through Binder,
+        // so we always need to redact because the redaction checks were done earlier
+        if (uid == android.os.Process.myUid()) {
+            return getRedactionRanges(file).redactionRanges;
+        }
+
         LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
 
-        final File file = new File(path);
         long[] res = new long[0];
         try {
             if (isRedactionNeeded() && !shouldBypassFuseRestrictions(/*forWrite*/ false)) {
@@ -5074,8 +5082,7 @@ public class MediaProvider extends ContentProvider {
                 return -OsConstants.EACCES;
             }
 
-            final String mimeType = MediaFile.getMimeTypeForFile(path);
-            final Uri contentUri = getContentUriForFile(path, mimeType);
+            final Uri contentUri = Files.getContentUri(MediaStore.getVolumeName(new File(path)));
             final String[] projection = new String[]{
                     MediaColumns._ID,
                     MediaColumns.OWNER_PACKAGE_NAME,
@@ -5353,8 +5360,7 @@ public class MediaProvider extends ContentProvider {
                 return -OsConstants.EPERM;
             }
 
-            final String mimeType = MediaFile.getMimeTypeForFile(path);
-            final Uri contentUri = getContentUriForFile(path, mimeType);
+            final Uri contentUri = Files.getContentUri(MediaStore.getVolumeName(new File(path)));
             final String where = FileColumns.DATA + " = ?";
             final String[] whereArgs = {path};
 

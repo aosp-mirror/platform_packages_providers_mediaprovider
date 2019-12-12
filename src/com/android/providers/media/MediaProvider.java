@@ -780,7 +780,7 @@ public class MediaProvider extends ContentProvider {
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public Uri scanFile(String file) {
+    public Uri scanFileForFuse(String file) {
         return scanFile(new File(file), REASON_DEMAND);
     }
 
@@ -1099,7 +1099,7 @@ public class MediaProvider extends ContentProvider {
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public String[] getDirectoryEntries(String path, int uid) {
+    public String[] getDirectoryEntriesForFuse(String path, int uid) {
         final LocalCallingIdentity token = clearLocalCallingIdentity(
                 LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
@@ -4963,7 +4963,7 @@ public class MediaProvider extends ContentProvider {
      */
     @Keep
     @NonNull
-    public long[] getRedactionRanges(String path, int uid) throws IOException {
+    public long[] getRedactionRangesForFuse(String path, int uid) throws IOException {
         final File file = new File(path);
 
         // When we're calculating redaction ranges for MediaProvider, it means we're actually
@@ -5056,7 +5056,7 @@ public class MediaProvider extends ContentProvider {
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public int isOpenAllowed(String path, int uid, boolean forWrite) {
+    public int isOpenAllowedForFuse(String path, int uid, boolean forWrite) {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
@@ -5251,7 +5251,7 @@ public class MediaProvider extends ContentProvider {
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public int insertFileIfNecessary(@NonNull String path, int uid) {
+    public int insertFileIfNecessaryForFuse(@NonNull String path, int uid) {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
@@ -5333,7 +5333,7 @@ public class MediaProvider extends ContentProvider {
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public int deleteFile(@NonNull String path, int uid) {
+    public int deleteFileForFuse(@NonNull String path, int uid) {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
@@ -5396,7 +5396,7 @@ public class MediaProvider extends ContentProvider {
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public int isDirectoryOperationAllowed(@NonNull String path, int uid) {
+    public int isDirectoryOperationAllowedForFuse(@NonNull String path, int uid) {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
@@ -5447,7 +5447,7 @@ public class MediaProvider extends ContentProvider {
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public int isOpendirAllowed(@NonNull String path, int uid) {
+    public int isOpendirAllowedForFuse(@NonNull String path, int uid) {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {

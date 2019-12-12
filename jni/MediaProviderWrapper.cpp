@@ -488,10 +488,12 @@ void MediaProviderWrapper::JniThreadLoop(JavaVM* jvm) {
 jmethodID MediaProviderWrapper::CacheMethod(JNIEnv* env, const char method_name[],
                                             const char signature[], bool is_static) {
     jmethodID mid;
+    string actual_method_name(method_name);
+    actual_method_name.append("ForFuse");
     if (is_static) {
-        mid = env->GetStaticMethodID(media_provider_class_, method_name, signature);
+        mid = env->GetStaticMethodID(media_provider_class_, actual_method_name.c_str(), signature);
     } else {
-        mid = env->GetMethodID(media_provider_class_, method_name, signature);
+        mid = env->GetMethodID(media_provider_class_, actual_method_name.c_str(), signature);
     }
     if (!mid) {
         // SHOULD NOT HAPPEN!

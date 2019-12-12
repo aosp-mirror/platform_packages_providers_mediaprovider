@@ -1283,7 +1283,12 @@ static void do_readdir_common(fuse_req_t req,
         // the entry is not added to buffer but the size of the entry is still
         // returned. Check available buffer size + returned entry size is less
         // than actual buffer size to confirm entry is added to buffer.
-        if (used + entry_size > len) break;
+        if (used + entry_size > len) {
+            // When an entry is rejected, lookup called by readdir_plus will not be tracked by
+            // kernel. Call forget on the rejected node to decrement the reference count.
+            if (plus) do_forget(fuse, e.ino, 1);
+            break;
+        }
         used += entry_size;
     }
 

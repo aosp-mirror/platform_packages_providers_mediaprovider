@@ -135,6 +135,12 @@ public class FuseDaemonHostTest extends FuseDaemonBaseHostTest {
 
     @Test
     public void testVfsCacheConsistency() throws Exception {
+        runDeviceTest("testOpenFilePathFirstWriteContentResolver");
+        runDeviceTest("testOpenContentResolverFirstWriteContentResolver");
+        runDeviceTest("testOpenFilePathFirstWriteFilePath");
+        runDeviceTest("testOpenContentResolverFirstWriteFilePath");
+        runDeviceTest("testOpenContentResolverWriteOnly");
+        runDeviceTest("testOpenContentResolverDup");
         runDeviceTest("testContentResolverDelete");
         runDeviceTest("testContentResolverUpdate");
     }

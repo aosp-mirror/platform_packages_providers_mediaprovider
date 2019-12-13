@@ -51,6 +51,7 @@
 #include <iostream>
 #include <map>
 #include <queue>
+#include <regex>
 #include <thread>
 #include <unordered_map>
 #include <vector>
@@ -85,6 +86,8 @@ class ScopedTrace {
 #define FUSE_UNKNOWN_INO 0xffffffff
 
 constexpr size_t MAX_READ_SIZE = 128 * 1024;
+// Stolen from: UserHandle#getUserId
+constexpr int PER_USER_RANGE = 100000;
 
 class handle {
   public:
@@ -508,6 +511,7 @@ static void pf_destroy(void* userdata)
 }
 */
 
+static std::regex storage_emulated_regex("^\\/storage\\/emulated\\/([0-9]+)");
 static struct node* do_lookup(fuse_req_t req,
                               fuse_ino_t parent,
                               const char* name,
@@ -528,6 +532,18 @@ static struct node* do_lookup(fuse_req_t req,
 
     child_path = parent_path + "/" + name;
 
+    int user_id = ctx->uid / PER_USER_RANGE;
+    std::smatch match;
+    std::regex_search(child_path, match, storage_emulated_regex);
+    if (ctx->uid != 0 && (child_path.find(fuse->path) != 0
+                          || (match.size() == 2 && std::to_string(user_id) != match[1].str()))) {
+        // Ensure the FuseDaemon UID and calling uid match the path requested unless root.
+        // So fail requests of two kinds:
+        // 1. /storage/emulated/0 coming to FuseDaemon running as user 10
+        // 2. /storage/emulated/0 requested from caller running as user 10
+        errno = EPERM;
+        return nullptr;
+    }
     return make_node_entry(req, parent_node, name, child_path, e);
 }
 

@@ -46,22 +46,22 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.FileUtils;
+import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
 import android.util.Log;
 
+import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.cts.install.lib.Install;
+import com.android.cts.install.lib.TestApp;
 import com.android.cts.install.lib.TestApp;
 import com.android.tests.fused.lib.ReaddirTestHelper;
-
+import com.android.tests.fused.lib.ReaddirTestHelper;
 import com.google.common.io.ByteStreams;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -71,7 +71,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.HashMap;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4.class)
 public class FilePathAccessTest {
@@ -601,6 +606,126 @@ public class FilePathAccessTest {
     }
 
     @Test
+    public void testOpenFilePathFirstWriteContentResolver() throws Exception {
+        String displayName = "open_file_path_write_content_resolver.jpg";
+        File file = new File(DCIM_DIR, displayName);
+
+        try {
+            assertThat(file.createNewFile()).isTrue();
+
+            ParcelFileDescriptor readPfd = ParcelFileDescriptor.open(file,
+                    ParcelFileDescriptor.MODE_READ_WRITE);
+            ParcelFileDescriptor writePfd = openWithMediaProvider(Environment.DIRECTORY_DCIM,
+                    displayName, "rw");
+
+            assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
+        } finally {
+            file.delete();
+        }
+    }
+
+    @Test
+    public void testOpenContentResolverFirstWriteContentResolver() throws Exception {
+        String displayName = "open_content_resolver_write_content_resolver.jpg";
+        File file = new File(DCIM_DIR, displayName);
+
+        try {
+            assertThat(file.createNewFile()).isTrue();
+
+            ParcelFileDescriptor writePfd = openWithMediaProvider(Environment.DIRECTORY_DCIM,
+                    displayName, "rw");
+            ParcelFileDescriptor readPfd = ParcelFileDescriptor.open(file,
+                    ParcelFileDescriptor.MODE_READ_WRITE);
+
+            assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
+        } finally {
+            file.delete();
+        }
+    }
+
+    @Test
+    public void testOpenFilePathFirstWriteFilePath() throws Exception {
+        String displayName = "open_file_path_write_file_path.jpg";
+        File file = new File(DCIM_DIR, displayName);
+
+        try {
+            assertThat(file.createNewFile()).isTrue();
+
+            ParcelFileDescriptor writePfd = ParcelFileDescriptor.open(file,
+                    ParcelFileDescriptor.MODE_READ_WRITE);
+            ParcelFileDescriptor readPfd = openWithMediaProvider(Environment.DIRECTORY_DCIM,
+                    displayName, "rw");
+
+            assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
+        } finally {
+            file.delete();
+        }
+    }
+
+    @Test
+    public void testOpenContentResolverFirstWriteFilePath() throws Exception {
+        String displayName = "open_content_resolver_write_file_path.jpg";
+        File file = new File(DCIM_DIR, displayName);
+
+        try {
+            assertThat(file.createNewFile()).isTrue();
+
+            ParcelFileDescriptor readPfd = openWithMediaProvider(Environment.DIRECTORY_DCIM,
+                    displayName, "rw");
+            ParcelFileDescriptor writePfd = ParcelFileDescriptor.open(file,
+                    ParcelFileDescriptor.MODE_READ_WRITE);
+
+            assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
+        } finally {
+            file.delete();
+        }
+    }
+
+    @Test
+    public void testOpenContentResolverWriteOnly() throws Exception {
+        String displayName = "open_content_resolver_write_only.jpg";
+        File file = new File(DCIM_DIR, displayName);
+
+        try {
+            assertThat(file.createNewFile()).isTrue();
+
+            // Since we can only place one F_WRLCK, the second open for readPfd will go
+            // throuh FUSE
+            ParcelFileDescriptor writePfd = openWithMediaProvider(Environment.DIRECTORY_DCIM,
+                    displayName, "w");
+            ParcelFileDescriptor readPfd = openWithMediaProvider(Environment.DIRECTORY_DCIM,
+                    displayName, "rw");
+
+            assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
+        } finally {
+            file.delete();
+        }
+    }
+
+    @Test
+    public void testOpenContentResolverDup() throws Exception {
+        String displayName = "open_content_resolver_dup.jpg";
+        File file = new File(DCIM_DIR, displayName);
+
+        try {
+            assertThat(file.createNewFile()).isTrue();
+
+            // Even if we close the original fd, since we have a dup open
+            // the FUSE IO should still bypass the cache
+            ParcelFileDescriptor writePfd = openWithMediaProvider(Environment.DIRECTORY_DCIM,
+                    displayName, "rw");
+            ParcelFileDescriptor writePfdDup = writePfd.dup();
+            writePfd.close();
+            ParcelFileDescriptor readPfd = ParcelFileDescriptor.open(file,
+                    ParcelFileDescriptor.MODE_READ_WRITE);
+
+            assertRWR(readPfd.getFileDescriptor(), writePfdDup.getFileDescriptor());
+        } finally {
+            file.delete();
+        }
+    }
+
+    @Test
     public void testContentResolverDelete() throws Exception {
         String displayName = "content_resolver_delete.jpg";
         File file = new File(DCIM_DIR, displayName);
@@ -669,6 +794,56 @@ public class FilePathAccessTest {
             Log.i(TAG, "Uri: " + uri + ". Data: " + data);
             assertThat(getContentResolver().update(uri, values, selection, selectionArgs))
                     .isEqualTo(1);
+        }
+    }
+
+
+    /**
+     * Assert that the last read in: read - write - read using {@code readFd} and {@code writeFd}
+     * see the last write. {@code readFd} and {@code writeFd} are fds pointing to the same
+     * underlying file on disk but may be derived from different mount points and in that case
+     * have separate VFS caches.
+     */
+    private void assertRWR(FileDescriptor readFd, FileDescriptor writeFd) throws Exception {
+        byte[] readBuffer = new byte[10];
+        byte[] writeBuffer = new byte[10];
+        Arrays.fill(writeBuffer, (byte) 1);
+
+        // Write so readFd has content to read from next
+        Os.pwrite(readFd, readBuffer, 0, 10, 0);
+        // Read so readBuffer is in readFd's mount VFS cache
+        Os.pread(readFd, readBuffer, 0, 10, 0);
+
+        // Assert that readBuffer is zeroes
+        assertThat(readBuffer).isEqualTo(new byte[10]);
+
+        // Write so writeFd and readFd should now see writeBuffer
+        Os.pwrite(writeFd, writeBuffer, 0, 10, 0);
+
+        // Read so the last write can be verified on readFd
+        Os.pread(readFd, readBuffer, 0, 10, 0);
+
+        // Assert that the last write is indeed visible via readFd
+        assertThat(readBuffer).isEqualTo(writeBuffer);
+    }
+
+    private ParcelFileDescriptor openWithMediaProvider(String relativePath, String displayName,
+            String mode) throws Exception {
+        String selection = MediaColumns.RELATIVE_PATH + " = ? AND "
+                + MediaColumns.DISPLAY_NAME + " = ?";
+        String[] selectionArgs = { relativePath + '/', displayName };
+        String[] projection = {MediaColumns._ID, MediaColumns.DATA};
+
+        try (final Cursor cursor = getContentResolver().query(
+                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, selection,
+                        selectionArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+            cursor.moveToFirst();
+            int id = cursor.getInt(cursor.getColumnIndex(MediaColumns._ID));
+            String data = cursor.getString(cursor.getColumnIndex(MediaColumns.DATA));
+            Uri uri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id);
+            Log.i(TAG, "Uri: " + uri + ". Data: " + data);
+            return getContentResolver().openFileDescriptor(uri, mode);
         }
     }
 

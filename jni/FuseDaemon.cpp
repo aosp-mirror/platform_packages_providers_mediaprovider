@@ -472,7 +472,15 @@ static struct node* make_node_entry(fuse_req_t req,
     // Manipulate attr here if needed
 
     e->attr_timeout = 10;
-    e->entry_timeout = 10;
+    // Ensure the VFS does not cache dentries, if it caches, the following scenario could occur:
+    // 1. Process A has access to file A and does a lookup
+    // 2. Process B does not have access to file A and does a lookup
+    // (2) will succeed because the lookup request will not be sent from kernel to the FUSE daemon
+    // and the kernel will respond from cache. Even if this by itself is not a security risk
+    // because subsequent FUSE requests will fail if B does not have access to the resource.
+    // It does cause indeterministic behavior because whether (2) succeeds or not depends on if
+    // (1) occurred.
+    e->entry_timeout = 0;
     e->ino = node->nid;
     e->generation = node->gen;
     pthread_mutex_unlock(&fuse->lock);

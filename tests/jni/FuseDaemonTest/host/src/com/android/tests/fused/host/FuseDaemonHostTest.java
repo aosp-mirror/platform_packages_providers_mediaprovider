@@ -31,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 /**
  * Runs the FuseDaemon tests.
  */
-@Ignore("b/137890172: waiting for ag/9733193")
 @RunWith(DeviceJUnit4ClassRunner.class)
 public class FuseDaemonHostTest extends FuseDaemonBaseHostTest {
     /**
@@ -42,18 +41,6 @@ public class FuseDaemonHostTest extends FuseDaemonBaseHostTest {
         assertTrue(runDeviceTests("com.android.tests.fused",
                 "com.android.tests.fused.FilePathAccessTest",
                 phase));
-    }
-
-    @Before
-    public void setup() throws Exception {
-        executeShellCommand("mkdir /sdcard/Android/data/com.android.shell");
-        executeShellCommand("mkdir /sdcard/Android/data/com.android.shell/files");
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        executeShellCommand("rm -r /sdcard/Android/data/com.android.shell");
-        executeShellCommand("rm -r /sdcard/Android/data/com.android.shell/files");
     }
 
     @Test
@@ -68,7 +55,12 @@ public class FuseDaemonHostTest extends FuseDaemonBaseHostTest {
 
     @Test
     public void testCreateFileInOtherAppExternalDir() throws Exception {
-        runDeviceTest("testCreateFileInOtherAppExternalDir");
+        executeShellCommand("mkdir -p /sdcard/Android/data/com.android.shell/files");
+        try {
+            runDeviceTest("testCreateFileInOtherAppExternalDir");
+        } finally {
+            executeShellCommand("rm -r /sdcard/Android/data/com.android.shell");
+        }
     }
 
     @Test
@@ -78,7 +70,12 @@ public class FuseDaemonHostTest extends FuseDaemonBaseHostTest {
 
     @Test
     public void testCreateAndDeleteEmptyDir() throws Exception {
-        runDeviceTest("testCreateAndDeleteEmptyDir");
+        executeShellCommand("mkdir -p /sdcard/Android/data/com.android.shell/files");
+        try {
+            runDeviceTest("testCreateAndDeleteEmptyDir");
+        } finally {
+            executeShellCommand("rm -r /sdcard/Android/data/com.android.shell");
+        }
     }
 
     @Test
@@ -87,8 +84,14 @@ public class FuseDaemonHostTest extends FuseDaemonBaseHostTest {
     }
 
     @Test
+    @Ignore("b/146189163")
     public void testOpendirRestrictions() throws Exception {
-        runDeviceTest("testOpendirRestrictions");
+        executeShellCommand("mkdir -p /sdcard/Android/data/com.android.shell/files");
+        try {
+            runDeviceTest("testOpendirRestrictions");
+        } finally {
+            executeShellCommand("rm -r /sdcard/Android/data/com.android.shell");
+        }
     }
 
     @Test
@@ -107,6 +110,7 @@ public class FuseDaemonHostTest extends FuseDaemonBaseHostTest {
     }
 
     @Test
+    @Ignore("b/146189163")
     public void testListFilesFromExternalFilesDirectory() throws Exception {
         runDeviceTest("testListFilesFromExternalFilesDirectory");
     }

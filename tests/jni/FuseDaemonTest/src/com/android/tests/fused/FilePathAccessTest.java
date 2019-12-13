@@ -116,7 +116,7 @@ public class FilePathAccessTest {
     // skips all test cases if FUSE is not active.
     @Before
     public void assumeFuseIsOn() {
-        assumeTrue(getBoolean("sys.fuse_snapshot", false));
+        assumeTrue(getBoolean("persist.sys.fuse", false));
         EXTERNAL_FILES_DIR.mkdirs();
     }
 

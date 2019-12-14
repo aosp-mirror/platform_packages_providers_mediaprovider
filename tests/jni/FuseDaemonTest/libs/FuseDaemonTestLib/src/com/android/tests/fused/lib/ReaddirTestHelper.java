@@ -38,7 +38,6 @@ import androidx.test.InstrumentationRegistry;
 public class ReaddirTestHelper {
     private static final String TAG = "ReaddirTestHelper";
 
-    public static final String QUERY_TYPE = "com.android.tests.fused.queryType";
     public static final String READDIR_QUERY = "com.android.tests.fused.readdir";
     public static final String CREATE_FILE_QUERY = "com.android.tests.fused.createfile";
     public static final String DELETE_FILE_QUERY = "com.android.tests.fused.deletefile";

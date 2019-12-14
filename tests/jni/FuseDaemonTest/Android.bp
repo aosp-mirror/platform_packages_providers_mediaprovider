@@ -30,7 +30,7 @@ android_test {
     name: "FuseDaemonTest",
     manifest: "AndroidManifest.xml",
     srcs: ["src/**/*.java"],
-    static_libs: ["androidx.test.rules", "truth-prebuilt", "cts-install-lib", "tests-fusedaemon-lib"],
+    static_libs: ["androidx.test.rules", "truth-prebuilt", "tests-fusedaemon-lib"],
     test_suites: ["general-tests"],
     sdk_version: "test_current",
     java_resources: [

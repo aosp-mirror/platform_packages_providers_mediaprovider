@@ -15,6 +15,11 @@
  */
 package com.android.tests.fused;
 
+import static com.android.tests.fused.lib.ReaddirTestHelper.CREATE_FILE_QUERY;
+import static com.android.tests.fused.lib.ReaddirTestHelper.DELETE_FILE_QUERY;
+import static com.android.tests.fused.lib.ReaddirTestHelper.READDIR_QUERY;
+import static com.android.tests.fused.lib.TestUtils.QUERY_TYPE;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
@@ -26,10 +31,6 @@ import java.util.ArrayList;
 
 
 import com.android.tests.fused.lib.ReaddirTestHelper;
-import static com.android.tests.fused.lib.ReaddirTestHelper.QUERY_TYPE;
-import static com.android.tests.fused.lib.ReaddirTestHelper.READDIR_QUERY;
-import static com.android.tests.fused.lib.ReaddirTestHelper.CREATE_FILE_QUERY;
-import static com.android.tests.fused.lib.ReaddirTestHelper.DELETE_FILE_QUERY;
 
 /**
  * App for FilePathAccessTest Functions.
@@ -42,18 +43,19 @@ public class FilePathAccessTestHelper extends Activity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (getIntent().hasExtra(QUERY_TYPE)) {
-            String queryType = getIntent().getStringExtra(QUERY_TYPE);
-            if (queryType.equals(READDIR_QUERY)) {
+        String queryType = getIntent().getStringExtra(QUERY_TYPE);
+        queryType = queryType == null ? "null" : queryType;
+        switch (queryType) {
+            case READDIR_QUERY:
                 sendDirectoryEntries(queryType);
-            } else if (queryType.equals(CREATE_FILE_QUERY) ||
-                    queryType.equals(DELETE_FILE_QUERY)) {
+                break;
+            case CREATE_FILE_QUERY:
+            case DELETE_FILE_QUERY:
                 createOrDeleteFile(queryType);
-            } else {
-                Log.e(TAG, "Unknown query received from launcher app");
-            }
-        } else {
-            Log.e(TAG, "No query received from launcher app");
+                break;
+            case "null":
+            default:
+                Log.e(TAG, "Unknown query received from launcher app: " + queryType);
         }
     }
 

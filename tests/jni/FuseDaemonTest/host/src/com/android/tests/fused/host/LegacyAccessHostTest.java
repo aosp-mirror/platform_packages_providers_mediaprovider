@@ -30,6 +30,7 @@ import org.junit.runner.RunWith;
 /**
  * Runs the legacy file path access tests.
  */
+@Ignore("b/137890172: waiting for ag/9733193")
 @RunWith(DeviceJUnit4ClassRunner.class)
 public class LegacyAccessHostTest extends FuseDaemonBaseHostTest {
 
@@ -94,7 +95,6 @@ public class LegacyAccessHostTest extends FuseDaemonBaseHostTest {
     }
 
     @Test
-    @Ignore("b/146189163")
     public void testReadOnlyExternalStorage_hasR() throws Exception {
         revokePermissions("android.permission.WRITE_EXTERNAL_STORAGE");
         createFile(SHELL_FILE);
@@ -106,7 +106,6 @@ public class LegacyAccessHostTest extends FuseDaemonBaseHostTest {
     }
 
     @Test
-    @Ignore("b/146189163")
     public void testCantAccessExternalStorage() throws Exception {
         revokePermissions("android.permission.WRITE_EXTERNAL_STORAGE",
                 "android.permission.READ_EXTERNAL_STORAGE");

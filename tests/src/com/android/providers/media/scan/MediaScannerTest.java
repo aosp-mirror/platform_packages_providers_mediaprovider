@@ -87,7 +87,7 @@ public class MediaScannerTest {
                 }
             });
 
-            MediaStore.waitForIdle(this);
+            MediaStore.waitForIdle(mResolver);
         }
 
         @Override

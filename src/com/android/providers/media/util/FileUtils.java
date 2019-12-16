@@ -19,6 +19,11 @@ package com.android.providers.media.util;
 import static com.android.providers.media.MediaProvider.TAG;
 
 import android.content.ClipDescription;
+import android.content.Context;
+import android.net.Uri;
+import android.os.Environment;
+import android.os.storage.StorageManager;
+import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
@@ -26,12 +31,15 @@ import android.webkit.MimeTypeMap;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.android.providers.media.scan.MediaScanner;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.Objects;
@@ -376,6 +384,59 @@ public class FileUtils {
             return null;
         } else {
             return data.substring(lastDot + 1);
+        }
+    }
+
+    /**
+     * Return list of paths that should be scanned with {@link MediaScanner} for
+     * the given volume name.
+     */
+    public static @NonNull Collection<File> getVolumeScanPaths(@NonNull Context context,
+            @NonNull String volumeName) throws FileNotFoundException {
+        final ArrayList<File> res = new ArrayList<>();
+        switch (volumeName) {
+            case MediaStore.VOLUME_INTERNAL: {
+                res.addAll(Environment.getInternalMediaDirectories());
+                break;
+            }
+            case MediaStore.VOLUME_EXTERNAL: {
+                for (String resolvedVolumeName : MediaStore.getExternalVolumeNames(context)) {
+                    res.add(getVolumePath(context, resolvedVolumeName));
+                }
+                break;
+            }
+            default: {
+                res.add(getVolumePath(context, volumeName));
+            }
+        }
+        return res;
+    }
+
+    /**
+     * Return path where the given volume name is mounted.
+     */
+    public static @NonNull File getVolumePath(@NonNull Context context,
+            @NonNull String volumeName) throws FileNotFoundException {
+        switch (volumeName) {
+            case MediaStore.VOLUME_INTERNAL:
+            case MediaStore.VOLUME_EXTERNAL:
+                throw new FileNotFoundException(volumeName + " has no associated path");
+        }
+
+        final Uri uri = MediaStore.Files.getContentUri(volumeName);
+        return context.getSystemService(StorageManager.class).getStorageVolume(uri)
+                .getDirectory();
+    }
+
+    /**
+     * Return volume name which hosts the given path.
+     */
+    public static @NonNull String getVolumeName(@NonNull Context context, @NonNull File path) {
+        if (contains(Environment.getStorageDirectory(), path)) {
+            return context.getSystemService(StorageManager.class).getStorageVolume(path)
+                    .getMediaStoreVolumeName();
+        } else {
+            return MediaStore.VOLUME_INTERNAL;
         }
     }
 }

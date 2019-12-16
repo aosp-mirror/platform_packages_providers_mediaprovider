@@ -38,8 +38,8 @@ import static android.provider.MediaStore.getVolumeName;
 import static android.provider.MediaStore.Downloads.isDownload;
 
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY_GRANTED;
-import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY_WRITE;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY_READ;
+import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY_WRITE;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_SYSTEM;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_READ_AUDIO;
@@ -115,7 +115,6 @@ import android.os.storage.StorageEventListener;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.os.storage.VolumeInfo;
-import android.os.storage.VolumeRecord;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.provider.Column;
@@ -300,10 +299,10 @@ public class MediaProvider extends ContentProvider {
             sCachedVolumeScanPaths.clear();
             try {
                 sCachedVolumeScanPaths.put(MediaStore.VOLUME_INTERNAL,
-                        MediaStore.getVolumeScanPaths(MediaStore.VOLUME_INTERNAL));
+                        FileUtils.getVolumeScanPaths(getContext(), MediaStore.VOLUME_INTERNAL));
                 for (String volumeName : sCachedExternalVolumeNames) {
                     sCachedVolumeScanPaths.put(volumeName,
-                            MediaStore.getVolumeScanPaths(volumeName));
+                            FileUtils.getVolumeScanPaths(getContext(), volumeName));
                 }
             } catch (FileNotFoundException e) {
                 throw new IllegalStateException(e.getMessage());
@@ -311,14 +310,21 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    public static File getVolumePath(String volumeName) throws FileNotFoundException {
+    public File getVolumePath(String volumeName) throws FileNotFoundException {
         // TODO(b/144275217): A more performant invocation is
         // MediaStore#getVolumePath(sCachedVolumes, volumeName) since we avoid a binder
         // to StorageManagerService to getVolumeList. We need to delay the mount broadcasts
         // from StorageManagerService so that sCachedVolumes is up to date in
         // onVolumeStateChanged before we to call this method, otherwise we would crash
         // when we don't find volumeName yet
-        return MediaStore.getVolumePath(volumeName);
+
+        // Ugly hack to keep unit tests passing, where we don't always have a
+        // Context to discover volumes with
+        if (getContext() == null) {
+            return Environment.getExternalStorageDirectory();
+        }
+
+        return FileUtils.getVolumePath(getContext(), volumeName);
     }
 
     public static Set<String> getExternalVolumeNames() {
@@ -427,7 +433,8 @@ public class MediaProvider extends ContentProvider {
                     volumeName = MediaStore.VOLUME_EXTERNAL_PRIMARY;
                 } else {
                     try {
-                        volumeName = MediaStore.checkArgumentVolumeName(sv.getNormalizedUuid());
+                        volumeName = MediaStore
+                                .checkArgumentVolumeName(sv.getMediaStoreVolumeName());
                     } catch (IllegalArgumentException ignored) {
                         return;
                     }
@@ -565,7 +572,7 @@ public class MediaProvider extends ContentProvider {
             if (vol == null || vol.isPrimary()) {
                 key = "created_default_folders";
             } else {
-                key = "created_default_folders_" + vol.getNormalizedUuid();
+                key = "created_default_folders_" + vol.getMediaStoreVolumeName();
             }
 
             final SharedPreferences prefs = PreferenceManager
@@ -691,8 +698,7 @@ public class MediaProvider extends ContentProvider {
             signal.throwIfCanceled();
 
             try {
-                final File file = getVolumePath(volumeName);
-                MediaService.onScanVolume(getContext(), Uri.fromFile(file), REASON_IDLE);
+                MediaService.onScanVolume(getContext(), volumeName, REASON_IDLE);
             } catch (IOException e) {
                 Log.w(TAG, e);
             }
@@ -1077,7 +1083,7 @@ public class MediaProvider extends ContentProvider {
     private ArrayList<String> getEntriesFromDatabase(String path, Bundle queryArgs,
             String[] projection) {
         ArrayList<String> dbEntries = new ArrayList<>();
-        final String volName = MediaStore.getVolumeName(new File(path));
+        final String volName = FileUtils.getVolumeName(getContext(), new File(path));
         // Get database entries which match given selection. Use projection[0] for the return
         // string.
         try (final Cursor cursor = query(MediaStore.Files.getContentUri(volName), projection,
@@ -2665,7 +2671,7 @@ public class MediaProvider extends ContentProvider {
                 rowId = insertFile(qb, db, match, uri, extras, initialValues,
                         FileColumns.MEDIA_TYPE_NONE, false);
                 if (rowId > 0) {
-                    newUri = Files.getMtpObjectsUri(originalVolumeName, rowId);
+                    newUri = ContentUris.withAppendedId(uri, rowId);
                 }
                 break;
 
@@ -3632,6 +3638,15 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public Bundle call(String method, String arg, Bundle extras) {
+        Trace.beginSection("call");
+        try {
+            return callInternal(method, arg, extras);
+        } finally {
+            Trace.endSection();
+        }
+    }
+
+    private Bundle callInternal(String method, String arg, Bundle extras) {
         switch (method) {
             case MediaStore.WAIT_FOR_IDLE_CALL: {
                 final CountDownLatch latch = new CountDownLatch(1);
@@ -3650,17 +3665,18 @@ public class MediaProvider extends ContentProvider {
                 final LocalCallingIdentity token = clearLocalCallingIdentity();
                 final CallingIdentity providerToken = clearCallingIdentity();
                 try {
-                    final Uri uri = extras.getParcelable(Intent.EXTRA_STREAM);
-                    final File file = new File(uri.getPath());
                     final Bundle res = new Bundle();
                     switch (method) {
-                        case MediaStore.SCAN_FILE_CALL:
+                        case MediaStore.SCAN_FILE_CALL: {
+                            final File file = new File(arg);
                             res.putParcelable(Intent.EXTRA_STREAM, scanFile(file, REASON_DEMAND));
                             break;
-                        case MediaStore.SCAN_VOLUME_CALL:
-                            MediaService.onScanVolume(getContext(),
-                                    Uri.fromFile(file), REASON_DEMAND);
+                        }
+                        case MediaStore.SCAN_VOLUME_CALL: {
+                            final String volumeName = arg;
+                            MediaService.onScanVolume(getContext(), volumeName, REASON_DEMAND);
                             break;
+                        }
                     }
                     return res;
                 } catch (IOException e) {
@@ -3669,13 +3685,6 @@ public class MediaProvider extends ContentProvider {
                     restoreCallingIdentity(providerToken);
                     restoreLocalCallingIdentity(token);
                 }
-            }
-            case MediaStore.UNHIDE_CALL: {
-                throw new UnsupportedOperationException();
-            }
-            case MediaStore.RETRANSLATE_CALL: {
-                localizeTitles();
-                return null;
             }
             case MediaStore.GET_VERSION_CALL: {
                 final String volumeName = extras.getString(Intent.EXTRA_TEXT);
@@ -3743,31 +3752,6 @@ public class MediaProvider extends ContentProvider {
                 } finally {
                     restoreLocalCallingIdentity(token);
                 }
-            }
-            case MediaStore.GET_CONTRIBUTED_MEDIA_CALL: {
-                getContext().enforceCallingOrSelfPermission(
-                        android.Manifest.permission.CLEAR_APP_USER_DATA, TAG);
-
-                final String packageName = extras.getString(Intent.EXTRA_PACKAGE_NAME);
-                final long totalSize = forEachContributedMedia(packageName, null);
-                final Bundle res = new Bundle();
-                res.putLong(Intent.EXTRA_INDEX, totalSize);
-                return res;
-            }
-            case MediaStore.DELETE_CONTRIBUTED_MEDIA_CALL: {
-                getContext().enforceCallingOrSelfPermission(
-                        android.Manifest.permission.CLEAR_APP_USER_DATA, TAG);
-
-                final String packageName = extras.getString(Intent.EXTRA_PACKAGE_NAME);
-                forEachContributedMedia(packageName, (uri) -> {
-                    delete(uri, null, null);
-                });
-                return null;
-            }
-            case MediaStore.SUICIDE_CALL: {
-                Log.v(TAG, "Suicide requested!");
-                android.os.Process.killProcess(android.os.Process.myPid());
-                return null;
             }
             case MediaStore.CREATE_WRITE_REQUEST_CALL:
             case MediaStore.CREATE_FAVORITE_REQUEST_CALL:
@@ -3851,48 +3835,6 @@ public class MediaProvider extends ContentProvider {
         intent.putExtras(extras);
         return PendingIntent.getActivity(context, PermissionActivity.REQUEST_CODE, intent,
                 FLAG_ONE_SHOT | FLAG_CANCEL_CURRENT | FLAG_IMMUTABLE);
-    }
-
-    /**
-     * Execute the given operation for each media item contributed by given
-     * package. The meaning of "contributed" means it won't automatically be
-     * deleted when the app is uninstalled.
-     */
-    private long forEachContributedMedia(String packageName, Consumer<Uri> consumer) {
-        final DatabaseHelper helper = mExternalDatabase;
-        final SQLiteDatabase db = helper.getReadableDatabase();
-
-        final SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
-        qb.setTables("files");
-        qb.appendWhere(
-                DatabaseUtils.bindSelection(FileColumns.OWNER_PACKAGE_NAME + "=?", packageName)
-                        + " AND NOT " + FileColumns.DATA + " REGEXP '"
-                        + PATTERN_OWNED_PATH.pattern() + "'");
-
-        long totalSize = 0;
-        final LocalCallingIdentity token = clearLocalCallingIdentity();
-        try {
-            try (Cursor c = qb.query(db, new String[] {
-                    FileColumns.VOLUME_NAME, FileColumns._ID, FileColumns.SIZE, FileColumns.DATA
-            }, null, null, null, null, null, null)) {
-                while (c.moveToNext()) {
-                    final String volumeName = c.getString(0);
-                    final long id = c.getLong(1);
-                    final long size = c.getLong(2);
-                    final String data = c.getString(3);
-
-                    Log.d(TAG, "Found " + data + " from " + packageName + " in "
-                            + helper.mName + " with size " + size);
-                    if (consumer != null) {
-                        consumer.accept(Files.getContentUri(volumeName, id));
-                    }
-                    totalSize += size;
-                }
-            }
-        } finally {
-            restoreLocalCallingIdentity(token);
-        }
-        return totalSize;
     }
 
     /**
@@ -3990,7 +3932,7 @@ public class MediaProvider extends ContentProvider {
         return prunedCount;
     }
 
-    static abstract class Thumbnailer {
+    abstract class Thumbnailer {
         final String directoryName;
 
         public Thumbnailer(String directoryName) {
@@ -4776,7 +4718,7 @@ public class MediaProvider extends ContentProvider {
      * Return the {@link Uri} for the given {@code File}.
      */
     Uri queryForMediaUri(File file, CancellationSignal signal) throws FileNotFoundException {
-        final String volumeName = MediaStore.getVolumeName(file);
+        final String volumeName = FileUtils.getVolumeName(getContext(), file);
         final Uri uri = Files.getContentUri(volumeName);
         try (Cursor cursor = queryForSingleItem(uri, new String[] { MediaColumns._ID },
                 MediaColumns.DATA + "=?", new String[] { file.getAbsolutePath() }, signal)) {
@@ -5267,7 +5209,7 @@ public class MediaProvider extends ContentProvider {
      * @throws IllegalStateException if path is invalid or doesn't match a volume.
      */
     @NonNull
-    private static Uri getContentUriForFile(@NonNull String filePath, @NonNull String mimeType) {
+    private Uri getContentUriForFile(@NonNull String filePath, @NonNull String mimeType) {
         return getPossibleContentUrisForPath(filePath, mimeType)[0];
     }
 
@@ -5281,9 +5223,9 @@ public class MediaProvider extends ContentProvider {
      * @throws IllegalStateException if path is invalid or doesn't match a volume.
      */
     @NonNull
-    private static Uri[] getPossibleContentUrisForPath(@NonNull String path,
+    private Uri[] getPossibleContentUrisForPath(@NonNull String path,
             @NonNull String mimeType) {
-        final String volName = MediaStore.getVolumeName(new File(path));
+        final String volName = FileUtils.getVolumeName(getContext(), new File(path));
         Uri[] uris = {Files.getContentUri(volName)};
         final String topLevelDir = extractTopLevelDir(path);
         if (topLevelDir == null) {
@@ -6272,7 +6214,8 @@ public class MediaProvider extends ContentProvider {
                 try {
                     for (Class<?> clazz : clazzes) {
                         for (Field field : clazz.getFields()) {
-                            if (field.isAnnotationPresent(Column.class)) {
+                            if (Objects.equals(field.getName(), "_ID")
+                                    || field.isAnnotationPresent(Column.class)) {
                                 final String column = (String) field.get(null);
                                 map.put(column, column);
                             }

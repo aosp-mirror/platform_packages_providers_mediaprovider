@@ -315,7 +315,7 @@ public class ModernMediaScannerTest {
         }
 
         // Make sure out pending scan has finished
-        MediaStore.waitForIdle(mIsolatedContext);
+        MediaStore.waitForIdle(mIsolatedResolver);
 
         try (Cursor cursor = mIsolatedResolver
                 .query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {

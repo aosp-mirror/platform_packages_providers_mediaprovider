@@ -264,7 +264,7 @@ public class ModernMediaScanner implements MediaScanner {
 
             mRoot = root;
             mReason = reason;
-            mVolumeName = MediaStore.getVolumeName(root);
+            mVolumeName = FileUtils.getVolumeName(mContext, root);
             mFilesUri = MediaStore.Files.getContentUri(mVolumeName);
             mSignal = getOrCreateSignal(mVolumeName);
 

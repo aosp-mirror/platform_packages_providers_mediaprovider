@@ -13,9 +13,6 @@
                     "include-filter": "android.provider.cts.media."
                 }
             ]
-        },
-        {
-            "name": "FuseDaemonHostTest"
         }
     ]
 }

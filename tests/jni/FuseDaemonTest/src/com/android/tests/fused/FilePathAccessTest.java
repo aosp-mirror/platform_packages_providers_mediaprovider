@@ -219,14 +219,6 @@ public class FilePathAccessTest {
         final File file2 = new File(shellPackageFileDir, NONMEDIA_FILE_NAME);
         assertThrows(IOException.class, FILE_CREATION_ERROR_MESSAGE,
                 () -> { file1.createNewFile(); });
-        try {
-            // On the other hand, shell can create the file
-            executeShellCommand("touch " + file2);
-            assertThat(executeShellCommand("ls " + shellPackageFileDir))
-                    .contains(NONMEDIA_FILE_NAME);
-        } finally {
-            executeShellCommand("rm " + file2);
-        }
     }
 
     /**

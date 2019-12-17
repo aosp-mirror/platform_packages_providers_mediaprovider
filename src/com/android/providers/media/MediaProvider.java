@@ -37,6 +37,7 @@ import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.getVolumeName;
 import static android.provider.MediaStore.Downloads.isDownload;
 
+import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_BACKUP;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY_GRANTED;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY_WRITE;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY_READ;
@@ -74,6 +75,7 @@ import android.content.IntentFilter;
 import android.content.OperationApplicationException;
 import android.content.SharedPreferences;
 import android.content.UriMatcher;
+import android.content.pm.PackageInstaller.SessionInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.PermissionGroupInfo;
@@ -679,6 +681,27 @@ public class MediaProvider extends ContentProvider {
         mCallingIdentity.set(token);
     }
 
+    private boolean isPackageKnown(@NonNull String packageName) {
+        final PackageManager pm = getContext().getPackageManager();
+
+        // First, is the app actually installed?
+        try {
+            pm.getPackageInfo(packageName, PackageManager.MATCH_UNINSTALLED_PACKAGES);
+            return true;
+        } catch (NameNotFoundException ignored) {
+        }
+
+        // Second, is the app pending, probably from a backup/restore operation?
+        for (SessionInfo si : pm.getPackageInstaller().getAllSessions()) {
+            if (Objects.equals(packageName, si.getAppPackageName())) {
+                return true;
+            }
+        }
+
+        // I've never met this package in my life
+        return false;
+    }
+
     public void onIdleMaintenance(@NonNull CancellationSignal signal) {
         final long startTime = SystemClock.elapsedRealtime();
 
@@ -709,10 +732,8 @@ public class MediaProvider extends ContentProvider {
             while (c.moveToNext()) {
                 final String packageName = c.getString(0);
                 if (TextUtils.isEmpty(packageName)) continue;
-                try {
-                    getContext().getPackageManager().getPackageInfo(packageName,
-                            PackageManager.MATCH_UNINSTALLED_PACKAGES);
-                } catch (NameNotFoundException e) {
+
+                if (!isPackageKnown(packageName)) {
                     unknownPackages.add(packageName);
                 }
             }
@@ -2451,9 +2472,10 @@ public class MediaProvider extends ContentProvider {
                 initialValues.putNull(ImageColumns.LONGITUDE);
             }
 
-            if (isCallingPackageSystem()) {
-                // When media inserted by ourselves, the best we can do is guess
-                // ownership based on path.
+            if (isCallingPackageSystem() || isCallingPackageBackup()) {
+                // When media inserted by ourselves during a scan, or by a
+                // backup app, the best we can do is guess ownership based on
+                // path when it's not explicitly provided
                 ownerPackageName = initialValues.getAsString(FileColumns.OWNER_PACKAGE_NAME);
                 if (TextUtils.isEmpty(ownerPackageName)) {
                     ownerPackageName = extractPathOwnerPackageName(path);
@@ -6343,6 +6365,11 @@ public class MediaProvider extends ContentProvider {
     @Deprecated
     private boolean isCallingPackageSystem() {
         return mCallingIdentity.get().hasPermission(PERMISSION_IS_SYSTEM);
+    }
+
+    @Deprecated
+    private boolean isCallingPackageBackup() {
+        return mCallingIdentity.get().hasPermission(PERMISSION_IS_BACKUP);
     }
 
     @Deprecated

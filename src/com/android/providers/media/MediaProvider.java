@@ -404,11 +404,6 @@ public class MediaProvider extends ContentProvider {
     @GuardedBy("mDirectoryCache")
     private final ArrayMap<String, Long> mDirectoryCache = new ArrayMap<>();
 
-    private static final String[] sMediaTableColumns = new String[] {
-            FileColumns._ID,
-            FileColumns.MEDIA_TYPE,
-    };
-
     private static final String[] sDataOnlyColumn = new String[] {
         FileColumns.DATA
     };
@@ -1294,11 +1289,6 @@ public class MediaProvider extends ContentProvider {
         final DatabaseHelper helper = getDatabaseForUri(uri);
         final SQLiteDatabase db = helper.getReadableDatabase();
 
-        if (table == MTP_OBJECT_REFERENCES) {
-            final int handle = Integer.parseInt(uri.getPathSegments().get(2));
-            return getObjectReferences(helper, db, handle);
-        }
-
         final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, table, uri, queryArgs,
                 honoredArgs::add);
         String filter = uri.getQueryParameter("filter");
@@ -1827,11 +1817,6 @@ public class MediaProvider extends ContentProvider {
             return e.translateForUpdateDelete(targetSdkVersion);
         }
 
-        if (match == MTP_OBJECT_REFERENCES) {
-            int handle = Integer.parseInt(uri.getPathSegments().get(2));
-            return setObjectReferences(helper, db, handle, values);
-        }
-
         helper.beginTransaction();
         try {
             final int result = super.bulkInsert(uri, values);
@@ -1840,43 +1825,6 @@ public class MediaProvider extends ContentProvider {
         } finally {
             helper.endTransaction();
         }
-    }
-
-    private int playlistBulkInsert(SQLiteDatabase db, Uri uri, ContentValues values[]) {
-        android.database.DatabaseUtils.InsertHelper helper =
-            new android.database.DatabaseUtils.InsertHelper(db, "audio_playlists_map");
-        int audioidcolidx = helper.getColumnIndex(MediaStore.Audio.Playlists.Members.AUDIO_ID);
-        int playlistididx = helper.getColumnIndex(Audio.Playlists.Members.PLAYLIST_ID);
-        int playorderidx = helper.getColumnIndex(MediaStore.Audio.Playlists.Members.PLAY_ORDER);
-        long playlistId = Long.parseLong(uri.getPathSegments().get(3));
-
-        db.beginTransaction();
-        int numInserted = 0;
-        try {
-            int len = values.length;
-            for (int i = 0; i < len; i++) {
-                helper.prepareForInsert();
-                // getting the raw Object and converting it long ourselves saves
-                // an allocation (the alternative is ContentValues.getAsLong, which
-                // returns a Long object)
-                long audioid = ((Number) values[i].get(
-                        MediaStore.Audio.Playlists.Members.AUDIO_ID)).longValue();
-                helper.bind(audioidcolidx, audioid);
-                helper.bind(playlistididx, playlistId);
-                // convert to int ourselves to save an allocation.
-                int playorder = ((Number) values[i].get(
-                        MediaStore.Audio.Playlists.Members.PLAY_ORDER)).intValue();
-                helper.bind(playorderidx, playorder);
-                helper.execute();
-            }
-            numInserted = len;
-            db.setTransactionSuccessful();
-        } finally {
-            db.endTransaction();
-            helper.close();
-        }
-        getContext().getContentResolver().notifyChange(uri, null);
-        return numInserted;
     }
 
     private long insertDirectory(SQLiteDatabase db, String path) {
@@ -2234,104 +2182,6 @@ public class MediaProvider extends ContentProvider {
         return rowId;
     }
 
-    private Cursor getObjectReferences(DatabaseHelper helper, SQLiteDatabase db, int handle) {
-        Cursor c = db.query("files", sMediaTableColumns, "_id=?",
-                new String[] {  Integer.toString(handle) },
-                null, null, null);
-        try {
-            if (c != null && c.moveToNext()) {
-                long playlistId = c.getLong(0);
-                int mediaType = c.getInt(1);
-                if (mediaType != FileColumns.MEDIA_TYPE_PLAYLIST) {
-                    // we only support object references for playlist objects
-                    return null;
-                }
-                return db.rawQuery(OBJECT_REFERENCES_QUERY,
-                        new String[] { Long.toString(playlistId) } );
-            }
-        } finally {
-            FileUtils.closeQuietly(c);
-        }
-        return null;
-    }
-
-    private int setObjectReferences(DatabaseHelper helper, SQLiteDatabase db,
-            int handle, ContentValues values[]) {
-        // first look up the media table and media ID for the object
-        long playlistId = 0;
-        Cursor c = db.query("files", sMediaTableColumns, "_id=?",
-                new String[] {  Integer.toString(handle) },
-                null, null, null);
-        try {
-            if (c != null && c.moveToNext()) {
-                int mediaType = c.getInt(1);
-                if (mediaType != FileColumns.MEDIA_TYPE_PLAYLIST) {
-                    // we only support object references for playlist objects
-                    return 0;
-                }
-                playlistId = c.getLong(0);
-            }
-        } finally {
-            FileUtils.closeQuietly(c);
-        }
-        if (playlistId == 0) {
-            return 0;
-        }
-
-        // next delete any existing entries
-        db.delete("audio_playlists_map", "playlist_id=?",
-                new String[] { Long.toString(playlistId) });
-
-        // finally add the new entries
-        int count = values.length;
-        int added = 0;
-        ContentValues[] valuesList = new ContentValues[count];
-        for (int i = 0; i < count; i++) {
-            // convert object ID to audio ID
-            long audioId = 0;
-            long objectId = values[i].getAsLong(MediaStore.MediaColumns._ID);
-            c = db.query("files", sMediaTableColumns, "_id=?",
-                    new String[] {  Long.toString(objectId) },
-                    null, null, null);
-            try {
-                if (c != null && c.moveToNext()) {
-                    int mediaType = c.getInt(1);
-                    if (mediaType != FileColumns.MEDIA_TYPE_AUDIO) {
-                        // we only allow audio files in playlists, so skip
-                        continue;
-                    }
-                    audioId = c.getLong(0);
-                }
-            } finally {
-                FileUtils.closeQuietly(c);
-            }
-            if (audioId != 0) {
-                ContentValues v = new ContentValues();
-                v.put(MediaStore.Audio.Playlists.Members.PLAYLIST_ID, playlistId);
-                v.put(MediaStore.Audio.Playlists.Members.AUDIO_ID, audioId);
-                v.put(MediaStore.Audio.Playlists.Members.PLAY_ORDER, added);
-                valuesList[added++] = v;
-            }
-        }
-        if (added < count) {
-            // we weren't able to find everything on the list, so lets resize the array
-            // and pass what we have.
-            ContentValues[] newValues = new ContentValues[added];
-            System.arraycopy(valuesList, 0, newValues, 0, added);
-            valuesList = newValues;
-        }
-
-        int rowsChanged = playlistBulkInsert(db,
-                Audio.Playlists.Members.getContentUri(MediaStore.VOLUME_EXTERNAL, playlistId),
-                valuesList);
-
-        if (rowsChanged > 0) {
-            updatePlaylistDateModifiedToNow(db, playlistId);
-        }
-
-        return rowsChanged;
-    }
-
     @VisibleForTesting
     static @Nullable String extractPathOwnerPackageName(@Nullable String path) {
         if (path == null) return null;
@@ -2664,24 +2514,6 @@ public class MediaProvider extends ContentProvider {
                 }
                 break;
             }
-
-            case MTP_OBJECTS:
-                // We don't send a notification if the insert originated from MTP
-                final boolean isDownload = maybeMarkAsDownload(initialValues);
-                rowId = insertFile(qb, db, match, uri, extras, initialValues,
-                        FileColumns.MEDIA_TYPE_NONE, false);
-                if (rowId > 0) {
-                    newUri = ContentUris.withAppendedId(uri, rowId);
-                }
-                break;
-
-            case FILES_DIRECTORY:
-                rowId = insertDirectory(helper.getWritableDatabase(),
-                        initialValues.getAsString(FileColumns.DATA));
-                if (rowId > 0) {
-                    newUri = Files.getContentUri(originalVolumeName, rowId);
-                }
-                break;
 
             case DOWNLOADS:
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
@@ -3215,14 +3047,11 @@ public class MediaProvider extends ContentProvider {
                 break;
             }
             case FILES_ID:
-            case MTP_OBJECTS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(2));
                 matchPending = MATCH_INCLUDE;
                 matchTrashed = MATCH_INCLUDE;
                 // fall-through
-            case FILES:
-            case FILES_DIRECTORY:
-            case MTP_OBJECTS: {
+            case FILES: {
                 qb.setTables("files");
                 qb.setProjectionMap(getProjectionMap(Files.FileColumns.class));
 
@@ -3535,10 +3364,6 @@ public class MediaProvider extends ContentProvider {
             }
 
             switch (match) {
-                case MTP_OBJECTS:
-                case MTP_OBJECTS_ID:
-                    count = deleteRecursive(qb, db, userWhere, userWhereArgs);
-                    break;
                 case AUDIO_GENRES_ID_MEMBERS:
                     throw new FallbackException("Genres are read-only", Build.VERSION_CODES.R);
 
@@ -4310,75 +4135,6 @@ public class MediaProvider extends ContentProvider {
             } finally {
                 restoreLocalCallingIdentity(token);
                 Trace.endSection();
-            }
-        }
-
-        // special case renaming directories via MTP.
-        // in this case we must update all paths in the database with
-        // the directory name as a prefix
-        if ((match == MTP_OBJECTS || match == MTP_OBJECTS_ID || match == FILES_DIRECTORY)
-                && initialValues != null
-                // Is a rename operation
-                && ((initialValues.size() == 1 && initialValues.containsKey(FileColumns.DATA))
-                // Is a move operation
-                || (initialValues.size() == 2 && initialValues.containsKey(FileColumns.DATA)
-                && initialValues.containsKey(FileColumns.PARENT)))) {
-            String oldPath = null;
-            String newPath = initialValues.getAsString(MediaStore.MediaColumns.DATA);
-            synchronized (mDirectoryCache) {
-                mDirectoryCache.remove(newPath);
-            }
-            // MtpDatabase will rename the directory first, so we test the new file name
-            File f = new File(newPath);
-            if (newPath != null && f.isDirectory()) {
-                Cursor cursor = qb.query(db, PATH_PROJECTION, userWhere, userWhereArgs, null, null,
-                        null, null);
-                try {
-                    if (cursor != null && cursor.moveToNext()) {
-                        oldPath = cursor.getString(1);
-                    }
-                } finally {
-                    FileUtils.closeQuietly(cursor);
-                }
-                final boolean isDownload = isDownload(newPath);
-                if (oldPath != null) {
-                    synchronized (mDirectoryCache) {
-                        mDirectoryCache.remove(oldPath);
-                    }
-                    final boolean wasDownload = isDownload(oldPath);
-                    // first rename the row for the directory
-                    count = qb.update(db, initialValues, userWhere, userWhereArgs);
-                    if (count > 0) {
-                        // update the paths of any files and folders contained in the directory
-                        Object[] bindArgs = new Object[] {
-                                newPath,
-                                oldPath.length() + 1,
-                                oldPath + "/",
-                                oldPath + "0",
-                                // update bucket_display_name and bucket_id based on new path
-                                f.getName(),
-                                f.toString().toLowerCase(Locale.ROOT).hashCode(),
-                                isDownload
-                                };
-                        db.execSQL("UPDATE files SET _data=?1||SUBSTR(_data, ?2)" +
-                                // also update bucket_display_name
-                                ",bucket_display_name=?5" +
-                                ",bucket_id=?6" +
-                                ",is_download=?7" +
-                                " WHERE _data >= ?3 AND _data < ?4;",
-                                bindArgs);
-                    }
-
-                    if (count > 0) {
-                        acceptWithExpansion(helper::notifyChange, uri);
-                    }
-                    if (f.getName().startsWith(".")) {
-                        mMediaScanner.scanFile(new File(newPath), REASON_DEMAND);
-                    }
-                    return count;
-                }
-            } else if (newPath.toLowerCase(Locale.ROOT).endsWith("/.nomedia")) {
-                mMediaScanner.scanFile(new File(newPath).getParentFile(), REASON_DEMAND);
             }
         }
 
@@ -6009,14 +5765,6 @@ public class MediaProvider extends ContentProvider {
     static final int FILES = 700;
     static final int FILES_ID = 701;
 
-    // Used only by the MTP implementation
-    static final int MTP_OBJECTS = 702;
-    static final int MTP_OBJECTS_ID = 703;
-    static final int MTP_OBJECT_REFERENCES = 704;
-
-    // Used only to invoke special logic for directories
-    static final int FILES_DIRECTORY = 706;
-
     static final int DOWNLOADS = 800;
     static final int DOWNLOADS_ID = 801;
 
@@ -6028,11 +5776,6 @@ public class MediaProvider extends ContentProvider {
         MediaStore.MediaColumns._ID,
             MediaStore.MediaColumns.DATA,
     };
-
-    private static final String OBJECT_REFERENCES_QUERY =
-        "SELECT " + Audio.Playlists.Members.AUDIO_ID + " FROM audio_playlists_map"
-        + " WHERE " + Audio.Playlists.Members.PLAYLIST_ID + "=?"
-        + " ORDER BY " + Audio.Playlists.Members.PLAY_ORDER;
 
     private int matchUri(Uri uri, boolean allowHidden) {
         return mUriMatcher.matchUri(uri, allowHidden);
@@ -6112,15 +5855,8 @@ public class MediaProvider extends ContentProvider {
             mHidden.addURI(auth, "*", VOLUMES_ID);
             mHidden.addURI(auth, null, VOLUMES);
 
-            // Used by MTP implementation
             mPublic.addURI(auth, "*/file", FILES);
             mPublic.addURI(auth, "*/file/#", FILES_ID);
-            mHidden.addURI(auth, "*/object", MTP_OBJECTS);
-            mHidden.addURI(auth, "*/object/#", MTP_OBJECTS_ID);
-            mHidden.addURI(auth, "*/object/#/references", MTP_OBJECT_REFERENCES);
-
-            // Used only to trigger special logic for directories
-            mHidden.addURI(auth, "*/dir", FILES_DIRECTORY);
 
             mPublic.addURI(auth, "*/downloads", DOWNLOADS);
             mPublic.addURI(auth, "*/downloads/#", DOWNLOADS_ID);

@@ -95,6 +95,7 @@ import android.media.ThumbnailUtils;
 import android.mtp.MtpConstants;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Binder.ProxyTransactListener;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CancellationSignal;
@@ -373,6 +374,25 @@ public class MediaProvider extends ContentProvider {
                 }
             });
 
+    /**
+     * We simply propagate the UID that is being tracked by
+     * {@link LocalCallingIdentity}, which means we accurately blame both
+     * incoming Binder calls and FUSE calls.
+     */
+    private final ProxyTransactListener mTransactListener = new ProxyTransactListener() {
+        @Override
+        public Object onTransactStarted(IBinder binder, int transactionCode) {
+            final int uid = mCallingIdentity.get().uid;
+            return Binder.setCallingWorkSourceUid(uid);
+        }
+
+        @Override
+        public void onTransactEnded(Object session) {
+            final long token = (long) session;
+            Binder.restoreCallingWorkSource(token);
+        }
+    };
+
     // In memory cache of path<->id mappings, to speed up inserts during media scan
     @GuardedBy("mDirectoryCache")
     private final ArrayMap<String, Long> mDirectoryCache = new ArrayMap<>();
@@ -582,8 +602,7 @@ public class MediaProvider extends ContentProvider {
         final Context context = getContext();
 
         // Shift call statistics back to the original caller
-        Binder.setProxyTransactListener(
-                new Binder.PropagateWorkSourceTransactListener());
+        Binder.setProxyTransactListener(mTransactListener);
 
         mStorageManager = context.getSystemService(StorageManager.class);
         mAppOpsManager = context.getSystemService(AppOpsManager.class);

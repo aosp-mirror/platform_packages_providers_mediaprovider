@@ -105,7 +105,7 @@ public class LocalCallingIdentity {
 
         ident.packageName = ident.packageNameUnchecked;
         ident.packageNameResolved = true;
-        ident.featureId = ident.featureId;
+        // Use ident.featureId from context, hence no change
         ident.targetSdkVersion = Build.VERSION_CODES.CUR_DEVELOPMENT;
         ident.targetSdkVersionResolved = true;
         ident.hasPermission = ~(PERMISSION_IS_LEGACY_GRANTED | PERMISSION_IS_LEGACY_WRITE

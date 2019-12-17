@@ -18,6 +18,10 @@ package com.android.tests.fused;
 import static com.android.tests.fused.lib.ReaddirTestHelper.CREATE_FILE_QUERY;
 import static com.android.tests.fused.lib.ReaddirTestHelper.DELETE_FILE_QUERY;
 import static com.android.tests.fused.lib.ReaddirTestHelper.READDIR_QUERY;
+import static com.android.tests.fused.lib.RedactionTestHelper.EXIF_METADATA_QUERY;
+import static com.android.tests.fused.lib.RedactionTestHelper.getExifMetadata;
+import static com.android.tests.fused.lib.TestUtils.INTENT_EXCEPTION;
+import static com.android.tests.fused.lib.TestUtils.INTENT_EXTRA_PATH;
 import static com.android.tests.fused.lib.TestUtils.QUERY_TYPE;
 
 import android.app.Activity;
@@ -25,12 +29,11 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 
-import java.io.IOException;
-import java.io.File;
-import java.util.ArrayList;
-
-
 import com.android.tests.fused.lib.ReaddirTestHelper;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
 
 /**
  * App for FilePathAccessTest Functions.
@@ -53,15 +56,37 @@ public class FilePathAccessTestHelper extends Activity {
             case DELETE_FILE_QUERY:
                 createOrDeleteFile(queryType);
                 break;
+            case EXIF_METADATA_QUERY:
+                sendMetadata(queryType);
+                break;
             case "null":
             default:
                 Log.e(TAG, "Unknown query received from launcher app: " + queryType);
         }
     }
 
+    private void sendMetadata(String queryType) {
+        final Intent intent = new Intent(queryType);
+        if (getIntent().hasExtra(INTENT_EXTRA_PATH)) {
+            final String filePath = getIntent().getStringExtra(INTENT_EXTRA_PATH);
+            try {
+                if (EXIF_METADATA_QUERY.equals(queryType)) {
+                    intent.putExtra(queryType, getExifMetadata(new File(filePath)));
+                }
+            } catch (Exception e) {
+                intent.putExtra(INTENT_EXCEPTION, e);
+            }
+        } else {
+            Log.e(TAG, "File path not set from launcher app");
+            intent.putExtra(INTENT_EXCEPTION, new IllegalStateException(
+                    "File path not set from launcher app"));
+        }
+        sendBroadcast(intent);
+    }
+
     private void sendDirectoryEntries(String queryType) {
-        if (getIntent().hasExtra(queryType)) {
-            final String directoryPath = getIntent().getStringExtra(queryType);
+        if (getIntent().hasExtra(INTENT_EXTRA_PATH)) {
+            final String directoryPath = getIntent().getStringExtra(INTENT_EXTRA_PATH);
             ArrayList<String> directoryEntries = new ArrayList<String>();
             if (queryType.equals(READDIR_QUERY)) {
                 directoryEntries = ReaddirTestHelper.readDirectory(directoryPath);
@@ -75,8 +100,8 @@ public class FilePathAccessTestHelper extends Activity {
     }
 
     private void createOrDeleteFile(String queryType) {
-        if (getIntent().hasExtra(queryType)) {
-            final String filePath = getIntent().getStringExtra(queryType);
+        if (getIntent().hasExtra(INTENT_EXTRA_PATH)) {
+            final String filePath = getIntent().getStringExtra(INTENT_EXTRA_PATH);
             final File file = new File(filePath);
             boolean returnStatus = false;
             try {

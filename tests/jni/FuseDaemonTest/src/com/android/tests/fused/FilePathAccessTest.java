@@ -21,12 +21,16 @@ import static android.provider.MediaStore.MediaColumns;
 
 import static androidx.test.InstrumentationRegistry.getContext;
 
+import static com.android.tests.fused.lib.RedactionTestHelper.assertExifMetadataMatch;
+import static com.android.tests.fused.lib.RedactionTestHelper.assertExifMetadataMismatch;
+import static com.android.tests.fused.lib.RedactionTestHelper.getExifMetadata;
+import static com.android.tests.fused.lib.RedactionTestHelper.getExifMetadataFromRawResource;
 import static com.android.tests.fused.lib.TestUtils.assertThrows;
 import static com.android.tests.fused.lib.TestUtils.createFileAs;
 import static com.android.tests.fused.lib.TestUtils.deleteFileAs;
-import static com.android.tests.fused.lib.TestUtils.executeShellCommand;
 import static com.android.tests.fused.lib.TestUtils.installApp;
 import static com.android.tests.fused.lib.TestUtils.listAs;
+import static com.android.tests.fused.lib.TestUtils.readExifMetadataFromTestApp;
 import static com.android.tests.fused.lib.TestUtils.revokeReadExternalStorage;
 import static com.android.tests.fused.lib.TestUtils.uninstallApp;
 
@@ -37,6 +41,7 @@ import static org.junit.Assume.assumeTrue;
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.os.Environment;
+import android.os.FileUtils;
 import android.provider.MediaStore;
 import android.system.ErrnoException;
 import android.system.Os;
@@ -44,6 +49,9 @@ import android.system.OsConstants;
 import android.util.Log;
 
 import androidx.test.runner.AndroidJUnit4;
+
+import com.android.cts.install.lib.TestApp;
+import com.android.tests.fused.lib.ReaddirTestHelper;
 
 import com.google.common.io.ByteStreams;
 
@@ -55,12 +63,11 @@ import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
-
-import com.android.cts.install.lib.TestApp;
-import com.android.tests.fused.lib.ReaddirTestHelper;
+import java.util.HashMap;
 
 @RunWith(AndroidJUnit4.class)
 public class FilePathAccessTest {
@@ -537,6 +544,41 @@ public class FilePathAccessTest {
 //                    .containsExactly(videoFileName);
         } finally {
             videoFile.delete();
+        }
+    }
+
+    @Test
+    public void testMetaDataRedaction() throws Exception {
+        File jpgFile = new File(PICTURES_DIR, "img_metadata.jpg");
+        try {
+            if (jpgFile.exists()) {
+                assertThat(jpgFile.delete()).isTrue();
+            }
+
+            HashMap<String, String> originalExif = getExifMetadataFromRawResource(
+                    R.raw.img_with_metadata);
+
+            try (InputStream in = getContext().getResources().openRawResource(
+                    R.raw.img_with_metadata);
+                 OutputStream out = new FileOutputStream(jpgFile)) {
+                // Dump the image we have to external storage
+                FileUtils.copy(in, out);
+            }
+
+            HashMap<String, String> exif = getExifMetadata(jpgFile);
+            assertExifMetadataMatch(exif, originalExif);
+
+            installApp(TEST_APP_A, /*grantStoragePermissions*/ true);
+            HashMap<String, String> exifFromTestApp = readExifMetadataFromTestApp(TEST_APP_A,
+                    jpgFile.getPath());
+            // Other apps shouldn't have access to the same metadata without explicit permission
+            assertExifMetadataMismatch(exifFromTestApp, originalExif);
+
+            // TODO(b/146346138): Test that if we give TEST_APP_A write URI permission,
+            //  it would be able to access the metadata.
+        } finally {
+            jpgFile.delete();
+            uninstallApp(TEST_APP_A);
         }
     }
 

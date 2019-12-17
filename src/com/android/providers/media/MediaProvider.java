@@ -2834,6 +2834,8 @@ public class MediaProvider extends ContentProvider {
         }
         qb.setProjectionAggregationAllowed(true);
         qb.setStrict(true);
+        qb.setStrictColumns(true);
+        qb.setStrictGrammar(true);
 
         final String callingPackage = getCallingPackageOrSelf();
 
@@ -2870,12 +2872,15 @@ public class MediaProvider extends ContentProvider {
                 matchPending = MATCH_INCLUDE;
                 matchTrashed = MATCH_INCLUDE;
                 // fall-through
-            case IMAGES_MEDIA:
+            case IMAGES_MEDIA: {
                 if (type == TYPE_QUERY) {
                     qb.setTables("images");
-                    qb.setProjectionMap(getProjectionMap(Images.Media.class));
+                    qb.setProjectionMap(
+                            getProjectionMap(Images.Media.class));
                 } else {
                     qb.setTables("files");
+                    qb.setProjectionMap(
+                            getProjectionMap(Images.Media.class, Files.FileColumns.class));
                     appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
                             FileColumns.MEDIA_TYPE_IMAGE);
                 }
@@ -2895,7 +2900,7 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
                 }
                 break;
-
+            }
             case IMAGES_THUMBNAILS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 // fall-through
@@ -2915,18 +2920,20 @@ public class MediaProvider extends ContentProvider {
                 }
                 break;
             }
-
             case AUDIO_MEDIA_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 matchPending = MATCH_INCLUDE;
                 matchTrashed = MATCH_INCLUDE;
                 // fall-through
-            case AUDIO_MEDIA:
+            case AUDIO_MEDIA: {
                 if (type == TYPE_QUERY) {
                     qb.setTables("audio");
-                    qb.setProjectionMap(getProjectionMap(Audio.Media.class));
+                    qb.setProjectionMap(
+                            getProjectionMap(Audio.Media.class));
                 } else {
                     qb.setTables("files");
+                    qb.setProjectionMap(
+                            getProjectionMap(Audio.Media.class, Files.FileColumns.class));
                     appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
                             FileColumns.MEDIA_TYPE_AUDIO);
                 }
@@ -2951,11 +2958,11 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
                 }
                 break;
-
+            }
             case AUDIO_MEDIA_ID_GENRES_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(5));
                 // fall-through
-            case AUDIO_MEDIA_ID_GENRES:
+            case AUDIO_MEDIA_ID_GENRES: {
                 if (type == TYPE_QUERY) {
                     qb.setTables("audio_genres");
                     qb.setProjectionMap(getProjectionMap(Audio.Genres.class));
@@ -2970,11 +2977,11 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, "0");
                 }
                 break;
-
+            }
             case AUDIO_MEDIA_ID_PLAYLISTS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(5));
                 // fall-through
-            case AUDIO_MEDIA_ID_PLAYLISTS:
+            case AUDIO_MEDIA_ID_PLAYLISTS: {
                 qb.setTables("audio_playlists");
                 qb.setProjectionMap(getProjectionMap(Audio.Playlists.class));
                 appendWhereStandalone(qb, "_id IN (SELECT playlist_id FROM " +
@@ -2985,11 +2992,11 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, "0");
                 }
                 break;
-
+            }
             case AUDIO_GENRES_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 // fall-through
-            case AUDIO_GENRES:
+            case AUDIO_GENRES: {
                 qb.setTables("audio_genres");
                 qb.setProjectionMap(getProjectionMap(Audio.Genres.class));
                 if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
@@ -2998,11 +3005,11 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, "0");
                 }
                 break;
-
+            }
             case AUDIO_GENRES_ID_MEMBERS:
                 appendWhereStandalone(qb, "genre_id=?", uri.getPathSegments().get(3));
                 // fall-through
-            case AUDIO_GENRES_ALL_MEMBERS:
+            case AUDIO_GENRES_ALL_MEMBERS: {
                 if (type == TYPE_QUERY) {
                     qb.setTables("audio");
 
@@ -3014,24 +3021,28 @@ public class MediaProvider extends ContentProvider {
                 } else {
                     throw new UnsupportedOperationException("Genres cannot be directly modified");
                 }
+
                 if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
                     // We don't have a great way to filter parsed metadata by
                     // owner, so callers need to hold READ_MEDIA_AUDIO
                     appendWhereStandalone(qb, "0");
                 }
                 break;
-
+            }
             case AUDIO_PLAYLISTS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 matchPending = MATCH_INCLUDE;
                 matchTrashed = MATCH_INCLUDE;
                 // fall-through
-            case AUDIO_PLAYLISTS:
+            case AUDIO_PLAYLISTS: {
                 if (type == TYPE_QUERY) {
                     qb.setTables("audio_playlists");
-                    qb.setProjectionMap(getProjectionMap(Audio.Playlists.class));
+                    qb.setProjectionMap(
+                            getProjectionMap(Audio.Playlists.class));
                 } else {
                     qb.setTables("files");
+                    qb.setProjectionMap(
+                            getProjectionMap(Audio.Playlists.class, Files.FileColumns.class));
                     appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
                             FileColumns.MEDIA_TYPE_PLAYLIST);
                 }
@@ -3051,7 +3062,7 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
                 }
                 break;
-
+            }
             case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
                 appendWhereStandalone(qb, "audio_playlists_map._id=?",
                         uri.getPathSegments().get(5));
@@ -3070,6 +3081,7 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, "audio._id = audio_id");
                 } else {
                     qb.setTables("audio_playlists_map");
+                    qb.setProjectionMap(getProjectionMap(Audio.Playlists.Members.class));
                 }
                 if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
                     // We don't have a great way to filter parsed metadata by
@@ -3078,7 +3090,6 @@ public class MediaProvider extends ContentProvider {
                 }
                 break;
             }
-
             case AUDIO_ALBUMART_ID:
                 appendWhereStandalone(qb, "album_id=?", uri.getPathSegments().get(3));
                 // fall-through
@@ -3115,11 +3126,10 @@ public class MediaProvider extends ContentProvider {
                 }
                 break;
             }
-
             case AUDIO_ARTISTS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 // fall-through
-            case AUDIO_ARTISTS:
+            case AUDIO_ARTISTS: {
                 if (type == TYPE_QUERY) {
                     qb.setTables("audio_artists");
                     qb.setProjectionMap(getProjectionMap(Audio.Artists.class));
@@ -3132,7 +3142,7 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, "0");
                 }
                 break;
-
+            }
             case AUDIO_ALBUMS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 // fall-through
@@ -3150,18 +3160,20 @@ public class MediaProvider extends ContentProvider {
                 }
                 break;
             }
-
             case VIDEO_MEDIA_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 matchPending = MATCH_INCLUDE;
                 matchTrashed = MATCH_INCLUDE;
                 // fall-through
-            case VIDEO_MEDIA:
+            case VIDEO_MEDIA: {
                 if (type == TYPE_QUERY) {
                     qb.setTables("video");
-                    qb.setProjectionMap(getProjectionMap(Video.Media.class));
+                    qb.setProjectionMap(
+                            getProjectionMap(Video.Media.class));
                 } else {
                     qb.setTables("files");
+                    qb.setProjectionMap(
+                            getProjectionMap(Video.Media.class, Files.FileColumns.class));
                     appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
                             FileColumns.MEDIA_TYPE_VIDEO);
                 }
@@ -3181,11 +3193,11 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
                 }
                 break;
-
+            }
             case VIDEO_THUMBNAILS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 // fall-through
-            case VIDEO_THUMBNAILS:
+            case VIDEO_THUMBNAILS: {
                 qb.setTables("videothumbnails");
                 qb.setProjectionMap(getProjectionMap(Video.Thumbnails.class));
                 if (!allowGlobal && !checkCallingPermissionVideo(forWrite, callingPackage)) {
@@ -3194,7 +3206,7 @@ public class MediaProvider extends ContentProvider {
                                     + sharedPackages + ")");
                 }
                 break;
-
+            }
             case FILES_ID:
             case MTP_OBJECTS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(2));
@@ -3262,9 +3274,12 @@ public class MediaProvider extends ContentProvider {
             case DOWNLOADS: {
                 if (type == TYPE_QUERY) {
                     qb.setTables("downloads");
-                    qb.setProjectionMap(getProjectionMap(Downloads.class));
+                    qb.setProjectionMap(
+                            getProjectionMap(Downloads.class));
                 } else {
                     qb.setTables("files");
+                    qb.setProjectionMap(
+                            getProjectionMap(Downloads.class, Files.FileColumns.class));
                     appendWhereStandalone(qb, FileColumns.IS_DOWNLOAD + "=1");
                 }
 
@@ -3299,24 +3314,22 @@ public class MediaProvider extends ContentProvider {
                         "Unknown or unsupported URL: " + uri.toString());
         }
 
-        if (type == TYPE_QUERY) {
-            // To ensure we're enforcing our security model, all queries must
-            // have a projection map configured
-            if (qb.getProjectionMap() == null) {
-                throw new IllegalStateException("All queries must have a projection map");
-            }
+        // To ensure we're enforcing our security model, all operations must
+        // have a projection map configured
+        if (qb.getProjectionMap() == null) {
+            throw new IllegalStateException("All queries must have a projection map");
+        }
 
-            // If caller is an older app, we're willing to let through a
-            // greylist of technically invalid columns
-            if (getCallingPackageTargetSdkVersion() < Build.VERSION_CODES.Q) {
-                qb.setProjectionGreylist(sGreylist);
-            }
+        // If caller is an older app, we're willing to let through a
+        // greylist of technically invalid columns
+        if (getCallingPackageTargetSdkVersion() < Build.VERSION_CODES.Q) {
+            qb.setProjectionGreylist(sGreylist);
+        }
 
-            // If we're the legacy provider, and the caller is the system, then
-            // we're willing to let them access any columns they want
-            if (mLegacyProvider && isCallingPackageSystem()) {
-                qb.setProjectionGreylist(sGreylist);
-            }
+        // If we're the legacy provider, and the caller is the system, then
+        // we're willing to let them access any columns they want
+        if (mLegacyProvider && isCallingPackageSystem()) {
+            qb.setProjectionGreylist(sGreylist);
         }
 
         return qb;
@@ -6160,7 +6173,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     @GuardedBy("sProjectionMapCache")
-    private static final ArrayMap<Class<?>, ArrayMap<String, String>>
+    private static final ArrayMap<Class<?>[], ArrayMap<String, String>>
             sProjectionMapCache = new ArrayMap<>();
 
     /**
@@ -6169,17 +6182,19 @@ public class MediaProvider extends ContentProvider {
      * using the {@link Column} annotation, and is designed to ensure that we
      * always support public API commitments.
      */
-    public static ArrayMap<String, String> getProjectionMap(Class<?> clazz) {
+    public static ArrayMap<String, String> getProjectionMap(Class<?>... clazzes) {
         synchronized (sProjectionMapCache) {
-            ArrayMap<String, String> map = sProjectionMapCache.get(clazz);
+            ArrayMap<String, String> map = sProjectionMapCache.get(clazzes);
             if (map == null) {
                 map = new ArrayMap<>();
-                sProjectionMapCache.put(clazz, map);
+                sProjectionMapCache.put(clazzes, map);
                 try {
-                    for (Field field : clazz.getFields()) {
-                        if (field.isAnnotationPresent(Column.class)) {
-                            final String column = (String) field.get(null);
-                            map.put(column, column);
+                    for (Class<?> clazz : clazzes) {
+                        for (Field field : clazz.getFields()) {
+                            if (field.isAnnotationPresent(Column.class)) {
+                                final String column = (String) field.get(null);
+                                map.put(column, column);
+                            }
                         }
                     }
                 } catch (ReflectiveOperationException e) {

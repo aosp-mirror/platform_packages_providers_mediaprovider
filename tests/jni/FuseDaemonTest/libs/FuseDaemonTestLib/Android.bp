@@ -15,6 +15,6 @@
 java_library {
     name: "tests-fusedaemon-lib",
     srcs: ["src/**/*.java"],
-    static_libs: ["androidx.test.rules"],
+    static_libs: ["androidx.test.rules", "cts-install-lib"],
     sdk_version: "test_current"
 }

@@ -422,7 +422,7 @@ public class MediaProvider extends ContentProvider {
         @Override
         public void onReceive(Context context, Intent intent) {
             final StorageVolume sv = intent.getParcelableExtra(StorageVolume.EXTRA_STORAGE_VOLUME);
-            if (sv != null) {
+            try {
                 final String volumeName;
                 if (sv.isPrimary()) {
                     volumeName = MediaStore.VOLUME_EXTERNAL_PRIMARY;
@@ -446,6 +446,8 @@ public class MediaProvider extends ContentProvider {
                         detachVolume(volumeName);
                         break;
                 }
+            } catch (Exception e) {
+                Log.w(TAG, "Failed to handle broadcast " + intent, e);
             }
         }
     };
@@ -3780,7 +3782,7 @@ public class MediaProvider extends ContentProvider {
             if (!thumbFile.exists()) {
                 final Bitmap thumbnail = getThumbnailBitmap(uri, signal);
                 try (OutputStream out = new FileOutputStream(thumbFile)) {
-                    thumbnail.compress(Bitmap.CompressFormat.JPEG, 75, out);
+                    thumbnail.compress(Bitmap.CompressFormat.JPEG, 90, out);
                 }
             }
             return thumbFile;

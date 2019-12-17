@@ -14,8 +14,8 @@
      limitations under the License.
 -->
 
-<resources>
-    <dimen name="permission_dialog_width">320dp</dimen>
-    <dimen name="permission_thumb_size">64dp</dimen>
-    <dimen name="permission_thumb_margin">6dp</dimen>
-</resources>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:color="?android:attr/colorAccent"
+        android:alpha="0.6" />
+</selector>

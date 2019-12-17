@@ -59,6 +59,7 @@ import android.app.PendingIntent;
 import android.app.RecoverableSecurityException;
 import android.app.RemoteAction;
 import android.content.BroadcastReceiver;
+import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
@@ -3766,10 +3767,90 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.SUICIDE_CALL: {
                 Log.v(TAG, "Suicide requested!");
                 android.os.Process.killProcess(android.os.Process.myPid());
+                return null;
+            }
+            case MediaStore.CREATE_WRITE_REQUEST_CALL:
+            case MediaStore.CREATE_FAVORITE_REQUEST_CALL:
+            case MediaStore.CREATE_TRASH_REQUEST_CALL:
+            case MediaStore.CREATE_DELETE_REQUEST_CALL: {
+                final PendingIntent pi = createRequest(method, extras);
+                final Bundle res = new Bundle();
+                res.putParcelable(MediaStore.EXTRA_RESULT, pi);
+                return res;
             }
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }
+    }
+
+    static List<Uri> collectUris(ClipData clipData) {
+        final ArrayList<Uri> res = new ArrayList<>();
+        for (int i = 0; i < clipData.getItemCount(); i++) {
+            res.add(clipData.getItemAt(i).getUri());
+        }
+        return res;
+    }
+
+    /**
+     * Generate the {@link PendingIntent} for the given grant request. This
+     * method also sanity checks the incoming arguments for security purposes
+     * before creating the privileged {@link PendingIntent}.
+     */
+    private @NonNull PendingIntent createRequest(@NonNull String method, @NonNull Bundle extras) {
+        final ClipData clipData = extras.getParcelable(MediaStore.EXTRA_CLIP_DATA);
+        final List<Uri> uris = collectUris(clipData);
+
+        final String volumeName = MediaStore.getVolumeName(uris.get(0));
+        for (Uri uri : uris) {
+            // Require that everything is on the same volume
+            if (!Objects.equals(volumeName, MediaStore.getVolumeName(uri))) {
+                throw new IllegalArgumentException("All requested items must be on same volume");
+            }
+
+            final int match = matchUri(uri, false);
+            switch (match) {
+                case IMAGES_MEDIA_ID:
+                case AUDIO_MEDIA_ID:
+                case VIDEO_MEDIA_ID:
+                    // Caller is requesting a specific media item by its ID,
+                    // which means it's valid for requests
+                    break;
+                default:
+                    throw new IllegalArgumentException(
+                            "All requested items must be referenced by specific ID");
+            }
+        }
+
+        // Enforce that limited set of columns can be mutated
+        final ContentValues values = extras.getParcelable(MediaStore.EXTRA_CONTENT_VALUES);
+        final List<String> allowedColumns;
+        switch (method) {
+            case MediaStore.CREATE_FAVORITE_REQUEST_CALL:
+                allowedColumns = Arrays.asList(
+                        MediaColumns.IS_FAVORITE);
+                break;
+            case MediaStore.CREATE_TRASH_REQUEST_CALL:
+                allowedColumns = Arrays.asList(
+                        MediaColumns.IS_TRASHED,
+                        MediaColumns.DATE_EXPIRES);
+                break;
+            default:
+                allowedColumns = Arrays.asList();
+                break;
+        }
+        if (values != null) {
+            for (String key : values.keySet()) {
+                if (!allowedColumns.contains(key)) {
+                    throw new IllegalArgumentException("Invalid column " + key);
+                }
+            }
+        }
+
+        final Context context = getContext();
+        final Intent intent = new Intent(method, null, context, PermissionActivity.class);
+        intent.putExtras(extras);
+        return PendingIntent.getActivity(context, PermissionActivity.REQUEST_CODE, intent,
+                FLAG_ONE_SHOT | FLAG_CANCEL_CURRENT | FLAG_IMMUTABLE);
     }
 
     /**
@@ -5654,9 +5735,9 @@ public class MediaProvider extends ContentProvider {
                     // Caller has read access, but they wanted to write, and
                     // they'll need to get the user to grant that access
                     final Context context = getContext();
-                    final PendingIntent intent = PendingIntent.getActivity(context, 42,
-                            new Intent(null, uri, context, PermissionActivity.class),
-                            FLAG_ONE_SHOT | FLAG_CANCEL_CURRENT | FLAG_IMMUTABLE);
+                    final Collection<Uri> uris = Arrays.asList(uri);
+                    final PendingIntent intent = MediaStore
+                            .createWriteRequest(ContentResolver.wrap(this), uris);
 
                     final Icon icon = getCollectionIcon(uri);
                     final RemoteAction action = new RemoteAction(icon,
@@ -5940,62 +6021,62 @@ public class MediaProvider extends ContentProvider {
     // WARNING: the values of IMAGES_MEDIA, AUDIO_MEDIA, and VIDEO_MEDIA and AUDIO_PLAYLISTS
     // are stored in the "files" table, so do not renumber them unless you also add
     // a corresponding database upgrade step for it.
-    private static final int IMAGES_MEDIA = 1;
-    private static final int IMAGES_MEDIA_ID = 2;
-    private static final int IMAGES_MEDIA_ID_THUMBNAIL = 3;
-    private static final int IMAGES_THUMBNAILS = 4;
-    private static final int IMAGES_THUMBNAILS_ID = 5;
+    static final int IMAGES_MEDIA = 1;
+    static final int IMAGES_MEDIA_ID = 2;
+    static final int IMAGES_MEDIA_ID_THUMBNAIL = 3;
+    static final int IMAGES_THUMBNAILS = 4;
+    static final int IMAGES_THUMBNAILS_ID = 5;
 
-    private static final int AUDIO_MEDIA = 100;
-    private static final int AUDIO_MEDIA_ID = 101;
-    private static final int AUDIO_MEDIA_ID_GENRES = 102;
-    private static final int AUDIO_MEDIA_ID_GENRES_ID = 103;
-    private static final int AUDIO_MEDIA_ID_PLAYLISTS = 104;
-    private static final int AUDIO_MEDIA_ID_PLAYLISTS_ID = 105;
-    private static final int AUDIO_GENRES = 106;
-    private static final int AUDIO_GENRES_ID = 107;
-    private static final int AUDIO_GENRES_ID_MEMBERS = 108;
-    private static final int AUDIO_GENRES_ALL_MEMBERS = 109;
-    private static final int AUDIO_PLAYLISTS = 110;
-    private static final int AUDIO_PLAYLISTS_ID = 111;
-    private static final int AUDIO_PLAYLISTS_ID_MEMBERS = 112;
-    private static final int AUDIO_PLAYLISTS_ID_MEMBERS_ID = 113;
-    private static final int AUDIO_ARTISTS = 114;
-    private static final int AUDIO_ARTISTS_ID = 115;
-    private static final int AUDIO_ALBUMS = 116;
-    private static final int AUDIO_ALBUMS_ID = 117;
-    private static final int AUDIO_ARTISTS_ID_ALBUMS = 118;
-    private static final int AUDIO_ALBUMART = 119;
-    private static final int AUDIO_ALBUMART_ID = 120;
-    private static final int AUDIO_ALBUMART_FILE_ID = 121;
+    static final int AUDIO_MEDIA = 100;
+    static final int AUDIO_MEDIA_ID = 101;
+    static final int AUDIO_MEDIA_ID_GENRES = 102;
+    static final int AUDIO_MEDIA_ID_GENRES_ID = 103;
+    static final int AUDIO_MEDIA_ID_PLAYLISTS = 104;
+    static final int AUDIO_MEDIA_ID_PLAYLISTS_ID = 105;
+    static final int AUDIO_GENRES = 106;
+    static final int AUDIO_GENRES_ID = 107;
+    static final int AUDIO_GENRES_ID_MEMBERS = 108;
+    static final int AUDIO_GENRES_ALL_MEMBERS = 109;
+    static final int AUDIO_PLAYLISTS = 110;
+    static final int AUDIO_PLAYLISTS_ID = 111;
+    static final int AUDIO_PLAYLISTS_ID_MEMBERS = 112;
+    static final int AUDIO_PLAYLISTS_ID_MEMBERS_ID = 113;
+    static final int AUDIO_ARTISTS = 114;
+    static final int AUDIO_ARTISTS_ID = 115;
+    static final int AUDIO_ALBUMS = 116;
+    static final int AUDIO_ALBUMS_ID = 117;
+    static final int AUDIO_ARTISTS_ID_ALBUMS = 118;
+    static final int AUDIO_ALBUMART = 119;
+    static final int AUDIO_ALBUMART_ID = 120;
+    static final int AUDIO_ALBUMART_FILE_ID = 121;
 
-    private static final int VIDEO_MEDIA = 200;
-    private static final int VIDEO_MEDIA_ID = 201;
-    private static final int VIDEO_MEDIA_ID_THUMBNAIL = 202;
-    private static final int VIDEO_THUMBNAILS = 203;
-    private static final int VIDEO_THUMBNAILS_ID = 204;
+    static final int VIDEO_MEDIA = 200;
+    static final int VIDEO_MEDIA_ID = 201;
+    static final int VIDEO_MEDIA_ID_THUMBNAIL = 202;
+    static final int VIDEO_THUMBNAILS = 203;
+    static final int VIDEO_THUMBNAILS_ID = 204;
 
-    private static final int VOLUMES = 300;
-    private static final int VOLUMES_ID = 301;
+    static final int VOLUMES = 300;
+    static final int VOLUMES_ID = 301;
 
-    private static final int MEDIA_SCANNER = 500;
+    static final int MEDIA_SCANNER = 500;
 
-    private static final int FS_ID = 600;
-    private static final int VERSION = 601;
+    static final int FS_ID = 600;
+    static final int VERSION = 601;
 
-    private static final int FILES = 700;
-    private static final int FILES_ID = 701;
+    static final int FILES = 700;
+    static final int FILES_ID = 701;
 
     // Used only by the MTP implementation
-    private static final int MTP_OBJECTS = 702;
-    private static final int MTP_OBJECTS_ID = 703;
-    private static final int MTP_OBJECT_REFERENCES = 704;
+    static final int MTP_OBJECTS = 702;
+    static final int MTP_OBJECTS_ID = 703;
+    static final int MTP_OBJECT_REFERENCES = 704;
 
     // Used only to invoke special logic for directories
-    private static final int FILES_DIRECTORY = 706;
+    static final int FILES_DIRECTORY = 706;
 
-    private static final int DOWNLOADS = 800;
-    private static final int DOWNLOADS_ID = 801;
+    static final int DOWNLOADS = 800;
+    static final int DOWNLOADS_ID = 801;
 
     /** Flag if we're running as {@link MediaStore#AUTHORITY_LEGACY} */
     private boolean mLegacyProvider;

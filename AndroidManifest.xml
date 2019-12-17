@@ -94,7 +94,7 @@
         <activity
             android:name="com.android.providers.media.PermissionActivity"
             android:theme="@style/PickerDialogTheme"
-            android:permission="android.permission.WRITE_MEDIA_STORAGE"
+            android:exported="false"
             android:excludeFromRecents="true" />
     </application>
 </manifest>

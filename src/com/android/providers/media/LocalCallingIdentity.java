@@ -21,15 +21,16 @@ import static android.app.AppOpsManager.MODE_ALLOWED;
 import static android.app.AppOpsManager.permissionToOp;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
 
-import static com.android.providers.media.util.PermissionUtils.checkPermissionReadStorage;
-import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteStorage;
 import static com.android.providers.media.util.PermissionUtils.checkIsLegacyStorageGranted;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionBackup;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadAudio;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadImages;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionReadStorage;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadVideo;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionSystem;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteAudio;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteImages;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteStorage;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteVideo;
 
 import android.annotation.Nullable;
@@ -183,6 +184,7 @@ public class LocalCallingIdentity {
     public static final int PERMISSION_WRITE_IMAGES = 1 << 8;
     public static final int PERMISSION_IS_LEGACY_READ = 1 << 9;
     public static final int PERMISSION_IS_LEGACY_GRANTED = 1 << 10;
+    public static final int PERMISSION_IS_BACKUP = 1 << 11;
 
     private int hasPermission;
     private int hasPermissionResolved;
@@ -201,6 +203,8 @@ public class LocalCallingIdentity {
         switch (permission) {
             case PERMISSION_IS_SYSTEM:
                 return isSystemInternal();
+            case PERMISSION_IS_BACKUP:
+                return isBackupInternal();
             case PERMISSION_IS_LEGACY_GRANTED:
                 return isLegacyStorageGranted();
             case PERMISSION_IS_LEGACY_WRITE:
@@ -228,6 +232,10 @@ public class LocalCallingIdentity {
 
     private boolean isSystemInternal() {
         return checkPermissionSystem(context, pid, uid, getPackageName());
+    }
+
+    private boolean isBackupInternal() {
+        return checkPermissionBackup(context, pid, uid);
     }
 
     private boolean isLegacyStorageGranted() {

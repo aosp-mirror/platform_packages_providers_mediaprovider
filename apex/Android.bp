@@ -7,6 +7,7 @@ apex {
 
 apex_defaults {
     name: "com.android.mediaprovider-defaults",
+    java_libs: ["framework-mediaprovider"],
     key: "com.android.mediaprovider.key",
     certificate: ":com.android.mediaprovider.certificate",
     file_contexts: ":com.android.mediaprovider-file_contexts",

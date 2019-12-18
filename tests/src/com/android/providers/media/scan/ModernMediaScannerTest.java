@@ -251,7 +251,8 @@ public class ModernMediaScannerTest {
         // We should see a new playlist with all three items as members
         final long playlistId;
         try (Cursor cursor = mIsolatedContext.getContentResolver().query(
-                MediaStore.Files.EXTERNAL_CONTENT_URI, new String[] { FileColumns._ID },
+                MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL),
+                new String[] { FileColumns._ID },
                 FileColumns.MEDIA_TYPE + "=" + FileColumns.MEDIA_TYPE_PLAYLIST, null, null)) {
             assertTrue(cursor.moveToFirst());
             playlistId = cursor.getLong(0);

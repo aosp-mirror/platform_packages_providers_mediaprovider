@@ -16,6 +16,8 @@
 
 package com.android.providers.media.scan;
 
+import static android.provider.MediaStore.VOLUME_EXTERNAL;
+
 import static com.android.providers.media.scan.MediaScanner.REASON_UNKNOWN;
 
 import static org.junit.Assert.assertEquals;
@@ -217,10 +219,10 @@ public class MediaScannerTest {
 
     private static int[] getCounts(Context context) {
         return new int[] {
-                getCount(context, MediaStore.Files.EXTERNAL_CONTENT_URI),
-                getCount(context, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI),
-                getCount(context, MediaStore.Video.Media.EXTERNAL_CONTENT_URI),
-                getCount(context, MediaStore.Images.Media.EXTERNAL_CONTENT_URI),
+                getCount(context, MediaStore.Files.getContentUri(VOLUME_EXTERNAL)),
+                getCount(context, MediaStore.Audio.Media.getContentUri(VOLUME_EXTERNAL)),
+                getCount(context, MediaStore.Video.Media.getContentUri(VOLUME_EXTERNAL)),
+                getCount(context, MediaStore.Images.Media.getContentUri(VOLUME_EXTERNAL)),
         };
     }
 

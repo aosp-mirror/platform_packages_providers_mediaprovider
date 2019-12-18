@@ -2697,8 +2697,9 @@ public class MediaProvider extends ContentProvider {
         }
         qb.setProjectionAggregationAllowed(true);
         qb.setStrict(true);
-        qb.setStrictColumns(true);
-        qb.setStrictGrammar(true);
+        // TODO: re-enable as part of fixing b/146518586
+        // qb.setStrictColumns(true);
+        // qb.setStrictGrammar(true);
 
         final String callingPackage = getCallingPackageOrSelf();
 

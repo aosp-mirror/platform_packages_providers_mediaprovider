@@ -59,6 +59,7 @@ import android.app.PendingIntent;
 import android.app.RecoverableSecurityException;
 import android.app.RemoteAction;
 import android.content.BroadcastReceiver;
+import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
@@ -95,6 +96,7 @@ import android.media.ThumbnailUtils;
 import android.mtp.MtpConstants;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Binder.ProxyTransactListener;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CancellationSignal;
@@ -373,6 +375,25 @@ public class MediaProvider extends ContentProvider {
                 }
             });
 
+    /**
+     * We simply propagate the UID that is being tracked by
+     * {@link LocalCallingIdentity}, which means we accurately blame both
+     * incoming Binder calls and FUSE calls.
+     */
+    private final ProxyTransactListener mTransactListener = new ProxyTransactListener() {
+        @Override
+        public Object onTransactStarted(IBinder binder, int transactionCode) {
+            final int uid = mCallingIdentity.get().uid;
+            return Binder.setCallingWorkSourceUid(uid);
+        }
+
+        @Override
+        public void onTransactEnded(Object session) {
+            final long token = (long) session;
+            Binder.restoreCallingWorkSource(token);
+        }
+    };
+
     // In memory cache of path<->id mappings, to speed up inserts during media scan
     @GuardedBy("mDirectoryCache")
     private final ArrayMap<String, Long> mDirectoryCache = new ArrayMap<>();
@@ -582,8 +603,7 @@ public class MediaProvider extends ContentProvider {
         final Context context = getContext();
 
         // Shift call statistics back to the original caller
-        Binder.setProxyTransactListener(
-                new Binder.PropagateWorkSourceTransactListener());
+        Binder.setProxyTransactListener(mTransactListener);
 
         mStorageManager = context.getSystemService(StorageManager.class);
         mAppOpsManager = context.getSystemService(AppOpsManager.class);
@@ -2815,6 +2835,8 @@ public class MediaProvider extends ContentProvider {
         }
         qb.setProjectionAggregationAllowed(true);
         qb.setStrict(true);
+        qb.setStrictColumns(true);
+        qb.setStrictGrammar(true);
 
         final String callingPackage = getCallingPackageOrSelf();
 
@@ -2851,12 +2873,15 @@ public class MediaProvider extends ContentProvider {
                 matchPending = MATCH_INCLUDE;
                 matchTrashed = MATCH_INCLUDE;
                 // fall-through
-            case IMAGES_MEDIA:
+            case IMAGES_MEDIA: {
                 if (type == TYPE_QUERY) {
                     qb.setTables("images");
-                    qb.setProjectionMap(getProjectionMap(Images.Media.class));
+                    qb.setProjectionMap(
+                            getProjectionMap(Images.Media.class));
                 } else {
                     qb.setTables("files");
+                    qb.setProjectionMap(
+                            getProjectionMap(Images.Media.class, Files.FileColumns.class));
                     appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
                             FileColumns.MEDIA_TYPE_IMAGE);
                 }
@@ -2876,7 +2901,7 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
                 }
                 break;
-
+            }
             case IMAGES_THUMBNAILS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 // fall-through
@@ -2896,18 +2921,20 @@ public class MediaProvider extends ContentProvider {
                 }
                 break;
             }
-
             case AUDIO_MEDIA_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 matchPending = MATCH_INCLUDE;
                 matchTrashed = MATCH_INCLUDE;
                 // fall-through
-            case AUDIO_MEDIA:
+            case AUDIO_MEDIA: {
                 if (type == TYPE_QUERY) {
                     qb.setTables("audio");
-                    qb.setProjectionMap(getProjectionMap(Audio.Media.class));
+                    qb.setProjectionMap(
+                            getProjectionMap(Audio.Media.class));
                 } else {
                     qb.setTables("files");
+                    qb.setProjectionMap(
+                            getProjectionMap(Audio.Media.class, Files.FileColumns.class));
                     appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
                             FileColumns.MEDIA_TYPE_AUDIO);
                 }
@@ -2932,11 +2959,11 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
                 }
                 break;
-
+            }
             case AUDIO_MEDIA_ID_GENRES_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(5));
                 // fall-through
-            case AUDIO_MEDIA_ID_GENRES:
+            case AUDIO_MEDIA_ID_GENRES: {
                 if (type == TYPE_QUERY) {
                     qb.setTables("audio_genres");
                     qb.setProjectionMap(getProjectionMap(Audio.Genres.class));
@@ -2951,11 +2978,11 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, "0");
                 }
                 break;
-
+            }
             case AUDIO_MEDIA_ID_PLAYLISTS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(5));
                 // fall-through
-            case AUDIO_MEDIA_ID_PLAYLISTS:
+            case AUDIO_MEDIA_ID_PLAYLISTS: {
                 qb.setTables("audio_playlists");
                 qb.setProjectionMap(getProjectionMap(Audio.Playlists.class));
                 appendWhereStandalone(qb, "_id IN (SELECT playlist_id FROM " +
@@ -2966,11 +2993,11 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, "0");
                 }
                 break;
-
+            }
             case AUDIO_GENRES_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 // fall-through
-            case AUDIO_GENRES:
+            case AUDIO_GENRES: {
                 qb.setTables("audio_genres");
                 qb.setProjectionMap(getProjectionMap(Audio.Genres.class));
                 if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
@@ -2979,11 +3006,11 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, "0");
                 }
                 break;
-
+            }
             case AUDIO_GENRES_ID_MEMBERS:
                 appendWhereStandalone(qb, "genre_id=?", uri.getPathSegments().get(3));
                 // fall-through
-            case AUDIO_GENRES_ALL_MEMBERS:
+            case AUDIO_GENRES_ALL_MEMBERS: {
                 if (type == TYPE_QUERY) {
                     qb.setTables("audio");
 
@@ -2995,24 +3022,28 @@ public class MediaProvider extends ContentProvider {
                 } else {
                     throw new UnsupportedOperationException("Genres cannot be directly modified");
                 }
+
                 if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
                     // We don't have a great way to filter parsed metadata by
                     // owner, so callers need to hold READ_MEDIA_AUDIO
                     appendWhereStandalone(qb, "0");
                 }
                 break;
-
+            }
             case AUDIO_PLAYLISTS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 matchPending = MATCH_INCLUDE;
                 matchTrashed = MATCH_INCLUDE;
                 // fall-through
-            case AUDIO_PLAYLISTS:
+            case AUDIO_PLAYLISTS: {
                 if (type == TYPE_QUERY) {
                     qb.setTables("audio_playlists");
-                    qb.setProjectionMap(getProjectionMap(Audio.Playlists.class));
+                    qb.setProjectionMap(
+                            getProjectionMap(Audio.Playlists.class));
                 } else {
                     qb.setTables("files");
+                    qb.setProjectionMap(
+                            getProjectionMap(Audio.Playlists.class, Files.FileColumns.class));
                     appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
                             FileColumns.MEDIA_TYPE_PLAYLIST);
                 }
@@ -3032,7 +3063,7 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
                 }
                 break;
-
+            }
             case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
                 appendWhereStandalone(qb, "audio_playlists_map._id=?",
                         uri.getPathSegments().get(5));
@@ -3051,6 +3082,7 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, "audio._id = audio_id");
                 } else {
                     qb.setTables("audio_playlists_map");
+                    qb.setProjectionMap(getProjectionMap(Audio.Playlists.Members.class));
                 }
                 if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
                     // We don't have a great way to filter parsed metadata by
@@ -3059,7 +3091,6 @@ public class MediaProvider extends ContentProvider {
                 }
                 break;
             }
-
             case AUDIO_ALBUMART_ID:
                 appendWhereStandalone(qb, "album_id=?", uri.getPathSegments().get(3));
                 // fall-through
@@ -3096,11 +3127,10 @@ public class MediaProvider extends ContentProvider {
                 }
                 break;
             }
-
             case AUDIO_ARTISTS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 // fall-through
-            case AUDIO_ARTISTS:
+            case AUDIO_ARTISTS: {
                 if (type == TYPE_QUERY) {
                     qb.setTables("audio_artists");
                     qb.setProjectionMap(getProjectionMap(Audio.Artists.class));
@@ -3113,7 +3143,7 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, "0");
                 }
                 break;
-
+            }
             case AUDIO_ALBUMS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 // fall-through
@@ -3131,18 +3161,20 @@ public class MediaProvider extends ContentProvider {
                 }
                 break;
             }
-
             case VIDEO_MEDIA_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 matchPending = MATCH_INCLUDE;
                 matchTrashed = MATCH_INCLUDE;
                 // fall-through
-            case VIDEO_MEDIA:
+            case VIDEO_MEDIA: {
                 if (type == TYPE_QUERY) {
                     qb.setTables("video");
-                    qb.setProjectionMap(getProjectionMap(Video.Media.class));
+                    qb.setProjectionMap(
+                            getProjectionMap(Video.Media.class));
                 } else {
                     qb.setTables("files");
+                    qb.setProjectionMap(
+                            getProjectionMap(Video.Media.class, Files.FileColumns.class));
                     appendWhereStandalone(qb, FileColumns.MEDIA_TYPE + "=?",
                             FileColumns.MEDIA_TYPE_VIDEO);
                 }
@@ -3162,11 +3194,11 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN " + includeVolumes);
                 }
                 break;
-
+            }
             case VIDEO_THUMBNAILS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(3));
                 // fall-through
-            case VIDEO_THUMBNAILS:
+            case VIDEO_THUMBNAILS: {
                 qb.setTables("videothumbnails");
                 qb.setProjectionMap(getProjectionMap(Video.Thumbnails.class));
                 if (!allowGlobal && !checkCallingPermissionVideo(forWrite, callingPackage)) {
@@ -3175,7 +3207,7 @@ public class MediaProvider extends ContentProvider {
                                     + sharedPackages + ")");
                 }
                 break;
-
+            }
             case FILES_ID:
             case MTP_OBJECTS_ID:
                 appendWhereStandalone(qb, "_id=?", uri.getPathSegments().get(2));
@@ -3243,9 +3275,12 @@ public class MediaProvider extends ContentProvider {
             case DOWNLOADS: {
                 if (type == TYPE_QUERY) {
                     qb.setTables("downloads");
-                    qb.setProjectionMap(getProjectionMap(Downloads.class));
+                    qb.setProjectionMap(
+                            getProjectionMap(Downloads.class));
                 } else {
                     qb.setTables("files");
+                    qb.setProjectionMap(
+                            getProjectionMap(Downloads.class, Files.FileColumns.class));
                     appendWhereStandalone(qb, FileColumns.IS_DOWNLOAD + "=1");
                 }
 
@@ -3280,24 +3315,22 @@ public class MediaProvider extends ContentProvider {
                         "Unknown or unsupported URL: " + uri.toString());
         }
 
-        if (type == TYPE_QUERY) {
-            // To ensure we're enforcing our security model, all queries must
-            // have a projection map configured
-            if (qb.getProjectionMap() == null) {
-                throw new IllegalStateException("All queries must have a projection map");
-            }
+        // To ensure we're enforcing our security model, all operations must
+        // have a projection map configured
+        if (qb.getProjectionMap() == null) {
+            throw new IllegalStateException("All queries must have a projection map");
+        }
 
-            // If caller is an older app, we're willing to let through a
-            // greylist of technically invalid columns
-            if (getCallingPackageTargetSdkVersion() < Build.VERSION_CODES.Q) {
-                qb.setProjectionGreylist(sGreylist);
-            }
+        // If caller is an older app, we're willing to let through a
+        // greylist of technically invalid columns
+        if (getCallingPackageTargetSdkVersion() < Build.VERSION_CODES.Q) {
+            qb.setProjectionGreylist(sGreylist);
+        }
 
-            // If we're the legacy provider, and the caller is the system, then
-            // we're willing to let them access any columns they want
-            if (mLegacyProvider && isCallingPackageSystem()) {
-                qb.setProjectionGreylist(sGreylist);
-            }
+        // If we're the legacy provider, and the caller is the system, then
+        // we're willing to let them access any columns they want
+        if (mLegacyProvider && isCallingPackageSystem()) {
+            qb.setProjectionGreylist(sGreylist);
         }
 
         return qb;
@@ -3734,10 +3767,90 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.SUICIDE_CALL: {
                 Log.v(TAG, "Suicide requested!");
                 android.os.Process.killProcess(android.os.Process.myPid());
+                return null;
+            }
+            case MediaStore.CREATE_WRITE_REQUEST_CALL:
+            case MediaStore.CREATE_FAVORITE_REQUEST_CALL:
+            case MediaStore.CREATE_TRASH_REQUEST_CALL:
+            case MediaStore.CREATE_DELETE_REQUEST_CALL: {
+                final PendingIntent pi = createRequest(method, extras);
+                final Bundle res = new Bundle();
+                res.putParcelable(MediaStore.EXTRA_RESULT, pi);
+                return res;
             }
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }
+    }
+
+    static List<Uri> collectUris(ClipData clipData) {
+        final ArrayList<Uri> res = new ArrayList<>();
+        for (int i = 0; i < clipData.getItemCount(); i++) {
+            res.add(clipData.getItemAt(i).getUri());
+        }
+        return res;
+    }
+
+    /**
+     * Generate the {@link PendingIntent} for the given grant request. This
+     * method also sanity checks the incoming arguments for security purposes
+     * before creating the privileged {@link PendingIntent}.
+     */
+    private @NonNull PendingIntent createRequest(@NonNull String method, @NonNull Bundle extras) {
+        final ClipData clipData = extras.getParcelable(MediaStore.EXTRA_CLIP_DATA);
+        final List<Uri> uris = collectUris(clipData);
+
+        final String volumeName = MediaStore.getVolumeName(uris.get(0));
+        for (Uri uri : uris) {
+            // Require that everything is on the same volume
+            if (!Objects.equals(volumeName, MediaStore.getVolumeName(uri))) {
+                throw new IllegalArgumentException("All requested items must be on same volume");
+            }
+
+            final int match = matchUri(uri, false);
+            switch (match) {
+                case IMAGES_MEDIA_ID:
+                case AUDIO_MEDIA_ID:
+                case VIDEO_MEDIA_ID:
+                    // Caller is requesting a specific media item by its ID,
+                    // which means it's valid for requests
+                    break;
+                default:
+                    throw new IllegalArgumentException(
+                            "All requested items must be referenced by specific ID");
+            }
+        }
+
+        // Enforce that limited set of columns can be mutated
+        final ContentValues values = extras.getParcelable(MediaStore.EXTRA_CONTENT_VALUES);
+        final List<String> allowedColumns;
+        switch (method) {
+            case MediaStore.CREATE_FAVORITE_REQUEST_CALL:
+                allowedColumns = Arrays.asList(
+                        MediaColumns.IS_FAVORITE);
+                break;
+            case MediaStore.CREATE_TRASH_REQUEST_CALL:
+                allowedColumns = Arrays.asList(
+                        MediaColumns.IS_TRASHED,
+                        MediaColumns.DATE_EXPIRES);
+                break;
+            default:
+                allowedColumns = Arrays.asList();
+                break;
+        }
+        if (values != null) {
+            for (String key : values.keySet()) {
+                if (!allowedColumns.contains(key)) {
+                    throw new IllegalArgumentException("Invalid column " + key);
+                }
+            }
+        }
+
+        final Context context = getContext();
+        final Intent intent = new Intent(method, null, context, PermissionActivity.class);
+        intent.putExtras(extras);
+        return PendingIntent.getActivity(context, PermissionActivity.REQUEST_CODE, intent,
+                FLAG_ONE_SHOT | FLAG_CANCEL_CURRENT | FLAG_IMMUTABLE);
     }
 
     /**
@@ -5622,9 +5735,9 @@ public class MediaProvider extends ContentProvider {
                     // Caller has read access, but they wanted to write, and
                     // they'll need to get the user to grant that access
                     final Context context = getContext();
-                    final PendingIntent intent = PendingIntent.getActivity(context, 42,
-                            new Intent(null, uri, context, PermissionActivity.class),
-                            FLAG_ONE_SHOT | FLAG_CANCEL_CURRENT | FLAG_IMMUTABLE);
+                    final Collection<Uri> uris = Arrays.asList(uri);
+                    final PendingIntent intent = MediaStore
+                            .createWriteRequest(ContentResolver.wrap(this), uris);
 
                     final Icon icon = getCollectionIcon(uri);
                     final RemoteAction action = new RemoteAction(icon,
@@ -5908,62 +6021,62 @@ public class MediaProvider extends ContentProvider {
     // WARNING: the values of IMAGES_MEDIA, AUDIO_MEDIA, and VIDEO_MEDIA and AUDIO_PLAYLISTS
     // are stored in the "files" table, so do not renumber them unless you also add
     // a corresponding database upgrade step for it.
-    private static final int IMAGES_MEDIA = 1;
-    private static final int IMAGES_MEDIA_ID = 2;
-    private static final int IMAGES_MEDIA_ID_THUMBNAIL = 3;
-    private static final int IMAGES_THUMBNAILS = 4;
-    private static final int IMAGES_THUMBNAILS_ID = 5;
+    static final int IMAGES_MEDIA = 1;
+    static final int IMAGES_MEDIA_ID = 2;
+    static final int IMAGES_MEDIA_ID_THUMBNAIL = 3;
+    static final int IMAGES_THUMBNAILS = 4;
+    static final int IMAGES_THUMBNAILS_ID = 5;
 
-    private static final int AUDIO_MEDIA = 100;
-    private static final int AUDIO_MEDIA_ID = 101;
-    private static final int AUDIO_MEDIA_ID_GENRES = 102;
-    private static final int AUDIO_MEDIA_ID_GENRES_ID = 103;
-    private static final int AUDIO_MEDIA_ID_PLAYLISTS = 104;
-    private static final int AUDIO_MEDIA_ID_PLAYLISTS_ID = 105;
-    private static final int AUDIO_GENRES = 106;
-    private static final int AUDIO_GENRES_ID = 107;
-    private static final int AUDIO_GENRES_ID_MEMBERS = 108;
-    private static final int AUDIO_GENRES_ALL_MEMBERS = 109;
-    private static final int AUDIO_PLAYLISTS = 110;
-    private static final int AUDIO_PLAYLISTS_ID = 111;
-    private static final int AUDIO_PLAYLISTS_ID_MEMBERS = 112;
-    private static final int AUDIO_PLAYLISTS_ID_MEMBERS_ID = 113;
-    private static final int AUDIO_ARTISTS = 114;
-    private static final int AUDIO_ARTISTS_ID = 115;
-    private static final int AUDIO_ALBUMS = 116;
-    private static final int AUDIO_ALBUMS_ID = 117;
-    private static final int AUDIO_ARTISTS_ID_ALBUMS = 118;
-    private static final int AUDIO_ALBUMART = 119;
-    private static final int AUDIO_ALBUMART_ID = 120;
-    private static final int AUDIO_ALBUMART_FILE_ID = 121;
+    static final int AUDIO_MEDIA = 100;
+    static final int AUDIO_MEDIA_ID = 101;
+    static final int AUDIO_MEDIA_ID_GENRES = 102;
+    static final int AUDIO_MEDIA_ID_GENRES_ID = 103;
+    static final int AUDIO_MEDIA_ID_PLAYLISTS = 104;
+    static final int AUDIO_MEDIA_ID_PLAYLISTS_ID = 105;
+    static final int AUDIO_GENRES = 106;
+    static final int AUDIO_GENRES_ID = 107;
+    static final int AUDIO_GENRES_ID_MEMBERS = 108;
+    static final int AUDIO_GENRES_ALL_MEMBERS = 109;
+    static final int AUDIO_PLAYLISTS = 110;
+    static final int AUDIO_PLAYLISTS_ID = 111;
+    static final int AUDIO_PLAYLISTS_ID_MEMBERS = 112;
+    static final int AUDIO_PLAYLISTS_ID_MEMBERS_ID = 113;
+    static final int AUDIO_ARTISTS = 114;
+    static final int AUDIO_ARTISTS_ID = 115;
+    static final int AUDIO_ALBUMS = 116;
+    static final int AUDIO_ALBUMS_ID = 117;
+    static final int AUDIO_ARTISTS_ID_ALBUMS = 118;
+    static final int AUDIO_ALBUMART = 119;
+    static final int AUDIO_ALBUMART_ID = 120;
+    static final int AUDIO_ALBUMART_FILE_ID = 121;
 
-    private static final int VIDEO_MEDIA = 200;
-    private static final int VIDEO_MEDIA_ID = 201;
-    private static final int VIDEO_MEDIA_ID_THUMBNAIL = 202;
-    private static final int VIDEO_THUMBNAILS = 203;
-    private static final int VIDEO_THUMBNAILS_ID = 204;
+    static final int VIDEO_MEDIA = 200;
+    static final int VIDEO_MEDIA_ID = 201;
+    static final int VIDEO_MEDIA_ID_THUMBNAIL = 202;
+    static final int VIDEO_THUMBNAILS = 203;
+    static final int VIDEO_THUMBNAILS_ID = 204;
 
-    private static final int VOLUMES = 300;
-    private static final int VOLUMES_ID = 301;
+    static final int VOLUMES = 300;
+    static final int VOLUMES_ID = 301;
 
-    private static final int MEDIA_SCANNER = 500;
+    static final int MEDIA_SCANNER = 500;
 
-    private static final int FS_ID = 600;
-    private static final int VERSION = 601;
+    static final int FS_ID = 600;
+    static final int VERSION = 601;
 
-    private static final int FILES = 700;
-    private static final int FILES_ID = 701;
+    static final int FILES = 700;
+    static final int FILES_ID = 701;
 
     // Used only by the MTP implementation
-    private static final int MTP_OBJECTS = 702;
-    private static final int MTP_OBJECTS_ID = 703;
-    private static final int MTP_OBJECT_REFERENCES = 704;
+    static final int MTP_OBJECTS = 702;
+    static final int MTP_OBJECTS_ID = 703;
+    static final int MTP_OBJECT_REFERENCES = 704;
 
     // Used only to invoke special logic for directories
-    private static final int FILES_DIRECTORY = 706;
+    static final int FILES_DIRECTORY = 706;
 
-    private static final int DOWNLOADS = 800;
-    private static final int DOWNLOADS_ID = 801;
+    static final int DOWNLOADS = 800;
+    static final int DOWNLOADS_ID = 801;
 
     /** Flag if we're running as {@link MediaStore#AUTHORITY_LEGACY} */
     private boolean mLegacyProvider;
@@ -6141,7 +6254,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     @GuardedBy("sProjectionMapCache")
-    private static final ArrayMap<Class<?>, ArrayMap<String, String>>
+    private static final ArrayMap<Class<?>[], ArrayMap<String, String>>
             sProjectionMapCache = new ArrayMap<>();
 
     /**
@@ -6150,17 +6263,19 @@ public class MediaProvider extends ContentProvider {
      * using the {@link Column} annotation, and is designed to ensure that we
      * always support public API commitments.
      */
-    public static ArrayMap<String, String> getProjectionMap(Class<?> clazz) {
+    public static ArrayMap<String, String> getProjectionMap(Class<?>... clazzes) {
         synchronized (sProjectionMapCache) {
-            ArrayMap<String, String> map = sProjectionMapCache.get(clazz);
+            ArrayMap<String, String> map = sProjectionMapCache.get(clazzes);
             if (map == null) {
                 map = new ArrayMap<>();
-                sProjectionMapCache.put(clazz, map);
+                sProjectionMapCache.put(clazzes, map);
                 try {
-                    for (Field field : clazz.getFields()) {
-                        if (field.isAnnotationPresent(Column.class)) {
-                            final String column = (String) field.get(null);
-                            map.put(column, column);
+                    for (Class<?> clazz : clazzes) {
+                        for (Field field : clazz.getFields()) {
+                            if (field.isAnnotationPresent(Column.class)) {
+                                final String column = (String) field.get(null);
+                                map.put(column, column);
+                            }
                         }
                     }
                 } catch (ReflectiveOperationException e) {

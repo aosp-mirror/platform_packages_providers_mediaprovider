@@ -26,12 +26,9 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.concurrent.TimeUnit;
-
 /**
  * Runs the FuseDaemon tests.
  */
-@Ignore("b/137890172: waiting for ag/9733193")
 @RunWith(DeviceJUnit4ClassRunner.class)
 public class FuseDaemonHostTest extends FuseDaemonBaseHostTest {
     /**
@@ -107,6 +104,7 @@ public class FuseDaemonHostTest extends FuseDaemonBaseHostTest {
     }
 
     @Test
+    @Ignore("b/146189163")
     public void testListFilesFromExternalFilesDirectory() throws Exception {
         runDeviceTest("testListFilesFromExternalFilesDirectory");
     }

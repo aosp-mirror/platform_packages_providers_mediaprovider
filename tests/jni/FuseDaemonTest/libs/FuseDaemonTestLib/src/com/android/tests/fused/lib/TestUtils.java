@@ -21,6 +21,7 @@ import static androidx.test.InstrumentationRegistry.getContext;
 import static com.android.tests.fused.lib.ReaddirTestHelper.CREATE_FILE_QUERY;
 import static com.android.tests.fused.lib.ReaddirTestHelper.DELETE_FILE_QUERY;
 import static com.android.tests.fused.lib.ReaddirTestHelper.READDIR_QUERY;
+import static com.android.tests.fused.lib.RedactionTestHelper.EXIF_METADATA_QUERY;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -30,11 +31,17 @@ import android.Manifest;
 import android.app.ActivityManager;
 import android.app.UiAutomation;
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.Cursor;
+import android.net.Uri;
+import android.provider.MediaStore;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.test.InstrumentationRegistry;
 
 import com.android.cts.install.lib.Install;
@@ -44,8 +51,10 @@ import com.android.cts.install.lib.Uninstall;
 
 import com.google.common.io.ByteStreams;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -55,6 +64,8 @@ public class TestUtils {
     static final String TAG = "FuseDaemonTest";
 
     public static final String QUERY_TYPE = "com.android.tests.fused.queryType";
+    public static final String INTENT_EXTRA_PATH = "com.android.tests.fused.path";
+    public static final String INTENT_EXCEPTION = "com.android.tests.fused.exception";
 
     private static final UiAutomation sUiAutomation = InstrumentationRegistry.getInstrumentation()
             .getUiAutomation();
@@ -99,6 +110,20 @@ public class TestUtils {
     public static ArrayList<String> listAs(TestApp testApp, String dirPath)
             throws Exception {
         return getContentsFromTestApp(testApp, dirPath, READDIR_QUERY);
+    }
+
+    /**
+     * Makes the given {@code testApp} read the EXIF metadata from the given file and returns the
+     * result as an {@link HashMap}
+     */
+    public static HashMap<String, String> readExifMetadataFromTestApp(TestApp testApp,
+            String filePath) throws Exception {
+        HashMap<String, String> res =
+                getMetadataFromTestApp(testApp, filePath, EXIF_METADATA_QUERY);
+        if (res.containsKey(INTENT_EXCEPTION)) {
+            throw new IllegalStateException(res.get(INTENT_EXCEPTION));
+        }
+        return res;
     }
 
     /**
@@ -153,6 +178,24 @@ public class TestUtils {
         }
     }
 
+    /**
+     * Queries {@link ContentResolver} for a file and returns the corresponding {@link Uri} for its
+     * entry in the database.
+     */
+    @NonNull
+    public static Uri getFileUri(@NonNull ContentResolver cr, @NonNull File file) {
+        final Uri contentUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL);
+        try (Cursor c = cr.query(contentUri,
+                /*projection*/ new String[] { MediaStore.MediaColumns._ID },
+                /*selection*/ MediaStore.MediaColumns.DATA + " = ?",
+                /*selectionArgs*/ new String[] { file.getAbsolutePath() },
+                /*sortOrder*/ null)) {
+            c.moveToFirst();
+            int id = c.getInt(0);
+            return ContentUris.withAppendedId(contentUri, id);
+        }
+    }
+
     public static <T extends Exception> void assertThrows(Class<T> clazz, Operation<T> r)
             throws Exception {
         assertThrows(clazz, "", r);
@@ -197,7 +240,6 @@ public class TestUtils {
     private static void sendIntentToTestApp(TestApp testApp, String dirPath, String actionName,
             BroadcastReceiver broadcastReceiver, CountDownLatch latch) throws Exception {
 
-        final ArrayList<String> appOutputList = new ArrayList<String>();
         final String packageName = testApp.getPackageName();
         forceStopApp(packageName);
         // Register broadcast receiver
@@ -211,11 +253,33 @@ public class TestUtils {
         intent.setPackage(packageName);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         intent.putExtra(QUERY_TYPE, actionName);
-        intent.putExtra(actionName, dirPath);
+        intent.putExtra(INTENT_EXTRA_PATH, dirPath);
         intent.addCategory(Intent.CATEGORY_LAUNCHER);
         getContext().startActivity(intent);
         latch.await();
         getContext().unregisterReceiver(broadcastReceiver);
+    }
+
+    private static HashMap<String, String> getMetadataFromTestApp(TestApp testApp, String dirPath,
+            String actionName) throws Exception {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final HashMap<String, String> appOutputList = new HashMap<>();
+        final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (intent.hasExtra(INTENT_EXCEPTION)) {
+                    appOutputList.put(INTENT_EXCEPTION,
+                            ((Exception)intent.getExtras().get(INTENT_EXCEPTION)).getMessage());
+                } else if(intent.hasExtra(actionName)) {
+                    HashMap<String, String> res =
+                            (HashMap<String, String>) intent.getExtras().get(actionName);
+                    appOutputList.putAll(res);
+                }
+                latch.countDown();
+            }
+        };
+        sendIntentToTestApp(testApp, dirPath, actionName, broadcastReceiver, latch);
+        return appOutputList;
     }
 
     private static ArrayList<String> getContentsFromTestApp(TestApp testApp, String dirPath,

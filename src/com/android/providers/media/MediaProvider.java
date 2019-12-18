@@ -4815,7 +4815,38 @@ public class MediaProvider extends ContentProvider {
 
         long[] res = new long[0];
         try {
-            if (isRedactionNeeded() && !shouldBypassFuseRestrictions(/*forWrite*/ false)) {
+            if (!isRedactionNeeded() || shouldBypassFuseRestrictions(/*forWrite*/ false)) {
+                return res;
+            }
+
+            final Uri contentUri = Files.getContentUri(MediaStore.getVolumeName(new File(path)));
+            final String[] projection = new String[]{
+                    MediaColumns.OWNER_PACKAGE_NAME, MediaColumns._ID };
+            final String selection = MediaColumns.DATA + "=?";
+            final String[] selectionArgs = new String[] { path };
+            final String ownerPackageName;
+            final Uri item;
+            try (final Cursor c = queryForSingleItem(contentUri, projection, selection,
+                    selectionArgs, null)) {
+                c.moveToFirst();
+                ownerPackageName = c.getString(0);
+                item = ContentUris.withAppendedId(contentUri, /*item id*/ c.getInt(1));
+            } catch (FileNotFoundException e) {
+                // Ideally, this shouldn't happen unless the file was deleted after we checked its
+                // existence and before we get to the redaction logic here. In this case we throw
+                // and fail the operation and FuseDaemon should handle this and fail the whole open
+                // operation gracefully.
+                throw new FileNotFoundException(
+                        path + " not found while calculating redaction ranges: " + e.getMessage());
+            }
+
+            final boolean callerIsOwner = Objects.equals(getCallingPackageOrSelf(),
+                    ownerPackageName);
+            final boolean callerHasUriPermission = getContext().checkUriPermission(
+                    item, mCallingIdentity.get().pid, mCallingIdentity.get().uid,
+                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION) == PERMISSION_GRANTED;
+
+            if (!callerIsOwner && !callerHasUriPermission) {
                 res = getRedactionRanges(file).redactionRanges;
             }
         } finally {

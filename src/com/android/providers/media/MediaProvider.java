@@ -1360,6 +1360,10 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (targetSdkVersion < Build.VERSION_CODES.R) {
+            // Some apps are abusing "ORDER BY" clauses to inject "LIMIT"
+            // clauses; gracefully lift them out.
+            DatabaseUtils.recoverAbusiveSortOrder(queryArgs);
+
             // Some apps are abusing the Uri query parameters to inject LIMIT
             // clauses; gracefully lift them out.
             DatabaseUtils.recoverAbusiveLimit(uri, queryArgs);

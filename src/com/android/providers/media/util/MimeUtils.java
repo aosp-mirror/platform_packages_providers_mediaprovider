@@ -91,6 +91,7 @@ public class MimeUtils {
         switch (mimeType) {
             case "application/vnd.apple.mpegurl":
             case "application/vnd.ms-wpl":
+            case "application/x-extension-smpl":
             case "application/x-mpegurl":
             case "audio/mpegurl":
             case "audio/x-mpegurl":

@@ -27,17 +27,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
-import android.os.Environment;
 import android.os.Trace;
 import android.provider.MediaStore;
 import android.util.Log;
 
 import androidx.core.app.JobIntentService;
 
+import com.android.providers.media.util.FileUtils;
+
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Collection;
 
 public class MediaService extends JobIntentService {
     private static final int JOB_ID = -300;
@@ -101,15 +100,21 @@ public class MediaService extends JobIntentService {
         }
     }
 
-    public static void onScanVolume(Context context, Uri uri, int reason) throws IOException {
+    private static void onScanVolume(Context context, Uri uri, int reason)
+            throws IOException {
         final File file = new File(uri.getPath()).getCanonicalFile();
-        final String volumeName = MediaStore.getVolumeName(file);
+        final String volumeName = FileUtils.getVolumeName(context, file);
 
+        onScanVolume(context, volumeName, reason);
+    }
+
+    public static void onScanVolume(Context context, String volumeName, int reason)
+            throws IOException {
         // If we're about to scan primary external storage, scan internal first
         // to ensure that we have ringtones ready to roll before a possibly very
         // long external storage scan
         if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equals(volumeName)) {
-            onScanVolume(context, Uri.fromFile(Environment.getRootDirectory()), reason);
+            onScanVolume(context, MediaStore.VOLUME_INTERNAL, reason);
             RingtoneManager.ensureDefaultRingtones(context);
         }
 
@@ -125,10 +130,11 @@ public class MediaService extends JobIntentService {
             Uri scanUri = resolver.insert(MediaStore.getMediaScannerUri(), values);
 
             if (!MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
-                context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_STARTED, uri));
+                context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_STARTED,
+                        Uri.fromFile(FileUtils.getVolumePath(context, volumeName))));
             }
 
-            for (File dir : resolveDirectories(volumeName)) {
+            for (File dir : FileUtils.getVolumeScanPaths(context, volumeName)) {
                 provider.scanDirectory(dir, reason);
             }
 
@@ -136,22 +142,18 @@ public class MediaService extends JobIntentService {
 
         } finally {
             if (!MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
-                context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_FINISHED, uri));
+                context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_FINISHED,
+                        Uri.fromFile(FileUtils.getVolumePath(context, volumeName))));
             }
         }
     }
 
-    public static Uri onScanFile(Context context, Uri uri) throws IOException {
+    private static Uri onScanFile(Context context, Uri uri) throws IOException {
         final File file = new File(uri.getPath()).getCanonicalFile();
         try (ContentProviderClient cpc = context.getContentResolver()
                 .acquireContentProviderClient(MediaStore.AUTHORITY)) {
             final MediaProvider provider = ((MediaProvider) cpc.getLocalContentProvider());
             return provider.scanFile(file, REASON_DEMAND);
         }
-    }
-
-    private static Collection<File> resolveDirectories(String volumeName)
-            throws FileNotFoundException {
-        return MediaStore.getVolumeScanPaths(volumeName);
     }
 }

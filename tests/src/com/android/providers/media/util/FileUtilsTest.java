@@ -16,6 +16,7 @@
 
 package com.android.providers.media.util;
 
+import static com.android.providers.media.util.FileUtils.buildUniqueFile;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractFileExtension;
 import static com.android.providers.media.util.FileUtils.extractFileName;
@@ -23,6 +24,7 @@ import static com.android.providers.media.util.FileUtils.extractFileName;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
@@ -33,15 +35,21 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 
 @RunWith(AndroidJUnit4.class)
 public class FileUtilsTest {
     private File mTarget;
+    private File mDcimTarget;
 
     @Before
     public void setUp() throws Exception {
         mTarget = InstrumentationRegistry.getTargetContext().getCacheDir();
         FileUtils.deleteContents(mTarget);
+
+        mDcimTarget = new File(mTarget, "DCIM");
+        mDcimTarget.mkdirs();
     }
 
     @After
@@ -165,6 +173,54 @@ public class FileUtilsTest {
         assertNameEquals("test.foo (1).bar", FileUtils.buildUniqueFile(mTarget, "test.foo.bar"));
     }
 
+    /**
+     * Verify that we generate unique filenames that meet the JEITA DCF
+     * specification when writing into directories like {@code DCIM}.
+     */
+    @Test
+    public void testBuildUniqueFile_DCF_strict() throws Exception {
+        assertNameEquals("IMG_0100.JPG",
+                buildUniqueFile(mDcimTarget, "IMG_0100.JPG"));
+
+        touch(mDcimTarget, "IMG_0999.JPG");
+        assertNameEquals("IMG_0998.JPG",
+                buildUniqueFile(mDcimTarget, "IMG_0998.JPG"));
+        assertNameEquals("IMG_1000.JPG",
+                buildUniqueFile(mDcimTarget, "IMG_0999.JPG"));
+        assertNameEquals("IMG_1000.JPG",
+                buildUniqueFile(mDcimTarget, "IMG_1000.JPG"));
+
+        touch(mDcimTarget, "IMG_1000.JPG");
+        assertNameEquals("IMG_1001.JPG",
+                buildUniqueFile(mDcimTarget, "IMG_0999.JPG"));
+
+        // We can't step beyond standard numbering
+        touch(mDcimTarget, "IMG_9999.JPG");
+        try {
+            buildUniqueFile(mDcimTarget, "IMG_9999.JPG");
+            fail();
+        } catch (FileNotFoundException expected) {
+        }
+    }
+
+    /**
+     * Verify that we generate unique filenames that look sane compared to other
+     * {@code DCIM} filenames. These technically aren't part of the official
+     * JEITA DCF specification.
+     */
+    @Test
+    public void testBuildUniqueFile_DCF_relaxed() throws Exception {
+        touch(mDcimTarget, "IMG_20190102_030405.jpg");
+        assertNameEquals("IMG_20190102_030405~2.jpg",
+                buildUniqueFile(mDcimTarget, "IMG_20190102_030405.jpg"));
+
+        touch(mDcimTarget, "IMG_20190102_030405~2.jpg");
+        assertNameEquals("IMG_20190102_030405~3.jpg",
+                buildUniqueFile(mDcimTarget, "IMG_20190102_030405.jpg"));
+        assertNameEquals("IMG_20190102_030405~3.jpg",
+                buildUniqueFile(mDcimTarget, "IMG_20190102_030405~2.jpg"));
+    }
+
     @Test
     public void testExtractDisplayName() throws Exception {
         for (String probe : new String[] {
@@ -244,6 +300,12 @@ public class FileUtilsTest {
         }) {
             assertEquals(probe, "", extractFileExtension(probe));
         }
+    }
+
+    private static File touch(File dir, String name) throws IOException {
+        final File res = new File(dir, name);
+        res.createNewFile();
+        return res;
     }
 
     private static void assertNameEquals(String expected, File actual) {

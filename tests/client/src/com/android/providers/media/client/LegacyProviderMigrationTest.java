@@ -208,11 +208,9 @@ public class LegacyProviderMigrationTest {
         // metadata from the legacy provider
         executeShellCommand("pm clear " + modernProvider.applicationInfo.packageName, ui);
 
-        // And make sure that we've restarted after clearing data above
-        MediaStore.suicide(context);
-
         // And force a scan to confirm upgraded data survives
-        MediaStore.scanVolume(context, legacyFile);
+        MediaStore.scanVolume(context.getContentResolver(),
+                MediaStore.getVolumeName(collectionUri));
 
         // Confirm that details from legacy provider have migrated
         try (ContentProviderClient modern = context.getContentResolver()

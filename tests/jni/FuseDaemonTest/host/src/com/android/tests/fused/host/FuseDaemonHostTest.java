@@ -113,4 +113,9 @@ public class FuseDaemonHostTest extends FuseDaemonBaseHostTest {
     public void testListFilesFromExternalMediaDirectory() throws Exception {
         runDeviceTest("testListFilesFromExternalMediaDirectory");
     }
+
+    @Test
+    public void testMetaDataRedaction() throws Exception {
+        runDeviceTest("testMetaDataRedaction");
+    }
 }

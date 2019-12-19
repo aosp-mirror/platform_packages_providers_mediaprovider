@@ -141,7 +141,7 @@ public class DrmTest {
         flFile.close();
 
         // Scan the DRM file and confirm that it looks sane
-        final Uri flUri = MediaStore.scanFile(mContext, flPath);
+        final Uri flUri = MediaStore.scanFile(mContext.getContentResolver(), flPath);
         try (Cursor c = mContext.getContentResolver().query(flUri, null, null, null)) {
             assertTrue(c.moveToFirst());
 

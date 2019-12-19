@@ -16,6 +16,7 @@
 
 package com.android.providers.media.util;
 
+import static android.Manifest.permission.BACKUP;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_MEDIA_STORAGE;
@@ -61,6 +62,10 @@ public class PermissionUtils {
                 .checkPermission(WRITE_MEDIA_STORAGE, pid, uid) == PERMISSION_GRANTED;
 
         return hasFull && hasStorage;
+    }
+
+    public static boolean checkPermissionBackup(Context context, int pid, int uid) {
+        return context.checkPermission(BACKUP, pid, uid) == PERMISSION_GRANTED;
     }
 
     public static boolean checkPermissionWriteStorage(Context context,

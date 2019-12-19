@@ -19,6 +19,11 @@ package com.android.providers.media.util;
 import static com.android.providers.media.MediaProvider.TAG;
 
 import android.content.ClipDescription;
+import android.content.Context;
+import android.net.Uri;
+import android.os.Environment;
+import android.os.storage.StorageManager;
+import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
@@ -26,15 +31,21 @@ import android.webkit.MimeTypeMap;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.android.providers.media.scan.MediaScanner;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class FileUtils {
     public static void closeQuietly(@Nullable AutoCloseable closeable) {
@@ -218,18 +229,88 @@ public class FileUtils {
     /** {@hide} */
     private static File buildUniqueFileWithExtension(File parent, String name, String ext)
             throws FileNotFoundException {
-        File file = buildFile(parent, name, ext);
-
-        // If conflicting file, try adding counter suffix
-        int n = 0;
-        while (file.exists()) {
-            if (n++ >= 32) {
-                throw new FileNotFoundException("Failed to create unique file");
+        final Iterator<String> names = buildUniqueNameIterator(parent, name);
+        while (names.hasNext()) {
+            File file = buildFile(parent, names.next(), ext);
+            if (!file.exists()) {
+                return file;
             }
-            file = buildFile(parent, name + " (" + n + ")", ext);
+        }
+        throw new FileNotFoundException("Failed to create unique file");
+    }
+
+    private static final Pattern PATTERN_DCF_STRICT = Pattern
+            .compile("([A-Z0-9_]{4})([0-9]{4})");
+    private static final Pattern PATTERN_DCF_RELAXED = Pattern
+            .compile("((?:IMG|MVIMG|VID)_[0-9]{8}_[0-9]{6})(?:~([0-9]+))?");
+
+    private static boolean isDcim(@NonNull File dir) {
+        while (dir != null) {
+            if (Objects.equals("DCIM", dir.getName())) {
+                return true;
+            }
+            dir = dir.getParentFile();
+        }
+        return false;
+    }
+
+    private static @NonNull Iterator<String> buildUniqueNameIterator(@NonNull File parent,
+            @NonNull String name) {
+        if (isDcim(parent)) {
+            final Matcher dcfStrict = PATTERN_DCF_STRICT.matcher(name);
+            if (dcfStrict.matches()) {
+                // Generate names like "IMG_1001"
+                final String prefix = dcfStrict.group(1);
+                return new Iterator<String>() {
+                    int i = Integer.parseInt(dcfStrict.group(2));
+                    @Override
+                    public String next() {
+                        final String res = String.format("%s%04d", prefix, i);
+                        i++;
+                        return res;
+                    }
+                    @Override
+                    public boolean hasNext() {
+                        return i <= 9999;
+                    }
+                };
+            }
+
+            final Matcher dcfRelaxed = PATTERN_DCF_RELAXED.matcher(name);
+            if (dcfRelaxed.matches()) {
+                // Generate names like "IMG_20190102_030405~2"
+                final String prefix = dcfRelaxed.group(1);
+                return new Iterator<String>() {
+                    int i = TextUtils.isEmpty(dcfRelaxed.group(2)) ? 1
+                            : Integer.parseInt(dcfRelaxed.group(2));
+                    @Override
+                    public String next() {
+                        final String res = (i == 1) ? prefix : String.format("%s~%d", prefix, i);
+                        i++;
+                        return res;
+                    }
+                    @Override
+                    public boolean hasNext() {
+                        return i <= 99;
+                    }
+                };
+            }
         }
 
-        return file;
+        // Generate names like "foo (2)"
+        return new Iterator<String>() {
+            int i = 0;
+            @Override
+            public String next() {
+                final String res = (i == 0) ? name : name + " (" + i + ")";
+                i++;
+                return res;
+            }
+            @Override
+            public boolean hasNext() {
+                return i < 32;
+            }
+        };
     }
 
     /**
@@ -376,6 +457,59 @@ public class FileUtils {
             return null;
         } else {
             return data.substring(lastDot + 1);
+        }
+    }
+
+    /**
+     * Return list of paths that should be scanned with {@link MediaScanner} for
+     * the given volume name.
+     */
+    public static @NonNull Collection<File> getVolumeScanPaths(@NonNull Context context,
+            @NonNull String volumeName) throws FileNotFoundException {
+        final ArrayList<File> res = new ArrayList<>();
+        switch (volumeName) {
+            case MediaStore.VOLUME_INTERNAL: {
+                res.addAll(Environment.getInternalMediaDirectories());
+                break;
+            }
+            case MediaStore.VOLUME_EXTERNAL: {
+                for (String resolvedVolumeName : MediaStore.getExternalVolumeNames(context)) {
+                    res.add(getVolumePath(context, resolvedVolumeName));
+                }
+                break;
+            }
+            default: {
+                res.add(getVolumePath(context, volumeName));
+            }
+        }
+        return res;
+    }
+
+    /**
+     * Return path where the given volume name is mounted.
+     */
+    public static @NonNull File getVolumePath(@NonNull Context context,
+            @NonNull String volumeName) throws FileNotFoundException {
+        switch (volumeName) {
+            case MediaStore.VOLUME_INTERNAL:
+            case MediaStore.VOLUME_EXTERNAL:
+                throw new FileNotFoundException(volumeName + " has no associated path");
+        }
+
+        final Uri uri = MediaStore.Files.getContentUri(volumeName);
+        return context.getSystemService(StorageManager.class).getStorageVolume(uri)
+                .getDirectory();
+    }
+
+    /**
+     * Return volume name which hosts the given path.
+     */
+    public static @NonNull String getVolumeName(@NonNull Context context, @NonNull File path) {
+        if (contains(Environment.getStorageDirectory(), path)) {
+            return context.getSystemService(StorageManager.class).getStorageVolume(path)
+                    .getMediaStoreVolumeName();
+        } else {
+            return MediaStore.VOLUME_INTERNAL;
         }
     }
 }

@@ -512,4 +512,17 @@ public class FileUtils {
             return MediaStore.VOLUME_INTERNAL;
         }
     }
+
+    public static final Pattern PATTERN_DOWNLOADS_FILE = Pattern.compile(
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?(?:Android/sandbox/[^/]+/)?Download/.+");
+    public static final Pattern PATTERN_DOWNLOADS_DIRECTORY = Pattern.compile(
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?(?:Android/sandbox/[^/]+/)?Download/?");
+
+    public static boolean isDownload(@NonNull String path) {
+        return PATTERN_DOWNLOADS_FILE.matcher(path).matches();
+    }
+
+    public static boolean isDownloadDir(@NonNull String path) {
+        return PATTERN_DOWNLOADS_DIRECTORY.matcher(path).matches();
+    }
 }

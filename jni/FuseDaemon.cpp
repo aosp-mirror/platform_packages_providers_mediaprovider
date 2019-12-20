@@ -1305,6 +1305,10 @@ static void do_readdir_common(fuse_req_t req,
                 entry_size = fuse_add_direntry_plus(req, buf + used, len - used, de->d_name.c_str(),
                                                     &e, h->next_off);
             else {
+                // Ignore lookup errors on
+                // 1. non-existing files returned from MediaProvider database.
+                // 2. path that doesn't match FuseDaemon UID and calling uid.
+                if (errno == ENOENT || errno == EPERM) continue;
                 fuse_reply_err(req, errno);
                 return;
             }

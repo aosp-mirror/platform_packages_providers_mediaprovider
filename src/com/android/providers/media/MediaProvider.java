@@ -649,6 +649,11 @@ public class MediaProvider extends ContentProvider {
             public void onVolumeStateChanged(VolumeInfo vol, int oldState, int newState) {
                 updateVolumes();
             }
+
+            @Override
+            public void onStorageStateChanged(String path, String oldState, String newState) {
+                updateVolumes();
+            }
         });
 
         updateVolumes();

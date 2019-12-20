@@ -18,7 +18,6 @@ package com.android.providers.media;
 
 import static com.android.providers.media.MediaProvider.INTERNAL_DATABASE_NAME;
 import static com.android.providers.media.MediaProvider.LOCAL_LOGV;
-import static com.android.providers.media.MediaProvider.PATTERN_OWNED_PATH;
 import static com.android.providers.media.MediaProvider.TAG;
 
 import android.content.ContentProviderClient;
@@ -643,11 +642,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
         // Derive new column value based on well-known paths
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
-                FileColumns.DATA + " REGEXP '" + PATTERN_OWNED_PATH.pattern() + "'",
+                FileColumns.DATA + " REGEXP '" + FileUtils.PATTERN_OWNED_PATH.pattern() + "'",
                 null, null, null, null, null)) {
             Log.d(TAG, "Updating " + c.getCount() + " entries with well-known owners");
 
-            final Matcher m = PATTERN_OWNED_PATH.matcher("");
+            final Matcher m = FileUtils.PATTERN_OWNED_PATH.matcher("");
             final ContentValues values = new ContentValues();
 
             while (c.moveToNext()) {

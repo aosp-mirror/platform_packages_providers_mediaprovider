@@ -43,6 +43,8 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.Process;
 import android.os.SystemProperties;
+import android.os.UserHandle;
+import android.os.UserManager;
 
 import com.android.providers.media.util.LongArray;
 
@@ -60,6 +62,13 @@ public class LocalCallingIdentity {
         this.uid = uid;
         this.packageNameUnchecked = packageNameUnchecked;
         this.featureId = featureId;
+
+        // While we're here, enforce any broad user-level restrictions
+        if ((uid == Process.SHELL_UID) && context.getSystemService(UserManager.class)
+                .hasUserRestriction(UserManager.DISALLOW_USB_FILE_TRANSFER)) {
+            throw new SecurityException(
+                    "Shell user cannot access files for user " + UserHandle.myUserId());
+        }
     }
 
     public static LocalCallingIdentity fromBinder(Context context, ContentProvider provider) {
@@ -112,7 +121,6 @@ public class LocalCallingIdentity {
         ident.hasPermission = ~(PERMISSION_IS_LEGACY_GRANTED | PERMISSION_IS_LEGACY_WRITE
                 | PERMISSION_IS_LEGACY_READ | PERMISSION_IS_REDACTION_NEEDED);
         ident.hasPermissionResolved = ~0;
-
         return ident;
     }
 

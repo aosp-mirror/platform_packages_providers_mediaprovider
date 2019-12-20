@@ -34,7 +34,6 @@ import static android.media.MediaMetadataRetriever.METADATA_KEY_DURATION;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_GENRE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_IMAGE_HEIGHT;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_IMAGE_WIDTH;
-import static android.media.MediaMetadataRetriever.METADATA_KEY_IS_DRM;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_MIMETYPE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_NUM_TRACKS;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_TITLE;
@@ -652,8 +651,6 @@ public class ModernMediaScanner implements MediaScanner {
                 parseOptionalDate(mmr.extractMetadata(METADATA_KEY_DATE)));
         withOptionalValue(op, MediaColumns.MIME_TYPE,
                 parseOptionalMimeType(mimeType, mmr.extractMetadata(METADATA_KEY_MIMETYPE)));
-        withOptionalValue(op, MediaColumns.IS_DRM,
-                parseOptional(mmr.extractMetadata(METADATA_KEY_IS_DRM)));
 
         withOptionalValue(op, MediaColumns.CD_TRACK_NUMBER,
                 parseOptional(mmr.extractMetadata(METADATA_KEY_CD_TRACK_NUMBER)));

@@ -23,6 +23,7 @@ java_defaults {
         "src/**/*.aidl",
         "src/**/*.java",
         ":framework-mediaprovider-sources",
+        ":framework-mediaprovider-annotation-sources",
         ":statslog-mediaprovider-java-gen",
     ],
 

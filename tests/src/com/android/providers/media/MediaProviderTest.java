@@ -16,7 +16,6 @@
 
 package com.android.providers.media;
 
-import static com.android.providers.media.MediaProvider.extractPathOwnerPackageName;
 import static com.android.providers.media.util.FileUtils.isDownload;
 import static com.android.providers.media.util.FileUtils.isDownloadDir;
 
@@ -47,6 +46,7 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.MediaProvider.VolumeArgumentException;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
+import com.android.providers.media.util.FileUtils;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -145,7 +145,7 @@ public class MediaProviderTest {
     }
 
     private static String getPathOwnerPackageName(String path) {
-        return extractPathOwnerPackageName(path);
+        return FileUtils.extractPathOwnerPackageName(path);
     }
 
     @Test
@@ -520,7 +520,7 @@ public class MediaProviderTest {
             "IMG1024.JPG",
             "storage/emulated/",
         }) {
-            assertEquals(MediaProvider.extractRelativePathForDirectory(data), null);
+            assertEquals(FileUtils.extractRelativePathForDirectory(data), null);
         }
     }
 
@@ -534,7 +534,7 @@ public class MediaProviderTest {
                     "Android/media/com.example/Foo/"));
             add(new Pair("/storage/0000-0000/DCIM/Camera", "DCIM/Camera/"));
         }}) {
-            assertEquals(top.second, MediaProvider.extractRelativePathForDirectory(top.first));
+            assertEquals(top.second, FileUtils.extractRelativePathForDirectory(top.first));
         }
     }
 

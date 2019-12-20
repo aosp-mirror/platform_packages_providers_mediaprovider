@@ -28,12 +28,12 @@ import static com.android.tests.fused.lib.RedactionTestHelper.getExifMetadataFro
 import static com.android.tests.fused.lib.TestUtils.assertThrows;
 import static com.android.tests.fused.lib.TestUtils.createFileAs;
 import static com.android.tests.fused.lib.TestUtils.deleteFileAs;
+import static com.android.tests.fused.lib.TestUtils.executeShellCommand;
 import static com.android.tests.fused.lib.TestUtils.installApp;
 import static com.android.tests.fused.lib.TestUtils.listAs;
 import static com.android.tests.fused.lib.TestUtils.readExifMetadataFromTestApp;
 import static com.android.tests.fused.lib.TestUtils.revokeReadExternalStorage;
 import static com.android.tests.fused.lib.TestUtils.uninstallApp;
-
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assume.assumeTrue;
@@ -548,6 +548,32 @@ public class FilePathAccessTest {
 //                    .containsExactly(videoFileName);
         } finally {
             videoFile.delete();
+        }
+    }
+
+    /**
+     * Test that readdir lists unsupported file types in default directories.
+     */
+    @Test
+    public void testListUnsupportedFileType() throws Exception {
+        final File pdfFile = new File(DCIM_DIR, NONMEDIA_FILE_NAME);
+        final File videoFile = new File(MUSIC_DIR, VIDEO_FILE_NAME);
+        try {
+            // TEST_APP_A with storage permission should not see pdf file in DCIM
+            executeShellCommand("touch " + pdfFile.getAbsolutePath());
+            assertThat(pdfFile.exists()).isTrue();
+            assertThat(MediaStore.scanFile(getContentResolver(), pdfFile)).isNotNull();
+
+            installApp(TEST_APP_A, true);
+            assertThat(listAs(TEST_APP_A, DCIM_DIR.getPath())).doesNotContain(NONMEDIA_FILE_NAME);
+
+            // TEST_APP_A with storage permission should see video file in Music directory.
+            executeShellCommand("touch " + videoFile.getAbsolutePath());
+            assertThat(MediaStore.scanFile(getContentResolver(), videoFile)).isNotNull();
+            assertThat(listAs(TEST_APP_A, MUSIC_DIR.getPath())).contains(VIDEO_FILE_NAME);
+        } finally {
+            executeShellCommand("rm " + pdfFile.getAbsolutePath());
+            executeShellCommand("rm " + videoFile.getAbsolutePath());
         }
     }
 

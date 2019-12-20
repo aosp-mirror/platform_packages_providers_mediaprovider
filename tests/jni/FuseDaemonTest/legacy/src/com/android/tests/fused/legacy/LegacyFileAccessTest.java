@@ -77,15 +77,16 @@ public class LegacyFileAccessTest {
                 "LegacyFileAccessTest");
         assertCanCreateFile(file);
 
-        // Can even create another app's external storage dir
+        // However, even legacy apps can't create files under other app's directories
         final File otherAppDir = new File(Environment.getExternalStorageDirectory(),
                 "Android/data/com.android.shell");
         file = new File(otherAppDir, "LegacyFileAccessTest.txt");
+
+        // otherAppDir was already created by the host test
         try {
-            otherAppDir.mkdir();
-            assertCanCreateFile(file);
-        } finally {
-            otherAppDir.delete();
+            file.createNewFile();
+            fail("File creation expected to fail: " + file);
+        } catch (IOException expected) {
         }
     }
 
@@ -105,14 +106,10 @@ public class LegacyFileAccessTest {
         final File otherAppDir = new File(Environment.getExternalStorageDirectory(),
                 "Android/data/com.android.shell");
 
-        // Can create a directory under another app's private directory
+        // However, even legacy apps can't create dirs under other app's directories
         final File subDir = new File(otherAppDir, "LegacyFileAccessTest");
-        try {
-            otherAppDir.mkdir();
-            assertCanCreateDir(subDir);
-        } finally {
-            otherAppDir.delete();
-        }
+        // otherAppDir was already created by the host test
+        assertThat(subDir.mkdir()).isFalse();
 
         // Try to list a directory and fail because it requires READ permission
         assertThat(new File(Environment.getExternalStorageDirectory(),

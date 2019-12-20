@@ -25,7 +25,7 @@ java_library {
 
     installable: true,
 
-    sdk_version: "core_platform",
+    sdk_version: "core_current",
     libs: [
         // The order matters. android_system_* library should come later.
         "framework_mediaprovider_annotation",
@@ -63,4 +63,5 @@ java_library {
     name: "framework_mediaprovider_annotation",
     srcs: [":framework-mediaprovider-annotation-sources"],
     installable: false,
+    sdk_version: "core_current",
 }

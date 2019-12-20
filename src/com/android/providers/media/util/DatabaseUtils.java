@@ -381,4 +381,32 @@ public class DatabaseUtils {
             queryArgs.putString(QUERY_ARG_SQL_GROUP_BY, groupBy);
         }
     }
+
+    /**
+     * Gracefully recover from abusive callers that are smashing limits into
+     * {@code ORDER BY} clauses.
+     */
+    public static void recoverAbusiveSortOrder(@NonNull Bundle queryArgs) {
+        final String origSortOrder = queryArgs.getString(QUERY_ARG_SQL_SORT_ORDER);
+        final String origLimit = queryArgs.getString(QUERY_ARG_SQL_LIMIT);
+
+        final int index = (origSortOrder != null)
+                ? origSortOrder.toUpperCase().indexOf(" LIMIT ") : -1;
+        if (index != -1) {
+            String sortOrder = origSortOrder.substring(0, index);
+            String limit = origSortOrder.substring(index + " LIMIT ".length());
+
+            // Yell if we already had a limit requested
+            if (!TextUtils.isEmpty(origLimit)) {
+                throw new IllegalArgumentException(
+                        "Abusive '" + limit + "' conflicts with requested '" + origLimit + "'");
+            }
+
+            Log.w(TAG, "Recovered abusive '" + sortOrder + "' and '" + limit + "' from '"
+                    + origSortOrder + "'");
+
+            queryArgs.putString(QUERY_ARG_SQL_SORT_ORDER, sortOrder);
+            queryArgs.putString(QUERY_ARG_SQL_LIMIT, limit);
+        }
+    }
 }

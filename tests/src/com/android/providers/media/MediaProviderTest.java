@@ -16,10 +16,9 @@
 
 package com.android.providers.media;
 
-import static android.provider.MediaStore.Downloads.isDownload;
-import static android.provider.MediaStore.Downloads.isDownloadDir;
-
 import static com.android.providers.media.MediaProvider.extractPathOwnerPackageName;
+import static com.android.providers.media.util.FileUtils.isDownload;
+import static com.android.providers.media.util.FileUtils.isDownloadDir;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -452,7 +451,6 @@ public class MediaProviderTest {
             final ContentValues values = computeDataValues(data);
             assertVolume(values, "0000-0000");
             assertBucket(values, "/storage/0000-0000/DCIM/Camera", "Camera");
-            assertGroup(values, "IMG1024");
             assertRelativePath(values, "DCIM/Camera/");
         }
     }
@@ -464,13 +462,11 @@ public class MediaProviderTest {
         values = computeDataValues("/storage/0000-0000/DCIM/Camera/IMG1024");
         assertVolume(values, "0000-0000");
         assertBucket(values, "/storage/0000-0000/DCIM/Camera", "Camera");
-        assertGroup(values, null);
         assertRelativePath(values, "DCIM/Camera/");
 
         values = computeDataValues("/storage/0000-0000/DCIM/Camera/.foo");
         assertVolume(values, "0000-0000");
         assertBucket(values, "/storage/0000-0000/DCIM/Camera", "Camera");
-        assertGroup(values, null);
         assertRelativePath(values, "DCIM/Camera/");
     }
 
@@ -497,25 +493,21 @@ public class MediaProviderTest {
             values = computeDataValues(top + "/IMG1024.JPG");
             assertVolume(values, MediaStore.VOLUME_EXTERNAL_PRIMARY);
             assertBucket(values, top, null);
-            assertGroup(values, "IMG1024");
             assertRelativePath(values, "/");
 
             values = computeDataValues(top + "/One/IMG1024.JPG");
             assertVolume(values, MediaStore.VOLUME_EXTERNAL_PRIMARY);
             assertBucket(values, top + "/One", "One");
-            assertGroup(values, "IMG1024");
             assertRelativePath(values, "One/");
 
             values = computeDataValues(top + "/One/Two/IMG1024.JPG");
             assertVolume(values, MediaStore.VOLUME_EXTERNAL_PRIMARY);
             assertBucket(values, top + "/One/Two", "Two");
-            assertGroup(values, "IMG1024");
             assertRelativePath(values, "One/Two/");
 
             values = computeDataValues(top + "/One/Two/Three/IMG1024.JPG");
             assertVolume(values, MediaStore.VOLUME_EXTERNAL_PRIMARY);
             assertBucket(values, top + "/One/Two/Three", "Three");
-            assertGroup(values, "IMG1024");
             assertRelativePath(values, "One/Two/Three/");
         }
     }
@@ -563,15 +555,6 @@ public class MediaProviderTest {
         } else {
             assertNull(values.get(ImageColumns.BUCKET_DISPLAY_NAME));
             assertNull(values.get(ImageColumns.BUCKET_ID));
-        }
-    }
-
-    private static void assertGroup(ContentValues values, String groupId) {
-        if (groupId != null) {
-            assertEquals(groupId.toLowerCase(Locale.ROOT).hashCode(),
-                    (long) values.getAsLong(ImageColumns.GROUP_ID));
-        } else {
-            assertNull(values.get(ImageColumns.GROUP_ID));
         }
     }
 

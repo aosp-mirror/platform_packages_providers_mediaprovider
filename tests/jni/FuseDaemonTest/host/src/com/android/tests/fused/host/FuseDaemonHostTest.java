@@ -118,4 +118,10 @@ public class FuseDaemonHostTest extends FuseDaemonBaseHostTest {
     public void testMetaDataRedaction() throws Exception {
         runDeviceTest("testMetaDataRedaction");
     }
+
+    @Test
+    public void testVfsCacheConsistency() throws Exception {
+        runDeviceTest("testContentResolverDelete");
+        runDeviceTest("testContentResolverUpdate");
+    }
 }

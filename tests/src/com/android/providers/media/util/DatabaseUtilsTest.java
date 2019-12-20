@@ -31,6 +31,7 @@ import static android.content.ContentResolver.QUERY_SORT_DIRECTION_ASCENDING;
 
 import static com.android.providers.media.util.DatabaseUtils.maybeBalance;
 import static com.android.providers.media.util.DatabaseUtils.recoverAbusiveLimit;
+import static com.android.providers.media.util.DatabaseUtils.recoverAbusiveSortOrder;
 import static com.android.providers.media.util.DatabaseUtils.resolveQueryArgs;
 
 import static org.junit.Assert.assertEquals;
@@ -263,6 +264,15 @@ public class DatabaseUtilsTest {
                 "(title like 'C360%' or title like 'getInstance%')",
                 "((datetaken+19800000)/86400000)");
         assertEquals(expected, recoverAbusiveGroupBy(input));
+    }
+
+    @Test
+    public void testRecoverAbusiveSortOrder_146482076() throws Exception {
+        args.putString(QUERY_ARG_SQL_SORT_ORDER, "_id DESC LIMIT 200");
+
+        recoverAbusiveSortOrder(args);
+        assertEquals("_id DESC", args.getString(QUERY_ARG_SQL_SORT_ORDER));
+        assertEquals("200", args.getString(QUERY_ARG_SQL_LIMIT));
     }
 
     @Test

@@ -16,8 +16,6 @@
 
 package com.android.providers.media;
 
-import static android.provider.MediaStore.Downloads.PATTERN_DOWNLOADS_FILE;
-
 import static com.android.providers.media.MediaProvider.INTERNAL_DATABASE_NAME;
 import static com.android.providers.media.MediaProvider.LOCAL_LOGV;
 import static com.android.providers.media.MediaProvider.PATTERN_OWNED_PATH;
@@ -58,6 +56,7 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.DatabaseUtils;
+import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.Metrics;
 
 import java.io.File;
@@ -693,7 +692,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     private static void updateSetIsDownload(SQLiteDatabase db, boolean internal) {
         db.execSQL("UPDATE files SET is_download=1 WHERE _data REGEXP '"
-                + PATTERN_DOWNLOADS_FILE + "'");
+                + FileUtils.PATTERN_DOWNLOADS_FILE + "'");
     }
 
     private static void updateAddExpiresAndTrashed(SQLiteDatabase db, boolean internal) {
@@ -807,7 +806,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
     static final int VERSION_Q = 1023;
-    static final int VERSION_R = 1103;
+    static final int VERSION_R = 1104;
     static final int VERSION_LATEST = VERSION_R;
 
     /**
@@ -916,6 +915,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1103) {
                 updateAddMetadata(db, internal);
+            }
+            if (fromVersion < 1104) {
+                // Empty version bump to ensure views are recreated
             }
 
             if (recomputeDataValues) {

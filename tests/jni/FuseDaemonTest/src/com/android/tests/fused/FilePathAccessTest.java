@@ -39,7 +39,11 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assume.assumeTrue;
 
 import android.content.ContentResolver;
+import android.content.ContentUris;
+import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Environment;
 import android.os.FileUtils;
 import android.provider.MediaStore;
@@ -579,6 +583,78 @@ public class FilePathAccessTest {
         } finally {
             jpgFile.delete();
             uninstallApp(TEST_APP_A);
+        }
+    }
+
+    @Test
+    public void testContentResolverDelete() throws Exception {
+        String displayName = "content_resolver_delete.jpg";
+        File file = new File(DCIM_DIR, displayName);
+
+        try {
+            assertThat(file.createNewFile()).isTrue();
+
+            deleteWithMediaProvider(Environment.DIRECTORY_DCIM, displayName);
+
+            assertThat(file.exists()).isFalse();
+            assertThat(file.createNewFile()).isTrue();
+        } finally {
+            file.delete();
+        }
+    }
+
+    @Test
+    public void testContentResolverUpdate() throws Exception {
+        String oldDisplayName = "content_resolver_update_old.jpg";
+        String newDisplayName = "content_resolver_update_new.jpg";
+        File oldFile = new File(DCIM_DIR, oldDisplayName);
+        File newFile = new File(DCIM_DIR, newDisplayName);
+
+        try {
+            assertThat(oldFile.createNewFile()).isTrue();
+
+            updateWithMediaProvider(Environment.DIRECTORY_DCIM, oldDisplayName, newDisplayName);
+
+            assertThat(oldFile.exists()).isFalse();
+            assertThat(oldFile.createNewFile()).isTrue();
+            assertThat(newFile.exists()).isTrue();
+            assertThat(newFile.createNewFile()).isFalse();
+        } finally {
+            oldFile.delete();
+            newFile.delete();
+        }
+    }
+
+    private void deleteWithMediaProvider(String relativePath, String displayName) throws Exception {
+        String selection = MediaColumns.RELATIVE_PATH + " = ? AND "
+                + MediaColumns.DISPLAY_NAME + " = ?";
+        String[] selectionArgs = { relativePath + '/', displayName };
+
+        assertThat(getContentResolver().delete(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                        selection, selectionArgs)).isEqualTo(1);
+    }
+
+    private void updateWithMediaProvider(String relativePath, String oldDisplayName,
+            String newDisplayName) throws Exception {
+        String selection = MediaColumns.RELATIVE_PATH + " = ? AND "
+                + MediaColumns.DISPLAY_NAME + " = ?";
+        String[] selectionArgs = { relativePath + '/', oldDisplayName };
+        String[] projection = {MediaColumns._ID, MediaColumns.DATA};
+
+        ContentValues values = new ContentValues();
+        values.put(MediaColumns.DISPLAY_NAME, newDisplayName);
+
+        try (final Cursor cursor = getContentResolver().query(
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, selection, selectionArgs,
+                null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+            cursor.moveToFirst();
+            int id = cursor.getInt(cursor.getColumnIndex(MediaColumns._ID));
+            String data = cursor.getString(cursor.getColumnIndex(MediaColumns.DATA));
+            Uri uri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id);
+            Log.i(TAG, "Uri: " + uri + ". Data: " + data);
+            assertThat(getContentResolver().update(uri, values, selection, selectionArgs))
+                    .isEqualTo(1);
         }
     }
 

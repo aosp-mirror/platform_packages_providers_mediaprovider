@@ -35,7 +35,6 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.getVolumeName;
-import static android.provider.MediaStore.Downloads.isDownload;
 
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_BACKUP;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY_GRANTED;
@@ -53,6 +52,7 @@ import static com.android.providers.media.scan.MediaScanner.REASON_DEMAND;
 import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractFileName;
+import static com.android.providers.media.util.FileUtils.isDownload;
 
 import android.app.AppOpsManager;
 import android.app.AppOpsManager.OnOpActiveChangedListener;
@@ -647,6 +647,11 @@ public class MediaProvider extends ContentProvider {
         mStorageManager.registerListener(new StorageEventListener() {
             @Override
             public void onVolumeStateChanged(VolumeInfo vol, int oldState, int newState) {
+                updateVolumes();
+            }
+
+            @Override
+            public void onStorageStateChanged(String path, String oldState, String newState) {
                 updateVolumes();
             }
         });
@@ -1360,6 +1365,10 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (targetSdkVersion < Build.VERSION_CODES.R) {
+            // Some apps are abusing "ORDER BY" clauses to inject "LIMIT"
+            // clauses; gracefully lift them out.
+            DatabaseUtils.recoverAbusiveSortOrder(queryArgs);
+
             // Some apps are abusing the Uri query parameters to inject LIMIT
             // clauses; gracefully lift them out.
             DatabaseUtils.recoverAbusiveLimit(uri, queryArgs);
@@ -4724,11 +4733,9 @@ public class MediaProvider extends ContentProvider {
         boolean isRequestingLegacyStorage = forWrite ? isCallingPackageLegacyWrite()
                 : isCallingPackageLegacyRead();
 
-        // TODO(b/137755945): Check that the following additional condition is true:
-        // (targetSdk <= Build.VERSION_CODES.Q || isInstalledAsTestApp during adb install)
-        // We should also let file managers bypass FUSE restrictions as well.
-        // Remember to change the documentation above when this is addressed.
-        return isRequestingLegacyStorage;
+        // TODO(b/137755945): We should let file managers bypass FUSE restrictions as well.
+        //  Remember to change the documentation above when this is addressed.
+        return targetSdk <= Build.VERSION_CODES.Q && isRequestingLegacyStorage;
     }
 
     /**

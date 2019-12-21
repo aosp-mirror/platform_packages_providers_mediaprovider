@@ -62,8 +62,6 @@ import android.util.ArraySet;
 import android.util.Log;
 import android.util.Size;
 
-import libcore.util.HexEncoding;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -193,11 +191,7 @@ public final class MediaStore {
     public static final String PARAM_DELETE_DATA = "deletedata";
 
     /** {@hide} */
-    @Deprecated
     public static final String PARAM_INCLUDE_PENDING = "includePending";
-    /** {@hide} */
-    @Deprecated
-    public static final String PARAM_INCLUDE_TRASHED = "includeTrashed";
     /** {@hide} */
     public static final String PARAM_PROGRESS = "progress";
     /** {@hide} */
@@ -673,38 +667,10 @@ public final class MediaStore {
         return uriBuilder.appendQueryParameter(PARAM_INCLUDE_PENDING, "1");
     }
 
-    /**
-     * Return if any pending media items should be included in calls such as
-     * {@link ContentResolver#query(Uri, String[], Bundle, CancellationSignal)}.
-     *
-     * @see MediaColumns#IS_PENDING
-     * @see MediaStore#setIncludePending(Uri)
-     * @deprecated consider migrating to {@link #QUERY_ARG_MATCH_PENDING} which
-     *             is more expressive.
-     * @removed
-     */
+    /** @hide */
     @Deprecated
     public static boolean getIncludePending(@NonNull Uri uri) {
         return parseBoolean(uri.getQueryParameter(MediaStore.PARAM_INCLUDE_PENDING));
-    }
-
-    /**
-     * Update the given {@link Uri} to also include any trashed media items from
-     * calls such as
-     * {@link ContentResolver#query(Uri, String[], Bundle, CancellationSignal)}.
-     * By default no trashed items are returned.
-     *
-     * @see MediaColumns#IS_TRASHED
-     * @see MediaStore#setIncludeTrashed(Uri)
-     * @see MediaStore#trash(Context, Uri)
-     * @see MediaStore#untrash(Context, Uri)
-     * @deprecated consider migrating to {@link #QUERY_ARG_MATCH_TRASHED} which
-     *             is more expressive.
-     * @removed
-     */
-    @Deprecated
-    public static @NonNull Uri setIncludeTrashed(@NonNull Uri uri) {
-        return uri.buildUpon().appendQueryParameter(PARAM_INCLUDE_TRASHED, "1").build();
     }
 
     /**
@@ -735,73 +701,6 @@ public final class MediaStore {
      */
     public static boolean getRequireOriginal(@NonNull Uri uri) {
         return parseBoolean(uri.getQueryParameter(MediaStore.PARAM_REQUIRE_ORIGINAL));
-    }
-
-    /**
-     * Mark the given item as being "trashed", meaning it should be deleted at
-     * some point in the future. This is a more gentle operation than simply
-     * calling {@link ContentResolver#delete(Uri, String, String[])}, which
-     * would take effect immediately.
-     * <p>
-     * This method preserves trashed items for at least 48 hours before erasing
-     * them, giving the user a chance to untrash the item.
-     *
-     * @see MediaColumns#IS_TRASHED
-     * @see MediaStore#setIncludeTrashed(Uri)
-     * @see MediaStore#trash(Context, Uri)
-     * @see MediaStore#untrash(Context, Uri)
-     * @removed
-     */
-    @Deprecated
-    public static void trash(@NonNull Context context, @NonNull Uri uri) {
-        trash(context, uri, 48 * DateUtils.HOUR_IN_MILLIS);
-    }
-
-    /**
-     * Mark the given item as being "trashed", meaning it should be deleted at
-     * some point in the future. This is a more gentle operation than simply
-     * calling {@link ContentResolver#delete(Uri, String, String[])}, which
-     * would take effect immediately.
-     * <p>
-     * This method preserves trashed items for at least the given timeout before
-     * erasing them, giving the user a chance to untrash the item.
-     *
-     * @see MediaColumns#IS_TRASHED
-     * @see MediaStore#setIncludeTrashed(Uri)
-     * @see MediaStore#trash(Context, Uri)
-     * @see MediaStore#untrash(Context, Uri)
-     * @removed
-     */
-    @Deprecated
-    public static void trash(@NonNull Context context, @NonNull Uri uri,
-            @DurationMillisLong long timeoutMillis) {
-        if (timeoutMillis < 0) {
-            throw new IllegalArgumentException();
-        }
-
-        final ContentValues values = new ContentValues();
-        values.put(MediaColumns.IS_TRASHED, 1);
-        values.put(MediaColumns.DATE_EXPIRES,
-                (System.currentTimeMillis() + timeoutMillis) / 1000);
-        context.getContentResolver().update(uri, values, null, null);
-    }
-
-    /**
-     * Mark the given item as being "untrashed", meaning it should no longer be
-     * deleted as previously requested through {@link #trash(Context, Uri)}.
-     *
-     * @see MediaColumns#IS_TRASHED
-     * @see MediaStore#setIncludeTrashed(Uri)
-     * @see MediaStore#trash(Context, Uri)
-     * @see MediaStore#untrash(Context, Uri)
-     * @removed
-     */
-    @Deprecated
-    public static void untrash(@NonNull Context context, @NonNull Uri uri) {
-        final ContentValues values = new ContentValues();
-        values.put(MediaColumns.IS_TRASHED, 0);
-        values.putNull(MediaColumns.DATE_EXPIRES);
-        context.getContentResolver().update(uri, values, null, null);
     }
 
     /**
@@ -2527,13 +2426,21 @@ public final class MediaStore {
 
             final Collator c = Collator.getInstance(Locale.ROOT);
             c.setStrength(Collator.PRIMARY);
-            name = HexEncoding.encodeToString(c.getCollationKey(name).toByteArray(), false);
+            name = encodeToString(c.getCollationKey(name).toByteArray());
 
             name = PATTERN_TRIM_AFTER.matcher(name).replaceAll("");
             if (sortFirst) {
                 name = "01" + name;
             }
             return name;
+        }
+
+        private static String encodeToString(byte[] bytes) {
+            final StringBuilder sb = new StringBuilder();
+            for (byte b : bytes) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
         }
 
         public static final class Media implements AudioColumns {
@@ -3549,12 +3456,6 @@ public final class MediaStore {
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String HEIGHT = "height";
         }
-    }
-
-    /** @removed */
-    @Deprecated
-    public static @NonNull Set<String> getAllVolumeNames(@NonNull Context context) {
-        return getExternalVolumeNames(context);
     }
 
     /**

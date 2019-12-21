@@ -20,6 +20,7 @@
         <option name="test-file-name" value="FuseDaemonTest.apk" />
         <option name="test-file-name" value="FuseDaemonLegacyTest.apk" />
     </target_preparer>
+    <target_preparer class="com.android.tests.fused.host.FuseTargetPreparer"/>
     <test class="com.android.tradefed.testtype.HostTest" >
         <option name="class" value="com.android.tests.fused.host.LegacyAccessHostTest" />
         <option name="class" value="com.android.tests.fused.host.FuseDaemonHostTest" />

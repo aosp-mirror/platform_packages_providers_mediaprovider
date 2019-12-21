@@ -23,32 +23,39 @@ namespace mediaprovider {
 namespace fuse {
 namespace {
 
-bool is_dot_or_dotdot(const char* name) {
+inline bool is_dot_or_dotdot(const char* name) {
     return name && name[0] == '.' && (name[1] == '\0' || (name[1] == '.' && name[2] == '\0'));
 }
 
 }  // namespace
 
-std::vector<std::shared_ptr<DirectoryEntry>> getDirectoryEntriesFromLowerFs(DIR* dirp) {
-    std::vector<std::shared_ptr<DirectoryEntry>> directory_entries;
+bool isDirectory(const dirent& entry) {
+    if (entry.d_type == DT_DIR) return true;
+    return false;
+}
+
+void addDirectoryEntriesFromLowerFs(DIR* dirp, bool (*const filter)(const dirent&),
+        std::vector<std::shared_ptr<DirectoryEntry>>* directory_entries) {
     while (1) {
         errno = 0;
-        struct dirent* entry = readdir(dirp);
+        const struct dirent* entry = readdir(dirp);
         if (entry == nullptr) {
             if (errno) {
                 PLOG(ERROR) << "DEBUG: readdir(): readdir failed with %d" << errno;
-                directory_entries.resize(0);
-                directory_entries.insert(directory_entries.begin(),
-                                         std::make_shared<DirectoryEntry>("", errno));
+                directory_entries->resize(0);
+                directory_entries->insert(directory_entries->begin(),
+                                          std::make_shared<DirectoryEntry>("", errno));
             }
             break;
         }
         // Ignore '.' & '..' to maintain consistency with directory entries
         // returned by MediaProvider.
         if (is_dot_or_dotdot(entry->d_name)) continue;
-        directory_entries.push_back(std::make_shared<DirectoryEntry>(entry->d_name, entry->d_type));
+        if (filter == nullptr || filter(*entry)) {
+            directory_entries->push_back(
+                    std::make_shared<DirectoryEntry>(entry->d_name, entry->d_type));
+        }
     }
-    return directory_entries;
 }
 
 }  // namespace fuse

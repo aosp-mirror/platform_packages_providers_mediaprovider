@@ -18,11 +18,12 @@ package com.android.tests.fused.host;
 
 import static org.junit.Assert.assertTrue;
 
+import com.android.tradefed.device.ITestDevice;
 import com.android.tradefed.testtype.DeviceJUnit4ClassRunner;
+import com.android.tradefed.testtype.junit4.BaseHostJUnit4Test;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -30,7 +31,7 @@ import org.junit.runner.RunWith;
  * Runs the FuseDaemon tests.
  */
 @RunWith(DeviceJUnit4ClassRunner.class)
-public class FuseDaemonHostTest extends FuseDaemonBaseHostTest {
+public class FuseDaemonHostTest extends BaseHostJUnit4Test {
     /**
      * Runs the given phase of FilePathAccessTest by calling into the device.
      * Throws an exception if the test phase fails.
@@ -39,6 +40,10 @@ public class FuseDaemonHostTest extends FuseDaemonBaseHostTest {
         assertTrue(runDeviceTests("com.android.tests.fused",
                 "com.android.tests.fused.FilePathAccessTest",
                 phase));
+    }
+
+    private String executeShellCommand(String cmd) throws Exception {
+        return getDevice().executeShellCommand(cmd);
     }
 
     @Before
@@ -104,7 +109,6 @@ public class FuseDaemonHostTest extends FuseDaemonBaseHostTest {
     }
 
     @Test
-    @Ignore("b/146189163")
     public void testListFilesFromExternalFilesDirectory() throws Exception {
         runDeviceTest("testListFilesFromExternalFilesDirectory");
     }
@@ -112,6 +116,20 @@ public class FuseDaemonHostTest extends FuseDaemonBaseHostTest {
     @Test
     public void testListFilesFromExternalMediaDirectory() throws Exception {
         runDeviceTest("testListFilesFromExternalMediaDirectory");
+    }
+
+    @Test
+    public void testListUnsupportedFileType() throws Exception {
+        final ITestDevice device = getDevice();
+        final boolean isAdbRoot = device.isAdbRoot() ? true : false;
+        // Adb shell should run as 'root' for test to bypass some of FUSE & MediaProvider checks.
+        if (!isAdbRoot) {
+            device.enableAdbRoot();
+        }
+        runDeviceTest("testListUnsupportedFileType");
+        if (!isAdbRoot) {
+            device.disableAdbRoot();
+        }
     }
 
     @Test

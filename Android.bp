@@ -8,7 +8,6 @@ java_defaults {
         "androidx.appcompat_appcompat",
         "androidx.core_core",
         "guava",
-        "framework-mediaprovider",
     ],
 
     jni_libs: [
@@ -23,8 +22,7 @@ java_defaults {
     srcs: [
         "src/**/*.aidl",
         "src/**/*.java",
-        // STOPSHIP: remove this when building against system_current
-        "apex/framework/java/**/*.java",
+        ":framework-mediaprovider-sources",
         ":statslog-mediaprovider-java-gen",
     ],
 

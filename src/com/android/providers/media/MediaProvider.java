@@ -254,15 +254,7 @@ public class MediaProvider extends ContentProvider {
     private static final String DIRECTORY_DOCUMENTS = "Documents";
     private static final String DIRECTORY_AUDIOBOOKS = "Audiobooks";
     private static final String DIRECTORY_ANDROID = "Android";
-    private static final String DIRECTORY_DATA = "data";
     private static final String DIRECTORY_MEDIA = "media";
-    private static final String DIRECTORY_OBB = "obb";
-
-    private static final String[] ANDROID_DIRECTORIES = new String[]{
-        DIRECTORY_DATA,
-        DIRECTORY_MEDIA,
-        DIRECTORY_OBB,
-    };
 
     /**
      * Set of {@link Cursor} columns that refer to raw filesystem paths.
@@ -1064,157 +1056,57 @@ public class MediaProvider extends ContentProvider {
         return uri;
     }
 
-    private ArraySet<String> getDirectories(String path, String relativePath) {
-        ArraySet<String> directoryEntrySet = new ArraySet<>();
-
-        // Get file entries with MediaColumns.RELATIVE_PATH same as one of the subdirectories of the
-        // given directory. Extract directory names from the returned RELATIVE_PATH.
-        // Subdirectories can have multiple files, avoid duplicates in query results by
-        // grouping results by MediaColumns.RELATIVE_PATH.
-        Bundle queryArgs = new Bundle();
-        String[] projection = {MediaStore.MediaColumns.RELATIVE_PATH};
-        String groupBy = MediaStore.MediaColumns.RELATIVE_PATH;
-        String selection =  MediaStore.MediaColumns.RELATIVE_PATH +
-                " REGEXP '^" + relativePath + "([^/]+/)([^/]+/)*$' and mime_type not like 'null'";
-        queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, selection);
-        queryArgs.putString(ContentResolver.QUERY_ARG_SQL_GROUP_BY, groupBy);
-
-        for (String directoryName : getEntriesFromDatabase(path, queryArgs, projection)) {
-            directoryEntrySet.add(directoryName.replaceAll(
-                    "^" + relativePath + "([^/]+)/.*", "$1"));
-        }
-        return directoryEntrySet;
-    }
-
-    private ArrayList<String> getFiles(String path, String relativePath) {
-        ArrayList<String> directoryEntryList = new ArrayList<>();
-
-        // Get file names in the given directory. Get file entries from MediaProvider database
-        // with MediaColumns.RELATIVE_PATH as the given path.
-        Bundle queryArgs = new Bundle();
-        String[] projection = {MediaStore.MediaColumns.DISPLAY_NAME};
-        String selection = MediaStore.MediaColumns.RELATIVE_PATH +
-                " REGEXP '^" + relativePath + "/?$' and mime_type not like 'null'";
-        queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, selection);
-
-        for (String fileName : getEntriesFromDatabase(path, queryArgs, projection)) {
-            directoryEntryList.add(fileName);
-        }
-        return directoryEntryList;
-    }
-
-    private ArrayList<String> getEntriesFromDatabase(String path, Bundle queryArgs,
-            String[] projection) {
-        ArrayList<String> dbEntries = new ArrayList<>();
-        final String volName = FileUtils.getVolumeName(getContext(), new File(path));
-        // Get database entries which match given selection. Use projection[0] for the return
-        // string.
-        try (final Cursor cursor = query(MediaStore.Files.getContentUri(volName), projection,
-                queryArgs, null)) {
-            while(cursor.moveToNext()) {
-                dbEntries.add(cursor.getString(cursor.getColumnIndex(projection[0])));
-            }
-        }
-        return dbEntries;
-    }
-
-    private String[] getDirectoryEntriesFromDatabase(String path, String relativePath) {
-        // Escape '(' & ')'to avoid regex conflicts
-        relativePath = relativePath.replace("(","\\(").replace(")", "\\)");
-
-        // Get file names in the given directory.
-        ArrayList<String> directoryEntryList = getFiles(path, relativePath);
-        directoryEntryList.add("");
-        // Get directories with media/non-media files in the given directory.
-        directoryEntryList.addAll(getDirectories(path, relativePath));
-        return directoryEntryList.toArray(new String[directoryEntryList.size()]);
-    }
-
     /**
-     * Gets directory entries of a directory path from media provider database.
+     * Gets list of files in {@code path} from media provider database.
      *
-     * @param path path of the directory
-     * @param uid UID of the calling process
-     * @return directory entries, a list of directory entry names in the given directory path.
-     * First part of the list contains regular files, and second part contains directories. "" is
-     * used to separate the first part of this list with the second. An example return string[] is
-     * ["FileName1", "FileName2", ..., "", "DirectoryName1", "DirectoryName2", ...]
-     * An empty list with just separator("") is returned if directory path is unknown to
-     * MediaProvider or no directory entries are visible to the calling app or the given directory
-     * is empty.
+     * @param path path of the directory.
+     * @param uid UID of the calling process.
+     * @return a list of file names in the given directory path.
+     * An empty list is returned if no files are visible to the calling app or the given directory
+     * does not have any files.
      * A list with ["/"] is returned if the path is not indexed by MediaProvider database and
-     * directory entries should be obtained from lower file system.
+     * file names should be obtained from lower file system.
+     * Directory names are always obtained from lower file system.
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public String[] getDirectoryEntriesForFuse(String path, int uid) {
+    public String[] getFilesInDirectoryForFuse(String path, int uid) {
         final LocalCallingIdentity token = clearLocalCallingIdentity(
                 LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
             //TODO(b/144990065): enforce based on target SDK
 
             // Get relative path for the contents of given directory.
-            final String relativePath = extractRelativePathForDirectory(path);
-            final String[] relativePathSegments = sanitizePath(relativePath);
+            String relativePath = extractRelativePathForDirectory(path);
 
             if (relativePath == null) {
-                // If relativePath is null, MediaProvider has no details about the given directory.
-                // Use lower file system to obtain directory entries for the given directory.
+                // Path is /storage/emulated/, if relativePath is null, MediaProvider doesn't
+                // have any details about the given directory. Use lower file system to obtain
+                // files and directories in the given directory.
                 return new String[] {"/"};
-            } else if (relativePathSegments.length == 1 && DIRECTORY_ANDROID.equals(
-                    relativePathSegments[0])) {
-                // Directory is /storage/emulated/<userid>/Android/, Send known directories.
-                ArrayList<String> directoryEntryList = new ArrayList<>();
-                directoryEntryList.add("");
-                for (String directoryName : ANDROID_DIRECTORIES) {
-                    if ((new File(path, directoryName)).exists()) {
-                        directoryEntryList.add(directoryName);
-                    }
-                }
-                return directoryEntryList.toArray(new String[directoryEntryList.size()]);
-            } else if (DIRECTORY_ANDROID.equals(relativePathSegments[0])) {
-                String[] directoryEntries = getDirectoryEntriesFromDatabase(path, relativePath);
-
-                if (directoryEntries.length > 1) {
-                    // Android/media directory is indexed by media scanner. Return directory entries
-                    // from database if any entries are found. If no entries found and the calling
-                    // package has access to external media directory, get directrory entries from
-                    // lower file system.
-                    return directoryEntries;
-                } else {
-                    final String appSpecificDirectory = extractPathOwnerPackageName(path);
-                    if (appSpecificDirectory != null ) {
-                        // Directory path is an app external directory. If calling app owns the
-                        // directory or has access to the directory by shared packages then
-                        // directory entries will be obtained from the lower file system else an
-                        // empty list is returned.
-                        if (isCallingIdentitySharedPackageName(appSpecificDirectory)) {
-                            return new String[] {"/"};
-                        }
-                        return new String[] {""};
-                    } else {
-                        // If the given directory is parent directory of app external directory,
-                        // i.e., Android/[data|media|obb], return shared package names of calling
-                        // app as a list of directories. Return only the package names for which app
-                        // external directory exists.
-                        ArrayList<String> directoryEntryList = new ArrayList<>();
-                        directoryEntryList.add("");
-                        for (String packageName : mCallingIdentity.get().getSharedPackageNames()) {
-                            if ((new File(path, packageName)).exists()) {
-                                directoryEntryList.add(packageName);
-                            }
-                        }
-                        return directoryEntryList.toArray(new String[directoryEntryList.size()]);
-                    }
-                }
-            } else {
-                // For all other paths, get directory entries from media provider database.
-                // Return media and non-media files/directories visible to the calling package.
-                // Also, check file type restrictions on top level directories, filter filenames
-                // with unsupported file types.
-                return getDirectoryEntriesFromDatabase(path, relativePath);
             }
+
+            // For all other paths, get file names from media provider database.
+            // Return media and non-media files visible to the calling package.
+            ArrayList<String> fileNamesList = new ArrayList<>();
+            // Escape '(' & ')'to avoid regex conflicts
+            relativePath = relativePath.replace("(","\\(").replace(")", "\\)");
+
+            // Get database entries for files from MediaProvider database with
+            // MediaColumns.RELATIVE_PATH as the given path.
+            String[] projection = {MediaColumns.DISPLAY_NAME};
+            Bundle queryArgs = new Bundle();
+            queryArgs.putString(QUERY_ARG_SQL_SELECTION, MediaColumns.RELATIVE_PATH +
+                    " =? and mime_type not like 'null'");
+            queryArgs.putStringArray(QUERY_ARG_SQL_SELECTION_ARGS, new String[] {relativePath});
+            try (final Cursor cursor = query(Files.getContentUriForPath(path), projection,
+                    queryArgs, null)) {
+                while(cursor.moveToNext()) {
+                    fileNamesList.add(cursor.getString(cursor.getColumnIndex(projection[0])));
+                }
+            }
+            return fileNamesList.toArray(new String[fileNamesList.size()]);
         } finally {
             restoreLocalCallingIdentity(token);
         }
@@ -1918,13 +1810,11 @@ public class MediaProvider extends ContentProvider {
         if (directoryPath == null) return null;
         final Matcher matcher = PATTERN_RELATIVE_PATH.matcher(directoryPath);
         if (matcher.find()) {
-            final int lastIndex = directoryPath.length() - 1;
-            if (lastIndex == matcher.end()) {
-                // Relative path for top level directory is "".
-                return "";
-            } else {
-                return directoryPath.substring(matcher.end(), lastIndex + 1) + "/";
+            if (matcher.end() == directoryPath.length() - 1) {
+                // This is the top-level directory, so relative path is "/"
+                return "/";
             }
+            return directoryPath.substring(matcher.end()) + "/";
         }
         return null;
     }

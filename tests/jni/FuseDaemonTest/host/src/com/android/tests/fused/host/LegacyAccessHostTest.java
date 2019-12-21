@@ -20,10 +20,10 @@ import static org.junit.Assert.assertTrue;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.android.tradefed.testtype.DeviceJUnit4ClassRunner;
+import com.android.tradefed.testtype.junit4.BaseHostJUnit4Test;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -31,9 +31,13 @@ import org.junit.runner.RunWith;
  * Runs the legacy file path access tests.
  */
 @RunWith(DeviceJUnit4ClassRunner.class)
-public class LegacyAccessHostTest extends FuseDaemonBaseHostTest {
+public class LegacyAccessHostTest extends BaseHostJUnit4Test {
 
     public static final String SHELL_FILE = "/sdcard/LegacyAccessHostTest_shell";
+
+    private String executeShellCommand(String cmd) throws Exception {
+        return getDevice().executeShellCommand(cmd);
+    }
 
     /**
      * Runs the given phase of LegacyFileAccessTest by calling into the device.
@@ -84,17 +88,18 @@ public class LegacyAccessHostTest extends FuseDaemonBaseHostTest {
     @Test
     public void testCreateFilesInRandomPlaces_hasW() throws Exception {
         revokePermissions("android.permission.READ_EXTERNAL_STORAGE");
+        executeShellCommand("mkdir -p /sdcard/Android/data/com.android.shell");
         runDeviceTest("testCreateFilesInRandomPlaces_hasW");
     }
 
     @Test
     public void testMkdirInRandomPlaces_hasW() throws Exception {
         revokePermissions("android.permission.READ_EXTERNAL_STORAGE");
+        executeShellCommand("mkdir -p /sdcard/Android/data/com.android.shell");
         runDeviceTest("testMkdirInRandomPlaces_hasW");
     }
 
     @Test
-    @Ignore("b/146189163")
     public void testReadOnlyExternalStorage_hasR() throws Exception {
         revokePermissions("android.permission.WRITE_EXTERNAL_STORAGE");
         createFile(SHELL_FILE);
@@ -106,7 +111,6 @@ public class LegacyAccessHostTest extends FuseDaemonBaseHostTest {
     }
 
     @Test
-    @Ignore("b/146189163")
     public void testCantAccessExternalStorage() throws Exception {
         revokePermissions("android.permission.WRITE_EXTERNAL_STORAGE",
                 "android.permission.READ_EXTERNAL_STORAGE");

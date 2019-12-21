@@ -527,7 +527,7 @@ public class MediaProviderTest {
     @Test
     public void testRelativePathForValidDirectories() throws Exception {
         for (Pair<String, String> top: new ArrayList<Pair<String, String>>() {{
-            add(new Pair("/storage/emulated/0", new String("")));
+            add(new Pair("/storage/emulated/0", new String("/")));
             add(new Pair("/storage/emulated/0/DCIM", "DCIM/"));
             add(new Pair("/storage/emulated/0/DCIM/Camera", "DCIM/Camera/"));
             add(new Pair("/storage/emulated/0/Android/media/com.example/Foo",

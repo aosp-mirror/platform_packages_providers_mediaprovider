@@ -16,14 +16,16 @@
 
 package com.android.providers.media.util;
 
-import static com.android.providers.media.MediaProvider.TAG;
+import static com.android.providers.media.util.Logging.TAG;
 
 import android.content.ClipDescription;
+import android.content.ContentValues;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.storage.StorageManager;
 import android.provider.MediaStore;
+import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.text.TextUtils;
 import android.util.Log;
@@ -32,8 +34,6 @@ import android.webkit.MimeTypeMap;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
-
-import com.android.providers.media.scan.MediaScanner;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -463,8 +463,9 @@ public class FileUtils {
     }
 
     /**
-     * Return list of paths that should be scanned with {@link MediaScanner} for
-     * the given volume name.
+     * Return list of paths that should be scanned with
+     * {@link com.android.providers.media.scan.MediaScanner} for the given
+     * volume name.
      */
     public static @NonNull Collection<File> getVolumeScanPaths(@NonNull Context context,
             @NonNull String volumeName) throws FileNotFoundException {
@@ -628,5 +629,33 @@ public class FileUtils {
             return m.group(1);
         }
         return null;
+    }
+
+    public static void computeDataValues(@NonNull ContentValues values) {
+        // Worst case we have to assume no bucket details
+        values.remove(ImageColumns.BUCKET_ID);
+        values.remove(ImageColumns.BUCKET_DISPLAY_NAME);
+        values.remove(ImageColumns.VOLUME_NAME);
+        values.remove(ImageColumns.RELATIVE_PATH);
+
+        final String data = values.getAsString(MediaColumns.DATA);
+        if (TextUtils.isEmpty(data)) return;
+
+        final File file = new File(data);
+        final File fileLower = new File(data.toLowerCase(Locale.ROOT));
+
+        values.put(ImageColumns.VOLUME_NAME, extractVolumeName(data));
+        values.put(ImageColumns.RELATIVE_PATH, extractRelativePath(data));
+        values.put(ImageColumns.DISPLAY_NAME, extractDisplayName(data));
+
+        // Buckets are the parent directory
+        final String parent = fileLower.getParent();
+        if (parent != null) {
+            values.put(ImageColumns.BUCKET_ID, parent.hashCode());
+            // The relative path for files in the top directory is "/"
+            if (!"/".equals(values.getAsString(ImageColumns.RELATIVE_PATH))) {
+                values.put(ImageColumns.BUCKET_DISPLAY_NAME, file.getParentFile().getName());
+            }
+        }
     }
 }

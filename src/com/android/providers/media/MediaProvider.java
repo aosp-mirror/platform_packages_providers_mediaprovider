@@ -36,6 +36,8 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.getVolumeName;
 
+import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
+import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_BACKUP;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY_GRANTED;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY_READ;
@@ -50,6 +52,7 @@ import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_VIDEO;
 import static com.android.providers.media.scan.MediaScanner.REASON_DEMAND;
 import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
+import static com.android.providers.media.util.FileUtils.computeDataValues;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractFileName;
 import static com.android.providers.media.util.FileUtils.extractPathOwnerPackageName;
@@ -58,6 +61,8 @@ import static com.android.providers.media.util.FileUtils.extractRelativePathForD
 import static com.android.providers.media.util.FileUtils.extractTopLevelDir;
 import static com.android.providers.media.util.FileUtils.extractVolumeName;
 import static com.android.providers.media.util.FileUtils.isDownload;
+import static com.android.providers.media.util.Logging.LOGV;
+import static com.android.providers.media.util.Logging.TAG;
 
 import android.app.AppOpsManager;
 import android.app.AppOpsManager.OnOpActiveChangedListener;
@@ -133,7 +138,6 @@ import android.provider.MediaStore.Files;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.ImageColumns;
-import android.provider.MediaStore.Match;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Video;
 import android.system.ErrnoException;
@@ -179,7 +183,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -252,10 +255,6 @@ public class MediaProvider extends ContentProvider {
     private static final Set<String> sCachedExternalVolumeNames = new ArraySet<>();
     @GuardedBy("sCacheLock")
     private static final Map<String, Collection<File>> sCachedVolumeScanPaths = new ArrayMap<>();
-
-    static {
-        System.loadLibrary("fuse_jni");
-    }
 
     private void updateVolumes() {
         synchronized (sCacheLock) {
@@ -593,9 +592,9 @@ public class MediaProvider extends ContentProvider {
         }
 
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME,
-                true, false, mLegacyProvider);
+                true, false, mLegacyProvider, Column.class, Metrics::logSchemaChange);
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME,
-                false, false, mLegacyProvider);
+                false, false, mLegacyProvider, Column.class, Metrics::logSchemaChange);
 
         final IntentFilter filter = new IntentFilter();
         filter.setPriority(10);
@@ -852,44 +851,6 @@ public class MediaProvider extends ContentProvider {
             final long id = Hashing.farmHashFingerprint64()
                     .hashString(key, StandardCharsets.UTF_8).asLong() & ~(1 << 63);
             values.put(focusId, id);
-        }
-    }
-
-    @VisibleForTesting
-    static void computeDataValues(ContentValues values) {
-        // Worst case we have to assume no bucket details
-        values.remove(ImageColumns.BUCKET_ID);
-        values.remove(ImageColumns.BUCKET_DISPLAY_NAME);
-        values.remove(ImageColumns.GROUP_ID);
-        values.remove(ImageColumns.VOLUME_NAME);
-        values.remove(ImageColumns.RELATIVE_PATH);
-
-        final String data = values.getAsString(MediaColumns.DATA);
-        if (TextUtils.isEmpty(data)) return;
-
-        final File file = new File(data);
-        final File fileLower = new File(data.toLowerCase(Locale.ROOT));
-
-        values.put(ImageColumns.VOLUME_NAME, extractVolumeName(data));
-        values.put(ImageColumns.RELATIVE_PATH, extractRelativePath(data));
-        values.put(ImageColumns.DISPLAY_NAME, extractDisplayName(data));
-
-        // Buckets are the parent directory
-        final String parent = fileLower.getParent();
-        if (parent != null) {
-            values.put(ImageColumns.BUCKET_ID, parent.hashCode());
-            // The relative path for files in the top directory is "/"
-            if (!"/".equals(values.getAsString(ImageColumns.RELATIVE_PATH))) {
-                values.put(ImageColumns.BUCKET_DISPLAY_NAME, file.getParentFile().getName());
-            }
-        }
-
-        // Groups are the first part of name
-        final String name = fileLower.getName();
-        final int firstDot = name.indexOf('.');
-        if (firstDot > 0) {
-            values.put(ImageColumns.GROUP_ID,
-                    name.substring(0, firstDot).hashCode());
         }
     }
 
@@ -1690,7 +1651,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private long insertDirectory(SQLiteDatabase db, String path) {
-        if (LOCAL_LOGV) Log.v(TAG, "inserting directory " + path);
+        if (LOGV) Log.v(TAG, "inserting directory " + path);
         ContentValues values = new ContentValues();
         values.put(FileColumns.FORMAT, MtpConstants.FORMAT_ASSOCIATION);
         values.put(FileColumns.DATA, path);
@@ -2377,7 +2338,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private static void appendWhereStandaloneMatch(@NonNull SQLiteQueryBuilder qb,
-            @NonNull String column, @Match int match) {
+            @NonNull String column, /* @Match */ int match) {
         switch (match) {
             case MATCH_INCLUDE:
                 // No special filtering needed
@@ -5460,7 +5421,7 @@ public class MediaProvider extends ContentProvider {
 
         final Uri uri = MediaStore.AUTHORITY_URI.buildUpon().appendPath(volume).build();
         getContext().getContentResolver().notifyChange(uri, null);
-        if (LOCAL_LOGV) Log.v(TAG, "Attached volume: " + volume);
+        if (LOGV) Log.v(TAG, "Attached volume: " + volume);
         if (!MediaStore.VOLUME_INTERNAL.equals(volume)) {
             BackgroundThread.getExecutor().execute(() -> {
                 final DatabaseHelper helper = mExternalDatabase;
@@ -5497,22 +5458,8 @@ public class MediaProvider extends ContentProvider {
 
         final Uri uri = MediaStore.AUTHORITY_URI.buildUpon().appendPath(volume).build();
         getContext().getContentResolver().notifyChange(uri, null);
-        if (LOCAL_LOGV) Log.v(TAG, "Detached volume: " + volume);
+        if (LOGV) Log.v(TAG, "Detached volume: " + volume);
     }
-
-    /*
-     * Useful commands to enable debugging:
-     * $ adb shell setprop log.tag.MediaProvider VERBOSE
-     * $ adb shell setprop db.log.slow_query_threshold.`adb shell cat \
-     *       /data/system/packages.list |grep "com.android.providers.media " |cut -b 29-33` 0
-     * $ adb shell setprop db.log.bindargs 1
-     */
-
-    public static final String TAG = "MediaProvider";
-    public static final boolean LOCAL_LOGV = Log.isLoggable(TAG, Log.VERBOSE);
-
-    static final String INTERNAL_DATABASE_NAME = "internal.db";
-    static final String EXTERNAL_DATABASE_NAME = "external.db";
 
     @GuardedBy("mAttachedVolumeNames")
     private final ArraySet<String> mAttachedVolumeNames = new ArraySet<>();
@@ -5745,38 +5692,8 @@ public class MediaProvider extends ContentProvider {
         addGreylistPattern("case when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken \\* \\d+ when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken / \\d+ else \\d+ end");
     }
 
-    @GuardedBy("sProjectionMapCache")
-    private static final ArrayMap<Class<?>[], ArrayMap<String, String>>
-            sProjectionMapCache = new ArrayMap<>();
-
-    /**
-     * Return a projection map that represents the valid columns that can be
-     * queried the given contract class. The mapping is built automatically
-     * using the {@link Column} annotation, and is designed to ensure that we
-     * always support public API commitments.
-     */
-    public static ArrayMap<String, String> getProjectionMap(Class<?>... clazzes) {
-        synchronized (sProjectionMapCache) {
-            ArrayMap<String, String> map = sProjectionMapCache.get(clazzes);
-            if (map == null) {
-                map = new ArrayMap<>();
-                sProjectionMapCache.put(clazzes, map);
-                try {
-                    for (Class<?> clazz : clazzes) {
-                        for (Field field : clazz.getFields()) {
-                            if (Objects.equals(field.getName(), "_ID")
-                                    || field.isAnnotationPresent(Column.class)) {
-                                final String column = (String) field.get(null);
-                                map.put(column, column);
-                            }
-                        }
-                    }
-                } catch (ReflectiveOperationException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            return map;
-        }
+    public ArrayMap<String, String> getProjectionMap(Class<?>... clazzes) {
+        return mExternalDatabase.getProjectionMap(clazzes);
     }
 
     static <T> boolean containsAny(Set<T> a, Set<T> b) {

@@ -8,13 +8,12 @@
          such as IDs and other user-generated content. -->
 
     <application
-            android:label="@string/app_label"
             android:process="android.process.media"
             android:allowBackup="false"
             android:supportsRtl="true"
             android:usesCleartextTraffic="true">
         <provider
-                android:name="com.android.providers.media.MediaProvider"
+                android:name="com.android.providers.media.LegacyMediaProvider"
                 android:authorities="media_legacy"
                 android:exported="true"
                 android:permission="android.permission.WRITE_MEDIA_STORAGE" />

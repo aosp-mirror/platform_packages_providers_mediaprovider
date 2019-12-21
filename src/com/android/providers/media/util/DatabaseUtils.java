@@ -31,7 +31,7 @@ import static android.content.ContentResolver.QUERY_ARG_SQL_SORT_ORDER;
 import static android.content.ContentResolver.QUERY_SORT_DIRECTION_ASCENDING;
 import static android.content.ContentResolver.QUERY_SORT_DIRECTION_DESCENDING;
 
-import static com.android.providers.media.MediaProvider.TAG;
+import static com.android.providers.media.util.Logging.TAG;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -335,7 +335,7 @@ public class DatabaseUtils {
      */
     public static void recoverAbusiveLimit(@NonNull Uri uri, @NonNull Bundle queryArgs) {
         final String origLimit = queryArgs.getString(QUERY_ARG_SQL_LIMIT);
-        final String uriLimit = uri.getQueryParameter(MediaStore.PARAM_LIMIT);
+        final String uriLimit = uri.getQueryParameter("limit");
 
         if (!TextUtils.isEmpty(uriLimit)) {
             // Yell if we already had a group by requested

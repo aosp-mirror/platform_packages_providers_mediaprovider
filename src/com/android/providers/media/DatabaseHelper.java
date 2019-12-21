@@ -16,15 +16,17 @@
 
 package com.android.providers.media;
 
-import static com.android.providers.media.MediaProvider.INTERNAL_DATABASE_NAME;
-import static com.android.providers.media.MediaProvider.LOCAL_LOGV;
-import static com.android.providers.media.MediaProvider.TAG;
+import static com.android.providers.media.util.Logging.LOGV;
+import static com.android.providers.media.util.Logging.TAG;
 
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ProviderInfo;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -33,7 +35,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Looper;
-import android.os.RemoteException;
 import android.os.SystemClock;
 import android.os.Trace;
 import android.provider.MediaStore;
@@ -47,21 +48,25 @@ import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
 import android.text.format.DateUtils;
+import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.Log;
 
+import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
-import com.android.providers.media.util.Metrics;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.regex.Matcher;
 
@@ -78,6 +83,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     // 60 days in milliseconds (1000 * 60 * 60 * 24 * 60)
     private static final long OBSOLETE_DATABASE_DB = 5184000000L;
 
+    static final String INTERNAL_DATABASE_NAME = "internal.db";
+    static final String EXTERNAL_DATABASE_NAME = "external.db";
+
     final Context mContext;
     final String mName;
     final int mVersion;
@@ -85,17 +93,26 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     final boolean mInternal;  // True if this is the internal database
     final boolean mEarlyUpgrade;
     final boolean mLegacyProvider;
+    final Class<? extends Annotation> mColumnAnnotation;
+    final OnSchemaChangeListener mListener;
     long mScanStartTime;
     long mScanStopTime;
 
-    public DatabaseHelper(Context context, String name,
-            boolean internal, boolean earlyUpgrade, boolean legacyProvider) {
-        this(context, name, getDatabaseVersion(context), internal, earlyUpgrade, legacyProvider);
+    public interface OnSchemaChangeListener {
+        public void onSchemaChange(@NonNull String volumeName, int versionFrom, int versionTo,
+                long itemCount, long durationMillis);
     }
 
-    @VisibleForTesting
+    public DatabaseHelper(Context context, String name,
+            boolean internal, boolean earlyUpgrade, boolean legacyProvider,
+            Class<? extends Annotation> columnAnnotation, OnSchemaChangeListener listener) {
+        this(context, name, getDatabaseVersion(context),
+                internal, earlyUpgrade, legacyProvider, columnAnnotation, listener);
+    }
+
     public DatabaseHelper(Context context, String name, int version,
-            boolean internal, boolean earlyUpgrade, boolean legacyProvider) {
+            boolean internal, boolean earlyUpgrade, boolean legacyProvider,
+            Class<? extends Annotation> columnAnnotation, OnSchemaChangeListener listener) {
         super(context, name, null, version);
         mContext = context;
         mName = name;
@@ -104,6 +121,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         mInternal = internal;
         mEarlyUpgrade = earlyUpgrade;
         mLegacyProvider = legacyProvider;
+        mColumnAnnotation = columnAnnotation;
+        mListener = listener;
         setWriteAheadLoggingEnabled(true);
     }
 
@@ -190,7 +209,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             } else {
                 long time = other.lastModified();
                 if (time < twoMonthsAgo) {
-                    if (LOCAL_LOGV) Log.v(TAG, "Deleting old database " + databases[i]);
+                    if (LOGV) Log.v(TAG, "Deleting old database " + databases[i]);
                     mContext.deleteDatabase(databases[i]);
                     databases[i] = null;
                     count--;
@@ -216,11 +235,45 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
             // delete least recently used database
             if (lruIndex != -1) {
-                if (LOCAL_LOGV) Log.v(TAG, "Deleting old database " + databases[lruIndex]);
+                if (LOGV) Log.v(TAG, "Deleting old database " + databases[lruIndex]);
                 mContext.deleteDatabase(databases[lruIndex]);
                 databases[lruIndex] = null;
                 count--;
             }
+        }
+    }
+
+    @GuardedBy("mProjectionMapCache")
+    private final ArrayMap<Class<?>[], ArrayMap<String, String>>
+            mProjectionMapCache = new ArrayMap<>();
+
+    /**
+     * Return a projection map that represents the valid columns that can be
+     * queried the given contract class. The mapping is built automatically
+     * using the {@link android.provider.Column} annotation, and is designed to
+     * ensure that we always support public API commitments.
+     */
+    public ArrayMap<String, String> getProjectionMap(Class<?>... clazzes) {
+        synchronized (mProjectionMapCache) {
+            ArrayMap<String, String> map = mProjectionMapCache.get(clazzes);
+            if (map == null) {
+                map = new ArrayMap<>();
+                mProjectionMapCache.put(clazzes, map);
+                try {
+                    for (Class<?> clazz : clazzes) {
+                        for (Field field : clazz.getFields()) {
+                            if (Objects.equals(field.getName(), "_ID")
+                                    || field.isAnnotationPresent(mColumnAnnotation)) {
+                                final String column = (String) field.get(null);
+                                map.put(column, column);
+                            }
+                        }
+                    }
+                } catch (ReflectiveOperationException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            return map;
         }
     }
 
@@ -257,7 +310,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * clustered and sent when the transaction completes.
      */
     public void notifyChange(Uri uri) {
-        if (LOCAL_LOGV) Log.v(TAG, "Notifying " + uri);
+        if (LOGV) Log.v(TAG, "Notifying " + uri);
         final List<Uri> uris = mNotifyChanges.get();
         if (uris != null) {
             uris.add(uri);
@@ -351,19 +404,19 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     private void createLatestSchema(SQLiteDatabase db) {
         // We're about to start all ID numbering from scratch, so revoke any
         // outstanding permission grants to ensure we don't leak data
-        mContext.revokeUriPermission(MediaStore.AUTHORITY_URI,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-        MediaDocumentsProvider.revokeAllUriGrants(mContext);
-        BackgroundThread.getHandler().post(() -> {
-            try (ContentProviderClient client = mContext
-                    .getContentResolver().acquireContentProviderClient(
-                            android.provider.Downloads.Impl.AUTHORITY)) {
-                client.call(android.provider.Downloads.CALL_REVOKE_MEDIASTORE_URI_PERMS,
-                        null, null);
-            } catch (NullPointerException | RemoteException e) {
-                // Should not happen
+        try {
+            final PackageInfo pkg = mContext.getPackageManager().getPackageInfo(
+                    mContext.getPackageName(), PackageManager.GET_PROVIDERS);
+            if (pkg != null && pkg.providers != null) {
+                for (ProviderInfo provider : pkg.providers) {
+                    mContext.revokeUriPermission(Uri.parse("content://" + provider.authority),
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                    | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                }
             }
-        });
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to revoke permissions", e);
+        }
 
         makePristineSchema(db);
 
@@ -463,7 +516,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             extras.putInt(MediaStore.QUERY_ARG_MATCH_FAVORITE, MediaStore.MATCH_INCLUDE);
 
             db.execSQL("SAVEPOINT before_migrate");
-            Log.d(TAG, "Starting migration from legacy provider");
+            Log.d(TAG, "Starting migration from legacy provider for " + mName);
             try (Cursor c = client.query(queryUri, sMigrateColumns.toArray(new String[0]),
                     extras, null)) {
                 final ContentValues values = new ContentValues();
@@ -481,7 +534,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 }
 
                 db.execSQL("RELEASE before_migrate");
-                Log.d(TAG, "Finished migration from legacy provider");
+                Log.d(TAG, "Finished migration from legacy provider for " + mName);
             } catch (Exception e) {
                 // We have to guard ourselves against any weird behavior of the
                 // legacy provider by trying to catch everything
@@ -533,8 +586,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         c.close();
     }
 
-    private static void createLatestViews(SQLiteDatabase db, boolean internal) {
+    private void createLatestViews(SQLiteDatabase db, boolean internal) {
         makePristineViews(db);
+
+        if (mColumnAnnotation == null) {
+            Log.w(TAG, "No column annotation provided; not creating views");
+            return;
+        }
 
         if (!internal) {
             db.execSQL("CREATE VIEW audio_playlists AS SELECT _id,_data,name,date_added,"
@@ -562,16 +620,16 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + "3 AS grouporder FROM searchhelpertitle WHERE (title != '')");
 
         db.execSQL("CREATE VIEW audio AS SELECT "
-                + String.join(",", MediaProvider.getProjectionMap(Audio.Media.class).keySet())
+                + String.join(",", getProjectionMap(Audio.Media.class).keySet())
                 + " FROM files WHERE media_type=2");
         db.execSQL("CREATE VIEW video AS SELECT "
-                + String.join(",", MediaProvider.getProjectionMap(Video.Media.class).keySet())
+                + String.join(",", getProjectionMap(Video.Media.class).keySet())
                 + " FROM files WHERE media_type=3");
         db.execSQL("CREATE VIEW images AS SELECT "
-                + String.join(",", MediaProvider.getProjectionMap(Images.Media.class).keySet())
+                + String.join(",", getProjectionMap(Images.Media.class).keySet())
                 + " FROM files WHERE media_type=1");
         db.execSQL("CREATE VIEW downloads AS SELECT "
-                + String.join(",", MediaProvider.getProjectionMap(Downloads.class).keySet())
+                + String.join(",", getProjectionMap(Downloads.class).keySet())
                 + " FROM files WHERE is_download=1");
 
         db.execSQL("CREATE VIEW audio_artists AS SELECT "
@@ -788,7 +846,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 final long id = c.getLong(0);
                 final String data = c.getString(1);
                 values.put(FileColumns.DATA, data);
-                MediaProvider.computeDataValues(values);
+                FileUtils.computeDataValues(values);
                 values.remove(FileColumns.DATA);
                 if (!values.isEmpty()) {
                     db.update("files", values, "_id=" + id, null);
@@ -935,8 +993,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         final long elapsedSeconds = elapsedMillis / DateUtils.SECOND_IN_MILLIS;
         logToDb(db, "Database upgraded from version " + fromVersion + " to " + toVersion
                 + " in " + elapsedSeconds + " seconds");
-        Metrics.logSchemaChange(mVolumeName, fromVersion, toVersion,
-                getItemCount(db), elapsedMillis);
+        if (mListener != null) {
+            mListener.onSchemaChange(mVolumeName, fromVersion, toVersion,
+                    getItemCount(db), elapsedMillis);
+        }
     }
 
     private void downgradeDatabase(SQLiteDatabase db, int fromVersion, int toVersion) {
@@ -949,8 +1009,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         final long elapsedSeconds = elapsedMillis / DateUtils.SECOND_IN_MILLIS;
         logToDb(db, "Database downgraded from version " + fromVersion + " to " + toVersion
                 + " in " + elapsedSeconds + " seconds");
-        Metrics.logSchemaChange(mVolumeName, fromVersion, toVersion,
-                getItemCount(db), elapsedMillis);
+        if (mListener != null) {
+            mListener.onSchemaChange(mVolumeName, fromVersion, toVersion,
+                    getItemCount(db), elapsedMillis);
+        }
     }
 
     /**

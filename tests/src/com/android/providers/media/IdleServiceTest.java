@@ -37,8 +37,9 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.scan.MediaScannerTest;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
-import com.android.providers.media.tests.R;
+import com.android.providers.media.R;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -50,6 +51,7 @@ public class IdleServiceTest {
     private static final String TAG = MediaProviderTest.TAG;
 
     @Test
+    @Ignore("Enable as part of b/142561358")
     public void testPruneThumbnails() throws Exception {
         final Context context = InstrumentationRegistry.getTargetContext();
         final Context isolatedContext = new IsolatedContext(context, "modern");

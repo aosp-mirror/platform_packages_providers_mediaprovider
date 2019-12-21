@@ -21,7 +21,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
+import android.provider.Column;
 import android.util.Log;
+
+import com.android.providers.media.util.Metrics;
 
 import java.io.File;
 
@@ -66,7 +69,7 @@ public class MediaUpgradeReceiver extends BroadcastReceiver {
                     try {
                         DatabaseHelper helper = new DatabaseHelper(
                                 context, file, MediaProvider.isInternalMediaDatabaseName(file),
-                                false, false);
+                                false, false, Column.class, Metrics::logSchemaChange);
                         db = helper.getWritableDatabase();
                     } catch (Throwable t) {
                         Log.wtf(TAG, "Error during upgrade of media db " + file, t);

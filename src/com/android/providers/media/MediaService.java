@@ -16,9 +16,9 @@
 
 package com.android.providers.media;
 
-import static com.android.providers.media.MediaProvider.TAG;
 import static com.android.providers.media.scan.MediaScanner.REASON_DEMAND;
 import static com.android.providers.media.scan.MediaScanner.REASON_MOUNTED;
+import static com.android.providers.media.util.Logging.TAG;
 
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;

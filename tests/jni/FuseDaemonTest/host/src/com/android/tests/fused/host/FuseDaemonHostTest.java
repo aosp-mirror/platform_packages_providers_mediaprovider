@@ -20,10 +20,10 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tradefed.device.ITestDevice;
 import com.android.tradefed.testtype.DeviceJUnit4ClassRunner;
+import com.android.tradefed.testtype.junit4.BaseHostJUnit4Test;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -31,7 +31,7 @@ import org.junit.runner.RunWith;
  * Runs the FuseDaemon tests.
  */
 @RunWith(DeviceJUnit4ClassRunner.class)
-public class FuseDaemonHostTest extends FuseDaemonBaseHostTest {
+public class FuseDaemonHostTest extends BaseHostJUnit4Test {
     /**
      * Runs the given phase of FilePathAccessTest by calling into the device.
      * Throws an exception if the test phase fails.
@@ -40,6 +40,10 @@ public class FuseDaemonHostTest extends FuseDaemonBaseHostTest {
         assertTrue(runDeviceTests("com.android.tests.fused",
                 "com.android.tests.fused.FilePathAccessTest",
                 phase));
+    }
+
+    private String executeShellCommand(String cmd) throws Exception {
+        return getDevice().executeShellCommand(cmd);
     }
 
     @Before

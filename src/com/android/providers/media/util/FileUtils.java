@@ -16,22 +16,24 @@
 
 package com.android.providers.media.util;
 
-import static com.android.providers.media.MediaProvider.TAG;
+import static com.android.providers.media.util.Logging.TAG;
 
 import android.content.ClipDescription;
+import android.content.ContentValues;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.storage.StorageManager;
 import android.provider.MediaStore;
+import android.provider.MediaStore.Images.ImageColumns;
+import android.provider.MediaStore.MediaColumns;
 import android.text.TextUtils;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
-import com.android.providers.media.scan.MediaScanner;
+import androidx.annotation.VisibleForTesting;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -461,8 +463,9 @@ public class FileUtils {
     }
 
     /**
-     * Return list of paths that should be scanned with {@link MediaScanner} for
-     * the given volume name.
+     * Return list of paths that should be scanned with
+     * {@link com.android.providers.media.scan.MediaScanner} for the given
+     * volume name.
      */
     public static @NonNull Collection<File> getVolumeScanPaths(@NonNull Context context,
             @NonNull String volumeName) throws FileNotFoundException {
@@ -524,5 +527,135 @@ public class FileUtils {
 
     public static boolean isDownloadDir(@NonNull String path) {
         return PATTERN_DOWNLOADS_DIRECTORY.matcher(path).matches();
+    }
+
+    /**
+     * Regex that matches any valid path in external storage,
+     * and captures the top-level directory as the first group.
+     */
+    private static final Pattern PATTERN_TOP_LEVEL_DIR = Pattern.compile(
+            "(?i)^/storage/[^/]+/[0-9]+/([^/]+)(/.*)?");
+    /**
+     * Regex that matches paths in all well-known package-specific directories,
+     * and which captures the package name as the first group.
+     */
+    public static final Pattern PATTERN_OWNED_PATH = Pattern.compile(
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|media|obb|sandbox)/([^/]+)(/.*)?");
+
+    /**
+     * Regex that matches paths for {@link MediaColumns#RELATIVE_PATH}; it
+     * captures both top-level paths and sandboxed paths.
+     */
+    private static final Pattern PATTERN_RELATIVE_PATH = Pattern.compile(
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?(Android/sandbox/([^/]+)/)?");
+
+    /**
+     * Regex that matches paths under well-known storage paths.
+     */
+    private static final Pattern PATTERN_VOLUME_NAME = Pattern.compile(
+            "(?i)^/storage/([^/]+)");
+
+    private static @Nullable String normalizeUuid(@Nullable String fsUuid) {
+        return fsUuid != null ? fsUuid.toLowerCase(Locale.US) : null;
+    }
+
+    public static @Nullable String extractVolumeName(@Nullable String data) {
+        if (data == null) return null;
+        final Matcher matcher = PATTERN_VOLUME_NAME.matcher(data);
+        if (matcher.find()) {
+            final String volumeName = matcher.group(1);
+            if (volumeName.equals("emulated")) {
+                return MediaStore.VOLUME_EXTERNAL_PRIMARY;
+            } else {
+                return normalizeUuid(volumeName);
+            }
+        } else {
+            return MediaStore.VOLUME_INTERNAL;
+        }
+    }
+
+    public static @Nullable String extractRelativePath(@Nullable String data) {
+        if (data == null) return null;
+        final Matcher matcher = PATTERN_RELATIVE_PATH.matcher(data);
+        if (matcher.find()) {
+            final int lastSlash = data.lastIndexOf('/');
+            if (lastSlash == -1 || lastSlash < matcher.end()) {
+                // This is a file in the top-level directory, so relative path is "/"
+                // which is different than null, which means unknown path
+                return "/";
+            } else {
+                return data.substring(matcher.end(), lastSlash + 1);
+            }
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Returns relative path for the directory.
+     */
+    @VisibleForTesting
+    public static @Nullable String extractRelativePathForDirectory(@Nullable String directoryPath) {
+        if (directoryPath == null) return null;
+        final Matcher matcher = PATTERN_RELATIVE_PATH.matcher(directoryPath);
+        if (matcher.find()) {
+            if (matcher.end() == directoryPath.length() - 1) {
+                // This is the top-level directory, so relative path is "/"
+                return "/";
+            }
+            return directoryPath.substring(matcher.end()) + "/";
+        }
+        return null;
+    }
+
+    public static @Nullable String extractPathOwnerPackageName(@Nullable String path) {
+        if (path == null) return null;
+        final Matcher m = PATTERN_OWNED_PATH.matcher(path);
+        if (m.matches()) {
+            return m.group(1);
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Returns the name of the top level directory, or null if the path doesn't go through the
+     * external storage directory.
+     */
+    @Nullable
+    public static String extractTopLevelDir(String path) {
+        Matcher m = PATTERN_TOP_LEVEL_DIR.matcher(path);
+        if (m.matches()) {
+            return m.group(1);
+        }
+        return null;
+    }
+
+    public static void computeDataValues(@NonNull ContentValues values) {
+        // Worst case we have to assume no bucket details
+        values.remove(ImageColumns.BUCKET_ID);
+        values.remove(ImageColumns.BUCKET_DISPLAY_NAME);
+        values.remove(ImageColumns.VOLUME_NAME);
+        values.remove(ImageColumns.RELATIVE_PATH);
+
+        final String data = values.getAsString(MediaColumns.DATA);
+        if (TextUtils.isEmpty(data)) return;
+
+        final File file = new File(data);
+        final File fileLower = new File(data.toLowerCase(Locale.ROOT));
+
+        values.put(ImageColumns.VOLUME_NAME, extractVolumeName(data));
+        values.put(ImageColumns.RELATIVE_PATH, extractRelativePath(data));
+        values.put(ImageColumns.DISPLAY_NAME, extractDisplayName(data));
+
+        // Buckets are the parent directory
+        final String parent = fileLower.getParent();
+        if (parent != null) {
+            values.put(ImageColumns.BUCKET_ID, parent.hashCode());
+            // The relative path for files in the top directory is "/"
+            if (!"/".equals(values.getAsString(ImageColumns.RELATIVE_PATH))) {
+                values.put(ImageColumns.BUCKET_DISPLAY_NAME, file.getParentFile().getName());
+            }
+        }
     }
 }

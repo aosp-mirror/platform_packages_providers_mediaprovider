@@ -31,7 +31,7 @@ import static android.content.ContentResolver.QUERY_ARG_SQL_SORT_ORDER;
 import static android.content.ContentResolver.QUERY_SORT_DIRECTION_ASCENDING;
 import static android.content.ContentResolver.QUERY_SORT_DIRECTION_DESCENDING;
 
-import static com.android.providers.media.MediaProvider.TAG;
+import static com.android.providers.media.util.Logging.TAG;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -335,7 +335,7 @@ public class DatabaseUtils {
      */
     public static void recoverAbusiveLimit(@NonNull Uri uri, @NonNull Bundle queryArgs) {
         final String origLimit = queryArgs.getString(QUERY_ARG_SQL_LIMIT);
-        final String uriLimit = uri.getQueryParameter(MediaStore.PARAM_LIMIT);
+        final String uriLimit = uri.getQueryParameter("limit");
 
         if (!TextUtils.isEmpty(uriLimit)) {
             // Yell if we already had a group by requested
@@ -408,5 +408,30 @@ public class DatabaseUtils {
             queryArgs.putString(QUERY_ARG_SQL_SORT_ORDER, sortOrder);
             queryArgs.putString(QUERY_ARG_SQL_LIMIT, limit);
         }
+    }
+
+    /**
+     * Shamelessly borrowed from {@link ContentResolver}.
+     */
+    public static @Nullable Bundle createSqlQueryBundle(
+            @Nullable String selection,
+            @Nullable String[] selectionArgs,
+            @Nullable String sortOrder) {
+
+        if (selection == null && selectionArgs == null && sortOrder == null) {
+            return null;
+        }
+
+        Bundle queryArgs = new Bundle();
+        if (selection != null) {
+            queryArgs.putString(QUERY_ARG_SQL_SELECTION, selection);
+        }
+        if (selectionArgs != null) {
+            queryArgs.putStringArray(QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs);
+        }
+        if (sortOrder != null) {
+            queryArgs.putString(QUERY_ARG_SQL_SORT_ORDER, sortOrder);
+        }
+        return queryArgs;
     }
 }

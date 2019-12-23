@@ -21,8 +21,9 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.android.internal.util.Preconditions;
 import com.android.providers.media.MediaProvider;
+
+import java.util.Objects;
 
 /**
  * Starts a FUSE session to handle FUSE messages from the kernel.
@@ -38,11 +39,11 @@ public final class FuseDaemon extends Thread {
     public FuseDaemon(@NonNull MediaProvider mediaProvider,
             @NonNull ExternalStorageServiceImpl service, @NonNull ParcelFileDescriptor fd,
             @NonNull String sessionId, @NonNull String path) {
-        mMediaProvider = Preconditions.checkNotNull(mediaProvider);
-        mService = Preconditions.checkNotNull(service);
-        setName(Preconditions.checkNotNull(sessionId));
-        mFuseDeviceFd = Preconditions.checkNotNull(fd).detachFd();
-        mPath = Preconditions.checkNotNull(path);
+        mMediaProvider = Objects.requireNonNull(mediaProvider);
+        mService = Objects.requireNonNull(service);
+        setName(Objects.requireNonNull(sessionId));
+        mFuseDeviceFd = Objects.requireNonNull(fd).detachFd();
+        mPath = Objects.requireNonNull(path);
     }
 
     /** Starts a FUSE session. Does not return until the lower filesystem is unmounted. */

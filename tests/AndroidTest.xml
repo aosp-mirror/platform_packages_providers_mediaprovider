@@ -16,6 +16,7 @@
 <configuration description="Runs Tests for MediaProvder.">
     <target_preparer class="com.android.tradefed.targetprep.TestAppInstallSetup">
         <option name="test-file-name" value="MediaProviderTests.apk" />
+        <option name="install-arg" value="-g" />
     </target_preparer>
 
     <option name="test-suite-tag" value="apct" />

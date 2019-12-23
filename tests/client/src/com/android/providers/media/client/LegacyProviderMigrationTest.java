@@ -30,14 +30,18 @@ import android.content.pm.ProviderInfo;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.ParcelFileDescriptor;
+import android.os.storage.StorageManager;
 import android.provider.BaseColumns;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.DownloadColumns;
+import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Video.VideoColumns;
 import android.util.Log;
+import android.webkit.MimeTypeMap;
 
 import androidx.annotation.NonNull;
 import androidx.test.InstrumentationRegistry;
@@ -84,66 +88,71 @@ public class LegacyProviderMigrationTest {
         mExternalDownloads = MediaStore.Downloads.getContentUri(mVolumeName);
     }
 
-    @Test
-    public void testLegacy_Pending() throws Exception {
+    private ContentValues generateValues(int mediaType, String mimeType, String dirName) {
+        final Context context = InstrumentationRegistry.getContext();
+
+        final File dir = context.getSystemService(StorageManager.class)
+                .getStorageVolume(MediaStore.Files.getContentUri(mVolumeName)).getDirectory();
+        final File subDir = new File(dir, dirName);
+        final File file = new File(subDir, "legacy" + System.nanoTime() + "."
+                + MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType));
+
         final ContentValues values = new ContentValues();
-        values.put(MediaColumns.DISPLAY_NAME, "test" + System.nanoTime() + ".png");
-        values.put(MediaColumns.MIME_TYPE, "image/png");
+        values.put(FileColumns.MEDIA_TYPE, mediaType);
+        values.put(MediaColumns.DATA, file.getAbsolutePath());
+        values.put(MediaColumns.MIME_TYPE, mimeType);
+        values.put(MediaColumns.VOLUME_NAME, mVolumeName);
+        values.put(MediaColumns.DATE_ADDED, String.valueOf(System.currentTimeMillis() / 1_000));
         values.put(MediaColumns.OWNER_PACKAGE_NAME,
                 InstrumentationRegistry.getContext().getPackageName());
+        return values;
+    }
+
+    @Test
+    public void testLegacy_Pending() throws Exception {
+        final ContentValues values = generateValues(FileColumns.MEDIA_TYPE_IMAGE,
+                "image/png", Environment.DIRECTORY_PICTURES);
         values.put(MediaColumns.IS_PENDING, String.valueOf(1));
+        values.put(MediaColumns.DATE_EXPIRES, String.valueOf(System.currentTimeMillis() / 1_000));
         doLegacy(mExternalImages, values);
     }
 
     @Test
     public void testLegacy_Trashed() throws Exception {
-        final ContentValues values = new ContentValues();
-        values.put(MediaColumns.DISPLAY_NAME, "test" + System.nanoTime() + ".png");
-        values.put(MediaColumns.MIME_TYPE, "image/png");
-        values.put(MediaColumns.OWNER_PACKAGE_NAME,
-                InstrumentationRegistry.getContext().getPackageName());
+        final ContentValues values = generateValues(FileColumns.MEDIA_TYPE_IMAGE,
+                "image/png", Environment.DIRECTORY_PICTURES);
         values.put(MediaColumns.IS_TRASHED, String.valueOf(1));
         doLegacy(mExternalImages, values);
     }
 
     @Test
     public void testLegacy_Favorite() throws Exception {
-        final ContentValues values = new ContentValues();
-        values.put(MediaColumns.DISPLAY_NAME, "test" + System.nanoTime() + ".png");
-        values.put(MediaColumns.MIME_TYPE, "image/png");
-        values.put(MediaColumns.OWNER_PACKAGE_NAME,
-                InstrumentationRegistry.getContext().getPackageName());
+        final ContentValues values = generateValues(FileColumns.MEDIA_TYPE_IMAGE,
+                "image/png", Environment.DIRECTORY_PICTURES);
         values.put(MediaColumns.IS_FAVORITE, String.valueOf(1));
         doLegacy(mExternalImages, values);
     }
 
     @Test
     public void testLegacy_Orphaned() throws Exception {
-        final ContentValues values = new ContentValues();
-        values.put(MediaColumns.DISPLAY_NAME, "test" + System.nanoTime() + ".png");
-        values.put(MediaColumns.MIME_TYPE, "image/png");
+        final ContentValues values = generateValues(FileColumns.MEDIA_TYPE_IMAGE,
+                "image/png", Environment.DIRECTORY_PICTURES);
         values.putNull(MediaColumns.OWNER_PACKAGE_NAME);
         doLegacy(mExternalImages, values);
     }
 
     @Test
     public void testLegacy_Audio() throws Exception {
-        final ContentValues values = new ContentValues();
-        values.put(MediaColumns.DISPLAY_NAME, "test" + System.nanoTime() + ".mp3");
-        values.put(MediaColumns.MIME_TYPE, "audio/mpeg");
-        values.put(MediaColumns.OWNER_PACKAGE_NAME,
-                InstrumentationRegistry.getContext().getPackageName());
+        final ContentValues values = generateValues(FileColumns.MEDIA_TYPE_AUDIO,
+                "audio/mpeg", Environment.DIRECTORY_MUSIC);
         values.put(AudioColumns.BOOKMARK, String.valueOf(42));
         doLegacy(mExternalAudio, values);
     }
 
     @Test
     public void testLegacy_Video() throws Exception {
-        final ContentValues values = new ContentValues();
-        values.put(MediaColumns.DISPLAY_NAME, "test" + System.nanoTime() + ".mp4");
-        values.put(MediaColumns.MIME_TYPE, "video/mp4");
-        values.put(MediaColumns.OWNER_PACKAGE_NAME,
-                InstrumentationRegistry.getContext().getPackageName());
+        final ContentValues values = generateValues(FileColumns.MEDIA_TYPE_VIDEO,
+                "video/mpeg", Environment.DIRECTORY_MOVIES);
         values.put(VideoColumns.BOOKMARK, String.valueOf(42));
         values.put(VideoColumns.TAGS, "My Tags");
         values.put(VideoColumns.CATEGORY, "My Category");
@@ -152,19 +161,15 @@ public class LegacyProviderMigrationTest {
 
     @Test
     public void testLegacy_Image() throws Exception {
-        final ContentValues values = new ContentValues();
-        values.put(MediaColumns.DISPLAY_NAME, "test" + System.nanoTime() + ".png");
-        values.put(MediaColumns.MIME_TYPE, "image/png");
-        values.put(MediaColumns.OWNER_PACKAGE_NAME,
-                InstrumentationRegistry.getContext().getPackageName());
+        final ContentValues values = generateValues(FileColumns.MEDIA_TYPE_IMAGE,
+                "image/png", Environment.DIRECTORY_PICTURES);
         doLegacy(mExternalImages, values);
     }
 
     @Test
     public void testLegacy_Download() throws Exception {
-        final ContentValues values = new ContentValues();
-        values.put(MediaColumns.DISPLAY_NAME, "test" + System.nanoTime() + ".iso");
-        values.put(MediaColumns.MIME_TYPE, "application/x-iso9660-image");
+        final ContentValues values = generateValues(FileColumns.MEDIA_TYPE_NONE,
+                "application/x-iso9660-image", Environment.DIRECTORY_DOWNLOADS);
         values.put(DownloadColumns.DOWNLOAD_URI, "http://example.com/download");
         values.put(DownloadColumns.REFERER_URI, "http://example.com/referer");
         doLegacy(mExternalDownloads, values);
@@ -190,18 +195,14 @@ public class LegacyProviderMigrationTest {
         try (ContentProviderClient legacy = context.getContentResolver()
                 .acquireContentProviderClient(MediaStore.AUTHORITY_LEGACY)) {
             legacyUri = rewriteToLegacy(legacy.insert(rewriteToLegacy(collectionUri), values));
-
-            try (Cursor cursor = legacy.query(legacyUri, null, null, null)) {
-                assertTrue(cursor.moveToFirst());
-                copyFromCursorToContentValues(MediaColumns._ID, cursor, values);
-                copyFromCursorToContentValues(MediaColumns.DATA, cursor, values);
-                copyFromCursorToContentValues(MediaColumns.DATE_ADDED, cursor, values);
-            }
-
-            try (ParcelFileDescriptor pfd = legacy.openFile(legacyUri, "rw")) {
-            }
-
             legacyFile = new File(values.getAsString(MediaColumns.DATA));
+
+            // Remember our ID to check it later
+            values.put(MediaColumns._ID, legacyUri.getLastPathSegment());
+
+            // Drop media type from the columns we check, since it's implicitly
+            // verified via the collection Uri
+            values.remove(FileColumns.MEDIA_TYPE);
         }
 
         // Clear data on the modern provider so that the initial scan recovers

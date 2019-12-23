@@ -16,7 +16,6 @@
 
 package com.android.providers.media;
 
-import static com.android.providers.media.MediaProvider.extractPathOwnerPackageName;
 import static com.android.providers.media.util.FileUtils.isDownload;
 import static com.android.providers.media.util.FileUtils.isDownloadDir;
 
@@ -47,7 +46,9 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.MediaProvider.VolumeArgumentException;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
+import com.android.providers.media.util.FileUtils;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -145,7 +146,7 @@ public class MediaProviderTest {
     }
 
     private static String getPathOwnerPackageName(String path) {
-        return extractPathOwnerPackageName(path);
+        return FileUtils.extractPathOwnerPackageName(path);
     }
 
     @Test
@@ -199,6 +200,7 @@ public class MediaProviderTest {
     }
 
     @Test
+    @Ignore("Enable as part of b/142561358")
     public void testBuildData_Secondary() throws Exception {
         final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         assertEndsWith("/Pictures/Screenshots/foo.png",
@@ -241,6 +243,7 @@ public class MediaProviderTest {
     }
 
     @Test
+    @Ignore("Enable as part of b/142561358")
     public void testBuildData_Charset() throws Exception {
         final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         assertEndsWith("/Pictures/foo__bar/bar__baz.png",
@@ -520,7 +523,7 @@ public class MediaProviderTest {
             "IMG1024.JPG",
             "storage/emulated/",
         }) {
-            assertEquals(MediaProvider.extractRelativePathForDirectory(data), null);
+            assertEquals(FileUtils.extractRelativePathForDirectory(data), null);
         }
     }
 
@@ -534,14 +537,14 @@ public class MediaProviderTest {
                     "Android/media/com.example/Foo/"));
             add(new Pair("/storage/0000-0000/DCIM/Camera", "DCIM/Camera/"));
         }}) {
-            assertEquals(top.second, MediaProvider.extractRelativePathForDirectory(top.first));
+            assertEquals(top.second, FileUtils.extractRelativePathForDirectory(top.first));
         }
     }
 
     private static ContentValues computeDataValues(String path) {
         final ContentValues values = new ContentValues();
         values.put(MediaColumns.DATA, path);
-        MediaProvider.computeDataValues(values);
+        FileUtils.computeDataValues(values);
         Log.v(TAG, "Computed values " + values);
         return values;
     }

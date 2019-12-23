@@ -40,7 +40,7 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
     private final Map<String, FuseDaemon> mFuseDaemons = new HashMap<>();
 
     @Override
-    public void onStartSession(String sessionId, @SessionFlag int flag,
+    public void onStartSession(String sessionId, /* @SessionFlag */ int flag,
             @NonNull ParcelFileDescriptor deviceFd, @NonNull String upperFileSystemPath,
             @NonNull String lowerFileSystemPath) {
         MediaProvider mediaProvider = getMediaProvider();

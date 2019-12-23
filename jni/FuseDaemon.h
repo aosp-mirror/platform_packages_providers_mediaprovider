@@ -17,14 +17,15 @@
 #ifndef MEDIAPROVIDER_JNI_FUSEDAEMON_H_
 #define MEDIAPROVIDER_JNI_FUSEDAEMON_H_
 
+#include <memory>
 #include <string>
 
 #include "MediaProviderWrapper.h"
 #include "jni.h"
 
+struct fuse;
 namespace mediaprovider {
 namespace fuse {
-
 class FuseDaemon final {
   public:
     FuseDaemon(JNIEnv* env, jobject mediaProvider);
@@ -36,10 +37,17 @@ class FuseDaemon final {
      */
     void Start(const int fd, const std::string& path);
 
+    /**
+     * Check if file should be opened with FUSE
+     */
+    bool ShouldOpenWithFuse(int fd, bool for_read, const std::string& path);
+
   private:
     FuseDaemon(const FuseDaemon&) = delete;
     void operator=(const FuseDaemon&) = delete;
     MediaProviderWrapper mp;
+    std::atomic_bool active;
+    struct ::fuse* fuse;
 };
 
 }  // namespace fuse

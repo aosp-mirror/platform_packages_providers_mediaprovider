@@ -973,8 +973,11 @@ public class MediaProvider extends ContentProvider {
      * @return a list of file names in the given directory path.
      * An empty list is returned if no files are visible to the calling app or the given directory
      * does not have any files.
-     * A list with ["/"] is returned if the path is not indexed by MediaProvider database and
-     * file names should be obtained from lower file system.
+     * A list with ["/"] is returned if the path is not indexed by MediaProvider database or
+     * calling package is a legacy app and has appropriate storage permissions for the given path.
+     * In both scenarios file names should be obtained from lower file system.
+     * A list with empty string[""] is returned if the package requesting legacy behavior doesn't
+     * have storage permissions for the given path.
      * Directory names are always obtained from lower file system.
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
@@ -984,7 +987,21 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token = clearLocalCallingIdentity(
                 LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            //TODO(b/144990065): enforce based on target SDK
+            if (shouldBypassFuseRestrictions(/*forWrite*/ false)) {
+                return new String[] {"/"};
+            }
+
+            // Allow legacy app without storage permissions to list files only in its external
+            // media directory.
+            if (isCallingPackageRequestingLegacy()) {
+                final String appSpecificDir = extractPathOwnerPackageName(path);
+                if ((appSpecificDir != null &&
+                        isCallingIdentitySharedPackageName(appSpecificDir))) {
+                    return new String[] {"/"};
+                } else {
+                    return new String[] {""};
+                }
+            }
 
             // Get relative path for the contents of given directory.
             String relativePath = extractRelativePathForDirectory(path);

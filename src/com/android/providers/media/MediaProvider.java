@@ -2390,7 +2390,7 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
-            rowId = qb.insert(helper, values);
+            rowId = insertAllowingUpsert(qb, helper, values, path);
         }
         if (format == MtpConstants.FORMAT_ASSOCIATION) {
             synchronized (mDirectoryCache) {
@@ -2399,6 +2399,54 @@ public class MediaProvider extends ContentProvider {
         }
 
         return rowId;
+    }
+
+    /**
+     * Inserts a new row in MediaProvider database with {@code values}. Treats insert as upsert for
+     * double inserts from same package.
+     */
+    private long insertAllowingUpsert(@NonNull SQLiteQueryBuilder qb,
+            @NonNull DatabaseHelper helper, @NonNull ContentValues values, String path)
+            throws SQLiteConstraintException {
+        return helper.runWithTransaction(() -> {
+            try {
+                return qb.insert(helper, values);
+            } catch (SQLiteConstraintException e) {
+                final long rowId = getIdIfPathExistsForPackage(qb, helper, path,
+                        getCallingPackageOrSelf());
+                // Apps sometimes create a file via direct path and then insert it into
+                // MediaStore via ContentResolver. The former should create a database entry,
+                // so we have to treat the latter as an upsert.
+                // TODO(b/149917493) Perform all INSERT operations as UPSERT.
+                if (rowId != -1 && qb.update(helper, values, "_id=?",
+                        new String[]{Long.toString(rowId)}) == 1) {
+                    return rowId;
+                }
+                // Rethrow SQLiteConstraintException on failed upsert.
+                throw e;
+            }
+        });
+    }
+
+    /**
+     * @return row id of the entry with path {@code path} and owner {@code packageName}, if it
+     * exists.
+     */
+    private long getIdIfPathExistsForPackage(@NonNull SQLiteQueryBuilder qb,
+            @NonNull DatabaseHelper helper, String path, String packageName) {
+        final String[] projection = new String[] {FileColumns._ID};
+        final String selection = FileColumns.DATA + " LIKE ? AND " +
+                FileColumns.OWNER_PACKAGE_NAME + " LIKE ? ";
+
+        // TODO(b:149842708) Handle sharedUid. Package name check will fail if FUSE didn't
+        // use the right package name for sharedUid.
+        try (Cursor c = qb.query(helper, projection, selection, new String[] {path, packageName},
+                null, null, null, null, null)) {
+            if (c.moveToFirst()) {
+                return c.getLong(0);
+            }
+        }
+        return -1;
     }
 
     private void maybePut(@NonNull ContentValues values, @NonNull String key,

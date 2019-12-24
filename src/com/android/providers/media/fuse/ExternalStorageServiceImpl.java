@@ -24,7 +24,6 @@ import android.service.storage.ExternalStorageService;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import com.android.providers.media.MediaProvider;
 
@@ -37,8 +36,8 @@ import java.util.Map;
 public final class ExternalStorageServiceImpl extends ExternalStorageService {
     private static final String TAG = "ExternalStorageServiceImpl";
 
-    private static final Object sLock = new Object();
-    private static final Map<String, FuseDaemon> sFuseDaemons = new HashMap<>();
+    private final Object mLock = new Object();
+    private final Map<String, FuseDaemon> mFuseDaemons = new HashMap<>();
 
     @Override
     public void onStartSession(String sessionId, @SessionFlag int flag,
@@ -46,8 +45,8 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
             @NonNull String lowerFileSystemPath) {
         MediaProvider mediaProvider = getMediaProvider();
 
-        synchronized (sLock) {
-            if (sFuseDaemons.containsKey(sessionId)) {
+        synchronized (mLock) {
+            if (mFuseDaemons.containsKey(sessionId)) {
                 Log.w(TAG, "Session already started with id: " + sessionId);
             } else {
                 Log.i(TAG, "Starting session for id: " + sessionId);
@@ -57,7 +56,7 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
                 FuseDaemon daemon = new FuseDaemon(mediaProvider, this, deviceFd, sessionId,
                         upperFileSystemPath);
                 daemon.start();
-                sFuseDaemons.put(sessionId, daemon);
+                mFuseDaemons.put(sessionId, daemon);
             }
         }
     }
@@ -80,15 +79,8 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
 
     public FuseDaemon onExitSession(String sessionId) {
         Log.i(TAG, "Exiting session for id: " + sessionId);
-        synchronized (sLock) {
-            return sFuseDaemons.remove(sessionId);
-        }
-    }
-
-    @Nullable
-    public static FuseDaemon getFuseDaemon(String sessionId) {
-        synchronized (sLock) {
-            return sFuseDaemons.get(sessionId);
+        synchronized (mLock) {
+            return mFuseDaemons.remove(sessionId);
         }
     }
 

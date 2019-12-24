@@ -138,17 +138,6 @@ struct node {
         }
         return false;
     }
-
-    void CloseAllOpenFds() {
-        for (handle* handle : handles) {
-            delete handle;
-        }
-        handles.clear();
-        for (dirhandle* dirhandle : dirhandles) {
-            delete dirhandle;
-        }
-        dirhandles.clear();
-    }
 };
 
 /*
@@ -629,27 +618,12 @@ static void pf_init(void* userdata, struct fuse_conn_info* conn) {
     conn->max_read = MAX_READ_SIZE;
 }
 
-static void delete_node_tree(node* parent, node* root) {
-    if (parent) {
-        node* next = parent->child;
-        while (next) {
-            delete_node_tree(next, root);
-            next = next->next;
-        }
-        parent->CloseAllOpenFds();
-        if (parent != root) {
-            // Don't delete node itself if it is root because it is stack allocated
-            LOG(DEBUG) << "DELETE node " << parent->name;
-            delete parent;
-        }
-    }
- }
-
-static void pf_destroy(void* userdata) {
-    struct fuse* fuse = reinterpret_cast<struct fuse*>(userdata);
-    LOG(INFO) << "DESTROY " << fuse->path;
-    delete_node_tree(&fuse->root, &fuse->root);
+/*
+static void pf_destroy(void* userdata)
+{
+    cout << "TODO:" << __func__;
 }
+*/
 
 static std::regex storage_emulated_regex("^\\/storage\\/emulated\\/([0-9]+)");
 static struct node* do_lookup(fuse_req_t req,
@@ -1695,7 +1669,7 @@ static void pf_fallocate(fuse_req_t req, fuse_ino_t ino, int mode,
 
 static struct fuse_lowlevel_ops ops{
     .init = pf_init,
-    .destroy = pf_destroy,
+    /*.destroy = pf_destroy,*/
     .lookup = pf_lookup, .forget = pf_forget, .getattr = pf_getattr,
     .setattr = pf_setattr,
     /*.readlink = pf_readlink,*/

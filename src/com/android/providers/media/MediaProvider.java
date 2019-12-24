@@ -160,8 +160,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
-import com.android.providers.media.fuse.ExternalStorageServiceImpl;
-import com.android.providers.media.fuse.FuseDaemon;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
 import com.android.providers.media.scan.NullMediaScanner;
@@ -4285,12 +4283,6 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private File getFuseFile(File file) {
-        String filePath = file.getPath().replaceFirst(
-                "/storage/", "/mnt/user/" + UserHandle.myUserId() + "/");
-        return new File(filePath);
-    }
-
     /**
      * Replacement for {@link #openFileHelper(Uri, String)} which enforces any
      * permissions applicable to the path before returning.
@@ -4301,7 +4293,7 @@ public class MediaProvider extends ContentProvider {
     private ParcelFileDescriptor openFileAndEnforcePathPermissionsHelper(Uri uri, int match,
             String mode, CancellationSignal signal) throws FileNotFoundException {
         final int modeBits = ParcelFileDescriptor.parseMode(mode);
-        final boolean forWrite = (modeBits & ParcelFileDescriptor.MODE_WRITE_ONLY) != 0;
+        final boolean forWrite = (modeBits != ParcelFileDescriptor.MODE_READ_ONLY);
 
         final boolean hasOwnerPackageName = hasOwnerPackageName(uri);
         final String[] projection = new String[] {
@@ -4379,17 +4371,16 @@ public class MediaProvider extends ContentProvider {
         try {
             // First, handle any redaction that is needed for caller
             final ParcelFileDescriptor pfd;
-            final String filePath = file.getPath();
             if (redactionInfo.redactionRanges.length > 0) {
                 if (SystemProperties.getBoolean(PROP_FUSE, false)) {
                     // If fuse is enabled, we can provide an fd that points to the fuse
                     // file system and handle redaction in the fuse handler when the caller reads.
-                    Log.i(TAG, "Redacting with new FUSE for " + filePath);
-                    pfd = ParcelFileDescriptor.open(getFuseFile(file), modeBits);
+                    File fuseFile = new File(file.getPath().replaceFirst("/storage/",
+                            "/mnt/user/" + UserHandle.myUserId() + "/"));
+                    pfd = ParcelFileDescriptor.open(fuseFile, modeBits);
                 } else {
                     // TODO(b/135341978): Remove this and associated code
                     // when fuse is on by default.
-                    Log.i(TAG, "Redacting with old FUSE for " + filePath);
                     pfd = RedactingFileDescriptor.open(
                             getContext(),
                             file,
@@ -4398,29 +4389,7 @@ public class MediaProvider extends ContentProvider {
                             redactionInfo.freeOffsets);
                 }
             } else {
-                StorageVolume volume = mStorageManager.getStorageVolume(file);
-                FuseDaemon daemon = ExternalStorageServiceImpl.getFuseDaemon(volume.getId());
-                ParcelFileDescriptor lowerFsFd = ParcelFileDescriptor.open(file, modeBits);
-                boolean forRead = (modeBits & ParcelFileDescriptor.MODE_READ_ONLY) != 0;
-                boolean shouldOpenWithFuse = daemon != null
-                        && daemon.shouldOpenWithFuse(filePath, forRead, lowerFsFd.getFd());
-
-                if (SystemProperties.getBoolean(PROP_FUSE, false) && shouldOpenWithFuse) {
-                    // If the file is already opened on the FUSE mount with VFS caching enabled
-                    // we return an upper filesystem fd (via FUSE) to avoid file corruption
-                    // resulting from cache inconsistencies between the upper and lower
-                    // filesystem caches
-                    Log.w(TAG, "Using FUSE for " + filePath);
-                    pfd = ParcelFileDescriptor.open(getFuseFile(file), modeBits);
-                    try {
-                        lowerFsFd.close();
-                    } catch (IOException e) {
-                        Log.w(TAG, "Failed to close lower filesystem fd " + file.getPath(), e);
-                    }
-                } else {
-                    Log.i(TAG, "Using lower FS for " + filePath);
-                    pfd = lowerFsFd;
-                }
+                pfd = ParcelFileDescriptor.open(file, modeBits);
             }
 
             // Second, wrap in any listener that we've requested

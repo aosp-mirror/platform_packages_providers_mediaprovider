@@ -35,7 +35,6 @@ public final class FuseDaemon extends Thread {
     private final int mFuseDeviceFd;
     private final String mPath;
     private final ExternalStorageServiceImpl mService;
-    private long mPtr;
 
     public FuseDaemon(@NonNull MediaProvider mediaProvider,
             @NonNull ExternalStorageServiceImpl service, @NonNull ParcelFileDescriptor fd,
@@ -50,19 +49,18 @@ public final class FuseDaemon extends Thread {
     /** Starts a FUSE session. Does not return until the lower filesystem is unmounted. */
     @Override
     public void run() {
-        mPtr = native_new(mMediaProvider);
-        if (mPtr == 0) {
+        long ptr = native_new(mMediaProvider);
+        if (ptr == 0) {
             return;
         }
 
         Log.i(TAG, "Starting thread for " + getName() + " ...");
-        native_start(mPtr, mFuseDeviceFd, mPath); // Blocks
+        native_start(ptr, mFuseDeviceFd, mPath); // Blocks
         Log.i(TAG, "Exiting thread for " + getName() + " ...");
 
         // Cleanup
-        if (mPtr != 0) {
-            native_delete(mPtr);
-            mPtr = 0;
+        if (ptr != 0) {
+            native_delete(ptr);
         }
         mService.onExitSession(getName());
         Log.i(TAG, "Exited thread for " + getName());
@@ -89,19 +87,7 @@ public final class FuseDaemon extends Thread {
         Log.i(TAG, "Exited thread " + getName() + " successfully");
     }
 
-    /**
-     * Checks if file with {@code path} should be opened via FUSE to avoid cache inconcistencies.
-     * May place a F_RDLCK or F_WRLCK with fcntl(2) depending on {@code readLock}
-     *
-     * @return {@code true} if the file should be opened via FUSE, {@code false} otherwise
-     */
-    public boolean shouldOpenWithFuse(String path, boolean readLock, int fd) {
-        return native_should_open_with_fuse(mPtr, path, readLock, fd);
-    }
-
     private native long native_new(MediaProvider mediaProvider);
     private native void native_start(long daemon, int deviceFd, String path);
     private native void native_delete(long daemon);
-    private native boolean native_should_open_with_fuse(long daemon, String path, boolean readLock,
-            int fd);
 }

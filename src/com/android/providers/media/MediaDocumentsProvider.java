@@ -34,7 +34,6 @@ import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.CancellationSignal;
-import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -55,7 +54,6 @@ import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.Video;
 import android.provider.MediaStore.Video.VideoColumns;
-import android.provider.MetadataReader;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.text.format.DateUtils;
@@ -69,8 +67,6 @@ import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.FileUtils;
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -191,20 +187,6 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             throw new SecurityException(
                     "Shell user cannot access files for user " + UserHandle.myUserId());
         }
-    }
-
-    @Override
-    protected int enforceReadPermissionInner(Uri uri, String callingPkg,
-            @Nullable String featureId, IBinder callerToken) throws SecurityException {
-        enforceShellRestrictions();
-        return super.enforceReadPermissionInner(uri, callingPkg, featureId, callerToken);
-    }
-
-    @Override
-    protected int enforceWritePermissionInner(Uri uri, String callingPkg,
-            @Nullable String featureId, IBinder callerToken) throws SecurityException {
-        enforceShellRestrictions();
-        return super.enforceWritePermissionInner(uri, callingPkg, featureId, callerToken);
     }
 
     private static void notifyRootsChanged(Context context) {
@@ -394,6 +376,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
     @Override
     public void deleteDocument(String docId) throws FileNotFoundException {
+        enforceShellRestrictions();
         final Uri target = getUriForDocumentId(docId);
 
         // Delegate to real provider
@@ -407,30 +390,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
     @Override
     public @Nullable Bundle getDocumentMetadata(String docId) throws FileNotFoundException {
-
-        String mimeType = getDocumentType(docId);
-
-        if (MetadataReader.isSupportedMimeType(mimeType)) {
-            return getDocumentMetadataFromStream(docId, mimeType);
-        } else {
-            return getDocumentMetadataFromIndex(docId);
-        }
-    }
-
-    private @Nullable Bundle getDocumentMetadataFromStream(String docId, String mimeType) {
-        assert MetadataReader.isSupportedMimeType(mimeType);
-        InputStream stream = null;
-        try {
-            stream = new ParcelFileDescriptor.AutoCloseInputStream(
-                    openDocument(docId, "r", null));
-            Bundle metadata = new Bundle();
-            MetadataReader.getMetadata(metadata, stream, mimeType, null);
-            return metadata;
-        } catch (IOException io) {
-            return null;
-        } finally {
-            FileUtils.closeQuietly(stream);
-        }
+        enforceShellRestrictions();
+        return getDocumentMetadataFromIndex(docId);
     }
 
     public @Nullable Bundle getDocumentMetadataFromIndex(String docId)
@@ -555,6 +516,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
     @Override
     public Cursor queryDocument(String docId, String[] projection) throws FileNotFoundException {
+        enforceShellRestrictions();
         final ContentResolver resolver = getContext().getContentResolver();
         final MatrixCursor result = new MatrixCursor(resolveDocumentProjection(projection));
         final Ident ident = getIdentForDocId(docId);
@@ -648,6 +610,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     @Override
     public Cursor queryChildDocuments(String docId, String[] projection, String sortOrder)
             throws FileNotFoundException {
+        enforceShellRestrictions();
         final ContentResolver resolver = getContext().getContentResolver();
         final MatrixCursor result = new MatrixCursor(resolveDocumentProjection(projection));
         final Ident ident = getIdentForDocId(docId);
@@ -737,10 +700,10 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     }
 
     @Override
-    public Cursor queryRecentDocuments(
-            String rootId, String[] projection, @Nullable Bundle queryArgs,
-      @Nullable CancellationSignal signal)
+    public Cursor queryRecentDocuments(String rootId, String[] projection,
+            @Nullable Bundle queryArgs, @Nullable CancellationSignal signal)
             throws FileNotFoundException {
+        enforceShellRestrictions();
         final ContentResolver resolver = getContext().getContentResolver();
         final MatrixCursor result = new MatrixCursor(resolveDocumentProjection(projection));
 
@@ -793,6 +756,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     @Override
     public Cursor querySearchDocuments(String rootId, String[] projection, Bundle queryArgs)
             throws FileNotFoundException {
+        enforceShellRestrictions();
         final ContentResolver resolver = getContext().getContentResolver();
         final MatrixCursor result = new MatrixCursor(resolveDocumentProjection(projection));
 
@@ -892,6 +856,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     @Override
     public ParcelFileDescriptor openDocument(String docId, String mode, CancellationSignal signal)
             throws FileNotFoundException {
+        enforceShellRestrictions();
         final Uri target = getUriForDocumentId(docId);
 
         if (!"r".equals(mode)) {
@@ -910,6 +875,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     @Override
     public AssetFileDescriptor openDocumentThumbnail(
             String docId, Point sizeHint, CancellationSignal signal) throws FileNotFoundException {
+        enforceShellRestrictions();
         final Ident ident = getIdentForDocId(docId);
 
         final long token = Binder.clearCallingIdentity();

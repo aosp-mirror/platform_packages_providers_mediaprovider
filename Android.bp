@@ -1,7 +1,6 @@
 
-java_defaults {
-    name: "mediaprovider_defaults",
-
+android_app {
+    name: "MediaProvider",
     manifest: "AndroidManifest.xml",
 
     static_libs: [
@@ -18,12 +17,8 @@ java_defaults {
     resource_dirs: [
         "res",
     ],
-
     srcs: [
-        "src/**/*.aidl",
-        "src/**/*.java",
-        ":framework-mediaprovider-sources",
-        ":statslog-mediaprovider-java-gen",
+        ":mediaprovider-sources",
     ],
 
     optimize: {
@@ -40,21 +35,38 @@ java_defaults {
     // sdk_version: "system_current",
 
     certificate: "media",
-
     privileged: true,
-}
 
-android_app {
-    name: "MediaProviderLegacy",
-    defaults: ["mediaprovider_defaults"],
-    manifest: "AndroidManifest_Legacy.xml",
-}
-
-android_app {
-    name: "MediaProvider",
-    defaults: ["mediaprovider_defaults"],
-    manifest: "AndroidManifest.xml",
     aaptflags: ["--custom-package com.android.providers.media"],
+}
+
+// This is defined to give MediaProviderTests all the source it needs to
+// run its tests against
+filegroup {
+    name: "mediaprovider-sources",
+    srcs: [
+        "src/**/*.aidl",
+        "src/**/*.java",
+        ":framework-mediaprovider-sources",
+        ":framework-mediaprovider-annotation-sources",
+        ":mediaprovider-database-sources",
+        ":statslog-mediaprovider-java-gen",
+    ],
+}
+
+// This is defined to give LegacyMediaProvider the bare minimum it needs
+// to keep the legacy database schema working while also building
+// against "system_current"
+filegroup {
+    name: "mediaprovider-database-sources",
+    srcs: [
+        "src/com/android/providers/media/DatabaseHelper.java",
+        "src/com/android/providers/media/util/BackgroundThread.java",
+        "src/com/android/providers/media/util/DatabaseUtils.java",
+        "src/com/android/providers/media/util/FileUtils.java",
+        "src/com/android/providers/media/util/HandlerExecutor.java",
+        "src/com/android/providers/media/util/Logging.java",
+    ],
 }
 
 platform_compat_config {

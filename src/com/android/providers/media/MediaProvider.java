@@ -36,6 +36,8 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.getVolumeName;
 
+import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
+import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_BACKUP;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY_GRANTED;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY_READ;
@@ -50,9 +52,17 @@ import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_VIDEO;
 import static com.android.providers.media.scan.MediaScanner.REASON_DEMAND;
 import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
+import static com.android.providers.media.util.FileUtils.computeDataValues;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractFileName;
+import static com.android.providers.media.util.FileUtils.extractPathOwnerPackageName;
+import static com.android.providers.media.util.FileUtils.extractRelativePath;
+import static com.android.providers.media.util.FileUtils.extractRelativePathForDirectory;
+import static com.android.providers.media.util.FileUtils.extractTopLevelDir;
+import static com.android.providers.media.util.FileUtils.extractVolumeName;
 import static com.android.providers.media.util.FileUtils.isDownload;
+import static com.android.providers.media.util.Logging.LOGV;
+import static com.android.providers.media.util.Logging.TAG;
 
 import android.app.AppOpsManager;
 import android.app.AppOpsManager.OnOpActiveChangedListener;
@@ -93,7 +103,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.drawable.Icon;
 import android.icu.util.ULocale;
 import android.media.ExifInterface;
-import android.media.MediaFile;
 import android.media.ThumbnailUtils;
 import android.mtp.MtpConstants;
 import android.net.Uri;
@@ -112,7 +121,6 @@ import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.Trace;
 import android.os.UserHandle;
-import android.os.UserManager;
 import android.os.storage.StorageEventListener;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
@@ -130,7 +138,6 @@ import android.provider.MediaStore.Files;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.ImageColumns;
-import android.provider.MediaStore.Match;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Video;
 import android.system.ErrnoException;
@@ -153,6 +160,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.providers.media.fuse.ExternalStorageServiceImpl;
+import com.android.providers.media.fuse.FuseDaemon;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
 import com.android.providers.media.scan.NullMediaScanner;
@@ -176,7 +185,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -200,32 +208,6 @@ import java.util.regex.Pattern;
  * changes with the card.
  */
 public class MediaProvider extends ContentProvider {
-    /**
-     * Regex that matches any valid path in external storage,
-     * and captures the top-level directory as the first group.
-     */
-    static final Pattern PATTERN_TOP_LEVEL_DIR = Pattern.compile(
-            "(?i)^/storage/[^/]+/[0-9]+/([^/]+)(/.*)?");
-    /**
-     * Regex that matches paths in all well-known package-specific directories,
-     * and which captures the package name as the first group.
-     */
-    static final Pattern PATTERN_OWNED_PATH = Pattern.compile(
-            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|media|obb|sandbox)/([^/]+)(/.*)?");
-
-    /**
-     * Regex that matches paths for {@link MediaColumns#RELATIVE_PATH}; it
-     * captures both top-level paths and sandboxed paths.
-     */
-    static final Pattern PATTERN_RELATIVE_PATH = Pattern.compile(
-            "(?i)^/storage/[^/]+/(?:[0-9]+/)?(Android/sandbox/([^/]+)/)?");
-
-    /**
-     * Regex that matches paths under well-known storage paths.
-     */
-    static final Pattern PATTERN_VOLUME_NAME = Pattern.compile(
-            "(?i)^/storage/([^/]+)");
-
     /**
      * Regex of a selection string that matches a specific ID.
      */
@@ -272,21 +254,12 @@ public class MediaProvider extends ContentProvider {
     private static final Object sCacheLock = new Object();
 
     @GuardedBy("sCacheLock")
-    private static final List<VolumeInfo> sCachedVolumes = new ArrayList<>();
-    @GuardedBy("sCacheLock")
     private static final Set<String> sCachedExternalVolumeNames = new ArraySet<>();
     @GuardedBy("sCacheLock")
     private static final Map<String, Collection<File>> sCachedVolumeScanPaths = new ArrayMap<>();
 
-    static {
-        System.loadLibrary("fuse_jni");
-    }
-
     private void updateVolumes() {
         synchronized (sCacheLock) {
-            sCachedVolumes.clear();
-            sCachedVolumes.addAll(mStorageManager.getVolumes());
-
             sCachedExternalVolumeNames.clear();
             sCachedExternalVolumeNames.addAll(MediaStore.getExternalVolumeNames(getContext()));
 
@@ -570,7 +543,7 @@ public class MediaProvider extends ContentProvider {
                     .getDefaultSharedPreferences(getContext());
             if (prefs.getInt(key, 0) == 0) {
                 for (String folderName : sDefaultFolderNames) {
-                    final File folder = new File(vol.getPathFile(), folderName);
+                    final File folder = new File(vol.getDirectory(), folderName);
                     if (!folder.exists()) {
                         folder.mkdirs();
                         insertDirectory(db, folder.getAbsolutePath());
@@ -621,9 +594,9 @@ public class MediaProvider extends ContentProvider {
         }
 
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME,
-                true, false, mLegacyProvider);
+                true, false, mLegacyProvider, Column.class, Metrics::logSchemaChange);
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME,
-                false, false, mLegacyProvider);
+                false, false, mLegacyProvider, Column.class, Metrics::logSchemaChange);
 
         final IntentFilter filter = new IntentFilter();
         filter.setPriority(10);
@@ -825,30 +798,6 @@ public class MediaProvider extends ContentProvider {
         return scanFile(new File(file), REASON_DEMAND);
     }
 
-    private void enforceShellRestrictions() {
-        final int callingAppId = UserHandle.getAppId(Binder.getCallingUid());
-        if (callingAppId == android.os.Process.SHELL_UID
-                && getContext().getSystemService(UserManager.class)
-                        .hasUserRestriction(UserManager.DISALLOW_USB_FILE_TRANSFER)) {
-            throw new SecurityException(
-                    "Shell user cannot access files for user " + UserHandle.myUserId());
-        }
-    }
-
-    @Override
-    protected int enforceReadPermissionInner(Uri uri, String callingPkg,
-            @Nullable String featureId, IBinder callerToken) throws SecurityException {
-        enforceShellRestrictions();
-        return super.enforceReadPermissionInner(uri, callingPkg, featureId, callerToken);
-    }
-
-    @Override
-    protected int enforceWritePermissionInner(Uri uri, String callingPkg,
-            @Nullable String featureId, IBinder callerToken) throws SecurityException {
-        enforceShellRestrictions();
-        return super.enforceWritePermissionInner(uri, callingPkg, featureId, callerToken);
-    }
-
     @VisibleForTesting
     void computeAudioLocalizedValues(ContentValues values) {
         try {
@@ -904,44 +853,6 @@ public class MediaProvider extends ContentProvider {
             final long id = Hashing.farmHashFingerprint64()
                     .hashString(key, StandardCharsets.UTF_8).asLong() & ~(1 << 63);
             values.put(focusId, id);
-        }
-    }
-
-    @VisibleForTesting
-    static void computeDataValues(ContentValues values) {
-        // Worst case we have to assume no bucket details
-        values.remove(ImageColumns.BUCKET_ID);
-        values.remove(ImageColumns.BUCKET_DISPLAY_NAME);
-        values.remove(ImageColumns.GROUP_ID);
-        values.remove(ImageColumns.VOLUME_NAME);
-        values.remove(ImageColumns.RELATIVE_PATH);
-
-        final String data = values.getAsString(MediaColumns.DATA);
-        if (TextUtils.isEmpty(data)) return;
-
-        final File file = new File(data);
-        final File fileLower = new File(data.toLowerCase(Locale.ROOT));
-
-        values.put(ImageColumns.VOLUME_NAME, extractVolumeName(data));
-        values.put(ImageColumns.RELATIVE_PATH, extractRelativePath(data));
-        values.put(ImageColumns.DISPLAY_NAME, extractDisplayName(data));
-
-        // Buckets are the parent directory
-        final String parent = fileLower.getParent();
-        if (parent != null) {
-            values.put(ImageColumns.BUCKET_ID, parent.hashCode());
-            // The relative path for files in the top directory is "/"
-            if (!"/".equals(values.getAsString(ImageColumns.RELATIVE_PATH))) {
-                values.put(ImageColumns.BUCKET_DISPLAY_NAME, file.getParentFile().getName());
-            }
-        }
-
-        // Groups are the first part of name
-        final String name = fileLower.getName();
-        final int firstDot = name.indexOf('.');
-        if (firstDot > 0) {
-            values.put(ImageColumns.GROUP_ID,
-                    name.substring(0, firstDot).hashCode());
         }
     }
 
@@ -1113,7 +1024,8 @@ public class MediaProvider extends ContentProvider {
     }
 
     @Override
-    public int checkUriPermission(@NonNull Uri uri, int uid, @Intent.AccessUriMode int modeFlags) {
+    public int checkUriPermission(@NonNull Uri uri, int uid,
+            /* @Intent.AccessUriMode */ int modeFlags) {
         final LocalCallingIdentity token = clearLocalCallingIdentity(
                 LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
@@ -1153,7 +1065,7 @@ public class MediaProvider extends ContentProvider {
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
             String sortOrder) {
         return query(uri, projection,
-                ContentResolver.createSqlQueryBundle(selection, selectionArgs, sortOrder), null);
+                DatabaseUtils.createSqlQueryBundle(selection, selectionArgs, sortOrder), null);
     }
 
     @Override
@@ -1301,23 +1213,12 @@ public class MediaProvider extends ContentProvider {
                     }
 
                     final MatrixCursor cursor = new MatrixCursor(projection);
-                    try {
-                        String data = null;
-                        if (ContentResolver.DEPRECATE_DATA_COLUMNS) {
-                            // Go through provider to escape sandbox
-                            data = ContentResolver.translateDeprecatedDataPath(
-                                    fullUri.buildUpon().appendPath("thumbnail").build());
-                        } else {
-                            // Go directly to thumbnail file on disk
-                            data = ensureThumbnail(fullUri, signal).getAbsolutePath();
-                        }
-                        cursor.newRow().add(MediaColumns._ID, null)
-                                .add(Images.Thumbnails.IMAGE_ID, id)
-                                .add(Video.Thumbnails.VIDEO_ID, id)
-                                .add(MediaColumns.DATA, data);
-                    } catch (FileNotFoundException ignored) {
-                        // Return empty cursor if we had thumbnail trouble
-                    }
+                    final String data = ContentResolver.translateDeprecatedDataPath(
+                            fullUri.buildUpon().appendPath("thumbnail").build());
+                    cursor.newRow().add(MediaColumns._ID, null)
+                            .add(Images.Thumbnails.IMAGE_ID, id)
+                            .add(Video.Thumbnails.VIDEO_ID, id)
+                            .add(MediaColumns.DATA, data);
                     return cursor;
                 }
             }
@@ -1752,7 +1653,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private long insertDirectory(SQLiteDatabase db, String path) {
-        if (LOCAL_LOGV) Log.v(TAG, "inserting directory " + path);
+        if (LOGV) Log.v(TAG, "inserting directory " + path);
         ContentValues values = new ContentValues();
         values.put(FileColumns.FORMAT, MtpConstants.FORMAT_ASSOCIATION);
         values.put(FileColumns.DATA, path);
@@ -1768,55 +1669,6 @@ public class MediaProvider extends ContentProvider {
         }
         long rowId = db.insert("files", FileColumns.DATE_MODIFIED, values);
         return rowId;
-    }
-
-    private static @Nullable String extractVolumeName(@Nullable String data) {
-        if (data == null) return null;
-        final Matcher matcher = PATTERN_VOLUME_NAME.matcher(data);
-        if (matcher.find()) {
-            final String volumeName = matcher.group(1);
-            if (volumeName.equals("emulated")) {
-                return MediaStore.VOLUME_EXTERNAL_PRIMARY;
-            } else {
-                return StorageVolume.normalizeUuid(volumeName);
-            }
-        } else {
-            return MediaStore.VOLUME_INTERNAL;
-        }
-    }
-
-    private static @Nullable String extractRelativePath(@Nullable String data) {
-        if (data == null) return null;
-        final Matcher matcher = PATTERN_RELATIVE_PATH.matcher(data);
-        if (matcher.find()) {
-            final int lastSlash = data.lastIndexOf('/');
-            if (lastSlash == -1 || lastSlash < matcher.end()) {
-                // This is a file in the top-level directory, so relative path is "/"
-                // which is different than null, which means unknown path
-                return "/";
-            } else {
-                return data.substring(matcher.end(), lastSlash + 1);
-            }
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * Returns relative path for the directory.
-     */
-    @VisibleForTesting
-    static @Nullable String extractRelativePathForDirectory(@Nullable String directoryPath) {
-        if (directoryPath == null) return null;
-        final Matcher matcher = PATTERN_RELATIVE_PATH.matcher(directoryPath);
-        if (matcher.find()) {
-            if (matcher.end() == directoryPath.length() - 1) {
-                // This is the top-level directory, so relative path is "/"
-                return "/";
-            }
-            return directoryPath.substring(matcher.end()) + "/";
-        }
-        return null;
     }
 
     private long getParent(SQLiteDatabase db, String path) {
@@ -2032,7 +1884,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (format == 0) {
-            format = MediaFile.getFormatCode(path, mimeType);
+            format = MimeUtils.resolveFormatCode(mimeType);
         }
         if (path != null && path.endsWith("/")) {
             Log.e(TAG, "directory has trailing slash: " + path);
@@ -2040,9 +1892,6 @@ public class MediaProvider extends ContentProvider {
         }
         if (format != 0) {
             values.put(FileColumns.FORMAT, format);
-            if (mimeType == null && format != MtpConstants.FORMAT_ASSOCIATION) {
-                mimeType = MediaFile.getMimeTypeForFormatCode(format);
-            }
         }
 
         if (mimeType == null && path != null && format != MtpConstants.FORMAT_ASSOCIATION) {
@@ -2102,17 +1951,6 @@ public class MediaProvider extends ContentProvider {
         }
 
         return rowId;
-    }
-
-    @VisibleForTesting
-    static @Nullable String extractPathOwnerPackageName(@Nullable String path) {
-        if (path == null) return null;
-        final Matcher m = PATTERN_OWNED_PATH.matcher(path);
-        if (m.matches()) {
-            return m.group(1);
-        } else {
-            return null;
-        }
     }
 
     private void maybePut(@NonNull ContentValues values, @NonNull String key,
@@ -2502,7 +2340,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private static void appendWhereStandaloneMatch(@NonNull SQLiteQueryBuilder qb,
-            @NonNull String column, @Match int match) {
+            @NonNull String column, /* @Match */ int match) {
         switch (match) {
             case MATCH_INCLUDE:
                 // No special filtering needed
@@ -3123,7 +2961,8 @@ public class MediaProvider extends ContentProvider {
     @Override
     @Deprecated
     public int delete(Uri uri, String selection, String[] selectionArgs) {
-        return delete(uri, ContentResolver.createSqlQueryBundle(selection, selectionArgs));
+        return delete(uri,
+                DatabaseUtils.createSqlQueryBundle(selection, selectionArgs, null));
     }
 
     @Override
@@ -3256,14 +3095,11 @@ public class MediaProvider extends ContentProvider {
                                             long playlistId = cc.getLong(0);
                                             playlistvalues[0] = String.valueOf(playlistId);
                                             playlistvalues[1] = String.valueOf(cc.getInt(1));
-                                            int rowsChanged = db.executeSql("UPDATE audio_playlists_map" +
+                                            db.execSQL("UPDATE audio_playlists_map" +
                                                     " SET play_order=play_order-1" +
                                                     " WHERE playlist_id=? AND play_order>?",
                                                     playlistvalues);
-
-                                            if (rowsChanged > 0) {
-                                                updatePlaylistDateModifiedToNow(db, playlistId);
-                                            }
+                                            updatePlaylistDateModifiedToNow(db, playlistId);
                                         }
                                         db.delete("audio_playlists_map", "audio_id=?", idvalue);
                                     } finally {
@@ -3788,7 +3624,8 @@ public class MediaProvider extends ContentProvider {
     @Override
     @Deprecated
     public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
-        return update(uri, values,ContentResolver.createSqlQueryBundle(selection, selectionArgs));
+        return update(uri, values,
+                DatabaseUtils.createSqlQueryBundle(selection, selectionArgs, null));
     }
 
     @Override
@@ -4415,7 +4252,7 @@ public class MediaProvider extends ContentProvider {
     Cursor queryForSingleItem(Uri uri, String[] projection, String selection,
             String[] selectionArgs, CancellationSignal signal) throws FileNotFoundException {
         final Cursor c = query(uri, projection,
-                ContentResolver.createSqlQueryBundle(selection, selectionArgs, null), signal);
+                DatabaseUtils.createSqlQueryBundle(selection, selectionArgs, null), signal);
         if (c == null) {
             throw new FileNotFoundException("Missing cursor for " + uri);
         } else if (c.getCount() < 1) {
@@ -4448,6 +4285,12 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    private File getFuseFile(File file) {
+        String filePath = file.getPath().replaceFirst(
+                "/storage/", "/mnt/user/" + UserHandle.myUserId() + "/");
+        return new File(filePath);
+    }
+
     /**
      * Replacement for {@link #openFileHelper(Uri, String)} which enforces any
      * permissions applicable to the path before returning.
@@ -4458,7 +4301,7 @@ public class MediaProvider extends ContentProvider {
     private ParcelFileDescriptor openFileAndEnforcePathPermissionsHelper(Uri uri, int match,
             String mode, CancellationSignal signal) throws FileNotFoundException {
         final int modeBits = ParcelFileDescriptor.parseMode(mode);
-        final boolean forWrite = (modeBits != ParcelFileDescriptor.MODE_READ_ONLY);
+        final boolean forWrite = (modeBits & ParcelFileDescriptor.MODE_WRITE_ONLY) != 0;
 
         final boolean hasOwnerPackageName = hasOwnerPackageName(uri);
         final String[] projection = new String[] {
@@ -4536,16 +4379,17 @@ public class MediaProvider extends ContentProvider {
         try {
             // First, handle any redaction that is needed for caller
             final ParcelFileDescriptor pfd;
+            final String filePath = file.getPath();
             if (redactionInfo.redactionRanges.length > 0) {
                 if (SystemProperties.getBoolean(PROP_FUSE, false)) {
                     // If fuse is enabled, we can provide an fd that points to the fuse
                     // file system and handle redaction in the fuse handler when the caller reads.
-                    File fuseFile = new File(file.getPath().replaceFirst("/storage/",
-                            "/mnt/user/" + UserHandle.myUserId() + "/"));
-                    pfd = ParcelFileDescriptor.open(fuseFile, modeBits);
+                    Log.i(TAG, "Redacting with new FUSE for " + filePath);
+                    pfd = ParcelFileDescriptor.open(getFuseFile(file), modeBits);
                 } else {
                     // TODO(b/135341978): Remove this and associated code
                     // when fuse is on by default.
+                    Log.i(TAG, "Redacting with old FUSE for " + filePath);
                     pfd = RedactingFileDescriptor.open(
                             getContext(),
                             file,
@@ -4554,7 +4398,29 @@ public class MediaProvider extends ContentProvider {
                             redactionInfo.freeOffsets);
                 }
             } else {
-                pfd = ParcelFileDescriptor.open(file, modeBits);
+                StorageVolume volume = mStorageManager.getStorageVolume(file);
+                FuseDaemon daemon = ExternalStorageServiceImpl.getFuseDaemon(volume.getId());
+                ParcelFileDescriptor lowerFsFd = ParcelFileDescriptor.open(file, modeBits);
+                boolean forRead = (modeBits & ParcelFileDescriptor.MODE_READ_ONLY) != 0;
+                boolean shouldOpenWithFuse = daemon != null
+                        && daemon.shouldOpenWithFuse(filePath, forRead, lowerFsFd.getFd());
+
+                if (SystemProperties.getBoolean(PROP_FUSE, false) && shouldOpenWithFuse) {
+                    // If the file is already opened on the FUSE mount with VFS caching enabled
+                    // we return an upper filesystem fd (via FUSE) to avoid file corruption
+                    // resulting from cache inconsistencies between the upper and lower
+                    // filesystem caches
+                    Log.w(TAG, "Using FUSE for " + filePath);
+                    pfd = ParcelFileDescriptor.open(getFuseFile(file), modeBits);
+                    try {
+                        lowerFsFd.close();
+                    } catch (IOException e) {
+                        Log.w(TAG, "Failed to close lower filesystem fd " + file.getPath(), e);
+                    }
+                } else {
+                    Log.i(TAG, "Using lower FS for " + filePath);
+                    pfd = lowerFsFd;
+                }
             }
 
             // Second, wrap in any listener that we've requested
@@ -4768,7 +4634,7 @@ public class MediaProvider extends ContentProvider {
         final LongArray freeOffsets = new LongArray();
         try (FileInputStream is = new FileInputStream(file)) {
             final Set<String> redactedXmpTags = new ArraySet<>(Arrays.asList(REDACTED_EXIF_TAGS));
-            final String mimeType = MediaFile.getMimeTypeForFile(file.getPath());
+            final String mimeType = MimeUtils.resolveMimeType(file);
             if (ExifInterface.isSupportedMimeType(mimeType)) {
                 final ExifInterface exif = new ExifInterface(is.getFD());
                 for (String tag : REDACTED_EXIF_TAGS) {
@@ -4902,19 +4768,6 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Returns the name of the top level directory, or null if the path doesn't go through the
-     * external storage directory.
-     */
-    @Nullable
-    private static String extractTopLevelDir(String path) {
-        Matcher m = PATTERN_TOP_LEVEL_DIR.matcher(path);
-        if (m.matches()) {
-            return m.group(1);
-        }
-        return null;
-    }
-
-    /**
      * @throws IllegalStateException if path is invalid or doesn't match a volume.
      */
     @NonNull
@@ -5043,7 +4896,7 @@ public class MediaProvider extends ContentProvider {
                 return -OsConstants.EPERM;
             }
 
-            final String mimeType = MediaFile.getMimeTypeForFile(path);
+            final String mimeType = MimeUtils.resolveMimeType(new File(path));
             final Uri contentUri = getContentUriForFile(path, mimeType);
             if (fileExists(path, contentUri)) {
                 return -OsConstants.EEXIST;
@@ -5599,7 +5452,7 @@ public class MediaProvider extends ContentProvider {
 
         final Uri uri = MediaStore.AUTHORITY_URI.buildUpon().appendPath(volume).build();
         getContext().getContentResolver().notifyChange(uri, null);
-        if (LOCAL_LOGV) Log.v(TAG, "Attached volume: " + volume);
+        if (LOGV) Log.v(TAG, "Attached volume: " + volume);
         if (!MediaStore.VOLUME_INTERNAL.equals(volume)) {
             BackgroundThread.getExecutor().execute(() -> {
                 final DatabaseHelper helper = mExternalDatabase;
@@ -5636,22 +5489,8 @@ public class MediaProvider extends ContentProvider {
 
         final Uri uri = MediaStore.AUTHORITY_URI.buildUpon().appendPath(volume).build();
         getContext().getContentResolver().notifyChange(uri, null);
-        if (LOCAL_LOGV) Log.v(TAG, "Detached volume: " + volume);
+        if (LOGV) Log.v(TAG, "Detached volume: " + volume);
     }
-
-    /*
-     * Useful commands to enable debugging:
-     * $ adb shell setprop log.tag.MediaProvider VERBOSE
-     * $ adb shell setprop db.log.slow_query_threshold.`adb shell cat \
-     *       /data/system/packages.list |grep "com.android.providers.media " |cut -b 29-33` 0
-     * $ adb shell setprop db.log.bindargs 1
-     */
-
-    public static final String TAG = "MediaProvider";
-    public static final boolean LOCAL_LOGV = Log.isLoggable(TAG, Log.VERBOSE);
-
-    static final String INTERNAL_DATABASE_NAME = "internal.db";
-    static final String EXTERNAL_DATABASE_NAME = "external.db";
 
     @GuardedBy("mAttachedVolumeNames")
     private final ArraySet<String> mAttachedVolumeNames = new ArraySet<>();
@@ -5884,38 +5723,8 @@ public class MediaProvider extends ContentProvider {
         addGreylistPattern("case when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken \\* \\d+ when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken / \\d+ else \\d+ end");
     }
 
-    @GuardedBy("sProjectionMapCache")
-    private static final ArrayMap<Class<?>[], ArrayMap<String, String>>
-            sProjectionMapCache = new ArrayMap<>();
-
-    /**
-     * Return a projection map that represents the valid columns that can be
-     * queried the given contract class. The mapping is built automatically
-     * using the {@link Column} annotation, and is designed to ensure that we
-     * always support public API commitments.
-     */
-    public static ArrayMap<String, String> getProjectionMap(Class<?>... clazzes) {
-        synchronized (sProjectionMapCache) {
-            ArrayMap<String, String> map = sProjectionMapCache.get(clazzes);
-            if (map == null) {
-                map = new ArrayMap<>();
-                sProjectionMapCache.put(clazzes, map);
-                try {
-                    for (Class<?> clazz : clazzes) {
-                        for (Field field : clazz.getFields()) {
-                            if (Objects.equals(field.getName(), "_ID")
-                                    || field.isAnnotationPresent(Column.class)) {
-                                final String column = (String) field.get(null);
-                                map.put(column, column);
-                            }
-                        }
-                    }
-                } catch (ReflectiveOperationException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            return map;
-        }
+    public ArrayMap<String, String> getProjectionMap(Class<?>... clazzes) {
+        return mExternalDatabase.getProjectionMap(clazzes);
     }
 
     static <T> boolean containsAny(Set<T> a, Set<T> b) {

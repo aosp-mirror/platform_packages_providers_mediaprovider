@@ -91,10 +91,11 @@ constexpr int PER_USER_RANGE = 100000;
 
 class handle {
   public:
-    handle(const string& path) : path(path), fd(-1), ri(nullptr){};
+    handle(const string& path) : path(path), fd(-1), ri(nullptr), cached(true) {};
     string path;
     int fd;
     std::unique_ptr<RedactionInfo> ri;
+    bool cached;
 };
 
 struct dirhandle {
@@ -122,10 +123,32 @@ struct node {
     struct node* next;   /* per-dir sibling list */
     struct node* child;  /* first contained file by this dir */
     struct node* parent; /* containing directory */
+    std::vector<handle*> handles; /* container for file handle pointers */
+    std::vector<dirhandle*> dirhandles; /* container for dir handle pointers */
 
     string name;
 
     bool deleted;
+
+    bool HasCachedHandle() {
+        for (const auto& handle : handles) {
+            if (handle->cached) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void CloseAllOpenFds() {
+        for (handle* handle : handles) {
+            delete handle;
+        }
+        handles.clear();
+        for (dirhandle* dirhandle : dirhandles) {
+            delete dirhandle;
+        }
+        dirhandles.clear();
+    }
 };
 
 /*
@@ -306,6 +329,57 @@ static inline __u64 ptr_to_id(void* ptr) {
     return (__u64)(uintptr_t) ptr;
 }
 
+/*
+ * Set an F_RDLCK or F_WRLCKK on fd with fcntl(2).
+ *
+ * This is called before the MediaProvider returns fd from the lower file
+ * system to an app over the ContentResolver interface. This allows us
+ * check with is_file_locked if any reference to that fd is still open.
+ */
+static int set_file_lock(int fd, bool for_read, const std::string& path) {
+    std::string lock_str = (for_read ? "read" : "write");
+    TRACE << "Setting " << lock_str << " lock for path " << path;
+
+    struct flock fl{};
+    fl.l_type = for_read ? F_RDLCK : F_WRLCK;
+    fl.l_whence = SEEK_SET;
+
+    int res = fcntl(fd, F_OFD_SETLK, &fl);
+    if (res) {
+        PLOG(ERROR) << "Failed to set " << lock_str << " lock on path " << path;
+        return res;
+    }
+    TRACE << "Successfully set " << lock_str << " lock on path " << path;
+    return res;
+}
+
+/*
+ * Check if an F_RDLCK or F_WRLCK is set on fd with fcntl(2).
+ *
+ * This is used to determine if the MediaProvider has given an fd to the lower fs to an app over
+ * the ContentResolver interface. Before that happens, we always call set_file_lock on the file
+ * allowing us to know if any reference to that fd is still open here.
+ *
+ * Returns true if fd may have a lock, false otherwise
+ */
+static bool is_file_locked(int fd, const std::string& path) {
+    TRACE << "Checking if file is locked " << path;
+
+    struct flock fl{};
+    fl.l_type = F_WRLCK;
+    fl.l_whence = SEEK_SET;
+
+    int res = fcntl(fd, F_OFD_GETLK, &fl);
+    if (res) {
+        PLOG(ERROR) << "Failed to check lock for file " << path;
+        // Assume worst
+        return true;
+    }
+    bool locked = fl.l_type != F_UNLCK;
+    TRACE << "File " << path << " is " << (locked ? "locked" : "unlocked");
+    return locked;
+}
+
 static void acquire_node_locked(struct node* node) {
     node->refcount++;
     TRACE << "ACQUIRE " << node << " " << node->name << " rc=" << node->refcount;
@@ -429,7 +503,50 @@ static struct node* lookup_child_by_name_locked(struct node* node,
             return node;
         }
     }
-    return 0;
+    return nullptr;
+}
+
+static std::vector<std::string> get_path_segments(int segment_start, const std::string& path) {
+    using namespace std;
+    vector<std::string> segments;
+    int segment_end = path.find_first_of('/', segment_start);
+
+    while (segment_end != string::npos) {
+        if (segment_end == segment_start) {
+            // First character is '/' ignore
+            segment_end = path.find_first_of('/', ++segment_start);
+            continue;
+        }
+
+        segments.push_back(path.substr(segment_start, segment_end - segment_start));
+        segment_start = segment_end + 1;
+        segment_end = path.find_first_of('/', segment_start);
+    }
+    if (segment_start < path.size()) {
+        segments.push_back(path.substr(segment_start));
+    }
+    return segments;
+}
+
+static struct node* lookup_node_by_full_path_locked(struct fuse* fuse,
+                                                    const string& absolute_path) {
+    TRACE << "Looking up node for full path " << absolute_path;
+    if (absolute_path.find(fuse->path) != 0) {
+        TRACE << "Invalid path " << absolute_path;
+        return nullptr;
+    }
+
+    node* node = &fuse->root;
+    std::vector<std::string> segments = get_path_segments(fuse->path.size(), absolute_path);
+
+    for (const string& segment : segments) {
+        node = lookup_child_by_name_locked(node, segment);
+        if (!node) {
+            TRACE << "Node not found for segment " << segment << " in path " << absolute_path;
+            return nullptr;
+        }
+    }
+    return node;
 }
 
 static struct node* acquire_or_create_child_locked(struct fuse* fuse,
@@ -512,12 +629,27 @@ static void pf_init(void* userdata, struct fuse_conn_info* conn) {
     conn->max_read = MAX_READ_SIZE;
 }
 
-/*
-static void pf_destroy(void* userdata)
-{
-    cout << "TODO:" << __func__;
+static void delete_node_tree(node* parent, node* root) {
+    if (parent) {
+        node* next = parent->child;
+        while (next) {
+            delete_node_tree(next, root);
+            next = next->next;
+        }
+        parent->CloseAllOpenFds();
+        if (parent != root) {
+            // Don't delete node itself if it is root because it is stack allocated
+            LOG(DEBUG) << "DELETE node " << parent->name;
+            delete parent;
+        }
+    }
+ }
+
+static void pf_destroy(void* userdata) {
+    struct fuse* fuse = reinterpret_cast<struct fuse*>(userdata);
+    LOG(INFO) << "DESTROY " << fuse->path;
+    delete_node_tree(&fuse->root, &fuse->root);
 }
-*/
 
 static std::regex storage_emulated_regex("^\\/storage\\/emulated\\/([0-9]+)");
 static struct node* do_lookup(fuse_req_t req,
@@ -966,11 +1098,30 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         return;
     }
 
-    // In case we have any redaction ranges, we don't want to read cached content as we might
-    // accidentally access un-redacted content.
-    if (h->ri->isRedactionNeeded()) {
+    if (h->ri->isRedactionNeeded() || is_file_locked(h->fd, path)) {
+        // We don't want to use the FUSE VFS cache in two cases:
+        // 1. When redaction is needed because app A with EXIF access might access
+        // a region that should have been redacted for app B without EXIF access, but app B on
+        // a subsequent read, will be able to see the EXIF data because the read request for that
+        // region will be served from cache and not get to the FUSE daemon
+        // 2. When the file has a read or write lock on it. This means that the MediaProvider has
+        // given an fd to the lower file system to an app. There are two cases where using the cache
+        // in this case can be a problem:
+        // a. Writing to a FUSE fd with caching enabled will use the write-back cache and a
+        // subsequent read from the lower fs fd will not see the write.
+        // b. Reading from a FUSE fd with caching enabled may not see the latest writes using the
+        // lower fs fd because those writes did not go through the FUSE layer and reads from FUSE
+        // after that write may be served from cache
+        TRACE_FUSE(fuse) << "Using direct io for " << path;
         fi->direct_io = true;
+    } else {
+        TRACE_FUSE(fuse) << "Using cache for " << path;
     }
+
+    h->cached = !fi->direct_io;
+    pthread_mutex_lock(&fuse->lock);
+    node->handles.push_back(h);
+    pthread_mutex_unlock(&fuse->lock);
 
     fi->fh = ptr_to_id(h);
     fi->keep_cache = 1;
@@ -1170,8 +1321,10 @@ static void pf_release(fuse_req_t req,
                        struct fuse_file_info* fi) {
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
-    handle* h = reinterpret_cast<handle*>(fi->fh);
 
+    pthread_mutex_lock(&fuse->lock);
+    node* node = lookup_node_by_id_locked(fuse, ino);
+    handle* h = reinterpret_cast<handle*>(fi->fh);
     TRACE_FUSE(fuse) << "RELEASE "
                      << "0" << std::oct << fi->flags << " " << h << "(" << h->fd << ")";
 
@@ -1179,8 +1332,16 @@ static void pf_release(fuse_req_t req,
     close(h->fd);
 
     // TODO(b/145737191): Figure out if we need to scan files on close, and how to do it properly
-
+    if (node) {
+        for (auto it = node->handles.begin(); it != node->handles.end(); it++) {
+            if (*it == h) {
+                node->handles.erase(it);
+                break;
+            }
+        }
+    }
     delete h;
+    pthread_mutex_unlock(&fuse->lock);
     fuse_reply_err(req, 0);
 }
 
@@ -1246,6 +1407,7 @@ static void pf_opendir(fuse_req_t req,
         fuse_reply_err(req, errno);
         return;
     }
+    node->dirhandles.push_back(h);
     h->next_off = 0;
     fi->fh = ptr_to_id(h);
     fuse_reply_open(req, fi);
@@ -1357,11 +1519,23 @@ static void pf_releasedir(fuse_req_t req,
                           struct fuse_file_info* fi) {
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
-    struct dirhandle* h = reinterpret_cast<struct dirhandle*>(fi->fh);
 
+    pthread_mutex_lock(&fuse->lock);
+    node* node = lookup_node_by_id_locked(fuse, ino);
+    dirhandle* h = reinterpret_cast<struct dirhandle*>(fi->fh);
     TRACE_FUSE(fuse) << "RELEASEDIR " << h;
     closedir(h->d);
+    if (node) {
+        for (auto it = node->dirhandles.begin(); it != node->dirhandles.end(); it++) {
+            if (*it == h) {
+                node->dirhandles.erase(it);
+                break;
+            }
+        }
+    }
     delete h;
+    pthread_mutex_unlock(&fuse->lock);
+
     fuse_reply_err(req, 0);
 }
 
@@ -1459,7 +1633,9 @@ static void pf_create(fuse_req_t req,
 
     fi->fh = ptr_to_id(h);
     fi->keep_cache = 1;
-    if (make_node_entry(req, parent_node, name, child_path, &e)) {
+    node* node = make_node_entry(req, parent_node, name, child_path, &e);
+    if (node) {
+        node->handles.push_back(h);
         fuse_reply_create(req, &e, fi);
     } else {
         fuse_reply_err(req, errno);
@@ -1519,7 +1695,7 @@ static void pf_fallocate(fuse_req_t req, fuse_ino_t ino, int mode,
 
 static struct fuse_lowlevel_ops ops{
     .init = pf_init,
-    /*.destroy = pf_destroy,*/
+    .destroy = pf_destroy,
     .lookup = pf_lookup, .forget = pf_forget, .getattr = pf_getattr,
     .setattr = pf_setattr,
     /*.readlink = pf_readlink,*/
@@ -1572,7 +1748,34 @@ static void fuse_logger(enum fuse_log_level level, const char* fmt, va_list ap) 
     __android_log_vprint(fuse_to_android_loglevel.at(level), LOG_TAG, fmt, ap);
 }
 
-FuseDaemon::FuseDaemon(JNIEnv* env, jobject mediaProvider) : mp(env, mediaProvider) {}
+bool FuseDaemon::ShouldOpenWithFuse(int fd, bool for_read, const std::string& path) {
+    TRACE << "Checking if file should be opened with FUSE " << path;
+    bool use_fuse = false;
+
+    if (active.load(std::memory_order_acquire)) {
+        pthread_mutex_lock(&fuse->lock);
+        node* node = lookup_node_by_full_path_locked(fuse, path);
+        if (node && node->HasCachedHandle()) {
+            TRACE << "Should open " << path << " with FUSE. Reason: cache";
+            use_fuse = true;
+        } else {
+            // If we are unable to set a lock, we should use fuse since we can't track
+            // when all fd references (including dups) are closed. This can happen when
+            // we try to set a write lock twice on the same file
+            use_fuse = set_file_lock(fd, for_read, path);
+            TRACE << "Should open " << path << (use_fuse ? " with" : " without")
+                  << " FUSE. Reason: lock";
+        }
+        pthread_mutex_unlock(&fuse->lock);
+    } else {
+        TRACE << "FUSE daemon is inactive. Should not open " << path << " with FUSE";
+    }
+
+    return use_fuse;
+}
+
+FuseDaemon::FuseDaemon(JNIEnv* env, jobject mediaProvider) : mp(env, mediaProvider),
+                                                             active(false), fuse(nullptr) {}
 
 void FuseDaemon::Start(const int fd, const std::string& path) {
     struct fuse_args args;
@@ -1608,6 +1811,9 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
     fuse_default.root.name = path;
     fuse_default.path = path;
     fuse_default.mp = &mp;
+    // fuse_default is stack allocated, but it's safe to save it as an instance variable because
+    // this method blocks and FuseDaemon#active tells if we are currently blocking
+    fuse = &fuse_default;
 
     // Used by pf_read: redacted ranges are represented by zeroized ranges of bytes,
     // so we mmap the maximum length of redacted ranges in the beginning and save memory allocations
@@ -1636,6 +1842,7 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
     // fuse_session_loop(se);
     // Multi-threaded
     LOG(INFO) << "Starting fuse...";
+    active.store(true, std::memory_order_release);
     fuse_session_loop_mt(se, &config);
     LOG(INFO) << "Ending fuse...";
 
@@ -1645,6 +1852,7 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
 
     fuse_opt_free_args(&args);
     fuse_session_destroy(se);
+    active.store(false, std::memory_order_relaxed);
     LOG(INFO) << "Ended fuse";
     return;
 }

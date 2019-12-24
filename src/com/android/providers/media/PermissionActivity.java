@@ -18,9 +18,9 @@ package com.android.providers.media;
 
 import static com.android.providers.media.MediaProvider.AUDIO_MEDIA_ID;
 import static com.android.providers.media.MediaProvider.IMAGES_MEDIA_ID;
-import static com.android.providers.media.MediaProvider.TAG;
 import static com.android.providers.media.MediaProvider.VIDEO_MEDIA_ID;
 import static com.android.providers.media.MediaProvider.collectUris;
+import static com.android.providers.media.util.Logging.TAG;
 
 import android.app.Activity;
 import android.app.AlertDialog;

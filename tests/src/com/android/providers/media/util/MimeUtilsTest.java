@@ -19,6 +19,8 @@ package com.android.providers.media.util;
 import static org.junit.Assert.assertEquals;
 
 import android.content.ClipDescription;
+import android.mtp.MtpConstants;
+import android.provider.MediaStore.Files.FileColumns;
 
 import androidx.test.runner.AndroidJUnit4;
 
@@ -42,6 +44,35 @@ public class MimeUtilsTest {
 
     @Test
     public void testExtractPrimaryType() throws Exception {
-        assertEquals("image", MimeUtils.extractPrimaryType("image/jpeg"));
+        assertEquals("image",
+                MimeUtils.extractPrimaryType("image/jpeg"));
+    }
+
+    @Test
+    public void testResolveMediaType() throws Exception {
+        assertEquals(FileColumns.MEDIA_TYPE_AUDIO,
+                MimeUtils.resolveMediaType("audio/mpeg"));
+        assertEquals(FileColumns.MEDIA_TYPE_VIDEO,
+                MimeUtils.resolveMediaType("video/mpeg"));
+        assertEquals(FileColumns.MEDIA_TYPE_IMAGE,
+                MimeUtils.resolveMediaType("image/jpeg"));
+        assertEquals(FileColumns.MEDIA_TYPE_NONE,
+                MimeUtils.resolveMediaType("application/x-does-not-exist"));
+
+        // Make sure we catch playlists before audio
+        assertEquals(FileColumns.MEDIA_TYPE_PLAYLIST,
+                MimeUtils.resolveMediaType("audio/mpegurl"));
+    }
+
+    @Test
+    public void testResolveFormatCode() throws Exception {
+        assertEquals(MtpConstants.FORMAT_UNDEFINED_AUDIO,
+                MimeUtils.resolveFormatCode("audio/mpeg"));
+        assertEquals(MtpConstants.FORMAT_UNDEFINED_VIDEO,
+                MimeUtils.resolveFormatCode("video/mpeg"));
+        assertEquals(MtpConstants.FORMAT_DEFINED,
+                MimeUtils.resolveFormatCode("image/jpeg"));
+        assertEquals(MtpConstants.FORMAT_UNDEFINED,
+                MimeUtils.resolveFormatCode("application/x-does-not-exist"));
     }
 }

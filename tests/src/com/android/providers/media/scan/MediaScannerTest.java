@@ -44,7 +44,7 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.MediaProvider;
-import com.android.providers.media.tests.R;
+import com.android.providers.media.R;
 import com.android.providers.media.util.FileUtils;
 
 import org.junit.Before;

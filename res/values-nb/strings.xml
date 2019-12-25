@@ -25,9 +25,99 @@
     <string name="root_audio" msgid="3505830755201326018">"Lyd"</string>
     <string name="permission_required" msgid="1460820436132943754">"Du må ha tillatelse for å endre eller slette dette elementet."</string>
     <string name="permission_required_action" msgid="706370952366113539">"Fortsett"</string>
-    <string name="permission_audio" msgid="344061911159388398">"Vil du tillate at "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" endrer eller sletter denne musikken?"</string>
-    <string name="permission_video" msgid="8188037202573267740">"Vil du tillate at "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" endrer eller sletter denne videoen?"</string>
-    <string name="permission_images" msgid="6711726334380945124">"Vil du tillate at "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" endrer eller sletter dette bildet?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Tillat"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Avvis"</string>
+    <!-- no translation found for permission_more_thumb (3530243737498196228) -->
+    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
+      <item quantity="other">Pluss <xliff:g id="COUNT_1">^1</xliff:g> elementer til</item>
+      <item quantity="one">Pluss <xliff:g id="COUNT_0">^1</xliff:g> element til</item>
+    </plurals>
+    <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
+      <item quantity="other">Vil du la <xliff:g id="APP_NAME_1">^1</xliff:g> endre <xliff:g id="COUNT">^2</xliff:g> lydfiler?</item>
+      <item quantity="one">Vil du la <xliff:g id="APP_NAME_0">^1</xliff:g> endre denne lydfilen?</item>
+    </plurals>
+    <plurals name="permission_write_video" formatted="false" msgid="8695335317588947410">
+      <item quantity="other">Vil du la <xliff:g id="APP_NAME_1">^1</xliff:g> endre <xliff:g id="COUNT">^2</xliff:g> videoer?</item>
+      <item quantity="one">Vil du la <xliff:g id="APP_NAME_0">^1</xliff:g> endre denne videoen?</item>
+    </plurals>
+    <plurals name="permission_write_image" formatted="false" msgid="9032317900030650266">
+      <item quantity="other">Vil du la <xliff:g id="APP_NAME_1">^1</xliff:g> endre <xliff:g id="COUNT">^2</xliff:g> bilder?</item>
+      <item quantity="one">Vil du la <xliff:g id="APP_NAME_0">^1</xliff:g> endre dette bildet?</item>
+    </plurals>
+    <plurals name="permission_write_generic" formatted="false" msgid="3099002288826692797">
+      <item quantity="other">Vil du la <xliff:g id="APP_NAME_1">^1</xliff:g> endre <xliff:g id="COUNT">^2</xliff:g> elementer?</item>
+      <item quantity="one">Vil du la <xliff:g id="APP_NAME_0">^1</xliff:g> endre dette elementet?</item>
+    </plurals>
+    <string name="permission_write_grant" msgid="3160858917750790130">"Endre"</string>
+    <string name="permission_write_deny" msgid="7090074081877311071">"Avbryt"</string>
+    <plurals name="permission_trash_audio" formatted="false" msgid="6116371056718108592">
+      <item quantity="other">Vil du la <xliff:g id="APP_NAME_1">^1</xliff:g> flytte <xliff:g id="COUNT">^2</xliff:g> lydfiler til papirkurven?</item>
+      <item quantity="one">Vil du la <xliff:g id="APP_NAME_0">^1</xliff:g> flytte denne lydfilen til papirkurven?</item>
+    </plurals>
+    <plurals name="permission_trash_audio_info" formatted="false" msgid="5002847308948758655">
+      <item quantity="other">Disse lydfilene blir permanent slettet etter <xliff:g id="DURATION_1">^3</xliff:g> dager</item>
+      <item quantity="one">Denne lydfilen blir permanent slettet etter <xliff:g id="DURATION_0">^3</xliff:g> dager</item>
+    </plurals>
+    <plurals name="permission_trash_video" formatted="false" msgid="7900111984425589714">
+      <item quantity="other">Vil du la <xliff:g id="APP_NAME_1">^1</xliff:g> flytte <xliff:g id="COUNT">^2</xliff:g> videoer til papirkurven?</item>
+      <item quantity="one">Vil du la <xliff:g id="APP_NAME_0">^1</xliff:g> flytte denne videoen til papirkurven?</item>
+    </plurals>
+    <plurals name="permission_trash_video_info" formatted="false" msgid="4604871492287117394">
+      <item quantity="other">Disse videoene blir permanent slettet etter <xliff:g id="DURATION_1">^3</xliff:g> dager</item>
+      <item quantity="one">Denne videoen blir permanent slettet etter <xliff:g id="DURATION_0">^3</xliff:g> dager</item>
+    </plurals>
+    <plurals name="permission_trash_image" formatted="false" msgid="9204660448046457869">
+      <item quantity="other">Vil du la <xliff:g id="APP_NAME_1">^1</xliff:g> flytte <xliff:g id="COUNT">^2</xliff:g> bilder til papirkurven?</item>
+      <item quantity="one">Vil du la <xliff:g id="APP_NAME_0">^1</xliff:g> flytte dette bildet til papirkurven?</item>
+    </plurals>
+    <plurals name="permission_trash_image_info" formatted="false" msgid="4214797662365755925">
+      <item quantity="other">Disse bildene blir permanent slettet etter <xliff:g id="DURATION_1">^3</xliff:g> dager</item>
+      <item quantity="one">Dette bildet blir permanent slettet etter <xliff:g id="DURATION_0">^3</xliff:g> dager</item>
+    </plurals>
+    <plurals name="permission_trash_generic" formatted="false" msgid="427752775725644743">
+      <item quantity="other">Vil du la <xliff:g id="APP_NAME_1">^1</xliff:g> flytte <xliff:g id="COUNT">^2</xliff:g> elementer til papirkurven?</item>
+      <item quantity="one">Vil du la <xliff:g id="APP_NAME_0">^1</xliff:g> flytte dette elementet til papirkurven?</item>
+    </plurals>
+    <plurals name="permission_trash_generic_info" formatted="false" msgid="7932965324027540546">
+      <item quantity="other">Disse elementene blir permanent slettet etter <xliff:g id="DURATION_1">^3</xliff:g> dager</item>
+      <item quantity="one">Dette elementet blir permanent slettet etter <xliff:g id="DURATION_0">^3</xliff:g> dager</item>
+    </plurals>
+    <string name="permission_trash_grant" msgid="2279489962040272178">"Flytt til papirkurven"</string>
+    <string name="permission_trash_deny" msgid="2447949475239137483">"Avbryt"</string>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="5716379492864435914">
+      <item quantity="other">Vil du la <xliff:g id="APP_NAME_1">^1</xliff:g> flytte <xliff:g id="COUNT">^2</xliff:g> lydfiler ut av papirkurven?</item>
+      <item quantity="one">Vil du la <xliff:g id="APP_NAME_0">^1</xliff:g> flytte denne lydfilen ut av papirkurven?</item>
+    </plurals>
+    <plurals name="permission_untrash_video" formatted="false" msgid="4554487646802678525">
+      <item quantity="other">Vil du la <xliff:g id="APP_NAME_1">^1</xliff:g> flytte <xliff:g id="COUNT">^2</xliff:g> videoer ut av papirkurven?</item>
+      <item quantity="one">Vil du la <xliff:g id="APP_NAME_0">^1</xliff:g> flytte denne videoen ut av papirkurven?</item>
+    </plurals>
+    <plurals name="permission_untrash_image" formatted="false" msgid="3209306923499767662">
+      <item quantity="other">Vil du la <xliff:g id="APP_NAME_1">^1</xliff:g> flytte <xliff:g id="COUNT">^2</xliff:g> bilder ut av papirkurven?</item>
+      <item quantity="one">Vil du la <xliff:g id="APP_NAME_0">^1</xliff:g> flytte dette bildet ut av papirkurven?</item>
+    </plurals>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="4607666277638602132">
+      <item quantity="other">Vil du la <xliff:g id="APP_NAME_1">^1</xliff:g> flytte <xliff:g id="COUNT">^2</xliff:g> elementer ut av papirkurven?</item>
+      <item quantity="one">Vil du la <xliff:g id="APP_NAME_0">^1</xliff:g> flytte dette elementet ut av papirkurven?</item>
+    </plurals>
+    <string name="permission_untrash_grant" msgid="8438940480373451790">"Flytt ut av papirkurven"</string>
+    <string name="permission_untrash_deny" msgid="8008055757469903604">"Avbryt"</string>
+    <plurals name="permission_delete_audio" formatted="false" msgid="6390202287788379608">
+      <item quantity="other">Vil du la <xliff:g id="APP_NAME_1">^1</xliff:g> slette <xliff:g id="COUNT">^2</xliff:g> lydfiler?</item>
+      <item quantity="one">Vil du la <xliff:g id="APP_NAME_0">^1</xliff:g> slette denne lydfilen?</item>
+    </plurals>
+    <plurals name="permission_delete_video" formatted="false" msgid="1577978206881284398">
+      <item quantity="other">Vil du la <xliff:g id="APP_NAME_1">^1</xliff:g> slette <xliff:g id="COUNT">^2</xliff:g> videoer?</item>
+      <item quantity="one">Vil du la <xliff:g id="APP_NAME_0">^1</xliff:g> slette denne videoen?</item>
+    </plurals>
+    <plurals name="permission_delete_image" formatted="false" msgid="8435429587272893063">
+      <item quantity="other">Vil du la <xliff:g id="APP_NAME_1">^1</xliff:g> slette <xliff:g id="COUNT">^2</xliff:g> bilder?</item>
+      <item quantity="one">Vil du la <xliff:g id="APP_NAME_0">^1</xliff:g> slette dette bildet?</item>
+    </plurals>
+    <plurals name="permission_delete_generic" formatted="false" msgid="5949614272661654178">
+      <item quantity="other">Vil du la <xliff:g id="APP_NAME_1">^1</xliff:g> slette <xliff:g id="COUNT">^2</xliff:g> elementer?</item>
+      <item quantity="one">Vil du la <xliff:g id="APP_NAME_0">^1</xliff:g> slette dette elementet?</item>
+    </plurals>
+    <string name="permission_delete_grant" msgid="8682518049167813926">"Slett"</string>
+    <string name="permission_delete_deny" msgid="3742780367403897552">"Avbryt"</string>
 </resources>

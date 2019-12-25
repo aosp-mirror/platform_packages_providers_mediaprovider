@@ -25,9 +25,99 @@
     <string name="root_audio" msgid="3505830755201326018">"ഓഡിയോ"</string>
     <string name="permission_required" msgid="1460820436132943754">"ഈ ഇനം പരിഷ്‌ക്കരിക്കാനോ ഇല്ലാതാക്കാനോ അനുവാദം ആവശ്യമാണ്."</string>
     <string name="permission_required_action" msgid="706370952366113539">"തുടരുക"</string>
-    <string name="permission_audio" msgid="344061911159388398">"ഈ സംഗീതം പരിഷ്‌ക്കരിക്കാനോ ഇല്ലാതാക്കാനോ "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"-നെ അനുവദിക്കണോ?"</string>
-    <string name="permission_video" msgid="8188037202573267740">"ഈ വീഡിയോ പരിഷ്‌ക്കരിക്കാനോ ഇല്ലാതാക്കാനോ "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"-നെ അനുവദിക്കണോ?"</string>
-    <string name="permission_images" msgid="6711726334380945124">"ഈ ചിത്രം പരിഷ്‌ക്കരിക്കാനോ ഇല്ലാതാക്കാനോ "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"-നെ അനുവദിക്കണോ?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"അനുവദിക്കുക"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"നിരസിക്കുക"</string>
+    <!-- no translation found for permission_more_thumb (3530243737498196228) -->
+    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
+      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> അധിക ഇനങ്ങൾ കൂടി</item>
+      <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> അധിക ഇനം കൂടി</item>
+    </plurals>
+    <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ഓഡിയോ ഫയലുകൾ മാറ്റാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+      <item quantity="one">ഈ ഓഡിയോ ഫയൽ മാറ്റാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+    </plurals>
+    <plurals name="permission_write_video" formatted="false" msgid="8695335317588947410">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> വീഡിയോകൾ മാറ്റാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+      <item quantity="one">ഈ വീഡിയോ മാറ്റാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+    </plurals>
+    <plurals name="permission_write_image" formatted="false" msgid="9032317900030650266">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ഫോട്ടോകൾ മാറ്റാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+      <item quantity="one">ഈ ഫോട്ടോ മാറ്റാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+    </plurals>
+    <plurals name="permission_write_generic" formatted="false" msgid="3099002288826692797">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ഇനങ്ങൾ മാറ്റാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+      <item quantity="one">ഈ ഇനം മാറ്റാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+    </plurals>
+    <string name="permission_write_grant" msgid="3160858917750790130">"മാറ്റുക"</string>
+    <string name="permission_write_deny" msgid="7090074081877311071">"റദ്ദാക്കൂ"</string>
+    <plurals name="permission_trash_audio" formatted="false" msgid="6116371056718108592">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ഓഡിയോ ഫയലുകൾ ട്രാഷിലേക്ക് നീക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+      <item quantity="one">ഈ ഓഡിയോ ഫയൽ ട്രാഷിലേക്ക് നീക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+    </plurals>
+    <plurals name="permission_trash_audio_info" formatted="false" msgid="5002847308948758655">
+      <item quantity="other"><xliff:g id="DURATION_1">^3</xliff:g> ദിവസം കഴിഞ്ഞ് ഈ ഒഡിയോ ഫയലുകൾ ശാശ്വതമായി ഇല്ലാതാക്കപ്പെടും</item>
+      <item quantity="one"><xliff:g id="DURATION_0">^3</xliff:g> ദിവസം കഴിഞ്ഞ് ഈ ഒഡിയോ ഫയൽ ശാശ്വതമായി ഇല്ലാതാക്കപ്പെടും</item>
+    </plurals>
+    <plurals name="permission_trash_video" formatted="false" msgid="7900111984425589714">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> വീഡിയോകൾ ട്രാഷിലേക്ക് നീക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+      <item quantity="one">ഈ വീഡിയോ ട്രാഷിലേക്ക് നീക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+    </plurals>
+    <plurals name="permission_trash_video_info" formatted="false" msgid="4604871492287117394">
+      <item quantity="other"><xliff:g id="DURATION_1">^3</xliff:g> ദിവസം കഴിഞ്ഞ് ഈ വീഡിയോകൾ ശാശ്വതമായി ഇല്ലാതാക്കപ്പെടും</item>
+      <item quantity="one"><xliff:g id="DURATION_0">^3</xliff:g> ദിവസം കഴിഞ്ഞ് ഈ വീഡിയോ ശാശ്വതമായി ഇല്ലാതാക്കപ്പെടും</item>
+    </plurals>
+    <plurals name="permission_trash_image" formatted="false" msgid="9204660448046457869">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ഫോട്ടോകൾ ട്രാഷിലേക്ക് നീക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+      <item quantity="one">ഈ ഫോട്ടോ ട്രാഷിലേക്ക് നീക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+    </plurals>
+    <plurals name="permission_trash_image_info" formatted="false" msgid="4214797662365755925">
+      <item quantity="other"><xliff:g id="DURATION_1">^3</xliff:g> ദിവസം കഴിഞ്ഞ് ഈ ഫോട്ടോകൾ ശാശ്വതമായി ഇല്ലാതാക്കപ്പെടും</item>
+      <item quantity="one"><xliff:g id="DURATION_0">^3</xliff:g> ദിവസം കഴിഞ്ഞ് ഈ ഫോട്ടോ ശാശ്വതമായി ഇല്ലാതാക്കപ്പെടും</item>
+    </plurals>
+    <plurals name="permission_trash_generic" formatted="false" msgid="427752775725644743">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ഇനങ്ങൾ ട്രാഷിലേക്ക് നീക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+      <item quantity="one">ഈ ഇനം ട്രാഷിലേക്ക് നീക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+    </plurals>
+    <plurals name="permission_trash_generic_info" formatted="false" msgid="7932965324027540546">
+      <item quantity="other"><xliff:g id="DURATION_1">^3</xliff:g> ദിവസം കഴിഞ്ഞ് ഈ ഇനങ്ങൾ ശാശ്വതമായി ഇല്ലാതാക്കപ്പെടും</item>
+      <item quantity="one"><xliff:g id="DURATION_0">^3</xliff:g> ദിവസം കഴിഞ്ഞ് ഈ ഇനം ശാശ്വതമായി ഇല്ലാതാക്കപ്പെടും</item>
+    </plurals>
+    <string name="permission_trash_grant" msgid="2279489962040272178">"ട്രാഷിലേക്ക് നീക്കുക"</string>
+    <string name="permission_trash_deny" msgid="2447949475239137483">"റദ്ദാക്കൂ"</string>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="5716379492864435914">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ഓഡിയോ ഫയലുകൾ ട്രാഷിന് പുറത്തേക്ക് നീക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+      <item quantity="one">ഈ ഓഡിയോ ഫയൽ ട്രാഷിന് പുറത്തേക്ക് നീക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+    </plurals>
+    <plurals name="permission_untrash_video" formatted="false" msgid="4554487646802678525">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> വീഡിയോകൾ ട്രാഷിന് പുറത്തേക്ക് നീക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+      <item quantity="one">ഈ വീഡിയോ ട്രാഷിന് പുറത്തേക്ക് നീക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+    </plurals>
+    <plurals name="permission_untrash_image" formatted="false" msgid="3209306923499767662">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ഫോട്ടോകൾ ട്രാഷിന് പുറത്തേക്ക് നീക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+      <item quantity="one">ഈ ഫോട്ടോ ട്രാഷിന് പുറത്തേക്ക് നീക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+    </plurals>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="4607666277638602132">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ഇനങ്ങൾ ട്രാഷിന് പുറത്തേക്ക് നീക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+      <item quantity="one">ഈ ഇനം ട്രാഷിന് പുറത്തേക്ക് നീക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+    </plurals>
+    <string name="permission_untrash_grant" msgid="8438940480373451790">"ട്രാഷിൽ നിന്ന് പുറത്തേക്ക് നീക്കൂ"</string>
+    <string name="permission_untrash_deny" msgid="8008055757469903604">"റദ്ദാക്കൂ"</string>
+    <plurals name="permission_delete_audio" formatted="false" msgid="6390202287788379608">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ഓഡിയോ ഫയലുകൾ ഇല്ലാതാക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+      <item quantity="one">ഈ ഓഡിയോ ഫയൽ ഇല്ലാതാക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+    </plurals>
+    <plurals name="permission_delete_video" formatted="false" msgid="1577978206881284398">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> വീഡിയോകൾ ഇല്ലാതാക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+      <item quantity="one">ഈ വീഡിയോ ഇല്ലാതാക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+    </plurals>
+    <plurals name="permission_delete_image" formatted="false" msgid="8435429587272893063">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ഫോട്ടോകൾ ഇല്ലാതാക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+      <item quantity="one">ഈ ഫോട്ടോ ഇല്ലാതാക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+    </plurals>
+    <plurals name="permission_delete_generic" formatted="false" msgid="5949614272661654178">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ഇനങ്ങൾ ഇല്ലാതാക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+      <item quantity="one">ഈ ഇനം ഇല്ലാതാക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
+    </plurals>
+    <string name="permission_delete_grant" msgid="8682518049167813926">"ഇല്ലാതാക്കുക"</string>
+    <string name="permission_delete_deny" msgid="3742780367403897552">"റദ്ദാക്കൂ"</string>
 </resources>

@@ -25,9 +25,99 @@
     <string name="root_audio" msgid="3505830755201326018">"Аудио"</string>
     <string name="permission_required" msgid="1460820436132943754">"Необходимо е разрешение за промяна или изтриване на този елемент."</string>
     <string name="permission_required_action" msgid="706370952366113539">"Напред"</string>
-    <string name="permission_audio" msgid="344061911159388398">"Да се разреши ли на "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" да променя или изтрива тази музика?"</string>
-    <string name="permission_video" msgid="8188037202573267740">"Да се разреши ли на "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" да променя или изтрива този видеоклип?"</string>
-    <string name="permission_images" msgid="6711726334380945124">"Да се разреши ли на "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" да променя или изтрива това изображение?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Разрешаване"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Отказ"</string>
+    <!-- no translation found for permission_more_thumb (3530243737498196228) -->
+    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
+      <item quantity="other">И още <xliff:g id="COUNT_1">^1</xliff:g> допълнителни елемента</item>
+      <item quantity="one">И още <xliff:g id="COUNT_0">^1</xliff:g> допълнителен елемент</item>
+    </plurals>
+    <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
+      <item quantity="other">Разрешавате ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да промени <xliff:g id="COUNT">^2</xliff:g> аудиофайла?</item>
+      <item quantity="one">Разрешавате ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да промени този аудиофайл?</item>
+    </plurals>
+    <plurals name="permission_write_video" formatted="false" msgid="8695335317588947410">
+      <item quantity="other">Разрешавате ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да промени <xliff:g id="COUNT">^2</xliff:g> видеоклипа?</item>
+      <item quantity="one">Разрешавате ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да промени този видеоклип?</item>
+    </plurals>
+    <plurals name="permission_write_image" formatted="false" msgid="9032317900030650266">
+      <item quantity="other">Разрешавате ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да промени <xliff:g id="COUNT">^2</xliff:g> снимки?</item>
+      <item quantity="one">Разрешавате ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да промени тази снимка?</item>
+    </plurals>
+    <plurals name="permission_write_generic" formatted="false" msgid="3099002288826692797">
+      <item quantity="other">Разрешавате ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да промени <xliff:g id="COUNT">^2</xliff:g> елемента?</item>
+      <item quantity="one">Разрешавате ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да промени този елемент?</item>
+    </plurals>
+    <string name="permission_write_grant" msgid="3160858917750790130">"Промяна"</string>
+    <string name="permission_write_deny" msgid="7090074081877311071">"Отказ"</string>
+    <plurals name="permission_trash_audio" formatted="false" msgid="6116371056718108592">
+      <item quantity="other">Разрешавате ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да премести <xliff:g id="COUNT">^2</xliff:g> аудиофайла в кошчето?</item>
+      <item quantity="one">Разрешавате ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да премести този аудиофайл в кошчето?</item>
+    </plurals>
+    <plurals name="permission_trash_audio_info" formatted="false" msgid="5002847308948758655">
+      <item quantity="other">Тези аудиофайлове ще бъдат изтрити за постоянно след <xliff:g id="DURATION_1">^3</xliff:g> дни</item>
+      <item quantity="one">Този аудиофайл ще бъде изтрит за постоянно след <xliff:g id="DURATION_0">^3</xliff:g> дни</item>
+    </plurals>
+    <plurals name="permission_trash_video" formatted="false" msgid="7900111984425589714">
+      <item quantity="other">Разрешавате ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да премести <xliff:g id="COUNT">^2</xliff:g> видеоклипа в кошчето?</item>
+      <item quantity="one">Разрешавате ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да премести този видеоклип в кошчето?</item>
+    </plurals>
+    <plurals name="permission_trash_video_info" formatted="false" msgid="4604871492287117394">
+      <item quantity="other">Тези видеоклипове ще бъдат изтрити за постоянно след <xliff:g id="DURATION_1">^3</xliff:g> дни</item>
+      <item quantity="one">Този видеоклип ще бъде изтрит за постоянно след <xliff:g id="DURATION_0">^3</xliff:g> дни</item>
+    </plurals>
+    <plurals name="permission_trash_image" formatted="false" msgid="9204660448046457869">
+      <item quantity="other">Разрешавате ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да премести <xliff:g id="COUNT">^2</xliff:g> снимки в кошчето?</item>
+      <item quantity="one">Разрешавате ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да премести тази снимка в кошчето?</item>
+    </plurals>
+    <plurals name="permission_trash_image_info" formatted="false" msgid="4214797662365755925">
+      <item quantity="other">Тези снимки ще бъдат изтрити за постоянно след <xliff:g id="DURATION_1">^3</xliff:g> дни</item>
+      <item quantity="one">Тази снимка ще бъде изтрита за постоянно след <xliff:g id="DURATION_0">^3</xliff:g> дни</item>
+    </plurals>
+    <plurals name="permission_trash_generic" formatted="false" msgid="427752775725644743">
+      <item quantity="other">Разрешавате ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да премести <xliff:g id="COUNT">^2</xliff:g> елемента в кошчето?</item>
+      <item quantity="one">Разрешавате ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да премести този елемент в кошчето?</item>
+    </plurals>
+    <plurals name="permission_trash_generic_info" formatted="false" msgid="7932965324027540546">
+      <item quantity="other">Тези елементи ще бъдат изтрити за постоянно след <xliff:g id="DURATION_1">^3</xliff:g> дни</item>
+      <item quantity="one">Този елемент ще бъде изтрит за постоянно след <xliff:g id="DURATION_0">^3</xliff:g> дни</item>
+    </plurals>
+    <string name="permission_trash_grant" msgid="2279489962040272178">"Преместване в кошчето"</string>
+    <string name="permission_trash_deny" msgid="2447949475239137483">"Отказ"</string>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="5716379492864435914">
+      <item quantity="other">Разрешавате ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да премести <xliff:g id="COUNT">^2</xliff:g> аудиофайла извън кошчето?</item>
+      <item quantity="one">Разрешавате ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да премести този аудиофайл извън кошчето?</item>
+    </plurals>
+    <plurals name="permission_untrash_video" formatted="false" msgid="4554487646802678525">
+      <item quantity="other">Разрешавате ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да премести <xliff:g id="COUNT">^2</xliff:g> видеоклипа извън кошчето?</item>
+      <item quantity="one">Разрешавате ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да премести този видеоклип извън кошчето?</item>
+    </plurals>
+    <plurals name="permission_untrash_image" formatted="false" msgid="3209306923499767662">
+      <item quantity="other">Разрешавате ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да премести <xliff:g id="COUNT">^2</xliff:g> снимки извън кошчето?</item>
+      <item quantity="one">Разрешавате ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да премести тази снимка извън кошчето?</item>
+    </plurals>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="4607666277638602132">
+      <item quantity="other">Разрешавате ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да премести <xliff:g id="COUNT">^2</xliff:g> елемента извън кошчето?</item>
+      <item quantity="one">Разрешавате ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да премести този елемент извън кошчето?</item>
+    </plurals>
+    <string name="permission_untrash_grant" msgid="8438940480373451790">"Преместване извън кошчето"</string>
+    <string name="permission_untrash_deny" msgid="8008055757469903604">"Отказ"</string>
+    <plurals name="permission_delete_audio" formatted="false" msgid="6390202287788379608">
+      <item quantity="other">Разрешавате ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да изтрие <xliff:g id="COUNT">^2</xliff:g> аудиофайла?</item>
+      <item quantity="one">Разрешавате ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да изтрие този аудиофайл?</item>
+    </plurals>
+    <plurals name="permission_delete_video" formatted="false" msgid="1577978206881284398">
+      <item quantity="other">Разрешавате ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да изтрие <xliff:g id="COUNT">^2</xliff:g> видеоклипa?</item>
+      <item quantity="one">Разрешавате ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да изтрие този видеоклип?</item>
+    </plurals>
+    <plurals name="permission_delete_image" formatted="false" msgid="8435429587272893063">
+      <item quantity="other">Разрешавате ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да изтрие <xliff:g id="COUNT">^2</xliff:g> снимки?</item>
+      <item quantity="one">Разрешавате ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да изтрие тази снимка?</item>
+    </plurals>
+    <plurals name="permission_delete_generic" formatted="false" msgid="5949614272661654178">
+      <item quantity="other">Разрешавате ли на <xliff:g id="APP_NAME_1">^1</xliff:g> да изтрие <xliff:g id="COUNT">^2</xliff:g> елемента?</item>
+      <item quantity="one">Разрешавате ли на <xliff:g id="APP_NAME_0">^1</xliff:g> да изтрие този елемент?</item>
+    </plurals>
+    <string name="permission_delete_grant" msgid="8682518049167813926">"Изтриване"</string>
+    <string name="permission_delete_deny" msgid="3742780367403897552">"Отказ"</string>
 </resources>

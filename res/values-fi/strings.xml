@@ -25,9 +25,99 @@
     <string name="root_audio" msgid="3505830755201326018">"Ääni"</string>
     <string name="permission_required" msgid="1460820436132943754">"Kohteen muokkaus tai poistaminen edellyttää käyttöoikeutta."</string>
     <string name="permission_required_action" msgid="706370952366113539">"Jatka"</string>
-    <string name="permission_audio" msgid="344061911159388398">"Saako "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" muokata tai poistaa musiikkia?"</string>
-    <string name="permission_video" msgid="8188037202573267740">"Saako "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" muokata tätä videota tai poistaa sen?"</string>
-    <string name="permission_images" msgid="6711726334380945124">"Saako "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" muokata tätä kuvaa tai poistaa sen?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Salli"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Estä"</string>
+    <!-- no translation found for permission_more_thumb (3530243737498196228) -->
+    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
+      <item quantity="other">Ja <xliff:g id="COUNT_1">^1</xliff:g> muuta asiaa</item>
+      <item quantity="one">Ja <xliff:g id="COUNT_0">^1</xliff:g> muu asia</item>
+    </plurals>
+    <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
+      <item quantity="other">Saako <xliff:g id="APP_NAME_1">^1</xliff:g> muokata <xliff:g id="COUNT">^2</xliff:g> audiotiedostoa?</item>
+      <item quantity="one">Saako <xliff:g id="APP_NAME_0">^1</xliff:g> muokata tätä audiotiedostoa?</item>
+    </plurals>
+    <plurals name="permission_write_video" formatted="false" msgid="8695335317588947410">
+      <item quantity="other">Saako <xliff:g id="APP_NAME_1">^1</xliff:g> muokata <xliff:g id="COUNT">^2</xliff:g> videota?</item>
+      <item quantity="one">Saako <xliff:g id="APP_NAME_0">^1</xliff:g> muokata tätä videota?</item>
+    </plurals>
+    <plurals name="permission_write_image" formatted="false" msgid="9032317900030650266">
+      <item quantity="other">Saako <xliff:g id="APP_NAME_1">^1</xliff:g> muokata <xliff:g id="COUNT">^2</xliff:g> kuvaa?</item>
+      <item quantity="one">Saako <xliff:g id="APP_NAME_0">^1</xliff:g> muokata tätä kuvaa?</item>
+    </plurals>
+    <plurals name="permission_write_generic" formatted="false" msgid="3099002288826692797">
+      <item quantity="other">Saako <xliff:g id="APP_NAME_1">^1</xliff:g> muokata <xliff:g id="COUNT">^2</xliff:g> asiaa?</item>
+      <item quantity="one">Saako <xliff:g id="APP_NAME_0">^1</xliff:g> muokata tätä?</item>
+    </plurals>
+    <string name="permission_write_grant" msgid="3160858917750790130">"Muokkaa"</string>
+    <string name="permission_write_deny" msgid="7090074081877311071">"Peruuta"</string>
+    <plurals name="permission_trash_audio" formatted="false" msgid="6116371056718108592">
+      <item quantity="other">Saako <xliff:g id="APP_NAME_1">^1</xliff:g> siirtää <xliff:g id="COUNT">^2</xliff:g> audiotiedostoa roskakoriin?</item>
+      <item quantity="one">Saako <xliff:g id="APP_NAME_0">^1</xliff:g> siirtää tämän audiotiedoston roskakoriin?</item>
+    </plurals>
+    <plurals name="permission_trash_audio_info" formatted="false" msgid="5002847308948758655">
+      <item quantity="other">Nämä audiotiedostot poistetaan pysyvästi <xliff:g id="DURATION_1">^3</xliff:g> päivän päästä.</item>
+      <item quantity="one">Tämä audiotiedosto poistetaan pysyvästi <xliff:g id="DURATION_0">^3</xliff:g> päivän päästä.</item>
+    </plurals>
+    <plurals name="permission_trash_video" formatted="false" msgid="7900111984425589714">
+      <item quantity="other">Saako <xliff:g id="APP_NAME_1">^1</xliff:g> siirtää <xliff:g id="COUNT">^2</xliff:g> videota roskakoriin?</item>
+      <item quantity="one">Saako <xliff:g id="APP_NAME_0">^1</xliff:g> siirtää tämän videon roskakoriin?</item>
+    </plurals>
+    <plurals name="permission_trash_video_info" formatted="false" msgid="4604871492287117394">
+      <item quantity="other">Nämä videot poistetaan pysyvästi <xliff:g id="DURATION_1">^3</xliff:g> päivän päästä.</item>
+      <item quantity="one">Tämä video poistetaan pysyvästi <xliff:g id="DURATION_0">^3</xliff:g> päivän päästä.</item>
+    </plurals>
+    <plurals name="permission_trash_image" formatted="false" msgid="9204660448046457869">
+      <item quantity="other">Saako <xliff:g id="APP_NAME_1">^1</xliff:g> siirtää <xliff:g id="COUNT">^2</xliff:g> kuvaa roskakoriin?</item>
+      <item quantity="one">Saako <xliff:g id="APP_NAME_0">^1</xliff:g> siirtää tämän kuvan roskakoriin?</item>
+    </plurals>
+    <plurals name="permission_trash_image_info" formatted="false" msgid="4214797662365755925">
+      <item quantity="other">Nämä kuvat poistetaan pysyvästi <xliff:g id="DURATION_1">^3</xliff:g> päivän päästä.</item>
+      <item quantity="one">Tämä kuva poistetaan pysyvästi <xliff:g id="DURATION_0">^3</xliff:g> päivän päästä.</item>
+    </plurals>
+    <plurals name="permission_trash_generic" formatted="false" msgid="427752775725644743">
+      <item quantity="other">Saako <xliff:g id="APP_NAME_1">^1</xliff:g> siirtää <xliff:g id="COUNT">^2</xliff:g> asiaa roskakoriin?</item>
+      <item quantity="one">Saako <xliff:g id="APP_NAME_0">^1</xliff:g> siirtää tämän roskakoriin?</item>
+    </plurals>
+    <plurals name="permission_trash_generic_info" formatted="false" msgid="7932965324027540546">
+      <item quantity="other">Nämä poistetaan pysyvästi <xliff:g id="DURATION_1">^3</xliff:g> päivän päästä.</item>
+      <item quantity="one">Tämä poistetaan pysyvästi <xliff:g id="DURATION_0">^3</xliff:g> päivän päästä.</item>
+    </plurals>
+    <string name="permission_trash_grant" msgid="2279489962040272178">"Siirrä roskakoriin"</string>
+    <string name="permission_trash_deny" msgid="2447949475239137483">"Peruuta"</string>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="5716379492864435914">
+      <item quantity="other">Saako <xliff:g id="APP_NAME_1">^1</xliff:g> ottaa <xliff:g id="COUNT">^2</xliff:g> audiotiedostoa pois roskakorista?</item>
+      <item quantity="one">Saako <xliff:g id="APP_NAME_0">^1</xliff:g> ottaa tämän audiotiedoston pois roskakorista?</item>
+    </plurals>
+    <plurals name="permission_untrash_video" formatted="false" msgid="4554487646802678525">
+      <item quantity="other">Saako <xliff:g id="APP_NAME_1">^1</xliff:g> ottaa <xliff:g id="COUNT">^2</xliff:g> videota pois roskakorista?</item>
+      <item quantity="one">Saako <xliff:g id="APP_NAME_0">^1</xliff:g> ottaa tämän videon pois roskakorista?</item>
+    </plurals>
+    <plurals name="permission_untrash_image" formatted="false" msgid="3209306923499767662">
+      <item quantity="other">Saako <xliff:g id="APP_NAME_1">^1</xliff:g> ottaa <xliff:g id="COUNT">^2</xliff:g> kuvaa pois roskakorista?</item>
+      <item quantity="one">Saako <xliff:g id="APP_NAME_0">^1</xliff:g> ottaa tämän kuvan pois roskakorista?</item>
+    </plurals>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="4607666277638602132">
+      <item quantity="other">Saako <xliff:g id="APP_NAME_1">^1</xliff:g> ottaa <xliff:g id="COUNT">^2</xliff:g> asiaa pois roskakorista?</item>
+      <item quantity="one">Saako <xliff:g id="APP_NAME_0">^1</xliff:g> ottaa tämän pois roskakorista?</item>
+    </plurals>
+    <string name="permission_untrash_grant" msgid="8438940480373451790">"Ota pois roskakorista"</string>
+    <string name="permission_untrash_deny" msgid="8008055757469903604">"Peruuta"</string>
+    <plurals name="permission_delete_audio" formatted="false" msgid="6390202287788379608">
+      <item quantity="other">Saako <xliff:g id="APP_NAME_1">^1</xliff:g> poistaa <xliff:g id="COUNT">^2</xliff:g> audiotiedostoa?</item>
+      <item quantity="one">Saako <xliff:g id="APP_NAME_0">^1</xliff:g> poistaa tämän audiotiedoston?</item>
+    </plurals>
+    <plurals name="permission_delete_video" formatted="false" msgid="1577978206881284398">
+      <item quantity="other">Saako <xliff:g id="APP_NAME_1">^1</xliff:g> poistaa <xliff:g id="COUNT">^2</xliff:g> videota?</item>
+      <item quantity="one">Saako <xliff:g id="APP_NAME_0">^1</xliff:g> poistaa tämän videon?</item>
+    </plurals>
+    <plurals name="permission_delete_image" formatted="false" msgid="8435429587272893063">
+      <item quantity="other">Saako <xliff:g id="APP_NAME_1">^1</xliff:g> poistaa <xliff:g id="COUNT">^2</xliff:g> kuvaa?</item>
+      <item quantity="one">Saako <xliff:g id="APP_NAME_0">^1</xliff:g> poistaa tämän kuvan?</item>
+    </plurals>
+    <plurals name="permission_delete_generic" formatted="false" msgid="5949614272661654178">
+      <item quantity="other">Saako <xliff:g id="APP_NAME_1">^1</xliff:g> poistaa <xliff:g id="COUNT">^2</xliff:g> asiaa?</item>
+      <item quantity="one">Saako <xliff:g id="APP_NAME_0">^1</xliff:g> poistaa tämän?</item>
+    </plurals>
+    <string name="permission_delete_grant" msgid="8682518049167813926">"Poista"</string>
+    <string name="permission_delete_deny" msgid="3742780367403897552">"Peruuta"</string>
 </resources>

@@ -25,9 +25,120 @@
     <string name="root_audio" msgid="3505830755201326018">"Conținut audio"</string>
     <string name="permission_required" msgid="1460820436132943754">"Este necesară permisiunea ca să modificați sau să ștergeți acest element."</string>
     <string name="permission_required_action" msgid="706370952366113539">"Continuați"</string>
-    <string name="permission_audio" msgid="344061911159388398">"Permiteți aplicației "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" să modifice sau să șteargă muzica?"</string>
-    <string name="permission_video" msgid="8188037202573267740">"Permiteți aplicației "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" să modifice sau să șteargă acest video?"</string>
-    <string name="permission_images" msgid="6711726334380945124">"Permiteți aplicației "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" să modifice sau să șteargă această imagine?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Permiteți"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Refuzați"</string>
+    <!-- no translation found for permission_more_thumb (3530243737498196228) -->
+    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
+      <item quantity="few">Și încă <xliff:g id="COUNT_1">^1</xliff:g> elemente</item>
+      <item quantity="other">Și încă <xliff:g id="COUNT_1">^1</xliff:g> de elemente</item>
+      <item quantity="one">Și încă <xliff:g id="COUNT_0">^1</xliff:g> element</item>
+    </plurals>
+    <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
+      <item quantity="few">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să modifice <xliff:g id="COUNT">^2</xliff:g> fișiere audio?</item>
+      <item quantity="other">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să modifice <xliff:g id="COUNT">^2</xliff:g> de fișiere audio?</item>
+      <item quantity="one">Lăsați <xliff:g id="APP_NAME_0">^1</xliff:g> să modifice acest fișier audio?</item>
+    </plurals>
+    <plurals name="permission_write_video" formatted="false" msgid="8695335317588947410">
+      <item quantity="few">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să modifice <xliff:g id="COUNT">^2</xliff:g> videoclipuri?</item>
+      <item quantity="other">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să modifice <xliff:g id="COUNT">^2</xliff:g> de videoclipuri?</item>
+      <item quantity="one">Lăsați <xliff:g id="APP_NAME_0">^1</xliff:g> să modifice acest videoclip?</item>
+    </plurals>
+    <plurals name="permission_write_image" formatted="false" msgid="9032317900030650266">
+      <item quantity="few">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să modifice <xliff:g id="COUNT">^2</xliff:g> fotografii?</item>
+      <item quantity="other">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să modifice <xliff:g id="COUNT">^2</xliff:g> de fotografii?</item>
+      <item quantity="one">Lăsați <xliff:g id="APP_NAME_0">^1</xliff:g> să modifice această fotografie?</item>
+    </plurals>
+    <plurals name="permission_write_generic" formatted="false" msgid="3099002288826692797">
+      <item quantity="few">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să modifice <xliff:g id="COUNT">^2</xliff:g> elemente?</item>
+      <item quantity="other">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să modifice <xliff:g id="COUNT">^2</xliff:g> de elemente?</item>
+      <item quantity="one">Lăsați <xliff:g id="APP_NAME_0">^1</xliff:g> să modifice acest element?</item>
+    </plurals>
+    <string name="permission_write_grant" msgid="3160858917750790130">"Schimbați"</string>
+    <string name="permission_write_deny" msgid="7090074081877311071">"Anulați"</string>
+    <plurals name="permission_trash_audio" formatted="false" msgid="6116371056718108592">
+      <item quantity="few">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să mute <xliff:g id="COUNT">^2</xliff:g> fișiere audio în coșul de gunoi?</item>
+      <item quantity="other">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să mute <xliff:g id="COUNT">^2</xliff:g> de fișiere audio în coșul de gunoi?</item>
+      <item quantity="one">Lăsați <xliff:g id="APP_NAME_0">^1</xliff:g> să mute acest fișier audio în coșul de gunoi?</item>
+    </plurals>
+    <plurals name="permission_trash_audio_info" formatted="false" msgid="5002847308948758655">
+      <item quantity="few">Fișierele audio vor fi șterse definitiv după <xliff:g id="DURATION_1">^3</xliff:g> zile</item>
+      <item quantity="other">Fișierele audio vor fi șterse definitiv după <xliff:g id="DURATION_1">^3</xliff:g> de zile</item>
+      <item quantity="one">Fișierul audio va fi șters definitiv după <xliff:g id="DURATION_0">^3</xliff:g> zi</item>
+    </plurals>
+    <plurals name="permission_trash_video" formatted="false" msgid="7900111984425589714">
+      <item quantity="few">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să mute <xliff:g id="COUNT">^2</xliff:g> videoclipuri în coșul de gunoi?</item>
+      <item quantity="other">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să mute <xliff:g id="COUNT">^2</xliff:g> de videoclipuri în coșul de gunoi?</item>
+      <item quantity="one">Lăsați <xliff:g id="APP_NAME_0">^1</xliff:g> să mute acest videoclip în coșul de gunoi?</item>
+    </plurals>
+    <plurals name="permission_trash_video_info" formatted="false" msgid="4604871492287117394">
+      <item quantity="few">Videoclipurile vor fi șterse definitiv după <xliff:g id="DURATION_1">^3</xliff:g> zile.</item>
+      <item quantity="other">Videoclipurile vor fi șterse definitiv după <xliff:g id="DURATION_1">^3</xliff:g> de zile.</item>
+      <item quantity="one">Videoclipul va fi șters definitiv după <xliff:g id="DURATION_0">^3</xliff:g> zi</item>
+    </plurals>
+    <plurals name="permission_trash_image" formatted="false" msgid="9204660448046457869">
+      <item quantity="few">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să mute <xliff:g id="COUNT">^2</xliff:g> fotografii în coșul de gunoi?</item>
+      <item quantity="other">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să mute <xliff:g id="COUNT">^2</xliff:g> de fotografii în coșul de gunoi?</item>
+      <item quantity="one">Lăsați <xliff:g id="APP_NAME_0">^1</xliff:g> să mute această fotografie în coșul de gunoi?</item>
+    </plurals>
+    <plurals name="permission_trash_image_info" formatted="false" msgid="4214797662365755925">
+      <item quantity="few">Fotografiile vor fi șterse definitiv după <xliff:g id="DURATION_1">^3</xliff:g> zile.</item>
+      <item quantity="other">Fotografiile vor fi șterse definitiv după <xliff:g id="DURATION_1">^3</xliff:g> de zile.</item>
+      <item quantity="one">Fotografia va fi ștearsă definitiv după <xliff:g id="DURATION_0">^3</xliff:g> zi</item>
+    </plurals>
+    <plurals name="permission_trash_generic" formatted="false" msgid="427752775725644743">
+      <item quantity="few">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să mute <xliff:g id="COUNT">^2</xliff:g> elemente în coșul de gunoi?</item>
+      <item quantity="other">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să mute <xliff:g id="COUNT">^2</xliff:g> de elemente în coșul de gunoi?</item>
+      <item quantity="one">Lăsați <xliff:g id="APP_NAME_0">^1</xliff:g> să mute acest element în coșul de gunoi?</item>
+    </plurals>
+    <plurals name="permission_trash_generic_info" formatted="false" msgid="7932965324027540546">
+      <item quantity="few">Elementele vor fi șterse definitiv după <xliff:g id="DURATION_1">^3</xliff:g> zile.</item>
+      <item quantity="other">Elementele vor fi șterse definitiv după <xliff:g id="DURATION_1">^3</xliff:g> de zile.</item>
+      <item quantity="one">Elementul va fi șters definitiv după <xliff:g id="DURATION_0">^3</xliff:g> zi</item>
+    </plurals>
+    <string name="permission_trash_grant" msgid="2279489962040272178">"Mutați în Coșul de gunoi"</string>
+    <string name="permission_trash_deny" msgid="2447949475239137483">"Anulați"</string>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="5716379492864435914">
+      <item quantity="few">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să scoată <xliff:g id="COUNT">^2</xliff:g> fișiere audio din coșul de gunoi?</item>
+      <item quantity="other">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să scoată <xliff:g id="COUNT">^2</xliff:g> de fișiere audio din coșul de gunoi?</item>
+      <item quantity="one">Lăsați <xliff:g id="APP_NAME_0">^1</xliff:g> să scoată acest fișier audio din coșul de gunoi?</item>
+    </plurals>
+    <plurals name="permission_untrash_video" formatted="false" msgid="4554487646802678525">
+      <item quantity="few">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să scoată <xliff:g id="COUNT">^2</xliff:g> videoclipuri din coșul de gunoi?</item>
+      <item quantity="other">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să scoată <xliff:g id="COUNT">^2</xliff:g> de videoclipuri din coșul de gunoi?</item>
+      <item quantity="one">Lăsați <xliff:g id="APP_NAME_0">^1</xliff:g> să scoată acest videoclip din coșul de gunoi?</item>
+    </plurals>
+    <plurals name="permission_untrash_image" formatted="false" msgid="3209306923499767662">
+      <item quantity="few">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să scoată <xliff:g id="COUNT">^2</xliff:g> fotografii din coșul de gunoi?</item>
+      <item quantity="other">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să scoată <xliff:g id="COUNT">^2</xliff:g> de fotografii din coșul de gunoi?</item>
+      <item quantity="one">Lăsați <xliff:g id="APP_NAME_0">^1</xliff:g> să scoată această fotografie din coșul de gunoi?</item>
+    </plurals>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="4607666277638602132">
+      <item quantity="few">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să scoată <xliff:g id="COUNT">^2</xliff:g> elemente din coșul de gunoi?</item>
+      <item quantity="other">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să scoată <xliff:g id="COUNT">^2</xliff:g> de elemente din coșul de gunoi?</item>
+      <item quantity="one">Lăsați <xliff:g id="APP_NAME_0">^1</xliff:g> să scoată acest element din coșul de gunoi?</item>
+    </plurals>
+    <string name="permission_untrash_grant" msgid="8438940480373451790">"Scoateți din coșul de gunoi"</string>
+    <string name="permission_untrash_deny" msgid="8008055757469903604">"Anulați"</string>
+    <plurals name="permission_delete_audio" formatted="false" msgid="6390202287788379608">
+      <item quantity="few">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să șteargă <xliff:g id="COUNT">^2</xliff:g> fișiere audio?</item>
+      <item quantity="other">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să șteargă <xliff:g id="COUNT">^2</xliff:g> de fișiere audio?</item>
+      <item quantity="one">Lăsați <xliff:g id="APP_NAME_0">^1</xliff:g> să șteargă acest fișier audio?</item>
+    </plurals>
+    <plurals name="permission_delete_video" formatted="false" msgid="1577978206881284398">
+      <item quantity="few">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să șteargă <xliff:g id="COUNT">^2</xliff:g> videoclipuri?</item>
+      <item quantity="other">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să șteargă <xliff:g id="COUNT">^2</xliff:g> de videoclipuri?</item>
+      <item quantity="one">Lăsați <xliff:g id="APP_NAME_0">^1</xliff:g> să șteargă acest videoclip?</item>
+    </plurals>
+    <plurals name="permission_delete_image" formatted="false" msgid="8435429587272893063">
+      <item quantity="few">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să șteargă <xliff:g id="COUNT">^2</xliff:g> fotografii?</item>
+      <item quantity="other">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să șteargă <xliff:g id="COUNT">^2</xliff:g> de fotografii?</item>
+      <item quantity="one">Lăsați <xliff:g id="APP_NAME_0">^1</xliff:g> să șteargă această fotografie?</item>
+    </plurals>
+    <plurals name="permission_delete_generic" formatted="false" msgid="5949614272661654178">
+      <item quantity="few">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să șteargă <xliff:g id="COUNT">^2</xliff:g> elemente?</item>
+      <item quantity="other">Lăsați <xliff:g id="APP_NAME_1">^1</xliff:g> să șteargă <xliff:g id="COUNT">^2</xliff:g> de elemente?</item>
+      <item quantity="one">Lăsați <xliff:g id="APP_NAME_0">^1</xliff:g> să șteargă acest element?</item>
+    </plurals>
+    <string name="permission_delete_grant" msgid="8682518049167813926">"Ștergeți"</string>
+    <string name="permission_delete_deny" msgid="3742780367403897552">"Anulați"</string>
 </resources>

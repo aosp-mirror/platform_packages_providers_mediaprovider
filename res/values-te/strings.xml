@@ -25,9 +25,99 @@
     <string name="root_audio" msgid="3505830755201326018">"ఆడియో"</string>
     <string name="permission_required" msgid="1460820436132943754">"ఈ అంశాన్ని మార్చడానికి లేదా తొలగించడానికి అనుమతి అవసరం."</string>
     <string name="permission_required_action" msgid="706370952366113539">"కొనసాగించు"</string>
-    <string name="permission_audio" msgid="344061911159388398"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"కి ఈ సంగీతాన్ని మార్చేందుకు లేదా తొలగించడానికి అనుమతి ఇస్తారా?"</string>
-    <string name="permission_video" msgid="8188037202573267740"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"కి ఈ వీడియోను మార్చేందుకు లేదా తొలగించడానికి అనుమతి ఇస్తారా?"</string>
-    <string name="permission_images" msgid="6711726334380945124"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"కి ఈ ఫోటోను మార్చేందుకు లేదా తొలగించడానికి అనుమతి ఇస్తారా?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"అనుమతించు"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"తిరస్కరించు"</string>
+    <!-- no translation found for permission_more_thumb (3530243737498196228) -->
+    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
+      <item quantity="other">దానితో పాటు, <xliff:g id="COUNT_1">^1</xliff:g> అదనపు అంశాలు</item>
+      <item quantity="one">దానితో పాటు, <xliff:g id="COUNT_0">^1</xliff:g> అదనపు అంశం</item>
+    </plurals>
+    <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైల్‌లను మార్చడానికి అనుమతిస్తారా?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ఈ ఆడియో ఫైల్‌ను మార్చడానికి అనుమతిస్తారా?</item>
+    </plurals>
+    <plurals name="permission_write_video" formatted="false" msgid="8695335317588947410">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> వీడియోలను మార్చడానికి అనుమతిస్తారా?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ఈ వీడియోను మార్చడానికి అనుమతిస్తారా?</item>
+    </plurals>
+    <plurals name="permission_write_image" formatted="false" msgid="9032317900030650266">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ఫోటోలను మార్చడానికి అనుమతిస్తారా?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ఈ ఫోటోను మార్చడానికి అనుమతిస్తారా?</item>
+    </plurals>
+    <plurals name="permission_write_generic" formatted="false" msgid="3099002288826692797">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> అంశాలను మార్చడానికి అనుమతిస్తారా?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g>ఈ అంశాన్ని మార్చడానికి అనుమతిస్తారా?</item>
+    </plurals>
+    <string name="permission_write_grant" msgid="3160858917750790130">"మార్చు"</string>
+    <string name="permission_write_deny" msgid="7090074081877311071">"అనుమతిని రద్దు చేయి"</string>
+    <plurals name="permission_trash_audio" formatted="false" msgid="6116371056718108592">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైల్‌లను ట్రాష్‌కి తరలించడానికి అనుమతిస్తారా?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ఈ ఆడియో ఫైల్‌ను ట్రాష్‌కి తరలించడానికి అనుమతిస్తారా?</item>
+    </plurals>
+    <plurals name="permission_trash_audio_info" formatted="false" msgid="5002847308948758655">
+      <item quantity="other">ఈ ఆడియో ఫైల్‌లు <xliff:g id="DURATION_1">^3</xliff:g> రోజుల తర్వాత శాశ్వతంగా తొలగించబడతాయి</item>
+      <item quantity="one">ఈ ఆడియో ఫైల్ <xliff:g id="DURATION_0">^3</xliff:g> రోజుల తర్వాత శాశ్వతంగా తొలగించబడుతుంది</item>
+    </plurals>
+    <plurals name="permission_trash_video" formatted="false" msgid="7900111984425589714">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> వీడియోలను ట్రాష్‌కు తరలించేందుకు అనుమతిస్తారా?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ఈ వీడియోను ట్రాష్‌కు తరలించేందుకు అనుమతిస్తారా?</item>
+    </plurals>
+    <plurals name="permission_trash_video_info" formatted="false" msgid="4604871492287117394">
+      <item quantity="other">ఈ వీడియోలు <xliff:g id="DURATION_1">^3</xliff:g> రోజుల తర్వాత శాశ్వతంగా తొలగించబడతాయి</item>
+      <item quantity="one">ఈ వీడియో <xliff:g id="DURATION_0">^3</xliff:g> రోజుల తర్వాత శాశ్వతంగా తొలగించబడుతుంది</item>
+    </plurals>
+    <plurals name="permission_trash_image" formatted="false" msgid="9204660448046457869">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ఫోటోలను ట్రాష్‌కు తరలించేందుకు అనుమతిస్తారా?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ఈ ఫోటోను ట్రాష్‌కు తరలించేందుకు అనుమతిస్తారా?</item>
+    </plurals>
+    <plurals name="permission_trash_image_info" formatted="false" msgid="4214797662365755925">
+      <item quantity="other">ఈ ఫోటోలు <xliff:g id="DURATION_1">^3</xliff:g> రోజుల తర్వాత శాశ్వతంగా తొలగించబడతాయి</item>
+      <item quantity="one">ఈ ఫోటో <xliff:g id="DURATION_0">^3</xliff:g> రోజుల తర్వాత శాశ్వతంగా తొలగించబడుతుంది</item>
+    </plurals>
+    <plurals name="permission_trash_generic" formatted="false" msgid="427752775725644743">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> అంశాలను ట్రాష్‌కు తరలించేందుకు అనుమతిస్తారా?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ఈ అంశాన్ని ట్రాష్‌కు తరలించేందుకు అనుమతిస్తారా?</item>
+    </plurals>
+    <plurals name="permission_trash_generic_info" formatted="false" msgid="7932965324027540546">
+      <item quantity="other">ఈ అంశాలు <xliff:g id="DURATION_1">^3</xliff:g> రోజుల తర్వాత శాశ్వతంగా తొలగించబడతాయి</item>
+      <item quantity="one">ఈ అంశం <xliff:g id="DURATION_0">^3</xliff:g>రోజుల తర్వాత శాశ్వతంగా తొలగించబడుతుంది</item>
+    </plurals>
+    <string name="permission_trash_grant" msgid="2279489962040272178">"ట్రాష్‌కి తరలించు"</string>
+    <string name="permission_trash_deny" msgid="2447949475239137483">"అనుమతిని రద్దు చేయి"</string>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="5716379492864435914">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైల్‌లను ట్రాష్ నుండి వెలుపలకు తీయడానికి అనుమతిస్తారా?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ఈ ఆడియో ఫైల్‌ను ట్రాష్ నుండి వెలుపలకు తీయడానికి అనుమతిస్తారా?</item>
+    </plurals>
+    <plurals name="permission_untrash_video" formatted="false" msgid="4554487646802678525">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> వీడియోలను ట్రాష్ నుండి వెలుపలకు తీయడానికి అనుమతిస్తారా?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ఈ వీడియోను ట్రాష్ నుండి వెలుపలకు తీయడానికి అనుమతిస్తారా?</item>
+    </plurals>
+    <plurals name="permission_untrash_image" formatted="false" msgid="3209306923499767662">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ఫోటోలను ట్రాష్ నుండి వెలుపలకు తీయడానికి అనుమతిస్తారా?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ఈ ఫోటోను ట్రాష్ నుండి వెలుపలకు తీయడానికి అనుమతిస్తారా?</item>
+    </plurals>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="4607666277638602132">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> అంశాలను ట్రాష్ నుండి వెలుపలకు తీయడానికి అనుమతిస్తారా?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ఈ అంశాన్ని ట్రాష్ నుండి వెలుపలకు తీయడానికి అనుమతిస్తారా?</item>
+    </plurals>
+    <string name="permission_untrash_grant" msgid="8438940480373451790">"ట్రాష్ నుండి వెలుపలికి తీయి"</string>
+    <string name="permission_untrash_deny" msgid="8008055757469903604">"అనుమతిని రద్దు చేయి"</string>
+    <plurals name="permission_delete_audio" formatted="false" msgid="6390202287788379608">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైల్‌లను తొలగించేందుకు <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతిస్తారా?</item>
+      <item quantity="one">ఈ ఆడియో ఫైల్‌ను తొలగించేందుకు <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతిస్తారా?</item>
+    </plurals>
+    <plurals name="permission_delete_video" formatted="false" msgid="1577978206881284398">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> వీడియోలను తొలగించేందుకు అనుమతిస్తారా?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ఈ వీడియోను తొలగించేందుకు అనుమతిస్తారా?</item>
+    </plurals>
+    <plurals name="permission_delete_image" formatted="false" msgid="8435429587272893063">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ఫోటోలను తొలగించేందుకు అనుమతిస్తారా?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ఈ ఫోటోను తొలగించేందుకు అనుమతిస్తారా?</item>
+    </plurals>
+    <plurals name="permission_delete_generic" formatted="false" msgid="5949614272661654178">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> అంశాలను తొలగించేందుకు అనుమతిస్తారా?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ఈ అంశాన్ని తొలగించేందుకు అనుమతిస్తారా?</item>
+    </plurals>
+    <string name="permission_delete_grant" msgid="8682518049167813926">"తొలగించు"</string>
+    <string name="permission_delete_deny" msgid="3742780367403897552">"అనుమతిని రద్దు చేయి"</string>
 </resources>

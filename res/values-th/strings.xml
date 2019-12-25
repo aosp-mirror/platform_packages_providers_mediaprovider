@@ -25,9 +25,99 @@
     <string name="root_audio" msgid="3505830755201326018">"เสียง"</string>
     <string name="permission_required" msgid="1460820436132943754">"ต้องขอสิทธิ์เพื่อแก้ไขหรือลบรายการนี้"</string>
     <string name="permission_required_action" msgid="706370952366113539">"ต่อไป"</string>
-    <string name="permission_audio" msgid="344061911159388398">"อนุญาตให้ "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" แก้ไขหรือลบเพลงนี้ไหม"</string>
-    <string name="permission_video" msgid="8188037202573267740">"อนุญาตให้ "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"แก้ไขหรือลบวิดีโอนี้ไหม"</string>
-    <string name="permission_images" msgid="6711726334380945124">"อนุญาตให้ "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" แก้ไขหรือลบรูปภาพนี้ไหม"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"อนุญาต"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"ปฏิเสธ"</string>
+    <!-- no translation found for permission_more_thumb (3530243737498196228) -->
+    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
+      <item quantity="other">และอีก <xliff:g id="COUNT_1">^1</xliff:g> รายการ</item>
+      <item quantity="one">และอีก <xliff:g id="COUNT_0">^1</xliff:g> รายการ</item>
+    </plurals>
+    <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
+      <item quantity="other">ให้ <xliff:g id="APP_NAME_1">^1</xliff:g> เปลี่ยนแปลงไฟล์เสียง <xliff:g id="COUNT">^2</xliff:g> ไฟล์ไหม</item>
+      <item quantity="one">ให้ <xliff:g id="APP_NAME_0">^1</xliff:g> เปลี่ยนแปลงไฟล์เสียงนี้ไหม</item>
+    </plurals>
+    <plurals name="permission_write_video" formatted="false" msgid="8695335317588947410">
+      <item quantity="other">ให้ <xliff:g id="APP_NAME_1">^1</xliff:g> เปลี่ยนแปลงวิดีโอ <xliff:g id="COUNT">^2</xliff:g> รายการไหม</item>
+      <item quantity="one">ให้ <xliff:g id="APP_NAME_0">^1</xliff:g> เปลี่ยนแปลงวิดีโอนี้ไหม</item>
+    </plurals>
+    <plurals name="permission_write_image" formatted="false" msgid="9032317900030650266">
+      <item quantity="other">ให้ <xliff:g id="APP_NAME_1">^1</xliff:g> เปลี่ยนแปลงรูปภาพ <xliff:g id="COUNT">^2</xliff:g> รูปไหม</item>
+      <item quantity="one">ให้ <xliff:g id="APP_NAME_0">^1</xliff:g> เปลี่ยนแปลงรูปภาพนี้ไหม</item>
+    </plurals>
+    <plurals name="permission_write_generic" formatted="false" msgid="3099002288826692797">
+      <item quantity="other">ให้ <xliff:g id="APP_NAME_1">^1</xliff:g> เปลี่ยนแปลง <xliff:g id="COUNT">^2</xliff:g> รายการไหม</item>
+      <item quantity="one">ให้ <xliff:g id="APP_NAME_0">^1</xliff:g> เปลี่ยนแปลงรายการนี้ไหม</item>
+    </plurals>
+    <string name="permission_write_grant" msgid="3160858917750790130">"เปลี่ยน"</string>
+    <string name="permission_write_deny" msgid="7090074081877311071">"ยกเลิก"</string>
+    <plurals name="permission_trash_audio" formatted="false" msgid="6116371056718108592">
+      <item quantity="other">ให้ <xliff:g id="APP_NAME_1">^1</xliff:g> ย้ายไฟล์เสียง <xliff:g id="COUNT">^2</xliff:g> ไฟล์ไปที่ถังขยะไหม</item>
+      <item quantity="one">ให้ <xliff:g id="APP_NAME_0">^1</xliff:g> ย้ายไฟล์เสียงนี้ไปที่ถังขยะไหม</item>
+    </plurals>
+    <plurals name="permission_trash_audio_info" formatted="false" msgid="5002847308948758655">
+      <item quantity="other">ไฟล์เสียงเหล่านี้จะถูกลบออกอย่างถาวรหลังจาก <xliff:g id="DURATION_1">^3</xliff:g> วัน</item>
+      <item quantity="one">ไฟล์เสียงนี้จะถูกลบออกอย่างถาวรหลังจาก <xliff:g id="DURATION_0">^3</xliff:g> วัน</item>
+    </plurals>
+    <plurals name="permission_trash_video" formatted="false" msgid="7900111984425589714">
+      <item quantity="other">ให้ <xliff:g id="APP_NAME_1">^1</xliff:g> ย้ายวิดีโอ <xliff:g id="COUNT">^2</xliff:g> รายการไปที่ถังขยะไหม</item>
+      <item quantity="one">ให้ <xliff:g id="APP_NAME_0">^1</xliff:g> ย้ายวิดีโอนี้ไปที่ถังขยะไหม</item>
+    </plurals>
+    <plurals name="permission_trash_video_info" formatted="false" msgid="4604871492287117394">
+      <item quantity="other">วิดีโอเหล่านี้จะถูกลบออกอย่างถาวรหลังจาก <xliff:g id="DURATION_1">^3</xliff:g> วัน</item>
+      <item quantity="one">วิดีโอนี้จะถูกลบออกอย่างถาวรหลังจาก <xliff:g id="DURATION_0">^3</xliff:g> วัน</item>
+    </plurals>
+    <plurals name="permission_trash_image" formatted="false" msgid="9204660448046457869">
+      <item quantity="other">ให้ <xliff:g id="APP_NAME_1">^1</xliff:g> ย้ายรูปภาพ <xliff:g id="COUNT">^2</xliff:g> รูปไปที่ถังขยะไหม</item>
+      <item quantity="one">ให้ <xliff:g id="APP_NAME_0">^1</xliff:g> ย้ายรูปภาพนี้ไปที่ถังขยะไหม</item>
+    </plurals>
+    <plurals name="permission_trash_image_info" formatted="false" msgid="4214797662365755925">
+      <item quantity="other">รูปภาพเหล่านี้จะถูกลบออกอย่างถาวรหลังจาก <xliff:g id="DURATION_1">^3</xliff:g> วัน</item>
+      <item quantity="one">รูปภาพนี้จะถูกลบออกอย่างถาวรหลังจาก <xliff:g id="DURATION_0">^3</xliff:g> วัน</item>
+    </plurals>
+    <plurals name="permission_trash_generic" formatted="false" msgid="427752775725644743">
+      <item quantity="other">ให้ <xliff:g id="APP_NAME_1">^1</xliff:g> ย้าย <xliff:g id="COUNT">^2</xliff:g> รายการไปที่ถังขยะไหม</item>
+      <item quantity="one">ให้ <xliff:g id="APP_NAME_0">^1</xliff:g> ย้ายรายการนี้ไปที่ถังขยะไหม</item>
+    </plurals>
+    <plurals name="permission_trash_generic_info" formatted="false" msgid="7932965324027540546">
+      <item quantity="other">รายการเหล่านี้จะถูกลบออกอย่างถาวรหลังจาก <xliff:g id="DURATION_1">^3</xliff:g> วัน</item>
+      <item quantity="one">รายการนี้จะถูกลบออกอย่างถาวรหลังจาก <xliff:g id="DURATION_0">^3</xliff:g> วัน</item>
+    </plurals>
+    <string name="permission_trash_grant" msgid="2279489962040272178">"ย้ายไปที่ถังขยะ"</string>
+    <string name="permission_trash_deny" msgid="2447949475239137483">"ยกเลิก"</string>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="5716379492864435914">
+      <item quantity="other">ให้ <xliff:g id="APP_NAME_1">^1</xliff:g> ย้ายไฟล์เสียง <xliff:g id="COUNT">^2</xliff:g> ไฟล์ออกจากถังขยะไหม</item>
+      <item quantity="one">ให้ <xliff:g id="APP_NAME_0">^1</xliff:g> ย้ายไฟล์เสียงนี้ออกจากถังขยะไหม</item>
+    </plurals>
+    <plurals name="permission_untrash_video" formatted="false" msgid="4554487646802678525">
+      <item quantity="other">ให้ <xliff:g id="APP_NAME_1">^1</xliff:g> ย้ายวิดีโอ <xliff:g id="COUNT">^2</xliff:g> รายการออกจากถังขยะไหม</item>
+      <item quantity="one">ให้ <xliff:g id="APP_NAME_0">^1</xliff:g> ย้ายวิดีโอนี้ออกจากถังขยะไหม</item>
+    </plurals>
+    <plurals name="permission_untrash_image" formatted="false" msgid="3209306923499767662">
+      <item quantity="other">ให้ <xliff:g id="APP_NAME_1">^1</xliff:g> ย้ายรูปภาพ <xliff:g id="COUNT">^2</xliff:g> รูปออกจากถังขยะไหม</item>
+      <item quantity="one">ให้ <xliff:g id="APP_NAME_0">^1</xliff:g> ย้ายรูปภาพนี้ออกจากถังขยะไหม</item>
+    </plurals>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="4607666277638602132">
+      <item quantity="other">ให้ <xliff:g id="APP_NAME_1">^1</xliff:g> ย้าย <xliff:g id="COUNT">^2</xliff:g> รายการออกจากถังขยะไหม</item>
+      <item quantity="one">ให้ <xliff:g id="APP_NAME_0">^1</xliff:g> ย้ายรายการนี้ออกจากถังขยะไหม</item>
+    </plurals>
+    <string name="permission_untrash_grant" msgid="8438940480373451790">"ย้ายออกจากถังขยะ"</string>
+    <string name="permission_untrash_deny" msgid="8008055757469903604">"ยกเลิก"</string>
+    <plurals name="permission_delete_audio" formatted="false" msgid="6390202287788379608">
+      <item quantity="other">ให้ <xliff:g id="APP_NAME_1">^1</xliff:g> ลบไฟล์เสียง <xliff:g id="COUNT">^2</xliff:g> ไฟล์ไหม</item>
+      <item quantity="one">ให้ <xliff:g id="APP_NAME_0">^1</xliff:g> ลบไฟล์เสียงนี้ไหม</item>
+    </plurals>
+    <plurals name="permission_delete_video" formatted="false" msgid="1577978206881284398">
+      <item quantity="other">ให้ <xliff:g id="APP_NAME_1">^1</xliff:g> ลบวิดีโอ <xliff:g id="COUNT">^2</xliff:g> รายการไหม</item>
+      <item quantity="one">ให้ <xliff:g id="APP_NAME_0">^1</xliff:g> ลบวิดีโอนี้ไหม</item>
+    </plurals>
+    <plurals name="permission_delete_image" formatted="false" msgid="8435429587272893063">
+      <item quantity="other">ให้ <xliff:g id="APP_NAME_1">^1</xliff:g> ลบรูปภาพ <xliff:g id="COUNT">^2</xliff:g> รูปไหม</item>
+      <item quantity="one">ให้ <xliff:g id="APP_NAME_0">^1</xliff:g> ลบรูปภาพนี้ไหม</item>
+    </plurals>
+    <plurals name="permission_delete_generic" formatted="false" msgid="5949614272661654178">
+      <item quantity="other">ให้ <xliff:g id="APP_NAME_1">^1</xliff:g> ลบ <xliff:g id="COUNT">^2</xliff:g> รายการไหม</item>
+      <item quantity="one">ให้ <xliff:g id="APP_NAME_0">^1</xliff:g> ลบรายการนี้ไหม</item>
+    </plurals>
+    <string name="permission_delete_grant" msgid="8682518049167813926">"ลบ"</string>
+    <string name="permission_delete_deny" msgid="3742780367403897552">"ยกเลิก"</string>
 </resources>

@@ -25,9 +25,44 @@
     <string name="root_audio" msgid="3505830755201326018">"ஆடியோ"</string>
     <string name="permission_required" msgid="1460820436132943754">"இதை மாற்றவோ நீக்கவோ அனுமதி தேவை."</string>
     <string name="permission_required_action" msgid="706370952366113539">"தொடர்க"</string>
-    <string name="permission_audio" msgid="344061911159388398">"இந்த இசையை மாற்றவோ நீக்கவோ "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" ஆப்ஸை அனுமதிக்கவா?"</string>
-    <string name="permission_video" msgid="8188037202573267740">"இந்த வீடியோவை மாற்றவோ நீக்கவோ "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" ஆப்ஸை அனுமதிக்கவா?"</string>
-    <string name="permission_images" msgid="6711726334380945124">"இந்தப் படத்தை மாற்றவோ நீக்கவோ "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" ஆப்ஸை அனுமதிக்கவா?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"அனுமதி"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"நிராகரி"</string>
+    <!-- no translation found for permission_more_thumb (3530243737498196228) -->
+    <!-- no translation found for permission_more_text (7291997297174507324) -->
+    <!-- no translation found for permission_write_audio (3539998638571517689) -->
+    <!-- no translation found for permission_write_video (8695335317588947410) -->
+    <!-- no translation found for permission_write_image (9032317900030650266) -->
+    <!-- no translation found for permission_write_generic (3099002288826692797) -->
+    <!-- no translation found for permission_write_grant (3160858917750790130) -->
+    <skip />
+    <!-- no translation found for permission_write_deny (7090074081877311071) -->
+    <skip />
+    <!-- no translation found for permission_trash_audio (6116371056718108592) -->
+    <!-- no translation found for permission_trash_audio_info (5002847308948758655) -->
+    <!-- no translation found for permission_trash_video (7900111984425589714) -->
+    <!-- no translation found for permission_trash_video_info (4604871492287117394) -->
+    <!-- no translation found for permission_trash_image (9204660448046457869) -->
+    <!-- no translation found for permission_trash_image_info (4214797662365755925) -->
+    <!-- no translation found for permission_trash_generic (427752775725644743) -->
+    <!-- no translation found for permission_trash_generic_info (7932965324027540546) -->
+    <!-- no translation found for permission_trash_grant (2279489962040272178) -->
+    <skip />
+    <!-- no translation found for permission_trash_deny (2447949475239137483) -->
+    <skip />
+    <!-- no translation found for permission_untrash_audio (5716379492864435914) -->
+    <!-- no translation found for permission_untrash_video (4554487646802678525) -->
+    <!-- no translation found for permission_untrash_image (3209306923499767662) -->
+    <!-- no translation found for permission_untrash_generic (4607666277638602132) -->
+    <!-- no translation found for permission_untrash_grant (8438940480373451790) -->
+    <skip />
+    <!-- no translation found for permission_untrash_deny (8008055757469903604) -->
+    <skip />
+    <!-- no translation found for permission_delete_audio (6390202287788379608) -->
+    <!-- no translation found for permission_delete_video (1577978206881284398) -->
+    <!-- no translation found for permission_delete_image (8435429587272893063) -->
+    <!-- no translation found for permission_delete_generic (5949614272661654178) -->
+    <!-- no translation found for permission_delete_grant (8682518049167813926) -->
+    <skip />
+    <!-- no translation found for permission_delete_deny (3742780367403897552) -->
+    <skip />
 </resources>

@@ -25,9 +25,99 @@
     <string name="root_audio" msgid="3505830755201326018">"Âm thanh"</string>
     <string name="permission_required" msgid="1460820436132943754">"Cần có quyền để sửa đổi hoặc xóa mục này."</string>
     <string name="permission_required_action" msgid="706370952366113539">"Tiếp tục"</string>
-    <string name="permission_audio" msgid="344061911159388398">"Bạn có muốn cho phép "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" sửa đổi hoặc xóa bản nhạc này không?"</string>
-    <string name="permission_video" msgid="8188037202573267740">"Bạn có muốn cho phép "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" sửa đổi hoặc xóa video này không?"</string>
-    <string name="permission_images" msgid="6711726334380945124">"Bạn có muốn cho phép "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" sửa đổi hoặc xóa hình ảnh này không?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Cho phép"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Từ chối"</string>
+    <!-- no translation found for permission_more_thumb (3530243737498196228) -->
+    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
+      <item quantity="other">Và <xliff:g id="COUNT_1">^1</xliff:g> mục khác</item>
+      <item quantity="one">Và <xliff:g id="COUNT_0">^1</xliff:g> mục khác</item>
+    </plurals>
+    <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
+      <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> thay đổi <xliff:g id="COUNT">^2</xliff:g> tệp âm thanh?</item>
+      <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> thay đổi tệp âm thanh này?</item>
+    </plurals>
+    <plurals name="permission_write_video" formatted="false" msgid="8695335317588947410">
+      <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> thay đổi <xliff:g id="COUNT">^2</xliff:g> video?</item>
+      <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> thay đổi video này?</item>
+    </plurals>
+    <plurals name="permission_write_image" formatted="false" msgid="9032317900030650266">
+      <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> thay đổi <xliff:g id="COUNT">^2</xliff:g> ảnh?</item>
+      <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> thay đổi ảnh này?</item>
+    </plurals>
+    <plurals name="permission_write_generic" formatted="false" msgid="3099002288826692797">
+      <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> thay đổi <xliff:g id="COUNT">^2</xliff:g> mục?</item>
+      <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> thay đổi mục này?</item>
+    </plurals>
+    <string name="permission_write_grant" msgid="3160858917750790130">"Thay đổi"</string>
+    <string name="permission_write_deny" msgid="7090074081877311071">"Hủy"</string>
+    <plurals name="permission_trash_audio" formatted="false" msgid="6116371056718108592">
+      <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> chuyển <xliff:g id="COUNT">^2</xliff:g> tệp âm thanh vào thùng rác?</item>
+      <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> chuyển tệp âm thanh này vào thùng rác?</item>
+    </plurals>
+    <plurals name="permission_trash_audio_info" formatted="false" msgid="5002847308948758655">
+      <item quantity="other">Các tệp âm thanh này sẽ bị xóa vĩnh viễn sau <xliff:g id="DURATION_1">^3</xliff:g> ngày</item>
+      <item quantity="one">Tệp âm thanh này sẽ bị xóa vĩnh viễn sau <xliff:g id="DURATION_0">^3</xliff:g> ngày</item>
+    </plurals>
+    <plurals name="permission_trash_video" formatted="false" msgid="7900111984425589714">
+      <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> chuyển <xliff:g id="COUNT">^2</xliff:g> video vào thùng rác?</item>
+      <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> chuyển video này vào thùng rác?</item>
+    </plurals>
+    <plurals name="permission_trash_video_info" formatted="false" msgid="4604871492287117394">
+      <item quantity="other">Các video này sẽ bị xóa vĩnh viễn sau <xliff:g id="DURATION_1">^3</xliff:g> ngày</item>
+      <item quantity="one">Video này sẽ bị xóa vĩnh viễn sau <xliff:g id="DURATION_0">^3</xliff:g> ngày</item>
+    </plurals>
+    <plurals name="permission_trash_image" formatted="false" msgid="9204660448046457869">
+      <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> chuyển <xliff:g id="COUNT">^2</xliff:g> ảnh vào thùng rác?</item>
+      <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> chuyển ảnh này vào thùng rác?</item>
+    </plurals>
+    <plurals name="permission_trash_image_info" formatted="false" msgid="4214797662365755925">
+      <item quantity="other">Các ảnh này sẽ bị xóa vĩnh viễn sau <xliff:g id="DURATION_1">^3</xliff:g> ngày</item>
+      <item quantity="one">Ảnh này sẽ bị xóa vĩnh viễn sau <xliff:g id="DURATION_0">^3</xliff:g> ngày</item>
+    </plurals>
+    <plurals name="permission_trash_generic" formatted="false" msgid="427752775725644743">
+      <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> chuyển <xliff:g id="COUNT">^2</xliff:g> mục vào thùng rác?</item>
+      <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> chuyển mục này vào thùng rác?</item>
+    </plurals>
+    <plurals name="permission_trash_generic_info" formatted="false" msgid="7932965324027540546">
+      <item quantity="other">Các mục này sẽ bị xóa vĩnh viễn sau <xliff:g id="DURATION_1">^3</xliff:g> ngày</item>
+      <item quantity="one">Mục này sẽ bị xóa vĩnh viễn sau <xliff:g id="DURATION_0">^3</xliff:g> ngày</item>
+    </plurals>
+    <string name="permission_trash_grant" msgid="2279489962040272178">"Chuyển vào thùng rác"</string>
+    <string name="permission_trash_deny" msgid="2447949475239137483">"Hủy"</string>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="5716379492864435914">
+      <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> chuyển <xliff:g id="COUNT">^2</xliff:g> tệp âm thanh ra khỏi thùng rác?</item>
+      <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> chuyển tệp âm thành này ra khỏi thùng rác?</item>
+    </plurals>
+    <plurals name="permission_untrash_video" formatted="false" msgid="4554487646802678525">
+      <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> chuyển <xliff:g id="COUNT">^2</xliff:g> video ra khỏi thùng rác?</item>
+      <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> chuyển video này ra khỏi thùng rác?</item>
+    </plurals>
+    <plurals name="permission_untrash_image" formatted="false" msgid="3209306923499767662">
+      <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> chuyển <xliff:g id="COUNT">^2</xliff:g> ảnh ra khỏi thùng rác?</item>
+      <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> chuyển ảnh này ra khỏi thùng rác?</item>
+    </plurals>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="4607666277638602132">
+      <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> chuyển <xliff:g id="COUNT">^2</xliff:g> mục ra khỏi thùng rác?</item>
+      <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> chuyển mục này ra khỏi thùng rác?</item>
+    </plurals>
+    <string name="permission_untrash_grant" msgid="8438940480373451790">"Chuyển ra khỏi thùng rác"</string>
+    <string name="permission_untrash_deny" msgid="8008055757469903604">"Hủy"</string>
+    <plurals name="permission_delete_audio" formatted="false" msgid="6390202287788379608">
+      <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> xóa <xliff:g id="COUNT">^2</xliff:g> tệp âm thanh?</item>
+      <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> xóa tệp âm thanh này?</item>
+    </plurals>
+    <plurals name="permission_delete_video" formatted="false" msgid="1577978206881284398">
+      <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> xóa <xliff:g id="COUNT">^2</xliff:g> video?</item>
+      <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> xóa video này?</item>
+    </plurals>
+    <plurals name="permission_delete_image" formatted="false" msgid="8435429587272893063">
+      <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> xóa <xliff:g id="COUNT">^2</xliff:g> ảnh?</item>
+      <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> xóa ảnh này?</item>
+    </plurals>
+    <plurals name="permission_delete_generic" formatted="false" msgid="5949614272661654178">
+      <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> xóa <xliff:g id="COUNT">^2</xliff:g> mục?</item>
+      <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> xóa mục này?</item>
+    </plurals>
+    <string name="permission_delete_grant" msgid="8682518049167813926">"Xóa"</string>
+    <string name="permission_delete_deny" msgid="3742780367403897552">"Hủy"</string>
 </resources>

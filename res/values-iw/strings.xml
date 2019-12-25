@@ -25,9 +25,141 @@
     <string name="root_audio" msgid="3505830755201326018">"אודיו"</string>
     <string name="permission_required" msgid="1460820436132943754">"נדרשת הרשאה כדי לשנות או למחוק פריט זה."</string>
     <string name="permission_required_action" msgid="706370952366113539">"המשך"</string>
-    <string name="permission_audio" msgid="344061911159388398">"האם לאפשר לאפליקציה "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" לשנות או למחוק את המוזיקה הזו?"</string>
-    <string name="permission_video" msgid="8188037202573267740">"האם לאפשר לאפליקציה "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" לשנות או למחוק את הסרטון הזה?"</string>
-    <string name="permission_images" msgid="6711726334380945124">"האם לאפשר לאפליקציה "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" לשנות או למחוק את התמונה הזו?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"כן, זה בסדר"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"אני לא מרשה"</string>
+    <!-- no translation found for permission_more_thumb (3530243737498196228) -->
+    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
+      <item quantity="two">ועוד <xliff:g id="COUNT_1">^1</xliff:g> פריטים נוספים</item>
+      <item quantity="many">ועוד <xliff:g id="COUNT_1">^1</xliff:g> פריטים נוספים</item>
+      <item quantity="other">ועוד <xliff:g id="COUNT_1">^1</xliff:g> פריטים נוספים</item>
+      <item quantity="one">ועוד פריט אחד נוסף (<xliff:g id="COUNT_0">^1</xliff:g>)</item>
+    </plurals>
+    <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
+      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?</item>
+      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?</item>
+      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?</item>
+      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> לשנות את קובץ האודיו הזה?</item>
+    </plurals>
+    <plurals name="permission_write_video" formatted="false" msgid="8695335317588947410">
+      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> סרטונים?</item>
+      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> סרטונים?</item>
+      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> סרטונים?</item>
+      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> לשנות את הסרטון הזה?</item>
+    </plurals>
+    <plurals name="permission_write_image" formatted="false" msgid="9032317900030650266">
+      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> תמונות?</item>
+      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> תמונות?</item>
+      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> תמונות?</item>
+      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> לשנות את התמונה הזו?</item>
+    </plurals>
+    <plurals name="permission_write_generic" formatted="false" msgid="3099002288826692797">
+      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> פריטים?</item>
+      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> פריטים?</item>
+      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> פריטים?</item>
+      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> לשנות את הפריט הזה?</item>
+    </plurals>
+    <string name="permission_write_grant" msgid="3160858917750790130">"שינוי"</string>
+    <string name="permission_write_deny" msgid="7090074081877311071">"ביטול"</string>
+    <plurals name="permission_trash_audio" formatted="false" msgid="6116371056718108592">
+      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו אל האשפה?</item>
+      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו אל האשפה?</item>
+      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו אל האשפה?</item>
+      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להעביר את קובץ האודיו הזה אל האשפה?</item>
+    </plurals>
+    <plurals name="permission_trash_audio_info" formatted="false" msgid="5002847308948758655">
+      <item quantity="two">קובצי אודיו אלה יימחקו באופן סופי לאחר <xliff:g id="DURATION_1">^3</xliff:g> ימים</item>
+      <item quantity="many">קובצי אודיו אלה יימחקו באופן סופי לאחר <xliff:g id="DURATION_1">^3</xliff:g> ימים</item>
+      <item quantity="other">קובצי אודיו אלה יימחקו באופן סופי לאחר <xliff:g id="DURATION_1">^3</xliff:g> ימים</item>
+      <item quantity="one">קובץ אודיו זה יימחק באופן סופי לאחר <xliff:g id="DURATION_0">^3</xliff:g> ימים</item>
+    </plurals>
+    <plurals name="permission_trash_video" formatted="false" msgid="7900111984425589714">
+      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> סרטונים לאשפה?</item>
+      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> סרטונים לאשפה?</item>
+      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> סרטונים לאשפה?</item>
+      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להעביר את הסרטון הזה לאשפה?</item>
+    </plurals>
+    <plurals name="permission_trash_video_info" formatted="false" msgid="4604871492287117394">
+      <item quantity="two">הסרטונים האלה יימחקו באופן סופי לאחר <xliff:g id="DURATION_1">^3</xliff:g> ימים</item>
+      <item quantity="many">הסרטונים האלה יימחקו באופן סופי לאחר <xliff:g id="DURATION_1">^3</xliff:g> ימים</item>
+      <item quantity="other">הסרטונים האלה יימחקו באופן סופי לאחר <xliff:g id="DURATION_1">^3</xliff:g> ימים</item>
+      <item quantity="one">הסרטון הזה יימחק באופן סופי לאחר <xliff:g id="DURATION_0">^3</xliff:g> ימים</item>
+    </plurals>
+    <plurals name="permission_trash_image" formatted="false" msgid="9204660448046457869">
+      <item quantity="two">לאפשר לאפליקציה<xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> תמונות לאשפה?</item>
+      <item quantity="many">לאפשר לאפליקציה<xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> תמונות לאשפה?</item>
+      <item quantity="other">לאפשר לאפליקציה<xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> תמונות לאשפה?</item>
+      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להעביר את התמונה הזו לאשפה?</item>
+    </plurals>
+    <plurals name="permission_trash_image_info" formatted="false" msgid="4214797662365755925">
+      <item quantity="two">תמונות אלה יימחקו באופן סופי לאחר <xliff:g id="DURATION_1">^3</xliff:g> ימים</item>
+      <item quantity="many">תמונות אלה יימחקו באופן סופי לאחר <xliff:g id="DURATION_1">^3</xliff:g> ימים</item>
+      <item quantity="other">תמונות אלה יימחקו באופן סופי לאחר <xliff:g id="DURATION_1">^3</xliff:g> ימים</item>
+      <item quantity="one">תמונה זו תימחק באופן סופי לאחר <xliff:g id="DURATION_0">^3</xliff:g> ימים</item>
+    </plurals>
+    <plurals name="permission_trash_generic" formatted="false" msgid="427752775725644743">
+      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> פריטים לאשפה?</item>
+      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> פריטים לאשפה?</item>
+      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להעביר <xliff:g id="COUNT">^2</xliff:g> פריטים לאשפה?</item>
+      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להעביר את הפריט הזה לאשפה?</item>
+    </plurals>
+    <plurals name="permission_trash_generic_info" formatted="false" msgid="7932965324027540546">
+      <item quantity="two">פריטים אלה יימחקו באופן סופי לאחר <xliff:g id="DURATION_1">^3</xliff:g> ימים</item>
+      <item quantity="many">פריטים אלה יימחקו באופן סופי לאחר <xliff:g id="DURATION_1">^3</xliff:g> ימים</item>
+      <item quantity="other">פריטים אלה יימחקו באופן סופי לאחר <xliff:g id="DURATION_1">^3</xliff:g> ימים</item>
+      <item quantity="one">פריט זה יימחק באופן סופי לאחר <xliff:g id="DURATION_0">^3</xliff:g> ימים</item>
+    </plurals>
+    <string name="permission_trash_grant" msgid="2279489962040272178">"העברה לאשפה"</string>
+    <string name="permission_trash_deny" msgid="2447949475239137483">"ביטול"</string>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="5716379492864435914">
+      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו מהאשפה?</item>
+      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו מהאשפה?</item>
+      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו מהאשפה?</item>
+      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להוציא את קובץ האודיו הזה מהאשפה?</item>
+    </plurals>
+    <plurals name="permission_untrash_video" formatted="false" msgid="4554487646802678525">
+      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> סרטונים מהאשפה?</item>
+      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> סרטונים מהאשפה?</item>
+      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> סרטונים מהאשפה?</item>
+      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> את הסרטון הזה מהאשפה?</item>
+    </plurals>
+    <plurals name="permission_untrash_image" formatted="false" msgid="3209306923499767662">
+      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> תמונות מהאשפה?</item>
+      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> תמונות מהאשפה?</item>
+      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> תמונות מהאשפה?</item>
+      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להוציא את התמונה הזו מהאשפה?</item>
+    </plurals>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="4607666277638602132">
+      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> פריטים מהאשפה?</item>
+      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> פריטים מהאשפה?</item>
+      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> להוציא <xliff:g id="COUNT">^2</xliff:g> פריטים מהאשפה?</item>
+      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> להוציא את הפריט הזה מהאשפה?</item>
+    </plurals>
+    <string name="permission_untrash_grant" msgid="8438940480373451790">"שחזור מהאשפה"</string>
+    <string name="permission_untrash_deny" msgid="8008055757469903604">"ביטול"</string>
+    <plurals name="permission_delete_audio" formatted="false" msgid="6390202287788379608">
+      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?</item>
+      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?</item>
+      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?</item>
+      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> למחוק את קובץ האודיו הזה?</item>
+    </plurals>
+    <plurals name="permission_delete_video" formatted="false" msgid="1577978206881284398">
+      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> סרטונים?</item>
+      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> סרטונים?</item>
+      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> סרטונים?</item>
+      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> למחוק את הסרטון הזה?</item>
+    </plurals>
+    <plurals name="permission_delete_image" formatted="false" msgid="8435429587272893063">
+      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> תמונות?</item>
+      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> תמונות?</item>
+      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> תמונות?</item>
+      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> למחוק את התמונה הזו?</item>
+    </plurals>
+    <plurals name="permission_delete_generic" formatted="false" msgid="5949614272661654178">
+      <item quantity="two">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> פריטים?</item>
+      <item quantity="many">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> פריטים?</item>
+      <item quantity="other">לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> למחוק <xliff:g id="COUNT">^2</xliff:g> פריטים?</item>
+      <item quantity="one">לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> למחוק את הפריט הזה?</item>
+    </plurals>
+    <string name="permission_delete_grant" msgid="8682518049167813926">"מחיקה"</string>
+    <string name="permission_delete_deny" msgid="3742780367403897552">"ביטול"</string>
 </resources>

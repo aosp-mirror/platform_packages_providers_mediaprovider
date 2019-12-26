@@ -25,9 +25,99 @@
     <string name="root_audio" msgid="3505830755201326018">"Áudio"</string>
     <string name="permission_required" msgid="1460820436132943754">"É necessária uma autorização para modificar ou eliminar este item."</string>
     <string name="permission_required_action" msgid="706370952366113539">"Continuar"</string>
-    <string name="permission_audio" msgid="344061911159388398">"Pretende permitir que a aplicação "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" modifique ou elimine esta música?"</string>
-    <string name="permission_video" msgid="8188037202573267740">"Pretende permitir que a aplicação "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" modifique ou elimine este vídeo?"</string>
-    <string name="permission_images" msgid="6711726334380945124">"Pretende permitir que a aplicação "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" modifique ou elimine esta imagem?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Permitir"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Recusar"</string>
+    <!-- no translation found for permission_more_thumb (3530243737498196228) -->
+    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
+      <item quantity="other">E <xliff:g id="COUNT_1">^1</xliff:g> itens adicionais</item>
+      <item quantity="one">E <xliff:g id="COUNT_0">^1</xliff:g> item adicional</item>
+    </plurals>
+    <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
+      <item quantity="other">Pretende permitir que a aplicação <xliff:g id="APP_NAME_1">^1</xliff:g> altere <xliff:g id="COUNT">^2</xliff:g> ficheiros de áudio?</item>
+      <item quantity="one">Pretende permitir que a aplicação <xliff:g id="APP_NAME_0">^1</xliff:g> altere este ficheiro de áudio?</item>
+    </plurals>
+    <plurals name="permission_write_video" formatted="false" msgid="8695335317588947410">
+      <item quantity="other">Pretende permitir que a aplicação <xliff:g id="APP_NAME_1">^1</xliff:g> altere <xliff:g id="COUNT">^2</xliff:g> vídeos?</item>
+      <item quantity="one">Pretende permitir que a aplicação <xliff:g id="APP_NAME_0">^1</xliff:g> altere este vídeo?</item>
+    </plurals>
+    <plurals name="permission_write_image" formatted="false" msgid="9032317900030650266">
+      <item quantity="other">Pretende permitir que a aplicação <xliff:g id="APP_NAME_1">^1</xliff:g> altere <xliff:g id="COUNT">^2</xliff:g> fotos?</item>
+      <item quantity="one">Pretende permitir que a aplicação <xliff:g id="APP_NAME_0">^1</xliff:g> altere esta foto?</item>
+    </plurals>
+    <plurals name="permission_write_generic" formatted="false" msgid="3099002288826692797">
+      <item quantity="other">Pretende permitir que a aplicação <xliff:g id="APP_NAME_1">^1</xliff:g> altere <xliff:g id="COUNT">^2</xliff:g> itens?</item>
+      <item quantity="one">Pretende permitir que a aplicação <xliff:g id="APP_NAME_0">^1</xliff:g> altere este item?</item>
+    </plurals>
+    <string name="permission_write_grant" msgid="3160858917750790130">"Alterar"</string>
+    <string name="permission_write_deny" msgid="7090074081877311071">"Cancelar"</string>
+    <plurals name="permission_trash_audio" formatted="false" msgid="6116371056718108592">
+      <item quantity="other">Pretende permitir que a aplicação <xliff:g id="APP_NAME_1">^1</xliff:g> mova <xliff:g id="COUNT">^2</xliff:g> ficheiros de áudio para o lixo?</item>
+      <item quantity="one">Pretende permitir que a aplicação <xliff:g id="APP_NAME_0">^1</xliff:g> mova este ficheiro de áudio para o lixo?</item>
+    </plurals>
+    <plurals name="permission_trash_audio_info" formatted="false" msgid="5002847308948758655">
+      <item quantity="other">Estes ficheiros de áudio serão eliminados definitivamente após <xliff:g id="DURATION_1">^3</xliff:g> dias.</item>
+      <item quantity="one">Este ficheiro de áudio será eliminado definitivamente após <xliff:g id="DURATION_0">^3</xliff:g> dias.</item>
+    </plurals>
+    <plurals name="permission_trash_video" formatted="false" msgid="7900111984425589714">
+      <item quantity="other">Pretende permitir que a aplicação <xliff:g id="APP_NAME_1">^1</xliff:g> mova <xliff:g id="COUNT">^2</xliff:g> vídeos para o lixo?</item>
+      <item quantity="one">Pretende permitir que a aplicação <xliff:g id="APP_NAME_0">^1</xliff:g> mova este vídeo para o lixo?</item>
+    </plurals>
+    <plurals name="permission_trash_video_info" formatted="false" msgid="4604871492287117394">
+      <item quantity="other">Estes vídeos serão eliminados definitivamente após <xliff:g id="DURATION_1">^3</xliff:g> dias.</item>
+      <item quantity="one">Este vídeo será eliminado definitivamente após <xliff:g id="DURATION_0">^3</xliff:g> dias.</item>
+    </plurals>
+    <plurals name="permission_trash_image" formatted="false" msgid="9204660448046457869">
+      <item quantity="other">Permite que a aplicação <xliff:g id="APP_NAME_1">^1</xliff:g> mova <xliff:g id="COUNT">^2</xliff:g> fotos para o lixo?</item>
+      <item quantity="one">Pretende permitir que a aplicação <xliff:g id="APP_NAME_0">^1</xliff:g> mova esta foto para o lixo?</item>
+    </plurals>
+    <plurals name="permission_trash_image_info" formatted="false" msgid="4214797662365755925">
+      <item quantity="other">Estas fotos serão eliminadas definitivamente após <xliff:g id="DURATION_1">^3</xliff:g> dias.</item>
+      <item quantity="one">Esta foto será eliminada definitivamente após <xliff:g id="DURATION_0">^3</xliff:g> dias.</item>
+    </plurals>
+    <plurals name="permission_trash_generic" formatted="false" msgid="427752775725644743">
+      <item quantity="other">Pretende permitir que a aplicação <xliff:g id="APP_NAME_1">^1</xliff:g> mova <xliff:g id="COUNT">^2</xliff:g> itens para o lixo?</item>
+      <item quantity="one">Pretende permitir que a aplicação <xliff:g id="APP_NAME_0">^1</xliff:g> mova este item para o lixo?</item>
+    </plurals>
+    <plurals name="permission_trash_generic_info" formatted="false" msgid="7932965324027540546">
+      <item quantity="other">Estes itens serão eliminados definitivamente após <xliff:g id="DURATION_1">^3</xliff:g> dias.</item>
+      <item quantity="one">Este item será eliminado definitivamente após <xliff:g id="DURATION_0">^3</xliff:g> dias.</item>
+    </plurals>
+    <string name="permission_trash_grant" msgid="2279489962040272178">"Mover para o lixo"</string>
+    <string name="permission_trash_deny" msgid="2447949475239137483">"Cancelar"</string>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="5716379492864435914">
+      <item quantity="other">Pretende permitir que a aplicação <xliff:g id="APP_NAME_1">^1</xliff:g> retire <xliff:g id="COUNT">^2</xliff:g> ficheiros de áudio do lixo?</item>
+      <item quantity="one">Pretende permitir que a aplicação <xliff:g id="APP_NAME_0">^1</xliff:g> retire este ficheiro de áudio do lixo?</item>
+    </plurals>
+    <plurals name="permission_untrash_video" formatted="false" msgid="4554487646802678525">
+      <item quantity="other">Pretende permitir que a aplicação <xliff:g id="APP_NAME_1">^1</xliff:g> retire <xliff:g id="COUNT">^2</xliff:g> vídeos do lixo?</item>
+      <item quantity="one">Pretende permitir que a aplicação <xliff:g id="APP_NAME_0">^1</xliff:g> retire este vídeo do lixo?</item>
+    </plurals>
+    <plurals name="permission_untrash_image" formatted="false" msgid="3209306923499767662">
+      <item quantity="other">Pretende permitir que a aplicação <xliff:g id="APP_NAME_1">^1</xliff:g> retire <xliff:g id="COUNT">^2</xliff:g> fotos do lixo?</item>
+      <item quantity="one">Pretende permitir que a aplicação <xliff:g id="APP_NAME_0">^1</xliff:g> retire esta foto do lixo?</item>
+    </plurals>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="4607666277638602132">
+      <item quantity="other">Pretende permitir que a aplicação <xliff:g id="APP_NAME_1">^1</xliff:g> retire <xliff:g id="COUNT">^2</xliff:g> itens do lixo?</item>
+      <item quantity="one">Pretende permitir que a aplicação <xliff:g id="APP_NAME_0">^1</xliff:g> retire este item do lixo?</item>
+    </plurals>
+    <string name="permission_untrash_grant" msgid="8438940480373451790">"Retirar do lixo"</string>
+    <string name="permission_untrash_deny" msgid="8008055757469903604">"Cancelar"</string>
+    <plurals name="permission_delete_audio" formatted="false" msgid="6390202287788379608">
+      <item quantity="other">Pretende permitir que a aplicação <xliff:g id="APP_NAME_1">^1</xliff:g> elimine <xliff:g id="COUNT">^2</xliff:g> ficheiros de áudio?</item>
+      <item quantity="one">Pretende permitir que a aplicação <xliff:g id="APP_NAME_0">^1</xliff:g> elimine este ficheiro de áudio?</item>
+    </plurals>
+    <plurals name="permission_delete_video" formatted="false" msgid="1577978206881284398">
+      <item quantity="other">Pretende permitir que a aplicação <xliff:g id="APP_NAME_1">^1</xliff:g> elimine <xliff:g id="COUNT">^2</xliff:g> vídeos?</item>
+      <item quantity="one">Pretende permitir que a aplicação <xliff:g id="APP_NAME_0">^1</xliff:g> elimine este vídeo?</item>
+    </plurals>
+    <plurals name="permission_delete_image" formatted="false" msgid="8435429587272893063">
+      <item quantity="other">Pretende permitir que a aplicação <xliff:g id="APP_NAME_1">^1</xliff:g> elimine <xliff:g id="COUNT">^2</xliff:g> fotos?</item>
+      <item quantity="one">Pretende permitir que a aplicação <xliff:g id="APP_NAME_0">^1</xliff:g> elimine esta foto?</item>
+    </plurals>
+    <plurals name="permission_delete_generic" formatted="false" msgid="5949614272661654178">
+      <item quantity="other">Pretende permitir que a aplicação <xliff:g id="APP_NAME_1">^1</xliff:g> elimine <xliff:g id="COUNT">^2</xliff:g> itens?</item>
+      <item quantity="one">Pretende permitir que a aplicação <xliff:g id="APP_NAME_0">^1</xliff:g> elimine este item?</item>
+    </plurals>
+    <string name="permission_delete_grant" msgid="8682518049167813926">"Eliminar"</string>
+    <string name="permission_delete_deny" msgid="3742780367403897552">"Cancelar"</string>
 </resources>

@@ -74,7 +74,7 @@ using std::vector;
 
 class ScopedTrace {
   public:
-    inline ScopedTrace(const char *name) {
+    explicit inline ScopedTrace(const char *name) {
       ATrace_beginSection(name);
     }
 
@@ -91,7 +91,7 @@ constexpr int PER_USER_RANGE = 100000;
 
 class handle {
   public:
-    handle(const string& path) : path(path), fd(-1), ri(nullptr), cached(true) {};
+    explicit handle(const string& path) : path(path), fd(-1), ri(nullptr), cached(true) {};
     string path;
     int fd;
     std::unique_ptr<RedactionInfo> ri;
@@ -507,7 +507,6 @@ static struct node* lookup_child_by_name_locked(struct node* node,
 }
 
 static std::vector<std::string> get_path_segments(int segment_start, const std::string& path) {
-    using namespace std;
     vector<std::string> segments;
     int segment_end = path.find_first_of('/', segment_start);
 

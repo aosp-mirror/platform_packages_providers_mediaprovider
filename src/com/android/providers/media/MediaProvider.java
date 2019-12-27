@@ -4398,8 +4398,12 @@ public class MediaProvider extends ContentProvider {
                             redactionInfo.freeOffsets);
                 }
             } else {
+                FuseDaemon daemon = null;
+
                 StorageVolume volume = mStorageManager.getStorageVolume(file);
-                FuseDaemon daemon = ExternalStorageServiceImpl.getFuseDaemon(volume.getId());
+                if (volume != null) {
+                    daemon = ExternalStorageServiceImpl.getFuseDaemon(volume.getId());
+                }
                 ParcelFileDescriptor lowerFsFd = ParcelFileDescriptor.open(file, modeBits);
                 boolean forRead = (modeBits & ParcelFileDescriptor.MODE_READ_ONLY) != 0;
                 boolean shouldOpenWithFuse = daemon != null

@@ -176,6 +176,21 @@ std::vector<std::shared_ptr<DirectoryEntry>> getFilesInDirectory(JNIEnv* env,
     }
 
     int de_count = env->GetArrayLength(files_list.get());
+    if (de_count == 1) {
+        ScopedLocalRef<jstring> j_d_name(env,
+                                         (jstring)env->GetObjectArrayElement(files_list.get(), 0));
+        ScopedUtfChars d_name(env, j_d_name.get());
+        if (d_name.c_str() == nullptr) {
+            LOG(ERROR) << "Error reading file name returned from MediaProvider at index " << 0;
+            directory_entries.push_back(std::make_shared<DirectoryEntry>("", EFAULT));
+            return directory_entries;
+        } else if (d_name.c_str()[0] == '\0') {
+            // Calling package has no storage permissions.
+            directory_entries.push_back(std::make_shared<DirectoryEntry>("", EPERM));
+            return directory_entries;
+        }
+    }
+
     for (int i = 0; i < de_count; i++) {
         ScopedLocalRef<jstring> j_d_name(env,
                                          (jstring)env->GetObjectArrayElement(files_list.get(), i));
@@ -184,8 +199,7 @@ std::vector<std::shared_ptr<DirectoryEntry>> getFilesInDirectory(JNIEnv* env,
         if (d_name.c_str() == nullptr) {
             LOG(ERROR) << "Error reading file name returned from MediaProvider at index " << i;
             directory_entries.resize(0);
-            directory_entries.insert(directory_entries.begin(),
-                                     std::make_shared<DirectoryEntry>("", EFAULT));
+            directory_entries.push_back(std::make_shared<DirectoryEntry>("", EFAULT));
             break;
         }
         directory_entries.push_back(std::make_shared<DirectoryEntry>(d_name.c_str(), DT_REG));

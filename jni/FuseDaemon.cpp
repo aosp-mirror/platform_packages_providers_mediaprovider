@@ -1455,14 +1455,17 @@ static void do_readdir_common(fuse_req_t req,
     // Check for errors. Any error/exception occurred while obtaining directory
     // entries will be indicated by marking first directory entry name as empty
     // string. In the erroneous case corresponding d_type will hold error number.
-    if (num_directory_entries && h->de[0]->d_name.empty()) errno = h->de[0]->d_type;
+    if (num_directory_entries && h->de[0]->d_name.empty()) {
+        fuse_reply_err(req, h->de[0]->d_type);
+        return;
+    }
 
-    while (errno == 0 && h->next_off < num_directory_entries) {
+    while (h->next_off < num_directory_entries) {
         de = h->de[h->next_off];
-        errno = 0;
         entry_size = 0;
         h->next_off++;
         if (plus) {
+            errno = 0;
             if (do_lookup(req, ino, de->d_name.c_str(), &e)) {
                 entry_size = fuse_add_direntry_plus(req, buf + used, len - used, de->d_name.c_str(),
                                                     &e, h->next_off);
@@ -1492,11 +1495,7 @@ static void do_readdir_common(fuse_req_t req,
         }
         used += entry_size;
     }
-
-    if (errno)
-        fuse_reply_err(req, errno);
-    else
-        fuse_reply_buf(req, buf, used);
+    fuse_reply_buf(req, buf, used);
 }
 
 static void pf_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,

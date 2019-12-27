@@ -1512,10 +1512,10 @@ static void do_readdir_common(fuse_req_t req,
         if (used + entry_size > len) {
             // When an entry is rejected, lookup called by readdir_plus will not be tracked by
             // kernel. Call forget on the rejected node to decrement the reference count.
-            //
-            // TODO(narayan): This method assumes that the fuse lock is held
-            // while it's called but this isn't currently true.
-            if (plus) do_forget_locked(fuse, e.ino, 1);
+            if (plus) {
+                std::lock_guard<std::mutex> lock(fuse->lock);
+                do_forget_locked(fuse, e.ino, 1);
+            }
             break;
         }
         used += entry_size;

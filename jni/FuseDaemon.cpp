@@ -571,6 +571,7 @@ static struct node* make_node_entry(fuse_req_t req,
                                     const string& path,
                                     struct fuse_entry_param* e) {
     struct fuse* fuse = get_fuse(req);
+    const struct fuse_ctx* ctx = fuse_req_ctx(req);
     struct node* node;
 
     memset(e, 0, sizeof(*e));
@@ -587,8 +588,9 @@ static struct node* make_node_entry(fuse_req_t req,
     }
 
     // Manipulate attr here if needed
-
     e->attr_timeout = 10;
+    int user_id = ctx->uid / PER_USER_RANGE;
+    const std::string android_path = fuse->path + "/" + std::to_string(user_id) + "/Android";
     // Ensure the VFS does not cache dentries, if it caches, the following scenario could occur:
     // 1. Process A has access to file A and does a lookup
     // 2. Process B does not have access to file A and does a lookup
@@ -597,7 +599,13 @@ static struct node* make_node_entry(fuse_req_t req,
     // because subsequent FUSE requests will fail if B does not have access to the resource.
     // It does cause indeterministic behavior because whether (2) succeeds or not depends on if
     // (1) occurred.
-    e->entry_timeout = 0;
+    // We prevent this caching by setting the entry_timeout value to 0.
+    // The /0 and /0/Android paths are exempt, as they are visible to all apps.
+    if (parent->nid == FUSE_ROOT_ID || path.rfind(android_path, 0) == 0) {
+        e->entry_timeout = 10;
+    } else {
+        e->entry_timeout = 0;
+    }
     e->ino = node->nid;
     e->generation = node->gen;
     pthread_mutex_unlock(&fuse->lock);

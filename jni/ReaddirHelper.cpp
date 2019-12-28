@@ -43,8 +43,7 @@ void addDirectoryEntriesFromLowerFs(DIR* dirp, bool (*const filter)(const dirent
             if (errno) {
                 PLOG(ERROR) << "DEBUG: readdir(): readdir failed with %d" << errno;
                 directory_entries->resize(0);
-                directory_entries->insert(directory_entries->begin(),
-                                          std::make_shared<DirectoryEntry>("", errno));
+                directory_entries->push_back(std::make_shared<DirectoryEntry>("", errno));
             }
             break;
         }

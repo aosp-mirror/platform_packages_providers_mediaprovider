@@ -157,10 +157,9 @@ int isDirectoryOperationAllowedInternal(JNIEnv* env, jobject media_provider_obje
     return res;
 }
 
-std::vector<std::shared_ptr<DirectoryEntry>> getFilesInDirectory(JNIEnv* env,
-                                                                 jobject media_provider_object,
-                                                                 jmethodID mid_get_files_in_dir,
-                                                                 uid_t uid, const string& path) {
+std::vector<std::shared_ptr<DirectoryEntry>> getFilesInDirectoryInternal(
+        JNIEnv* env, jobject media_provider_object, jmethodID mid_get_files_in_dir, uid_t uid,
+        const string& path) {
     LOG(DEBUG) << "Getting file names in path " << path << " for UID = " << uid;
     std::vector<std::shared_ptr<DirectoryEntry>> directory_entries;
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
@@ -374,7 +373,8 @@ std::vector<std::shared_ptr<DirectoryEntry>> MediaProviderWrapper::GetDirectoryE
     }
 
     PostAndWaitForTask([this, uid, path, &res](JNIEnv* env) {
-        res = getFilesInDirectory(env, media_provider_object_, mid_get_files_in_dir_, uid, path);
+        res = getFilesInDirectoryInternal(env, media_provider_object_, mid_get_files_in_dir_, uid,
+                                          path);
     });
 
     const int res_size = res.size();

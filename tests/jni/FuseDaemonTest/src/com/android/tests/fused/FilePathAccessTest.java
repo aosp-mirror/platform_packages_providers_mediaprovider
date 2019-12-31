@@ -282,7 +282,7 @@ public class FilePathAccessTest {
 
         final File dir2 = new File(dir1, "random_dir_inside_random_dir");
         // And create a dir inside the new dir
-        assertThat(dir2.mkdir());
+        assertThat(dir2.mkdir()).isTrue();
 
         // And can delete them all
         assertThat(dir2.delete()).isTrue();

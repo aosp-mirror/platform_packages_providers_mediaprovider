@@ -148,4 +148,19 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
         runDeviceTest("testContentResolverDelete");
         runDeviceTest("testContentResolverUpdate");
     }
+
+    @Test
+    public void testRenameFile() throws Exception {
+        runDeviceTest("testRenameFile");
+    }
+
+    @Test
+    public void testRenameDirectory() throws Exception {
+        runDeviceTest("testRenameDirectory");
+    }
+
+    @Test
+    public void testRenameEmptyDirectory() throws Exception {
+        runDeviceTest("testRenameEmptyDirectory");
+    }
 }

@@ -1040,6 +1040,95 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    /**
+     * Rename file or directory from {@code oldPath} to {@code newPath}.
+     *
+     * @param oldPath path of the file or directory to be renamed.
+     * @param newPath new path of the file or directory to be renamed.
+     * @param uid UID of the calling package.
+     * @return 0 on successful rename, appropriate negated errno value if the rename is not allowed.
+     * <ul>
+     * <li>{@link OsConstants#ENOENT} Renaming a non-existing file or renaming a file from path that
+     * is not indexed by MediaProvider database.
+     * <li>{@link OsConstants#EPERM} Renaming a default directory.
+     * </ul>
+     * This method can also return errno returned from {@code Os.rename} function.
+     * MediaProvider database entries corresponding to files/directories being renamed is not
+     * updated on rename and hence, FUSE rename can make MediaProvider database inconsistent with
+     * lower file system.
+     *
+     * Called from JNI in jni/MediaProviderWrapper.cpp
+     */
+    @Keep
+    public int renameForFuse(String oldPath, String newPath, int uid) {
+        final String errorMessage = "Rename " + oldPath + " to " + newPath + " failed. ";
+        final LocalCallingIdentity token = clearLocalCallingIdentity(
+                LocalCallingIdentity.fromExternal(getContext(), uid));
+        try {
+            final String[] oldRelativePath = sanitizePath(extractRelativePath(oldPath));
+            final String[] newRelativePath = sanitizePath(extractRelativePath(newPath));
+            if (oldRelativePath.length == 0 || newRelativePath.length == 0) {
+                // Rename not allowed on paths that can't be translated to RELATIVE_PATH.
+                Log.e(TAG, errorMessage +  "Invalid path.");
+                return -OsConstants.EPERM;
+            } else if (oldRelativePath.length == 1 && TextUtils.isEmpty(oldRelativePath[0])) {
+                // Allow rename of files/folders other than default directories.
+                final String displayName = extractDisplayName(oldPath);
+                for (String defaultFolder : sDefaultFolderNames) {
+                    if (displayName.equals(defaultFolder)) {
+                        Log.e(TAG, errorMessage + oldPath + " is a default folder."
+                                + " Renaming a default folder is not allowed.");
+                        return -OsConstants.EPERM;
+                    }
+                }
+            } else if (newRelativePath.length == 1 && TextUtils.isEmpty(newRelativePath[0])) {
+                Log.e(TAG, errorMessage +  newPath + " is in root folder."
+                        + " Renaming a file/directory to root folder is not allowed");
+                return -OsConstants.EPERM;
+            }
+
+            final File directoryAndroid = new File(Environment.getExternalStorageDirectory(),
+                    DIRECTORY_ANDROID);
+            final File directoryAndroidMedia = new File(directoryAndroid, DIRECTORY_MEDIA);
+            if (directoryAndroidMedia.getAbsolutePath().equals(oldPath)) {
+                // Don't allow renaming 'Android/media' directory.
+                // Android/[data|obb] are bind mounted and these paths don't go through FUSE.
+                Log.e(TAG, errorMessage +  oldPath + " is a default folder in app external "
+                        + "directory. Renaming a default folder is not allowed.");
+                return -OsConstants.EPERM;
+            } else if (FileUtils.contains(directoryAndroid, new File(newPath))) {
+                if (newRelativePath.length == 1) {
+                    // New path is Android/*. Path is directly under Android. Don't allow moving
+                    // files and directories to Android/.
+                    Log.e(TAG, errorMessage +  newPath + " is in app external directory. "
+                            + "Renaming a file/directory to app external directory is not "
+                            + "allowed.");
+                    return -OsConstants.EPERM;
+                } else if(!FileUtils.contains(directoryAndroidMedia, new File(newPath))) {
+                    // New path is  Android/*/*. Don't allow moving of files or directories
+                    // to app external directory other than media directory.
+                    Log.e(TAG, errorMessage +  newPath + " is not in external media directory."
+                            + "File/directory can only be renamed to a path in external media "
+                            + "directory. Renaming file/directory to path in other external "
+                            + "directories is not allowed");
+                    return -OsConstants.EPERM;
+                }
+            }
+
+            // Continue renaming files/directories if rename of oldPath to newPath is allowed.
+            try {
+                Os.rename(oldPath, newPath);
+                return 0;
+            } catch (ErrnoException e) {
+                Log.e(TAG, errorMessage, e);
+                return -e.errno;
+            }
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
+    }
+
+
     @Override
     public int checkUriPermission(@NonNull Uri uri, int uid,
             /* @Intent.AccessUriMode */ int modeFlags) {

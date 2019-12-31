@@ -143,6 +143,18 @@ class MediaProviderWrapper final {
      */
     int IsOpendirAllowed(const std::string& path, uid_t uid);
 
+    /**
+     * Renames a file or directory to new path.
+     *
+     * @param old_path path of the file or directory to be renamed.
+     * @param new_path new path of the file or directory to be renamed.
+     * @param uid UID of the calling app.
+     * @return 0 if rename is successful, negated errno if one of the rename fails. If return
+     * value is 0, it's guaranteed that file/directory is moved to new_path. For any other errno
+     * except EFAULT/EIO, it's guaranteed that file/directory is not renamed.
+     */
+    int Rename(const std::string& old_path, const std::string& new_path, uid_t uid);
+
   private:
     jclass media_provider_class_;
     jobject media_provider_object_;
@@ -155,6 +167,8 @@ class MediaProviderWrapper final {
     jmethodID mid_is_dir_op_allowed_;
     jmethodID mid_is_opendir_allowed_;
     jmethodID mid_get_files_in_dir_;
+    jmethodID mid_rename_;
+
     /**
      * All JNI calls are delegated to this thread
      */

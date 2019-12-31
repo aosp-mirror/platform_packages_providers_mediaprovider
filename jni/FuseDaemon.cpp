@@ -48,6 +48,7 @@
 #include <unistd.h>
 
 #include <iostream>
+#include <list>
 #include <map>
 #include <mutex>
 #include <queue>
@@ -62,6 +63,7 @@
 
 using mediaprovider::fuse::DirectoryEntry;
 using mediaprovider::fuse::RedactionInfo;
+using std::list;
 using std::string;
 using std::vector;
 
@@ -109,7 +111,7 @@ struct dirhandle {
 };
 
 struct node {
-    node() : refcount(0), nid(0), ino(0), next(0), child(0), parent(0), deleted(false) {}
+    node() : refcount(0), nid(0), ino(0), parent(0), deleted(false) {}
 
     __u32 refcount;
     __u64 nid;
@@ -119,8 +121,10 @@ struct node {
      */
     __u32 ino;
 
-    struct node* next;   /* per-dir sibling list */
-    struct node* child;  /* first contained file by this dir */
+    // List of children of this node. All of them contain a back reference
+    // to their parent.
+    list<node*> children;
+
     struct node* parent; /* containing directory */
     std::vector<handle*> handles; /* container for file handle pointers */
     std::vector<dirhandle*> dirhandles; /* container for dir handle pointers */
@@ -415,24 +419,19 @@ static void release_node_locked(struct node* node) {
 
 static void add_node_to_parent_locked(struct node* node, struct node* parent) {
     node->parent = parent;
-    node->next = parent->child;
-    parent->child = node;
+    parent->children.push_back(node);
     acquire_node_locked(parent);
 }
 
 static void remove_node_from_parent_locked(struct node* node) {
     if (node->parent) {
-        if (node->parent->child == node) {
-            node->parent->child = node->parent->child->next;
-        } else {
-            struct node* node2;
-            node2 = node->parent->child;
-            while (node2->next != node) node2 = node2->next;
-            node2->next = node->next;
-        }
+        list<struct node*>& children = node->parent->children;
+        list<struct node*>::iterator it = std::find(children.begin(), children.end(), node);
+
+        CHECK(it != children.end());
+        children.erase(it);
         release_node_locked(node->parent);
         node->parent = NULL;
-        node->next = NULL;
     }
 }
 
@@ -489,14 +488,14 @@ static struct node* lookup_node_by_id_locked(struct fuse* fuse, __u64 nid) {
 
 static struct node* lookup_child_by_name_locked(struct node* node,
                                                 const string& name) {
-    for (node = node->child; node; node = node->next) {
+    for (struct node* child : node->children) {
         /* use exact string comparison, nodes that differ by case
          * must be considered distinct even if they refer to the same
          * underlying file as otherwise operations such as "mv x x"
          * will not work because the source and target nodes are the same. */
 
-        if ((name == node->name) && !node->deleted) {
-            return node;
+        if ((name == child->name) && !child->deleted) {
+            return child;
         }
     }
     return nullptr;
@@ -632,11 +631,11 @@ static void pf_init(void* userdata, struct fuse_conn_info* conn) {
 
 static void delete_node_tree(node* parent, node* root) {
     if (parent) {
-        node* next = parent->child;
-        while (next) {
-            delete_node_tree(next, root);
-            next = next->next;
+        for (struct node* child : parent->children) {
+            delete_node_tree(child, root);
         }
+        parent->children.clear();
+
         parent->CloseAllOpenFds();
         if (parent != root) {
             // Don't delete node itself if it is root because it is stack allocated

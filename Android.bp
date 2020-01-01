@@ -21,6 +21,10 @@ android_app {
         ":mediaprovider-sources",
     ],
 
+    // Rewrite our hidden API usage of MediaStore to avoid "Inlined method
+    // resolution crossed dex file boundary" errors
+    jarjar_rules: "jarjar-rules.txt",
+
     optimize: {
         proguard_flags_files: ["proguard.flags"],
     },

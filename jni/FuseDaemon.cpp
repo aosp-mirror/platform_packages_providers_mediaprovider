@@ -461,16 +461,15 @@ struct node* create_node_locked(struct fuse* fuse,
     struct node* node;
 
     // Detect overflows in the inode counter. "4 billion nodes should be enough
-    // for everybody".
+    // for everybody". Crash the daemon if this happens, as this is a condition
+    // that's very unlikely to be tested thoroughly and attempting to mitigate it
+    // here is unlikely to achieve much.
     if (fuse->inode_ctr == 0) {
-        LOG(ERROR) << "No more inode numbers available";
-        return NULL;
+        LOG(FATAL) << "No more inode numbers available";
+        __builtin_unreachable();
     }
 
     node = new ::node();
-    if (!node) {
-        return NULL;
-    }
     node->name = name;
     node->nid = ptr_to_id(node);
     node->ino = fuse->inode_ctr++;
@@ -580,10 +579,6 @@ static struct node* make_node_entry(fuse_req_t req,
 
     std::lock_guard<std::mutex> lock(fuse->lock);
     node = acquire_or_create_child_locked(fuse, parent, name);
-    if (!node) {
-        errno = ENOMEM;
-        return NULL;
-    }
 
     // Manipulate attr here if needed
     e->attr_timeout = 10;
@@ -1087,18 +1082,13 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         return;
     }
 
-    h = new handle(path);
-    if (!h) {
-        fuse_reply_err(req, ENOMEM);
-        return;
-    }
-
     if (fi->flags & O_DIRECT) {
         fi->flags &= ~O_DIRECT;
         fi->direct_io = true;
     }
 
     TRACE_FUSE(fuse) << "OPEN " << path;
+    h = new handle(path);
     errno = -fuse->mp->IsOpenAllowed(h->path, ctx->uid, is_requesting_write(fi->flags));
     if (errno || (h->fd = open(path.c_str(), fi->flags)) < 0) {
         delete h;
@@ -1423,11 +1413,6 @@ static void pf_opendir(fuse_req_t req,
     }
 
     h = new dirhandle();
-    if (!h) {
-        fuse_reply_err(req, ENOMEM);
-        return;
-    }
-
     errno = -fuse->mp->IsOpendirAllowed(path, ctx->uid);
     if (errno || !(h->d = opendir(path.c_str()))) {
         delete h;
@@ -1487,14 +1472,17 @@ static void do_readdir_common(fuse_req_t req,
     // Check for errors. Any error/exception occurred while obtaining directory
     // entries will be indicated by marking first directory entry name as empty
     // string. In the erroneous case corresponding d_type will hold error number.
-    if (num_directory_entries && h->de[0]->d_name.empty()) errno = h->de[0]->d_type;
+    if (num_directory_entries && h->de[0]->d_name.empty()) {
+        fuse_reply_err(req, h->de[0]->d_type);
+        return;
+    }
 
-    while (errno == 0 && h->next_off < num_directory_entries) {
+    while (h->next_off < num_directory_entries) {
         de = h->de[h->next_off];
-        errno = 0;
         entry_size = 0;
         h->next_off++;
         if (plus) {
+            errno = 0;
             if (do_lookup(req, ino, de->d_name.c_str(), &e)) {
                 entry_size = fuse_add_direntry_plus(req, buf + used, len - used, de->d_name.c_str(),
                                                     &e, h->next_off);
@@ -1519,19 +1507,15 @@ static void do_readdir_common(fuse_req_t req,
         if (used + entry_size > len) {
             // When an entry is rejected, lookup called by readdir_plus will not be tracked by
             // kernel. Call forget on the rejected node to decrement the reference count.
-            //
-            // TODO(narayan): This method assumes that the fuse lock is held
-            // while it's called but this isn't currently true.
-            if (plus) do_forget_locked(fuse, e.ino, 1);
+            if (plus) {
+                std::lock_guard<std::mutex> lock(fuse->lock);
+                do_forget_locked(fuse, e.ino, 1);
+            }
             break;
         }
         used += entry_size;
     }
-
-    if (errno)
-        fuse_reply_err(req, errno);
-    else
-        fuse_reply_buf(req, buf, used);
+    fuse_reply_buf(req, buf, used);
 }
 
 static void pf_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
@@ -1650,10 +1634,6 @@ static void pf_create(fuse_req_t req,
     child_path = parent_path + "/" + name;
 
     h = new handle(child_path);
-    if (!h) {
-        fuse_reply_err(req, ENOMEM);
-        return;
-    }
     mode = (mode & (~0777)) | 0664;
     int mp_return_code = fuse->mp->InsertFile(child_path.c_str(), ctx->uid);
     if (mp_return_code || ((h->fd = open(child_path.c_str(), fi->flags, mode)) < 0)) {

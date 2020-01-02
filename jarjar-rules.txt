@@ -1,0 +1,2 @@
+rule android.provider.Column* com.android.providers.media.framework.Column@1
+rule android.provider.MediaStore* com.android.providers.media.framework.MediaStore@1

@@ -24,6 +24,7 @@ cc_library_shared {
         "MediaProviderWrapper.cpp",
         "ReaddirHelper.cpp",
         "RedactionInfo.cpp",
+        "node.cpp"
     ],
 
     header_libs: [
@@ -57,6 +58,32 @@ cc_library_shared {
     tidy_checks: [
         "-google-runtime-int",
     ],
+
+    sdk_version: "current",
+    stl: "c++_static",
+}
+
+cc_test {
+    name: "fuse_node_test",
+    test_suites: ["device-tests"],
+    srcs: [
+        "node_test.cpp",
+        "node.cpp",
+        "ReaddirHelper.cpp",
+        "RedactionInfo.cpp",
+    ],
+
+    local_include_dirs: ["include"],
+
+    static_libs: [
+        "libbase_ndk",
+    ],
+
+    shared_libs: [
+        "liblog",
+    ],
+
+    tidy: true,
 
     sdk_version: "current",
     stl: "c++_static",

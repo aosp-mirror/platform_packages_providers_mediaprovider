@@ -109,11 +109,10 @@ struct dirhandle {
 };
 
 struct node {
-    node() : refcount(0), nid(0), gen(0), ino(0), next(0), child(0), parent(0), deleted(false) {}
+    node() : refcount(0), nid(0), ino(0), next(0), child(0), parent(0), deleted(false) {}
 
     __u32 refcount;
     __u64 nid;
-    __u64 gen;
     /*
      * The inode number for this FUSE node. Note that this isn't stable across
      * multiple invocations of the FUSE daemon.
@@ -278,12 +277,11 @@ class FAdviser {
 
 /* Single FUSE mount */
 struct fuse {
-    fuse() : next_generation(0), inode_ctr(0), mp(0), zero_addr(0) {}
+    fuse() : inode_ctr(0), mp(0), zero_addr(0) {}
 
     std::mutex lock;
     string path;
 
-    __u64 next_generation;
     struct node root;
 
     /* Used to allocate unique inode numbers for fuse nodes. We use
@@ -473,7 +471,6 @@ struct node* create_node_locked(struct fuse* fuse,
     node->name = name;
     node->nid = ptr_to_id(node);
     node->ino = fuse->inode_ctr++;
-    node->gen = fuse->next_generation++;
 
     node->deleted = false;
 
@@ -600,7 +597,11 @@ static struct node* make_node_entry(fuse_req_t req,
         e->entry_timeout = 0;
     }
     e->ino = node->nid;
-    e->generation = node->gen;
+    // This FS is not being exported via NFS so just a fixed generation number
+    // for now. If we do need this, we need to increment the generation ID each
+    // time the fuse daemon restarts because that's what it takes for us to
+    // reuse inode numbers.
+    e->generation = 0;
 
     return node;
 }
@@ -1822,7 +1823,6 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
     }
 
     struct fuse fuse_default;
-    fuse_default.next_generation = 0;
     fuse_default.inode_ctr = 1;
     fuse_default.root.nid = FUSE_ROOT_ID; /* 1 */
     fuse_default.root.refcount = 2;

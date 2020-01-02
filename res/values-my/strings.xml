@@ -104,19 +104,19 @@
     <string name="permission_untrash_deny" msgid="8008055757469903604">"မလုပ်တော့"</string>
     <plurals name="permission_delete_audio" formatted="false" msgid="6390202287788379608">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား အသံဖိုင် <xliff:g id="COUNT">^2</xliff:g> ဖိုင်ကို ဖျက်ခွင့်ပြုမလား။</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤအသံဖိုင်ကို ဖျက်ခွင့ပြုမလား။</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤအသံဖိုင်ကို ဖျက်ခွင့်ပြုမလား။</item>
     </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1577978206881284398">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ဗီဒီယို <xliff:g id="COUNT">^2</xliff:g> ခုကို ဖျက်ခွင့်ပြုမလား။</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤဗီဒီယိုကို ဖျက်ခွင့်ပြုမလား။</item>
     </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="8435429587272893063">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ဓာတ်ပုံ <xliff:g id="COUNT">^2</xliff:g> ပုံကို ဖျက်ခွင့ပြုမလား။</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤဓာတ်ပုံကို ဖျက်ခွင့ပြုမလား။</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ဓာတ်ပုံ <xliff:g id="COUNT">^2</xliff:g> ပုံကို ဖျက်ခွင့်ပြုမလား။</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤဓာတ်ပုံကို ဖျက်ခွင့်ပြုမလား။</item>
     </plurals>
     <plurals name="permission_delete_generic" formatted="false" msgid="5949614272661654178">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ပါရှိသည့်အရာ <xliff:g id="COUNT">^2</xliff:g> ခုကို ဖျက်ခွင့်ပြုမလား။</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤအရာကို ဖျက်ခွင့ပြုမလား။</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤအရာကို ဖျက်ခွင့်ပြုမလား။</item>
     </plurals>
     <string name="permission_delete_grant" msgid="8682518049167813926">"ဖျက်ရန်"</string>
     <string name="permission_delete_deny" msgid="3742780367403897552">"မလုပ်တော့"</string>

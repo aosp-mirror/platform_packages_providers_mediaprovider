@@ -101,7 +101,10 @@ class handle {
 };
 
 struct dirhandle {
-    DIR* d;
+  public:
+    explicit dirhandle(DIR* dir) : d(dir), next_off(0){};
+
+    DIR* const d;
     off_t next_off;
     // Fuse readdir() is called multiple times based on the size of the buffer and
     // number of directory entries in the given directory. 'de' holds the list
@@ -559,17 +562,16 @@ static struct fuse* get_fuse(fuse_req_t req) {
     return reinterpret_cast<struct fuse*>(fuse_req_userdata(req));
 }
 
-static struct node* make_node_entry(fuse_req_t req,
-                                    struct node* parent,
-                                    const string& name,
-                                    const string& path,
-                                    struct fuse_entry_param* e) {
+static struct node* make_node_entry(fuse_req_t req, struct node* parent, const string& name,
+                                    const string& path, struct fuse_entry_param* e,
+                                    int* error_code) {
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     struct node* node;
 
     memset(e, 0, sizeof(*e));
     if (lstat(path.c_str(), &e->attr) < 0) {
+        *error_code = errno;
         return NULL;
     }
 
@@ -652,17 +654,14 @@ static void pf_destroy(void* userdata) {
 }
 
 static std::regex storage_emulated_regex("^\\/storage\\/emulated\\/([0-9]+)");
-static struct node* do_lookup(fuse_req_t req,
-                              fuse_ino_t parent,
-                              const char* name,
-                              struct fuse_entry_param* e) {
+static struct node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
+                              struct fuse_entry_param* e, int* error_code) {
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     struct node* parent_node;
     string parent_path;
     string child_path;
 
-    errno = 0;
     {
         std::lock_guard<std::mutex> lock(fuse->lock);
         parent_node = lookup_node_by_id_locked(fuse, parent);
@@ -683,20 +682,23 @@ static struct node* do_lookup(fuse_req_t req,
         // So fail requests of two kinds:
         // 1. /storage/emulated/0 coming to FuseDaemon running as user 10
         // 2. /storage/emulated/0 requested from caller running as user 10
-        errno = EPERM;
+        *error_code = EPERM;
         return nullptr;
     }
-    return make_node_entry(req, parent_node, name, child_path, e);
+    return make_node_entry(req, parent_node, name, child_path, e, error_code);
 }
 
 static void pf_lookup(fuse_req_t req, fuse_ino_t parent, const char* name) {
     ATRACE_CALL();
     struct fuse_entry_param e;
 
-    if (do_lookup(req, parent, name, &e))
+    int error_code = 0;
+    if (do_lookup(req, parent, name, &e, &error_code)) {
         fuse_reply_entry(req, &e);
-    else
-        fuse_reply_err(req, errno);
+    } else {
+        CHECK(error_code != 0);
+        fuse_reply_err(req, error_code);
+    }
 }
 
 static void do_forget_locked(struct fuse* fuse, fuse_ino_t ino, uint64_t nlookup) {
@@ -872,10 +874,14 @@ static void pf_mknod(fuse_req_t req,
         fuse_reply_err(req, errno);
         return;
     }
-    if (make_node_entry(req, parent_node, name, child_path, &e))
+
+    int error_code = 0;
+    if (make_node_entry(req, parent_node, name, child_path, &e, &error_code)) {
         fuse_reply_entry(req, &e);
-    else
-        fuse_reply_err(req, errno);
+    } else {
+        CHECK(error_code != 0);
+        fuse_reply_err(req, error_code);
+    }
 }
 
 static void pf_mkdir(fuse_req_t req,
@@ -901,17 +907,25 @@ static void pf_mkdir(fuse_req_t req,
 
     child_path = parent_path + "/" + name;
 
-    errno = -fuse->mp->IsCreatingDirAllowed(child_path, ctx->uid);
+    int status = -fuse->mp->IsCreatingDirAllowed(child_path, ctx->uid);
+    if (status) {
+        fuse_reply_err(req, status);
+        return;
+    }
+
     mode = (mode & (~0777)) | 0775;
-    if (errno || mkdir(child_path.c_str(), mode) < 0) {
+    if (mkdir(child_path.c_str(), mode) < 0) {
         fuse_reply_err(req, errno);
         return;
     }
 
-    if (make_node_entry(req, parent_node, name, child_path, &e))
+    int error_code = 0;
+    if (make_node_entry(req, parent_node, name, child_path, &e, &error_code)) {
         fuse_reply_entry(req, &e);
-    else
-        fuse_reply_err(req, errno);
+    } else {
+        CHECK(error_code != 0);
+        fuse_reply_err(req, error_code);
+    }
 }
 
 static void pf_unlink(fuse_req_t req, fuse_ino_t parent, const char* name) {
@@ -932,9 +946,9 @@ static void pf_unlink(fuse_req_t req, fuse_ino_t parent, const char* name) {
 
     child_path = parent_path + "/" + name;
 
-    errno = -fuse->mp->DeleteFile(child_path, ctx->uid);
-    if (errno) {
-        fuse_reply_err(req, errno);
+    int status = -fuse->mp->DeleteFile(child_path, ctx->uid);
+    if (status) {
+        fuse_reply_err(req, status);
         return;
     }
 
@@ -967,8 +981,13 @@ static void pf_rmdir(fuse_req_t req, fuse_ino_t parent, const char* name) {
 
     child_path = parent_path + "/" + name;
 
-    errno = -fuse->mp->IsDeletingDirAllowed(child_path, ctx->uid);
-    if (errno || rmdir(child_path.c_str()) < 0) {
+    int status = -fuse->mp->IsDeletingDirAllowed(child_path, ctx->uid);
+    if (status) {
+        fuse_reply_err(req, status);
+        return;
+    }
+
+    if (rmdir(child_path.c_str()) < 0) {
         fuse_reply_err(req, errno);
         return;
     }
@@ -1067,7 +1086,6 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     struct fuse_open_out out;
-    handle* h;
 
     {
         std::lock_guard<std::mutex> lock(fuse->lock);
@@ -1088,27 +1106,35 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     }
 
     TRACE_FUSE(fuse) << "OPEN " << path;
-    h = new handle(path);
-    errno = -fuse->mp->IsOpenAllowed(h->path, ctx->uid, is_requesting_write(fi->flags));
-    if (errno || (h->fd = open(path.c_str(), fi->flags)) < 0) {
-        delete h;
+    int status = -fuse->mp->IsOpenAllowed(path, ctx->uid, is_requesting_write(fi->flags));
+    if (status) {
+        fuse_reply_err(req, status);
+        return;
+    }
+
+    const int fd = open(path.c_str(), fi->flags);
+    if (fd < 0) {
         fuse_reply_err(req, errno);
         return;
     }
 
     // We don't redact if the caller was granted write permission for this file
+    std::unique_ptr<RedactionInfo> ri;
     if (is_requesting_write(fi->flags)) {
-        h->ri = std::make_unique<RedactionInfo>();
+        ri = std::make_unique<RedactionInfo>();
     } else {
-        h->ri = fuse->mp->GetRedactionInfo(h->path, req->ctx.uid);
+        ri = fuse->mp->GetRedactionInfo(path, req->ctx.uid);
     }
 
-    if (!h->ri) {
-        errno = EFAULT;
-        close(h->fd);
-        fuse_reply_err(req, errno);
+    if (!ri) {
+        close(fd);
+        fuse_reply_err(req, EFAULT);
         return;
     }
+
+    handle* h = new handle(path);
+    h->fd = fd;
+    h->ri = std::move(ri);
 
     if (h->ri->isRedactionNeeded() || is_file_locked(h->fd, path)) {
         // We don't want to use the FUSE VFS cache in two cases:
@@ -1412,15 +1438,21 @@ static void pf_opendir(fuse_req_t req,
         return;
     }
 
-    h = new dirhandle();
-    errno = -fuse->mp->IsOpendirAllowed(path, ctx->uid);
-    if (errno || !(h->d = opendir(path.c_str()))) {
-        delete h;
+    int status = -fuse->mp->IsOpendirAllowed(path, ctx->uid);
+    if (status) {
+        fuse_reply_err(req, status);
+        return;
+    }
+
+    DIR* dir = opendir(path.c_str());
+    if (!dir) {
         fuse_reply_err(req, errno);
         return;
     }
+
+    h = new dirhandle(dir);
     node->dirhandles.push_back(h);
-    h->next_off = 0;
+
     fi->fh = ptr_to_id(h);
     fuse_reply_open(req, fi);
 }
@@ -1439,7 +1471,6 @@ static void do_readdir_common(fuse_req_t req,
     char buf[READDIR_BUF];
     size_t used = 0;
     std::shared_ptr<DirectoryEntry> de;
-    errno = 0;
 
     struct fuse_entry_param e;
     size_t entry_size = 0;
@@ -1482,16 +1513,16 @@ static void do_readdir_common(fuse_req_t req,
         entry_size = 0;
         h->next_off++;
         if (plus) {
-            errno = 0;
-            if (do_lookup(req, ino, de->d_name.c_str(), &e)) {
+            int error_code = 0;
+            if (do_lookup(req, ino, de->d_name.c_str(), &e, &error_code)) {
                 entry_size = fuse_add_direntry_plus(req, buf + used, len - used, de->d_name.c_str(),
                                                     &e, h->next_off);
             } else {
                 // Ignore lookup errors on
                 // 1. non-existing files returned from MediaProvider database.
                 // 2. path that doesn't match FuseDaemon UID and calling uid.
-                if (errno == ENOENT || errno == EPERM) continue;
-                fuse_reply_err(req, errno);
+                if (error_code == ENOENT || error_code == EPERM) continue;
+                fuse_reply_err(req, error_code);
                 return;
             }
         } else {
@@ -1633,31 +1664,37 @@ static void pf_create(fuse_req_t req,
 
     child_path = parent_path + "/" + name;
 
-    h = new handle(child_path);
-    mode = (mode & (~0777)) | 0664;
-    int mp_return_code = fuse->mp->InsertFile(child_path.c_str(), ctx->uid);
-    if (mp_return_code || ((h->fd = open(child_path.c_str(), fi->flags, mode)) < 0)) {
-        if (mp_return_code) {
-            errno = -mp_return_code;
-            // In this case, we know open was not called.
-        } else {
-            // In this case, we know that open has failed, so we want to undo the file insertion.
-            fuse->mp->DeleteFile(child_path.c_str(), ctx->uid);
-        }
-        delete h;
+    int mp_return_code = -fuse->mp->InsertFile(child_path.c_str(), ctx->uid);
+    if (mp_return_code) {
         PLOG(DEBUG) << "Could not create file: " << child_path;
-        fuse_reply_err(req, errno);
+        fuse_reply_err(req, mp_return_code);
         return;
     }
 
+    mode = (mode & (~0777)) | 0664;
+    int fd = open(child_path.c_str(), fi->flags, mode);
+    if (fd < 0) {
+        int error_code = errno;
+        // We've already inserted the file into the MP database before the
+        // failed open(), so that needs to be rolled back here.
+        fuse->mp->DeleteFile(child_path.c_str(), ctx->uid);
+        fuse_reply_err(req, error_code);
+        return;
+    }
+
+    h = new handle(child_path);
+    h->fd = fd;
     fi->fh = ptr_to_id(h);
     fi->keep_cache = 1;
-    node* node = make_node_entry(req, parent_node, name, child_path, &e);
+
+    int error_code = 0;
+    node* node = make_node_entry(req, parent_node, name, child_path, &e, &error_code);
     if (node) {
         node->handles.push_back(h);
         fuse_reply_create(req, &e, fi);
     } else {
-        fuse_reply_err(req, errno);
+        CHECK(error_code != 0);
+        fuse_reply_err(req, error_code);
     }
 }
 /*

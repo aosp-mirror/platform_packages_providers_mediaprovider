@@ -1009,8 +1009,8 @@ static void pf_symlink(fuse_req_t req, const char* link, fuse_ino_t parent,
     cout << "TODO:" << __func__;
 }
 */
-static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_ino_t newparent,
-                     const char* newname, unsigned int flags) {
+static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_ino_t new_parent,
+                     const char* new_name, unsigned int flags) {
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
@@ -1022,20 +1022,27 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
     string old_child_path;
     string new_child_path;
 
+    if (flags != 0) {
+        LOG(ERROR) << "One or more rename flags not supported";
+        return EINVAL;
+    }
     {
         std::lock_guard<std::mutex> lock(fuse->lock);
 
         old_parent_node = lookup_node_by_id_locked(fuse, parent);
         old_parent_path = get_node_path_locked(old_parent_node);
-        new_parent_node = lookup_node_by_id_locked(fuse, newparent);
+        new_parent_node = lookup_node_by_id_locked(fuse, new_parent);
         new_parent_path = get_node_path_locked(new_parent_node);
 
         if (!old_parent_node || !new_parent_node) {
             return ENOENT;
+        } else if (parent == new_parent && name == new_name) {
+            // No rename required.
+            return 0;
         }
 
-        TRACE_FUSE(fuse) << "RENAME " << name << " -> " << newname << " @ " << parent << " ("
-                         << safe_name(old_parent_node) << ") -> " << newparent << " ("
+        TRACE_FUSE(fuse) << "RENAME " << name << " -> " << new_name << " @ " << parent << " ("
+                         << safe_name(old_parent_node) << ") -> " << new_parent << " ("
                          << safe_name(new_parent_node) << ")";
 
         child_node = lookup_child_by_name_locked(old_parent_node, name);
@@ -1043,16 +1050,18 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
         acquire_node_locked(child_node);
     }
 
-    new_child_path = new_parent_path + "/" + newname;
+    new_child_path = new_parent_path + "/" + new_name;
 
     TRACE_FUSE(fuse) << "RENAME " << old_child_path << " -> " << new_child_path;
-    const int res = rename(old_child_path.c_str(), new_child_path.c_str());
+    const int res = -fuse->mp->Rename(old_child_path, new_child_path, req->ctx.uid);
 
     {
         std::lock_guard<std::mutex> lock(fuse->lock);
+        // TODO(b/145663158): Lookups can go out of sync if file/directory is actually moved but
+        // EFAULT/EIO is reported due to JNI exception.
         if (res == 0) {
-            child_node->name = newname;
-            if (parent != newparent) {
+            child_node->name = new_name;
+            if (parent != new_parent) {
                 remove_node_from_parent_locked(child_node);
                 // do any location based fixups here
                 add_node_to_parent_locked(child_node, new_parent_node);
@@ -1065,15 +1074,15 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
     return res;
 }
 
-static void pf_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_ino_t newparent,
-                      const char* newname, unsigned int flags) {
-    int res = do_rename(req, parent, name, newparent, newname, flags);
+static void pf_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_ino_t new_parent,
+                      const char* new_name, unsigned int flags) {
+    int res = do_rename(req, parent, name, new_parent, new_name, flags);
     fuse_reply_err(req, res);
 }
 
 /*
-static void pf_link(fuse_req_t req, fuse_ino_t ino, fuse_ino_t newparent,
-                      const char* newname)
+static void pf_link(fuse_req_t req, fuse_ino_t ino, fuse_ino_t new_parent,
+                      const char* new_name)
 {
     cout << "TODO:" << __func__;
 }

@@ -29,8 +29,8 @@
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Denegar"</string>
     <!-- no translation found for permission_more_thumb (3530243737498196228) -->
     <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
-      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> elementos adicionales</item>
-      <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> elemento adicional</item>
+      <item quantity="other">Y <xliff:g id="COUNT_1">^1</xliff:g> elementos más</item>
+      <item quantity="one">Y <xliff:g id="COUNT_0">^1</xliff:g> elemento más</item>
     </plurals>
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="other">¿Quieres permitir que <xliff:g id="APP_NAME_1">^1</xliff:g> cambie <xliff:g id="COUNT">^2</xliff:g> archivos de audio?</item>
@@ -56,7 +56,7 @@
     </plurals>
     <plurals name="permission_trash_audio_info" formatted="false" msgid="5002847308948758655">
       <item quantity="other">Estos archivos de audio se eliminarán definitivamente dentro de <xliff:g id="DURATION_1">^3</xliff:g> días</item>
-      <item quantity="one">Este archivo de audio se eliminará definitivamente dentro de <xliff:g id="DURATION_0">^3</xliff:g> día</item>
+      <item quantity="one">Este archivo de audio se eliminará definitivamente dentro de <xliff:g id="DURATION_0">^3</xliff:g> días</item>
     </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="7900111984425589714">
       <item quantity="other">¿Quieres permitir que <xliff:g id="APP_NAME_1">^1</xliff:g> mueva <xliff:g id="COUNT">^2</xliff:g> vídeos a la papelera?</item>

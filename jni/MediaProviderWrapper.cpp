@@ -205,6 +205,21 @@ std::vector<std::shared_ptr<DirectoryEntry>> getFilesInDirectoryInternal(
     }
     return directory_entries;
 }
+
+int renameInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_rename,
+                   const string& old_path, const string& new_path, uid_t uid) {
+    LOG(DEBUG) << "Renaming " << old_path << " to " << new_path << ", uid: " << uid;
+    ScopedLocalRef<jstring> j_old_path(env, env->NewStringUTF(old_path.c_str()));
+    ScopedLocalRef<jstring> j_new_path(env, env->NewStringUTF(new_path.c_str()));
+    int res = env->CallIntMethod(media_provider_object, mid_rename, j_old_path.get(),
+                                 j_new_path.get(), uid);
+    if (CheckForJniException(env)) {
+        LOG(DEBUG) << "Java exception occurred while renaming a file or directory";
+        return -EFAULT;
+    }
+    LOG(DEBUG) << "res = " << res;
+    return res;
+}
 }  // namespace
 /*****************************************************************************************/
 /******************************* Public API Implementation *******************************/
@@ -243,6 +258,8 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
     mid_get_files_in_dir_ =
             CacheMethod(env, "getFilesInDirectory", "(Ljava/lang/String;I)[Ljava/lang/String;",
                         /*is_static*/ false);
+    mid_rename_ = CacheMethod(env, "rename", "(Ljava/lang/String;Ljava/lang/String;I)I",
+                              /*is_static*/ false);
 
     jni_tasks_welcome_ = true;
     request_terminate_jni_thread_ = false;
@@ -416,6 +433,20 @@ int MediaProviderWrapper::IsOpendirAllowed(const string& path, uid_t uid) {
                                                   mid_is_opendir_allowed_, path, uid);
     });
 
+    return res;
+}
+
+int MediaProviderWrapper::Rename(const string& old_path, const string& new_path, uid_t uid) {
+    int res = -EIO;  // Default value in case JNI thread was being terminated
+    if (shouldBypassMediaProvider(uid)) {
+        res = rename(old_path.c_str(), new_path.c_str());
+        if (res != 0) res = -errno;
+        return res;
+    }
+
+    PostAndWaitForTask([this, old_path, new_path, uid, &res](JNIEnv* env) {
+        res = renameInternal(env, media_provider_object_, mid_rename_, old_path, new_path, uid);
+    });
     return res;
 }
 

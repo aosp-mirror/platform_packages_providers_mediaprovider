@@ -764,6 +764,126 @@ public class FilePathAccessTest {
         }
     }
 
+    /**
+     * Test that basic file path restrictions are enforced on file rename.
+     */
+    @Test
+    public void testRenameFile() throws Exception {
+        final File nonMediaDir = new File(DOWNLOAD_DIR, TEST_DIRECTORY);
+        final File pdfFile1 = new File(DOWNLOAD_DIR, NONMEDIA_FILE_NAME);
+        final File pdfFile2 = new File(nonMediaDir, NONMEDIA_FILE_NAME);
+        final File videoFile1 = new File(DCIM_DIR, VIDEO_FILE_NAME);
+        final File videoFile2 = new File(MOVIES_DIR, VIDEO_FILE_NAME);
+        final File videoFile3 = new File(DOWNLOAD_DIR, VIDEO_FILE_NAME);
+
+        try {
+            // Rename Non-media file
+            assertThat(pdfFile1.createNewFile()).isTrue();
+            if (!nonMediaDir.exists()) {
+                assertThat(nonMediaDir.mkdirs()).isTrue();
+            }
+            assertThat(pdfFile1.renameTo(pdfFile2)).isTrue();
+            assertThat(pdfFile1.exists()).isFalse();
+            assertThat(pdfFile2.exists()).isTrue();
+
+            assertThat(pdfFile2.renameTo(pdfFile1)).isTrue();
+            assertThat(pdfFile2.exists()).isFalse();
+            assertThat(pdfFile1.exists()).isTrue();
+
+            // Rename media file
+            assertThat(videoFile1.createNewFile()).isTrue();
+            assertThat(videoFile1.renameTo(videoFile2)).isTrue();
+            assertThat(videoFile1.exists()).isFalse();
+            assertThat(videoFile2.exists()).isTrue();
+
+            assertThat(videoFile2.renameTo(videoFile3)).isTrue();
+            assertThat(videoFile2.exists()).isFalse();
+            assertThat(videoFile3.exists()).isTrue();
+
+            // Move video file back to DCIM to ensure database entry is deleted on delete().
+            assertThat(videoFile3.renameTo(videoFile1)).isTrue();
+        } finally {
+            pdfFile1.delete();
+            pdfFile2.delete();
+            videoFile1.delete();
+            videoFile2.delete();
+            videoFile3.delete();
+            nonMediaDir.delete();
+        }
+    }
+
+    /**
+     * Test that renaming directories is allowed and aligns to default directory restrictions.
+     */
+    @Test
+    public void testRenameDirectory() throws Exception {
+
+        final String mediaDirectoryName = TEST_DIRECTORY + "Media";
+        final File mediaDirectory1 = new File(DCIM_DIR, mediaDirectoryName);
+        final File videoFile1 = new File(mediaDirectory1, VIDEO_FILE_NAME);
+        final File mediaDirectory2 =  new File(DOWNLOAD_DIR, mediaDirectoryName);
+        final File videoFile2 = new File(mediaDirectory2, VIDEO_FILE_NAME);
+        final File mediaDirectory3 =  new File(MOVIES_DIR, TEST_DIRECTORY);
+        final File videoFile3 = new File(mediaDirectory3, VIDEO_FILE_NAME);
+
+        try {
+            if (!mediaDirectory1.exists()) {
+                assertThat(mediaDirectory1.mkdirs()).isTrue();
+            }
+            assertThat(videoFile1.createNewFile()).isTrue();
+
+            // Renaming to and from default directories is not allowed.
+            assertThat(mediaDirectory1.renameTo(DCIM_DIR)).isFalse();
+            // Move top level default directories
+            assertThat(DOWNLOAD_DIR.renameTo(new File(DCIM_DIR, TEST_DIRECTORY))).isFalse();
+
+            // Move media directory to Download directory.
+            assertThat(mediaDirectory1.renameTo(mediaDirectory2)).isTrue();
+            assertThat(mediaDirectory1.exists()).isFalse();
+            assertThat(mediaDirectory2.exists()).isTrue();
+            assertThat(videoFile1.exists()).isFalse();
+            assertThat(videoFile2.exists()).isTrue();
+
+            // Move media directory to Movies directory and rename directory in new path.
+            assertThat(mediaDirectory2.renameTo(mediaDirectory3)).isTrue();
+            assertThat(mediaDirectory2.exists()).isFalse();
+            assertThat(mediaDirectory3.exists()).isTrue();
+            assertThat(videoFile2.exists()).isFalse();
+            assertThat(videoFile3.exists()).isTrue();
+
+            // Move videoFile back to original directory to ensure database entry for video file
+            // is deleted on delete().
+            assertThat(mediaDirectory3.renameTo(mediaDirectory1)).isTrue();
+        } finally {
+            videoFile1.delete();
+            videoFile2.delete();
+            videoFile3.delete();
+            mediaDirectory1.delete();
+            mediaDirectory2.delete();
+            mediaDirectory3.delete();
+        }
+    }
+
+    /**
+     * Test renaming empty directory is allowed
+     */
+    @Test
+    public void testRenameEmptyDirectory() throws Exception {
+        final String emptyDirectoryName = TEST_DIRECTORY + "Media";
+        File emptyDirectoryOldPath = new File(DCIM_DIR, emptyDirectoryName);
+        File emptyDirectoryNewPath = new File(MOVIES_DIR, TEST_DIRECTORY);
+        try {
+            if (!emptyDirectoryOldPath.exists()) {
+                assertThat(emptyDirectoryOldPath.mkdirs()).isTrue();
+                assertThat(emptyDirectoryOldPath.renameTo(emptyDirectoryNewPath)).isTrue();
+                assertThat(emptyDirectoryNewPath.exists()).isTrue();
+            }
+        } finally {
+            emptyDirectoryOldPath.delete();
+            emptyDirectoryNewPath.delete();
+        }
+    }
+
     private void deleteWithMediaProvider(String relativePath, String displayName) throws Exception {
         String selection = MediaColumns.RELATIVE_PATH + " = ? AND "
                 + MediaColumns.DISPLAY_NAME + " = ?";

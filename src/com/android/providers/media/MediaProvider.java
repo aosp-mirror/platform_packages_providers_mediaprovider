@@ -3961,6 +3961,10 @@ public class MediaProvider extends ContentProvider {
                     throw new IllegalStateException(e);
                 }
                 initialValues.put(MediaColumns.DATA, afterPath);
+
+                // Some indexed metadata may have been derived from the path on
+                // disk, so scan this item again to update it
+                triggerScan = true;
             }
 
             Trace.endSection();

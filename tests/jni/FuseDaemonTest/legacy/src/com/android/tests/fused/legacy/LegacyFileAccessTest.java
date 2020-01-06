@@ -230,7 +230,7 @@ public class LegacyFileAccessTest {
                 .mkdir()).isFalse();
     }
 
-    /*
+    /**
      * Test that legacy app with storage permission can list all files
      */
     @Test
@@ -241,6 +241,116 @@ public class LegacyFileAccessTest {
         // can list a non-media file created by other package.
         assertThat(Arrays.asList(Environment.getExternalStorageDirectory().list()))
                 .contains("LegacyAccessHostTest_shell");
+    }
+
+    /**
+     * Test that rename for legacy app with WRITE_EXTERNAL_STORAGE permission bypasses rename
+     * restrictions imposed by MediaProvider
+     */
+    @Test
+    public void testCanRename_hasW() throws Exception {
+        pollForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, /*granted*/ true);
+        pollForPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE, /*granted*/ true);
+
+        final File musicFile1 = new File(Environment.getExternalStorageDirectory(),
+                Environment.DIRECTORY_DCIM + "/LegacyFileAccessTest.mp3");
+        final File musicFile2 = new File(Environment.getExternalStorageDirectory(),
+                "/LegacyFileAccessTest.mp3");
+        final File musicFile3 = new File(Environment.getExternalStorageDirectory(),
+                Environment.DIRECTORY_MOVIES + "/LegacyFileAccessTest.mp3");
+        final File nonMediaDir1 = new File(Environment.getExternalStorageDirectory(),
+                Environment.DIRECTORY_DCIM + "/LegacyFileAccessTest");
+        final File nonMediaDir2 = new File(Environment.getExternalStorageDirectory(),
+                "LegacyFileAccessTest");
+        final File pdfFile1 = new File(nonMediaDir1, "LegacyFileAccessTest.pdf");
+        final File pdfFile2 = new File(nonMediaDir2, "LegacyFileAccessTest.pdf");
+        try {
+            // can rename a file to root directory.
+            assertThat(musicFile1.createNewFile()).isTrue();
+            assertCanRename(musicFile1, musicFile2);
+
+            // can rename a music file to Movies directory.
+            assertCanRename(musicFile2, musicFile3);
+
+            assertThat(nonMediaDir1.mkdir()).isTrue();
+            assertThat(pdfFile1.createNewFile()).isTrue();
+            // can rename directory to root directory.
+            assertCanRename(nonMediaDir1, nonMediaDir2);
+            assertThat(pdfFile2.exists()).isTrue();
+        } finally {
+            musicFile1.delete();
+            musicFile2.delete();
+            musicFile3.delete();
+
+            pdfFile1.delete();
+            pdfFile2.delete();
+            nonMediaDir1.delete();
+            nonMediaDir2.delete();
+        }
+    }
+
+    /**
+     * Test that legacy app with only READ_EXTERNAL_STORAGE can only rename files in app external
+     * directories.
+     */
+    @Test
+    public void testCantRename_hasR() throws Exception {
+        pollForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, /*granted*/ true);
+        pollForPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE, /*granted*/ false);
+
+        final File shellFile1 = new File(Environment.getExternalStorageDirectory(),
+                "LegacyAccessHostTest_shell");
+        final File shellFile2 = new File(Environment.getExternalStorageDirectory(),
+                Environment.DIRECTORY_DOWNLOADS + "/LegacyFileAccessTest_shell");
+        final File mediaFile1 = new File(InstrumentationRegistry.getContext().
+                getExternalMediaDirs()[0], "LegacyFileAccessTest1");
+        final File mediaFile2 = new File(InstrumentationRegistry.getContext().
+                getExternalMediaDirs()[0], "LegacyFileAccessTest2");
+        try {
+            // app can't rename shell file.
+            assertThat(shellFile1.renameTo(shellFile2)).isFalse();
+            // app can't move shell file to its media directory.
+            assertThat(mediaFile1.renameTo(shellFile1)).isFalse();
+            // However, even without permissions, app can rename files in its own external media
+            // directory.
+            assertThat(mediaFile1.createNewFile()).isTrue();
+            assertCanRename(mediaFile1, mediaFile2);
+        } finally {
+            mediaFile1.delete();
+            mediaFile2.delete();
+        }
+    }
+
+    /**
+     * Test that legacy app with no storage permission can only rename files in app external
+     * directories.
+     */
+    @Test
+    public void testCantRename_noStoragePermission() throws Exception {
+        pollForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, /*granted*/ false);
+        pollForPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE, /*granted*/ false);
+
+        final File shellFile1 = new File(Environment.getExternalStorageDirectory(),
+                "LegacyAccessHostTest_shell");
+        final File shellFile2 = new File(Environment.getExternalStorageDirectory(),
+                Environment.DIRECTORY_DOWNLOADS + "/LegacyFileAccessTest_shell");
+        final File mediaFile1 = new File(InstrumentationRegistry.getContext().
+                getExternalMediaDirs()[0], "LegacyFileAccessTest1");
+        final File mediaFile2 = new File(InstrumentationRegistry.getContext().
+                getExternalMediaDirs()[0], "LegacyFileAccessTest2");
+        try {
+            // app can't rename shell file.
+            assertThat(shellFile1.renameTo(shellFile2)).isFalse();
+            // app can't move shell file to its media directory.
+            assertThat(mediaFile1.renameTo(shellFile1)).isFalse();
+            // However, even without permissions, app can rename files in its own external media
+            // directory.
+            assertThat(mediaFile1.createNewFile()).isTrue();
+            assertCanRename(mediaFile1, mediaFile2);
+        } finally {
+            mediaFile1.delete();
+            mediaFile2.delete();
+        }
     }
 
     private static void assertCanCreateFile(File file) throws IOException {
@@ -271,6 +381,12 @@ public class LegacyFileAccessTest {
         } finally {
             dir.delete();
         }
+    }
+
+    private static void assertCanRename(File oldPath, File newPath) {
+        assertThat(oldPath.renameTo(newPath)).isTrue();
+        assertThat(oldPath.exists()).isFalse();
+        assertThat(newPath.exists()).isTrue();
     }
 
     private boolean isPermissionGranted(String perm) {

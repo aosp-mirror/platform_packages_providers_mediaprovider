@@ -1240,6 +1240,17 @@ public class MediaProvider extends ContentProvider {
         return fileList;
     }
 
+    private int renameInLowerFs(String oldPath, String newPath) {
+        try {
+            Os.rename(oldPath, newPath);
+            return 0;
+        } catch (ErrnoException e) {
+            final String errorMessage = "Rename " + oldPath + " to " + newPath + " failed.";
+            Log.e(TAG, errorMessage, e);
+            return -e.errno;
+        }
+    }
+
     /**
      * Rename directory from {@code oldPath} to {@code newPath}.
      *
@@ -1293,14 +1304,12 @@ public class MediaProvider extends ContentProvider {
             }
 
             // Rename the directory in lower file system.
-            try {
-                Os.rename(oldPath, newPath);
-            } catch (ErrnoException e) {
-                Log.e(TAG, "Failed to rename " + oldPath, e);
-                return -e.errno;
+            int errno = renameInLowerFs(oldPath, newPath);
+            if (errno == 0) {
+                db.setTransactionSuccessful();
+            } else {
+                return errno;
             }
-
-            db.setTransactionSuccessful();
         } finally {
             db.endTransaction();
         }
@@ -1352,14 +1361,12 @@ public class MediaProvider extends ContentProvider {
             }
 
             // Try renaming oldPath to newPath in lower file system.
-            try {
-                Os.rename(oldPath, newPath);
-            } catch (ErrnoException e) {
-                Log.e(TAG, "Failed to rename " + oldPath, e);
-                return -e.errno;
+            int errno = renameInLowerFs(oldPath, newPath);
+            if (errno == 0) {
+                db.setTransactionSuccessful();
+            } else {
+                return errno;
             }
-
-            db.setTransactionSuccessful();
         } finally {
             db.endTransaction();
         }
@@ -1390,6 +1397,25 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token = clearLocalCallingIdentity(
                 LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
+            if (shouldBypassFuseRestrictions(/*forWrite*/ true)) {
+                return renameInLowerFs(oldPath, newPath);
+            }
+
+            // Allow legacy app without storage permission to rename files only in its external
+            // media directory. External files & obb directories are bind mounted and don't go
+            // through FUSE.
+            if (isCallingPackageRequestingLegacy()) {
+                final String oldPathPackageName = extractPathOwnerPackageName(oldPath);
+                final String newPathPackageName = extractPathOwnerPackageName(newPath);
+                if (oldPathPackageName != null && newPathPackageName != null &&
+                        isCallingIdentitySharedPackageName(oldPathPackageName) &&
+                        isCallingIdentitySharedPackageName(newPathPackageName)) {
+                    return renameInLowerFs(oldPath, newPath);
+                } else {
+                    return -OsConstants.EACCES;
+                }
+            }
+
             final String[] oldRelativePath = sanitizePath(extractRelativePath(oldPath));
             final String[] newRelativePath = sanitizePath(extractRelativePath(newPath));
             if (oldRelativePath.length == 0 || newRelativePath.length == 0) {

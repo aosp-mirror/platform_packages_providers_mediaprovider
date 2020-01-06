@@ -4292,6 +4292,20 @@ public class MediaProvider extends ContentProvider {
                     return mVideoThumbnailer.ensureThumbnail(uri, signal);
                 case IMAGES_MEDIA_ID:
                     return mImageThumbnailer.ensureThumbnail(uri, signal);
+                case FILES_ID:
+                case DOWNLOADS_ID: {
+                    // When item is referenced in a generic way, resolve to actual type
+                    switch (MimeUtils.resolveMediaType(getType(uri))) {
+                        case FileColumns.MEDIA_TYPE_AUDIO:
+                            return mAudioThumbnailer.ensureThumbnail(uri, signal);
+                        case FileColumns.MEDIA_TYPE_VIDEO:
+                            return mVideoThumbnailer.ensureThumbnail(uri, signal);
+                        case FileColumns.MEDIA_TYPE_IMAGE:
+                            return mImageThumbnailer.ensureThumbnail(uri, signal);
+                        default:
+                            throw new FileNotFoundException();
+                    }
+                }
                 default:
                     throw new FileNotFoundException();
             }

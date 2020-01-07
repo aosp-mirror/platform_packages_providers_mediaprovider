@@ -673,15 +673,10 @@ static struct node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* nam
 
     child_path = parent_path + "/" + name;
 
-    int user_id = ctx->uid / PER_USER_RANGE;
     std::smatch match;
     std::regex_search(child_path, match, storage_emulated_regex);
-    if (ctx->uid != 0 && (child_path.find(fuse->path) != 0
-                          || (match.size() == 2 && std::to_string(user_id) != match[1].str()))) {
-        // Ensure the FuseDaemon UID and calling uid match the path requested unless root.
-        // So fail requests of two kinds:
-        // 1. /storage/emulated/0 coming to FuseDaemon running as user 10
-        // 2. /storage/emulated/0 requested from caller running as user 10
+    if (match.size() == 2 && std::to_string(getuid() / PER_USER_RANGE) != match[1].str()) {
+        // Ensure the FuseDaemon user id matches the user id in requested path
         *error_code = EPERM;
         return nullptr;
     }

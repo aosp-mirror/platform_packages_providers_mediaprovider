@@ -863,7 +863,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
     static final int VERSION_Q = 1023;
-    static final int VERSION_R = 1104;
+    static final int VERSION_R = 1105;
     static final int VERSION_LATEST = VERSION_R;
 
     /**
@@ -975,6 +975,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1104) {
                 // Empty version bump to ensure views are recreated
+            }
+            if (fromVersion < 1105) {
+                recomputeDataValues = true;
             }
 
             if (recomputeDataValues) {

@@ -60,8 +60,12 @@
 #include "MediaProviderWrapper.h"
 #include "libfuse_jni/ReaddirHelper.h"
 #include "libfuse_jni/RedactionInfo.h"
+#include "node-inl.h"
 
 using mediaprovider::fuse::DirectoryEntry;
+using mediaprovider::fuse::dirhandle;
+using mediaprovider::fuse::handle;
+using mediaprovider::fuse::node;
 using mediaprovider::fuse::RedactionInfo;
 using std::list;
 using std::string;
@@ -90,72 +94,6 @@ class ScopedTrace {
 constexpr size_t MAX_READ_SIZE = 128 * 1024;
 // Stolen from: UserHandle#getUserId
 constexpr int PER_USER_RANGE = 100000;
-
-class handle {
-  public:
-    explicit handle(const string& path) : path(path), fd(-1), ri(nullptr), cached(true) {};
-    string path;
-    int fd;
-    std::unique_ptr<RedactionInfo> ri;
-    bool cached;
-};
-
-struct dirhandle {
-  public:
-    explicit dirhandle(DIR* dir) : d(dir), next_off(0){};
-
-    DIR* const d;
-    off_t next_off;
-    // Fuse readdir() is called multiple times based on the size of the buffer and
-    // number of directory entries in the given directory. 'de' holds the list
-    // of directory entries for the directory handle and this list is available
-    // across subsequent readdir() calls for the same directory handle.
-    std::vector<std::shared_ptr<DirectoryEntry>> de;
-};
-
-struct node {
-    node() : refcount(0), nid(0), ino(0), parent(0), deleted(false) {}
-
-    __u32 refcount;
-    __u64 nid;
-    /*
-     * The inode number for this FUSE node. Note that this isn't stable across
-     * multiple invocations of the FUSE daemon.
-     */
-    __u32 ino;
-
-    // List of children of this node. All of them contain a back reference
-    // to their parent.
-    list<node*> children;
-
-    struct node* parent; /* containing directory */
-    std::vector<handle*> handles; /* container for file handle pointers */
-    std::vector<dirhandle*> dirhandles; /* container for dir handle pointers */
-
-    string name;
-
-    bool deleted;
-
-    bool HasCachedHandle() {
-        for (const auto& handle : handles) {
-            if (handle->cached) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    void CloseAllOpenFds() {
-        for (handle* handle : handles) {
-            delete handle;
-        }
-        handles.clear();
-        for (dirhandle* dirhandle : dirhandles) {
-            delete dirhandle;
-        }
-        dirhandles.clear();
-    }
-};
 
 /*
  * In order to avoid double caching with fuse, call fadvise on the file handles
@@ -284,31 +222,34 @@ class FAdviser {
 
 /* Single FUSE mount */
 struct fuse {
-    fuse() : inode_ctr(0), mp(0), zero_addr(0) {}
+    explicit fuse(const std::string& _path)
+        : path(_path), root(node::CreateRoot(_path, &lock)), mp(0), zero_addr(0) {}
 
-    std::mutex lock;
-    string path;
+    inline bool IsRoot(const node* node) const { return node == root; }
 
-    struct node root;
+    // Note that these two (FromInode / ToInode) conversion wrappers are required
+    // because fuse_lowlevel_ops documents that the root inode is always one
+    // (see FUSE_ROOT_ID in fuse_lowlevel.h). There are no particular requirements
+    // on any of the other inodes in the FS.
+    inline node* FromInode(__u64 inode) const {
+        if (inode == FUSE_ROOT_ID) {
+            return root;
+        }
 
-    /* Used to allocate unique inode numbers for fuse nodes. We use
-     * a simple counter based scheme where inode numbers from deleted
-     * nodes aren't reused. Note that inode allocations are not stable
-     * across multiple invocation of the sdcard daemon, but that shouldn't
-     * be a huge problem in practice.
-     *
-     * Note that we restrict inodes to 32 bit unsigned integers to prevent
-     * truncation on 32 bit processes when unsigned long long stat.st_ino is
-     * assigned to an unsigned long ino_t type in an LP32 process.
-     *
-     * Also note that fuse_attr and fuse_dirent inode values are 64 bits wide
-     * on both LP32 and LP64, but the fuse kernel code doesn't squash 64 bit
-     * inode numbers into 32 bit values on 64 bit kernels (see fuse_squash_ino
-     * in fs/fuse/inode.c).
-     *
-     * Accesses must be guarded by |lock|.
-     */
-    __u32 inode_ctr;
+        return node::FromInode(inode);
+    }
+
+    inline __u64 ToInode(node* node) const {
+        if (IsRoot(node)) {
+            return FUSE_ROOT_ID;
+        }
+
+        return node::ToInode(node);
+    }
+
+    std::recursive_mutex lock;
+    const string path;
+    node* const root;
 
     /*
      * Used to make JNI calls to MediaProvider.
@@ -321,13 +262,13 @@ struct fuse {
      * Points to a range of zeroized bytes, used by pf_read to represent redacted ranges.
      * The memory is read only and should never be modified.
      */
-    char* zero_addr;
+    /* const */ char* zero_addr;
 
     FAdviser fadviser;
 };
 
-static inline const char* safe_name(struct node* n) {
-    return n ? n->name.c_str() : "?";
+static inline const char* safe_name(node* n) {
+    return n ? n->GetName().c_str() : "?";
 }
 
 static inline __u64 ptr_to_id(void* ptr) {
@@ -385,189 +326,15 @@ static bool is_file_locked(int fd, const std::string& path) {
     return locked;
 }
 
-static void acquire_node_locked(struct node* node) {
-    node->refcount++;
-    TRACE << "ACQUIRE " << node << " " << node->name << " rc=" << node->refcount;
-}
-
-static void remove_node_from_parent_locked(struct node* node);
-
-static void release_node_n_locked(struct node* node, int count) {
-    TRACE << "RELEASE " << node << " " << node->name << " rc=" << node->refcount;
-    if (node->refcount >= count) {
-        node->refcount -= count;
-        if (!node->refcount) {
-            TRACE << "DESTROY " << node << " (" << node->name << ")";
-            remove_node_from_parent_locked(node);
-            delete (node);
-        }
-    } else {
-        LOG(ERROR) << "Zero refcnt " << node;
-    }
-}
-
-static void release_node_locked(struct node* node) {
-    TRACE << "RELEASE " << node << " " << node->name << " rc=" << node->refcount;
-    if (node->refcount > 0) {
-        node->refcount--;
-        if (!node->refcount) {
-            TRACE << "DESTROY " << node << " (" << node->name << ")";
-            remove_node_from_parent_locked(node);
-            delete (node);
-        }
-    } else {
-        LOG(ERROR) << "Zero refcnt " << node;
-    }
-}
-
-static void add_node_to_parent_locked(struct node* node, struct node* parent) {
-    node->parent = parent;
-    parent->children.push_back(node);
-    acquire_node_locked(parent);
-}
-
-static void remove_node_from_parent_locked(struct node* node) {
-    if (node->parent) {
-        list<struct node*>& children = node->parent->children;
-        list<struct node*>::iterator it = std::find(children.begin(), children.end(), node);
-
-        CHECK(it != children.end());
-        children.erase(it);
-        release_node_locked(node->parent);
-        node->parent = NULL;
-    }
-}
-
-static void get_node_path_locked_helper(struct node* node, string& path) {
-    if (node->parent) get_node_path_locked_helper(node->parent, path);
-    path += node->name + "/";
-}
-
-/*
- * Gets the absolute path to a node into the provided buffer.
- */
-static string get_node_path_locked(struct node* node) {
-    string path;
-
-    path.reserve(PATH_MAX);
-    if (node->parent) get_node_path_locked_helper(node->parent, path);
-    path += node->name;
-    return path;
-}
-
-struct node* create_node_locked(struct fuse* fuse,
-                                struct node* parent,
-                                const string& name) {
-    struct node* node;
-
-    // Detect overflows in the inode counter. "4 billion nodes should be enough
-    // for everybody". Crash the daemon if this happens, as this is a condition
-    // that's very unlikely to be tested thoroughly and attempting to mitigate it
-    // here is unlikely to achieve much.
-    if (fuse->inode_ctr == 0) {
-        LOG(FATAL) << "No more inode numbers available";
-        __builtin_unreachable();
-    }
-
-    node = new ::node();
-    node->name = name;
-    node->nid = ptr_to_id(node);
-    node->ino = fuse->inode_ctr++;
-
-    node->deleted = false;
-
-    acquire_node_locked(node);
-    add_node_to_parent_locked(node, parent);
-    return node;
-}
-
-static struct node* lookup_node_by_id_locked(struct fuse* fuse, __u64 nid) {
-    if (nid == FUSE_ROOT_ID) {
-        return &fuse->root;
-    } else {
-        return reinterpret_cast<struct node*>(nid);
-    }
-}
-
-static struct node* lookup_child_by_name_locked(struct node* node,
-                                                const string& name) {
-    for (struct node* child : node->children) {
-        /* use exact string comparison, nodes that differ by case
-         * must be considered distinct even if they refer to the same
-         * underlying file as otherwise operations such as "mv x x"
-         * will not work because the source and target nodes are the same. */
-
-        if ((name == child->name) && !child->deleted) {
-            return child;
-        }
-    }
-    return nullptr;
-}
-
-static std::vector<std::string> get_path_segments(int segment_start, const std::string& path) {
-    vector<std::string> segments;
-    int segment_end = path.find_first_of('/', segment_start);
-
-    while (segment_end != string::npos) {
-        if (segment_end == segment_start) {
-            // First character is '/' ignore
-            segment_end = path.find_first_of('/', ++segment_start);
-            continue;
-        }
-
-        segments.push_back(path.substr(segment_start, segment_end - segment_start));
-        segment_start = segment_end + 1;
-        segment_end = path.find_first_of('/', segment_start);
-    }
-    if (segment_start < path.size()) {
-        segments.push_back(path.substr(segment_start));
-    }
-    return segments;
-}
-
-static struct node* lookup_node_by_full_path_locked(struct fuse* fuse,
-                                                    const string& absolute_path) {
-    TRACE << "Looking up node for full path " << absolute_path;
-    if (absolute_path.find(fuse->path) != 0) {
-        TRACE << "Invalid path " << absolute_path;
-        return nullptr;
-    }
-
-    node* node = &fuse->root;
-    std::vector<std::string> segments = get_path_segments(fuse->path.size(), absolute_path);
-
-    for (const string& segment : segments) {
-        node = lookup_child_by_name_locked(node, segment);
-        if (!node) {
-            TRACE << "Node not found for segment " << segment << " in path " << absolute_path;
-            return nullptr;
-        }
-    }
-    return node;
-}
-
-static struct node* acquire_or_create_child_locked(struct fuse* fuse,
-                                                   struct node* parent,
-                                                   const string& name) {
-    struct node* child = lookup_child_by_name_locked(parent, name);
-    if (child) {
-        acquire_node_locked(child);
-    } else {
-        child = create_node_locked(fuse, parent, name);
-    }
-    return child;
-}
-
 static struct fuse* get_fuse(fuse_req_t req) {
     return reinterpret_cast<struct fuse*>(fuse_req_userdata(req));
 }
 
-static struct node* make_node_entry(fuse_req_t req, struct node* parent, const string& name,
-                                    const string& path, struct fuse_entry_param* e,
-                                    int* error_code) {
+static node* make_node_entry(fuse_req_t req, node* parent, const string& name, const string& path,
+                             struct fuse_entry_param* e, int* error_code) {
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    struct node* node;
+    node* node;
 
     memset(e, 0, sizeof(*e));
     if (lstat(path.c_str(), &e->attr) < 0) {
@@ -575,8 +342,12 @@ static struct node* make_node_entry(fuse_req_t req, struct node* parent, const s
         return NULL;
     }
 
-    std::lock_guard<std::mutex> lock(fuse->lock);
-    node = acquire_or_create_child_locked(fuse, parent, name);
+    node = parent->LookupChildByName(name);
+    if (node) {
+        node->Acquire();
+    } else {
+        node = ::node::Create(parent, name, &fuse->lock);
+    }
 
     // Manipulate attr here if needed
     e->attr_timeout = 10;
@@ -592,12 +363,12 @@ static struct node* make_node_entry(fuse_req_t req, struct node* parent, const s
     // (1) occurred.
     // We prevent this caching by setting the entry_timeout value to 0.
     // The /0 and /0/Android paths are exempt, as they are visible to all apps.
-    if (parent->nid == FUSE_ROOT_ID || path.rfind(android_path, 0) == 0) {
+    if (fuse->IsRoot(parent) || path.rfind(android_path, 0) == 0) {
         e->entry_timeout = 10;
     } else {
         e->entry_timeout = 0;
     }
-    e->ino = node->nid;
+    e->ino = fuse->ToInode(node);
     // This FS is not being exported via NFS so just a fixed generation number
     // for now. If we do need this, we need to increment the generation ID each
     // time the fuse daemon restarts because that's what it takes for us to
@@ -631,47 +402,25 @@ static void pf_init(void* userdata, struct fuse_conn_info* conn) {
     conn->max_read = MAX_READ_SIZE;
 }
 
-static void delete_node_tree(node* parent, node* root) {
-    if (parent) {
-        for (struct node* child : parent->children) {
-            delete_node_tree(child, root);
-        }
-        parent->children.clear();
-
-        parent->CloseAllOpenFds();
-        if (parent != root) {
-            // Don't delete node itself if it is root because it is stack allocated
-            LOG(DEBUG) << "DELETE node " << parent->name;
-            delete parent;
-        }
-    }
- }
-
 static void pf_destroy(void* userdata) {
     struct fuse* fuse = reinterpret_cast<struct fuse*>(userdata);
     LOG(INFO) << "DESTROY " << fuse->path;
-    delete_node_tree(&fuse->root, &fuse->root);
+
+    node::DeleteTree(fuse->root);
 }
 
 static std::regex storage_emulated_regex("^\\/storage\\/emulated\\/([0-9]+)");
-static struct node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
-                              struct fuse_entry_param* e, int* error_code) {
+static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
+                       struct fuse_entry_param* e, int* error_code) {
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    struct node* parent_node;
-    string parent_path;
-    string child_path;
-
-    {
-        std::lock_guard<std::mutex> lock(fuse->lock);
-        parent_node = lookup_node_by_id_locked(fuse, parent);
-        parent_path = get_node_path_locked(parent_node);
-    }
+    node* parent_node = fuse->FromInode(parent);
+    string parent_path = parent_node->BuildPath();
 
     TRACE_FUSE(fuse) << "LOOKUP " << name << " @ " << parent << " (" << safe_name(parent_node)
                      << ")";
 
-    child_path = parent_path + "/" + name;
+    string child_path = parent_path + "/" + name;
 
     std::smatch match;
     std::regex_search(child_path, match, storage_emulated_regex);
@@ -696,24 +445,23 @@ static void pf_lookup(fuse_req_t req, fuse_ino_t parent, const char* name) {
     }
 }
 
-static void do_forget_locked(struct fuse* fuse, fuse_ino_t ino, uint64_t nlookup) {
-    struct node* node = lookup_node_by_id_locked(fuse, ino);
+static void do_forget(struct fuse* fuse, fuse_ino_t ino, uint64_t nlookup) {
+    node* node = fuse->FromInode(ino);
     TRACE_FUSE(fuse) << "FORGET #" << nlookup << " @ " << ino << " (" << safe_name(node) << ")";
     if (node) {
-        __u64 n = nlookup;
-        release_node_n_locked(node, n);
+        // This is a narrowing conversion from an unsigned 64bit to a 32bit value. For
+        // some reason we only keep 32 bit refcounts but the kernel issues
+        // forget requests with a 64 bit counter.
+        node->Release(static_cast<uint32_t>(nlookup));
     }
 }
 
 static void pf_forget(fuse_req_t req, fuse_ino_t ino, uint64_t nlookup) {
     ATRACE_CALL();
-    struct node* node;
+    node* node;
     struct fuse* fuse = get_fuse(req);
 
-    {
-        std::lock_guard<std::mutex> lock(fuse->lock);
-        do_forget_locked(fuse, ino, nlookup);
-    }
+    do_forget(fuse, ino, nlookup);
     fuse_reply_none(req);
 }
 
@@ -723,11 +471,8 @@ static void pf_forget_multi(fuse_req_t req,
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
 
-    {
-        std::lock_guard<std::mutex> lock(fuse->lock);
-        for (int i = 0; i < count; i++) {
-            do_forget_locked(fuse, forgets[i].ino, forgets[i].nlookup);
-        }
+    for (int i = 0; i < count; i++) {
+        do_forget(fuse, forgets[i].ino, forgets[i].nlookup);
     }
     fuse_reply_none(req);
 }
@@ -738,20 +483,14 @@ static void pf_getattr(fuse_req_t req,
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    struct node* node;
-    string path;
-    struct stat s;
-
-    {
-        std::lock_guard<std::mutex> lock(fuse->lock);
-        node = lookup_node_by_id_locked(fuse, ino);
-        path = get_node_path_locked(node);
-    }
+    node* node = fuse->FromInode(ino);
+    string path = node->BuildPath();
 
     TRACE_FUSE(fuse) << "GETATTR @ " << ino << " (" << safe_name(node) << ")";
 
     if (!node) fuse_reply_err(req, ENOENT);
 
+    struct stat s;
     memset(&s, 0, sizeof(s));
     if (lstat(path.c_str(), &s) < 0) {
         fuse_reply_err(req, errno);
@@ -766,17 +505,11 @@ static void pf_setattr(fuse_req_t req,
                        int to_set,
                        struct fuse_file_info* fi) {
     ATRACE_CALL();
-    struct node* node;
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    string path;
+    node* node = fuse->FromInode(ino);
+    string path = node->BuildPath();
     struct timespec times[2];
-
-    {
-        std::lock_guard<std::mutex> lock(fuse->lock);
-        node = lookup_node_by_id_locked(fuse, ino);
-        path = get_node_path_locked(node);
-    }
 
     TRACE_FUSE(fuse) << "SETATTR valid=" << to_set << " @ " << ino << "(" << safe_name(node) << ")";
 
@@ -844,16 +577,8 @@ static void pf_mknod(fuse_req_t req,
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    struct node* parent_node;
-    string parent_path;
-    string child_path;
-    struct fuse_entry_param e;
-
-    {
-        std::lock_guard<std::mutex> lock(fuse->lock);
-        parent_node = lookup_node_by_id_locked(fuse, parent);
-        parent_path = get_node_path_locked(parent_node);
-    }
+    node* parent_node = fuse->FromInode(parent);
+    string parent_path = parent_node->BuildPath();
 
     TRACE_FUSE(fuse) << "MKNOD " << name << " 0" << std::oct << mode << " @ " << parent << " ("
                      << safe_name(parent_node) << ")";
@@ -862,7 +587,7 @@ static void pf_mknod(fuse_req_t req,
         fuse_reply_err(req, ENOENT);
         return;
     }
-    child_path = parent_path + "/" + name;
+    const string child_path = parent_path + "/" + name;
 
     mode = (mode & (~0777)) | 0664;
     if (mknod(child_path.c_str(), mode, rdev) < 0) {
@@ -871,6 +596,7 @@ static void pf_mknod(fuse_req_t req,
     }
 
     int error_code = 0;
+    struct fuse_entry_param e;
     if (make_node_entry(req, parent_node, name, child_path, &e, &error_code)) {
         fuse_reply_entry(req, &e);
     } else {
@@ -886,21 +612,13 @@ static void pf_mkdir(fuse_req_t req,
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    struct node* parent_node;
-    string parent_path;
-    string child_path;
-    struct fuse_entry_param e;
-
-    {
-        std::lock_guard<std::mutex> lock(fuse->lock);
-        parent_node = lookup_node_by_id_locked(fuse, parent);
-        parent_path = get_node_path_locked(parent_node);
-    }
+    node* parent_node = fuse->FromInode(parent);
+    const string parent_path = parent_node->BuildPath();
 
     TRACE_FUSE(fuse) << "MKDIR " << name << " 0" << std::oct << mode << " @ " << parent << " ("
                      << safe_name(parent_node) << ")";
 
-    child_path = parent_path + "/" + name;
+    const string child_path = parent_path + "/" + name;
 
     int status = -fuse->mp->IsCreatingDirAllowed(child_path, ctx->uid);
     if (status) {
@@ -915,6 +633,7 @@ static void pf_mkdir(fuse_req_t req,
     }
 
     int error_code = 0;
+    struct fuse_entry_param e;
     if (make_node_entry(req, parent_node, name, child_path, &e, &error_code)) {
         fuse_reply_entry(req, &e);
     } else {
@@ -927,19 +646,12 @@ static void pf_unlink(fuse_req_t req, fuse_ino_t parent, const char* name) {
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    struct node* parent_node;
-    struct node* child_node;
-    string parent_path;
-    string child_path;
+    node* parent_node = fuse->FromInode(parent);
+    const string parent_path = parent_node->BuildPath();
 
-    {
-        std::lock_guard<std::mutex> lock(fuse->lock);
-        parent_node = lookup_node_by_id_locked(fuse, parent);
-        parent_path = get_node_path_locked(parent_node);
-    }
     TRACE_FUSE(fuse) << "UNLINK " << name << " @ " << parent << "(" << safe_name(parent_node) << ")";
 
-    child_path = parent_path + "/" + name;
+    const string child_path = parent_path + "/" + name;
 
     int status = -fuse->mp->DeleteFile(child_path, ctx->uid);
     if (status) {
@@ -947,12 +659,9 @@ static void pf_unlink(fuse_req_t req, fuse_ino_t parent, const char* name) {
         return;
     }
 
-    {
-        std::lock_guard<std::mutex> lock(fuse->lock);
-        child_node = lookup_child_by_name_locked(parent_node, name);
-        if (child_node) {
-            child_node->deleted = true;
-        }
+    node* child_node = parent_node->LookupChildByName(name);
+    if (child_node) {
+        child_node->SetDeleted();
     }
 
     fuse_reply_err(req, 0);
@@ -962,19 +671,12 @@ static void pf_rmdir(fuse_req_t req, fuse_ino_t parent, const char* name) {
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    struct node* child_node;
-    struct node* parent_node;
-    string parent_path;
-    string child_path;
+    node* parent_node = fuse->FromInode(parent);
+    const string parent_path = parent_node->BuildPath();
 
-    {
-        std::lock_guard<std::mutex> lock(fuse->lock);
-        parent_node = lookup_node_by_id_locked(fuse, parent);
-        parent_path = get_node_path_locked(parent_node);
-    }
     TRACE_FUSE(fuse) << "RMDIR " << name << " @ " << parent << "(" << safe_name(parent_node) << ")";
 
-    child_path = parent_path + "/" + name;
+    const string child_path = parent_path + "/" + name;
 
     int status = -fuse->mp->IsDeletingDirAllowed(child_path, ctx->uid);
     if (status) {
@@ -987,12 +689,9 @@ static void pf_rmdir(fuse_req_t req, fuse_ino_t parent, const char* name) {
         return;
     }
 
-    {
-        std::lock_guard<std::mutex> lock(fuse->lock);
-        child_node = lookup_child_by_name_locked(parent_node, name);
-        if (child_node) {
-            child_node->deleted = true;
-        }
+    node* child_node = parent_node->LookupChildByName(name);
+    if (child_node) {
+        child_node->SetDeleted();
     }
 
     fuse_reply_err(req, 0);
@@ -1009,63 +708,42 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    struct node* old_parent_node;
-    struct node* new_parent_node;
-    struct node* child_node;
-    string old_parent_path;
-    string new_parent_path;
-    string old_child_path;
-    string new_child_path;
 
     if (flags != 0) {
         LOG(ERROR) << "One or more rename flags not supported";
         return EINVAL;
     }
-    {
-        std::lock_guard<std::mutex> lock(fuse->lock);
 
-        old_parent_node = lookup_node_by_id_locked(fuse, parent);
-        old_parent_path = get_node_path_locked(old_parent_node);
-        new_parent_node = lookup_node_by_id_locked(fuse, new_parent);
-        new_parent_path = get_node_path_locked(new_parent_node);
+    node* old_parent_node = fuse->FromInode(parent);
+    const string old_parent_path = old_parent_node->BuildPath();
+    node* new_parent_node = fuse->FromInode(new_parent);
+    const string new_parent_path = new_parent_node->BuildPath();
 
-        if (!old_parent_node || !new_parent_node) {
-            return ENOENT;
-        } else if (parent == new_parent && name == new_name) {
-            // No rename required.
-            return 0;
-        }
-
-        TRACE_FUSE(fuse) << "RENAME " << name << " -> " << new_name << " @ " << parent << " ("
-                         << safe_name(old_parent_node) << ") -> " << new_parent << " ("
-                         << safe_name(new_parent_node) << ")";
-
-        child_node = lookup_child_by_name_locked(old_parent_node, name);
-        old_child_path = get_node_path_locked(child_node);
-        acquire_node_locked(child_node);
+    if (!old_parent_node || !new_parent_node) {
+        return ENOENT;
+    } else if (parent == new_parent && name == new_name) {
+        // No rename required.
+        return 0;
     }
 
-    new_child_path = new_parent_path + "/" + new_name;
+    TRACE_FUSE(fuse) << "RENAME " << name << " -> " << new_name << " @ " << parent << " ("
+                     << safe_name(old_parent_node) << ") -> " << new_parent << " ("
+                     << safe_name(new_parent_node) << ")";
 
-    TRACE_FUSE(fuse) << "RENAME " << old_child_path << " -> " << new_child_path;
+    node* child_node = old_parent_node->LookupChildByName(name);
+    child_node->Acquire();
+
+    const string old_child_path = child_node->BuildPath();
+    const string new_child_path = new_parent_path + "/" + new_name;
+
     const int res = -fuse->mp->Rename(old_child_path, new_child_path, req->ctx.uid);
-
-    {
-        std::lock_guard<std::mutex> lock(fuse->lock);
-        // TODO(b/145663158): Lookups can go out of sync if file/directory is actually moved but
-        // EFAULT/EIO is reported due to JNI exception.
-        if (res == 0) {
-            child_node->name = new_name;
-            if (parent != new_parent) {
-                remove_node_from_parent_locked(child_node);
-                // do any location based fixups here
-                add_node_to_parent_locked(child_node, new_parent_node);
-            }
-        }
-
-        release_node_locked(child_node);
+    // TODO(b/145663158): Lookups can go out of sync if file/directory is actually moved but
+    // EFAULT/EIO is reported due to JNI exception.
+    if (res == 0) {
+        child_node->Rename(new_name, new_parent_node);
     }
 
+    child_node->Release(1);
     return res;
 }
 
@@ -1085,17 +763,11 @@ static void pf_link(fuse_req_t req, fuse_ino_t ino, fuse_ino_t new_parent,
 
 static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     ATRACE_CALL();
-    struct node* node;
-    string path;
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    struct fuse_open_out out;
+    node* node = fuse->FromInode(ino);
+    const string path = node->BuildPath();
 
-    {
-        std::lock_guard<std::mutex> lock(fuse->lock);
-        node = lookup_node_by_id_locked(fuse, ino);
-        path = get_node_path_locked(node);
-    }
     TRACE_FUSE(fuse) << "OPEN 0" << std::oct << fi->flags << " @ " << ino << " (" << safe_name(node)
                      << ")";
 
@@ -1161,10 +833,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     }
 
     h->cached = !fi->direct_io;
-    {
-        std::lock_guard<std::mutex> lock(fuse->lock);
-        node->handles.push_back(h);
-    }
+    node->AddHandle(h);
 
     fi->fh = ptr_to_id(h);
     fi->keep_cache = 1;
@@ -1365,27 +1034,15 @@ static void pf_release(fuse_req_t req,
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
 
-    {
-        std::lock_guard<std::mutex> lock(fuse->lock);
-        node* node = lookup_node_by_id_locked(fuse, ino);
-        handle* h = reinterpret_cast<handle*>(fi->fh);
-        TRACE_FUSE(fuse) << "RELEASE "
-                         << "0" << std::oct << fi->flags << " " << h << "(" << h->fd << ")";
+    node* node = fuse->FromInode(ino);
+    handle* h = reinterpret_cast<handle*>(fi->fh);
+    TRACE_FUSE(fuse) << "RELEASE "
+                     << "0" << std::oct << fi->flags << " " << h << "(" << h->fd << ")";
 
-        fuse->fadviser.Close(h->fd);
-        close(h->fd);
-
-        // TODO(b/145737191): Figure out if we need to scan files on close, and how to do it properly
-        if (node) {
-            for (auto it = node->handles.begin(); it != node->handles.end(); it++) {
-                if (*it == h) {
-                    node->handles.erase(it);
-                    break;
-                }
-            }
-        }
-
-        delete h;
+    fuse->fadviser.Close(h->fd);
+    // TODO(b/145737191): Figure out if we need to scan files on close, and how to do it properly
+    if (node) {
+        node->DestroyHandle(h);
     }
 
     fuse_reply_err(req, 0);
@@ -1413,7 +1070,7 @@ static void pf_fsyncdir(fuse_req_t req,
                         fuse_ino_t ino,
                         int datasync,
                         struct fuse_file_info* fi) {
-    struct dirhandle* h = reinterpret_cast<struct dirhandle*>(fi->fh);
+    dirhandle* h = reinterpret_cast<dirhandle*>(fi->fh);
     int err = do_sync_common(dirfd(h->d), datasync);
 
     fuse_reply_err(req, err);
@@ -1425,15 +1082,8 @@ static void pf_opendir(fuse_req_t req,
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    struct node* node;
-    string path;
-    struct dirhandle* h;
-
-    {
-        std::lock_guard<std::mutex> lock(fuse->lock);
-        node = lookup_node_by_id_locked(fuse, ino);
-        path = get_node_path_locked(node);
-    }
+    node* node = fuse->FromInode(ino);
+    const string path = node->BuildPath();
 
     TRACE_FUSE(fuse) << "OPENDIR @ " << ino << " (" << safe_name(node) << ")" << path;
 
@@ -1454,8 +1104,8 @@ static void pf_opendir(fuse_req_t req,
         return;
     }
 
-    h = new dirhandle(dir);
-    node->dirhandles.push_back(h);
+    dirhandle* h = new dirhandle(dir);
+    node->AddDirHandle(h);
 
     fi->fh = ptr_to_id(h);
     fuse_reply_open(req, fi);
@@ -1470,7 +1120,7 @@ static void do_readdir_common(fuse_req_t req,
                               struct fuse_file_info* fi,
                               bool plus) {
     struct fuse* fuse = get_fuse(req);
-    struct dirhandle* h = reinterpret_cast<struct dirhandle*>(fi->fh);
+    dirhandle* h = reinterpret_cast<dirhandle*>(fi->fh);
     size_t len = std::min<size_t>(size, READDIR_BUF);
     char buf[READDIR_BUF];
     size_t used = 0;
@@ -1479,14 +1129,8 @@ static void do_readdir_common(fuse_req_t req,
     struct fuse_entry_param e;
     size_t entry_size = 0;
 
-    struct node* node;
-    string path;
-
-    {
-        std::lock_guard<std::mutex> lock(fuse->lock);
-        node = lookup_node_by_id_locked(fuse, ino);
-        path = get_node_path_locked(node);
-    }
+    node* node = fuse->FromInode(ino);
+    const string path = node->BuildPath();
 
     TRACE_FUSE(fuse) << "READDIR @" << ino << " " << path << " at offset " << off;
     // Get all directory entries from MediaProvider on first readdir() call of
@@ -1543,8 +1187,7 @@ static void do_readdir_common(fuse_req_t req,
             // When an entry is rejected, lookup called by readdir_plus will not be tracked by
             // kernel. Call forget on the rejected node to decrement the reference count.
             if (plus) {
-                std::lock_guard<std::mutex> lock(fuse->lock);
-                do_forget_locked(fuse, e.ino, 1);
+                do_forget(fuse, e.ino, 1);
             }
             break;
         }
@@ -1574,21 +1217,11 @@ static void pf_releasedir(fuse_req_t req,
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
 
-    {
-        std::lock_guard<std::mutex> lock(fuse->lock);
-        node* node = lookup_node_by_id_locked(fuse, ino);
-        dirhandle* h = reinterpret_cast<struct dirhandle*>(fi->fh);
-        TRACE_FUSE(fuse) << "RELEASEDIR " << h;
-        closedir(h->d);
-        if (node) {
-            for (auto it = node->dirhandles.begin(); it != node->dirhandles.end(); it++) {
-                if (*it == h) {
-                    node->dirhandles.erase(it);
-                    break;
-                }
-            }
-        }
-        delete h;
+    node* node = fuse->FromInode(ino);
+    dirhandle* h = reinterpret_cast<dirhandle*>(fi->fh);
+    TRACE_FUSE(fuse) << "RELEASEDIR " << h;
+    if (node) {
+        node->DestroyDirHandle(h);
     }
 
     fuse_reply_err(req, 0);
@@ -1599,7 +1232,7 @@ static void pf_statfs(fuse_req_t req, fuse_ino_t ino) {
     struct statvfs st;
     struct fuse* fuse = get_fuse(req);
 
-    if (statvfs(fuse->root.name.c_str(), &st))
+    if (statvfs(fuse->root->GetName().c_str(), &st))
         fuse_reply_err(req, errno);
     else
         fuse_reply_statfs(req, &st);
@@ -1632,12 +1265,8 @@ static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
 
-    string path;
-    {
-        std::lock_guard<std::mutex> lock(fuse->lock);
-        struct node* node = lookup_node_by_id_locked(fuse, ino);
-        path = get_node_path_locked(node);
-    }
+    node* node = fuse->FromInode(ino);
+    const string path = node->BuildPath();
     TRACE_FUSE(fuse) << "ACCESS " << path;
 
     int res = access(path.c_str(), F_OK);
@@ -1652,21 +1281,13 @@ static void pf_create(fuse_req_t req,
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    struct node* parent_node;
-    string parent_path;
-    string child_path;
-    struct fuse_entry_param e;
-    handle* h;
+    node* parent_node = fuse->FromInode(parent);
+    const string parent_path = parent_node->BuildPath();
 
-    {
-        std::lock_guard<std::mutex> lock(fuse->lock);
-        parent_node = lookup_node_by_id_locked(fuse, parent);
-        parent_path = get_node_path_locked(parent_node);
-    }
     TRACE_FUSE(fuse) << "CREATE " << name << " 0" << std::oct << fi->flags << " @ " << parent
                      << " (" << safe_name(parent_node) << ")";
 
-    child_path = parent_path + "/" + name;
+    const string child_path = parent_path + "/" + name;
 
     int mp_return_code = -fuse->mp->InsertFile(child_path.c_str(), ctx->uid);
     if (mp_return_code) {
@@ -1686,15 +1307,16 @@ static void pf_create(fuse_req_t req,
         return;
     }
 
-    h = new handle(child_path);
+    handle* h = new handle(child_path);
     h->fd = fd;
     fi->fh = ptr_to_id(h);
     fi->keep_cache = 1;
 
     int error_code = 0;
+    struct fuse_entry_param e;
     node* node = make_node_entry(req, parent_node, name, child_path, &e, &error_code);
     if (node) {
-        node->handles.push_back(h);
+        node->AddHandle(h);
         fuse_reply_create(req, &e, fi);
     } else {
         CHECK(error_code != 0);
@@ -1813,9 +1435,7 @@ bool FuseDaemon::ShouldOpenWithFuse(int fd, bool for_read, const std::string& pa
     bool use_fuse = false;
 
     if (active.load(std::memory_order_acquire)) {
-        std::lock_guard<std::mutex> lock(fuse->lock);
-
-        node* node = lookup_node_by_full_path_locked(fuse, path);
+        const node* node = node::LookupAbsolutePath(fuse->root, path);
         if (node && node->HasCachedHandle()) {
             TRACE << "Should open " << path << " with FUSE. Reason: cache";
             use_fuse = true;
@@ -1862,12 +1482,7 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
         return;
     }
 
-    struct fuse fuse_default;
-    fuse_default.inode_ctr = 1;
-    fuse_default.root.nid = FUSE_ROOT_ID; /* 1 */
-    fuse_default.root.refcount = 2;
-    fuse_default.root.name = path;
-    fuse_default.path = path;
+    struct fuse fuse_default(path);
     fuse_default.mp = &mp;
     // fuse_default is stack allocated, but it's safe to save it as an instance variable because
     // this method blocks and FuseDaemon#active tells if we are currently blocking

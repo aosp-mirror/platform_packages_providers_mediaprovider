@@ -1309,6 +1309,11 @@ static void pf_create(fuse_req_t req,
 
     handle* h = new handle(child_path);
     h->fd = fd;
+    // TODO(b/147274248): Assuming there will be no EXIF to redact.
+    // This prevents crashing during reads but can be a security hole if a malicious app opens an fd
+    // to the file before all the EXIF content is written. We could special case reads before the
+    // first close after a file has just been created.
+    h->ri = std::make_unique<RedactionInfo>();
     fi->fh = ptr_to_id(h);
     fi->keep_cache = 1;
 

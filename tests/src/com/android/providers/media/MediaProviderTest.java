@@ -471,6 +471,16 @@ public class MediaProviderTest {
         assertVolume(values, "0000-0000");
         assertBucket(values, "/storage/0000-0000/DCIM/Camera", "Camera");
         assertRelativePath(values, "DCIM/Camera/");
+
+        values = computeDataValues("/storage/476A-17F8/123456/test.png");
+        assertVolume(values, "476a-17f8");
+        assertBucket(values, "/storage/476A-17F8/123456", "123456");
+        assertRelativePath(values, "123456/");
+
+        values = computeDataValues("/storage/476A-17F8/123456/789/test.mp3");
+        assertVolume(values, "476a-17f8");
+        assertBucket(values, "/storage/476A-17F8/123456/789", "789");
+        assertRelativePath(values, "123456/789/");
     }
 
     @Test

@@ -143,12 +143,13 @@ class node {
     }
 
     void Rename(const std::string& name, node* new_parent) {
-        CHECK(new_parent != parent_);
         std::lock_guard<std::recursive_mutex> guard(*lock_);
 
         name_ = name;
-        RemoveFromParent();
-        AddToParent(new_parent);
+        if (new_parent != parent_) {
+            RemoveFromParent();
+            AddToParent(new_parent);
+        }
     }
 
     const std::string& GetName() const {

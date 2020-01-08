@@ -42,7 +42,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Objects;
@@ -68,6 +70,47 @@ public class FileUtils {
             }
         }
         return cur;
+    }
+
+    /**
+     * Delete older files in a directory until only those matching the given
+     * constraints remain.
+     *
+     * @param minCount Always keep at least this many files.
+     * @param minAgeMs Always keep files younger than this age, in milliseconds.
+     * @return if any files were deleted.
+     */
+    public static boolean deleteOlderFiles(File dir, int minCount, long minAgeMs) {
+        if (minCount < 0 || minAgeMs < 0) {
+            throw new IllegalArgumentException("Constraints must be positive or 0");
+        }
+
+        final File[] files = dir.listFiles();
+        if (files == null) return false;
+
+        // Sort with newest files first
+        Arrays.sort(files, new Comparator<File>() {
+            @Override
+            public int compare(File lhs, File rhs) {
+                return Long.compare(rhs.lastModified(), lhs.lastModified());
+            }
+        });
+
+        // Keep at least minCount files
+        boolean deleted = false;
+        for (int i = minCount; i < files.length; i++) {
+            final File file = files[i];
+
+            // Keep files newer than minAgeMs
+            final long age = System.currentTimeMillis() - file.lastModified();
+            if (age > minAgeMs) {
+                if (file.delete()) {
+                    Log.d(TAG, "Deleted old file " + file);
+                    deleted = true;
+                }
+            }
+        }
+        return deleted;
     }
 
     /**

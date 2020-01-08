@@ -88,6 +88,7 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.IsoInterface;
+import com.android.providers.media.util.Logging;
 import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
@@ -1144,6 +1145,7 @@ public class ModernMediaScanner implements MediaScanner {
             return true;
         }
         if (nomedia.exists()) {
+            Logging.logPersistent("Observed non-standard " + nomedia);
             return true;
         }
         return false;

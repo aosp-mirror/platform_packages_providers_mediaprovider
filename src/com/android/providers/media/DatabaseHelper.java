@@ -47,7 +47,6 @@ import android.provider.MediaStore.Video;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
-import android.text.format.DateUtils;
 import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.Log;
@@ -59,6 +58,7 @@ import androidx.annotation.VisibleForTesting;
 import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
+import com.android.providers.media.util.Logging;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -835,6 +835,19 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("ALTER TABLE files ADD COLUMN iso INTEGER DEFAULT NULL;");
     }
 
+    private static void updateMigrateLogs(SQLiteDatabase db, boolean internal) {
+        // Migrate any existing logs to new system
+        try (Cursor c = db.query("log", new String[] { "time", "message" },
+                null, null, null, null, null)) {
+            while (c.moveToNext()) {
+                final String time = c.getString(0);
+                final String message = c.getString(1);
+                Logging.logPersistent("Historical log " + time + " " + message);
+            }
+        }
+        db.execSQL("DELETE FROM log;");
+    }
+
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
                 null, null, null, null, null, null)) {
@@ -863,7 +876,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
     static final int VERSION_Q = 1023;
-    static final int VERSION_R = 1105;
+    static final int VERSION_R = 1106;
     static final int VERSION_LATEST = VERSION_R;
 
     /**
@@ -979,6 +992,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             if (fromVersion < 1105) {
                 recomputeDataValues = true;
             }
+            if (fromVersion < 1106) {
+                updateMigrateLogs(db, internal);
+            }
 
             if (recomputeDataValues) {
                 recomputeDataValues(db, internal);
@@ -993,9 +1009,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         getOrCreateUuid(db);
 
         final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
-        final long elapsedSeconds = elapsedMillis / DateUtils.SECOND_IN_MILLIS;
-        logToDb(db, "Database upgraded from version " + fromVersion + " to " + toVersion
-                + " in " + elapsedSeconds + " seconds");
         if (mListener != null) {
             mListener.onSchemaChange(mVolumeName, fromVersion, toVersion,
                     getItemCount(db), elapsedMillis);
@@ -1009,25 +1022,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         createLatestSchema(db);
 
         final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
-        final long elapsedSeconds = elapsedMillis / DateUtils.SECOND_IN_MILLIS;
-        logToDb(db, "Database downgraded from version " + fromVersion + " to " + toVersion
-                + " in " + elapsedSeconds + " seconds");
         if (mListener != null) {
             mListener.onSchemaChange(mVolumeName, fromVersion, toVersion,
                     getItemCount(db), elapsedMillis);
         }
-    }
-
-    /**
-     * Write a persistent diagnostic message to the log table.
-     */
-    public static void logToDb(SQLiteDatabase db, String message) {
-        db.execSQL("INSERT OR REPLACE" +
-                " INTO log (time,message) VALUES (strftime('%Y-%m-%d %H:%M:%f','now'),?);",
-                new String[] { message });
-        // delete all but the last 500 rows
-        db.execSQL("DELETE FROM log WHERE rowid IN" +
-                " (SELECT rowid FROM log ORDER BY rowid DESC LIMIT 500,-1);");
     }
 
     private static final String XATTR_UUID = "user.uuid";

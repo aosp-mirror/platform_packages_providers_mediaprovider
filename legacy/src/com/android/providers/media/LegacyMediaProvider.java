@@ -31,8 +31,12 @@ import android.provider.MediaStore.MediaColumns;
 
 import androidx.annotation.NonNull;
 
+import com.android.providers.media.util.Logging;
+
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.IOException;
+import java.io.PrintWriter;
 
 /**
  * Very limited subset of {@link MediaProvider} which only surfaces
@@ -59,6 +63,9 @@ public class LegacyMediaProvider extends ContentProvider {
     @Override
     public boolean onCreate() {
         final Context context = getContext();
+
+        final File persistentDir = context.getDir("logs", Context.MODE_PRIVATE);
+        Logging.initPersistent(persistentDir);
 
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME,
                 true, false, true, null, null);
@@ -112,5 +119,10 @@ public class LegacyMediaProvider extends ContentProvider {
     @Override
     public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void dump(FileDescriptor fd, PrintWriter writer, String[] args) {
+        Logging.dumpPersistent(writer);
     }
 }

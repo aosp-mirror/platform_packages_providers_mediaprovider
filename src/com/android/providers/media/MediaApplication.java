@@ -17,9 +17,22 @@
 package com.android.providers.media;
 
 import android.app.Application;
+import android.content.Context;
+
+import com.android.providers.media.util.Logging;
+
+import java.io.File;
 
 public class MediaApplication extends Application {
     static {
         System.loadLibrary("fuse_jni");
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+
+        final File persistentDir = this.getDir("logs", Context.MODE_PRIVATE);
+        Logging.initPersistent(persistentDir);
     }
 }

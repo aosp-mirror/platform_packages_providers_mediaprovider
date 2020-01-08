@@ -16,6 +16,10 @@
 
 package com.android.providers.media.util;
 
+import static android.text.format.DateUtils.DAY_IN_MILLIS;
+import static android.text.format.DateUtils.HOUR_IN_MILLIS;
+import static android.text.format.DateUtils.WEEK_IN_MILLIS;
+
 import static com.android.providers.media.util.FileUtils.buildUniqueFile;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractFileExtension;
@@ -37,11 +41,14 @@ import org.junit.runner.RunWith;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
 
 @RunWith(AndroidJUnit4.class)
 public class FileUtilsTest {
     private File mTarget;
     private File mDcimTarget;
+    private File mDeleteTarget;
 
     @Before
     public void setUp() throws Exception {
@@ -50,11 +57,75 @@ public class FileUtilsTest {
 
         mDcimTarget = new File(mTarget, "DCIM");
         mDcimTarget.mkdirs();
+
+        mDeleteTarget = mDcimTarget;
     }
 
     @After
     public void tearDown() throws Exception {
         FileUtils.deleteContents(mTarget);
+    }
+
+    private void touch(String name, long age) throws Exception {
+        final File file = new File(mDeleteTarget, name);
+        file.createNewFile();
+        file.setLastModified(System.currentTimeMillis() - age);
+    }
+
+    @Test
+    public void testDeleteOlderEmptyDir() throws Exception {
+        FileUtils.deleteOlderFiles(mDeleteTarget, 10, WEEK_IN_MILLIS);
+        assertDirContents();
+    }
+
+    @Test
+    public void testDeleteOlderTypical() throws Exception {
+        touch("file1", HOUR_IN_MILLIS);
+        touch("file2", 1 * DAY_IN_MILLIS + HOUR_IN_MILLIS);
+        touch("file3", 2 * DAY_IN_MILLIS + HOUR_IN_MILLIS);
+        touch("file4", 3 * DAY_IN_MILLIS + HOUR_IN_MILLIS);
+        touch("file5", 4 * DAY_IN_MILLIS + HOUR_IN_MILLIS);
+        assertTrue(FileUtils.deleteOlderFiles(mDeleteTarget, 3, DAY_IN_MILLIS));
+        assertDirContents("file1", "file2", "file3");
+    }
+
+    @Test
+    public void testDeleteOlderInFuture() throws Exception {
+        touch("file1", -HOUR_IN_MILLIS);
+        touch("file2", HOUR_IN_MILLIS);
+        touch("file3", WEEK_IN_MILLIS);
+        assertTrue(FileUtils.deleteOlderFiles(mDeleteTarget, 0, DAY_IN_MILLIS));
+        assertDirContents("file1", "file2");
+
+        touch("file1", -HOUR_IN_MILLIS);
+        touch("file2", HOUR_IN_MILLIS);
+        touch("file3", WEEK_IN_MILLIS);
+        assertTrue(FileUtils.deleteOlderFiles(mDeleteTarget, 0, DAY_IN_MILLIS));
+        assertDirContents("file1", "file2");
+    }
+
+    @Test
+    public void testDeleteOlderOnlyAge() throws Exception {
+        touch("file1", HOUR_IN_MILLIS);
+        touch("file2", 1 * DAY_IN_MILLIS + HOUR_IN_MILLIS);
+        touch("file3", 2 * DAY_IN_MILLIS + HOUR_IN_MILLIS);
+        touch("file4", 3 * DAY_IN_MILLIS + HOUR_IN_MILLIS);
+        touch("file5", 4 * DAY_IN_MILLIS + HOUR_IN_MILLIS);
+        assertTrue(FileUtils.deleteOlderFiles(mDeleteTarget, 0, DAY_IN_MILLIS));
+        assertFalse(FileUtils.deleteOlderFiles(mDeleteTarget, 0, DAY_IN_MILLIS));
+        assertDirContents("file1");
+    }
+
+    @Test
+    public void testDeleteOlderOnlyCount() throws Exception {
+        touch("file1", HOUR_IN_MILLIS);
+        touch("file2", 1 * DAY_IN_MILLIS + HOUR_IN_MILLIS);
+        touch("file3", 2 * DAY_IN_MILLIS + HOUR_IN_MILLIS);
+        touch("file4", 3 * DAY_IN_MILLIS + HOUR_IN_MILLIS);
+        touch("file5", 4 * DAY_IN_MILLIS + HOUR_IN_MILLIS);
+        assertTrue(FileUtils.deleteOlderFiles(mDeleteTarget, 2, 0));
+        assertFalse(FileUtils.deleteOlderFiles(mDeleteTarget, 2, 0));
+        assertDirContents("file1", "file2");
     }
 
     @Test
@@ -310,5 +381,18 @@ public class FileUtilsTest {
 
     private static void assertNameEquals(String expected, File actual) {
         assertEquals(expected, actual.getName());
+    }
+
+    private void assertDirContents(String... expected) {
+        final HashSet<String> expectedSet = new HashSet<>(Arrays.asList(expected));
+        String[] actual = mDeleteTarget.list();
+        if (actual == null) actual = new String[0];
+
+        assertEquals(
+                "Expected " + Arrays.toString(expected) + " but actual " + Arrays.toString(actual),
+                expected.length, actual.length);
+        for (String actualFile : actual) {
+            assertTrue("Unexpected actual file " + actualFile, expectedSet.contains(actualFile));
+        }
     }
 }

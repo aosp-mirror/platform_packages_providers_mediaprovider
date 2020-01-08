@@ -170,6 +170,7 @@ import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.IsoInterface;
+import com.android.providers.media.util.Logging;
 import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
@@ -678,6 +679,9 @@ public class MediaProvider extends ContentProvider {
 
     public void onIdleMaintenance(@NonNull CancellationSignal signal) {
         final long startTime = SystemClock.elapsedRealtime();
+
+        // Trim any stale log files before we emit new events below
+        Logging.trimPersistent();
 
         final DatabaseHelper helper = mExternalDatabase;
         final SQLiteDatabase db = helper.getReadableDatabase();
@@ -3109,8 +3113,6 @@ public class MediaProvider extends ContentProvider {
                     MediaStore.Files.getContentUri(mMediaScannerVolume));
 
             helper.mScanStopTime = SystemClock.elapsedRealtime();
-            String msg = dump(helper, false);
-            DatabaseHelper.logToDb(helper.getWritableDatabase(), msg);
 
             mMediaScannerVolume = null;
             return 1;
@@ -5933,70 +5935,8 @@ public class MediaProvider extends ContentProvider {
     public void dump(FileDescriptor fd, PrintWriter writer, String[] args) {
         writer.println("mThumbSize=" + mThumbSize);
         writer.println("mAttachedVolumeNames=" + mAttachedVolumeNames);
-        writer.println(dump(mInternalDatabase, true));
-        writer.println(dump(mExternalDatabase, true));
-    }
+        writer.println();
 
-    private String dump(DatabaseHelper dbh, boolean dumpDbLog) {
-        StringBuilder s = new StringBuilder();
-        s.append(dbh.mName);
-        s.append(": ");
-        SQLiteDatabase db = dbh.getReadableDatabase();
-        if (db == null) {
-            s.append("null");
-        } else {
-            s.append("version " + db.getVersion() + ", ");
-            Cursor c = db.query("files", new String[] {"count(*)"}, null, null, null, null, null);
-            try {
-                if (c != null && c.moveToFirst()) {
-                    int num = c.getInt(0);
-                    s.append(num + " rows, ");
-                } else {
-                    s.append("couldn't get row count, ");
-                }
-            } finally {
-                FileUtils.closeQuietly(c);
-            }
-            if (dbh.mScanStartTime != 0) {
-                s.append("scan started " + DateUtils.formatDateTime(getContext(),
-                        dbh.mScanStartTime,
-                        DateUtils.FORMAT_SHOW_DATE
-                        | DateUtils.FORMAT_SHOW_TIME
-                        | DateUtils.FORMAT_ABBREV_ALL));
-                long now = dbh.mScanStopTime;
-                if (now < dbh.mScanStartTime) {
-                    now = SystemClock.elapsedRealtime();
-                }
-                s.append(" (" + DateUtils.formatElapsedTime(
-                        (now - dbh.mScanStartTime) / 1_000) + ")");
-                if (dbh.mScanStopTime < dbh.mScanStartTime) {
-                    if (mMediaScannerVolume != null &&
-                            dbh.mName.startsWith(mMediaScannerVolume)) {
-                        s.append(" (ongoing)");
-                    } else {
-                        s.append(" (scanning " + mMediaScannerVolume + ")");
-                    }
-                }
-            }
-            if (dumpDbLog) {
-                c = db.query("log", new String[] {"time", "message"},
-                        null, null, null, null, "rowid");
-                try {
-                    if (c != null) {
-                        while (c.moveToNext()) {
-                            String when = c.getString(0);
-                            String msg = c.getString(1);
-                            s.append("\n" + when + " : " + msg);
-                        }
-                    }
-                } finally {
-                    FileUtils.closeQuietly(c);
-                }
-            } else {
-                s.append(": pid=" + android.os.Process.myPid());
-                s.append(", fingerprint=" + Build.FINGERPRINT);
-            }
-        }
-        return s.toString();
+        Logging.dumpPersistent(writer);
     }
 }

@@ -162,6 +162,11 @@ public final class MediaStore {
     public static final String GET_VERSION_CALL = "get_version";
 
     /** {@hide} */
+    @Deprecated
+    public static final String EXTERNAL_STORAGE_PROVIDER_AUTHORITY =
+            "com.android.externalstorage.documents";
+
+    /** {@hide} */
     public static final String GET_DOCUMENT_URI_CALL = "get_document_uri";
     /** {@hide} */
     public static final String GET_MEDIA_URI_CALL = "get_media_uri";

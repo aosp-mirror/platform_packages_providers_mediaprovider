@@ -847,11 +847,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         return;
     }
 
-    handle* h = new handle(path);
-    h->fd = fd;
-    h->ri = std::move(ri);
-
-    if (h->ri->isRedactionNeeded() || is_file_locked(h->fd, path)) {
+    if (ri->isRedactionNeeded() || is_file_locked(fd, path)) {
         // We don't want to use the FUSE VFS cache in two cases:
         // 1. When redaction is needed because app A with EXIF access might access
         // a region that should have been redacted for app B without EXIF access, but app B on
@@ -865,9 +861,9 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         // b. Reading from a FUSE fd with caching enabled may not see the latest writes using the
         // lower fs fd because those writes did not go through the FUSE layer and reads from FUSE
         // after that write may be served from cache
-        if (h->ri->isRedactionNeeded()) {
+        if (ri->isRedactionNeeded()) {
             TRACE_FUSE(fuse) << "Using direct io for " << path << " because redaction is needed.";
-        } else if (is_file_locked(h->fd, path)) {
+        } else {
             TRACE_FUSE(fuse) << "Using direct io for " << path << " because the file is locked.";
         }
         fi->direct_io = true;
@@ -875,7 +871,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         TRACE_FUSE(fuse) << "Using cache for " << path;
     }
 
-    h->cached = !fi->direct_io;
+    handle* h = new handle(path, fd, ri.release(), !fi->direct_io);
     node->AddHandle(h);
 
     fi->fh = ptr_to_id(h);
@@ -1350,13 +1346,11 @@ static void pf_create(fuse_req_t req,
         return;
     }
 
-    handle* h = new handle(child_path);
-    h->fd = fd;
-    // TODO(b/147274248): Assuming there will be no EXIF to redact.
+    // TODO(b/147274248): Assume there will be no EXIF to redact.
     // This prevents crashing during reads but can be a security hole if a malicious app opens an fd
     // to the file before all the EXIF content is written. We could special case reads before the
     // first close after a file has just been created.
-    h->ri = std::make_unique<RedactionInfo>();
+    handle* h = new handle(child_path, fd, new RedactionInfo(), true /* cached */);
     fi->fh = ptr_to_id(h);
     fi->keep_cache = 1;
 

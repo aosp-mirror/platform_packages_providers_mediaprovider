@@ -56,7 +56,7 @@ static void mergeOverlappingRedactionRanges(vector<RedactionRange>& ranges) {
  *
  * This function assumes redaction_ranges_ within RedactionInfo is sorted.
  */
-bool RedactionInfo::hasOverlapWithReadRequest(size_t size, off64_t off) {
+bool RedactionInfo::hasOverlapWithReadRequest(size_t size, off64_t off) const {
     if (!isRedactionNeeded() || off > redaction_ranges_.back().second ||
         off + size < redaction_ranges_.front().first) {
         return false;
@@ -79,11 +79,11 @@ void RedactionInfo::processRedactionRanges(int redaction_ranges_num,
     mergeOverlappingRedactionRanges(redaction_ranges_);
 }
 
-int RedactionInfo::size() {
+int RedactionInfo::size() const {
     return redaction_ranges_.size();
 }
 
-bool RedactionInfo::isRedactionNeeded() {
+bool RedactionInfo::isRedactionNeeded() const {
     return size() > 0;
 }
 
@@ -93,13 +93,13 @@ RedactionInfo::RedactionInfo(int redaction_ranges_num, const off64_t* redaction_
 }
 
 unique_ptr<vector<RedactionRange>> RedactionInfo::getOverlappingRedactionRanges(size_t size,
-                                                                                off64_t off) {
+                                                                                off64_t off) const {
     LOG(DEBUG) << "Computing redaction ranges for request: sz = " << size << " off = " << off;
     if (hasOverlapWithReadRequest(size, off)) {
         auto first_redaction = redaction_ranges_.end();
         auto last_redaction = redaction_ranges_.end();
         for (auto iter = redaction_ranges_.begin(); iter != redaction_ranges_.end(); ++iter) {
-            RedactionRange& rr = *iter;
+            const RedactionRange& rr = *iter;
             // Look for the first range that overlaps with the read request
             if (first_redaction == redaction_ranges_.end() && off <= rr.second &&
                 off + size >= rr.first) {

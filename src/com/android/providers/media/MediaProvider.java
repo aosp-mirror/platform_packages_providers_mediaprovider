@@ -2541,8 +2541,10 @@ public class MediaProvider extends ContentProvider {
         }
         qb.setStrict(true);
         // TODO: re-enable as part of fixing b/146518586
-        // qb.setStrictColumns(true);
-        // qb.setStrictGrammar(true);
+        if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.R) {
+            qb.setStrictColumns(true);
+            qb.setStrictGrammar(true);
+        }
 
         final String callingPackage = getCallingPackageOrSelf();
 

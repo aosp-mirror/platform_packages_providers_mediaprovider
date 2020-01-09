@@ -826,7 +826,11 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         // b. Reading from a FUSE fd with caching enabled may not see the latest writes using the
         // lower fs fd because those writes did not go through the FUSE layer and reads from FUSE
         // after that write may be served from cache
-        TRACE_FUSE(fuse) << "Using direct io for " << path;
+        if (h->ri->isRedactionNeeded()) {
+            TRACE_FUSE(fuse) << "Using direct io for " << path << " because redaction is needed.";
+        } else if (is_file_locked(h->fd, path)) {
+            TRACE_FUSE(fuse) << "Using direct io for " << path << " because the file is locked.";
+        }
         fi->direct_io = true;
     } else {
         TRACE_FUSE(fuse) << "Using cache for " << path;

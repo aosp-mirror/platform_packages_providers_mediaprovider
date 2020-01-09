@@ -74,7 +74,41 @@ TEST_F(NodeTest, TestRelease) {
     ASSERT_TRUE(node->Release(2));
 }
 
-TEST_F(NodeTest, TestRename) {
+TEST_F(NodeTest, TestRenameWithName) {
+    unique_node_ptr parent = CreateNode(nullptr, "/path");
+
+    unique_node_ptr child = CreateNode(parent.get(), "subdir");
+    ASSERT_EQ(2, GetRefCount(parent.get()));
+    ASSERT_EQ(child.get(), parent->LookupChildByName("subdir"));
+
+    child->Rename("subdir_new", parent.get());
+
+    ASSERT_EQ(2, GetRefCount(parent.get()));
+    ASSERT_EQ(nullptr, parent->LookupChildByName("subdir"));
+    ASSERT_EQ(child.get(), parent->LookupChildByName("subdir_new"));
+
+    ASSERT_EQ("/path/subdir_new", child->BuildPath());
+}
+
+TEST_F(NodeTest, TestRenameWithParent) {
+    unique_node_ptr parent1 = CreateNode(nullptr, "/path1");
+    unique_node_ptr parent2 = CreateNode(nullptr, "/path2");
+
+    unique_node_ptr child = CreateNode(parent1.get(), "subdir");
+    ASSERT_EQ(2, GetRefCount(parent1.get()));
+    ASSERT_EQ(child.get(), parent1->LookupChildByName("subdir"));
+
+    child->Rename("subdir", parent2.get());
+    ASSERT_EQ(1, GetRefCount(parent1.get()));
+    ASSERT_EQ(nullptr, parent1->LookupChildByName("subdir"));
+
+    ASSERT_EQ(2, GetRefCount(parent2.get()));
+    ASSERT_EQ(child.get(), parent2->LookupChildByName("subdir"));
+
+    ASSERT_EQ("/path2/subdir", child->BuildPath());
+}
+
+TEST_F(NodeTest, TestRenameWithNameAndParent) {
     unique_node_ptr parent1 = CreateNode(nullptr, "/path1");
     unique_node_ptr parent2 = CreateNode(nullptr, "/path2");
 

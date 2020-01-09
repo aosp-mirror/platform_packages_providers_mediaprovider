@@ -34,9 +34,7 @@ android_app {
         "java_api_finder",
     ],
 
-    // STOPSHIP: remove this when building against system_current
-    platform_apis: true,
-    // sdk_version: "system_current",
+    sdk_version: "system_current",
 
     certificate: "media",
     privileged: true,

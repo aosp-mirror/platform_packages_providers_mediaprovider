@@ -17,11 +17,15 @@
 package com.android.providers.media;
 
 import static android.content.ContentResolver.EXTRA_SIZE;
+import static android.provider.DocumentsContract.QUERY_ARG_DISPLAY_NAME;
+import static android.provider.DocumentsContract.QUERY_ARG_EXCLUDE_MEDIA;
+import static android.provider.DocumentsContract.QUERY_ARG_FILE_SIZE_OVER;
+import static android.provider.DocumentsContract.QUERY_ARG_LAST_MODIFIED_AFTER;
+import static android.provider.DocumentsContract.QUERY_ARG_MIME_TYPES;
 
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
-import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.database.MatrixCursor;
@@ -239,11 +243,6 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 notifyRootsChanged(context);
             }
         });
-    }
-
-    static void revokeAllUriGrants(Context context) {
-        context.revokeUriPermission(DocumentsContract.buildBaseDocumentUri(AUTHORITY),
-                Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
     }
 
     private static class Ident {
@@ -843,7 +842,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             Binder.restoreCallingIdentity(token);
         }
 
-        final String[] handledQueryArgs = DocumentsContract.getHandledQueryArguments(queryArgs);
+        final String[] handledQueryArgs = getHandledQueryArguments(queryArgs);
         if (handledQueryArgs.length > 0) {
             final Bundle extras = new Bundle();
             extras.putStringArray(ContentResolver.EXTRA_HONORED_ARGS, handledQueryArgs);
@@ -851,6 +850,35 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         }
 
         return result;
+    }
+
+    public static String[] getHandledQueryArguments(Bundle queryArgs) {
+        if (queryArgs == null) {
+            return new String[0];
+        }
+
+        final ArrayList<String> args = new ArrayList<>();
+
+        if (queryArgs.keySet().contains(QUERY_ARG_EXCLUDE_MEDIA)) {
+            args.add(QUERY_ARG_EXCLUDE_MEDIA);
+        }
+
+        if (queryArgs.keySet().contains(QUERY_ARG_DISPLAY_NAME)) {
+            args.add(QUERY_ARG_DISPLAY_NAME);
+        }
+
+        if (queryArgs.keySet().contains(QUERY_ARG_FILE_SIZE_OVER)) {
+            args.add(QUERY_ARG_FILE_SIZE_OVER);
+        }
+
+        if (queryArgs.keySet().contains(QUERY_ARG_LAST_MODIFIED_AFTER)) {
+            args.add(QUERY_ARG_LAST_MODIFIED_AFTER);
+        }
+
+        if (queryArgs.keySet().contains(QUERY_ARG_MIME_TYPES)) {
+            args.add(QUERY_ARG_MIME_TYPES);
+        }
+        return args.toArray(new String[0]);
     }
 
     @Override
@@ -1333,13 +1361,13 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         if (!MediaStore.UNKNOWN_STRING.equals(displayName)) {
             return displayName;
         }
-        return getContext().getResources().getString(com.android.internal.R.string.unknownName);
+        return getContext().getResources().getString(R.string.unknown);
     }
 
     private String cleanUpMediaBucketName(String bucketDisplayName) {
         if (!TextUtils.isEmpty(bucketDisplayName)) {
             return bucketDisplayName;
         }
-        return getContext().getResources().getString(com.android.internal.R.string.unknownName);
+        return getContext().getResources().getString(R.string.unknown);
     }
 }

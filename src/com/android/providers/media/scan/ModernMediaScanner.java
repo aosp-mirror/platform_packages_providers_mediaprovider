@@ -86,6 +86,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.providers.media.util.ExifUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.IsoInterface;
 import com.android.providers.media.util.Logging;
@@ -972,14 +973,14 @@ public class ModernMediaScanner implements MediaScanner {
      */
     static @NonNull Optional<Long> parseOptionalDateTaken(@NonNull ExifInterface exif,
             long lastModifiedTime) {
-        final long originalTime = exif.getDateTimeOriginal();
+        final long originalTime = ExifUtils.getDateTimeOriginal(exif);
         if (exif.hasAttribute(ExifInterface.TAG_OFFSET_TIME_ORIGINAL)) {
             // We have known offset information, return it directly!
             return Optional.of(originalTime);
         } else {
             // Otherwise we need to guess the offset from unrelated fields
             final long smallestZone = 15 * MINUTE_IN_MILLIS;
-            final long gpsTime = exif.getGpsDateTime();
+            final long gpsTime = ExifUtils.getGpsDateTime(exif);
             if (gpsTime > 0) {
                 final long offset = gpsTime - originalTime;
                 if (Math.abs(offset) < 24 * HOUR_IN_MILLIS) {

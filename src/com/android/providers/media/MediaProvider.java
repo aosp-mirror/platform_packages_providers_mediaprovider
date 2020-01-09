@@ -66,6 +66,7 @@ import static com.android.providers.media.util.Logging.TAG;
 
 import android.app.AppOpsManager;
 import android.app.AppOpsManager.OnOpActiveChangedListener;
+import android.app.DownloadManager;
 import android.app.PendingIntent;
 import android.app.RecoverableSecurityException;
 import android.app.RemoteAction;
@@ -93,7 +94,6 @@ import android.content.pm.ProviderInfo;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.Configuration;
 import android.content.res.Resources;
-import android.database.AbstractCursor;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -115,20 +115,17 @@ import android.os.Environment;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.ParcelFileDescriptor.OnCloseListener;
-import android.os.RedactingFileDescriptor;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.Trace;
 import android.os.UserHandle;
-import android.os.storage.StorageEventListener;
 import android.os.storage.StorageManager;
+import android.os.storage.StorageManager.StorageVolumeCallback;
 import android.os.storage.StorageVolume;
-import android.os.storage.VolumeInfo;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.provider.Column;
-import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
 import android.provider.MediaStore.Audio.AudioColumns;
@@ -174,6 +171,7 @@ import com.android.providers.media.util.Logging;
 import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
+import com.android.providers.media.util.RedactingFileDescriptor;
 import com.android.providers.media.util.XmpInterface;
 
 import com.google.common.hash.Hashing;
@@ -610,17 +608,13 @@ public class MediaProvider extends ContentProvider {
         context.registerReceiver(mMediaReceiver, filter);
 
         // Watch for invalidation of cached volumes
-        mStorageManager.registerListener(new StorageEventListener() {
-            @Override
-            public void onVolumeStateChanged(VolumeInfo vol, int oldState, int newState) {
-                updateVolumes();
-            }
-
-            @Override
-            public void onStorageStateChanged(String path, String oldState, String newState) {
-                updateVolumes();
-            }
-        });
+        mStorageManager.registerStorageVolumeCallback(context.getMainExecutor(),
+                new StorageVolumeCallback() {
+                    @Override
+                    public void onStateChanged(@NonNull StorageVolume volume) {
+                        updateVolumes();
+                    }
+                });
 
         updateVolumes();
         attachVolume(MediaStore.VOLUME_INTERNAL);
@@ -1132,7 +1126,6 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-
     @Override
     public int checkUriPermission(@NonNull Uri uri, int uid,
             /* @Intent.AccessUriMode */ int modeFlags) {
@@ -1323,8 +1316,9 @@ public class MediaProvider extends ContentProvider {
                     }
 
                     final MatrixCursor cursor = new MatrixCursor(projection);
-                    final String data = ContentResolver.translateDeprecatedDataPath(
+                    final File file = ContentResolver.encodeToFile(
                             fullUri.buildUpon().appendPath("thumbnail").build());
+                    final String data = file.getAbsolutePath();
                     cursor.newRow().add(MediaColumns._ID, null)
                             .add(Images.Thumbnails.IMAGE_ID, id)
                             .add(Video.Thumbnails.VIDEO_ID, id)
@@ -1345,8 +1339,11 @@ public class MediaProvider extends ContentProvider {
                 selection, selectionArgs, groupBy, having, sortOrder, limit, signal);
 
         if (c != null) {
-            ((AbstractCursor) c).setNotificationUris(getContext().getContentResolver(),
-                    Arrays.asList(uri), UserHandle.myUserId(), false);
+            // As a performance optimization, only configure notifications when
+            // resulting cursor will leave our process
+            if (mCallingIdentity.get().pid != android.os.Process.myPid()) {
+                c.setNotificationUri(getContext().getContentResolver(), uri);
+            }
 
             final Bundle extras = new Bundle();
             extras.putStringArray(ContentResolver.EXTRA_HONORED_ARGS,
@@ -2542,11 +2539,12 @@ public class MediaProvider extends ContentProvider {
         if (parseBoolean(uri.getQueryParameter("distinct"))) {
             qb.setDistinct(true);
         }
-        qb.setProjectionAggregationAllowed(true);
         qb.setStrict(true);
         // TODO: re-enable as part of fixing b/146518586
-        // qb.setStrictColumns(true);
-        // qb.setStrictGrammar(true);
+        if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.R) {
+            qb.setStrictColumns(true);
+            qb.setStrictGrammar(true);
+        }
 
         final String callingPackage = getCallingPackageOrSelf();
 
@@ -3268,23 +3266,9 @@ public class MediaProvider extends ContentProvider {
 
             if (deletedDownloadIds.size() > 0) {
                 final long token = Binder.clearCallingIdentity();
-                try (ContentProviderClient client = getContext().getContentResolver()
-                     .acquireUnstableContentProviderClient(
-                             android.provider.Downloads.Impl.AUTHORITY)) {
-                    final Bundle callExtras = new Bundle();
-                    final long[] ids = new long[deletedDownloadIds.size()];
-                    final String[] mimeTypes = new String[deletedDownloadIds.size()];
-                    for (int i = deletedDownloadIds.size() - 1; i >= 0; --i) {
-                        ids[i] = deletedDownloadIds.keyAt(i);
-                        mimeTypes[i] = deletedDownloadIds.valueAt(i);
-                    }
-                    callExtras.putLongArray(android.provider.Downloads.EXTRA_IDS, ids);
-                    callExtras.putStringArray(android.provider.Downloads.EXTRA_MIME_TYPES,
-                            mimeTypes);
-                    client.call(android.provider.Downloads.CALL_MEDIASTORE_DOWNLOADS_DELETED,
-                            null, callExtras);
-                } catch (RemoteException e) {
-                    // Should not happen
+                try {
+                    getContext().getSystemService(DownloadManager.class)
+                            .onMediaStoreDownloadsDeleted(deletedDownloadIds);
                 } finally {
                     Binder.restoreCallingIdentity(token);
                 }
@@ -3397,7 +3381,7 @@ public class MediaProvider extends ContentProvider {
                 return res;
             }
             case MediaStore.GET_DOCUMENT_URI_CALL: {
-                final Uri mediaUri = extras.getParcelable(DocumentsContract.EXTRA_URI);
+                final Uri mediaUri = extras.getParcelable(MediaStore.EXTRA_URI);
                 enforceCallingPermission(mediaUri, extras, false);
 
                 final Uri fileUri;
@@ -3412,24 +3396,24 @@ public class MediaProvider extends ContentProvider {
 
                 try (ContentProviderClient client = getContext().getContentResolver()
                         .acquireUnstableContentProviderClient(
-                                DocumentsContract.EXTERNAL_STORAGE_PROVIDER_AUTHORITY)) {
-                    extras.putParcelable(DocumentsContract.EXTRA_URI, fileUri);
+                                MediaStore.EXTERNAL_STORAGE_PROVIDER_AUTHORITY)) {
+                    extras.putParcelable(MediaStore.EXTRA_URI, fileUri);
                     return client.call(method, null, extras);
                 } catch (RemoteException e) {
                     throw new IllegalStateException(e);
                 }
             }
             case MediaStore.GET_MEDIA_URI_CALL: {
-                final Uri documentUri = extras.getParcelable(DocumentsContract.EXTRA_URI);
+                final Uri documentUri = extras.getParcelable(MediaStore.EXTRA_URI);
                 getContext().enforceCallingUriPermission(documentUri,
                         Intent.FLAG_GRANT_READ_URI_PERMISSION, TAG);
 
                 final Uri fileUri;
                 try (ContentProviderClient client = getContext().getContentResolver()
                         .acquireUnstableContentProviderClient(
-                                DocumentsContract.EXTERNAL_STORAGE_PROVIDER_AUTHORITY)) {
+                                MediaStore.EXTERNAL_STORAGE_PROVIDER_AUTHORITY)) {
                     final Bundle res = client.call(method, null, extras);
-                    fileUri = res.getParcelable(DocumentsContract.EXTRA_URI);
+                    fileUri = res.getParcelable(MediaStore.EXTRA_URI);
                 } catch (RemoteException e) {
                     throw new IllegalStateException(e);
                 }
@@ -3437,7 +3421,7 @@ public class MediaProvider extends ContentProvider {
                 final LocalCallingIdentity token = clearLocalCallingIdentity();
                 try {
                     final Bundle res = new Bundle();
-                    res.putParcelable(DocumentsContract.EXTRA_URI,
+                    res.putParcelable(MediaStore.EXTRA_URI,
                             queryForMediaUri(new File(fileUri.getPath()), null));
                     return res;
                 } catch (FileNotFoundException e) {
@@ -4555,7 +4539,7 @@ public class MediaProvider extends ContentProvider {
 
             // Second, wrap in any listener that we've requested
             if (!isPending && forWrite && listener != null) {
-                return ParcelFileDescriptor.fromPfd(pfd, BackgroundThread.getHandler(), listener);
+                return ParcelFileDescriptor.wrap(pfd, BackgroundThread.getHandler(), listener);
             } else {
                 return pfd;
             }

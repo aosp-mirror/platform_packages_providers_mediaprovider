@@ -25,9 +25,11 @@ import static com.android.tests.fused.lib.RedactionTestHelper.assertExifMetadata
 import static com.android.tests.fused.lib.RedactionTestHelper.assertExifMetadataMismatch;
 import static com.android.tests.fused.lib.RedactionTestHelper.getExifMetadata;
 import static com.android.tests.fused.lib.RedactionTestHelper.getExifMetadataFromRawResource;
+import static com.android.tests.fused.lib.TestUtils.adoptShellPermissionIdentity;
 import static com.android.tests.fused.lib.TestUtils.assertThrows;
 import static com.android.tests.fused.lib.TestUtils.createFileAs;
 import static com.android.tests.fused.lib.TestUtils.deleteFileAs;
+import static com.android.tests.fused.lib.TestUtils.dropShellPermissionIdentity;
 import static com.android.tests.fused.lib.TestUtils.executeShellCommand;
 import static com.android.tests.fused.lib.TestUtils.installApp;
 import static com.android.tests.fused.lib.TestUtils.listAs;
@@ -38,6 +40,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assume.assumeTrue;
 
+import android.Manifest;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -881,6 +884,16 @@ public class FilePathAccessTest {
         } finally {
             emptyDirectoryOldPath.delete();
             emptyDirectoryNewPath.delete();
+        }
+    }
+
+    @Test
+    public void testManageExternalStorageBypassesMediaProviderRestrictions() throws Exception {
+        adoptShellPermissionIdentity(Manifest.permission.MANAGE_EXTERNAL_STORAGE);
+        try {
+            assertCanCreateFile(new File(EXTERNAL_STORAGE_DIR, NONMEDIA_FILE_NAME));
+        } finally {
+            dropShellPermissionIdentity();
         }
     }
 

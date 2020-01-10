@@ -96,6 +96,14 @@ public class TestUtils {
         }
     }
 
+    public static void adoptShellPermissionIdentity(String... permissions) {
+        sUiAutomation.adoptShellPermissionIdentity(permissions);
+    }
+
+    public static void dropShellPermissionIdentity() {
+        sUiAutomation.dropShellPermissionIdentity();
+    }
+
     public static String executeShellCommand(String cmd) throws Exception {
         try (FileInputStream output = new FileInputStream (sUiAutomation.executeShellCommand(cmd)
                 .getFileDescriptor())) {

@@ -22,6 +22,7 @@ import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_MEDIA_STORAGE;
 import static android.app.AppOpsManager.MODE_ALLOWED;
 import static android.app.AppOpsManager.OPSTR_LEGACY_STORAGE;
+import static android.app.AppOpsManager.OPSTR_MANAGE_EXTERNAL_STORAGE;
 import static android.app.AppOpsManager.OPSTR_READ_EXTERNAL_STORAGE;
 import static android.app.AppOpsManager.OPSTR_READ_MEDIA_AUDIO;
 import static android.app.AppOpsManager.OPSTR_READ_MEDIA_IMAGES;
@@ -32,6 +33,7 @@ import static android.app.AppOpsManager.OPSTR_WRITE_MEDIA_IMAGES;
 import static android.app.AppOpsManager.OPSTR_WRITE_MEDIA_VIDEO;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
+import android.annotation.NonNull;
 import android.app.AppOpsManager;
 import android.content.Context;
 
@@ -66,6 +68,11 @@ public class PermissionUtils {
 
     public static boolean checkPermissionBackup(Context context, int pid, int uid) {
         return context.checkPermission(BACKUP, pid, uid) == PERMISSION_GRANTED;
+    }
+
+    public static boolean checkPermissionManageExternalStorage(Context context, int pid, int uid,
+            String packageName) {
+        return hasAppOpPermission(context, pid, uid, packageName, OPSTR_MANAGE_EXTERNAL_STORAGE);
     }
 
     public static boolean checkPermissionWriteStorage(Context context,
@@ -158,6 +165,23 @@ public class PermissionUtils {
             default:
                 throw new IllegalStateException(op + " has unknown mode " + mode);
         }
+    }
+
+    /**
+     * Checks if calling app is allowed the app-op. If its app-op mode is
+     * {@link AppOpsManager#MODE_DEFAULT} then it falls back checking the appropriate permission for
+     * the app-op. The permissions is retrieved from {@link AppOpsManager#opToPermission(String)}.
+     */
+    private static boolean hasAppOpPermission(@NonNull Context context, int pid, int uid,
+            @NonNull String packageName, @NonNull String op) {
+        final AppOpsManager appOps = context.getSystemService(AppOpsManager.class);
+        final int mode = appOps.noteOpNoThrow(op, uid, packageName, null, null);
+        if (mode == AppOpsManager.MODE_DEFAULT) {
+            final String permission = AppOpsManager.opToPermission(op);
+            return permission != null
+                    && context.checkPermission(permission, pid, uid) == PERMISSION_GRANTED;
+        }
+        return mode == AppOpsManager.MODE_ALLOWED;
     }
 
     private static boolean noteAppOpAllowingLegacy(Context context,

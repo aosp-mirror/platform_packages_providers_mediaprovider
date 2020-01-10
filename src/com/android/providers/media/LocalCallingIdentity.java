@@ -23,6 +23,7 @@ import static android.content.pm.PackageManager.PERMISSION_DENIED;
 
 import static com.android.providers.media.util.PermissionUtils.checkIsLegacyStorageGranted;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionBackup;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionManageExternalStorage;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadAudio;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadImages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadStorage;
@@ -186,6 +187,7 @@ public class LocalCallingIdentity {
     public static final int PERMISSION_IS_LEGACY_READ = 1 << 9;
     public static final int PERMISSION_IS_LEGACY_GRANTED = 1 << 10;
     public static final int PERMISSION_IS_BACKUP = 1 << 11;
+    public static final int PERMISSION_MANAGE_EXTERNAL_STORAGE = 1 << 12;
 
     private int hasPermission;
     private int hasPermissionResolved;
@@ -233,6 +235,8 @@ public class LocalCallingIdentity {
                 return checkPermissionWriteVideo(context, pid, uid, getPackageName());
             case PERMISSION_WRITE_IMAGES:
                 return checkPermissionWriteImages(context, pid, uid, getPackageName());
+            case PERMISSION_MANAGE_EXTERNAL_STORAGE:
+                return checkPermissionManageExternalStorage(context, pid, uid, packageName);
             default:
                 return false;
         }

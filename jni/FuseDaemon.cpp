@@ -55,6 +55,7 @@
 #include <regex>
 #include <thread>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "MediaProviderWrapper.h"
@@ -220,6 +221,11 @@ class FAdviser {
     const size_t target_ = 32 * 1024 * 1024;
 };
 
+// Whether inode tracking is enabled or not. When enabled, we maintain a
+// separate mapping from inode numbers to "live" nodes so we can detect when
+// we receive a request to a node that has been deleted.
+static constexpr bool kEnableInodeTracking = true;
+
 /* Single FUSE mount */
 struct fuse {
     explicit fuse(const std::string& _path)
@@ -231,12 +237,19 @@ struct fuse {
     // because fuse_lowlevel_ops documents that the root inode is always one
     // (see FUSE_ROOT_ID in fuse_lowlevel.h). There are no particular requirements
     // on any of the other inodes in the FS.
-    inline node* FromInode(__u64 inode) const {
+    inline node* FromInode(__u64 inode) {
         if (inode == FUSE_ROOT_ID) {
             return root;
         }
 
-        return node::FromInode(inode);
+        node* node = node::FromInode(inode);
+
+        if (kEnableInodeTracking) {
+            std::lock_guard<std::recursive_mutex> guard(lock);
+            CHECK(inode_tracker_.find(node) != inode_tracker_.end());
+        }
+
+        return node;
     }
 
     inline __u64 ToInode(node* node) const {
@@ -245,6 +258,26 @@ struct fuse {
         }
 
         return node::ToInode(node);
+    }
+
+    // Notify this FUSE instance that one of its nodes has been deleted.
+    void NodeDeleted(const node* node) {
+        if (kEnableInodeTracking) {
+            LOG(INFO) << "Node: " << node << " deleted.";
+
+            std::lock_guard<std::recursive_mutex> guard(lock);
+            inode_tracker_.erase(node);
+        }
+    }
+
+    // Notify this FUSE instance that a new nodes has been created.
+    void NodeCreated(const node* node) {
+        if (kEnableInodeTracking) {
+            LOG(INFO) << "Node: " << node << " created.";
+
+            std::lock_guard<std::recursive_mutex> guard(lock);
+            inode_tracker_.insert(node);
+        }
     }
 
     std::recursive_mutex lock;
@@ -265,6 +298,8 @@ struct fuse {
     /* const */ char* zero_addr;
 
     FAdviser fadviser;
+
+    std::unordered_set<const node*> inode_tracker_;
 };
 
 static inline const char* safe_name(node* n) {
@@ -347,6 +382,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
         node->Acquire();
     } else {
         node = ::node::Create(parent, name, &fuse->lock);
+        fuse->NodeCreated(node);
     }
 
     // Manipulate attr here if needed
@@ -452,7 +488,9 @@ static void do_forget(struct fuse* fuse, fuse_ino_t ino, uint64_t nlookup) {
         // This is a narrowing conversion from an unsigned 64bit to a 32bit value. For
         // some reason we only keep 32 bit refcounts but the kernel issues
         // forget requests with a 64 bit counter.
-        node->Release(static_cast<uint32_t>(nlookup));
+        if (node->Release(static_cast<uint32_t>(nlookup))) {
+            fuse->NodeDeleted(node);
+        }
     }
 }
 
@@ -826,7 +864,11 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         // b. Reading from a FUSE fd with caching enabled may not see the latest writes using the
         // lower fs fd because those writes did not go through the FUSE layer and reads from FUSE
         // after that write may be served from cache
-        TRACE_FUSE(fuse) << "Using direct io for " << path;
+        if (h->ri->isRedactionNeeded()) {
+            TRACE_FUSE(fuse) << "Using direct io for " << path << " because redaction is needed.";
+        } else if (is_file_locked(h->fd, path)) {
+            TRACE_FUSE(fuse) << "Using direct io for " << path << " because the file is locked.";
+        }
         fi->direct_io = true;
     } else {
         TRACE_FUSE(fuse) << "Using cache for " << path;

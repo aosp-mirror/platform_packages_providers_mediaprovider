@@ -1,3 +1,4 @@
+set -e
 
 # Build both our APK and APEX combined together
 ./build/soong/soong_ui.bash --make-mode -j64 MediaProviderLegacy com.google.android.mediaprovider

@@ -27,6 +27,9 @@
     <!-- Description line for music artists in the search/suggestion results -->
     <string name="artist_label">Artist</string>
 
+    <!-- Label for a file or directory which has no valid user-visible description [CHAR LIMIT=32] -->
+    <string name="unknown">Unknown</string>
+
     <!-- Title for documents backend that offers images. [CHAR LIMIT=24] -->
     <string name="root_images">Images</string>
     <!-- Title for documents backend that offers videos. [CHAR LIMIT=24] -->

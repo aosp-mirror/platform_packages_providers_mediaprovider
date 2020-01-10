@@ -4789,13 +4789,12 @@ public class MediaProvider extends ContentProvider {
      * storage.
      */
     private boolean shouldBypassFuseRestrictions(boolean forWrite) {
-        int targetSdk = getCallingPackageTargetSdkVersion();
         boolean isRequestingLegacyStorage = forWrite ? isCallingPackageLegacyWrite()
                 : isCallingPackageLegacyRead();
 
         // TODO(b/137755945): We should let file managers bypass FUSE restrictions as well.
         //  Remember to change the documentation above when this is addressed.
-        return targetSdk <= Build.VERSION_CODES.Q && isRequestingLegacyStorage;
+        return isRequestingLegacyStorage;
     }
 
     /**

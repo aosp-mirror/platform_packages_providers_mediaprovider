@@ -33,6 +33,13 @@ java_library {
     ],
 
     plugins: ["java_api_finder"],
+
+    hostdex: true, // for hiddenapi check
+    visibility: ["//packages/providers/MediaProvider/apex:__subpackages__"],
+    apex_available: [
+        "com.android.mediaprovider",
+        "test_com.android.mediaprovider",
+    ],
 }
 
 filegroup {

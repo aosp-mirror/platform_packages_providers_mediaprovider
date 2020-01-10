@@ -54,6 +54,7 @@ import android.system.Os;
 import android.system.OsConstants;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.cts.install.lib.TestApp;
@@ -891,6 +892,9 @@ public class FilePathAccessTest {
      */
     @Test
     public void testRenameDirectory() throws Exception {
+        final String nonMediaDirectoryName = TEST_DIRECTORY + "NonMedia";
+        final File nonMediaDirectory = new File(DOWNLOAD_DIR, nonMediaDirectoryName);
+        final File pdfFile = new File(nonMediaDirectory, NONMEDIA_FILE_NAME);
 
         final String mediaDirectoryName = TEST_DIRECTORY + "Media";
         final File mediaDirectory1 = new File(DCIM_DIR, mediaDirectoryName);
@@ -899,42 +903,87 @@ public class FilePathAccessTest {
         final File videoFile2 = new File(mediaDirectory2, VIDEO_FILE_NAME);
         final File mediaDirectory3 =  new File(MOVIES_DIR, TEST_DIRECTORY);
         final File videoFile3 = new File(mediaDirectory3, VIDEO_FILE_NAME);
+        final File mediaDirectory4 =  new File(mediaDirectory3, mediaDirectoryName) ;
 
         try {
+            if (!nonMediaDirectory.exists()) {
+                assertThat(nonMediaDirectory.mkdirs()).isTrue();
+            }
+            assertThat(pdfFile.createNewFile()).isTrue();
+            // Move directory with pdf file to DCIM directory is not allowed.
+            assertThat(nonMediaDirectory.renameTo(new File(DCIM_DIR, nonMediaDirectoryName)))
+                    .isFalse();
+
             if (!mediaDirectory1.exists()) {
                 assertThat(mediaDirectory1.mkdirs()).isTrue();
             }
             assertThat(videoFile1.createNewFile()).isTrue();
-
             // Renaming to and from default directories is not allowed.
             assertThat(mediaDirectory1.renameTo(DCIM_DIR)).isFalse();
-            // Move top level default directories
-            assertThat(DOWNLOAD_DIR.renameTo(new File(DCIM_DIR, TEST_DIRECTORY))).isFalse();
+            // Moving top level default directories is not allowed.
+            assertCantRenameDirectory(DOWNLOAD_DIR, new File(DCIM_DIR, TEST_DIRECTORY), null);
 
-            // Move media directory to Download directory.
-            assertThat(mediaDirectory1.renameTo(mediaDirectory2)).isTrue();
-            assertThat(mediaDirectory1.exists()).isFalse();
-            assertThat(mediaDirectory2.exists()).isTrue();
-            assertThat(videoFile1.exists()).isFalse();
-            assertThat(videoFile2.exists()).isTrue();
+            // Moving media directory to Download directory is allowed.
+            assertCanRenameDirectory(mediaDirectory1, mediaDirectory2, new File[] {videoFile1},
+                    new File[] {videoFile2});
 
-            // Move media directory to Movies directory and rename directory in new path.
-            assertThat(mediaDirectory2.renameTo(mediaDirectory3)).isTrue();
-            assertThat(mediaDirectory2.exists()).isFalse();
-            assertThat(mediaDirectory3.exists()).isTrue();
-            assertThat(videoFile2.exists()).isFalse();
-            assertThat(videoFile3.exists()).isTrue();
+            // Moving media directory to Movies directory and renaming directory in new path is
+            // allowed.
+            assertCanRenameDirectory(mediaDirectory2, mediaDirectory3,  new File[] {videoFile2},
+                    new File[] {videoFile3});
 
-            // Move videoFile back to original directory to ensure database entry for video file
-            // is deleted on delete().
-            assertThat(mediaDirectory3.renameTo(mediaDirectory1)).isTrue();
+            // Can't rename a mediaDirectory to non empty non Media directory.
+            assertCantRenameDirectory(mediaDirectory3, nonMediaDirectory, new File[] {videoFile3});
+            // Can't rename a file to a directory.
+            assertCantRenameFile(videoFile3, mediaDirectory3);
+            // Can't rename a directory to file.
+            assertCantRenameDirectory(mediaDirectory3, pdfFile, null);
+            if (!mediaDirectory4.exists()) {
+                assertThat(mediaDirectory4.mkdir()).isTrue();
+            }
+            // Can't rename a directory to subdirectory of itself.
+            assertCantRenameDirectory(mediaDirectory3, mediaDirectory4, new File[] {videoFile3});
+
         } finally {
+            pdfFile.delete();
+            nonMediaDirectory.delete();
+
             videoFile1.delete();
             videoFile2.delete();
             videoFile3.delete();
             mediaDirectory1.delete();
             mediaDirectory2.delete();
             mediaDirectory3.delete();
+            mediaDirectory4.delete();
+        }
+    }
+
+    /**
+     * Test that renaming directory checks file ownership permissions.
+     */
+    @Test
+    public void testRenameDirectoryNotOwned() throws Exception {
+        final String mediaDirectoryName = TEST_DIRECTORY + "Media";
+        File mediaDirectory1 = new File(DCIM_DIR, mediaDirectoryName);
+        File mediaDirectory2 = new File(MOVIES_DIR, mediaDirectoryName);
+        File videoFile = new File(mediaDirectory1, VIDEO_FILE_NAME);
+
+        try {
+            installApp(TEST_APP_A, false);
+
+            if (!mediaDirectory1.exists()) {
+                assertThat(mediaDirectory1.mkdirs()).isTrue();
+            }
+            assertThat(createFileAs(TEST_APP_A, videoFile.getAbsolutePath())).isTrue();
+            // App doesn't have access to videoFile1, can't rename mediaDirectory1.
+            assertThat(mediaDirectory1.renameTo(mediaDirectory2)).isFalse();
+            assertThat(videoFile.exists()).isTrue();
+            // Test app can delete the file since the file is not moved to new directory.
+            assertThat(deleteFileAs(TEST_APP_A, videoFile.getAbsolutePath())).isTrue();
+        } finally {
+            deleteFileAs(TEST_APP_A, videoFile.getAbsolutePath());
+            uninstallApp(TEST_APP_A);
+            mediaDirectory1.delete();
         }
     }
 
@@ -949,8 +998,7 @@ public class FilePathAccessTest {
         try {
             if (!emptyDirectoryOldPath.exists()) {
                 assertThat(emptyDirectoryOldPath.mkdirs()).isTrue();
-                assertThat(emptyDirectoryOldPath.renameTo(emptyDirectoryNewPath)).isTrue();
-                assertThat(emptyDirectoryNewPath.exists()).isTrue();
+                assertCanRenameDirectory(emptyDirectoryOldPath, emptyDirectoryNewPath, null, null);
             }
         } finally {
             emptyDirectoryOldPath.delete();
@@ -1073,6 +1121,33 @@ public class FilePathAccessTest {
         assertThat(oldFile.renameTo(newFile)).isFalse();
         assertThat(oldFile.exists()).isTrue();
         assertThat(getFileRowIdFromDatabase(cr, oldFile)).isEqualTo(rowId);
+    }
+
+    private static void assertCanRenameDirectory(File oldDirectory, File newDirectory,
+            @Nullable File[] oldFilesList, @Nullable File[] newFilesList) {
+        assertThat(oldDirectory.renameTo(newDirectory)).isTrue();
+        assertThat(oldDirectory.exists()).isFalse();
+        assertThat(newDirectory.exists()).isTrue();
+        ContentResolver cr = getContentResolver();
+        for (File file  : oldFilesList != null ? oldFilesList : new File[0]) {
+            assertThat(file.exists()).isFalse();
+            assertThat(getFileRowIdFromDatabase(cr, file)).isEqualTo(-1);
+        }
+        for (File file : newFilesList != null ? newFilesList : new File[0]) {
+            assertThat(file.exists()).isTrue();
+            assertThat(getFileRowIdFromDatabase(cr, file)).isNotEqualTo(-1);
+        };
+    }
+
+    private static void assertCantRenameDirectory(File oldDirectory, File newDirectory,
+            @Nullable File[] oldFilesList) {
+        assertThat(oldDirectory.renameTo(newDirectory)).isFalse();
+        assertThat(oldDirectory.exists()).isTrue();
+        ContentResolver cr = getContentResolver();
+        for (File file  : oldFilesList != null ? oldFilesList : new File[0]) {
+            assertThat(file.exists()).isTrue();
+            assertThat(getFileRowIdFromDatabase(cr, file)).isNotEqualTo(-1);
+        }
     }
 
     /**

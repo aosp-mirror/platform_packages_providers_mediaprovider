@@ -175,6 +175,11 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
     }
 
     @Test
+    public void testRenameDirectoryNotOwned() throws Exception {
+        runDeviceTest("testRenameDirectoryNotOwned");
+    }
+
+    @Test
     public void testRenameEmptyDirectory() throws Exception {
         runDeviceTest("testRenameEmptyDirectory");
     }

@@ -1139,29 +1139,168 @@ public class MediaProvider extends ContentProvider {
                     return;
                 }
 
-                try (Cursor c = queryForSingleItem(uri, new String [] {MediaColumns._ID},
-                        MediaColumns.DATA + " =? ", new String[]{newPath}, null)) {
-                    c.moveToFirst();
-                    uri = ContentUris.withAppendedId(uri, c.getInt(0));
-                } catch(FileNotFoundException e) {
-                    Log.w("Failed to process metadata after renaming " +  oldPath, e);
-                    return;
+                if (new File(newPath).isDirectory()) {
+                    final String selection = MediaColumns.RELATIVE_PATH + " REGEXP '^" +
+                            extractRelativePathForDirectory(newPath) +
+                            "/?.*' and mime_type not like 'null'";
+                    try (Cursor c = query(uri, new String[] {MediaColumns._ID}, selection, null,
+                            null)) {
+                        while(c.moveToNext()) {
+                            final Uri contentUri = ContentUris.withAppendedId(uri, c.getInt(0));
+                            acceptWithExpansion(helper::notifyChange, contentUri);
+                        }
+                    }
+                } else {
+                    try (Cursor c = queryForSingleItem(uri, new String [] {MediaColumns._ID},
+                            MediaColumns.DATA + " =? ", new String[]{newPath}, null)) {
+                        c.moveToFirst();
+                        uri = ContentUris.withAppendedId(uri, c.getInt(0));
+                    } catch(FileNotFoundException e) {
+                        Log.w("Failed to process metadata after renaming " +  oldPath, e);
+                        return;
+                    }
+                    final String oldMimeType = MimeUtils.resolveMimeType(new File(oldPath));
+                    final String newMimeType = MimeUtils.resolveMimeType(new File(newPath));
+                    if (!oldMimeType.equals(newMimeType)) {
+                        invalidateThumbnails(uri);
+                        int mediaType = MimeUtils.resolveMediaType(newMimeType);
+                        // If we're changing media types, invalidate any cached "empty answers for
+                        // the new collection type.
+                        MediaDocumentsProvider.onMediaStoreInsert(getContext(), getVolumeName(uri),
+                                mediaType, -1);
+                    }
+                    acceptWithExpansion(helper::notifyChange, uri);
                 }
-                final String oldMimeType = MimeUtils.resolveMimeType(new File(oldPath));
-                final String newMimeType = MimeUtils.resolveMimeType(new File(newPath));
-                if (!oldMimeType.equals(newMimeType)) {
-                    invalidateThumbnails(uri);
-                    int mediaType = MimeUtils.resolveMediaType(newMimeType);
-                    // If we're changing media types, invalidate any cached "empty answers for
-                    // the new collection type.
-                    MediaDocumentsProvider.onMediaStoreInsert(getContext(), getVolumeName(uri),
-                            mediaType, -1);
-                }
-                acceptWithExpansion(helper::notifyChange, uri);
             });
         } finally {
             restoreLocalCallingIdentity(token);
         }
+    }
+    /**
+     * Gets files in the given {@code path} and subdirectories of the given {@code path} for which
+     * calling package has write permissions.
+     *
+     * This method throws {@code IllegalArgumentException} if the directory has one or more
+     * files for which calling package doesn't have write permission or if file type is not
+     * supported in {@code newPath}
+     */
+    private ArrayList<String> getWritableFilesForRenameDirectory(String oldPath, String newPath) {
+        final int countAllFilesInDirectory;
+        final String selection = MediaColumns.RELATIVE_PATH + " REGEXP '^" +
+                extractRelativePathForDirectory(oldPath) + "/?.*' and mime_type not like 'null'";
+        final Uri uriOldPath = Files.getContentUriForPath(oldPath);
+
+        final LocalCallingIdentity token = clearLocalCallingIdentity();
+        try (final Cursor c = query(uriOldPath, new String[] {MediaColumns._ID}, selection, null,
+                null)) {
+            // get actual number of files in the given directory.
+            countAllFilesInDirectory = c.getCount();
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
+
+        final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE,
+                matchUri(uriOldPath, isCallingPackageAllowedHidden()), uriOldPath, Bundle.EMPTY,
+                null);
+        final DatabaseHelper helper;
+        try {
+            helper = getDatabaseForUri(uriOldPath);
+        } catch (VolumeNotFoundException e) {
+            throw new IllegalStateException("Volume not found while querying files for renaming "
+                    + oldPath);
+        }
+
+        ArrayList<String> fileList = new ArrayList<>();
+        final String[] projection = {MediaColumns.DATA, MediaColumns.MIME_TYPE};
+        try (Cursor c = qb.query(helper.getReadableDatabase(), projection, selection, null,
+                null, null, null)) {
+            // Check if the calling package has write permission to all files in the given
+            // directory. If calling package has write permission to all files in the directory, the
+            // query with update uri should return same number of files as previous query.
+            if (c.getCount() != countAllFilesInDirectory) {
+                throw new IllegalArgumentException("Calling package doesn't have write permission "
+                        + " to rename one or more files in " + oldPath);
+            }
+            while(c.moveToNext()) {
+                final String filePath = c.getString(0).replaceFirst("^" + oldPath + "/(.*)", "$1");
+                final String mimeType = c.getString(1);
+                if (!isMimeTypeSupportedInPath(newPath + "/" + filePath, mimeType)) {
+                    throw new IllegalArgumentException("Can't rename " + oldPath + "/" + filePath
+                            + ". Mime type " + mimeType + " not supported in " + newPath);
+                }
+                fileList.add(filePath);
+            }
+        }
+        return fileList;
+    }
+
+    /**
+     * Rename directory from {@code oldPath} to {@code newPath}.
+     *
+     * Renaming a directory is only allowed if calling package has write permission to all files in
+     * the given directory tree and all file types in the given directory tree are supported by the
+     * top level directory of new path. Renaming a directory is split into three steps:
+     * 1. Check calling package's permissions for all files in the given directory tree. Also check
+     *    file type support for all files in the {@code newPath}.
+     * 2. Try updating database for all files in the directory.
+     * 3. Rename the directory in lower file system. If rename in the lower file system is
+     *    successful, commit database update.
+     *
+     * @param oldPath path of the directory to be renamed.
+     * @param newPath new path of directory to be renamed.
+     * @return 0 on successful rename, appropriate negated errno value if the rename is not allowed.
+     * <ul>
+     * <li>{@link OsConstants#EPERM} Renaming a directory with file types not supported by
+     * {@code newPath} or renaming a directory with files for which calling package doesn't have
+     * write permission.
+     * This method can also return errno returned from {@code Os.rename} function.
+     */
+    private int renameDirectoryForFuse(String oldPath, String newPath) {
+        final ArrayList<String> fileList;
+        try {
+            fileList = getWritableFilesForRenameDirectory(oldPath, newPath);
+        } catch(IllegalArgumentException e) {
+            final String errorMessage = "Rename " + oldPath + " to " + newPath + " failed. ";
+            Log.e(TAG, errorMessage, e);
+            return -OsConstants.EPERM;
+        }
+
+        final SQLiteDatabase db;
+        try {
+            final DatabaseHelper helper = getDatabaseForUri(Files.getContentUriForPath(oldPath));
+            db = helper.getWritableDatabase();
+        } catch (VolumeNotFoundException e) {
+            throw new IllegalStateException("Volume not found while trying to update database for "
+                    + oldPath, e);
+        }
+
+        db.beginTransaction();
+        try {
+            for (String filePath : fileList) {
+                final String newFilePath = newPath + "/" + filePath;
+                final String mimeType = MimeUtils.resolveMimeType(new File(newFilePath));
+                if(!updateDatabaseForFuseRename(db, oldPath + "/" + filePath, newFilePath,
+                        getContentValuesForFuseRename(newFilePath, mimeType, mimeType))) {
+                    Log.e(TAG, "Calling package doesn't have write permission to rename file.");
+                    return -OsConstants.EPERM;
+                }
+            }
+
+            // Rename the directory in lower file system.
+            try {
+                Os.rename(oldPath, newPath);
+            } catch (ErrnoException e) {
+                Log.e(TAG, "Failed to rename " + oldPath, e);
+                return -e.errno;
+            }
+
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+        // Process metadata in background thread.
+        postProcessMetadataForFuseRename(oldPath, newPath);
+        return 0;
     }
 
     /**
@@ -1235,11 +1374,7 @@ public class MediaProvider extends ContentProvider {
      * is not indexed by MediaProvider database.
      * <li>{@link OsConstants#EPERM} Renaming a default directory or renaming a file to a file type
      * not supported by new path.
-     *
      * This method can also return errno returned from {@code Os.rename} function.
-     * MediaProvider database entries corresponding to directory and files/directories in the
-     * directory being renamed is not updated on rename directory and hence, FUSE rename directory
-     * can make MediaProvider database inconsistent with lower file system.
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
@@ -1303,13 +1438,7 @@ public class MediaProvider extends ContentProvider {
             if (new File(oldPath).isFile()) {
                 return renameFileForFuse(oldPath, newPath);
             } else {
-                try {
-                    Os.rename(oldPath, newPath);
-                    return 0;
-                } catch (ErrnoException e) {
-                    Log.e(TAG, errorMessage, e);
-                    return -e.errno;
-                }
+                return renameDirectoryForFuse(oldPath, newPath);
             }
         } finally {
             restoreLocalCallingIdentity(token);

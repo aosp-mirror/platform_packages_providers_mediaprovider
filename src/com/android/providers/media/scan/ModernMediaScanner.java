@@ -243,6 +243,7 @@ public class ModernMediaScanner implements MediaScanner {
         private final Uri mFilesUri;
         private final CancellationSignal mSignal;
 
+        private final long mStartCurrentTime;
         private final boolean mSingleFile;
         private final ArrayList<ContentProviderOperation> mPending = new ArrayList<>();
         private LongArray mScannedIds = new LongArray();
@@ -269,6 +270,7 @@ public class ModernMediaScanner implements MediaScanner {
             mFilesUri = MediaStore.Files.getContentUri(mVolumeName);
             mSignal = getOrCreateSignal(mVolumeName);
 
+            mStartCurrentTime = System.currentTimeMillis();
             mSingleFile = mRoot.isFile();
 
             Trace.endSection();
@@ -333,10 +335,12 @@ public class ModernMediaScanner implements MediaScanner {
                     + MtpConstants.FORMAT_UNDEFINED + ") != "
                     + MtpConstants.FORMAT_ABSTRACT_AV_PLAYLIST;
             final String dataClause = FileColumns.DATA + " LIKE ? ESCAPE '\\'";
+            final String addedClause = "ifnull(" + FileColumns.DATE_ADDED + ",0) < "
+                    + mStartCurrentTime;
 
             final Bundle queryArgs = new Bundle();
             queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SELECTION,
-                    formatClause + " AND " + dataClause);
+                    formatClause + " AND " + dataClause + " AND " + addedClause);
             queryArgs.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS,
                     new String[] { escapeForLike(mRoot.getAbsolutePath(), mSingleFile) });
             queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,

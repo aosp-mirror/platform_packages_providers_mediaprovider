@@ -110,9 +110,12 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
 /**
@@ -163,6 +166,23 @@ public class ModernMediaScanner implements MediaScanner {
      */
     @GuardedBy("mSignals")
     private final ArrayMap<String, CancellationSignal> mSignals = new ArrayMap<>();
+
+    /**
+     * Holder that contains a reference count of the number of threads
+     * interested in a specific directory, along with a lock to ensure that
+     * parallel scans don't overlap and confuse each other.
+     */
+    private static class DirectoryLock {
+        public int count;
+        public final Lock lock = new ReentrantLock();
+    }
+
+    /**
+     * Map from directory to locks designed to ensure that parallel scans don't
+     * overlap and confuse each other.
+     */
+    @GuardedBy("mLocks")
+    private final Map<Path, DirectoryLock> mDirectoryLocks = new ArrayMap<>();
 
     /**
      * Set of MIME types that should be considered to be DRM, meaning we need to
@@ -245,6 +265,7 @@ public class ModernMediaScanner implements MediaScanner {
 
         private final long mStartCurrentTime;
         private final boolean mSingleFile;
+        private final Set<Path> mAcquiredDirectoryLocks = new ArraySet<>();
         private final ArrayList<ContentProviderOperation> mPending = new ArrayList<>();
         private LongArray mScannedIds = new LongArray();
         private LongArray mUnknownIds = new LongArray();
@@ -309,12 +330,18 @@ public class ModernMediaScanner implements MediaScanner {
             mSignal.throwIfCanceled();
             if (!isDirectoryHiddenRecursive(mSingleFile ? mRoot.getParentFile() : mRoot)) {
                 Trace.beginSection("walkFileTree");
+                if (mSingleFile) {
+                    acquireDirectoryLock(mRoot.getParentFile().toPath());
+                }
                 try {
                     Files.walkFileTree(mRoot.toPath(), this);
                 } catch (IOException e) {
                     // This should never happen, so yell loudly
                     throw new IllegalStateException(e);
                 } finally {
+                    if (mSingleFile) {
+                        releaseDirectoryLock(mRoot.getParentFile().toPath());
+                    }
                     Trace.endSection();
                 }
                 applyPending();
@@ -394,11 +421,61 @@ public class ModernMediaScanner implements MediaScanner {
             }
         }
 
+        /**
+         * Create and acquire a lock on the given directory, giving the calling
+         * thread exclusive access to ensure that parallel scans don't overlap
+         * and confuse each other.
+         */
+        private void acquireDirectoryLock(@NonNull Path dir) {
+            Trace.beginSection("acquireDirectoryLock");
+            DirectoryLock lock;
+            synchronized (mDirectoryLocks) {
+                lock = mDirectoryLocks.get(dir);
+                if (lock == null) {
+                    lock = new DirectoryLock();
+                    mDirectoryLocks.put(dir, lock);
+                }
+                lock.count++;
+            }
+            lock.lock.lock();
+            mAcquiredDirectoryLocks.add(dir);
+            Trace.endSection();
+        }
+
+        /**
+         * Release a currently held lock on the given directory, releasing any
+         * other waiting parallel scans to proceed, and cleaning up data
+         * structures if no other threads are waiting.
+         */
+        private void releaseDirectoryLock(@NonNull Path dir) {
+            Trace.beginSection("releaseDirectoryLock");
+            DirectoryLock lock;
+            synchronized (mDirectoryLocks) {
+                lock = mDirectoryLocks.get(dir);
+                if (lock == null) {
+                    throw new IllegalStateException();
+                }
+                if (--lock.count == 0) {
+                    mDirectoryLocks.remove(dir);
+                }
+            }
+            lock.lock.unlock();
+            mAcquiredDirectoryLocks.remove(dir);
+            Trace.endSection();
+        }
+
         @Override
         public void close() {
             // Sanity check that we drained any pending operations
             if (!mPending.isEmpty()) {
                 throw new IllegalStateException();
+            }
+
+            // Release any locks we're still holding, typically when we
+            // encountered an exception; we snapshot the original list so we're
+            // not confused as it's mutated by release operations
+            for (Path dir : new ArraySet<>(mAcquiredDirectoryLocks)) {
+                releaseDirectoryLock(dir);
             }
 
             mClient.close();
@@ -413,6 +490,10 @@ public class ModernMediaScanner implements MediaScanner {
             if (isDirectoryHidden(dir.toFile())) {
                 return FileVisitResult.SKIP_SUBTREE;
             }
+
+            // Acquire lock on this directory to ensure parallel scans don't
+            // overlap and confuse each other
+            acquireDirectoryLock(dir);
 
             // Scan this directory as a normal file so that "parent" database
             // entries are created
@@ -512,6 +593,14 @@ public class ModernMediaScanner implements MediaScanner {
         @Override
         public FileVisitResult postVisitDirectory(Path dir, IOException exc)
                 throws IOException {
+            // We need to drain all pending changes related to this directory
+            // before releasing our lock below
+            applyPending();
+
+            // Now that we're finished scanning this directory, release lock to
+            // allow other parallel scans to proceed
+            releaseDirectoryLock(dir);
+
             return FileVisitResult.CONTINUE;
         }
 
@@ -530,6 +619,9 @@ public class ModernMediaScanner implements MediaScanner {
         }
 
         private void applyPending() {
+            // Bail early when nothing pending
+            if (mPending.isEmpty()) return;
+
             Trace.beginSection("applyPending");
             try {
                 ContentProviderResult[] results = mResolver.applyBatch(AUTHORITY, mPending);

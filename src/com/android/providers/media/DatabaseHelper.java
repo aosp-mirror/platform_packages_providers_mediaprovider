@@ -456,7 +456,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + "compilation INTEGER DEFAULT NULL, disc_number TEXT DEFAULT NULL,"
                 + "is_favorite INTEGER DEFAULT 0, num_tracks INTEGER DEFAULT NULL,"
                 + "writer TEXT DEFAULT NULL, exposure_time TEXT DEFAULT NULL,"
-                + "f_number TEXT DEFAULT NULL, iso INTEGER DEFAULT NULL)");
+                + "f_number TEXT DEFAULT NULL, iso INTEGER DEFAULT NULL,"
+                + "scene_capture_type INTEGER DEFAULT NULL)");
 
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!mInternal) {
@@ -835,6 +836,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("ALTER TABLE files ADD COLUMN iso INTEGER DEFAULT NULL;");
     }
 
+    private static void updateAddSceneCaptureType(SQLiteDatabase db, boolean internal) {
+        db.execSQL("ALTER TABLE files ADD COLUMN scene_capture_type INTEGER DEFAULT NULL;");
+    }
+
     private static void updateMigrateLogs(SQLiteDatabase db, boolean internal) {
         // Migrate any existing logs to new system
         try (Cursor c = db.query("log", new String[] { "time", "message" },
@@ -876,7 +881,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
     static final int VERSION_Q = 1023;
-    static final int VERSION_R = 1106;
+    static final int VERSION_R = 1107;
     static final int VERSION_LATEST = VERSION_R;
 
     /**
@@ -994,6 +999,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1106) {
                 updateMigrateLogs(db, internal);
+            }
+            if (fromVersion < 1107) {
+                updateAddSceneCaptureType(db, internal);
             }
 
             if (recomputeDataValues) {

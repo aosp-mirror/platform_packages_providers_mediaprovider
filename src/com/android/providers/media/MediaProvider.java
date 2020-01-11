@@ -52,6 +52,7 @@ import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_VIDEO;
 import static com.android.providers.media.scan.MediaScanner.REASON_DEMAND;
 import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
+import static com.android.providers.media.util.DatabaseUtils.bindList;
 import static com.android.providers.media.util.FileUtils.computeDataValues;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractFileName;
@@ -275,6 +276,12 @@ public class MediaProvider extends ContentProvider {
                 throw new IllegalStateException(e.getMessage());
             }
         }
+
+        // Update filters to reflect mounted volumes so users don't get
+        // confused by metadata from ejected volumes
+        BackgroundThread.getExecutor().execute(() -> {
+            mExternalDatabase.setFilterVolumeNames(getExternalVolumeNames());
+        });
     }
 
     public File getVolumePath(String volumeName) throws FileNotFoundException {
@@ -2842,19 +2849,6 @@ public class MediaProvider extends ContentProvider {
     private static void appendWhereStandalone(@NonNull SQLiteQueryBuilder qb,
             @Nullable String selection, @Nullable Object... selectionArgs) {
         qb.appendWhereStandalone(DatabaseUtils.bindSelection(selection, selectionArgs));
-    }
-
-    static @NonNull String bindList(@NonNull Object... args) {
-        final StringBuilder sb = new StringBuilder();
-        sb.append('(');
-        for (int i = 0; i < args.length; i++) {
-            sb.append('?');
-            if (i < args.length - 1) {
-                sb.append(',');
-            }
-        }
-        sb.append(')');
-        return DatabaseUtils.bindSelection(sb.toString(), args);
     }
 
     private static boolean parseBoolean(String value) {

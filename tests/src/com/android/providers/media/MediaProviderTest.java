@@ -415,15 +415,6 @@ public class MediaProviderTest {
     }
 
     @Test
-    public void testBindList() {
-        assertEquals("()", MediaProvider.bindList());
-        assertEquals("( 'foo' )", MediaProvider.bindList("foo"));
-        assertEquals("( 'foo' , 'bar' )", MediaProvider.bindList("foo", "bar"));
-        assertEquals("( 'foo' , 'bar' , 'baz' )", MediaProvider.bindList("foo", "bar", "baz"));
-        assertEquals("( 'foo' , NULL , 42 )", MediaProvider.bindList("foo", null, 42));
-    }
-
-    @Test
     public void testIsDownload() throws Exception {
         assertTrue(isDownload("/storage/emulated/0/Download/colors.png"));
         assertTrue(isDownload("/storage/emulated/0/Download/test.pdf"));

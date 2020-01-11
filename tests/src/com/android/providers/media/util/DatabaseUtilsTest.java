@@ -294,6 +294,15 @@ public class DatabaseUtilsTest {
         assertEquals("IN ('\"(')", maybeBalance("IN ('\"('"));
     }
 
+    @Test
+    public void testBindList() {
+        assertEquals("()", DatabaseUtils.bindList());
+        assertEquals("( 'foo' )", DatabaseUtils.bindList("foo"));
+        assertEquals("( 'foo' , 'bar' )", DatabaseUtils.bindList("foo", "bar"));
+        assertEquals("( 'foo' , 'bar' , 'baz' )", DatabaseUtils.bindList("foo", "bar", "baz"));
+        assertEquals("( 'foo' , NULL , 42 )", DatabaseUtils.bindList("foo", null, 42));
+    }
+
     private static Pair<String, String> recoverAbusiveGroupBy(
             Pair<String, String> selectionAndGroupBy) {
         final Bundle queryArgs = new Bundle();

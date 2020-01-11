@@ -16,6 +16,7 @@
 
 package com.android.providers.media;
 
+import static com.android.providers.media.util.DatabaseUtils.bindList;
 import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
 
@@ -67,6 +68,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
 
@@ -95,6 +97,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     final boolean mLegacyProvider;
     final Class<? extends Annotation> mColumnAnnotation;
     final OnSchemaChangeListener mListener;
+    final Set<String> mFilterVolumeNames = new ArraySet<>();
     long mScanStartTime;
     long mScanStopTime;
 
@@ -123,7 +126,45 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         mLegacyProvider = legacyProvider;
         mColumnAnnotation = columnAnnotation;
         mListener = listener;
+
+        // Configure default filters until we hear differently
+        if (mInternal) {
+            mFilterVolumeNames.add(MediaStore.VOLUME_INTERNAL);
+        } else {
+            mFilterVolumeNames.add(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        }
+
         setWriteAheadLoggingEnabled(true);
+    }
+
+    /**
+     * Configure the set of {@link MediaColumns#VOLUME_NAME} that we should use
+     * for filtering query results.
+     * <p>
+     * This is typically set to the list of storage volumes which are currently
+     * mounted, so that we don't leak cached indexed metadata from volumes which
+     * are currently ejected.
+     */
+    public void setFilterVolumeNames(@NonNull Set<String> filterVolumeNames) {
+        synchronized (mFilterVolumeNames) {
+            // Skip update if identical, to help avoid database churn
+            if (mFilterVolumeNames.equals(filterVolumeNames)) {
+                return;
+            }
+
+            mFilterVolumeNames.clear();
+            mFilterVolumeNames.addAll(filterVolumeNames);
+        }
+
+        // Recreate all views to apply this filter
+        final SQLiteDatabase db = getWritableDatabase();
+        try {
+            db.beginTransaction();
+            createLatestViews(db, mInternal);
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
     }
 
     @Override
@@ -595,6 +636,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             return;
         }
 
+        final String filterVolumeNames;
+        synchronized (mFilterVolumeNames) {
+            filterVolumeNames = bindList(mFilterVolumeNames.toArray());
+        }
+
         if (!internal) {
             db.execSQL("CREATE VIEW audio_playlists AS SELECT _id,_data,name,date_added,"
                     + "date_modified,owner_package_name,_hash,is_pending,date_expires,is_trashed,"
@@ -639,7 +685,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + ", artist_key AS " + Audio.Artists.ARTIST_KEY
                 + ", COUNT(DISTINCT album_id) AS " + Audio.Artists.NUMBER_OF_ALBUMS
                 + ", COUNT(DISTINCT _id) AS " + Audio.Artists.NUMBER_OF_TRACKS
-                + " FROM audio GROUP BY artist_id");
+                + " FROM audio"
+                + " WHERE volume_name IN " + filterVolumeNames
+                + " GROUP BY artist_id");
 
         db.execSQL("CREATE VIEW audio_albums AS SELECT "
                 + "  album_id AS " + Audio.Albums._ID
@@ -654,12 +702,16 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + ", MIN(year) AS " + Audio.Albums.FIRST_YEAR
                 + ", MAX(year) AS " + Audio.Albums.LAST_YEAR
                 + ", NULL AS " + Audio.Albums.ALBUM_ART
-                + " FROM audio GROUP BY album_id");
+                + " FROM audio"
+                + " WHERE volume_name IN " + filterVolumeNames
+                + " GROUP BY album_id");
 
         db.execSQL("CREATE VIEW audio_genres AS SELECT "
                 + "  genre_id AS " + Audio.Genres._ID
                 + ", genre AS " + Audio.Genres.NAME
-                + " FROM audio GROUP BY genre_id");
+                + " FROM audio"
+                + " WHERE volume_name IN " + filterVolumeNames
+                + " GROUP BY genre_id");
     }
 
     private static void makePristineTriggers(SQLiteDatabase db) {

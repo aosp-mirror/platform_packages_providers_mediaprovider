@@ -481,4 +481,17 @@ public class DatabaseUtils {
             return st.executeUpdateDelete();
         }
     }
+
+    public static @NonNull String bindList(@NonNull Object... args) {
+        final StringBuilder sb = new StringBuilder();
+        sb.append('(');
+        for (int i = 0; i < args.length; i++) {
+            sb.append('?');
+            if (i < args.length - 1) {
+                sb.append(',');
+            }
+        }
+        sb.append(')');
+        return DatabaseUtils.bindSelection(sb.toString(), args);
+    }
 }

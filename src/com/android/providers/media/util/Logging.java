@@ -19,6 +19,7 @@ package com.android.providers.media.util;
 import static java.nio.file.StandardOpenOption.APPEND;
 import static java.nio.file.StandardOpenOption.CREATE;
 
+import android.os.SystemProperties;
 import android.text.format.DateUtils;
 import android.util.Log;
 
@@ -40,6 +41,9 @@ public class Logging {
     public static final boolean LOGW = Log.isLoggable(TAG, Log.WARN);
     public static final boolean LOGD = Log.isLoggable(TAG, Log.DEBUG);
     public static final boolean LOGV = Log.isLoggable(TAG, Log.VERBOSE);
+
+    public static final boolean IS_DEBUGGABLE =
+            SystemProperties.getInt("ro.debuggable", 0) == 1;
 
     /** Size limit of each persistent log file, in bytes */
     private static final int PERSISTENT_SIZE = 32 * 1024;

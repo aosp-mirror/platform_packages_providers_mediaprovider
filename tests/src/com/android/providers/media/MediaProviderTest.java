@@ -31,7 +31,6 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -47,6 +46,7 @@ import androidx.test.runner.AndroidJUnit4;
 import com.android.providers.media.MediaProvider.VolumeArgumentException;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 import com.android.providers.media.util.FileUtils;
+import com.android.providers.media.util.SQLiteQueryBuilder;
 
 import org.junit.Ignore;
 import org.junit.Test;

@@ -64,6 +64,7 @@ import android.text.format.DateUtils;
 import android.util.Log;
 import android.util.Pair;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.MimeTypeFilter;
 
@@ -173,8 +174,11 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         AUDIO_COLUMN_MAP.put(AudioColumns.DURATION, MediaMetadata.METADATA_KEY_DURATION);
     }
 
-    private void copyNotificationUri(MatrixCursor result, Cursor cursor) {
-        result.setNotificationUri(getContext().getContentResolver(), cursor.getNotificationUri());
+    private void copyNotificationUri(@NonNull MatrixCursor result, @NonNull Cursor cursor) {
+        final Uri uri = cursor.getNotificationUri();
+        if (uri != null) {
+            result.setNotificationUri(getContext().getContentResolver(), uri);
+        }
     }
 
     @Override

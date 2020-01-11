@@ -382,6 +382,29 @@ public class ModernMediaScannerTest {
         assertQueryCount(0, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
     }
 
+    /**
+     * Verify fix for obscure bug which would cause us to delete files outside a
+     * directory that share a common prefix.
+     */
+    @Test
+    public void testScan_Prefix() throws Exception {
+        final File dir = new File(mDir, "test");
+        final File inside = new File(dir, "testfile.jpg");
+        final File outside = new File(mDir, "testfile.jpg");
+
+        dir.mkdirs();
+        inside.createNewFile();
+        outside.createNewFile();
+
+        // Scanning from top means we get both items
+        mModern.scanDirectory(mDir, REASON_UNKNOWN);
+        assertQueryCount(2, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+
+        // Scanning from middle means we still have both items
+        mModern.scanDirectory(dir, REASON_UNKNOWN);
+        assertQueryCount(2, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+    }
+
     private void assertQueryCount(int expected, Uri actualUri) {
         try (Cursor cursor = mIsolatedResolver.query(actualUri, null, null, null, null)) {
             assertEquals(expected, cursor.getCount());

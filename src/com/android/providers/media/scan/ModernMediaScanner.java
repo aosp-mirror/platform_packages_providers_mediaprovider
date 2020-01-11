@@ -1175,7 +1175,7 @@ public class ModernMediaScanner implements MediaScanner {
             sb.append(c);
         }
         if (!singleFile) {
-            sb.append('%');
+            sb.append("/%");
         }
         return sb.toString();
     }

@@ -1447,6 +1447,7 @@ public class MediaProvider extends ContentProvider {
 
         // Figure out defaults based on Uri being modified
         String defaultMimeType = ClipDescription.MIMETYPE_UNKNOWN;
+        int defaultMediaType = FileColumns.MEDIA_TYPE_NONE;
         String defaultPrimary = Environment.DIRECTORY_DOWNLOADS;
         String defaultSecondary = null;
         List<String> allowedPrimary = Arrays.asList(
@@ -1456,6 +1457,7 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_MEDIA:
             case AUDIO_MEDIA_ID:
                 defaultMimeType = "audio/mpeg";
+                defaultMediaType = FileColumns.MEDIA_TYPE_AUDIO;
                 defaultPrimary = Environment.DIRECTORY_MUSIC;
                 allowedPrimary = Arrays.asList(
                         Environment.DIRECTORY_ALARMS,
@@ -1467,6 +1469,7 @@ public class MediaProvider extends ContentProvider {
             case VIDEO_MEDIA:
             case VIDEO_MEDIA_ID:
                 defaultMimeType = "video/mp4";
+                defaultMediaType = FileColumns.MEDIA_TYPE_VIDEO;
                 defaultPrimary = Environment.DIRECTORY_MOVIES;
                 allowedPrimary = Arrays.asList(
                         Environment.DIRECTORY_DCIM,
@@ -1475,6 +1478,7 @@ public class MediaProvider extends ContentProvider {
             case IMAGES_MEDIA:
             case IMAGES_MEDIA_ID:
                 defaultMimeType = "image/jpeg";
+                defaultMediaType = FileColumns.MEDIA_TYPE_IMAGE;
                 defaultPrimary = Environment.DIRECTORY_PICTURES;
                 allowedPrimary = Arrays.asList(
                         Environment.DIRECTORY_DCIM,
@@ -1483,6 +1487,7 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_ALBUMART:
             case AUDIO_ALBUMART_ID:
                 defaultMimeType = "image/jpeg";
+                defaultMediaType = FileColumns.MEDIA_TYPE_IMAGE;
                 defaultPrimary = Environment.DIRECTORY_MUSIC;
                 allowedPrimary = Arrays.asList(defaultPrimary);
                 defaultSecondary = ".thumbnails";
@@ -1490,6 +1495,7 @@ public class MediaProvider extends ContentProvider {
             case VIDEO_THUMBNAILS:
             case VIDEO_THUMBNAILS_ID:
                 defaultMimeType = "image/jpeg";
+                defaultMediaType = FileColumns.MEDIA_TYPE_IMAGE;
                 defaultPrimary = Environment.DIRECTORY_MOVIES;
                 allowedPrimary = Arrays.asList(defaultPrimary);
                 defaultSecondary = ".thumbnails";
@@ -1497,6 +1503,7 @@ public class MediaProvider extends ContentProvider {
             case IMAGES_THUMBNAILS:
             case IMAGES_THUMBNAILS_ID:
                 defaultMimeType = "image/jpeg";
+                defaultMediaType = FileColumns.MEDIA_TYPE_IMAGE;
                 defaultPrimary = Environment.DIRECTORY_PICTURES;
                 allowedPrimary = Arrays.asList(defaultPrimary);
                 defaultSecondary = ".thumbnails";
@@ -1504,8 +1511,11 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_PLAYLISTS:
             case AUDIO_PLAYLISTS_ID:
                 defaultMimeType = "audio/mpegurl";
+                defaultMediaType = FileColumns.MEDIA_TYPE_PLAYLIST;
                 defaultPrimary = Environment.DIRECTORY_MUSIC;
-                allowedPrimary = Arrays.asList(defaultPrimary);
+                allowedPrimary = Arrays.asList(
+                        Environment.DIRECTORY_MUSIC,
+                        Environment.DIRECTORY_MOVIES);
                 break;
             case DOWNLOADS:
             case DOWNLOADS_ID:
@@ -1557,10 +1567,31 @@ public class MediaProvider extends ContentProvider {
 
         // Sanity check MIME type against table
         final String mimeType = values.getAsString(MediaColumns.MIME_TYPE);
-        if (mimeType != null && !defaultMimeType.equals(ClipDescription.MIMETYPE_UNKNOWN)
-                && !MimeUtils.isPlaylistMimeType(mimeType)) {
-            final String[] split = defaultMimeType.split("/");
-            if (!mimeType.startsWith(split[0])) {
+        if (mimeType != null) {
+            final int actualMediaType = MimeUtils.resolveMediaType(mimeType);
+            if (defaultMediaType == FileColumns.MEDIA_TYPE_NONE) {
+                // Give callers an opportunity to work with playlists and
+                // subtitles using the generic files table
+                switch (actualMediaType) {
+                    case FileColumns.MEDIA_TYPE_PLAYLIST:
+                        defaultMimeType = "audio/mpegurl";
+                        defaultMediaType = FileColumns.MEDIA_TYPE_PLAYLIST;
+                        defaultPrimary = Environment.DIRECTORY_MUSIC;
+                        allowedPrimary = Arrays.asList(
+                                Environment.DIRECTORY_MUSIC,
+                                Environment.DIRECTORY_MOVIES);
+                        break;
+                    case FileColumns.MEDIA_TYPE_SUBTITLE:
+                        defaultMimeType = "application/x-subrip";
+                        defaultMediaType = FileColumns.MEDIA_TYPE_SUBTITLE;
+                        defaultPrimary = Environment.DIRECTORY_MOVIES;
+                        allowedPrimary = Arrays.asList(
+                                Environment.DIRECTORY_MUSIC,
+                                Environment.DIRECTORY_MOVIES);
+                        break;
+                }
+            } else if (defaultMediaType != actualMediaType) {
+                final String[] split = defaultMimeType.split("/");
                 throw new IllegalArgumentException(
                         "MIME type " + mimeType + " cannot be inserted into " + uri
                                 + "; expected MIME type under " + split[0] + "/*");

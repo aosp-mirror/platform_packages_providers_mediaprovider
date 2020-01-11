@@ -131,6 +131,7 @@ public class MimeUtils {
             case "application/x-extension-srt":
             case "application/x-extension-sub":
             case "application/x-extension-vtt":
+            case "application/x-subrip":
             case "text/vtt":
                 return true;
             default:

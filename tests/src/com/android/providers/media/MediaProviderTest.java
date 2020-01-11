@@ -251,6 +251,24 @@ public class MediaProviderTest {
     }
 
     @Test
+    public void testBuildData_Playlists() throws Exception {
+        final Uri uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        assertEndsWith("/Music/my_playlist.m3u",
+                buildFile(uri, null, "my_playlist", "audio/mpegurl"));
+        assertEndsWith("/Movies/my_playlist.pls",
+                buildFile(uri, "Movies", "my_playlist", "audio/x-scpls"));
+    }
+
+    @Test
+    public void testBuildData_Subtitles() throws Exception {
+        final Uri uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        assertEndsWith("/Movies/my_subtitle.srt",
+                buildFile(uri, null, "my_subtitle", "application/x-subrip"));
+        assertEndsWith("/Music/my_lyrics.lrc",
+                buildFile(uri, "Music", "my_lyrics", "application/lrc"));
+    }
+
+    @Test
     public void testGreylist() throws Exception {
         assertFalse(isGreylistMatch(
                 "SELECT secret FROM other_table"));

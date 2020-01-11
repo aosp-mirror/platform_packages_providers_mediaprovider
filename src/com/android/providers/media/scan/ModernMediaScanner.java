@@ -880,6 +880,8 @@ public class ModernMediaScanner implements MediaScanner {
                     parseOptional(exif.getAttribute(ExifInterface.TAG_F_NUMBER)));
             withOptionalValue(op, ImageColumns.ISO,
                     parseOptional(exif.getAttribute(ExifInterface.TAG_ISO_SPEED_RATINGS)));
+            withOptionalValue(op, ImageColumns.SCENE_CAPTURE_TYPE,
+                    parseOptional(exif.getAttribute(ExifInterface.TAG_SCENE_CAPTURE_TYPE)));
 
             // Also hunt around for XMP metadata
             final XmpInterface xmp = XmpInterface.fromContainer(exif);

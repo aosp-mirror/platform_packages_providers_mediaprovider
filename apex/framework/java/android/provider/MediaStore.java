@@ -1790,6 +1790,13 @@ public final class MediaStore {
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String ISO = "iso";
+
+            /**
+             * Indexed value of {@link ExifInterface#TAG_SCENE_CAPTURE_TYPE}
+             * extracted from this media item.
+             */
+            @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+            public static final String SCENE_CAPTURE_TYPE = "scene_capture_type";
         }
 
         public static final class Media implements ImageColumns {

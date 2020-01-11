@@ -152,4 +152,28 @@ public class LegacyAccessHostTest extends BaseHostJUnit4Test {
         }
 
     }
+
+    @Test
+    public void testCanRename_hasW() throws Exception {
+        runDeviceTest("testCanRename_hasW");
+    }
+
+    @Test
+    public void testCantRename_hasR() throws Exception {
+        revokePermissions("android.permission.WRITE_EXTERNAL_STORAGE");
+        runDeviceTest("testCantRename_hasR");
+    }
+
+
+    @Test
+    public void testCantRename_noStoragePermission() throws Exception {
+        revokePermissions("android.permission.WRITE_EXTERNAL_STORAGE",
+                "android.permission.READ_EXTERNAL_STORAGE");
+        createFileAsShell(SHELL_FILE, /*bypassFuse*/ true);
+        try {
+            runDeviceTest("testCantRename_noStoragePermission");
+        } finally {
+            executeShellCommand("rm " + SHELL_FILE);
+        }
+    }
 }

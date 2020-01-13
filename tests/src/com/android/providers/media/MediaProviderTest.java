@@ -31,7 +31,6 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -47,6 +46,7 @@ import androidx.test.runner.AndroidJUnit4;
 import com.android.providers.media.MediaProvider.VolumeArgumentException;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 import com.android.providers.media.util.FileUtils;
+import com.android.providers.media.util.SQLiteQueryBuilder;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -412,15 +412,6 @@ public class MediaProviderTest {
         assertThrows(IllegalArgumentException.class, () -> {
             builder.computeProjection(new String[] { "FOO(external)" });
         });
-    }
-
-    @Test
-    public void testBindList() {
-        assertEquals("()", MediaProvider.bindList());
-        assertEquals("( 'foo' )", MediaProvider.bindList("foo"));
-        assertEquals("( 'foo' , 'bar' )", MediaProvider.bindList("foo", "bar"));
-        assertEquals("( 'foo' , 'bar' , 'baz' )", MediaProvider.bindList("foo", "bar", "baz"));
-        assertEquals("( 'foo' , NULL , 42 )", MediaProvider.bindList("foo", null, 42));
     }
 
     @Test

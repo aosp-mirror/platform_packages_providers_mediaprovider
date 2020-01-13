@@ -16,6 +16,8 @@
 
 package com.android.providers.media;
 
+import static android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY;
+
 import static com.android.providers.media.DatabaseHelper.makePristineSchema;
 
 import static org.junit.Assert.assertEquals;
@@ -28,9 +30,12 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.provider.Column;
+import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.Files.FileColumns;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.collection.ArraySet;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
@@ -38,6 +43,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import java.util.Arrays;
+import java.util.Set;
 
 @RunWith(AndroidJUnit4.class)
 public class DatabaseHelperTest {
@@ -61,6 +69,88 @@ public class DatabaseHelperTest {
         getContext().deleteDatabase(TEST_UPGRADE_DB);
         getContext().deleteDatabase(TEST_DOWNGRADE_DB);
         getContext().deleteDatabase(TEST_CLEAN_DB);
+    }
+
+    @Test
+    public void testFilterVolumeNames() throws Exception {
+        try (DatabaseHelper helper = new DatabaseHelperR(getContext(), TEST_CLEAN_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabase();
+            {
+                final ContentValues values = new ContentValues();
+                values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_AUDIO);
+                values.put(FileColumns.VOLUME_NAME, VOLUME_EXTERNAL_PRIMARY);
+                values.put(FileColumns.DATA, "/storage/emulated/0/Coldplay-Clocks.mp3");
+                values.put(AudioColumns.TITLE, "Clocks");
+                values.put(AudioColumns.ALBUM, "A Rush of Blood");
+                values.put(AudioColumns.ARTIST, "Coldplay");
+                values.put(AudioColumns.GENRE, "Rock");
+                MediaProvider.computeAudioKeyValues(values);
+                db.insert("files", FileColumns.DATA, values);
+            }
+            {
+                final ContentValues values = new ContentValues();
+                values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_AUDIO);
+                values.put(FileColumns.VOLUME_NAME, "0000-0000");
+                values.put(FileColumns.DATA, "/storage/0000-0000/Coldplay-SpeedOfSound.mp3");
+                values.put(AudioColumns.TITLE, "Speed of Sound");
+                values.put(AudioColumns.ALBUM, "X&Y");
+                values.put(AudioColumns.ARTIST, "Coldplay");
+                values.put(AudioColumns.GENRE, "Alternative rock");
+                MediaProvider.computeAudioKeyValues(values);
+                db.insert("files", FileColumns.DATA, values);
+            }
+            {
+                final ContentValues values = new ContentValues();
+                values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_AUDIO);
+                values.put(FileColumns.VOLUME_NAME, "0000-0000");
+                values.put(FileColumns.DATA, "/storage/0000-0000/U2-BeautifulDay.mp3");
+                values.put(AudioColumns.TITLE, "Beautiful Day");
+                values.put(AudioColumns.ALBUM, "All That You Can't Leave Behind");
+                values.put(AudioColumns.ARTIST, "U2");
+                values.put(AudioColumns.GENRE, "Rock");
+                MediaProvider.computeAudioKeyValues(values);
+                db.insert("files", FileColumns.DATA, values);
+            }
+
+            // Confirm that raw view knows everything
+            assertEquals(asSet("Clocks", "Speed of Sound", "Beautiful Day"),
+                    queryValues(db, "audio", "title"));
+
+            // By default, database only knows about primary storage
+            assertEquals(asSet("Coldplay"),
+                    queryValues(db, "audio_artists", "artist"));
+            assertEquals(asSet("A Rush of Blood"),
+                    queryValues(db, "audio_albums", "album"));
+            assertEquals(asSet("Rock"),
+                    queryValues(db, "audio_genres", "name"));
+
+            // Once we broaden mounted volumes, we know a lot more
+            helper.setFilterVolumeNames(asSet(VOLUME_EXTERNAL_PRIMARY, "0000-0000"));
+            assertEquals(asSet("Coldplay", "U2"),
+                    queryValues(db, "audio_artists", "artist"));
+            assertEquals(asSet("A Rush of Blood", "X&Y", "All That You Can't Leave Behind"),
+                    queryValues(db, "audio_albums", "album"));
+            assertEquals(asSet("Rock", "Alternative rock"),
+                    queryValues(db, "audio_genres", "name"));
+
+            // And unmounting primary narrows us the other way
+            helper.setFilterVolumeNames(asSet("0000-0000"));
+            assertEquals(asSet("Coldplay", "U2"),
+                    queryValues(db, "audio_artists", "artist"));
+            assertEquals(asSet("X&Y", "All That You Can't Leave Behind"),
+                    queryValues(db, "audio_albums", "album"));
+            assertEquals(asSet("Rock", "Alternative rock"),
+                    queryValues(db, "audio_genres", "name"));
+
+            // Finally fully unmounted means nothing
+            helper.setFilterVolumeNames(asSet());
+            assertEquals(asSet(),
+                    queryValues(db, "audio_artists", "artist"));
+            assertEquals(asSet(),
+                    queryValues(db, "audio_albums", "album"));
+            assertEquals(asSet(),
+                    queryValues(db, "audio_genres", "name"));
+        }
     }
 
     @Test
@@ -301,6 +391,22 @@ public class DatabaseHelperTest {
         return sql != null ? sql.replace(", ", ",") : null;
     }
 
+    private static Set<String> asSet(String... vars) {
+        return new ArraySet<>(Arrays.asList(vars));
+    }
+
+    private static Set<String> queryValues(@NonNull SQLiteDatabase db, @NonNull String table,
+            @NonNull String columnName) {
+        try (Cursor c = db.query(table, new String[] { columnName },
+                null, null, null, null, null)) {
+            final ArraySet<String> res = new ArraySet<>();
+            while (c.moveToNext()) {
+                res.add(c.getString(0));
+            }
+            return res;
+        }
+    }
+
     private static class DatabaseHelperO extends DatabaseHelper {
         public DatabaseHelperO(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_O, false, false, true, Column.class, null);
@@ -346,6 +452,12 @@ public class DatabaseHelperTest {
      */
     private static void createOSchema(SQLiteDatabase db, boolean internal) {
         makePristineSchema(db);
+
+        // CAUTION: THIS IS A SNAPSHOTTED GOLDEN SCHEMA THAT SHOULD NEVER BE
+        // DIRECTLY MODIFIED, SINCE IT REPRESENTS A DEVICE IN THE WILD THAT WE
+        // MUST SUPPORT. IF TESTS ARE FAILING, THE CORRECT FIX IS TO ADJUST THE
+        // DATABASE UPGRADE LOGIC TO MIGRATE THIS SNAPSHOTTED GOLDEN SCHEMA TO
+        // THE LATEST SCHEMA.
 
         db.execSQL("CREATE TABLE android_metadata (locale TEXT)");
         db.execSQL("CREATE TABLE thumbnails (_id INTEGER PRIMARY KEY,_data TEXT,image_id INTEGER,"
@@ -470,6 +582,12 @@ public class DatabaseHelperTest {
     private static void createPSchema(SQLiteDatabase db, boolean internal) {
         makePristineSchema(db);
 
+        // CAUTION: THIS IS A SNAPSHOTTED GOLDEN SCHEMA THAT SHOULD NEVER BE
+        // DIRECTLY MODIFIED, SINCE IT REPRESENTS A DEVICE IN THE WILD THAT WE
+        // MUST SUPPORT. IF TESTS ARE FAILING, THE CORRECT FIX IS TO ADJUST THE
+        // DATABASE UPGRADE LOGIC TO MIGRATE THIS SNAPSHOTTED GOLDEN SCHEMA TO
+        // THE LATEST SCHEMA.
+
         db.execSQL("CREATE TABLE android_metadata (locale TEXT)");
         db.execSQL("CREATE TABLE thumbnails (_id INTEGER PRIMARY KEY,_data TEXT,image_id INTEGER,"
                 + "kind INTEGER,width INTEGER,height INTEGER)");
@@ -592,6 +710,12 @@ public class DatabaseHelperTest {
      */
     private static void createQSchema(SQLiteDatabase db, boolean internal) {
         makePristineSchema(db);
+
+        // CAUTION: THIS IS A SNAPSHOTTED GOLDEN SCHEMA THAT SHOULD NEVER BE
+        // DIRECTLY MODIFIED, SINCE IT REPRESENTS A DEVICE IN THE WILD THAT WE
+        // MUST SUPPORT. IF TESTS ARE FAILING, THE CORRECT FIX IS TO ADJUST THE
+        // DATABASE UPGRADE LOGIC TO MIGRATE THIS SNAPSHOTTED GOLDEN SCHEMA TO
+        // THE LATEST SCHEMA.
 
         db.execSQL("CREATE TABLE android_metadata (locale TEXT)");
         db.execSQL("CREATE TABLE thumbnails (_id INTEGER PRIMARY KEY,_data TEXT,image_id INTEGER,"

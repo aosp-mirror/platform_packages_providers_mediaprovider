@@ -535,7 +535,7 @@ public class MediaProvider extends ContentProvider {
      * devices. We only do this once per volume so we don't annoy the user if
      * deleted manually.
      */
-    private void ensureDefaultFolders(String volumeName, DatabaseHelper helper, SQLiteDatabase db) {
+    private void ensureDefaultFolders(String volumeName, DatabaseHelper helper) {
         try {
             final File path = getVolumePath(volumeName);
             final StorageVolume vol = mStorageManager.getStorageVolume(path);
@@ -553,7 +553,7 @@ public class MediaProvider extends ContentProvider {
                     final File folder = new File(vol.getDirectory(), folderName);
                     if (!folder.exists()) {
                         folder.mkdirs();
-                        insertDirectory(db, folder.getAbsolutePath());
+                        insertDirectory(helper, folder.getAbsolutePath());
                     }
                 }
 
@@ -1071,7 +1071,7 @@ public class MediaProvider extends ContentProvider {
     /**
      * Updates database entry for given {@code path} with {@code values}
      */
-    private boolean updateDatabaseForFuseRename(SQLiteDatabase db, String oldPath, String newPath,
+    private boolean updateDatabaseForFuseRename(DatabaseHelper helper, String oldPath, String newPath,
             ContentValues values) {
         final Uri uriOldPath = Files.getContentUriForPath(oldPath);
         boolean allowHidden = isCallingPackageAllowedHidden();
@@ -1082,7 +1082,7 @@ public class MediaProvider extends ContentProvider {
         boolean retryUpdateWithReplace = false;
 
         try {
-            count = qbForUpdate.update(db, values, selection, new String[]{oldPath});
+            count = qbForUpdate.update(helper, values, selection, new String[]{oldPath});
         } catch (SQLiteConstraintException e) {
             Log.w(TAG, "Database update failed while renaming " + oldPath, e);
             retryUpdateWithReplace = true;
@@ -1094,9 +1094,9 @@ public class MediaProvider extends ContentProvider {
             final Uri uriNewPath = Files.getContentUriForPath(oldPath);
             final SQLiteQueryBuilder qbForDelete = getQueryBuilder(TYPE_DELETE,
                     matchUri(uriNewPath, allowHidden), uriNewPath, Bundle.EMPTY, null);
-            if (qbForDelete.delete(db, selection, new String[] {newPath}) == 1) {
+            if (qbForDelete.delete(helper, selection, new String[] {newPath}) == 1) {
                 Log.i(TAG, "Retrying database update after deleting conflicting entry");
-                count = qbForUpdate.update(db, values, selection, new String[]{oldPath});
+                count = qbForUpdate.update(helper, values, selection, new String[]{oldPath});
             } else {
                 return false;
             }
@@ -1219,8 +1219,8 @@ public class MediaProvider extends ContentProvider {
 
         ArrayList<String> fileList = new ArrayList<>();
         final String[] projection = {MediaColumns.DATA, MediaColumns.MIME_TYPE};
-        try (Cursor c = qb.query(helper.getReadableDatabase(), projection, selection, null,
-                null, null, null)) {
+        try (Cursor c = qb.query(helper, projection, selection, null,
+                null, null, null, null, null)) {
             // Check if the calling package has write permission to all files in the given
             // directory. If calling package has write permission to all files in the directory, the
             // query with update uri should return same number of files as previous query.
@@ -1283,21 +1283,20 @@ public class MediaProvider extends ContentProvider {
             return -OsConstants.EPERM;
         }
 
-        final SQLiteDatabase db;
+        final DatabaseHelper helper;
         try {
-            final DatabaseHelper helper = getDatabaseForUri(Files.getContentUriForPath(oldPath));
-            db = helper.getWritableDatabase();
+            helper = getDatabaseForUri(Files.getContentUriForPath(oldPath));
         } catch (VolumeNotFoundException e) {
             throw new IllegalStateException("Volume not found while trying to update database for "
                     + oldPath, e);
         }
 
-        db.beginTransaction();
+        helper.beginTransaction();
         try {
             for (String filePath : fileList) {
                 final String newFilePath = newPath + "/" + filePath;
                 final String mimeType = MimeUtils.resolveMimeType(new File(newFilePath));
-                if(!updateDatabaseForFuseRename(db, oldPath + "/" + filePath, newFilePath,
+                if(!updateDatabaseForFuseRename(helper, oldPath + "/" + filePath, newFilePath,
                         getContentValuesForFuseRename(newFilePath, mimeType, mimeType))) {
                     Log.e(TAG, "Calling package doesn't have write permission to rename file.");
                     return -OsConstants.EPERM;
@@ -1307,12 +1306,12 @@ public class MediaProvider extends ContentProvider {
             // Rename the directory in lower file system.
             int errno = renameInLowerFs(oldPath, newPath);
             if (errno == 0) {
-                db.setTransactionSuccessful();
+                helper.setTransactionSuccessful();
             } else {
                 return errno;
             }
         } finally {
-            db.endTransaction();
+            helper.endTransaction();
         }
         // Process metadata in background thread.
         postProcessMetadataForFuseRename(oldPath, newPath);
@@ -1343,19 +1342,18 @@ public class MediaProvider extends ContentProvider {
             return -OsConstants.EPERM;
         }
 
-        final SQLiteDatabase db;
+        final DatabaseHelper helper;
         try {
-            final DatabaseHelper helper = getDatabaseForUri(Files.getContentUriForPath(oldPath));
-            db = helper.getWritableDatabase();
+            helper = getDatabaseForUri(Files.getContentUriForPath(oldPath));
         } catch (VolumeNotFoundException e) {
             throw new IllegalStateException("Volume not found while trying to update database for"
                 + oldPath + ". Rename failed due to database update error", e);
         }
 
-        db.beginTransaction();
+        helper.beginTransaction();
         try {
             final String oldMimeType = MimeUtils.resolveMimeType(new File(oldPath));
-            if (!updateDatabaseForFuseRename(db, oldPath, newPath,
+            if (!updateDatabaseForFuseRename(helper, oldPath, newPath,
                     getContentValuesForFuseRename(newPath, oldMimeType, newMimeType))) {
                 Log.e(TAG, "Calling package doesn't have write permission to rename file.");
                 return -OsConstants.EPERM;
@@ -1364,12 +1362,12 @@ public class MediaProvider extends ContentProvider {
             // Try renaming oldPath to newPath in lower file system.
             int errno = renameInLowerFs(oldPath, newPath);
             if (errno == 0) {
-                db.setTransactionSuccessful();
+                helper.setTransactionSuccessful();
             } else {
                 return errno;
             }
         } finally {
-            db.endTransaction();
+            helper.endTransaction();
         }
         // Process metadata in background thread.
         postProcessMetadataForFuseRename(oldPath, newPath);
@@ -1488,10 +1486,8 @@ public class MediaProvider extends ContentProvider {
             final int table = matchUri(uri, allowHidden);
 
             final DatabaseHelper helper;
-            final SQLiteDatabase db;
             try {
                 helper = getDatabaseForUri(uri);
-                db = helper.getReadableDatabase();
             } catch (VolumeNotFoundException e) {
                 return PackageManager.PERMISSION_DENIED;
             }
@@ -1504,8 +1500,8 @@ public class MediaProvider extends ContentProvider {
             }
 
             final SQLiteQueryBuilder qb = getQueryBuilder(type, table, uri, Bundle.EMPTY, null);
-            try (Cursor c = qb.query(db,
-                    new String[] { BaseColumns._ID }, null, null, null, null, null)) {
+            try (Cursor c = qb.query(helper,
+                    new String[] { BaseColumns._ID }, null, null, null, null, null, null, null)) {
                 if (c.getCount() == 1) {
                     return PackageManager.PERMISSION_GRANTED;
                 }
@@ -1574,8 +1570,6 @@ public class MediaProvider extends ContentProvider {
         }
 
         final DatabaseHelper helper = getDatabaseForUri(uri);
-        final SQLiteDatabase db = helper.getReadableDatabase();
-
         final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, table, uri, queryArgs,
                 honoredArgs::add);
         String filter = uri.getQueryParameter("filter");
@@ -1687,8 +1681,8 @@ public class MediaProvider extends ContentProvider {
         final String sortOrder = queryArgs.getString(QUERY_ARG_SQL_SORT_ORDER);
         final String limit = queryArgs.getString(QUERY_ARG_SQL_LIMIT);
 
-        final Cursor c = qb.query(db, projection,
-                selection, selectionArgs, groupBy, having, sortOrder, limit, signal);
+        final Cursor c = qb.query(helper, projection, selection, selectionArgs, groupBy, having,
+                sortOrder, limit, signal);
 
         if (c != null) {
             // As a performance optimization, only configure notifications when
@@ -2124,10 +2118,8 @@ public class MediaProvider extends ContentProvider {
         }
 
         final DatabaseHelper helper;
-        final SQLiteDatabase db;
         try {
             helper = getDatabaseForUri(uri);
-            db = helper.getWritableDatabase();
         } catch (VolumeNotFoundException e) {
             return e.translateForUpdateDelete(targetSdkVersion);
         }
@@ -2142,12 +2134,12 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private long insertDirectory(SQLiteDatabase db, String path) {
+    private long insertDirectory(DatabaseHelper helper, String path) {
         if (LOGV) Log.v(TAG, "inserting directory " + path);
         ContentValues values = new ContentValues();
         values.put(FileColumns.FORMAT, MtpConstants.FORMAT_ASSOCIATION);
         values.put(FileColumns.DATA, path);
-        values.put(FileColumns.PARENT, getParent(db, path));
+        values.put(FileColumns.PARENT, getParent(helper, path));
         values.put(FileColumns.OWNER_PACKAGE_NAME, extractPathOwnerPackageName(path));
         values.put(FileColumns.VOLUME_NAME, extractVolumeName(path));
         values.put(FileColumns.RELATIVE_PATH, extractRelativePath(path));
@@ -2157,11 +2149,12 @@ public class MediaProvider extends ContentProvider {
         if (file.exists()) {
             values.put(FileColumns.DATE_MODIFIED, file.lastModified() / 1000);
         }
+        final SQLiteDatabase db = helper.getWritableDatabase();
         long rowId = db.insert("files", FileColumns.DATE_MODIFIED, values);
         return rowId;
     }
 
-    private long getParent(SQLiteDatabase db, String path) {
+    private long getParent(DatabaseHelper helper, String path) {
         final String parentPath = new File(path).getParent();
         if (Objects.equals("/", parentPath)) {
             return -1;
@@ -2174,12 +2167,13 @@ public class MediaProvider extends ContentProvider {
             }
 
             final long id;
+            final SQLiteDatabase db = helper.getReadableDatabase();
             try (Cursor c = db.query("files", new String[] { FileColumns._ID },
                     FileColumns.DATA + "=?", new String[] { parentPath }, null, null, null)) {
                 if (c.moveToFirst()) {
                     id = c.getLong(0);
                 } else {
-                    id = insertDirectory(db, parentPath);
+                    id = insertDirectory(helper, parentPath);
                 }
             }
 
@@ -2325,8 +2319,8 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private long insertFile(@NonNull SQLiteQueryBuilder qb, @NonNull SQLiteDatabase db, int match,
-            @NonNull Uri uri, @NonNull Bundle extras, @NonNull ContentValues values,
+    private long insertFile(@NonNull SQLiteQueryBuilder qb, @NonNull DatabaseHelper helper,
+            int match, @NonNull Uri uri, @NonNull Bundle extras, @NonNull ContentValues values,
             int mediaType, boolean notify) {
         boolean wasPathEmpty = !values.containsKey(MediaStore.MediaColumns.DATA)
                 || TextUtils.isEmpty(values.getAsString(MediaStore.MediaColumns.DATA));
@@ -2427,12 +2421,12 @@ public class MediaProvider extends ContentProvider {
             Long parent = values.getAsLong(FileColumns.PARENT);
             if (parent == null) {
                 if (path != null) {
-                    long parentId = getParent(db, path);
+                    long parentId = getParent(helper, path);
                     values.put(FileColumns.PARENT, parentId);
                 }
             }
 
-            rowId = db.insert("files", FileColumns.DATE_MODIFIED, values);
+            rowId = qb.insert(helper, values);
         }
         if (format == MtpConstants.FORMAT_ASSOCIATION) {
             synchronized (mDirectoryCache) {
@@ -2483,7 +2477,15 @@ public class MediaProvider extends ContentProvider {
             @Nullable Bundle extras) {
         Trace.beginSection("insert");
         try {
-            return insertInternal(uri, values, extras);
+            try {
+                return insertInternal(uri, values, extras);
+            } catch (SQLiteConstraintException e) {
+                if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.R) {
+                    throw e;
+                } else {
+                    return null;
+                }
+            }
         } catch (FallbackException e) {
             return e.translateForInsert(getCallingPackageTargetSdkVersion());
         } finally {
@@ -2577,15 +2579,13 @@ public class MediaProvider extends ContentProvider {
         Uri newUri = null;
 
         final DatabaseHelper helper = getDatabaseForUri(uri);
-        final SQLiteDatabase db = helper.getWritableDatabase();
-
         final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_INSERT, match, uri, extras, null);
 
         switch (match) {
             case IMAGES_MEDIA: {
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
                 final boolean isDownload = maybeMarkAsDownload(initialValues);
-                rowId = insertFile(qb, db, match, uri, extras, initialValues,
+                rowId = insertFile(qb, helper, match, uri, extras, initialValues,
                         FileColumns.MEDIA_TYPE_IMAGE, true);
                 if (rowId > 0) {
                     MediaDocumentsProvider.onMediaStoreInsert(
@@ -2610,7 +2610,7 @@ public class MediaProvider extends ContentProvider {
 
                 ensureUniqueFileColumns(match, uri, extras, initialValues);
 
-                rowId = qb.insert(db, initialValues);
+                rowId = qb.insert(helper, initialValues);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(Images.Thumbnails.
                             getContentUri(originalVolumeName), rowId);
@@ -2632,7 +2632,7 @@ public class MediaProvider extends ContentProvider {
 
                 ensureUniqueFileColumns(match, uri, extras, initialValues);
 
-                rowId = qb.insert(db, initialValues);
+                rowId = qb.insert(helper, initialValues);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(Video.Thumbnails.
                             getContentUri(originalVolumeName), rowId);
@@ -2643,7 +2643,7 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_MEDIA: {
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
                 final boolean isDownload = maybeMarkAsDownload(initialValues);
-                rowId = insertFile(qb, db, match, uri, extras, initialValues,
+                rowId = insertFile(qb, helper, match, uri, extras, initialValues,
                         FileColumns.MEDIA_TYPE_AUDIO, true);
                 if (rowId > 0) {
                     MediaDocumentsProvider.onMediaStoreInsert(
@@ -2672,10 +2672,10 @@ public class MediaProvider extends ContentProvider {
 
                 ContentValues values = new ContentValues(initialValues);
                 values.put(Audio.Playlists.Members.AUDIO_ID, audioId);
-                rowId = qb.insert(db, values);
+                rowId = qb.insert(helper, values);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(uri, rowId);
-                    updatePlaylistDateModifiedToNow(db, playlistId);
+                    updatePlaylistDateModifiedToNow(helper, playlistId);
                 }
                 break;
             }
@@ -2693,7 +2693,7 @@ public class MediaProvider extends ContentProvider {
                 final boolean isDownload = maybeMarkAsDownload(initialValues);
                 ContentValues values = new ContentValues(initialValues);
                 values.put(MediaStore.Audio.Playlists.DATE_ADDED, System.currentTimeMillis() / 1000);
-                rowId = insertFile(qb, db, match, uri, extras, values,
+                rowId = insertFile(qb, helper, match, uri, extras, values,
                         FileColumns.MEDIA_TYPE_PLAYLIST, true);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(
@@ -2717,10 +2717,10 @@ public class MediaProvider extends ContentProvider {
 
                 ContentValues values = new ContentValues(initialValues);
                 values.put(Audio.Playlists.Members.PLAYLIST_ID, playlistId);
-                rowId = qb.insert(db, values);
+                rowId = qb.insert(helper, values);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(uri, rowId);
-                    updatePlaylistDateModifiedToNow(db, playlistId);
+                    updatePlaylistDateModifiedToNow(helper, playlistId);
                 }
                 break;
             }
@@ -2728,7 +2728,7 @@ public class MediaProvider extends ContentProvider {
             case VIDEO_MEDIA: {
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
                 final boolean isDownload = maybeMarkAsDownload(initialValues);
-                rowId = insertFile(qb, db, match, uri, extras, initialValues,
+                rowId = insertFile(qb, helper, match, uri, extras, initialValues,
                         FileColumns.MEDIA_TYPE_VIDEO, true);
                 if (rowId > 0) {
                     MediaDocumentsProvider.onMediaStoreInsert(
@@ -2746,7 +2746,7 @@ public class MediaProvider extends ContentProvider {
 
                 ensureUniqueFileColumns(match, uri, extras, initialValues);
 
-                rowId = qb.insert(db, initialValues);
+                rowId = qb.insert(helper, initialValues);
                 if (rowId > 0) {
                     newUri = ContentUris.withAppendedId(uri, rowId);
                 }
@@ -2756,7 +2756,7 @@ public class MediaProvider extends ContentProvider {
             case FILES: {
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
                 final boolean isDownload = maybeMarkAsDownload(initialValues);
-                rowId = insertFile(qb, db, match, uri, extras, initialValues,
+                rowId = insertFile(qb, helper, match, uri, extras, initialValues,
                         FileColumns.MEDIA_TYPE_NONE, true);
                 if (rowId > 0) {
                     MediaDocumentsProvider.onMediaStoreInsert(
@@ -2769,7 +2769,7 @@ public class MediaProvider extends ContentProvider {
             case DOWNLOADS:
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
                 initialValues.put(FileColumns.IS_DOWNLOAD, true);
-                rowId = insertFile(qb, db, match, uri, extras, initialValues,
+                rowId = insertFile(qb, helper, match, uri, extras, initialValues,
                         FileColumns.MEDIA_TYPE_NONE, false);
                 if (rowId > 0) {
                     final int mediaType = initialValues.getAsInteger(FileColumns.MEDIA_TYPE);
@@ -3492,11 +3492,9 @@ public class MediaProvider extends ContentProvider {
         }
 
         final DatabaseHelper helper = getDatabaseForUri(uri);
-        final SQLiteDatabase db = helper.getWritableDatabase();
+        final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_DELETE, match, uri, extras, null);
 
         {
-            final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_DELETE, match, uri, extras, null);
-
             // Give callers interacting with a specific media item a chance to
             // escalate access if they don't already have it
             switch (match) {
@@ -3518,8 +3516,8 @@ public class MediaProvider extends ContentProvider {
             if (isFilesTable) {
                 String deleteparam = uri.getQueryParameter(MediaStore.PARAM_DELETE_DATA);
                 if (deleteparam == null || ! deleteparam.equals("false")) {
-                    Cursor c = qb.query(db, projection, userWhere, userWhereArgs,
-                            null, null, null, null);
+                    Cursor c = qb.query(helper, projection, userWhere, userWhereArgs,
+                            null, null, null, null, null);
                     String [] idvalue = new String[] { "" };
                     String [] playlistvalues = new String[] { "", "" };
                     try {
@@ -3563,6 +3561,7 @@ public class MediaProvider extends ContentProvider {
                                     idvalue[0] = String.valueOf(id);
                                     // for each playlist that the item appears in, move
                                     // all the items behind it forward by one
+                                    final SQLiteDatabase db = helper.getWritableDatabase();
                                     Cursor cc = db.query("audio_playlists_map",
                                                 sPlaylistIdPlayOrder,
                                                 "audio_id=?", idvalue, null, null, null);
@@ -3575,7 +3574,7 @@ public class MediaProvider extends ContentProvider {
                                                     " SET play_order=play_order-1" +
                                                     " WHERE playlist_id=? AND play_order>?",
                                                     playlistvalues);
-                                            updatePlaylistDateModifiedToNow(db, playlistId);
+                                            updatePlaylistDateModifiedToNow(helper, playlistId);
                                         }
                                         db.delete("audio_playlists_map", "audio_id=?", idvalue);
                                     } finally {
@@ -3608,8 +3607,8 @@ public class MediaProvider extends ContentProvider {
                 case VIDEO_THUMBNAILS_ID:
                 case VIDEO_THUMBNAILS:
                     // Delete the referenced files first.
-                    Cursor c = qb.query(db, sDataOnlyColumn, userWhere, userWhereArgs, null, null,
-                            null, null);
+                    Cursor c = qb.query(helper, sDataOnlyColumn, userWhere, userWhereArgs, null,
+                            null, null, null, null);
                     if (c != null) {
                         try {
                             while (c.moveToNext()) {
@@ -3619,18 +3618,18 @@ public class MediaProvider extends ContentProvider {
                             FileUtils.closeQuietly(c);
                         }
                     }
-                    count = deleteRecursive(qb, db, userWhere, userWhereArgs);
+                    count = deleteRecursive(qb, helper, userWhere, userWhereArgs);
                     break;
 
                 case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
                     long playlistId = Long.parseLong(uri.getPathSegments().get(3));
-                    count = deleteRecursive(qb, db, userWhere, userWhereArgs);
+                    count = deleteRecursive(qb, helper, userWhere, userWhereArgs);
                     if (count > 0) {
-                        updatePlaylistDateModifiedToNow(db, playlistId);
+                        updatePlaylistDateModifiedToNow(helper, playlistId);
                     }
                     break;
                 default:
-                    count = deleteRecursive(qb, db, userWhere, userWhereArgs);
+                    count = deleteRecursive(qb, helper, userWhere, userWhereArgs);
                     break;
             }
 
@@ -3662,23 +3661,23 @@ public class MediaProvider extends ContentProvider {
      * can be used to recursively delete all matching entries, since it only
      * deletes parents when no references remaining.
      */
-    private int deleteRecursive(SQLiteQueryBuilder qb, SQLiteDatabase db, String userWhere,
+    private int deleteRecursive(SQLiteQueryBuilder qb, DatabaseHelper helper, String userWhere,
             String[] userWhereArgs) {
         synchronized (mDirectoryCache) {
             mDirectoryCache.clear();
 
-            db.beginTransaction();
+            helper.beginTransaction();
             try {
                 int n = 0;
                 int total = 0;
                 do {
-                    n = qb.delete(db, userWhere, userWhereArgs);
+                    n = qb.delete(helper, userWhere, userWhereArgs);
                     total += n;
                 } while (n > 0);
-                db.setTransactionSuccessful();
+                helper.setTransactionSuccessful();
                 return total;
             } finally {
-                db.endTransaction();
+                helper.endTransaction();
             }
         }
     }
@@ -3748,6 +3747,21 @@ public class MediaProvider extends ContentProvider {
 
                 final Bundle res = new Bundle();
                 res.putString(Intent.EXTRA_TEXT, version);
+                return res;
+            }
+            case MediaStore.GET_GENERATION_CALL: {
+                final String volumeName = extras.getString(Intent.EXTRA_TEXT);
+
+                final long generation;
+                try {
+                    generation = getDatabaseForUri(MediaStore.Files.getContentUri(volumeName))
+                            .getGeneration();
+                } catch (VolumeNotFoundException e) {
+                    throw e.rethrowAsIllegalArgumentException();
+                }
+
+                final Bundle res = new Bundle();
+                res.putLong(Intent.EXTRA_INDEX, generation);
                 return res;
             }
             case MediaStore.GET_DOCUMENT_URI_CALL: {
@@ -4134,8 +4148,6 @@ public class MediaProvider extends ContentProvider {
         final int match = matchUri(uri, allowHidden);
 
         final DatabaseHelper helper = getDatabaseForUri(uri);
-        final SQLiteDatabase db = helper.getWritableDatabase();
-
         final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, match, uri, extras, null);
 
         // Give callers interacting with a specific media item a chance to
@@ -4354,8 +4366,8 @@ public class MediaProvider extends ContentProvider {
         if (triggerInvalidate || triggerScan) {
             Trace.beginSection("snapshot");
             final LocalCallingIdentity token = clearLocalCallingIdentity();
-            try (Cursor c = qb.query(db, new String[] { FileColumns._ID },
-                    userWhere, userWhereArgs, null, null, null)) {
+            try (Cursor c = qb.query(helper, new String[] { FileColumns._ID },
+                    userWhere, userWhereArgs, null, null, null, null, null)) {
                 while (c.moveToNext()) {
                     updatedIds.add(c.getLong(0));
                 }
@@ -4386,16 +4398,16 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_MEDIA_ID_PLAYLISTS_ID:
             case AUDIO_PLAYLISTS_ID:
                 long playlistId = ContentUris.parseId(uri);
-                count = qb.update(db, values, userWhere, userWhereArgs);
+                count = qb.update(helper, values, userWhere, userWhereArgs);
                 if (count > 0) {
-                    updatePlaylistDateModifiedToNow(db, playlistId);
+                    updatePlaylistDateModifiedToNow(helper, playlistId);
                 }
                 break;
             case AUDIO_PLAYLISTS_ID_MEMBERS:
                 long playlistIdMembers = Long.parseLong(uri.getPathSegments().get(3));
-                count = qb.update(db, values, userWhere, userWhereArgs);
+                count = qb.update(helper, values, userWhere, userWhereArgs);
                 if (count > 0) {
-                    updatePlaylistDateModifiedToNow(db, playlistIdMembers);
+                    updatePlaylistDateModifiedToNow(helper, playlistIdMembers);
                 }
                 break;
             case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
@@ -4407,9 +4419,10 @@ public class MediaProvider extends ContentProvider {
                         List <String> segments = uri.getPathSegments();
                         long playlist = Long.parseLong(segments.get(3));
                         int oldpos = Integer.parseInt(segments.get(5));
-                        int rowsChanged = movePlaylistEntry(volumeName, helper, db, playlist, oldpos, newpos);
+                        int rowsChanged = movePlaylistEntry(volumeName, helper,
+                                playlist, oldpos, newpos);
                         if (rowsChanged > 0) {
-                            updatePlaylistDateModifiedToNow(db, playlist);
+                            updatePlaylistDateModifiedToNow(helper, playlist);
                         }
 
                         return rowsChanged;
@@ -4419,7 +4432,7 @@ public class MediaProvider extends ContentProvider {
                 }
                 // fall through
             default:
-                count = qb.update(db, values, userWhere, userWhereArgs);
+                count = qb.update(helper, values, userWhere, userWhereArgs);
                 break;
         }
 
@@ -4457,11 +4470,12 @@ public class MediaProvider extends ContentProvider {
         return count;
     }
 
-    private int movePlaylistEntry(String volumeName, DatabaseHelper helper, SQLiteDatabase db,
+    private int movePlaylistEntry(String volumeName, DatabaseHelper helper,
             long playlist, int from, int to) {
         if (from == to) {
             return 0;
         }
+        final SQLiteDatabase db = helper.getWritableDatabase();
         db.beginTransaction();
         int numlines = 0;
         Cursor c = null;
@@ -4515,19 +4529,18 @@ public class MediaProvider extends ContentProvider {
         return numlines;
     }
 
-    private void updatePlaylistDateModifiedToNow(SQLiteDatabase database, long playlistId) {
+    private void updatePlaylistDateModifiedToNow(DatabaseHelper helper, long playlistId) {
         ContentValues values = new ContentValues();
         values.put(
                 FileColumns.DATE_MODIFIED,
                 TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis())
         );
 
-        database.update(
-                MediaStore.Files.TABLE,
-                values,
-                MediaStore.Files.FileColumns._ID + "=?",
-                new String[]{String.valueOf(playlistId)}
-        );
+        final Uri uri = ContentUris.withAppendedId(
+                MediaStore.Audio.Playlists.getContentUri(helper.mVolumeName), playlistId);
+        final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, AUDIO_PLAYLISTS_ID,
+                uri, Bundle.EMPTY, null);
+        qb.update(helper, values, null, null);
     }
 
     @Override
@@ -5677,10 +5690,8 @@ public class MediaProvider extends ContentProvider {
         }
 
         final DatabaseHelper helper;
-        final SQLiteDatabase db;
         try {
             helper = getDatabaseForUri(uri);
-            db = helper.getReadableDatabase();
         } catch (VolumeNotFoundException e) {
             throw e.rethrowAsIllegalArgumentException();
         }
@@ -5691,7 +5702,8 @@ public class MediaProvider extends ContentProvider {
         // First, check to see if caller has direct write access
         if (forWrite) {
             final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, table, uri, extras, null);
-            try (Cursor c = qb.query(db, new String[0], null, null, null, null, null)) {
+            try (Cursor c = qb.query(helper, new String[0],
+                    null, null, null, null, null, null, null)) {
                 if (c.moveToFirst()) {
                     // Direct write access granted, yay!
                     return;
@@ -5713,7 +5725,8 @@ public class MediaProvider extends ContentProvider {
 
         // Second, check to see if caller has direct read access
         final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, table, uri, extras, null);
-        try (Cursor c = qb.query(db, new String[0], null, null, null, null, null)) {
+        try (Cursor c = qb.query(helper, new String[0],
+                null, null, null, null, null, null, null)) {
             if (c.moveToFirst()) {
                 if (!forWrite) {
                     // Direct read access granted, yay!
@@ -5939,7 +5952,7 @@ public class MediaProvider extends ContentProvider {
         if (!MediaStore.VOLUME_INTERNAL.equals(volume)) {
             BackgroundThread.getExecutor().execute(() -> {
                 final DatabaseHelper helper = mExternalDatabase;
-                ensureDefaultFolders(volume, helper, helper.getWritableDatabase());
+                ensureDefaultFolders(volume, helper);
             });
         }
         return uri;

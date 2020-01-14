@@ -218,7 +218,7 @@ public class SQLiteQueryBuilderTest {
         sqliteQueryBuilder.setTables("Employee");
         Cursor cursor = sqliteQueryBuilder.query(mDatabase,
                 new String[] { "name", "sum(salary)" }, null, null,
-                "name", "sum(salary)>1000", "name");
+                "name", "sum(salary)>1000", "name", null, null);
         assertNotNull(cursor);
         assertEquals(3, cursor.getCount());
 
@@ -239,7 +239,7 @@ public class SQLiteQueryBuilderTest {
         cursor = sqliteQueryBuilder.query(mDatabase,
                 new String[] { "name", "sum(salary)" }, null, null,
                 "name", "sum(salary)>1000", "name", "2" // limit is 2
-                );
+                , null);
         assertNotNull(cursor);
         assertEquals(2, cursor.getCount());
         cursor.moveToFirst();
@@ -473,25 +473,25 @@ public class SQLiteQueryBuilderTest {
         final SQLiteQueryBuilder qb = mStrictBuilder;
 
         // Should normally only be able to see one row
-        try (Cursor c = qb.query(mDatabase, null, null, null, null, null, null)) {
+        try (Cursor c = qb.query(mDatabase, null, null, null, null, null, null, null, null)) {
             assertEquals(1, c.getCount());
         }
 
         // Trying sneaky queries should fail; even if they somehow succeed, we
         // shouldn't get to see any other data.
-        try (Cursor c = qb.query(mDatabase, null, "1=1", null, null, null, null)) {
+        try (Cursor c = qb.query(mDatabase, null, "1=1", null, null, null, null, null, null)) {
             assertEquals(1, c.getCount());
         } catch (Exception tolerated) {
         }
-        try (Cursor c = qb.query(mDatabase, null, "1=1 --", null, null, null, null)) {
+        try (Cursor c = qb.query(mDatabase, null, "1=1 --", null, null, null, null, null, null)) {
             assertEquals(1, c.getCount());
         } catch (Exception tolerated) {
         }
-        try (Cursor c = qb.query(mDatabase, null, "1=1) OR (1=1", null, null, null, null)) {
+        try (Cursor c = qb.query(mDatabase, null, "1=1) OR (1=1", null, null, null, null, null, null)) {
             assertEquals(1, c.getCount());
         } catch (Exception tolerated) {
         }
-        try (Cursor c = qb.query(mDatabase, null, "1=1)) OR ((1=1", null, null, null, null)) {
+        try (Cursor c = qb.query(mDatabase, null, "1=1)) OR ((1=1", null, null, null, null, null, null)) {
             assertEquals(1, c.getCount());
         } catch (Exception tolerated) {
         }

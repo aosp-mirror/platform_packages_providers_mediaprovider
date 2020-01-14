@@ -210,6 +210,7 @@ public class LegacyProviderMigrationTest {
         executeShellCommand("pm clear " + modernProvider.applicationInfo.packageName, ui);
 
         // And force a scan to confirm upgraded data survives
+        MediaStore.waitForIdle(context.getContentResolver());
         MediaStore.scanVolume(context.getContentResolver(),
                 MediaStore.getVolumeName(collectionUri));
 

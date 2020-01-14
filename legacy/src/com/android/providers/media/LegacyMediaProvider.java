@@ -101,7 +101,9 @@ public class LegacyMediaProvider extends ContentProvider {
     @Override
     public Uri insert(Uri uri, ContentValues values) {
         try {
-            new File(values.getAsString(MediaColumns.DATA)).createNewFile();
+            final File file = new File(values.getAsString(MediaColumns.DATA));
+            file.getParentFile().mkdirs();
+            file.createNewFile();
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }

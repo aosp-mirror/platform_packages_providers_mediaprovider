@@ -2663,7 +2663,7 @@ public class MediaProvider extends ContentProvider {
                 final long audioId = Long.parseLong(uri.getPathSegments().get(2));
                 enforceCallingPermission(ContentUris.withAppendedId(
                         MediaStore.Audio.Media.getContentUri(resolvedVolumeName), audioId),
-                        Bundle.EMPTY, true);
+                        Bundle.EMPTY, false);
                 final long playlistId = initialValues
                         .getAsLong(MediaStore.Audio.Playlists.Members.PLAYLIST_ID);
                 enforceCallingPermission(ContentUris.withAppendedId(
@@ -2709,7 +2709,7 @@ public class MediaProvider extends ContentProvider {
                         .getAsLong(MediaStore.Audio.Playlists.Members.AUDIO_ID);
                 enforceCallingPermission(ContentUris.withAppendedId(
                         MediaStore.Audio.Media.getContentUri(resolvedVolumeName), audioId),
-                        Bundle.EMPTY, true);
+                        Bundle.EMPTY, false);
                 final long playlistId = Long.parseLong(uri.getPathSegments().get(3));
                 enforceCallingPermission(ContentUris.withAppendedId(
                         MediaStore.Audio.Playlists.getContentUri(resolvedVolumeName), playlistId),

@@ -88,3 +88,27 @@ cc_test {
     sdk_version: "current",
     stl: "c++_static",
 }
+
+cc_test {
+    name: "RedactionInfoTest",
+    test_suites: ["device-tests"],
+    srcs: [
+        "RedactionInfoTest.cpp",
+        "RedactionInfo.cpp",
+    ],
+
+    local_include_dirs: ["include"],
+
+    static_libs: [
+        "libbase_ndk",
+    ],
+
+    shared_libs: [
+        "liblog",
+    ],
+
+    tidy: true,
+
+    sdk_version: "current",
+    stl: "c++_static",
+}

@@ -294,6 +294,36 @@ public class ModernMediaScannerTest {
     }
 
     @Test
+    public void testFilter() throws Exception {
+        final File music = new File(mDir, "Music");
+        music.mkdirs();
+        stage(R.raw.test_audio, new File(music, "example.mp3"));
+        mModern.scanDirectory(mDir, REASON_UNKNOWN);
+
+        // Exact matches
+        assertQueryCount(1, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+                .buildUpon().appendQueryParameter("filter", "artist").build());
+        assertQueryCount(1, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+                .buildUpon().appendQueryParameter("filter", "album").build());
+        assertQueryCount(1, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+                .buildUpon().appendQueryParameter("filter", "title").build());
+
+        // Partial matches mid-string
+        assertQueryCount(1, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+                .buildUpon().appendQueryParameter("filter", "ArT").build());
+
+        // Filter should only apply to narrow collection type
+        assertQueryCount(0, MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI
+                .buildUpon().appendQueryParameter("filter", "title").build());
+
+        // Other unrelated search terms
+        assertQueryCount(0, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+                .buildUpon().appendQueryParameter("filter", "example").build());
+        assertQueryCount(0, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+                .buildUpon().appendQueryParameter("filter", "チ").build());
+    }
+
+    @Test
     public void testScan_Common() throws Exception {
         final File file = new File(mDir, "red.jpg");
         stage(R.raw.test_image, file);

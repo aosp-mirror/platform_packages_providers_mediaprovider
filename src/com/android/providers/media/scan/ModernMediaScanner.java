@@ -86,6 +86,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.ExifUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.IsoInterface;
@@ -1263,19 +1264,12 @@ public class ModernMediaScanner implements MediaScanner {
      * Escape the given argument for use in a {@code LIKE} statement.
      */
     static String escapeForLike(String arg, boolean singleFile) {
-        final StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < arg.length(); i++) {
-            final char c = arg.charAt(i);
-            switch (c) {
-                case '%': sb.append('\\');
-                case '_': sb.append('\\');
-            }
-            sb.append(c);
+        final String escaped = DatabaseUtils.escapeForLike(arg);
+        if (singleFile) {
+            return escaped;
+        } else {
+            return escaped + "/%";
         }
-        if (!singleFile) {
-            sb.append("/%");
-        }
-        return sb.toString();
     }
 
     static void logTroubleScanning(File file, Exception e) {

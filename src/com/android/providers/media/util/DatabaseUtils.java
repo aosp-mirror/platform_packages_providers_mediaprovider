@@ -506,4 +506,20 @@ public class DatabaseUtils {
         sb.append(')');
         return DatabaseUtils.bindSelection(sb.toString(), args);
     }
+
+    /**
+     * Escape the given argument for use in a {@code LIKE} statement.
+     */
+    public static String escapeForLike(@NonNull String arg) {
+        final StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < arg.length(); i++) {
+            final char c = arg.charAt(i);
+            switch (c) {
+                case '%': sb.append('\\');
+                case '_': sb.append('\\');
+            }
+            sb.append(c);
+        }
+        return sb.toString();
+    }
 }

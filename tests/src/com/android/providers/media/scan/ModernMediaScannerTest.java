@@ -86,6 +86,11 @@ public class ModernMediaScannerTest {
     }
 
     @Test
+    public void testSimple() throws Exception {
+        assertNotNull(mModern.getContext());
+    }
+
+    @Test
     public void testOverrideMimeType() throws Exception {
         assertFalse(parseOptionalMimeType("image/png", null).isPresent());
         assertFalse(parseOptionalMimeType("image/png", "image").isPresent());

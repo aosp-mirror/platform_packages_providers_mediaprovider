@@ -154,6 +154,22 @@ public class DatabaseHelperTest {
     }
 
     @Test
+    public void testTransactions() throws Exception {
+        try (DatabaseHelper helper = new DatabaseHelperR(getContext(), TEST_CLEAN_DB)) {
+            helper.beginTransaction();
+            try {
+                helper.setTransactionSuccessful();
+            } finally {
+                helper.endTransaction();
+            }
+
+            helper.runWithTransaction(() -> {
+                return 0;
+            });
+        }
+    }
+
+    @Test
     public void testRtoO() throws Exception {
         assertDowngrade(DatabaseHelperR.class, DatabaseHelperO.class);
     }

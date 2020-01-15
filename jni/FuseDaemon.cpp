@@ -322,7 +322,7 @@ static inline __u64 ptr_to_id(void* ptr) {
  */
 static int set_file_lock(int fd, bool for_read, const std::string& path) {
     std::string lock_str = (for_read ? "read" : "write");
-    TRACE << "Setting " << lock_str << " lock for path " << path;
+    TRACE_VERBOSE << "Setting " << lock_str << " lock for path " << path;
 
     struct flock fl{};
     fl.l_type = for_read ? F_RDLCK : F_WRLCK;
@@ -333,7 +333,7 @@ static int set_file_lock(int fd, bool for_read, const std::string& path) {
         PLOG(ERROR) << "Failed to set " << lock_str << " lock on path " << path;
         return res;
     }
-    TRACE << "Successfully set " << lock_str << " lock on path " << path;
+    TRACE_VERBOSE << "Successfully set " << lock_str << " lock on path " << path;
     return res;
 }
 
@@ -347,7 +347,7 @@ static int set_file_lock(int fd, bool for_read, const std::string& path) {
  * Returns true if fd may have a lock, false otherwise
  */
 static bool is_file_locked(int fd, const std::string& path) {
-    TRACE << "Checking if file is locked " << path;
+    TRACE_VERBOSE << "Checking if file is locked " << path;
 
     struct flock fl{};
     fl.l_type = F_WRLCK;
@@ -360,7 +360,7 @@ static bool is_file_locked(int fd, const std::string& path) {
         return true;
     }
     bool locked = fl.l_type != F_UNLCK;
-    TRACE << "File " << path << " is " << (locked ? "locked" : "unlocked");
+    TRACE_VERBOSE << "File " << path << " is " << (locked ? "locked" : "unlocked");
     return locked;
 }
 
@@ -998,7 +998,6 @@ static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
     ATRACE_CALL();
     handle* h = reinterpret_cast<handle*>(fi->fh);
     struct fuse* fuse = get_fuse(req);
-    TRACE_FUSE(fuse) << "READ";
 
     fuse->fadviser.Record(h->fd, size);
 
@@ -1488,7 +1487,7 @@ static void fuse_logger(enum fuse_log_level level, const char* fmt, va_list ap) 
 }
 
 bool FuseDaemon::ShouldOpenWithFuse(int fd, bool for_read, const std::string& path) {
-    TRACE << "Checking if file should be opened with FUSE " << path;
+    TRACE_VERBOSE << "Checking if file should be opened with FUSE " << path;
     bool use_fuse = false;
 
     if (active.load(std::memory_order_acquire)) {

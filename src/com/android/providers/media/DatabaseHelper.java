@@ -626,7 +626,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
         db.execSQL("CREATE VIEW audio_artists AS SELECT "
                 + "  artist_id AS " + Audio.Artists._ID
-                + ", artist AS " + Audio.Artists.ARTIST
+                + ", MIN(artist) AS " + Audio.Artists.ARTIST
                 + ", artist_key AS " + Audio.Artists.ARTIST_KEY
                 + ", COUNT(DISTINCT album_id) AS " + Audio.Artists.NUMBER_OF_ALBUMS
                 + ", COUNT(DISTINCT _id) AS " + Audio.Artists.NUMBER_OF_TRACKS
@@ -637,7 +637,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("CREATE VIEW audio_albums AS SELECT "
                 + "  album_id AS " + Audio.Albums._ID
                 + ", album_id AS " + Audio.Albums.ALBUM_ID
-                + ", album AS " + Audio.Albums.ALBUM
+                + ", MIN(album) AS " + Audio.Albums.ALBUM
                 + ", album_key AS " + Audio.Albums.ALBUM_KEY
                 + ", artist_id AS " + Audio.Albums.ARTIST_ID
                 + ", artist AS " + Audio.Albums.ARTIST
@@ -653,7 +653,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
         db.execSQL("CREATE VIEW audio_genres AS SELECT "
                 + "  genre_id AS " + Audio.Genres._ID
-                + ", genre AS " + Audio.Genres.NAME
+                + ", MIN(genre) AS " + Audio.Genres.NAME
                 + " FROM audio"
                 + " WHERE volume_name IN " + filterVolumeNames
                 + " GROUP BY genre_id");

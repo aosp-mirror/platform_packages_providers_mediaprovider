@@ -1,7 +1,6 @@
 #!/bin/bash
 
 level=$1
-uids=$(adb shell cat /data/system/packages.list |grep -Po "providers.media[a-z\.]* \K\d+")
 
 if [ $level == "on" ] || [ $level == "extreme" ]
 then
@@ -14,15 +13,9 @@ fi
 
 if [ $level == "extreme" ]
 then
-    for uid in $uids;
-        do adb shell setprop db.log.slow_query_threshold.$uid 0;
-    done
-    adb shell setprop db.log.bindargs 1
+    adb shell setprop log.tag.SQLiteQueryBuilder VERBOSE
 else
-    for uid in $uids;
-        do adb shell setprop db.log.slow_query_threshold.$uid 10000;
-    done
-    adb shell setprop db.log.bindargs 0
+    adb shell setprop log.tag.SQLiteQueryBuilder INFO
 fi
 
 # Kill process to kick new settings into place

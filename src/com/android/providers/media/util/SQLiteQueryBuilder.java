@@ -25,9 +25,12 @@ import android.database.sqlite.SQLiteDatabase;
 import android.os.CancellationSignal;
 import android.os.OperationCanceledException;
 import android.provider.BaseColumns;
+import android.provider.MediaStore.MediaColumns;
 import android.text.TextUtils;
 import android.util.ArrayMap;
 import android.util.Log;
+
+import com.android.providers.media.DatabaseHelper;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -387,80 +390,11 @@ public class SQLiteQueryBuilder {
         s.append(' ');
     }
 
-    /**
-     * Perform a query by combining all current settings and the
-     * information passed into this method.
-     *
-     * @param db the database to query on
-     * @param projectionIn A list of which columns to return. Passing
-     *   null will return all columns, which is discouraged to prevent
-     *   reading data from storage that isn't going to be used.
-     * @param selection A filter declaring which rows to return,
-     *   formatted as an SQL {@code WHERE} clause (excluding the {@code WHERE}
-     *   itself). Passing null will return all rows for the given URL.
-     * @param selectionArgs You may include ?s in selection, which
-     *   will be replaced by the values from selectionArgs, in order
-     *   that they appear in the selection. The values will be bound
-     *   as Strings.
-     * @param groupBy A filter declaring how to group rows, formatted
-     *   as an SQL {@code GROUP BY} clause (excluding the {@code GROUP BY}
-     *   itself). Passing null will cause the rows to not be grouped.
-     * @param having A filter declare which row groups to include in
-     *   the cursor, if row grouping is being used, formatted as an
-     *   SQL {@code HAVING} clause (excluding the {@code HAVING} itself).  Passing
-     *   null will cause all row groups to be included, and is
-     *   required when row grouping is not being used.
-     * @param sortOrder How to order the rows, formatted as an SQL
-     *   {@code ORDER BY} clause (excluding the {@code ORDER BY} itself). Passing null
-     *   will use the default sort order, which may be unordered.
-     * @return a cursor over the result set
-     * @see android.content.ContentResolver#query(android.net.Uri, String[],
-     *      String, String[], String)
-     */
-    public Cursor query(SQLiteDatabase db, String[] projectionIn,
+    public Cursor query(DatabaseHelper helper, String[] projectionIn,
             String selection, String[] selectionArgs, String groupBy,
-            String having, String sortOrder) {
-        return query(db, projectionIn, selection, selectionArgs, groupBy, having, sortOrder,
-                null /* limit */, null /* cancellationSignal */);
-    }
-
-    /**
-     * Perform a query by combining all current settings and the
-     * information passed into this method.
-     *
-     * @param db the database to query on
-     * @param projectionIn A list of which columns to return. Passing
-     *   null will return all columns, which is discouraged to prevent
-     *   reading data from storage that isn't going to be used.
-     * @param selection A filter declaring which rows to return,
-     *   formatted as an SQL {@code WHERE} clause (excluding the {@code WHERE}
-     *   itself). Passing null will return all rows for the given URL.
-     * @param selectionArgs You may include ?s in selection, which
-     *   will be replaced by the values from selectionArgs, in order
-     *   that they appear in the selection. The values will be bound
-     *   as Strings.
-     * @param groupBy A filter declaring how to group rows, formatted
-     *   as an SQL {@code GROUP BY} clause (excluding the {@code GROUP BY}
-     *   itself). Passing null will cause the rows to not be grouped.
-     * @param having A filter declare which row groups to include in
-     *   the cursor, if row grouping is being used, formatted as an
-     *   SQL {@code HAVING} clause (excluding the {@code HAVING} itself).  Passing
-     *   null will cause all row groups to be included, and is
-     *   required when row grouping is not being used.
-     * @param sortOrder How to order the rows, formatted as an SQL
-     *   {@code ORDER BY} clause (excluding the {@code ORDER BY} itself). Passing null
-     *   will use the default sort order, which may be unordered.
-     * @param limit Limits the number of rows returned by the query,
-     *   formatted as {@code LIMIT} clause. Passing null denotes no {@code LIMIT} clause.
-     * @return a cursor over the result set
-     * @see android.content.ContentResolver#query(android.net.Uri, String[],
-     *      String, String[], String)
-     */
-    public Cursor query(SQLiteDatabase db, String[] projectionIn,
-            String selection, String[] selectionArgs, String groupBy,
-            String having, String sortOrder, String limit) {
-        return query(db, projectionIn, selection, selectionArgs,
-                groupBy, having, sortOrder, limit, null);
+            String having, String sortOrder, String limit, CancellationSignal cancellationSignal) {
+        return query(helper.getReadableDatabase(), projectionIn, selection, selectionArgs, groupBy,
+                having, sortOrder, limit, cancellationSignal);
     }
 
     /**
@@ -555,6 +489,14 @@ public class SQLiteQueryBuilder {
                 cancellationSignal); // will throw if query is invalid
     }
 
+    public long insert(@NonNull DatabaseHelper helper, @NonNull ContentValues values) {
+        // We force wrap in a transaction to ensure that all mutations increment
+        // the generation counter
+        return (int) helper.runWithTransaction(() -> {
+            return insert(helper.getWritableDatabase(), values);
+        });
+    }
+
     /**
      * Perform an insert by combining all current settings and the
      * information passed into this method.
@@ -587,7 +529,16 @@ public class SQLiteQueryBuilder {
                 Log.d(TAG, sql);
             }
         }
-        return com.android.providers.media.util.DatabaseUtils.executeSql(db, sql, sqlArgs);
+        return com.android.providers.media.util.DatabaseUtils.executeInsert(db, sql, sqlArgs);
+    }
+
+    public int update(@NonNull DatabaseHelper helper, @NonNull ContentValues values,
+            @Nullable String selection, @Nullable String[] selectionArgs) {
+        // We force wrap in a transaction to ensure that all mutations increment
+        // the generation counter
+        return (int) helper.runWithTransaction(() -> {
+            return update(helper.getWritableDatabase(), values, selection, selectionArgs);
+        });
     }
 
     /**
@@ -664,7 +615,16 @@ public class SQLiteQueryBuilder {
                 Log.d(TAG, sql);
             }
         }
-        return com.android.providers.media.util.DatabaseUtils.executeSql(db, sql, sqlArgs);
+        return com.android.providers.media.util.DatabaseUtils.executeUpdateDelete(db, sql, sqlArgs);
+    }
+
+    public int delete(@NonNull DatabaseHelper helper, @Nullable String selection,
+            @Nullable String[] selectionArgs) {
+        // We force wrap in a transaction to ensure that all mutations increment
+        // the generation counter
+        return (int) helper.runWithTransaction(() -> {
+            return delete(helper.getWritableDatabase(), selection, selectionArgs);
+        });
     }
 
     /**
@@ -724,7 +684,7 @@ public class SQLiteQueryBuilder {
                 Log.d(TAG, sql);
             }
         }
-        return com.android.providers.media.util.DatabaseUtils.executeSql(db, sql, sqlArgs);
+        return com.android.providers.media.util.DatabaseUtils.executeUpdateDelete(db, sql, sqlArgs);
     }
 
     private void enforceStrictColumns(@Nullable String[] projection) {
@@ -837,6 +797,11 @@ public class SQLiteQueryBuilder {
         sql.append(SQLiteDatabase.findEditTable(mTables));
         sql.append(" (");
 
+        final boolean hasGeneration = Objects.equals(mTables, "files");
+        if (hasGeneration) {
+            values.remove(MediaColumns.GENERATION);
+        }
+
         final ArrayMap<String, Object> rawValues = com.android.providers.media.util.DatabaseUtils
                 .getValues(values);
         for (int i = 0; i < rawValues.size(); i++) {
@@ -845,12 +810,22 @@ public class SQLiteQueryBuilder {
             }
             sql.append(rawValues.keyAt(i));
         }
+        if (hasGeneration) {
+            sql.append(',');
+            sql.append(MediaColumns.GENERATION);
+        }
         sql.append(") VALUES (");
         for (int i = 0; i < rawValues.size(); i++) {
             if (i > 0) {
                 sql.append(',');
             }
             sql.append('?');
+        }
+        if (hasGeneration) {
+            sql.append(',');
+            sql.append('(');
+            sql.append(DatabaseHelper.CURRENT_GENERATION_CLAUSE);
+            sql.append(')');
         }
         sql.append(")");
         return sql.toString();
@@ -867,6 +842,11 @@ public class SQLiteQueryBuilder {
         sql.append(SQLiteDatabase.findEditTable(mTables));
         sql.append(" SET ");
 
+        final boolean hasGeneration = Objects.equals(mTables, "files");
+        if (hasGeneration) {
+            values.remove(MediaColumns.GENERATION);
+        }
+
         final ArrayMap<String, Object> rawValues = com.android.providers.media.util.DatabaseUtils
                 .getValues(values);
         for (int i = 0; i < rawValues.size(); i++) {
@@ -875,6 +855,14 @@ public class SQLiteQueryBuilder {
             }
             sql.append(rawValues.keyAt(i));
             sql.append("=?");
+        }
+        if (hasGeneration) {
+            sql.append(',');
+            sql.append(MediaColumns.GENERATION);
+            sql.append('=');
+            sql.append('(');
+            sql.append(DatabaseHelper.CURRENT_GENERATION_CLAUSE);
+            sql.append(')');
         }
 
         final String where = computeWhere(selection);

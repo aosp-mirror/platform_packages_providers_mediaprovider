@@ -523,7 +523,6 @@ static void pf_getattr(fuse_req_t req,
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     node* node = fuse->FromInode(ino);
     string path = node->BuildPath();
-
     TRACE_FUSE(fuse) << "GETATTR @ " << ino << " (" << safe_name(node) << ")";
 
     if (!node) fuse_reply_err(req, ENOENT);
@@ -601,12 +600,19 @@ static void pf_setattr(fuse_req_t req,
     lstat(path.c_str(), attr);
     fuse_reply_attr(req, attr, 10);
 }
-/*
-static void pf_readlink(fuse_req_t req, fuse_ino_t ino)
+
+static void pf_canonical_path(fuse_req_t req, fuse_ino_t ino)
 {
-    cout << "TODO:" << __func__;
+    node* node = get_fuse(req)->FromInode(ino);
+
+    if (node) {
+        // TODO(b/147482155): Check that uid has access to |path| and its contents
+        fuse_reply_canonical_path(req, node->BuildPath().c_str());
+        return;
+    }
+    fuse_reply_err(req, ENOENT);
 }
-*/
+
 static void pf_mknod(fuse_req_t req,
                      fuse_ino_t parent,
                      const char* name,
@@ -1428,7 +1434,7 @@ static struct fuse_lowlevel_ops ops{
     .destroy = pf_destroy,
     .lookup = pf_lookup, .forget = pf_forget, .getattr = pf_getattr,
     .setattr = pf_setattr,
-    /*.readlink = pf_readlink,*/
+    .canonical_path = pf_canonical_path,
     .mknod = pf_mknod, .mkdir = pf_mkdir, .unlink = pf_unlink,
     .rmdir = pf_rmdir,
     /*.symlink = pf_symlink,*/

@@ -157,9 +157,10 @@ public final class MediaStore {
     /** {@hide} */
     public static final String CREATE_DELETE_REQUEST_CALL = "create_delete_request";
 
-
     /** {@hide} */
     public static final String GET_VERSION_CALL = "get_version";
+    /** {@hide} */
+    public static final String GET_GENERATION_CALL = "get_generation";
 
     /** {@hide} */
     @Deprecated
@@ -1195,6 +1196,23 @@ public final class MediaStore {
          */
         @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
         public static final String IS_DOWNLOAD = "is_download";
+
+        /**
+         * Generation number at which metadata for this media item was last
+         * changed. This is useful for apps that are attempting to quickly
+         * identify exactly which media items have changed since a previous
+         * point in time. Generation numbers are monotonically increasing over
+         * time, and can be safely arithmetically compared.
+         * <p>
+         * Detecting media changes using generation numbers is more robust than
+         * using {@link #DATE_MODIFIED}, since those values may change in
+         * unexpected ways when apps use {@link File#setLastModified(long)} or
+         * when the system clock is set incorrectly.
+         *
+         * @see MediaStore#getGeneration(Context, String)
+         */
+        @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+        public static final String GENERATION = "generation";
 
         // =======================================
         // ==== MediaMetadataRetriever values ====
@@ -3628,6 +3646,36 @@ public final class MediaStore {
             in.putString(Intent.EXTRA_TEXT, volumeName);
             final Bundle out = client.call(GET_VERSION_CALL, null, in);
             return out.getString(Intent.EXTRA_TEXT);
+        } catch (RemoteException e) {
+            throw e.rethrowAsRuntimeException();
+        }
+    }
+
+    /**
+     * Return the latest generation value for the given volume.
+     * <p>
+     * Generation numbers are useful for apps that are attempting to quickly
+     * identify exactly which media items have changed since a previous point in
+     * time. Generation numbers are monotonically increasing over time, and can
+     * be safely arithmetically compared.
+     * <p>
+     * Detecting media changes using generation numbers is more robust than
+     * using {@link MediaColumns#DATE_MODIFIED}, since those values may change
+     * in unexpected ways when apps use {@link File#setLastModified(long)} or
+     * when the system clock is set incorrectly.
+     *
+     * @param volumeName specific volume to obtain an opaque version string for.
+     *            Must be one of the values returned from
+     *            {@link #getExternalVolumeNames(Context)}.
+     * @see MediaColumns#GENERATION
+     */
+    public static long getGeneration(@NonNull Context context, @NonNull String volumeName) {
+        final ContentResolver resolver = context.getContentResolver();
+        try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+            final Bundle in = new Bundle();
+            in.putString(Intent.EXTRA_TEXT, volumeName);
+            final Bundle out = client.call(GET_GENERATION_CALL, null, in);
+            return out.getLong(Intent.EXTRA_INDEX);
         } catch (RemoteException e) {
             throw e.rethrowAsRuntimeException();
         }

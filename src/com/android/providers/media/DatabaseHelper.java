@@ -70,6 +70,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.LongSupplier;
 import java.util.regex.Matcher;
 
 /**
@@ -87,6 +88,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     static final String INTERNAL_DATABASE_NAME = "internal.db";
     static final String EXTERNAL_DATABASE_NAME = "external.db";
+
+    /**
+     * Raw SQL clause that can be used to obtain the current generation, which
+     * is designed to be populated into {@link MediaColumns#GENERATION}.
+     */
+    public static final String CURRENT_GENERATION_CLAUSE = "SELECT generation FROM local_metadata";
 
     final Context mContext;
     final String mName;
@@ -180,7 +187,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         if (Looper.myLooper() == Looper.getMainLooper()) {
             Log.wtf(TAG, "Database operations must not happen on main thread", new Throwable());
         }
-        return super.getReadableDatabase();
+        return super.getWritableDatabase();
     }
 
     @Override
@@ -327,6 +334,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     public void beginTransaction() {
         getWritableDatabase().beginTransaction();
+        getWritableDatabase().execSQL("UPDATE local_metadata SET generation=generation+1;");
         mNotifyChanges.set(new ArrayList<>());
     }
 
@@ -343,6 +351,28 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     public void endTransaction() {
         getWritableDatabase().endTransaction();
+    }
+
+    /**
+     * Execute the given runnable inside a transaction. If the calling thread is
+     * not already in an active transaction, this method will wrap the given
+     * runnable inside a new transaction.
+     */
+    public long runWithTransaction(@NonNull LongSupplier s) {
+        if (mNotifyChanges.get() != null) {
+            // Already inside a transaction, so we can run directly
+            return s.getAsLong();
+        } else {
+            // Not inside a transaction, so we need to make one
+            beginTransaction();
+            try {
+                final long res = s.getAsLong();
+                setTransactionSuccessful();
+                return res;
+            } finally {
+                endTransaction();
+            }
+        }
     }
 
     /**
@@ -461,6 +491,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
         makePristineSchema(db);
 
+        db.execSQL("CREATE TABLE local_metadata (generation INTEGER DEFAULT 0)");
+        db.execSQL("INSERT INTO local_metadata VALUES (0)");
+
         db.execSQL("CREATE TABLE android_metadata (locale TEXT)");
         db.execSQL("CREATE TABLE thumbnails (_id INTEGER PRIMARY KEY,_data TEXT,image_id INTEGER,"
                 + "kind INTEGER,width INTEGER,height INTEGER)");
@@ -498,7 +531,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + "is_favorite INTEGER DEFAULT 0, num_tracks INTEGER DEFAULT NULL,"
                 + "writer TEXT DEFAULT NULL, exposure_time TEXT DEFAULT NULL,"
                 + "f_number TEXT DEFAULT NULL, iso INTEGER DEFAULT NULL,"
-                + "scene_capture_type INTEGER DEFAULT NULL)");
+                + "scene_capture_type INTEGER DEFAULT NULL, generation INTEGER DEFAULT 0)");
 
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!mInternal) {
@@ -905,6 +938,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("DELETE FROM log;");
     }
 
+    private static void updateAddGeneration(SQLiteDatabase db, boolean internal) {
+        db.execSQL("CREATE TABLE local_metadata (generation INTEGER DEFAULT 0)");
+        db.execSQL("INSERT INTO local_metadata VALUES (0)");
+
+        db.execSQL("ALTER TABLE files ADD COLUMN generation INTEGER DEFAULT 0;");
+    }
+
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
                 null, null, null, null, null, null)) {
@@ -933,7 +973,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
     static final int VERSION_Q = 1023;
-    static final int VERSION_R = 1107;
+    static final int VERSION_R = 1108;
     static final int VERSION_LATEST = VERSION_R;
 
     /**
@@ -1055,6 +1095,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             if (fromVersion < 1107) {
                 updateAddSceneCaptureType(db, internal);
             }
+            if (fromVersion < 1108) {
+                updateAddGeneration(db, internal);
+            }
 
             if (recomputeDataValues) {
                 recomputeDataValues(db, internal);
@@ -1114,6 +1157,15 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     /**
+     * Return the current generation that will be populated into
+     * {@link MediaColumns#GENERATION}.
+     */
+    public long getGeneration() {
+        return android.database.DatabaseUtils.longForQuery(getReadableDatabase(),
+                CURRENT_GENERATION_CLAUSE + ";", null);
+    }
+
+    /**
      * Return total number of items tracked inside this database. This includes
      * only real media items, and does not include directories.
      */
@@ -1126,12 +1178,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * only real media items, and does not include directories.
      */
     private long getItemCount(SQLiteDatabase db) {
-        try (Cursor c = db.query(false, "files", new String[] { "COUNT(_id)" },
-                FileColumns.MIME_TYPE + " IS NOT NULL", null, null, null, null, null, null)) {
-            if (c.moveToFirst()) {
-                return c.getLong(0);
-            }
-        }
-        return 0;
+        return android.database.DatabaseUtils.longForQuery(db,
+                "SELECT COUNT(_id) FROM files WHERE " + FileColumns.MIME_TYPE + " IS NOT NULL",
+                null);
     }
 }

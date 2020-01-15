@@ -44,6 +44,7 @@ import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEG
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY_WRITE;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_SYSTEM;
+import static com.android.providers.media.LocalCallingIdentity.PERMISSION_MANAGE_EXTERNAL_STORAGE;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_READ_AUDIO;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_READ_IMAGES;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_READ_VIDEO;
@@ -4984,10 +4985,15 @@ public class MediaProvider extends ContentProvider {
     private boolean shouldBypassFuseRestrictions(boolean forWrite) {
         boolean isRequestingLegacyStorage = forWrite ? isCallingPackageLegacyWrite()
                 : isCallingPackageLegacyRead();
+        if (isRequestingLegacyStorage) {
+            return true;
+        }
 
-        // TODO(b/137755945): We should let file managers bypass FUSE restrictions as well.
-        //  Remember to change the documentation above when this is addressed.
-        return isRequestingLegacyStorage;
+        if (mCallingIdentity.get().hasPermission(PERMISSION_MANAGE_EXTERNAL_STORAGE)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**

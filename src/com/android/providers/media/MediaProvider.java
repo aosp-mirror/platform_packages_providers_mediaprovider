@@ -5947,11 +5947,12 @@ public class MediaProvider extends ContentProvider {
         }
 
         final Uri uri = MediaStore.AUTHORITY_URI.buildUpon().appendPath(volume).build();
-        getContext().getContentResolver().notifyChange(uri, null);
+        final DatabaseHelper helper = MediaStore.VOLUME_INTERNAL.equals(volume)
+                ? mInternalDatabase : mExternalDatabase;
+        acceptWithExpansion(helper::notifyChange, uri);
         if (LOGV) Log.v(TAG, "Attached volume: " + volume);
         if (!MediaStore.VOLUME_INTERNAL.equals(volume)) {
             BackgroundThread.getExecutor().execute(() -> {
-                final DatabaseHelper helper = mExternalDatabase;
                 ensureDefaultFolders(volume, helper);
             });
         }
@@ -5984,7 +5985,9 @@ public class MediaProvider extends ContentProvider {
         }
 
         final Uri uri = MediaStore.AUTHORITY_URI.buildUpon().appendPath(volume).build();
-        getContext().getContentResolver().notifyChange(uri, null);
+        final DatabaseHelper helper = MediaStore.VOLUME_INTERNAL.equals(volume)
+                ? mInternalDatabase : mExternalDatabase;
+        acceptWithExpansion(helper::notifyChange, uri);
         if (LOGV) Log.v(TAG, "Detached volume: " + volume);
     }
 

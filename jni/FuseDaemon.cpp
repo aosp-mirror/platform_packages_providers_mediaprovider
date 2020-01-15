@@ -14,6 +14,7 @@
 
 #define ATRACE_TAG ATRACE_TAG_APP
 #define LOG_TAG "FuseDaemon"
+#define LIBFUSE_LOG_TAG "libfuse"
 
 #include "FuseDaemon.h"
 
@@ -74,7 +75,9 @@ using std::vector;
 
 // logging macros to avoid duplication.
 #define TRACE LOG(DEBUG)
+#define TRACE_VERBOSE LOG(VERBOSE)
 #define TRACE_FUSE(__fuse) TRACE << "[" << __fuse->path << "] "
+#define TRACE_FUSE_VERBOSE(__fuse) TRACE_VERBOSE << "[" << __fuse->path << "] "
 
 #define ATRACE_NAME(name) ScopedTrace ___tracer(name)
 #define ATRACE_CALL() ATRACE_NAME(__FUNCTION__)
@@ -453,8 +456,8 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
     node* parent_node = fuse->FromInode(parent);
     string parent_path = parent_node->BuildPath();
 
-    TRACE_FUSE(fuse) << "LOOKUP " << name << " @ " << parent << " (" << safe_name(parent_node)
-                     << ")";
+    TRACE_FUSE_VERBOSE(fuse) << "LOOKUP " << name << " @ " << parent << " ("
+                             << safe_name(parent_node) << ")";
 
     string child_path = parent_path + "/" + name;
 
@@ -1316,7 +1319,7 @@ static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
 
     node* node = fuse->FromInode(ino);
     const string path = node->BuildPath();
-    TRACE_FUSE(fuse) << "ACCESS " << path;
+    TRACE_FUSE_VERBOSE(fuse) << "ACCESS " << path;
 
     int res = access(path.c_str(), F_OK);
     fuse_reply_err(req, res ? errno : 0);
@@ -1481,7 +1484,7 @@ static std::unordered_map<enum fuse_log_level, enum android_LogPriority> fuse_to
     });
 
 static void fuse_logger(enum fuse_log_level level, const char* fmt, va_list ap) {
-    __android_log_vprint(fuse_to_android_loglevel.at(level), LOG_TAG, fmt, ap);
+    __android_log_vprint(fuse_to_android_loglevel.at(level), LIBFUSE_LOG_TAG, fmt, ap);
 }
 
 bool FuseDaemon::ShouldOpenWithFuse(int fd, bool for_read, const std::string& path) {

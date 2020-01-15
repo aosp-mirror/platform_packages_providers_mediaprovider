@@ -28,6 +28,7 @@ import static android.content.ContentResolver.QUERY_ARG_SQL_LIMIT;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SORT_ORDER;
 import static android.content.ContentResolver.QUERY_SORT_DIRECTION_ASCENDING;
+import static android.database.DatabaseUtils.bindSelection;
 
 import static com.android.providers.media.util.DatabaseUtils.maybeBalance;
 import static com.android.providers.media.util.DatabaseUtils.recoverAbusiveLimit;
@@ -58,10 +59,47 @@ public class DatabaseUtilsTest {
     private final Bundle args = new Bundle();
     private final ArraySet<String> honored = new ArraySet<>();
 
+    private static final Object[] ARGS = { "baz", 4, null };
+
     @Before
     public void setUp() {
         args.clear();
         honored.clear();
+    }
+
+    @Test
+    public void testBindSelection_none() throws Exception {
+        assertEquals(null,
+                bindSelection(null, ARGS));
+        assertEquals("",
+                bindSelection("", ARGS));
+        assertEquals("foo=bar",
+                bindSelection("foo=bar", ARGS));
+    }
+
+    @Test
+    public void testBindSelection_normal() throws Exception {
+        assertEquals("foo='baz'",
+                bindSelection("foo=?", ARGS));
+        assertEquals("foo='baz' AND bar=4",
+                bindSelection("foo=? AND bar=?", ARGS));
+        assertEquals("foo='baz' AND bar=4 AND meow=NULL",
+                bindSelection("foo=? AND bar=? AND meow=?", ARGS));
+    }
+
+    @Test
+    public void testBindSelection_whitespace() throws Exception {
+        assertEquals("BETWEEN 5 AND 10",
+                bindSelection("BETWEEN? AND ?", 5, 10));
+        assertEquals("IN 'foo'",
+                bindSelection("IN?", "foo"));
+    }
+
+    @Test
+    public void testBindSelection_indexed() throws Exception {
+        assertEquals("foo=10 AND bar=11 AND meow=1",
+                bindSelection("foo=?10 AND bar=? AND meow=?1",
+                        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12));
     }
 
     @Test

@@ -91,7 +91,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     /**
      * Raw SQL clause that can be used to obtain the current generation, which
-     * is designed to be populated into {@link MediaColumns#GENERATION}.
+     * is designed to be populated into {@link MediaColumns#GENERATION_ADDED} or
+     * {@link MediaColumns#GENERATION_MODIFIED}.
      */
     public static final String CURRENT_GENERATION_CLAUSE = "SELECT generation FROM local_metadata";
 
@@ -531,7 +532,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + "is_favorite INTEGER DEFAULT 0, num_tracks INTEGER DEFAULT NULL,"
                 + "writer TEXT DEFAULT NULL, exposure_time TEXT DEFAULT NULL,"
                 + "f_number TEXT DEFAULT NULL, iso INTEGER DEFAULT NULL,"
-                + "scene_capture_type INTEGER DEFAULT NULL, generation INTEGER DEFAULT 0)");
+                + "scene_capture_type INTEGER DEFAULT NULL, generation_added INTEGER DEFAULT 0,"
+                + "generation_modified INTEGER DEFAULT 0)");
 
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!mInternal) {
@@ -938,11 +940,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("DELETE FROM log;");
     }
 
-    private static void updateAddGeneration(SQLiteDatabase db, boolean internal) {
+    private static void updateAddLocalMetadata(SQLiteDatabase db, boolean internal) {
         db.execSQL("CREATE TABLE local_metadata (generation INTEGER DEFAULT 0)");
         db.execSQL("INSERT INTO local_metadata VALUES (0)");
+    }
 
-        db.execSQL("ALTER TABLE files ADD COLUMN generation INTEGER DEFAULT 0;");
+    private static void updateAddGeneration(SQLiteDatabase db, boolean internal) {
+        db.execSQL("ALTER TABLE files ADD COLUMN generation_added INTEGER DEFAULT 0;");
+        db.execSQL("ALTER TABLE files ADD COLUMN generation_modified INTEGER DEFAULT 0;");
     }
 
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
@@ -973,7 +978,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
     static final int VERSION_Q = 1023;
-    static final int VERSION_R = 1108;
+    static final int VERSION_R = 1109;
     static final int VERSION_LATEST = VERSION_R;
 
     /**
@@ -1096,6 +1101,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 updateAddSceneCaptureType(db, internal);
             }
             if (fromVersion < 1108) {
+                updateAddLocalMetadata(db, internal);
+            }
+            if (fromVersion < 1109) {
                 updateAddGeneration(db, internal);
             }
 
@@ -1158,7 +1166,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     /**
      * Return the current generation that will be populated into
-     * {@link MediaColumns#GENERATION}.
+     * {@link MediaColumns#GENERATION_ADDED} or
+     * {@link MediaColumns#GENERATION_MODIFIED}.
      */
     public long getGeneration() {
         return android.database.DatabaseUtils.longForQuery(getReadableDatabase(),

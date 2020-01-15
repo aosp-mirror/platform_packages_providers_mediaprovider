@@ -1071,8 +1071,8 @@ public class MediaProvider extends ContentProvider {
     /**
      * Updates database entry for given {@code path} with {@code values}
      */
-    private boolean updateDatabaseForFuseRename(DatabaseHelper helper, String oldPath, String newPath,
-            ContentValues values) {
+    private boolean updateDatabaseForFuseRename(@NonNull DatabaseHelper helper,
+            @NonNull String oldPath, @NonNull String newPath, @NonNull ContentValues values) {
         final Uri uriOldPath = Files.getContentUriForPath(oldPath);
         boolean allowHidden = isCallingPackageAllowedHidden();
         final SQLiteQueryBuilder qbForUpdate = getQueryBuilder(TYPE_UPDATE,

@@ -86,7 +86,7 @@ import java.util.Map;
 public class MediaDocumentsProvider extends DocumentsProvider {
     private static final String TAG = "MediaDocumentsProvider";
 
-    private static final String AUTHORITY = "com.android.providers.media.documents";
+    public static final String AUTHORITY = "com.android.providers.media.documents";
 
     private static final String SUPPORTED_QUERY_ARGS = joinNewline(
             DocumentsContract.QUERY_ARG_DISPLAY_NAME,
@@ -112,18 +112,18 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     private static final String AUDIO_MIME_TYPES = joinNewline(
             "audio/*", "application/ogg", "application/x-flac");
 
-    private static final String TYPE_IMAGES_ROOT = "images_root";
-    private static final String TYPE_IMAGES_BUCKET = "images_bucket";
-    private static final String TYPE_IMAGE = "image";
+    static final String TYPE_IMAGES_ROOT = "images_root";
+    static final String TYPE_IMAGES_BUCKET = "images_bucket";
+    static final String TYPE_IMAGE = "image";
 
-    private static final String TYPE_VIDEOS_ROOT = "videos_root";
-    private static final String TYPE_VIDEOS_BUCKET = "videos_bucket";
-    private static final String TYPE_VIDEO = "video";
+    static final String TYPE_VIDEOS_ROOT = "videos_root";
+    static final String TYPE_VIDEOS_BUCKET = "videos_bucket";
+    static final String TYPE_VIDEO = "video";
 
-    private static final String TYPE_AUDIO_ROOT = "audio_root";
-    private static final String TYPE_AUDIO = "audio";
-    private static final String TYPE_ARTIST = "artist";
-    private static final String TYPE_ALBUM = "album";
+    static final String TYPE_AUDIO_ROOT = "audio_root";
+    static final String TYPE_AUDIO = "audio";
+    static final String TYPE_ARTIST = "artist";
+    static final String TYPE_ALBUM = "album";
 
     private static boolean sReturnedImagesEmpty = false;
     private static boolean sReturnedVideosEmpty = false;

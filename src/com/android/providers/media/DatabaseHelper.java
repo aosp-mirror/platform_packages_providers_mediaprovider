@@ -79,13 +79,6 @@ import java.util.regex.Matcher;
  * on demand, create and upgrade the schema, etc.
  */
 public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
-    // maximum number of cached external databases to keep
-    private static final int MAX_EXTERNAL_DATABASES = 3;
-
-    // Delete databases that have not been used in two months
-    // 60 days in milliseconds (1000 * 60 * 60 * 24 * 60)
-    private static final long OBSOLETE_DATABASE_DB = 5184000000L;
-
     static final String INTERNAL_DATABASE_NAME = "internal.db";
     static final String EXTERNAL_DATABASE_NAME = "external.db";
 
@@ -207,89 +200,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     public void onDowngrade(final SQLiteDatabase db, final int oldV, final int newV) {
         Log.v(TAG, "onDowngrade() for " + mName + " from " + oldV + " to " + newV);
         downgradeDatabase(db, oldV, newV);
-    }
-
-    /**
-     * For devices that have removable storage, we support keeping multiple databases
-     * to allow users to switch between a number of cards.
-     * On such devices, touch this particular database and garbage collect old databases.
-     * An LRU cache system is used to clean up databases for old external
-     * storage volumes.
-     */
-    @Override
-    public void onOpen(SQLiteDatabase db) {
-        if (mEarlyUpgrade) return; // Doing early upgrade.
-        if (mInternal) return;  // The internal database is kept separately.
-
-        // the code below is only needed on devices with removable storage
-        if (!Environment.isExternalStorageRemovable()) return;
-
-        // touch the database file to show it is most recently used
-        File file = new File(db.getPath());
-        long now = System.currentTimeMillis();
-        file.setLastModified(now);
-
-        // delete least recently used databases if we are over the limit
-        String[] databases = mContext.databaseList();
-        // Don't delete wal auxiliary files(db-shm and db-wal) directly because db file may
-        // not be deleted, and it will cause Disk I/O error when accessing this database.
-        List<String> dbList = new ArrayList<String>();
-        for (String database : databases) {
-            if (database != null && database.endsWith(".db")) {
-                dbList.add(database);
-            }
-        }
-        databases = dbList.toArray(new String[0]);
-        int count = databases.length;
-        int limit = MAX_EXTERNAL_DATABASES;
-
-        // delete external databases that have not been used in the past two months
-        long twoMonthsAgo = now - OBSOLETE_DATABASE_DB;
-        for (int i = 0; i < databases.length; i++) {
-            File other = mContext.getDatabasePath(databases[i]);
-            if (INTERNAL_DATABASE_NAME.equals(databases[i]) || file.equals(other)) {
-                databases[i] = null;
-                count--;
-                if (file.equals(other)) {
-                    // reduce limit to account for the existence of the database we
-                    // are about to open, which we removed from the list.
-                    limit--;
-                }
-            } else {
-                long time = other.lastModified();
-                if (time < twoMonthsAgo) {
-                    if (LOGV) Log.v(TAG, "Deleting old database " + databases[i]);
-                    mContext.deleteDatabase(databases[i]);
-                    databases[i] = null;
-                    count--;
-                }
-            }
-        }
-
-        // delete least recently used databases until
-        // we are no longer over the limit
-        while (count > limit) {
-            int lruIndex = -1;
-            long lruTime = 0;
-
-            for (int i = 0; i < databases.length; i++) {
-                if (databases[i] != null) {
-                    long time = mContext.getDatabasePath(databases[i]).lastModified();
-                    if (lruTime == 0 || time < lruTime) {
-                        lruIndex = i;
-                        lruTime = time;
-                    }
-                }
-            }
-
-            // delete least recently used database
-            if (lruIndex != -1) {
-                if (LOGV) Log.v(TAG, "Deleting old database " + databases[lruIndex]);
-                mContext.deleteDatabase(databases[lruIndex]);
-                databases[lruIndex] = null;
-                count--;
-            }
-        }
     }
 
     @GuardedBy("mProjectionMapCache")

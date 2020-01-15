@@ -466,7 +466,7 @@ public class DatabaseUtils {
 
         for (int i = 0; i < bindArgs.length; i++) {
             final Object bindArg = bindArgs[i];
-            switch (DatabaseUtils.getTypeOfObject(bindArg)) {
+            switch (getTypeOfObject(bindArg)) {
                 case Cursor.FIELD_TYPE_NULL:
                     st.bindNull(i + 1);
                     break;

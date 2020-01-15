@@ -799,7 +799,8 @@ public class SQLiteQueryBuilder {
 
         final boolean hasGeneration = Objects.equals(mTables, "files");
         if (hasGeneration) {
-            values.remove(MediaColumns.GENERATION);
+            values.remove(MediaColumns.GENERATION_ADDED);
+            values.remove(MediaColumns.GENERATION_MODIFIED);
         }
 
         final ArrayMap<String, Object> rawValues = com.android.providers.media.util.DatabaseUtils
@@ -812,7 +813,9 @@ public class SQLiteQueryBuilder {
         }
         if (hasGeneration) {
             sql.append(',');
-            sql.append(MediaColumns.GENERATION);
+            sql.append(MediaColumns.GENERATION_ADDED);
+            sql.append(',');
+            sql.append(MediaColumns.GENERATION_MODIFIED);
         }
         sql.append(") VALUES (");
         for (int i = 0; i < rawValues.size(); i++) {
@@ -822,6 +825,10 @@ public class SQLiteQueryBuilder {
             sql.append('?');
         }
         if (hasGeneration) {
+            sql.append(',');
+            sql.append('(');
+            sql.append(DatabaseHelper.CURRENT_GENERATION_CLAUSE);
+            sql.append(')');
             sql.append(',');
             sql.append('(');
             sql.append(DatabaseHelper.CURRENT_GENERATION_CLAUSE);
@@ -844,7 +851,8 @@ public class SQLiteQueryBuilder {
 
         final boolean hasGeneration = Objects.equals(mTables, "files");
         if (hasGeneration) {
-            values.remove(MediaColumns.GENERATION);
+            values.remove(MediaColumns.GENERATION_ADDED);
+            values.remove(MediaColumns.GENERATION_MODIFIED);
         }
 
         final ArrayMap<String, Object> rawValues = com.android.providers.media.util.DatabaseUtils
@@ -858,7 +866,7 @@ public class SQLiteQueryBuilder {
         }
         if (hasGeneration) {
             sql.append(',');
-            sql.append(MediaColumns.GENERATION);
+            sql.append(MediaColumns.GENERATION_MODIFIED);
             sql.append('=');
             sql.append('(');
             sql.append(DatabaseHelper.CURRENT_GENERATION_CLAUSE);

@@ -73,85 +73,6 @@ public class RedactingFileDescriptor {
     }
 
     /** {@hide} */
-    public static int translateModeStringToPosix(String mode) {
-        // Sanity check for invalid chars
-        for (int i = 0; i < mode.length(); i++) {
-            switch (mode.charAt(i)) {
-                case 'r':
-                case 'w':
-                case 't':
-                case 'a':
-                    break;
-                default:
-                    throw new IllegalArgumentException("Bad mode: " + mode);
-            }
-        }
-
-        int res = 0;
-        if (mode.startsWith("rw")) {
-            res = O_RDWR | O_CREAT;
-        } else if (mode.startsWith("w")) {
-            res = O_WRONLY | O_CREAT;
-        } else if (mode.startsWith("r")) {
-            res = O_RDONLY;
-        } else {
-            throw new IllegalArgumentException("Bad mode: " + mode);
-        }
-        if (mode.indexOf('t') != -1) {
-            res |= O_TRUNC;
-        }
-        if (mode.indexOf('a') != -1) {
-            res |= O_APPEND;
-        }
-        return res;
-    }
-
-    /** {@hide} */
-    public static String translateModePosixToString(int mode) {
-        String res = "";
-        if ((mode & O_ACCMODE) == O_RDWR) {
-            res = "rw";
-        } else if ((mode & O_ACCMODE) == O_WRONLY) {
-            res = "w";
-        } else if ((mode & O_ACCMODE) == O_RDONLY) {
-            res = "r";
-        } else {
-            throw new IllegalArgumentException("Bad mode: " + mode);
-        }
-        if ((mode & O_TRUNC) == O_TRUNC) {
-            res += "t";
-        }
-        if ((mode & O_APPEND) == O_APPEND) {
-            res += "a";
-        }
-        return res;
-    }
-
-    /** {@hide} */
-    public static int translateModePosixToPfd(int mode) {
-        int res = 0;
-        if ((mode & O_ACCMODE) == O_RDWR) {
-            res = MODE_READ_WRITE;
-        } else if ((mode & O_ACCMODE) == O_WRONLY) {
-            res = MODE_WRITE_ONLY;
-        } else if ((mode & O_ACCMODE) == O_RDONLY) {
-            res = MODE_READ_ONLY;
-        } else {
-            throw new IllegalArgumentException("Bad mode: " + mode);
-        }
-        if ((mode & O_CREAT) == O_CREAT) {
-            res |= MODE_CREATE;
-        }
-        if ((mode & O_TRUNC) == O_TRUNC) {
-            res |= MODE_TRUNCATE;
-        }
-        if ((mode & O_APPEND) == O_APPEND) {
-            res |= MODE_APPEND;
-        }
-        return res;
-    }
-
-    /** {@hide} */
     public static int translateModePfdToPosix(int mode) {
         int res = 0;
         if ((mode & MODE_READ_WRITE) == MODE_READ_WRITE) {
@@ -173,23 +94,6 @@ public class RedactingFileDescriptor {
             res |= O_APPEND;
         }
         return res;
-    }
-
-    /** {@hide} */
-    public static int translateModeAccessToPosix(int mode) {
-        if (mode == F_OK) {
-            // There's not an exact mapping, so we attempt a read-only open to
-            // determine if a file exists
-            return O_RDONLY;
-        } else if ((mode & (R_OK | W_OK)) == (R_OK | W_OK)) {
-            return O_RDWR;
-        } else if ((mode & R_OK) == R_OK) {
-            return O_RDONLY;
-        } else if ((mode & W_OK) == W_OK) {
-            return O_WRONLY;
-        } else {
-            throw new IllegalArgumentException("Bad mode: " + mode);
-        }
     }
 
     private RedactingFileDescriptor(

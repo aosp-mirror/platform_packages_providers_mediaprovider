@@ -5052,6 +5052,16 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    @Nullable
+    private String getAbsoluteSanitizedPath(String path) {
+        final String[] pathSegments = sanitizePath(path);
+        if (pathSegments.length == 0) {
+            return null;
+        }
+        return path = "/" + String.join("/",
+                Arrays.copyOfRange(pathSegments, 1, pathSegments.length));
+    }
+
     /**
      * Calculates the ranges that need to be redacted for the given file and user that wants to
      * access the file.
@@ -5083,6 +5093,12 @@ public class MediaProvider extends ContentProvider {
         try {
             if (!isRedactionNeeded() || shouldBypassFuseRestrictions(/*forWrite*/ false)) {
                 return res;
+            }
+
+            // TODO(b/147741933): Quick fix. Add tests
+            path = getAbsoluteSanitizedPath(path);
+            if (path == null) {
+                throw new IOException("Invalid path " + path);
             }
 
             final Uri contentUri = Files.getContentUri(MediaStore.getVolumeName(new File(path)));
@@ -5214,6 +5230,13 @@ public class MediaProvider extends ContentProvider {
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
                 return -OsConstants.EACCES;
+            }
+
+            // TODO(b/147741933): Quick fix. Add tests
+            path = getAbsoluteSanitizedPath(path);
+            if (path == null) {
+                Log.e(TAG, "Invalid path " + path);
+                return -OsConstants.EPERM;
             }
 
             final Uri contentUri = Files.getContentUri(MediaStore.getVolumeName(new File(path)));

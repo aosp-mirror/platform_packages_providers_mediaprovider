@@ -183,4 +183,9 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
     public void testRenameEmptyDirectory() throws Exception {
         runDeviceTest("testRenameEmptyDirectory");
     }
+
+    @Test
+    public void testManageExternalStorageBypassesMediaProviderRestrictions() throws Exception {
+        runDeviceTest("testManageExternalStorageBypassesMediaProviderRestrictions");
+    }
 }

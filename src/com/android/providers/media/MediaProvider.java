@@ -44,6 +44,7 @@ import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEG
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY_WRITE;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_SYSTEM;
+import static com.android.providers.media.LocalCallingIdentity.PERMISSION_MANAGE_EXTERNAL_STORAGE;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_READ_AUDIO;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_READ_IMAGES;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_READ_VIDEO;
@@ -1071,8 +1072,8 @@ public class MediaProvider extends ContentProvider {
     /**
      * Updates database entry for given {@code path} with {@code values}
      */
-    private boolean updateDatabaseForFuseRename(DatabaseHelper helper, String oldPath, String newPath,
-            ContentValues values) {
+    private boolean updateDatabaseForFuseRename(@NonNull DatabaseHelper helper,
+            @NonNull String oldPath, @NonNull String newPath, @NonNull ContentValues values) {
         final Uri uriOldPath = Files.getContentUriForPath(oldPath);
         boolean allowHidden = isCallingPackageAllowedHidden();
         final SQLiteQueryBuilder qbForUpdate = getQueryBuilder(TYPE_UPDATE,
@@ -4984,10 +4985,15 @@ public class MediaProvider extends ContentProvider {
     private boolean shouldBypassFuseRestrictions(boolean forWrite) {
         boolean isRequestingLegacyStorage = forWrite ? isCallingPackageLegacyWrite()
                 : isCallingPackageLegacyRead();
+        if (isRequestingLegacyStorage) {
+            return true;
+        }
 
-        // TODO(b/137755945): We should let file managers bypass FUSE restrictions as well.
-        //  Remember to change the documentation above when this is addressed.
-        return isRequestingLegacyStorage;
+        if (mCallingIdentity.get().hasPermission(PERMISSION_MANAGE_EXTERNAL_STORAGE)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -5947,11 +5953,12 @@ public class MediaProvider extends ContentProvider {
         }
 
         final Uri uri = MediaStore.AUTHORITY_URI.buildUpon().appendPath(volume).build();
-        getContext().getContentResolver().notifyChange(uri, null);
+        final DatabaseHelper helper = MediaStore.VOLUME_INTERNAL.equals(volume)
+                ? mInternalDatabase : mExternalDatabase;
+        acceptWithExpansion(helper::notifyChange, uri);
         if (LOGV) Log.v(TAG, "Attached volume: " + volume);
         if (!MediaStore.VOLUME_INTERNAL.equals(volume)) {
             BackgroundThread.getExecutor().execute(() -> {
-                final DatabaseHelper helper = mExternalDatabase;
                 ensureDefaultFolders(volume, helper);
             });
         }
@@ -5984,7 +5991,9 @@ public class MediaProvider extends ContentProvider {
         }
 
         final Uri uri = MediaStore.AUTHORITY_URI.buildUpon().appendPath(volume).build();
-        getContext().getContentResolver().notifyChange(uri, null);
+        final DatabaseHelper helper = MediaStore.VOLUME_INTERNAL.equals(volume)
+                ? mInternalDatabase : mExternalDatabase;
+        acceptWithExpansion(helper::notifyChange, uri);
         if (LOGV) Log.v(TAG, "Detached volume: " + volume);
     }
 

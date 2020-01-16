@@ -43,6 +43,7 @@ import android.util.Log;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.providers.media.MediaDocumentsProvider;
 import com.android.providers.media.MediaProvider;
 import com.android.providers.media.R;
 import com.android.providers.media.util.FileUtils;
@@ -67,6 +68,7 @@ public class MediaScannerTest {
         private final File mDir;
         private final MockContentResolver mResolver;
         private final MediaProvider mProvider;
+        private final MediaDocumentsProvider mDocumentsProvider;
 
         public IsolatedContext(Context base, String tag) {
             super(base);
@@ -80,8 +82,14 @@ public class MediaScannerTest {
                     .resolveContentProvider(MediaStore.AUTHORITY, 0);
             mProvider = new MediaProvider();
             mProvider.attachInfo(this, info);
-
             mResolver.addProvider(MediaStore.AUTHORITY, mProvider);
+
+            final ProviderInfo documentsInfo = base.getPackageManager()
+                    .resolveContentProvider(MediaDocumentsProvider.AUTHORITY, 0);
+            mDocumentsProvider = new MediaDocumentsProvider();
+            mDocumentsProvider.attachInfo(this, documentsInfo);
+            mResolver.addProvider(MediaDocumentsProvider.AUTHORITY, mDocumentsProvider);
+
             mResolver.addProvider(Settings.AUTHORITY, new MockContentProvider() {
                 @Override
                 public Bundle call(String method, String request, Bundle args) {

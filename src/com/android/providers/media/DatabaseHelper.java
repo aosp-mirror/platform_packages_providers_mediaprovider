@@ -79,19 +79,13 @@ import java.util.regex.Matcher;
  * on demand, create and upgrade the schema, etc.
  */
 public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
-    // maximum number of cached external databases to keep
-    private static final int MAX_EXTERNAL_DATABASES = 3;
-
-    // Delete databases that have not been used in two months
-    // 60 days in milliseconds (1000 * 60 * 60 * 24 * 60)
-    private static final long OBSOLETE_DATABASE_DB = 5184000000L;
-
     static final String INTERNAL_DATABASE_NAME = "internal.db";
     static final String EXTERNAL_DATABASE_NAME = "external.db";
 
     /**
      * Raw SQL clause that can be used to obtain the current generation, which
-     * is designed to be populated into {@link MediaColumns#GENERATION}.
+     * is designed to be populated into {@link MediaColumns#GENERATION_ADDED} or
+     * {@link MediaColumns#GENERATION_MODIFIED}.
      */
     public static final String CURRENT_GENERATION_CLAUSE = "SELECT generation FROM local_metadata";
 
@@ -206,89 +200,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     public void onDowngrade(final SQLiteDatabase db, final int oldV, final int newV) {
         Log.v(TAG, "onDowngrade() for " + mName + " from " + oldV + " to " + newV);
         downgradeDatabase(db, oldV, newV);
-    }
-
-    /**
-     * For devices that have removable storage, we support keeping multiple databases
-     * to allow users to switch between a number of cards.
-     * On such devices, touch this particular database and garbage collect old databases.
-     * An LRU cache system is used to clean up databases for old external
-     * storage volumes.
-     */
-    @Override
-    public void onOpen(SQLiteDatabase db) {
-        if (mEarlyUpgrade) return; // Doing early upgrade.
-        if (mInternal) return;  // The internal database is kept separately.
-
-        // the code below is only needed on devices with removable storage
-        if (!Environment.isExternalStorageRemovable()) return;
-
-        // touch the database file to show it is most recently used
-        File file = new File(db.getPath());
-        long now = System.currentTimeMillis();
-        file.setLastModified(now);
-
-        // delete least recently used databases if we are over the limit
-        String[] databases = mContext.databaseList();
-        // Don't delete wal auxiliary files(db-shm and db-wal) directly because db file may
-        // not be deleted, and it will cause Disk I/O error when accessing this database.
-        List<String> dbList = new ArrayList<String>();
-        for (String database : databases) {
-            if (database != null && database.endsWith(".db")) {
-                dbList.add(database);
-            }
-        }
-        databases = dbList.toArray(new String[0]);
-        int count = databases.length;
-        int limit = MAX_EXTERNAL_DATABASES;
-
-        // delete external databases that have not been used in the past two months
-        long twoMonthsAgo = now - OBSOLETE_DATABASE_DB;
-        for (int i = 0; i < databases.length; i++) {
-            File other = mContext.getDatabasePath(databases[i]);
-            if (INTERNAL_DATABASE_NAME.equals(databases[i]) || file.equals(other)) {
-                databases[i] = null;
-                count--;
-                if (file.equals(other)) {
-                    // reduce limit to account for the existence of the database we
-                    // are about to open, which we removed from the list.
-                    limit--;
-                }
-            } else {
-                long time = other.lastModified();
-                if (time < twoMonthsAgo) {
-                    if (LOGV) Log.v(TAG, "Deleting old database " + databases[i]);
-                    mContext.deleteDatabase(databases[i]);
-                    databases[i] = null;
-                    count--;
-                }
-            }
-        }
-
-        // delete least recently used databases until
-        // we are no longer over the limit
-        while (count > limit) {
-            int lruIndex = -1;
-            long lruTime = 0;
-
-            for (int i = 0; i < databases.length; i++) {
-                if (databases[i] != null) {
-                    long time = mContext.getDatabasePath(databases[i]).lastModified();
-                    if (lruTime == 0 || time < lruTime) {
-                        lruIndex = i;
-                        lruTime = time;
-                    }
-                }
-            }
-
-            // delete least recently used database
-            if (lruIndex != -1) {
-                if (LOGV) Log.v(TAG, "Deleting old database " + databases[lruIndex]);
-                mContext.deleteDatabase(databases[lruIndex]);
-                databases[lruIndex] = null;
-                count--;
-            }
-        }
     }
 
     @GuardedBy("mProjectionMapCache")
@@ -531,7 +442,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + "is_favorite INTEGER DEFAULT 0, num_tracks INTEGER DEFAULT NULL,"
                 + "writer TEXT DEFAULT NULL, exposure_time TEXT DEFAULT NULL,"
                 + "f_number TEXT DEFAULT NULL, iso INTEGER DEFAULT NULL,"
-                + "scene_capture_type INTEGER DEFAULT NULL, generation INTEGER DEFAULT 0)");
+                + "scene_capture_type INTEGER DEFAULT NULL, generation_added INTEGER DEFAULT 0,"
+                + "generation_modified INTEGER DEFAULT 0)");
 
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!mInternal) {
@@ -714,7 +626,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
         db.execSQL("CREATE VIEW audio_artists AS SELECT "
                 + "  artist_id AS " + Audio.Artists._ID
-                + ", artist AS " + Audio.Artists.ARTIST
+                + ", MIN(artist) AS " + Audio.Artists.ARTIST
                 + ", artist_key AS " + Audio.Artists.ARTIST_KEY
                 + ", COUNT(DISTINCT album_id) AS " + Audio.Artists.NUMBER_OF_ALBUMS
                 + ", COUNT(DISTINCT _id) AS " + Audio.Artists.NUMBER_OF_TRACKS
@@ -725,7 +637,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("CREATE VIEW audio_albums AS SELECT "
                 + "  album_id AS " + Audio.Albums._ID
                 + ", album_id AS " + Audio.Albums.ALBUM_ID
-                + ", album AS " + Audio.Albums.ALBUM
+                + ", MIN(album) AS " + Audio.Albums.ALBUM
                 + ", album_key AS " + Audio.Albums.ALBUM_KEY
                 + ", artist_id AS " + Audio.Albums.ARTIST_ID
                 + ", artist AS " + Audio.Albums.ARTIST
@@ -741,7 +653,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
         db.execSQL("CREATE VIEW audio_genres AS SELECT "
                 + "  genre_id AS " + Audio.Genres._ID
-                + ", genre AS " + Audio.Genres.NAME
+                + ", MIN(genre) AS " + Audio.Genres.NAME
                 + " FROM audio"
                 + " WHERE volume_name IN " + filterVolumeNames
                 + " GROUP BY genre_id");
@@ -938,11 +850,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("DELETE FROM log;");
     }
 
-    private static void updateAddGeneration(SQLiteDatabase db, boolean internal) {
+    private static void updateAddLocalMetadata(SQLiteDatabase db, boolean internal) {
         db.execSQL("CREATE TABLE local_metadata (generation INTEGER DEFAULT 0)");
         db.execSQL("INSERT INTO local_metadata VALUES (0)");
+    }
 
-        db.execSQL("ALTER TABLE files ADD COLUMN generation INTEGER DEFAULT 0;");
+    private static void updateAddGeneration(SQLiteDatabase db, boolean internal) {
+        db.execSQL("ALTER TABLE files ADD COLUMN generation_added INTEGER DEFAULT 0;");
+        db.execSQL("ALTER TABLE files ADD COLUMN generation_modified INTEGER DEFAULT 0;");
     }
 
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
@@ -973,7 +888,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
     static final int VERSION_Q = 1023;
-    static final int VERSION_R = 1108;
+    static final int VERSION_R = 1109;
     static final int VERSION_LATEST = VERSION_R;
 
     /**
@@ -1096,6 +1011,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 updateAddSceneCaptureType(db, internal);
             }
             if (fromVersion < 1108) {
+                updateAddLocalMetadata(db, internal);
+            }
+            if (fromVersion < 1109) {
                 updateAddGeneration(db, internal);
             }
 
@@ -1158,7 +1076,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     /**
      * Return the current generation that will be populated into
-     * {@link MediaColumns#GENERATION}.
+     * {@link MediaColumns#GENERATION_ADDED} or
+     * {@link MediaColumns#GENERATION_MODIFIED}.
      */
     public long getGeneration() {
         return android.database.DatabaseUtils.longForQuery(getReadableDatabase(),

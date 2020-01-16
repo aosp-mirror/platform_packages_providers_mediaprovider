@@ -69,20 +69,20 @@ class RedactionInfo {
      * relevant redaction ranges, the vector will be empty.
      */
     std::unique_ptr<std::vector<RedactionRange>> getOverlappingRedactionRanges(size_t size,
-                                                                               off64_t off);
+                                                                               off64_t off) const;
     /**
      * Returns whether any ranges need to be redacted.
      */
-    bool isRedactionNeeded();
+    bool isRedactionNeeded() const;
     /**
      * Returns number of redaction ranges.
      */
-    int size();
+    int size() const;
 
   private:
     std::vector<RedactionRange> redaction_ranges_;
     void processRedactionRanges(int redaction_ranges_num, const off64_t* redaction_ranges);
-    bool hasOverlapWithReadRequest(size_t size, off64_t off);
+    bool hasOverlapWithReadRequest(size_t size, off64_t off) const;
 };
 
 }  // namespace fuse

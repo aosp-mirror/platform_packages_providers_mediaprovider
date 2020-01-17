@@ -251,6 +251,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     public void setTransactionSuccessful() {
         getWritableDatabase().setTransactionSuccessful();
+    }
+
+    public void endTransaction() {
+        getWritableDatabase().endTransaction();
         final List<Uri> uris = mNotifyChanges.get();
         if (uris != null) {
             BackgroundThread.getExecutor().execute(() -> {
@@ -258,10 +262,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             });
         }
         mNotifyChanges.remove();
-    }
-
-    public void endTransaction() {
-        getWritableDatabase().endTransaction();
     }
 
     /**

@@ -31,7 +31,7 @@ android_test {
     manifest: "AndroidManifest.xml",
     srcs: ["src/**/*.java"],
     static_libs: ["androidx.test.rules", "truth-prebuilt", "tests-fusedaemon-lib"],
-    test_suites: ["general-tests"],
+    test_suites: ["general-tests", "mts"],
     sdk_version: "test_current",
     java_resources: [
         ":TestAppA",
@@ -44,7 +44,7 @@ android_test {
     manifest: "legacy/AndroidManifest.xml",
     srcs: ["legacy/src/**/*.java"],
     static_libs: ["androidx.test.rules", "truth-prebuilt"],
-    test_suites: ["general-tests"],
+    test_suites: ["general-tests", "mts"],
     sdk_version: "29"
 }
 
@@ -53,6 +53,6 @@ java_test_host {
     srcs: ["host/src/**/*.java"],
     libs: ["tradefed"],
     static_libs: ["testng"],
-    test_suites: ["general-tests"],
+    test_suites: ["general-tests", "mts"],
     test_config: "FuseDaemonHostTest.xml",
 }

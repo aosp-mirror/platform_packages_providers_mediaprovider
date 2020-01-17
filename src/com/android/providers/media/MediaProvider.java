@@ -1573,50 +1573,6 @@ public class MediaProvider extends ContentProvider {
         final DatabaseHelper helper = getDatabaseForUri(uri);
         final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, table, uri, queryArgs,
                 honoredArgs::add);
-        String filter = uri.getQueryParameter("filter");
-        String [] keywords = null;
-        if (filter != null) {
-            filter = Uri.decode(filter).trim();
-            if (!TextUtils.isEmpty(filter)) {
-                String [] searchWords = filter.split(" ");
-                keywords = new String[searchWords.length];
-                for (int i = 0; i < searchWords.length; i++) {
-                    String key = MediaStore.Audio.keyFor(searchWords[i]);
-                    key = key.replace("\\", "\\\\");
-                    key = key.replace("%", "\\%");
-                    key = key.replace("_", "\\_");
-                    keywords[i] = key;
-                }
-            }
-        }
-
-        String keywordColumn = null;
-        switch (table) {
-            case AUDIO_MEDIA:
-            case AUDIO_GENRES_ALL_MEMBERS:
-            case AUDIO_GENRES_ID_MEMBERS:
-            case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
-            case AUDIO_PLAYLISTS_ID_MEMBERS:
-                keywordColumn = MediaStore.Audio.Media.ARTIST_KEY +
-                        "||" + MediaStore.Audio.Media.ALBUM_KEY +
-                        "||" + MediaStore.Audio.Media.TITLE_KEY;
-                break;
-            case AUDIO_ARTISTS_ID_ALBUMS:
-            case AUDIO_ALBUMS:
-                keywordColumn = MediaStore.Audio.Media.ARTIST_KEY + "||"
-                        + MediaStore.Audio.Media.ALBUM_KEY;
-                break;
-            case AUDIO_ARTISTS:
-                keywordColumn = MediaStore.Audio.Media.ARTIST_KEY;
-                break;
-        }
-
-        if (keywordColumn != null) {
-            for (int i = 0; keywords != null && i < keywords.length; i++) {
-                appendWhereStandalone(qb, keywordColumn + " LIKE ? ESCAPE '\\'",
-                        "%" + keywords[i] + "%");
-            }
-        }
 
         if (targetSdkVersion < Build.VERSION_CODES.R) {
             // Some apps are abusing "ORDER BY" clauses to inject "LIMIT"
@@ -2852,6 +2808,15 @@ public class MediaProvider extends ContentProvider {
         qb.appendWhereStandalone(DatabaseUtils.bindSelection(selection, selectionArgs));
     }
 
+    private static void appendWhereStandaloneFilter(@NonNull SQLiteQueryBuilder qb,
+            @NonNull String[] columns, @Nullable String filter) {
+        if (TextUtils.isEmpty(filter)) return;
+        for (String filterWord : filter.split("\\s+")) {
+            appendWhereStandalone(qb, String.join("||", columns) + " LIKE ? ESCAPE '\\'",
+                    "%" + DatabaseUtils.escapeForLike(Audio.keyFor(filterWord)) + "%");
+        }
+    }
+
     private static boolean parseBoolean(String value) {
         if (value == null) return false;
         if ("1".equals(value)) return true;
@@ -2944,6 +2909,9 @@ public class MediaProvider extends ContentProvider {
         if (matchTrashed == MATCH_DEFAULT) matchTrashed = MATCH_EXCLUDE;
         if (matchFavorite == MATCH_DEFAULT) matchFavorite = MATCH_INCLUDE;
 
+        // Handle callers using legacy filtering
+        final String filter = uri.getQueryParameter("filter");
+
         boolean includeAllVolumes = false;
 
         switch (match) {
@@ -3026,6 +2994,9 @@ public class MediaProvider extends ContentProvider {
                                     + " IN " + sharedPackages
                                     + " OR is_ringtone=1 OR is_alarm=1 OR is_notification=1"));
                 }
+                appendWhereStandaloneFilter(qb, new String[] {
+                        AudioColumns.ARTIST_KEY, AudioColumns.ALBUM_KEY, AudioColumns.TITLE_KEY
+                }, filter);
                 appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending);
                 appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed);
                 appendWhereStandaloneMatch(qb, FileColumns.IS_FAVORITE, matchFavorite);
@@ -3101,7 +3072,9 @@ public class MediaProvider extends ContentProvider {
                 } else {
                     throw new UnsupportedOperationException("Genres cannot be directly modified");
                 }
-
+                appendWhereStandaloneFilter(qb, new String[] {
+                        AudioColumns.ARTIST_KEY, AudioColumns.ALBUM_KEY, AudioColumns.TITLE_KEY
+                }, filter);
                 if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
                     // We don't have a great way to filter parsed metadata by
                     // owner, so callers need to hold READ_MEDIA_AUDIO
@@ -3163,6 +3136,9 @@ public class MediaProvider extends ContentProvider {
                     qb.setTables("audio_playlists_map");
                     qb.setProjectionMap(getProjectionMap(Audio.Playlists.Members.class));
                 }
+                appendWhereStandaloneFilter(qb, new String[] {
+                        AudioColumns.ARTIST_KEY, AudioColumns.ALBUM_KEY, AudioColumns.TITLE_KEY
+                }, filter);
                 if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
                     // We don't have a great way to filter parsed metadata by
                     // owner, so callers need to hold READ_MEDIA_AUDIO
@@ -3199,6 +3175,9 @@ public class MediaProvider extends ContentProvider {
                 } else {
                     throw new UnsupportedOperationException("Albums cannot be directly modified");
                 }
+                appendWhereStandaloneFilter(qb, new String[] {
+                        AudioColumns.ALBUM_KEY
+                }, filter);
                 if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
                     // We don't have a great way to filter parsed metadata by
                     // owner, so callers need to hold READ_MEDIA_AUDIO
@@ -3216,6 +3195,9 @@ public class MediaProvider extends ContentProvider {
                 } else {
                     throw new UnsupportedOperationException("Artists cannot be directly modified");
                 }
+                appendWhereStandaloneFilter(qb, new String[] {
+                        AudioColumns.ARTIST_KEY
+                }, filter);
                 if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
                     // We don't have a great way to filter parsed metadata by
                     // owner, so callers need to hold READ_MEDIA_AUDIO
@@ -3233,6 +3215,9 @@ public class MediaProvider extends ContentProvider {
                 } else {
                     throw new UnsupportedOperationException("Albums cannot be directly modified");
                 }
+                appendWhereStandaloneFilter(qb, new String[] {
+                        AudioColumns.ARTIST_KEY, AudioColumns.ALBUM_KEY
+                }, filter);
                 if (!allowGlobal && !checkCallingPermissionAudio(false, callingPackage)) {
                     // We don't have a great way to filter parsed metadata by
                     // owner, so callers need to hold READ_MEDIA_AUDIO
@@ -3330,6 +3315,9 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, TextUtils.join(" OR ", options));
                 }
 
+                appendWhereStandaloneFilter(qb, new String[] {
+                        AudioColumns.ARTIST_KEY, AudioColumns.ALBUM_KEY, AudioColumns.TITLE_KEY
+                }, filter);
                 appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending);
                 appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed);
                 appendWhereStandaloneMatch(qb, FileColumns.IS_FAVORITE, matchFavorite);
@@ -5052,6 +5040,16 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    @Nullable
+    private String getAbsoluteSanitizedPath(String path) {
+        final String[] pathSegments = sanitizePath(path);
+        if (pathSegments.length == 0) {
+            return null;
+        }
+        return path = "/" + String.join("/",
+                Arrays.copyOfRange(pathSegments, 1, pathSegments.length));
+    }
+
     /**
      * Calculates the ranges that need to be redacted for the given file and user that wants to
      * access the file.
@@ -5083,6 +5081,12 @@ public class MediaProvider extends ContentProvider {
         try {
             if (!isRedactionNeeded() || shouldBypassFuseRestrictions(/*forWrite*/ false)) {
                 return res;
+            }
+
+            // TODO(b/147741933): Quick fix. Add tests
+            path = getAbsoluteSanitizedPath(path);
+            if (path == null) {
+                throw new IOException("Invalid path " + path);
             }
 
             final Uri contentUri = Files.getContentUri(MediaStore.getVolumeName(new File(path)));
@@ -5214,6 +5218,13 @@ public class MediaProvider extends ContentProvider {
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
                 return -OsConstants.EACCES;
+            }
+
+            // TODO(b/147741933): Quick fix. Add tests
+            path = getAbsoluteSanitizedPath(path);
+            if (path == null) {
+                Log.e(TAG, "Invalid path " + path);
+                return -OsConstants.EPERM;
             }
 
             final Uri contentUri = Files.getContentUri(MediaStore.getVolumeName(new File(path)));

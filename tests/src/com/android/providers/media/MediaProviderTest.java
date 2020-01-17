@@ -27,11 +27,13 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.CancellationSignal;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Images.ImageColumns;
@@ -110,6 +112,23 @@ public class MediaProviderTest {
             try (Cursor c = isolatedResolver.query(probe, null, null, null)) {
                 assertNotNull("probe", c);
             }
+            try {
+                isolatedResolver.getType(probe);
+            } catch (IllegalStateException tolerated) {
+            }
+        }
+    }
+
+    @Test
+    public void testLocale() {
+        final Context context = InstrumentationRegistry.getTargetContext();
+        final Context isolatedContext = new IsolatedContext(context, "modern");
+        final ContentResolver isolatedResolver = isolatedContext.getContentResolver();
+
+        try (ContentProviderClient cpc = isolatedResolver
+                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+            ((MediaProvider) cpc.getLocalContentProvider())
+                    .onLocaleChanged();
         }
     }
 
@@ -266,6 +285,14 @@ public class MediaProviderTest {
                 buildFile(uri, null, "my_subtitle", "application/x-subrip"));
         assertEndsWith("/Music/my_lyrics.lrc",
                 buildFile(uri, "Music", "my_lyrics", "application/lrc"));
+    }
+
+    @Test
+    public void testBuildData_Downloads() throws Exception {
+        final Uri uri = MediaStore.Downloads
+                .getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        assertEndsWith("/Download/linux.iso",
+                buildFile(uri, null, "linux.iso", "application/x-iso9660-image"));
     }
 
     @Test

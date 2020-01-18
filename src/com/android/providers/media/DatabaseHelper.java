@@ -54,6 +54,7 @@ import android.util.Log;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.util.BackgroundThread;
@@ -96,27 +97,44 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     final boolean mInternal;  // True if this is the internal database
     final boolean mEarlyUpgrade;
     final boolean mLegacyProvider;
-    final Class<? extends Annotation> mColumnAnnotation;
-    final OnSchemaChangeListener mListener;
+    final @Nullable Class<? extends Annotation> mColumnAnnotation;
+    final @Nullable OnSchemaChangeListener mSchemaListener;
+    final @Nullable OnFilesChangeListener mFilesListener;
     final Set<String> mFilterVolumeNames = new ArraySet<>();
     long mScanStartTime;
     long mScanStopTime;
+    /** Flag indicating if a schema change is in progress */
+    boolean mSchemaChanging;
 
     public interface OnSchemaChangeListener {
         public void onSchemaChange(@NonNull String volumeName, int versionFrom, int versionTo,
                 long itemCount, long durationMillis);
     }
 
+    public interface OnFilesChangeListener {
+        public void onInsert(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
+                int mediaType, boolean isDownload);
+        public void onUpdate(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
+                int oldMediaType, boolean oldIsDownload,
+                int newMediaType, boolean newIsDownload);
+        public void onDelete(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
+                int mediaType, boolean isDownload);
+    }
+
     public DatabaseHelper(Context context, String name,
             boolean internal, boolean earlyUpgrade, boolean legacyProvider,
-            Class<? extends Annotation> columnAnnotation, OnSchemaChangeListener listener) {
-        this(context, name, getDatabaseVersion(context),
-                internal, earlyUpgrade, legacyProvider, columnAnnotation, listener);
+            @Nullable Class<? extends Annotation> columnAnnotation,
+            @Nullable OnSchemaChangeListener schemaListener,
+            @Nullable OnFilesChangeListener filesListener) {
+        this(context, name, getDatabaseVersion(context), internal, earlyUpgrade, legacyProvider,
+                columnAnnotation, schemaListener, filesListener);
     }
 
     public DatabaseHelper(Context context, String name, int version,
             boolean internal, boolean earlyUpgrade, boolean legacyProvider,
-            Class<? extends Annotation> columnAnnotation, OnSchemaChangeListener listener) {
+            @Nullable Class<? extends Annotation> columnAnnotation,
+            @Nullable OnSchemaChangeListener schemaListener,
+            @Nullable OnFilesChangeListener filesListener) {
         super(context, name, null, version);
         mContext = context;
         mName = name;
@@ -126,7 +144,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         mEarlyUpgrade = earlyUpgrade;
         mLegacyProvider = legacyProvider;
         mColumnAnnotation = columnAnnotation;
-        mListener = listener;
+        mSchemaListener = schemaListener;
+        mFilesListener = filesListener;
 
         // Configure default filters until we hear differently
         if (mInternal) {
@@ -185,21 +204,79 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     @Override
+    public void onConfigure(SQLiteDatabase db) {
+        db.setCustomScalarFunction("_INSERT", (arg) -> {
+            if (arg != null && mFilesListener != null && !mSchemaChanging) {
+                final String[] split = arg.split(":");
+                final String volumeName = split[0];
+                final long id = Long.parseLong(split[1]);
+                final int mediaType = Integer.parseInt(split[2]);
+                final boolean isDownload = Integer.parseInt(split[3]) != 0;
+
+                mFilesListener.onInsert(DatabaseHelper.this, volumeName, id, mediaType, isDownload);
+            }
+            return null;
+        });
+        db.setCustomScalarFunction("_UPDATE", (arg) -> {
+            if (arg != null && mFilesListener != null && !mSchemaChanging) {
+                final String[] split = arg.split(":");
+                final String volumeName = split[0];
+                final long id = Long.parseLong(split[1]);
+                final int oldMediaType = Integer.parseInt(split[2]);
+                final boolean oldIsDownload = Integer.parseInt(split[3]) != 0;
+                final int newMediaType = Integer.parseInt(split[4]);
+                final boolean newIsDownload = Integer.parseInt(split[5]) != 0;
+
+                mFilesListener.onUpdate(DatabaseHelper.this, volumeName, id,
+                        oldMediaType, oldIsDownload, newMediaType, newIsDownload);
+            }
+            return null;
+        });
+        db.setCustomScalarFunction("_DELETE", (arg) -> {
+            if (arg != null && mFilesListener != null && !mSchemaChanging) {
+                final String[] split = arg.split(":");
+                final String volumeName = split[0];
+                final long id = Long.parseLong(split[1]);
+                final int mediaType = Integer.parseInt(split[2]);
+                final boolean isDownload = Integer.parseInt(split[3]) != 0;
+
+                mFilesListener.onDelete(DatabaseHelper.this, volumeName, id, mediaType, isDownload);
+            }
+            return null;
+        });
+    }
+
+    @Override
     public void onCreate(final SQLiteDatabase db) {
         Log.v(TAG, "onCreate() for " + mName);
-        updateDatabase(db, 0, mVersion);
+        mSchemaChanging = true;
+        try {
+            updateDatabase(db, 0, mVersion);
+        } finally {
+            mSchemaChanging = false;
+        }
     }
 
     @Override
     public void onUpgrade(final SQLiteDatabase db, final int oldV, final int newV) {
         Log.v(TAG, "onUpgrade() for " + mName + " from " + oldV + " to " + newV);
-        updateDatabase(db, oldV, newV);
+        mSchemaChanging = true;
+        try {
+            updateDatabase(db, oldV, newV);
+        } finally {
+            mSchemaChanging = false;
+        }
     }
 
     @Override
     public void onDowngrade(final SQLiteDatabase db, final int oldV, final int newV) {
         Log.v(TAG, "onDowngrade() for " + mName + " from " + oldV + " to " + newV);
-        downgradeDatabase(db, oldV, newV);
+        mSchemaChanging = true;
+        try {
+            downgradeDatabase(db, oldV, newV);
+        } finally {
+            mSchemaChanging = false;
+        }
     }
 
     @GuardedBy("mProjectionMapCache")
@@ -291,7 +368,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * notification if currently inside a transaction, and they'll be
      * clustered and sent when the transaction completes.
      */
-    public void notifyChange(Uri uri) {
+    public void notifyChange(@NonNull Uri uri) {
         if (LOGV) Log.v(TAG, "Notifying " + uri);
         final List<Uri> uris = mNotifyChanges.get();
         if (uris != null) {
@@ -672,6 +749,21 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     private static void createLatestTriggers(SQLiteDatabase db, boolean internal) {
         makePristineTriggers(db);
+
+        final String insertArg =
+                "new.volume_name||':'||new._id||':'||new.media_type||':'||new.is_download";
+        final String updateArg =
+                "old.volume_name||':'||old._id||':'||old.media_type||':'||old.is_download"
+                        + "||':'||new.media_type||':'||new.is_download";
+        final String deleteArg =
+                "old.volume_name||':'||old._id||':'||old.media_type||':'||old.is_download";
+
+        db.execSQL("CREATE TRIGGER files_insert AFTER INSERT ON files"
+                + " BEGIN SELECT _INSERT(" + insertArg + "); END");
+        db.execSQL("CREATE TRIGGER files_update AFTER UPDATE ON files"
+                + " BEGIN SELECT _UPDATE(" + updateArg + "); END");
+        db.execSQL("CREATE TRIGGER files_delete AFTER DELETE ON files"
+                + " BEGIN SELECT _DELETE(" + deleteArg + "); END");
     }
 
     private static void updateCollationKeys(SQLiteDatabase db) {
@@ -888,7 +980,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
     static final int VERSION_Q = 1023;
-    static final int VERSION_R = 1109;
+    static final int VERSION_R = 1110;
     static final int VERSION_LATEST = VERSION_R;
 
     /**
@@ -1016,6 +1108,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             if (fromVersion < 1109) {
                 updateAddGeneration(db, internal);
             }
+            if (fromVersion < 1110) {
+                // Empty version bump to ensure triggers are recreated
+            }
 
             if (recomputeDataValues) {
                 recomputeDataValues(db, internal);
@@ -1030,8 +1125,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         getOrCreateUuid(db);
 
         final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
-        if (mListener != null) {
-            mListener.onSchemaChange(mVolumeName, fromVersion, toVersion,
+        if (mSchemaListener != null) {
+            mSchemaListener.onSchemaChange(mVolumeName, fromVersion, toVersion,
                     getItemCount(db), elapsedMillis);
         }
     }
@@ -1043,8 +1138,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         createLatestSchema(db);
 
         final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
-        if (mListener != null) {
-            mListener.onSchemaChange(mVolumeName, fromVersion, toVersion,
+        if (mSchemaListener != null) {
+            mSchemaListener.onSchemaChange(mVolumeName, fromVersion, toVersion,
                     getItemCount(db), elapsedMillis);
         }
     }

@@ -19,6 +19,7 @@ package com.android.providers.media.scan;
 import static com.android.providers.media.scan.MediaScanner.REASON_UNKNOWN;
 import static com.android.providers.media.scan.MediaScannerTest.stage;
 import static com.android.providers.media.scan.ModernMediaScanner.isDirectoryHidden;
+import static com.android.providers.media.scan.ModernMediaScanner.isFileAlbumArt;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalDateTaken;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalMimeType;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalYear;
@@ -541,6 +542,42 @@ public class ModernMediaScannerTest {
             assertEquals(1, cursor.getCount());
             cursor.moveToFirst();
             assertEquals("audio", cursor.getString(cursor.getColumnIndex(MediaColumns.TITLE)));
+        }
+    }
+
+    @Test
+    public void testAlbumArtPattern() throws Exception {
+        for (String path : new String[] {
+                "/storage/emulated/0/._abc",
+                "/storage/emulated/0/a._abc",
+
+                "/storage/emulated/0/AlbumArtSmall.jpg",
+                "/storage/emulated/0/albumartsmall.jpg",
+
+                "/storage/emulated/0/AlbumArt_{}_Small.jpg",
+                "/storage/emulated/0/albumart_{a}_small.jpg",
+                "/storage/emulated/0/AlbumArt_{}_Large.jpg",
+                "/storage/emulated/0/albumart_{a}_large.jpg",
+
+                "/storage/emulated/0/Folder.jpg",
+                "/storage/emulated/0/folder.jpg",
+
+                "/storage/emulated/0/AlbumArt.jpg",
+                "/storage/emulated/0/albumart.jpg",
+                "/storage/emulated/0/albumart1.jpg",
+        }) {
+            final File file = new File(path);
+            final String name = file.getName();
+            assertEquals(LegacyMediaScannerTest.isNonMediaFile(path), isFileAlbumArt(name));
+        }
+
+        for (String path : new String[] {
+                "/storage/emulated/0/AlbumArtLarge.jpg",
+                "/storage/emulated/0/albumartlarge.jpg",
+        }) {
+            final File file = new File(path);
+            final String name = file.getName();
+            assertTrue(isFileAlbumArt(name));
         }
     }
 }

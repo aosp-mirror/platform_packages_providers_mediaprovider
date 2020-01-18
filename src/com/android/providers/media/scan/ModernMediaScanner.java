@@ -162,6 +162,9 @@ public class ModernMediaScanner implements MediaScanner {
 
     private static final Pattern PATTERN_YEAR = Pattern.compile("([1-9][0-9][0-9][0-9])");
 
+    private static final Pattern PATTERN_ALBUM_ART = Pattern.compile(
+            "(?i)(?:(?:^folder|(?:^AlbumArt(?:(?:_\\{.*\\}_)?(?:small|large))?))(?:\\.jpg$)|(?:\\._.*))");
+
     private final Context mContext;
     private final DrmManagerClient mDrmClient;
 
@@ -696,7 +699,10 @@ public class ModernMediaScanner implements MediaScanner {
             return scanItemDirectory(existingId, file, attrs, mimeType, volumeName);
         }
 
-        final int mediaType = MimeUtils.resolveMediaType(mimeType);
+        int mediaType = MimeUtils.resolveMediaType(mimeType);
+        if (mediaType == FileColumns.MEDIA_TYPE_IMAGE && isFileAlbumArt(name)) {
+            mediaType = FileColumns.MEDIA_TYPE_NONE;
+        }
         switch (mediaType) {
             case FileColumns.MEDIA_TYPE_AUDIO:
                 return scanItemAudio(existingId, file, attrs, mimeType, volumeName);
@@ -1298,6 +1304,11 @@ public class ModernMediaScanner implements MediaScanner {
             return true;
         }
         return false;
+    }
+
+    @VisibleForTesting
+    static boolean isFileAlbumArt(String name) {
+        return PATTERN_ALBUM_ART.matcher(name).matches();
     }
 
     /**

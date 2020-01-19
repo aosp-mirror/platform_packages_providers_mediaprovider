@@ -3909,11 +3909,22 @@ public class MediaProvider extends ContentProvider {
 
         public File ensureThumbnail(Uri uri, CancellationSignal signal) throws IOException {
             final File thumbFile = getThumbnailFile(uri);
-            thumbFile.getParentFile().mkdirs();
+            final File thumbDir = thumbFile.getParentFile();
+            thumbDir.mkdirs();
             if (!thumbFile.exists()) {
+                // When multiple threads race for the same thumbnail, the second
+                // thread could return a file with a thumbnail still in
+                // progress. We could add heavy per-ID locking to mitigate this
+                // rare race condition, but it's simpler to have both threads
+                // generate the same thumbnail using temporary files and rename
+                // them into place once finished.
+                final File thumbTempFile = File.createTempFile("thumb", null, thumbDir);
                 final Bitmap thumbnail = getThumbnailBitmap(uri, signal);
-                try (OutputStream out = new FileOutputStream(thumbFile)) {
+                try (OutputStream out = new FileOutputStream(thumbTempFile)) {
                     thumbnail.compress(Bitmap.CompressFormat.JPEG, 90, out);
+                }
+                if (!thumbTempFile.renameTo(thumbFile)) {
+                    thumbTempFile.delete();
                 }
             }
             return thumbFile;

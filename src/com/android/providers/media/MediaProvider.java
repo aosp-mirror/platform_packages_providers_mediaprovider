@@ -3563,19 +3563,15 @@ public class MediaProvider extends ContentProvider {
         synchronized (mDirectoryCache) {
             mDirectoryCache.clear();
 
-            helper.beginTransaction();
-            try {
+            return (int) helper.runWithTransaction(() -> {
                 int n = 0;
                 int total = 0;
                 do {
                     n = qb.delete(helper, userWhere, userWhereArgs);
                     total += n;
                 } while (n > 0);
-                helper.setTransactionSuccessful();
                 return total;
-            } finally {
-                helper.endTransaction();
-            }
+            });
         }
     }
 

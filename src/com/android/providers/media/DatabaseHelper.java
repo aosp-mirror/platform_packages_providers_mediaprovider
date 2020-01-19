@@ -314,31 +314,64 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     /**
-     * List of {@link Uri} that would have been sent directly via
-     * {@link ContentResolver#notifyChange}, but are instead being collected
-     * due to an ongoing transaction.
+     * Local state related to any transaction currently active on a specific
+     * thread, such as collecting the set of {@link Uri} that should be notified
+     * upon transaction success.
      */
-    private final ThreadLocal<List<Uri>> mNotifyChanges = new ThreadLocal<>();
+    private final ThreadLocal<TransactionState> mTransactionState = new ThreadLocal<>();
+
+    private static class TransactionState {
+        /**
+         * Flag indicating if this transaction has been marked as being
+         * successful.
+         */
+        public boolean successful;
+
+        /**
+         * List of {@link Uri} that would have been sent directly via
+         * {@link ContentResolver#notifyChange}, but are instead being collected
+         * due to this ongoing transaction.
+         */
+        public final List<Uri> notifyChanges = new ArrayList<>();
+    }
 
     public void beginTransaction() {
-        getWritableDatabase().beginTransaction();
-        getWritableDatabase().execSQL("UPDATE local_metadata SET generation=generation+1;");
-        mNotifyChanges.set(new ArrayList<>());
+        if (mTransactionState.get() != null) {
+            throw new IllegalStateException("Nested transactions not supported");
+        }
+        mTransactionState.set(new TransactionState());
+
+        final SQLiteDatabase db = getWritableDatabase();
+        db.beginTransaction();
+        db.execSQL("UPDATE local_metadata SET generation=generation+1;");
     }
 
     public void setTransactionSuccessful() {
-        getWritableDatabase().setTransactionSuccessful();
+        final TransactionState state = mTransactionState.get();
+        if (state == null) {
+            throw new IllegalStateException("No transaction in progress");
+        }
+        state.successful = true;
+
+        final SQLiteDatabase db = getWritableDatabase();
+        db.setTransactionSuccessful();
     }
 
     public void endTransaction() {
-        getWritableDatabase().endTransaction();
-        final List<Uri> uris = mNotifyChanges.get();
-        if (uris != null) {
+        final TransactionState state = mTransactionState.get();
+        if (state == null) {
+            throw new IllegalStateException("No transaction in progress");
+        }
+        mTransactionState.remove();
+
+        final SQLiteDatabase db = getWritableDatabase();
+        db.endTransaction();
+
+        if (state.successful) {
             BackgroundThread.getExecutor().execute(() -> {
-                notifyChangeInternal(uris);
+                notifyChangeInternal(state.notifyChanges);
             });
         }
-        mNotifyChanges.remove();
     }
 
     /**
@@ -347,7 +380,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * runnable inside a new transaction.
      */
     public long runWithTransaction(@NonNull LongSupplier s) {
-        if (mNotifyChanges.get() != null) {
+        if (mTransactionState.get() != null) {
             // Already inside a transaction, so we can run directly
             return s.getAsLong();
         } else {
@@ -370,9 +403,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      */
     public void notifyChange(@NonNull Uri uri) {
         if (LOGV) Log.v(TAG, "Notifying " + uri);
-        final List<Uri> uris = mNotifyChanges.get();
-        if (uris != null) {
-            uris.add(uri);
+        final TransactionState state = mTransactionState.get();
+        if (state != null) {
+            state.notifyChanges.add(uri);
         } else {
             BackgroundThread.getExecutor().execute(() -> {
                 notifySingleChangeInternal(uri);

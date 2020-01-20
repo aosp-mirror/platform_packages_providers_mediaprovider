@@ -20,6 +20,7 @@
     <string name="storage_description" msgid="4081716890357580107">"சாதனச் சேமிப்பகம்"</string>
     <string name="app_label" msgid="9035307001052716210">"மீடியா சேமிப்பிடம்"</string>
     <string name="artist_label" msgid="8105600993099120273">"கலைஞர்"</string>
+    <string name="unknown" msgid="2059049215682829375">"அறியாதது"</string>
     <string name="root_images" msgid="5861633549189045666">"படங்கள்"</string>
     <string name="root_videos" msgid="8792703517064649453">"வீடியோக்கள்"</string>
     <string name="root_audio" msgid="3505830755201326018">"ஆடியோ"</string>
@@ -28,41 +29,96 @@
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"அனுமதி"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"நிராகரி"</string>
     <!-- no translation found for permission_more_thumb (3530243737498196228) -->
-    <!-- no translation found for permission_more_text (7291997297174507324) -->
-    <!-- no translation found for permission_write_audio (3539998638571517689) -->
-    <!-- no translation found for permission_write_video (8695335317588947410) -->
-    <!-- no translation found for permission_write_image (9032317900030650266) -->
-    <!-- no translation found for permission_write_generic (3099002288826692797) -->
-    <!-- no translation found for permission_write_grant (3160858917750790130) -->
-    <skip />
-    <!-- no translation found for permission_write_deny (7090074081877311071) -->
-    <skip />
-    <!-- no translation found for permission_trash_audio (6116371056718108592) -->
-    <!-- no translation found for permission_trash_audio_info (5002847308948758655) -->
-    <!-- no translation found for permission_trash_video (7900111984425589714) -->
-    <!-- no translation found for permission_trash_video_info (4604871492287117394) -->
-    <!-- no translation found for permission_trash_image (9204660448046457869) -->
-    <!-- no translation found for permission_trash_image_info (4214797662365755925) -->
-    <!-- no translation found for permission_trash_generic (427752775725644743) -->
-    <!-- no translation found for permission_trash_generic_info (7932965324027540546) -->
-    <!-- no translation found for permission_trash_grant (2279489962040272178) -->
-    <skip />
-    <!-- no translation found for permission_trash_deny (2447949475239137483) -->
-    <skip />
-    <!-- no translation found for permission_untrash_audio (5716379492864435914) -->
-    <!-- no translation found for permission_untrash_video (4554487646802678525) -->
-    <!-- no translation found for permission_untrash_image (3209306923499767662) -->
-    <!-- no translation found for permission_untrash_generic (4607666277638602132) -->
-    <!-- no translation found for permission_untrash_grant (8438940480373451790) -->
-    <skip />
-    <!-- no translation found for permission_untrash_deny (8008055757469903604) -->
-    <skip />
-    <!-- no translation found for permission_delete_audio (6390202287788379608) -->
-    <!-- no translation found for permission_delete_video (1577978206881284398) -->
-    <!-- no translation found for permission_delete_image (8435429587272893063) -->
-    <!-- no translation found for permission_delete_generic (5949614272661654178) -->
-    <!-- no translation found for permission_delete_grant (8682518049167813926) -->
-    <skip />
-    <!-- no translation found for permission_delete_deny (3742780367403897552) -->
-    <skip />
+    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
+      <item quantity="other">அத்துடன் கூடுதலாக <xliff:g id="COUNT_1">^1</xliff:g></item>
+      <item quantity="one">அத்துடன் கூடுதலாக <xliff:g id="COUNT_0">^1</xliff:g></item>
+    </plurals>
+    <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ஆடியோ ஃபைல்களை மாற்ற <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இந்த ஆடியோ ஃபைலை மாற்ற <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+    </plurals>
+    <plurals name="permission_write_video" formatted="false" msgid="8695335317588947410">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> வீடியோக்களை மாற்ற <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இந்த வீடியோவை மாற்ற <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+    </plurals>
+    <plurals name="permission_write_image" formatted="false" msgid="9032317900030650266">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> படங்களை மாற்ற <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இந்தப் படத்தை மாற்ற <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+    </plurals>
+    <plurals name="permission_write_generic" formatted="false" msgid="3099002288826692797">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ஐயும் மாற்ற <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இதை மாற்ற <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+    </plurals>
+    <string name="permission_write_grant" msgid="3160858917750790130">"மாற்று"</string>
+    <string name="permission_write_deny" msgid="7090074081877311071">"வேண்டாம்"</string>
+    <plurals name="permission_trash_audio" formatted="false" msgid="6116371056718108592">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ஆடியோ ஃபைல்களைக் குப்பைக்கு நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இந்த ஆடியோ ஃபைலைக் குப்பைக்கு நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+    </plurals>
+    <plurals name="permission_trash_audio_info" formatted="false" msgid="5002847308948758655">
+      <item quantity="other"><xliff:g id="DURATION_1">^3</xliff:g> நாட்களுக்குப் பிறகு இந்த ஆடியோ ஃபைல்கள் நிரந்தரமாக நீக்கப்படும்</item>
+      <item quantity="one"><xliff:g id="DURATION_0">^3</xliff:g> நாட்களுக்குப் பிறகு இந்த ஆடியோ ஃபைல் நிரந்தரமாக நீக்கப்படும்</item>
+    </plurals>
+    <plurals name="permission_trash_video" formatted="false" msgid="7900111984425589714">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> வீடியோக்களைக் குப்பைக்கு நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இந்த வீடியோவைக் குப்பைக்கு நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+    </plurals>
+    <plurals name="permission_trash_video_info" formatted="false" msgid="4604871492287117394">
+      <item quantity="other">இந்த வீடியோக்கள் <xliff:g id="DURATION_1">^3</xliff:g> நாட்களுக்குப் பிறகு நிரந்தரமாக நீக்கப்படும்</item>
+      <item quantity="one">இந்த வீடியோ <xliff:g id="DURATION_0">^3</xliff:g> நாட்களுக்குப் பிறகு நிரந்தரமாக நீக்கப்படும்</item>
+    </plurals>
+    <plurals name="permission_trash_image" formatted="false" msgid="9204660448046457869">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> படங்களைக் குப்பைக்கு நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இந்தப் படத்தைக் குப்பைக்கு நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+    </plurals>
+    <plurals name="permission_trash_image_info" formatted="false" msgid="4214797662365755925">
+      <item quantity="other">இந்தப் படங்கள் <xliff:g id="DURATION_1">^3</xliff:g> நாட்களுக்குப் பிறகு நிரந்தரமாக நீக்கப்படும்</item>
+      <item quantity="one">இந்தப் படம் <xliff:g id="DURATION_0">^3</xliff:g> நாட்களுக்குப் பிறகு நிரந்தரமாக நீக்கப்படும்</item>
+    </plurals>
+    <plurals name="permission_trash_generic" formatted="false" msgid="427752775725644743">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ஐயும் குப்பைக்கு நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இதைக் குப்பைக்கு நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+    </plurals>
+    <plurals name="permission_trash_generic_info" formatted="false" msgid="7932965324027540546">
+      <item quantity="other">இவை <xliff:g id="DURATION_1">^3</xliff:g> நாட்களுக்குப் பிறகு நிரந்தரமாக நீக்கப்படும்</item>
+      <item quantity="one">இது <xliff:g id="DURATION_0">^3</xliff:g> நாட்களுக்குப் பிறகு நிரந்தரமாக நீக்கப்படும்</item>
+    </plurals>
+    <string name="permission_trash_grant" msgid="2279489962040272178">"குப்பைக்கு நகர்த்து"</string>
+    <string name="permission_trash_deny" msgid="2447949475239137483">"வேண்டாம்"</string>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="5716379492864435914">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ஆடியோ ஃபைல்களைக் குப்பையிலிருந்து நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இந்த ஆடியோ ஃபைலைக் குப்பையிலிருந்து நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+    </plurals>
+    <plurals name="permission_untrash_video" formatted="false" msgid="4554487646802678525">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> வீடியோக்களைக் குப்பையிலிருந்து நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இந்த வீடியோவைக் குப்பையிலிருந்து நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+    </plurals>
+    <plurals name="permission_untrash_image" formatted="false" msgid="3209306923499767662">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> படங்களைக் குப்பையிலிருந்து நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இந்தப் படத்தைக் குப்பையிலிருந்து நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+    </plurals>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="4607666277638602132">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ஐயும் குப்பையிலிருந்து நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இதைக் குப்பையிலிருந்து நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+    </plurals>
+    <string name="permission_untrash_grant" msgid="8438940480373451790">"குப்பையிலிருந்து நகர்த்து"</string>
+    <string name="permission_untrash_deny" msgid="8008055757469903604">"வேண்டாம்"</string>
+    <plurals name="permission_delete_audio" formatted="false" msgid="6390202287788379608">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ஆடியோ ஃபைல்களை நீக்க <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இந்த ஆடியோ ஃபைலை நீக்க <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+    </plurals>
+    <plurals name="permission_delete_video" formatted="false" msgid="1577978206881284398">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> வீடியோக்களை நீக்க <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இந்த வீடியோவை நீக்க <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+    </plurals>
+    <plurals name="permission_delete_image" formatted="false" msgid="8435429587272893063">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> படங்களை நீக்க <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இந்தப் படத்தை நீக்க <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+    </plurals>
+    <plurals name="permission_delete_generic" formatted="false" msgid="5949614272661654178">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ஐயும் நீக்க <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இதை நீக்க <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+    </plurals>
+    <string name="permission_delete_grant" msgid="8682518049167813926">"நீக்கு"</string>
+    <string name="permission_delete_deny" msgid="3742780367403897552">"வேண்டாம்"</string>
 </resources>

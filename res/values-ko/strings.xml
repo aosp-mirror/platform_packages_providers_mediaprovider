@@ -20,6 +20,7 @@
     <string name="storage_description" msgid="4081716890357580107">"로컬 저장소"</string>
     <string name="app_label" msgid="9035307001052716210">"미디어 저장소"</string>
     <string name="artist_label" msgid="8105600993099120273">"아티스트"</string>
+    <string name="unknown" msgid="2059049215682829375">"알 수 없음"</string>
     <string name="root_images" msgid="5861633549189045666">"이미지"</string>
     <string name="root_videos" msgid="8792703517064649453">"동영상"</string>
     <string name="root_audio" msgid="3505830755201326018">"오디오"</string>

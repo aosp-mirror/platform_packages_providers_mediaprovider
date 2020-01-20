@@ -20,6 +20,7 @@
     <string name="storage_description" msgid="4081716890357580107">"Penyimpanan lokal"</string>
     <string name="app_label" msgid="9035307001052716210">"Penyimpanan Media"</string>
     <string name="artist_label" msgid="8105600993099120273">"Artis"</string>
+    <string name="unknown" msgid="2059049215682829375">"Tidak diketahui"</string>
     <string name="root_images" msgid="5861633549189045666">"Gambar"</string>
     <string name="root_videos" msgid="8792703517064649453">"Video"</string>
     <string name="root_audio" msgid="3505830755201326018">"Audio"</string>

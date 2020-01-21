@@ -1498,7 +1498,7 @@ public final class MediaStore {
             public static final String TITLE = "title";
 
             /**
-             * The media type (audio, video, image or playlist)
+             * The media type (audio, video, image, document, playlist or subtitle)
              * of the file, or 0 for not a media file
              */
             @Column(Cursor.FIELD_TYPE_INTEGER)
@@ -1506,7 +1506,7 @@ public final class MediaStore {
 
             /**
              * Constant for the {@link #MEDIA_TYPE} column indicating that file
-             * is not an audio, image, video, playlist, or subtitles file.
+             * is not an audio, image, video, document, playlist, or subtitles file.
              */
             public static final int MEDIA_TYPE_NONE = 0;
 
@@ -1539,6 +1539,11 @@ public final class MediaStore {
              * is a subtitles or lyrics file.
              */
             public static final int MEDIA_TYPE_SUBTITLE = 5;
+
+            /**
+             * Constant for the {@link #MEDIA_TYPE} column indicating that file is a document file.
+             */
+            public static final int MEDIA_TYPE_DOCUMENT = 6;
         }
     }
 

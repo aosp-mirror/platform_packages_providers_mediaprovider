@@ -144,6 +144,7 @@ public class ModernMediaScanner implements MediaScanner {
     // TODO: deprecate playlist editing
     // TODO: deprecate PARENT column, since callers can't see directories
 
+    @GuardedBy("sDateFormat")
     private static final SimpleDateFormat sDateFormat;
 
     static {
@@ -1146,8 +1147,10 @@ public class ModernMediaScanner implements MediaScanner {
     private static @NonNull Optional<Long> parseOptionalDate(@Nullable String date) {
         if (TextUtils.isEmpty(date)) return Optional.empty();
         try {
-            final long value = sDateFormat.parse(date).getTime();
-            return (value > 0) ? Optional.of(value) : Optional.empty();
+            synchronized (sDateFormat) {
+                final long value = sDateFormat.parse(date).getTime();
+                return (value > 0) ? Optional.of(value) : Optional.empty();
+            }
         } catch (ParseException e) {
             return Optional.empty();
         }

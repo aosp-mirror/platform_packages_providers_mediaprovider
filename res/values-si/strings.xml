@@ -20,6 +20,7 @@
     <string name="storage_description" msgid="4081716890357580107">"පෙදෙසි ආචයනය"</string>
     <string name="app_label" msgid="9035307001052716210">"මාධ්‍ය ගබඩාව"</string>
     <string name="artist_label" msgid="8105600993099120273">"කලාකරු"</string>
+    <string name="unknown" msgid="2059049215682829375">"නොදනී"</string>
     <string name="root_images" msgid="5861633549189045666">"රූප"</string>
     <string name="root_videos" msgid="8792703517064649453">"වීඩියෝ"</string>
     <string name="root_audio" msgid="3505830755201326018">"ශ්‍රව්‍යය"</string>

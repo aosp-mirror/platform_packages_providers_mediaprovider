@@ -69,7 +69,7 @@ public class MediaUpgradeReceiver extends BroadcastReceiver {
                     try {
                         DatabaseHelper helper = new DatabaseHelper(
                                 context, file, MediaProvider.isInternalMediaDatabaseName(file),
-                                false, false, Column.class, Metrics::logSchemaChange);
+                                false, false, Column.class, Metrics::logSchemaChange, null);
                         db = helper.getWritableDatabase();
                     } catch (Throwable t) {
                         Log.wtf(TAG, "Error during upgrade of media db " + file, t);

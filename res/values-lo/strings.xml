@@ -20,6 +20,7 @@
     <string name="storage_description" msgid="4081716890357580107">"ບ່ອນຈັດເກັບຂໍ້ມູນໃນເຄື່ອງ"</string>
     <string name="app_label" msgid="9035307001052716210">"ພື້ນທີ່ຈັດເກັບຂໍ້ມູນມີເດຍ"</string>
     <string name="artist_label" msgid="8105600993099120273">"ສິນລະປິນ"</string>
+    <string name="unknown" msgid="2059049215682829375">"ບໍ່ຮູ້ຈັກ"</string>
     <string name="root_images" msgid="5861633549189045666">"ຮູບພາບ"</string>
     <string name="root_videos" msgid="8792703517064649453">"ວິດີໂອ"</string>
     <string name="root_audio" msgid="3505830755201326018">"ສຽງ"</string>

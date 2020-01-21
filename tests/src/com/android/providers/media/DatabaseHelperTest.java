@@ -425,7 +425,8 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperO extends DatabaseHelper {
         public DatabaseHelperO(Context context, String name) {
-            super(context, name, DatabaseHelper.VERSION_O, false, false, true, Column.class, null);
+            super(context, name, DatabaseHelper.VERSION_O,
+                    false, false, true, Column.class, null, null);
         }
 
         @Override
@@ -436,7 +437,8 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperP extends DatabaseHelper {
         public DatabaseHelperP(Context context, String name) {
-            super(context, name, DatabaseHelper.VERSION_P, false, false, true, Column.class, null);
+            super(context, name, DatabaseHelper.VERSION_P,
+                    false, false, true, Column.class, null, null);
         }
 
         @Override
@@ -447,7 +449,8 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperQ extends DatabaseHelper {
         public DatabaseHelperQ(Context context, String name) {
-            super(context, name, DatabaseHelper.VERSION_Q, false, false, true, Column.class, null);
+            super(context, name, DatabaseHelper.VERSION_Q,
+                    false, false, true, Column.class, null, null);
         }
 
         @Override
@@ -458,7 +461,8 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperR extends DatabaseHelper {
         public DatabaseHelperR(Context context, String name) {
-            super(context, name, DatabaseHelper.VERSION_R, false, false, true, Column.class, null);
+            super(context, name, DatabaseHelper.VERSION_R,
+                    false, false, true, Column.class, null, null);
         }
     }
 

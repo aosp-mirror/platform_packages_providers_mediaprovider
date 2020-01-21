@@ -20,6 +20,7 @@
     <string name="storage_description" msgid="4081716890357580107">"Жергілікті жад"</string>
     <string name="app_label" msgid="9035307001052716210">"Мультимедиа қоймасы"</string>
     <string name="artist_label" msgid="8105600993099120273">"Орындаушы"</string>
+    <string name="unknown" msgid="2059049215682829375">"Белгісіз"</string>
     <string name="root_images" msgid="5861633549189045666">"Кескіндер"</string>
     <string name="root_videos" msgid="8792703517064649453">"Бейнелер"</string>
     <string name="root_audio" msgid="3505830755201326018">"Aудио"</string>

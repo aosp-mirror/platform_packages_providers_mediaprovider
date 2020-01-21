@@ -20,6 +20,7 @@
     <string name="storage_description" msgid="4081716890357580107">"Hapësira ruajtëse lokale"</string>
     <string name="app_label" msgid="9035307001052716210">"Hapësira ruajtëse e medias"</string>
     <string name="artist_label" msgid="8105600993099120273">"Artisti"</string>
+    <string name="unknown" msgid="2059049215682829375">"I panjohur"</string>
     <string name="root_images" msgid="5861633549189045666">"Fotografitë"</string>
     <string name="root_videos" msgid="8792703517064649453">"Videot"</string>
     <string name="root_audio" msgid="3505830755201326018">"Audioja"</string>

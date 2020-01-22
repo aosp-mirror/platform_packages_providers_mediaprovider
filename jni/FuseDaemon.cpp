@@ -98,6 +98,19 @@ class ScopedTrace {
 constexpr size_t MAX_READ_SIZE = 128 * 1024;
 // Stolen from: UserHandle#getUserId
 constexpr int PER_USER_RANGE = 100000;
+// Cache inode attributes for a 'short' time so that performance is decent and last modified time
+// stamps are not too stale
+constexpr double DEFAULT_ATTR_TIMEOUT_SECONDS = 10;
+// Ensure the VFS does not cache dentries, if it caches, the following scenario could occur:
+// 1. Process A has access to file A and does a lookup
+// 2. Process B does not have access to file A and does a lookup
+// (2) will succeed because the lookup request will not be sent from kernel to the FUSE daemon
+// and the kernel will respond from cache. Even if this by itself is not a security risk
+// because subsequent FUSE requests will fail if B does not have access to the resource.
+// It does cause indeterministic behavior because whether (2) succeeds or not depends on if
+// (1) occurred.
+// We prevent this caching by setting the entry_timeout value to 0.
+constexpr double DEFAULT_ENTRY_TIMEOUT_SECONDS = 0;
 
 /*
  * In order to avoid double caching with fuse, call fadvise on the file handles
@@ -368,6 +381,30 @@ static struct fuse* get_fuse(fuse_req_t req) {
     return reinterpret_cast<struct fuse*>(fuse_req_userdata(req));
 }
 
+static bool is_android_path(const string& path, const string& fuse_path, uid_t uid) {
+    int user_id = uid / PER_USER_RANGE;
+    const std::string android_path = fuse_path + "/" + std::to_string(user_id) + "/Android";
+    return path.rfind(android_path, 0) == 0;
+}
+
+static double get_attr_timeout(const string& path, uid_t uid, struct fuse* fuse, node* parent) {
+    if (fuse->IsRoot(parent) || is_android_path(path, fuse->path, uid)) {
+        // The /0 and /0/Android attrs can be always cached, as they never change
+        return DBL_MAX;
+    } else {
+        return DEFAULT_ATTR_TIMEOUT_SECONDS;
+    }
+}
+
+static double get_entry_timeout(const string& path, uid_t uid, struct fuse* fuse, node* parent) {
+    if (fuse->IsRoot(parent) || is_android_path(path, fuse->path, uid)) {
+        // The /0 and /0/Android dentries can be always cached, as they are visible to all apps
+        return DBL_MAX;
+    } else {
+        return DEFAULT_ENTRY_TIMEOUT_SECONDS;
+    }
+}
+
 static node* make_node_entry(fuse_req_t req, node* parent, const string& name, const string& path,
                              struct fuse_entry_param* e, int* error_code) {
     struct fuse* fuse = get_fuse(req);
@@ -388,31 +425,14 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
         fuse->NodeCreated(node);
     }
 
-    // Manipulate attr here if needed
-    e->attr_timeout = 10;
-    int user_id = ctx->uid / PER_USER_RANGE;
-    const std::string android_path = fuse->path + "/" + std::to_string(user_id) + "/Android";
-    // Ensure the VFS does not cache dentries, if it caches, the following scenario could occur:
-    // 1. Process A has access to file A and does a lookup
-    // 2. Process B does not have access to file A and does a lookup
-    // (2) will succeed because the lookup request will not be sent from kernel to the FUSE daemon
-    // and the kernel will respond from cache. Even if this by itself is not a security risk
-    // because subsequent FUSE requests will fail if B does not have access to the resource.
-    // It does cause indeterministic behavior because whether (2) succeeds or not depends on if
-    // (1) occurred.
-    // We prevent this caching by setting the entry_timeout value to 0.
-    // The /0 and /0/Android paths are exempt, as they are visible to all apps.
-    if (fuse->IsRoot(parent) || path.rfind(android_path, 0) == 0) {
-        e->entry_timeout = DBL_MAX;
-    } else {
-        e->entry_timeout = 0;
-    }
-    e->ino = fuse->ToInode(node);
     // This FS is not being exported via NFS so just a fixed generation number
     // for now. If we do need this, we need to increment the generation ID each
     // time the fuse daemon restarts because that's what it takes for us to
     // reuse inode numbers.
     e->generation = 0;
+    e->ino = fuse->ToInode(node);
+    e->entry_timeout = get_entry_timeout(path, ctx->uid, fuse, parent);
+    e->attr_timeout = get_attr_timeout(path, ctx->uid, fuse, parent);
 
     return node;
 }
@@ -535,7 +555,7 @@ static void pf_getattr(fuse_req_t req,
     if (lstat(path.c_str(), &s) < 0) {
         fuse_reply_err(req, errno);
     } else {
-        fuse_reply_attr(req, &s, 10);
+        fuse_reply_attr(req, &s, get_attr_timeout(path, ctx->uid, fuse, nullptr));
     }
 }
 
@@ -601,7 +621,7 @@ static void pf_setattr(fuse_req_t req,
     }
 
     lstat(path.c_str(), attr);
-    fuse_reply_attr(req, attr, 10);
+    fuse_reply_attr(req, attr, get_attr_timeout(path, ctx->uid, fuse, nullptr));
 }
 
 static void pf_canonical_path(fuse_req_t req, fuse_ino_t ino)

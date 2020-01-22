@@ -403,7 +403,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     // We prevent this caching by setting the entry_timeout value to 0.
     // The /0 and /0/Android paths are exempt, as they are visible to all apps.
     if (fuse->IsRoot(parent) || path.rfind(android_path, 0) == 0) {
-        e->entry_timeout = 10;
+        e->entry_timeout = DBL_MAX;
     } else {
         e->entry_timeout = 0;
     }

@@ -56,6 +56,16 @@ public class MimeUtilsTest {
                 MimeUtils.resolveMediaType("video/mpeg"));
         assertEquals(FileColumns.MEDIA_TYPE_IMAGE,
                 MimeUtils.resolveMediaType("image/jpeg"));
+        assertEquals(FileColumns.MEDIA_TYPE_DOCUMENT,
+                MimeUtils.resolveMediaType("text/plain"));
+        assertEquals(FileColumns.MEDIA_TYPE_DOCUMENT,
+                MimeUtils.resolveMediaType("application/pdf"));
+        assertEquals(FileColumns.MEDIA_TYPE_DOCUMENT,
+                MimeUtils.resolveMediaType("application/msword"));
+        assertEquals(FileColumns.MEDIA_TYPE_DOCUMENT,
+                MimeUtils.resolveMediaType("application/vnd.ms-excel"));
+        assertEquals(FileColumns.MEDIA_TYPE_DOCUMENT,
+                MimeUtils.resolveMediaType("application/vnd.ms-powerpoint"));
         assertEquals(FileColumns.MEDIA_TYPE_NONE,
                 MimeUtils.resolveMediaType("application/x-does-not-exist"));
 

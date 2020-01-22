@@ -16,6 +16,7 @@
 
 package com.android.providers.media;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import android.content.ContentResolver;
@@ -23,11 +24,14 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.util.Pair;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
+
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,6 +52,7 @@ public class MediaDocumentsProviderTest {
                 MediaDocumentsProvider.TYPE_AUDIO_ROOT,
                 MediaDocumentsProvider.TYPE_VIDEOS_ROOT,
                 MediaDocumentsProvider.TYPE_IMAGES_ROOT,
+                MediaDocumentsProvider.TYPE_DOCUMENTS_ROOT,
         }) {
             assertProbe(resolver, "root", root, "search");
 
@@ -58,6 +63,7 @@ public class MediaDocumentsProviderTest {
         for (String recent : new String[] {
                 MediaDocumentsProvider.TYPE_VIDEOS_ROOT,
                 MediaDocumentsProvider.TYPE_IMAGES_ROOT,
+                MediaDocumentsProvider.TYPE_DOCUMENTS_ROOT,
         }) {
             assertProbe(resolver, "root", recent, "recent");
         }
@@ -65,6 +71,7 @@ public class MediaDocumentsProviderTest {
         for (String dir : new String[] {
                 MediaDocumentsProvider.TYPE_VIDEOS_BUCKET,
                 MediaDocumentsProvider.TYPE_IMAGES_BUCKET,
+                MediaDocumentsProvider.TYPE_DOCUMENTS_BUCKET,
         }) {
             assertProbe(resolver, "document", dir, "children");
         }
@@ -74,13 +81,57 @@ public class MediaDocumentsProviderTest {
                 MediaDocumentsProvider.TYPE_ALBUM,
                 MediaDocumentsProvider.TYPE_VIDEOS_BUCKET,
                 MediaDocumentsProvider.TYPE_IMAGES_BUCKET,
+                MediaDocumentsProvider.TYPE_DOCUMENTS_BUCKET,
 
                 MediaDocumentsProvider.TYPE_AUDIO,
                 MediaDocumentsProvider.TYPE_VIDEO,
                 MediaDocumentsProvider.TYPE_IMAGE,
+                MediaDocumentsProvider.TYPE_DOCUMENT,
         }) {
                 assertProbe(resolver, "document", item);
         }
+    }
+
+    @Test
+    public void testBuildSearchSelection() {
+        final String displayName = "foo";
+        final String[] mimeTypes = new String[] {"text/csv", "video/*", "image/png", "audio/*"};
+        final long lastModifiedAfter = 1000 * 1000;
+        final long fileSizeOver = 1000 * 1000;
+        final String columnDisplayName = "display";
+        final String columnMimeType = "mimeType";
+        final String columnLastModified = "lastModified";
+        final String columnFileSize = "fileSize";
+        final String resultSelection =
+                "display LIKE ? AND lastModified > 1000 AND fileSize > 1000000 AND (mimeType LIKE"
+                        + " ? OR mimeType LIKE ? OR mimeType IN (?,?))";
+
+        final Pair<String, String[]> selectionPair = MediaDocumentsProvider.buildSearchSelection(
+                displayName, mimeTypes, lastModifiedAfter, fileSizeOver, columnDisplayName,
+                columnMimeType, columnLastModified, columnFileSize);
+
+        assertEquals(resultSelection, selectionPair.first);
+        assertEquals(5, selectionPair.second.length);
+        assertEquals("%" + displayName + "%", selectionPair.second[0]);
+        assertMimeType(mimeTypes[1], selectionPair.second[1]);
+        assertMimeType(mimeTypes[3], selectionPair.second[2]);
+        assertMimeType(mimeTypes[0], selectionPair.second[3]);
+        assertMimeType(mimeTypes[2], selectionPair.second[4]);
+    }
+
+    @Test
+    public void testAddDocumentSelection() {
+        final String selection = "";
+        final String[] selectionArgs = new String[]{};
+        final String resultSelection = "media_type=?";
+
+        final Pair<String, String[]> selectionPair = MediaDocumentsProvider.addDocumentSelection(
+                selection, selectionArgs);
+
+        assertEquals(resultSelection, selectionPair.first);
+        assertEquals(1, selectionPair.second.length);
+        assertEquals(MediaStore.Files.FileColumns.MEDIA_TYPE_DOCUMENT,
+                Integer.parseInt(selectionPair.second[0]));
     }
 
     private static void assertProbe(ContentResolver resolver, String... paths) {
@@ -91,6 +142,14 @@ public class MediaDocumentsProviderTest {
         }
         try (Cursor c = resolver.query(probe.build(), null, Bundle.EMPTY, null)) {
             assertNotNull(Arrays.toString(paths), c);
+        }
+    }
+
+    private static void assertMimeType(String expected, String actual) {
+        if (expected.endsWith("/*")) {
+            assertEquals(expected.substring(0, expected.length() - 1) + "%", actual);
+        } else {
+            assertEquals(expected, actual);
         }
     }
 }

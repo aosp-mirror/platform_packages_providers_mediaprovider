@@ -2652,8 +2652,13 @@ public class MediaProvider extends ContentProvider {
             case FILES: {
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
                 final boolean isDownload = maybeMarkAsDownload(initialValues);
+                final boolean isDocumentType = MimeUtils.isDocumentMimeType(
+                        initialValues.getAsString((MediaColumns.MIME_TYPE)));
+                final int mediaType = isDocumentType ? FileColumns.MEDIA_TYPE_DOCUMENT
+                        : FileColumns.MEDIA_TYPE_NONE;
                 rowId = insertFile(qb, helper, match, uri, extras, initialValues,
-                        FileColumns.MEDIA_TYPE_NONE, true);
+                        mediaType, true);
+
                 if (rowId > 0) {
                     newUri = Files.getContentUri(originalVolumeName, rowId);
                 }

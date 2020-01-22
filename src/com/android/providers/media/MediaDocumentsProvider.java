@@ -53,6 +53,7 @@ import android.provider.MediaStore.Audio.Albums;
 import android.provider.MediaStore.Audio.ArtistColumns;
 import android.provider.MediaStore.Audio.Artists;
 import android.provider.MediaStore.Audio.AudioColumns;
+import android.provider.MediaStore.Files;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.ImageColumns;
@@ -112,6 +113,8 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     private static final String AUDIO_MIME_TYPES = joinNewline(
             "audio/*", "application/ogg", "application/x-flac");
 
+    private static final String DOCUMENT_MIME_TYPES = joinNewline("*/*");
+
     static final String TYPE_IMAGES_ROOT = "images_root";
     static final String TYPE_IMAGES_BUCKET = "images_bucket";
     static final String TYPE_IMAGE = "image";
@@ -125,9 +128,14 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     static final String TYPE_ARTIST = "artist";
     static final String TYPE_ALBUM = "album";
 
+    static final String TYPE_DOCUMENTS_ROOT = "documents_root";
+    static final String TYPE_DOCUMENTS_BUCKET = "documents_bucket";
+    static final String TYPE_DOCUMENT = "document";
+
     private static boolean sReturnedImagesEmpty = false;
     private static boolean sReturnedVideosEmpty = false;
     private static boolean sReturnedAudioEmpty = false;
+    private static boolean sReturnedDocumentsEmpty = false;
 
     private static String joinNewline(String... args) {
         return TextUtils.join("\n", args);
@@ -141,7 +149,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     public static final String METADATA_VIDEO_LONGITUTE = "android.media.metadata.video:longitude";
 
     /*
-     * A mapping between media colums and metadata tag names. These keys of the
+     * A mapping between media columns and metadata tag names. These keys of the
      * map form the projection for queries against the media store database.
      */
     private static final Map<String, String> IMAGE_COLUMN_MAP = new HashMap<>();
@@ -219,6 +227,9 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             } else if (type == FileColumns.MEDIA_TYPE_AUDIO && sReturnedAudioEmpty) {
                 sReturnedAudioEmpty = false;
                 notifyRootsChanged(context);
+            } else if (type == FileColumns.MEDIA_TYPE_DOCUMENT && sReturnedDocumentsEmpty) {
+                sReturnedDocumentsEmpty = false;
+                notifyRootsChanged(context);
             }
         });
     }
@@ -243,6 +254,11 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             } else if (type == FileColumns.MEDIA_TYPE_AUDIO) {
                 final Uri uri = DocumentsContract.buildDocumentUri(
                         AUTHORITY, getDocIdForIdent(TYPE_AUDIO, id));
+                context.revokeUriPermission(uri, ~0);
+                notifyRootsChanged(context);
+            } else if (type == FileColumns.MEDIA_TYPE_DOCUMENT) {
+                final Uri uri = DocumentsContract.buildDocumentUri(
+                        AUTHORITY, getDocIdForIdent(TYPE_DOCUMENT, id));
                 context.revokeUriPermission(uri, ~0);
                 notifyRootsChanged(context);
             }
@@ -279,11 +295,11 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         return projection != null ? projection : DEFAULT_DOCUMENT_PROJECTION;
     }
 
-    private static Pair<String, String[]> buildSearchSelection(String displayName,
+    static Pair<String, String[]> buildSearchSelection(String displayName,
             String[] mimeTypes, long lastModifiedAfter, long fileSizeOver, String columnDisplayName,
             String columnMimeType, String columnLastModified, String columnFileSize) {
         StringBuilder selection = new StringBuilder();
-        final ArrayList<String> selectionArgs = new ArrayList<>();
+        final List<String> selectionArgs = new ArrayList<>();
 
         if (!displayName.isEmpty()) {
             selection.append(columnDisplayName + " LIKE ?");
@@ -309,22 +325,64 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         }
 
         if (mimeTypes != null && mimeTypes.length > 0) {
-            for (int i = 0; i < mimeTypes.length; i++) {
-                final String type = mimeTypes[i];
-                if (i == 0) {
-                    if (selection.length() > 0) {
-                        selection.append(" AND ");
-                    }
-                    selection.append(columnMimeType + " IN ( ?");
-                } else {
-                    selection.append(", ?");
-                }
-                selectionArgs.add(type);
+            if (selection.length() > 0) {
+                selection.append(" AND ");
             }
-            selection.append(" )");
+
+            selection.append("(");
+            final List<String> tempSelectionArgs = new ArrayList<>();
+            final StringBuilder tempSelection = new StringBuilder();
+            List<String> wildcardMimeTypeList = new ArrayList<>();
+            for (int i = 0; i < mimeTypes.length; ++i) {
+                final String mimeType = mimeTypes[i];
+                if (!TextUtils.isEmpty(mimeType) && mimeType.endsWith("/*")) {
+                    wildcardMimeTypeList.add(mimeType);
+                    continue;
+                }
+
+                if (tempSelectionArgs.size() > 0) {
+                    tempSelection.append(",");
+                }
+                tempSelection.append("?");
+                tempSelectionArgs.add(mimeType);
+            }
+
+            for (int i = 0; i < wildcardMimeTypeList.size(); i++) {
+                selection.append(columnMimeType + " LIKE ?")
+                        .append((i != wildcardMimeTypeList.size() - 1) ? " OR " : "");
+                final String mimeType = wildcardMimeTypeList.get(i);
+                selectionArgs.add(mimeType.substring(0, mimeType.length() - 1) + "%");
+            }
+
+            if (tempSelectionArgs.size() > 0) {
+                if (wildcardMimeTypeList.size() > 0) {
+                    selection.append(" OR ");
+                }
+                selection.append(columnMimeType + " IN (")
+                        .append(tempSelection.toString())
+                        .append(")");
+                selectionArgs.addAll(tempSelectionArgs);
+            }
+
+            selection.append(")");
         }
 
         return new Pair<>(selection.toString(), selectionArgs.toArray(new String[0]));
+    }
+
+    static Pair<String, String[]> addDocumentSelection(String selection,
+            String[] selectionArgs) {
+        String retSelection = "";
+        final List<String> retSelectionArgs = new ArrayList<>();
+        if (!TextUtils.isEmpty(selection) && selectionArgs != null) {
+            retSelection = selection + " AND ";
+            for (int i = 0; i < selectionArgs.length; i++) {
+                retSelectionArgs.add(selectionArgs[i]);
+            }
+        }
+        retSelection += FileColumns.MEDIA_TYPE + "=?";
+        retSelectionArgs.add("" + FileColumns.MEDIA_TYPE_DOCUMENT);
+        return new Pair<>(retSelection, retSelectionArgs.toArray(new String[0]));
     }
 
     /**
@@ -372,6 +430,9 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         } else if (TYPE_AUDIO.equals(ident.type) && ident.id != -1) {
             return ContentUris.withAppendedId(
                     Audio.Media.EXTERNAL_CONTENT_URI, ident.id);
+        } else if (TYPE_DOCUMENT.equals(ident.type) && ident.id != -1) {
+            return ContentUris.withAppendedId(
+                    Files.EXTERNAL_CONTENT_URI, ident.id);
         } else {
             throw new UnsupportedOperationException("Unsupported document " + docId);
         }
@@ -514,6 +575,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         includeImagesRoot(result);
         includeVideosRoot(result);
         includeAudioRoot(result);
+        includeDocumentsRoot(result);
         return result;
     }
 
@@ -599,6 +661,27 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 copyNotificationUri(result, cursor);
                 if (cursor.moveToFirst()) {
                     includeAudio(result, cursor);
+                }
+            }  else if (TYPE_DOCUMENTS_ROOT.equals(ident.type)) {
+                // single root
+                includeDocumentsRootDocument(result);
+            } else if (TYPE_DOCUMENTS_BUCKET.equals(ident.type)) {
+                // single bucket
+                final Pair<String, String[]> selectionPair = addDocumentSelection(
+                        FileColumns.BUCKET_ID + "=?", queryArgs);
+                cursor = resolver.query(Files.EXTERNAL_CONTENT_URI, DocumentsBucketQuery.PROJECTION,
+                        selectionPair.first, selectionPair.second, DocumentsBucketQuery.SORT_ORDER);
+                copyNotificationUri(result, cursor);
+                if (cursor.moveToFirst()) {
+                    includeDocumentsBucket(result, cursor);
+                }
+            } else if (TYPE_DOCUMENT.equals(ident.type)) {
+                // single document
+                cursor = resolver.query(Files.EXTERNAL_CONTENT_URI, DocumentQuery.PROJECTION,
+                        FileColumns._ID + "=?", queryArgs, null);
+                copyNotificationUri(result, cursor);
+                if (cursor.moveToFirst()) {
+                    includeDocument(result, cursor);
                 }
             } else {
                 throw new UnsupportedOperationException("Unsupported document " + docId);
@@ -692,6 +775,30 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 while (cursor.moveToNext()) {
                     includeAudio(result, cursor);
                 }
+            } else if (TYPE_DOCUMENTS_ROOT.equals(ident.type)) {
+                // include all unique buckets
+                final Pair<String, String[]> selectionPair = addDocumentSelection(null, null);
+                cursor = resolver.query(Files.EXTERNAL_CONTENT_URI, DocumentsBucketQuery.PROJECTION,
+                        selectionPair.first, selectionPair.second, DocumentsBucketQuery.SORT_ORDER);
+                copyNotificationUri(result, cursor);
+                long lastId = Long.MIN_VALUE;
+                while (cursor.moveToNext()) {
+                    final long id = cursor.getLong(DocumentsBucketQuery.BUCKET_ID);
+                    if (lastId != id) {
+                        includeDocumentsBucket(result, cursor);
+                        lastId = id;
+                    }
+                }
+            } else if (TYPE_DOCUMENTS_BUCKET.equals(ident.type)) {
+                // include documents under bucket
+                final Pair<String, String[]> selectionPair = addDocumentSelection(
+                        FileColumns.BUCKET_ID + "=?", queryArgs);
+                cursor = resolver.query(Files.EXTERNAL_CONTENT_URI, DocumentQuery.PROJECTION,
+                        selectionPair.first, selectionPair.second, null);
+                copyNotificationUri(result, cursor);
+                while (cursor.moveToNext()) {
+                    includeDocument(result, cursor);
+                }
             } else {
                 throw new UnsupportedOperationException("Unsupported document " + docId);
             }
@@ -745,6 +852,16 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 copyNotificationUri(result, cursor);
                 while (cursor.moveToNext() && result.getCount() < limit) {
                     includeVideo(result, cursor);
+                }
+            } else if (TYPE_DOCUMENTS_ROOT.equals(rootId)) {
+                // include all unique buckets
+                final Pair<String, String[]> selectionPair = addDocumentSelection(null, null);
+                cursor = resolver.query(Files.EXTERNAL_CONTENT_URI, DocumentQuery.PROJECTION,
+                        selectionPair.first, selectionPair.second,
+                        FileColumns.DATE_MODIFIED + " DESC");
+                copyNotificationUri(result, cursor);
+                while (cursor.moveToNext() && result.getCount() < limit) {
+                    includeDocument(result, cursor);
                 }
             } else {
                 throw new UnsupportedOperationException("Unsupported root " + rootId);
@@ -837,6 +954,21 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                     while (cursor.moveToNext()) {
                         includeAudio(result, cursor);
                     }
+                }
+            } else if (TYPE_DOCUMENTS_ROOT.equals(rootId)) {
+                final Pair<String, String[]> initialSelectionPair = buildSearchSelection(
+                        displayName, mimeTypes, lastModifiedAfter, fileSizeOver,
+                        FileColumns.DISPLAY_NAME, FileColumns.MIME_TYPE, FileColumns.DATE_MODIFIED,
+                        FileColumns.SIZE);
+                final Pair<String, String[]> selectionPair = addDocumentSelection(
+                        initialSelectionPair.first, initialSelectionPair.second);
+
+                cursor = resolver.query(Files.EXTERNAL_CONTENT_URI, DocumentQuery.PROJECTION,
+                        selectionPair.first, selectionPair.second,
+                        FileColumns.DATE_MODIFIED + " DESC");
+                copyNotificationUri(result, cursor);
+                while (cursor.moveToNext()) {
+                    includeDocument(result, cursor);
                 }
             } else {
                 throw new UnsupportedOperationException("Unsupported root " + rootId);
@@ -992,6 +1124,22 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         row.add(Root.COLUMN_QUERY_ARGS, SUPPORTED_QUERY_ARGS);
     }
 
+    private void includeDocumentsRoot(MatrixCursor result) {
+        int flags = Root.FLAG_LOCAL_ONLY | Root.FLAG_SUPPORTS_RECENTS | Root.FLAG_SUPPORTS_SEARCH;
+        if (isEmpty(Files.EXTERNAL_CONTENT_URI)) {
+            flags |= Root.FLAG_EMPTY;
+            sReturnedDocumentsEmpty = true;
+        }
+
+        final RowBuilder row = result.newRow();
+        row.add(Root.COLUMN_ROOT_ID, TYPE_DOCUMENTS_ROOT);
+        row.add(Root.COLUMN_FLAGS, flags);
+        row.add(Root.COLUMN_TITLE, getContext().getString(R.string.root_documents));
+        row.add(Root.COLUMN_DOCUMENT_ID, TYPE_DOCUMENTS_ROOT);
+        row.add(Root.COLUMN_MIME_TYPES, DOCUMENT_MIME_TYPES);
+        row.add(Root.COLUMN_QUERY_ARGS, SUPPORTED_QUERY_ARGS);
+    }
+
     private void includeImagesRootDocument(MatrixCursor result) {
         final RowBuilder row = result.newRow();
         row.add(Document.COLUMN_DOCUMENT_ID, TYPE_IMAGES_ROOT);
@@ -1014,6 +1162,15 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final RowBuilder row = result.newRow();
         row.add(Document.COLUMN_DOCUMENT_ID, TYPE_AUDIO_ROOT);
         row.add(Document.COLUMN_DISPLAY_NAME, getContext().getString(R.string.root_audio));
+        row.add(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
+    }
+
+    private void includeDocumentsRootDocument(MatrixCursor result) {
+        final RowBuilder row = result.newRow();
+        row.add(Document.COLUMN_DOCUMENT_ID, TYPE_DOCUMENTS_ROOT);
+        row.add(Document.COLUMN_DISPLAY_NAME, getContext().getString(R.string.root_documents));
+        row.add(Document.COLUMN_FLAGS,
+                Document.FLAG_DIR_PREFERS_GRID | Document.FLAG_DIR_PREFERS_LAST_MODIFIED);
         row.add(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
     }
 
@@ -1135,6 +1292,63 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 Document.FLAG_SUPPORTS_THUMBNAIL
                     | Document.FLAG_SUPPORTS_DELETE
                     | Document.FLAG_SUPPORTS_METADATA);
+    }
+
+    private interface DocumentsBucketQuery {
+        final String[] PROJECTION = new String[] {
+                FileColumns.BUCKET_ID,
+                FileColumns.BUCKET_DISPLAY_NAME,
+                FileColumns.DATE_MODIFIED };
+        final String SORT_ORDER = FileColumns.BUCKET_ID + ", " + FileColumns.DATE_MODIFIED
+                + " DESC";
+
+        final int BUCKET_ID = 0;
+        final int BUCKET_DISPLAY_NAME = 1;
+        final int DATE_MODIFIED = 2;
+    }
+
+    private void includeDocumentsBucket(MatrixCursor result, Cursor cursor) {
+        final long id = cursor.getLong(DocumentsBucketQuery.BUCKET_ID);
+        final String docId = getDocIdForIdent(TYPE_DOCUMENTS_BUCKET, id);
+
+        final RowBuilder row = result.newRow();
+        row.add(Document.COLUMN_DOCUMENT_ID, docId);
+        row.add(Document.COLUMN_DISPLAY_NAME,
+                cleanUpMediaBucketName(cursor.getString(DocumentsBucketQuery.BUCKET_DISPLAY_NAME)));
+        row.add(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
+        row.add(Document.COLUMN_LAST_MODIFIED,
+                cursor.getLong(DocumentsBucketQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
+        row.add(Document.COLUMN_FLAGS,
+                Document.FLAG_DIR_PREFERS_GRID | Document.FLAG_DIR_PREFERS_LAST_MODIFIED);
+    }
+
+    private interface DocumentQuery {
+        final String[] PROJECTION = new String[] {
+                FileColumns._ID,
+                FileColumns.DISPLAY_NAME,
+                FileColumns.MIME_TYPE,
+                FileColumns.SIZE,
+                FileColumns.DATE_MODIFIED };
+
+        final int _ID = 0;
+        final int DISPLAY_NAME = 1;
+        final int MIME_TYPE = 2;
+        final int SIZE = 3;
+        final int DATE_MODIFIED = 4;
+    }
+
+    private void includeDocument(MatrixCursor result, Cursor cursor) {
+        final long id = cursor.getLong(DocumentQuery._ID);
+        final String docId = getDocIdForIdent(TYPE_DOCUMENT, id);
+
+        final RowBuilder row = result.newRow();
+        row.add(Document.COLUMN_DOCUMENT_ID, docId);
+        row.add(Document.COLUMN_DISPLAY_NAME, cursor.getString(DocumentQuery.DISPLAY_NAME));
+        row.add(Document.COLUMN_SIZE, cursor.getLong(DocumentQuery.SIZE));
+        row.add(Document.COLUMN_MIME_TYPE, cursor.getString(DocumentQuery.MIME_TYPE));
+        row.add(Document.COLUMN_LAST_MODIFIED,
+                cursor.getLong(DocumentQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
+        row.add(Document.COLUMN_FLAGS, Document.FLAG_SUPPORTS_DELETE);
     }
 
     private interface ArtistQuery {

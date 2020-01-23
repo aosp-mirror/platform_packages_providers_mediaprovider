@@ -692,6 +692,8 @@ public class ModernMediaScanner implements MediaScanner {
                 return scanItemPlaylist(existingId, file, attrs, mimeType, volumeName);
             case FileColumns.MEDIA_TYPE_SUBTITLE:
                 return scanItemSubtitle(existingId, file, attrs, mimeType, volumeName);
+            case FileColumns.MEDIA_TYPE_DOCUMENT:
+                return scanItemDocument(existingId, file, attrs, mimeType, volumeName);
             default:
                 return scanItemFile(existingId, file, attrs, mimeType, volumeName);
         }
@@ -895,6 +897,15 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     private static @NonNull ContentProviderOperation.Builder scanItemSubtitle(long existingId,
+            File file, BasicFileAttributes attrs, String mimeType, String volumeName) {
+        final ContentProviderOperation.Builder op = newUpsert(
+                MediaStore.Files.getContentUri(volumeName), existingId);
+        withGenericValues(op, file, attrs, mimeType);
+
+        return op;
+    }
+
+    private static @NonNull ContentProviderOperation.Builder scanItemDocument(long existingId,
             File file, BasicFileAttributes attrs, String mimeType, String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(
                 MediaStore.Files.getContentUri(volumeName), existingId);

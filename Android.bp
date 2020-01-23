@@ -9,6 +9,10 @@ android_app {
         "guava",
     ],
 
+    libs: [
+        "unsupportedappusage",
+    ],
+
     jni_libs: [
         "libfuse_jni",
         "libfuse"

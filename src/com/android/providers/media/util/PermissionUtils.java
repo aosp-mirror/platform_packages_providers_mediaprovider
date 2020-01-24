@@ -19,7 +19,6 @@ package com.android.providers.media.util;
 import static android.Manifest.permission.BACKUP;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
-import static android.Manifest.permission.WRITE_MEDIA_STORAGE;
 import static android.app.AppOpsManager.MODE_ALLOWED;
 import static android.app.AppOpsManager.OPSTR_LEGACY_STORAGE;
 import static android.app.AppOpsManager.OPSTR_MANAGE_EXTERNAL_STORAGE;
@@ -44,26 +43,7 @@ public class PermissionUtils {
 
     public static boolean checkPermissionSystem(Context context,
             int pid, int uid, String packageName) {
-        if (uid == android.os.Process.SYSTEM_UID) {
-            return true;
-        }
-
-        // Special case to speed up when MediaProvider is calling itself; we
-        // know it always has system permissions
-        if (uid == android.os.Process.myUid()) {
-            return true;
-        }
-
-        // Determine if caller is holding runtime permission
-        final boolean hasStorage = checkPermissionAndAppOp(context, pid,
-                uid, packageName, WRITE_EXTERNAL_STORAGE, OPSTR_WRITE_EXTERNAL_STORAGE);
-
-        // We're only willing to give out broad access if they also hold
-        // runtime permission; this is a firm CDD requirement
-        final boolean hasFull = context
-                .checkPermission(WRITE_MEDIA_STORAGE, pid, uid) == PERMISSION_GRANTED;
-
-        return hasFull && hasStorage;
+        return (uid == android.os.Process.SYSTEM_UID) || (uid == android.os.Process.myUid());
     }
 
     public static boolean checkPermissionBackup(Context context, int pid, int uid) {

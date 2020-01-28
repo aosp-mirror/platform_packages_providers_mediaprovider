@@ -24,6 +24,7 @@
     <string name="root_images" msgid="5861633549189045666">"Сүрөттөр"</string>
     <string name="root_videos" msgid="8792703517064649453">"Видеолор"</string>
     <string name="root_audio" msgid="3505830755201326018">"Аудио"</string>
+    <string name="root_documents" msgid="3829103301363849237">"Документтер"</string>
     <string name="permission_required" msgid="1460820436132943754">"Бул нерсени түзөтүү же жок кылуу үчүн уруксат талап кылынат."</string>
     <string name="permission_required_action" msgid="706370952366113539">"Улантуу"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Уруксат берүү"</string>
@@ -56,32 +57,32 @@
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> бул аудио файлды жок кылсынбы?</item>
     </plurals>
     <plurals name="permission_trash_audio_info" formatted="false" msgid="5002847308948758655">
-      <item quantity="other">Бул аудио файлдар <xliff:g id="DURATION_1">^3</xliff:g> күндөн кийин биротоло жок кылынат</item>
-      <item quantity="one">Бул аудио файл <xliff:g id="DURATION_0">^3</xliff:g> күндөн кийин биротоло жок кылынат</item>
+      <item quantity="other">Бул аудио файлдар <xliff:g id="DURATION_1">^3</xliff:g> күндөн кийин биротоло өчүрүлөт</item>
+      <item quantity="one">Бул аудио файл <xliff:g id="DURATION_0">^3</xliff:g> күндөн кийин биротоло өчүрүлөт</item>
     </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="7900111984425589714">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> бул <xliff:g id="COUNT">^2</xliff:g> видеону жок кылсынбы?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> бул видеону жок кылсынбы?</item>
     </plurals>
     <plurals name="permission_trash_video_info" formatted="false" msgid="4604871492287117394">
-      <item quantity="other">Бул видеолор <xliff:g id="DURATION_1">^3</xliff:g> күндөн кийин биротоло жок кылынат</item>
-      <item quantity="one">Бул видео <xliff:g id="DURATION_0">^3</xliff:g> күндөн кийин биротоло жок кылынат</item>
+      <item quantity="other">Бул видеолор <xliff:g id="DURATION_1">^3</xliff:g> күндөн кийин биротоло өчүрүлөт</item>
+      <item quantity="one">Бул видео <xliff:g id="DURATION_0">^3</xliff:g> күндөн кийин биротоло өчүрүлөт</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="9204660448046457869">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> бул <xliff:g id="COUNT">^2</xliff:g> сүрөттү жок кылсынбы?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> бул сүрөттү жок кылсынбы?</item>
     </plurals>
     <plurals name="permission_trash_image_info" formatted="false" msgid="4214797662365755925">
-      <item quantity="other">Бул сүрөттөр <xliff:g id="DURATION_1">^3</xliff:g> күндөн кийин биротоло жок кылынат</item>
-      <item quantity="one">Бул сүрөт <xliff:g id="DURATION_0">^3</xliff:g> күндөн кийин биротоло жок кылынат</item>
+      <item quantity="other">Бул сүрөттөр <xliff:g id="DURATION_1">^3</xliff:g> күндөн кийин биротоло өчүрүлөт</item>
+      <item quantity="one">Бул сүрөт <xliff:g id="DURATION_0">^3</xliff:g> күндөн кийин биротоло өчүрүлөт</item>
     </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="427752775725644743">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> бул <xliff:g id="COUNT">^2</xliff:g> нерсени жок кылсынбы?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> бул нерсени жок кылсынбы?</item>
     </plurals>
     <plurals name="permission_trash_generic_info" formatted="false" msgid="7932965324027540546">
-      <item quantity="other">Бул нерселер <xliff:g id="DURATION_1">^3</xliff:g> күндөн кийин биротоло жок кылынат</item>
-      <item quantity="one">Бул нерсе <xliff:g id="DURATION_0">^3</xliff:g> күндөн кийин биротоло жок кылынат</item>
+      <item quantity="other">Бул нерселер <xliff:g id="DURATION_1">^3</xliff:g> күндөн кийин биротоло өчүрүлөт</item>
+      <item quantity="one">Бул нерсе <xliff:g id="DURATION_0">^3</xliff:g> күндөн кийин биротоло өчүрүлөт</item>
     </plurals>
     <string name="permission_trash_grant" msgid="2279489962040272178">"Таштандыга ыргытуу"</string>
     <string name="permission_trash_deny" msgid="2447949475239137483">"Жокко чыгаруу"</string>

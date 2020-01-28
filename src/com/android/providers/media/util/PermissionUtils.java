@@ -192,8 +192,9 @@ public class PermissionUtils {
 
     /**
      * Checks if calling app is allowed the app-op. If its app-op mode is
-     * {@link AppOpsManager#MODE_DEFAULT} then it falls back checking the appropriate permission for
-     * the app-op. The permissions is retrieved from {@link AppOpsManager#opToPermission(String)}.
+     * {@link AppOpsManager#MODE_DEFAULT} then it falls back to checking the appropriate permission
+     * for the app-op. The permission is retrieved from
+     * {@link AppOpsManager#opToPermission(String)}.
      */
     private static boolean hasAppOpPermission(@NonNull Context context, int pid, int uid,
             @NonNull String packageName, @NonNull String op) {

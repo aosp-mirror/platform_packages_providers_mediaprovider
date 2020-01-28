@@ -185,6 +185,21 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
     }
 
     @Test
+    public void testSystemGalleryAppHasFullAccessToImages() throws Exception {
+        runDeviceTest("testSystemGalleryAppHasFullAccessToImages");
+    }
+
+    @Test
+    public void testSystemGalleryAppHasNoFullAccessToAudio() throws Exception {
+        runDeviceTest("testSystemGalleryAppHasNoFullAccessToAudio");
+    }
+
+    @Test
+    public void testSystemGalleryCanRenameImagesAndVideos() throws Exception {
+        runDeviceTest("testSystemGalleryCanRenameImagesAndVideos");
+    }
+
+    @Test
     public void testManageExternalStorageBypassesMediaProviderRestrictions() throws Exception {
         runDeviceTest("testManageExternalStorageBypassesMediaProviderRestrictions");
     }

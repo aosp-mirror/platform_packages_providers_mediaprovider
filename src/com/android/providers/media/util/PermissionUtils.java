@@ -103,7 +103,7 @@ public class PermissionUtils {
 
     public static boolean checkPermissionWriteAudio(Context context,
             int pid, int uid, String packageName) {
-        if (!checkPermissionAndAppOp(context, pid, uid, packageName,
+        if (!checkPermissionAndAppOpAllowingNonLegacy(context, pid, uid, packageName,
                 WRITE_EXTERNAL_STORAGE, OPSTR_WRITE_EXTERNAL_STORAGE)) return false;
         return noteAppOpAllowingLegacy(context, pid, uid, packageName,
                 OPSTR_WRITE_MEDIA_AUDIO);
@@ -119,7 +119,7 @@ public class PermissionUtils {
 
     public static boolean checkPermissionWriteVideo(Context context,
             int pid, int uid, String packageName) {
-        if (!checkPermissionAndAppOp(context, pid, uid, packageName,
+        if (!checkPermissionAndAppOpAllowingNonLegacy(context, pid, uid, packageName,
                 WRITE_EXTERNAL_STORAGE, OPSTR_WRITE_EXTERNAL_STORAGE)) return false;
         return noteAppOpAllowingLegacy(context, pid, uid, packageName,
                 OPSTR_WRITE_MEDIA_VIDEO);
@@ -135,7 +135,7 @@ public class PermissionUtils {
 
     public static boolean checkPermissionWriteImages(Context context,
             int pid, int uid, String packageName) {
-        if (!checkPermissionAndAppOp(context, pid, uid, packageName,
+        if (!checkPermissionAndAppOpAllowingNonLegacy(context, pid, uid, packageName,
                 WRITE_EXTERNAL_STORAGE, OPSTR_WRITE_EXTERNAL_STORAGE)) return false;
         return noteAppOpAllowingLegacy(context, pid, uid, packageName,
                 OPSTR_WRITE_MEDIA_IMAGES);
@@ -165,6 +165,29 @@ public class PermissionUtils {
             default:
                 throw new IllegalStateException(op + " has unknown mode " + mode);
         }
+    }
+
+    /**
+     * Checks if the given package has the given {@code permission} and {@code op}, but allows it
+     * to bypass the permission and app-op check if it's NOT a legacy app, i.e. doesn't hold
+     * {@link AppOpsManager#OPSTR_LEGACY_STORAGE}. This is useful for deprecated permissions and/or
+     * app-ops, like {@link android.Manifest.permission#WRITE_EXTERNAL_STORAGE}
+     * @see #checkPermissionAndAppOp
+     */
+    private static boolean checkPermissionAndAppOpAllowingNonLegacy(Context context,
+            int pid, int uid, String packageName, String permission, String op) {
+        final AppOpsManager appOps = context.getSystemService(AppOpsManager.class);
+        try {
+            appOps.checkPackage(uid, packageName);
+        } catch (SecurityException e) {
+            return false;
+        }
+        // Allowing non legacy apps to bypass this check
+        if (appOps.unsafeCheckOpNoThrow(OPSTR_LEGACY_STORAGE, uid,
+                packageName) != AppOpsManager.MODE_ALLOWED) return true;
+
+        // Seems like it's a legacy app, so it has to pass the permission and app-op check
+        return checkPermissionAndAppOp(context, pid, uid, packageName, permission, op);
     }
 
     /**

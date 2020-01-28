@@ -24,6 +24,7 @@
     <string name="root_images" msgid="5861633549189045666">"છબીઓ"</string>
     <string name="root_videos" msgid="8792703517064649453">"વિડિઓઝ"</string>
     <string name="root_audio" msgid="3505830755201326018">"ઑડિઓ"</string>
+    <string name="root_documents" msgid="3829103301363849237">"દસ્તાવેજો"</string>
     <string name="permission_required" msgid="1460820436132943754">"આ આઇટમમાં ફેરફાર કરવા માટે અથવા તેને ડિલીટ કરવા માટે પરવાનગી હોવી જરૂરી છે."</string>
     <string name="permission_required_action" msgid="706370952366113539">"આગળ વધો"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"મંજૂરી આપો"</string>

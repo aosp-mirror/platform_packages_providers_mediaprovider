@@ -24,6 +24,7 @@
     <string name="root_images" msgid="5861633549189045666">"图片"</string>
     <string name="root_videos" msgid="8792703517064649453">"视频"</string>
     <string name="root_audio" msgid="3505830755201326018">"音频"</string>
+    <string name="root_documents" msgid="3829103301363849237">"文档"</string>
     <string name="permission_required" msgid="1460820436132943754">"必须具备修改或删除这项内容的权限。"</string>
     <string name="permission_required_action" msgid="706370952366113539">"继续"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"允许"</string>

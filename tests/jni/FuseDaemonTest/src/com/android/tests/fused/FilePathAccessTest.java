@@ -708,6 +708,7 @@ public class FilePathAccessTest {
                     displayName, "rw");
 
             assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
+            assertUpperFsFd(writePfd); // With cache
         } finally {
             file.delete();
         }
@@ -727,6 +728,7 @@ public class FilePathAccessTest {
                     ParcelFileDescriptor.MODE_READ_WRITE);
 
             assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
+            assertLowerFsFd(writePfd);
         } finally {
             file.delete();
         }
@@ -746,6 +748,7 @@ public class FilePathAccessTest {
                     displayName, "rw");
 
             assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
+            assertUpperFsFd(readPfd); // With cache
         } finally {
             file.delete();
         }
@@ -765,6 +768,7 @@ public class FilePathAccessTest {
                     ParcelFileDescriptor.MODE_READ_WRITE);
 
             assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
+            assertLowerFsFd(readPfd);
         } finally {
             file.delete();
         }
@@ -786,6 +790,8 @@ public class FilePathAccessTest {
                     displayName, "rw");
 
             assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
+            assertLowerFsFd(writePfd);
+            assertUpperFsFd(readPfd); // Without cache
         } finally {
             file.delete();
         }
@@ -809,6 +815,7 @@ public class FilePathAccessTest {
                     ParcelFileDescriptor.MODE_READ_WRITE);
 
             assertRWR(readPfd.getFileDescriptor(), writePfdDup.getFileDescriptor());
+            assertLowerFsFd(writePfdDup);
         } finally {
             file.delete();
         }
@@ -1164,6 +1171,14 @@ public class FilePathAccessTest {
 
         // Assert that the last write is indeed visible via readFd
         assertThat(readBuffer).isEqualTo(writeBuffer);
+    }
+
+    private void assertLowerFsFd(ParcelFileDescriptor pfd) throws Exception {
+        assertThat(Os.readlink("/proc/self/fd/" + pfd.getFd()).startsWith("/storage")).isTrue();
+    }
+
+    private void assertUpperFsFd(ParcelFileDescriptor pfd) throws Exception {
+        assertThat(Os.readlink("/proc/self/fd/" + pfd.getFd()).startsWith("/mnt/user")).isTrue();
     }
 
     private ParcelFileDescriptor openWithMediaProvider(String relativePath, String displayName,

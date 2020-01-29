@@ -15,11 +15,11 @@
  */
 package com.android.tests.fused;
 
-import static com.android.tests.fused.lib.ReaddirTestHelper.CREATE_FILE_QUERY;
-import static com.android.tests.fused.lib.ReaddirTestHelper.DELETE_FILE_QUERY;
 import static com.android.tests.fused.lib.ReaddirTestHelper.READDIR_QUERY;
 import static com.android.tests.fused.lib.RedactionTestHelper.EXIF_METADATA_QUERY;
 import static com.android.tests.fused.lib.RedactionTestHelper.getExifMetadata;
+import static com.android.tests.fused.lib.TestUtils.CREATE_FILE_QUERY;
+import static com.android.tests.fused.lib.TestUtils.DELETE_FILE_QUERY;
 import static com.android.tests.fused.lib.TestUtils.INTENT_EXCEPTION;
 import static com.android.tests.fused.lib.TestUtils.INTENT_EXTRA_PATH;
 import static com.android.tests.fused.lib.TestUtils.QUERY_TYPE;

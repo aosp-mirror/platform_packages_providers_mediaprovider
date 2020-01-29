@@ -1198,7 +1198,7 @@ public class MediaProvider extends ContentProvider {
         } catch (ErrnoException e) {
             final String errorMessage = "Rename " + oldPath + " to " + newPath + " failed.";
             Log.e(TAG, errorMessage, e);
-            return -e.errno;
+            return e.errno;
         }
     }
 
@@ -1230,7 +1230,7 @@ public class MediaProvider extends ContentProvider {
         } catch(IllegalArgumentException e) {
             final String errorMessage = "Rename " + oldPath + " to " + newPath + " failed. ";
             Log.e(TAG, errorMessage, e);
-            return -OsConstants.EPERM;
+            return OsConstants.EPERM;
         }
 
         final DatabaseHelper helper;
@@ -1249,7 +1249,7 @@ public class MediaProvider extends ContentProvider {
                 if(!updateDatabaseForFuseRename(helper, oldPath + "/" + filePath, newFilePath,
                         getContentValuesForFuseRename(newFilePath, mimeType, mimeType))) {
                     Log.e(TAG, "Calling package doesn't have write permission to rename file.");
-                    return -OsConstants.EPERM;
+                    return OsConstants.EPERM;
                 }
             }
 
@@ -1287,7 +1287,7 @@ public class MediaProvider extends ContentProvider {
         // Check if new mime type is supported in new path.
         final String newMimeType = MimeUtils.resolveMimeType(new File(newPath));
         if (!isMimeTypeSupportedInPath(newPath, newMimeType)) {
-            return -OsConstants.EPERM;
+            return OsConstants.EPERM;
         }
 
         final DatabaseHelper helper;
@@ -1304,7 +1304,7 @@ public class MediaProvider extends ContentProvider {
             if (!updateDatabaseForFuseRename(helper, oldPath, newPath,
                     getContentValuesForFuseRename(newPath, oldMimeType, newMimeType))) {
                 Log.e(TAG, "Calling package doesn't have write permission to rename file.");
-                return -OsConstants.EPERM;
+                return OsConstants.EPERM;
             }
 
             // Try renaming oldPath to newPath in lower file system.
@@ -1326,7 +1326,7 @@ public class MediaProvider extends ContentProvider {
      * @param oldPath path of the file or directory to be renamed.
      * @param newPath new path of the file or directory to be renamed.
      * @param uid UID of the calling package.
-     * @return 0 on successful rename, appropriate negated errno value if the rename is not allowed.
+     * @return 0 on successful rename, appropriate errno value if the rename is not allowed.
      * <ul>
      * <li>{@link OsConstants#ENOENT} Renaming a non-existing file or renaming a file from path that
      * is not indexed by MediaProvider database.
@@ -1357,7 +1357,7 @@ public class MediaProvider extends ContentProvider {
                         isCallingIdentitySharedPackageName(newPathPackageName)) {
                     return renameInLowerFs(oldPath, newPath);
                 } else {
-                    return -OsConstants.EACCES;
+                    return OsConstants.EACCES;
                 }
             }
 
@@ -1366,7 +1366,7 @@ public class MediaProvider extends ContentProvider {
             if (oldRelativePath.length == 0 || newRelativePath.length == 0) {
                 // Rename not allowed on paths that can't be translated to RELATIVE_PATH.
                 Log.e(TAG, errorMessage +  "Invalid path.");
-                return -OsConstants.EPERM;
+                return OsConstants.EPERM;
             } else if (oldRelativePath.length == 1 && TextUtils.isEmpty(oldRelativePath[0])) {
                 // Allow rename of files/folders other than default directories.
                 final String displayName = extractDisplayName(oldPath);
@@ -1374,13 +1374,13 @@ public class MediaProvider extends ContentProvider {
                     if (displayName.equals(defaultFolder)) {
                         Log.e(TAG, errorMessage + oldPath + " is a default folder."
                                 + " Renaming a default folder is not allowed.");
-                        return -OsConstants.EPERM;
+                        return OsConstants.EPERM;
                     }
                 }
             } else if (newRelativePath.length == 1 && TextUtils.isEmpty(newRelativePath[0])) {
                 Log.e(TAG, errorMessage +  newPath + " is in root folder."
                         + " Renaming a file/directory to root folder is not allowed");
-                return -OsConstants.EPERM;
+                return OsConstants.EPERM;
             }
 
             final File directoryAndroid = new File(Environment.getExternalStorageDirectory(),
@@ -1391,7 +1391,7 @@ public class MediaProvider extends ContentProvider {
                 // Android/[data|obb] are bind mounted and these paths don't go through FUSE.
                 Log.e(TAG, errorMessage +  oldPath + " is a default folder in app external "
                         + "directory. Renaming a default folder is not allowed.");
-                return -OsConstants.EPERM;
+                return OsConstants.EPERM;
             } else if (FileUtils.contains(directoryAndroid, new File(newPath))) {
                 if (newRelativePath.length == 1) {
                     // New path is Android/*. Path is directly under Android. Don't allow moving
@@ -1399,7 +1399,7 @@ public class MediaProvider extends ContentProvider {
                     Log.e(TAG, errorMessage +  newPath + " is in app external directory. "
                             + "Renaming a file/directory to app external directory is not "
                             + "allowed.");
-                    return -OsConstants.EPERM;
+                    return OsConstants.EPERM;
                 } else if(!FileUtils.contains(directoryAndroidMedia, new File(newPath))) {
                     // New path is  Android/*/*. Don't allow moving of files or directories
                     // to app external directory other than media directory.
@@ -1407,7 +1407,7 @@ public class MediaProvider extends ContentProvider {
                             + "File/directory can only be renamed to a path in external media "
                             + "directory. Renaming file/directory to path in other external "
                             + "directories is not allowed");
-                    return -OsConstants.EPERM;
+                    return OsConstants.EPERM;
                 }
             }
 
@@ -5099,7 +5099,7 @@ public class MediaProvider extends ContentProvider {
      * @param uid UID of the app requesting to open the file
      * @param forWrite specifies if the file is to be opened for write
      * @return 0 upon success. If the operation is illegal or not permitted, returns
-     * -{@link OsConstants#ENOENT} to prevent malicious apps from distinguishing whether a file
+     * {@link OsConstants#ENOENT} to prevent malicious apps from distinguishing whether a file
      * they have no access to exists or not, or {@link OsConstants#EACCES} or if the calling package
      * is a legacy app that doesn't have right storage permission.
      *
@@ -5122,21 +5122,21 @@ public class MediaProvider extends ContentProvider {
                     return 0;
                 } else {
                     Log.e(TAG, "Can't open a file in another app's external directory!");
-                    return -OsConstants.ENOENT;
+                    return OsConstants.ENOENT;
                 }
             }
 
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
-                return -OsConstants.EACCES;
+                return OsConstants.EACCES;
             }
 
             // TODO(b/147741933): Quick fix. Add tests
             path = getAbsoluteSanitizedPath(path);
             if (path == null) {
                 Log.e(TAG, "Invalid path " + path);
-                return -OsConstants.EPERM;
+                return OsConstants.EPERM;
             }
 
             final Uri contentUri = Files.getContentUri(MediaStore.getVolumeName(new File(path)));
@@ -5170,7 +5170,7 @@ public class MediaProvider extends ContentProvider {
             throw new IllegalStateException(e);
         } catch (IllegalStateException | SecurityException e) {
             Log.e(TAG, "Permission to access file: " + path + " is denied");
-            return -OsConstants.ENOENT;
+            return OsConstants.ENOENT;
         } finally {
             restoreLocalCallingIdentity(token);
         }
@@ -5281,7 +5281,7 @@ public class MediaProvider extends ContentProvider {
      * @param path the path of the file
      * @param uid UID of the app requesting to create the file
      * @return In case of success, 0. If the operation is illegal or not permitted, returns the
-     * appropriate negated {@code errno} value:
+     * appropriate {@code errno} value:
      * <ul>
      * <li>{@link OsConstants#ENOENT} if the app tries to create file in other app's external dir
      * <li>{@link OsConstants#EEXIST} if the file already exists
@@ -5312,19 +5312,19 @@ public class MediaProvider extends ContentProvider {
                     return 0;
                 } else {
                     Log.e(TAG, "Can't create a file in another app's external directory");
-                    return -OsConstants.ENOENT;
+                    return OsConstants.ENOENT;
                 }
             }
 
             // Legacy apps that made it this far don't have the required permissions
             if (isCallingPackageRequestingLegacy()) {
-                return -OsConstants.EPERM;
+                return OsConstants.EPERM;
             }
 
             final String mimeType = MimeUtils.resolveMimeType(new File(path));
             final Uri contentUri = getContentUriForFile(path, mimeType);
             if (fileExists(path, contentUri)) {
-                return -OsConstants.EEXIST;
+                return OsConstants.EEXIST;
             }
 
             final String displayName = extractDisplayName(path);
@@ -5339,12 +5339,12 @@ public class MediaProvider extends ContentProvider {
 
             final Uri item = insert(contentUri, values);
             if (item == null) {
-                return -OsConstants.EPERM;
+                return OsConstants.EPERM;
             }
             return 0;
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "insertFileIfNecessary failed", e);
-            return -OsConstants.EPERM;
+            return OsConstants.EPERM;
         } finally {
             restoreLocalCallingIdentity(token);
         }
@@ -5355,7 +5355,7 @@ public class MediaProvider extends ContentProvider {
         if (toDelete.delete()) {
             return 0;
         } else {
-            return -OsConstants.ENOENT;
+            return OsConstants.ENOENT;
         }
     }
 
@@ -5394,14 +5394,14 @@ public class MediaProvider extends ContentProvider {
                     return deleteFileUnchecked(path);
                 } else {
                     Log.e(TAG, "Can't delete a file in another app's external directory!");
-                    return -OsConstants.ENOENT;
+                    return OsConstants.ENOENT;
                 }
             }
 
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
-                return -OsConstants.EPERM;
+                return OsConstants.EPERM;
             }
 
             final Uri contentUri = Files.getContentUri(MediaStore.getVolumeName(new File(path)));
@@ -5409,7 +5409,7 @@ public class MediaProvider extends ContentProvider {
             final String[] whereArgs = {path};
 
             if (delete(contentUri, where, whereArgs) == 0) {
-                return -OsConstants.ENOENT;
+                return OsConstants.ENOENT;
             } else {
                 // success - 1 file was deleted
                 return 0;
@@ -5417,7 +5417,7 @@ public class MediaProvider extends ContentProvider {
 
         } catch (SecurityException e) {
             Log.e(TAG, "File deletion not allowed", e);
-            return -OsConstants.EPERM;
+            return OsConstants.EPERM;
         } finally {
             restoreLocalCallingIdentity(token);
         }
@@ -5429,7 +5429,7 @@ public class MediaProvider extends ContentProvider {
      *
      * @param path File path of the directory that the app wants to create/delete
      * @param uid UID of the app that wants to create/delete the directory
-     * @return 0 if the operation is allowed, or the following negated {@code errno} values:
+     * @return 0 if the operation is allowed, or the following {@code errno} values:
      * <ul>
      * <li>{@link OsConstants#EACCES} if the app tries to create/delete a dir in another app's
      * external directory, or if the calling package is a legacy app that doesn't have
@@ -5457,20 +5457,20 @@ public class MediaProvider extends ContentProvider {
                     return 0;
                 } else {
                     Log.e(TAG, "Can't modify another app's external directory!");
-                    return -OsConstants.EACCES;
+                    return OsConstants.EACCES;
                 }
             }
 
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
-                return -OsConstants.EACCES;
+                return OsConstants.EACCES;
             }
 
             final String[] relativePath = sanitizePath(extractRelativePath(path));
             if (relativePath.length == 1 && TextUtils.isEmpty(relativePath[0])) {
                 Log.e(TAG, "Creating or deleting a top level directory is not allowed!");
-                return -OsConstants.EPERM;
+                return OsConstants.EPERM;
             }
             return 0;
         } finally {
@@ -5484,9 +5484,9 @@ public class MediaProvider extends ContentProvider {
      *
      * @param path directory's path
      * @param uid UID of the requesting app
-     * @return 0 if it's allowed to open the diretory, -{@link OsConstants#EACCES} if the calling
+     * @return 0 if it's allowed to open the diretory, {@link OsConstants#EACCES} if the calling
      * package is a legacy app that doesn't have READ_EXTERNAL_STORAGE permission,
-     * -{@link OsConstants#ENOENT}  otherwise.
+     * {@link OsConstants#ENOENT}  otherwise.
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
@@ -5511,14 +5511,14 @@ public class MediaProvider extends ContentProvider {
                     return 0;
                 } else {
                     Log.e(TAG, "Can't access another app's external directory!");
-                    return -OsConstants.ENOENT;
+                    return OsConstants.ENOENT;
                 }
             }
 
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
-                return -OsConstants.EACCES;
+                return OsConstants.EACCES;
             }
 
             return 0;

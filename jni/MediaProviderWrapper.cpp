@@ -96,7 +96,7 @@ int insertFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid
 
     if (CheckForJniException(env)) {
         LOG(DEBUG) << "Java exception while creating file";
-        return -EFAULT;
+        return EFAULT;
     }
     LOG(DEBUG) << "res = " << res;
     return res;
@@ -110,7 +110,7 @@ int deleteFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid
 
     if (CheckForJniException(env)) {
         LOG(DEBUG) << "Java exception while deleting file";
-        return -EFAULT;
+        return EFAULT;
     }
     LOG(DEBUG) << "res = " << res;
     return res;
@@ -126,7 +126,7 @@ int isOpenAllowedInternal(JNIEnv* env, jobject media_provider_object, jmethodID 
 
     if (CheckForJniException(env)) {
         LOG(DEBUG) << "Java exception while checking permissions for file";
-        return -EFAULT;
+        return EFAULT;
     }
     LOG(DEBUG) << "res = " << res;
     return res;
@@ -151,7 +151,7 @@ int isDirectoryOperationAllowedInternal(JNIEnv* env, jobject media_provider_obje
 
     if (CheckForJniException(env)) {
         LOG(DEBUG) << "Java exception while checking permissions for creating/deleting/opening dir";
-        return -EFAULT;
+        return EFAULT;
     }
     LOG(DEBUG) << "res = " << res;
     return res;
@@ -215,7 +215,7 @@ int renameInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_ren
                                  j_new_path.get(), uid);
     if (CheckForJniException(env)) {
         LOG(DEBUG) << "Java exception occurred while renaming a file or directory";
-        return -EFAULT;
+        return EFAULT;
     }
     LOG(DEBUG) << "res = " << res;
     return res;
@@ -316,7 +316,7 @@ int MediaProviderWrapper::InsertFile(const string& path, uid_t uid) {
         return 0;
     }
 
-    int res = -EIO;  // Default value in case JNI thread was being terminated
+    int res = EIO;  // Default value in case JNI thread was being terminated
 
     PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
         res = insertFileInternal(env, media_provider_object_, mid_insert_file_, path, uid);
@@ -326,7 +326,7 @@ int MediaProviderWrapper::InsertFile(const string& path, uid_t uid) {
 }
 
 int MediaProviderWrapper::DeleteFile(const string& path, uid_t uid) {
-    int res = -EIO;  // Default value in case JNI thread was being terminated
+    int res = EIO;  // Default value in case JNI thread was being terminated
     if (shouldBypassMediaProvider(uid)) {
         res = unlink(path.c_str());
         ScanFile(path);
@@ -345,7 +345,7 @@ int MediaProviderWrapper::IsOpenAllowed(const string& path, uid_t uid, bool for_
         return 0;
     }
 
-    int res = -EIO;  // Default value in case JNI thread was being terminated
+    int res = EIO;  // Default value in case JNI thread was being terminated
 
     PostAndWaitForTask([this, &path, uid, for_write, &res](JNIEnv* env) {
         res = isOpenAllowedInternal(env, media_provider_object_, mid_is_open_allowed_, path, uid,
@@ -368,7 +368,7 @@ int MediaProviderWrapper::IsCreatingDirAllowed(const string& path, uid_t uid) {
         return 0;
     }
 
-    int res = -EIO;  // Default value in case JNI thread was being terminated
+    int res = EIO;  // Default value in case JNI thread was being terminated
 
     PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
         LOG(DEBUG) << "Checking if UID = " << uid << " can create dir " << path;
@@ -384,7 +384,7 @@ int MediaProviderWrapper::IsDeletingDirAllowed(const string& path, uid_t uid) {
         return 0;
     }
 
-    int res = -EIO;  // Default value in case JNI thread was being terminated
+    int res = EIO;  // Default value in case JNI thread was being terminated
 
     PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
         LOG(DEBUG) << "Checking if UID = " << uid << " can delete dir " << path;
@@ -425,7 +425,7 @@ int MediaProviderWrapper::IsOpendirAllowed(const string& path, uid_t uid) {
         return 0;
     }
 
-    int res = -EIO;  // Default value in case JNI thread was being terminated
+    int res = EIO;  // Default value in case JNI thread was being terminated
 
     PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
         LOG(DEBUG) << "Checking if UID = " << uid << " can open dir " << path;
@@ -437,7 +437,7 @@ int MediaProviderWrapper::IsOpendirAllowed(const string& path, uid_t uid) {
 }
 
 int MediaProviderWrapper::Rename(const string& old_path, const string& new_path, uid_t uid) {
-    int res = -EIO;  // Default value in case JNI thread was being terminated
+    int res = EIO;  // Default value in case JNI thread was being terminated
     if (shouldBypassMediaProvider(uid)) {
         res = rename(old_path.c_str(), new_path.c_str());
         if (res != 0) res = -errno;

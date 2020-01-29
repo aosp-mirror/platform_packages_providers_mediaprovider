@@ -9,6 +9,8 @@ android_app {
         "guava",
     ],
 
+    libs: ["app-compat-annotations"],
+
     srcs: [
         "src/**/*.aidl",
         "src/**/*.java",

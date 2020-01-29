@@ -516,7 +516,9 @@ public class DatabaseUtils {
             final char c = arg.charAt(i);
             switch (c) {
                 case '%': sb.append('\\');
+                    break;
                 case '_': sb.append('\\');
+                    break;
             }
             sb.append(c);
         }

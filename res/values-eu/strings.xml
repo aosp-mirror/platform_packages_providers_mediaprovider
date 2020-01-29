@@ -24,6 +24,7 @@
     <string name="root_images" msgid="5861633549189045666">"Irudiak"</string>
     <string name="root_videos" msgid="8792703517064649453">"Bideoak"</string>
     <string name="root_audio" msgid="3505830755201326018">"Audioa"</string>
+    <string name="root_documents" msgid="3829103301363849237">"Dokumentuak"</string>
     <string name="permission_required" msgid="1460820436132943754">"Baimena behar da elementu hau aldatu edo ezabatzeko."</string>
     <string name="permission_required_action" msgid="706370952366113539">"Egin aurrera"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Baimendu"</string>

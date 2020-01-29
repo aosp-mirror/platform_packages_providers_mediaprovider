@@ -24,6 +24,7 @@
     <string name="root_images" msgid="5861633549189045666">"تصاوير"</string>
     <string name="root_videos" msgid="8792703517064649453">"ویڈیوز"</string>
     <string name="root_audio" msgid="3505830755201326018">"آڈیو"</string>
+    <string name="root_documents" msgid="3829103301363849237">"دستاویزات"</string>
     <string name="permission_required" msgid="1460820436132943754">"اس آئٹم میں ترمیم کرنے اور اسے حذف کرنے کے لیے اجازت درکار ہے۔"</string>
     <string name="permission_required_action" msgid="706370952366113539">"جاری رکھیں"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"اجازت دیں"</string>

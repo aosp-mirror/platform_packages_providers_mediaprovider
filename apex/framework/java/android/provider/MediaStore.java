@@ -366,6 +366,22 @@ public final class MediaStore {
             "android.media.still_image_camera_preview_service";
 
     /**
+     * Name under which an activity handling {@link #ACTION_REVIEW} or
+     * {@link #ACTION_REVIEW_SECURE} publishes the service name for its prewarm
+     * service.
+     * <p>
+     * This meta-data should reference the fully qualified class name of the prewarm service
+     * <p>
+     * The prewarm service can be bound before starting {@link #ACTION_REVIEW} or
+     * {@link #ACTION_REVIEW_SECURE}.
+     * An application implementing this prewarm service should do the absolute minimum amount of
+     * work to initialize its resources to efficiently handle an {@link #ACTION_REVIEW} or
+     * {@link #ACTION_REVIEW_SECURE} in the near future.
+     */
+    public static final java.lang.String META_DATA_REVIEW_GALLERY_PREWARM_SERVICE =
+            "android.media.review_gallery_prewarm_service";
+
+    /**
      * The name of the Intent action used to launch a camera in still image mode
      * for use when the device is secured (e.g. with a pin, password, pattern,
      * or face unlock). Applications responding to this intent must not expose

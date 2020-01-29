@@ -29,6 +29,7 @@ import static com.android.tests.fused.lib.TestUtils.adoptShellPermissionIdentity
 import static com.android.tests.fused.lib.TestUtils.assertThrows;
 import static com.android.tests.fused.lib.TestUtils.createFileAs;
 import static com.android.tests.fused.lib.TestUtils.deleteFileAs;
+import static com.android.tests.fused.lib.TestUtils.deleteRecursively;
 import static com.android.tests.fused.lib.TestUtils.dropShellPermissionIdentity;
 import static com.android.tests.fused.lib.TestUtils.executeShellCommand;
 import static com.android.tests.fused.lib.TestUtils.getFileMimeTypeFromDatabase;
@@ -39,6 +40,8 @@ import static com.android.tests.fused.lib.TestUtils.readExifMetadataFromTestApp;
 import static com.android.tests.fused.lib.TestUtils.revokeReadExternalStorage;
 import static com.android.tests.fused.lib.TestUtils.uninstallApp;
 import static com.google.common.truth.Truth.assertThat;
+
+import static junit.framework.Assert.fail;
 
 import static org.junit.Assume.assumeTrue;
 
@@ -94,7 +97,7 @@ public class FilePathAccessTest {
             Environment.DIRECTORY_DOWNLOADS);
     static final File ANDROID_DATA_DIR = new File(EXTERNAL_STORAGE_DIR, "Android/data");
     static final File ANDROID_MEDIA_DIR = new File(EXTERNAL_STORAGE_DIR, "Android/media");
-    static final String TEST_DIRECTORY = "FilePathAccessTestDirectory";
+    static final String TEST_DIRECTORY_NAME = "FilePathAccessTestDirectory";
 
     static final File EXTERNAL_FILES_DIR = getContext().getExternalFilesDir(null);
     static final File EXTERNAL_MEDIA_DIR = getContext().getExternalMediaDirs()[0];
@@ -301,9 +304,90 @@ public class FilePathAccessTest {
     }
 
     @Test
-    public void testDeleteNonemptyDir() throws Exception {
-        // TODO(b/142806973): use multi app infra which will be introduced in ag/9730872 to try and
-        // delete directories that have files contributed by other apps
+    public void testCantAccessOtherAppsContents() throws Exception {
+        final File mediaFile = new File(PICTURES_DIR, IMAGE_FILE_NAME);
+        final File nonMediaFile = new File(DOWNLOAD_DIR, NONMEDIA_FILE_NAME);
+        try {
+            installApp(TEST_APP_A, false);
+
+            assertThat(createFileAs(TEST_APP_A, mediaFile.getPath())).isTrue();
+            assertThat(createFileAs(TEST_APP_A, nonMediaFile.getPath())).isTrue();
+
+            // We can still see that the files exist
+            assertThat(mediaFile.exists()).isTrue();
+            assertThat(nonMediaFile.exists()).isTrue();
+
+            // But we can't access their content
+            try (FileInputStream fis = new FileInputStream(mediaFile)) {
+                fail("Opening for read succeeded when it should have failed: " + mediaFile);
+            } catch (IOException expected) {}
+
+            try (FileInputStream fis = new FileInputStream(nonMediaFile)) {
+                fail("Opening for read succeeded when it should have failed: " + nonMediaFile);
+            } catch (IOException expected) {}
+
+            try (FileOutputStream fos = new FileOutputStream(mediaFile)) {
+                fail("Opening for write succeeded when it should have failed: " + mediaFile);
+            } catch (IOException expected) {}
+
+            try (FileOutputStream fos = new FileOutputStream(nonMediaFile)) {
+                fail("Opening for write succeeded when it should have failed: " + nonMediaFile);
+            } catch (IOException expected) {}
+
+        } finally {
+            deleteFileAs(TEST_APP_A, nonMediaFile.getPath());
+            deleteFileAs(TEST_APP_A, mediaFile.getPath());
+            uninstallApp(TEST_APP_A);
+        }
+    }
+
+    @Test
+    public void testCantDeleteOtherAppsContents() throws Exception {
+        final File dirInDownload = new File(DOWNLOAD_DIR, TEST_DIRECTORY_NAME);
+        final File mediaFile = new File(dirInDownload, IMAGE_FILE_NAME);
+        final File nonMediaFile = new File(dirInDownload, NONMEDIA_FILE_NAME);
+        try {
+            installApp(TEST_APP_A, false);
+            assertThat(dirInDownload.mkdir()).isTrue();
+            // Have another app create a media file in the directory
+            assertThat(createFileAs(TEST_APP_A, mediaFile.getPath())).isTrue();
+
+            // Can't delete the directory since it contains another app's content
+            assertThat(dirInDownload.delete()).isFalse();
+            // Can't delete another app's content
+            assertThat(deleteRecursively(dirInDownload)).isFalse();
+
+            // Have another app create a non-media file in the directory
+            assertThat(createFileAs(TEST_APP_A, nonMediaFile.getPath())).isTrue();
+
+            // Can't delete the directory since it contains another app's content
+            assertThat(dirInDownload.delete()).isFalse();
+            // Can't delete another app's content
+            assertThat(deleteRecursively(dirInDownload)).isFalse();
+
+            // Delete only the media file and keep the non-media file
+            assertThat(deleteFileAs(TEST_APP_A, mediaFile.getPath())).isTrue();
+            // Directory now has only the non-media file contributed by another app, so we still
+            // can't delete it nor its content
+            assertThat(dirInDownload.delete()).isFalse();
+            assertThat(deleteRecursively(dirInDownload)).isFalse();
+
+            // Delete the last file belonging to another app
+            assertThat(deleteFileAs(TEST_APP_A, nonMediaFile.getPath())).isTrue();
+            // Create our own file
+            assertThat(nonMediaFile.createNewFile()).isTrue();
+
+            // Now that the directory only has content that was contributed by us, we can delete it
+            assertThat(deleteRecursively(dirInDownload)).isTrue();
+        } finally {
+            deleteFileAs(TEST_APP_A, nonMediaFile.getPath());
+            deleteFileAs(TEST_APP_A, mediaFile.getPath());
+            // At this point, we're not sure who created this file, so we'll have both apps
+            // deleting it
+            mediaFile.delete();
+            uninstallApp(TEST_APP_A);
+            dirInDownload.delete();
+        }
     }
 
     /**
@@ -391,7 +475,7 @@ public class FilePathAccessTest {
      */
     @Test
     public void testListDirectoriesWithMediaFiles() throws Exception {
-        final File dir = new File(DCIM_DIR, TEST_DIRECTORY);
+        final File dir = new File(DCIM_DIR, TEST_DIRECTORY_NAME);
         final File videoFile = new File(dir, VIDEO_FILE_NAME);
         final String videoFileName = videoFile.getName();
         try {
@@ -403,21 +487,21 @@ public class FilePathAccessTest {
             installApp(TEST_APP_A, false);
             assertThat(createFileAs(TEST_APP_A, videoFile.getPath())).isTrue();
             // TEST_APP_A should see TEST_DIRECTORY in DCIM and new file in TEST_DIRECTORY.
-            assertThat(listAs(TEST_APP_A, DCIM_DIR.getPath())).contains(TEST_DIRECTORY);
+            assertThat(listAs(TEST_APP_A, DCIM_DIR.getPath())).contains(TEST_DIRECTORY_NAME);
             assertThat(listAs(TEST_APP_A, dir.getPath())).containsExactly(videoFileName);
 
             // Install TEST_APP_B with storage permission.
             installApp(TEST_APP_B, true);
             // TEST_APP_B with storage permission should see TEST_DIRECTORY in DCIM and new file
             // in TEST_DIRECTORY.
-            assertThat(listAs(TEST_APP_B, DCIM_DIR.getPath())).contains(TEST_DIRECTORY);
+            assertThat(listAs(TEST_APP_B, DCIM_DIR.getPath())).contains(TEST_DIRECTORY_NAME);
             assertThat(listAs(TEST_APP_B, dir.getPath())).containsExactly(videoFileName);
 
             // Revoke storage permission for TEST_APP_B
             revokeReadExternalStorage(TEST_APP_B.getPackageName());
             // TEST_APP_B without storage permission should see TEST_DIRECTORY in DCIM and should
             // not see new file in new TEST_DIRECTORY.
-            assertThat(listAs(TEST_APP_B, DCIM_DIR.getPath())).contains(TEST_DIRECTORY);
+            assertThat(listAs(TEST_APP_B, DCIM_DIR.getPath())).contains(TEST_DIRECTORY_NAME);
             assertThat(listAs(TEST_APP_B, dir.getPath())).doesNotContain(videoFileName);
         } finally {
             uninstallApp(TEST_APP_B);
@@ -438,7 +522,7 @@ public class FilePathAccessTest {
      */
     @Test
     public void testListDirectoriesWithNonMediaFiles() throws Exception {
-        final File dir = new File(DOWNLOAD_DIR, TEST_DIRECTORY);
+        final File dir = new File(DOWNLOAD_DIR, TEST_DIRECTORY_NAME);
         final File pdfFile = new File(dir, NONMEDIA_FILE_NAME);
         final String pdfFileName = pdfFile.getName();
         try {
@@ -452,14 +536,14 @@ public class FilePathAccessTest {
 
             // TEST_APP_A should see TEST_DIRECTORY in DOWNLOAD_DIR and new non media file in
             // TEST_DIRECTORY.
-            assertThat(listAs(TEST_APP_A, DOWNLOAD_DIR.getPath())).contains(TEST_DIRECTORY);
+            assertThat(listAs(TEST_APP_A, DOWNLOAD_DIR.getPath())).contains(TEST_DIRECTORY_NAME);
             assertThat(listAs(TEST_APP_A, dir.getPath())).containsExactly(pdfFileName);
 
             // Install TEST_APP_B with storage permission.
             installApp(TEST_APP_B, true);
             // TEST_APP_B with storage permission should see TEST_DIRECTORY in DOWNLOAD_DIR
             // and should not see new non media file in TEST_DIRECTORY.
-            assertThat(listAs(TEST_APP_B, DOWNLOAD_DIR.getPath())).contains(TEST_DIRECTORY);
+            assertThat(listAs(TEST_APP_B, DOWNLOAD_DIR.getPath())).contains(TEST_DIRECTORY_NAME);
             assertThat(listAs(TEST_APP_B, dir.getPath())).doesNotContain(pdfFileName);
         } finally {
             uninstallApp(TEST_APP_B);
@@ -774,7 +858,7 @@ public class FilePathAccessTest {
      */
     @Test
     public void testRenameFile() throws Exception {
-        final File nonMediaDir = new File(DOWNLOAD_DIR, TEST_DIRECTORY);
+        final File nonMediaDir = new File(DOWNLOAD_DIR, TEST_DIRECTORY_NAME);
         final File pdfFile1 = new File(DOWNLOAD_DIR, NONMEDIA_FILE_NAME);
         final File pdfFile2 = new File(nonMediaDir, NONMEDIA_FILE_NAME);
         final File videoFile1 = new File(DCIM_DIR, VIDEO_FILE_NAME);
@@ -895,16 +979,16 @@ public class FilePathAccessTest {
      */
     @Test
     public void testRenameDirectory() throws Exception {
-        final String nonMediaDirectoryName = TEST_DIRECTORY + "NonMedia";
+        final String nonMediaDirectoryName = TEST_DIRECTORY_NAME + "NonMedia";
         final File nonMediaDirectory = new File(DOWNLOAD_DIR, nonMediaDirectoryName);
         final File pdfFile = new File(nonMediaDirectory, NONMEDIA_FILE_NAME);
 
-        final String mediaDirectoryName = TEST_DIRECTORY + "Media";
+        final String mediaDirectoryName = TEST_DIRECTORY_NAME + "Media";
         final File mediaDirectory1 = new File(DCIM_DIR, mediaDirectoryName);
         final File videoFile1 = new File(mediaDirectory1, VIDEO_FILE_NAME);
         final File mediaDirectory2 =  new File(DOWNLOAD_DIR, mediaDirectoryName);
         final File videoFile2 = new File(mediaDirectory2, VIDEO_FILE_NAME);
-        final File mediaDirectory3 =  new File(MOVIES_DIR, TEST_DIRECTORY);
+        final File mediaDirectory3 =  new File(MOVIES_DIR, TEST_DIRECTORY_NAME);
         final File videoFile3 = new File(mediaDirectory3, VIDEO_FILE_NAME);
         final File mediaDirectory4 =  new File(mediaDirectory3, mediaDirectoryName) ;
 
@@ -924,7 +1008,7 @@ public class FilePathAccessTest {
             // Renaming to and from default directories is not allowed.
             assertThat(mediaDirectory1.renameTo(DCIM_DIR)).isFalse();
             // Moving top level default directories is not allowed.
-            assertCantRenameDirectory(DOWNLOAD_DIR, new File(DCIM_DIR, TEST_DIRECTORY), null);
+            assertCantRenameDirectory(DOWNLOAD_DIR, new File(DCIM_DIR, TEST_DIRECTORY_NAME), null);
 
             // Moving media directory to Download directory is allowed.
             assertCanRenameDirectory(mediaDirectory1, mediaDirectory2, new File[] {videoFile1},
@@ -966,7 +1050,7 @@ public class FilePathAccessTest {
      */
     @Test
     public void testRenameDirectoryNotOwned() throws Exception {
-        final String mediaDirectoryName = TEST_DIRECTORY + "Media";
+        final String mediaDirectoryName = TEST_DIRECTORY_NAME + "Media";
         File mediaDirectory1 = new File(DCIM_DIR, mediaDirectoryName);
         File mediaDirectory2 = new File(MOVIES_DIR, mediaDirectoryName);
         File videoFile = new File(mediaDirectory1, VIDEO_FILE_NAME);
@@ -995,9 +1079,9 @@ public class FilePathAccessTest {
      */
     @Test
     public void testRenameEmptyDirectory() throws Exception {
-        final String emptyDirectoryName = TEST_DIRECTORY + "Media";
+        final String emptyDirectoryName = TEST_DIRECTORY_NAME + "Media";
         File emptyDirectoryOldPath = new File(DCIM_DIR, emptyDirectoryName);
-        File emptyDirectoryNewPath = new File(MOVIES_DIR, TEST_DIRECTORY);
+        File emptyDirectoryNewPath = new File(MOVIES_DIR, TEST_DIRECTORY_NAME);
         try {
             if (!emptyDirectoryOldPath.exists()) {
                 assertThat(emptyDirectoryOldPath.mkdirs()).isTrue();

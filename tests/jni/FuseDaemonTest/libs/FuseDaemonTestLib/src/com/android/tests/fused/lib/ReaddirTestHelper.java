@@ -16,8 +16,6 @@
 
 package com.android.tests.fused.lib;
 
-import static android.provider.MediaStore.MediaColumns;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -26,11 +24,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import android.util.Log;
-import android.provider.MediaStore;
-import android.content.ContentResolver;
-import android.database.Cursor;
-
-import androidx.test.InstrumentationRegistry;
 
 /**
  * Helper functions for readdir tests
@@ -39,8 +32,6 @@ public class ReaddirTestHelper {
     private static final String TAG = "ReaddirTestHelper";
 
     public static final String READDIR_QUERY = "com.android.tests.fused.readdir";
-    public static final String CREATE_FILE_QUERY = "com.android.tests.fused.createfile";
-    public static final String DELETE_FILE_QUERY = "com.android.tests.fused.deletefile";
 
     /**
      * Returns directory entries for the given {@code directory}

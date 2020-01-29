@@ -1531,7 +1531,7 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
     struct fuse_args args;
     struct fuse_cmdline_opts opts;
 
-    SetMinimumLogSeverity(android::base::DEBUG);
+    SetMinimumLogSeverity(android::base::VERBOSE);
 
     struct stat stat;
 

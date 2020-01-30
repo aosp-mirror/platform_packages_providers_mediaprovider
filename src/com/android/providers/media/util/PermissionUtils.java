@@ -19,7 +19,6 @@ package com.android.providers.media.util;
 import static android.Manifest.permission.BACKUP;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
-import static android.Manifest.permission.WRITE_MEDIA_STORAGE;
 import static android.app.AppOpsManager.MODE_ALLOWED;
 import static android.app.AppOpsManager.OPSTR_LEGACY_STORAGE;
 import static android.app.AppOpsManager.OPSTR_MANAGE_EXTERNAL_STORAGE;
@@ -44,26 +43,7 @@ public class PermissionUtils {
 
     public static boolean checkPermissionSystem(Context context,
             int pid, int uid, String packageName) {
-        if (uid == android.os.Process.SYSTEM_UID) {
-            return true;
-        }
-
-        // Special case to speed up when MediaProvider is calling itself; we
-        // know it always has system permissions
-        if (uid == android.os.Process.myUid()) {
-            return true;
-        }
-
-        // Determine if caller is holding runtime permission
-        final boolean hasStorage = checkPermissionAndAppOp(context, pid,
-                uid, packageName, WRITE_EXTERNAL_STORAGE, OPSTR_WRITE_EXTERNAL_STORAGE);
-
-        // We're only willing to give out broad access if they also hold
-        // runtime permission; this is a firm CDD requirement
-        final boolean hasFull = context
-                .checkPermission(WRITE_MEDIA_STORAGE, pid, uid) == PERMISSION_GRANTED;
-
-        return hasFull && hasStorage;
+        return (uid == android.os.Process.SYSTEM_UID) || (uid == android.os.Process.myUid());
     }
 
     public static boolean checkPermissionBackup(Context context, int pid, int uid) {
@@ -103,7 +83,7 @@ public class PermissionUtils {
 
     public static boolean checkPermissionWriteAudio(Context context,
             int pid, int uid, String packageName) {
-        if (!checkPermissionAndAppOp(context, pid, uid, packageName,
+        if (!checkPermissionAndAppOpAllowingNonLegacy(context, pid, uid, packageName,
                 WRITE_EXTERNAL_STORAGE, OPSTR_WRITE_EXTERNAL_STORAGE)) return false;
         return noteAppOpAllowingLegacy(context, pid, uid, packageName,
                 OPSTR_WRITE_MEDIA_AUDIO);
@@ -119,7 +99,7 @@ public class PermissionUtils {
 
     public static boolean checkPermissionWriteVideo(Context context,
             int pid, int uid, String packageName) {
-        if (!checkPermissionAndAppOp(context, pid, uid, packageName,
+        if (!checkPermissionAndAppOpAllowingNonLegacy(context, pid, uid, packageName,
                 WRITE_EXTERNAL_STORAGE, OPSTR_WRITE_EXTERNAL_STORAGE)) return false;
         return noteAppOpAllowingLegacy(context, pid, uid, packageName,
                 OPSTR_WRITE_MEDIA_VIDEO);
@@ -135,7 +115,7 @@ public class PermissionUtils {
 
     public static boolean checkPermissionWriteImages(Context context,
             int pid, int uid, String packageName) {
-        if (!checkPermissionAndAppOp(context, pid, uid, packageName,
+        if (!checkPermissionAndAppOpAllowingNonLegacy(context, pid, uid, packageName,
                 WRITE_EXTERNAL_STORAGE, OPSTR_WRITE_EXTERNAL_STORAGE)) return false;
         return noteAppOpAllowingLegacy(context, pid, uid, packageName,
                 OPSTR_WRITE_MEDIA_IMAGES);
@@ -165,6 +145,29 @@ public class PermissionUtils {
             default:
                 throw new IllegalStateException(op + " has unknown mode " + mode);
         }
+    }
+
+    /**
+     * Checks if the given package has the given {@code permission} and {@code op}, but allows it
+     * to bypass the permission and app-op check if it's NOT a legacy app, i.e. doesn't hold
+     * {@link AppOpsManager#OPSTR_LEGACY_STORAGE}. This is useful for deprecated permissions and/or
+     * app-ops, like {@link android.Manifest.permission#WRITE_EXTERNAL_STORAGE}
+     * @see #checkPermissionAndAppOp
+     */
+    private static boolean checkPermissionAndAppOpAllowingNonLegacy(Context context,
+            int pid, int uid, String packageName, String permission, String op) {
+        final AppOpsManager appOps = context.getSystemService(AppOpsManager.class);
+        try {
+            appOps.checkPackage(uid, packageName);
+        } catch (SecurityException e) {
+            return false;
+        }
+        // Allowing non legacy apps to bypass this check
+        if (appOps.unsafeCheckOpNoThrow(OPSTR_LEGACY_STORAGE, uid,
+                packageName) != AppOpsManager.MODE_ALLOWED) return true;
+
+        // Seems like it's a legacy app, so it has to pass the permission and app-op check
+        return checkPermissionAndAppOp(context, pid, uid, packageName, permission, op);
     }
 
     /**

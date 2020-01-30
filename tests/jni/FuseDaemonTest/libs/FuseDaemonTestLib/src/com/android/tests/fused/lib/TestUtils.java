@@ -18,8 +18,6 @@ package com.android.tests.fused.lib;
 
 import static androidx.test.InstrumentationRegistry.getContext;
 
-import static com.android.tests.fused.lib.ReaddirTestHelper.CREATE_FILE_QUERY;
-import static com.android.tests.fused.lib.ReaddirTestHelper.DELETE_FILE_QUERY;
 import static com.android.tests.fused.lib.ReaddirTestHelper.READDIR_QUERY;
 import static com.android.tests.fused.lib.RedactionTestHelper.EXIF_METADATA_QUERY;
 
@@ -66,6 +64,8 @@ public class TestUtils {
     public static final String QUERY_TYPE = "com.android.tests.fused.queryType";
     public static final String INTENT_EXTRA_PATH = "com.android.tests.fused.path";
     public static final String INTENT_EXCEPTION = "com.android.tests.fused.exception";
+    public static final String CREATE_FILE_QUERY = "com.android.tests.fused.createfile";
+    public static final String DELETE_FILE_QUERY = "com.android.tests.fused.deletefile";
 
     private static final UiAutomation sUiAutomation = InstrumentationRegistry.getInstrumentation()
             .getUiAutomation();
@@ -273,6 +273,21 @@ public class TestUtils {
          * This is the method that gets called for any object that implements this interface.
          */
         void run() throws T;
+    }
+
+    /**
+     * Deletes the given file. If the file is a directory, then deletes all of it's children (files
+     * or directories) recursively.
+     */
+    public static boolean deleteRecursively(@NonNull File path) {
+        if (path.isDirectory()) {
+            for (File child : path.listFiles()) {
+                if (!deleteRecursively(child)) {
+                    return false;
+                }
+            }
+        }
+        return path.delete();
     }
 
     private static void forceStopApp(String packageName) throws Exception {

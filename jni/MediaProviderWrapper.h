@@ -68,7 +68,7 @@ class MediaProviderWrapper final {
      * @param path the path of the file to be created
      * @param uid UID of the calling app
      * @return 0 if the operation succeeded,
-     * or negated errno error code if operation fails.
+     * or errno error code if operation fails.
      */
     int InsertFile(const std::string& path, uid_t uid);
 
@@ -77,7 +77,7 @@ class MediaProviderWrapper final {
      *
      * @param path the path of the file to be deleted
      * @param uid UID of the calling app
-     * @return 0 upon success, or negated errno error code if operation fails.
+     * @return 0 upon success, or errno error code if operation fails.
      */
     int DeleteFile(const std::string& path, uid_t uid);
 
@@ -104,7 +104,7 @@ class MediaProviderWrapper final {
      * @param path the path of the file to be opened
      * @param uid UID of the calling app
      * @param for_write specifies if the file is to be opened for write
-     * @return 0 upon success or negated errno value upon failure.
+     * @return 0 upon success or errno value upon failure.
      */
     int IsOpenAllowed(const std::string& path, uid_t uid, bool for_write);
 
@@ -121,7 +121,7 @@ class MediaProviderWrapper final {
      *
      * @param path the path of the directory to be created
      * @param uid UID of the calling app
-     * @return 0 if it's allowed, or negated errno error code if operation isn't allowed.
+     * @return 0 if it's allowed, or errno error code if operation isn't allowed.
      */
     int IsCreatingDirAllowed(const std::string& path, uid_t uid);
 
@@ -130,7 +130,7 @@ class MediaProviderWrapper final {
      *
      * @param path the path of the directory to be deleted
      * @param uid UID of the calling app
-     * @return 0 if it's allowed, or negated errno error code if operation isn't allowed.
+     * @return 0 if it's allowed, or errno error code if operation isn't allowed.
      */
     int IsDeletingDirAllowed(const std::string& path, uid_t uid);
 
@@ -139,7 +139,7 @@ class MediaProviderWrapper final {
      *
      * @param path the path of the directory to be opened
      * @param uid UID of the calling app
-     * @return 0 if it's allowed, or negated errno error code if operation isn't allowed.
+     * @return 0 if it's allowed, or errno error code if operation isn't allowed.
      */
     int IsOpendirAllowed(const std::string& path, uid_t uid);
 
@@ -149,7 +149,7 @@ class MediaProviderWrapper final {
      * @param old_path path of the file or directory to be renamed.
      * @param new_path new path of the file or directory to be renamed.
      * @param uid UID of the calling app.
-     * @return 0 if rename is successful, negated errno if one of the rename fails. If return
+     * @return 0 if rename is successful, errno if one of the rename fails. If return
      * value is 0, it's guaranteed that file/directory is moved to new_path. For any other errno
      * except EFAULT/EIO, it's guaranteed that file/directory is not renamed.
      */

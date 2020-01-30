@@ -30,6 +30,7 @@ java_library {
         // The order matters. android_system_* library should come later.
         "framework_mediaprovider_annotation",
         "android_system_stubs_current",
+        "unsupportedappusage",
     ],
 
     plugins: ["java_api_finder"],

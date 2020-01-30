@@ -212,7 +212,7 @@ public class LocalCallingIdentity {
 
         switch (permission) {
             case PERMISSION_IS_SYSTEM:
-                return isSystemInternal();
+                return isSystemInternal() || hasPermission(PERMISSION_MANAGE_EXTERNAL_STORAGE);
             case PERMISSION_IS_BACKUP:
                 return isBackupInternal();
             case PERMISSION_IS_LEGACY_GRANTED:

@@ -687,7 +687,7 @@ static void pf_mkdir(fuse_req_t req,
 
     const string child_path = parent_path + "/" + name;
 
-    int status = -fuse->mp->IsCreatingDirAllowed(child_path, ctx->uid);
+    int status = fuse->mp->IsCreatingDirAllowed(child_path, ctx->uid);
     if (status) {
         fuse_reply_err(req, status);
         return;
@@ -720,7 +720,7 @@ static void pf_unlink(fuse_req_t req, fuse_ino_t parent, const char* name) {
 
     const string child_path = parent_path + "/" + name;
 
-    int status = -fuse->mp->DeleteFile(child_path, ctx->uid);
+    int status = fuse->mp->DeleteFile(child_path, ctx->uid);
     if (status) {
         fuse_reply_err(req, status);
         return;
@@ -745,7 +745,7 @@ static void pf_rmdir(fuse_req_t req, fuse_ino_t parent, const char* name) {
 
     const string child_path = parent_path + "/" + name;
 
-    int status = -fuse->mp->IsDeletingDirAllowed(child_path, ctx->uid);
+    int status = fuse->mp->IsDeletingDirAllowed(child_path, ctx->uid);
     if (status) {
         fuse_reply_err(req, status);
         return;
@@ -804,7 +804,7 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
     const string new_child_path = new_parent_path + "/" + new_name;
 
     // TODO(b/147408834): Check ENOTEMPTY & EEXIST error conditions before JNI call.
-    const int res = -fuse->mp->Rename(old_child_path, new_child_path, req->ctx.uid);
+    const int res = fuse->mp->Rename(old_child_path, new_child_path, req->ctx.uid);
     // TODO(b/145663158): Lookups can go out of sync if file/directory is actually moved but
     // EFAULT/EIO is reported due to JNI exception.
     if (res == 0) {
@@ -850,7 +850,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     }
 
     TRACE_FUSE(fuse) << "OPEN " << path;
-    int status = -fuse->mp->IsOpenAllowed(path, ctx->uid, is_requesting_write(fi->flags));
+    int status = fuse->mp->IsOpenAllowed(path, ctx->uid, is_requesting_write(fi->flags));
     if (status) {
         fuse_reply_err(req, status);
         return;
@@ -1159,7 +1159,7 @@ static void pf_opendir(fuse_req_t req,
         return;
     }
 
-    int status = -fuse->mp->IsOpendirAllowed(path, ctx->uid);
+    int status = fuse->mp->IsOpendirAllowed(path, ctx->uid);
     if (status) {
         fuse_reply_err(req, status);
         return;
@@ -1356,7 +1356,7 @@ static void pf_create(fuse_req_t req,
 
     const string child_path = parent_path + "/" + name;
 
-    int mp_return_code = -fuse->mp->InsertFile(child_path.c_str(), ctx->uid);
+    int mp_return_code = fuse->mp->InsertFile(child_path.c_str(), ctx->uid);
     if (mp_return_code) {
         PLOG(DEBUG) << "Could not create file: " << child_path;
         fuse_reply_err(req, mp_return_code);
@@ -1531,7 +1531,7 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
     struct fuse_args args;
     struct fuse_cmdline_opts opts;
 
-    SetMinimumLogSeverity(android::base::DEBUG);
+    SetMinimumLogSeverity(android::base::VERBOSE);
 
     struct stat stat;
 

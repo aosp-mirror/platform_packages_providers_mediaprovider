@@ -1001,7 +1001,7 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token = clearLocalCallingIdentity(
                 LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(/*forWrite*/ false)) {
+            if (shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
                 return new String[] {"/"};
             }
 
@@ -1342,7 +1342,8 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token = clearLocalCallingIdentity(
                 LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(/*forWrite*/ true)) {
+            if (shouldBypassFuseRestrictions(/*forWrite*/ true, oldPath)
+                    && shouldBypassFuseRestrictions(/*forWrite*/ true, newPath)) {
                 return renameInLowerFs(oldPath, newPath);
             }
 
@@ -4877,12 +4878,34 @@ public class MediaProvider extends ContentProvider {
         return mCallingIdentity.get().hasPermission(PERMISSION_IS_LEGACY_GRANTED);
     }
 
+    private static int getFileMediaType(String path) {
+        final File file = new File(path);
+        final String mimeType = MimeUtils.resolveMimeType(file);
+        return MimeUtils.resolveMediaType(mimeType);
+    }
+
+    private boolean canAccessMediaFile(String filePath) {
+        switch (getFileMediaType(filePath)) {
+            case FileColumns.MEDIA_TYPE_IMAGE:
+                return mCallingIdentity.get().hasPermission(PERMISSION_WRITE_IMAGES);
+            case FileColumns.MEDIA_TYPE_VIDEO:
+                return mCallingIdentity.get().hasPermission(PERMISSION_WRITE_VIDEO);
+            default:
+                return false;
+        }
+    }
+
     /**
-     * Returns true if the calling identity is an app targeting Q or older versions AND is
-     * requesting legacy storage, i.e. apps targeting R or newer are not allowed to request legacy
-     * storage.
+     * Returns true if:
+     * <ul>
+     * <li>the calling identity is an app targeting Q or older versions AND is requesting legacy
+     * storage
+     * <li>the calling identity holds {@code MANAGE_EXTERNAL_STORAGE}
+     * <li>the calling identity has permission to write images and the given file is an image file
+     * <li>the calling identity has permission to write video and the given file is an video file
+     * </ul>
      */
-    private boolean shouldBypassFuseRestrictions(boolean forWrite) {
+    private boolean shouldBypassFuseRestrictions(boolean forWrite, String filePath) {
         boolean isRequestingLegacyStorage = forWrite ? isCallingPackageLegacyWrite()
                 : isCallingPackageLegacyRead();
         if (isRequestingLegacyStorage) {
@@ -4890,6 +4913,12 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (mCallingIdentity.get().hasPermission(PERMISSION_MANAGE_EXTERNAL_STORAGE)) {
+            return true;
+        }
+
+        // Apps with write access to images and/or videos can bypass our restrictions if all of the
+        // the files they're accessing are of the compatible media type.
+        if (canAccessMediaFile(filePath)) {
             return true;
         }
 
@@ -4991,7 +5020,8 @@ public class MediaProvider extends ContentProvider {
 
         long[] res = new long[0];
         try {
-            if (!isRedactionNeeded() || shouldBypassFuseRestrictions(/*forWrite*/ false)) {
+            if (!isRedactionNeeded()
+                    || shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
                 return res;
             }
 
@@ -5110,7 +5140,7 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(forWrite)) {
+            if (shouldBypassFuseRestrictions(forWrite, path)) {
                 return 0;
             }
 
@@ -5299,7 +5329,7 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(/*forWrite*/ true)) {
+            if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
                 return 0;
             }
 
@@ -5381,7 +5411,7 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(/*forWrite*/ true)) {
+            if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
                 return deleteFileUnchecked(path);
             }
 
@@ -5444,7 +5474,7 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(/*forWrite*/ true)) {
+            if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
                 return 0;
             }
 
@@ -5495,7 +5525,7 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(/*forWrite*/ false)) {
+            if (shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
                 return 0;
             }
 

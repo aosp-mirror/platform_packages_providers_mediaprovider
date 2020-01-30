@@ -5025,7 +5025,6 @@ public class MediaProvider extends ContentProvider {
                 return res;
             }
 
-            // TODO(b/147741933): Quick fix. Add tests
             path = getAbsoluteSanitizedPath(path);
             if (path == null) {
                 throw new IOException("Invalid path " + path);
@@ -5162,7 +5161,6 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EACCES;
             }
 
-            // TODO(b/147741933): Quick fix. Add tests
             path = getAbsoluteSanitizedPath(path);
             if (path == null) {
                 Log.e(TAG, "Invalid path " + path);

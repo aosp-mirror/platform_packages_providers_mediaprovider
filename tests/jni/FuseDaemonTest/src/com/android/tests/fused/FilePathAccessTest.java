@@ -1252,6 +1252,37 @@ public class FilePathAccessTest {
         }
     }
 
+    /**
+     * Test that apps can create hidden file
+     */
+    @Test
+    public void testCanCreateHiddenFile() throws Exception {
+        final File hiddenFile = new File(DOWNLOAD_DIR, ".hiddenFile");
+        try {
+            assertThat(hiddenFile.createNewFile()).isTrue();
+            // Write to hidden file is allowed.
+            try (final FileOutputStream fos = new FileOutputStream(hiddenFile)) {
+                fos.write(BYTES_DATA1);
+            }
+            assertFileContent(hiddenFile, BYTES_DATA1);
+            // We can delete hidden file
+            // TODO(b/148579340): Uncomment these once we support hidden file deletion.
+            // assertThat(hiddenFile.delete()).isTrue();
+            // assertThat(hiddenFile.exists()).isFalse();
+        } finally {
+            // TODO(b/148579340): Remove below workaround once the hidden file deletion is
+            // supported.
+            executeShellCommand("rm " + hiddenFile.getAbsolutePath());
+            String selection = MediaColumns.RELATIVE_PATH + " = ? AND "
+                    + MediaColumns.DISPLAY_NAME + " = ?";
+            String[] selectionArgs = {hiddenFile.getParentFile().getName() + "/", "_.hiddenFile" };
+            getContentResolver().delete(MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL),
+                    selection, selectionArgs);
+
+            hiddenFile.delete();
+        }
+    }
+
     private void deleteWithMediaProvider(String relativePath, String displayName) throws Exception {
         String selection = MediaColumns.RELATIVE_PATH + " = ? AND "
                 + MediaColumns.DISPLAY_NAME + " = ?";

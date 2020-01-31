@@ -1084,7 +1084,7 @@ public class FilePathAccessTest {
             assertCanRenameFile(videoFile1, videoFile2);
 
             // MediaProvider database entry for videoFile2 should be deleted on rename.
-            assertThat(getFileRowIdFromDatabase(videoFile2)).isNotEqualTo((id));
+            assertThat(getFileRowIdFromDatabase(videoFile2)).isNotEqualTo(id);
         } finally {
             videoFile1.delete();
             videoFile2.delete();
@@ -1238,10 +1238,19 @@ public class FilePathAccessTest {
     }
 
     @Test
-    public void testManageExternalStorageBypassesMediaProviderRestrictions() throws Exception {
-        adoptShellPermissionIdentity(Manifest.permission.MANAGE_EXTERNAL_STORAGE);
+    public void testManageExternalStorageCanCreateFilesAnywhere() throws Exception {
+        final File topLevelPdf = new File(EXTERNAL_STORAGE_DIR, NONMEDIA_FILE_NAME);
+        final File musicFileInMovies = new File(MOVIES_DIR, MUSIC_FILE_NAME);
+        final File imageFileInDcim = new File(DCIM_DIR, IMAGE_FILE_NAME);
         try {
-            assertCanCreateFile(new File(EXTERNAL_STORAGE_DIR, NONMEDIA_FILE_NAME));
+            adoptShellPermissionIdentity(Manifest.permission.MANAGE_EXTERNAL_STORAGE);
+            // Nothing special about this, anyone can create an image file in DCIM
+            assertCanCreateFile(imageFileInDcim);
+            // This is where we see the special powers of MANAGE_EXTERNAL_STORAGE, because it can
+            // create a top level file
+            assertCanCreateFile(topLevelPdf);
+            // It can even create a music file in Pictures
+            assertCanCreateFile(musicFileInMovies);
         } finally {
             dropShellPermissionIdentity();
         }
@@ -1265,6 +1274,101 @@ public class FilePathAccessTest {
             assertThat(hiddenFile.exists()).isFalse();
         } finally {
             hiddenFile.delete();
+        }
+    }
+
+    @Test
+    public void testManageExternalStorageCanDeleteOtherAppsContents() throws Exception {
+        final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
+        final File otherAppImage = new File(DCIM_DIR, "other" + IMAGE_FILE_NAME);
+        final File otherAppMusic = new File(MUSIC_DIR, "other" + MUSIC_FILE_NAME);
+        try {
+            installApp(TEST_APP_A, false);
+
+            // Create all of the files as another app
+            assertThat(createFileAs(TEST_APP_A, otherAppPdf.getPath())).isTrue();
+            assertThat(createFileAs(TEST_APP_A, otherAppImage.getPath())).isTrue();
+            assertThat(createFileAs(TEST_APP_A, otherAppMusic.getPath())).isTrue();
+
+            // Now we get the permission, since some earlier method calls drop shell permission
+            // identity.
+            adoptShellPermissionIdentity(Manifest.permission.MANAGE_EXTERNAL_STORAGE);
+
+            assertThat(otherAppPdf.delete()).isTrue();
+            assertThat(otherAppPdf.exists()).isFalse();
+
+            assertThat(otherAppImage.delete()).isTrue();
+            assertThat(otherAppImage.exists()).isFalse();
+
+            assertThat(otherAppMusic.delete()).isTrue();
+            assertThat(otherAppMusic.exists()).isFalse();
+
+            // Create the files again to allow the helper app to clean them up
+            assertThat(otherAppPdf.createNewFile()).isTrue();
+            assertThat(otherAppImage.createNewFile()).isTrue();
+            assertThat(otherAppMusic.createNewFile()).isTrue();
+        } finally {
+            dropShellPermissionIdentity();
+            deleteFileAs(TEST_APP_A, otherAppPdf.getPath());
+            deleteFileAs(TEST_APP_A, otherAppImage.getPath());
+            deleteFileAs(TEST_APP_A, otherAppMusic.getPath());
+            uninstallApp(TEST_APP_A);
+        }
+    }
+
+    @Test
+    public void testManageExternalStorageCanRenameOtherAppsContents() throws Exception {
+        final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
+        final File pdf = new File(DOWNLOAD_DIR, NONMEDIA_FILE_NAME);
+        final File pdfInObviouslyWrongPlace = new File(PICTURES_DIR, NONMEDIA_FILE_NAME);
+        final File topLevelPdf = new File(EXTERNAL_STORAGE_DIR, NONMEDIA_FILE_NAME);
+        final File musicFile = new File(MUSIC_DIR, MUSIC_FILE_NAME);
+        try {
+            installApp(TEST_APP_A, false);
+
+            // Have another app create a PDF
+            assertThat(createFileAs(TEST_APP_A, otherAppPdf.getPath())).isTrue();
+            assertThat(otherAppPdf.exists()).isTrue();
+
+            // Now we get the permission, since some earlier method calls drop shell permission
+            // identity.
+            adoptShellPermissionIdentity(Manifest.permission.MANAGE_EXTERNAL_STORAGE);
+
+            // Write some data to the file
+            try (final FileOutputStream fos = new FileOutputStream(otherAppPdf)) {
+                fos.write(BYTES_DATA1);
+            }
+            assertFileContent(otherAppPdf, BYTES_DATA1);
+
+            // Assert we can rename the file and ensure the file has the same content
+            assertThat(otherAppPdf.renameTo(pdf)).isTrue();
+            assertThat(otherAppPdf.exists()).isFalse();
+            assertFileContent(pdf, BYTES_DATA1);
+            // We can even move it to the top level directory
+            assertThat(pdf.renameTo(topLevelPdf)).isTrue();
+            assertThat(pdf.exists()).isFalse();
+            assertFileContent(topLevelPdf, BYTES_DATA1);
+            // And even rename to a place where PDFs don't belong, because we're an omnipotent
+            // external storage manager
+            assertThat(topLevelPdf.renameTo(pdfInObviouslyWrongPlace)).isTrue();
+            assertThat(topLevelPdf.exists()).isFalse();
+            assertFileContent(pdfInObviouslyWrongPlace, BYTES_DATA1);
+
+            // And we can even convert it into a music file, because why not?
+            assertThat(pdfInObviouslyWrongPlace.renameTo(musicFile)).isTrue();
+            assertThat(pdfInObviouslyWrongPlace.exists()).isFalse();
+            assertFileContent(musicFile, BYTES_DATA1);
+
+            // Rename file back to it's original name so that the test app can clean it up
+            assertThat(musicFile.renameTo(otherAppPdf)).isTrue();
+        } finally {
+            pdf.delete();
+            pdfInObviouslyWrongPlace.delete();
+            topLevelPdf.delete();
+            musicFile.delete();
+            dropShellPermissionIdentity();
+            deleteFileAs(TEST_APP_A, otherAppPdf.getPath());
+            uninstallApp(TEST_APP_A);
         }
     }
 

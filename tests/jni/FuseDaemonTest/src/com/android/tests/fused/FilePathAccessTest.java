@@ -30,17 +30,23 @@ import static com.android.tests.fused.lib.TestUtils.allowAppOpsToUid;
 import static com.android.tests.fused.lib.TestUtils.assertThrows;
 import static com.android.tests.fused.lib.TestUtils.createFileAs;
 import static com.android.tests.fused.lib.TestUtils.deleteFileAs;
+import static com.android.tests.fused.lib.TestUtils.deleteFileAsNoThrow;
 import static com.android.tests.fused.lib.TestUtils.deleteRecursively;
+import static com.android.tests.fused.lib.TestUtils.deleteWithMediaProvider;
 import static com.android.tests.fused.lib.TestUtils.denyAppOpsToUid;
 import static com.android.tests.fused.lib.TestUtils.dropShellPermissionIdentity;
 import static com.android.tests.fused.lib.TestUtils.executeShellCommand;
+import static com.android.tests.fused.lib.TestUtils.getContentResolver;
 import static com.android.tests.fused.lib.TestUtils.getFileMimeTypeFromDatabase;
 import static com.android.tests.fused.lib.TestUtils.getFileRowIdFromDatabase;
 import static com.android.tests.fused.lib.TestUtils.installApp;
 import static com.android.tests.fused.lib.TestUtils.listAs;
+import static com.android.tests.fused.lib.TestUtils.openWithMediaProvider;
 import static com.android.tests.fused.lib.TestUtils.readExifMetadataFromTestApp;
 import static com.android.tests.fused.lib.TestUtils.revokeReadExternalStorage;
 import static com.android.tests.fused.lib.TestUtils.uninstallApp;
+import static com.android.tests.fused.lib.TestUtils.uninstallAppNoThrow;
+import static com.android.tests.fused.lib.TestUtils.updateDisplayNameWithMediaProvider;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -51,10 +57,7 @@ import static org.junit.Assume.assumeTrue;
 import android.Manifest;
 import android.app.AppOpsManager;
 import android.content.ContentResolver;
-import android.content.ContentUris;
-import android.content.ContentValues;
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.Environment;
 import android.os.FileUtils;
 import android.os.ParcelFileDescriptor;
@@ -343,9 +346,9 @@ public class FilePathAccessTest {
             } catch (IOException expected) {}
 
         } finally {
-            deleteFileAs(TEST_APP_A, nonMediaFile.getPath());
-            deleteFileAs(TEST_APP_A, mediaFile.getPath());
-            uninstallApp(TEST_APP_A);
+            deleteFileAsNoThrow(TEST_APP_A, nonMediaFile.getPath());
+            deleteFileAsNoThrow(TEST_APP_A, mediaFile.getPath());
+            uninstallAppNoThrow(TEST_APP_A);
         }
     }
 
@@ -388,12 +391,12 @@ public class FilePathAccessTest {
             // Now that the directory only has content that was contributed by us, we can delete it
             assertThat(deleteRecursively(dirInDownload)).isTrue();
         } finally {
-            deleteFileAs(TEST_APP_A, nonMediaFile.getPath());
-            deleteFileAs(TEST_APP_A, mediaFile.getPath());
+            deleteFileAsNoThrow(TEST_APP_A, nonMediaFile.getPath());
+            deleteFileAsNoThrow(TEST_APP_A, mediaFile.getPath());
             // At this point, we're not sure who created this file, so we'll have both apps
             // deleting it
             mediaFile.delete();
-            uninstallApp(TEST_APP_A);
+            uninstallAppNoThrow(TEST_APP_A);
             dirInDownload.delete();
         }
     }
@@ -512,16 +515,16 @@ public class FilePathAccessTest {
             assertThat(listAs(TEST_APP_B, DCIM_DIR.getPath())).contains(TEST_DIRECTORY_NAME);
             assertThat(listAs(TEST_APP_B, dir.getPath())).doesNotContain(videoFileName);
         } finally {
-            uninstallApp(TEST_APP_B);
+            uninstallAppNoThrow(TEST_APP_B);
             if(videoFile.exists()) {
-                deleteFileAs(TEST_APP_A, videoFile.getPath());
+                deleteFileAsNoThrow(TEST_APP_A, videoFile.getPath());
             }
             if (dir.exists()) {
                   // Try deleting the directory. Do we delete directory if app doesn't own all
                   // files in it?
                   dir.delete();
             }
-            uninstallApp(TEST_APP_A);
+            uninstallAppNoThrow(TEST_APP_A);
         }
     }
 
@@ -554,14 +557,14 @@ public class FilePathAccessTest {
             assertThat(listAs(TEST_APP_B, DOWNLOAD_DIR.getPath())).contains(TEST_DIRECTORY_NAME);
             assertThat(listAs(TEST_APP_B, dir.getPath())).doesNotContain(pdfFileName);
         } finally {
-            uninstallApp(TEST_APP_B);
+            uninstallAppNoThrow(TEST_APP_B);
             if(pdfFile.exists()) {
-                deleteFileAs(TEST_APP_A, pdfFile.getPath());
+                deleteFileAsNoThrow(TEST_APP_A, pdfFile.getPath());
             }
             if (dir.exists()) {
                   dir.delete();
             }
-            uninstallApp(TEST_APP_A);
+            uninstallAppNoThrow(TEST_APP_A);
         }
     }
 
@@ -593,7 +596,7 @@ public class FilePathAccessTest {
             assertThat(listAs(TEST_APP_A, EXTERNAL_FILES_DIR.getPath())).isEmpty();
         } finally {
             videoFile.delete();
-            uninstallApp(TEST_APP_A);
+            uninstallAppNoThrow(TEST_APP_A);
         }
     }
 
@@ -636,7 +639,7 @@ public class FilePathAccessTest {
         } finally {
             videoFile.delete();
               // TODO(b/145757667): Uncomment this when we start indexing Android/media files.
-//            uninstallApp(TEST_APP_A);
+//            uninstallAppNoThrow(TEST_APP_A);
         }
     }
 
@@ -663,7 +666,7 @@ public class FilePathAccessTest {
         } finally {
             executeShellCommand("rm " + pdfFile.getAbsolutePath());
             executeShellCommand("rm " + videoFile.getAbsolutePath());
-            uninstallApp(TEST_APP_A);
+            uninstallAppNoThrow(TEST_APP_A);
         }
     }
 
@@ -698,7 +701,7 @@ public class FilePathAccessTest {
             //  it would be able to access the metadata.
         } finally {
             jpgFile.delete();
-            uninstallApp(TEST_APP_A);
+            uninstallAppNoThrow(TEST_APP_A);
         }
     }
 
@@ -712,8 +715,7 @@ public class FilePathAccessTest {
 
             ParcelFileDescriptor readPfd = ParcelFileDescriptor.open(file,
                     ParcelFileDescriptor.MODE_READ_WRITE);
-            ParcelFileDescriptor writePfd = openWithMediaProvider(Environment.DIRECTORY_DCIM,
-                    displayName, "rw");
+            ParcelFileDescriptor writePfd = openWithMediaProvider(file, "rw");
 
             assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
             assertUpperFsFd(writePfd); // With cache
@@ -730,8 +732,7 @@ public class FilePathAccessTest {
         try {
             assertThat(file.createNewFile()).isTrue();
 
-            ParcelFileDescriptor writePfd = openWithMediaProvider(Environment.DIRECTORY_DCIM,
-                    displayName, "rw");
+            ParcelFileDescriptor writePfd = openWithMediaProvider(file, "rw");
             ParcelFileDescriptor readPfd = ParcelFileDescriptor.open(file,
                     ParcelFileDescriptor.MODE_READ_WRITE);
 
@@ -752,8 +753,7 @@ public class FilePathAccessTest {
 
             ParcelFileDescriptor writePfd = ParcelFileDescriptor.open(file,
                     ParcelFileDescriptor.MODE_READ_WRITE);
-            ParcelFileDescriptor readPfd = openWithMediaProvider(Environment.DIRECTORY_DCIM,
-                    displayName, "rw");
+            ParcelFileDescriptor readPfd = openWithMediaProvider(file, "rw");
 
             assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
             assertUpperFsFd(readPfd); // With cache
@@ -770,8 +770,7 @@ public class FilePathAccessTest {
         try {
             assertThat(file.createNewFile()).isTrue();
 
-            ParcelFileDescriptor readPfd = openWithMediaProvider(Environment.DIRECTORY_DCIM,
-                    displayName, "rw");
+            ParcelFileDescriptor readPfd = openWithMediaProvider(file, "rw");
             ParcelFileDescriptor writePfd = ParcelFileDescriptor.open(file,
                     ParcelFileDescriptor.MODE_READ_WRITE);
 
@@ -792,10 +791,8 @@ public class FilePathAccessTest {
 
             // Since we can only place one F_WRLCK, the second open for readPfd will go
             // throuh FUSE
-            ParcelFileDescriptor writePfd = openWithMediaProvider(Environment.DIRECTORY_DCIM,
-                    displayName, "w");
-            ParcelFileDescriptor readPfd = openWithMediaProvider(Environment.DIRECTORY_DCIM,
-                    displayName, "rw");
+            ParcelFileDescriptor writePfd = openWithMediaProvider(file, "w");
+            ParcelFileDescriptor readPfd = openWithMediaProvider(file, "rw");
 
             assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
             assertLowerFsFd(writePfd);
@@ -815,8 +812,7 @@ public class FilePathAccessTest {
 
             // Even if we close the original fd, since we have a dup open
             // the FUSE IO should still bypass the cache
-            ParcelFileDescriptor writePfd = openWithMediaProvider(Environment.DIRECTORY_DCIM,
-                    displayName, "rw");
+            ParcelFileDescriptor writePfd = openWithMediaProvider(file, "rw");
             ParcelFileDescriptor writePfdDup = writePfd.dup();
             writePfd.close();
             ParcelFileDescriptor readPfd = ParcelFileDescriptor.open(file,
@@ -837,7 +833,7 @@ public class FilePathAccessTest {
         try {
             assertThat(file.createNewFile()).isTrue();
 
-            deleteWithMediaProvider(Environment.DIRECTORY_DCIM, displayName);
+            deleteWithMediaProvider(file);
 
             assertThat(file.exists()).isFalse();
             assertThat(file.createNewFile()).isTrue();
@@ -856,7 +852,8 @@ public class FilePathAccessTest {
         try {
             assertThat(oldFile.createNewFile()).isTrue();
 
-            updateWithMediaProvider(Environment.DIRECTORY_DCIM, oldDisplayName, newDisplayName);
+            updateDisplayNameWithMediaProvider(Environment.DIRECTORY_DCIM, oldDisplayName,
+                    newDisplayName);
 
             assertThat(oldFile.exists()).isFalse();
             assertThat(oldFile.createNewFile()).isTrue();
@@ -1061,8 +1058,7 @@ public class FilePathAccessTest {
 
             // On rename, MediaProvider database entry for pdfFile should be updated with new
             // videoFile path and mime type should be updated to video/mp4.
-            ContentResolver cr = getContentResolver();
-            assertThat(getFileMimeTypeFromDatabase(cr, videoFile))
+            assertThat(getFileMimeTypeFromDatabase(videoFile))
                     .isEqualTo("video/mp4");
         } finally {
             pdfFile.delete();
@@ -1080,16 +1076,15 @@ public class FilePathAccessTest {
         try {
             assertThat(videoFile1.createNewFile()).isTrue();
             assertThat(videoFile2.createNewFile()).isTrue();
-            ContentResolver cr = getContentResolver();
             final String[] projection = new String[] {MediaColumns._ID};
             // Get id of video file in movies which will be deleted on rename.
-            final int id = getFileRowIdFromDatabase(cr, videoFile2);
+            final int id = getFileRowIdFromDatabase(videoFile2);
 
             // Renaming a file which replaces file in newPath videoFile2 is allowed.
             assertCanRenameFile(videoFile1, videoFile2);
 
             // MediaProvider database entry for videoFile2 should be deleted on rename.
-            assertThat(getFileRowIdFromDatabase(cr, videoFile2)).isNotEqualTo((id));
+            assertThat(getFileRowIdFromDatabase(videoFile2)).isNotEqualTo((id));
         } finally {
             videoFile1.delete();
             videoFile2.delete();
@@ -1116,10 +1111,10 @@ public class FilePathAccessTest {
             // the corresponding file
         } finally {
             if(videoFile1.exists()) {
-                deleteFileAs(TEST_APP_A, videoFile1.getAbsolutePath());
+                deleteFileAsNoThrow(TEST_APP_A, videoFile1.getAbsolutePath());
             }
             videoFile2.delete();
-            uninstallApp(TEST_APP_A);
+            uninstallAppNoThrow(TEST_APP_A);
         }
     }
 
@@ -1217,8 +1212,8 @@ public class FilePathAccessTest {
             // Test app can delete the file since the file is not moved to new directory.
             assertThat(deleteFileAs(TEST_APP_A, videoFile.getAbsolutePath())).isTrue();
         } finally {
-            deleteFileAs(TEST_APP_A, videoFile.getAbsolutePath());
-            uninstallApp(TEST_APP_A);
+            deleteFileAsNoThrow(TEST_APP_A, videoFile.getAbsolutePath());
+            uninstallAppNoThrow(TEST_APP_A);
             mediaDirectory1.delete();
         }
     }
@@ -1273,40 +1268,6 @@ public class FilePathAccessTest {
         }
     }
 
-    private void deleteWithMediaProvider(String relativePath, String displayName) throws Exception {
-        String selection = MediaColumns.RELATIVE_PATH + " = ? AND "
-                + MediaColumns.DISPLAY_NAME + " = ?";
-        String[] selectionArgs = { relativePath + '/', displayName };
-
-        assertThat(getContentResolver().delete(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                        selection, selectionArgs)).isEqualTo(1);
-    }
-
-    private void updateWithMediaProvider(String relativePath, String oldDisplayName,
-            String newDisplayName) throws Exception {
-        String selection = MediaColumns.RELATIVE_PATH + " = ? AND "
-                + MediaColumns.DISPLAY_NAME + " = ?";
-        String[] selectionArgs = { relativePath + '/', oldDisplayName };
-        String[] projection = {MediaColumns._ID, MediaColumns.DATA};
-
-        ContentValues values = new ContentValues();
-        values.put(MediaColumns.DISPLAY_NAME, newDisplayName);
-
-        try (final Cursor cursor = getContentResolver().query(
-            MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, selection, selectionArgs,
-                null)) {
-            assertThat(cursor.getCount()).isEqualTo(1);
-            cursor.moveToFirst();
-            int id = cursor.getInt(cursor.getColumnIndex(MediaColumns._ID));
-            String data = cursor.getString(cursor.getColumnIndex(MediaColumns.DATA));
-            Uri uri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id);
-            Log.i(TAG, "Uri: " + uri + ". Data: " + data);
-            assertThat(getContentResolver().update(uri, values, selection, selectionArgs))
-                    .isEqualTo(1);
-        }
-    }
-
-
     /**
      * Assert that the last read in: read - write - read using {@code readFd} and {@code writeFd}
      * see the last write. {@code readFd} and {@code writeFd} are fds pointing to the same
@@ -1344,30 +1305,6 @@ public class FilePathAccessTest {
         assertThat(Os.readlink("/proc/self/fd/" + pfd.getFd()).startsWith("/mnt/user")).isTrue();
     }
 
-    private ParcelFileDescriptor openWithMediaProvider(String relativePath, String displayName,
-            String mode) throws Exception {
-        String selection = MediaColumns.RELATIVE_PATH + " = ? AND "
-                + MediaColumns.DISPLAY_NAME + " = ?";
-        String[] selectionArgs = { relativePath + '/', displayName };
-        String[] projection = {MediaColumns._ID, MediaColumns.DATA};
-
-        try (final Cursor cursor = getContentResolver().query(
-                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, selection,
-                        selectionArgs, null)) {
-            assertThat(cursor.getCount()).isEqualTo(1);
-            cursor.moveToFirst();
-            int id = cursor.getInt(cursor.getColumnIndex(MediaColumns._ID));
-            String data = cursor.getString(cursor.getColumnIndex(MediaColumns.DATA));
-            Uri uri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id);
-            Log.i(TAG, "Uri: " + uri + ". Data: " + data);
-            return getContentResolver().openFileDescriptor(uri, mode);
-        }
-    }
-
-    private static ContentResolver getContentResolver() {
-        return getContext().getContentResolver();
-    }
-
     private static void assertCanCreateFile(File file) throws IOException {
         // If the file somehow managed to survive a previous run, then the test app was uninstalled
         // and MediaProvider will remove our its ownership of the file, so it's not guaranteed that
@@ -1385,17 +1322,15 @@ public class FilePathAccessTest {
         assertThat(oldFile.renameTo(newFile)).isTrue();
         assertThat(oldFile.exists()).isFalse();
         assertThat(newFile.exists()).isTrue();
-        ContentResolver cr = getContentResolver();
-        assertThat(getFileRowIdFromDatabase(cr, oldFile)).isEqualTo(-1);
-        assertThat(getFileRowIdFromDatabase(cr, newFile)).isNotEqualTo(-1);
+        assertThat(getFileRowIdFromDatabase(oldFile)).isEqualTo(-1);
+        assertThat(getFileRowIdFromDatabase(newFile)).isNotEqualTo(-1);
     }
 
     private static void assertCantRenameFile(File oldFile, File newFile) {
-        ContentResolver cr = getContentResolver();
-        final int rowId = getFileRowIdFromDatabase(cr, oldFile);
+        final int rowId = getFileRowIdFromDatabase(oldFile);
         assertThat(oldFile.renameTo(newFile)).isFalse();
         assertThat(oldFile.exists()).isTrue();
-        assertThat(getFileRowIdFromDatabase(cr, oldFile)).isEqualTo(rowId);
+        assertThat(getFileRowIdFromDatabase(oldFile)).isEqualTo(rowId);
     }
 
     private static void assertCanRenameDirectory(File oldDirectory, File newDirectory,
@@ -1403,14 +1338,13 @@ public class FilePathAccessTest {
         assertThat(oldDirectory.renameTo(newDirectory)).isTrue();
         assertThat(oldDirectory.exists()).isFalse();
         assertThat(newDirectory.exists()).isTrue();
-        ContentResolver cr = getContentResolver();
         for (File file  : oldFilesList != null ? oldFilesList : new File[0]) {
             assertThat(file.exists()).isFalse();
-            assertThat(getFileRowIdFromDatabase(cr, file)).isEqualTo(-1);
+            assertThat(getFileRowIdFromDatabase(file)).isEqualTo(-1);
         }
         for (File file : newFilesList != null ? newFilesList : new File[0]) {
             assertThat(file.exists()).isTrue();
-            assertThat(getFileRowIdFromDatabase(cr, file)).isNotEqualTo(-1);
+            assertThat(getFileRowIdFromDatabase(file)).isNotEqualTo(-1);
         };
     }
 
@@ -1418,10 +1352,9 @@ public class FilePathAccessTest {
             @Nullable File[] oldFilesList) {
         assertThat(oldDirectory.renameTo(newDirectory)).isFalse();
         assertThat(oldDirectory.exists()).isTrue();
-        ContentResolver cr = getContentResolver();
         for (File file  : oldFilesList != null ? oldFilesList : new File[0]) {
             assertThat(file.exists()).isTrue();
-            assertThat(getFileRowIdFromDatabase(cr, file)).isNotEqualTo(-1);
+            assertThat(getFileRowIdFromDatabase(file)).isNotEqualTo(-1);
         }
     }
 

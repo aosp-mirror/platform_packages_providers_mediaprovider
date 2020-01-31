@@ -27,6 +27,7 @@ import static org.junit.Assert.fail;
 
 import android.Manifest;
 import android.app.ActivityManager;
+import android.app.AppOpsManager;
 import android.app.UiAutomation;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
@@ -66,6 +67,7 @@ public class TestUtils {
     public static final String INTENT_EXCEPTION = "com.android.tests.fused.exception";
     public static final String CREATE_FILE_QUERY = "com.android.tests.fused.createfile";
     public static final String DELETE_FILE_QUERY = "com.android.tests.fused.deletefile";
+
 
     private static final UiAutomation sUiAutomation = InstrumentationRegistry.getInstrumentation()
             .getUiAutomation();
@@ -245,6 +247,24 @@ public class TestUtils {
         return mimeType;
     }
 
+    /**
+     * Sets {@link AppOpsManager#MODE_ALLOWED} for the given {@code ops} and the given {@code uid}.
+     *
+     * <p>This method drops shell permission identity.
+     */
+    public static void allowAppOpsToUid(int uid, @NonNull String... ops) {
+        setAppOpsModeForUid(uid, AppOpsManager.MODE_ALLOWED, ops);
+    }
+
+    /**
+     * Sets {@link AppOpsManager#MODE_ERRORED} for the given {@code ops} and the given {@code uid}.
+     *
+     * <p>This method drops shell permission identity.
+     */
+    public static void denyAppOpsToUid(int uid, @NonNull String... ops) {
+        setAppOpsModeForUid(uid, AppOpsManager.MODE_ERRORED, ops);
+    }
+
     public static <T extends Exception> void assertThrows(Class<T> clazz, Operation<T> r)
             throws Exception {
         assertThrows(clazz, "", r);
@@ -380,5 +400,22 @@ public class TestUtils {
 
         sendIntentToTestApp(testApp, dirPath, actionName, broadcastReceiver, latch);
         return appOutput[0];
+    }
+
+    /**
+     * Sets {@code mode} for the given {@code ops} and the given {@code uid}.
+     *
+     * <p>This method drops shell permission identity.
+     */
+    private static void setAppOpsModeForUid(int uid, int mode, @NonNull String... ops) {
+        adoptShellPermissionIdentity(null);
+        try {
+            for (String op : ops) {
+                getContext().getSystemService(AppOpsManager.class)
+                        .setUidMode(op, uid, mode);
+            }
+        } finally {
+            dropShellPermissionIdentity();
+        }
     }
 }

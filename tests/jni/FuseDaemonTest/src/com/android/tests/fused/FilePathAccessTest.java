@@ -26,10 +26,12 @@ import static com.android.tests.fused.lib.RedactionTestHelper.assertExifMetadata
 import static com.android.tests.fused.lib.RedactionTestHelper.getExifMetadata;
 import static com.android.tests.fused.lib.RedactionTestHelper.getExifMetadataFromRawResource;
 import static com.android.tests.fused.lib.TestUtils.adoptShellPermissionIdentity;
+import static com.android.tests.fused.lib.TestUtils.allowAppOpsToUid;
 import static com.android.tests.fused.lib.TestUtils.assertThrows;
 import static com.android.tests.fused.lib.TestUtils.createFileAs;
 import static com.android.tests.fused.lib.TestUtils.deleteFileAs;
 import static com.android.tests.fused.lib.TestUtils.deleteRecursively;
+import static com.android.tests.fused.lib.TestUtils.denyAppOpsToUid;
 import static com.android.tests.fused.lib.TestUtils.dropShellPermissionIdentity;
 import static com.android.tests.fused.lib.TestUtils.executeShellCommand;
 import static com.android.tests.fused.lib.TestUtils.getFileMimeTypeFromDatabase;
@@ -39,6 +41,7 @@ import static com.android.tests.fused.lib.TestUtils.listAs;
 import static com.android.tests.fused.lib.TestUtils.readExifMetadataFromTestApp;
 import static com.android.tests.fused.lib.TestUtils.revokeReadExternalStorage;
 import static com.android.tests.fused.lib.TestUtils.uninstallApp;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static junit.framework.Assert.fail;
@@ -46,6 +49,7 @@ import static junit.framework.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import android.Manifest;
+import android.app.AppOpsManager;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -54,6 +58,7 @@ import android.net.Uri;
 import android.os.Environment;
 import android.os.FileUtils;
 import android.os.ParcelFileDescriptor;
+import android.os.Process;
 import android.provider.MediaStore;
 import android.system.ErrnoException;
 import android.system.Os;
@@ -65,7 +70,12 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.cts.install.lib.TestApp;
 import com.android.tests.fused.lib.ReaddirTestHelper;
+
 import com.google.common.io.ByteStreams;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -77,10 +87,6 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4.class)
 public class FilePathAccessTest {
@@ -120,6 +126,8 @@ public class FilePathAccessTest {
     private static final TestApp TEST_APP_B  = new TestApp("TestAppB",
             "com.android.tests.fused.testapp.B", 1, false, "TestAppB.apk");
 
+    private static final String[] SYSTEM_GALERY_APPOPS = { AppOpsManager.OPSTR_WRITE_MEDIA_IMAGES,
+            AppOpsManager.OPSTR_WRITE_MEDIA_VIDEO };
     // skips all test cases if FUSE is not active.
     @Before
     public void assumeFuseIsOn() {
@@ -708,6 +716,7 @@ public class FilePathAccessTest {
                     displayName, "rw");
 
             assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
+            assertUpperFsFd(writePfd); // With cache
         } finally {
             file.delete();
         }
@@ -727,6 +736,7 @@ public class FilePathAccessTest {
                     ParcelFileDescriptor.MODE_READ_WRITE);
 
             assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
+            assertLowerFsFd(writePfd);
         } finally {
             file.delete();
         }
@@ -746,6 +756,7 @@ public class FilePathAccessTest {
                     displayName, "rw");
 
             assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
+            assertUpperFsFd(readPfd); // With cache
         } finally {
             file.delete();
         }
@@ -765,6 +776,7 @@ public class FilePathAccessTest {
                     ParcelFileDescriptor.MODE_READ_WRITE);
 
             assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
+            assertLowerFsFd(readPfd);
         } finally {
             file.delete();
         }
@@ -786,6 +798,8 @@ public class FilePathAccessTest {
                     displayName, "rw");
 
             assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
+            assertLowerFsFd(writePfd);
+            assertUpperFsFd(readPfd); // Without cache
         } finally {
             file.delete();
         }
@@ -809,6 +823,7 @@ public class FilePathAccessTest {
                     ParcelFileDescriptor.MODE_READ_WRITE);
 
             assertRWR(readPfd.getFileDescriptor(), writePfdDup.getFileDescriptor());
+            assertLowerFsFd(writePfdDup);
         } finally {
             file.delete();
         }
@@ -850,6 +865,140 @@ public class FilePathAccessTest {
         } finally {
             oldFile.delete();
             newFile.delete();
+        }
+    }
+
+    @Test
+    public void testSystemGalleryAppHasFullAccessToImages() throws Exception {
+        final File otherAppImageFile = new File(DCIM_DIR, "other_" + IMAGE_FILE_NAME);
+        final File topLevelImageFile = new File(EXTERNAL_STORAGE_DIR, IMAGE_FILE_NAME);
+        final File imageInAnObviouslyWrongPlace = new File(MUSIC_DIR, IMAGE_FILE_NAME);
+
+        try {
+            installApp(TEST_APP_A, false);
+            allowAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
+
+            // Have another app create an image file
+            assertThat(createFileAs(TEST_APP_A, otherAppImageFile.getPath())).isTrue();
+            assertThat(otherAppImageFile.exists()).isTrue();
+
+            // Assert we can write to the file
+            try (final FileOutputStream fos = new FileOutputStream(otherAppImageFile)) {
+                fos.write(BYTES_DATA1);
+            }
+
+            // Assert we can read from the file
+            assertFileContent(otherAppImageFile, BYTES_DATA1);
+
+            // Assert we can delete the file
+            assertThat(otherAppImageFile.delete()).isTrue();
+            assertThat(otherAppImageFile.exists()).isFalse();
+
+            // Put the file back in its place and let TEST_APP_A delete it
+            assertThat(otherAppImageFile.createNewFile()).isTrue();
+
+            // Can create an image anywhere
+            assertCanCreateFile(topLevelImageFile);
+            assertCanCreateFile(imageInAnObviouslyWrongPlace);
+        } finally {
+            deleteFileAs(TEST_APP_A, otherAppImageFile.getPath());
+            uninstallApp(TEST_APP_A);
+            denyAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
+        }
+    }
+
+    @Test
+    public void testSystemGalleryAppHasNoFullAccessToAudio() throws Exception {
+        final File otherAppAudioFile = new File(MUSIC_DIR, "other_" + MUSIC_FILE_NAME);
+        final File topLevelAudioFile = new File(EXTERNAL_STORAGE_DIR, MUSIC_FILE_NAME);
+        final File audioInAnObviouslyWrongPlace = new File(PICTURES_DIR, MUSIC_FILE_NAME);
+
+        try {
+            installApp(TEST_APP_A, false);
+            allowAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
+
+            // Have another app create an audio file
+            assertThat(createFileAs(TEST_APP_A, otherAppAudioFile.getPath())).isTrue();
+            assertThat(otherAppAudioFile.exists()).isTrue();
+
+            // Assert we can't write to the file
+            try (FileInputStream fis = new FileInputStream(otherAppAudioFile)) {
+                fail("Opening for read succeeded when it should have failed: " + otherAppAudioFile);
+            } catch (IOException expected) {}
+
+            // Assert we can't read from the file
+            try (FileOutputStream fos = new FileOutputStream(otherAppAudioFile)) {
+                fail("Opening for write succeeded when it should have failed: "
+                        + otherAppAudioFile);
+            } catch (IOException expected) {}
+
+            // Assert we can't delete the file
+            assertThat(otherAppAudioFile.delete()).isFalse();
+
+            // Can't create an audio file where it doesn't belong
+            assertThrows(IOException.class, "Operation not permitted", () -> {
+                topLevelAudioFile.createNewFile();
+            });
+            assertThrows(IOException.class, "Operation not permitted", () -> {
+                audioInAnObviouslyWrongPlace.createNewFile();
+            });
+        } finally {
+            deleteFileAs(TEST_APP_A, otherAppAudioFile.getPath());
+            uninstallApp(TEST_APP_A);
+            topLevelAudioFile.delete();
+            audioInAnObviouslyWrongPlace.delete();
+            denyAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
+        }
+    }
+
+    @Test
+    public void testSystemGalleryCanRenameImagesAndVideos() throws Exception {
+        final File otherAppVideoFile = new File(DCIM_DIR, "other_" + VIDEO_FILE_NAME);
+        final File imageFile = new File(PICTURES_DIR, IMAGE_FILE_NAME);
+        final File videoFile = new File(PICTURES_DIR, VIDEO_FILE_NAME);
+        final File topLevelVideoFile = new File(EXTERNAL_STORAGE_DIR, VIDEO_FILE_NAME);
+        final File musicFile = new File(MUSIC_DIR, MUSIC_FILE_NAME);
+        try {
+            installApp(TEST_APP_A, false);
+            allowAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
+
+            // Have another app create a video file
+            assertThat(createFileAs(TEST_APP_A, otherAppVideoFile.getPath())).isTrue();
+            assertThat(otherAppVideoFile.exists()).isTrue();
+
+            // Write some data to the file
+            try (final FileOutputStream fos = new FileOutputStream(otherAppVideoFile)) {
+                fos.write(BYTES_DATA1);
+            }
+            assertFileContent(otherAppVideoFile, BYTES_DATA1);
+
+            // Assert we can rename the file and ensure the file has the same content
+            assertThat(otherAppVideoFile.renameTo(videoFile)).isTrue();
+            assertThat(otherAppVideoFile.exists()).isFalse();
+            assertFileContent(videoFile, BYTES_DATA1);
+            // We can even move it to the top level directory
+            assertThat(videoFile.renameTo(topLevelVideoFile)).isTrue();
+            assertThat(videoFile.exists()).isFalse();
+            assertFileContent(topLevelVideoFile, BYTES_DATA1);
+            // And we can even convert it into an image file, because why not?
+            assertThat(topLevelVideoFile.renameTo(imageFile)).isTrue();
+            assertThat(topLevelVideoFile.exists()).isFalse();
+            assertFileContent(imageFile, BYTES_DATA1);
+
+            // However, we can't convert it to a music file, because system gallery has full access
+            // to images and video only
+            assertThat(imageFile.renameTo(musicFile)).isFalse();
+
+            // Rename file back to it's original name so that the test app can clean it up
+            assertThat(imageFile.renameTo(otherAppVideoFile)).isTrue();
+        } finally {
+            deleteFileAs(TEST_APP_A, otherAppVideoFile.getPath());
+            uninstallApp(TEST_APP_A);
+            imageFile.delete();
+            videoFile.delete();
+            topLevelVideoFile.delete();
+            musicFile.delete();
+            denyAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
         }
     }
 
@@ -1164,6 +1313,14 @@ public class FilePathAccessTest {
 
         // Assert that the last write is indeed visible via readFd
         assertThat(readBuffer).isEqualTo(writeBuffer);
+    }
+
+    private void assertLowerFsFd(ParcelFileDescriptor pfd) throws Exception {
+        assertThat(Os.readlink("/proc/self/fd/" + pfd.getFd()).startsWith("/storage")).isTrue();
+    }
+
+    private void assertUpperFsFd(ParcelFileDescriptor pfd) throws Exception {
+        assertThat(Os.readlink("/proc/self/fd/" + pfd.getFd()).startsWith("/mnt/user")).isTrue();
     }
 
     private ParcelFileDescriptor openWithMediaProvider(String relativePath, String displayName,

@@ -43,7 +43,7 @@
     <string name="sound_name_sway" msgid="348448316663085643">"Sway"</string>
     <string name="sound_name_wag" msgid="2730733083078126563">"Wag"</string>
     <string name="add_ringtone_text" msgid="8077717303037760418">"Klingelton hinzufügen"</string>
-    <string name="add_alarm_text" msgid="2440919366091720815">"Wecker hinzufügen"</string>
+    <string name="add_alarm_text" msgid="2440919366091720815">"Weckruf hinzufügen"</string>
     <string name="add_notification_text" msgid="5013822215567515665">"Benachrichtigung hinzufügen"</string>
     <string name="delete_ringtone_text" msgid="2963662097583300181">"Löschen"</string>
     <string name="unable_to_add_ringtone" msgid="6256097521165711269">"Benutzerdefinierter Klingelton konnte nicht hinzugefügt werden"</string>

@@ -1266,19 +1266,9 @@ public class FilePathAccessTest {
             }
             assertFileContent(hiddenFile, BYTES_DATA1);
             // We can delete hidden file
-            // TODO(b/148579340): Uncomment these once we support hidden file deletion.
-            // assertThat(hiddenFile.delete()).isTrue();
-            // assertThat(hiddenFile.exists()).isFalse();
+            assertThat(hiddenFile.delete()).isTrue();
+            assertThat(hiddenFile.exists()).isFalse();
         } finally {
-            // TODO(b/148579340): Remove below workaround once the hidden file deletion is
-            // supported.
-            executeShellCommand("rm " + hiddenFile.getAbsolutePath());
-            String selection = MediaColumns.RELATIVE_PATH + " = ? AND "
-                    + MediaColumns.DISPLAY_NAME + " = ?";
-            String[] selectionArgs = {hiddenFile.getParentFile().getName() + "/", "_.hiddenFile" };
-            getContentResolver().delete(MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL),
-                    selection, selectionArgs);
-
             hiddenFile.delete();
         }
     }

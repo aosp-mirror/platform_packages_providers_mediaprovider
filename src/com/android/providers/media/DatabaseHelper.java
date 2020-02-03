@@ -281,7 +281,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     @GuardedBy("mProjectionMapCache")
-    private final ArrayMap<Class<?>[], ArrayMap<String, String>>
+    private final ArrayMap<Class<?>, ArrayMap<String, String>>
             mProjectionMapCache = new ArrayMap<>();
 
     /**
@@ -291,13 +291,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * ensure that we always support public API commitments.
      */
     public ArrayMap<String, String> getProjectionMap(Class<?>... clazzes) {
+        ArrayMap<String, String> result = new ArrayMap<>();
         synchronized (mProjectionMapCache) {
-            ArrayMap<String, String> map = mProjectionMapCache.get(clazzes);
-            if (map == null) {
-                map = new ArrayMap<>();
-                mProjectionMapCache.put(clazzes, map);
-                try {
-                    for (Class<?> clazz : clazzes) {
+            for (Class<?> clazz : clazzes) {
+                ArrayMap<String, String> map = mProjectionMapCache.get(clazz);
+                if (map == null) {
+                    map = new ArrayMap<>();
+                    try {
                         for (Field field : clazz.getFields()) {
                             if (Objects.equals(field.getName(), "_ID")
                                     || field.isAnnotationPresent(mColumnAnnotation)) {
@@ -305,12 +305,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                                 map.put(column, column);
                             }
                         }
+                    } catch (ReflectiveOperationException e) {
+                        throw new RuntimeException(e);
                     }
-                } catch (ReflectiveOperationException e) {
-                    throw new RuntimeException(e);
+                   mProjectionMapCache.put(clazz, map);
                 }
+                result.putAll(map);
             }
-            return map;
+            return result;
         }
     }
 

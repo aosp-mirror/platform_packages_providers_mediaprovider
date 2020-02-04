@@ -208,4 +208,9 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
     public void testCantAccessOtherAppsContents() throws Exception {
         runDeviceTest("testCantAccessOtherAppsContents");
     }
+
+    @Test
+    public void testCanCreateHiddenFile() throws Exception {
+        runDeviceTest("testCanCreateHiddenFile");
+    }
 }

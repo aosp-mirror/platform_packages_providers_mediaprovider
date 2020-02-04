@@ -5025,7 +5025,6 @@ public class MediaProvider extends ContentProvider {
                 return res;
             }
 
-            // TODO(b/147741933): Quick fix. Add tests
             path = getAbsoluteSanitizedPath(path);
             if (path == null) {
                 throw new IOException("Invalid path " + path);
@@ -5162,7 +5161,6 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EACCES;
             }
 
-            // TODO(b/147741933): Quick fix. Add tests
             path = getAbsoluteSanitizedPath(path);
             if (path == null) {
                 Log.e(TAG, "Invalid path " + path);
@@ -5407,7 +5405,7 @@ public class MediaProvider extends ContentProvider {
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public int deleteFileForFuse(@NonNull String path, int uid) {
+    public int deleteFileForFuse(@NonNull String path, int uid) throws IOException {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
@@ -5434,12 +5432,21 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EPERM;
             }
 
+            final String sanitizedPath = getAbsoluteSanitizedPath(path);
+            if (sanitizedPath == null) {
+                throw new IOException("Invalid path " + path);
+            }
+
             final Uri contentUri = Files.getContentUri(MediaStore.getVolumeName(new File(path)));
             final String where = FileColumns.DATA + " = ?";
-            final String[] whereArgs = {path};
+            final String[] whereArgs = {sanitizedPath};
 
             if (delete(contentUri, where, whereArgs) == 0) {
                 return OsConstants.ENOENT;
+            } else if (!path.equals(sanitizedPath)) {
+                // delete() doesn't delete the file in lower file system if sanitized path is
+                // different path from actual path. Delete the file using actual path of the file.
+                return deleteFileUnchecked(path);
             } else {
                 // success - 1 file was deleted
                 return 0;

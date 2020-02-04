@@ -32,15 +32,18 @@ import android.app.UiAutomation;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.test.InstrumentationRegistry;
 
 import com.android.cts.install.lib.Install;
@@ -75,7 +78,7 @@ public class TestUtils {
     /**
      * Grants {@link Manifest.permission#GRANT_RUNTIME_PERMISSIONS} to the given package.
      */
-    public static void grantReadExternalStorage(String packageName) throws Exception {
+    public static void grantReadExternalStorage(String packageName) {
         sUiAutomation.adoptShellPermissionIdentity("android.permission.GRANT_RUNTIME_PERMISSIONS");
         try {
             sUiAutomation.grantRuntimePermission(packageName,
@@ -151,6 +154,19 @@ public class TestUtils {
     }
 
     /**
+     * Makes the given {@code testApp} delete a file. Doesn't throw in case of failure.
+     */
+    public static boolean deleteFileAsNoThrow(TestApp testApp, String path) {
+        try {
+            return deleteFileAs(testApp, path);
+        } catch (Exception e) {
+            Log.e(TAG, "Error occurred while deleting file: " + path
+                    + " on behalf of app: " + testApp, e);
+            return false;
+        }
+    }
+
+    /**
      * Installs a {@link TestApp} and may grant it storage permissions.
      */
     public static void installApp(TestApp testApp, boolean grantStoragePermission)
@@ -189,36 +205,38 @@ public class TestUtils {
     }
 
     /**
-     * Queries {@link ContentResolver} for a file and returns the corresponding {@link Uri} for its
-     * entry in the database.
+     * Uninstalls a {@link TestApp}. Doesn't throw in case of failure.
      */
-    @NonNull
-    public static Uri getFileUri(@NonNull ContentResolver cr, @NonNull File file) {
-        final Uri contentUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL);
-        try (Cursor c = cr.query(contentUri,
-                /*projection*/ new String[] { MediaStore.MediaColumns._ID },
-                /*selection*/ MediaStore.MediaColumns.DATA + " = ?",
-                /*selectionArgs*/ new String[] { file.getAbsolutePath() },
-                /*sortOrder*/ null)) {
-            c.moveToFirst();
-            int id = c.getInt(0);
-            return ContentUris.withAppendedId(contentUri, id);
+    public static void uninstallAppNoThrow(TestApp testApp) {
+        try {
+            uninstallApp(testApp);
+        } catch (Exception e) {
+            Log.e(TAG, "Exception occurred while uninstalling app: " + testApp, e);
         }
+    }
+
+    public static ContentResolver getContentResolver() {
+        return getContext().getContentResolver();
+    }
+
+    /**
+     * Queries {@link ContentResolver} for a file and returns the corresponding {@link Uri} for its
+     * entry in the database. Returns {@code null} if file doesn't exist in the database.
+     */
+    @Nullable
+    public static Uri getFileUri(@NonNull File file) {
+        final Uri contentUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL);
+        final int id = getFileRowIdFromDatabase(file);
+        return id == -1 ? null : ContentUris.withAppendedId(contentUri, id);
     }
 
     /**
      * Queries {@link ContentResolver} for a file and returns the corresponding row ID for its
      * entry in the database.
      */
-    @NonNull
-    public static int getFileRowIdFromDatabase(@NonNull ContentResolver cr, @NonNull File file) {
+    public static int getFileRowIdFromDatabase(@NonNull File file) {
         int id  = -1;
-        final Uri contentUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL);
-        try (Cursor c = cr.query(contentUri,
-                /*projection*/ new String[] { MediaStore.MediaColumns._ID },
-                /*selection*/ MediaStore.MediaColumns.DATA + " = ?",
-                /*selectionArgs*/ new String[] { file.getAbsolutePath() },
-                /*sortOrder*/ null)) {
+        try (Cursor c = queryFile(file, MediaStore.MediaColumns._ID)) {
             if (c.moveToFirst()) {
                 id = c.getInt(0);
             }
@@ -231,15 +249,9 @@ public class TestUtils {
      * entry in the database.
      */
     @NonNull
-    public static String getFileMimeTypeFromDatabase(@NonNull ContentResolver cr,
-            @NonNull File file) {
-        final Uri contentUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL);
+    public static String getFileMimeTypeFromDatabase(@NonNull File file) {
         String mimeType = "";
-        try (Cursor c = cr.query(contentUri,
-                /*projection*/ new String[] { MediaStore.MediaColumns.MIME_TYPE},
-                /*selection*/ MediaStore.MediaColumns.DATA + " = ?",
-                /*selectionArgs*/ new String[] { file.getAbsolutePath() },
-                /*sortOrder*/ null)) {
+        try (Cursor c = queryFile(file, MediaStore.MediaColumns.MIME_TYPE)) {
             if(c.moveToFirst()) {
                 mimeType = c.getString(0);
             }
@@ -263,6 +275,60 @@ public class TestUtils {
      */
     public static void denyAppOpsToUid(int uid, @NonNull String... ops) {
         setAppOpsModeForUid(uid, AppOpsManager.MODE_ERRORED, ops);
+    }
+
+    /**
+     * Deletes the given file through {@link ContentResolver} and {@link MediaStore} APIs,
+     * and asserts that the file was successfully deleted from the database.
+     */
+    public static void deleteWithMediaProvider(@NonNull File file) {
+        assertThat(getContentResolver().delete(
+                MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL),
+                /*where*/MediaStore.MediaColumns.DATA + " = ?",
+                /*selectionArgs*/new String[] { file.getPath() }))
+                .isEqualTo(1);
+    }
+
+    /**
+     * Renames the given file through {@link ContentResolver} and {@link MediaStore} APIs,
+     * and asserts that the file was updated in the database.
+     */
+    public static void updateDisplayNameWithMediaProvider(String relativePath,
+            String oldDisplayName, String newDisplayName) {
+        String selection = MediaStore.MediaColumns.RELATIVE_PATH + " = ? AND "
+                + MediaStore.MediaColumns.DISPLAY_NAME + " = ?";
+        String[] selectionArgs = { relativePath + '/', oldDisplayName };
+        String[] projection = {MediaStore.MediaColumns._ID, MediaStore.MediaColumns.DATA};
+
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.MediaColumns.DISPLAY_NAME, newDisplayName);
+
+        try (final Cursor cursor = getContentResolver().query(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, selection, selectionArgs,
+                null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+            cursor.moveToFirst();
+            int id = cursor.getInt(cursor.getColumnIndex(MediaStore.MediaColumns._ID));
+            String data = cursor.getString(cursor.getColumnIndex(MediaStore.MediaColumns.DATA));
+            Uri uri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id);
+            Log.i(TAG, "Uri: " + uri + ". Data: " + data);
+            assertThat(getContentResolver().update(uri, values, selection, selectionArgs))
+                    .isEqualTo(1);
+        }
+    }
+
+    /**
+     * Opens the given file through {@link ContentResolver} and {@link MediaStore} APIs.
+     */
+    @NonNull
+    public static ParcelFileDescriptor openWithMediaProvider(@NonNull File file, String mode)
+            throws Exception {
+        final Uri fileUri = getFileUri(file);
+        assertThat(fileUri).isNotNull();
+        Log.i(TAG, "Uri: " + fileUri + ". Data: " + file.getPath());
+        ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(fileUri, mode);
+        assertThat(pfd).isNotNull();
+        return pfd;
     }
 
     public static <T extends Exception> void assertThrows(Class<T> clazz, Operation<T> r)
@@ -417,5 +483,18 @@ public class TestUtils {
         } finally {
             dropShellPermissionIdentity();
         }
+    }
+
+    @NonNull
+    private static Cursor queryFile(@NonNull File file,
+            String... projection) {
+        final Cursor c = getContentResolver().query(
+                MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL),
+                projection,
+                /*selection*/ MediaStore.MediaColumns.DATA + " = ?",
+                /*selectionArgs*/ new String[] { file.getAbsolutePath() },
+                /*sortOrder*/ null);
+        assertThat(c).isNotNull();
+        return c;
     }
 }

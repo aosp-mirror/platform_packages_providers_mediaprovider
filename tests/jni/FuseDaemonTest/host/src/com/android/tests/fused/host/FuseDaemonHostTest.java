@@ -200,8 +200,18 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
     }
 
     @Test
-    public void testManageExternalStorageBypassesMediaProviderRestrictions() throws Exception {
-        runDeviceTest("testManageExternalStorageBypassesMediaProviderRestrictions");
+    public void testManageExternalStorageCanCreateFilesAnywhere() throws Exception {
+        runDeviceTest("testManageExternalStorageCanCreateFilesAnywhere");
+    }
+
+    @Test
+    public void testManageExternalStorageCanDeleteOtherAppsContents() throws Exception {
+        runDeviceTest("testManageExternalStorageCanDeleteOtherAppsContents");
+    }
+
+    @Test
+    public void testManageExternalStorageCanRenameOtherAppsContents() throws Exception {
+        runDeviceTest("testManageExternalStorageCanRenameOtherAppsContents");
     }
 
     @Test

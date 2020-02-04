@@ -141,6 +141,8 @@ public class TestUtils {
 
     /**
      * Makes the given {@code testApp} create a file.
+     *
+     * <p>This method drops shell permission identity.
      */
     public static boolean createFileAs(TestApp testApp, String path) throws Exception {
         return createOrDeleteFileFromTestApp(testApp, path, CREATE_FILE_QUERY);
@@ -148,6 +150,8 @@ public class TestUtils {
 
     /**
      * Makes the given {@code testApp} delete a file.
+     *
+     * <p>This method drops shell permission identity.
      */
     public static boolean deleteFileAs(TestApp testApp, String path) throws Exception {
         return createOrDeleteFileFromTestApp(testApp, path, DELETE_FILE_QUERY);
@@ -376,6 +380,9 @@ public class TestUtils {
         return path.delete();
     }
 
+    /**
+     * <p>This method drops shell permission identity.
+     */
     private static void forceStopApp(String packageName) throws Exception {
         try {
             sUiAutomation.adoptShellPermissionIdentity(Manifest.permission.FORCE_STOP_PACKAGES);
@@ -387,6 +394,9 @@ public class TestUtils {
         }
     }
 
+    /**
+     * <p>This method drops shell permission identity.
+     */
     private static void sendIntentToTestApp(TestApp testApp, String dirPath, String actionName,
             BroadcastReceiver broadcastReceiver, CountDownLatch latch) throws Exception {
 
@@ -410,6 +420,11 @@ public class TestUtils {
         getContext().unregisterReceiver(broadcastReceiver);
     }
 
+    /**
+     * Gets images/video metadata from a test app.
+     *
+     * <p>This method drops shell permission identity.
+     */
     private static HashMap<String, String> getMetadataFromTestApp(TestApp testApp, String dirPath,
             String actionName) throws Exception {
         final CountDownLatch latch = new CountDownLatch(1);
@@ -432,6 +447,9 @@ public class TestUtils {
         return appOutputList;
     }
 
+    /**
+     * <p>This method drops shell permission identity.
+     */
     private static ArrayList<String> getContentsFromTestApp(TestApp testApp, String dirPath,
             String actionName) throws Exception {
         final CountDownLatch latch = new CountDownLatch(1);
@@ -450,6 +468,9 @@ public class TestUtils {
         return appOutputList;
     }
 
+    /**
+     * <p>This method drops shell permission identity.
+     */
     private static boolean createOrDeleteFileFromTestApp(TestApp testApp, String dirPath,
             String actionName) throws Exception {
         final CountDownLatch latch = new CountDownLatch(1);

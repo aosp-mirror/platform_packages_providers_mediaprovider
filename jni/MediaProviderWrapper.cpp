@@ -136,7 +136,7 @@ void scanFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_
                       const string& path) {
     LOG(DEBUG) << "Notifying MediaProvider that a file has been modified. path = " << path;
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
-    env->CallObjectMethod(media_provider_object, mid_scan_file, j_path.get());
+    env->CallVoidMethod(media_provider_object, mid_scan_file, j_path.get());
     if (CheckForJniException(env)) {
         LOG(DEBUG) << "Java exception while checking permissions for file";
     }

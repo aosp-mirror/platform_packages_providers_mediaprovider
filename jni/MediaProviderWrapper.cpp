@@ -249,7 +249,7 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
     mid_delete_file_ = CacheMethod(env, "deleteFile", "(Ljava/lang/String;I)I", /*is_static*/ false);
     mid_is_open_allowed_ = CacheMethod(env, "isOpenAllowed", "(Ljava/lang/String;IZ)I",
                                        /*is_static*/ false);
-    mid_scan_file_ = CacheMethod(env, "scanFile", "(Ljava/lang/String;)Landroid/net/Uri;",
+    mid_scan_file_ = CacheMethod(env, "scanFile", "(Ljava/lang/String;)V",
                                  /*is_static*/ false);
     mid_is_dir_op_allowed_ = CacheMethod(env, "isDirectoryOperationAllowed",
                                          "(Ljava/lang/String;I)I", /*is_static*/ false);

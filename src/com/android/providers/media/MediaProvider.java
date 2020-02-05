@@ -800,14 +800,12 @@ public class MediaProvider extends ContentProvider {
     /**
      * Makes MediaScanner scan the given file.
      * @param file path of the file to be scanned
-     * @return URI of the item corresponding to the file if it was successfully scanned and indexed,
-     * null otherwise.
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public Uri scanFileForFuse(String file) {
-        return scanFile(new File(file), REASON_DEMAND);
+    public void scanFileForFuse(String file) {
+        scanFile(new File(file), REASON_DEMAND);
     }
 
     @VisibleForTesting

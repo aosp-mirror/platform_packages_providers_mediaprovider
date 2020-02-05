@@ -25,14 +25,12 @@ import com.android.tradefed.testtype.junit4.BaseHostJUnit4Test;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 /**
  * Runs the legacy file path access tests.
  */
-@Ignore("b/148586283")
 @RunWith(DeviceJUnit4ClassRunner.class)
 public class LegacyAccessHostTest extends BaseHostJUnit4Test {
 

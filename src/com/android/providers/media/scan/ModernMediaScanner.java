@@ -363,15 +363,16 @@ public class ModernMediaScanner implements MediaScanner {
             final String formatClause = "ifnull(" + FileColumns.FORMAT + ","
                     + MtpConstants.FORMAT_UNDEFINED + ") != "
                     + MtpConstants.FORMAT_ABSTRACT_AV_PLAYLIST;
-            final String dataClause = FileColumns.DATA + " LIKE ? ESCAPE '\\'";
+            final String dataClause = "(" + FileColumns.DATA + " LIKE ? ESCAPE '\\' OR "
+                    + FileColumns.DATA + " LIKE ? ESCAPE '\\')";
             final String generationClause = FileColumns.GENERATION_ADDED + " <= "
                     + mStartGeneration;
-
             final Bundle queryArgs = new Bundle();
             queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SELECTION,
                     formatClause + " AND " + dataClause + " AND " + generationClause);
+            final String pathEscapedForLike = DatabaseUtils.escapeForLike(mRoot.getAbsolutePath());
             queryArgs.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS,
-                    new String[] { escapeForLike(mRoot.getAbsolutePath(), mSingleFile) });
+                    new String[] {pathEscapedForLike + "/%", pathEscapedForLike});
             queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,
                     FileColumns._ID + " DESC");
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE);
@@ -1272,18 +1273,6 @@ public class ModernMediaScanner implements MediaScanner {
     static boolean isPlaylist(Uri uri) {
         final List<String> path = uri.getPathSegments();
         return (path.size() == 4) && path.get(1).equals("audio") && path.get(2).equals("playlists");
-    }
-
-    /**
-     * Escape the given argument for use in a {@code LIKE} statement.
-     */
-    static String escapeForLike(String arg, boolean singleFile) {
-        final String escaped = DatabaseUtils.escapeForLike(arg);
-        if (singleFile) {
-            return escaped;
-        } else {
-            return escaped + "/%";
-        }
     }
 
     static void logTroubleScanning(File file, Exception e) {

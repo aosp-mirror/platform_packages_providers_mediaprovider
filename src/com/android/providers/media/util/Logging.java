@@ -35,6 +35,7 @@ import java.text.SimpleDateFormat;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 public class Logging {
     public static final String TAG = "MediaProvider";
@@ -117,11 +118,13 @@ public class Logging {
      * {@link #PERSISTENT_SIZE}.
      */
     private static @NonNull Path resolveCurrentPersistentFile() throws IOException {
-        final Optional<Path> latest = Files.list(sPersistentDir).max(Comparator.naturalOrder());
-        if (latest.isPresent() && latest.get().toFile().length() < PERSISTENT_SIZE) {
-            return latest.get();
-        } else {
-            return sPersistentDir.resolve(String.valueOf(System.currentTimeMillis()));
+        try (Stream<Path> stream = Files.list(sPersistentDir)) {
+            Optional<Path> latest = stream.max(Comparator.naturalOrder());
+            if (latest.isPresent() && latest.get().toFile().length() < PERSISTENT_SIZE) {
+                return latest.get();
+            } else {
+                return sPersistentDir.resolve(String.valueOf(System.currentTimeMillis()));
+            }
         }
     }
 }

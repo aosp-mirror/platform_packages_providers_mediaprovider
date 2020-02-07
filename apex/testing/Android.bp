@@ -1,4 +1,4 @@
-apex {
+apex_test {
     name: "test_com.android.mediaprovider",
     visibility: [
         "//system/apex/tests",

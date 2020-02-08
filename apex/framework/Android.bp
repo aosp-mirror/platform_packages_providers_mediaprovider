@@ -51,19 +51,62 @@ filegroup {
     path: "java",
 }
 
-droidstubs {
-    name: "framework-mediaprovider-stubs",
+stubs_defaults {
+    name: "framework-mediaprovider-stubs-srcs-defaults",
     srcs: [
         ":framework-mediaprovider-sources",
         ":framework-mediaprovider-annotation-sources",
     ],
-    defaults: [ "framework-module-stubs-defaults-systemapi" ],
+    sdk_version: "system_current",
+}
+
+droidstubs {
+    name: "framework-mediaprovider-stubs-srcs-publicapi",
+    defaults: [
+        "framework-module-stubs-defaults-publicapi",
+        "framework-mediaprovider-stubs-srcs-defaults",
+    ],
+}
+
+droidstubs {
+    name: "framework-mediaprovider-stubs-srcs-systemapi",
+    defaults: [
+        "framework-module-stubs-defaults-systemapi",
+        "framework-mediaprovider-stubs-srcs-defaults",
+    ],
+}
+
+droidstubs {
+    name: "framework-mediaprovider-api-module_libs_api",
+    defaults: [
+        "framework-module-api-defaults-module_libs_api",
+        "framework-mediaprovider-stubs-srcs-defaults",
+    ],
+}
+
+droidstubs {
+    name: "framework-mediaprovider-stubs-srcs-module_libs_api",
+    defaults: [
+        "framework-module-stubs-defaults-module_libs_api",
+        "framework-mediaprovider-stubs-srcs-defaults",
+    ],
+}
+
+java_library {
+    name: "framework-mediaprovider-stubs-publicapi",
+    srcs: [":framework-mediaprovider-stubs-srcs-publicapi"],
+    sdk_version: "current",
+}
+
+java_library {
+    name: "framework-mediaprovider-stubs-systemapi",
+    srcs: [":framework-mediaprovider-stubs-srcs-systemapi"],
     sdk_version: "system_current",
 }
 
 java_library {
-    name: "framework_mediaprovider_stubs",
-    srcs: [":framework-mediaprovider-stubs"],
+    name: "framework-mediaprovider-stubs-module_libs_api",
+    srcs: [":framework-mediaprovider-stubs-srcs-module_libs_api"],
     sdk_version: "system_current",
 }
 

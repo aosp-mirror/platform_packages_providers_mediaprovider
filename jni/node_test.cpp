@@ -209,7 +209,8 @@ TEST_F(NodeTest, LookupAbsolutePath) {
 TEST_F(NodeTest, AddDestroyHandle) {
     unique_node_ptr node = CreateNode(nullptr, "/path");
 
-    handle* h = new handle("/path", -1, new mediaprovider::fuse::RedactionInfo, true /* cached */);
+    handle* h = new handle("/path", -1, new mediaprovider::fuse::RedactionInfo, true /* cached */,
+                           true /* is_new_file */);
     node->AddHandle(h);
     ASSERT_TRUE(node->HasCachedHandle());
 
@@ -220,7 +221,7 @@ TEST_F(NodeTest, AddDestroyHandle) {
     // the node in question.
     EXPECT_DEATH(node->DestroyHandle(h), "");
     EXPECT_DEATH(node->DestroyHandle(nullptr), "");
-    std::unique_ptr<handle> h2(
-            new handle("/path2", -1, new mediaprovider::fuse::RedactionInfo, true /* cached */));
+    std::unique_ptr<handle> h2(new handle("/path2", -1, new mediaprovider::fuse::RedactionInfo,
+                                          true /* cached */, true /* is_new_file */));
     EXPECT_DEATH(node->DestroyHandle(h2.get()), "");
 }

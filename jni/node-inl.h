@@ -34,8 +34,9 @@ namespace mediaprovider {
 namespace fuse {
 
 struct handle {
-    explicit handle(const std::string& path, int fd, const RedactionInfo* ri, bool cached)
-        : path(path), fd(fd), ri(ri), cached(cached) {
+    explicit handle(const std::string& path, int fd, const RedactionInfo* ri, bool cached,
+                    bool is_new_file)
+        : path(path), fd(fd), ri(ri), cached(cached), is_new_file(is_new_file) {
         CHECK(ri != nullptr);
     }
 
@@ -43,6 +44,7 @@ struct handle {
     const int fd;
     const std::unique_ptr<const RedactionInfo> ri;
     const bool cached;
+    const bool is_new_file;
 
     ~handle() { close(fd); }
 };

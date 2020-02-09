@@ -129,7 +129,6 @@ public class FilePathAccessTest {
             "com.android.tests.fused.testapp.A", 1, false, "TestAppA.apk");
     private static final TestApp TEST_APP_B  = new TestApp("TestAppB",
             "com.android.tests.fused.testapp.B", 1, false, "TestAppB.apk");
-
     private static final String[] SYSTEM_GALERY_APPOPS = { AppOpsManager.OPSTR_WRITE_MEDIA_IMAGES,
             AppOpsManager.OPSTR_WRITE_MEDIA_VIDEO };
 
@@ -276,6 +275,20 @@ public class FilePathAccessTest {
 
             final byte[] expected = (STR_DATA1 + STR_DATA2).getBytes();
             assertFileContent(imageFile, expected);
+
+            // Closing the file after writing will not trigger a MediaScan. Call scanFile to update
+            // file's entry in MediaProvider's database.
+            assertThat(MediaStore.scanFile(getContentResolver(), imageFile)).isNotNull();
+
+            // Ensure that the scan was completed and the file's size was updated.
+            try (final Cursor c = cr.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                            /* projection */new String[] {MediaColumns.SIZE},
+                            selection, selectionArgs, null)) {
+                assertThat(c.getCount()).isEqualTo(1);
+                c.moveToFirst();
+                assertThat(c.getInt(c.getColumnIndex(MediaColumns.SIZE)))
+                        .isEqualTo(BYTES_DATA1.length + BYTES_DATA2.length);
+            }
         } finally {
             imageFile.delete();
         }
@@ -609,7 +622,6 @@ public class FilePathAccessTest {
      */
     @Test
     public void testListFilesFromExternalMediaDirectory() throws Exception {
-        final String packageName = THIS_PACKAGE_NAME;
         final File videoFile = new File(EXTERNAL_MEDIA_DIR, VIDEO_FILE_NAME);
         final String videoFileName = videoFile.getName();
 
@@ -621,29 +633,17 @@ public class FilePathAccessTest {
 
             // App should see its directory and other app's external media directories with media
             // files.
-            // TODO(b/145757667): Uncomment this when we start indexing Android/media files.
-            // assertThat(ReaddirTestHelper.readDirectory(ANDROID_MEDIA_DIR)).contains(packageName);
             assertThat(ReaddirTestHelper.readDirectory(EXTERNAL_MEDIA_DIR))
                     .containsExactly(videoFileName);
 
             // Install TEST_APP_A with READ_EXTERNAL_STORAGE permission.
             // TEST_APP_A with storage permission should see other app's external media directory.
-
-            // TODO(b/145757667): Uncomment this when we start indexing Android/media files.
-            //  For context, this used to work when we used to scan files after closing them, but
-            //  now, since we don't, videoFileName is not indexed by MediaProvider, which means
-            //  that Android/media/<pkg-name> is empty and so MediaProvider can't see it.
-            //  We also can't use ContentResolver#insert since MediaProvider doesn't allow videos
-            //  under primary directory Android.
-//            installApp(TEST_APP_A, true);
-//            assertThat(listDirectoryEntriesFromTestApp(TEST_APP_A, ANDROID_MEDIA_DIR.getPath()))
-//                    .contains(packageName);
-//            assertThat(listDirectoryEntriesFromTestApp(TEST_APP_A, EXTERNAL_MEDIA_DIR.getPath()))
-//                    .containsExactly(videoFileName);
+            installApp(TEST_APP_A, true);
+            // Apps can't list files in other app's external media directory.
+            assertThat(listAs(TEST_APP_A, ANDROID_MEDIA_DIR.getPath())).isEmpty();
+            assertThat(listAs(TEST_APP_A, EXTERNAL_MEDIA_DIR.getPath())).isEmpty();
         } finally {
             videoFile.delete();
-              // TODO(b/145757667): Uncomment this when we start indexing Android/media files.
-//            uninstallAppNoThrow(TEST_APP_A);
         }
     }
 
@@ -663,9 +663,12 @@ public class FilePathAccessTest {
             installApp(TEST_APP_A, true);
             assertThat(listAs(TEST_APP_A, DCIM_DIR.getPath())).doesNotContain(NONMEDIA_FILE_NAME);
 
-            // TEST_APP_A with storage permission should see video file in Music directory.
+
             executeShellCommand("touch " + videoFile.getAbsolutePath());
-            assertThat(MediaStore.scanFile(getContentResolver(), videoFile)).isNotNull();
+            // ScanFile doesn't insert an empty media file to database. Write some data to ensure
+            // file is inserted into database.
+            executeShellCommand("echo " + STR_DATA1 + " > " + videoFile.getAbsolutePath());
+            // TEST_APP_A with storage permission should see video file in Music directory.
             assertThat(listAs(TEST_APP_A, MUSIC_DIR.getPath())).contains(VIDEO_FILE_NAME);
         } finally {
             executeShellCommand("rm " + pdfFile.getAbsolutePath());
@@ -895,14 +898,11 @@ public class FilePathAccessTest {
             assertThat(otherAppImageFile.delete()).isTrue();
             assertThat(otherAppImageFile.exists()).isFalse();
 
-            // Put the file back in its place and let TEST_APP_A delete it
-            assertThat(otherAppImageFile.createNewFile()).isTrue();
-
             // Can create an image anywhere
             assertCanCreateFile(topLevelImageFile);
             assertCanCreateFile(imageInAnObviouslyWrongPlace);
         } finally {
-            deleteFileAs(TEST_APP_A, otherAppImageFile.getPath());
+            otherAppImageFile.delete();
             uninstallApp(TEST_APP_A);
             denyAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
         }
@@ -1312,10 +1312,10 @@ public class FilePathAccessTest {
             assertThat(otherAppImage.createNewFile()).isTrue();
             assertThat(otherAppMusic.createNewFile()).isTrue();
         } finally {
+            otherAppPdf.delete();
+            otherAppImage.delete();
+            otherAppMusic.delete();
             dropShellPermissionIdentity();
-            deleteFileAs(TEST_APP_A, otherAppPdf.getPath());
-            deleteFileAs(TEST_APP_A, otherAppImage.getPath());
-            deleteFileAs(TEST_APP_A, otherAppMusic.getPath());
             uninstallApp(TEST_APP_A);
         }
     }
@@ -1365,13 +1365,14 @@ public class FilePathAccessTest {
 
             // Rename file back to it's original name so that the test app can clean it up
             assertThat(musicFile.renameTo(otherAppPdf)).isTrue();
+            assertThat(deleteFileAs(TEST_APP_A, otherAppPdf.getPath())).isTrue();
         } finally {
             pdf.delete();
             pdfInObviouslyWrongPlace.delete();
             topLevelPdf.delete();
             musicFile.delete();
             dropShellPermissionIdentity();
-            deleteFileAs(TEST_APP_A, otherAppPdf.getPath());
+            otherAppPdf.delete();
             uninstallApp(TEST_APP_A);
         }
     }

@@ -801,6 +801,7 @@ public class ModernMediaScanner implements MediaScanner {
         op.withValue(MediaColumns.DOCUMENT_ID, xmp.getDocumentId());
         op.withValue(MediaColumns.INSTANCE_ID, xmp.getInstanceId());
         op.withValue(MediaColumns.ORIGINAL_DOCUMENT_ID, xmp.getOriginalDocumentId());
+        op.withValue(MediaColumns.XMP, xmp.getRedactedXmp());
     }
 
     /**

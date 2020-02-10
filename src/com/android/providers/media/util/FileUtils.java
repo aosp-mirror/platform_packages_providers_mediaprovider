@@ -41,6 +41,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitResult;
+import java.nio.file.FileVisitor;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -48,6 +55,8 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -177,22 +186,89 @@ public class FileUtils {
         return filePath.startsWith(dirPath);
     }
 
-    /** {@hide} */
-    public static boolean deleteContents(File dir) {
-        File[] files = dir.listFiles();
-        boolean success = true;
-        if (files != null) {
-            for (File file : files) {
-                if (file.isDirectory()) {
-                    success &= deleteContents(file);
-                }
-                if (!file.delete()) {
-                    Log.w(TAG, "Failed to delete " + file);
-                    success = false;
-                }
-            }
+    /**
+     * Write {@link String} to the given {@link File}. Deletes any existing file
+     * when the argument is {@link Optional#empty()}.
+     */
+    public static void writeString(@NonNull File file, @NonNull Optional<String> value)
+            throws IOException {
+        if (value.isPresent()) {
+            Files.write(file.toPath(), value.get().getBytes(StandardCharsets.UTF_8));
+        } else {
+            file.delete();
         }
-        return success;
+    }
+
+    /**
+     * Read given {@link File} as a single {@link String}. Returns
+     * {@link Optional#empty()} when the file doesn't exist.
+     */
+    public static @NonNull Optional<String> readString(@NonNull File file) throws IOException {
+        try {
+            final String value = new String(Files.readAllBytes(file.toPath()),
+                    StandardCharsets.UTF_8);
+            return Optional.of(value);
+        } catch (NoSuchFileException e) {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Recursively walk the contents of the given {@link Path}, invoking the
+     * given {@link Consumer} for every file and directory encountered. This is
+     * typically used for recursively deleting a directory tree.
+     * <p>
+     * Gracefully attempts to process as much as possible in the face of any
+     * failures.
+     */
+    public static void walkFileTreeContents(@NonNull Path path, @NonNull Consumer<Path> operation) {
+        try {
+            Files.walkFileTree(path, new FileVisitor<Path>() {
+                @Override
+                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                    if (!Objects.equals(path, file)) {
+                        operation.accept(file);
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFileFailed(Path file, IOException e) {
+                    Log.w(TAG, "Failed to visit " + file, e);
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException e) {
+                    if (!Objects.equals(path, dir)) {
+                        operation.accept(dir);
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            Log.w(TAG, "Failed to walk " + path, e);
+        }
+    }
+
+    /**
+     * Recursively delete all contents inside the given directory. Gracefully
+     * attempts to delete as much as possible in the face of any failures.
+     *
+     * @deprecated if you're calling this from inside {@link MediaProvider}, you
+     *             likely want to call {@link #forEach} with a separate
+     *             invocation to invalidate FUSE entries.
+     */
+    @Deprecated
+    public static void deleteContents(@NonNull File dir) {
+        walkFileTreeContents(dir.toPath(), (path) -> {
+            path.toFile().delete();
+        });
     }
 
     private static boolean isValidFatFilenameChar(char c) {

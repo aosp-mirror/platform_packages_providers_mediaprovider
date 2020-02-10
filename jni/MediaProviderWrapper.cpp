@@ -358,7 +358,7 @@ int MediaProviderWrapper::IsOpenAllowed(const string& path, uid_t uid, bool for_
 void MediaProviderWrapper::ScanFile(const string& path) {
     // Don't send in path by reference, since the memory might be deleted before we get the chances
     // to perfrom the task.
-    PostAsyncTask([this, path](JNIEnv* env) {
+    PostAndWaitForTask([this, path](JNIEnv* env) {
         scanFileInternal(env, media_provider_object_, mid_scan_file_, path);
     });
 }

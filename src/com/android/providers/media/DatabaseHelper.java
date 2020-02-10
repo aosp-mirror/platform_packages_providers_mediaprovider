@@ -335,7 +335,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
          * {@link ContentResolver#notifyChange}, but are instead being collected
          * due to this ongoing transaction.
          */
-        public final List<Uri> notifyChanges = new ArrayList<>();
+        public final Set<Uri> notifyChanges = new ArraySet<>();
     }
 
     public void beginTransaction() {

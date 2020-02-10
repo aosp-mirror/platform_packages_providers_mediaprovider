@@ -18,12 +18,14 @@
     <uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE" />
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.USE_RESERVED_DISK" />
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
     <application
             android:name="com.android.providers.media.MediaApplication"
             android:label="@string/app_label"
             android:allowBackup="false"
             android:supportsRtl="true"
+            android:forceQueryable="true"
             android:usesCleartextTraffic="true">
         <provider
                 android:name="com.android.providers.media.MediaProvider"

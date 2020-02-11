@@ -68,7 +68,7 @@ const node* node::LookupAbsolutePath(const node* root, const std::string& absolu
 
     const node* node = root;
     for (const std::string& segment : segments) {
-        node = node->LookupChildByName(segment);
+        node = node->LookupChildByName(segment, false /* acquire */);
         if (!node) {
             return nullptr;
         }

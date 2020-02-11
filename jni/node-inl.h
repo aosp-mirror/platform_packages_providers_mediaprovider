@@ -89,14 +89,6 @@ class node {
         return static_cast<__u64>(reinterpret_cast<uintptr_t>(node));
     }
 
-    // Acquires a reference to a node. This maps to the "lookup count" specified
-    // by the FUSE documentation and must only happen under the circumstances
-    // documented in libfuse/include/fuse_lowlevel.h.
-    inline void Acquire() {
-        std::lock_guard<std::recursive_mutex> guard(*lock_);
-        refcount_++;
-    }
-
     // Releases a reference to a node. Returns true iff the refcount dropped to
     // zero as a result of this call to Release, meaning that it's no longer
     // safe to perform any operations on references to this node.
@@ -120,8 +112,9 @@ class node {
     // associated with its descendants.
     std::string BuildPath() const;
 
-    // Looks up a direct descendant of this node by name.
-    node* LookupChildByName(const std::string& name) const {
+    // Looks up a direct descendant of this node by name. If |acquire| is true,
+    // also Acquire the node before returning a reference to it.
+    node* LookupChildByName(const std::string& name, bool acquire) const {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
 
         for (node* child : children_) {
@@ -131,6 +124,10 @@ class node {
             // will not work because the source and target nodes are the same.
 
             if ((name == child->name_) && !child->deleted_) {
+                if (acquire) {
+                    child->Acquire();
+                }
+
                 return child;
             }
         }
@@ -217,6 +214,14 @@ class node {
         if (parent != nullptr) {
             AddToParent(parent);
         }
+    }
+
+    // Acquires a reference to a node. This maps to the "lookup count" specified
+    // by the FUSE documentation and must only happen under the circumstances
+    // documented in libfuse/include/fuse_lowlevel.h.
+    inline void Acquire() {
+        std::lock_guard<std::recursive_mutex> guard(*lock_);
+        refcount_++;
     }
 
     // Adds this node to a specified parent.

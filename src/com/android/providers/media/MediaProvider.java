@@ -5853,6 +5853,10 @@ public class MediaProvider extends ContentProvider {
         final String volumeName = resolveVolumeName(uri);
         synchronized (mAttachedVolumeNames) {
             if (!mAttachedVolumeNames.contains(volumeName)) {
+                // Maybe we are racing onVolumeStateChanged, update our cache and try again
+                updateVolumes();
+            }
+            if (!mAttachedVolumeNames.contains(volumeName)) {
                 throw new VolumeNotFoundException(volumeName);
             }
         }

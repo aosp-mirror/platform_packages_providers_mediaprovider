@@ -47,6 +47,7 @@ import static com.android.tests.fused.lib.TestUtils.revokeReadExternalStorage;
 import static com.android.tests.fused.lib.TestUtils.uninstallApp;
 import static com.android.tests.fused.lib.TestUtils.uninstallAppNoThrow;
 import static com.android.tests.fused.lib.TestUtils.updateDisplayNameWithMediaProvider;
+import static com.android.tests.fused.lib.TestUtils.pollForExternalStorageState;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -131,10 +132,13 @@ public class FilePathAccessTest {
 
     private static final String[] SYSTEM_GALERY_APPOPS = { AppOpsManager.OPSTR_WRITE_MEDIA_IMAGES,
             AppOpsManager.OPSTR_WRITE_MEDIA_VIDEO };
-    // skips all test cases if FUSE is not active.
+
     @Before
-    public void assumeFuseIsOn() {
+    public void setUp() throws Exception {
+        // skips all test cases if FUSE is not active.
         assumeTrue(getBoolean("persist.sys.fuse", false));
+
+        pollForExternalStorageState();
         EXTERNAL_FILES_DIR.mkdirs();
     }
 

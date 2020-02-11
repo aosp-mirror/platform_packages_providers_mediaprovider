@@ -16,6 +16,8 @@
 
 package com.android.tests.fused.legacy;
 
+import static com.android.tests.fused.lib.TestUtils.pollForExternalStorageState;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.fail;
@@ -31,6 +33,7 @@ import android.util.Log;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -55,6 +58,11 @@ public class LegacyFileAccessTest {
 
     private static final long POLLING_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(10);
     private static final long POLLING_SLEEP_MILLIS = 100;
+
+    @Before
+    public void setUp() throws Exception {
+        pollForExternalStorageState();
+    }
 
     /**
      * Tests that legacy apps bypass the type-path conformity restrictions imposed by MediaProvider.

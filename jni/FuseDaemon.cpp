@@ -1481,7 +1481,7 @@ static struct fuse_lowlevel_ops ops{
 };
 
 static struct fuse_loop_config config = {
-        .clone_fd = 0,
+        .clone_fd = 1,
         .max_idle_threads = 10,
 };
 

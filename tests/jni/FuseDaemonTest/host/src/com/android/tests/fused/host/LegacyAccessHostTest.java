@@ -154,8 +154,8 @@ public class LegacyAccessHostTest extends BaseHostJUnit4Test {
     }
 
     @Test
-    public void testCanRename_hasW() throws Exception {
-        runDeviceTest("testCanRename_hasW");
+    public void testCanRename_hasRW() throws Exception {
+        runDeviceTest("testCanRename_hasRW");
     }
 
     @Test
@@ -175,5 +175,10 @@ public class LegacyAccessHostTest extends BaseHostJUnit4Test {
         } finally {
             executeShellCommand("rm " + SHELL_FILE);
         }
+    }
+
+    @Test
+    public void testCanDeleteAllFiles_hasRW() throws Exception {
+        runDeviceTest("testCanDeleteAllFiles_hasRW");
     }
 }

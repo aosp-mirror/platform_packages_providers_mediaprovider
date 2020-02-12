@@ -1004,6 +1004,7 @@ public class FilePathAccessTest {
             // to images and video only
             assertThat(imageFile.renameTo(musicFile)).isFalse();
         } finally {
+            deleteFileAsNoThrow(TEST_APP_A, otherAppVideoFile.getAbsolutePath());
             uninstallApp(TEST_APP_A);
             imageFile.delete();
             videoFile.delete();
@@ -1316,16 +1317,11 @@ public class FilePathAccessTest {
 
             assertThat(otherAppMusic.delete()).isTrue();
             assertThat(otherAppMusic.exists()).isFalse();
-
-            // Create the files again to allow the helper app to clean them up
-            assertThat(otherAppPdf.createNewFile()).isTrue();
-            assertThat(otherAppImage.createNewFile()).isTrue();
-            assertThat(otherAppMusic.createNewFile()).isTrue();
         } finally {
+            dropShellPermissionIdentity();
             deleteFileAsNoThrow(TEST_APP_A, otherAppPdf.getAbsolutePath());
             deleteFileAsNoThrow(TEST_APP_A, otherAppImage.getAbsolutePath());
             deleteFileAsNoThrow(TEST_APP_A, otherAppMusic.getAbsolutePath());
-            dropShellPermissionIdentity();
             uninstallApp(TEST_APP_A);
         }
     }
@@ -1379,7 +1375,7 @@ public class FilePathAccessTest {
             topLevelPdf.delete();
             musicFile.delete();
             dropShellPermissionIdentity();
-            otherAppPdf.delete();
+            deleteFileAsNoThrow(TEST_APP_A, otherAppPdf.getAbsolutePath());
             uninstallApp(TEST_APP_A);
         }
     }

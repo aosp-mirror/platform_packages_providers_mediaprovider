@@ -18,7 +18,9 @@ package com.android.providers.media.util;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import android.content.Context;
@@ -30,9 +32,6 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.R;
-import com.android.providers.media.util.FileUtils;
-import com.android.providers.media.util.IsoInterface;
-import com.android.providers.media.util.XmpInterface;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -93,14 +92,22 @@ public class XmpInterfaceTest {
         redactionTags.add(ExifInterface.TAG_GPS_TIMESTAMP);
         redactionTags.add(ExifInterface.TAG_GPS_VERSION_ID);
 
-        // The XMP contents start at byte 1809. These are the file offsets.
-        final long[] expectedRanges = new long[]{2625,2675,2678,2730,2733,2792,2795,2841};
         final Context context = InstrumentationRegistry.getContext();
         try (InputStream in = context.getResources().openRawResource(R.raw.lg_g4_iso_800_jpg)) {
             ExifInterface exif = new ExifInterface(in);
             assertEquals(1809, exif.getAttributeRange(ExifInterface.TAG_XMP)[0]);
             final XmpInterface xmp = XmpInterface.fromContainer(exif, redactionTags);
+
+            // Confirm redact range within entire file
+            // The XMP contents start at byte 1809. These are the file offsets.
+            final long[] expectedRanges = new long[]{2625,2675,2678,2730,2733,2792,2795,2841};
             assertArrayEquals(expectedRanges, xmp.getRedactionRanges().toArray());
+
+            // Confirm redact range within local copy
+            final String redactedXmp = new String(xmp.getRedactedXmp());
+            assertFalse(redactedXmp.contains("exif:GPSLatitude"));
+            assertFalse(redactedXmp.contains("exif:GPSLongitude"));
+            assertTrue(redactedXmp.contains("exif:ShutterSpeedValue"));
         }
     }
 
@@ -116,9 +123,16 @@ public class XmpInterfaceTest {
         final IsoInterface mp4 = IsoInterface.fromFile(file);
         final XmpInterface xmp = XmpInterface.fromContainer(mp4, redactionTags);
 
+        // Confirm redact range within entire file
         // The XMP contents start at byte 30286. These are the file offsets.
         final long[] expectedRanges = new long[]{37299,37349,37352,37404,37407,37466,37469,37515};
         assertArrayEquals(expectedRanges, xmp.getRedactionRanges().toArray());
+
+        // Confirm redact range within local copy
+        final String redactedXmp = new String(xmp.getRedactedXmp());
+        assertFalse(redactedXmp.contains("exif:GPSLatitude"));
+        assertFalse(redactedXmp.contains("exif:GPSLongitude"));
+        assertTrue(redactedXmp.contains("exif:ShutterSpeedValue"));
     }
 
     @Test

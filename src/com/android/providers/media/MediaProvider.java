@@ -4970,6 +4970,9 @@ public class MediaProvider extends ContentProvider {
             IsoInterface.BOX_GPS0,
     };
 
+    public static final Set<String> sRedactedExifTags = new ArraySet<>(
+            Arrays.asList(REDACTED_EXIF_TAGS));
+
     private static final class RedactionInfo {
         public final long[] redactionRanges;
         public final long[] freeOffsets;
@@ -5078,7 +5081,6 @@ public class MediaProvider extends ContentProvider {
         final LongArray res = new LongArray();
         final LongArray freeOffsets = new LongArray();
         try (FileInputStream is = new FileInputStream(file)) {
-            final Set<String> redactedXmpTags = new ArraySet<>(Arrays.asList(REDACTED_EXIF_TAGS));
             final String mimeType = MimeUtils.resolveMimeType(file);
             if (ExifInterface.isSupportedMimeType(mimeType)) {
                 final ExifInterface exif = new ExifInterface(is.getFD());
@@ -5090,7 +5092,7 @@ public class MediaProvider extends ContentProvider {
                     }
                 }
                 // Redact xmp where present
-                final XmpInterface exifXmp = XmpInterface.fromContainer(exif, redactedXmpTags);
+                final XmpInterface exifXmp = XmpInterface.fromContainer(exif);
                 res.addAll(exifXmp.getRedactionRanges());
             }
 
@@ -5106,7 +5108,7 @@ public class MediaProvider extends ContentProvider {
                     }
                 }
                 // Redact xmp where present
-                final XmpInterface isoXmp = XmpInterface.fromContainer(iso, redactedXmpTags);
+                final XmpInterface isoXmp = XmpInterface.fromContainer(iso);
                 res.addAll(isoXmp.getRedactionRanges());
             }
         } catch (FileNotFoundException ignored) {

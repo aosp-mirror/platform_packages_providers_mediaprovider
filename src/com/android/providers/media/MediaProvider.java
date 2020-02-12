@@ -1720,7 +1720,8 @@ public class MediaProvider extends ContentProvider {
                 defaultPrimary = Environment.DIRECTORY_MOVIES;
                 allowedPrimary = Arrays.asList(
                         Environment.DIRECTORY_DCIM,
-                        Environment.DIRECTORY_MOVIES);
+                        Environment.DIRECTORY_MOVIES,
+                        Environment.DIRECTORY_PICTURES);
                 break;
             case IMAGES_MEDIA:
             case IMAGES_MEDIA_ID:
@@ -5257,13 +5258,11 @@ public class MediaProvider extends ContentProvider {
             case DIRECTORY_AUDIOBOOKS:
                 uris[0] = Audio.Media.getContentUri(volName);
                 break;
-            case DIRECTORY_PICTURES:
-                uris[0] = Images.Media.getContentUri(volName);
-                break;
             case DIRECTORY_MOVIES:
                 uris[0] = Video.Media.getContentUri(volName);
                 break;
             case DIRECTORY_DCIM:
+            case DIRECTORY_PICTURES:
                 if (mimeType.toLowerCase(Locale.ROOT).startsWith("image")) {
                     uris[0] = Images.Media.getContentUri(volName);
                 } else if (mimeType.toLowerCase(Locale.ROOT).startsWith("video")) {

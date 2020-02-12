@@ -174,11 +174,19 @@ public class FilePathAccessTest {
         assertThrows(IOException.class, "Operation not permitted", () -> {
             new File(DCIM_DIR, MUSIC_FILE_NAME).createNewFile();
         });
+        // Only image and video files can be created in Pictures
+        assertThrows(IOException.class, "Operation not permitted", () -> {
+            new File(PICTURES_DIR, NONMEDIA_FILE_NAME).createNewFile();
+        });
+        assertThrows(IOException.class, "Operation not permitted", () -> {
+            new File(PICTURES_DIR, MUSIC_FILE_NAME).createNewFile();
+        });
 
         assertCanCreateFile(new File(DCIM_DIR, IMAGE_FILE_NAME));
         assertCanCreateFile(new File(MUSIC_DIR, MUSIC_FILE_NAME));
         assertCanCreateFile(new File(MOVIES_DIR, VIDEO_FILE_NAME));
         assertCanCreateFile(new File(DOWNLOAD_DIR, NONMEDIA_FILE_NAME));
+        assertCanCreateFile(new File(PICTURES_DIR, VIDEO_FILE_NAME));
 
         // No file whatsoever can be created in the top level directory
         assertThrows(IOException.class, "Operation not permitted", () -> {

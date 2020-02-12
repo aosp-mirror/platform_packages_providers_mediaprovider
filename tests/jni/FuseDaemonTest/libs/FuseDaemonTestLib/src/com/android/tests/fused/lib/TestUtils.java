@@ -38,6 +38,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -58,6 +59,7 @@ import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * General helper functions for FuseDaemon tests.
@@ -70,6 +72,9 @@ public class TestUtils {
     public static final String INTENT_EXCEPTION = "com.android.tests.fused.exception";
     public static final String CREATE_FILE_QUERY = "com.android.tests.fused.createfile";
     public static final String DELETE_FILE_QUERY = "com.android.tests.fused.deletefile";
+
+    private static final long POLLING_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(10);
+    private static final long POLLING_SLEEP_MILLIS = 100;
 
 
     private static final UiAutomation sUiAutomation = InstrumentationRegistry.getInstrumentation()
@@ -378,6 +383,17 @@ public class TestUtils {
             }
         }
         return path.delete();
+    }
+
+    public static void pollForExternalStorageState() throws Exception {
+        for (int i = 0; i < POLLING_TIMEOUT_MILLIS / POLLING_SLEEP_MILLIS; i++) {
+            if(Environment.getExternalStorageState(Environment.getExternalStorageDirectory())
+                    .equals(Environment.MEDIA_MOUNTED)) {
+                return;
+            }
+            Thread.sleep(POLLING_SLEEP_MILLIS);
+        }
+        fail("Timed out while waiting for ExternalStorageState to be MEDIA_MOUNTED");
     }
 
     /**

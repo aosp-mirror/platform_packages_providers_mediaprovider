@@ -262,6 +262,8 @@ public class ModernMediaScannerTest {
         stage(R.raw.test_audio, new File(music, "001.mp3"));
         stage(R.raw.test_audio, new File(music, "002.mp3"));
         stage(R.raw.test_audio, new File(music, "003.mp3"));
+        stage(R.raw.test_audio, new File(music, "004.mp3"));
+        stage(R.raw.test_audio, new File(music, "005.mp3"));
         stage(res, new File(music, name));
 
         mModern.scanDirectory(mDir, REASON_UNKNOWN);
@@ -281,13 +283,17 @@ public class ModernMediaScannerTest {
         try (Cursor cursor = mIsolatedResolver.query(membersUri, new String[] {
                 MediaColumns.DISPLAY_NAME
         }, null, null, MediaStore.Audio.Playlists.Members.PLAY_ORDER + " ASC")) {
-            assertEquals(3, cursor.getCount());
+            assertEquals(5, cursor.getCount());
             cursor.moveToNext();
             assertEquals("001.mp3", cursor.getString(0));
             cursor.moveToNext();
             assertEquals("002.mp3", cursor.getString(0));
             cursor.moveToNext();
             assertEquals("003.mp3", cursor.getString(0));
+            cursor.moveToNext();
+            assertEquals("004.mp3", cursor.getString(0));
+            cursor.moveToNext();
+            assertEquals("005.mp3", cursor.getString(0));
         }
 
         // Delete one of the media files and rescan
@@ -298,7 +304,7 @@ public class ModernMediaScannerTest {
         try (Cursor cursor = mIsolatedResolver.query(membersUri, new String[] {
                 MediaColumns.DISPLAY_NAME
         }, null, null, MediaStore.Audio.Playlists.Members.PLAY_ORDER + " ASC")) {
-            assertEquals(2, cursor.getCount());
+            assertEquals(4, cursor.getCount());
             cursor.moveToNext();
             assertEquals("001.mp3", cursor.getString(0));
             cursor.moveToNext();

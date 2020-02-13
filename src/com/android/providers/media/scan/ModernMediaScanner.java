@@ -1052,7 +1052,7 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     private static @NonNull <T> Optional<T> parseOptionalOrZero(@Nullable T value) {
-        if (value instanceof String && ((String) value).equals("0")) {
+        if (value instanceof String && isZero((String) value)) {
             return Optional.empty();
         } else if (value instanceof Number && ((Number) value).intValue() == 0) {
             return Optional.empty();
@@ -1274,6 +1274,18 @@ public class ModernMediaScanner implements MediaScanner {
     static boolean isPlaylist(Uri uri) {
         final List<String> path = uri.getPathSegments();
         return (path.size() == 4) && path.get(1).equals("audio") && path.get(2).equals("playlists");
+    }
+
+    static boolean isZero(@NonNull String value) {
+        if (value.length() == 0) {
+            return false;
+        }
+        for (int i = 0; i < value.length(); i++) {
+            if (value.charAt(i) != '0') {
+                return false;
+            }
+        }
+        return true;
     }
 
     static void logTroubleScanning(File file, Exception e) {

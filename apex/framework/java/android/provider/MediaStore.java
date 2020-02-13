@@ -1247,6 +1247,24 @@ public final class MediaStore {
         @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
         public static final String GENERATION_MODIFIED = "generation_modified";
 
+        /**
+         * Indexed XMP metadata extracted from this media item.
+         * <p>
+         * The structure of this metadata is defined by the <a href=
+         * "https://en.wikipedia.org/wiki/Extensible_Metadata_Platform"><em>XMP
+         * Media Management</em> standard</a>, published as ISO 16684-1:2012.
+         * <p>
+         * This metadata is typically extracted from a
+         * {@link ExifInterface#TAG_XMP} contained inside an image file or from
+         * a {@code XMP_} box contained inside an ISO/IEC base media file format
+         * (MPEG-4 Part 12).
+         * <p>
+         * Note that any location details are redacted from this metadata for
+         * privacy reasons.
+         */
+        @Column(value = Cursor.FIELD_TYPE_BLOB, readOnly = true)
+        public static final String XMP = "xmp";
+
         // =======================================
         // ==== MediaMetadataRetriever values ====
         // =======================================

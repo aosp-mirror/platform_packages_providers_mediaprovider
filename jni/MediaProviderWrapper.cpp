@@ -136,7 +136,7 @@ void scanFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_
                       const string& path) {
     LOG(DEBUG) << "Notifying MediaProvider that a file has been modified. path = " << path;
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
-    env->CallObjectMethod(media_provider_object, mid_scan_file, j_path.get());
+    env->CallVoidMethod(media_provider_object, mid_scan_file, j_path.get());
     if (CheckForJniException(env)) {
         LOG(DEBUG) << "Java exception while checking permissions for file";
     }
@@ -249,7 +249,7 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
     mid_delete_file_ = CacheMethod(env, "deleteFile", "(Ljava/lang/String;I)I", /*is_static*/ false);
     mid_is_open_allowed_ = CacheMethod(env, "isOpenAllowed", "(Ljava/lang/String;IZ)I",
                                        /*is_static*/ false);
-    mid_scan_file_ = CacheMethod(env, "scanFile", "(Ljava/lang/String;)Landroid/net/Uri;",
+    mid_scan_file_ = CacheMethod(env, "scanFile", "(Ljava/lang/String;)V",
                                  /*is_static*/ false);
     mid_is_dir_op_allowed_ = CacheMethod(env, "isDirectoryOperationAllowed",
                                          "(Ljava/lang/String;I)I", /*is_static*/ false);

@@ -337,6 +337,7 @@ public class ModernMediaScanner implements MediaScanner {
                 }
                 try {
                     Files.walkFileTree(mRoot.toPath(), this);
+                    applyPending();
                 } catch (IOException e) {
                     // This should never happen, so yell loudly
                     throw new IllegalStateException(e);
@@ -346,7 +347,6 @@ public class ModernMediaScanner implements MediaScanner {
                     }
                     Trace.endSection();
                 }
-                applyPending();
             }
         }
 

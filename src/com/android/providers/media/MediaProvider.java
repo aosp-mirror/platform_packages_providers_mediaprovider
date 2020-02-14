@@ -252,6 +252,7 @@ public class MediaProvider extends ContentProvider {
     private static final String DIRECTORY_DOCUMENTS = "Documents";
     private static final String DIRECTORY_AUDIOBOOKS = "Audiobooks";
     private static final String DIRECTORY_ANDROID = "Android";
+
     private static final String DIRECTORY_MEDIA = "media";
 
     /**
@@ -533,19 +534,26 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-
-
     private static final String[] sDefaultFolderNames = {
-        Environment.DIRECTORY_MUSIC,
-        Environment.DIRECTORY_PODCASTS,
-        Environment.DIRECTORY_RINGTONES,
-        Environment.DIRECTORY_ALARMS,
-        Environment.DIRECTORY_NOTIFICATIONS,
-        Environment.DIRECTORY_PICTURES,
-        Environment.DIRECTORY_MOVIES,
-        Environment.DIRECTORY_DOWNLOADS,
-        Environment.DIRECTORY_DCIM,
+            Environment.DIRECTORY_MUSIC,
+            Environment.DIRECTORY_PODCASTS,
+            Environment.DIRECTORY_RINGTONES,
+            Environment.DIRECTORY_ALARMS,
+            Environment.DIRECTORY_NOTIFICATIONS,
+            Environment.DIRECTORY_PICTURES,
+            Environment.DIRECTORY_MOVIES,
+            Environment.DIRECTORY_DOWNLOADS,
+            Environment.DIRECTORY_DCIM,
     };
+
+    private static boolean isDefaultDirectoryName(@Nullable String dirName) {
+        for (String defaultDirName : sDefaultFolderNames) {
+            if (defaultDirName.equals(dirName)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * Ensure that default folders are created on mounted primary storage
@@ -5551,6 +5559,7 @@ public class MediaProvider extends ContentProvider {
      *
      * @param path File path of the directory that the app wants to create/delete
      * @param uid UID of the app that wants to create/delete the directory
+     * @param forCreate denotes whether the operation is directory creation or deletion
      * @return 0 if the operation is allowed, or the following {@code errno} values:
      * <ul>
      * <li>{@link OsConstants#EACCES} if the app tries to create/delete a dir in another app's
@@ -5562,7 +5571,8 @@ public class MediaProvider extends ContentProvider {
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public int isDirectoryOperationAllowedForFuse(@NonNull String path, int uid) {
+    public int isDirectoryCreationOrDeletionAllowedForFuse(
+            @NonNull String path, int uid, boolean forCreate) {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
@@ -5590,8 +5600,17 @@ public class MediaProvider extends ContentProvider {
             }
 
             final String[] relativePath = sanitizePath(extractRelativePath(path));
-            if (relativePath.length == 1 && TextUtils.isEmpty(relativePath[0])) {
-                Log.e(TAG, "Creating or deleting a top level directory is not allowed!");
+            final boolean isTopLevelDir =
+                    relativePath.length == 1 && TextUtils.isEmpty(relativePath[0]);
+            if (isTopLevelDir) {
+                // We allow creating the default top level directories only, all other oprations on
+                // top level directories are not allowed.
+                if (forCreate && isDefaultDirectoryName(extractDisplayName(path))) {
+                    return 0;
+                }
+                Log.e(TAG,
+                        "Creating a non-default top level directory or deleting an existing"
+                                + " one is not allowed!");
                 return OsConstants.EPERM;
             }
             return 0;

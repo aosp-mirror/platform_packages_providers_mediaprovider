@@ -65,6 +65,7 @@ import static com.android.providers.media.util.FileUtils.extractVolumeName;
 import static com.android.providers.media.util.FileUtils.isDownload;
 import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionManageExternalStorage;
 
 import android.app.AppOpsManager;
 import android.app.AppOpsManager.OnOpActiveChangedListener;
@@ -88,6 +89,7 @@ import android.content.IntentFilter;
 import android.content.OperationApplicationException;
 import android.content.SharedPreferences;
 import android.content.UriMatcher;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInstaller.SessionInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -805,6 +807,39 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public void scanFileForFuse(String file) {
         scanFile(new File(file), REASON_DEMAND);
+    }
+
+    /**
+     * Returns true if the app denoted by the given {@code uid} and {@code packageName} is allowed
+     * to clear other apps' cache directories.
+     */
+    static boolean hasPermissionToClearCaches(Context context, ApplicationInfo ai) {
+        return checkPermissionManageExternalStorage(context, /*pid*/-1, ai.uid, ai.packageName);
+    }
+
+    /**
+     * Clears all app's external cache directories, i.e. for each app we delete
+     * /sdcard/Android/data/app/cache/* but we keep the directory itself.
+     *
+     * <p>This method doesn't perform any checks, so make sure that the calling package is allowed
+     * to clear cache directories by calling {@link #hasPermissionToClearCaches} first.
+     */
+    static void clearAppCacheDirectories() {
+        Log.i(TAG, "Clearing cache for all apps on");
+        final File rootDataDir = FileUtils.buildPath(Environment.getExternalStorageDirectory(),
+                DIRECTORY_ANDROID, "data");
+        for (File appDataDir : rootDataDir.listFiles()) {
+            try {
+                final File appCacheDir = new File(appDataDir, "cache");
+                if (appCacheDir.isDirectory()) {
+                    FileUtils.deleteContents(appCacheDir);
+                }
+            } catch (Exception e) {
+                // We want to avoid crashing MediaProvider at all costs, so we handle all "generic"
+                // exceptions here.
+                Log.e(TAG, "Couldn't delete all app cache dirs!", e);
+            }
+        }
     }
 
     @VisibleForTesting

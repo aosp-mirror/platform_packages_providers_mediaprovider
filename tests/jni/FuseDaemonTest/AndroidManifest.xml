@@ -24,7 +24,6 @@
         <uses-library android:name="android.test.runner" />
     </application>
 
-
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
                      android:targetPackage="com.android.tests.fused"
                      android:label="Tests for file path access when FuseDaemon is active"/>

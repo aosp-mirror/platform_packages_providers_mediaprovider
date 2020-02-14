@@ -229,6 +229,19 @@ public class ModernMediaScannerTest {
     }
 
     @Test
+    public void testIsZero() throws Exception {
+        assertFalse(ModernMediaScanner.isZero(""));
+        assertFalse(ModernMediaScanner.isZero("meow"));
+        assertFalse(ModernMediaScanner.isZero("1"));
+        assertFalse(ModernMediaScanner.isZero("01"));
+        assertFalse(ModernMediaScanner.isZero("010"));
+
+        assertTrue(ModernMediaScanner.isZero("0"));
+        assertTrue(ModernMediaScanner.isZero("00"));
+        assertTrue(ModernMediaScanner.isZero("000"));
+    }
+
+    @Test
     public void testPlaylistM3u() throws Exception {
         doPlaylist(R.raw.test_m3u, "test.m3u");
     }

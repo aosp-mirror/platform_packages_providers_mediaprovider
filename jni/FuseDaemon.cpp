@@ -897,7 +897,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         TRACE_FUSE(fuse) << "Using cache for " << path;
     }
 
-    handle* h = new handle(path, fd, ri.release(), !fi->direct_io);
+    handle* h = new handle(path, fd, ri.release(), !fi->direct_io, fi->flags & O_CREAT);
     node->AddHandle(h);
 
     fi->fh = ptr_to_id(h);
@@ -1104,8 +1104,10 @@ static void pf_release(fuse_req_t req,
                      << "0" << std::oct << fi->flags << " " << h << "(" << h->fd << ")";
 
     fuse->fadviser.Close(h->fd);
-    // TODO(b/145737191): Figure out if we need to scan files on close, and how to do it properly
     if (node) {
+        if (h->is_new_file) {
+            fuse->mp->ScanFile(h->path);
+        }
         node->DestroyHandle(h);
     }
 
@@ -1375,7 +1377,8 @@ static void pf_create(fuse_req_t req,
     // This prevents crashing during reads but can be a security hole if a malicious app opens an fd
     // to the file before all the EXIF content is written. We could special case reads before the
     // first close after a file has just been created.
-    handle* h = new handle(child_path, fd, new RedactionInfo(), true /* cached */);
+    handle* h = new handle(child_path, fd, new RedactionInfo(), /*cached*/ true,
+                           /*is_new_file*/ true);
     fi->fh = ptr_to_id(h);
     fi->keep_cache = 1;
 

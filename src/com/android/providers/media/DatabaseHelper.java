@@ -335,7 +335,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
          * {@link ContentResolver#notifyChange}, but are instead being collected
          * due to this ongoing transaction.
          */
-        public final List<Uri> notifyChanges = new ArrayList<>();
+        public final Set<Uri> notifyChanges = new ArraySet<>();
     }
 
     public void beginTransaction() {
@@ -556,7 +556,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + "writer TEXT DEFAULT NULL, exposure_time TEXT DEFAULT NULL,"
                 + "f_number TEXT DEFAULT NULL, iso INTEGER DEFAULT NULL,"
                 + "scene_capture_type INTEGER DEFAULT NULL, generation_added INTEGER DEFAULT 0,"
-                + "generation_modified INTEGER DEFAULT 0)");
+                + "generation_modified INTEGER DEFAULT 0, xmp BLOB DEFAULT NULL)");
 
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!mInternal) {
@@ -892,7 +892,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("ALTER TABLE files ADD COLUMN secondary_directory TEXT DEFAULT NULL;");
     }
 
-    private static void updateAddXmp(SQLiteDatabase db, boolean internal) {
+    private static void updateAddXmpMm(SQLiteDatabase db, boolean internal) {
         db.execSQL("ALTER TABLE files ADD COLUMN document_id TEXT DEFAULT NULL;");
         db.execSQL("ALTER TABLE files ADD COLUMN instance_id TEXT DEFAULT NULL;");
         db.execSQL("ALTER TABLE files ADD COLUMN original_document_id TEXT DEFAULT NULL;");
@@ -988,6 +988,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("ALTER TABLE files ADD COLUMN generation_modified INTEGER DEFAULT 0;");
     }
 
+    private static void updateAddXmp(SQLiteDatabase db, boolean internal) {
+        db.execSQL("ALTER TABLE files ADD COLUMN xmp BLOB DEFAULT NULL;");
+    }
+
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
                 null, null, null, null, null, null)) {
@@ -1043,7 +1047,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
     static final int VERSION_Q = 1023;
-    static final int VERSION_R = 1111;
+    static final int VERSION_R = 1112;
     static final int VERSION_LATEST = VERSION_R;
 
     /**
@@ -1106,7 +1110,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 recomputeDataValues = true;
             }
             if (fromVersion < 1014) {
-                updateAddXmp(db, internal);
+                updateAddXmpMm(db, internal);
             }
             if (fromVersion < 1015) {
                 // Empty version bump to ensure views are recreated
@@ -1176,6 +1180,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1111) {
                 recomputeMediaTypeValues(db);
+            }
+            if (fromVersion < 1112) {
+                updateAddXmp(db, internal);
             }
 
             if (recomputeDataValues) {

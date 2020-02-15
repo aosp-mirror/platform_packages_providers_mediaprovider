@@ -417,10 +417,8 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
         return NULL;
     }
 
-    node = parent->LookupChildByName(name);
-    if (node) {
-        node->Acquire();
-    } else {
+    node = parent->LookupChildByName(name, true /* acquire */);
+    if (!node) {
         node = ::node::Create(parent, name, &fuse->lock);
         fuse->NodeCreated(node);
     }
@@ -726,7 +724,7 @@ static void pf_unlink(fuse_req_t req, fuse_ino_t parent, const char* name) {
         return;
     }
 
-    node* child_node = parent_node->LookupChildByName(name);
+    node* child_node = parent_node->LookupChildByName(name, false /* acquire */);
     if (child_node) {
         child_node->SetDeleted();
     }
@@ -756,7 +754,7 @@ static void pf_rmdir(fuse_req_t req, fuse_ino_t parent, const char* name) {
         return;
     }
 
-    node* child_node = parent_node->LookupChildByName(name);
+    node* child_node = parent_node->LookupChildByName(name, false /* acquire */);
     if (child_node) {
         child_node->SetDeleted();
     }
@@ -797,8 +795,7 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
                      << safe_name(old_parent_node) << ") -> " << new_parent << " ("
                      << safe_name(new_parent_node) << ")";
 
-    node* child_node = old_parent_node->LookupChildByName(name);
-    child_node->Acquire();
+    node* child_node = old_parent_node->LookupChildByName(name, true /* acquire */);
 
     const string old_child_path = child_node->BuildPath();
     const string new_child_path = new_parent_path + "/" + new_name;
@@ -900,7 +897,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         TRACE_FUSE(fuse) << "Using cache for " << path;
     }
 
-    handle* h = new handle(path, fd, ri.release(), !fi->direct_io);
+    handle* h = new handle(path, fd, ri.release(), !fi->direct_io, fi->flags & O_CREAT);
     node->AddHandle(h);
 
     fi->fh = ptr_to_id(h);
@@ -1107,8 +1104,10 @@ static void pf_release(fuse_req_t req,
                      << "0" << std::oct << fi->flags << " " << h << "(" << h->fd << ")";
 
     fuse->fadviser.Close(h->fd);
-    // TODO(b/145737191): Figure out if we need to scan files on close, and how to do it properly
     if (node) {
+        if (h->is_new_file) {
+            fuse->mp->ScanFile(h->path);
+        }
         node->DestroyHandle(h);
     }
 
@@ -1378,7 +1377,8 @@ static void pf_create(fuse_req_t req,
     // This prevents crashing during reads but can be a security hole if a malicious app opens an fd
     // to the file before all the EXIF content is written. We could special case reads before the
     // first close after a file has just been created.
-    handle* h = new handle(child_path, fd, new RedactionInfo(), true /* cached */);
+    handle* h = new handle(child_path, fd, new RedactionInfo(), /*cached*/ true,
+                           /*is_new_file*/ true);
     fi->fh = ptr_to_id(h);
     fi->keep_cache = 1;
 
@@ -1481,7 +1481,7 @@ static struct fuse_lowlevel_ops ops{
 };
 
 static struct fuse_loop_config config = {
-        .clone_fd = 0,
+        .clone_fd = 1,
         .max_idle_threads = 10,
 };
 

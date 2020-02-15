@@ -179,6 +179,7 @@ public class PlaylistResolver {
             @NonNull ContentResolver resolver, @NonNull Uri uri, int itemIndex, File itemFile)
             throws IOException {
         final Uri audioUri = MediaStore.Audio.Media.getContentUri(MediaStore.getVolumeName(uri));
+        itemFile = new File(itemFile.getAbsolutePath().replace('\\', '/'));
         try (Cursor cursor = resolver.query(audioUri,
                 new String[] { MediaColumns._ID }, MediaColumns.DATA + "=?",
                 new String[] { itemFile.getCanonicalPath() }, null)) {

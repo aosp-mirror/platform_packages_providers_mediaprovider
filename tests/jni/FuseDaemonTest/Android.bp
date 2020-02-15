@@ -43,9 +43,10 @@ android_test {
     name: "FuseDaemonLegacyTest",
     manifest: "legacy/AndroidManifest.xml",
     srcs: ["legacy/src/**/*.java"],
-    static_libs: ["androidx.test.rules", "truth-prebuilt"],
+    static_libs: ["androidx.test.rules", "truth-prebuilt",  "tests-fusedaemon-lib"],
     test_suites: ["general-tests", "mts"],
-    sdk_version: "29"
+    sdk_version: "test_current",
+    target_sdk_version: "29"
 }
 
 java_test_host {

@@ -65,6 +65,7 @@ import static com.android.providers.media.util.FileUtils.extractVolumeName;
 import static com.android.providers.media.util.FileUtils.isDownload;
 import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionManageExternalStorage;
 
 import android.app.AppOpsManager;
 import android.app.AppOpsManager.OnOpActiveChangedListener;
@@ -88,6 +89,7 @@ import android.content.IntentFilter;
 import android.content.OperationApplicationException;
 import android.content.SharedPreferences;
 import android.content.UriMatcher;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInstaller.SessionInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -186,7 +188,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -806,6 +807,39 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public void scanFileForFuse(String file) {
         scanFile(new File(file), REASON_DEMAND);
+    }
+
+    /**
+     * Returns true if the app denoted by the given {@code uid} and {@code packageName} is allowed
+     * to clear other apps' cache directories.
+     */
+    static boolean hasPermissionToClearCaches(Context context, ApplicationInfo ai) {
+        return checkPermissionManageExternalStorage(context, /*pid*/-1, ai.uid, ai.packageName);
+    }
+
+    /**
+     * Clears all app's external cache directories, i.e. for each app we delete
+     * /sdcard/Android/data/app/cache/* but we keep the directory itself.
+     *
+     * <p>This method doesn't perform any checks, so make sure that the calling package is allowed
+     * to clear cache directories by calling {@link #hasPermissionToClearCaches} first.
+     */
+    static void clearAppCacheDirectories() {
+        Log.i(TAG, "Clearing cache for all apps on");
+        final File rootDataDir = FileUtils.buildPath(Environment.getExternalStorageDirectory(),
+                DIRECTORY_ANDROID, "data");
+        for (File appDataDir : rootDataDir.listFiles()) {
+            try {
+                final File appCacheDir = new File(appDataDir, "cache");
+                if (appCacheDir.isDirectory()) {
+                    FileUtils.deleteContents(appCacheDir);
+                }
+            } catch (Exception e) {
+                // We want to avoid crashing MediaProvider at all costs, so we handle all "generic"
+                // exceptions here.
+                Log.e(TAG, "Couldn't delete all app cache dirs!", e);
+            }
+        }
     }
 
     @VisibleForTesting
@@ -3907,27 +3941,62 @@ public class MediaProvider extends ContentProvider {
         public abstract Bitmap getThumbnailBitmap(Uri uri, CancellationSignal signal)
                 throws IOException;
 
-        public File ensureThumbnail(Uri uri, CancellationSignal signal) throws IOException {
+        public ParcelFileDescriptor ensureThumbnail(Uri uri, CancellationSignal signal)
+                throws IOException {
+            // First attempt to fast-path by opening the thumbnail; if it
+            // doesn't exist we fall through to create it below
             final File thumbFile = getThumbnailFile(uri);
+            try {
+                return ParcelFileDescriptor.open(thumbFile,
+                        ParcelFileDescriptor.MODE_READ_ONLY);
+            } catch (FileNotFoundException ignored) {
+            }
+
             final File thumbDir = thumbFile.getParentFile();
             thumbDir.mkdirs();
-            if (!thumbFile.exists()) {
-                // When multiple threads race for the same thumbnail, the second
-                // thread could return a file with a thumbnail still in
-                // progress. We could add heavy per-ID locking to mitigate this
-                // rare race condition, but it's simpler to have both threads
-                // generate the same thumbnail using temporary files and rename
-                // them into place once finished.
-                final File thumbTempFile = File.createTempFile("thumb", null, thumbDir);
+
+            // When multiple threads race for the same thumbnail, the second
+            // thread could return a file with a thumbnail still in
+            // progress. We could add heavy per-ID locking to mitigate this
+            // rare race condition, but it's simpler to have both threads
+            // generate the same thumbnail using temporary files and rename
+            // them into place once finished.
+            final File thumbTempFile = File.createTempFile("thumb", null, thumbDir);
+
+            ParcelFileDescriptor thumbWrite = null;
+            ParcelFileDescriptor thumbRead = null;
+            try {
+                // Open our temporary file twice: once for local writing, and
+                // once for remote reading. Both FDs point at the same
+                // underlying inode on disk, so they're stable across renames
+                // to avoid race conditions between threads.
+                thumbWrite = ParcelFileDescriptor.open(thumbTempFile,
+                        ParcelFileDescriptor.MODE_WRITE_ONLY | ParcelFileDescriptor.MODE_CREATE);
+                thumbRead = ParcelFileDescriptor.open(thumbTempFile,
+                        ParcelFileDescriptor.MODE_READ_ONLY);
+
                 final Bitmap thumbnail = getThumbnailBitmap(uri, signal);
-                try (OutputStream out = new FileOutputStream(thumbTempFile)) {
-                    thumbnail.compress(Bitmap.CompressFormat.JPEG, 90, out);
+                thumbnail.compress(Bitmap.CompressFormat.JPEG, 90,
+                        new FileOutputStream(thumbWrite.getFileDescriptor()));
+
+                try {
+                    // Use direct syscall for better failure logs
+                    Os.rename(thumbTempFile.getAbsolutePath(), thumbFile.getAbsolutePath());
+                } catch (ErrnoException e) {
+                    e.rethrowAsIOException();
                 }
-                if (!thumbTempFile.renameTo(thumbFile)) {
-                    thumbTempFile.delete();
-                }
+
+                // Everything above went peachy, so return a duplicate of our
+                // already-opened read FD to keep our finally logic below simple
+                return thumbRead.dup();
+
+            } finally {
+                // Regardless of success or failure, try cleaning up any
+                // remaining temporary file and close all our local FDs
+                FileUtils.closeQuietly(thumbWrite);
+                FileUtils.closeQuietly(thumbRead);
+                thumbTempFile.delete();
             }
-            return thumbFile;
         }
 
         public void invalidateThumbnail(Uri uri) throws IOException {
@@ -4468,30 +4537,25 @@ public class MediaProvider extends ContentProvider {
                 final long albumId = Long.parseLong(uri.getPathSegments().get(3));
                 final Uri targetUri = ContentUris
                         .withAppendedId(Audio.Albums.getContentUri(volumeName), albumId);
-                return ParcelFileDescriptor.open(ensureThumbnail(targetUri, signal),
-                        ParcelFileDescriptor.MODE_READ_ONLY);
-
+                return ensureThumbnail(targetUri, signal);
             }
             case AUDIO_ALBUMART_FILE_ID: {
                 final long audioId = Long.parseLong(uri.getPathSegments().get(3));
                 final Uri targetUri = ContentUris
                         .withAppendedId(Audio.Media.getContentUri(volumeName), audioId);
-                return ParcelFileDescriptor.open(ensureThumbnail(targetUri, signal),
-                        ParcelFileDescriptor.MODE_READ_ONLY);
+                return ensureThumbnail(targetUri, signal);
             }
             case VIDEO_MEDIA_ID_THUMBNAIL: {
                 final long videoId = Long.parseLong(uri.getPathSegments().get(3));
                 final Uri targetUri = ContentUris
                         .withAppendedId(Video.Media.getContentUri(volumeName), videoId);
-                return ParcelFileDescriptor.open(ensureThumbnail(targetUri, signal),
-                        ParcelFileDescriptor.MODE_READ_ONLY);
+                return ensureThumbnail(targetUri, signal);
             }
             case IMAGES_MEDIA_ID_THUMBNAIL: {
                 final long imageId = Long.parseLong(uri.getPathSegments().get(3));
                 final Uri targetUri = ContentUris
                         .withAppendedId(Images.Media.getContentUri(volumeName), imageId);
-                return ParcelFileDescriptor.open(ensureThumbnail(targetUri, signal),
-                        ParcelFileDescriptor.MODE_READ_ONLY);
+                return ensureThumbnail(targetUri, signal);
             }
         }
 
@@ -4520,10 +4584,8 @@ public class MediaProvider extends ContentProvider {
         final boolean wantsThumb = (opts != null) && opts.containsKey(ContentResolver.EXTRA_SIZE)
                 && (mimeTypeFilter != null) && mimeTypeFilter.startsWith("image/");
         if (wantsThumb) {
-            final File thumbFile = ensureThumbnail(uri, signal);
-            return new AssetFileDescriptor(
-                    ParcelFileDescriptor.open(thumbFile, ParcelFileDescriptor.MODE_READ_ONLY),
-                    0, AssetFileDescriptor.UNKNOWN_LENGTH);
+            final ParcelFileDescriptor pfd = ensureThumbnail(uri, signal);
+            return new AssetFileDescriptor(pfd, 0, AssetFileDescriptor.UNKNOWN_LENGTH);
         }
 
         // Worst case, return the underlying file
@@ -4531,14 +4593,14 @@ public class MediaProvider extends ContentProvider {
                 AssetFileDescriptor.UNKNOWN_LENGTH);
     }
 
-    private File ensureThumbnail(Uri uri, CancellationSignal signal) throws FileNotFoundException {
+    private ParcelFileDescriptor ensureThumbnail(Uri uri, CancellationSignal signal)
+            throws FileNotFoundException {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
         Trace.beginSection("ensureThumbnail");
         final LocalCallingIdentity token = clearLocalCallingIdentity();
         try {
-            final File thumbFile;
             switch (match) {
                 case AUDIO_ALBUMS_ID: {
                     final String volumeName = MediaStore.getVolumeName(uri);
@@ -4970,6 +5032,9 @@ public class MediaProvider extends ContentProvider {
             IsoInterface.BOX_GPS0,
     };
 
+    public static final Set<String> sRedactedExifTags = new ArraySet<>(
+            Arrays.asList(REDACTED_EXIF_TAGS));
+
     private static final class RedactionInfo {
         public final long[] redactionRanges;
         public final long[] freeOffsets;
@@ -5078,7 +5143,6 @@ public class MediaProvider extends ContentProvider {
         final LongArray res = new LongArray();
         final LongArray freeOffsets = new LongArray();
         try (FileInputStream is = new FileInputStream(file)) {
-            final Set<String> redactedXmpTags = new ArraySet<>(Arrays.asList(REDACTED_EXIF_TAGS));
             final String mimeType = MimeUtils.resolveMimeType(file);
             if (ExifInterface.isSupportedMimeType(mimeType)) {
                 final ExifInterface exif = new ExifInterface(is.getFD());
@@ -5090,7 +5154,7 @@ public class MediaProvider extends ContentProvider {
                     }
                 }
                 // Redact xmp where present
-                final XmpInterface exifXmp = XmpInterface.fromContainer(exif, redactedXmpTags);
+                final XmpInterface exifXmp = XmpInterface.fromContainer(exif);
                 res.addAll(exifXmp.getRedactionRanges());
             }
 
@@ -5106,7 +5170,7 @@ public class MediaProvider extends ContentProvider {
                     }
                 }
                 // Redact xmp where present
-                final XmpInterface isoXmp = XmpInterface.fromContainer(iso, redactedXmpTags);
+                final XmpInterface isoXmp = XmpInterface.fromContainer(iso);
                 res.addAll(isoXmp.getRedactionRanges());
             }
         } catch (FileNotFoundException ignored) {
@@ -5852,6 +5916,10 @@ public class MediaProvider extends ContentProvider {
     private @NonNull DatabaseHelper getDatabaseForUri(Uri uri) throws VolumeNotFoundException {
         final String volumeName = resolveVolumeName(uri);
         synchronized (mAttachedVolumeNames) {
+            if (!mAttachedVolumeNames.contains(volumeName)) {
+                // Maybe we are racing onVolumeStateChanged, update our cache and try again
+                updateVolumes();
+            }
             if (!mAttachedVolumeNames.contains(volumeName)) {
                 throw new VolumeNotFoundException(volumeName);
             }

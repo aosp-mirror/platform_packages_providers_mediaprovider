@@ -11,6 +11,7 @@
             android:process="android.process.media"
             android:allowBackup="false"
             android:supportsRtl="true"
+            android:forceQueryable="true"
             android:usesCleartextTraffic="true">
         <provider
                 android:name="com.android.providers.media.LegacyMediaProvider"

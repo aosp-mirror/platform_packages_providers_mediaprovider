@@ -337,6 +337,7 @@ public class ModernMediaScanner implements MediaScanner {
                 }
                 try {
                     Files.walkFileTree(mRoot.toPath(), this);
+                    applyPending();
                 } catch (IOException e) {
                     // This should never happen, so yell loudly
                     throw new IllegalStateException(e);
@@ -346,7 +347,6 @@ public class ModernMediaScanner implements MediaScanner {
                     }
                     Trace.endSection();
                 }
-                applyPending();
             }
         }
 
@@ -363,15 +363,16 @@ public class ModernMediaScanner implements MediaScanner {
             final String formatClause = "ifnull(" + FileColumns.FORMAT + ","
                     + MtpConstants.FORMAT_UNDEFINED + ") != "
                     + MtpConstants.FORMAT_ABSTRACT_AV_PLAYLIST;
-            final String dataClause = FileColumns.DATA + " LIKE ? ESCAPE '\\'";
+            final String dataClause = "(" + FileColumns.DATA + " LIKE ? ESCAPE '\\' OR "
+                    + FileColumns.DATA + " LIKE ? ESCAPE '\\')";
             final String generationClause = FileColumns.GENERATION_ADDED + " <= "
                     + mStartGeneration;
-
             final Bundle queryArgs = new Bundle();
             queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SELECTION,
                     formatClause + " AND " + dataClause + " AND " + generationClause);
+            final String pathEscapedForLike = DatabaseUtils.escapeForLike(mRoot.getAbsolutePath());
             queryArgs.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS,
-                    new String[] { escapeForLike(mRoot.getAbsolutePath(), mSingleFile) });
+                    new String[] {pathEscapedForLike + "/%", pathEscapedForLike});
             queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,
                     FileColumns._ID + " DESC");
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE);
@@ -800,6 +801,7 @@ public class ModernMediaScanner implements MediaScanner {
         op.withValue(MediaColumns.DOCUMENT_ID, xmp.getDocumentId());
         op.withValue(MediaColumns.INSTANCE_ID, xmp.getInstanceId());
         op.withValue(MediaColumns.ORIGINAL_DOCUMENT_ID, xmp.getOriginalDocumentId());
+        op.withValue(MediaColumns.XMP, xmp.getRedactedXmp());
     }
 
     /**
@@ -1050,7 +1052,7 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     private static @NonNull <T> Optional<T> parseOptionalOrZero(@Nullable T value) {
-        if (value instanceof String && ((String) value).equals("0")) {
+        if (value instanceof String && isZero((String) value)) {
             return Optional.empty();
         } else if (value instanceof Number && ((Number) value).intValue() == 0) {
             return Optional.empty();
@@ -1274,16 +1276,16 @@ public class ModernMediaScanner implements MediaScanner {
         return (path.size() == 4) && path.get(1).equals("audio") && path.get(2).equals("playlists");
     }
 
-    /**
-     * Escape the given argument for use in a {@code LIKE} statement.
-     */
-    static String escapeForLike(String arg, boolean singleFile) {
-        final String escaped = DatabaseUtils.escapeForLike(arg);
-        if (singleFile) {
-            return escaped;
-        } else {
-            return escaped + "/%";
+    static boolean isZero(@NonNull String value) {
+        if (value.length() == 0) {
+            return false;
         }
+        for (int i = 0; i < value.length(); i++) {
+            if (value.charAt(i) != '0') {
+                return false;
+            }
+        }
+        return true;
     }
 
     static void logTroubleScanning(File file, Exception e) {

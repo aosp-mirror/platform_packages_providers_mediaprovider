@@ -228,13 +228,11 @@ public class MediaProvider extends ContentProvider {
 
     /**
      * App Compatibility flag that indicates whether the app is in scoped storage or not.
-     * This flag is turned on by default for all apps targeting > Q.
      *
      * SCOPED_STORAGE is the Change Name and 132649864 the Change ID. Using the buganizer issue ID
      * as the Change ID for uniqueness as documented here go/compat-framework.
      */
     @ChangeId
-    @EnabledAfter(targetSdkVersion=android.os.Build.VERSION_CODES.Q)
     private static final long SCOPED_STORAGE = 132649864L;
 
     /**

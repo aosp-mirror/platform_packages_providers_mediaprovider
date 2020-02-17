@@ -5088,6 +5088,16 @@ public class MediaProvider extends ContentProvider {
                 return res;
             }
 
+
+            // Returns null if the path doesn't correspond to an app specific directory
+            final String appSpecificDir = extractPathOwnerPackageName(path);
+
+            if (appSpecificDir != null) {
+                if (isCallingIdentitySharedPackageName(appSpecificDir)) {
+                    return res;
+                }
+            }
+
             path = getAbsoluteSanitizedPath(path);
             if (path == null) {
                 throw new IOException("Invalid path " + path);

@@ -5632,6 +5632,11 @@ public class MediaProvider extends ContentProvider {
             return true;
         }
 
+        // Apps that have permission to manage external storage can work with all files
+        if (mCallingIdentity.get().hasPermission(PERMISSION_MANAGE_EXTERNAL_STORAGE)) {
+            return true;
+        }
+
         // Check if caller is known to be owner of this item, to speed up
         // performance of our permission checks
         final int table = matchUri(uri, true);

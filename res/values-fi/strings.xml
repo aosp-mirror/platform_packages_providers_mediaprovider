@@ -34,6 +34,14 @@
       <item quantity="other">Ja <xliff:g id="COUNT_1">^1</xliff:g> muuta asiaa</item>
       <item quantity="one">Ja <xliff:g id="COUNT_0">^1</xliff:g> muu asia</item>
     </plurals>
+    <!-- no translation found for cache_clearing_dialog_title (543177167845854283) -->
+    <skip />
+    <!-- no translation found for cache_clearing_dialog_text (425995541409682360) -->
+    <skip />
+    <!-- no translation found for allow (8885707816848569619) -->
+    <skip />
+    <!-- no translation found for deny (6040983710442068936) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="other">Saako <xliff:g id="APP_NAME_1">^1</xliff:g> muokata <xliff:g id="COUNT">^2</xliff:g> audiotiedostoa?</item>
       <item quantity="one">Saako <xliff:g id="APP_NAME_0">^1</xliff:g> muokata tätä audiotiedostoa?</item>

@@ -18,12 +18,13 @@ package com.android.tests.fused.legacy;
 
 import static com.android.tests.fused.lib.TestUtils.pollForExternalStorageState;
 
+import static com.android.tests.fused.lib.TestUtils.pollForPermission;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.fail;
 
 import android.Manifest;
-import android.content.pm.PackageManager;
 import android.os.Environment;
 import android.system.ErrnoException;
 import android.system.Os;
@@ -55,9 +56,6 @@ import java.util.concurrent.TimeUnit;
 public class LegacyFileAccessTest {
 
     private static final String TAG = "LegacyFileAccessTest";
-
-    private static final long POLLING_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(10);
-    private static final long POLLING_SLEEP_MILLIS = 100;
 
     @Before
     public void setUp() throws Exception {
@@ -395,21 +393,5 @@ public class LegacyFileAccessTest {
         assertThat(oldPath.renameTo(newPath)).isTrue();
         assertThat(oldPath.exists()).isFalse();
         assertThat(newPath.exists()).isTrue();
-    }
-
-    private boolean isPermissionGranted(String perm) {
-        return InstrumentationRegistry.getContext().checkCallingOrSelfPermission(perm)
-                == PackageManager.PERMISSION_GRANTED;
-    }
-
-    private void pollForPermission(String perm, boolean granted) throws Exception {
-        for (int i = 0; i < POLLING_TIMEOUT_MILLIS / POLLING_SLEEP_MILLIS; i++) {
-            if (granted == isPermissionGranted(perm)) {
-                return;
-            }
-            Thread.sleep(POLLING_SLEEP_MILLIS);
-        }
-        fail("Timed out while waiting for permission " + perm + " to be "
-                + (granted ? "granted" : "revoked"));
     }
 }

@@ -36,11 +36,13 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
+import android.system.Os;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -75,7 +77,6 @@ public class TestUtils {
 
     private static final long POLLING_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(10);
     private static final long POLLING_SLEEP_MILLIS = 100;
-
 
     private static final UiAutomation sUiAutomation = InstrumentationRegistry.getInstrumentation()
             .getUiAutomation();
@@ -394,6 +395,43 @@ public class TestUtils {
             Thread.sleep(POLLING_SLEEP_MILLIS);
         }
         fail("Timed out while waiting for ExternalStorageState to be MEDIA_MOUNTED");
+    }
+
+    public static void pollForPermission(String perm, boolean granted) throws Exception {
+        for (int i = 0; i < POLLING_TIMEOUT_MILLIS / POLLING_SLEEP_MILLIS; i++) {
+            if (granted == checkPermissionAndAppOp(perm)) {
+                return;
+            }
+            Thread.sleep(POLLING_SLEEP_MILLIS);
+        }
+        fail("Timed out while waiting for permission " + perm + " to be "
+                + (granted ? "granted" : "revoked"));
+    }
+
+    /**
+     * Checks if the given {@code permission} is granted and corresponding AppOp is MODE_ALLOWED.
+     */
+    private static boolean checkPermissionAndAppOp(String permission) {
+        final int pid  = Os.getpid();
+        final int uid = Os.getuid();
+        final Context context = getContext();
+        final String packageName = context.getPackageName();
+        if (context.checkPermission(permission, pid, uid) != PackageManager.PERMISSION_GRANTED) {
+            return false;
+        }
+
+        final String op = AppOpsManager.permissionToOp(permission);
+        // No AppOp associated with the given permission, skip AppOp check.
+        if (op == null) return true;
+
+        final AppOpsManager appOps = context.getSystemService(AppOpsManager.class);
+        try {
+            appOps.checkPackage(uid, packageName);
+        } catch (SecurityException e) {
+            return false;
+        }
+
+        return appOps.unsafeCheckOpNoThrow(op, uid, packageName) == AppOpsManager.MODE_ALLOWED;
     }
 
     /**

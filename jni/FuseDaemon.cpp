@@ -853,7 +853,15 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         return;
     }
 
-    const int fd = open(path.c_str(), fi->flags);
+    // With the writeback cache enabled, FUSE may generate READ requests even for files that
+    // were opened O_WRONLY; so make sure we open it O_RDWR instead.
+    int open_flags = fi->flags;
+    if (open_flags & O_WRONLY) {
+        open_flags &= ~O_WRONLY;
+        open_flags |= O_RDWR;
+    }
+
+    const int fd = open(path.c_str(), open_flags);
     if (fd < 0) {
         fuse_reply_err(req, errno);
         return;
@@ -1362,8 +1370,16 @@ static void pf_create(fuse_req_t req,
         return;
     }
 
+    // With the writeback cache enabled, FUSE may generate READ requests even for files that
+    // were opened O_WRONLY; so make sure we open it O_RDWR instead.
+    int open_flags = fi->flags;
+    if (open_flags & O_WRONLY) {
+        open_flags &= ~O_WRONLY;
+        open_flags |= O_RDWR;
+    }
+
     mode = (mode & (~0777)) | 0664;
-    int fd = open(child_path.c_str(), fi->flags, mode);
+    int fd = open(child_path.c_str(), open_flags, mode);
     if (fd < 0) {
         int error_code = errno;
         // We've already inserted the file into the MP database before the

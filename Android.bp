@@ -11,6 +11,7 @@ android_app {
 
     libs: [
         "unsupportedappusage",
+        "app-compat-annotations",
     ],
 
     jni_libs: [

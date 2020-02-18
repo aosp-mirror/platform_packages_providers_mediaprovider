@@ -39,6 +39,7 @@ import static com.android.tests.fused.lib.TestUtils.executeShellCommand;
 import static com.android.tests.fused.lib.TestUtils.getContentResolver;
 import static com.android.tests.fused.lib.TestUtils.getFileMimeTypeFromDatabase;
 import static com.android.tests.fused.lib.TestUtils.getFileRowIdFromDatabase;
+import static com.android.tests.fused.lib.TestUtils.getFileUri;
 import static com.android.tests.fused.lib.TestUtils.installApp;
 import static com.android.tests.fused.lib.TestUtils.listAs;
 import static com.android.tests.fused.lib.TestUtils.openWithMediaProvider;
@@ -59,6 +60,7 @@ import android.Manifest;
 import android.app.AppOpsManager;
 import android.content.ContentResolver;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Environment;
 import android.os.FileUtils;
 import android.os.ParcelFileDescriptor;
@@ -1374,6 +1376,53 @@ public class FilePathAccessTest {
             dropShellPermissionIdentity();
             otherAppPdf.delete();
             uninstallApp(TEST_APP_A);
+        }
+    }
+
+    @Test
+    public void testManageExternalStorageQueryOtherAppsFile() throws Exception {
+        final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
+        final File otherAppImg = new File(DCIM_DIR, "other" + IMAGE_FILE_NAME);
+        final File otherAppMusic = new File(MUSIC_DIR, "other" + MUSIC_FILE_NAME);
+        try {
+            installApp(TEST_APP_A, false);
+            assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
+
+            // Once we have permission to manage external storage, we can query for other apps'
+            // files and open them for read and write
+            adoptShellPermissionIdentity(Manifest.permission.MANAGE_EXTERNAL_STORAGE);
+
+            assertCanQueryAndOpenFile(otherAppPdf, "rw");
+            assertCanQueryAndOpenFile(otherAppImg, "rw");
+            assertCanQueryAndOpenFile(otherAppMusic, "rw");
+        } finally {
+            dropShellPermissionIdentity();
+            deleteFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
+            uninstallApp(TEST_APP_A);
+        }
+    }
+
+    private static void assertCreateFilesAs(TestApp testApp, File... files) throws Exception {
+        for (File file : files) {
+            assertThat(createFileAs(testApp, file.getPath())).isTrue();
+        }
+    }
+
+    private static void deleteFilesAs(TestApp testApp, File... files) throws Exception {
+        for (File file : files) {
+            deleteFileAs(testApp, file.getPath());
+        }
+    }
+
+    private static void assertCanQueryAndOpenFile(File file, String mode) throws IOException {
+        // This call performs the query
+        final Uri fileUri = getFileUri(file);
+        // The query succeeds iff it didn't return null
+        assertThat(fileUri).isNotNull();
+        // Now we assert that we can open the file through ContentResolver
+        try (final ParcelFileDescriptor pfd =
+                     getContentResolver().openFileDescriptor(fileUri, mode)) {
+            assertThat(pfd).isNotNull();
         }
     }
 

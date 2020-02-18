@@ -441,11 +441,47 @@ public class MediaProvider extends ContentProvider {
         }
     };
 
+    private final void updateQuotaTypeForUri(@NonNull Uri uri, int mediaType) {
+        File file;
+        try {
+            file = queryForDataFile(uri, null);
+        } catch (FileNotFoundException e) {
+            // Ignore
+            return;
+        }
+        try {
+            switch (mediaType) {
+                case FileColumns.MEDIA_TYPE_AUDIO:
+                    mStorageManager.updateExternalStorageFileQuotaType(file,
+                            StorageManager.QUOTA_TYPE_MEDIA_AUDIO);
+                    break;
+                case FileColumns.MEDIA_TYPE_VIDEO:
+                    mStorageManager.updateExternalStorageFileQuotaType(file,
+                            StorageManager.QUOTA_TYPE_MEDIA_VIDEO);
+                    break;
+                case FileColumns.MEDIA_TYPE_IMAGE:
+                    mStorageManager.updateExternalStorageFileQuotaType(file,
+                            StorageManager.QUOTA_TYPE_MEDIA_IMAGE);
+                    break;
+                default:
+                    mStorageManager.updateExternalStorageFileQuotaType(file,
+                            StorageManager.QUOTA_TYPE_MEDIA_NONE);
+                    break;
+            }
+        } catch (IOException e) {
+            Log.w(TAG, "Failed to update quota type for " + file.getPath(), e);
+        }
+    }
+
     private final OnFilesChangeListener mFilesListener = new OnFilesChangeListener() {
         @Override
         public void onInsert(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
                 int mediaType, boolean isDownload) {
             acceptWithExpansion(helper::notifyChange, volumeName, id, mediaType, isDownload);
+
+            // Update the quota type on the filesystem
+            Uri fileUri = MediaStore.Files.getContentUri(volumeName, id);
+            updateQuotaTypeForUri(fileUri, mediaType);
 
             // Tell our SAF provider so it knows when views are no longer empty
             MediaDocumentsProvider.onMediaStoreInsert(getContext(), volumeName, mediaType, id);
@@ -461,8 +497,10 @@ public class MediaProvider extends ContentProvider {
             // When media type changes, notify both old and new collections and
             // invalidate any thumbnails
             if (newMediaType != oldMediaType) {
+                Uri fileUri = MediaStore.Files.getContentUri(volumeName, id);
+                updateQuotaTypeForUri(fileUri, newMediaType);
                 acceptWithExpansion(helper::notifyChange, volumeName, id, newMediaType, isDownload);
-                invalidateThumbnails(MediaStore.Files.getContentUri(volumeName, id));
+                invalidateThumbnails(fileUri);
             }
         }
 

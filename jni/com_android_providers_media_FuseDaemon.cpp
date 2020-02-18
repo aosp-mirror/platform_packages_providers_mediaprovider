@@ -22,6 +22,7 @@
 #include <string>
 
 #include "FuseDaemon.h"
+#include "MediaProviderWrapper.h"
 #include "android-base/logging.h"
 
 namespace mediaprovider {
@@ -103,7 +104,7 @@ const JNINativeMethod methods[] = {
                  com_android_providers_media_FuseDaemon_invalidate_fuse_dentry_cache)}};
 }  // namespace
 
-void register_android_providers_media_FuseDaemon(JNIEnv* env) {
+void register_android_providers_media_FuseDaemon(JavaVM* vm, JNIEnv* env) {
     gFuseDaemonClass = static_cast<jclass>(env->NewGlobalRef(env->FindClass(CLASS_NAME)));
 
     if (gFuseDaemonClass == nullptr) {
@@ -113,5 +114,7 @@ void register_android_providers_media_FuseDaemon(JNIEnv* env) {
     if (env->RegisterNatives(gFuseDaemonClass, methods, sizeof(methods) / sizeof(methods[0])) < 0) {
         LOG(FATAL) << "Unable to register native methods";
     }
+
+    fuse::MediaProviderWrapper::OneTimeInit(vm);
 }
 }  // namespace mediaprovider

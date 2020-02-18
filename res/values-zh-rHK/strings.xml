@@ -34,6 +34,10 @@
       <item quantity="other">以及另外 <xliff:g id="COUNT_1">^1</xliff:g> 個項目</item>
       <item quantity="one">以及另外 <xliff:g id="COUNT_0">^1</xliff:g> 個項目</item>
     </plurals>
+    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"是否要清除「<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>」的應用程式快取？"</string>
+    <string name="cache_clearing_dialog_text" msgid="425995541409682360">"「<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>」要求清除部分臨時檔案。如接受要求，電池或數據用量可能會增加。"</string>
+    <string name="allow" msgid="8885707816848569619">"允許"</string>
+    <string name="deny" msgid="6040983710442068936">"拒絕"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="other">要允許「<xliff:g id="APP_NAME_1">^1</xliff:g>」變更 <xliff:g id="COUNT">^2</xliff:g> 個音訊檔案嗎？</item>
       <item quantity="one">要允許「<xliff:g id="APP_NAME_0">^1</xliff:g>」變更此音訊檔案嗎？</item>

@@ -34,6 +34,14 @@
       <item quantity="other">مزید <xliff:g id="COUNT_1">^1</xliff:g> اضافی آئٹمز</item>
       <item quantity="one">مزید <xliff:g id="COUNT_0">^1</xliff:g> اضافی آئٹم</item>
     </plurals>
+    <!-- no translation found for cache_clearing_dialog_title (543177167845854283) -->
+    <skip />
+    <!-- no translation found for cache_clearing_dialog_text (425995541409682360) -->
+    <skip />
+    <!-- no translation found for allow (8885707816848569619) -->
+    <skip />
+    <!-- no translation found for deny (6040983710442068936) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> کے <xliff:g id="COUNT">^2</xliff:g> آڈیو فائلز کو تبدیل کرنے دیں؟</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> کے اس آڈیو فائل کو تبدیل کرنے دیں؟</item>

@@ -34,6 +34,10 @@
       <item quantity="other">Pamoja na vipengee <xliff:g id="COUNT_1">^1</xliff:g> zaidi</item>
       <item quantity="one">Pamoja na kipengee <xliff:g id="COUNT_0">^1</xliff:g> zaidi</item>
     </plurals>
+    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"Ungependa kufuta akiba ya programu ukitumia <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>?"</string>
+    <string name="cache_clearing_dialog_text" msgid="425995541409682360">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> ingependa kufuta baadhi ya faili za muda. Hatua ya kukubali inaweza kuongeza matumizi ya data au betri."</string>
+    <string name="allow" msgid="8885707816848569619">"Ruhusu"</string>
+    <string name="deny" msgid="6040983710442068936">"Kataa"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="other">Ungependa kuruhusu <xliff:g id="APP_NAME_1">^1</xliff:g> ibadilishe faili hizi <xliff:g id="COUNT">^2</xliff:g> za sauti?</item>
       <item quantity="one">Ungependa kuruhusu <xliff:g id="APP_NAME_0">^1</xliff:g> ibadilishe faili hii ya sauti?</item>

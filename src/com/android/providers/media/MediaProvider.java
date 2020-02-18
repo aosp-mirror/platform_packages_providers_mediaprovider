@@ -73,6 +73,9 @@ import android.app.DownloadManager;
 import android.app.PendingIntent;
 import android.app.RecoverableSecurityException;
 import android.app.RemoteAction;
+import android.app.compat.CompatChanges;
+import android.compat.annotation.ChangeId;
+import android.compat.annotation.EnabledAfter;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipDescription;
@@ -222,6 +225,15 @@ public class MediaProvider extends ContentProvider {
      * Property that indicates whether fuse is enabled.
      */
     private static final String PROP_FUSE = "persist.sys.fuse";
+
+    /**
+     * App Compatibility flag that indicates whether the app is in scoped storage or not.
+     *
+     * SCOPED_STORAGE is the Change Name and 132649864 the Change ID. Using the buganizer issue ID
+     * as the Change ID for uniqueness as documented here go/compat-framework.
+     */
+    @ChangeId
+    private static final long SCOPED_STORAGE = 132649864L;
 
     /**
      * These directory names aren't declared in Environment as final variables, and so we need to
@@ -4966,9 +4978,21 @@ public class MediaProvider extends ContentProvider {
      * </ul>
      */
     private boolean shouldBypassFuseRestrictions(boolean forWrite, String filePath) {
+        String packageName =  mCallingIdentity.get().getPackageName();
+        int uid = mCallingIdentity.get().uid;
+        boolean isScopedStorageCompatFlagEnabled;
+
+        final long token = Binder.clearCallingIdentity();
+        try {
+            isScopedStorageCompatFlagEnabled = CompatChanges.isChangeEnabled(SCOPED_STORAGE,
+                    packageName, UserHandle.getUserHandleForUid(uid));
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
+
         boolean isRequestingLegacyStorage = forWrite ? isCallingPackageLegacyWrite()
                 : isCallingPackageLegacyRead();
-        if (isRequestingLegacyStorage) {
+        if (isRequestingLegacyStorage || !isScopedStorageCompatFlagEnabled) {
             return true;
         }
 

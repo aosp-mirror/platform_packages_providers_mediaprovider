@@ -17,6 +17,8 @@
 package com.android.providers.media.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import android.content.ClipDescription;
 import android.mtp.MtpConstants;
@@ -72,6 +74,19 @@ public class MimeUtilsTest {
         // Make sure we catch playlists before audio
         assertEquals(FileColumns.MEDIA_TYPE_PLAYLIST,
                 MimeUtils.resolveMediaType("audio/mpegurl"));
+    }
+
+    @Test
+    public void testIsDocumentMimeType() throws Exception {
+        assertTrue(MimeUtils.isDocumentMimeType(
+                "application/vnd.ms-excel.addin.macroEnabled.12"));
+        assertTrue(MimeUtils.isDocumentMimeType(
+                "application/vnd.ms-powerpoint.addin.macroEnabled.12"));
+        assertTrue(MimeUtils.isDocumentMimeType(
+                "application/vnd.ms-word.document.macroEnabled.12"));
+
+        assertFalse(MimeUtils.isDocumentMimeType(
+                "application/zip"));
     }
 
     @Test

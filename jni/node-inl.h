@@ -23,6 +23,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "libfuse_jni/ReaddirHelper.h"
@@ -63,17 +64,70 @@ struct dirhandle {
     ~dirhandle() { closedir(d); }
 };
 
+// Whether inode tracking is enabled or not. When enabled, we maintain a
+// separate mapping from inode numbers to "live" nodes so we can detect when
+// we receive a request to a node that has been deleted.
+static constexpr bool kEnableInodeTracking = true;
+
+class node;
+
+// Tracks the set of active nodes associated with a FUSE instance so that we
+// can assert that we only ever return an active node in response to a lookup.
+class NodeTracker {
+  public:
+    NodeTracker(std::recursive_mutex* lock) : lock_(lock) {}
+
+    void CheckTracked(__u64 ino) const {
+        if (kEnableInodeTracking) {
+            const node* node = reinterpret_cast<const class node*>(ino);
+            std::lock_guard<std::recursive_mutex> guard(*lock_);
+            CHECK(active_nodes_.find(node) != active_nodes_.end());
+        }
+    }
+
+    void NodeDeleted(const node* node) {
+        if (kEnableInodeTracking) {
+            std::lock_guard<std::recursive_mutex> guard(*lock_);
+            LOG(DEBUG) << "Node: " << reinterpret_cast<uintptr_t>(node) << " deleted.";
+
+            CHECK(active_nodes_.find(node) != active_nodes_.end());
+            active_nodes_.erase(node);
+        }
+    }
+
+    void NodeCreated(const node* node) {
+        if (kEnableInodeTracking) {
+            std::lock_guard<std::recursive_mutex> guard(*lock_);
+            LOG(DEBUG) << "Node: " << reinterpret_cast<uintptr_t>(node) << " created.";
+
+            CHECK(active_nodes_.find(node) == active_nodes_.end());
+            active_nodes_.insert(node);
+        }
+    }
+
+  private:
+    std::recursive_mutex* lock_;
+    std::unordered_set<const node*> active_nodes_;
+};
+
 class node {
   public:
     // Creates a new node with the specified parent, name and lock.
-    static node* Create(node* parent, const std::string& name, std::recursive_mutex* lock) {
-        return new node(parent, name, lock);
+    static node* Create(node* parent, const std::string& name, std::recursive_mutex* lock,
+                        NodeTracker* tracker) {
+        // Place the entire constructor under a critical section to make sure
+        // node creation, tracking (if enabled) and the addition to a parent are
+        // atomic.
+        std::lock_guard<std::recursive_mutex> guard(*lock);
+        return new node(parent, name, lock, tracker);
     }
 
     // Creates a new root node. Root nodes have no parents by definition
     // and their "name" must signify an absolute path.
-    static node* CreateRoot(const std::string& path, std::recursive_mutex* lock) {
-        node* root = new node(nullptr, path, lock);
+    static node* CreateRoot(const std::string& path, std::recursive_mutex* lock,
+                            NodeTracker* tracker) {
+        std::lock_guard<std::recursive_mutex> guard(*lock);
+        node* root = new node(nullptr, path, lock, tracker);
 
         // The root always has one extra reference to avoid it being
         // accidentally collected.
@@ -82,7 +136,8 @@ class node {
     }
 
     // Maps an inode to its associated node.
-    static inline node* FromInode(__u64 ino) {
+    static inline node* FromInode(__u64 ino, const NodeTracker* tracker) {
+        tracker->CheckTracked(ino);
         return reinterpret_cast<node*>(static_cast<uintptr_t>(ino));
     }
 
@@ -208,8 +263,14 @@ class node {
     static const node* LookupAbsolutePath(const node* root, const std::string& absolute_path);
 
   private:
-    node(node* parent, const std::string& name, std::recursive_mutex* lock)
-        : name_(name), refcount_(0), parent_(nullptr), deleted_(false), lock_(lock) {
+    node(node* parent, const std::string& name, std::recursive_mutex* lock, NodeTracker* tracker)
+        : name_(name),
+          refcount_(0),
+          parent_(nullptr),
+          deleted_(false),
+          lock_(lock),
+          tracker_(tracker) {
+        tracker_->NodeCreated(this);
         Acquire();
         // This is a special case for the root node. All other nodes will have a
         // non-null parent.
@@ -277,11 +338,15 @@ class node {
     bool deleted_;
     std::recursive_mutex* lock_;
 
+    NodeTracker* const tracker_;
+
     ~node() {
         RemoveFromParent();
 
         handles_.clear();
         dirhandles_.clear();
+
+        tracker_->NodeDeleted(this);
     }
 
     friend class ::NodeTest;

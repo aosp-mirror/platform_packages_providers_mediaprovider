@@ -237,15 +237,14 @@ class FAdviser {
     const size_t target_ = 32 * 1024 * 1024;
 };
 
-// Whether inode tracking is enabled or not. When enabled, we maintain a
-// separate mapping from inode numbers to "live" nodes so we can detect when
-// we receive a request to a node that has been deleted.
-static constexpr bool kEnableInodeTracking = true;
-
 /* Single FUSE mount */
 struct fuse {
     explicit fuse(const std::string& _path)
-        : path(_path), root(node::CreateRoot(_path, &lock)), mp(0), zero_addr(0) {}
+        : path(_path),
+          tracker(mediaprovider::fuse::NodeTracker(&lock)),
+          root(node::CreateRoot(_path, &lock, &tracker)),
+          mp(0),
+          zero_addr(0) {}
 
     inline bool IsRoot(const node* node) const { return node == root; }
 
@@ -258,14 +257,7 @@ struct fuse {
             return root;
         }
 
-        node* node = node::FromInode(inode);
-
-        if (kEnableInodeTracking) {
-            std::lock_guard<std::recursive_mutex> guard(lock);
-            CHECK(inode_tracker_.find(node) != inode_tracker_.end());
-        }
-
-        return node;
+        return node::FromInode(inode, &tracker);
     }
 
     inline __u64 ToInode(node* node) const {
@@ -276,28 +268,10 @@ struct fuse {
         return node::ToInode(node);
     }
 
-    // Notify this FUSE instance that one of its nodes has been deleted.
-    void NodeDeleted(const node* node) {
-        if (kEnableInodeTracking) {
-            LOG(INFO) << "Node: " << node << " deleted.";
-
-            std::lock_guard<std::recursive_mutex> guard(lock);
-            inode_tracker_.erase(node);
-        }
-    }
-
-    // Notify this FUSE instance that a new nodes has been created.
-    void NodeCreated(const node* node) {
-        if (kEnableInodeTracking) {
-            LOG(INFO) << "Node: " << node << " created.";
-
-            std::lock_guard<std::recursive_mutex> guard(lock);
-            inode_tracker_.insert(node);
-        }
-    }
-
     std::recursive_mutex lock;
     const string path;
+    // The Inode tracker associated with this FUSE instance.
+    mediaprovider::fuse::NodeTracker tracker;
     node* const root;
 
     /*
@@ -314,8 +288,6 @@ struct fuse {
     /* const */ char* zero_addr;
 
     FAdviser fadviser;
-
-    std::unordered_set<const node*> inode_tracker_;
 };
 
 static inline const char* safe_name(node* n) {
@@ -419,8 +391,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
 
     node = parent->LookupChildByName(name, true /* acquire */);
     if (!node) {
-        node = ::node::Create(parent, name, &fuse->lock);
-        fuse->NodeCreated(node);
+        node = ::node::Create(parent, name, &fuse->lock, &fuse->tracker);
     }
 
     // This FS is not being exported via NFS so just a fixed generation number
@@ -509,9 +480,7 @@ static void do_forget(struct fuse* fuse, fuse_ino_t ino, uint64_t nlookup) {
         // This is a narrowing conversion from an unsigned 64bit to a 32bit value. For
         // some reason we only keep 32 bit refcounts but the kernel issues
         // forget requests with a 64 bit counter.
-        if (node->Release(static_cast<uint32_t>(nlookup))) {
-            fuse->NodeDeleted(node);
-        }
+        node->Release(static_cast<uint32_t>(nlookup));
     }
 }
 

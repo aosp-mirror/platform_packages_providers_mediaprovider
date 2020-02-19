@@ -901,7 +901,11 @@ public class FilePathAccessTest {
             // Can create an image anywhere
             assertCanCreateFile(topLevelImageFile);
             assertCanCreateFile(imageInAnObviouslyWrongPlace);
+
+            // Put the file back in its place and let TEST_APP_A delete it
+            assertThat(otherAppImageFile.createNewFile()).isTrue();
         } finally {
+            deleteFileAsNoThrow(TEST_APP_A, otherAppImageFile.getAbsolutePath());
             otherAppImageFile.delete();
             uninstallApp(TEST_APP_A);
             denyAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
@@ -989,11 +993,7 @@ public class FilePathAccessTest {
             // However, we can't convert it to a music file, because system gallery has full access
             // to images and video only
             assertThat(imageFile.renameTo(musicFile)).isFalse();
-
-            // Rename file back to it's original name so that the test app can clean it up
-            assertThat(imageFile.renameTo(otherAppVideoFile)).isTrue();
         } finally {
-            deleteFileAs(TEST_APP_A, otherAppVideoFile.getPath());
             uninstallApp(TEST_APP_A);
             imageFile.delete();
             videoFile.delete();
@@ -1312,9 +1312,9 @@ public class FilePathAccessTest {
             assertThat(otherAppImage.createNewFile()).isTrue();
             assertThat(otherAppMusic.createNewFile()).isTrue();
         } finally {
-            otherAppPdf.delete();
-            otherAppImage.delete();
-            otherAppMusic.delete();
+            deleteFileAsNoThrow(TEST_APP_A, otherAppPdf.getAbsolutePath());
+            deleteFileAsNoThrow(TEST_APP_A, otherAppImage.getAbsolutePath());
+            deleteFileAsNoThrow(TEST_APP_A, otherAppMusic.getAbsolutePath());
             dropShellPermissionIdentity();
             uninstallApp(TEST_APP_A);
         }
@@ -1363,9 +1363,6 @@ public class FilePathAccessTest {
             assertThat(pdfInObviouslyWrongPlace.exists()).isFalse();
             assertFileContent(musicFile, BYTES_DATA1);
 
-            // Rename file back to it's original name so that the test app can clean it up
-            assertThat(musicFile.renameTo(otherAppPdf)).isTrue();
-            assertThat(deleteFileAs(TEST_APP_A, otherAppPdf.getPath())).isTrue();
         } finally {
             pdf.delete();
             pdfInObviouslyWrongPlace.delete();

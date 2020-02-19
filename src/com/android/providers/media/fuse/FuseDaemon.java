@@ -99,9 +99,17 @@ public final class FuseDaemon extends Thread {
         return native_should_open_with_fuse(mPtr, path, readLock, fd);
     }
 
+    /**
+     * Invalidates FUSE VFS dentry cache for {@code path}
+     */
+    public void invalidateFuseDentryCache(String path) {
+        native_invalidate_fuse_dentry_cache(mPtr, path);
+    }
+
     private native long native_new(MediaProvider mediaProvider);
     private native void native_start(long daemon, int deviceFd, String path);
     private native void native_delete(long daemon);
     private native boolean native_should_open_with_fuse(long daemon, String path, boolean readLock,
             int fd);
+    private native void native_invalidate_fuse_dentry_cache(long daemon, String path);
 }

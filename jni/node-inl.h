@@ -160,6 +160,11 @@ class node {
         return name_;
     }
 
+    node* GetParent() const {
+        std::lock_guard<std::recursive_mutex> guard(*lock_);
+        return parent_;
+    }
+
     inline void AddHandle(handle* h) {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
         handles_.emplace_back(std::unique_ptr<handle>(h));

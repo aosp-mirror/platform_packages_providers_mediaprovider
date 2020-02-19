@@ -1766,7 +1766,8 @@ public class MediaProvider extends ContentProvider {
                 defaultPrimary = Environment.DIRECTORY_MOVIES;
                 allowedPrimary = Arrays.asList(
                         Environment.DIRECTORY_DCIM,
-                        Environment.DIRECTORY_MOVIES);
+                        Environment.DIRECTORY_MOVIES,
+                        Environment.DIRECTORY_PICTURES);
                 break;
             case IMAGES_MEDIA:
             case IMAGES_MEDIA_ID:
@@ -5112,6 +5113,16 @@ public class MediaProvider extends ContentProvider {
                 return res;
             }
 
+
+            // Returns null if the path doesn't correspond to an app specific directory
+            final String appSpecificDir = extractPathOwnerPackageName(path);
+
+            if (appSpecificDir != null) {
+                if (isCallingIdentitySharedPackageName(appSpecificDir)) {
+                    return res;
+                }
+            }
+
             path = getAbsoluteSanitizedPath(path);
             if (path == null) {
                 throw new IOException("Invalid path " + path);
@@ -5343,13 +5354,11 @@ public class MediaProvider extends ContentProvider {
             case DIRECTORY_AUDIOBOOKS:
                 uris[0] = Audio.Media.getContentUri(volName);
                 break;
-            case DIRECTORY_PICTURES:
-                uris[0] = Images.Media.getContentUri(volName);
-                break;
             case DIRECTORY_MOVIES:
                 uris[0] = Video.Media.getContentUri(volName);
                 break;
             case DIRECTORY_DCIM:
+            case DIRECTORY_PICTURES:
                 if (mimeType.toLowerCase(Locale.ROOT).startsWith("image")) {
                     uris[0] = Images.Media.getContentUri(volName);
                 } else if (mimeType.toLowerCase(Locale.ROOT).startsWith("video")) {
@@ -5653,6 +5662,11 @@ public class MediaProvider extends ContentProvider {
     private boolean checkCallingPermissionGlobal(Uri uri, boolean forWrite) {
         // System internals can work with all media
         if (isCallingPackageSystem()) {
+            return true;
+        }
+
+        // Apps that have permission to manage external storage can work with all files
+        if (mCallingIdentity.get().hasPermission(PERMISSION_MANAGE_EXTERNAL_STORAGE)) {
             return true;
         }
 

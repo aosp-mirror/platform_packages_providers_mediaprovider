@@ -34,6 +34,14 @@
       <item quantity="other">បូករួម​ទាំង​ធាតុ <xliff:g id="COUNT_1">^1</xliff:g> បន្ថែម​ទៀត</item>
       <item quantity="one">បូករួម​ទាំង​ធាតុ <xliff:g id="COUNT_0">^1</xliff:g> បន្ថែម​ទៀត</item>
     </plurals>
+    <!-- no translation found for cache_clearing_dialog_title (543177167845854283) -->
+    <skip />
+    <!-- no translation found for cache_clearing_dialog_text (425995541409682360) -->
+    <skip />
+    <!-- no translation found for allow (8885707816848569619) -->
+    <skip />
+    <!-- no translation found for deny (6040983710442068936) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="other">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> ប្ដូរ​ឯកសារ​សំឡេង <xliff:g id="COUNT">^2</xliff:g> ឬ​?</item>
       <item quantity="one">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> ប្ដូរ​ឯកសារ​សំឡេង​នេះ​ឬ​?</item>

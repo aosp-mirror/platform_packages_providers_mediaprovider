@@ -34,6 +34,14 @@
       <item quantity="one">Mais <xliff:g id="COUNT_1">^1</xliff:g> item extra</item>
       <item quantity="other">Mais <xliff:g id="COUNT_1">^1</xliff:g> itens extras</item>
     </plurals>
+    <!-- no translation found for cache_clearing_dialog_title (543177167845854283) -->
+    <skip />
+    <!-- no translation found for cache_clearing_dialog_text (425995541409682360) -->
+    <skip />
+    <!-- no translation found for allow (8885707816848569619) -->
+    <skip />
+    <!-- no translation found for deny (6040983710442068936) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="one">Permitir que o app <xliff:g id="APP_NAME_1">^1</xliff:g> mude <xliff:g id="COUNT">^2</xliff:g> arquivo de áudio?</item>
       <item quantity="other">Permitir que o app <xliff:g id="APP_NAME_1">^1</xliff:g> mude <xliff:g id="COUNT">^2</xliff:g> arquivos de áudio?</item>

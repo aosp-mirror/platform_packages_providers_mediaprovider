@@ -34,6 +34,10 @@
       <item quantity="other">Plus <xliff:g id="COUNT_1">^1</xliff:g> extra items</item>
       <item quantity="one">Plus <xliff:g id="COUNT_0">^1</xliff:g> extra item</item>
     </plurals>
+    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"App-cache wissen met <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>?"</string>
+    <string name="cache_clearing_dialog_text" msgid="425995541409682360">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> wil een aantal tijdelijke bestanden wissen. Als je akkoord gaat, kan het batterij- of datagebruik toenemen."</string>
+    <string name="allow" msgid="8885707816848569619">"Toestaan"</string>
+    <string name="deny" msgid="6040983710442068936">"Weigeren"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="other">Toestaan dat <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> audiobestanden wijzigt?</item>
       <item quantity="one">Toestaan dat <xliff:g id="APP_NAME_0">^1</xliff:g> dit audiobestand wijzigt?</item>

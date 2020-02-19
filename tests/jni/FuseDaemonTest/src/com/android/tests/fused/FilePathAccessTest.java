@@ -1396,7 +1396,7 @@ public class FilePathAccessTest {
             installApp(TEST_APP_A, false);
             assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
 
-            // Once we have permission to manage external storage, we can query for other apps'
+            // Once the test has permission to manage external storage, it can query for other apps'
             // files and open them for read and write
             adoptShellPermissionIdentity(Manifest.permission.MANAGE_EXTERNAL_STORAGE);
 
@@ -1408,6 +1408,53 @@ public class FilePathAccessTest {
             deleteFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
             uninstallApp(TEST_APP_A);
         }
+    }
+
+    @Test
+    public void testQueryOtherAppsFiles() throws Exception {
+        final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
+        final File otherAppImg = new File(DCIM_DIR, "other" + IMAGE_FILE_NAME);
+        final File otherAppMusic = new File(MUSIC_DIR, "other" + MUSIC_FILE_NAME);
+        try {
+            installApp(TEST_APP_A, false);
+            assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
+
+            // Since the test doesn't have READ_EXTERNAL_STORAGE nor any other special permissions,
+            // it can't query for another app's contents.
+            assertCantQueryFile(otherAppImg);
+            assertCantQueryFile(otherAppMusic);
+            assertCantQueryFile(otherAppPdf);
+        } finally {
+            deleteFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
+            uninstallApp(TEST_APP_A);
+        }
+    }
+
+    @Test
+    public void testSystemGalleryQueryOtherAppsFiles() throws Exception {
+        final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
+        final File otherAppImg = new File(DCIM_DIR, "other" + IMAGE_FILE_NAME);
+        final File otherAppMusic = new File(MUSIC_DIR, "other" + MUSIC_FILE_NAME);
+        try {
+            installApp(TEST_APP_A, false);
+            assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
+
+            // System gallery apps have access to video and image files
+            allowAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
+
+            assertCanQueryAndOpenFile(otherAppImg, "rw");
+            // But no access to PDFs or music files
+            assertCantQueryFile(otherAppMusic);
+            assertCantQueryFile(otherAppPdf);
+        } finally {
+            denyAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
+            deleteFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
+            uninstallApp(TEST_APP_A);
+        }
+    }
+
+    private static void assertCantQueryFile(File file) {
+        assertThat(getFileUri(file)).isNull();
     }
 
     private static void assertCreateFilesAs(TestApp testApp, File... files) throws Exception {
@@ -1422,6 +1469,9 @@ public class FilePathAccessTest {
         }
     }
 
+    /**
+     * For possible values of {@code mode}, look at {@link android.content.ContentProvider#openFile}
+     */
     private static void assertCanQueryAndOpenFile(File file, String mode) throws IOException {
         // This call performs the query
         final Uri fileUri = getFileUri(file);

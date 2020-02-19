@@ -34,6 +34,14 @@
       <item quantity="other">Üstəgəl <xliff:g id="COUNT_1">^1</xliff:g> əlavə element</item>
       <item quantity="one">Üstəgəl <xliff:g id="COUNT_0">^1</xliff:g> əlavə element</item>
     </plurals>
+    <!-- no translation found for cache_clearing_dialog_title (543177167845854283) -->
+    <skip />
+    <!-- no translation found for cache_clearing_dialog_text (425995541409682360) -->
+    <skip />
+    <!-- no translation found for allow (8885707816848569619) -->
+    <skip />
+    <!-- no translation found for deny (6040983710442068936) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> audio faylı dəyişsin?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> bu audio faylını dəyişsin?</item>

@@ -223,4 +223,9 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
     public void testCanCreateHiddenFile() throws Exception {
         runDeviceTest("testCanCreateHiddenFile");
     }
+
+    @Test
+    public void testManageExternalStorageQueryOtherAppsFile() throws Exception {
+        runDeviceTest("testManageExternalStorageQueryOtherAppsFile");
+    }
 }

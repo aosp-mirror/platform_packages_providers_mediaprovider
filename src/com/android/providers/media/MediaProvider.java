@@ -603,7 +603,12 @@ public class MediaProvider extends ContentProvider {
             final File path = getVolumePath(volumeName);
             final StorageVolume vol = mStorageManager.getStorageVolume(path);
             final String key;
-            if (vol == null || vol.isPrimary()) {
+            if (vol == null) {
+                Log.w(TAG, "Failed to ensure default folders for " + volumeName);
+                return;
+            }
+
+            if (vol.isPrimary()) {
                 key = "created_default_folders";
             } else {
                 key = "created_default_folders_" + vol.getMediaStoreVolumeName();

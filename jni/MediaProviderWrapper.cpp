@@ -39,7 +39,6 @@ using std::string;
 namespace {
 
 constexpr const char* kPropRedactionEnabled = "persist.sys.fuse.redaction-enabled";
-constexpr const char* kPropShellBypass = "persist.sys.fuse.shell-bypass";
 
 constexpr uid_t ROOT_UID = 0;
 constexpr uid_t SHELL_UID = 2000;
@@ -47,7 +46,7 @@ constexpr uid_t SHELL_UID = 2000;
 /** Private helper functions **/
 
 inline bool shouldBypassMediaProvider(uid_t uid) {
-    return (uid == SHELL_UID && GetBoolProperty(kPropShellBypass, false)) || uid == ROOT_UID;
+    return uid == SHELL_UID || uid == ROOT_UID;
 }
 
 bool CheckForJniException(JNIEnv* env) {

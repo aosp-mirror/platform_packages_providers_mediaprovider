@@ -479,9 +479,11 @@ public class MediaProvider extends ContentProvider {
                 int mediaType, boolean isDownload) {
             acceptWithExpansion(helper::notifyChange, volumeName, id, mediaType, isDownload);
 
-            // Update the quota type on the filesystem
-            Uri fileUri = MediaStore.Files.getContentUri(volumeName, id);
-            updateQuotaTypeForUri(fileUri, mediaType);
+            if (helper.isExternal()) {
+                // Update the quota type on the filesystem
+                Uri fileUri = MediaStore.Files.getContentUri(volumeName, id);
+                updateQuotaTypeForUri(fileUri, mediaType);
+            }
 
             // Tell our SAF provider so it knows when views are no longer empty
             MediaDocumentsProvider.onMediaStoreInsert(getContext(), volumeName, mediaType, id);
@@ -498,7 +500,9 @@ public class MediaProvider extends ContentProvider {
             // invalidate any thumbnails
             if (newMediaType != oldMediaType) {
                 Uri fileUri = MediaStore.Files.getContentUri(volumeName, id);
-                updateQuotaTypeForUri(fileUri, newMediaType);
+                if (helper.isExternal()) {
+                    updateQuotaTypeForUri(fileUri, newMediaType);
+                }
                 acceptWithExpansion(helper::notifyChange, volumeName, id, newMediaType, isDownload);
                 invalidateThumbnails(fileUri);
             }

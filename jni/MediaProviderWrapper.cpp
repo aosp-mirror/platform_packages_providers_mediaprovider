@@ -143,14 +143,29 @@ void scanFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_
     LOG(DEBUG) << "MediaProvider has been notified";
 }
 
-int isDirectoryOperationAllowedInternal(JNIEnv* env, jobject media_provider_object,
-                                        jmethodID mid_is_dir_op_allowed, const string& path,
-                                        uid_t uid) {
+int isMkdirOrRmdirAllowedInternal(JNIEnv* env, jobject media_provider_object,
+                                  jmethodID mid_is_mkdir_or_rmdir_allowed, const string& path,
+                                  uid_t uid, bool forCreate) {
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
-    int res = env->CallIntMethod(media_provider_object, mid_is_dir_op_allowed, j_path.get(), uid);
+    int res = env->CallIntMethod(media_provider_object, mid_is_mkdir_or_rmdir_allowed, j_path.get(),
+                                 uid, forCreate);
 
     if (CheckForJniException(env)) {
-        LOG(DEBUG) << "Java exception while checking permissions for creating/deleting/opening dir";
+        LOG(DEBUG) << "Java exception while checking permissions for "
+                   << (forCreate ? "creating" : "deleting") << " dir";
+        return EFAULT;
+    }
+    LOG(DEBUG) << "res = " << res;
+    return res;
+}
+
+int isOpendirAllowedInternal(JNIEnv* env, jobject media_provider_object,
+                             jmethodID mid_is_opendir_allowed, const string& path, uid_t uid) {
+    ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
+    int res = env->CallIntMethod(media_provider_object, mid_is_opendir_allowed, j_path.get(), uid);
+
+    if (CheckForJniException(env)) {
+        LOG(DEBUG) << "Java exception while checking permissions for opendir";
         return EFAULT;
     }
     LOG(DEBUG) << "res = " << res;
@@ -251,8 +266,8 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
                                        /*is_static*/ false);
     mid_scan_file_ = CacheMethod(env, "scanFile", "(Ljava/lang/String;)V",
                                  /*is_static*/ false);
-    mid_is_dir_op_allowed_ = CacheMethod(env, "isDirectoryOperationAllowed",
-                                         "(Ljava/lang/String;I)I", /*is_static*/ false);
+    mid_is_mkdir_or_rmdir_allowed_ = CacheMethod(env, "isDirectoryCreationOrDeletionAllowed",
+                                                 "(Ljava/lang/String;IZ)I", /*is_static*/ false);
     mid_is_opendir_allowed_ = CacheMethod(env, "isOpendirAllowed", "(Ljava/lang/String;I)I",
                                           /*is_static*/ false);
     mid_get_files_in_dir_ =
@@ -372,8 +387,9 @@ int MediaProviderWrapper::IsCreatingDirAllowed(const string& path, uid_t uid) {
 
     PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
         LOG(DEBUG) << "Checking if UID = " << uid << " can create dir " << path;
-        res = isDirectoryOperationAllowedInternal(env, media_provider_object_,
-                                                  mid_is_dir_op_allowed_, path, uid);
+        res = isMkdirOrRmdirAllowedInternal(env, media_provider_object_,
+                                            mid_is_mkdir_or_rmdir_allowed_, path, uid,
+                                            /*forCreate*/ true);
     });
 
     return res;
@@ -388,8 +404,9 @@ int MediaProviderWrapper::IsDeletingDirAllowed(const string& path, uid_t uid) {
 
     PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
         LOG(DEBUG) << "Checking if UID = " << uid << " can delete dir " << path;
-        res = isDirectoryOperationAllowedInternal(env, media_provider_object_,
-                                                  mid_is_dir_op_allowed_, path, uid);
+        res = isMkdirOrRmdirAllowedInternal(env, media_provider_object_,
+                                            mid_is_mkdir_or_rmdir_allowed_, path, uid,
+                                            /*forCreate*/ false);
     });
     return res;
 }
@@ -429,8 +446,8 @@ int MediaProviderWrapper::IsOpendirAllowed(const string& path, uid_t uid) {
 
     PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
         LOG(DEBUG) << "Checking if UID = " << uid << " can open dir " << path;
-        res = isDirectoryOperationAllowedInternal(env, media_provider_object_,
-                                                  mid_is_opendir_allowed_, path, uid);
+        res = isOpendirAllowedInternal(env, media_provider_object_, mid_is_opendir_allowed_, path,
+                                       uid);
     });
 
     return res;

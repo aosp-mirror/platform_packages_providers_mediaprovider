@@ -164,7 +164,7 @@ class MediaProviderWrapper final {
     jmethodID mid_delete_file_;
     jmethodID mid_is_open_allowed_;
     jmethodID mid_scan_file_;
-    jmethodID mid_is_dir_op_allowed_;
+    jmethodID mid_is_mkdir_or_rmdir_allowed_;
     jmethodID mid_is_opendir_allowed_;
     jmethodID mid_get_files_in_dir_;
     jmethodID mid_rename_;

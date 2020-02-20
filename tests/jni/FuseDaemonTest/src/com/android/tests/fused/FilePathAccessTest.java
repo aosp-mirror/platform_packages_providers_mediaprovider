@@ -107,6 +107,7 @@ public class FilePathAccessTest {
     static final File MOVIES_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_MOVIES);
     static final File DOWNLOAD_DIR = new File(EXTERNAL_STORAGE_DIR,
             Environment.DIRECTORY_DOWNLOADS);
+    static final File PODCASTS_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_PODCASTS);
     static final File ANDROID_DATA_DIR = new File(EXTERNAL_STORAGE_DIR, "Android/data");
     static final File ANDROID_MEDIA_DIR = new File(EXTERNAL_STORAGE_DIR, "Android/media");
     static final String TEST_DIRECTORY_NAME = "FilePathAccessTestDirectory";
@@ -1381,6 +1382,20 @@ public class FilePathAccessTest {
             dropShellPermissionIdentity();
             otherAppPdf.delete();
             uninstallApp(TEST_APP_A);
+        }
+    }
+
+    @Test
+    public void testCanCreateDefaultDirectory() throws Exception {
+        try {
+            if (PODCASTS_DIR.exists()) {
+                // Apps can't delete top level directories, not even default directories, so we let
+                // shell do the deed for us.
+                executeShellCommand("rm -r " + PODCASTS_DIR);
+            }
+            assertThat(PODCASTS_DIR.mkdir()).isTrue();
+        } finally {
+            executeShellCommand("mkdir " + PODCASTS_DIR);
         }
     }
 

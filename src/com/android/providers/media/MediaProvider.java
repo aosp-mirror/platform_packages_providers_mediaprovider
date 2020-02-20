@@ -5706,7 +5706,9 @@ public class MediaProvider extends ContentProvider {
         if (forWrite) {
             return mCallingIdentity.get().hasPermission(PERMISSION_WRITE_AUDIO);
         } else {
-            return mCallingIdentity.get().hasPermission(PERMISSION_READ_AUDIO);
+            // write permission should be enough for reading as well
+            return mCallingIdentity.get().hasPermission(PERMISSION_READ_AUDIO)
+                    || mCallingIdentity.get().hasPermission(PERMISSION_WRITE_AUDIO);
         }
     }
 
@@ -5715,7 +5717,9 @@ public class MediaProvider extends ContentProvider {
         if (forWrite) {
             return mCallingIdentity.get().hasPermission(PERMISSION_WRITE_VIDEO);
         } else {
-            return mCallingIdentity.get().hasPermission(PERMISSION_READ_VIDEO);
+            // write permission should be enough for reading as well
+            return mCallingIdentity.get().hasPermission(PERMISSION_READ_VIDEO)
+                    || mCallingIdentity.get().hasPermission(PERMISSION_WRITE_VIDEO);
         }
     }
 
@@ -5724,7 +5728,9 @@ public class MediaProvider extends ContentProvider {
         if (forWrite) {
             return mCallingIdentity.get().hasPermission(PERMISSION_WRITE_IMAGES);
         } else {
-            return mCallingIdentity.get().hasPermission(PERMISSION_READ_IMAGES);
+            // write permission should be enough for reading as well
+            return mCallingIdentity.get().hasPermission(PERMISSION_READ_IMAGES)
+                    || mCallingIdentity.get().hasPermission(PERMISSION_WRITE_IMAGES);
         }
     }
 

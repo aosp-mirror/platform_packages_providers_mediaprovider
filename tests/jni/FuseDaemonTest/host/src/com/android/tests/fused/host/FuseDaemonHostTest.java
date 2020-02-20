@@ -228,4 +228,14 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
     public void testManageExternalStorageQueryOtherAppsFile() throws Exception {
         runDeviceTest("testManageExternalStorageQueryOtherAppsFile");
     }
+
+    @Test
+    public void testSystemGalleryQueryOtherAppsFiles() throws Exception {
+        runDeviceTest("testSystemGalleryQueryOtherAppsFiles");
+    }
+
+    @Test
+    public void testQueryOtherAppsFiles() throws Exception {
+        runDeviceTest("testQueryOtherAppsFiles");
+    }
 }

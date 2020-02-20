@@ -1365,6 +1365,22 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     * Renames file or directory in lower file system and deletes {@code oldPath} from database.
+     */
+    private int renameUncheckedForFuse(String oldPath, String newPath) {
+        final int result = renameInLowerFs(oldPath, newPath);
+        if (result == 0) {
+            LocalCallingIdentity token = clearLocalCallingIdentity();
+            try {
+                scanFile(new File(oldPath), REASON_DEMAND);
+            } finally {
+                restoreLocalCallingIdentity(token);
+            }
+        }
+        return result;
+    }
+
+    /**
      * Rename file or directory from {@code oldPath} to {@code newPath}.
      *
      * @param oldPath path of the file or directory to be renamed.
@@ -1388,7 +1404,7 @@ public class MediaProvider extends ContentProvider {
         try {
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, oldPath)
                     && shouldBypassFuseRestrictions(/*forWrite*/ true, newPath)) {
-                return renameInLowerFs(oldPath, newPath);
+                return renameUncheckedForFuse(oldPath, newPath);
             }
 
             // Allow legacy app without storage permission to rename files only in its external
@@ -5706,7 +5722,9 @@ public class MediaProvider extends ContentProvider {
         if (forWrite) {
             return mCallingIdentity.get().hasPermission(PERMISSION_WRITE_AUDIO);
         } else {
-            return mCallingIdentity.get().hasPermission(PERMISSION_READ_AUDIO);
+            // write permission should be enough for reading as well
+            return mCallingIdentity.get().hasPermission(PERMISSION_READ_AUDIO)
+                    || mCallingIdentity.get().hasPermission(PERMISSION_WRITE_AUDIO);
         }
     }
 
@@ -5715,7 +5733,9 @@ public class MediaProvider extends ContentProvider {
         if (forWrite) {
             return mCallingIdentity.get().hasPermission(PERMISSION_WRITE_VIDEO);
         } else {
-            return mCallingIdentity.get().hasPermission(PERMISSION_READ_VIDEO);
+            // write permission should be enough for reading as well
+            return mCallingIdentity.get().hasPermission(PERMISSION_READ_VIDEO)
+                    || mCallingIdentity.get().hasPermission(PERMISSION_WRITE_VIDEO);
         }
     }
 
@@ -5724,7 +5744,9 @@ public class MediaProvider extends ContentProvider {
         if (forWrite) {
             return mCallingIdentity.get().hasPermission(PERMISSION_WRITE_IMAGES);
         } else {
-            return mCallingIdentity.get().hasPermission(PERMISSION_READ_IMAGES);
+            // write permission should be enough for reading as well
+            return mCallingIdentity.get().hasPermission(PERMISSION_READ_IMAGES)
+                    || mCallingIdentity.get().hasPermission(PERMISSION_WRITE_IMAGES);
         }
     }
 

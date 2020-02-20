@@ -73,6 +73,22 @@ jboolean com_android_providers_media_FuseDaemon_should_open_with_fuse(JNIEnv* en
     return JNI_FALSE;
 }
 
+void com_android_providers_media_FuseDaemon_invalidate_fuse_dentry_cache(JNIEnv* env, jobject self,
+                                                                         jlong java_daemon,
+                                                                         jstring java_path) {
+    fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
+    if (daemon) {
+        ScopedUtfChars utf_chars_path(env, java_path);
+        if (!utf_chars_path.c_str()) {
+            // TODO(b/145741152): Throw exception
+            return;
+        }
+
+        daemon->InvalidateFuseDentryCache(utf_chars_path.c_str());
+    }
+    // TODO(b/145741152): Throw exception
+}
+
 const JNINativeMethod methods[] = {
         {"native_new", "(Lcom/android/providers/media/MediaProvider;)J",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_new)},
@@ -81,8 +97,10 @@ const JNINativeMethod methods[] = {
         {"native_delete", "(J)V",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_delete)},
         {"native_should_open_with_fuse", "(JLjava/lang/String;ZI)Z",
-         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_should_open_with_fuse)}};
-
+         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_should_open_with_fuse)},
+        {"native_invalidate_fuse_dentry_cache", "(JLjava/lang/String;)V",
+         reinterpret_cast<void*>(
+                 com_android_providers_media_FuseDaemon_invalidate_fuse_dentry_cache)}};
 }  // namespace
 
 void register_android_providers_media_FuseDaemon(JNIEnv* env) {

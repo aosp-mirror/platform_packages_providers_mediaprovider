@@ -4826,6 +4826,14 @@ public class MediaProvider extends ContentProvider {
         return new File(filePath);
     }
 
+    private FuseDaemon getFuseDaemonForFile(File file) {
+        StorageVolume volume = mStorageManager.getStorageVolume(file);
+        if (volume == null) {
+            return null;
+        }
+        return ExternalStorageServiceImpl.getFuseDaemon(volume.getId());
+    }
+
     /**
      * Replacement for {@link #openFileHelper(Uri, String)} which enforces any
      * permissions applicable to the path before returning.
@@ -4933,12 +4941,7 @@ public class MediaProvider extends ContentProvider {
                             redactionInfo.freeOffsets);
                 }
             } else {
-                FuseDaemon daemon = null;
-
-                StorageVolume volume = mStorageManager.getStorageVolume(file);
-                if (volume != null) {
-                    daemon = ExternalStorageServiceImpl.getFuseDaemon(volume.getId());
-                }
+                FuseDaemon daemon = getFuseDaemonForFile(file);
                 ParcelFileDescriptor lowerFsFd = ParcelFileDescriptor.open(file, modeBits);
                 boolean forRead = (modeBits & ParcelFileDescriptor.MODE_READ_ONLY) != 0;
                 boolean shouldOpenWithFuse = daemon != null

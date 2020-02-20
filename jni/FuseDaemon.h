@@ -42,6 +42,11 @@ class FuseDaemon final {
      */
     bool ShouldOpenWithFuse(int fd, bool for_read, const std::string& path);
 
+    /**
+     * Invalidate FUSE VFS dentry cache entry for path
+     */
+    void InvalidateFuseDentryCache(const std::string& path);
+
   private:
     FuseDaemon(const FuseDaemon&) = delete;
     void operator=(const FuseDaemon&) = delete;

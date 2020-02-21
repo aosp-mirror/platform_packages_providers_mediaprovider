@@ -113,8 +113,9 @@ class MediaProviderWrapper final {
      * MediaProvider database.
      *
      * @param path the path of the file to be scanned
+     * @param uid UID of the app that owns the file on the given path
      */
-    void ScanFile(const std::string& path);
+    void ScanFile(const std::string& path, uid_t uid);
 
     /**
      * Determines if the given UID is allowed to create a directory with the given path.

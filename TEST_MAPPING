@@ -22,6 +22,9 @@
         },
         {
             "name": "FuseDaemonHostTest"
+        },
+        {
+            "name": "fuse_node_test"
         }
     ]
 }

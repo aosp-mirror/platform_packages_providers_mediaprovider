@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#define LOG_TAG "MediaProviderWrapper"
-
 #include "MediaProviderWrapper.h"
 #include "libfuse_jni/ReaddirHelper.h"
 
@@ -39,7 +37,6 @@ using std::string;
 namespace {
 
 constexpr const char* kPropRedactionEnabled = "persist.sys.fuse.redaction-enabled";
-constexpr const char* kPropShellBypass = "persist.sys.fuse.shell-bypass";
 
 constexpr uid_t ROOT_UID = 0;
 constexpr uid_t SHELL_UID = 2000;
@@ -47,7 +44,7 @@ constexpr uid_t SHELL_UID = 2000;
 /** Private helper functions **/
 
 inline bool shouldBypassMediaProvider(uid_t uid) {
-    return (uid == SHELL_UID && GetBoolProperty(kPropShellBypass, false)) || uid == ROOT_UID;
+    return uid == SHELL_UID || uid == ROOT_UID;
 }
 
 bool CheckForJniException(JNIEnv* env) {
@@ -62,7 +59,6 @@ bool CheckForJniException(JNIEnv* env) {
 std::unique_ptr<RedactionInfo> getRedactionInfoInternal(JNIEnv* env, jobject media_provider_object,
                                                         jmethodID mid_get_redaction_ranges,
                                                         uid_t uid, const string& path) {
-    LOG(DEBUG) << "Computing redaction ranges for uid = " << uid << " file = " << path;
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
     ScopedLongArrayRO redaction_ranges(
             env, static_cast<jlongArray>(env->CallObjectMethod(
@@ -78,11 +74,9 @@ std::unique_ptr<RedactionInfo> getRedactionInfoInternal(JNIEnv* env, jobject med
         LOG(ERROR) << "Error while calculating redaction ranges: array length is uneven";
     } else if (redaction_ranges.size() > 0) {
         ri = std::make_unique<RedactionInfo>(redaction_ranges.size() / 2, redaction_ranges.get());
-        LOG(DEBUG) << "Redaction ranges computed. Number of ranges = " << ri->size();
     } else {
         // No ranges to redact
         ri = std::make_unique<RedactionInfo>();
-        LOG(DEBUG) << "Redaction ranges computed. No ranges to redact.";
     }
 
     return ri;
@@ -90,77 +84,72 @@ std::unique_ptr<RedactionInfo> getRedactionInfoInternal(JNIEnv* env, jobject med
 
 int insertFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_insert_file,
                        const string& path, uid_t uid) {
-    LOG(DEBUG) << "Inserting file for UID = " << uid << ". Path = " << path;
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
     int res = env->CallIntMethod(media_provider_object, mid_insert_file, j_path.get(), uid);
 
     if (CheckForJniException(env)) {
-        LOG(DEBUG) << "Java exception while creating file";
         return EFAULT;
     }
-    LOG(DEBUG) << "res = " << res;
     return res;
 }
 
 int deleteFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_delete_file,
                        const string& path, uid_t uid) {
-    LOG(DEBUG) << "Delete file for UID = " << uid << ". Path = " << path;
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
     int res = env->CallIntMethod(media_provider_object, mid_delete_file, j_path.get(), uid);
 
     if (CheckForJniException(env)) {
-        LOG(DEBUG) << "Java exception while deleting file";
         return EFAULT;
     }
-    LOG(DEBUG) << "res = " << res;
     return res;
 }
 
 int isOpenAllowedInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_is_open_allowed,
                           const string& path, uid_t uid, bool for_write) {
-    LOG(DEBUG) << "Checking if UID = " << uid << " can open file " << path << " for "
-               << (for_write ? "write" : "read only");
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
     int res = env->CallIntMethod(media_provider_object, mid_is_open_allowed, j_path.get(), uid,
                                  for_write);
 
     if (CheckForJniException(env)) {
-        LOG(DEBUG) << "Java exception while checking permissions for file";
         return EFAULT;
     }
-    LOG(DEBUG) << "res = " << res;
     return res;
 }
 
 void scanFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_scan_file,
                       const string& path) {
-    LOG(DEBUG) << "Notifying MediaProvider that a file has been modified. path = " << path;
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
     env->CallVoidMethod(media_provider_object, mid_scan_file, j_path.get());
-    if (CheckForJniException(env)) {
-        LOG(DEBUG) << "Java exception while checking permissions for file";
-    }
-    LOG(DEBUG) << "MediaProvider has been notified";
+    CheckForJniException(env);
 }
 
-int isDirectoryOperationAllowedInternal(JNIEnv* env, jobject media_provider_object,
-                                        jmethodID mid_is_dir_op_allowed, const string& path,
-                                        uid_t uid) {
+int isMkdirOrRmdirAllowedInternal(JNIEnv* env, jobject media_provider_object,
+                                  jmethodID mid_is_mkdir_or_rmdir_allowed, const string& path,
+                                  uid_t uid, bool forCreate) {
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
-    int res = env->CallIntMethod(media_provider_object, mid_is_dir_op_allowed, j_path.get(), uid);
+    int res = env->CallIntMethod(media_provider_object, mid_is_mkdir_or_rmdir_allowed, j_path.get(),
+                                 uid, forCreate);
 
     if (CheckForJniException(env)) {
-        LOG(DEBUG) << "Java exception while checking permissions for creating/deleting/opening dir";
         return EFAULT;
     }
-    LOG(DEBUG) << "res = " << res;
+    return res;
+}
+
+int isOpendirAllowedInternal(JNIEnv* env, jobject media_provider_object,
+                             jmethodID mid_is_opendir_allowed, const string& path, uid_t uid) {
+    ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
+    int res = env->CallIntMethod(media_provider_object, mid_is_opendir_allowed, j_path.get(), uid);
+
+    if (CheckForJniException(env)) {
+        return EFAULT;
+    }
     return res;
 }
 
 std::vector<std::shared_ptr<DirectoryEntry>> getFilesInDirectoryInternal(
         JNIEnv* env, jobject media_provider_object, jmethodID mid_get_files_in_dir, uid_t uid,
         const string& path) {
-    LOG(DEBUG) << "Getting file names in path " << path << " for UID = " << uid;
     std::vector<std::shared_ptr<DirectoryEntry>> directory_entries;
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
 
@@ -169,7 +158,6 @@ std::vector<std::shared_ptr<DirectoryEntry>> getFilesInDirectoryInternal(
                          media_provider_object, mid_get_files_in_dir, j_path.get(), uid)));
 
     if (CheckForJniException(env)) {
-        LOG(ERROR) << "Exception occurred while calling MediaProvider#getFilesInDirectoryForFuse";
         directory_entries.push_back(std::make_shared<DirectoryEntry>("", EFAULT));
         return directory_entries;
     }
@@ -208,16 +196,13 @@ std::vector<std::shared_ptr<DirectoryEntry>> getFilesInDirectoryInternal(
 
 int renameInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_rename,
                    const string& old_path, const string& new_path, uid_t uid) {
-    LOG(DEBUG) << "Renaming " << old_path << " to " << new_path << ", uid: " << uid;
     ScopedLocalRef<jstring> j_old_path(env, env->NewStringUTF(old_path.c_str()));
     ScopedLocalRef<jstring> j_new_path(env, env->NewStringUTF(new_path.c_str()));
     int res = env->CallIntMethod(media_provider_object, mid_rename, j_old_path.get(),
                                  j_new_path.get(), uid);
     if (CheckForJniException(env)) {
-        LOG(DEBUG) << "Java exception occurred while renaming a file or directory";
         return EFAULT;
     }
-    LOG(DEBUG) << "res = " << res;
     return res;
 }
 }  // namespace
@@ -251,8 +236,8 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
                                        /*is_static*/ false);
     mid_scan_file_ = CacheMethod(env, "scanFile", "(Ljava/lang/String;)V",
                                  /*is_static*/ false);
-    mid_is_dir_op_allowed_ = CacheMethod(env, "isDirectoryOperationAllowed",
-                                         "(Ljava/lang/String;I)I", /*is_static*/ false);
+    mid_is_mkdir_or_rmdir_allowed_ = CacheMethod(env, "isDirectoryCreationOrDeletionAllowed",
+                                                 "(Ljava/lang/String;IZ)I", /*is_static*/ false);
     mid_is_opendir_allowed_ = CacheMethod(env, "isOpendirAllowed", "(Ljava/lang/String;I)I",
                                           /*is_static*/ false);
     mid_get_files_in_dir_ =
@@ -278,7 +263,7 @@ MediaProviderWrapper::~MediaProviderWrapper() {
     // because the flag value has already been changed. This ensures that the
     // termination task is the last task in the queue.
 
-    LOG(DEBUG) << "Posting task to terminate JNI thread";
+    LOG(INFO) << "Posting task to terminate JNI thread";
     // async task doesn't check jni_tasks_welcome_ - but we will wait for the thread to terminate
     // anyway
     PostAsyncTask([this](JNIEnv* env) {
@@ -371,9 +356,9 @@ int MediaProviderWrapper::IsCreatingDirAllowed(const string& path, uid_t uid) {
     int res = EIO;  // Default value in case JNI thread was being terminated
 
     PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
-        LOG(DEBUG) << "Checking if UID = " << uid << " can create dir " << path;
-        res = isDirectoryOperationAllowedInternal(env, media_provider_object_,
-                                                  mid_is_dir_op_allowed_, path, uid);
+        res = isMkdirOrRmdirAllowedInternal(env, media_provider_object_,
+                                            mid_is_mkdir_or_rmdir_allowed_, path, uid,
+                                            /*forCreate*/ true);
     });
 
     return res;
@@ -387,9 +372,9 @@ int MediaProviderWrapper::IsDeletingDirAllowed(const string& path, uid_t uid) {
     int res = EIO;  // Default value in case JNI thread was being terminated
 
     PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
-        LOG(DEBUG) << "Checking if UID = " << uid << " can delete dir " << path;
-        res = isDirectoryOperationAllowedInternal(env, media_provider_object_,
-                                                  mid_is_dir_op_allowed_, path, uid);
+        res = isMkdirOrRmdirAllowedInternal(env, media_provider_object_,
+                                            mid_is_mkdir_or_rmdir_allowed_, path, uid,
+                                            /*forCreate*/ false);
     });
     return res;
 }
@@ -428,9 +413,8 @@ int MediaProviderWrapper::IsOpendirAllowed(const string& path, uid_t uid) {
     int res = EIO;  // Default value in case JNI thread was being terminated
 
     PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
-        LOG(DEBUG) << "Checking if UID = " << uid << " can open dir " << path;
-        res = isDirectoryOperationAllowedInternal(env, media_provider_object_,
-                                                  mid_is_opendir_allowed_, path, uid);
+        res = isOpendirAllowedInternal(env, media_provider_object_, mid_is_opendir_allowed_, path,
+                                       uid);
     });
 
     return res;

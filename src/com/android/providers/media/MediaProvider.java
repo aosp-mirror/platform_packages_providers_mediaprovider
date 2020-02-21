@@ -252,6 +252,7 @@ public class MediaProvider extends ContentProvider {
     private static final String DIRECTORY_DOCUMENTS = "Documents";
     private static final String DIRECTORY_AUDIOBOOKS = "Audiobooks";
     private static final String DIRECTORY_ANDROID = "Android";
+
     private static final String DIRECTORY_MEDIA = "media";
 
     /**
@@ -441,11 +442,49 @@ public class MediaProvider extends ContentProvider {
         }
     };
 
+    private final void updateQuotaTypeForUri(@NonNull Uri uri, int mediaType) {
+        File file;
+        try {
+            file = queryForDataFile(uri, null);
+        } catch (FileNotFoundException e) {
+            // Ignore
+            return;
+        }
+        try {
+            switch (mediaType) {
+                case FileColumns.MEDIA_TYPE_AUDIO:
+                    mStorageManager.updateExternalStorageFileQuotaType(file,
+                            StorageManager.QUOTA_TYPE_MEDIA_AUDIO);
+                    break;
+                case FileColumns.MEDIA_TYPE_VIDEO:
+                    mStorageManager.updateExternalStorageFileQuotaType(file,
+                            StorageManager.QUOTA_TYPE_MEDIA_VIDEO);
+                    break;
+                case FileColumns.MEDIA_TYPE_IMAGE:
+                    mStorageManager.updateExternalStorageFileQuotaType(file,
+                            StorageManager.QUOTA_TYPE_MEDIA_IMAGE);
+                    break;
+                default:
+                    mStorageManager.updateExternalStorageFileQuotaType(file,
+                            StorageManager.QUOTA_TYPE_MEDIA_NONE);
+                    break;
+            }
+        } catch (IOException e) {
+            Log.w(TAG, "Failed to update quota type for " + file.getPath(), e);
+        }
+    }
+
     private final OnFilesChangeListener mFilesListener = new OnFilesChangeListener() {
         @Override
         public void onInsert(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
                 int mediaType, boolean isDownload) {
             acceptWithExpansion(helper::notifyChange, volumeName, id, mediaType, isDownload);
+
+            if (helper.isExternal()) {
+                // Update the quota type on the filesystem
+                Uri fileUri = MediaStore.Files.getContentUri(volumeName, id);
+                updateQuotaTypeForUri(fileUri, mediaType);
+            }
 
             // Tell our SAF provider so it knows when views are no longer empty
             MediaDocumentsProvider.onMediaStoreInsert(getContext(), volumeName, mediaType, id);
@@ -461,8 +500,12 @@ public class MediaProvider extends ContentProvider {
             // When media type changes, notify both old and new collections and
             // invalidate any thumbnails
             if (newMediaType != oldMediaType) {
+                Uri fileUri = MediaStore.Files.getContentUri(volumeName, id);
+                if (helper.isExternal()) {
+                    updateQuotaTypeForUri(fileUri, newMediaType);
+                }
                 acceptWithExpansion(helper::notifyChange, volumeName, id, newMediaType, isDownload);
-                invalidateThumbnails(MediaStore.Files.getContentUri(volumeName, id));
+                invalidateThumbnails(fileUri);
             }
         }
 
@@ -533,19 +576,26 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-
-
     private static final String[] sDefaultFolderNames = {
-        Environment.DIRECTORY_MUSIC,
-        Environment.DIRECTORY_PODCASTS,
-        Environment.DIRECTORY_RINGTONES,
-        Environment.DIRECTORY_ALARMS,
-        Environment.DIRECTORY_NOTIFICATIONS,
-        Environment.DIRECTORY_PICTURES,
-        Environment.DIRECTORY_MOVIES,
-        Environment.DIRECTORY_DOWNLOADS,
-        Environment.DIRECTORY_DCIM,
+            Environment.DIRECTORY_MUSIC,
+            Environment.DIRECTORY_PODCASTS,
+            Environment.DIRECTORY_RINGTONES,
+            Environment.DIRECTORY_ALARMS,
+            Environment.DIRECTORY_NOTIFICATIONS,
+            Environment.DIRECTORY_PICTURES,
+            Environment.DIRECTORY_MOVIES,
+            Environment.DIRECTORY_DOWNLOADS,
+            Environment.DIRECTORY_DCIM,
     };
+
+    private static boolean isDefaultDirectoryName(@Nullable String dirName) {
+        for (String defaultDirName : sDefaultFolderNames) {
+            if (defaultDirName.equals(dirName)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * Ensure that default folders are created on mounted primary storage
@@ -557,7 +607,12 @@ public class MediaProvider extends ContentProvider {
             final File path = getVolumePath(volumeName);
             final StorageVolume vol = mStorageManager.getStorageVolume(path);
             final String key;
-            if (vol == null || vol.isPrimary()) {
+            if (vol == null) {
+                Log.w(TAG, "Failed to ensure default folders for " + volumeName);
+                return;
+            }
+
+            if (vol.isPrimary()) {
                 key = "created_default_folders";
             } else {
                 key = "created_default_folders_" + vol.getMediaStoreVolumeName();
@@ -4775,6 +4830,14 @@ public class MediaProvider extends ContentProvider {
         return new File(filePath);
     }
 
+    private FuseDaemon getFuseDaemonForFile(File file) {
+        StorageVolume volume = mStorageManager.getStorageVolume(file);
+        if (volume == null) {
+            return null;
+        }
+        return ExternalStorageServiceImpl.getFuseDaemon(volume.getId());
+    }
+
     /**
      * Replacement for {@link #openFileHelper(Uri, String)} which enforces any
      * permissions applicable to the path before returning.
@@ -4882,12 +4945,7 @@ public class MediaProvider extends ContentProvider {
                             redactionInfo.freeOffsets);
                 }
             } else {
-                FuseDaemon daemon = null;
-
-                StorageVolume volume = mStorageManager.getStorageVolume(file);
-                if (volume != null) {
-                    daemon = ExternalStorageServiceImpl.getFuseDaemon(volume.getId());
-                }
+                FuseDaemon daemon = getFuseDaemonForFile(file);
                 ParcelFileDescriptor lowerFsFd = ParcelFileDescriptor.open(file, modeBits);
                 boolean forRead = (modeBits & ParcelFileDescriptor.MODE_READ_ONLY) != 0;
                 boolean shouldOpenWithFuse = daemon != null
@@ -5577,6 +5635,7 @@ public class MediaProvider extends ContentProvider {
      *
      * @param path File path of the directory that the app wants to create/delete
      * @param uid UID of the app that wants to create/delete the directory
+     * @param forCreate denotes whether the operation is directory creation or deletion
      * @return 0 if the operation is allowed, or the following {@code errno} values:
      * <ul>
      * <li>{@link OsConstants#EACCES} if the app tries to create/delete a dir in another app's
@@ -5588,7 +5647,8 @@ public class MediaProvider extends ContentProvider {
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public int isDirectoryOperationAllowedForFuse(@NonNull String path, int uid) {
+    public int isDirectoryCreationOrDeletionAllowedForFuse(
+            @NonNull String path, int uid, boolean forCreate) {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
@@ -5616,8 +5676,17 @@ public class MediaProvider extends ContentProvider {
             }
 
             final String[] relativePath = sanitizePath(extractRelativePath(path));
-            if (relativePath.length == 1 && TextUtils.isEmpty(relativePath[0])) {
-                Log.e(TAG, "Creating or deleting a top level directory is not allowed!");
+            final boolean isTopLevelDir =
+                    relativePath.length == 1 && TextUtils.isEmpty(relativePath[0]);
+            if (isTopLevelDir) {
+                // We allow creating the default top level directories only, all other oprations on
+                // top level directories are not allowed.
+                if (forCreate && isDefaultDirectoryName(extractDisplayName(path))) {
+                    return 0;
+                }
+                Log.e(TAG,
+                        "Creating a non-default top level directory or deleting an existing"
+                                + " one is not allowed!");
                 return OsConstants.EPERM;
             }
             return 0;

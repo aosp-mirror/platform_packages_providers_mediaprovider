@@ -22,7 +22,6 @@
 #include <list>
 #include <memory>
 #include <mutex>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -114,10 +113,6 @@ class node {
     // Builds the full path associated with this node, including all path segments
     // associated with its descendants.
     std::string BuildPath() const;
-
-    // Builds the full PII safe path associated with this node, including all path segments
-    // associated with its descendants.
-    std::string BuildSafePath() const;
 
     // Looks up a direct descendant of this node by name. If |acquire| is true,
     // also Acquire the node before returning a reference to it.
@@ -267,9 +262,9 @@ class node {
         }
     }
 
-    // A helper function to recursively construct the absolute path of a given node.
-    // If |safe| is true, builds a PII safe path instead
-    static void BuildPathForNodeRecursive(bool safe, const node* node, std::stringstream* path);
+    // A helper function to recursively construct the absolute path of a given
+    // node.
+    static void BuildPathForNodeRecursive(node* node, std::string* path);
 
     // The name of this node. Non-const because it can change during renames.
     std::string name_;

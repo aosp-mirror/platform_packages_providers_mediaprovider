@@ -225,6 +225,11 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
     }
 
     @Test
+    public void testCanCreateDefaultDirectory() throws Exception {
+        runDeviceTest("testCanCreateDefaultDirectory");
+    }
+
+    @Test
     public void testManageExternalStorageQueryOtherAppsFile() throws Exception {
         runDeviceTest("testManageExternalStorageQueryOtherAppsFile");
     }

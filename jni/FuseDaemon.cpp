@@ -299,6 +299,7 @@ struct fuse {
     std::recursive_mutex lock;
     const string path;
     node* const root;
+    struct fuse_session* se;
 
     /*
      * Used to make JNI calls to MediaProvider.
@@ -1540,6 +1541,31 @@ bool FuseDaemon::ShouldOpenWithFuse(int fd, bool for_read, const std::string& pa
     return use_fuse;
 }
 
+void FuseDaemon::InvalidateFuseDentryCache(const std::string& path) {
+    TRACE_VERBOSE << "Invalidating dentry for path " << path;
+
+    if (active.load(std::memory_order_acquire)) {
+        string name;
+        fuse_ino_t parent;
+
+        {
+            std::lock_guard<std::recursive_mutex> guard(fuse->lock);
+            const node* node = node::LookupAbsolutePath(fuse->root, path);
+            if (node) {
+                name = node->GetName();
+                parent = fuse->ToInode(node->GetParent());
+            }
+        }
+
+        if (!name.empty() &&
+            fuse_lowlevel_notify_inval_entry(fuse->se, parent, name.c_str(), name.size())) {
+            LOG(ERROR) << "Failed to invalidate dentry for path " << path;
+        }
+    } else {
+        TRACE << "FUSE daemon is inactive. Cannot invalidate dentry for " << path;
+    }
+}
+
 FuseDaemon::FuseDaemon(JNIEnv* env, jobject mediaProvider) : mp(env, mediaProvider),
                                                              active(false), fuse(nullptr) {}
 
@@ -1594,6 +1620,7 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
         PLOG(ERROR) << "Failed to create session ";
         return;
     }
+    fuse_default.se = se;
     se->fd = fd;
     se->mountpoint = strdup(path.c_str());
 

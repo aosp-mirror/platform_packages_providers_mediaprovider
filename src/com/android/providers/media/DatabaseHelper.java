@@ -1269,4 +1269,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 "SELECT COUNT(_id) FROM files WHERE " + FileColumns.MIME_TYPE + " IS NOT NULL",
                 null);
     }
+
+    public boolean isExternal() {
+        return !mInternal;
+    }
 }

@@ -16,7 +16,12 @@
 
 package com.android.tests.fused.legacy;
 
+import static com.android.tests.fused.lib.TestUtils.createFileAs;
+import static com.android.tests.fused.lib.TestUtils.deleteFileAsNoThrow;
+import static com.android.tests.fused.lib.TestUtils.getFileRowIdFromDatabase;
+import static com.android.tests.fused.lib.TestUtils.installApp;
 import static com.android.tests.fused.lib.TestUtils.pollForExternalStorageState;
+import static com.android.tests.fused.lib.TestUtils.uninstallApp;
 
 import static com.android.tests.fused.lib.TestUtils.pollForPermission;
 
@@ -33,6 +38,9 @@ import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
+
+import com.android.cts.install.lib.TestApp;
+import com.android.tests.fused.lib.ReaddirTestHelper;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -56,6 +64,12 @@ import java.util.concurrent.TimeUnit;
 public class LegacyFileAccessTest {
 
     private static final String TAG = "LegacyFileAccessTest";
+
+    static final String VIDEO_FILE_NAME = "LegacyAccessTest_file.mp4";
+    static final String NONMEDIA_FILE_NAME = "LegacyAccessTest_file.pdf";
+
+    private static final TestApp TEST_APP_A  = new TestApp("TestAppA",
+            "com.android.tests.fused.testapp.A", 1, false, "TestAppA.apk");
 
     @Before
     public void setUp() throws Exception {
@@ -254,7 +268,7 @@ public class LegacyFileAccessTest {
      * restrictions imposed by MediaProvider
      */
     @Test
-    public void testCanRename_hasW() throws Exception {
+    public void testCanRename_hasRW() throws Exception {
         pollForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, /*granted*/ true);
         pollForPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE, /*granted*/ true);
 
@@ -356,6 +370,45 @@ public class LegacyFileAccessTest {
         } finally {
             mediaFile1.delete();
             mediaFile2.delete();
+        }
+    }
+
+    /**
+     * Test that legacy app with WRITE_EXTERNAL_STORAGE can delete all files, and corresponding
+     * database entry is deleted on deleting the file.
+     */
+    @Test
+    public void testCanDeleteAllFiles_hasRW() throws Exception {
+        pollForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, /*granted*/ true);
+        pollForPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE, /*granted*/ true);
+
+        final File EXTERNAL_STORAGE_DIR = Environment.getExternalStorageDirectory();
+        final File videoFile = new File(EXTERNAL_STORAGE_DIR, VIDEO_FILE_NAME);
+        final File otherAppPdfFile = new File(EXTERNAL_STORAGE_DIR,
+                Environment.DIRECTORY_DOWNLOADS + "/" + NONMEDIA_FILE_NAME);
+
+        try {
+            assertThat(videoFile.createNewFile()).isTrue();
+            assertThat(ReaddirTestHelper.readDirectory(EXTERNAL_STORAGE_DIR))
+                    .contains(VIDEO_FILE_NAME);
+
+            assertThat(getFileRowIdFromDatabase(videoFile)).isNotEqualTo(-1);
+            // Legacy app can delete its own file.
+            assertThat(videoFile.delete()).isTrue();
+            // Deleting the file will remove videoFile entry from database.
+            assertThat(getFileRowIdFromDatabase(videoFile)).isEqualTo(-1);
+
+            installApp(TEST_APP_A, false);
+            assertThat(createFileAs(TEST_APP_A, otherAppPdfFile.getAbsolutePath())).isTrue();
+            assertThat(getFileRowIdFromDatabase(otherAppPdfFile)).isNotEqualTo(-1);
+            // Legacy app with write permission can delete the pdfFile owned by TestApp.
+            assertThat(otherAppPdfFile.delete()).isTrue();
+            // Deleting the pdfFile also removes pdfFile from database.
+            assertThat(getFileRowIdFromDatabase(otherAppPdfFile)).isEqualTo(-1);
+        } finally {
+            deleteFileAsNoThrow(TEST_APP_A, otherAppPdfFile.getAbsolutePath());
+            uninstallApp(TEST_APP_A);
+            videoFile.delete();
         }
     }
 

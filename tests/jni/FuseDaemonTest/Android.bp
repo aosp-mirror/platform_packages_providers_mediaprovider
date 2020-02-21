@@ -46,7 +46,10 @@ android_test {
     static_libs: ["androidx.test.rules", "truth-prebuilt",  "tests-fusedaemon-lib"],
     test_suites: ["general-tests", "mts"],
     sdk_version: "test_current",
-    target_sdk_version: "29"
+    target_sdk_version: "29",
+    java_resources: [
+        ":TestAppA",
+    ]
 }
 
 java_test_host {

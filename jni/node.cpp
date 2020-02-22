@@ -41,20 +41,37 @@ namespace mediaprovider {
 namespace fuse {
 
 // Assumes that |node| has at least one child.
-void node::BuildPathForNodeRecursive(node* node, std::string* path) {
-    if (node->parent_) BuildPathForNodeRecursive(node->parent_, path);
+void node::BuildPathForNodeRecursive(bool safe, const node* node, std::stringstream* path) const {
+    if (node->parent_) {
+        BuildPathForNodeRecursive(safe, node->parent_, path);
+    }
 
-    (*path) += node->GetName() + "/";
+    if (safe && node->parent_) {
+        (*path) << reinterpret_cast<uintptr_t>(node);
+    } else {
+        (*path) << node->GetName();
+    }
+  
+    if (node != this) {
+        // Must not add a '/' to the last segment
+        (*path) << "/";
+    }
 }
 
 std::string node::BuildPath() const {
     std::lock_guard<std::recursive_mutex> guard(*lock_);
-    std::string path;
+    std::stringstream path;
 
-    path.reserve(PATH_MAX);
-    if (parent_) BuildPathForNodeRecursive(parent_, &path);
-    path += name_;
-    return path;
+    BuildPathForNodeRecursive(false, this, &path);
+    return path.str();
+}
+
+std::string node::BuildSafePath() const {
+    std::lock_guard<std::recursive_mutex> guard(*lock_);
+    std::stringstream path;
+
+    BuildPathForNodeRecursive(true, this, &path);
+    return path.str();
 }
 
 const node* node::LookupAbsolutePath(const node* root, const std::string& absolute_path) {

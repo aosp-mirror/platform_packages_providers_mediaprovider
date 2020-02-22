@@ -41,7 +41,6 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
-import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.system.Os;
 import android.util.Log;
@@ -90,8 +89,6 @@ public class TestUtils {
         try {
             sUiAutomation.grantRuntimePermission(packageName,
                     Manifest.permission.READ_EXTERNAL_STORAGE);
-            // Wait for OP_READ_EXTERNAL_STORAGE to get updated.
-            SystemClock.sleep(1000);
         } finally {
             sUiAutomation.dropShellPermissionIdentity();
         }
@@ -255,21 +252,6 @@ public class TestUtils {
             }
         }
         return id;
-    }
-
-    /**
-     * Queries {@link ContentResolver} for a file and returns the corresponding owner package name
-     * for its entry in the database.
-     */
-    @Nullable
-    public static String getFileOwnerPackageFromDatabase(@NonNull File file) {
-        String ownerPackage = null;
-        try (Cursor c = queryFile(file, MediaStore.MediaColumns.OWNER_PACKAGE_NAME)) {
-            if (c.moveToFirst()) {
-                ownerPackage = c.getString(0);
-            }
-        }
-        return ownerPackage;
     }
 
     /**

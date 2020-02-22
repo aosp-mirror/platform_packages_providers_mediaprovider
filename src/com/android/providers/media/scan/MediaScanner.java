@@ -24,8 +24,6 @@ import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_S
 import android.content.Context;
 import android.net.Uri;
 
-import androidx.annotation.Nullable;
-
 import java.io.File;
 
 public interface MediaScanner {
@@ -37,6 +35,5 @@ public interface MediaScanner {
     public Context getContext();
     public void scanDirectory(File file, int reason);
     public Uri scanFile(File file, int reason);
-    public Uri scanFile(File file, int reason, @Nullable String ownerPackage);
     public void onDetachVolume(String volumeName);
 }

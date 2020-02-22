@@ -17,13 +17,9 @@
 package com.android.tests.fused.legacy;
 
 import static com.android.tests.fused.lib.TestUtils.createFileAs;
-
-
 import static com.android.tests.fused.lib.TestUtils.deleteFileAsNoThrow;
-import static com.android.tests.fused.lib.TestUtils.getFileOwnerPackageFromDatabase;
 import static com.android.tests.fused.lib.TestUtils.getFileRowIdFromDatabase;
 import static com.android.tests.fused.lib.TestUtils.installApp;
-import static com.android.tests.fused.lib.TestUtils.listAs;
 import static com.android.tests.fused.lib.TestUtils.pollForExternalStorageState;
 import static com.android.tests.fused.lib.TestUtils.uninstallApp;
 
@@ -31,9 +27,6 @@ import static com.android.tests.fused.lib.TestUtils.pollForPermission;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import android.Manifest;
@@ -57,6 +50,7 @@ import java.io.File;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Test app targeting Q and requesting legacy storage - tests legacy file path access.
@@ -70,7 +64,6 @@ import java.util.Arrays;
 public class LegacyFileAccessTest {
 
     private static final String TAG = "LegacyFileAccessTest";
-    static final String THIS_PACKAGE_NAME = InstrumentationRegistry.getContext().getPackageName();
 
     static final String VIDEO_FILE_NAME = "LegacyAccessTest_file.mp4";
     static final String NONMEDIA_FILE_NAME = "LegacyAccessTest_file.pdf";
@@ -416,38 +409,6 @@ public class LegacyFileAccessTest {
             deleteFileAsNoThrow(TEST_APP_A, otherAppPdfFile.getAbsolutePath());
             uninstallApp(TEST_APP_A);
             videoFile.delete();
-        }
-    }
-
-    /**
-     * Test that file created by legacy app is inserted to MediaProvider database. And,
-     * MediaColumns.OWNER_PACKAGE_NAME is updated with calling package's name.
-     */
-    @Test
-    public void testLegacyAppCanOwnAFile_hasW() throws Exception {
-        pollForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, /*granted*/ true);
-        pollForPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE, /*granted*/ true);
-
-        final File EXTERNAL_STORAGE_DIR = Environment.getExternalStorageDirectory();
-        final File videoFile = new File(EXTERNAL_STORAGE_DIR, VIDEO_FILE_NAME);
-        try {
-            assertThat(videoFile.createNewFile()).isTrue();
-
-            installApp(TEST_APP_A, true);
-            // videoFile is inserted to database, non-legacy app can see this videoFile on 'ls'.
-            assertThat(listAs(TEST_APP_A, EXTERNAL_STORAGE_DIR.getAbsolutePath()))
-                    .contains(VIDEO_FILE_NAME);
-
-            // videoFile is in database, row ID for videoFile can not be -1.
-            assertNotEquals(-1, getFileRowIdFromDatabase(videoFile));
-            assertEquals(THIS_PACKAGE_NAME, getFileOwnerPackageFromDatabase(videoFile));
-
-            assertTrue(videoFile.delete());
-            // videoFile is removed from database on delete, hence row ID is -1.
-            assertEquals(-1, getFileRowIdFromDatabase(videoFile));
-        } finally {
-            videoFile.delete();
-            uninstallApp(TEST_APP_A);
         }
     }
 

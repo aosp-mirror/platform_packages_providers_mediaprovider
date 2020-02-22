@@ -865,23 +865,15 @@ public class MediaProvider extends ContentProvider {
         return mMediaScanner.scanFile(file, reason);
     }
 
-    public Uri scanFile(File file, int reason, String ownerPackage) {
-        return mMediaScanner.scanFile(file, reason, ownerPackage);
-    }
-
     /**
      * Makes MediaScanner scan the given file.
      * @param file path of the file to be scanned
-     * @param uid  UID of the app that owns the file on the given path. If the file is scanned
-     *            on create, this UID will be used for updating owner package.
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public void scanFileForFuse(String file, int uid) {
-        final String callingPackage =
-                LocalCallingIdentity.fromExternal(getContext(), uid).getPackageName();
-        scanFile(new File(file), REASON_DEMAND, callingPackage);
+    public void scanFileForFuse(String file) {
+        scanFile(new File(file), REASON_DEMAND);
     }
 
     /**

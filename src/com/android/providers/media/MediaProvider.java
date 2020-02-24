@@ -586,6 +586,8 @@ public class MediaProvider extends ContentProvider {
             Environment.DIRECTORY_MOVIES,
             Environment.DIRECTORY_DOWNLOADS,
             Environment.DIRECTORY_DCIM,
+            Environment.DIRECTORY_DOCUMENTS,
+            Environment.DIRECTORY_AUDIOBOOKS,
     };
 
     private static boolean isDefaultDirectoryName(@Nullable String dirName) {

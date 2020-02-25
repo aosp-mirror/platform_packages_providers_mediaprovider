@@ -181,4 +181,9 @@ public class LegacyAccessHostTest extends BaseHostJUnit4Test {
     public void testCanDeleteAllFiles_hasRW() throws Exception {
         runDeviceTest("testCanDeleteAllFiles_hasRW");
     }
+
+    @Test
+    public void testLegacyAppCanOwnAFile_hasW() throws Exception {
+        runDeviceTest("testLegacyAppCanOwnAFile_hasW");
+    }
 }

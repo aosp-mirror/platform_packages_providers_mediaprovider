@@ -868,11 +868,13 @@ public class MediaProvider extends ContentProvider {
     /**
      * Makes MediaScanner scan the given file.
      * @param file path of the file to be scanned
+     * @param uid  UID of the app that owns the file on the given path. If the file is scanned
+     *            on create, this UID will be used for updating owner package.
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public void scanFileForFuse(String file) {
+    public void scanFileForFuse(String file, int uid) {
         scanFile(new File(file), REASON_DEMAND);
     }
 

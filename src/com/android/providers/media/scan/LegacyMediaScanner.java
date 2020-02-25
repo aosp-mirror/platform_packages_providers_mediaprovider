@@ -19,6 +19,8 @@ package com.android.providers.media.scan;
 import android.content.Context;
 import android.net.Uri;
 
+import androidx.annotation.Nullable;
+
 import java.io.File;
 
 @Deprecated
@@ -41,6 +43,11 @@ public class LegacyMediaScanner implements MediaScanner {
 
     @Override
     public Uri scanFile(File file, int reason) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Uri scanFile(File file, int reason, @Nullable String ownerPackage) {
         throw new UnsupportedOperationException();
     }
 

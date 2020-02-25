@@ -16,6 +16,9 @@
 
 package com.android.tests.fused.legacy;
 
+import static com.android.tests.fused.lib.TestUtils.assertCanRenameFile;
+import static com.android.tests.fused.lib.TestUtils.assertCanRenameDirectory;
+import static com.android.tests.fused.lib.TestUtils.assertCantRenameFile;
 import static com.android.tests.fused.lib.TestUtils.createFileAs;
 
 
@@ -294,16 +297,16 @@ public class LegacyFileAccessTest {
         try {
             // can rename a file to root directory.
             assertThat(musicFile1.createNewFile()).isTrue();
-            assertCanRename(musicFile1, musicFile2);
+            assertCanRenameFile(musicFile1, musicFile2);
 
             // can rename a music file to Movies directory.
-            assertCanRename(musicFile2, musicFile3);
+            assertCanRenameFile(musicFile2, musicFile3);
 
             assertThat(nonMediaDir1.mkdir()).isTrue();
             assertThat(pdfFile1.createNewFile()).isTrue();
             // can rename directory to root directory.
-            assertCanRename(nonMediaDir1, nonMediaDir2);
-            assertThat(pdfFile2.exists()).isTrue();
+            assertCanRenameDirectory(nonMediaDir1, nonMediaDir2, new File[]{pdfFile1},
+                    new File[]{pdfFile2});
         } finally {
             musicFile1.delete();
             musicFile2.delete();
@@ -335,13 +338,14 @@ public class LegacyFileAccessTest {
                 getExternalMediaDirs()[0], "LegacyFileAccessTest2");
         try {
             // app can't rename shell file.
-            assertThat(shellFile1.renameTo(shellFile2)).isFalse();
+            assertCantRenameFile(shellFile1, shellFile2);
             // app can't move shell file to its media directory.
-            assertThat(mediaFile1.renameTo(shellFile1)).isFalse();
+            assertCantRenameFile(shellFile1, mediaFile1);
             // However, even without permissions, app can rename files in its own external media
             // directory.
             assertThat(mediaFile1.createNewFile()).isTrue();
-            assertCanRename(mediaFile1, mediaFile2);
+            assertThat(mediaFile1.renameTo(mediaFile2)).isTrue();
+            assertThat(mediaFile2.exists()).isTrue();
         } finally {
             mediaFile1.delete();
             mediaFile2.delete();
@@ -367,13 +371,14 @@ public class LegacyFileAccessTest {
                 getExternalMediaDirs()[0], "LegacyFileAccessTest2");
         try {
             // app can't rename shell file.
-            assertThat(shellFile1.renameTo(shellFile2)).isFalse();
+            assertCantRenameFile(shellFile1, shellFile2);
             // app can't move shell file to its media directory.
-            assertThat(mediaFile1.renameTo(shellFile1)).isFalse();
+            assertCantRenameFile(shellFile1, mediaFile1);
             // However, even without permissions, app can rename files in its own external media
             // directory.
             assertThat(mediaFile1.createNewFile()).isTrue();
-            assertCanRename(mediaFile1, mediaFile2);
+            assertThat(mediaFile1.renameTo(mediaFile2)).isTrue();
+            assertThat(mediaFile2.exists()).isTrue();
         } finally {
             mediaFile1.delete();
             mediaFile2.delete();
@@ -479,11 +484,5 @@ public class LegacyFileAccessTest {
         } finally {
             dir.delete();
         }
-    }
-
-    private static void assertCanRename(File oldPath, File newPath) {
-        assertThat(oldPath.renameTo(newPath)).isTrue();
-        assertThat(oldPath.exists()).isFalse();
-        assertThat(newPath.exists()).isTrue();
     }
 }

@@ -34,17 +34,17 @@ namespace mediaprovider {
 namespace fuse {
 
 struct handle {
-    explicit handle(const std::string& path, int fd, const RedactionInfo* ri, bool cached,
-                    bool is_new_file)
-        : path(path), fd(fd), ri(ri), cached(cached), is_new_file(is_new_file) {
+    explicit handle(const std::string& path, int fd, const RedactionInfo* ri, uid_t owner_uid,
+                    bool cached)
+        : path(path), fd(fd), ri(ri), owner_uid(owner_uid), cached(cached) {
         CHECK(ri != nullptr);
     }
 
     const std::string path;
     const int fd;
     const std::unique_ptr<const RedactionInfo> ri;
+    const uid_t owner_uid;
     const bool cached;
-    const bool is_new_file;
 
     ~handle() { close(fd); }
 };

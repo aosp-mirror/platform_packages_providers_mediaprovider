@@ -1195,6 +1195,9 @@ public class MediaProvider extends ContentProvider {
         boolean retryUpdateWithReplace = false;
 
         try {
+            // TODO(b/146777893): System gallery apps can rename a media directory containing
+            // non-media files. This update doesn't support updating non-media files that are not
+            // owned by system gallery app.
             count = qbForUpdate.update(helper, values, selection, new String[]{oldPath});
         } catch (SQLiteConstraintException e) {
             Log.w(TAG, "Database update failed while renaming " + oldPath, e);
@@ -1241,6 +1244,27 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     * Gets all files in the given {@code path} and subdirectories of the given {@code path}.
+     */
+    private ArrayList<String> getAllFilesForRenameDirectory(String oldPath) {
+        final String selection = MediaColumns.RELATIVE_PATH + " REGEXP '^" +
+                extractRelativePathForDirectory(oldPath) + "/?.*' and mime_type not like 'null'";
+        ArrayList<String> fileList = new ArrayList<>();
+
+        final LocalCallingIdentity token = clearLocalCallingIdentity();
+        try (final Cursor c = query(Files.getContentUriForPath(oldPath),
+                new String[] {MediaColumns.DATA}, selection, null, null)) {
+            while (c.moveToNext()) {
+                final String filePath = c.getString(0).replaceFirst("^" + oldPath + "/(.*)", "$1");
+                fileList.add(filePath);
+            }
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
+        return fileList;
+    }
+
+    /**
      * Gets files in the given {@code path} and subdirectories of the given {@code path} for which
      * calling package has write permissions.
      *
@@ -1248,7 +1272,8 @@ public class MediaProvider extends ContentProvider {
      * files for which calling package doesn't have write permission or if file type is not
      * supported in {@code newPath}
      */
-    private ArrayList<String> getWritableFilesForRenameDirectory(String oldPath, String newPath) {
+    private ArrayList<String> getWritableFilesForRenameDirectory(String oldPath, String newPath)
+            throws IllegalArgumentException {
         final int countAllFilesInDirectory;
         final String selection = MediaColumns.RELATIVE_PATH + " REGEXP '^" +
                 extractRelativePathForDirectory(oldPath) + "/?.*' and mime_type not like 'null'";
@@ -1330,16 +1355,21 @@ public class MediaProvider extends ContentProvider {
      * write permission.
      * This method can also return errno returned from {@code Os.rename} function.
      */
-    private int renameDirectoryForFuse(String oldPath, String newPath) {
+    private int renameDirectoryCheckedForFuse(String oldPath, String newPath) {
         final ArrayList<String> fileList;
         try {
             fileList = getWritableFilesForRenameDirectory(oldPath, newPath);
-        } catch(IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             final String errorMessage = "Rename " + oldPath + " to " + newPath + " failed. ";
             Log.e(TAG, errorMessage, e);
             return OsConstants.EPERM;
         }
 
+        return renameDirectoryUncheckedForFuse(oldPath, newPath, fileList);
+    }
+
+    private int renameDirectoryUncheckedForFuse(String oldPath, String newPath,
+            ArrayList<String> fileList) {
         final DatabaseHelper helper;
         try {
             helper = getDatabaseForUri(Files.getContentUriForPath(oldPath));
@@ -1390,13 +1420,17 @@ public class MediaProvider extends ContentProvider {
      * {@code oldPath} or {@code newPath}, or file type is not supported by {@code newPath}.
      * This method can also return errno returned from {@code Os.rename} function.
      */
-    private int renameFileForFuse(String oldPath, String newPath) {
+    private int renameFileCheckedForFuse(String oldPath, String newPath) {
         // Check if new mime type is supported in new path.
         final String newMimeType = MimeUtils.resolveMimeType(new File(newPath));
         if (!isMimeTypeSupportedInPath(newPath, newMimeType)) {
             return OsConstants.EPERM;
         }
+        return renameFileUncheckedForFuse(oldPath, newPath);
+    }
 
+    private int renameFileUncheckedForFuse(String oldPath, String newPath) {
+        final String newMimeType = MimeUtils.resolveMimeType(new File(newPath));
         final DatabaseHelper helper;
         try {
             helper = getDatabaseForUri(Files.getContentUriForPath(oldPath));
@@ -1428,19 +1462,18 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Renames file or directory in lower file system and deletes {@code oldPath} from database.
+     * Rename file/directory without imposing any restrictions.
+     *
+     * We don't impose any rename restrictions for apps that bypass scoped storage restrictions.
+     * However, we update database entries for renamed files to keep the database consistent.
      */
     private int renameUncheckedForFuse(String oldPath, String newPath) {
-        final int result = renameInLowerFs(oldPath, newPath);
-        if (result == 0) {
-            LocalCallingIdentity token = clearLocalCallingIdentity();
-            try {
-                scanFile(new File(oldPath), REASON_DEMAND);
-            } finally {
-                restoreLocalCallingIdentity(token);
-            }
+        if (new File(oldPath).isFile()) {
+            return renameFileUncheckedForFuse(oldPath, newPath);
+        } else {
+            return renameDirectoryUncheckedForFuse(oldPath, newPath,
+                    getAllFilesForRenameDirectory(oldPath));
         }
-        return result;
     }
 
     /**
@@ -1537,9 +1570,9 @@ public class MediaProvider extends ContentProvider {
 
             // Continue renaming files/directories if rename of oldPath to newPath is allowed.
             if (new File(oldPath).isFile()) {
-                return renameFileForFuse(oldPath, newPath);
+                return renameFileCheckedForFuse(oldPath, newPath);
             } else {
-                return renameDirectoryForFuse(oldPath, newPath);
+                return renameDirectoryCheckedForFuse(oldPath, newPath);
             }
         } finally {
             restoreLocalCallingIdentity(token);

@@ -25,12 +25,8 @@ import static com.android.tests.fused.lib.RedactionTestHelper.assertExifMetadata
 import static com.android.tests.fused.lib.RedactionTestHelper.assertExifMetadataMismatch;
 import static com.android.tests.fused.lib.RedactionTestHelper.getExifMetadata;
 import static com.android.tests.fused.lib.RedactionTestHelper.getExifMetadataFromRawResource;
-import static com.android.tests.fused.lib.TestUtils.assertCanRenameFile;
-import static com.android.tests.fused.lib.TestUtils.assertCanRenameDirectory;
 import static com.android.tests.fused.lib.TestUtils.adoptShellPermissionIdentity;
 import static com.android.tests.fused.lib.TestUtils.allowAppOpsToUid;
-import static com.android.tests.fused.lib.TestUtils.assertCantRenameDirectory;
-import static com.android.tests.fused.lib.TestUtils.assertCantRenameFile;
 import static com.android.tests.fused.lib.TestUtils.assertThrows;
 import static com.android.tests.fused.lib.TestUtils.createFileAs;
 import static com.android.tests.fused.lib.TestUtils.deleteFileAs;
@@ -993,19 +989,21 @@ public class FilePathAccessTest {
             assertFileContent(otherAppVideoFile, BYTES_DATA1);
 
             // Assert we can rename the file and ensure the file has the same content
-            assertCanRenameFile(otherAppVideoFile, videoFile);
+            assertThat(otherAppVideoFile.renameTo(videoFile)).isTrue();
+            assertThat(otherAppVideoFile.exists()).isFalse();
             assertFileContent(videoFile, BYTES_DATA1);
             // We can even move it to the top level directory
-            assertCanRenameFile(videoFile, topLevelVideoFile);
+            assertThat(videoFile.renameTo(topLevelVideoFile)).isTrue();
+            assertThat(videoFile.exists()).isFalse();
             assertFileContent(topLevelVideoFile, BYTES_DATA1);
             // And we can even convert it into an image file, because why not?
-            assertCanRenameFile(topLevelVideoFile, imageFile);
+            assertThat(topLevelVideoFile.renameTo(imageFile)).isTrue();
+            assertThat(topLevelVideoFile.exists()).isFalse();
             assertFileContent(imageFile, BYTES_DATA1);
 
-            // We can convert it to a music file, but we won't have access to music file after
-            // renaming.
-            assertThat(imageFile.renameTo(musicFile)).isTrue();
-            assertThat(getFileRowIdFromDatabase(musicFile)).isEqualTo(-1);
+            // However, we can't convert it to a music file, because system gallery has full access
+            // to images and video only
+            assertThat(imageFile.renameTo(musicFile)).isFalse();
         } finally {
             deleteFileAsNoThrow(TEST_APP_A, otherAppVideoFile.getAbsolutePath());
             uninstallApp(TEST_APP_A);
@@ -1354,19 +1352,24 @@ public class FilePathAccessTest {
             assertFileContent(otherAppPdf, BYTES_DATA1);
 
             // Assert we can rename the file and ensure the file has the same content
-            assertCanRenameFile(otherAppPdf, pdf);
+            assertThat(otherAppPdf.renameTo(pdf)).isTrue();
+            assertThat(otherAppPdf.exists()).isFalse();
             assertFileContent(pdf, BYTES_DATA1);
             // We can even move it to the top level directory
-            assertCanRenameFile(pdf, topLevelPdf);
+            assertThat(pdf.renameTo(topLevelPdf)).isTrue();
+            assertThat(pdf.exists()).isFalse();
             assertFileContent(topLevelPdf, BYTES_DATA1);
             // And even rename to a place where PDFs don't belong, because we're an omnipotent
             // external storage manager
-            assertCanRenameFile(topLevelPdf, pdfInObviouslyWrongPlace);
+            assertThat(topLevelPdf.renameTo(pdfInObviouslyWrongPlace)).isTrue();
+            assertThat(topLevelPdf.exists()).isFalse();
             assertFileContent(pdfInObviouslyWrongPlace, BYTES_DATA1);
 
             // And we can even convert it into a music file, because why not?
-            assertCanRenameFile(pdfInObviouslyWrongPlace, musicFile);
+            assertThat(pdfInObviouslyWrongPlace.renameTo(musicFile)).isTrue();
+            assertThat(pdfInObviouslyWrongPlace.exists()).isFalse();
             assertFileContent(musicFile, BYTES_DATA1);
+
         } finally {
             pdf.delete();
             pdfInObviouslyWrongPlace.delete();
@@ -1536,6 +1539,46 @@ public class FilePathAccessTest {
         } else {
             Log.w(TAG, "Couldn't assertCanCreateFile(" + file + ") because file existed prior to "
                     + "running the test!");
+        }
+    }
+
+    private static void assertCanRenameFile(File oldFile, File newFile) {
+        assertThat(oldFile.renameTo(newFile)).isTrue();
+        assertThat(oldFile.exists()).isFalse();
+        assertThat(newFile.exists()).isTrue();
+        assertThat(getFileRowIdFromDatabase(oldFile)).isEqualTo(-1);
+        assertThat(getFileRowIdFromDatabase(newFile)).isNotEqualTo(-1);
+    }
+
+    private static void assertCantRenameFile(File oldFile, File newFile) {
+        final int rowId = getFileRowIdFromDatabase(oldFile);
+        assertThat(oldFile.renameTo(newFile)).isFalse();
+        assertThat(oldFile.exists()).isTrue();
+        assertThat(getFileRowIdFromDatabase(oldFile)).isEqualTo(rowId);
+    }
+
+    private static void assertCanRenameDirectory(File oldDirectory, File newDirectory,
+            @Nullable File[] oldFilesList, @Nullable File[] newFilesList) {
+        assertThat(oldDirectory.renameTo(newDirectory)).isTrue();
+        assertThat(oldDirectory.exists()).isFalse();
+        assertThat(newDirectory.exists()).isTrue();
+        for (File file  : oldFilesList != null ? oldFilesList : new File[0]) {
+            assertThat(file.exists()).isFalse();
+            assertThat(getFileRowIdFromDatabase(file)).isEqualTo(-1);
+        }
+        for (File file : newFilesList != null ? newFilesList : new File[0]) {
+            assertThat(file.exists()).isTrue();
+            assertThat(getFileRowIdFromDatabase(file)).isNotEqualTo(-1);
+        };
+    }
+
+    private static void assertCantRenameDirectory(File oldDirectory, File newDirectory,
+            @Nullable File[] oldFilesList) {
+        assertThat(oldDirectory.renameTo(newDirectory)).isFalse();
+        assertThat(oldDirectory.exists()).isTrue();
+        for (File file  : oldFilesList != null ? oldFilesList : new File[0]) {
+            assertThat(file.exists()).isTrue();
+            assertThat(getFileRowIdFromDatabase(file)).isNotEqualTo(-1);
         }
     }
 

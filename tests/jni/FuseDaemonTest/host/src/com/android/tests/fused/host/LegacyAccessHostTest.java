@@ -161,12 +161,7 @@ public class LegacyAccessHostTest extends BaseHostJUnit4Test {
     @Test
     public void testCantRename_hasR() throws Exception {
         revokePermissions("android.permission.WRITE_EXTERNAL_STORAGE");
-        createFileAsShell(SHELL_FILE, /*bypassFuse*/ true);
-        try {
-            runDeviceTest("testCantRename_hasR");
-        } finally {
-            executeShellCommand("rm " + SHELL_FILE);
-        }
+        runDeviceTest("testCantRename_hasR");
     }
 
 

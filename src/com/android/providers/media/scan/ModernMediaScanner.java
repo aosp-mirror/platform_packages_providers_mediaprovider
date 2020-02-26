@@ -213,15 +213,19 @@ public class ModernMediaScanner implements MediaScanner {
 
     @Override
     public void scanDirectory(File file, int reason) {
-        try (Scan scan = new Scan(file, reason)) {
+        try (Scan scan = new Scan(file, reason, /*ownerPackage*/ null)) {
             scan.run();
         } catch (OperationCanceledException ignored) {
         }
     }
-
     @Override
     public Uri scanFile(File file, int reason) {
-        try (Scan scan = new Scan(file, reason)) {
+       return scanFile(file, reason, /*ownerPackage*/ null);
+    }
+
+    @Override
+    public Uri scanFile(File file, int reason, @Nullable String ownerPackage) {
+        try (Scan scan = new Scan(file, reason, ownerPackage)) {
             scan.run();
             return scan.mFirstResult;
         } catch (OperationCanceledException ignored) {
@@ -264,6 +268,7 @@ public class ModernMediaScanner implements MediaScanner {
         private final String mVolumeName;
         private final Uri mFilesUri;
         private final CancellationSignal mSignal;
+        private final String mOwnerPackage;
 
         private final long mStartGeneration;
         private final boolean mSingleFile;
@@ -280,7 +285,9 @@ public class ModernMediaScanner implements MediaScanner {
         private int mUpdateCount;
         private int mDeleteCount;
 
-        public Scan(File root, int reason) {
+
+        public Scan(File root, int reason, @Nullable String ownerPackage) {
+
             Trace.beginSection("ctor");
 
             mClient = mContext.getContentResolver()
@@ -295,6 +302,7 @@ public class ModernMediaScanner implements MediaScanner {
 
             mStartGeneration = MediaStore.getGeneration(mResolver, mVolumeName);
             mSingleFile = mRoot.isFile();
+            mOwnerPackage = ownerPackage;
 
             Trace.endSection();
         }
@@ -575,6 +583,10 @@ public class ModernMediaScanner implements MediaScanner {
                 Trace.endSection();
             }
             if (op != null) {
+                // Add owner package name to new insertions when package name is provided.
+                if (op.build().isInsert() && !attrs.isDirectory() && mOwnerPackage != null) {
+                    op.withValue(MediaColumns.OWNER_PACKAGE_NAME, mOwnerPackage);
+                }
                 // Force DRM files to be marked as DRM, since the lower level
                 // stack may not set this correctly
                 if (isDrm) {

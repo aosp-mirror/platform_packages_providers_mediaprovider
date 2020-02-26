@@ -404,6 +404,46 @@ public class TestUtils {
         return path.delete();
     }
 
+    public static void assertCanRenameFile(File oldFile, File newFile) {
+        assertThat(oldFile.renameTo(newFile)).isTrue();
+        assertThat(oldFile.exists()).isFalse();
+        assertThat(newFile.exists()).isTrue();
+        assertThat(getFileRowIdFromDatabase(oldFile)).isEqualTo(-1);
+        assertThat(getFileRowIdFromDatabase(newFile)).isNotEqualTo(-1);
+    }
+
+    public static void assertCantRenameFile(File oldFile, File newFile) {
+        final int rowId = getFileRowIdFromDatabase(oldFile);
+        assertThat(oldFile.renameTo(newFile)).isFalse();
+        assertThat(oldFile.exists()).isTrue();
+        assertThat(getFileRowIdFromDatabase(oldFile)).isEqualTo(rowId);
+    }
+
+    public static void assertCanRenameDirectory(File oldDirectory, File newDirectory,
+            @Nullable File[] oldFilesList, @Nullable File[] newFilesList) {
+        assertThat(oldDirectory.renameTo(newDirectory)).isTrue();
+        assertThat(oldDirectory.exists()).isFalse();
+        assertThat(newDirectory.exists()).isTrue();
+        for (File file  : oldFilesList != null ? oldFilesList : new File[0]) {
+            assertThat(file.exists()).isFalse();
+            assertThat(getFileRowIdFromDatabase(file)).isEqualTo(-1);
+        }
+        for (File file : newFilesList != null ? newFilesList : new File[0]) {
+            assertThat(file.exists()).isTrue();
+            assertThat(getFileRowIdFromDatabase(file)).isNotEqualTo(-1);
+        };
+    }
+
+    public static void assertCantRenameDirectory(File oldDirectory, File newDirectory,
+            @Nullable File[] oldFilesList) {
+        assertThat(oldDirectory.renameTo(newDirectory)).isFalse();
+        assertThat(oldDirectory.exists()).isTrue();
+        for (File file  : oldFilesList != null ? oldFilesList : new File[0]) {
+            assertThat(file.exists()).isTrue();
+            assertThat(getFileRowIdFromDatabase(file)).isNotEqualTo(-1);
+        }
+    }
+
     public static void pollForExternalStorageState() throws Exception {
         for (int i = 0; i < POLLING_TIMEOUT_MILLIS / POLLING_SLEEP_MILLIS; i++) {
             if(Environment.getExternalStorageState(Environment.getExternalStorageDirectory())

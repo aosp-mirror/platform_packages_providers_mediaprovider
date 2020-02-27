@@ -3037,7 +3037,8 @@ public class MediaProvider extends ContentProvider {
         }
         final String sharedPackages = getSharedPackages(callingPackage);
         final boolean allowGlobal = checkCallingPermissionGlobal(uri, forWrite);
-        final boolean allowLegacy = checkCallingPermissionLegacyWrite(uri, forWrite, callingPackage);
+        final boolean allowLegacy =
+                forWrite ? isCallingPackageLegacyWrite() : isCallingPackageLegacyRead();
         final boolean allowLegacyRead = allowLegacy && !forWrite;
 
         int matchPending = extras.getInt(QUERY_ARG_MATCH_PENDING, MATCH_DEFAULT);
@@ -5873,11 +5874,6 @@ public class MediaProvider extends ContentProvider {
         }
 
         return false;
-    }
-
-    private boolean checkCallingPermissionLegacyWrite(Uri uri, boolean forWrite,
-            String callingPackage) {
-        return mCallingIdentity.get().hasPermission(PERMISSION_IS_LEGACY_WRITE);
     }
 
     @Deprecated

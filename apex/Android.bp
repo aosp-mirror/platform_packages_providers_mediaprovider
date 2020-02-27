@@ -3,6 +3,7 @@ apex {
     defaults: ["com.android.mediaprovider-defaults"],
     manifest: "apex_manifest.json",
     apps: ["MediaProvider"],
+    prebuilts: ["media-provider-platform-compat-config"],
 }
 
 apex_defaults {

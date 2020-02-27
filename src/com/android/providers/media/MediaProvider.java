@@ -65,6 +65,7 @@ import static com.android.providers.media.util.FileUtils.extractVolumeName;
 import static com.android.providers.media.util.FileUtils.isDownload;
 import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionManageExternalStorage;
 
 import android.app.AppOpsManager;
 import android.app.AppOpsManager.OnOpActiveChangedListener;
@@ -88,6 +89,7 @@ import android.content.IntentFilter;
 import android.content.OperationApplicationException;
 import android.content.SharedPreferences;
 import android.content.UriMatcher;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInstaller.SessionInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -186,7 +188,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -239,6 +240,7 @@ public class MediaProvider extends ContentProvider {
     private static final String DIRECTORY_DOCUMENTS = "Documents";
     private static final String DIRECTORY_AUDIOBOOKS = "Audiobooks";
     private static final String DIRECTORY_ANDROID = "Android";
+
     private static final String DIRECTORY_MEDIA = "media";
 
     /**
@@ -428,11 +430,49 @@ public class MediaProvider extends ContentProvider {
         }
     };
 
+    private final void updateQuotaTypeForUri(@NonNull Uri uri, int mediaType) {
+        File file;
+        try {
+            file = queryForDataFile(uri, null);
+        } catch (FileNotFoundException e) {
+            // Ignore
+            return;
+        }
+        try {
+            switch (mediaType) {
+                case FileColumns.MEDIA_TYPE_AUDIO:
+                    mStorageManager.updateExternalStorageFileQuotaType(file,
+                            StorageManager.QUOTA_TYPE_MEDIA_AUDIO);
+                    break;
+                case FileColumns.MEDIA_TYPE_VIDEO:
+                    mStorageManager.updateExternalStorageFileQuotaType(file,
+                            StorageManager.QUOTA_TYPE_MEDIA_VIDEO);
+                    break;
+                case FileColumns.MEDIA_TYPE_IMAGE:
+                    mStorageManager.updateExternalStorageFileQuotaType(file,
+                            StorageManager.QUOTA_TYPE_MEDIA_IMAGE);
+                    break;
+                default:
+                    mStorageManager.updateExternalStorageFileQuotaType(file,
+                            StorageManager.QUOTA_TYPE_MEDIA_NONE);
+                    break;
+            }
+        } catch (IOException e) {
+            Log.w(TAG, "Failed to update quota type for " + file.getPath(), e);
+        }
+    }
+
     private final OnFilesChangeListener mFilesListener = new OnFilesChangeListener() {
         @Override
         public void onInsert(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
                 int mediaType, boolean isDownload) {
             acceptWithExpansion(helper::notifyChange, volumeName, id, mediaType, isDownload);
+
+            if (helper.isExternal()) {
+                // Update the quota type on the filesystem
+                Uri fileUri = MediaStore.Files.getContentUri(volumeName, id);
+                updateQuotaTypeForUri(fileUri, mediaType);
+            }
 
             // Tell our SAF provider so it knows when views are no longer empty
             MediaDocumentsProvider.onMediaStoreInsert(getContext(), volumeName, mediaType, id);
@@ -448,8 +488,12 @@ public class MediaProvider extends ContentProvider {
             // When media type changes, notify both old and new collections and
             // invalidate any thumbnails
             if (newMediaType != oldMediaType) {
+                Uri fileUri = MediaStore.Files.getContentUri(volumeName, id);
+                if (helper.isExternal()) {
+                    updateQuotaTypeForUri(fileUri, newMediaType);
+                }
                 acceptWithExpansion(helper::notifyChange, volumeName, id, newMediaType, isDownload);
-                invalidateThumbnails(MediaStore.Files.getContentUri(volumeName, id));
+                invalidateThumbnails(fileUri);
             }
         }
 
@@ -520,19 +564,28 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-
-
     private static final String[] sDefaultFolderNames = {
-        Environment.DIRECTORY_MUSIC,
-        Environment.DIRECTORY_PODCASTS,
-        Environment.DIRECTORY_RINGTONES,
-        Environment.DIRECTORY_ALARMS,
-        Environment.DIRECTORY_NOTIFICATIONS,
-        Environment.DIRECTORY_PICTURES,
-        Environment.DIRECTORY_MOVIES,
-        Environment.DIRECTORY_DOWNLOADS,
-        Environment.DIRECTORY_DCIM,
+            Environment.DIRECTORY_MUSIC,
+            Environment.DIRECTORY_PODCASTS,
+            Environment.DIRECTORY_RINGTONES,
+            Environment.DIRECTORY_ALARMS,
+            Environment.DIRECTORY_NOTIFICATIONS,
+            Environment.DIRECTORY_PICTURES,
+            Environment.DIRECTORY_MOVIES,
+            Environment.DIRECTORY_DOWNLOADS,
+            Environment.DIRECTORY_DCIM,
+            Environment.DIRECTORY_DOCUMENTS,
+            Environment.DIRECTORY_AUDIOBOOKS,
     };
+
+    private static boolean isDefaultDirectoryName(@Nullable String dirName) {
+        for (String defaultDirName : sDefaultFolderNames) {
+            if (defaultDirName.equals(dirName)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * Ensure that default folders are created on mounted primary storage
@@ -544,7 +597,12 @@ public class MediaProvider extends ContentProvider {
             final File path = getVolumePath(volumeName);
             final StorageVolume vol = mStorageManager.getStorageVolume(path);
             final String key;
-            if (vol == null || vol.isPrimary()) {
+            if (vol == null) {
+                Log.w(TAG, "Failed to ensure default folders for " + volumeName);
+                return;
+            }
+
+            if (vol.isPrimary()) {
                 key = "created_default_folders";
             } else {
                 key = "created_default_folders_" + vol.getMediaStoreVolumeName();
@@ -797,15 +855,56 @@ public class MediaProvider extends ContentProvider {
         return mMediaScanner.scanFile(file, reason);
     }
 
+    public Uri scanFile(File file, int reason, String ownerPackage) {
+        return mMediaScanner.scanFile(file, reason, ownerPackage);
+    }
+
     /**
      * Makes MediaScanner scan the given file.
      * @param file path of the file to be scanned
+     * @param uid  UID of the app that owns the file on the given path. If the file is scanned
+     *            on create, this UID will be used for updating owner package.
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public void scanFileForFuse(String file) {
-        scanFile(new File(file), REASON_DEMAND);
+    public void scanFileForFuse(String file, int uid) {
+        final String callingPackage =
+                LocalCallingIdentity.fromExternal(getContext(), uid).getPackageName();
+        scanFile(new File(file), REASON_DEMAND, callingPackage);
+    }
+
+    /**
+     * Returns true if the app denoted by the given {@code uid} and {@code packageName} is allowed
+     * to clear other apps' cache directories.
+     */
+    static boolean hasPermissionToClearCaches(Context context, ApplicationInfo ai) {
+        return checkPermissionManageExternalStorage(context, /*pid*/-1, ai.uid, ai.packageName);
+    }
+
+    /**
+     * Clears all app's external cache directories, i.e. for each app we delete
+     * /sdcard/Android/data/app/cache/* but we keep the directory itself.
+     *
+     * <p>This method doesn't perform any checks, so make sure that the calling package is allowed
+     * to clear cache directories by calling {@link #hasPermissionToClearCaches} first.
+     */
+    static void clearAppCacheDirectories() {
+        Log.i(TAG, "Clearing cache for all apps on");
+        final File rootDataDir = FileUtils.buildPath(Environment.getExternalStorageDirectory(),
+                DIRECTORY_ANDROID, "data");
+        for (File appDataDir : rootDataDir.listFiles()) {
+            try {
+                final File appCacheDir = new File(appDataDir, "cache");
+                if (appCacheDir.isDirectory()) {
+                    FileUtils.deleteContents(appCacheDir);
+                }
+            } catch (Exception e) {
+                // We want to avoid crashing MediaProvider at all costs, so we handle all "generic"
+                // exceptions here.
+                Log.e(TAG, "Couldn't delete all app cache dirs!", e);
+            }
+        }
     }
 
     @VisibleForTesting
@@ -1086,6 +1185,9 @@ public class MediaProvider extends ContentProvider {
         boolean retryUpdateWithReplace = false;
 
         try {
+            // TODO(b/146777893): System gallery apps can rename a media directory containing
+            // non-media files. This update doesn't support updating non-media files that are not
+            // owned by system gallery app.
             count = qbForUpdate.update(helper, values, selection, new String[]{oldPath});
         } catch (SQLiteConstraintException e) {
             Log.w(TAG, "Database update failed while renaming " + oldPath, e);
@@ -1132,6 +1234,27 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     * Gets all files in the given {@code path} and subdirectories of the given {@code path}.
+     */
+    private ArrayList<String> getAllFilesForRenameDirectory(String oldPath) {
+        final String selection = MediaColumns.RELATIVE_PATH + " REGEXP '^" +
+                extractRelativePathForDirectory(oldPath) + "/?.*' and mime_type not like 'null'";
+        ArrayList<String> fileList = new ArrayList<>();
+
+        final LocalCallingIdentity token = clearLocalCallingIdentity();
+        try (final Cursor c = query(Files.getContentUriForPath(oldPath),
+                new String[] {MediaColumns.DATA}, selection, null, null)) {
+            while (c.moveToNext()) {
+                final String filePath = c.getString(0).replaceFirst("^" + oldPath + "/(.*)", "$1");
+                fileList.add(filePath);
+            }
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
+        return fileList;
+    }
+
+    /**
      * Gets files in the given {@code path} and subdirectories of the given {@code path} for which
      * calling package has write permissions.
      *
@@ -1139,7 +1262,8 @@ public class MediaProvider extends ContentProvider {
      * files for which calling package doesn't have write permission or if file type is not
      * supported in {@code newPath}
      */
-    private ArrayList<String> getWritableFilesForRenameDirectory(String oldPath, String newPath) {
+    private ArrayList<String> getWritableFilesForRenameDirectory(String oldPath, String newPath)
+            throws IllegalArgumentException {
         final int countAllFilesInDirectory;
         final String selection = MediaColumns.RELATIVE_PATH + " REGEXP '^" +
                 extractRelativePathForDirectory(oldPath) + "/?.*' and mime_type not like 'null'";
@@ -1221,16 +1345,21 @@ public class MediaProvider extends ContentProvider {
      * write permission.
      * This method can also return errno returned from {@code Os.rename} function.
      */
-    private int renameDirectoryForFuse(String oldPath, String newPath) {
+    private int renameDirectoryCheckedForFuse(String oldPath, String newPath) {
         final ArrayList<String> fileList;
         try {
             fileList = getWritableFilesForRenameDirectory(oldPath, newPath);
-        } catch(IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             final String errorMessage = "Rename " + oldPath + " to " + newPath + " failed. ";
             Log.e(TAG, errorMessage, e);
             return OsConstants.EPERM;
         }
 
+        return renameDirectoryUncheckedForFuse(oldPath, newPath, fileList);
+    }
+
+    private int renameDirectoryUncheckedForFuse(String oldPath, String newPath,
+            ArrayList<String> fileList) {
         final DatabaseHelper helper;
         try {
             helper = getDatabaseForUri(Files.getContentUriForPath(oldPath));
@@ -1281,13 +1410,17 @@ public class MediaProvider extends ContentProvider {
      * {@code oldPath} or {@code newPath}, or file type is not supported by {@code newPath}.
      * This method can also return errno returned from {@code Os.rename} function.
      */
-    private int renameFileForFuse(String oldPath, String newPath) {
+    private int renameFileCheckedForFuse(String oldPath, String newPath) {
         // Check if new mime type is supported in new path.
         final String newMimeType = MimeUtils.resolveMimeType(new File(newPath));
         if (!isMimeTypeSupportedInPath(newPath, newMimeType)) {
             return OsConstants.EPERM;
         }
+        return renameFileUncheckedForFuse(oldPath, newPath);
+    }
 
+    private int renameFileUncheckedForFuse(String oldPath, String newPath) {
+        final String newMimeType = MimeUtils.resolveMimeType(new File(newPath));
         final DatabaseHelper helper;
         try {
             helper = getDatabaseForUri(Files.getContentUriForPath(oldPath));
@@ -1319,6 +1452,21 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     * Rename file/directory without imposing any restrictions.
+     *
+     * We don't impose any rename restrictions for apps that bypass scoped storage restrictions.
+     * However, we update database entries for renamed files to keep the database consistent.
+     */
+    private int renameUncheckedForFuse(String oldPath, String newPath) {
+        if (new File(oldPath).isFile()) {
+            return renameFileUncheckedForFuse(oldPath, newPath);
+        } else {
+            return renameDirectoryUncheckedForFuse(oldPath, newPath,
+                    getAllFilesForRenameDirectory(oldPath));
+        }
+    }
+
+    /**
      * Rename file or directory from {@code oldPath} to {@code newPath}.
      *
      * @param oldPath path of the file or directory to be renamed.
@@ -1342,7 +1490,7 @@ public class MediaProvider extends ContentProvider {
         try {
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, oldPath)
                     && shouldBypassFuseRestrictions(/*forWrite*/ true, newPath)) {
-                return renameInLowerFs(oldPath, newPath);
+                return renameUncheckedForFuse(oldPath, newPath);
             }
 
             // Allow legacy app without storage permission to rename files only in its external
@@ -1412,9 +1560,9 @@ public class MediaProvider extends ContentProvider {
 
             // Continue renaming files/directories if rename of oldPath to newPath is allowed.
             if (new File(oldPath).isFile()) {
-                return renameFileForFuse(oldPath, newPath);
+                return renameFileCheckedForFuse(oldPath, newPath);
             } else {
-                return renameDirectoryForFuse(oldPath, newPath);
+                return renameDirectoryCheckedForFuse(oldPath, newPath);
             }
         } finally {
             restoreLocalCallingIdentity(token);
@@ -1720,7 +1868,8 @@ public class MediaProvider extends ContentProvider {
                 defaultPrimary = Environment.DIRECTORY_MOVIES;
                 allowedPrimary = Arrays.asList(
                         Environment.DIRECTORY_DCIM,
-                        Environment.DIRECTORY_MOVIES);
+                        Environment.DIRECTORY_MOVIES,
+                        Environment.DIRECTORY_PICTURES);
                 break;
             case IMAGES_MEDIA:
             case IMAGES_MEDIA_ID:
@@ -2327,7 +2476,7 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
-            rowId = qb.insert(helper, values);
+            rowId = insertAllowingUpsert(qb, helper, values, path);
         }
         if (format == MtpConstants.FORMAT_ASSOCIATION) {
             synchronized (mDirectoryCache) {
@@ -2336,6 +2485,54 @@ public class MediaProvider extends ContentProvider {
         }
 
         return rowId;
+    }
+
+    /**
+     * Inserts a new row in MediaProvider database with {@code values}. Treats insert as upsert for
+     * double inserts from same package.
+     */
+    private long insertAllowingUpsert(@NonNull SQLiteQueryBuilder qb,
+            @NonNull DatabaseHelper helper, @NonNull ContentValues values, String path)
+            throws SQLiteConstraintException {
+        return helper.runWithTransaction(() -> {
+            try {
+                return qb.insert(helper, values);
+            } catch (SQLiteConstraintException e) {
+                final long rowId = getIdIfPathExistsForPackage(qb, helper, path,
+                        getCallingPackageOrSelf());
+                // Apps sometimes create a file via direct path and then insert it into
+                // MediaStore via ContentResolver. The former should create a database entry,
+                // so we have to treat the latter as an upsert.
+                // TODO(b/149917493) Perform all INSERT operations as UPSERT.
+                if (rowId != -1 && qb.update(helper, values, "_id=?",
+                        new String[]{Long.toString(rowId)}) == 1) {
+                    return rowId;
+                }
+                // Rethrow SQLiteConstraintException on failed upsert.
+                throw e;
+            }
+        });
+    }
+
+    /**
+     * @return row id of the entry with path {@code path} and owner {@code packageName}, if it
+     * exists.
+     */
+    private long getIdIfPathExistsForPackage(@NonNull SQLiteQueryBuilder qb,
+            @NonNull DatabaseHelper helper, String path, String packageName) {
+        final String[] projection = new String[] {FileColumns._ID};
+        final String selection = FileColumns.DATA + " LIKE ? AND " +
+                FileColumns.OWNER_PACKAGE_NAME + " LIKE ? ";
+
+        // TODO(b:149842708) Handle sharedUid. Package name check will fail if FUSE didn't
+        // use the right package name for sharedUid.
+        try (Cursor c = qb.query(helper, projection, selection, new String[] {path, packageName},
+                null, null, null, null, null)) {
+            if (c.moveToFirst()) {
+                return c.getLong(0);
+            }
+        }
+        return -1;
     }
 
     private void maybePut(@NonNull ContentValues values, @NonNull String key,
@@ -3907,27 +4104,62 @@ public class MediaProvider extends ContentProvider {
         public abstract Bitmap getThumbnailBitmap(Uri uri, CancellationSignal signal)
                 throws IOException;
 
-        public File ensureThumbnail(Uri uri, CancellationSignal signal) throws IOException {
+        public ParcelFileDescriptor ensureThumbnail(Uri uri, CancellationSignal signal)
+                throws IOException {
+            // First attempt to fast-path by opening the thumbnail; if it
+            // doesn't exist we fall through to create it below
             final File thumbFile = getThumbnailFile(uri);
+            try {
+                return ParcelFileDescriptor.open(thumbFile,
+                        ParcelFileDescriptor.MODE_READ_ONLY);
+            } catch (FileNotFoundException ignored) {
+            }
+
             final File thumbDir = thumbFile.getParentFile();
             thumbDir.mkdirs();
-            if (!thumbFile.exists()) {
-                // When multiple threads race for the same thumbnail, the second
-                // thread could return a file with a thumbnail still in
-                // progress. We could add heavy per-ID locking to mitigate this
-                // rare race condition, but it's simpler to have both threads
-                // generate the same thumbnail using temporary files and rename
-                // them into place once finished.
-                final File thumbTempFile = File.createTempFile("thumb", null, thumbDir);
+
+            // When multiple threads race for the same thumbnail, the second
+            // thread could return a file with a thumbnail still in
+            // progress. We could add heavy per-ID locking to mitigate this
+            // rare race condition, but it's simpler to have both threads
+            // generate the same thumbnail using temporary files and rename
+            // them into place once finished.
+            final File thumbTempFile = File.createTempFile("thumb", null, thumbDir);
+
+            ParcelFileDescriptor thumbWrite = null;
+            ParcelFileDescriptor thumbRead = null;
+            try {
+                // Open our temporary file twice: once for local writing, and
+                // once for remote reading. Both FDs point at the same
+                // underlying inode on disk, so they're stable across renames
+                // to avoid race conditions between threads.
+                thumbWrite = ParcelFileDescriptor.open(thumbTempFile,
+                        ParcelFileDescriptor.MODE_WRITE_ONLY | ParcelFileDescriptor.MODE_CREATE);
+                thumbRead = ParcelFileDescriptor.open(thumbTempFile,
+                        ParcelFileDescriptor.MODE_READ_ONLY);
+
                 final Bitmap thumbnail = getThumbnailBitmap(uri, signal);
-                try (OutputStream out = new FileOutputStream(thumbTempFile)) {
-                    thumbnail.compress(Bitmap.CompressFormat.JPEG, 90, out);
+                thumbnail.compress(Bitmap.CompressFormat.JPEG, 90,
+                        new FileOutputStream(thumbWrite.getFileDescriptor()));
+
+                try {
+                    // Use direct syscall for better failure logs
+                    Os.rename(thumbTempFile.getAbsolutePath(), thumbFile.getAbsolutePath());
+                } catch (ErrnoException e) {
+                    e.rethrowAsIOException();
                 }
-                if (!thumbTempFile.renameTo(thumbFile)) {
-                    thumbTempFile.delete();
-                }
+
+                // Everything above went peachy, so return a duplicate of our
+                // already-opened read FD to keep our finally logic below simple
+                return thumbRead.dup();
+
+            } finally {
+                // Regardless of success or failure, try cleaning up any
+                // remaining temporary file and close all our local FDs
+                FileUtils.closeQuietly(thumbWrite);
+                FileUtils.closeQuietly(thumbRead);
+                thumbTempFile.delete();
             }
-            return thumbFile;
         }
 
         public void invalidateThumbnail(Uri uri) throws IOException {
@@ -4468,30 +4700,25 @@ public class MediaProvider extends ContentProvider {
                 final long albumId = Long.parseLong(uri.getPathSegments().get(3));
                 final Uri targetUri = ContentUris
                         .withAppendedId(Audio.Albums.getContentUri(volumeName), albumId);
-                return ParcelFileDescriptor.open(ensureThumbnail(targetUri, signal),
-                        ParcelFileDescriptor.MODE_READ_ONLY);
-
+                return ensureThumbnail(targetUri, signal);
             }
             case AUDIO_ALBUMART_FILE_ID: {
                 final long audioId = Long.parseLong(uri.getPathSegments().get(3));
                 final Uri targetUri = ContentUris
                         .withAppendedId(Audio.Media.getContentUri(volumeName), audioId);
-                return ParcelFileDescriptor.open(ensureThumbnail(targetUri, signal),
-                        ParcelFileDescriptor.MODE_READ_ONLY);
+                return ensureThumbnail(targetUri, signal);
             }
             case VIDEO_MEDIA_ID_THUMBNAIL: {
                 final long videoId = Long.parseLong(uri.getPathSegments().get(3));
                 final Uri targetUri = ContentUris
                         .withAppendedId(Video.Media.getContentUri(volumeName), videoId);
-                return ParcelFileDescriptor.open(ensureThumbnail(targetUri, signal),
-                        ParcelFileDescriptor.MODE_READ_ONLY);
+                return ensureThumbnail(targetUri, signal);
             }
             case IMAGES_MEDIA_ID_THUMBNAIL: {
                 final long imageId = Long.parseLong(uri.getPathSegments().get(3));
                 final Uri targetUri = ContentUris
                         .withAppendedId(Images.Media.getContentUri(volumeName), imageId);
-                return ParcelFileDescriptor.open(ensureThumbnail(targetUri, signal),
-                        ParcelFileDescriptor.MODE_READ_ONLY);
+                return ensureThumbnail(targetUri, signal);
             }
         }
 
@@ -4520,10 +4747,8 @@ public class MediaProvider extends ContentProvider {
         final boolean wantsThumb = (opts != null) && opts.containsKey(ContentResolver.EXTRA_SIZE)
                 && (mimeTypeFilter != null) && mimeTypeFilter.startsWith("image/");
         if (wantsThumb) {
-            final File thumbFile = ensureThumbnail(uri, signal);
-            return new AssetFileDescriptor(
-                    ParcelFileDescriptor.open(thumbFile, ParcelFileDescriptor.MODE_READ_ONLY),
-                    0, AssetFileDescriptor.UNKNOWN_LENGTH);
+            final ParcelFileDescriptor pfd = ensureThumbnail(uri, signal);
+            return new AssetFileDescriptor(pfd, 0, AssetFileDescriptor.UNKNOWN_LENGTH);
         }
 
         // Worst case, return the underlying file
@@ -4531,14 +4756,14 @@ public class MediaProvider extends ContentProvider {
                 AssetFileDescriptor.UNKNOWN_LENGTH);
     }
 
-    private File ensureThumbnail(Uri uri, CancellationSignal signal) throws FileNotFoundException {
+    private ParcelFileDescriptor ensureThumbnail(Uri uri, CancellationSignal signal)
+            throws FileNotFoundException {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
         Trace.beginSection("ensureThumbnail");
         final LocalCallingIdentity token = clearLocalCallingIdentity();
         try {
-            final File thumbFile;
             switch (match) {
                 case AUDIO_ALBUMS_ID: {
                     final String volumeName = MediaStore.getVolumeName(uri);
@@ -4684,6 +4909,14 @@ public class MediaProvider extends ContentProvider {
         return new File(filePath);
     }
 
+    private FuseDaemon getFuseDaemonForFile(File file) {
+        StorageVolume volume = mStorageManager.getStorageVolume(file);
+        if (volume == null) {
+            return null;
+        }
+        return ExternalStorageServiceImpl.getFuseDaemon(volume.getId());
+    }
+
     /**
      * Replacement for {@link #openFileHelper(Uri, String)} which enforces any
      * permissions applicable to the path before returning.
@@ -4791,12 +5024,7 @@ public class MediaProvider extends ContentProvider {
                             redactionInfo.freeOffsets);
                 }
             } else {
-                FuseDaemon daemon = null;
-
-                StorageVolume volume = mStorageManager.getStorageVolume(file);
-                if (volume != null) {
-                    daemon = ExternalStorageServiceImpl.getFuseDaemon(volume.getId());
-                }
+                FuseDaemon daemon = getFuseDaemonForFile(file);
                 ParcelFileDescriptor lowerFsFd = ParcelFileDescriptor.open(file, modeBits);
                 boolean forRead = (modeBits & ParcelFileDescriptor.MODE_READ_ONLY) != 0;
                 boolean shouldOpenWithFuse = daemon != null
@@ -4970,6 +5198,9 @@ public class MediaProvider extends ContentProvider {
             IsoInterface.BOX_GPS0,
     };
 
+    public static final Set<String> sRedactedExifTags = new ArraySet<>(
+            Arrays.asList(REDACTED_EXIF_TAGS));
+
     private static final class RedactionInfo {
         public final long[] redactionRanges;
         public final long[] freeOffsets;
@@ -5021,6 +5252,16 @@ public class MediaProvider extends ContentProvider {
             if (!isRedactionNeeded()
                     || shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
                 return res;
+            }
+
+
+            // Returns null if the path doesn't correspond to an app specific directory
+            final String appSpecificDir = extractPathOwnerPackageName(path);
+
+            if (appSpecificDir != null) {
+                if (isCallingIdentitySharedPackageName(appSpecificDir)) {
+                    return res;
+                }
             }
 
             path = getAbsoluteSanitizedPath(path);
@@ -5078,7 +5319,6 @@ public class MediaProvider extends ContentProvider {
         final LongArray res = new LongArray();
         final LongArray freeOffsets = new LongArray();
         try (FileInputStream is = new FileInputStream(file)) {
-            final Set<String> redactedXmpTags = new ArraySet<>(Arrays.asList(REDACTED_EXIF_TAGS));
             final String mimeType = MimeUtils.resolveMimeType(file);
             if (ExifInterface.isSupportedMimeType(mimeType)) {
                 final ExifInterface exif = new ExifInterface(is.getFD());
@@ -5090,7 +5330,7 @@ public class MediaProvider extends ContentProvider {
                     }
                 }
                 // Redact xmp where present
-                final XmpInterface exifXmp = XmpInterface.fromContainer(exif, redactedXmpTags);
+                final XmpInterface exifXmp = XmpInterface.fromContainer(exif);
                 res.addAll(exifXmp.getRedactionRanges());
             }
 
@@ -5106,7 +5346,7 @@ public class MediaProvider extends ContentProvider {
                     }
                 }
                 // Redact xmp where present
-                final XmpInterface isoXmp = XmpInterface.fromContainer(iso, redactedXmpTags);
+                final XmpInterface isoXmp = XmpInterface.fromContainer(iso);
                 res.addAll(isoXmp.getRedactionRanges());
             }
         } catch (FileNotFoundException ignored) {
@@ -5255,13 +5495,11 @@ public class MediaProvider extends ContentProvider {
             case DIRECTORY_AUDIOBOOKS:
                 uris[0] = Audio.Media.getContentUri(volName);
                 break;
-            case DIRECTORY_PICTURES:
-                uris[0] = Images.Media.getContentUri(volName);
-                break;
             case DIRECTORY_MOVIES:
                 uris[0] = Video.Media.getContentUri(volName);
                 break;
             case DIRECTORY_DCIM:
+            case DIRECTORY_PICTURES:
                 if (mimeType.toLowerCase(Locale.ROOT).startsWith("image")) {
                     uris[0] = Images.Media.getContentUri(volName);
                 } else if (mimeType.toLowerCase(Locale.ROOT).startsWith("video")) {
@@ -5407,10 +5645,6 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
-                return deleteFileUnchecked(path);
-            }
-
             // Check if app is deleting a file under an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
@@ -5424,9 +5658,12 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
+            final boolean shouldBypass = shouldBypassFuseRestrictions(/*forWrite*/ true,
+                    path);
+
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
-            if (isCallingPackageRequestingLegacy()) {
+            if (!shouldBypass && isCallingPackageRequestingLegacy()) {
                 return OsConstants.EPERM;
             }
 
@@ -5440,6 +5677,12 @@ public class MediaProvider extends ContentProvider {
             final String[] whereArgs = {sanitizedPath};
 
             if (delete(contentUri, where, whereArgs) == 0) {
+                if (shouldBypass) {
+                    // For apps that bypass scoped storage restrictions, delete() should only fail
+                    // if the file is not in database. This shouldn't stop these apps from deleting
+                    // a file, hence delete the file in the lower file system.
+                    return deleteFileUnchecked(path);
+                }
                 return OsConstants.ENOENT;
             } else if (!path.equals(sanitizedPath)) {
                 // delete() doesn't delete the file in lower file system if sanitized path is
@@ -5464,6 +5707,7 @@ public class MediaProvider extends ContentProvider {
      *
      * @param path File path of the directory that the app wants to create/delete
      * @param uid UID of the app that wants to create/delete the directory
+     * @param forCreate denotes whether the operation is directory creation or deletion
      * @return 0 if the operation is allowed, or the following {@code errno} values:
      * <ul>
      * <li>{@link OsConstants#EACCES} if the app tries to create/delete a dir in another app's
@@ -5475,7 +5719,8 @@ public class MediaProvider extends ContentProvider {
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public int isDirectoryOperationAllowedForFuse(@NonNull String path, int uid) {
+    public int isDirectoryCreationOrDeletionAllowedForFuse(
+            @NonNull String path, int uid, boolean forCreate) {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
@@ -5503,8 +5748,17 @@ public class MediaProvider extends ContentProvider {
             }
 
             final String[] relativePath = sanitizePath(extractRelativePath(path));
-            if (relativePath.length == 1 && TextUtils.isEmpty(relativePath[0])) {
-                Log.e(TAG, "Creating or deleting a top level directory is not allowed!");
+            final boolean isTopLevelDir =
+                    relativePath.length == 1 && TextUtils.isEmpty(relativePath[0]);
+            if (isTopLevelDir) {
+                // We allow creating the default top level directories only, all other oprations on
+                // top level directories are not allowed.
+                if (forCreate && isDefaultDirectoryName(extractDisplayName(path))) {
+                    return 0;
+                }
+                Log.e(TAG,
+                        "Creating a non-default top level directory or deleting an existing"
+                                + " one is not allowed!");
                 return OsConstants.EPERM;
             }
             return 0;
@@ -5568,6 +5822,11 @@ public class MediaProvider extends ContentProvider {
             return true;
         }
 
+        // Apps that have permission to manage external storage can work with all files
+        if (mCallingIdentity.get().hasPermission(PERMISSION_MANAGE_EXTERNAL_STORAGE)) {
+            return true;
+        }
+
         // Check if caller is known to be owner of this item, to speed up
         // performance of our permission checks
         final int table = matchUri(uri, true);
@@ -5604,7 +5863,9 @@ public class MediaProvider extends ContentProvider {
         if (forWrite) {
             return mCallingIdentity.get().hasPermission(PERMISSION_WRITE_AUDIO);
         } else {
-            return mCallingIdentity.get().hasPermission(PERMISSION_READ_AUDIO);
+            // write permission should be enough for reading as well
+            return mCallingIdentity.get().hasPermission(PERMISSION_READ_AUDIO)
+                    || mCallingIdentity.get().hasPermission(PERMISSION_WRITE_AUDIO);
         }
     }
 
@@ -5613,7 +5874,9 @@ public class MediaProvider extends ContentProvider {
         if (forWrite) {
             return mCallingIdentity.get().hasPermission(PERMISSION_WRITE_VIDEO);
         } else {
-            return mCallingIdentity.get().hasPermission(PERMISSION_READ_VIDEO);
+            // write permission should be enough for reading as well
+            return mCallingIdentity.get().hasPermission(PERMISSION_READ_VIDEO)
+                    || mCallingIdentity.get().hasPermission(PERMISSION_WRITE_VIDEO);
         }
     }
 
@@ -5622,7 +5885,9 @@ public class MediaProvider extends ContentProvider {
         if (forWrite) {
             return mCallingIdentity.get().hasPermission(PERMISSION_WRITE_IMAGES);
         } else {
-            return mCallingIdentity.get().hasPermission(PERMISSION_READ_IMAGES);
+            // write permission should be enough for reading as well
+            return mCallingIdentity.get().hasPermission(PERMISSION_READ_IMAGES)
+                    || mCallingIdentity.get().hasPermission(PERMISSION_WRITE_IMAGES);
         }
     }
 
@@ -5852,6 +6117,10 @@ public class MediaProvider extends ContentProvider {
     private @NonNull DatabaseHelper getDatabaseForUri(Uri uri) throws VolumeNotFoundException {
         final String volumeName = resolveVolumeName(uri);
         synchronized (mAttachedVolumeNames) {
+            if (!mAttachedVolumeNames.contains(volumeName)) {
+                // Maybe we are racing onVolumeStateChanged, update our cache and try again
+                updateVolumes();
+            }
             if (!mAttachedVolumeNames.contains(volumeName)) {
                 throw new VolumeNotFoundException(volumeName);
             }

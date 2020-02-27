@@ -113,8 +113,9 @@ class MediaProviderWrapper final {
      * MediaProvider database.
      *
      * @param path the path of the file to be scanned
+     * @param uid UID of the app that owns the file on the given path
      */
-    void ScanFile(const std::string& path);
+    void ScanFile(const std::string& path, uid_t uid);
 
     /**
      * Determines if the given UID is allowed to create a directory with the given path.
@@ -164,7 +165,7 @@ class MediaProviderWrapper final {
     jmethodID mid_delete_file_;
     jmethodID mid_is_open_allowed_;
     jmethodID mid_scan_file_;
-    jmethodID mid_is_dir_op_allowed_;
+    jmethodID mid_is_mkdir_or_rmdir_allowed_;
     jmethodID mid_is_opendir_allowed_;
     jmethodID mid_get_files_in_dir_;
     jmethodID mid_rename_;

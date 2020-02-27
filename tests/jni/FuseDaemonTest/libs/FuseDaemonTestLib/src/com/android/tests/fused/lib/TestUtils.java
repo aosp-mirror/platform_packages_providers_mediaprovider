@@ -36,10 +36,14 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Environment;
 import android.os.ParcelFileDescriptor;
+import android.os.SystemClock;
 import android.provider.MediaStore;
+import android.system.Os;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -58,6 +62,7 @@ import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * General helper functions for FuseDaemon tests.
@@ -71,6 +76,8 @@ public class TestUtils {
     public static final String CREATE_FILE_QUERY = "com.android.tests.fused.createfile";
     public static final String DELETE_FILE_QUERY = "com.android.tests.fused.deletefile";
 
+    private static final long POLLING_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(10);
+    private static final long POLLING_SLEEP_MILLIS = 100;
 
     private static final UiAutomation sUiAutomation = InstrumentationRegistry.getInstrumentation()
             .getUiAutomation();
@@ -83,6 +90,8 @@ public class TestUtils {
         try {
             sUiAutomation.grantRuntimePermission(packageName,
                     Manifest.permission.READ_EXTERNAL_STORAGE);
+            // Wait for OP_READ_EXTERNAL_STORAGE to get updated.
+            SystemClock.sleep(1000);
         } finally {
             sUiAutomation.dropShellPermissionIdentity();
         }
@@ -249,6 +258,21 @@ public class TestUtils {
     }
 
     /**
+     * Queries {@link ContentResolver} for a file and returns the corresponding owner package name
+     * for its entry in the database.
+     */
+    @Nullable
+    public static String getFileOwnerPackageFromDatabase(@NonNull File file) {
+        String ownerPackage = null;
+        try (Cursor c = queryFile(file, MediaStore.MediaColumns.OWNER_PACKAGE_NAME)) {
+            if (c.moveToFirst()) {
+                ownerPackage = c.getString(0);
+            }
+        }
+        return ownerPackage;
+    }
+
+    /**
      * Queries {@link ContentResolver} for a file and returns the corresponding mime type for its
      * entry in the database.
      */
@@ -378,6 +402,94 @@ public class TestUtils {
             }
         }
         return path.delete();
+    }
+
+    public static void assertCanRenameFile(File oldFile, File newFile) {
+        assertThat(oldFile.renameTo(newFile)).isTrue();
+        assertThat(oldFile.exists()).isFalse();
+        assertThat(newFile.exists()).isTrue();
+        assertThat(getFileRowIdFromDatabase(oldFile)).isEqualTo(-1);
+        assertThat(getFileRowIdFromDatabase(newFile)).isNotEqualTo(-1);
+    }
+
+    public static void assertCantRenameFile(File oldFile, File newFile) {
+        final int rowId = getFileRowIdFromDatabase(oldFile);
+        assertThat(oldFile.renameTo(newFile)).isFalse();
+        assertThat(oldFile.exists()).isTrue();
+        assertThat(getFileRowIdFromDatabase(oldFile)).isEqualTo(rowId);
+    }
+
+    public static void assertCanRenameDirectory(File oldDirectory, File newDirectory,
+            @Nullable File[] oldFilesList, @Nullable File[] newFilesList) {
+        assertThat(oldDirectory.renameTo(newDirectory)).isTrue();
+        assertThat(oldDirectory.exists()).isFalse();
+        assertThat(newDirectory.exists()).isTrue();
+        for (File file  : oldFilesList != null ? oldFilesList : new File[0]) {
+            assertThat(file.exists()).isFalse();
+            assertThat(getFileRowIdFromDatabase(file)).isEqualTo(-1);
+        }
+        for (File file : newFilesList != null ? newFilesList : new File[0]) {
+            assertThat(file.exists()).isTrue();
+            assertThat(getFileRowIdFromDatabase(file)).isNotEqualTo(-1);
+        };
+    }
+
+    public static void assertCantRenameDirectory(File oldDirectory, File newDirectory,
+            @Nullable File[] oldFilesList) {
+        assertThat(oldDirectory.renameTo(newDirectory)).isFalse();
+        assertThat(oldDirectory.exists()).isTrue();
+        for (File file  : oldFilesList != null ? oldFilesList : new File[0]) {
+            assertThat(file.exists()).isTrue();
+            assertThat(getFileRowIdFromDatabase(file)).isNotEqualTo(-1);
+        }
+    }
+
+    public static void pollForExternalStorageState() throws Exception {
+        for (int i = 0; i < POLLING_TIMEOUT_MILLIS / POLLING_SLEEP_MILLIS; i++) {
+            if(Environment.getExternalStorageState(Environment.getExternalStorageDirectory())
+                    .equals(Environment.MEDIA_MOUNTED)) {
+                return;
+            }
+            Thread.sleep(POLLING_SLEEP_MILLIS);
+        }
+        fail("Timed out while waiting for ExternalStorageState to be MEDIA_MOUNTED");
+    }
+
+    public static void pollForPermission(String perm, boolean granted) throws Exception {
+        for (int i = 0; i < POLLING_TIMEOUT_MILLIS / POLLING_SLEEP_MILLIS; i++) {
+            if (granted == checkPermissionAndAppOp(perm)) {
+                return;
+            }
+            Thread.sleep(POLLING_SLEEP_MILLIS);
+        }
+        fail("Timed out while waiting for permission " + perm + " to be "
+                + (granted ? "granted" : "revoked"));
+    }
+
+    /**
+     * Checks if the given {@code permission} is granted and corresponding AppOp is MODE_ALLOWED.
+     */
+    private static boolean checkPermissionAndAppOp(String permission) {
+        final int pid  = Os.getpid();
+        final int uid = Os.getuid();
+        final Context context = getContext();
+        final String packageName = context.getPackageName();
+        if (context.checkPermission(permission, pid, uid) != PackageManager.PERMISSION_GRANTED) {
+            return false;
+        }
+
+        final String op = AppOpsManager.permissionToOp(permission);
+        // No AppOp associated with the given permission, skip AppOp check.
+        if (op == null) return true;
+
+        final AppOpsManager appOps = context.getSystemService(AppOpsManager.class);
+        try {
+            appOps.checkPackage(uid, packageName);
+        } catch (SecurityException e) {
+            return false;
+        }
+
+        return appOps.unsafeCheckOpNoThrow(op, uid, packageName) == AppOpsManager.MODE_ALLOWED;
     }
 
     /**

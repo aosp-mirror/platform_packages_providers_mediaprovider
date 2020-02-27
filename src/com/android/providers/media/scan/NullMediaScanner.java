@@ -21,6 +21,8 @@ import android.net.Uri;
 import android.provider.MediaStore;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
+
 import java.io.File;
 
 /**
@@ -48,6 +50,12 @@ public class NullMediaScanner implements MediaScanner {
 
     @Override
     public Uri scanFile(File file, int reason) {
+        Log.w(TAG, "Ignoring scan request for " + file);
+        return null;
+    }
+
+    @Override
+    public Uri scanFile(File file, int reason, @Nullable String ownerPackage) {
         Log.w(TAG, "Ignoring scan request for " + file);
         return null;
     }

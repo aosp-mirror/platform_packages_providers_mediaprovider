@@ -28,16 +28,18 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.providers.media.MediaProvider;
+
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
+import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
 
@@ -62,35 +64,29 @@ public class XmpInterface {
     private static final String NAME_ORIGINAL_DOCUMENT_ID = "OriginalDocumentID";
     private static final String NAME_INSTANCE_ID = "InstanceID";
 
-    private final ByteCountingInputStream mIn;
-    private final Set<String> mRedactedExifTags;
-    private final long mXmpOffset;
-    private final LongArray mRedactedRanges;
+    private final LongArray mRedactedRanges = new LongArray();
+    private byte[] mRedactedXmp;
     private String mFormat;
     private String mDocumentId;
     private String mInstanceId;
     private String mOriginalDocumentId;
 
-    private XmpInterface(@NonNull InputStream in) throws IOException {
-        this(in, Collections.emptySet(), new long[0]);
-    }
+    private XmpInterface(@NonNull byte[] rawXmp, @NonNull Set<String> redactedExifTags,
+            @NonNull long[] xmpOffsets) throws IOException {
+        mRedactedXmp = rawXmp;
 
-    private XmpInterface(
-            @NonNull InputStream in, @NonNull Set<String> redactedExifTags, long[] xmpOffsets)
-            throws IOException {
-        mIn = new ByteCountingInputStream(in);
-        mRedactedExifTags = redactedExifTags;
-        mXmpOffset = xmpOffsets.length == 0 ? 0 : xmpOffsets[0];
-        mRedactedRanges = new LongArray();
+        final ByteCountingInputStream in = new ByteCountingInputStream(
+                new ByteArrayInputStream(rawXmp));
+        final long xmpOffset = xmpOffsets.length == 0 ? 0 : xmpOffsets[0];
         try {
             final XmlPullParser parser = Xml.newPullParser();
-            parser.setInput(mIn, StandardCharsets.UTF_8.name());
+            parser.setInput(in, StandardCharsets.UTF_8.name());
 
             long offset = 0;
             int type;
             while ((type = parser.next()) != END_DOCUMENT) {
                 if (type != START_TAG) {
-                    offset = mIn.getOffset(parser);
+                    offset = in.getOffset(parser);
                     continue;
                 }
 
@@ -117,14 +113,19 @@ public class XmpInterface {
                     mInstanceId = maybeOverride(mInstanceId, parser.nextText());
                 } else if (NS_XMPMM.equals(ns) && NAME_ORIGINAL_DOCUMENT_ID.equals(name)) {
                     mOriginalDocumentId = maybeOverride(mOriginalDocumentId, parser.nextText());
-                } else if (NS_EXIF.equals(ns) && mRedactedExifTags.contains(name)) {
+                } else if (NS_EXIF.equals(ns) && redactedExifTags.contains(name)) {
                     long start = offset;
                     do {
                         type = parser.next();
                     } while (type != END_TAG || !parser.getName().equals(name));
-                    offset = mIn.getOffset(parser);
-                    mRedactedRanges.add(mXmpOffset + start);
-                    mRedactedRanges.add(mXmpOffset + offset);
+                    offset = in.getOffset(parser);
+
+                    // Redact range within entire file
+                    mRedactedRanges.add(xmpOffset + start);
+                    mRedactedRanges.add(xmpOffset + offset);
+
+                    // Redact range within local copy
+                    Arrays.fill(mRedactedXmp, (int) start, (int) offset, (byte) ' ');
                 }
             }
         } catch (XmlPullParserException e) {
@@ -144,7 +145,7 @@ public class XmpInterface {
 
     public static @NonNull XmpInterface fromContainer(@NonNull ExifInterface exif)
             throws IOException {
-        return fromContainer(exif, Collections.emptySet());
+        return fromContainer(exif, MediaProvider.sRedactedExifTags);
     }
 
     public static @NonNull XmpInterface fromContainer(@NonNull ExifInterface exif,
@@ -158,12 +159,12 @@ public class XmpInterface {
             buf = new byte[0];
             xmpOffsets = new long[0];
         }
-        return new XmpInterface(new ByteArrayInputStream(buf), redactedExifTags, xmpOffsets);
+        return new XmpInterface(buf, redactedExifTags, xmpOffsets);
     }
 
     public static @NonNull XmpInterface fromContainer(@NonNull IsoInterface iso)
             throws IOException {
-        return fromContainer(iso, Collections.emptySet());
+        return fromContainer(iso, MediaProvider.sRedactedExifTags);
     }
 
     public static @NonNull XmpInterface fromContainer(@NonNull IsoInterface iso,
@@ -183,12 +184,13 @@ public class XmpInterface {
             buf = new byte[0];
             xmpOffsets = new long[0];
         }
-        return new XmpInterface(new ByteArrayInputStream(buf), redactedExifTags, xmpOffsets);
+        return new XmpInterface(buf, redactedExifTags, xmpOffsets);
     }
 
     public static @NonNull XmpInterface fromSidecar(@NonNull File file)
             throws IOException {
-        return new XmpInterface(new FileInputStream(file));
+        return new XmpInterface(Files.readAllBytes(file.toPath()),
+                MediaProvider.sRedactedExifTags, new long[0]);
     }
 
     private static @Nullable String maybeOverride(@Nullable String existing,
@@ -219,6 +221,10 @@ public class XmpInterface {
 
     public @Nullable String getOriginalDocumentId() {
         return mOriginalDocumentId;
+    }
+
+    public @Nullable byte[] getRedactedXmp() {
+        return mRedactedXmp;
     }
 
     /** The [start, end] offsets in the original file where to-be redacted info is stored */

@@ -34,6 +34,10 @@
       <item quantity="other">Yana <xliff:g id="COUNT_1">^1</xliff:g> ta qoʻshimcha element</item>
       <item quantity="one">Yana <xliff:g id="COUNT_0">^1</xliff:g> ta qoʻshimcha element</item>
     </plurals>
+    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"Ilova keshi <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> orqali tozalansinmi?"</string>
+    <string name="cache_clearing_dialog_text" msgid="425995541409682360">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> ayrim vaqtincha fayllarni tozalamoqchi. Ruxsat berilsa, batareya yoki trafik sarfi tejaladi."</string>
+    <string name="allow" msgid="8885707816848569619">"Ruxsat berish"</string>
+    <string name="deny" msgid="6040983710442068936">"Rad etish"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ta audio faylni oʻzgartirsinmi?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> bu audio faylni oʻzgartirsinmi?</item>

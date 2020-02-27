@@ -41,20 +41,37 @@ namespace mediaprovider {
 namespace fuse {
 
 // Assumes that |node| has at least one child.
-void node::BuildPathForNodeRecursive(node* node, std::string* path) {
-    if (node->parent_) BuildPathForNodeRecursive(node->parent_, path);
+void node::BuildPathForNodeRecursive(bool safe, const node* node, std::stringstream* path) const {
+    if (node->parent_) {
+        BuildPathForNodeRecursive(safe, node->parent_, path);
+    }
 
-    (*path) += node->GetName() + "/";
+    if (safe && node->parent_) {
+        (*path) << reinterpret_cast<uintptr_t>(node);
+    } else {
+        (*path) << node->GetName();
+    }
+  
+    if (node != this) {
+        // Must not add a '/' to the last segment
+        (*path) << "/";
+    }
 }
 
 std::string node::BuildPath() const {
     std::lock_guard<std::recursive_mutex> guard(*lock_);
-    std::string path;
+    std::stringstream path;
 
-    path.reserve(PATH_MAX);
-    if (parent_) BuildPathForNodeRecursive(parent_, &path);
-    path += name_;
-    return path;
+    BuildPathForNodeRecursive(false, this, &path);
+    return path.str();
+}
+
+std::string node::BuildSafePath() const {
+    std::lock_guard<std::recursive_mutex> guard(*lock_);
+    std::stringstream path;
+
+    BuildPathForNodeRecursive(true, this, &path);
+    return path.str();
 }
 
 const node* node::LookupAbsolutePath(const node* root, const std::string& absolute_path) {
@@ -68,7 +85,7 @@ const node* node::LookupAbsolutePath(const node* root, const std::string& absolu
 
     const node* node = root;
     for (const std::string& segment : segments) {
-        node = node->LookupChildByName(segment);
+        node = node->LookupChildByName(segment, false /* acquire */);
         if (!node) {
             return nullptr;
         }
@@ -80,13 +97,15 @@ void node::DeleteTree(node* tree) {
     std::lock_guard<std::recursive_mutex> guard(*tree->lock_);
 
     if (tree) {
-        for (node* child : tree->children_) {
+        // Make a copy of the list of children because calling Delete tree
+        // will modify the list of children, which will cause issues while
+        // iterating over them.
+        std::vector<node*> children(tree->children_.begin(), tree->children_.end());
+        for (node* child : children) {
             DeleteTree(child);
         }
-        tree->children_.clear();
 
-        LOG(DEBUG) << "DELETE node " << tree->GetName();
-        tree->RemoveFromParent();
+        CHECK(tree->children_.empty());
         delete tree;
     }
 }

@@ -22,7 +22,9 @@
 #include <list>
 #include <memory>
 #include <mutex>
+#include <sstream>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "libfuse_jni/ReaddirHelper.h"
@@ -34,14 +36,16 @@ namespace mediaprovider {
 namespace fuse {
 
 struct handle {
-    explicit handle(const std::string& path, int fd, const RedactionInfo* ri, bool cached)
-        : path(path), fd(fd), ri(ri), cached(cached) {
+    explicit handle(const std::string& path, int fd, const RedactionInfo* ri, uid_t owner_uid,
+                    bool cached)
+        : path(path), fd(fd), ri(ri), owner_uid(owner_uid), cached(cached) {
         CHECK(ri != nullptr);
     }
 
     const std::string path;
     const int fd;
     const std::unique_ptr<const RedactionInfo> ri;
+    const uid_t owner_uid;
     const bool cached;
 
     ~handle() { close(fd); }
@@ -61,17 +65,70 @@ struct dirhandle {
     ~dirhandle() { closedir(d); }
 };
 
+// Whether inode tracking is enabled or not. When enabled, we maintain a
+// separate mapping from inode numbers to "live" nodes so we can detect when
+// we receive a request to a node that has been deleted.
+static constexpr bool kEnableInodeTracking = true;
+
+class node;
+
+// Tracks the set of active nodes associated with a FUSE instance so that we
+// can assert that we only ever return an active node in response to a lookup.
+class NodeTracker {
+  public:
+    NodeTracker(std::recursive_mutex* lock) : lock_(lock) {}
+
+    void CheckTracked(__u64 ino) const {
+        if (kEnableInodeTracking) {
+            const node* node = reinterpret_cast<const class node*>(ino);
+            std::lock_guard<std::recursive_mutex> guard(*lock_);
+            CHECK(active_nodes_.find(node) != active_nodes_.end());
+        }
+    }
+
+    void NodeDeleted(const node* node) {
+        if (kEnableInodeTracking) {
+            std::lock_guard<std::recursive_mutex> guard(*lock_);
+            LOG(DEBUG) << "Node: " << reinterpret_cast<uintptr_t>(node) << " deleted.";
+
+            CHECK(active_nodes_.find(node) != active_nodes_.end());
+            active_nodes_.erase(node);
+        }
+    }
+
+    void NodeCreated(const node* node) {
+        if (kEnableInodeTracking) {
+            std::lock_guard<std::recursive_mutex> guard(*lock_);
+            LOG(DEBUG) << "Node: " << reinterpret_cast<uintptr_t>(node) << " created.";
+
+            CHECK(active_nodes_.find(node) == active_nodes_.end());
+            active_nodes_.insert(node);
+        }
+    }
+
+  private:
+    std::recursive_mutex* lock_;
+    std::unordered_set<const node*> active_nodes_;
+};
+
 class node {
   public:
     // Creates a new node with the specified parent, name and lock.
-    static node* Create(node* parent, const std::string& name, std::recursive_mutex* lock) {
-        return new node(parent, name, lock);
+    static node* Create(node* parent, const std::string& name, std::recursive_mutex* lock,
+                        NodeTracker* tracker) {
+        // Place the entire constructor under a critical section to make sure
+        // node creation, tracking (if enabled) and the addition to a parent are
+        // atomic.
+        std::lock_guard<std::recursive_mutex> guard(*lock);
+        return new node(parent, name, lock, tracker);
     }
 
     // Creates a new root node. Root nodes have no parents by definition
     // and their "name" must signify an absolute path.
-    static node* CreateRoot(const std::string& path, std::recursive_mutex* lock) {
-        node* root = new node(nullptr, path, lock);
+    static node* CreateRoot(const std::string& path, std::recursive_mutex* lock,
+                            NodeTracker* tracker) {
+        std::lock_guard<std::recursive_mutex> guard(*lock);
+        node* root = new node(nullptr, path, lock, tracker);
 
         // The root always has one extra reference to avoid it being
         // accidentally collected.
@@ -80,21 +137,14 @@ class node {
     }
 
     // Maps an inode to its associated node.
-    static inline node* FromInode(__u64 ino) {
+    static inline node* FromInode(__u64 ino, const NodeTracker* tracker) {
+        tracker->CheckTracked(ino);
         return reinterpret_cast<node*>(static_cast<uintptr_t>(ino));
     }
 
     // Maps a node to its associated inode.
     static __u64 ToInode(node* node) {
         return static_cast<__u64>(reinterpret_cast<uintptr_t>(node));
-    }
-
-    // Acquires a reference to a node. This maps to the "lookup count" specified
-    // by the FUSE documentation and must only happen under the circumstances
-    // documented in libfuse/include/fuse_lowlevel.h.
-    inline void Acquire() {
-        std::lock_guard<std::recursive_mutex> guard(*lock_);
-        refcount_++;
     }
 
     // Releases a reference to a node. Returns true iff the refcount dropped to
@@ -120,8 +170,13 @@ class node {
     // associated with its descendants.
     std::string BuildPath() const;
 
-    // Looks up a direct descendant of this node by name.
-    node* LookupChildByName(const std::string& name) const {
+    // Builds the full PII safe path associated with this node, including all path segments
+    // associated with its descendants.
+    std::string BuildSafePath() const;
+
+    // Looks up a direct descendant of this node by name. If |acquire| is true,
+    // also Acquire the node before returning a reference to it.
+    node* LookupChildByName(const std::string& name, bool acquire) const {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
 
         for (node* child : children_) {
@@ -131,6 +186,10 @@ class node {
             // will not work because the source and target nodes are the same.
 
             if ((name == child->name_) && !child->deleted_) {
+                if (acquire) {
+                    child->Acquire();
+                }
+
                 return child;
             }
         }
@@ -159,6 +218,11 @@ class node {
     const std::string& GetName() const {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
         return name_;
+    }
+
+    node* GetParent() const {
+        std::lock_guard<std::recursive_mutex> guard(*lock_);
+        return parent_;
     }
 
     inline void AddHandle(handle* h) {
@@ -209,14 +273,28 @@ class node {
     static const node* LookupAbsolutePath(const node* root, const std::string& absolute_path);
 
   private:
-    node(node* parent, const std::string& name, std::recursive_mutex* lock)
-        : name_(name), refcount_(0), parent_(nullptr), deleted_(false), lock_(lock) {
+    node(node* parent, const std::string& name, std::recursive_mutex* lock, NodeTracker* tracker)
+        : name_(name),
+          refcount_(0),
+          parent_(nullptr),
+          deleted_(false),
+          lock_(lock),
+          tracker_(tracker) {
+        tracker_->NodeCreated(this);
         Acquire();
         // This is a special case for the root node. All other nodes will have a
         // non-null parent.
         if (parent != nullptr) {
             AddToParent(parent);
         }
+    }
+
+    // Acquires a reference to a node. This maps to the "lookup count" specified
+    // by the FUSE documentation and must only happen under the circumstances
+    // documented in libfuse/include/fuse_lowlevel.h.
+    inline void Acquire() {
+        std::lock_guard<std::recursive_mutex> guard(*lock_);
+        refcount_++;
     }
 
     // Adds this node to a specified parent.
@@ -250,9 +328,9 @@ class node {
         }
     }
 
-    // A helper function to recursively construct the absolute path of a given
-    // node.
-    static void BuildPathForNodeRecursive(node* node, std::string* path);
+    // A helper function to recursively construct the absolute path of a given node.
+    // If |safe| is true, builds a PII safe path instead
+    void BuildPathForNodeRecursive(bool safe, const node* node, std::stringstream* path) const;
 
     // The name of this node. Non-const because it can change during renames.
     std::string name_;
@@ -270,11 +348,15 @@ class node {
     bool deleted_;
     std::recursive_mutex* lock_;
 
+    NodeTracker* const tracker_;
+
     ~node() {
         RemoveFromParent();
 
         handles_.clear();
         dirhandles_.clear();
+
+        tracker_->NodeDeleted(this);
     }
 
     friend class ::NodeTest;

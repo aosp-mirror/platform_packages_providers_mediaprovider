@@ -154,14 +154,19 @@ public class LegacyAccessHostTest extends BaseHostJUnit4Test {
     }
 
     @Test
-    public void testCanRename_hasW() throws Exception {
-        runDeviceTest("testCanRename_hasW");
+    public void testCanRename_hasRW() throws Exception {
+        runDeviceTest("testCanRename_hasRW");
     }
 
     @Test
     public void testCantRename_hasR() throws Exception {
         revokePermissions("android.permission.WRITE_EXTERNAL_STORAGE");
-        runDeviceTest("testCantRename_hasR");
+        createFileAsShell(SHELL_FILE, /*bypassFuse*/ true);
+        try {
+            runDeviceTest("testCantRename_hasR");
+        } finally {
+            executeShellCommand("rm " + SHELL_FILE);
+        }
     }
 
 
@@ -175,5 +180,15 @@ public class LegacyAccessHostTest extends BaseHostJUnit4Test {
         } finally {
             executeShellCommand("rm " + SHELL_FILE);
         }
+    }
+
+    @Test
+    public void testCanDeleteAllFiles_hasRW() throws Exception {
+        runDeviceTest("testCanDeleteAllFiles_hasRW");
+    }
+
+    @Test
+    public void testLegacyAppCanOwnAFile_hasW() throws Exception {
+        runDeviceTest("testLegacyAppCanOwnAFile_hasW");
     }
 }

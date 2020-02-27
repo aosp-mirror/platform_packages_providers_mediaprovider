@@ -35,6 +35,10 @@
       <item quantity="few">I još <xliff:g id="COUNT_1">^1</xliff:g> stavke</item>
       <item quantity="other">I još <xliff:g id="COUNT_1">^1</xliff:g> stavki</item>
     </plurals>
+    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"Želite da obrišete keš aplikacije uz <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>?"</string>
+    <string name="cache_clearing_dialog_text" msgid="425995541409682360">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> želi da obriše neke privremene datoteke. Prihvatanje može da poveća potrošnju baterije ili podataka."</string>
+    <string name="allow" msgid="8885707816848569619">"Dozvoli"</string>
+    <string name="deny" msgid="6040983710442068936">"Odbij"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="one">Želite li da dozvolite da <xliff:g id="APP_NAME_1">^1</xliff:g> promeni <xliff:g id="COUNT">^2</xliff:g> audio datoteku?</item>
       <item quantity="few">Želite li da dozvolite da <xliff:g id="APP_NAME_1">^1</xliff:g> promeni <xliff:g id="COUNT">^2</xliff:g> audio datoteke?</item>

@@ -36,6 +36,9 @@ import static com.android.providers.media.util.PermissionUtils.checkPermissionWr
 
 import android.annotation.Nullable;
 import android.app.AppOpsManager;
+import android.app.compat.CompatChanges;
+import android.compat.annotation.ChangeId;
+import android.compat.annotation.Disabled;
 import android.content.ContentProvider;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
@@ -64,6 +67,42 @@ public class LocalCallingIdentity {
         this.packageNameUnchecked = packageNameUnchecked;
         this.featureId = featureId;
     }
+
+    /**
+     * Scoped Storage is on by default. However, it is not strictly enforced and there are multiple
+     * ways to opt out of scoped storage:
+     * <ul>
+     * <li>Target Sdk < Q</li>
+     * <li>Target Sdk = Q and has `requestLegacyExternalStorage` set in AndroidManifest.xml</li>
+     * <li>Target Sdk > Q: Upgrading from an app that was opted out of scoped storage and has
+     * `preserveLegacyExternalStorage` set in AndroidManifest.xml</li>
+     * </ul>
+     * This flag is enabled for all apps by default as Scoped Storage is enabled by default.
+     * Developers can disable this flag to opt out of Scoped Storage and have legacy storage
+     * workflow.
+     *
+     * Note: {@code FORCE_ENABLE_SCOPED_STORAGE} should also be disabled for apps to opt out of
+     * scoped storage.
+     * See https://developer.android.com/training/data-storage#scoped-storage for more information.
+     */
+    @ChangeId
+    private static final long DEFAULT_SCOPED_STORAGE = 149924527L;
+
+    /**
+     * Setting this flag strictly enforces Scoped Storage regardless of:
+     * <ul>
+     * <li>The value of Target Sdk</li>
+     * <li>The value of `requestLegacyExternalStorage` in AndroidManifest.xml</li>
+     * <li>The value of `preserveLegacyExternalStorage` in AndroidManifest.xml</li>
+     * </ul>
+     *
+     * Note: {@code DEFAULT_SCOPED_STORAGE} should also be enabled for apps to be enforced into
+     * scoped storage.
+     * See https://developer.android.com/training/data-storage#scoped-storage for more information.
+     */
+    @ChangeId
+    @Disabled
+    private static final long FORCE_ENABLE_SCOPED_STORAGE = 132649864L;
 
     public static LocalCallingIdentity fromBinder(Context context, ContentProvider provider) {
         String callingPackage = provider.getCallingPackageUnchecked();
@@ -251,7 +290,31 @@ public class LocalCallingIdentity {
     }
 
     private boolean isLegacyStorageGranted() {
+        boolean defaultScopedStorage = CompatChanges.isChangeEnabled(
+                DEFAULT_SCOPED_STORAGE, getPackageName(), UserHandle.getUserHandleForUid(uid));
+        boolean forceEnableScopedStorage = CompatChanges.isChangeEnabled(
+                FORCE_ENABLE_SCOPED_STORAGE, getPackageName(), UserHandle.getUserHandleForUid(uid));
+
+        // if Scoped Storage is strictly enforced, the app does *not* have legacy storage access
+        if (isScopedStorageEnforced(defaultScopedStorage, forceEnableScopedStorage)) {
+            return false;
+        }
+        // if Scoped Storage is strictly disabled, the app has legacy storage access
+        if (isScopedStorageDisabled(defaultScopedStorage, forceEnableScopedStorage)) {
+            return true;
+        }
+
         return checkIsLegacyStorageGranted(context, uid, getPackageName());
+    }
+
+    private boolean isScopedStorageEnforced(boolean defaultScopedStorage,
+            boolean forceEnableScopedStorage) {
+        return defaultScopedStorage && forceEnableScopedStorage;
+    }
+
+    private boolean isScopedStorageDisabled(boolean defaultScopedStorage,
+            boolean forceEnableScopedStorage) {
+        return !defaultScopedStorage && !forceEnableScopedStorage;
     }
 
     private boolean isLegacyWriteInternal() {

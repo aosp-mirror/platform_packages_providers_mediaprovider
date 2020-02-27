@@ -28,6 +28,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import android.Manifest;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
@@ -69,6 +70,9 @@ public class ModernMediaScannerTest {
     @Before
     public void setUp() {
         final Context context = InstrumentationRegistry.getTargetContext();
+        InstrumentationRegistry.getInstrumentation().getUiAutomation()
+                .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
+                        Manifest.permission.READ_COMPAT_CHANGE_CONFIG);
 
         mDir = new File(context.getExternalMediaDirs()[0], "test_" + System.nanoTime());
         mDir.mkdirs();
@@ -83,6 +87,8 @@ public class ModernMediaScannerTest {
     @After
     public void tearDown() {
         FileUtils.deleteContents(mDir);
+        InstrumentationRegistry.getInstrumentation()
+                .getUiAutomation().dropShellPermissionIdentity();
     }
 
     @Test
@@ -229,6 +235,19 @@ public class ModernMediaScannerTest {
     }
 
     @Test
+    public void testIsZero() throws Exception {
+        assertFalse(ModernMediaScanner.isZero(""));
+        assertFalse(ModernMediaScanner.isZero("meow"));
+        assertFalse(ModernMediaScanner.isZero("1"));
+        assertFalse(ModernMediaScanner.isZero("01"));
+        assertFalse(ModernMediaScanner.isZero("010"));
+
+        assertTrue(ModernMediaScanner.isZero("0"));
+        assertTrue(ModernMediaScanner.isZero("00"));
+        assertTrue(ModernMediaScanner.isZero("000"));
+    }
+
+    @Test
     public void testPlaylistM3u() throws Exception {
         doPlaylist(R.raw.test_m3u, "test.m3u");
     }
@@ -249,6 +268,8 @@ public class ModernMediaScannerTest {
         stage(R.raw.test_audio, new File(music, "001.mp3"));
         stage(R.raw.test_audio, new File(music, "002.mp3"));
         stage(R.raw.test_audio, new File(music, "003.mp3"));
+        stage(R.raw.test_audio, new File(music, "004.mp3"));
+        stage(R.raw.test_audio, new File(music, "005.mp3"));
         stage(res, new File(music, name));
 
         mModern.scanDirectory(mDir, REASON_UNKNOWN);
@@ -268,13 +289,17 @@ public class ModernMediaScannerTest {
         try (Cursor cursor = mIsolatedResolver.query(membersUri, new String[] {
                 MediaColumns.DISPLAY_NAME
         }, null, null, MediaStore.Audio.Playlists.Members.PLAY_ORDER + " ASC")) {
-            assertEquals(3, cursor.getCount());
+            assertEquals(5, cursor.getCount());
             cursor.moveToNext();
             assertEquals("001.mp3", cursor.getString(0));
             cursor.moveToNext();
             assertEquals("002.mp3", cursor.getString(0));
             cursor.moveToNext();
             assertEquals("003.mp3", cursor.getString(0));
+            cursor.moveToNext();
+            assertEquals("004.mp3", cursor.getString(0));
+            cursor.moveToNext();
+            assertEquals("005.mp3", cursor.getString(0));
         }
 
         // Delete one of the media files and rescan
@@ -285,7 +310,7 @@ public class ModernMediaScannerTest {
         try (Cursor cursor = mIsolatedResolver.query(membersUri, new String[] {
                 MediaColumns.DISPLAY_NAME
         }, null, null, MediaStore.Audio.Playlists.Members.PLAY_ORDER + " ASC")) {
-            assertEquals(2, cursor.getCount());
+            assertEquals(4, cursor.getCount());
             cursor.moveToNext();
             assertEquals("001.mp3", cursor.getString(0));
             cursor.moveToNext();
@@ -414,6 +439,24 @@ public class ModernMediaScannerTest {
         nomedia.createNewFile();
         assertNull(mModern.scanFile(image, REASON_UNKNOWN));
         assertQueryCount(0, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+    }
+
+    @Test
+    public void testScanFileAndUpdateOwnerPackageName() throws Exception {
+        final File image = new File(mDir, "image.jpg");
+        final String thisPackageName = InstrumentationRegistry.getContext().getPackageName();
+        stage(R.raw.test_image, image);
+
+        assertQueryCount(0, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        // scanning the image file inserts new database entry with OWNER_PACKAGE_NAME as
+        // thisPackageName.
+        assertNotNull(mModern.scanFile(image, REASON_UNKNOWN, thisPackageName));
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                new String[] {MediaColumns.OWNER_PACKAGE_NAME}, null, null, null)) {
+            assertEquals(1, cursor.getCount());
+            cursor.moveToNext();
+            assertEquals(thisPackageName, cursor.getString(0));
+        }
     }
 
     /**

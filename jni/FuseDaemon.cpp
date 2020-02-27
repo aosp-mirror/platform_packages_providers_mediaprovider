@@ -74,10 +74,8 @@ using std::string;
 using std::vector;
 
 // logging macros to avoid duplication.
-#define TRACE LOG(DEBUG)
-#define TRACE_VERBOSE LOG(VERBOSE)
-#define TRACE_FUSE(__fuse) TRACE << "[" << __fuse->path << "] "
-#define TRACE_FUSE_VERBOSE(__fuse) TRACE_VERBOSE << "[" << __fuse->path << "] "
+#define TRACE_NODE(__node) \
+    LOG(DEBUG) << __FUNCTION__ << " : " << #__node << " = [" << safe_name(__node) << "] "
 
 #define ATRACE_NAME(name) ScopedTrace ___tracer(name)
 #define ATRACE_CALL() ATRACE_NAME(__FUNCTION__)
@@ -319,8 +317,8 @@ struct fuse {
     std::unordered_set<const node*> inode_tracker_;
 };
 
-static inline const char* safe_name(node* n) {
-    return n ? n->GetName().c_str() : "?";
+static inline string safe_name(node* n) {
+    return n ? n->BuildSafePath() : "?";
 }
 
 static inline __u64 ptr_to_id(void* ptr) {
@@ -336,7 +334,6 @@ static inline __u64 ptr_to_id(void* ptr) {
  */
 static int set_file_lock(int fd, bool for_read, const std::string& path) {
     std::string lock_str = (for_read ? "read" : "write");
-    TRACE_VERBOSE << "Setting " << lock_str << " lock for path " << path;
 
     struct flock fl{};
     fl.l_type = for_read ? F_RDLCK : F_WRLCK;
@@ -344,10 +341,9 @@ static int set_file_lock(int fd, bool for_read, const std::string& path) {
 
     int res = fcntl(fd, F_OFD_SETLK, &fl);
     if (res) {
-        PLOG(ERROR) << "Failed to set " << lock_str << " lock on path " << path;
+        PLOG(WARNING) << "Failed to set lock: " << lock_str;
         return res;
     }
-    TRACE_VERBOSE << "Successfully set " << lock_str << " lock on path " << path;
     return res;
 }
 
@@ -361,20 +357,17 @@ static int set_file_lock(int fd, bool for_read, const std::string& path) {
  * Returns true if fd may have a lock, false otherwise
  */
 static bool is_file_locked(int fd, const std::string& path) {
-    TRACE_VERBOSE << "Checking if file is locked " << path;
-
     struct flock fl{};
     fl.l_type = F_WRLCK;
     fl.l_whence = SEEK_SET;
 
     int res = fcntl(fd, F_OFD_GETLK, &fl);
     if (res) {
-        PLOG(ERROR) << "Failed to check lock for file " << path;
+        PLOG(WARNING) << "Failed to check lock";
         // Assume worst
         return true;
     }
     bool locked = fl.l_type != F_UNLCK;
-    TRACE_VERBOSE << "File " << path << " is " << (locked ? "locked" : "unlocked");
     return locked;
 }
 
@@ -424,6 +417,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
         fuse->NodeCreated(node);
     }
 
+    TRACE_NODE(node);
     // This FS is not being exported via NFS so just a fixed generation number
     // for now. If we do need this, we need to increment the generation ID each
     // time the fuse daemon restarts because that's what it takes for us to
@@ -474,11 +468,9 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     node* parent_node = fuse->FromInode(parent);
     string parent_path = parent_node->BuildPath();
-
-    TRACE_FUSE_VERBOSE(fuse) << "LOOKUP " << name << " @ " << parent << " ("
-                             << safe_name(parent_node) << ")";
-
     string child_path = parent_path + "/" + name;
+
+    TRACE_NODE(parent_node);
 
     std::smatch match;
     std::regex_search(child_path, match, storage_emulated_regex);
@@ -505,7 +497,7 @@ static void pf_lookup(fuse_req_t req, fuse_ino_t parent, const char* name) {
 
 static void do_forget(struct fuse* fuse, fuse_ino_t ino, uint64_t nlookup) {
     node* node = fuse->FromInode(ino);
-    TRACE_FUSE(fuse) << "FORGET #" << nlookup << " @ " << ino << " (" << safe_name(node) << ")";
+    TRACE_NODE(node);
     if (node) {
         // This is a narrowing conversion from an unsigned 64bit to a 32bit value. For
         // some reason we only keep 32 bit refcounts but the kernel issues
@@ -545,7 +537,7 @@ static void pf_getattr(fuse_req_t req,
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     node* node = fuse->FromInode(ino);
     string path = node->BuildPath();
-    TRACE_FUSE(fuse) << "GETATTR @ " << ino << " (" << safe_name(node) << ")";
+    TRACE_NODE(node);
 
     if (!node) fuse_reply_err(req, ENOENT);
 
@@ -570,7 +562,7 @@ static void pf_setattr(fuse_req_t req,
     string path = node->BuildPath();
     struct timespec times[2];
 
-    TRACE_FUSE(fuse) << "SETATTR valid=" << to_set << " @ " << ino << "(" << safe_name(node) << ")";
+    TRACE_NODE(node);
 
     if (!node) {
         fuse_reply_err(req, ENOENT);
@@ -611,8 +603,8 @@ static void pf_setattr(fuse_req_t req,
                 // times[1].tv_nsec = attr->st_mtime.tv_nsec;
             }
         }
-        TRACE_FUSE(fuse) << "Calling utimensat on " << path << " with atime " << times[0].tv_sec
-                         << " mtime=" << times[1].tv_sec;
+
+        TRACE_NODE(node);
         if (utimensat(-1, path.c_str(), times, 0) < 0) {
             fuse_reply_err(req, errno);
             return;
@@ -646,8 +638,7 @@ static void pf_mknod(fuse_req_t req,
     node* parent_node = fuse->FromInode(parent);
     string parent_path = parent_node->BuildPath();
 
-    TRACE_FUSE(fuse) << "MKNOD " << name << " 0" << std::oct << mode << " @ " << parent << " ("
-                     << safe_name(parent_node) << ")";
+    TRACE_NODE(parent_node);
 
     if (!parent_node) {
         fuse_reply_err(req, ENOENT);
@@ -681,8 +672,7 @@ static void pf_mkdir(fuse_req_t req,
     node* parent_node = fuse->FromInode(parent);
     const string parent_path = parent_node->BuildPath();
 
-    TRACE_FUSE(fuse) << "MKDIR " << name << " 0" << std::oct << mode << " @ " << parent << " ("
-                     << safe_name(parent_node) << ")";
+    TRACE_NODE(parent_node);
 
     const string child_path = parent_path + "/" + name;
 
@@ -715,7 +705,7 @@ static void pf_unlink(fuse_req_t req, fuse_ino_t parent, const char* name) {
     node* parent_node = fuse->FromInode(parent);
     const string parent_path = parent_node->BuildPath();
 
-    TRACE_FUSE(fuse) << "UNLINK " << name << " @ " << parent << "(" << safe_name(parent_node) << ")";
+    TRACE_NODE(parent_node);
 
     const string child_path = parent_path + "/" + name;
 
@@ -726,6 +716,7 @@ static void pf_unlink(fuse_req_t req, fuse_ino_t parent, const char* name) {
     }
 
     node* child_node = parent_node->LookupChildByName(name, false /* acquire */);
+    TRACE_NODE(child_node);
     if (child_node) {
         child_node->SetDeleted();
     }
@@ -740,7 +731,7 @@ static void pf_rmdir(fuse_req_t req, fuse_ino_t parent, const char* name) {
     node* parent_node = fuse->FromInode(parent);
     const string parent_path = parent_node->BuildPath();
 
-    TRACE_FUSE(fuse) << "RMDIR " << name << " @ " << parent << "(" << safe_name(parent_node) << ")";
+    TRACE_NODE(parent_node);
 
     const string child_path = parent_path + "/" + name;
 
@@ -756,6 +747,7 @@ static void pf_rmdir(fuse_req_t req, fuse_ino_t parent, const char* name) {
     }
 
     node* child_node = parent_node->LookupChildByName(name, false /* acquire */);
+    TRACE_NODE(child_node);
     if (child_node) {
         child_node->SetDeleted();
     }
@@ -776,7 +768,6 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
 
     if (flags != 0) {
-        LOG(ERROR) << "One or more rename flags not supported";
         return EINVAL;
     }
 
@@ -792,11 +783,11 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
         return 0;
     }
 
-    TRACE_FUSE(fuse) << "RENAME " << name << " -> " << new_name << " @ " << parent << " ("
-                     << safe_name(old_parent_node) << ") -> " << new_parent << " ("
-                     << safe_name(new_parent_node) << ")";
+    TRACE_NODE(old_parent_node);
+    TRACE_NODE(new_parent_node);
 
     node* child_node = old_parent_node->LookupChildByName(name, true /* acquire */);
+    TRACE_NODE(child_node) << "old_child";
 
     const string old_child_path = child_node->BuildPath();
     const string new_child_path = new_parent_path + "/" + new_name;
@@ -808,6 +799,7 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
     if (res == 0) {
         child_node->Rename(new_name, new_parent_node);
     }
+    TRACE_NODE(child_node) << "new_child";
 
     child_node->Release(1);
     return res;
@@ -834,8 +826,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     node* node = fuse->FromInode(ino);
     const string path = node->BuildPath();
 
-    TRACE_FUSE(fuse) << "OPEN 0" << std::oct << fi->flags << " @ " << ino << " (" << safe_name(node)
-                     << ")";
+    TRACE_NODE(node) << (is_requesting_write(fi->flags) ? "write" : "read");
 
     if (!node) {
         fuse_reply_err(req, ENOENT);
@@ -847,7 +838,6 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         fi->direct_io = true;
     }
 
-    TRACE_FUSE(fuse) << "OPEN " << path;
     int status = fuse->mp->IsOpenAllowed(path, ctx->uid, is_requesting_write(fi->flags));
     if (status) {
         fuse_reply_err(req, status);
@@ -896,14 +886,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         // b. Reading from a FUSE fd with caching enabled may not see the latest writes using the
         // lower fs fd because those writes did not go through the FUSE layer and reads from FUSE
         // after that write may be served from cache
-        if (ri->isRedactionNeeded()) {
-            TRACE_FUSE(fuse) << "Using direct io for " << path << " because redaction is needed.";
-        } else {
-            TRACE_FUSE(fuse) << "Using direct io for " << path << " because the file is locked.";
-        }
         fi->direct_io = true;
-    } else {
-        TRACE_FUSE(fuse) << "Using cache for " << path;
     }
 
     handle* h = new handle(path, fd, ri.release(), /*owner_uid*/ -1, !fi->direct_io);
@@ -1097,7 +1080,7 @@ static void pf_flush(fuse_req_t req,
                      struct fuse_file_info* fi) {
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
-    TRACE_FUSE(fuse) << "FLUSH is a noop";
+    TRACE_NODE(nullptr) << "noop";
     fuse_reply_err(req, 0);
 }
 
@@ -1109,8 +1092,7 @@ static void pf_release(fuse_req_t req,
 
     node* node = fuse->FromInode(ino);
     handle* h = reinterpret_cast<handle*>(fi->fh);
-    TRACE_FUSE(fuse) << "RELEASE "
-                     << "0" << std::oct << fi->flags << " " << h << "(" << h->fd << ")";
+    TRACE_NODE(node);
 
     fuse->fadviser.Close(h->fd);
     if (node) {
@@ -1160,7 +1142,7 @@ static void pf_opendir(fuse_req_t req,
     node* node = fuse->FromInode(ino);
     const string path = node->BuildPath();
 
-    TRACE_FUSE(fuse) << "OPENDIR @ " << ino << " (" << safe_name(node) << ")" << path;
+    TRACE_NODE(node);
 
     if (!node) {
         fuse_reply_err(req, ENOENT);
@@ -1207,7 +1189,7 @@ static void do_readdir_common(fuse_req_t req,
     node* node = fuse->FromInode(ino);
     const string path = node->BuildPath();
 
-    TRACE_FUSE(fuse) << "READDIR @" << ino << " " << path << " at offset " << off;
+    TRACE_NODE(node);
     // Get all directory entries from MediaProvider on first readdir() call of
     // directory handle. h->next_off = 0 indicates that current readdir() call
     // is first readdir() call for the directory handle, Avoid multiple JNI calls
@@ -1294,7 +1276,7 @@ static void pf_releasedir(fuse_req_t req,
 
     node* node = fuse->FromInode(ino);
     dirhandle* h = reinterpret_cast<dirhandle*>(fi->fh);
-    TRACE_FUSE(fuse) << "RELEASEDIR " << h;
+    TRACE_NODE(node);
     if (node) {
         node->DestroyDirHandle(h);
     }
@@ -1342,7 +1324,7 @@ static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
 
     node* node = fuse->FromInode(ino);
     const string path = node->BuildPath();
-    TRACE_FUSE_VERBOSE(fuse) << "ACCESS " << path;
+    TRACE_NODE(node);
 
     int res = access(path.c_str(), F_OK);
     fuse_reply_err(req, res ? errno : 0);
@@ -1359,14 +1341,12 @@ static void pf_create(fuse_req_t req,
     node* parent_node = fuse->FromInode(parent);
     const string parent_path = parent_node->BuildPath();
 
-    TRACE_FUSE(fuse) << "CREATE " << name << " 0" << std::oct << fi->flags << " @ " << parent
-                     << " (" << safe_name(parent_node) << ")";
+    TRACE_NODE(parent_node);
 
     const string child_path = parent_path + "/" + name;
 
     int mp_return_code = fuse->mp->InsertFile(child_path.c_str(), ctx->uid);
     if (mp_return_code) {
-        PLOG(DEBUG) << "Could not create file: " << child_path;
         fuse_reply_err(req, mp_return_code);
         return;
     }
@@ -1401,6 +1381,7 @@ static void pf_create(fuse_req_t req,
     int error_code = 0;
     struct fuse_entry_param e;
     node* node = make_node_entry(req, parent_node, name, child_path, &e, &error_code);
+    TRACE_NODE(node);
     if (node) {
         node->AddHandle(h);
         fuse_reply_create(req, &e, fi);
@@ -1462,21 +1443,17 @@ static void pf_fallocate(fuse_req_t req, fuse_ino_t ino, int mode,
 */
 
 static struct fuse_lowlevel_ops ops{
-    .init = pf_init,
-    .destroy = pf_destroy,
-    .lookup = pf_lookup, .forget = pf_forget, .getattr = pf_getattr,
-    .setattr = pf_setattr,
-    .canonical_path = pf_canonical_path,
-    .mknod = pf_mknod, .mkdir = pf_mkdir, .unlink = pf_unlink,
-    .rmdir = pf_rmdir,
+    .init = pf_init, .destroy = pf_destroy, .lookup = pf_lookup, .forget = pf_forget,
+    .getattr = pf_getattr, .setattr = pf_setattr, .canonical_path = pf_canonical_path,
+    .mknod = pf_mknod, .mkdir = pf_mkdir, .unlink = pf_unlink, .rmdir = pf_rmdir,
     /*.symlink = pf_symlink,*/
     .rename = pf_rename,
     /*.link = pf_link,*/
     .open = pf_open, .read = pf_read,
     /*.write = pf_write,*/
-    .flush = pf_flush, .release = pf_release, .fsync = pf_fsync,
-    .opendir = pf_opendir, .readdir = pf_readdir, .releasedir = pf_releasedir,
-    .fsyncdir = pf_fsyncdir, .statfs = pf_statfs,
+    .flush = pf_flush,
+    .release = pf_release, .fsync = pf_fsync, .opendir = pf_opendir, .readdir = pf_readdir,
+    .releasedir = pf_releasedir, .fsyncdir = pf_fsyncdir, .statfs = pf_statfs,
     /*.setxattr = pf_setxattr,
     .getxattr = pf_getxattr,
     .listxattr = pf_listxattr,
@@ -1517,32 +1494,26 @@ static void fuse_logger(enum fuse_log_level level, const char* fmt, va_list ap) 
 }
 
 bool FuseDaemon::ShouldOpenWithFuse(int fd, bool for_read, const std::string& path) {
-    TRACE_VERBOSE << "Checking if file should be opened with FUSE " << path;
     bool use_fuse = false;
 
     if (active.load(std::memory_order_acquire)) {
         const node* node = node::LookupAbsolutePath(fuse->root, path);
         if (node && node->HasCachedHandle()) {
-            TRACE << "Should open " << path << " with FUSE. Reason: cache";
             use_fuse = true;
         } else {
             // If we are unable to set a lock, we should use fuse since we can't track
             // when all fd references (including dups) are closed. This can happen when
             // we try to set a write lock twice on the same file
             use_fuse = set_file_lock(fd, for_read, path);
-            TRACE << "Should open " << path << (use_fuse ? " with" : " without")
-                  << " FUSE. Reason: lock";
         }
     } else {
-        TRACE << "FUSE daemon is inactive. Should not open " << path << " with FUSE";
+        LOG(WARNING) << "FUSE daemon is inactive. Cannot open file with FUSE";
     }
 
     return use_fuse;
 }
 
 void FuseDaemon::InvalidateFuseDentryCache(const std::string& path) {
-    TRACE_VERBOSE << "Invalidating dentry for path " << path;
-
     if (active.load(std::memory_order_acquire)) {
         string name;
         fuse_ino_t parent;
@@ -1558,10 +1529,10 @@ void FuseDaemon::InvalidateFuseDentryCache(const std::string& path) {
 
         if (!name.empty() &&
             fuse_lowlevel_notify_inval_entry(fuse->se, parent, name.c_str(), name.size())) {
-            LOG(ERROR) << "Failed to invalidate dentry for path " << path;
+            LOG(WARNING) << "Failed to invalidate dentry for path";
         }
     } else {
-        TRACE << "FUSE daemon is inactive. Cannot invalidate dentry for " << path;
+        LOG(WARNING) << "FUSE daemon is inactive. Cannot invalidate dentry";
     }
 }
 
@@ -1577,12 +1548,12 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
     struct stat stat;
 
     if (lstat(path.c_str(), &stat)) {
-        LOG(ERROR) << "ERROR: failed to stat source " << path;
+        PLOG(ERROR) << "ERROR: failed to stat source " << path;
         return;
     }
 
     if (!S_ISDIR(stat.st_mode)) {
-        LOG(ERROR) << "ERROR: source is not a directory";
+        PLOG(ERROR) << "ERROR: source is not a directory";
         return;
     }
 

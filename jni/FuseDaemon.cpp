@@ -1065,9 +1065,11 @@ static void pf_release(fuse_req_t req,
 
     fuse->fadviser.Close(h->fd);
     if (node) {
-        if (h->owner_uid != -1) {
-            fuse->mp->ScanFile(h->path, h->owner_uid);
-        }
+        // TODO(b/145737191) Legacy apps don't expect FuseDaemon to update database.
+        // Inserting/deleting the database entry might break app's functionality.
+        // if (h->owner_uid != -1) {
+        //    fuse->mp->ScanFile(h->path, h->owner_uid);
+        // }
         node->DestroyHandle(h);
     }
 

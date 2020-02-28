@@ -1458,12 +1458,16 @@ public class MediaProvider extends ContentProvider {
      * However, we update database entries for renamed files to keep the database consistent.
      */
     private int renameUncheckedForFuse(String oldPath, String newPath) {
-        if (new File(oldPath).isFile()) {
-            return renameFileUncheckedForFuse(oldPath, newPath);
-        } else {
-            return renameDirectoryUncheckedForFuse(oldPath, newPath,
-                    getAllFilesForRenameDirectory(oldPath));
-        }
+
+        return renameInLowerFs(oldPath, newPath);
+        // TODO(b/145737191) Legacy apps don't expect FuseDaemon to update database.
+        // Inserting/deleting the database entry might break app functionality.
+        //if (new File(oldPath).isFile()) {
+        //     return renameFileUncheckedForFuse(oldPath, newPath);
+        // } else {
+        //    return renameDirectoryUncheckedForFuse(oldPath, newPath,
+        //            getAllFilesForRenameDirectory(oldPath));
+        // }
     }
 
     /**
@@ -5645,6 +5649,12 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
+            if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
+                // TODO(b/145737191) Legacy apps don't expect FuseDaemon to update database.
+                // Inserting/deleting the database entry might break app functionality.
+                return deleteFileUnchecked(path);
+            }
+
             // Check if app is deleting a file under an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
@@ -5658,12 +5668,9 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
-            final boolean shouldBypass = shouldBypassFuseRestrictions(/*forWrite*/ true,
-                    path);
-
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
-            if (!shouldBypass && isCallingPackageRequestingLegacy()) {
+            if (isCallingPackageRequestingLegacy()) {
                 return OsConstants.EPERM;
             }
 
@@ -5677,12 +5684,6 @@ public class MediaProvider extends ContentProvider {
             final String[] whereArgs = {sanitizedPath};
 
             if (delete(contentUri, where, whereArgs) == 0) {
-                if (shouldBypass) {
-                    // For apps that bypass scoped storage restrictions, delete() should only fail
-                    // if the file is not in database. This shouldn't stop these apps from deleting
-                    // a file, hence delete the file in the lower file system.
-                    return deleteFileUnchecked(path);
-                }
                 return OsConstants.ENOENT;
             } else if (!path.equals(sanitizedPath)) {
                 // delete() doesn't delete the file in lower file system if sanitized path is

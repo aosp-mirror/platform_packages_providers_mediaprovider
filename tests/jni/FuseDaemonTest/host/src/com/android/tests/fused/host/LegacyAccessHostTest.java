@@ -25,6 +25,7 @@ import com.android.tradefed.testtype.junit4.BaseHostJUnit4Test;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -153,6 +154,7 @@ public class LegacyAccessHostTest extends BaseHostJUnit4Test {
 
     }
 
+    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testCanRename_hasRW() throws Exception {
         runDeviceTest("testCanRename_hasRW");
@@ -182,11 +184,13 @@ public class LegacyAccessHostTest extends BaseHostJUnit4Test {
         }
     }
 
+    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testCanDeleteAllFiles_hasRW() throws Exception {
         runDeviceTest("testCanDeleteAllFiles_hasRW");
     }
 
+    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testLegacyAppCanOwnAFile_hasW() throws Exception {
         runDeviceTest("testLegacyAppCanOwnAFile_hasW");

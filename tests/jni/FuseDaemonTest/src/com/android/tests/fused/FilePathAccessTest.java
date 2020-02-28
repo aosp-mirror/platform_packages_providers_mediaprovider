@@ -75,7 +75,6 @@ import android.system.Os;
 import android.system.OsConstants;
 import android.util.Log;
 
-import androidx.annotation.Nullable;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.cts.install.lib.TestApp;
@@ -84,6 +83,7 @@ import com.android.tests.fused.lib.ReaddirTestHelper;
 import com.google.common.io.ByteStreams;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -665,6 +665,7 @@ public class FilePathAccessTest {
     /**
      * Test that readdir lists unsupported file types in default directories.
      */
+    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testListUnsupportedFileType() throws Exception {
         final File pdfFile = new File(DCIM_DIR, NONMEDIA_FILE_NAME);
@@ -971,6 +972,7 @@ public class FilePathAccessTest {
         }
     }
 
+    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testSystemGalleryCanRenameImagesAndVideos() throws Exception {
         final File otherAppVideoFile = new File(DCIM_DIR, "other_" + VIDEO_FILE_NAME);
@@ -1255,6 +1257,7 @@ public class FilePathAccessTest {
         }
     }
 
+    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testManageExternalStorageCanCreateFilesAnywhere() throws Exception {
         final File topLevelPdf = new File(EXTERNAL_STORAGE_DIR, NONMEDIA_FILE_NAME);
@@ -1295,6 +1298,7 @@ public class FilePathAccessTest {
         }
     }
 
+    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testManageExternalStorageCanDeleteOtherAppsContents() throws Exception {
         final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
@@ -1329,6 +1333,7 @@ public class FilePathAccessTest {
         }
     }
 
+    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testManageExternalStorageCanRenameOtherAppsContents() throws Exception {
         final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);

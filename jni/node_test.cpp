@@ -9,15 +9,19 @@
 using mediaprovider::fuse::dirhandle;
 using mediaprovider::fuse::handle;
 using mediaprovider::fuse::node;
+using mediaprovider::fuse::NodeTracker;
 
 // Listed as a friend class to struct node so it can observe implementation
 // details if required. The only implementation detail that is worth writing
 // tests around at the moment is the reference count.
 class NodeTest : public ::testing::Test {
   public:
+    NodeTest() : tracker_(NodeTracker(&lock_)) {}
+
     uint32_t GetRefCount(node* node) { return node->refcount_; }
 
     std::recursive_mutex lock_;
+    NodeTracker tracker_;
 
     // Forward destruction here, as NodeTest is a friend class.
     static void destroy(node* node) { delete node; }
@@ -27,7 +31,7 @@ class NodeTest : public ::testing::Test {
     typedef std::unique_ptr<node, decltype(&NodeTest::destroy)> unique_node_ptr;
 
     unique_node_ptr CreateNode(node* parent, const std::string& path) {
-        return unique_node_ptr(node::Create(parent, path, &lock_), &NodeTest::destroy);
+        return unique_node_ptr(node::Create(parent, path, &lock_, &tracker_), &NodeTest::destroy);
     }
 };
 
@@ -53,7 +57,7 @@ TEST_F(NodeTest, TestCreate_withParent) {
 }
 
 TEST_F(NodeTest, TestRelease) {
-    node* node = node::Create(nullptr, "/path", &lock_);
+    node* node = node::Create(nullptr, "/path", &lock_, &tracker_);
     acquire(node);
     acquire(node);
     ASSERT_EQ(3, GetRefCount(node));
@@ -152,10 +156,10 @@ TEST_F(NodeTest, DeleteTree) {
     unique_node_ptr parent = CreateNode(nullptr, "/path");
 
     // This is the tree that we intend to delete.
-    node* child = node::Create(parent.get(), "subdir", &lock_);
-    node::Create(child, "s1", &lock_);
-    node* subchild2 = node::Create(child, "s2", &lock_);
-    node::Create(subchild2, "sc2", &lock_);
+    node* child = node::Create(parent.get(), "subdir", &lock_, &tracker_);
+    node::Create(child, "s1", &lock_, &tracker_);
+    node* subchild2 = node::Create(child, "s2", &lock_, &tracker_);
+    node::Create(subchild2, "sc2", &lock_, &tracker_);
 
     ASSERT_EQ(child, parent->LookupChildByName("subdir", false /* acquire */));
     node::DeleteTree(child);

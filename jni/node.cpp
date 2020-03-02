@@ -97,13 +97,15 @@ void node::DeleteTree(node* tree) {
     std::lock_guard<std::recursive_mutex> guard(*tree->lock_);
 
     if (tree) {
-        for (node* child : tree->children_) {
+        // Make a copy of the list of children because calling Delete tree
+        // will modify the list of children, which will cause issues while
+        // iterating over them.
+        std::vector<node*> children(tree->children_.begin(), tree->children_.end());
+        for (node* child : children) {
             DeleteTree(child);
         }
-        tree->children_.clear();
 
-        LOG(DEBUG) << "DELETE node " << tree->GetName();
-        tree->RemoveFromParent();
+        CHECK(tree->children_.empty());
         delete tree;
     }
 }

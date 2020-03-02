@@ -34,14 +34,10 @@
       <item quantity="other">مزید <xliff:g id="COUNT_1">^1</xliff:g> اضافی آئٹمز</item>
       <item quantity="one">مزید <xliff:g id="COUNT_0">^1</xliff:g> اضافی آئٹم</item>
     </plurals>
-    <!-- no translation found for cache_clearing_dialog_title (543177167845854283) -->
-    <skip />
-    <!-- no translation found for cache_clearing_dialog_text (425995541409682360) -->
-    <skip />
-    <!-- no translation found for allow (8885707816848569619) -->
-    <skip />
-    <!-- no translation found for deny (6040983710442068936) -->
-    <skip />
+    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> سے ایپ کی کیش صاف کریں؟"</string>
+    <string name="cache_clearing_dialog_text" msgid="425995541409682360">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> کچھ عارضی فائلز کو صاف کرنا چاہتا ہے۔ قبول کرنے سے بیٹری یا ڈیٹا کا استعمال بڑھ سکتا ہے۔"</string>
+    <string name="allow" msgid="8885707816848569619">"اجازت دیں"</string>
+    <string name="deny" msgid="6040983710442068936">"مسترد کریں"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> کے <xliff:g id="COUNT">^2</xliff:g> آڈیو فائلز کو تبدیل کرنے دیں؟</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> کے اس آڈیو فائل کو تبدیل کرنے دیں؟</item>

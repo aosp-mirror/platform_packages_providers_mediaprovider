@@ -38,14 +38,10 @@
       <item quantity="other">و<xliff:g id="COUNT_1">^1</xliff:g> عنصر إضافي</item>
       <item quantity="one">وعنصر إضافي واحد (<xliff:g id="COUNT_0">^1</xliff:g>)</item>
     </plurals>
-    <!-- no translation found for cache_clearing_dialog_title (543177167845854283) -->
-    <skip />
-    <!-- no translation found for cache_clearing_dialog_text (425995541409682360) -->
-    <skip />
-    <!-- no translation found for allow (8885707816848569619) -->
-    <skip />
-    <!-- no translation found for deny (6040983710442068936) -->
-    <skip />
+    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"هل تريد محو ذاكرة التخزين المؤقت للتطبيقات باستخدام <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>؟"</string>
+    <string name="cache_clearing_dialog_text" msgid="425995541409682360">"يريد <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> محو بعض الملفات المؤقتة. قد تؤدي الموافقة إلى زيادة استهلاك شحن البطارية أو البيانات."</string>
+    <string name="allow" msgid="8885707816848569619">"سماح"</string>
+    <string name="deny" msgid="6040983710442068936">"رفض"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="zero">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتغيير<xliff:g id="COUNT">^2</xliff:g> ملف صوت؟</item>
       <item quantity="two">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتغيير ملفَي صوت (<xliff:g id="COUNT">^2</xliff:g>)؟</item>

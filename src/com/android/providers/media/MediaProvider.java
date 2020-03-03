@@ -1096,9 +1096,10 @@ public class MediaProvider extends ContentProvider {
      * A list with ["/"] is returned if the path is not indexed by MediaProvider database or
      * calling package is a legacy app and has appropriate storage permissions for the given path.
      * In both scenarios file names should be obtained from lower file system.
-     * A list with empty string[""] is returned if the package requesting legacy behavior doesn't
-     * have storage permissions for the given path.
-     * Directory names are always obtained from lower file system.
+     * A list with empty string[""] is returned if the calling package doesn't have access to the
+     * given path.
+     *
+     * <p>Directory names are always obtained from lower file system.
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
@@ -1107,20 +1108,23 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token = clearLocalCallingIdentity(
                 LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
-                return new String[] {"/"};
-            }
-
-            // Allow legacy app without storage permissions to list files only in its external
-            // media directory.
-            if (isCallingPackageRequestingLegacy()) {
-                final String appSpecificDir = extractPathOwnerPackageName(path);
-                if ((appSpecificDir != null &&
-                        isCallingIdentitySharedPackageName(appSpecificDir))) {
+            final String appSpecificDir = extractPathOwnerPackageName(path);
+            // Apps are allowed to list files only in their own external directory.
+            if (appSpecificDir != null) {
+                if (isCallingIdentitySharedPackageName(appSpecificDir)) {
                     return new String[] {"/"};
                 } else {
                     return new String[] {""};
                 }
+            }
+
+            if (shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
+                return new String[] {"/"};
+            }
+            // Legacy apps that made is this far don't have the right storage permission and hence
+            // are not allowed to access anything other than their external app directory
+            if (isCallingPackageRequestingLegacy()) {
+                return new String[] {""};
             }
 
             // Get relative path for the contents of given directory.
@@ -1537,24 +1541,26 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token = clearLocalCallingIdentity(
                 LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(/*forWrite*/ true, oldPath)
-                    && shouldBypassFuseRestrictions(/*forWrite*/ true, newPath)) {
-                return renameUncheckedForFuse(oldPath, newPath);
-            }
+            final String oldPathPackageName = extractPathOwnerPackageName(oldPath);
+            final String newPathPackageName = extractPathOwnerPackageName(newPath);
 
-            // Allow legacy app without storage permission to rename files only in its external
-            // media directory. External files & obb directories are bind mounted and don't go
-            // through FUSE.
-            if (isCallingPackageRequestingLegacy()) {
-                final String oldPathPackageName = extractPathOwnerPackageName(oldPath);
-                final String newPathPackageName = extractPathOwnerPackageName(newPath);
-                if (oldPathPackageName != null && newPathPackageName != null &&
-                        isCallingIdentitySharedPackageName(oldPathPackageName) &&
+            if (oldPathPackageName != null && newPathPackageName != null) {
+                if (isCallingIdentitySharedPackageName(oldPathPackageName) &&
                         isCallingIdentitySharedPackageName(newPathPackageName)) {
                     return renameInLowerFs(oldPath, newPath);
                 } else {
                     return OsConstants.EACCES;
                 }
+            }
+
+            if (shouldBypassFuseRestrictions(/*forWrite*/ true, oldPath)
+                    && shouldBypassFuseRestrictions(/*forWrite*/ true, newPath)) {
+                return renameUncheckedForFuse(oldPath, newPath);
+            }
+            // Legacy apps that made is this far don't have the right storage permission and hence
+            // are not allowed to access anything other than their external app directory
+            if (isCallingPackageRequestingLegacy()) {
+                return OsConstants.EACCES;
             }
 
             final String[] oldRelativePath = sanitizePath(extractRelativePath(oldPath));
@@ -5316,12 +5322,6 @@ public class MediaProvider extends ContentProvider {
 
         long[] res = new long[0];
         try {
-            if (!isRedactionNeeded()
-                    || shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
-                return res;
-            }
-
-
             // Returns null if the path doesn't correspond to an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
@@ -5329,6 +5329,11 @@ public class MediaProvider extends ContentProvider {
                 if (isCallingIdentitySharedPackageName(appSpecificDir)) {
                     return res;
                 }
+            }
+
+            if (!isRedactionNeeded()
+                    || shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
+                return res;
             }
 
             path = getAbsoluteSanitizedPath(path);
@@ -5444,10 +5449,6 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(forWrite, path)) {
-                return 0;
-            }
-
             // Returns null if the path doesn't correspond to an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
@@ -5460,6 +5461,9 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
+            if (shouldBypassFuseRestrictions(forWrite, path)) {
+                return 0;
+            }
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
@@ -5630,10 +5634,6 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
-                return 0;
-            }
-
             // Returns null if the path doesn't correspond to an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
@@ -5647,7 +5647,11 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
-            // Legacy apps that made it this far don't have the required permissions
+            if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
+                return 0;
+            }
+            // Legacy apps that made is this far don't have the right storage permission and hence
+            // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
                 return OsConstants.EPERM;
             }
@@ -5712,12 +5716,6 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
-                // TODO(b/145737191) Legacy apps don't expect FuseDaemon to update database.
-                // Inserting/deleting the database entry might break app functionality.
-                return deleteFileUnchecked(path);
-            }
-
             // Check if app is deleting a file under an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
@@ -5731,6 +5729,11 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
+            if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
+                // TODO(b/145737191) Legacy apps don't expect FuseDaemon to update database.
+                // Inserting/deleting the database entry might break app functionality.
+                return deleteFileUnchecked(path);
+            }
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
@@ -5788,10 +5791,6 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
-                return 0;
-            }
-
             // Returns null if the path doesn't correspond to an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
@@ -5805,6 +5804,9 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
+            if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
+                return 0;
+            }
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
@@ -5848,10 +5850,6 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
-                return 0;
-            }
-
             // Returns null if the path doesn't correspond to an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
@@ -5868,6 +5866,9 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
+            if (shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
+                return 0;
+            }
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {

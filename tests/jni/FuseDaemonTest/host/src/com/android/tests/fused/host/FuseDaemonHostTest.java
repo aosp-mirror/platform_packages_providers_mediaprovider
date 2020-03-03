@@ -249,4 +249,9 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
     public void testQueryOtherAppsFiles() throws Exception {
         runDeviceTest("testQueryOtherAppsFiles");
     }
+
+    @Test
+    public void testSystemGalleryCanRenameImageAndVideoDirs() throws Exception {
+        runDeviceTest("testSystemGalleryCanRenameImageAndVideoDirs");
+    }
 }

@@ -1460,6 +1460,57 @@ public class FilePathAccessTest {
         }
     }
 
+    /**
+     * Test that System Gallery app can rename any directory under the default directories
+     * designated for images and videos, even if they contain other apps' contents that
+     * System Gallery doesn't have read access to.
+     */
+    @Test
+    public void testSystemGalleryCanRenameImageAndVideoDirs() throws Exception {
+        final File dirInDcim = new File(DCIM_DIR, TEST_DIRECTORY_NAME);
+        final File dirInPictures = new File(PICTURES_DIR, TEST_DIRECTORY_NAME);
+        final File dirInPodcasts = new File(PODCASTS_DIR, TEST_DIRECTORY_NAME);
+        final File otherAppImageFile1 = new File(dirInDcim, "other_" + IMAGE_FILE_NAME);
+        final File otherAppVideoFile1 = new File(dirInDcim, "other_" + VIDEO_FILE_NAME);
+        final File otherAppPdfFile1 = new File(dirInDcim, "other_" + NONMEDIA_FILE_NAME);
+        final File otherAppImageFile2 = new File(dirInPictures, "other_" + IMAGE_FILE_NAME);
+        final File otherAppVideoFile2 = new File(dirInPictures, "other_" + VIDEO_FILE_NAME);
+        final File otherAppPdfFile2 = new File(dirInPictures, "other_" + NONMEDIA_FILE_NAME);
+        try {
+            assertThat(dirInDcim.mkdir()).isTrue();
+
+            executeShellCommand("touch " + otherAppPdfFile1);
+
+            installApp(TEST_APP_A, true);
+            allowAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
+
+            assertCreateFilesAs(TEST_APP_A, otherAppImageFile1, otherAppVideoFile1);
+
+            // System gallery privileges don't go beyond DCIM, Movies and Pictures boundaries.
+            assertCantRenameDirectory(dirInDcim, dirInPodcasts, /*oldFilesList*/null);
+
+            // Rename should succeed, but System Gallery still can't access that PDF file!
+            assertCanRenameDirectory(dirInDcim, dirInPictures,
+                    new File[] {otherAppImageFile1, otherAppVideoFile1},
+                    new File[] {otherAppImageFile2, otherAppVideoFile2});
+            assertThat(getFileRowIdFromDatabase(otherAppPdfFile1)).isEqualTo(-1);
+            assertThat(getFileRowIdFromDatabase(otherAppPdfFile2)).isEqualTo(-1);
+        } finally {
+            executeShellCommand("rm " + otherAppPdfFile1);
+            executeShellCommand("rm " + otherAppPdfFile2);
+            otherAppImageFile1.delete();
+            otherAppImageFile2.delete();
+            otherAppVideoFile1.delete();
+            otherAppVideoFile2.delete();
+            otherAppPdfFile1.delete();
+            otherAppPdfFile2.delete();
+            dirInDcim.delete();
+            dirInPictures.delete();
+            uninstallAppNoThrow(TEST_APP_A);
+            denyAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
+        }
+    }
+
     private static void assertCantQueryFile(File file) {
         assertThat(getFileUri(file)).isNull();
     }

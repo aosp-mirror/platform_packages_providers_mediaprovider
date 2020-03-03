@@ -1949,6 +1949,15 @@ public class MediaProvider extends ContentProvider {
                 values.put(MediaColumns.MIME_TYPE, MimeUtils.resolveMimeType(new File(data)));
             }
         }
+        // Extract the MIME type from the display name if we couldn't resolve it from the raw path
+        if (!TextUtils.isEmpty(values.getAsString(MediaColumns.DISPLAY_NAME))) {
+            final String displayName = values.getAsString(MediaColumns.DISPLAY_NAME);
+
+            if (TextUtils.isEmpty(values.getAsString(MediaColumns.MIME_TYPE))) {
+                values.put(
+                        MediaColumns.MIME_TYPE, MimeUtils.resolveMimeType(new File(displayName)));
+            }
+        }
 
         // Give ourselves sane defaults when missing
         if (TextUtils.isEmpty(values.getAsString(MediaColumns.DISPLAY_NAME))) {

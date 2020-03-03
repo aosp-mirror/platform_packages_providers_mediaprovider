@@ -34,14 +34,10 @@
       <item quantity="other">Và <xliff:g id="COUNT_1">^1</xliff:g> mục khác</item>
       <item quantity="one">Và <xliff:g id="COUNT_0">^1</xliff:g> mục khác</item>
     </plurals>
-    <!-- no translation found for cache_clearing_dialog_title (543177167845854283) -->
-    <skip />
-    <!-- no translation found for cache_clearing_dialog_text (425995541409682360) -->
-    <skip />
-    <!-- no translation found for allow (8885707816848569619) -->
-    <skip />
-    <!-- no translation found for deny (6040983710442068936) -->
-    <skip />
+    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"Xóa bộ nhớ đệm của ứng dụng bằng <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>?"</string>
+    <string name="cache_clearing_dialog_text" msgid="425995541409682360">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> muốn xóa một số tệp tạm thời. Việc chấp nhận có thể làm tăng mức sử dụng pin hoặc dữ liệu."</string>
+    <string name="allow" msgid="8885707816848569619">"Cho phép"</string>
+    <string name="deny" msgid="6040983710442068936">"Từ chối"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> thay đổi <xliff:g id="COUNT">^2</xliff:g> tệp âm thanh?</item>
       <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> thay đổi tệp âm thanh này?</item>

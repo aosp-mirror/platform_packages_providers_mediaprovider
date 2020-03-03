@@ -34,14 +34,10 @@
       <item quantity="other">Veel <xliff:g id="COUNT_1">^1</xliff:g> lisaüksust</item>
       <item quantity="one">Veel <xliff:g id="COUNT_0">^1</xliff:g> lisaüksus</item>
     </plurals>
-    <!-- no translation found for cache_clearing_dialog_title (543177167845854283) -->
-    <skip />
-    <!-- no translation found for cache_clearing_dialog_text (425995541409682360) -->
-    <skip />
-    <!-- no translation found for allow (8885707816848569619) -->
-    <skip />
-    <!-- no translation found for deny (6040983710442068936) -->
-    <skip />
+    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"Kas tühjendada rakenduse vahemälu rakendusega <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>?"</string>
+    <string name="cache_clearing_dialog_text" msgid="425995541409682360">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> soovib kustutada mõned ajutised failid. Nõustumisel võib suureneda aku- või andmesidekasutus."</string>
+    <string name="allow" msgid="8885707816848569619">"Luba"</string>
+    <string name="deny" msgid="6040983710442068936">"Keela"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="other">Kas lubada rakendusel <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> helifaili muuta?</item>
       <item quantity="one">Kas lubada rakendusel <xliff:g id="APP_NAME_0">^1</xliff:g> seda helifaili muuta?</item>

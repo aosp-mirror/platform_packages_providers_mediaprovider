@@ -34,14 +34,10 @@
       <item quantity="other">ထပ်ပေါင်းအရာ <xliff:g id="COUNT_1">^1</xliff:g> ခု အပါအဝင်</item>
       <item quantity="one">ထပ်ပေါင်းအရာ <xliff:g id="COUNT_0">^1</xliff:g> ခု အပါအဝင်</item>
     </plurals>
-    <!-- no translation found for cache_clearing_dialog_title (543177167845854283) -->
-    <skip />
-    <!-- no translation found for cache_clearing_dialog_text (425995541409682360) -->
-    <skip />
-    <!-- no translation found for allow (8885707816848569619) -->
-    <skip />
-    <!-- no translation found for deny (6040983710442068936) -->
-    <skip />
+    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> အတွက် အက်ပ်ကက်ရှ်များကို ရှင်းထုတ်မလား။"</string>
+    <string name="cache_clearing_dialog_text" msgid="425995541409682360">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> သည် ယာယီဖိုင်များမှ အချို့ကို ရှင်းထုတ်လိုသည်။ လက်ခံပါက ဘက်ထရီ သို့မဟုတ် ဒေတာအသုံးပြုမှု တိုးကောင်းတိုးနိုင်သည်။"</string>
+    <string name="allow" msgid="8885707816848569619">"ခွင့်ပြုရန်"</string>
+    <string name="deny" msgid="6040983710442068936">"ပယ်ရန်"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား အသံဖိုင် <xliff:g id="COUNT">^2</xliff:g> ခုကို ပြောင်းလဲခွင့်ပြုမလား။</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤအသံဖိုင်ကို ပြောင်းလဲခွင့်ပြုမလား။</item>

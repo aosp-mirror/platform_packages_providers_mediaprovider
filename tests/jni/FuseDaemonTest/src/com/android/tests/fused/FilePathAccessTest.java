@@ -60,7 +60,6 @@ import static junit.framework.Assert.fail;
 
 import static org.junit.Assume.assumeTrue;
 
-import android.Manifest;
 import android.app.AppOpsManager;
 import android.content.ContentResolver;
 import android.database.Cursor;
@@ -138,6 +137,8 @@ public class FilePathAccessTest {
             "com.android.tests.fused.testapp.B", 1, false, "TestAppB.apk");
     private static final String[] SYSTEM_GALERY_APPOPS = { AppOpsManager.OPSTR_WRITE_MEDIA_IMAGES,
             AppOpsManager.OPSTR_WRITE_MEDIA_VIDEO };
+    //TODO(b/150115615): used AppOpsManager#OPSTR_MANAGE_EXTERNAL_STORAGE once it's public API
+    private static final String OPSTR_MANAGE_EXTERNAL_STORAGE = "android:manage_external_storage";
 
     @Before
     public void setUp() throws Exception {
@@ -1264,7 +1265,7 @@ public class FilePathAccessTest {
         final File musicFileInMovies = new File(MOVIES_DIR, MUSIC_FILE_NAME);
         final File imageFileInDcim = new File(DCIM_DIR, IMAGE_FILE_NAME);
         try {
-            adoptShellPermissionIdentity(Manifest.permission.MANAGE_EXTERNAL_STORAGE);
+            allowAppOpsToUid(Process.myUid(), OPSTR_MANAGE_EXTERNAL_STORAGE);
             // Nothing special about this, anyone can create an image file in DCIM
             assertCanCreateFile(imageFileInDcim);
             // This is where we see the special powers of MANAGE_EXTERNAL_STORAGE, because it can
@@ -1273,7 +1274,7 @@ public class FilePathAccessTest {
             // It can even create a music file in Pictures
             assertCanCreateFile(musicFileInMovies);
         } finally {
-            dropShellPermissionIdentity();
+            denyAppOpsToUid(Process.myUid(), OPSTR_MANAGE_EXTERNAL_STORAGE);
         }
     }
 
@@ -1312,9 +1313,7 @@ public class FilePathAccessTest {
             assertThat(createFileAs(TEST_APP_A, otherAppImage.getPath())).isTrue();
             assertThat(createFileAs(TEST_APP_A, otherAppMusic.getPath())).isTrue();
 
-            // Now we get the permission, since some earlier method calls drop shell permission
-            // identity.
-            adoptShellPermissionIdentity(Manifest.permission.MANAGE_EXTERNAL_STORAGE);
+            allowAppOpsToUid(Process.myUid(), OPSTR_MANAGE_EXTERNAL_STORAGE);
 
             assertThat(otherAppPdf.delete()).isTrue();
             assertThat(otherAppPdf.exists()).isFalse();
@@ -1325,7 +1324,7 @@ public class FilePathAccessTest {
             assertThat(otherAppMusic.delete()).isTrue();
             assertThat(otherAppMusic.exists()).isFalse();
         } finally {
-            dropShellPermissionIdentity();
+            denyAppOpsToUid(Process.myUid(), OPSTR_MANAGE_EXTERNAL_STORAGE);
             deleteFileAsNoThrow(TEST_APP_A, otherAppPdf.getAbsolutePath());
             deleteFileAsNoThrow(TEST_APP_A, otherAppImage.getAbsolutePath());
             deleteFileAsNoThrow(TEST_APP_A, otherAppMusic.getAbsolutePath());
@@ -1348,9 +1347,7 @@ public class FilePathAccessTest {
             assertThat(createFileAs(TEST_APP_A, otherAppPdf.getPath())).isTrue();
             assertThat(otherAppPdf.exists()).isTrue();
 
-            // Now we get the permission, since some earlier method calls drop shell permission
-            // identity.
-            adoptShellPermissionIdentity(Manifest.permission.MANAGE_EXTERNAL_STORAGE);
+            allowAppOpsToUid(Process.myUid(), OPSTR_MANAGE_EXTERNAL_STORAGE);
 
             // Write some data to the file
             try (final FileOutputStream fos = new FileOutputStream(otherAppPdf)) {
@@ -1377,7 +1374,7 @@ public class FilePathAccessTest {
             pdfInObviouslyWrongPlace.delete();
             topLevelPdf.delete();
             musicFile.delete();
-            dropShellPermissionIdentity();
+            denyAppOpsToUid(Process.myUid(), OPSTR_MANAGE_EXTERNAL_STORAGE);
             deleteFileAsNoThrow(TEST_APP_A, otherAppPdf.getAbsolutePath());
             uninstallApp(TEST_APP_A);
         }
@@ -1408,13 +1405,13 @@ public class FilePathAccessTest {
 
             // Once the test has permission to manage external storage, it can query for other apps'
             // files and open them for read and write
-            adoptShellPermissionIdentity(Manifest.permission.MANAGE_EXTERNAL_STORAGE);
+            allowAppOpsToUid(Process.myUid(), OPSTR_MANAGE_EXTERNAL_STORAGE);
 
             assertCanQueryAndOpenFile(otherAppPdf, "rw");
             assertCanQueryAndOpenFile(otherAppImg, "rw");
             assertCanQueryAndOpenFile(otherAppMusic, "rw");
         } finally {
-            dropShellPermissionIdentity();
+            denyAppOpsToUid(Process.myUid(), OPSTR_MANAGE_EXTERNAL_STORAGE);
             deleteFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
             uninstallApp(TEST_APP_A);
         }

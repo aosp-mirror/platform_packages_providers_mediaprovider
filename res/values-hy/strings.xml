@@ -34,7 +34,7 @@
       <item quantity="one">Ու ևս <xliff:g id="COUNT_1">^1</xliff:g> լրացուցիչ տարր</item>
       <item quantity="other">Ու ևս <xliff:g id="COUNT_1">^1</xliff:g> լրացուցիչ տարր</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"Մաքրե՞լ հավելվածի քեշը <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> հավելվածի օգնությամբ"</string>
+    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"Ջնջե՞լ հավելվածի քեշը <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> հավելվածի օգնությամբ"</string>
     <string name="cache_clearing_dialog_text" msgid="425995541409682360">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> հավելվածին անհրաժեշտ է մաքրել որոշ ժամանակավոր ֆայլեր։ Թույլատրելու դեպքում մարտկոցի կամ բջջային ինտերնետի ծախսը կարող է մեծանալ։"</string>
     <string name="allow" msgid="8885707816848569619">"Թույլատրել"</string>
     <string name="deny" msgid="6040983710442068936">"Մերժել"</string>

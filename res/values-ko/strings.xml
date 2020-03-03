@@ -34,14 +34,10 @@
       <item quantity="other">그 외 항목 <xliff:g id="COUNT_1">^1</xliff:g>개</item>
       <item quantity="one">그 외 항목 <xliff:g id="COUNT_0">^1</xliff:g>개</item>
     </plurals>
-    <!-- no translation found for cache_clearing_dialog_title (543177167845854283) -->
-    <skip />
-    <!-- no translation found for cache_clearing_dialog_text (425995541409682360) -->
-    <skip />
-    <!-- no translation found for allow (8885707816848569619) -->
-    <skip />
-    <!-- no translation found for deny (6040983710442068936) -->
-    <skip />
+    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>에서 앱 캐시를 삭제하도록 허용할까요?"</string>
+    <string name="cache_clearing_dialog_text" msgid="425995541409682360">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>에서 일부 임시 파일을 삭제하려고 합니다. 허용하면 배터리 또는 데이터 사용량이 증가할 수 있습니다."</string>
+    <string name="allow" msgid="8885707816848569619">"허용"</string>
+    <string name="deny" msgid="6040983710442068936">"거부"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>에서 오디오 파일 <xliff:g id="COUNT">^2</xliff:g>개를 변경하도록 허용하시겠습니까?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 오디오 파일을 변경하도록 허용하시겠습니까?</item>

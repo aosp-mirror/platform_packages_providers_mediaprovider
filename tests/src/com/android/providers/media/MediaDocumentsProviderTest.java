@@ -19,6 +19,7 @@ package com.android.providers.media;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import android.Manifest;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
@@ -33,6 +34,8 @@ import androidx.test.runner.AndroidJUnit4;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -40,6 +43,20 @@ import java.util.Arrays;
 
 @RunWith(AndroidJUnit4.class)
 public class MediaDocumentsProviderTest {
+
+    @Before
+    public void setUp() {
+        InstrumentationRegistry.getInstrumentation().getUiAutomation()
+                .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
+                        Manifest.permission.READ_COMPAT_CHANGE_CONFIG);
+    }
+
+    @After
+    public void tearDown() {
+        InstrumentationRegistry.getInstrumentation()
+                .getUiAutomation().dropShellPermissionIdentity();
+    }
+
     @Test
     public void testSimple() {
         final Context context = InstrumentationRegistry.getTargetContext();

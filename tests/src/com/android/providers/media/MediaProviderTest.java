@@ -578,6 +578,17 @@ public class MediaProviderTest {
     }
 
     @Test
+    public void testEnsureFileColumns_resolvesMimeType() throws Exception {
+        final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DISPLAY_NAME, "pngimage.png");
+
+        new MediaProvider().ensureFileColumns(uri, values);
+
+        assertMimetype(values, "image/png");
+    }
+
+    @Test
     public void testRelativePathForInvalidDirectories() throws Exception {
         for (String data : new String[] {
             "/storage/IMG1024.JPG",
@@ -629,6 +640,10 @@ public class MediaProviderTest {
 
     private static void assertRelativePath(ContentValues values, String relativePath) {
         assertEquals(relativePath, values.get(ImageColumns.RELATIVE_PATH));
+    }
+
+    private static void assertMimetype(ContentValues values, String type) {
+        assertEquals(type, values.get(MediaColumns.MIME_TYPE));
     }
 
     private static boolean isGreylistMatch(String raw) {

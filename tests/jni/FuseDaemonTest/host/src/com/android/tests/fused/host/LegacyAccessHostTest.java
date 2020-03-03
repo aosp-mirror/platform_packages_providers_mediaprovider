@@ -108,14 +108,14 @@ public class LegacyAccessHostTest extends BaseHostJUnit4Test {
     @Test
     public void testCreateFilesInRandomPlaces_hasW() throws Exception {
         revokePermissions("android.permission.READ_EXTERNAL_STORAGE");
-        executeShellCommand("mkdir -p /sdcard/Android/data/com.android.shell");
+        executeShellCommand("mkdir -p /sdcard/Android/data/com.android.shell -m 2770");
         runDeviceTest("testCreateFilesInRandomPlaces_hasW");
     }
 
     @Test
     public void testMkdirInRandomPlaces_hasW() throws Exception {
         revokePermissions("android.permission.READ_EXTERNAL_STORAGE");
-        executeShellCommand("mkdir -p /sdcard/Android/data/com.android.shell");
+        executeShellCommand("mkdir -p /sdcard/Android/data/com.android.shell -m 2770");
         runDeviceTest("testMkdirInRandomPlaces_hasW");
     }
 

@@ -49,14 +49,13 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
 
     @Before
     public void setup() throws Exception {
-        executeShellCommand("mkdir /sdcard/Android/data/com.android.shell");
-        executeShellCommand("mkdir /sdcard/Android/data/com.android.shell/files");
+        executeShellCommand("mkdir /sdcard/Android/data/com.android.shell -m 2770");
+        executeShellCommand("mkdir /sdcard/Android/data/com.android.shell/files -m 2770");
     }
 
     @After
     public void tearDown() throws Exception {
         executeShellCommand("rm -r /sdcard/Android/data/com.android.shell");
-        executeShellCommand("rm -r /sdcard/Android/data/com.android.shell/files");
     }
 
     @Test

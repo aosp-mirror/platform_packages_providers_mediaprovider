@@ -2721,7 +2721,7 @@ public final class MediaStore {
         /**
          * Audio playlist metadata columns.
          */
-        public interface PlaylistsColumns {
+        public interface PlaylistsColumns extends MediaColumns {
             /**
              * The name of the playlist
              */

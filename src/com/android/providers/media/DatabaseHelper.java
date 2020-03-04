@@ -700,9 +700,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
 
         if (!internal) {
-            db.execSQL("CREATE VIEW audio_playlists AS SELECT _id,_data,name,date_added,"
-                    + "date_modified,owner_package_name,_hash,is_pending,date_expires,is_trashed,"
-                    + "volume_name FROM files WHERE media_type=4");
+            db.execSQL("CREATE VIEW audio_playlists AS SELECT "
+                    + String.join(",", getProjectionMap(Audio.Playlists.class).keySet())
+                    + " FROM files WHERE media_type=4");
         }
 
         db.execSQL("CREATE VIEW searchhelpertitle AS SELECT * FROM audio ORDER BY title_key");

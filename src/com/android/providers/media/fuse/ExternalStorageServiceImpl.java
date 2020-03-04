@@ -28,6 +28,7 @@ import androidx.annotation.Nullable;
 
 import com.android.providers.media.MediaProvider;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,8 +43,8 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
 
     @Override
     public void onStartSession(String sessionId, /* @SessionFlag */ int flag,
-            @NonNull ParcelFileDescriptor deviceFd, @NonNull String upperFileSystemPath,
-            @NonNull String lowerFileSystemPath) {
+            @NonNull ParcelFileDescriptor deviceFd, @NonNull File upperFileSystemPath,
+            @NonNull File lowerFileSystemPath) {
         MediaProvider mediaProvider = getMediaProvider();
 
         synchronized (sLock) {
@@ -55,7 +56,7 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
                 // REMOUNT_MODE_PASS_THROUGH which guarantees that all /storage paths are bind
                 // mounts of the lower filesystem.
                 FuseDaemon daemon = new FuseDaemon(mediaProvider, this, deviceFd, sessionId,
-                        upperFileSystemPath);
+                        upperFileSystemPath.getPath());
                 daemon.start();
                 sFuseDaemons.put(sessionId, daemon);
             }

@@ -27,6 +27,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import android.Manifest;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -50,6 +51,8 @@ import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.SQLiteQueryBuilder;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -62,6 +65,19 @@ import java.util.regex.Pattern;
 @RunWith(AndroidJUnit4.class)
 public class MediaProviderTest {
     static final String TAG = "MediaProviderTest";
+
+    @Before
+    public void setUp() {
+        InstrumentationRegistry.getInstrumentation().getUiAutomation()
+                .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
+                        Manifest.permission.READ_COMPAT_CHANGE_CONFIG);
+    }
+
+    @After
+    public void tearDown() {
+        InstrumentationRegistry.getInstrumentation()
+                .getUiAutomation().dropShellPermissionIdentity();
+    }
 
     @Test
     public void testSchema() {
@@ -562,6 +578,17 @@ public class MediaProviderTest {
     }
 
     @Test
+    public void testEnsureFileColumns_resolvesMimeType() throws Exception {
+        final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DISPLAY_NAME, "pngimage.png");
+
+        new MediaProvider().ensureFileColumns(uri, values);
+
+        assertMimetype(values, "image/png");
+    }
+
+    @Test
     public void testRelativePathForInvalidDirectories() throws Exception {
         for (String data : new String[] {
             "/storage/IMG1024.JPG",
@@ -613,6 +640,10 @@ public class MediaProviderTest {
 
     private static void assertRelativePath(ContentValues values, String relativePath) {
         assertEquals(relativePath, values.get(ImageColumns.RELATIVE_PATH));
+    }
+
+    private static void assertMimetype(ContentValues values, String type) {
+        assertEquals(type, values.get(MediaColumns.MIME_TYPE));
     }
 
     private static boolean isGreylistMatch(String raw) {

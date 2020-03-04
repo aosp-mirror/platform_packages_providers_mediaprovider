@@ -34,14 +34,10 @@
       <item quantity="other">បូករួម​ទាំង​ធាតុ <xliff:g id="COUNT_1">^1</xliff:g> បន្ថែម​ទៀត</item>
       <item quantity="one">បូករួម​ទាំង​ធាតុ <xliff:g id="COUNT_0">^1</xliff:g> បន្ថែម​ទៀត</item>
     </plurals>
-    <!-- no translation found for cache_clearing_dialog_title (543177167845854283) -->
-    <skip />
-    <!-- no translation found for cache_clearing_dialog_text (425995541409682360) -->
-    <skip />
-    <!-- no translation found for allow (8885707816848569619) -->
-    <skip />
-    <!-- no translation found for deny (6040983710442068936) -->
-    <skip />
+    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"សម្អាត​ឃ្លាំងផ្ទុកទិន្នន័យ​កម្មវិធី​ដោយប្រើ <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> ឬ?"</string>
+    <string name="cache_clearing_dialog_text" msgid="425995541409682360">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> ចង់​សម្អាត​ឯកសារ​បណ្ដោះអាសន្ន​មួយចំនួន។ ការយល់ព្រម​អាចនឹង​បង្កើន​ការប្រើប្រាស់​ទិន្នន័យ ឬ​ថ្ម។"</string>
+    <string name="allow" msgid="8885707816848569619">"អនុញ្ញាត"</string>
+    <string name="deny" msgid="6040983710442068936">"បដិសេធ"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="other">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> ប្ដូរ​ឯកសារ​សំឡេង <xliff:g id="COUNT">^2</xliff:g> ឬ​?</item>
       <item quantity="one">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> ប្ដូរ​ឯកសារ​សំឡេង​នេះ​ឬ​?</item>

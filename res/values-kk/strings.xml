@@ -34,14 +34,10 @@
       <item quantity="other">Тағы <xliff:g id="COUNT_1">^1</xliff:g> элемент</item>
       <item quantity="one">Тағы <xliff:g id="COUNT_0">^1</xliff:g> элемент</item>
     </plurals>
-    <!-- no translation found for cache_clearing_dialog_title (543177167845854283) -->
-    <skip />
-    <!-- no translation found for cache_clearing_dialog_text (425995541409682360) -->
-    <skip />
-    <!-- no translation found for allow (8885707816848569619) -->
-    <skip />
-    <!-- no translation found for deny (6040983710442068936) -->
-    <skip />
+    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> арқылы қолданба кэші өшірілсін бе?"</string>
+    <string name="cache_clearing_dialog_text" msgid="425995541409682360">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> кейбір уақытша файлдарды өшіргісі келеді. Бұл — батарея зарядын немесе дерек трафигін пайдалану шығынын арттырады."</string>
+    <string name="allow" msgid="8885707816848569619">"Рұқсат ету"</string>
+    <string name="deny" msgid="6040983710442068936">"Тыйым салу"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> қолданбасына <xliff:g id="COUNT">^2</xliff:g> аудиофайлды өзгертуге рұқсат етесіз бе?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> қолданбасына осы аудиофайлды өзгертуге рұқсат етесіз бе?</item>

@@ -34,14 +34,10 @@
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> അധിക ഇനങ്ങൾ കൂടി</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> അധിക ഇനം കൂടി</item>
     </plurals>
-    <!-- no translation found for cache_clearing_dialog_title (543177167845854283) -->
-    <skip />
-    <!-- no translation found for cache_clearing_dialog_text (425995541409682360) -->
-    <skip />
-    <!-- no translation found for allow (8885707816848569619) -->
-    <skip />
-    <!-- no translation found for deny (6040983710442068936) -->
-    <skip />
+    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> ഉപയോഗിച്ച് ആപ്പ് കാഷെ മായ്ക്കണോ?"</string>
+    <string name="cache_clearing_dialog_text" msgid="425995541409682360">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> എന്നതിന് കുറച്ച് താൽക്കാലിക ഫയലുകൾ മായ്ക്കണമെന്നുണ്ട്. സ്വീകരിക്കുന്നത്, ബാറ്ററിയുടെയോ ഡാറ്റയുടെയോ ഉപയോഗിക്കാനുള്ള സമയം വർദ്ധിപ്പിച്ചേക്കാം."</string>
+    <string name="allow" msgid="8885707816848569619">"അനുവദിക്കൂ"</string>
+    <string name="deny" msgid="6040983710442068936">"നിരസിക്കുക"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ഓഡിയോ ഫയലുകൾ മാറ്റാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
       <item quantity="one">ഈ ഓഡിയോ ഫയൽ മാറ്റാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>

@@ -36,14 +36,10 @@
       <item quantity="other">Plus <xliff:g id="COUNT_1">^1</xliff:g> dalších položek</item>
       <item quantity="one">Plus <xliff:g id="COUNT_0">^1</xliff:g> další položka</item>
     </plurals>
-    <!-- no translation found for cache_clearing_dialog_title (543177167845854283) -->
-    <skip />
-    <!-- no translation found for cache_clearing_dialog_text (425995541409682360) -->
-    <skip />
-    <!-- no translation found for allow (8885707816848569619) -->
-    <skip />
-    <!-- no translation found for deny (6040983710442068936) -->
-    <skip />
+    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"Vymazat mezipaměť aplikace pomocí aplikace <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>?"</string>
+    <string name="cache_clearing_dialog_text" msgid="425995541409682360">"Aplikace <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> chce vymazat nějaké dočasné soubory. Souhlas může vést ke zvýšené spotřebě baterie nebo dat."</string>
+    <string name="allow" msgid="8885707816848569619">"Povolit"</string>
+    <string name="deny" msgid="6040983710442068936">"Zakázat"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="few">Nechat aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> změnit <xliff:g id="COUNT">^2</xliff:g> zvukové soubory?</item>
       <item quantity="many">Nechat aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> změnit <xliff:g id="COUNT">^2</xliff:g> zvukového souboru?</item>

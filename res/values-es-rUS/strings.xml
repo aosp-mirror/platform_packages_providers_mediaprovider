@@ -34,14 +34,10 @@
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> elementos adicionales</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> elemento adicional</item>
     </plurals>
-    <!-- no translation found for cache_clearing_dialog_title (543177167845854283) -->
-    <skip />
-    <!-- no translation found for cache_clearing_dialog_text (425995541409682360) -->
-    <skip />
-    <!-- no translation found for allow (8885707816848569619) -->
-    <skip />
-    <!-- no translation found for deny (6040983710442068936) -->
-    <skip />
+    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"¿Deseas borrar la memoria caché de las apps con <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>?"</string>
+    <string name="cache_clearing_dialog_text" msgid="425995541409682360">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> quiere borrar algunos archivos temporales. Aceptar la acción podría incrementar el uso de la batería y los datos."</string>
+    <string name="allow" msgid="8885707816848569619">"Permitir"</string>
+    <string name="deny" msgid="6040983710442068936">"Rechazar"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="other">¿Quieres permitir que <xliff:g id="APP_NAME_1">^1</xliff:g> cambie <xliff:g id="COUNT">^2</xliff:g> archivos de audio?</item>
       <item quantity="one">¿Quieres permitir que <xliff:g id="APP_NAME_0">^1</xliff:g> cambie este archivo de audio?</item>

@@ -244,6 +244,15 @@ public class MediaProvider extends ContentProvider {
     private static final String DIRECTORY_MEDIA = "media";
 
     /**
+     * Specify what default directories the caller gets full access to. By default, the caller
+     * shouldn't get full access to any default dirs.
+     * But for example, we do an exception for System Gallery apps and allow them full access to:
+     * DCIM, Pictures, Movies.
+     */
+    private static final String INCLUDED_DEFAULT_DIRECTORIES =
+            "android:included-default-directories";
+
+    /**
      * Set of {@link Cursor} columns that refer to raw filesystem paths.
      */
     private static final ArrayMap<String, Object> sDataColumns = new ArrayMap<>();
@@ -1087,9 +1096,10 @@ public class MediaProvider extends ContentProvider {
      * A list with ["/"] is returned if the path is not indexed by MediaProvider database or
      * calling package is a legacy app and has appropriate storage permissions for the given path.
      * In both scenarios file names should be obtained from lower file system.
-     * A list with empty string[""] is returned if the package requesting legacy behavior doesn't
-     * have storage permissions for the given path.
-     * Directory names are always obtained from lower file system.
+     * A list with empty string[""] is returned if the calling package doesn't have access to the
+     * given path.
+     *
+     * <p>Directory names are always obtained from lower file system.
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
@@ -1098,20 +1108,23 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token = clearLocalCallingIdentity(
                 LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
-                return new String[] {"/"};
-            }
-
-            // Allow legacy app without storage permissions to list files only in its external
-            // media directory.
-            if (isCallingPackageRequestingLegacy()) {
-                final String appSpecificDir = extractPathOwnerPackageName(path);
-                if ((appSpecificDir != null &&
-                        isCallingIdentitySharedPackageName(appSpecificDir))) {
+            final String appSpecificDir = extractPathOwnerPackageName(path);
+            // Apps are allowed to list files only in their own external directory.
+            if (appSpecificDir != null) {
+                if (isCallingIdentitySharedPackageName(appSpecificDir)) {
                     return new String[] {"/"};
                 } else {
                     return new String[] {""};
                 }
+            }
+
+            if (shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
+                return new String[] {"/"};
+            }
+            // Legacy apps that made is this far don't have the right storage permission and hence
+            // are not allowed to access anything other than their external app directory
+            if (isCallingPackageRequestingLegacy()) {
+                return new String[] {""};
             }
 
             // Get relative path for the contents of given directory.
@@ -1171,15 +1184,21 @@ public class MediaProvider extends ContentProvider {
                 mimeType.startsWith(supportedPrimaryMimeType));
     }
 
+    private boolean updateDatabaseForFuseRename(@NonNull DatabaseHelper helper,
+            @NonNull String oldPath, @NonNull String newPath, @NonNull ContentValues values) {
+        return updateDatabaseForFuseRename(helper, oldPath, newPath, values, Bundle.EMPTY);
+    }
+
     /**
      * Updates database entry for given {@code path} with {@code values}
      */
     private boolean updateDatabaseForFuseRename(@NonNull DatabaseHelper helper,
-            @NonNull String oldPath, @NonNull String newPath, @NonNull ContentValues values) {
+            @NonNull String oldPath, @NonNull String newPath, @NonNull ContentValues values,
+            @NonNull Bundle qbExtras) {
         final Uri uriOldPath = Files.getContentUriForPath(oldPath);
         boolean allowHidden = isCallingPackageAllowedHidden();
         final SQLiteQueryBuilder qbForUpdate = getQueryBuilder(TYPE_UPDATE,
-                matchUri(uriOldPath, allowHidden), uriOldPath, Bundle.EMPTY, null);
+                matchUri(uriOldPath, allowHidden), uriOldPath, qbExtras, null);
         final String selection = MediaColumns.DATA + " =? ";
         int count = 0;
         boolean retryUpdateWithReplace = false;
@@ -1199,7 +1218,7 @@ public class MediaProvider extends ContentProvider {
             // write permission for newPath, delete existing database entry and retry update.
             final Uri uriNewPath = Files.getContentUriForPath(oldPath);
             final SQLiteQueryBuilder qbForDelete = getQueryBuilder(TYPE_DELETE,
-                    matchUri(uriNewPath, allowHidden), uriNewPath, Bundle.EMPTY, null);
+                    matchUri(uriNewPath, allowHidden), uriNewPath, qbExtras, null);
             if (qbForDelete.delete(helper, selection, new String[] {newPath}) == 1) {
                 Log.i(TAG, "Retrying database update after deleting conflicting entry");
                 count = qbForUpdate.update(helper, values, selection, new String[]{oldPath});
@@ -1233,6 +1252,19 @@ public class MediaProvider extends ContentProvider {
         return values;
     }
 
+    private ArrayList<String> getIncludedDefaultDirectories() {
+        final ArrayList<String> includedDefaultDirs = new ArrayList<>();
+        if (checkCallingPermissionVideo(/*forWrite*/ true, null)) {
+            includedDefaultDirs.add(DIRECTORY_DCIM);
+            includedDefaultDirs.add(DIRECTORY_PICTURES);
+            includedDefaultDirs.add(DIRECTORY_MOVIES);
+        } else if (checkCallingPermissionImages(/*forWrite*/ true, null)) {
+            includedDefaultDirs.add(DIRECTORY_DCIM);
+            includedDefaultDirs.add(DIRECTORY_PICTURES);
+        }
+        return includedDefaultDirs;
+    }
+
     /**
      * Gets all files in the given {@code path} and subdirectories of the given {@code path}.
      */
@@ -1264,6 +1296,20 @@ public class MediaProvider extends ContentProvider {
      */
     private ArrayList<String> getWritableFilesForRenameDirectory(String oldPath, String newPath)
             throws IllegalArgumentException {
+        // Try a simple check to see if the caller has full access to the given collections first
+        // before falling back to performing a query to probe for access.
+        final String oldRelativePath = extractRelativePathForDirectory(oldPath);
+        final String newRelativePath = extractRelativePathForDirectory(newPath);
+        boolean hasFullAccessToOldPath = false;
+        boolean hasFullAccessToNewPath = false;
+        for (String defaultDir : getIncludedDefaultDirectories()) {
+            if (oldRelativePath.startsWith(defaultDir)) hasFullAccessToOldPath = true;
+            if (newRelativePath.startsWith(defaultDir)) hasFullAccessToNewPath = true;
+        }
+        if (hasFullAccessToNewPath && hasFullAccessToOldPath) {
+            return getAllFilesForRenameDirectory(oldPath);
+        }
+
         final int countAllFilesInDirectory;
         final String selection = MediaColumns.RELATIVE_PATH + " REGEXP '^" +
                 extractRelativePathForDirectory(oldPath) + "/?.*' and mime_type not like 'null'";
@@ -1370,11 +1416,14 @@ public class MediaProvider extends ContentProvider {
 
         helper.beginTransaction();
         try {
+            final Bundle qbExtras = new Bundle();
+            qbExtras.putStringArrayList(INCLUDED_DEFAULT_DIRECTORIES,
+                    getIncludedDefaultDirectories());
             for (String filePath : fileList) {
                 final String newFilePath = newPath + "/" + filePath;
                 final String mimeType = MimeUtils.resolveMimeType(new File(newFilePath));
                 if(!updateDatabaseForFuseRename(helper, oldPath + "/" + filePath, newFilePath,
-                        getContentValuesForFuseRename(newFilePath, mimeType, mimeType))) {
+                        getContentValuesForFuseRename(newFilePath, mimeType, mimeType), qbExtras)) {
                     Log.e(TAG, "Calling package doesn't have write permission to rename file.");
                     return OsConstants.EPERM;
                 }
@@ -1492,24 +1541,26 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token = clearLocalCallingIdentity(
                 LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(/*forWrite*/ true, oldPath)
-                    && shouldBypassFuseRestrictions(/*forWrite*/ true, newPath)) {
-                return renameUncheckedForFuse(oldPath, newPath);
-            }
+            final String oldPathPackageName = extractPathOwnerPackageName(oldPath);
+            final String newPathPackageName = extractPathOwnerPackageName(newPath);
 
-            // Allow legacy app without storage permission to rename files only in its external
-            // media directory. External files & obb directories are bind mounted and don't go
-            // through FUSE.
-            if (isCallingPackageRequestingLegacy()) {
-                final String oldPathPackageName = extractPathOwnerPackageName(oldPath);
-                final String newPathPackageName = extractPathOwnerPackageName(newPath);
-                if (oldPathPackageName != null && newPathPackageName != null &&
-                        isCallingIdentitySharedPackageName(oldPathPackageName) &&
+            if (oldPathPackageName != null && newPathPackageName != null) {
+                if (isCallingIdentitySharedPackageName(oldPathPackageName) &&
                         isCallingIdentitySharedPackageName(newPathPackageName)) {
                     return renameInLowerFs(oldPath, newPath);
                 } else {
                     return OsConstants.EACCES;
                 }
+            }
+
+            if (shouldBypassFuseRestrictions(/*forWrite*/ true, oldPath)
+                    && shouldBypassFuseRestrictions(/*forWrite*/ true, newPath)) {
+                return renameUncheckedForFuse(oldPath, newPath);
+            }
+            // Legacy apps that made is this far don't have the right storage permission and hence
+            // are not allowed to access anything other than their external app directory
+            if (isCallingPackageRequestingLegacy()) {
+                return OsConstants.EACCES;
             }
 
             final String[] oldRelativePath = sanitizePath(extractRelativePath(oldPath));
@@ -1949,6 +2000,15 @@ public class MediaProvider extends ContentProvider {
             }
             if (TextUtils.isEmpty(values.getAsString(MediaColumns.MIME_TYPE))) {
                 values.put(MediaColumns.MIME_TYPE, MimeUtils.resolveMimeType(new File(data)));
+            }
+        }
+        // Extract the MIME type from the display name if we couldn't resolve it from the raw path
+        if (!TextUtils.isEmpty(values.getAsString(MediaColumns.DISPLAY_NAME))) {
+            final String displayName = values.getAsString(MediaColumns.DISPLAY_NAME);
+
+            if (TextUtils.isEmpty(values.getAsString(MediaColumns.MIME_TYPE))) {
+                values.put(
+                        MediaColumns.MIME_TYPE, MimeUtils.resolveMimeType(new File(displayName)));
             }
         }
 
@@ -3031,12 +3091,16 @@ public class MediaProvider extends ContentProvider {
         }
         final String sharedPackages = getSharedPackages(callingPackage);
         final boolean allowGlobal = checkCallingPermissionGlobal(uri, forWrite);
-        final boolean allowLegacy = checkCallingPermissionLegacyWrite(uri, forWrite, callingPackage);
+        final boolean allowLegacy =
+                forWrite ? isCallingPackageLegacyWrite() : isCallingPackageLegacyRead();
         final boolean allowLegacyRead = allowLegacy && !forWrite;
 
         int matchPending = extras.getInt(QUERY_ARG_MATCH_PENDING, MATCH_DEFAULT);
         int matchTrashed = extras.getInt(QUERY_ARG_MATCH_TRASHED, MATCH_DEFAULT);
         int matchFavorite = extras.getInt(QUERY_ARG_MATCH_FAVORITE, MATCH_DEFAULT);
+
+        final ArrayList<String> includedDefaultDirs = extras.getStringArrayList(
+                INCLUDED_DEFAULT_DIRECTORIES);
 
         // Handle callers using legacy arguments
         if (MediaStore.getIncludePending(uri)) matchPending = MATCH_INCLUDE;
@@ -3446,6 +3510,11 @@ public class MediaProvider extends ContentProvider {
                         options.add(DatabaseUtils.bindSelection("media_type=?",
                                 FileColumns.MEDIA_TYPE_IMAGE));
                         options.add("media_type=0 AND mime_type LIKE 'image/%'");
+                    }
+                    if (includedDefaultDirs != null) {
+                        for (String defaultDir : includedDefaultDirs) {
+                            options.add(FileColumns.RELATIVE_PATH + " LIKE '" + defaultDir + "/%'");
+                        }
                     }
                 }
                 if (options.size() > 0) {
@@ -5253,12 +5322,6 @@ public class MediaProvider extends ContentProvider {
 
         long[] res = new long[0];
         try {
-            if (!isRedactionNeeded()
-                    || shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
-                return res;
-            }
-
-
             // Returns null if the path doesn't correspond to an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
@@ -5266,6 +5329,11 @@ public class MediaProvider extends ContentProvider {
                 if (isCallingIdentitySharedPackageName(appSpecificDir)) {
                     return res;
                 }
+            }
+
+            if (!isRedactionNeeded()
+                    || shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
+                return res;
             }
 
             path = getAbsoluteSanitizedPath(path);
@@ -5381,10 +5449,6 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(forWrite, path)) {
-                return 0;
-            }
-
             // Returns null if the path doesn't correspond to an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
@@ -5397,6 +5461,9 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
+            if (shouldBypassFuseRestrictions(forWrite, path)) {
+                return 0;
+            }
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
@@ -5567,10 +5634,6 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
-                return 0;
-            }
-
             // Returns null if the path doesn't correspond to an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
@@ -5584,7 +5647,11 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
-            // Legacy apps that made it this far don't have the required permissions
+            if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
+                return 0;
+            }
+            // Legacy apps that made is this far don't have the right storage permission and hence
+            // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
                 return OsConstants.EPERM;
             }
@@ -5649,12 +5716,6 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
-                // TODO(b/145737191) Legacy apps don't expect FuseDaemon to update database.
-                // Inserting/deleting the database entry might break app functionality.
-                return deleteFileUnchecked(path);
-            }
-
             // Check if app is deleting a file under an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
@@ -5668,6 +5729,11 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
+            if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
+                // TODO(b/145737191) Legacy apps don't expect FuseDaemon to update database.
+                // Inserting/deleting the database entry might break app functionality.
+                return deleteFileUnchecked(path);
+            }
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
@@ -5725,10 +5791,6 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
-                return 0;
-            }
-
             // Returns null if the path doesn't correspond to an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
@@ -5742,6 +5804,9 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
+            if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
+                return 0;
+            }
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
@@ -5785,10 +5850,6 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
         try {
-            if (shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
-                return 0;
-            }
-
             // Returns null if the path doesn't correspond to an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
 
@@ -5805,6 +5866,9 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
+            if (shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
+                return 0;
+            }
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
@@ -5852,11 +5916,6 @@ public class MediaProvider extends ContentProvider {
         }
 
         return false;
-    }
-
-    private boolean checkCallingPermissionLegacyWrite(Uri uri, boolean forWrite,
-            String callingPackage) {
-        return mCallingIdentity.get().hasPermission(PERMISSION_IS_LEGACY_WRITE);
     }
 
     @Deprecated

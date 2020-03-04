@@ -28,6 +28,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import android.Manifest;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
@@ -69,6 +70,9 @@ public class ModernMediaScannerTest {
     @Before
     public void setUp() {
         final Context context = InstrumentationRegistry.getTargetContext();
+        InstrumentationRegistry.getInstrumentation().getUiAutomation()
+                .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
+                        Manifest.permission.READ_COMPAT_CHANGE_CONFIG);
 
         mDir = new File(context.getExternalMediaDirs()[0], "test_" + System.nanoTime());
         mDir.mkdirs();
@@ -83,6 +87,8 @@ public class ModernMediaScannerTest {
     @After
     public void tearDown() {
         FileUtils.deleteContents(mDir);
+        InstrumentationRegistry.getInstrumentation()
+                .getUiAutomation().dropShellPermissionIdentity();
     }
 
     @Test

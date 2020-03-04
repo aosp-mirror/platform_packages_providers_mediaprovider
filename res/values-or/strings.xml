@@ -34,14 +34,10 @@
       <item quantity="other">ଅଧିକ <xliff:g id="COUNT_1">^1</xliff:g>ଟି ଅତିରିକ୍ତ ଆଇଟମ୍</item>
       <item quantity="one">ଅଧିକ <xliff:g id="COUNT_0">^1</xliff:g>ଟି ଅତିରିକ୍ତ ଆଇଟମ୍</item>
     </plurals>
-    <!-- no translation found for cache_clearing_dialog_title (543177167845854283) -->
-    <skip />
-    <!-- no translation found for cache_clearing_dialog_text (425995541409682360) -->
-    <skip />
-    <!-- no translation found for allow (8885707816848569619) -->
-    <skip />
-    <!-- no translation found for deny (6040983710442068936) -->
-    <skip />
+    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> ସହ ଆପ୍ କେଚ୍ ଖାଲି କରିବେ?"</string>
+    <string name="cache_clearing_dialog_text" msgid="425995541409682360">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> କିଛି ଅସ୍ଥାୟୀ ଫାଇଲ୍ ଖାଲି କରିବାକୁ ଚାହୁଁଛି। ସ୍ୱୀକାର କରିବା ଦ୍ୱାରା ବ୍ୟାଟେରୀ ବା ଡାଟା ବ୍ୟବହାର ବଢ଼ିପାରେ।"</string>
+    <string name="allow" msgid="8885707816848569619">"ଅନୁମତି ଦିଅନ୍ତୁ"</string>
+    <string name="deny" msgid="6040983710442068936">"ପ୍ରତ୍ୟାଖ୍ୟାନ କରନ୍ତୁ"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g>ଟି ଅଡିଓ ଫାଇଲ୍‌କୁ ବଦଳେଇବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
       <item quantity="one">ଏହି ଅଡିଓ ଫାଇଲ୍‌କୁ ବଦଳେଇବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>

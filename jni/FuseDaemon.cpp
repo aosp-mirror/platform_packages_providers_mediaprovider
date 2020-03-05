@@ -841,25 +841,30 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         return;
     }
 
-    if (ri->isRedactionNeeded() || is_file_locked(fd, path)) {
-        // We don't want to use the FUSE VFS cache in two cases:
-        // 1. When redaction is needed because app A with EXIF access might access
-        // a region that should have been redacted for app B without EXIF access, but app B on
-        // a subsequent read, will be able to see the EXIF data because the read request for that
-        // region will be served from cache and not get to the FUSE daemon
-        // 2. When the file has a read or write lock on it. This means that the MediaProvider has
-        // given an fd to the lower file system to an app. There are two cases where using the cache
-        // in this case can be a problem:
-        // a. Writing to a FUSE fd with caching enabled will use the write-back cache and a
-        // subsequent read from the lower fs fd will not see the write.
-        // b. Reading from a FUSE fd with caching enabled may not see the latest writes using the
-        // lower fs fd because those writes did not go through the FUSE layer and reads from FUSE
-        // after that write may be served from cache
-        fi->direct_io = true;
-    }
+    handle* h = nullptr;
+    {
+        std::lock_guard<std::recursive_mutex> guard(fuse->lock);
 
-    handle* h = new handle(path, fd, ri.release(), /*owner_uid*/ -1, !fi->direct_io);
-    node->AddHandle(h);
+        if (ri->isRedactionNeeded() || is_file_locked(fd, path)) {
+            // We don't want to use the FUSE VFS cache in two cases:
+            // 1. When redaction is needed because app A with EXIF access might access
+            // a region that should have been redacted for app B without EXIF access, but app B on
+            // a subsequent read, will be able to see the EXIF data because the read request for
+            // that region will be served from cache and not get to the FUSE daemon
+            // 2. When the file has a read or write lock on it. This means that the MediaProvider
+            // has given an fd to the lower file system to an app. There are two cases where using
+            // the cache in this case can be a problem:
+            // a. Writing to a FUSE fd with caching enabled will use the write-back cache and a
+            // subsequent read from the lower fs fd will not see the write.
+            // b. Reading from a FUSE fd with caching enabled may not see the latest writes using
+            // the lower fs fd because those writes did not go through the FUSE layer and reads from
+            // FUSE after that write may be served from cache
+            fi->direct_io = true;
+        }
+
+        h = new handle(path, fd, ri.release(), /*owner_uid*/ -1, !fi->direct_io);
+        node->AddHandle(h);
+    }
 
     fi->fh = ptr_to_id(h);
     fi->keep_cache = 1;
@@ -1468,6 +1473,7 @@ bool FuseDaemon::ShouldOpenWithFuse(int fd, bool for_read, const std::string& pa
     bool use_fuse = false;
 
     if (active.load(std::memory_order_acquire)) {
+        std::lock_guard<std::recursive_mutex> guard(fuse->lock);
         const node* node = node::LookupAbsolutePath(fuse->root, path);
         if (node && node->HasCachedHandle()) {
             use_fuse = true;

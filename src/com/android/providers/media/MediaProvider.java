@@ -583,6 +583,8 @@ public class MediaProvider extends ContentProvider {
             Environment.DIRECTORY_MOVIES,
             Environment.DIRECTORY_DOWNLOADS,
             Environment.DIRECTORY_DCIM,
+            Environment.DIRECTORY_AUDIOBOOKS,
+            Environment.DIRECTORY_DOCUMENTS,
     };
 
     private static boolean isDefaultDirectoryName(@Nullable String dirName) {
@@ -1909,6 +1911,7 @@ public class MediaProvider extends ContentProvider {
                 defaultPrimary = Environment.DIRECTORY_MUSIC;
                 allowedPrimary = Arrays.asList(
                         Environment.DIRECTORY_ALARMS,
+                        Environment.DIRECTORY_AUDIOBOOKS,
                         Environment.DIRECTORY_MUSIC,
                         Environment.DIRECTORY_NOTIFICATIONS,
                         Environment.DIRECTORY_PODCASTS,

@@ -27,7 +27,6 @@ import static com.android.tests.fused.lib.RedactionTestHelper.getExifMetadata;
 import static com.android.tests.fused.lib.RedactionTestHelper.getExifMetadataFromRawResource;
 import static com.android.tests.fused.lib.TestUtils.assertCanRenameFile;
 import static com.android.tests.fused.lib.TestUtils.assertCanRenameDirectory;
-import static com.android.tests.fused.lib.TestUtils.adoptShellPermissionIdentity;
 import static com.android.tests.fused.lib.TestUtils.allowAppOpsToUid;
 import static com.android.tests.fused.lib.TestUtils.assertCantRenameDirectory;
 import static com.android.tests.fused.lib.TestUtils.assertCantRenameFile;
@@ -38,7 +37,6 @@ import static com.android.tests.fused.lib.TestUtils.deleteFileAsNoThrow;
 import static com.android.tests.fused.lib.TestUtils.deleteRecursively;
 import static com.android.tests.fused.lib.TestUtils.deleteWithMediaProvider;
 import static com.android.tests.fused.lib.TestUtils.denyAppOpsToUid;
-import static com.android.tests.fused.lib.TestUtils.dropShellPermissionIdentity;
 import static com.android.tests.fused.lib.TestUtils.executeShellCommand;
 import static com.android.tests.fused.lib.TestUtils.getContentResolver;
 import static com.android.tests.fused.lib.TestUtils.getFileMimeTypeFromDatabase;
@@ -104,13 +102,22 @@ public class FilePathAccessTest {
 
     static final File EXTERNAL_STORAGE_DIR = Environment.getExternalStorageDirectory();
 
+    // Default top-level directories
+    static final File ALARMS_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_ALARMS);
+    static final File AUDIOBOOKS_DIR = new File(EXTERNAL_STORAGE_DIR,
+            Environment.DIRECTORY_AUDIOBOOKS);
     static final File DCIM_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_DCIM);
-    static final File PICTURES_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_PICTURES);
-    static final File MUSIC_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_MUSIC);
-    static final File MOVIES_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_MOVIES);
+    static final File DOCUMENTS_DIR = new File(EXTERNAL_STORAGE_DIR,
+            Environment.DIRECTORY_DOCUMENTS);
     static final File DOWNLOAD_DIR = new File(EXTERNAL_STORAGE_DIR,
             Environment.DIRECTORY_DOWNLOADS);
+    static final File MUSIC_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_MUSIC);
+    static final File MOVIES_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_MOVIES);
+    static final File NOTIFICATIONS_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_NOTIFICATIONS);
+    static final File PICTURES_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_PICTURES);
     static final File PODCASTS_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_PODCASTS);
+    static final File RINGTONES_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_RINGTONES);
+
     static final File ANDROID_DATA_DIR = new File(EXTERNAL_STORAGE_DIR, "Android/data");
     static final File ANDROID_MEDIA_DIR = new File(EXTERNAL_STORAGE_DIR, "Android/media");
     static final String TEST_DIRECTORY_NAME = "FilePathAccessTestDirectory";
@@ -118,7 +125,7 @@ public class FilePathAccessTest {
     static final File EXTERNAL_FILES_DIR = getContext().getExternalFilesDir(null);
     static final File EXTERNAL_MEDIA_DIR = getContext().getExternalMediaDirs()[0];
 
-    static final String MUSIC_FILE_NAME = "FilePathAccessTest_file.mp3";
+    static final String AUDIO_FILE_NAME = "FilePathAccessTest_file.mp3";
     static final String VIDEO_FILE_NAME = "FilePathAccessTest_file.mp4";
     static final String IMAGE_FILE_NAME = "FilePathAccessTest_file.jpg";
     static final String NONMEDIA_FILE_NAME = "FilePathAccessTest_file.pdf";
@@ -154,7 +161,7 @@ public class FilePathAccessTest {
      */
     @Test
     public void testTypePathConformity() throws Exception {
-        // Only music files can be created in Music
+        // Only audio files can be created in Music
         assertThrows(IOException.class, "Operation not permitted", () -> {
             new File(MUSIC_DIR, NONMEDIA_FILE_NAME).createNewFile();
         });
@@ -169,7 +176,7 @@ public class FilePathAccessTest {
             new File(MOVIES_DIR, NONMEDIA_FILE_NAME).createNewFile();
         });
         assertThrows(IOException.class, "Operation not permitted", () -> {
-            new File(MOVIES_DIR, MUSIC_FILE_NAME).createNewFile();
+            new File(MOVIES_DIR, AUDIO_FILE_NAME).createNewFile();
         });
         assertThrows(IOException.class, "Operation not permitted", () -> {
             new File(MOVIES_DIR, IMAGE_FILE_NAME).createNewFile();
@@ -179,28 +186,42 @@ public class FilePathAccessTest {
             new File(DCIM_DIR, NONMEDIA_FILE_NAME).createNewFile();
         });
         assertThrows(IOException.class, "Operation not permitted", () -> {
-            new File(DCIM_DIR, MUSIC_FILE_NAME).createNewFile();
+            new File(DCIM_DIR, AUDIO_FILE_NAME).createNewFile();
         });
         // Only image and video files can be created in Pictures
         assertThrows(IOException.class, "Operation not permitted", () -> {
             new File(PICTURES_DIR, NONMEDIA_FILE_NAME).createNewFile();
         });
         assertThrows(IOException.class, "Operation not permitted", () -> {
-            new File(PICTURES_DIR, MUSIC_FILE_NAME).createNewFile();
+            new File(PICTURES_DIR, AUDIO_FILE_NAME).createNewFile();
         });
 
+        assertCanCreateFile(new File(ALARMS_DIR, AUDIO_FILE_NAME));
+        assertCanCreateFile(new File(AUDIOBOOKS_DIR, AUDIO_FILE_NAME));
         assertCanCreateFile(new File(DCIM_DIR, IMAGE_FILE_NAME));
-        assertCanCreateFile(new File(MUSIC_DIR, MUSIC_FILE_NAME));
-        assertCanCreateFile(new File(MOVIES_DIR, VIDEO_FILE_NAME));
+        assertCanCreateFile(new File(DCIM_DIR, VIDEO_FILE_NAME));
+        assertCanCreateFile(new File(DOCUMENTS_DIR, AUDIO_FILE_NAME));
+        assertCanCreateFile(new File(DOCUMENTS_DIR, IMAGE_FILE_NAME));
+        assertCanCreateFile(new File(DOCUMENTS_DIR, NONMEDIA_FILE_NAME));
+        assertCanCreateFile(new File(DOCUMENTS_DIR, VIDEO_FILE_NAME));
+        assertCanCreateFile(new File(DOWNLOAD_DIR, AUDIO_FILE_NAME));
+        assertCanCreateFile(new File(DOWNLOAD_DIR, IMAGE_FILE_NAME));
         assertCanCreateFile(new File(DOWNLOAD_DIR, NONMEDIA_FILE_NAME));
+        assertCanCreateFile(new File(DOWNLOAD_DIR, VIDEO_FILE_NAME));
+        assertCanCreateFile(new File(MOVIES_DIR, VIDEO_FILE_NAME));
+        assertCanCreateFile(new File(MUSIC_DIR, AUDIO_FILE_NAME));
+        assertCanCreateFile(new File(NOTIFICATIONS_DIR, AUDIO_FILE_NAME));
+        assertCanCreateFile(new File(PICTURES_DIR, IMAGE_FILE_NAME));
         assertCanCreateFile(new File(PICTURES_DIR, VIDEO_FILE_NAME));
+        assertCanCreateFile(new File(PODCASTS_DIR, AUDIO_FILE_NAME));
+        assertCanCreateFile(new File(RINGTONES_DIR, AUDIO_FILE_NAME));
 
         // No file whatsoever can be created in the top level directory
         assertThrows(IOException.class, "Operation not permitted", () -> {
             new File(EXTERNAL_STORAGE_DIR, NONMEDIA_FILE_NAME).createNewFile();
         });
         assertThrows(IOException.class, "Operation not permitted", () -> {
-            new File(EXTERNAL_STORAGE_DIR, MUSIC_FILE_NAME).createNewFile();
+            new File(EXTERNAL_STORAGE_DIR, AUDIO_FILE_NAME).createNewFile();
         });
         assertThrows(IOException.class, "Operation not permitted", () -> {
             new File(EXTERNAL_STORAGE_DIR, IMAGE_FILE_NAME).createNewFile();
@@ -931,9 +952,9 @@ public class FilePathAccessTest {
 
     @Test
     public void testSystemGalleryAppHasNoFullAccessToAudio() throws Exception {
-        final File otherAppAudioFile = new File(MUSIC_DIR, "other_" + MUSIC_FILE_NAME);
-        final File topLevelAudioFile = new File(EXTERNAL_STORAGE_DIR, MUSIC_FILE_NAME);
-        final File audioInAnObviouslyWrongPlace = new File(PICTURES_DIR, MUSIC_FILE_NAME);
+        final File otherAppAudioFile = new File(MUSIC_DIR, "other_" + AUDIO_FILE_NAME);
+        final File topLevelAudioFile = new File(EXTERNAL_STORAGE_DIR, AUDIO_FILE_NAME);
+        final File audioInAnObviouslyWrongPlace = new File(PICTURES_DIR, AUDIO_FILE_NAME);
 
         try {
             installApp(TEST_APP_A, false);
@@ -980,7 +1001,7 @@ public class FilePathAccessTest {
         final File imageFile = new File(PICTURES_DIR, IMAGE_FILE_NAME);
         final File videoFile = new File(PICTURES_DIR, VIDEO_FILE_NAME);
         final File topLevelVideoFile = new File(EXTERNAL_STORAGE_DIR, VIDEO_FILE_NAME);
-        final File musicFile = new File(MUSIC_DIR, MUSIC_FILE_NAME);
+        final File musicFile = new File(MUSIC_DIR, AUDIO_FILE_NAME);
         try {
             installApp(TEST_APP_A, false);
             allowAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
@@ -1262,7 +1283,7 @@ public class FilePathAccessTest {
     @Test
     public void testManageExternalStorageCanCreateFilesAnywhere() throws Exception {
         final File topLevelPdf = new File(EXTERNAL_STORAGE_DIR, NONMEDIA_FILE_NAME);
-        final File musicFileInMovies = new File(MOVIES_DIR, MUSIC_FILE_NAME);
+        final File musicFileInMovies = new File(MOVIES_DIR, AUDIO_FILE_NAME);
         final File imageFileInDcim = new File(DCIM_DIR, IMAGE_FILE_NAME);
         try {
             allowAppOpsToUid(Process.myUid(), OPSTR_MANAGE_EXTERNAL_STORAGE);
@@ -1304,7 +1325,7 @@ public class FilePathAccessTest {
     public void testManageExternalStorageCanDeleteOtherAppsContents() throws Exception {
         final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
         final File otherAppImage = new File(DCIM_DIR, "other" + IMAGE_FILE_NAME);
-        final File otherAppMusic = new File(MUSIC_DIR, "other" + MUSIC_FILE_NAME);
+        final File otherAppMusic = new File(MUSIC_DIR, "other" + AUDIO_FILE_NAME);
         try {
             installApp(TEST_APP_A, false);
 
@@ -1339,7 +1360,7 @@ public class FilePathAccessTest {
         final File pdf = new File(DOWNLOAD_DIR, NONMEDIA_FILE_NAME);
         final File pdfInObviouslyWrongPlace = new File(PICTURES_DIR, NONMEDIA_FILE_NAME);
         final File topLevelPdf = new File(EXTERNAL_STORAGE_DIR, NONMEDIA_FILE_NAME);
-        final File musicFile = new File(MUSIC_DIR, MUSIC_FILE_NAME);
+        final File musicFile = new File(MUSIC_DIR, AUDIO_FILE_NAME);
         try {
             installApp(TEST_APP_A, false);
 
@@ -1398,7 +1419,7 @@ public class FilePathAccessTest {
     public void testManageExternalStorageQueryOtherAppsFile() throws Exception {
         final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
         final File otherAppImg = new File(DCIM_DIR, "other" + IMAGE_FILE_NAME);
-        final File otherAppMusic = new File(MUSIC_DIR, "other" + MUSIC_FILE_NAME);
+        final File otherAppMusic = new File(MUSIC_DIR, "other" + AUDIO_FILE_NAME);
         try {
             installApp(TEST_APP_A, false);
             assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
@@ -1421,7 +1442,7 @@ public class FilePathAccessTest {
     public void testQueryOtherAppsFiles() throws Exception {
         final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
         final File otherAppImg = new File(DCIM_DIR, "other" + IMAGE_FILE_NAME);
-        final File otherAppMusic = new File(MUSIC_DIR, "other" + MUSIC_FILE_NAME);
+        final File otherAppMusic = new File(MUSIC_DIR, "other" + AUDIO_FILE_NAME);
         try {
             installApp(TEST_APP_A, false);
             assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
@@ -1441,7 +1462,7 @@ public class FilePathAccessTest {
     public void testSystemGalleryQueryOtherAppsFiles() throws Exception {
         final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
         final File otherAppImg = new File(DCIM_DIR, "other" + IMAGE_FILE_NAME);
-        final File otherAppMusic = new File(MUSIC_DIR, "other" + MUSIC_FILE_NAME);
+        final File otherAppMusic = new File(MUSIC_DIR, "other" + AUDIO_FILE_NAME);
         try {
             installApp(TEST_APP_A, false);
             assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);

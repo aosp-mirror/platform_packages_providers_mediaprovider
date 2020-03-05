@@ -25,11 +25,16 @@ import static com.android.tests.fused.lib.RedactionTestHelper.assertExifMetadata
 import static com.android.tests.fused.lib.RedactionTestHelper.assertExifMetadataMismatch;
 import static com.android.tests.fused.lib.RedactionTestHelper.getExifMetadata;
 import static com.android.tests.fused.lib.RedactionTestHelper.getExifMetadataFromRawResource;
+import static com.android.tests.fused.lib.TestUtils.BYTES_DATA1;
+import static com.android.tests.fused.lib.TestUtils.BYTES_DATA2;
+import static com.android.tests.fused.lib.TestUtils.STR_DATA1;
+import static com.android.tests.fused.lib.TestUtils.STR_DATA2;
 import static com.android.tests.fused.lib.TestUtils.assertCanRenameFile;
 import static com.android.tests.fused.lib.TestUtils.assertCanRenameDirectory;
 import static com.android.tests.fused.lib.TestUtils.allowAppOpsToUid;
 import static com.android.tests.fused.lib.TestUtils.assertCantRenameDirectory;
 import static com.android.tests.fused.lib.TestUtils.assertCantRenameFile;
+import static com.android.tests.fused.lib.TestUtils.assertFileContent;
 import static com.android.tests.fused.lib.TestUtils.assertThrows;
 import static com.android.tests.fused.lib.TestUtils.createFileAs;
 import static com.android.tests.fused.lib.TestUtils.deleteFileAs;
@@ -76,8 +81,6 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.cts.install.lib.TestApp;
 import com.android.tests.fused.lib.ReaddirTestHelper;
-
-import com.google.common.io.ByteStreams;
 
 import org.junit.Before;
 import org.junit.Ignore;
@@ -129,12 +132,6 @@ public class FilePathAccessTest {
     static final String VIDEO_FILE_NAME = "FilePathAccessTest_file.mp4";
     static final String IMAGE_FILE_NAME = "FilePathAccessTest_file.jpg";
     static final String NONMEDIA_FILE_NAME = "FilePathAccessTest_file.pdf";
-
-    static final String STR_DATA1 = "Just some random text";
-    static final String STR_DATA2 = "More arbitrary stuff";
-
-    static final byte[] BYTES_DATA1 = STR_DATA1.getBytes();
-    static final byte[] BYTES_DATA2 = STR_DATA2.getBytes();
 
     static final String FILE_CREATION_ERROR_MESSAGE = "No such file or directory";
 
@@ -1611,31 +1608,5 @@ public class FilePathAccessTest {
             Log.w(TAG, "Couldn't assertCanCreateFile(" + file + ") because file existed prior to "
                     + "running the test!");
         }
-    }
-
-    /**
-     * Asserts the entire content of the file equals exactly {@code expectedContent}.
-     */
-    private static void assertFileContent(File file, byte[] expectedContent) throws IOException {
-        try (final FileInputStream fis = new FileInputStream(file)) {
-            assertInputStreamContent(fis, expectedContent);
-        }
-    }
-
-    /**
-     * Asserts the entire content of the file equals exactly {@code expectedContent}.
-     * <p>Sets {@code fd} to beginning of file first.
-     */
-    private static void assertFileContent(FileDescriptor fd, byte[] expectedContent)
-            throws IOException, ErrnoException {
-        Os.lseek(fd, 0, OsConstants.SEEK_SET);
-        try (final FileInputStream fis = new FileInputStream(fd)) {
-            assertInputStreamContent(fis, expectedContent);
-        }
-    }
-
-    private static void assertInputStreamContent(InputStream in, byte[] expectedContent)
-            throws IOException {
-        assertThat(ByteStreams.toByteArray(in)).isEqualTo(expectedContent);
     }
 }

@@ -43,7 +43,9 @@ import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
 import android.provider.MediaStore;
+import android.system.ErrnoException;
 import android.system.Os;
+import android.system.OsConstants;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -58,7 +60,10 @@ import com.android.cts.install.lib.Uninstall;
 import com.google.common.io.ByteStreams;
 
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
@@ -75,6 +80,13 @@ public class TestUtils {
     public static final String INTENT_EXCEPTION = "com.android.tests.fused.exception";
     public static final String CREATE_FILE_QUERY = "com.android.tests.fused.createfile";
     public static final String DELETE_FILE_QUERY = "com.android.tests.fused.deletefile";
+
+
+    public static final String STR_DATA1 = "Just some random text";
+    public static final String STR_DATA2 = "More arbitrary stuff";
+
+    public static final byte[] BYTES_DATA1 = STR_DATA1.getBytes();
+    public static final byte[] BYTES_DATA2 = STR_DATA2.getBytes();
 
     private static final long POLLING_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(10);
     private static final long POLLING_SLEEP_MILLIS = 100;
@@ -464,6 +476,32 @@ public class TestUtils {
         }
         fail("Timed out while waiting for permission " + perm + " to be "
                 + (granted ? "granted" : "revoked"));
+    }
+
+    /**
+     * Asserts the entire content of the file equals exactly {@code expectedContent}.
+     */
+    public static void assertFileContent(File file, byte[] expectedContent) throws IOException {
+        try (final FileInputStream fis = new FileInputStream(file)) {
+            assertInputStreamContent(fis, expectedContent);
+        }
+    }
+
+    /**
+     * Asserts the entire content of the file equals exactly {@code expectedContent}.
+     * <p>Sets {@code fd} to beginning of file first.
+     */
+    public static void assertFileContent(FileDescriptor fd, byte[] expectedContent)
+            throws IOException, ErrnoException {
+        Os.lseek(fd, 0, OsConstants.SEEK_SET);
+        try (final FileInputStream fis = new FileInputStream(fd)) {
+            assertInputStreamContent(fis, expectedContent);
+        }
+    }
+
+    private static void assertInputStreamContent(InputStream in, byte[] expectedContent)
+            throws IOException {
+        assertThat(ByteStreams.toByteArray(in)).isEqualTo(expectedContent);
     }
 
     /**

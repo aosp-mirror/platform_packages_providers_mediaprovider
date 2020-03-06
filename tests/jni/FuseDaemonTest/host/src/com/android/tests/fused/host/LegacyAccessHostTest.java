@@ -195,4 +195,20 @@ public class LegacyAccessHostTest extends BaseHostJUnit4Test {
     public void testLegacyAppCanOwnAFile_hasW() throws Exception {
         runDeviceTest("testLegacyAppCanOwnAFile_hasW");
     }
+
+    @Test
+    public void testCreateAndRenameDoesntLeaveStaleDBRow_hasRW() throws Exception {
+        runDeviceTest("testCreateAndRenameDoesntLeaveStaleDBRow_hasRW");
+    }
+
+    @Test
+    public void testRenameDoesntInvalidateUri_hasRW() throws Exception {
+        runDeviceTest("testRenameDoesntInvalidateUri_hasRW");
+    }
+
+
+    @Test
+    public void testCanRenameAFileWithNoDBRow_hasRW() throws Exception {
+        runDeviceTest("testCanRenameAFileWithNoDBRow_hasRW");
+    }
 }

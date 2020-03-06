@@ -1911,6 +1911,7 @@ public class MediaProvider extends ContentProvider {
                 defaultPrimary = Environment.DIRECTORY_MUSIC;
                 allowedPrimary = Arrays.asList(
                         Environment.DIRECTORY_ALARMS,
+                        Environment.DIRECTORY_AUDIOBOOKS,
                         Environment.DIRECTORY_MUSIC,
                         Environment.DIRECTORY_NOTIFICATIONS,
                         Environment.DIRECTORY_PODCASTS,

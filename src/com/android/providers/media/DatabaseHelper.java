@@ -51,15 +51,16 @@ import android.system.OsConstants;
 import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.Log;
+import android.util.SparseArray;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
-import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
+import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.Logging;
 import com.android.providers.media.util.MimeUtils;
 
@@ -67,8 +68,6 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -331,11 +330,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         public boolean successful;
 
         /**
-         * List of {@link Uri} that would have been sent directly via
-         * {@link ContentResolver#notifyChange}, but are instead being collected
-         * due to this ongoing transaction.
+         * Map from {@code flags} value to set of {@link Uri} that would have
+         * been sent directly via {@link ContentResolver#notifyChange}, but are
+         * instead being collected due to this ongoing transaction.
          */
-        public final Set<Uri> notifyChanges = new ArraySet<>();
+        public final SparseArray<ArraySet<Uri>> notifyChanges = new SparseArray<>();
     }
 
     public void beginTransaction() {
@@ -371,8 +370,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.endTransaction();
 
         if (state.successful) {
-            BackgroundThread.getExecutor().execute(() -> {
-                notifyChangeInternal(state.notifyChanges);
+            ForegroundThread.getExecutor().execute(() -> {
+                for (int i = 0; i < state.notifyChanges.size(); i++) {
+                    notifyChangeInternal(state.notifyChanges.valueAt(i),
+                            state.notifyChanges.keyAt(i));
+                }
             });
         }
     }
@@ -399,36 +401,53 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
     }
 
+    public void notifyInsert(@NonNull Uri uri) {
+        notifyChange(uri, ContentResolver.NOTIFY_INSERT);
+    }
+
+    public void notifyUpdate(@NonNull Uri uri) {
+        notifyChange(uri, ContentResolver.NOTIFY_UPDATE);
+    }
+
+    public void notifyDelete(@NonNull Uri uri) {
+        notifyChange(uri, ContentResolver.NOTIFY_DELETE);
+    }
+
     /**
      * Notify that the given {@link Uri} has changed. This enqueues the
      * notification if currently inside a transaction, and they'll be
      * clustered and sent when the transaction completes.
      */
-    public void notifyChange(@NonNull Uri uri) {
+    public void notifyChange(@NonNull Uri uri, int flags) {
         if (LOGV) Log.v(TAG, "Notifying " + uri);
         final TransactionState state = mTransactionState.get();
         if (state != null) {
-            state.notifyChanges.add(uri);
+            ArraySet<Uri> set = state.notifyChanges.get(flags);
+            if (set == null) {
+                set = new ArraySet<>();
+                state.notifyChanges.put(flags, set);
+            }
+            set.add(uri);
         } else {
-            BackgroundThread.getExecutor().execute(() -> {
-                notifySingleChangeInternal(uri);
+            ForegroundThread.getExecutor().execute(() -> {
+                notifySingleChangeInternal(uri, flags);
             });
         }
     }
 
-    private void notifySingleChangeInternal(Uri uri) {
+    private void notifySingleChangeInternal(@NonNull Uri uri, int flags) {
         Trace.beginSection("notifySingleChange");
         try {
-            mContext.getContentResolver().notifyChange(uri, null, 0);
+            mContext.getContentResolver().notifyChange(uri, null, flags);
         } finally {
             Trace.endSection();
         }
     }
 
-    private void notifyChangeInternal(Iterable<Uri> uris) {
+    private void notifyChangeInternal(@NonNull Iterable<Uri> uris, int flags) {
         Trace.beginSection("notifyChange");
         try {
-            mContext.getContentResolver().notifyChange(uris, null, 0);
+            mContext.getContentResolver().notifyChange(uris, null, flags);
         } finally {
             Trace.endSection();
         }

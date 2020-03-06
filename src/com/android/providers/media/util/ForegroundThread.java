@@ -23,40 +23,40 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
-public final class BackgroundThread extends HandlerThread {
-    private static BackgroundThread sInstance;
+public final class ForegroundThread extends HandlerThread {
+    private static ForegroundThread sInstance;
     private static Handler sHandler;
     private static HandlerExecutor sHandlerExecutor;
 
-    private BackgroundThread() {
-        super("bg", android.os.Process.THREAD_PRIORITY_BACKGROUND);
+    private ForegroundThread() {
+        super("fg", android.os.Process.THREAD_PRIORITY_FOREGROUND);
     }
 
     private static void ensureThreadLocked() {
         if (sInstance == null) {
-            sInstance = new BackgroundThread();
+            sInstance = new ForegroundThread();
             sInstance.start();
             sHandler = new Handler(sInstance.getLooper());
             sHandlerExecutor = new HandlerExecutor(sHandler);
         }
     }
 
-    public static BackgroundThread get() {
-        synchronized (BackgroundThread.class) {
+    public static ForegroundThread get() {
+        synchronized (ForegroundThread.class) {
             ensureThreadLocked();
             return sInstance;
         }
     }
 
     public static Handler getHandler() {
-        synchronized (BackgroundThread.class) {
+        synchronized (ForegroundThread.class) {
             ensureThreadLocked();
             return sHandler;
         }
     }
 
     public static Executor getExecutor() {
-        synchronized (BackgroundThread.class) {
+        synchronized (ForegroundThread.class) {
             ensureThreadLocked();
             return sHandlerExecutor;
         }

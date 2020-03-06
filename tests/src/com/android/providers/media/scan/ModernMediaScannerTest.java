@@ -525,4 +525,22 @@ public class ModernMediaScannerTest {
             assertEquals(expected, cursor.getCount());
         }
     }
+
+    @Test
+    public void testScan_audio_empty_title() throws Exception {
+        final File music = new File(mDir, "Music");
+        final File audio = new File(music, "audio.mp3");
+
+        music.mkdirs();
+        stage(R.raw.test_audio_empty_title, audio);
+
+        mModern.scanFile(audio, REASON_UNKNOWN);
+
+        try (Cursor cursor = mIsolatedResolver
+                .query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
+            assertEquals(1, cursor.getCount());
+            cursor.moveToFirst();
+            assertEquals("audio", cursor.getString(cursor.getColumnIndex(MediaColumns.TITLE)));
+        }
+    }
 }

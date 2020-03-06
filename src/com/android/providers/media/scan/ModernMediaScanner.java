@@ -1059,6 +1059,8 @@ public class ModernMediaScanner implements MediaScanner {
             return Optional.empty();
         } else if (value instanceof String && ((String) value).equals("-1")) {
             return Optional.empty();
+        } else if (value instanceof String && ((String) value).trim().length() == 0) {
+            return Optional.empty();
         } else if (value instanceof Number && ((Number) value).intValue() == -1) {
             return Optional.empty();
         } else {

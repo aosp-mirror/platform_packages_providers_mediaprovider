@@ -100,6 +100,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     final @Nullable Class<? extends Annotation> mColumnAnnotation;
     final @Nullable OnSchemaChangeListener mSchemaListener;
     final @Nullable OnFilesChangeListener mFilesListener;
+    final @Nullable OnLegacyMigrationListener mMigrationListener;
     final Set<String> mFilterVolumeNames = new ArraySet<>();
     long mScanStartTime;
     long mScanStopTime;
@@ -121,20 +122,27 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 int mediaType, boolean isDownload);
     }
 
+    public interface OnLegacyMigrationListener {
+        public void onStarted(ContentProviderClient client, String volumeName);
+        public void onFinished(ContentProviderClient client, String volumeName);
+    }
+
     public DatabaseHelper(Context context, String name,
             boolean internal, boolean earlyUpgrade, boolean legacyProvider,
             @Nullable Class<? extends Annotation> columnAnnotation,
             @Nullable OnSchemaChangeListener schemaListener,
-            @Nullable OnFilesChangeListener filesListener) {
+            @Nullable OnFilesChangeListener filesListener,
+            @Nullable OnLegacyMigrationListener migrationListener) {
         this(context, name, getDatabaseVersion(context), internal, earlyUpgrade, legacyProvider,
-                columnAnnotation, schemaListener, filesListener);
+                columnAnnotation, schemaListener, filesListener, migrationListener);
     }
 
     public DatabaseHelper(Context context, String name, int version,
             boolean internal, boolean earlyUpgrade, boolean legacyProvider,
             @Nullable Class<? extends Annotation> columnAnnotation,
             @Nullable OnSchemaChangeListener schemaListener,
-            @Nullable OnFilesChangeListener filesListener) {
+            @Nullable OnFilesChangeListener filesListener,
+            @Nullable OnLegacyMigrationListener migrationListener) {
         super(context, name, null, version);
         mContext = context;
         mName = name;
@@ -146,6 +154,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         mColumnAnnotation = columnAnnotation;
         mSchemaListener = schemaListener;
         mFilesListener = filesListener;
+        mMigrationListener = migrationListener;
 
         // Configure default filters until we hear differently
         if (mInternal) {
@@ -636,6 +645,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
             db.execSQL("SAVEPOINT before_migrate");
             Log.d(TAG, "Starting migration from legacy provider for " + mName);
+            mMigrationListener.onStarted(client, mVolumeName);
             try (Cursor c = client.query(queryUri, sMigrateColumns.toArray(new String[0]),
                     extras, null)) {
                 final ContentValues values = new ContentValues();
@@ -654,11 +664,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
                 db.execSQL("RELEASE before_migrate");
                 Log.d(TAG, "Finished migration from legacy provider for " + mName);
+                mMigrationListener.onFinished(client, mVolumeName);
             } catch (Exception e) {
                 // We have to guard ourselves against any weird behavior of the
                 // legacy provider by trying to catch everything
                 db.execSQL("ROLLBACK TO before_migrate");
                 Log.w(TAG, "Failed migration from legacy provider: " + e);
+                mMigrationListener.onFinished(client, mVolumeName);
             }
         }
     }

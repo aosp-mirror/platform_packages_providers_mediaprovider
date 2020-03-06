@@ -71,6 +71,7 @@ filegroup {
         "src/com/android/providers/media/util/BackgroundThread.java",
         "src/com/android/providers/media/util/DatabaseUtils.java",
         "src/com/android/providers/media/util/FileUtils.java",
+        "src/com/android/providers/media/util/ForegroundThread.java",
         "src/com/android/providers/media/util/HandlerExecutor.java",
         "src/com/android/providers/media/util/Logging.java",
         "src/com/android/providers/media/util/MimeUtils.java",

@@ -57,15 +57,15 @@ public class LocalCallingIdentity {
     public final int pid;
     public final int uid;
     public final String packageNameUnchecked;
-    public @Nullable String featureId;
+    public @Nullable String attributionTag;
 
     private LocalCallingIdentity(Context context, int pid, int uid, String packageNameUnchecked,
-            @Nullable String featureId) {
+            @Nullable String attributionTag) {
         this.context = context;
         this.pid = pid;
         this.uid = uid;
         this.packageNameUnchecked = packageNameUnchecked;
-        this.featureId = featureId;
+        this.attributionTag = attributionTag;
     }
 
     /**
@@ -109,12 +109,12 @@ public class LocalCallingIdentity {
         if (callingPackage == null) {
             callingPackage = context.getOpPackageName();
         }
-        String callingFeatureId = provider.getCallingFeatureId();
-        if (callingFeatureId == null) {
-            callingFeatureId = context.getFeatureId();
+        String callingAttributionTag = provider.getCallingAttributionTag();
+        if (callingAttributionTag == null) {
+            callingAttributionTag = context.getAttributionTag();
         }
         return new LocalCallingIdentity(context, Binder.getCallingPid(), Binder.getCallingUid(),
-                callingPackage, callingFeatureId);
+                callingPackage, callingAttributionTag);
     }
 
     public static LocalCallingIdentity fromExternal(Context context, int uid) {
@@ -134,8 +134,8 @@ public class LocalCallingIdentity {
     }
 
     public static LocalCallingIdentity fromExternal(Context context, int uid, String packageName,
-            @Nullable String featureId) {
-        return new LocalCallingIdentity(context, -1, uid, packageName, featureId);
+            @Nullable String attributionTag) {
+        return new LocalCallingIdentity(context, -1, uid, packageName, attributionTag);
     }
 
     public static LocalCallingIdentity fromSelf(Context context) {
@@ -144,11 +144,11 @@ public class LocalCallingIdentity {
                 android.os.Process.myPid(),
                 android.os.Process.myUid(),
                 context.getOpPackageName(),
-                context.getFeatureId());
+                context.getAttributionTag());
 
         ident.packageName = ident.packageNameUnchecked;
         ident.packageNameResolved = true;
-        // Use ident.featureId from context, hence no change
+        // Use ident.attributionTag from context, hence no change
         ident.targetSdkVersion = Build.VERSION_CODES.CUR_DEVELOPMENT;
         ident.targetSdkVersionResolved = true;
         ident.hasPermission = ~(PERMISSION_IS_LEGACY_GRANTED | PERMISSION_IS_LEGACY_WRITE
@@ -335,7 +335,7 @@ public class LocalCallingIdentity {
 
         if (context.checkPermission(ACCESS_MEDIA_LOCATION, pid, uid) == PERMISSION_DENIED
                 || context.getSystemService(AppOpsManager.class).noteProxyOpNoThrow(
-                permissionToOp(ACCESS_MEDIA_LOCATION), getPackageName(), uid, featureId, null)
+                permissionToOp(ACCESS_MEDIA_LOCATION), getPackageName(), uid, attributionTag, null)
                 != MODE_ALLOWED) {
             return true;
         }

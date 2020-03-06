@@ -41,6 +41,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Trace;
 import android.text.TextUtils;
 import android.util.ArrayMap;
 import android.util.Log;
@@ -447,17 +448,23 @@ public class DatabaseUtils {
 
     public static long executeInsert(@NonNull SQLiteDatabase db, @NonNull String sql,
             @Nullable Object[] bindArgs) throws SQLException {
+        Trace.beginSection("executeInsert");
         try (SQLiteStatement st = db.compileStatement(sql)) {
             bindArgs(st, bindArgs);
             return st.executeInsert();
+        } finally {
+            Trace.endSection();
         }
     }
 
     public static int executeUpdateDelete(@NonNull SQLiteDatabase db, @NonNull String sql,
             @Nullable Object[] bindArgs) throws SQLException {
+        Trace.beginSection("executeUpdateDelete");
         try (SQLiteStatement st = db.compileStatement(sql)) {
             bindArgs(st, bindArgs);
             return st.executeUpdateDelete();
+        } finally {
+            Trace.endSection();
         }
     }
 

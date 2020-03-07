@@ -73,6 +73,8 @@ import android.app.DownloadManager;
 import android.app.PendingIntent;
 import android.app.RecoverableSecurityException;
 import android.app.RemoteAction;
+import android.app.compat.CompatChanges;
+import android.compat.annotation.ChangeId;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipDescription;
@@ -171,6 +173,7 @@ import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
+import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.IsoInterface;
 import com.android.providers.media.util.Logging;
 import com.android.providers.media.util.LongArray;
@@ -475,7 +478,7 @@ public class MediaProvider extends ContentProvider {
         @Override
         public void onInsert(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
                 int mediaType, boolean isDownload) {
-            acceptWithExpansion(helper::notifyChange, volumeName, id, mediaType, isDownload);
+            acceptWithExpansion(helper::notifyInsert, volumeName, id, mediaType, isDownload);
 
             if (helper.isExternal()) {
                 // Update the quota type on the filesystem
@@ -492,7 +495,7 @@ public class MediaProvider extends ContentProvider {
                 int oldMediaType, boolean oldIsDownload,
                 int newMediaType, boolean newIsDownload) {
             final boolean isDownload = oldIsDownload || newIsDownload;
-            acceptWithExpansion(helper::notifyChange, volumeName, id, oldMediaType, isDownload);
+            acceptWithExpansion(helper::notifyUpdate, volumeName, id, oldMediaType, isDownload);
 
             // When media type changes, notify both old and new collections and
             // invalidate any thumbnails
@@ -501,7 +504,7 @@ public class MediaProvider extends ContentProvider {
                 if (helper.isExternal()) {
                     updateQuotaTypeForUri(fileUri, newMediaType);
                 }
-                acceptWithExpansion(helper::notifyChange, volumeName, id, newMediaType, isDownload);
+                acceptWithExpansion(helper::notifyUpdate, volumeName, id, newMediaType, isDownload);
                 invalidateThumbnails(fileUri);
             }
         }
@@ -512,7 +515,7 @@ public class MediaProvider extends ContentProvider {
             // Both notify apps and revoke any outstanding permission grants
             final Context context = getContext();
             acceptWithExpansion((uri) -> {
-                helper.notifyChange(uri);
+                helper.notifyDelete(uri);
                 context.revokeUriPermission(uri, ~0);
             }, volumeName, id, mediaType, isDownload);
 
@@ -3863,15 +3866,8 @@ public class MediaProvider extends ContentProvider {
     private Bundle callInternal(String method, String arg, Bundle extras) {
         switch (method) {
             case MediaStore.WAIT_FOR_IDLE_CALL: {
-                final CountDownLatch latch = new CountDownLatch(1);
-                BackgroundThread.getExecutor().execute(() -> {
-                    latch.countDown();
-                });
-                try {
-                    latch.await(30, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    throw new IllegalStateException(e);
-                }
+                ForegroundThread.waitForIdle();
+                BackgroundThread.waitForIdle();
                 return null;
             }
             case MediaStore.SCAN_FILE_CALL:

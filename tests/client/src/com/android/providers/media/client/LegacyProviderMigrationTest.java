@@ -188,6 +188,9 @@ public class LegacyProviderMigrationTest {
         Assume.assumeNotNull(legacyProvider);
         Assume.assumeNotNull(modernProvider);
 
+        // Clear data on the legacy provider so that we create a database
+        executeShellCommand("pm clear " + legacyProvider.applicationInfo.packageName, ui);
+
         // Create a well-known entry in legacy provider, and write data into
         // place to ensure the file is created on disk
         final Uri legacyUri;

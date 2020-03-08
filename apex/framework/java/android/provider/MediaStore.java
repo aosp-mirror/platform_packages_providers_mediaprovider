@@ -28,6 +28,7 @@ import android.annotation.SdkConstant.SdkConstantType;
 import android.annotation.SuppressLint;
 import android.annotation.SystemApi;
 import android.annotation.TestApi;
+import android.annotation.WorkerThread;
 import android.app.Activity;
 import android.app.PendingIntent;
 import android.compat.annotation.UnsupportedAppUsage;
@@ -99,10 +100,27 @@ public final class MediaStore {
     public static final @NonNull Uri AUTHORITY_URI =
             Uri.parse("content://" + AUTHORITY);
 
-    /** @hide */
+    /**
+     * The authority for a legacy instance of the media provider, before it was
+     * converted into a Mainline module. When initializing for the first time,
+     * the Mainline module will connect to this legacy instance to migrate
+     * important user settings, such as {@link BaseColumns#_ID},
+     * {@link MediaColumns#IS_FAVORITE}, and more.
+     * <p>
+     * The legacy instance is expected to meet the exact same API contract
+     * expressed here in {@link MediaStore}, to facilitate smooth data
+     * migrations. Interactions that would normally interact with
+     * {@link #AUTHORITY} can be redirected to work with the legacy instance
+     * using {@link #rewriteToLegacy(Uri)}.
+     *
+     * @hide
+     */
     @SystemApi
     public static final String AUTHORITY_LEGACY = "media_legacy";
-    /** @hide */
+    /**
+     * @see #AUTHORITY_LEGACY
+     * @hide
+     */
     @SystemApi
     public static final @NonNull Uri AUTHORITY_LEGACY_URI =
             Uri.parse("content://" + AUTHORITY_LEGACY);
@@ -161,6 +179,11 @@ public final class MediaStore {
     public static final String GET_VERSION_CALL = "get_version";
     /** {@hide} */
     public static final String GET_GENERATION_CALL = "get_generation";
+
+    /** {@hide} */
+    public static final String START_LEGACY_MIGRATION_CALL = "start_legacy_migration";
+    /** {@hide} */
+    public static final String FINISH_LEGACY_MIGRATION_CALL = "finish_legacy_migration";
 
     /** {@hide} */
     @Deprecated
@@ -729,11 +752,35 @@ public final class MediaStore {
      * Rewrite the given {@link Uri} to point at
      * {@link MediaStore#AUTHORITY_LEGACY}.
      *
+     * @see #AUTHORITY_LEGACY
      * @hide
      */
     @SystemApi
     public static @NonNull Uri rewriteToLegacy(@NonNull Uri uri) {
         return uri.buildUpon().authority(MediaStore.AUTHORITY_LEGACY).build();
+    }
+
+    /**
+     * Called by the Mainline module to signal to {@link #AUTHORITY_LEGACY} that
+     * data migration is starting.
+     *
+     * @hide
+     */
+    public static void startLegacyMigration(@NonNull ContentResolver resolver,
+            @NonNull String volumeName) {
+        resolver.call(AUTHORITY_LEGACY, START_LEGACY_MIGRATION_CALL, volumeName, null);
+    }
+
+    /**
+     * Called by the Mainline module to signal to {@link #AUTHORITY_LEGACY} that
+     * data migration is finished. The legacy provider may choose to perform
+     * clean-up operations at this point, such as deleting databases.
+     *
+     * @hide
+     */
+    public static void finishLegacyMigration(@NonNull ContentResolver resolver,
+            @NonNull String volumeName) {
+        resolver.call(AUTHORITY_LEGACY, FINISH_LEGACY_MIGRATION_CALL, volumeName, null);
     }
 
     private static @NonNull PendingIntent createRequest(@NonNull ContentResolver resolver,
@@ -761,7 +808,8 @@ public final class MediaStore {
      * call {@link Activity#startIntentSenderForResult} with
      * {@link PendingIntent#getIntentSender()}. You can then determine if the
      * user granted your request by testing for {@link Activity#RESULT_OK} in
-     * {@link Activity#onActivityResult}.
+     * {@link Activity#onActivityResult}. The requested operation will have
+     * completely finished before this activity result is delivered.
      * <p>
      * Permissions granted through this mechanism are tied to the lifecycle of
      * the {@link Activity} that requests them. If you need to retain
@@ -781,6 +829,11 @@ public final class MediaStore {
      * For security and performance reasons this method does not support
      * {@link Intent#FLAG_GRANT_PERSISTABLE_URI_PERMISSION} or
      * {@link Intent#FLAG_GRANT_PREFIX_URI_PERMISSION}.
+     * <p>
+     * The write access granted through this request is general-purpose, and
+     * once obtained you can directly {@link ContentResolver#update} columns
+     * like {@link MediaColumns#IS_FAVORITE}, {@link MediaColumns#IS_TRASHED},
+     * or {@link ContentResolver#delete}.
      *
      * @param resolver Used to connect with {@link MediaStore#AUTHORITY}.
      *            Typically this value is {@link Context#getContentResolver()},
@@ -805,7 +858,8 @@ public final class MediaStore {
      * call {@link Activity#startIntentSenderForResult} with
      * {@link PendingIntent#getIntentSender()}. You can then determine if the
      * user granted your request by testing for {@link Activity#RESULT_OK} in
-     * {@link Activity#onActivityResult}.
+     * {@link Activity#onActivityResult}. The requested operation will have
+     * completely finished before this activity result is delivered.
      * <p>
      * The displayed prompt will reflect all the media items you're requesting,
      * including those for which you already hold write access. If you want to
@@ -848,7 +902,8 @@ public final class MediaStore {
      * call {@link Activity#startIntentSenderForResult} with
      * {@link PendingIntent#getIntentSender()}. You can then determine if the
      * user granted your request by testing for {@link Activity#RESULT_OK} in
-     * {@link Activity#onActivityResult}.
+     * {@link Activity#onActivityResult}. The requested operation will have
+     * completely finished before this activity result is delivered.
      * <p>
      * The displayed prompt will reflect all the media items you're requesting,
      * including those for which you already hold write access. If you want to
@@ -888,7 +943,8 @@ public final class MediaStore {
      * call {@link Activity#startIntentSenderForResult} with
      * {@link PendingIntent#getIntentSender()}. You can then determine if the
      * user granted your request by testing for {@link Activity#RESULT_OK} in
-     * {@link Activity#onActivityResult}.
+     * {@link Activity#onActivityResult}. The requested operation will have
+     * completely finished before this activity result is delivered.
      * <p>
      * The displayed prompt will reflect all the media items you're requesting,
      * including those for which you already hold write access. If you want to
@@ -1224,6 +1280,13 @@ public final class MediaStore {
          * than using {@link #DATE_ADDED}, since those values may change in
          * unexpected ways when apps use {@link File#setLastModified(long)} or
          * when the system clock is set incorrectly.
+         * <p>
+         * Note that before comparing these detailed generation values, you
+         * should first confirm that the overall version hasn't changed by
+         * checking {@link MediaStore#getVersion(Context, String)}, since that
+         * indicates when a more radical change has occurred. If the overall
+         * version changes, you should assume that generation numbers have been
+         * reset and perform a full synchronization pass.
          *
          * @see MediaStore#getGeneration(Context, String)
          */
@@ -1241,6 +1304,13 @@ public final class MediaStore {
          * using {@link #DATE_MODIFIED}, since those values may change in
          * unexpected ways when apps use {@link File#setLastModified(long)} or
          * when the system clock is set incorrectly.
+         * <p>
+         * Note that before comparing these detailed generation values, you
+         * should first confirm that the overall version hasn't changed by
+         * checking {@link MediaStore#getVersion(Context, String)}, since that
+         * indicates when a more radical change has occurred. If the overall
+         * version changes, you should assume that generation numbers have been
+         * reset and perform a full synchronization pass.
          *
          * @see MediaStore#getGeneration(Context, String)
          */
@@ -2255,7 +2325,13 @@ public final class MediaStore {
             /**
              * Return the typical {@link Size} (in pixels) used internally when
              * the given thumbnail kind is requested.
+             *
+             * @deprecated Callers should migrate to using
+             *             {@link ContentResolver#loadThumbnail}, since it
+             *             offers richer control over requested thumbnail sizes
+             *             and cancellation behavior.
              */
+            @Deprecated
             public static @NonNull Size getKindSize(int kind) {
                 return ThumbnailConstants.getKindSize(kind);
             }
@@ -3525,7 +3601,13 @@ public final class MediaStore {
             /**
              * Return the typical {@link Size} (in pixels) used internally when
              * the given thumbnail kind is requested.
+             *
+             * @deprecated Callers should migrate to using
+             *             {@link ContentResolver#loadThumbnail}, since it
+             *             offers richer control over requested thumbnail sizes
+             *             and cancellation behavior.
              */
+            @Deprecated
             public static @NonNull Size getKindSize(int kind) {
                 return ThumbnailConstants.getKindSize(kind);
             }
@@ -3720,6 +3802,13 @@ public final class MediaStore {
      * {@link MediaColumns#DATE_MODIFIED}, since those values may change in
      * unexpected ways when apps use {@link File#setLastModified(long)} or when
      * the system clock is set incorrectly.
+     * <p>
+     * Note that before comparing these detailed generation values, you should
+     * first confirm that the overall version hasn't changed by checking
+     * {@link MediaStore#getVersion(Context, String)}, since that indicates when
+     * a more radical change has occurred. If the overall version changes, you
+     * should assume that generation numbers have been reset and perform a full
+     * synchronization pass.
      *
      * @param volumeName specific volume to obtain an generation value for. Must
      *            be one of the values returned from
@@ -3808,6 +3897,7 @@ public final class MediaStore {
      */
     @SystemApi
     @TestApi
+    @WorkerThread
     public static void waitForIdle(@NonNull ContentResolver resolver) {
         resolver.call(AUTHORITY, WAIT_FOR_IDLE_CALL, null, null);
     }
@@ -3820,6 +3910,7 @@ public final class MediaStore {
      */
     @SystemApi
     @TestApi
+    @WorkerThread
     @SuppressLint("StreamFiles")
     public static @NonNull Uri scanFile(@NonNull ContentResolver resolver, @NonNull File file) {
         final Bundle out = resolver.call(AUTHORITY, SCAN_FILE_CALL, file.getAbsolutePath(), null);
@@ -3833,6 +3924,7 @@ public final class MediaStore {
      */
     @SystemApi
     @TestApi
+    @WorkerThread
     public static void scanVolume(@NonNull ContentResolver resolver, @NonNull String volumeName) {
         resolver.call(AUTHORITY, SCAN_VOLUME_CALL, volumeName, null);
     }

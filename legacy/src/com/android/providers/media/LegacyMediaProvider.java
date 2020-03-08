@@ -26,6 +26,7 @@ import android.content.Context;
 import android.content.pm.ProviderInfo;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Bundle;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
 
@@ -37,6 +38,7 @@ import java.io.File;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Objects;
 
 /**
  * Very limited subset of {@link MediaProvider} which only surfaces
@@ -45,6 +47,9 @@ import java.io.PrintWriter;
 public class LegacyMediaProvider extends ContentProvider {
     private DatabaseHelper mInternalDatabase;
     private DatabaseHelper mExternalDatabase;
+
+    public static final String START_LEGACY_MIGRATION_CALL = "start_legacy_migration";
+    public static final String FINISH_LEGACY_MIGRATION_CALL = "finish_legacy_migration";
 
     @Override
     public void attachInfo(Context context, ProviderInfo info) {
@@ -68,9 +73,9 @@ public class LegacyMediaProvider extends ContentProvider {
         Logging.initPersistent(persistentDir);
 
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME,
-                true, false, true, null, null, null);
+                true, false, true, null, null, null, null);
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME,
-                false, false, true, null, null, null);
+                false, false, true, null, null, null, null);
 
         return true;
     }
@@ -79,9 +84,9 @@ public class LegacyMediaProvider extends ContentProvider {
         final String volumeName = MediaStore.getVolumeName(uri);
         switch (volumeName) {
             case MediaStore.VOLUME_INTERNAL:
-                return mInternalDatabase;
+                return Objects.requireNonNull(mInternalDatabase, "Missing internal database");
             default:
-                return mExternalDatabase;
+                return Objects.requireNonNull(mExternalDatabase, "Missing external database");
         }
     }
 
@@ -121,6 +126,37 @@ public class LegacyMediaProvider extends ContentProvider {
     @Override
     public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Bundle call(String authority, String method, String arg, Bundle extras) {
+        switch (method) {
+            case START_LEGACY_MIGRATION_CALL: {
+                // Nice to know, but nothing actionable
+                break;
+            }
+            case FINISH_LEGACY_MIGRATION_CALL: {
+                // We're only going to hear this once, since we've either
+                // successfully migrated legacy data, or we're never going to
+                // try again, so it's time to clean things up
+                final String volumeName = arg;
+                switch (volumeName) {
+                    case MediaStore.VOLUME_INTERNAL: {
+                        mInternalDatabase.close();
+                        mInternalDatabase = null;
+                        getContext().deleteDatabase(INTERNAL_DATABASE_NAME);
+                        break;
+                    }
+                    default: {
+                        mExternalDatabase.close();
+                        mExternalDatabase = null;
+                        getContext().deleteDatabase(EXTERNAL_DATABASE_NAME);
+                        break;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     @Override

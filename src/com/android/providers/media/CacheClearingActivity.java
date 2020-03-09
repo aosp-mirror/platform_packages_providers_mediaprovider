@@ -34,7 +34,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.TextView;
 
-import com.android.providers.media.util.BackgroundThread;
+import com.android.providers.media.util.ForegroundThread;
 
 public class CacheClearingActivity extends Activity implements DialogInterface.OnClickListener {
     private static final String TAG = "CacheClearingActivity";
@@ -125,7 +125,7 @@ public class CacheClearingActivity extends Activity implements DialogInterface.O
     public void onClick(DialogInterface dialog, int which) {
         try {
             if (which == AlertDialog.BUTTON_POSITIVE) {
-                BackgroundThread.getExecutor().execute(this::clearAppCache);
+                ForegroundThread.getExecutor().execute(this::clearAppCache);
                 setResult(RESULT_OK);
             }
         } finally {

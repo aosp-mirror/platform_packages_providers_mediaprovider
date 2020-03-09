@@ -23,6 +23,17 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Thread for asynchronous event processing. This thread is configured as
+ * {@link android.os.Process#THREAD_PRIORITY_BACKGROUND}, which means fewer CPU
+ * resources will be dedicated to it, and it will "have less chance of impacting
+ * the responsiveness of the user interface."
+ * <p>
+ * This thread is best suited for tasks that the user is not actively waiting
+ * for, or for tasks that the user expects to be executed eventually.
+ *
+ * @see ForegroundThread
+ */
 public final class BackgroundThread extends HandlerThread {
     private static BackgroundThread sInstance;
     private static Handler sHandler;

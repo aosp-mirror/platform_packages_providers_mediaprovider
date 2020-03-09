@@ -1556,8 +1556,6 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
         LOG(FATAL) << "mmap failed - could not start fuse! errno = " << errno;
     }
 
-    umask(0);
-
     // Custom logging for libfuse
     fuse_set_log_func(fuse_logger);
 

@@ -36,6 +36,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -230,10 +231,8 @@ public class PerformanceTest {
         MediaStore.waitForIdle(resolver);
     }
 
-    private static Set<Uri> asSet(Iterable<Uri> uris) {
-        final Set<Uri> asSet = new HashSet<>();
-        uris.forEach(asSet::add);
-        return asSet;
+    private static Set<Uri> asSet(Collection<Uri> uris) {
+        return new HashSet<>(uris);
     }
 
     /**
@@ -308,7 +307,7 @@ public class PerformanceTest {
         }
 
         @Override
-        public void onChange(boolean selfChange, Iterable<Uri> uris, int flags) {
+        public void onChange(boolean selfChange, Collection<Uri> uris, int flags) {
             Log.v(TAG, String.format("onChange(%b, %s, %d)",
                     selfChange, asSet(uris).toString(), flags));
 

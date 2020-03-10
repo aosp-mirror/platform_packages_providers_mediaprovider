@@ -112,6 +112,21 @@ public class ModernMediaScannerTest {
     }
 
     @Test
+    public void testOverrideMimeType_148316354() throws Exception {
+        // Radical file type shifting isn't allowed
+        assertEquals(Optional.empty(),
+                parseOptionalMimeType("video/mp4", "audio/mpeg"));
+
+        // One specific narrow type of shift (mp4 -> m4a) is allowed
+        assertEquals(Optional.of("audio/mp4"),
+                parseOptionalMimeType("video/mp4", "audio/mp4"));
+
+        // The other direction isn't allowed
+        assertEquals(Optional.empty(),
+                parseOptionalMimeType("audio/mp4", "video/mp4"));
+    }
+
+    @Test
     public void testParseDateTaken_Complete() throws Exception {
         final File file = File.createTempFile("test", ".jpg");
         final ExifInterface exif = new ExifInterface(file);

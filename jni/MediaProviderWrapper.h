@@ -154,6 +154,9 @@ class MediaProviderWrapper final {
      */
     static void OneTimeInit(JavaVM* vm);
 
+    /** TLS Key to map a given thread to its JNIEnv. */
+    static pthread_key_t gJniEnvKey;
+
   private:
     jclass media_provider_class_;
     jobject media_provider_object_;
@@ -182,8 +185,6 @@ class MediaProviderWrapper final {
     static void DetachThreadFunction(void* unused);
 
     static JavaVM* gJavaVm;
-    // TLS Key to map a given thread to its JNIEnv.
-    static pthread_key_t gJniEnvKey;
 };
 
 }  // namespace fuse

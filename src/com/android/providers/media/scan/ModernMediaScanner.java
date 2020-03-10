@@ -117,6 +117,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -158,6 +159,8 @@ public class ModernMediaScanner implements MediaScanner {
             "(?i)^/storage/[^/]+(?:/[0-9]+)?(?:/Android/sandbox/([^/]+))?$");
     private static final Pattern PATTERN_INVISIBLE = Pattern.compile(
             "(?i)^/storage/[^/]+(?:/[0-9]+)?(?:/Android/sandbox/([^/]+))?/Android/(?:data|obb)$");
+
+    private static final Pattern PATTERN_YEAR = Pattern.compile("([1-9][0-9][0-9][0-9])");
 
     private final Context mContext;
     private final DrmManagerClient mDrmClient;
@@ -1096,6 +1099,7 @@ public class ModernMediaScanner implements MediaScanner {
      * the epoch, making our best guess from unrelated fields when offset
      * information isn't directly available.
      */
+    @VisibleForTesting
     static @NonNull Optional<Long> parseOptionalDateTaken(@NonNull ExifInterface exif,
             long lastModifiedTime) {
         final long originalTime = ExifUtils.getDateTimeOriginal(exif);
@@ -1177,6 +1181,21 @@ public class ModernMediaScanner implements MediaScanner {
                 return (value > 0) ? Optional.of(value) : Optional.empty();
             }
         } catch (ParseException e) {
+            return Optional.empty();
+        }
+    }
+
+    @VisibleForTesting
+    static @NonNull Optional<Integer> parseOptionalYear(@Nullable String value) {
+        final Optional<String> parsedValue = parseOptional(value);
+        if (parsedValue.isPresent()) {
+            final Matcher m = PATTERN_YEAR.matcher(parsedValue.get());
+            if (m.find()) {
+                return Optional.of(Integer.parseInt(m.group(1)));
+            } else {
+                return Optional.empty();
+            }
+        } else {
             return Optional.empty();
         }
     }

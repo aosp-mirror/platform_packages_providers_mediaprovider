@@ -21,6 +21,7 @@ import static com.android.providers.media.scan.MediaScannerTest.stage;
 import static com.android.providers.media.scan.ModernMediaScanner.isDirectoryHidden;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalDateTaken;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalMimeType;
+import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalYear;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -55,6 +56,7 @@ import org.junit.runner.RunWith;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.Optional;
 
 @RunWith(AndroidJUnit4.class)
 public class ModernMediaScannerTest {
@@ -203,6 +205,42 @@ public class ModernMediaScannerTest {
 
         // Offset is completely missing, and no useful GPS or modified time
         assertFalse(parseOptionalDateTaken(exif, 0L).isPresent());
+    }
+
+    @Test
+    public void testParseYear_Invalid() throws Exception {
+        assertEquals(Optional.empty(), parseOptionalYear(null));
+        assertEquals(Optional.empty(), parseOptionalYear(""));
+        assertEquals(Optional.empty(), parseOptionalYear(" "));
+        assertEquals(Optional.empty(), parseOptionalYear("meow"));
+
+        assertEquals(Optional.empty(), parseOptionalYear("0"));
+        assertEquals(Optional.empty(), parseOptionalYear("00"));
+        assertEquals(Optional.empty(), parseOptionalYear("000"));
+        assertEquals(Optional.empty(), parseOptionalYear("0000"));
+
+        assertEquals(Optional.empty(), parseOptionalYear("1"));
+        assertEquals(Optional.empty(), parseOptionalYear("01"));
+        assertEquals(Optional.empty(), parseOptionalYear("001"));
+        assertEquals(Optional.empty(), parseOptionalYear("0001"));
+
+        // No sane way to determine year from two-digit date formats
+        assertEquals(Optional.empty(), parseOptionalYear("01-01-01"));
+
+        // Specific example from partner
+        assertEquals(Optional.empty(), parseOptionalYear("000 "));
+    }
+
+    @Test
+    public void testParseYear_Valid() throws Exception {
+        assertEquals(Optional.of(1900), parseOptionalYear("1900"));
+        assertEquals(Optional.of(2020), parseOptionalYear("2020"));
+        assertEquals(Optional.of(2020), parseOptionalYear(" 2020 "));
+        assertEquals(Optional.of(2020), parseOptionalYear("01-01-2020"));
+
+        // Specific examples from partner
+        assertEquals(Optional.of(1984), parseOptionalYear("1984-06-26T07:00:00Z"));
+        assertEquals(Optional.of(2016), parseOptionalYear("Thu, 01 Sep 2016 10:11:12.123456 -0500"));
     }
 
     private static void assertDirectoryHidden(File file) {

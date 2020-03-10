@@ -73,8 +73,6 @@ import android.app.DownloadManager;
 import android.app.PendingIntent;
 import android.app.RecoverableSecurityException;
 import android.app.RemoteAction;
-import android.app.compat.CompatChanges;
-import android.compat.annotation.ChangeId;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipDescription;
@@ -164,6 +162,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.DatabaseHelper.OnFilesChangeListener;
+import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
 import com.android.providers.media.fuse.FuseDaemon;
 import com.android.providers.media.scan.MediaScanner;
@@ -201,7 +200,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -527,6 +525,18 @@ public class MediaProvider extends ContentProvider {
         }
     };
 
+    private final OnLegacyMigrationListener mMigrationListener = new OnLegacyMigrationListener() {
+        @Override
+        public void onStarted(ContentProviderClient client, String volumeName) {
+            MediaStore.startLegacyMigration(ContentResolver.wrap(client), volumeName);
+        }
+
+        @Override
+        public void onFinished(ContentProviderClient client, String volumeName) {
+            MediaStore.finishLegacyMigration(ContentResolver.wrap(client), volumeName);
+        }
+    };
+
     /**
      * Apply {@link Consumer#accept} to the given item.
      * <p>
@@ -676,10 +686,10 @@ public class MediaProvider extends ContentProvider {
 
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME,
                 true, false, mLegacyProvider, Column.class,
-                Metrics::logSchemaChange, mFilesListener);
+                Metrics::logSchemaChange, mFilesListener, mMigrationListener);
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME,
                 false, false, mLegacyProvider, Column.class,
-                Metrics::logSchemaChange, mFilesListener);
+                Metrics::logSchemaChange, mFilesListener, mMigrationListener);
 
         final IntentFilter filter = new IntentFilter();
         filter.setPriority(10);

@@ -1491,6 +1491,7 @@ bool FuseDaemon::ShouldOpenWithFuse(int fd, bool for_read, const std::string& pa
 }
 
 void FuseDaemon::InvalidateFuseDentryCache(const std::string& path) {
+    LOG(VERBOSE) << "Invalidating FUSE dentry cache";
     if (active.load(std::memory_order_acquire)) {
         string name;
         fuse_ino_t parent;
@@ -1555,8 +1556,6 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
     if (fuse_default.zero_addr == MAP_FAILED) {
         LOG(FATAL) << "mmap failed - could not start fuse! errno = " << errno;
     }
-
-    umask(0);
 
     // Custom logging for libfuse
     fuse_set_log_func(fuse_logger);

@@ -47,7 +47,7 @@ inline bool shouldBypassMediaProvider(uid_t uid) {
     return uid == SHELL_UID || uid == ROOT_UID;
 }
 
-bool CheckForJniException(JNIEnv* env) {
+static bool CheckForJniException(JNIEnv* env) {
     if (env->ExceptionCheck()) {
         env->ExceptionDescribe();
         env->ExceptionClear();
@@ -65,7 +65,6 @@ std::unique_ptr<RedactionInfo> getRedactionInfoInternal(JNIEnv* env, jobject med
                          media_provider_object, mid_get_redaction_ranges, j_path.get(), uid)));
 
     if (CheckForJniException(env)) {
-        LOG(ERROR) << "Exception occurred while calling MediaProvider#getRedactionRanges";
         return nullptr;
     }
 
@@ -211,15 +210,22 @@ int renameInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_ren
 /******************************* Public API Implementation *******************************/
 /*****************************************************************************************/
 
+JavaVM* MediaProviderWrapper::gJavaVm = nullptr;
+pthread_key_t MediaProviderWrapper::gJniEnvKey;
+
+void MediaProviderWrapper::OneTimeInit(JavaVM* vm) {
+    gJavaVm = vm;
+    CHECK(gJavaVm != nullptr);
+
+    pthread_key_create(&MediaProviderWrapper::gJniEnvKey,
+                       MediaProviderWrapper::DetachThreadFunction);
+}
+
 MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) {
     if (!media_provider) {
         LOG(FATAL) << "MediaProvider is null!";
     }
-    JavaVM* jvm;
-    env->GetJavaVM(&jvm);
-    if (CheckForJniException(env)) {
-        LOG(FATAL) << "Could not get JavaVM!";
-    }
+
     media_provider_object_ = reinterpret_cast<jobject>(env->NewGlobalRef(media_provider));
     media_provider_class_ = env->FindClass("com/android/providers/media/MediaProvider");
     if (!media_provider_class_) {
@@ -247,36 +253,12 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
     mid_rename_ = CacheMethod(env, "rename", "(Ljava/lang/String;Ljava/lang/String;I)I",
                               /*is_static*/ false);
 
-    jni_tasks_welcome_ = true;
-    request_terminate_jni_thread_ = false;
-
-    jni_thread_ = std::thread(&MediaProviderWrapper::JniThreadLoop, this, jvm);
-    LOG(INFO) << "Successfully initialized MediaProviderWrapper";
 }
 
 MediaProviderWrapper::~MediaProviderWrapper() {
-    {
-        std::lock_guard<std::mutex> guard(jni_task_lock_);
-        jni_tasks_welcome_ = false;
-    }
-
-    // Threads might slip in here and try to post a task, but it will be rejected
-    // because the flag value has already been changed. This ensures that the
-    // termination task is the last task in the queue.
-
-    LOG(INFO) << "Posting task to terminate JNI thread";
-    // async task doesn't check jni_tasks_welcome_ - but we will wait for the thread to terminate
-    // anyway
-    PostAsyncTask([this](JNIEnv* env) {
-        env->DeleteGlobalRef(media_provider_object_);
-        env->DeleteGlobalRef(media_provider_class_);
-        request_terminate_jni_thread_ = true;
-    });
-
-    // wait for the thread to actually terminate
-    jni_thread_.join();
-
-    LOG(INFO) << "Successfully destroyed MediaProviderWrapper";
+    JNIEnv* env = MaybeAttachCurrentThread();
+    env->DeleteGlobalRef(media_provider_object_);
+    env->DeleteGlobalRef(media_provider_class_);
 }
 
 std::unique_ptr<RedactionInfo> MediaProviderWrapper::GetRedactionInfo(const string& path,
@@ -288,11 +270,10 @@ std::unique_ptr<RedactionInfo> MediaProviderWrapper::GetRedactionInfo(const stri
     // Default value in case JNI thread was being terminated, causes the read to fail.
     std::unique_ptr<RedactionInfo> res = nullptr;
 
-    PostAndWaitForTask([this, uid, &path, &res](JNIEnv* env) {
-        auto ri = getRedactionInfoInternal(env, media_provider_object_, mid_get_redaction_ranges_,
-                                           uid, path);
-        res = std::move(ri);
-    });
+    JNIEnv* env = MaybeAttachCurrentThread();
+    auto ri = getRedactionInfoInternal(env, media_provider_object_, mid_get_redaction_ranges_, uid,
+                                       path);
+    res = std::move(ri);
 
     return res;
 }
@@ -302,28 +283,19 @@ int MediaProviderWrapper::InsertFile(const string& path, uid_t uid) {
         return 0;
     }
 
-    int res = EIO;  // Default value in case JNI thread was being terminated
-
-    PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
-        res = insertFileInternal(env, media_provider_object_, mid_insert_file_, path, uid);
-    });
-
-    return res;
+    JNIEnv* env = MaybeAttachCurrentThread();
+    return insertFileInternal(env, media_provider_object_, mid_insert_file_, path, uid);
 }
 
 int MediaProviderWrapper::DeleteFile(const string& path, uid_t uid) {
-    int res = EIO;  // Default value in case JNI thread was being terminated
     if (shouldBypassMediaProvider(uid)) {
-        res = unlink(path.c_str());
+        int res = unlink(path.c_str());
         ScanFile(path, uid);
         return res;
     }
 
-    PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
-        res = deleteFileInternal(env, media_provider_object_, mid_delete_file_, path, uid);
-    });
-
-    return res;
+    JNIEnv* env = MaybeAttachCurrentThread();
+    return deleteFileInternal(env, media_provider_object_, mid_delete_file_, path, uid);
 }
 
 int MediaProviderWrapper::IsOpenAllowed(const string& path, uid_t uid, bool for_write) {
@@ -331,14 +303,9 @@ int MediaProviderWrapper::IsOpenAllowed(const string& path, uid_t uid, bool for_
         return 0;
     }
 
-    int res = EIO;  // Default value in case JNI thread was being terminated
-
-    PostAndWaitForTask([this, &path, uid, for_write, &res](JNIEnv* env) {
-        res = isOpenAllowedInternal(env, media_provider_object_, mid_is_open_allowed_, path, uid,
-                                    for_write);
-    });
-
-    return res;
+    JNIEnv* env = MaybeAttachCurrentThread();
+    return isOpenAllowedInternal(env, media_provider_object_, mid_is_open_allowed_, path, uid,
+                                 for_write);
 }
 
 void MediaProviderWrapper::ScanFile(const string& path, uid_t uid) {
@@ -348,9 +315,8 @@ void MediaProviderWrapper::ScanFile(const string& path, uid_t uid) {
         uid = getuid();
     }
 
-    PostAndWaitForTask([this, &path, uid](JNIEnv* env) {
-        scanFileInternal(env, media_provider_object_, mid_scan_file_, path, uid);
-    });
+    JNIEnv* env = MaybeAttachCurrentThread();
+    scanFileInternal(env, media_provider_object_, mid_scan_file_, path, uid);
 }
 
 int MediaProviderWrapper::IsCreatingDirAllowed(const string& path, uid_t uid) {
@@ -358,15 +324,10 @@ int MediaProviderWrapper::IsCreatingDirAllowed(const string& path, uid_t uid) {
         return 0;
     }
 
-    int res = EIO;  // Default value in case JNI thread was being terminated
-
-    PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
-        res = isMkdirOrRmdirAllowedInternal(env, media_provider_object_,
-                                            mid_is_mkdir_or_rmdir_allowed_, path, uid,
-                                            /*forCreate*/ true);
-    });
-
-    return res;
+    JNIEnv* env = MaybeAttachCurrentThread();
+    return isMkdirOrRmdirAllowedInternal(env, media_provider_object_,
+                                         mid_is_mkdir_or_rmdir_allowed_, path, uid,
+                                         /*forCreate*/ true);
 }
 
 int MediaProviderWrapper::IsDeletingDirAllowed(const string& path, uid_t uid) {
@@ -374,14 +335,10 @@ int MediaProviderWrapper::IsDeletingDirAllowed(const string& path, uid_t uid) {
         return 0;
     }
 
-    int res = EIO;  // Default value in case JNI thread was being terminated
-
-    PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
-        res = isMkdirOrRmdirAllowedInternal(env, media_provider_object_,
-                                            mid_is_mkdir_or_rmdir_allowed_, path, uid,
-                                            /*forCreate*/ false);
-    });
-    return res;
+    JNIEnv* env = MaybeAttachCurrentThread();
+    return isMkdirOrRmdirAllowedInternal(env, media_provider_object_,
+                                         mid_is_mkdir_or_rmdir_allowed_, path, uid,
+                                         /*forCreate*/ false);
 }
 
 std::vector<std::shared_ptr<DirectoryEntry>> MediaProviderWrapper::GetDirectoryEntries(
@@ -393,10 +350,8 @@ std::vector<std::shared_ptr<DirectoryEntry>> MediaProviderWrapper::GetDirectoryE
         return res;
     }
 
-    PostAndWaitForTask([this, uid, path, &res](JNIEnv* env) {
-        res = getFilesInDirectoryInternal(env, media_provider_object_, mid_get_files_in_dir_, uid,
-                                          path);
-    });
+    JNIEnv* env = MaybeAttachCurrentThread();
+    res = getFilesInDirectoryInternal(env, media_provider_object_, mid_get_files_in_dir_, uid, path);
 
     const int res_size = res.size();
     if (res_size && res[0]->d_name[0] == '/') {
@@ -415,92 +370,24 @@ int MediaProviderWrapper::IsOpendirAllowed(const string& path, uid_t uid) {
         return 0;
     }
 
-    int res = EIO;  // Default value in case JNI thread was being terminated
-
-    PostAndWaitForTask([this, &path, uid, &res](JNIEnv* env) {
-        res = isOpendirAllowedInternal(env, media_provider_object_, mid_is_opendir_allowed_, path,
-                                       uid);
-    });
-
-    return res;
+    JNIEnv* env = MaybeAttachCurrentThread();
+    return isOpendirAllowedInternal(env, media_provider_object_, mid_is_opendir_allowed_, path, uid);
 }
 
 int MediaProviderWrapper::Rename(const string& old_path, const string& new_path, uid_t uid) {
-    int res = EIO;  // Default value in case JNI thread was being terminated
     if (shouldBypassMediaProvider(uid)) {
-        res = rename(old_path.c_str(), new_path.c_str());
+        int res = rename(old_path.c_str(), new_path.c_str());
         if (res != 0) res = -errno;
         return res;
     }
 
-    PostAndWaitForTask([this, old_path, new_path, uid, &res](JNIEnv* env) {
-        res = renameInternal(env, media_provider_object_, mid_rename_, old_path, new_path, uid);
-    });
-    return res;
+    JNIEnv* env = MaybeAttachCurrentThread();
+    return renameInternal(env, media_provider_object_, mid_rename_, old_path, new_path, uid);
 }
 
 /*****************************************************************************************/
 /******************************** Private member functions *******************************/
 /*****************************************************************************************/
-/**
- * Handles the synchronization details of posting a task to the JNI thread and waiting for its
- * result.
- */
-bool MediaProviderWrapper::PostAndWaitForTask(const JniTask& t) {
-    bool task_done = false;
-    std::condition_variable cond_task_done;
-
-    std::unique_lock<std::mutex> lock(jni_task_lock_);
-    if (!jni_tasks_welcome_) return false;
-
-    jni_tasks_.push([&task_done, &cond_task_done, &t](JNIEnv* env) {
-        t(env);
-        task_done = true;
-        cond_task_done.notify_one();
-    });
-
-    // trigger the call to jni_thread_
-    pending_task_cond_.notify_one();
-
-    // wait for the call to be performed
-    cond_task_done.wait(lock, [&task_done] { return task_done; });
-    return true;
-}
-
-/**
- * Handles the synchronization details of posting an async task to the JNI thread.
- */
-void MediaProviderWrapper::PostAsyncTask(const JniTask& t) {
-    std::unique_lock<std::mutex> lock(jni_task_lock_);
-
-    jni_tasks_.push(t);
-    // trigger the call to jni_thread_
-    pending_task_cond_.notify_one();
-}
-
-/**
- * Main loop for jni_thread_.
- * This method makes the running thread sleep until another thread calls
- * this.pending_task_cond_.notify_one(), the calling thread must manually wait for the result.
- */
-void MediaProviderWrapper::JniThreadLoop(JavaVM* jvm) {
-    JNIEnv* env;
-    jvm->AttachCurrentThread(&env, NULL);
-    pthread_setname_np(pthread_self(), "jni_loop");
-
-    while (!request_terminate_jni_thread_) {
-        std::unique_lock<std::mutex> cond_lock(jni_task_lock_);
-        pending_task_cond_.wait(cond_lock, [this] { return !jni_tasks_.empty(); });
-
-        JniTask task = jni_tasks_.front();
-        jni_tasks_.pop();
-        cond_lock.unlock();
-
-        task(env);
-    }
-
-    jvm->DetachCurrentThread();
-}
 
 /**
  * Finds MediaProvider method and adds it to methods map so it can be quickly called later.
@@ -520,6 +407,32 @@ jmethodID MediaProviderWrapper::CacheMethod(JNIEnv* env, const char method_name[
         LOG(FATAL) << "Error caching method: " << method_name << signature;
     }
     return mid;
+}
+
+void MediaProviderWrapper::DetachThreadFunction(void* unused) {
+    int detach = gJavaVm->DetachCurrentThread();
+    CHECK_EQ(detach, 0);
+}
+
+JNIEnv* MediaProviderWrapper::MaybeAttachCurrentThread() {
+    // We could use pthread_getspecific here as that's likely quicker but
+    // that would result in wrong behaviour for threads that don't need to
+    // be attached (e.g, those that were created in managed code).
+    JNIEnv* env = nullptr;
+    if (gJavaVm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_4) == JNI_OK) {
+        return env;
+    }
+
+    // This thread is currently unattached, so it must not have any TLS
+    // value. Note that we don't really care about the actual value we store
+    // in TLS -- we only care about the value destructor being called, which
+    // will happen as long as the key is not null.
+    CHECK_EQ(pthread_getspecific(gJniEnvKey), nullptr);
+    CHECK_EQ(gJavaVm->AttachCurrentThread(&env, nullptr), 0);
+    CHECK_NE(env, nullptr);
+
+    pthread_setspecific(gJniEnvKey, env);
+    return env;
 }
 
 }  // namespace fuse

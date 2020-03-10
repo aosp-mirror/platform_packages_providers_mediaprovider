@@ -112,4 +112,5 @@ public final class FuseDaemon extends Thread {
     private native boolean native_should_open_with_fuse(long daemon, String path, boolean readLock,
             int fd);
     private native void native_invalidate_fuse_dentry_cache(long daemon, String path);
+    public static native boolean native_is_fuse_thread();
 }

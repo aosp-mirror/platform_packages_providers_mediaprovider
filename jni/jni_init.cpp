@@ -20,7 +20,7 @@
 #include "jni.h"
 
 namespace mediaprovider {
-int register_android_providers_media_FuseDaemon(JNIEnv* env);
+int register_android_providers_media_FuseDaemon(JavaVM* vm, JNIEnv* env);
 }
 
 extern "C" jint JNI_OnLoad(JavaVM* vm, void* /* reserved */) {
@@ -30,7 +30,7 @@ extern "C" jint JNI_OnLoad(JavaVM* vm, void* /* reserved */) {
         return JNI_ERR;
     }
 
-    mediaprovider::register_android_providers_media_FuseDaemon(env);
+    mediaprovider::register_android_providers_media_FuseDaemon(vm, env);
 
     return JNI_VERSION_1_6;
 }

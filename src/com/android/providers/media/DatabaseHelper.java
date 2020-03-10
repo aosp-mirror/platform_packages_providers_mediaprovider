@@ -70,6 +70,7 @@ import java.io.FilenameFilter;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -490,7 +491,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
     }
 
-    private void notifyChangeInternal(@NonNull Iterable<Uri> uris, int flags) {
+    private void notifyChangeInternal(@NonNull Collection<Uri> uris, int flags) {
         Trace.beginSection("notifyChange");
         try {
             mContext.getContentResolver().notifyChange(uris, null, flags);

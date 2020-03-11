@@ -19,6 +19,7 @@
 #include "FuseDaemon.h"
 
 #include <android-base/logging.h>
+#include <android-base/properties.h>
 #include <android/log.h>
 #include <android/trace.h>
 #include <ctype.h>
@@ -75,7 +76,7 @@ using std::vector;
 
 // logging macros to avoid duplication.
 #define TRACE_NODE(__node) \
-    LOG(DEBUG) << __FUNCTION__ << " : " << #__node << " = [" << safe_name(__node) << "] "
+    LOG(VERBOSE) << __FUNCTION__ << " : " << #__node << " = [" << get_name(__node) << "] "
 
 #define ATRACE_NAME(name) ScopedTrace ___tracer(name)
 #define ATRACE_CALL() ATRACE_NAME(__FUNCTION__)
@@ -90,6 +91,8 @@ class ScopedTrace {
       ATrace_endSection();
     }
 };
+
+const bool IS_OS_DEBUGABLE = android::base::GetIntProperty("ro.debuggable", 0);
 
 #define FUSE_UNKNOWN_INO 0xffffffff
 
@@ -284,8 +287,15 @@ struct fuse {
     FAdviser fadviser;
 };
 
-static inline string safe_name(node* n) {
-    return n ? n->BuildSafePath() : "?";
+static inline string get_name(node* n) {
+    if (n) {
+        std::string name("node_path: " + n->BuildSafePath());
+        if (IS_OS_DEBUGABLE) {
+            name += " real_path: " + n->BuildPath();
+        }
+        return name;
+    }
+    return "?";
 }
 
 static inline __u64 ptr_to_id(void* ptr) {

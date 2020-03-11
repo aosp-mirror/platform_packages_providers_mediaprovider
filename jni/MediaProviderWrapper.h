@@ -36,14 +36,6 @@ namespace mediaprovider {
 namespace fuse {
 
 /**
- * Type describing a JNI task, sent to the JNI thread.
- * The function only takes JNIEnv because that's the parameter that JNI thread
- * must provide. The rest of the arguments can be captured by the lambda,
- * the return value should be captured by reference.
- */
-typedef std::function<void(JNIEnv*)> JniTask;
-
-/**
  * Class that wraps MediaProvider.java and all of the needed JNI calls to make
  * interaction with MediaProvider easier.
  */
@@ -156,6 +148,15 @@ class MediaProviderWrapper final {
      */
     int Rename(const std::string& old_path, const std::string& new_path, uid_t uid);
 
+    /**
+     * Initializes per-process static variables associated with the lifetime of
+     * a managed runtime.
+     */
+    static void OneTimeInit(JavaVM* vm);
+
+    /** TLS Key to map a given thread to its JNIEnv. */
+    static pthread_key_t gJniEnvKey;
+
   private:
     jclass media_provider_class_;
     jobject media_provider_object_;
@@ -171,49 +172,19 @@ class MediaProviderWrapper final {
     jmethodID mid_rename_;
 
     /**
-     * All JNI calls are delegated to this thread
-     */
-    std::thread jni_thread_;
-    /**
-     * jniThread loops until d'tor is called, waiting for a notification on condition_variable to
-     * perform a task
-     */
-    std::condition_variable pending_task_cond_;
-    /**
-     * Communication with jniThread is done through this JniTasks queue.
-     */
-    std::queue<JniTask> jni_tasks_;
-    /**
-     * Threads can post a JNI task if and only if this is true.
-     */
-    std::atomic<bool> jni_tasks_welcome_;
-    /**
-     * JNI thread keeps running until it receives a task that sets this flag to true.
-     */
-    std::atomic<bool> request_terminate_jni_thread_;
-    /**
-     * All member variables prefixed with jni should be guarded by this lock.
-     */
-    std::mutex jni_task_lock_;
-    /**
      * Auxiliary for caching MediaProvider methods.
      */
     jmethodID CacheMethod(JNIEnv* env, const char method_name[], const char signature[],
                           bool is_static);
-    /**
-     * Main loop for the JNI thread.
-     */
-    void JniThreadLoop(JavaVM* jvm);
-    /**
-     * Mechanism for posting JNI tasks and waiting until they're done.
-     * @return true if task was successfully posted and performed, false otherwise.
-     */
-    bool PostAndWaitForTask(const JniTask& t);
-    /**
-     * Mechanism for posting JNI tasks that don't have a response.
-     * There's no guarantee that the task will be actually performed.
-     */
-    void PostAsyncTask(const JniTask& t);
+
+    // Attaches the current thread (if necessary) and returns the JNIEnv
+    // associated with it.
+    static JNIEnv* MaybeAttachCurrentThread();
+    // Destructor function for a given native thread. Called precisely once
+    // by the pthreads library.
+    static void DetachThreadFunction(void* unused);
+
+    static JavaVM* gJavaVm;
 };
 
 }  // namespace fuse

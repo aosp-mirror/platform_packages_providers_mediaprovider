@@ -51,7 +51,7 @@ public class SQLiteQueryBuilder {
     private static final String TAG = "SQLiteQueryBuilder";
 
     private static final Pattern sAggregationPattern = Pattern.compile(
-            "(?i)(AVG|COUNT|MAX|MIN|SUM|TOTAL|GROUP_CONCAT)\\((.+)\\)");
+            "(?i)(AVG|COUNT|MAX|MIN|SUM|TOTAL|GROUP_CONCAT|UNICODE)\\((.+)\\)");
 
     private Map<String, String> mProjectionMap = null;
     private Collection<Pattern> mProjectionGreylist = null;

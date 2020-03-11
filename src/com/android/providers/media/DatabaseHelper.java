@@ -58,6 +58,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.ForegroundThread;
@@ -68,6 +69,8 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -222,7 +225,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 final int mediaType = Integer.parseInt(split[2]);
                 final boolean isDownload = Integer.parseInt(split[3]) != 0;
 
-                mFilesListener.onInsert(DatabaseHelper.this, volumeName, id, mediaType, isDownload);
+                Trace.beginSection("_INSERT");
+                try {
+                    mFilesListener.onInsert(DatabaseHelper.this, volumeName, id,
+                            mediaType, isDownload);
+                } finally {
+                    Trace.endSection();
+                }
             }
             return null;
         });
@@ -236,8 +245,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 final int newMediaType = Integer.parseInt(split[4]);
                 final boolean newIsDownload = Integer.parseInt(split[5]) != 0;
 
-                mFilesListener.onUpdate(DatabaseHelper.this, volumeName, id,
-                        oldMediaType, oldIsDownload, newMediaType, newIsDownload);
+                Trace.beginSection("_UPDATE");
+                try {
+                    mFilesListener.onUpdate(DatabaseHelper.this, volumeName, id,
+                            oldMediaType, oldIsDownload, newMediaType, newIsDownload);
+                } finally {
+                    Trace.endSection();
+                }
             }
             return null;
         });
@@ -249,7 +263,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 final int mediaType = Integer.parseInt(split[2]);
                 final boolean isDownload = Integer.parseInt(split[3]) != 0;
 
-                mFilesListener.onDelete(DatabaseHelper.this, volumeName, id, mediaType, isDownload);
+                Trace.beginSection("_DELETE");
+                try {
+                    mFilesListener.onDelete(DatabaseHelper.this, volumeName, id,
+                            mediaType, isDownload);
+                } finally {
+                    Trace.endSection();
+                }
             }
             return null;
         });
@@ -344,6 +364,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
          * instead being collected due to this ongoing transaction.
          */
         public final SparseArray<ArraySet<Uri>> notifyChanges = new SparseArray<>();
+
+        /**
+         * List of tasks that should be enqueued onto {@link BackgroundThread}
+         * after any {@link #notifyChanges} have been dispatched. We keep this
+         * as a separate pass to ensure that we don't risk running in parallel
+         * with other more important tasks.
+         */
+        public final ArrayList<Runnable> backgroundTasks = new ArrayList<>();
     }
 
     public void beginTransaction() {
@@ -379,10 +407,20 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.endTransaction();
 
         if (state.successful) {
+            // We carefully "phase" our two sets of work here to ensure that we
+            // completely finish dispatching all change notifications before we
+            // process background tasks, to ensure that the background work
+            // doesn't steal resources from the more important foreground work
             ForegroundThread.getExecutor().execute(() -> {
                 for (int i = 0; i < state.notifyChanges.size(); i++) {
                     notifyChangeInternal(state.notifyChanges.valueAt(i),
                             state.notifyChanges.keyAt(i));
+                }
+
+                // Now that we've finished with all our important work, we can
+                // finally kick off any internal background tasks
+                for (int i = 0; i < state.backgroundTasks.size(); i++) {
+                    BackgroundThread.getExecutor().execute(state.backgroundTasks.get(i));
                 }
             });
         }
@@ -453,12 +491,26 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
     }
 
-    private void notifyChangeInternal(@NonNull Iterable<Uri> uris, int flags) {
+    private void notifyChangeInternal(@NonNull Collection<Uri> uris, int flags) {
         Trace.beginSection("notifyChange");
         try {
             mContext.getContentResolver().notifyChange(uris, null, flags);
         } finally {
             Trace.endSection();
+        }
+    }
+
+    /**
+     * Post given task to be run in background. This enqueues the task if
+     * currently inside a transaction, and they'll be clustered and sent when
+     * the transaction completes.
+     */
+    public void postBackground(@NonNull Runnable command) {
+        final TransactionState state = mTransactionState.get();
+        if (state != null) {
+            state.backgroundTasks.add(command);
+        } else {
+            BackgroundThread.getExecutor().execute(command);
         }
     }
 

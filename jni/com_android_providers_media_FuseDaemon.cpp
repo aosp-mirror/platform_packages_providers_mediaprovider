@@ -22,6 +22,7 @@
 #include <string>
 
 #include "FuseDaemon.h"
+#include "MediaProviderWrapper.h"
 #include "android-base/logging.h"
 
 namespace mediaprovider {
@@ -89,6 +90,11 @@ void com_android_providers_media_FuseDaemon_invalidate_fuse_dentry_cache(JNIEnv*
     // TODO(b/145741152): Throw exception
 }
 
+bool com_android_providers_media_FuseDaemon_is_fuse_thread(JNIEnv* env, jclass clazz) {
+    LOG(VERBOSE) << "Checking if FUSE thread...";
+    return pthread_getspecific(fuse::MediaProviderWrapper::gJniEnvKey) != nullptr;
+}
+
 const JNINativeMethod methods[] = {
         {"native_new", "(Lcom/android/providers/media/MediaProvider;)J",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_new)},
@@ -98,12 +104,14 @@ const JNINativeMethod methods[] = {
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_delete)},
         {"native_should_open_with_fuse", "(JLjava/lang/String;ZI)Z",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_should_open_with_fuse)},
+        {"native_is_fuse_thread", "()Z",
+         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_is_fuse_thread)},
         {"native_invalidate_fuse_dentry_cache", "(JLjava/lang/String;)V",
          reinterpret_cast<void*>(
                  com_android_providers_media_FuseDaemon_invalidate_fuse_dentry_cache)}};
 }  // namespace
 
-void register_android_providers_media_FuseDaemon(JNIEnv* env) {
+void register_android_providers_media_FuseDaemon(JavaVM* vm, JNIEnv* env) {
     gFuseDaemonClass = static_cast<jclass>(env->NewGlobalRef(env->FindClass(CLASS_NAME)));
 
     if (gFuseDaemonClass == nullptr) {
@@ -113,5 +121,7 @@ void register_android_providers_media_FuseDaemon(JNIEnv* env) {
     if (env->RegisterNatives(gFuseDaemonClass, methods, sizeof(methods) / sizeof(methods[0])) < 0) {
         LOG(FATAL) << "Unable to register native methods";
     }
+
+    fuse::MediaProviderWrapper::OneTimeInit(vm);
 }
 }  // namespace mediaprovider

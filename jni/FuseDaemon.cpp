@@ -96,19 +96,14 @@ class ScopedTrace {
 constexpr size_t MAX_READ_SIZE = 128 * 1024;
 // Stolen from: UserHandle#getUserId
 constexpr int PER_USER_RANGE = 100000;
-// Cache inode attributes for a 'short' time so that performance is decent and last modified time
-// stamps are not too stale
-constexpr double DEFAULT_ATTR_TIMEOUT_SECONDS = 10;
-// Ensure the VFS does not cache dentries, if it caches, the following scenario could occur:
-// 1. Process A has access to file A and does a lookup
-// 2. Process B does not have access to file A and does a lookup
-// (2) will succeed because the lookup request will not be sent from kernel to the FUSE daemon
-// and the kernel will respond from cache. Even if this by itself is not a security risk
-// because subsequent FUSE requests will fail if B does not have access to the resource.
-// It does cause indeterministic behavior because whether (2) succeeds or not depends on if
-// (1) occurred.
-// We prevent this caching by setting the entry_timeout value to 0.
-constexpr double DEFAULT_ENTRY_TIMEOUT_SECONDS = 0;
+// Cache inode attributes forever to improve performance
+// Whenver attributes could have changed on the lower filesystem outside the FUSE driver, we call
+// fuse_invalidate_entry_cache
+constexpr double DEFAULT_ATTR_TIMEOUT_SECONDS = std::numeric_limits<double>::max();
+// Cache dentries forever to improve performance
+// Whenver attributes could have changed on the lower filesystem outside the FUSE driver, we call
+// fuse_invalidate_entry_cache
+constexpr double DEFAULT_ENTRY_TIMEOUT_SECONDS = std::numeric_limits<double>::max();
 
 /*
  * In order to avoid double caching with fuse, call fadvise on the file handles
@@ -356,7 +351,7 @@ static bool is_android_path(const string& path, const string& fuse_path, uid_t u
 static double get_attr_timeout(const string& path, uid_t uid, struct fuse* fuse, node* parent) {
     if (fuse->IsRoot(parent) || is_android_path(path, fuse->path, uid)) {
         // The /0 and /0/Android attrs can be always cached, as they never change
-        return DBL_MAX;
+        return std::numeric_limits<double>::max();
     } else {
         return DEFAULT_ATTR_TIMEOUT_SECONDS;
     }
@@ -365,7 +360,7 @@ static double get_attr_timeout(const string& path, uid_t uid, struct fuse* fuse,
 static double get_entry_timeout(const string& path, uid_t uid, struct fuse* fuse, node* parent) {
     if (fuse->IsRoot(parent) || is_android_path(path, fuse->path, uid)) {
         // The /0 and /0/Android dentries can be always cached, as they are visible to all apps
-        return DBL_MAX;
+        return std::numeric_limits<double>::max();
     } else {
         return DEFAULT_ENTRY_TIMEOUT_SECONDS;
     }
@@ -788,6 +783,29 @@ static void pf_link(fuse_req_t req, fuse_ino_t ino, fuse_ino_t new_parent,
 }
 */
 
+static handle* create_handle_for_node(struct fuse* fuse, const string& path, int fd, node* node,
+                                      const RedactionInfo* ri) {
+    std::lock_guard<std::recursive_mutex> guard(fuse->lock);
+    // We don't want to use the FUSE VFS cache in two cases:
+    // 1. When redaction is needed because app A with EXIF access might access
+    // a region that should have been redacted for app B without EXIF access, but app B on
+    // a subsequent read, will be able to see the EXIF data because the read request for
+    // that region will be served from cache and not get to the FUSE daemon
+    // 2. When the file has a read or write lock on it. This means that the MediaProvider
+    // has given an fd to the lower file system to an app. There are two cases where using
+    // the cache in this case can be a problem:
+    // a. Writing to a FUSE fd with caching enabled will use the write-back cache and a
+    // subsequent read from the lower fs fd will not see the write.
+    // b. Reading from a FUSE fd with caching enabled may not see the latest writes using
+    // the lower fs fd because those writes did not go through the FUSE layer and reads from
+    // FUSE after that write may be served from cache
+    bool direct_io = ri->isRedactionNeeded() || is_file_locked(fd, path);
+
+    handle* h = new handle(path, fd, ri, /*owner_uid*/ -1, !direct_io);
+    node->AddHandle(h);
+    return h;
+}
+
 static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
@@ -841,33 +859,10 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         return;
     }
 
-    handle* h = nullptr;
-    {
-        std::lock_guard<std::recursive_mutex> guard(fuse->lock);
-
-        if (ri->isRedactionNeeded() || is_file_locked(fd, path)) {
-            // We don't want to use the FUSE VFS cache in two cases:
-            // 1. When redaction is needed because app A with EXIF access might access
-            // a region that should have been redacted for app B without EXIF access, but app B on
-            // a subsequent read, will be able to see the EXIF data because the read request for
-            // that region will be served from cache and not get to the FUSE daemon
-            // 2. When the file has a read or write lock on it. This means that the MediaProvider
-            // has given an fd to the lower file system to an app. There are two cases where using
-            // the cache in this case can be a problem:
-            // a. Writing to a FUSE fd with caching enabled will use the write-back cache and a
-            // subsequent read from the lower fs fd will not see the write.
-            // b. Reading from a FUSE fd with caching enabled may not see the latest writes using
-            // the lower fs fd because those writes did not go through the FUSE layer and reads from
-            // FUSE after that write may be served from cache
-            fi->direct_io = true;
-        }
-
-        h = new handle(path, fd, ri.release(), /*owner_uid*/ -1, !fi->direct_io);
-        node->AddHandle(h);
-    }
-
+    handle* h = create_handle_for_node(fuse, path, fd, node, ri.release());
     fi->fh = ptr_to_id(h);
     fi->keep_cache = 1;
+    fi->direct_io = !h->cached;
     fuse_reply_open(req, fi);
 }
 
@@ -1346,25 +1341,25 @@ static void pf_create(fuse_req_t req,
         return;
     }
 
-    // TODO(b/147274248): Assume there will be no EXIF to redact.
-    // This prevents crashing during reads but can be a security hole if a malicious app opens an fd
-    // to the file before all the EXIF content is written. We could special case reads before the
-    // first close after a file has just been created.
-    handle* h = new handle(child_path, fd, new RedactionInfo(), ctx->uid, /*cached*/ true);
-    fi->fh = ptr_to_id(h);
-    fi->keep_cache = 1;
-
     int error_code = 0;
     struct fuse_entry_param e;
     node* node = make_node_entry(req, parent_node, name, child_path, &e, &error_code);
     TRACE_NODE(node);
-    if (node) {
-        node->AddHandle(h);
-        fuse_reply_create(req, &e, fi);
-    } else {
+    if (!node) {
         CHECK(error_code != 0);
         fuse_reply_err(req, error_code);
+        return;
     }
+
+    // TODO(b/147274248): Assume there will be no EXIF to redact.
+    // This prevents crashing during reads but can be a security hole if a malicious app opens an fd
+    // to the file before all the EXIF content is written. We could special case reads before the
+    // first close after a file has just been created.
+    handle* h = create_handle_for_node(fuse, child_path, fd, node, new RedactionInfo());
+    fi->fh = ptr_to_id(h);
+    fi->keep_cache = 1;
+    fi->direct_io = !h->cached;
+    fuse_reply_create(req, &e, fi);
 }
 /*
 static void pf_getlk(fuse_req_t req, fuse_ino_t ino,

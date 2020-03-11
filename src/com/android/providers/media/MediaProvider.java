@@ -271,6 +271,8 @@ public class MediaProvider extends ContentProvider {
     @GuardedBy("sCacheLock")
     private static final Set<String> sCachedExternalVolumeNames = new ArraySet<>();
     @GuardedBy("sCacheLock")
+    private static final Map<String, File> sCachedVolumePaths = new ArrayMap<>();
+    @GuardedBy("sCacheLock")
     private static final Map<String, Collection<File>> sCachedVolumeScanPaths = new ArrayMap<>();
 
     private void updateVolumes() {
@@ -278,11 +280,14 @@ public class MediaProvider extends ContentProvider {
             sCachedExternalVolumeNames.clear();
             sCachedExternalVolumeNames.addAll(MediaStore.getExternalVolumeNames(getContext()));
 
+            sCachedVolumePaths.clear();
             sCachedVolumeScanPaths.clear();
             try {
                 sCachedVolumeScanPaths.put(MediaStore.VOLUME_INTERNAL,
                         FileUtils.getVolumeScanPaths(getContext(), MediaStore.VOLUME_INTERNAL));
                 for (String volumeName : sCachedExternalVolumeNames) {
+                    sCachedVolumePaths.put(volumeName,
+                            FileUtils.getVolumePath(getContext(), volumeName));
                     sCachedVolumeScanPaths.put(volumeName,
                             FileUtils.getVolumeScanPaths(getContext(), volumeName));
                 }
@@ -293,26 +298,26 @@ public class MediaProvider extends ContentProvider {
 
         // Update filters to reflect mounted volumes so users don't get
         // confused by metadata from ejected volumes
-        BackgroundThread.getExecutor().execute(() -> {
+        ForegroundThread.getExecutor().execute(() -> {
             mExternalDatabase.setFilterVolumeNames(getExternalVolumeNames());
         });
     }
 
     public File getVolumePath(String volumeName) throws FileNotFoundException {
-        // TODO(b/144275217): A more performant invocation is
-        // MediaStore#getVolumePath(sCachedVolumes, volumeName) since we avoid a binder
-        // to StorageManagerService to getVolumeList. We need to delay the mount broadcasts
-        // from StorageManagerService so that sCachedVolumes is up to date in
-        // onVolumeStateChanged before we to call this method, otherwise we would crash
-        // when we don't find volumeName yet
-
         // Ugly hack to keep unit tests passing, where we don't always have a
         // Context to discover volumes with
         if (getContext() == null) {
             return Environment.getExternalStorageDirectory();
         }
 
-        return FileUtils.getVolumePath(getContext(), volumeName);
+        synchronized (sCacheLock) {
+            File res = sCachedVolumePaths.get(volumeName);
+            if (res == null) {
+                res = FileUtils.getVolumePath(getContext(), volumeName);
+                sCachedVolumePaths.put(volumeName, res);
+            }
+            return res;
+        }
     }
 
     public static Set<String> getExternalVolumeNames() {
@@ -441,6 +446,15 @@ public class MediaProvider extends ContentProvider {
     };
 
     private final void updateQuotaTypeForUri(@NonNull Uri uri, int mediaType) {
+        Trace.beginSection("updateQuotaTypeForUri");
+        try {
+            updateQuotaTypeForUriInternal(uri, mediaType);
+        } finally {
+            Trace.endSection();
+        }
+    }
+
+    private final void updateQuotaTypeForUriInternal(@NonNull Uri uri, int mediaType) {
         File file;
         try {
             file = queryForDataFile(uri, null);
@@ -472,20 +486,28 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    /**
+     * Since these operations are in the critical path of apps working with
+     * media, we only collect the {@link Uri} that need to be notified, and all
+     * other side-effect operations are delegated to {@link BackgroundThread} so
+     * that we return as quickly as possible.
+     */
     private final OnFilesChangeListener mFilesListener = new OnFilesChangeListener() {
         @Override
         public void onInsert(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
                 int mediaType, boolean isDownload) {
             acceptWithExpansion(helper::notifyInsert, volumeName, id, mediaType, isDownload);
 
-            if (helper.isExternal()) {
-                // Update the quota type on the filesystem
-                Uri fileUri = MediaStore.Files.getContentUri(volumeName, id);
-                updateQuotaTypeForUri(fileUri, mediaType);
-            }
+            helper.postBackground(() -> {
+                if (helper.isExternal()) {
+                    // Update the quota type on the filesystem
+                    Uri fileUri = MediaStore.Files.getContentUri(volumeName, id);
+                    updateQuotaTypeForUri(fileUri, mediaType);
+                }
 
-            // Tell our SAF provider so it knows when views are no longer empty
-            MediaDocumentsProvider.onMediaStoreInsert(getContext(), volumeName, mediaType, id);
+                // Tell our SAF provider so it knows when views are no longer empty
+                MediaDocumentsProvider.onMediaStoreInsert(getContext(), volumeName, mediaType, id);
+            });
         }
 
         @Override
@@ -494,34 +516,44 @@ public class MediaProvider extends ContentProvider {
                 int newMediaType, boolean newIsDownload) {
             final boolean isDownload = oldIsDownload || newIsDownload;
             acceptWithExpansion(helper::notifyUpdate, volumeName, id, oldMediaType, isDownload);
-
-            // When media type changes, notify both old and new collections and
-            // invalidate any thumbnails
             if (newMediaType != oldMediaType) {
-                Uri fileUri = MediaStore.Files.getContentUri(volumeName, id);
-                if (helper.isExternal()) {
-                    updateQuotaTypeForUri(fileUri, newMediaType);
-                }
                 acceptWithExpansion(helper::notifyUpdate, volumeName, id, newMediaType, isDownload);
-                invalidateThumbnails(fileUri);
+
+                helper.postBackground(() -> {
+                    final Uri fileUri = MediaStore.Files.getContentUri(volumeName, id);
+                    if (helper.isExternal()) {
+                        // Update the quota type on the filesystem
+                        updateQuotaTypeForUri(fileUri, newMediaType);
+                    }
+
+                    // Invalidate any thumbnails when the media type changes
+                    invalidateThumbnails(fileUri);
+                });
             }
         }
 
         @Override
         public void onDelete(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
                 int mediaType, boolean isDownload) {
-            // Both notify apps and revoke any outstanding permission grants
-            final Context context = getContext();
-            acceptWithExpansion((uri) -> {
-                helper.notifyDelete(uri);
-                context.revokeUriPermission(uri, ~0);
-            }, volumeName, id, mediaType, isDownload);
+            acceptWithExpansion(helper::notifyDelete, volumeName, id, mediaType, isDownload);
 
-            // Invalidate any thumbnails now that media is gone
-            invalidateThumbnails(MediaStore.Files.getContentUri(volumeName, id));
+            helper.postBackground(() -> {
+                // Item no longer exists, so revoke all access to it
+                Trace.beginSection("revokeUriPermission");
+                try {
+                    acceptWithExpansion((uri) -> {
+                        getContext().revokeUriPermission(uri, ~0);
+                    }, volumeName, id, mediaType, isDownload);
+                } finally {
+                    Trace.endSection();
+                }
 
-            // Tell our SAF provider so it can revoke too
-            MediaDocumentsProvider.onMediaStoreDelete(getContext(), volumeName, mediaType, id);
+                // Invalidate any thumbnails now that media is gone
+                invalidateThumbnails(MediaStore.Files.getContentUri(volumeName, id));
+
+                // Tell our SAF provider so it can revoke too
+                MediaDocumentsProvider.onMediaStoreDelete(getContext(), volumeName, mediaType, id);
+            });
         }
     };
 
@@ -3654,7 +3686,7 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public int delete(@NonNull Uri uri, @Nullable Bundle extras) {
-        Trace.beginSection("insert");
+        Trace.beginSection("delete");
         try {
             return deleteInternal(uri, extras);
         } catch (FallbackException e) {
@@ -4545,6 +4577,12 @@ public class MediaProvider extends ContentProvider {
                 Log.d(TAG, "Moving " + beforePath + " to " + afterPath);
                 try {
                     Os.rename(beforePath, afterPath);
+                    if (!FuseDaemon.native_is_fuse_thread()) {
+                        // If we are on a FUSE thread, we don't need to invalidate,
+                        // (and *must* not, otherwise we'd crash) because the rename is already
+                        // reflected in the lower filesystem
+                        invalidateFuseDentry(beforePath);
+                    }
                 } catch (ErrnoException e) {
                     throw new IllegalStateException(e);
                 }
@@ -4660,7 +4698,7 @@ public class MediaProvider extends ContentProvider {
                 for (int i = 0; i < updatedIds.size(); i++) {
                     final long updatedId = updatedIds.get(i);
                     final Uri updatedUri = Files.getContentUri(volumeName, updatedId);
-                    BackgroundThread.getExecutor().execute(() -> {
+                    helper.postBackground(() -> {
                         invalidateThumbnails(updatedUri);
                     });
 
@@ -4997,6 +5035,15 @@ public class MediaProvider extends ContentProvider {
         return ExternalStorageServiceImpl.getFuseDaemon(volume.getId());
     }
 
+    private void invalidateFuseDentry(String path) {
+        FuseDaemon daemon = getFuseDaemonForFile(new File(path));
+        if (daemon != null) {
+            daemon.invalidateFuseDentryCache(path);
+        } else {
+            Log.w(TAG, "Failed to invalidate FUSE dentry. Daemon unavailable for path " + path);
+        }
+    }
+
     /**
      * Replacement for {@link #openFileHelper(Uri, String)} which enforces any
      * permissions applicable to the path before returning.
@@ -5148,6 +5195,12 @@ public class MediaProvider extends ContentProvider {
             final File file = new File(path);
             checkAccess(uri, extras, file, true);
             file.delete();
+            if (!FuseDaemon.native_is_fuse_thread()) {
+                // If we are on a FUSE thread, we don't need to invalidate,
+                // (and *must* not, otherwise we'd crash) because the delete is already
+                // reflected in the lower filesystem
+                invalidateFuseDentry(path);
+            }
         } catch (Exception e) {
             Log.e(TAG, "Couldn't delete " + path, e);
         }
@@ -6259,7 +6312,7 @@ public class MediaProvider extends ContentProvider {
             // Also notify on synthetic view of all devices
             resolver.notifyChange(getBaseContentUri(MediaStore.VOLUME_EXTERNAL), null);
 
-            BackgroundThread.getExecutor().execute(() -> {
+            ForegroundThread.getExecutor().execute(() -> {
                 final DatabaseHelper helper = MediaStore.VOLUME_INTERNAL.equals(volume)
                         ? mInternalDatabase : mExternalDatabase;
                 ensureDefaultFolders(volume, helper);

@@ -16,6 +16,8 @@
 
 package com.android.providers.media;
 
+import static android.Manifest.permission.ACCESS_MEDIA_LOCATION;
+import static android.app.AppOpsManager.permissionToOp;
 import static android.app.PendingIntent.FLAG_CANCEL_CURRENT;
 import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.app.PendingIntent.FLAG_ONE_SHOT;
@@ -69,6 +71,7 @@ import static com.android.providers.media.util.PermissionUtils.checkPermissionMa
 
 import android.app.AppOpsManager;
 import android.app.AppOpsManager.OnOpActiveChangedListener;
+import android.app.AppOpsManager.OnOpChangedListener;
 import android.app.DownloadManager;
 import android.app.PendingIntent;
 import android.app.RecoverableSecurityException;
@@ -360,6 +363,29 @@ public class MediaProvider extends ContentProvider {
     };
 
     /**
+     * Map from UID to cached {@link LocalCallingIdentity}. Values are only
+     * maintained in this map until there's any change in the appops needed or packages
+     * used in the {@link LocalCallingIdentity}.
+     */
+    @GuardedBy("mCachedCallingIdentityForFuse")
+    private final SparseArray<LocalCallingIdentity> mCachedCallingIdentityForFuse =
+            new SparseArray<>();
+
+    private OnOpChangedListener mModeListener =
+            (op, packageName) -> invalidateLocalCallingIdentityCache(packageName, "op " + op);
+
+    private LocalCallingIdentity getCachedCallingIdentityForFuse(int uid) {
+        synchronized (mCachedCallingIdentityForFuse) {
+            LocalCallingIdentity ident = mCachedCallingIdentityForFuse.get(uid);
+            if (ident == null) {
+               ident = LocalCallingIdentity.fromExternal(getContext(), uid);
+               mCachedCallingIdentityForFuse.put(uid, ident);
+            }
+            return ident;
+        }
+    }
+
+    /**
      * Calling identity state about on the current thread. Populated on demand,
      * and invalidated by {@link #onCallingPackageChanged()} when each remote
      * call is finished.
@@ -444,6 +470,36 @@ public class MediaProvider extends ContentProvider {
             }
         }
     };
+
+    private BroadcastReceiver mPackageReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            switch (intent.getAction()) {
+                case Intent.ACTION_PACKAGE_REMOVED:
+                case Intent.ACTION_PACKAGE_ADDED:
+                    Uri uri = intent.getData();
+                    String pkg = uri != null ? uri.getSchemeSpecificPart() : null;
+                    if (pkg != null) {
+                        invalidateLocalCallingIdentityCache(pkg, "package " + intent.getAction());
+                    } else {
+                        Log.w(TAG, "Failed to retrieve package from intent: " + intent.getAction());
+                    }
+                    break;
+            }
+        }
+    };
+
+    private void invalidateLocalCallingIdentityCache(String packageName, String reason) {
+        synchronized (mCachedCallingIdentityForFuse) {
+            try {
+                Log.i(TAG, "Invalidating LocalCallingIdentity cache for package " + packageName
+                        + ". Reason: " + reason);
+                mCachedCallingIdentityForFuse.remove(
+                        getContext().getPackageManager().getPackageUid(packageName, 0));
+            } catch (NameNotFoundException ignored) {
+            }
+        }
+    }
 
     private final void updateQuotaTypeForUri(@NonNull Uri uri, int mediaType) {
         Trace.beginSection("updateQuotaTypeForUri");
@@ -733,6 +789,13 @@ public class MediaProvider extends ContentProvider {
         filter.addAction(Intent.ACTION_MEDIA_BAD_REMOVAL);
         context.registerReceiver(mMediaReceiver, filter);
 
+        final IntentFilter packageFilter = new IntentFilter();
+        packageFilter.setPriority(10);
+        filter.addDataScheme("package");
+        packageFilter.addAction(Intent.ACTION_PACKAGE_ADDED);
+        packageFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        context.registerReceiver(mPackageReceiver, packageFilter);
+
         // Watch for invalidation of cached volumes
         mStorageManager.registerStorageVolumeCallback(context.getMainExecutor(),
                 new StorageVolumeCallback() {
@@ -753,6 +816,24 @@ public class MediaProvider extends ContentProvider {
                 AppOpsManager.OPSTR_CAMERA
         }, context.getMainExecutor(), mActiveListener);
 
+
+        mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_READ_EXTERNAL_STORAGE,
+                null /* all packages */, mModeListener);
+        mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_WRITE_EXTERNAL_STORAGE,
+                null /* all packages */, mModeListener);
+        mAppOpsManager.startWatchingMode(permissionToOp(ACCESS_MEDIA_LOCATION),
+                null /* all packages */, mModeListener);
+        // Legacy apps
+        mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_LEGACY_STORAGE,
+                null /* all packages */, mModeListener);
+        // File managers
+        mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_MANAGE_EXTERNAL_STORAGE,
+                null /* all packages */, mModeListener);
+        // Default gallery changes
+        mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_WRITE_MEDIA_IMAGES,
+                null /* all packages */, mModeListener);
+        mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_WRITE_MEDIA_VIDEO,
+                null /* all packages */, mModeListener);
         return true;
     }
 
@@ -923,8 +1004,7 @@ public class MediaProvider extends ContentProvider {
      */
     @Keep
     public void scanFileForFuse(String file, int uid) {
-        final String callingPackage =
-                LocalCallingIdentity.fromExternal(getContext(), uid).getPackageName();
+        final String callingPackage = getCachedCallingIdentityForFuse(uid).getPackageName();
         scanFile(new File(file), REASON_DEMAND, callingPackage);
     }
 
@@ -1150,8 +1230,9 @@ public class MediaProvider extends ContentProvider {
      */
     @Keep
     public String[] getFilesInDirectoryForFuse(String path, int uid) {
-        final LocalCallingIdentity token = clearLocalCallingIdentity(
-                LocalCallingIdentity.fromExternal(getContext(), uid));
+        final LocalCallingIdentity token =
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+
         try {
             final String appSpecificDir = extractPathOwnerPackageName(path);
             // Apps are allowed to list files only in their own external directory.
@@ -1583,8 +1664,9 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public int renameForFuse(String oldPath, String newPath, int uid) {
         final String errorMessage = "Rename " + oldPath + " to " + newPath + " failed. ";
-        final LocalCallingIdentity token = clearLocalCallingIdentity(
-                LocalCallingIdentity.fromExternal(getContext(), uid));
+        final LocalCallingIdentity token =
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+
         try {
             final String oldPathPackageName = extractPathOwnerPackageName(oldPath);
             final String newPathPackageName = extractPathOwnerPackageName(newPath);
@@ -1672,8 +1754,9 @@ public class MediaProvider extends ContentProvider {
     @Override
     public int checkUriPermission(@NonNull Uri uri, int uid,
             /* @Intent.AccessUriMode */ int modeFlags) {
-        final LocalCallingIdentity token = clearLocalCallingIdentity(
-                LocalCallingIdentity.fromExternal(getContext(), uid));
+        final LocalCallingIdentity token =
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+
         try {
             final boolean allowHidden = isCallingPackageAllowedHidden();
             final int table = matchUri(uri, allowHidden);
@@ -5377,8 +5460,8 @@ public class MediaProvider extends ContentProvider {
             return getRedactionRanges(file).redactionRanges;
         }
 
-        LocalCallingIdentity token =
-                clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
+        final LocalCallingIdentity token =
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
 
         long[] res = new long[0];
         try {
@@ -5507,7 +5590,9 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public int isOpenAllowedForFuse(String path, int uid, boolean forWrite) {
         final LocalCallingIdentity token =
-                clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+
+
         try {
             // Returns null if the path doesn't correspond to an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
@@ -5692,7 +5777,8 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public int insertFileIfNecessaryForFuse(@NonNull String path, int uid) {
         final LocalCallingIdentity token =
-                clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+
         try {
             // Returns null if the path doesn't correspond to an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
@@ -5774,7 +5860,8 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public int deleteFileForFuse(@NonNull String path, int uid) throws IOException {
         final LocalCallingIdentity token =
-                clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+
         try {
             // Check if app is deleting a file under an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
@@ -5849,7 +5936,8 @@ public class MediaProvider extends ContentProvider {
     public int isDirectoryCreationOrDeletionAllowedForFuse(
             @NonNull String path, int uid, boolean forCreate) {
         final LocalCallingIdentity token =
-                clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+
         try {
             // Returns null if the path doesn't correspond to an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);
@@ -5908,7 +5996,8 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public int isOpendirAllowedForFuse(@NonNull String path, int uid) {
         final LocalCallingIdentity token =
-                clearLocalCallingIdentity(LocalCallingIdentity.fromExternal(getContext(), uid));
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+
         try {
             // Returns null if the path doesn't correspond to an app specific directory
             final String appSpecificDir = extractPathOwnerPackageName(path);

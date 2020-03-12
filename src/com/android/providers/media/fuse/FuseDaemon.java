@@ -16,11 +16,13 @@
 
 package com.android.providers.media.fuse;
 
+import android.os.ConditionVariable;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.android.internal.annotations.GuardedBy;
 import com.android.providers.media.MediaProvider;
 
 import java.util.Objects;
@@ -30,11 +32,15 @@ import java.util.Objects;
  */
 public final class FuseDaemon extends Thread {
     public static final String TAG = "FuseDaemonThread";
+    private static final int POLL_INTERVAL_MS = 1000;
+    private static final int POLL_COUNT = 5;
 
+    private final Object mLock = new Object();
     private final MediaProvider mMediaProvider;
     private final int mFuseDeviceFd;
     private final String mPath;
     private final ExternalStorageServiceImpl mService;
+    @GuardedBy("mLock")
     private long mPtr;
 
     public FuseDaemon(@NonNull MediaProvider mediaProvider,
@@ -50,17 +56,18 @@ public final class FuseDaemon extends Thread {
     /** Starts a FUSE session. Does not return until the lower filesystem is unmounted. */
     @Override
     public void run() {
-        mPtr = native_new(mMediaProvider);
-        if (mPtr == 0) {
-            return;
+        synchronized (mLock) {
+            mPtr = native_new(mMediaProvider);
+            if (mPtr == 0) {
+                throw new IllegalStateException("Unable to create native FUSE daemon");
+            }
         }
 
         Log.i(TAG, "Starting thread for " + getName() + " ...");
         native_start(mPtr, mFuseDeviceFd, mPath); // Blocks
         Log.i(TAG, "Exiting thread for " + getName() + " ...");
 
-        // Cleanup
-        if (mPtr != 0) {
+        synchronized (mLock) {
             native_delete(mPtr);
             mPtr = 0;
         }
@@ -68,25 +75,50 @@ public final class FuseDaemon extends Thread {
         Log.i(TAG, "Exited thread for " + getName());
     }
 
+    @Override
+    public void start() {
+        super.start();
+
+        // Wait for native_start
+        waitForStart();
+    }
+
+    private void waitForStart() {
+        int count = POLL_COUNT;
+        while (count-- > 0) {
+            synchronized (mLock) {
+                if (mPtr != 0 && native_is_started(mPtr)) {
+                    return;
+                }
+            }
+            try {
+                Log.v(TAG, "Waiting " + POLL_INTERVAL_MS + "ms for FUSE start. Count " + count);
+                Thread.sleep(POLL_INTERVAL_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                Log.e(TAG, "Interrupted while starting FUSE", e);
+            }
+        }
+        throw new IllegalStateException("Failed to start FUSE");
+    }
+
     /** Waits for any running FUSE sessions to return. */
     public void waitForExit() {
-        Log.i(TAG, "Waiting 5s for thread " + getName() + " to exit...");
+        int waitMs = POLL_COUNT * POLL_INTERVAL_MS;
+        Log.i(TAG, "Waiting " + waitMs + "ms for FUSE " + getName() + " to exit...");
 
         try {
-            join(5000);
+            join(waitMs);
         } catch (InterruptedException e) {
-            Log.e(TAG, "Interrupted while waiting for thread " + getName()
-                    + " to exit. Terminating process", e);
-            System.exit(1);
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while terminating FUSE " + getName());
         }
 
         if (isAlive()) {
-            Log.i(TAG, "Failed to exit thread " + getName()
-                    + " successfully. Terminating process");
-            System.exit(1);
+            throw new IllegalStateException("Failed to exit FUSE " + getName() + " successfully");
         }
 
-        Log.i(TAG, "Exited thread " + getName() + " successfully");
+        Log.i(TAG, "Exited FUSE " + getName() + " successfully");
     }
 
     /**
@@ -96,14 +128,26 @@ public final class FuseDaemon extends Thread {
      * @return {@code true} if the file should be opened via FUSE, {@code false} otherwise
      */
     public boolean shouldOpenWithFuse(String path, boolean readLock, int fd) {
-        return native_should_open_with_fuse(mPtr, path, readLock, fd);
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                Log.i(TAG, "shouldOpenWithFuse failed, FUSE daemon unavailable");
+                return false;
+            }
+            return native_should_open_with_fuse(mPtr, path, readLock, fd);
+        }
     }
 
     /**
      * Invalidates FUSE VFS dentry cache for {@code path}
      */
     public void invalidateFuseDentryCache(String path) {
-        native_invalidate_fuse_dentry_cache(mPtr, path);
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                Log.i(TAG, "invalidateFuseDentryCache failed, FUSE daemon unavailable");
+                return;
+            }
+            native_invalidate_fuse_dentry_cache(mPtr, path);
+        }
     }
 
     private native long native_new(MediaProvider mediaProvider);
@@ -112,5 +156,6 @@ public final class FuseDaemon extends Thread {
     private native boolean native_should_open_with_fuse(long daemon, String path, boolean readLock,
             int fd);
     private native void native_invalidate_fuse_dentry_cache(long daemon, String path);
+    private native boolean native_is_started(long daemon);
     public static native boolean native_is_fuse_thread();
 }

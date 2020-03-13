@@ -151,6 +151,23 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
     }
 
     @Test
+    public void testCallingIdentityCacheInvalidation() throws Exception {
+        // General IO access
+        runDeviceTest("testReadStorageInvalidation");
+        runDeviceTest("testWriteStorageInvalidation");
+        // File manager access
+        runDeviceTest("testManageStorageInvalidation");
+        // Default gallery
+        runDeviceTest("testWriteImagesInvalidation");
+        runDeviceTest("testWriteVideoInvalidation");
+        // EXIF access
+        runDeviceTest("testAccessMediaLocationInvalidation");
+
+        runDeviceTest("testAppUpdateInvalidation");
+        runDeviceTest("testAppReinstallInvalidation");
+    }
+
+    @Test
     public void testRenameFile() throws Exception {
         runDeviceTest("testRenameFile");
     }

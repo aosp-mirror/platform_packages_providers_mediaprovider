@@ -290,6 +290,8 @@ struct fuse {
     /* const */ char* zero_addr;
 
     FAdviser fadviser;
+
+    std::atomic_bool* active;
 };
 
 static inline string get_name(node* n) {
@@ -433,6 +435,9 @@ static void pf_init(void* userdata, struct fuse_conn_info* conn) {
                      FUSE_CAP_EXPORT_SUPPORT | FUSE_CAP_FLOCK_LOCKS);
     conn->want |= conn->capable & mask;
     conn->max_read = MAX_READ_SIZE;
+
+    struct fuse* fuse = reinterpret_cast<struct fuse*>(userdata);
+    fuse->active->store(true, std::memory_order_release);
 }
 
 static void pf_destroy(void* userdata) {
@@ -1526,6 +1531,10 @@ void FuseDaemon::InvalidateFuseDentryCache(const std::string& path) {
 FuseDaemon::FuseDaemon(JNIEnv* env, jobject mediaProvider) : mp(env, mediaProvider),
                                                              active(false), fuse(nullptr) {}
 
+bool FuseDaemon::IsStarted() const {
+    return active.load(std::memory_order_acquire);
+}
+
 void FuseDaemon::Start(const int fd, const std::string& path) {
     struct fuse_args args;
     struct fuse_cmdline_opts opts;
@@ -1576,6 +1585,7 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
         return;
     }
     fuse_default.se = se;
+    fuse_default.active = &active;
     se->fd = fd;
     se->mountpoint = strdup(path.c_str());
 
@@ -1583,8 +1593,8 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
     // fuse_session_loop(se);
     // Multi-threaded
     LOG(INFO) << "Starting fuse...";
-    active.store(true, std::memory_order_release);
     fuse_session_loop_mt(se, &config);
+    fuse->active->store(false, std::memory_order_release);
     LOG(INFO) << "Ending fuse...";
 
     if (munmap(fuse_default.zero_addr, MAX_READ_SIZE)) {
@@ -1593,7 +1603,6 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
 
     fuse_opt_free_args(&args);
     fuse_session_destroy(se);
-    active.store(false, std::memory_order_relaxed);
     LOG(INFO) << "Ended fuse";
     return;
 }

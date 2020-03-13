@@ -123,6 +123,8 @@ public class LocalCallingIdentity {
             throw new IllegalArgumentException("UID " + uid + " has no associated package");
         }
         LocalCallingIdentity ident =  fromExternal(context, uid, sharedPackageNames[0], null);
+        ident.sharedPackageNames = sharedPackageNames;
+        ident.sharedPackageNamesResolved = true;
         if (uid == Process.SHELL_UID) {
             // This is useful for debugging/testing/development
             if (SystemProperties.getBoolean("persist.sys.fuse.shell.redaction-needed", false)) {

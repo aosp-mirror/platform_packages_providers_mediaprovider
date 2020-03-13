@@ -4577,6 +4577,12 @@ public class MediaProvider extends ContentProvider {
                 Log.d(TAG, "Moving " + beforePath + " to " + afterPath);
                 try {
                     Os.rename(beforePath, afterPath);
+                    if (!FuseDaemon.native_is_fuse_thread()) {
+                        // If we are on a FUSE thread, we don't need to invalidate,
+                        // (and *must* not, otherwise we'd crash) because the rename is already
+                        // reflected in the lower filesystem
+                        invalidateFuseDentry(beforePath);
+                    }
                 } catch (ErrnoException e) {
                     throw new IllegalStateException(e);
                 }
@@ -5029,6 +5035,15 @@ public class MediaProvider extends ContentProvider {
         return ExternalStorageServiceImpl.getFuseDaemon(volume.getId());
     }
 
+    private void invalidateFuseDentry(String path) {
+        FuseDaemon daemon = getFuseDaemonForFile(new File(path));
+        if (daemon != null) {
+            daemon.invalidateFuseDentryCache(path);
+        } else {
+            Log.w(TAG, "Failed to invalidate FUSE dentry. Daemon unavailable for path " + path);
+        }
+    }
+
     /**
      * Replacement for {@link #openFileHelper(Uri, String)} which enforces any
      * permissions applicable to the path before returning.
@@ -5180,6 +5195,12 @@ public class MediaProvider extends ContentProvider {
             final File file = new File(path);
             checkAccess(uri, extras, file, true);
             file.delete();
+            if (!FuseDaemon.native_is_fuse_thread()) {
+                // If we are on a FUSE thread, we don't need to invalidate,
+                // (and *must* not, otherwise we'd crash) because the delete is already
+                // reflected in the lower filesystem
+                invalidateFuseDentry(path);
+            }
         } catch (Exception e) {
             Log.e(TAG, "Couldn't delete " + path, e);
         }

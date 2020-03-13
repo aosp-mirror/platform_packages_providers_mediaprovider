@@ -38,6 +38,11 @@ class FuseDaemon final {
     void Start(const int fd, const std::string& path);
 
     /**
+     * Checks if the FUSE daemon is started.
+     */
+    bool IsStarted() const;
+
+    /**
      * Check if file should be opened with FUSE
      */
     bool ShouldOpenWithFuse(int fd, bool for_read, const std::string& path);

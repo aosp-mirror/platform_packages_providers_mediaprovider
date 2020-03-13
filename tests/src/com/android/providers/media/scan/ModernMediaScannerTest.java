@@ -19,8 +19,10 @@ package com.android.providers.media.scan;
 import static com.android.providers.media.scan.MediaScanner.REASON_UNKNOWN;
 import static com.android.providers.media.scan.MediaScannerTest.stage;
 import static com.android.providers.media.scan.ModernMediaScanner.isDirectoryHidden;
+import static com.android.providers.media.scan.ModernMediaScanner.isFileAlbumArt;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalDateTaken;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalMimeType;
+import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalYear;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -55,6 +57,7 @@ import org.junit.runner.RunWith;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.Optional;
 
 @RunWith(AndroidJUnit4.class)
 public class ModernMediaScannerTest {
@@ -106,6 +109,21 @@ public class ModernMediaScannerTest {
         assertTrue(parseOptionalMimeType("image/png", "image/x-shiny").isPresent());
         assertEquals("image/x-shiny",
                 parseOptionalMimeType("image/png", "image/x-shiny").get());
+    }
+
+    @Test
+    public void testOverrideMimeType_148316354() throws Exception {
+        // Radical file type shifting isn't allowed
+        assertEquals(Optional.empty(),
+                parseOptionalMimeType("video/mp4", "audio/mpeg"));
+
+        // One specific narrow type of shift (mp4 -> m4a) is allowed
+        assertEquals(Optional.of("audio/mp4"),
+                parseOptionalMimeType("video/mp4", "audio/mp4"));
+
+        // The other direction isn't allowed
+        assertEquals(Optional.empty(),
+                parseOptionalMimeType("audio/mp4", "video/mp4"));
     }
 
     @Test
@@ -203,6 +221,42 @@ public class ModernMediaScannerTest {
 
         // Offset is completely missing, and no useful GPS or modified time
         assertFalse(parseOptionalDateTaken(exif, 0L).isPresent());
+    }
+
+    @Test
+    public void testParseYear_Invalid() throws Exception {
+        assertEquals(Optional.empty(), parseOptionalYear(null));
+        assertEquals(Optional.empty(), parseOptionalYear(""));
+        assertEquals(Optional.empty(), parseOptionalYear(" "));
+        assertEquals(Optional.empty(), parseOptionalYear("meow"));
+
+        assertEquals(Optional.empty(), parseOptionalYear("0"));
+        assertEquals(Optional.empty(), parseOptionalYear("00"));
+        assertEquals(Optional.empty(), parseOptionalYear("000"));
+        assertEquals(Optional.empty(), parseOptionalYear("0000"));
+
+        assertEquals(Optional.empty(), parseOptionalYear("1"));
+        assertEquals(Optional.empty(), parseOptionalYear("01"));
+        assertEquals(Optional.empty(), parseOptionalYear("001"));
+        assertEquals(Optional.empty(), parseOptionalYear("0001"));
+
+        // No sane way to determine year from two-digit date formats
+        assertEquals(Optional.empty(), parseOptionalYear("01-01-01"));
+
+        // Specific example from partner
+        assertEquals(Optional.empty(), parseOptionalYear("000 "));
+    }
+
+    @Test
+    public void testParseYear_Valid() throws Exception {
+        assertEquals(Optional.of(1900), parseOptionalYear("1900"));
+        assertEquals(Optional.of(2020), parseOptionalYear("2020"));
+        assertEquals(Optional.of(2020), parseOptionalYear(" 2020 "));
+        assertEquals(Optional.of(2020), parseOptionalYear("01-01-2020"));
+
+        // Specific examples from partner
+        assertEquals(Optional.of(1984), parseOptionalYear("1984-06-26T07:00:00Z"));
+        assertEquals(Optional.of(2016), parseOptionalYear("Thu, 01 Sep 2016 10:11:12.123456 -0500"));
     }
 
     private static void assertDirectoryHidden(File file) {
@@ -485,6 +539,60 @@ public class ModernMediaScannerTest {
     private void assertQueryCount(int expected, Uri actualUri) {
         try (Cursor cursor = mIsolatedResolver.query(actualUri, null, null, null, null)) {
             assertEquals(expected, cursor.getCount());
+        }
+    }
+
+    @Test
+    public void testScan_audio_empty_title() throws Exception {
+        final File music = new File(mDir, "Music");
+        final File audio = new File(music, "audio.mp3");
+
+        music.mkdirs();
+        stage(R.raw.test_audio_empty_title, audio);
+
+        mModern.scanFile(audio, REASON_UNKNOWN);
+
+        try (Cursor cursor = mIsolatedResolver
+                .query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
+            assertEquals(1, cursor.getCount());
+            cursor.moveToFirst();
+            assertEquals("audio", cursor.getString(cursor.getColumnIndex(MediaColumns.TITLE)));
+        }
+    }
+
+    @Test
+    public void testAlbumArtPattern() throws Exception {
+        for (String path : new String[] {
+                "/storage/emulated/0/._abc",
+                "/storage/emulated/0/a._abc",
+
+                "/storage/emulated/0/AlbumArtSmall.jpg",
+                "/storage/emulated/0/albumartsmall.jpg",
+
+                "/storage/emulated/0/AlbumArt_{}_Small.jpg",
+                "/storage/emulated/0/albumart_{a}_small.jpg",
+                "/storage/emulated/0/AlbumArt_{}_Large.jpg",
+                "/storage/emulated/0/albumart_{a}_large.jpg",
+
+                "/storage/emulated/0/Folder.jpg",
+                "/storage/emulated/0/folder.jpg",
+
+                "/storage/emulated/0/AlbumArt.jpg",
+                "/storage/emulated/0/albumart.jpg",
+                "/storage/emulated/0/albumart1.jpg",
+        }) {
+            final File file = new File(path);
+            final String name = file.getName();
+            assertEquals(LegacyMediaScannerTest.isNonMediaFile(path), isFileAlbumArt(name));
+        }
+
+        for (String path : new String[] {
+                "/storage/emulated/0/AlbumArtLarge.jpg",
+                "/storage/emulated/0/albumartlarge.jpg",
+        }) {
+            final File file = new File(path);
+            final String name = file.getName();
+            assertTrue(isFileAlbumArt(name));
         }
     }
 }

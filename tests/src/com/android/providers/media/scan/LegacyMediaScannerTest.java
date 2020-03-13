@@ -54,4 +54,39 @@ public class LegacyMediaScannerTest {
         } catch (UnsupportedOperationException expected) {
         }
     }
+
+    /**
+      * This implementation was copied verbatim from the legacy
+      * {@code frameworks/base/media/java/android/media/MediaScanner.java}.
+      */
+    static boolean isNonMediaFile(String path) {
+        // special case certain file names
+        // I use regionMatches() instead of substring() below
+        // to avoid memory allocation
+        final int lastSlash = path.lastIndexOf('/');
+        if (lastSlash >= 0 && lastSlash + 2 < path.length()) {
+            // ignore those ._* files created by MacOS
+            if (path.regionMatches(lastSlash + 1, "._", 0, 2)) {
+                return true;
+            }
+
+            // ignore album art files created by Windows Media Player:
+            // Folder.jpg, AlbumArtSmall.jpg, AlbumArt_{...}_Large.jpg
+            // and AlbumArt_{...}_Small.jpg
+            if (path.regionMatches(true, path.length() - 4, ".jpg", 0, 4)) {
+                if (path.regionMatches(true, lastSlash + 1, "AlbumArt_{", 0, 10) ||
+                        path.regionMatches(true, lastSlash + 1, "AlbumArt.", 0, 9)) {
+                    return true;
+                }
+                int length = path.length() - lastSlash - 1;
+                if ((length == 17 && path.regionMatches(
+                        true, lastSlash + 1, "AlbumArtSmall", 0, 13)) ||
+                        (length == 10
+                         && path.regionMatches(true, lastSlash + 1, "Folder", 0, 6))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }

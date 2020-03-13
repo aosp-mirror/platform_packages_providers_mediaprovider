@@ -117,6 +117,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -158,6 +159,11 @@ public class ModernMediaScanner implements MediaScanner {
             "(?i)^/storage/[^/]+(?:/[0-9]+)?(?:/Android/sandbox/([^/]+))?$");
     private static final Pattern PATTERN_INVISIBLE = Pattern.compile(
             "(?i)^/storage/[^/]+(?:/[0-9]+)?(?:/Android/sandbox/([^/]+))?/Android/(?:data|obb)$");
+
+    private static final Pattern PATTERN_YEAR = Pattern.compile("([1-9][0-9][0-9][0-9])");
+
+    private static final Pattern PATTERN_ALBUM_ART = Pattern.compile(
+            "(?i)(?:(?:^folder|(?:^AlbumArt(?:(?:_\\{.*\\}_)?(?:small|large))?))(?:\\.jpg$)|(?:\\._.*))");
 
     private final Context mContext;
     private final DrmManagerClient mDrmClient;
@@ -693,7 +699,10 @@ public class ModernMediaScanner implements MediaScanner {
             return scanItemDirectory(existingId, file, attrs, mimeType, volumeName);
         }
 
-        final int mediaType = MimeUtils.resolveMediaType(mimeType);
+        int mediaType = MimeUtils.resolveMediaType(mimeType);
+        if (mediaType == FileColumns.MEDIA_TYPE_IMAGE && isFileAlbumArt(name)) {
+            mediaType = FileColumns.MEDIA_TYPE_NONE;
+        }
         switch (mediaType) {
             case FileColumns.MEDIA_TYPE_AUDIO:
                 return scanItemAudio(existingId, file, attrs, mimeType, volumeName);
@@ -1056,6 +1065,8 @@ public class ModernMediaScanner implements MediaScanner {
             return Optional.empty();
         } else if (value instanceof String && ((String) value).equals("-1")) {
             return Optional.empty();
+        } else if (value instanceof String && ((String) value).trim().length() == 0) {
+            return Optional.empty();
         } else if (value instanceof Number && ((Number) value).intValue() == -1) {
             return Optional.empty();
         } else {
@@ -1096,6 +1107,7 @@ public class ModernMediaScanner implements MediaScanner {
      * the epoch, making our best guess from unrelated fields when offset
      * information isn't directly available.
      */
+    @VisibleForTesting
     static @NonNull Optional<Long> parseOptionalDateTaken(@NonNull ExifInterface exif,
             long lastModifiedTime) {
         final long originalTime = ExifUtils.getDateTimeOriginal(exif);
@@ -1181,6 +1193,21 @@ public class ModernMediaScanner implements MediaScanner {
         }
     }
 
+    @VisibleForTesting
+    static @NonNull Optional<Integer> parseOptionalYear(@Nullable String value) {
+        final Optional<String> parsedValue = parseOptional(value);
+        if (parsedValue.isPresent()) {
+            final Matcher m = PATTERN_YEAR.matcher(parsedValue.get());
+            if (m.find()) {
+                return Optional.of(Integer.parseInt(m.group(1)));
+            } else {
+                return Optional.empty();
+            }
+        } else {
+            return Optional.empty();
+        }
+    }
+
     private static @NonNull Optional<Integer> parseOptionalTrack(
             @NonNull MediaMetadataRetriever mmr) {
         final Optional<Integer> disc = parseOptionalNumerator(
@@ -1209,6 +1236,12 @@ public class ModernMediaScanner implements MediaScanner {
         if (refinedSplit == -1) return Optional.empty();
 
         if (fileMimeType.regionMatches(0, refinedMimeType, 0, refinedSplit + 1)) {
+            return Optional.of(refinedMimeType);
+        } else if ("video/mp4".equals(fileMimeType)
+                && "audio/mp4".equals(refinedMimeType)) {
+            // We normally only allow MIME types to be customized when the
+            // top-level type agrees, but this one very narrow case is added to
+            // support a music service that was writing "m4a" files as "mp4".
             return Optional.of(refinedMimeType);
         } else {
             return Optional.empty();
@@ -1277,6 +1310,11 @@ public class ModernMediaScanner implements MediaScanner {
             return true;
         }
         return false;
+    }
+
+    @VisibleForTesting
+    static boolean isFileAlbumArt(String name) {
+        return PATTERN_ALBUM_ART.matcher(name).matches();
     }
 
     /**

@@ -26,6 +26,22 @@ android_test_helper_app {
     sdk_version: "test_current",
     srcs: ["FilePathAccessTestHelper/src/**/*.java"],
 }
+android_test_helper_app {
+    name: "TestAppC",
+    manifest: "FilePathAccessTestHelper/TestAppC.xml",
+    static_libs: ["androidx.test.rules", "tests-fusedaemon-lib"],
+    sdk_version: "test_current",
+    srcs: ["FilePathAccessTestHelper/src/**/*.java"],
+}
+android_test_helper_app {
+    name: "TestAppCLegacy",
+    manifest: "FilePathAccessTestHelper/TestAppCLegacy.xml",
+    static_libs: ["androidx.test.rules", "tests-fusedaemon-lib"],
+    sdk_version: "test_current",
+    target_sdk_version: "28",
+    srcs: ["FilePathAccessTestHelper/src/**/*.java"],
+}
+
 android_test {
     name: "FuseDaemonTest",
     manifest: "AndroidManifest.xml",
@@ -36,9 +52,10 @@ android_test {
     java_resources: [
         ":TestAppA",
         ":TestAppB",
+        ":TestAppC",
+        ":TestAppCLegacy",
     ]
 }
-
 android_test {
     name: "FuseDaemonLegacyTest",
     manifest: "legacy/AndroidManifest.xml",

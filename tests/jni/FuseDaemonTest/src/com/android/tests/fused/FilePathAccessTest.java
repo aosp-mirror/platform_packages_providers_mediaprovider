@@ -16,6 +16,7 @@
 
 package com.android.tests.fused;
 
+import static android.app.AppOpsManager.permissionToOp;
 import static android.os.SystemProperties.getBoolean;
 import static android.provider.MediaStore.MediaColumns;
 
@@ -36,6 +37,7 @@ import static com.android.tests.fused.lib.TestUtils.assertCantRenameDirectory;
 import static com.android.tests.fused.lib.TestUtils.assertCantRenameFile;
 import static com.android.tests.fused.lib.TestUtils.assertFileContent;
 import static com.android.tests.fused.lib.TestUtils.assertThrows;
+import static com.android.tests.fused.lib.TestUtils.canOpen;
 import static com.android.tests.fused.lib.TestUtils.createFileAs;
 import static com.android.tests.fused.lib.TestUtils.deleteFileAs;
 import static com.android.tests.fused.lib.TestUtils.deleteFileAsNoThrow;
@@ -47,11 +49,13 @@ import static com.android.tests.fused.lib.TestUtils.getContentResolver;
 import static com.android.tests.fused.lib.TestUtils.getFileMimeTypeFromDatabase;
 import static com.android.tests.fused.lib.TestUtils.getFileRowIdFromDatabase;
 import static com.android.tests.fused.lib.TestUtils.getFileUri;
+import static com.android.tests.fused.lib.TestUtils.grantPermission;
 import static com.android.tests.fused.lib.TestUtils.installApp;
 import static com.android.tests.fused.lib.TestUtils.listAs;
+import static com.android.tests.fused.lib.TestUtils.openFileAs;
 import static com.android.tests.fused.lib.TestUtils.openWithMediaProvider;
 import static com.android.tests.fused.lib.TestUtils.readExifMetadataFromTestApp;
-import static com.android.tests.fused.lib.TestUtils.revokeReadExternalStorage;
+import static com.android.tests.fused.lib.TestUtils.revokePermission;
 import static com.android.tests.fused.lib.TestUtils.uninstallApp;
 import static com.android.tests.fused.lib.TestUtils.uninstallAppNoThrow;
 import static com.android.tests.fused.lib.TestUtils.updateDisplayNameWithMediaProvider;
@@ -63,6 +67,7 @@ import static junit.framework.Assert.fail;
 
 import static org.junit.Assume.assumeTrue;
 
+import android.Manifest;
 import android.app.AppOpsManager;
 import android.content.ContentResolver;
 import android.database.Cursor;
@@ -77,6 +82,7 @@ import android.system.Os;
 import android.system.OsConstants;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.cts.install.lib.TestApp;
@@ -89,7 +95,6 @@ import org.junit.runner.RunWith;
 
 import java.io.File;
 import java.io.FileDescriptor;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -139,10 +144,14 @@ public class FilePathAccessTest {
             "com.android.tests.fused.testapp.A", 1, false, "TestAppA.apk");
     private static final TestApp TEST_APP_B  = new TestApp("TestAppB",
             "com.android.tests.fused.testapp.B", 1, false, "TestAppB.apk");
+    private static final TestApp TEST_APP_C  = new TestApp("TestAppC",
+            "com.android.tests.fused.testapp.C", 1, false, "TestAppC.apk");
+    private static final TestApp TEST_APP_C_LEGACY  = new TestApp("TestAppCLegacy",
+            "com.android.tests.fused.testapp.C", 1, false, "TestAppCLegacy.apk");
     private static final String[] SYSTEM_GALERY_APPOPS = { AppOpsManager.OPSTR_WRITE_MEDIA_IMAGES,
             AppOpsManager.OPSTR_WRITE_MEDIA_VIDEO };
-    //TODO(b/150115615): used AppOpsManager#OPSTR_MANAGE_EXTERNAL_STORAGE once it's public API
-    private static final String OPSTR_MANAGE_EXTERNAL_STORAGE = "android:manage_external_storage";
+    private static final String OPSTR_MANAGE_EXTERNAL_STORAGE =
+            permissionToOp(Manifest.permission.MANAGE_EXTERNAL_STORAGE);
 
     @Before
     public void setUp() throws Exception {
@@ -380,22 +389,10 @@ public class FilePathAccessTest {
             assertThat(nonMediaFile.exists()).isTrue();
 
             // But we can't access their content
-            try (FileInputStream fis = new FileInputStream(mediaFile)) {
-                fail("Opening for read succeeded when it should have failed: " + mediaFile);
-            } catch (IOException expected) {}
-
-            try (FileInputStream fis = new FileInputStream(nonMediaFile)) {
-                fail("Opening for read succeeded when it should have failed: " + nonMediaFile);
-            } catch (IOException expected) {}
-
-            try (FileOutputStream fos = new FileOutputStream(mediaFile)) {
-                fail("Opening for write succeeded when it should have failed: " + mediaFile);
-            } catch (IOException expected) {}
-
-            try (FileOutputStream fos = new FileOutputStream(nonMediaFile)) {
-                fail("Opening for write succeeded when it should have failed: " + nonMediaFile);
-            } catch (IOException expected) {}
-
+            assertThat(canOpen(mediaFile, /* forWrite */ false)).isFalse();
+            assertThat(canOpen(nonMediaFile, /* forWrite */ true)).isFalse();
+            assertThat(canOpen(mediaFile, /* forWrite */ false)).isFalse();
+            assertThat(canOpen(nonMediaFile, /* forWrite */ true)).isFalse();
         } finally {
             deleteFileAsNoThrow(TEST_APP_A, nonMediaFile.getPath());
             deleteFileAsNoThrow(TEST_APP_A, mediaFile.getPath());
@@ -560,7 +557,8 @@ public class FilePathAccessTest {
             assertThat(listAs(TEST_APP_B, dir.getPath())).containsExactly(videoFileName);
 
             // Revoke storage permission for TEST_APP_B
-            revokeReadExternalStorage(TEST_APP_B.getPackageName());
+            revokePermission(TEST_APP_B.getPackageName(),
+                    Manifest.permission.READ_EXTERNAL_STORAGE);
             // TEST_APP_B without storage permission should see TEST_DIRECTORY in DCIM and should
             // not see new file in new TEST_DIRECTORY.
             assertThat(listAs(TEST_APP_B, DCIM_DIR.getPath())).contains(TEST_DIRECTORY_NAME);
@@ -908,6 +906,175 @@ public class FilePathAccessTest {
     }
 
     @Test
+    public void testReadStorageInvalidation() throws Exception {
+        testAppOpInvalidation(TEST_APP_C, new File(DCIM_DIR, "read_storage.jpg"),
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                AppOpsManager.OPSTR_READ_EXTERNAL_STORAGE, /* forWrite */ false);
+    }
+
+    @Test
+    public void testWriteStorageInvalidation() throws Exception {
+        testAppOpInvalidation(TEST_APP_C_LEGACY, new File(DCIM_DIR, "write_storage.jpg"),
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                AppOpsManager.OPSTR_WRITE_EXTERNAL_STORAGE, /* forWrite */ true);
+    }
+
+    @Test
+    public void testManageStorageInvalidation() throws Exception {
+        testAppOpInvalidation(TEST_APP_C, new File(DOWNLOAD_DIR, "manage_storage.pdf"),
+                /* permission */ null, OPSTR_MANAGE_EXTERNAL_STORAGE, /* forWrite */ true);
+    }
+
+    @Test
+    public void testWriteImagesInvalidation() throws Exception {
+        testAppOpInvalidation(TEST_APP_C, new File(DCIM_DIR, "write_images.jpg"),
+                /* permission */ null, AppOpsManager.OPSTR_WRITE_MEDIA_IMAGES, /* forWrite */ true);
+    }
+
+    @Test
+    public void testWriteVideoInvalidation() throws Exception {
+        testAppOpInvalidation(TEST_APP_C, new File(DCIM_DIR, "write_video.mp4"),
+                /* permission */ null, AppOpsManager.OPSTR_WRITE_MEDIA_VIDEO, /* forWrite */ true);
+    }
+
+    @Test
+    public void testAccessMediaLocationInvalidation() throws Exception {
+        File imgFile = new File(DCIM_DIR, "access_media_location.jpg");
+
+        try {
+            // Setup image with sensitive data on external storage
+            HashMap<String, String> originalExif = getExifMetadataFromRawResource(
+                    R.raw.img_with_metadata);
+            try (InputStream in = getContext().getResources().openRawResource(
+                    R.raw.img_with_metadata);
+                 OutputStream out = new FileOutputStream(imgFile)) {
+                // Dump the image we have to external storage
+                FileUtils.copy(in, out);
+            }
+            HashMap<String, String> exif = getExifMetadata(imgFile);
+            assertExifMetadataMatch(exif, originalExif);
+
+            // Install test app
+            installApp(TEST_APP_C, /* grantStoragePermissions */ true);
+
+            // Grant A_M_L and verify access to sensitive data
+            grantPermission(TEST_APP_C.getPackageName(), Manifest.permission.ACCESS_MEDIA_LOCATION);
+            HashMap<String, String> exifFromTestApp = readExifMetadataFromTestApp(TEST_APP_C,
+                    imgFile.getPath());
+            assertExifMetadataMatch(exifFromTestApp, originalExif);
+
+            // Revoke A_M_L and verify sensitive data redaction
+            revokePermission(TEST_APP_C.getPackageName(),
+                    Manifest.permission.ACCESS_MEDIA_LOCATION);
+            exifFromTestApp = readExifMetadataFromTestApp(TEST_APP_C,
+                    imgFile.getPath());
+            assertExifMetadataMismatch(exifFromTestApp, originalExif);
+
+            // Re-grant A_M_L and verify access to sensitive data
+            grantPermission(TEST_APP_C.getPackageName(), Manifest.permission.ACCESS_MEDIA_LOCATION);
+            exifFromTestApp = readExifMetadataFromTestApp(TEST_APP_C,
+                    imgFile.getPath());
+            assertExifMetadataMatch(exifFromTestApp, originalExif);
+        } finally {
+            imgFile.delete();
+            uninstallAppNoThrow(TEST_APP_C);
+        }
+    }
+
+    @Test
+    public void testAppUpdateInvalidation() throws Exception {
+        File file = new File(DCIM_DIR, "app_update.jpg");
+        try {
+            assertThat(file.createNewFile()).isTrue();
+
+            // Install legacy
+            installApp(TEST_APP_C_LEGACY, /* grantStoragePermissions */ true);
+            grantPermission(TEST_APP_C_LEGACY.getPackageName(),
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE); // Grants write access for legacy
+            // Legacy app can read and write media files contributed by others
+            assertThat(openFileAs(TEST_APP_C_LEGACY, file.getPath(), /* forWrite */ false))
+                    .isTrue();
+            assertThat(openFileAs(TEST_APP_C_LEGACY, file.getPath(), /* forWrite */ true)).isTrue();
+
+            // Update to non-legacy
+            installApp(TEST_APP_C, /* grantStoragePermissions */ true);
+            grantPermission(TEST_APP_C_LEGACY.getPackageName(),
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE); // No effect for non-legacy
+            // Non-legacy app can read media files contributed by others
+            assertThat(openFileAs(TEST_APP_C, file.getPath(), /* forWrite */ false)).isTrue();
+            // But cannot write
+            assertThat(openFileAs(TEST_APP_C, file.getPath(), /* forWrite */ true)).isFalse();
+        } finally {
+            file.delete();
+            uninstallAppNoThrow(TEST_APP_C);
+        }
+    }
+
+    @Test
+    public void testAppReinstallInvalidation() throws Exception {
+        File file = new File(DCIM_DIR, "app_reinstall.jpg");
+
+        try {
+            assertThat(file.createNewFile()).isTrue();
+
+            // Install
+            installApp(TEST_APP_C, /* grantStoragePermissions */ true);
+            assertThat(openFileAs(TEST_APP_C, file.getPath(), /* forWrite */ false)).isTrue();
+
+            // Re-install
+            uninstallAppNoThrow(TEST_APP_C);
+            installApp(TEST_APP_C, /* grantStoragePermissions */ false);
+            assertThat(openFileAs(TEST_APP_C, file.getPath(), /* forWrite */ false)).isFalse();
+        } finally {
+            file.delete();
+            uninstallAppNoThrow(TEST_APP_C);
+        }
+    }
+
+    private void testAppOpInvalidation(TestApp app, File file, @Nullable String permission,
+            String opstr, boolean forWrite) throws Exception {
+        try {
+            installApp(app, false);
+            assertThat(file.createNewFile()).isTrue();
+            assertAppOpInvalidation(app, file, permission, opstr, forWrite);
+        } finally {
+            file.delete();
+            uninstallApp(app);
+        }
+    }
+
+    /** If {@code permission} is null, appops are flipped, otherwise permissions are flipped */
+    private void assertAppOpInvalidation(TestApp app, File file, @Nullable String permission,
+            String opstr, boolean forWrite) throws Exception {
+        String packageName = app.getPackageName();
+        int uid = getContext().getPackageManager().getPackageUid(packageName, 0);
+
+        // Deny
+        if (permission != null) {
+            revokePermission(packageName, permission);
+        } else {
+            denyAppOpsToUid(uid, opstr);
+        }
+        assertThat(openFileAs(app, file.getPath(), forWrite)).isFalse();
+
+        // Grant
+        if (permission != null) {
+            grantPermission(packageName, permission);
+        } else {
+            allowAppOpsToUid(uid, opstr);
+        }
+        assertThat(openFileAs(app, file.getPath(), forWrite)).isTrue();
+
+        // Deny
+        if (permission != null) {
+            revokePermission(packageName, permission);
+        } else {
+            denyAppOpsToUid(uid, opstr);
+        }
+        assertThat(openFileAs(app, file.getPath(), forWrite)).isFalse();
+    }
+
+    @Test
     public void testSystemGalleryAppHasFullAccessToImages() throws Exception {
         final File otherAppImageFile = new File(DCIM_DIR, "other_" + IMAGE_FILE_NAME);
         final File topLevelImageFile = new File(EXTERNAL_STORAGE_DIR, IMAGE_FILE_NAME);
@@ -961,16 +1128,9 @@ public class FilePathAccessTest {
             assertThat(createFileAs(TEST_APP_A, otherAppAudioFile.getPath())).isTrue();
             assertThat(otherAppAudioFile.exists()).isTrue();
 
-            // Assert we can't write to the file
-            try (FileInputStream fis = new FileInputStream(otherAppAudioFile)) {
-                fail("Opening for read succeeded when it should have failed: " + otherAppAudioFile);
-            } catch (IOException expected) {}
-
-            // Assert we can't read from the file
-            try (FileOutputStream fos = new FileOutputStream(otherAppAudioFile)) {
-                fail("Opening for write succeeded when it should have failed: "
-                        + otherAppAudioFile);
-            } catch (IOException expected) {}
+            // Assert we can't access the file
+            assertThat(canOpen(otherAppAudioFile, /* forWrite */ false)).isFalse();
+            assertThat(canOpen(otherAppAudioFile, /* forWrite */ true)).isFalse();
 
             // Assert we can't delete the file
             assertThat(otherAppAudioFile.delete()).isFalse();

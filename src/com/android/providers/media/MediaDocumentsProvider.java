@@ -142,10 +142,6 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
     public static final String METADATA_KEY_AUDIO = "android.media.metadata.audio";
     public static final String METADATA_KEY_VIDEO = "android.media.metadata.video";
-    // Video lat/long are just that. Lat/long. Unlike EXIF where the values are
-    // in fact some funky string encoding. So we add our own contstant to convey coords.
-    public static final String METADATA_VIDEO_LATITUDE = "android.media.metadata.video:latitude";
-    public static final String METADATA_VIDEO_LONGITUTE = "android.media.metadata.video:longitude";
 
     /*
      * A mapping between media columns and metadata tag names. These keys of the
@@ -164,14 +160,10 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         IMAGE_COLUMN_MAP.put(ImageColumns.WIDTH, ExifInterface.TAG_IMAGE_WIDTH);
         IMAGE_COLUMN_MAP.put(ImageColumns.HEIGHT, ExifInterface.TAG_IMAGE_LENGTH);
         IMAGE_COLUMN_MAP.put(ImageColumns.DATE_TAKEN, ExifInterface.TAG_DATETIME);
-        IMAGE_COLUMN_MAP.put(ImageColumns.LATITUDE, ExifInterface.TAG_GPS_LATITUDE);
-        IMAGE_COLUMN_MAP.put(ImageColumns.LONGITUDE, ExifInterface.TAG_GPS_LONGITUDE);
 
         VIDEO_COLUMN_MAP.put(VideoColumns.DURATION, MediaMetadata.METADATA_KEY_DURATION);
         VIDEO_COLUMN_MAP.put(VideoColumns.HEIGHT, ExifInterface.TAG_IMAGE_LENGTH);
         VIDEO_COLUMN_MAP.put(VideoColumns.WIDTH, ExifInterface.TAG_IMAGE_WIDTH);
-        VIDEO_COLUMN_MAP.put(VideoColumns.LATITUDE, METADATA_VIDEO_LATITUDE);
-        VIDEO_COLUMN_MAP.put(VideoColumns.LONGITUDE, METADATA_VIDEO_LONGITUTE);
         VIDEO_COLUMN_MAP.put(VideoColumns.DATE_TAKEN, MediaMetadata.METADATA_KEY_DATE);
 
         AUDIO_COLUMN_MAP.put(AudioColumns.ARTIST, MediaMetadata.METADATA_KEY_ARTIST);

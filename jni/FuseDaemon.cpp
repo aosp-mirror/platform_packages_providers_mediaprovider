@@ -1506,6 +1506,7 @@ bool FuseDaemon::ShouldOpenWithFuse(int fd, bool for_read, const std::string& pa
 }
 
 void FuseDaemon::InvalidateFuseDentryCache(const std::string& path) {
+    LOG(VERBOSE) << "Invalidating FUSE dentry cache";
     if (active.load(std::memory_order_acquire)) {
         string name;
         fuse_ino_t parent;

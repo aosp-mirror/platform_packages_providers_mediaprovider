@@ -212,6 +212,9 @@ public class LegacyProviderMigrationTest {
         // metadata from the legacy provider
         executeShellCommand("pm clear " + modernProvider.applicationInfo.packageName, ui);
 
+        // Sleep to give the MediaProvider time to recover from being killed after clearing data
+        Thread.sleep(5000);
+
         // And force a scan to confirm upgraded data survives
         MediaStore.waitForIdle(context.getContentResolver());
         MediaStore.scanVolume(context.getContentResolver(),

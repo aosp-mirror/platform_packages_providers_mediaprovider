@@ -106,7 +106,8 @@ public class PlaylistResolver {
             while ((line = reader.readLine()) != null) {
                 if (!TextUtils.isEmpty(line) && !line.startsWith("#")) {
                     final int itemIndex = res.size() + 1;
-                    final File itemFile = parentPath.resolve(line).toFile();
+                    final File itemFile = parentPath.resolve(
+                            line.replace('\\', '/')).toFile();
                     try {
                         res.add(resolvePlaylistItem(resolver, uri, itemIndex, itemFile));
                     } catch (FileNotFoundException ignored) {
@@ -130,7 +131,8 @@ public class PlaylistResolver {
                 final Matcher matcher = PATTERN_PLS.matcher(line);
                 if (matcher.matches()) {
                     final int itemIndex = Integer.parseInt(matcher.group(1));
-                    final File itemFile = parentPath.resolve(matcher.group(2)).toFile();
+                    final File itemFile = parentPath.resolve(
+                            matcher.group(2).replace('\\', '/')).toFile();
                     try {
                         res.add(resolvePlaylistItem(resolver, uri, itemIndex, itemFile));
                     } catch (FileNotFoundException ignored) {
@@ -160,7 +162,8 @@ public class PlaylistResolver {
                         final String src = parser.getAttributeValue(null, ATTR_SRC);
                         if (src != null) {
                             final int itemIndex = res.size() + 1;
-                            final File itemFile = parentPath.resolve(src).toFile();
+                            final File itemFile = parentPath.resolve(
+                                    src.replace('\\', '/')).toFile();
                             try {
                                 res.add(resolvePlaylistItem(resolver, uri, itemIndex, itemFile));
                             } catch (FileNotFoundException ignored) {
@@ -179,7 +182,6 @@ public class PlaylistResolver {
             @NonNull ContentResolver resolver, @NonNull Uri uri, int itemIndex, File itemFile)
             throws IOException {
         final Uri audioUri = MediaStore.Audio.Media.getContentUri(MediaStore.getVolumeName(uri));
-        itemFile = new File(itemFile.getAbsolutePath().replace('\\', '/'));
         try (Cursor cursor = resolver.query(audioUri,
                 new String[] { MediaColumns._ID }, MediaColumns.DATA + "=?",
                 new String[] { itemFile.getCanonicalPath() }, null)) {

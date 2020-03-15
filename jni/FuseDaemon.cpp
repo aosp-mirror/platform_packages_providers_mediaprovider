@@ -99,19 +99,14 @@ const bool IS_OS_DEBUGABLE = android::base::GetIntProperty("ro.debuggable", 0);
 constexpr size_t MAX_READ_SIZE = 128 * 1024;
 // Stolen from: UserHandle#getUserId
 constexpr int PER_USER_RANGE = 100000;
-// Cache inode attributes for a 'short' time so that performance is decent and last modified time
-// stamps are not too stale
-constexpr double DEFAULT_ATTR_TIMEOUT_SECONDS = 10;
-// Ensure the VFS does not cache dentries, if it caches, the following scenario could occur:
-// 1. Process A has access to file A and does a lookup
-// 2. Process B does not have access to file A and does a lookup
-// (2) will succeed because the lookup request will not be sent from kernel to the FUSE daemon
-// and the kernel will respond from cache. Even if this by itself is not a security risk
-// because subsequent FUSE requests will fail if B does not have access to the resource.
-// It does cause indeterministic behavior because whether (2) succeeds or not depends on if
-// (1) occurred.
-// We prevent this caching by setting the entry_timeout value to 0.
-constexpr double DEFAULT_ENTRY_TIMEOUT_SECONDS = 0;
+// Cache inode attributes forever to improve performance
+// Whenver attributes could have changed on the lower filesystem outside the FUSE driver, we call
+// fuse_invalidate_entry_cache
+constexpr double DEFAULT_ATTR_TIMEOUT_SECONDS = std::numeric_limits<double>::max();
+// Cache dentries forever to improve performance
+// Whenver attributes could have changed on the lower filesystem outside the FUSE driver, we call
+// fuse_invalidate_entry_cache
+constexpr double DEFAULT_ENTRY_TIMEOUT_SECONDS = std::numeric_limits<double>::max();
 
 /*
  * In order to avoid double caching with fuse, call fadvise on the file handles
@@ -290,6 +285,8 @@ struct fuse {
     /* const */ char* zero_addr;
 
     FAdviser fadviser;
+
+    std::atomic_bool* active;
 };
 
 static inline string get_name(node* n) {
@@ -366,7 +363,7 @@ static bool is_android_path(const string& path, const string& fuse_path, uid_t u
 static double get_attr_timeout(const string& path, uid_t uid, struct fuse* fuse, node* parent) {
     if (fuse->IsRoot(parent) || is_android_path(path, fuse->path, uid)) {
         // The /0 and /0/Android attrs can be always cached, as they never change
-        return DBL_MAX;
+        return std::numeric_limits<double>::max();
     } else {
         return DEFAULT_ATTR_TIMEOUT_SECONDS;
     }
@@ -375,7 +372,7 @@ static double get_attr_timeout(const string& path, uid_t uid, struct fuse* fuse,
 static double get_entry_timeout(const string& path, uid_t uid, struct fuse* fuse, node* parent) {
     if (fuse->IsRoot(parent) || is_android_path(path, fuse->path, uid)) {
         // The /0 and /0/Android dentries can be always cached, as they are visible to all apps
-        return DBL_MAX;
+        return std::numeric_limits<double>::max();
     } else {
         return DEFAULT_ENTRY_TIMEOUT_SECONDS;
     }
@@ -433,6 +430,9 @@ static void pf_init(void* userdata, struct fuse_conn_info* conn) {
                      FUSE_CAP_EXPORT_SUPPORT | FUSE_CAP_FLOCK_LOCKS);
     conn->want |= conn->capable & mask;
     conn->max_read = MAX_READ_SIZE;
+
+    struct fuse* fuse = reinterpret_cast<struct fuse*>(userdata);
+    fuse->active->store(true, std::memory_order_release);
 }
 
 static void pf_destroy(void* userdata) {
@@ -1501,6 +1501,7 @@ bool FuseDaemon::ShouldOpenWithFuse(int fd, bool for_read, const std::string& pa
 }
 
 void FuseDaemon::InvalidateFuseDentryCache(const std::string& path) {
+    LOG(VERBOSE) << "Invalidating FUSE dentry cache";
     if (active.load(std::memory_order_acquire)) {
         string name;
         fuse_ino_t parent;
@@ -1525,6 +1526,10 @@ void FuseDaemon::InvalidateFuseDentryCache(const std::string& path) {
 
 FuseDaemon::FuseDaemon(JNIEnv* env, jobject mediaProvider) : mp(env, mediaProvider),
                                                              active(false), fuse(nullptr) {}
+
+bool FuseDaemon::IsStarted() const {
+    return active.load(std::memory_order_acquire);
+}
 
 void FuseDaemon::Start(const int fd, const std::string& path) {
     struct fuse_args args;
@@ -1576,6 +1581,7 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
         return;
     }
     fuse_default.se = se;
+    fuse_default.active = &active;
     se->fd = fd;
     se->mountpoint = strdup(path.c_str());
 
@@ -1583,8 +1589,8 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
     // fuse_session_loop(se);
     // Multi-threaded
     LOG(INFO) << "Starting fuse...";
-    active.store(true, std::memory_order_release);
     fuse_session_loop_mt(se, &config);
+    fuse->active->store(false, std::memory_order_release);
     LOG(INFO) << "Ending fuse...";
 
     if (munmap(fuse_default.zero_addr, MAX_READ_SIZE)) {
@@ -1593,7 +1599,6 @@ void FuseDaemon::Start(const int fd, const std::string& path) {
 
     fuse_opt_free_args(&args);
     fuse_session_destroy(se);
-    active.store(false, std::memory_order_relaxed);
     LOG(INFO) << "Ended fuse";
     return;
 }

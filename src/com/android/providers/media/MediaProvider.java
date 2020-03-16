@@ -64,7 +64,10 @@ import static com.android.providers.media.util.FileUtils.extractRelativePath;
 import static com.android.providers.media.util.FileUtils.extractRelativePathForDirectory;
 import static com.android.providers.media.util.FileUtils.extractTopLevelDir;
 import static com.android.providers.media.util.FileUtils.extractVolumeName;
+import static com.android.providers.media.util.FileUtils.getAbsoluteSanitizedPath;
 import static com.android.providers.media.util.FileUtils.isDownload;
+import static com.android.providers.media.util.FileUtils.sanitizeDisplayName;
+import static com.android.providers.media.util.FileUtils.sanitizePath;
 import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionManageExternalStorage;
@@ -2299,34 +2302,6 @@ public class MediaProvider extends ContentProvider {
         }
 
         Trace.endSection();
-    }
-
-    private static @NonNull String[] sanitizePath(@Nullable String path) {
-        if (path == null) {
-            return new String[0];
-        } else {
-            final String[] segments = path.split("/");
-            // If the path corresponds to the top level directory, then we return an empty path
-            // which denotes the top level directory
-            if (segments.length == 0) {
-                return new String[] { "" };
-            }
-            for (int i = 0; i < segments.length; i++) {
-                segments[i] = sanitizeDisplayName(segments[i]);
-            }
-            return segments;
-        }
-    }
-
-    private static @Nullable String sanitizeDisplayName(@Nullable String name) {
-        if (name == null) {
-            return null;
-        } else if (name.startsWith(".")) {
-            // The resulting file must not be hidden.
-            return FileUtils.buildValidFatFilename("_" + name);
-        } else {
-            return FileUtils.buildValidFatFilename(name);
-        }
     }
 
     /**
@@ -5424,16 +5399,6 @@ public class MediaProvider extends ContentProvider {
             this.redactionRanges = redactionRanges;
             this.freeOffsets = freeOffsets;
         }
-    }
-
-    @Nullable
-    private String getAbsoluteSanitizedPath(String path) {
-        final String[] pathSegments = sanitizePath(path);
-        if (pathSegments.length == 0) {
-            return null;
-        }
-        return path = "/" + String.join("/",
-                Arrays.copyOfRange(pathSegments, 1, pathSegments.length));
     }
 
     /**

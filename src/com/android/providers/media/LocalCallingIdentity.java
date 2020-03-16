@@ -83,6 +83,8 @@ public class LocalCallingIdentity {
      *
      * Note: {@code FORCE_ENABLE_SCOPED_STORAGE} should also be disabled for apps to opt out of
      * scoped storage.
+     * Note: This flag is also used in android.os.Environment. Any modifications to this flag
+     * should be reflected there as well.
      * See https://developer.android.com/training/data-storage#scoped-storage for more information.
      */
     @ChangeId
@@ -98,6 +100,8 @@ public class LocalCallingIdentity {
      *
      * Note: {@code DEFAULT_SCOPED_STORAGE} should also be enabled for apps to be enforced into
      * scoped storage.
+     * Note: This flag is also used in android.os.Environment. Any modifications to this flag
+     * should be reflected there as well.
      * See https://developer.android.com/training/data-storage#scoped-storage for more information.
      */
     @ChangeId

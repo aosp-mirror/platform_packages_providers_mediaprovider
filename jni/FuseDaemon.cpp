@@ -816,7 +816,7 @@ static handle* create_handle_for_node(struct fuse* fuse, const string& path, int
     // FUSE after that write may be served from cache
     bool direct_io = ri->isRedactionNeeded() || is_file_locked(fd, path);
 
-    handle* h = new handle(path, fd, ri, /*owner_uid*/ -1, !direct_io);
+    handle* h = new handle(path, fd, ri, !direct_io);
     node->AddHandle(h);
     return h;
 }
@@ -1080,11 +1080,6 @@ static void pf_release(fuse_req_t req,
 
     fuse->fadviser.Close(h->fd);
     if (node) {
-        // TODO(b/145737191) Legacy apps don't expect FuseDaemon to update database.
-        // Inserting/deleting the database entry might break app's functionality.
-        // if (h->owner_uid != -1) {
-        //    fuse->mp->ScanFile(h->path, h->owner_uid);
-        // }
         node->DestroyHandle(h);
     }
 

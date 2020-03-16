@@ -116,9 +116,9 @@ int isOpenAllowedInternal(JNIEnv* env, jobject media_provider_object, jmethodID 
 }
 
 void scanFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_scan_file,
-                      const string& path, uid_t uid) {
+                      const string& path) {
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
-    env->CallVoidMethod(media_provider_object, mid_scan_file, j_path.get(), uid);
+    env->CallVoidMethod(media_provider_object, mid_scan_file, j_path.get());
     CheckForJniException(env);
 }
 
@@ -241,7 +241,7 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
     mid_delete_file_ = CacheMethod(env, "deleteFile", "(Ljava/lang/String;I)I", /*is_static*/ false);
     mid_is_open_allowed_ = CacheMethod(env, "isOpenAllowed", "(Ljava/lang/String;IZ)I",
                                        /*is_static*/ false);
-    mid_scan_file_ = CacheMethod(env, "scanFile", "(Ljava/lang/String;I)V",
+    mid_scan_file_ = CacheMethod(env, "scanFile", "(Ljava/lang/String;)V",
                                  /*is_static*/ false);
     mid_is_mkdir_or_rmdir_allowed_ = CacheMethod(env, "isDirectoryCreationOrDeletionAllowed",
                                                  "(Ljava/lang/String;IZ)I", /*is_static*/ false);
@@ -290,7 +290,7 @@ int MediaProviderWrapper::InsertFile(const string& path, uid_t uid) {
 int MediaProviderWrapper::DeleteFile(const string& path, uid_t uid) {
     if (shouldBypassMediaProvider(uid)) {
         int res = unlink(path.c_str());
-        ScanFile(path, uid);
+        ScanFile(path);
         return res;
     }
 
@@ -308,15 +308,9 @@ int MediaProviderWrapper::IsOpenAllowed(const string& path, uid_t uid, bool for_
                                  for_write);
 }
 
-void MediaProviderWrapper::ScanFile(const string& path, uid_t uid) {
-    if (uid == 0) {
-        // uid = 0 is kernel or adb shell running as root and doesn't have a package associated with
-        // it. This uid should get global access hence use MediaProvider's uid.
-        uid = getuid();
-    }
-
+void MediaProviderWrapper::ScanFile(const string& path) {
     JNIEnv* env = MaybeAttachCurrentThread();
-    scanFileInternal(env, media_provider_object_, mid_scan_file_, path, uid);
+    scanFileInternal(env, media_provider_object_, mid_scan_file_, path);
 }
 
 int MediaProviderWrapper::IsCreatingDirAllowed(const string& path, uid_t uid) {

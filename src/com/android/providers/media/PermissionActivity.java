@@ -147,8 +147,8 @@ public class PermissionActivity extends Activity {
 
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(resolveTitleText());
-        builder.setPositiveButton(resolvePositiveText(), this::onPositiveAction);
-        builder.setNegativeButton(resolveNegativeText(), this::onNegativeAction);
+        builder.setPositiveButton(R.string.allow, this::onPositiveAction);
+        builder.setNegativeButton(R.string.deny, this::onNegativeAction);
         builder.setCancelable(false);
         builder.setView(bodyView);
 

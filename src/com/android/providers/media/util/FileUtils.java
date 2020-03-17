@@ -701,4 +701,49 @@ public class FileUtils {
             }
         }
     }
+
+    /** {@hide} **/
+    @Nullable
+    public static String getAbsoluteSanitizedPath(String path) {
+        final String[] pathSegments = sanitizePath(path);
+        if (pathSegments.length == 0) {
+            return null;
+        }
+        return path = "/" + String.join("/",
+                Arrays.copyOfRange(pathSegments, 1, pathSegments.length));
+    }
+
+    /** {@hide} */
+    public static @NonNull String[] sanitizePath(@Nullable String path) {
+        if (path == null) {
+            return new String[0];
+        } else {
+            final String[] segments = path.split("/");
+            // If the path corresponds to the top level directory, then we return an empty path
+            // which denotes the top level directory
+            if (segments.length == 0) {
+                return new String[] { "" };
+            }
+            for (int i = 0; i < segments.length; i++) {
+                segments[i] = sanitizeDisplayName(segments[i]);
+            }
+            return segments;
+        }
+    }
+
+    /**
+     * Sanitizes given name by appending '_' to make it non-hidden and mutating the file
+     * name to make it valid for a FAT filesystem.
+     * @hide
+     */
+    public static @Nullable String sanitizeDisplayName(@Nullable String name) {
+        if (name == null) {
+            return null;
+        } else if (name.startsWith(".")) {
+            // The resulting file must not be hidden.
+            return buildValidFatFilename("_" + name);
+        } else {
+            return buildValidFatFilename(name);
+        }
+    }
 }

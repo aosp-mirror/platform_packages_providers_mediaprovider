@@ -1234,14 +1234,8 @@ public class MediaProvider extends ContentProvider {
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
 
         try {
-            final String appSpecificDir = extractPathOwnerPackageName(path);
-            // Apps are allowed to list files only in their own external directory.
-            if (appSpecificDir != null) {
-                if (isCallingIdentitySharedPackageName(appSpecificDir)) {
-                    return new String[] {"/"};
-                } else {
-                    return new String[] {""};
-                }
+            if (isPrivatePackagePathNotOwnedByCaller(path)) {
+                return new String[] {""};
             }
 
             if (shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
@@ -1668,16 +1662,9 @@ public class MediaProvider extends ContentProvider {
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
 
         try {
-            final String oldPathPackageName = extractPathOwnerPackageName(oldPath);
-            final String newPathPackageName = extractPathOwnerPackageName(newPath);
-
-            if (oldPathPackageName != null && newPathPackageName != null) {
-                if (isCallingIdentitySharedPackageName(oldPathPackageName) &&
-                        isCallingIdentitySharedPackageName(newPathPackageName)) {
-                    return renameInLowerFs(oldPath, newPath);
-                } else {
-                    return OsConstants.EACCES;
-                }
+            if (isPrivatePackagePathNotOwnedByCaller(oldPath)
+                    || isPrivatePackagePathNotOwnedByCaller(newPath)) {
+                return OsConstants.EACCES;
             }
 
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, oldPath)
@@ -5343,6 +5330,7 @@ public class MediaProvider extends ContentProvider {
      * <li>the calling identity is an app targeting Q or older versions AND is requesting legacy
      * storage
      * <li>the calling identity holds {@code MANAGE_EXTERNAL_STORAGE}
+     * <li>the calling identity owns filePath (eg /Android/data/com.foo)
      * <li>the calling identity has permission to write images and the given file is an image file
      * <li>the calling identity has permission to write video and the given file is an video file
      * </ul>
@@ -5358,6 +5346,12 @@ public class MediaProvider extends ContentProvider {
             return true;
         }
 
+        // Files under the apps own private directory
+        final String appSpecificDir = extractPathOwnerPackageName(filePath);
+        if (appSpecificDir != null && isCallingIdentitySharedPackageName(appSpecificDir)) {
+            return true;
+        }
+
         // Apps with write access to images and/or videos can bypass our restrictions if all of the
         // the files they're accessing are of the compatible media type.
         if (canAccessMediaFile(filePath)) {
@@ -5365,6 +5359,29 @@ public class MediaProvider extends ContentProvider {
         }
 
         return false;
+    }
+
+    /**
+     * Returns true if the passed in path is an application-private data directory
+     * (such as Android/data/com.foo or Android/obb/com.foo) that does not belong to the caller.
+     */
+    private boolean isPrivatePackagePathNotOwnedByCaller(String path) {
+        // Files under the apps own private directory
+        final String appSpecificDir = extractPathOwnerPackageName(path);
+
+        if (appSpecificDir == null) {
+            return false;
+        }
+
+        final String relativePath = extractRelativePath(path);
+        // Android/media is not considered private, because it contains media that is explicitly
+        // scanned and shared by other apps
+        if (relativePath.startsWith("Android/media")) {
+            return false;
+        }
+
+        // This is a private-package path; return true if not owned by the caller
+        return !isCallingIdentitySharedPackageName(appSpecificDir);
     }
 
     /**
@@ -5465,15 +5482,6 @@ public class MediaProvider extends ContentProvider {
 
         long[] res = new long[0];
         try {
-            // Returns null if the path doesn't correspond to an app specific directory
-            final String appSpecificDir = extractPathOwnerPackageName(path);
-
-            if (appSpecificDir != null) {
-                if (isCallingIdentitySharedPackageName(appSpecificDir)) {
-                    return res;
-                }
-            }
-
             if (!isRedactionNeeded()
                     || shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
                 return res;
@@ -5594,16 +5602,9 @@ public class MediaProvider extends ContentProvider {
 
 
         try {
-            // Returns null if the path doesn't correspond to an app specific directory
-            final String appSpecificDir = extractPathOwnerPackageName(path);
-
-            if (appSpecificDir != null) {
-                if (isCallingIdentitySharedPackageName(appSpecificDir)) {
-                    return 0;
-                } else {
-                    Log.e(TAG, "Can't open a file in another app's external directory!");
-                    return OsConstants.ENOENT;
-                }
+            if (isPrivatePackagePathNotOwnedByCaller(path)) {
+                Log.e(TAG, "Can't open a file in another app's external directory!");
+                return OsConstants.ENOENT;
             }
 
             if (shouldBypassFuseRestrictions(forWrite, path)) {
@@ -5780,17 +5781,9 @@ public class MediaProvider extends ContentProvider {
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
 
         try {
-            // Returns null if the path doesn't correspond to an app specific directory
-            final String appSpecificDir = extractPathOwnerPackageName(path);
-
-            // App dirs are not indexed, so we don't create an entry for the file.
-            if (appSpecificDir != null) {
-                if (isCallingIdentitySharedPackageName(appSpecificDir)) {
-                    return 0;
-                } else {
-                    Log.e(TAG, "Can't create a file in another app's external directory");
-                    return OsConstants.ENOENT;
-                }
+            if (isPrivatePackagePathNotOwnedByCaller(path)) {
+                Log.e(TAG, "Can't create a file in another app's external directory");
+                return OsConstants.ENOENT;
             }
 
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
@@ -5863,17 +5856,9 @@ public class MediaProvider extends ContentProvider {
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
 
         try {
-            // Check if app is deleting a file under an app specific directory
-            final String appSpecificDir = extractPathOwnerPackageName(path);
-
-            // Trying to delete file under some app's external storage dir
-            if (appSpecificDir != null) {
-                if (isCallingIdentitySharedPackageName(appSpecificDir)) {
-                    return deleteFileUnchecked(path);
-                } else {
-                    Log.e(TAG, "Can't delete a file in another app's external directory!");
-                    return OsConstants.ENOENT;
-                }
+            if (isPrivatePackagePathNotOwnedByCaller(path)) {
+                Log.e(TAG, "Can't delete a file in another app's external directory!");
+                return OsConstants.ENOENT;
             }
 
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
@@ -5939,17 +5924,10 @@ public class MediaProvider extends ContentProvider {
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
 
         try {
-            // Returns null if the path doesn't correspond to an app specific directory
-            final String appSpecificDir = extractPathOwnerPackageName(path);
-
             // App dirs are not indexed, so we don't create an entry for the file.
-            if (appSpecificDir != null) {
-                if (isCallingIdentitySharedPackageName(appSpecificDir)) {
-                    return 0;
-                } else {
-                    Log.e(TAG, "Can't modify another app's external directory!");
-                    return OsConstants.EACCES;
-                }
+            if (isPrivatePackagePathNotOwnedByCaller(path)) {
+                Log.e(TAG, "Can't modify another app's external directory!");
+                return OsConstants.EACCES;
             }
 
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
@@ -5999,20 +5977,9 @@ public class MediaProvider extends ContentProvider {
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
 
         try {
-            // Returns null if the path doesn't correspond to an app specific directory
-            final String appSpecificDir = extractPathOwnerPackageName(path);
-
-            if (appSpecificDir != null) {
-                if (DIRECTORY_MEDIA.equals(sanitizePath(extractRelativePath(path))[1])) {
-                    // Allow opening external media directories of other packages.
-                    return 0;
-                }
-                if (isCallingIdentitySharedPackageName(appSpecificDir)) {
-                    return 0;
-                } else {
-                    Log.e(TAG, "Can't access another app's external directory!");
-                    return OsConstants.ENOENT;
-                }
+            if (isPrivatePackagePathNotOwnedByCaller(path)) {
+                Log.e(TAG, "Can't access another app's external directory!");
+                return OsConstants.ENOENT;
             }
 
             if (shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {

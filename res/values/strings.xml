@@ -51,6 +51,7 @@
 
     <!-- Text placed over a visual thumbnail indicating that there are more items beyond the number currently displayed on the screen. [CHAR LIMIT=6] -->
     <plurals name="permission_more_thumb">
+        <item quantity="one">+<xliff:g id="count" example="1">^1</xliff:g></item>
         <item quantity="other">+<xliff:g id="count" example="42">^1</xliff:g></item>
     </plurals>
 

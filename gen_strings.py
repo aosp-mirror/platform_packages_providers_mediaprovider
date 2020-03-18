@@ -29,7 +29,7 @@ print '''
 for verb in verbs:
     verblabel = verb
     if verb == "write":
-        verblabel = "change"
+        verblabel = "modify"
 
     verblabelcaps = verblabel[0].upper() + verblabel[1:]
     if verb == "trash":
@@ -45,15 +45,8 @@ for verb in verbs:
             print Template('''
 <!-- Dialog title asking if user will allow $verb permission to the $data item displayed below this string. [CHAR LIMIT=128] -->
 <plurals name="permission_${verb}_${data}">
-    <item quantity="one">Let <xliff:g id="app_name" example="Gmail">^1</xliff:g> move this $datalabel to trash?</item>
-    <item quantity="other">Let <xliff:g id="app_name" example="Gmail">^1</xliff:g> move <xliff:g id="count" example="42">^2</xliff:g> ${datalabel}s to trash?</item>
-</plurals>
-''').substitute(vars()).strip("\n")
-            print Template('''
-<!-- Dialog body text explaining that this $data item will be permanently deleted after the shown duration. [CHAR LIMIT=128] -->
-<plurals name="permission_${verb}_${data}_info">
-    <item quantity="one">This $datalabel will be permanently deleted after <xliff:g id="duration" example="42">^3</xliff:g> days</item>
-    <item quantity="other">These ${datalabel}s will be permanently deleted after <xliff:g id="duration" example="42">^3</xliff:g> days</item>
+    <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move this $datalabel to trash?</item>
+    <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move <xliff:g id="count" example="42">^2</xliff:g> ${datalabel}s to trash?</item>
 </plurals>
 ''').substitute(vars()).strip("\n")
 
@@ -61,8 +54,8 @@ for verb in verbs:
             print Template('''
 <!-- Dialog title asking if user will allow $verb permission to the $data item displayed below this string. [CHAR LIMIT=128] -->
 <plurals name="permission_${verb}_${data}">
-    <item quantity="one">Let <xliff:g id="app_name" example="Gmail">^1</xliff:g> move this $datalabel out of trash?</item>
-    <item quantity="other">Let <xliff:g id="app_name" example="Gmail">^1</xliff:g> move <xliff:g id="count" example="42">^2</xliff:g> ${datalabel}s out of trash?</item>
+    <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move this $datalabel out of trash?</item>
+    <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move <xliff:g id="count" example="42">^2</xliff:g> ${datalabel}s out of trash?</item>
 </plurals>
 ''').substitute(vars()).strip("\n")
 
@@ -70,17 +63,9 @@ for verb in verbs:
             print Template('''
 <!-- Dialog title asking if user will allow $verb permission to the $data item displayed below this string. [CHAR LIMIT=128] -->
 <plurals name="permission_${verb}_${data}">
-    <item quantity="one">Let <xliff:g id="app_name" example="Gmail">^1</xliff:g> $verblabel this $datalabel?</item>
-    <item quantity="other">Let <xliff:g id="app_name" example="Gmail">^1</xliff:g> $verblabel <xliff:g id="count" example="42">^2</xliff:g> ${datalabel}s?</item>
+    <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to $verblabel this $datalabel?</item>
+    <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to $verblabel <xliff:g id="count" example="42">^2</xliff:g> ${datalabel}s?</item>
 </plurals>
-''').substitute(vars()).strip("\n")
-
-
-    print Template('''
-<!-- Positive dialog button confirming that $verb permission should be granted. [CHAR LIMIT=32] -->
-<string name="permission_${verb}_grant">${verblabelcaps}</string>
-<!-- Negative dialog button confirming that $verb permission should not be granted. [CHAR LIMIT=32] -->
-<string name="permission_${verb}_deny">Cancel</string>
 ''').substitute(vars()).strip("\n")
 
 print '''

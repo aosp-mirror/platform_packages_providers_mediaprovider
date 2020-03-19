@@ -93,8 +93,6 @@ public class TestUtils {
     private static final long POLLING_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(10);
     private static final long POLLING_SLEEP_MILLIS = 100;
 
-    @Nullable private static Context sContext;
-
     /**
      * Grants {@link Manifest.permission#GRANT_RUNTIME_PERMISSIONS} to the given package.
      */
@@ -257,14 +255,7 @@ public class TestUtils {
     }
 
     public static ContentResolver getContentResolver() {
-        if (sContext != null) {
-            return sContext.getContentResolver();
-        }
         return getContext().getContentResolver();
-    }
-
-    public static void setContext(Context context) {
-        sContext = context;
     }
 
     /**
@@ -390,6 +381,7 @@ public class TestUtils {
         assertThat(fileUri).isNotNull();
         Log.i(TAG, "Uri: " + fileUri + ". Data: " + file.getPath());
         ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(fileUri, mode);
+        assertThat(pfd).isNotNull();
         return pfd;
     }
 
@@ -491,19 +483,6 @@ public class TestUtils {
             } catch (IOException expected) {
                 return false;
             }
-        }
-    }
-
-    public static boolean canOpenWithMediaProvider(File file, boolean forWrite) {
-        try {
-            final Uri fileUri = getFileUri(file);
-            if (fileUri == null) {
-                return false;
-            }
-            getContentResolver().openFileDescriptor(fileUri, forWrite ? "w" : "r");
-            return true;
-        } catch (Exception e) {
-            return false;
         }
     }
 

@@ -259,8 +259,6 @@ public class MediaProvider extends ContentProvider {
     private static final String INCLUDED_DEFAULT_DIRECTORIES =
             "android:included-default-directories";
 
-    private static final int UNKNOWN_UID = -1;
-
     /**
      * Set of {@link Cursor} columns that refer to raw filesystem paths.
      */
@@ -348,8 +346,8 @@ public class MediaProvider extends ContentProvider {
 
     /**
      * Map from UID to cached {@link LocalCallingIdentity}. Values are only
-     * maintained in this map until there's any change in the appops needed or packages
-     * used in the {@link LocalCallingIdentity}.
+     * maintained in this map while the UID is actively working with a
+     * performance-critical component, such as camera.
      */
     @GuardedBy("mCachedCallingIdentity")
     private final SparseArray<LocalCallingIdentity> mCachedCallingIdentity = new SparseArray<>();
@@ -367,28 +365,24 @@ public class MediaProvider extends ContentProvider {
         }
     };
 
+    /**
+     * Map from UID to cached {@link LocalCallingIdentity}. Values are only
+     * maintained in this map until there's any change in the appops needed or packages
+     * used in the {@link LocalCallingIdentity}.
+     */
+    @GuardedBy("mCachedCallingIdentityForFuse")
+    private final SparseArray<LocalCallingIdentity> mCachedCallingIdentityForFuse =
+            new SparseArray<>();
+
     private OnOpChangedListener mModeListener =
-            (op, packageName) -> invalidateLocalCallingIdentityCache(UNKNOWN_UID, packageName,
-                    "op " + op);
+            (op, packageName) -> invalidateLocalCallingIdentityCache(packageName, "op " + op);
 
     private LocalCallingIdentity getCachedCallingIdentityForFuse(int uid) {
-        synchronized (mCachedCallingIdentity) {
-            LocalCallingIdentity ident = mCachedCallingIdentity.get(uid);
+        synchronized (mCachedCallingIdentityForFuse) {
+            LocalCallingIdentity ident = mCachedCallingIdentityForFuse.get(uid);
             if (ident == null) {
-                ident = LocalCallingIdentity.fromExternal(getContext(), uid);
-                mCachedCallingIdentity.put(uid, ident);
-            }
-            return ident;
-        }
-    }
-
-    private LocalCallingIdentity getCachedCallingIdentityForBinder() {
-        int uid = Binder.getCallingUid();
-        synchronized (mCachedCallingIdentity) {
-            LocalCallingIdentity ident = mCachedCallingIdentity.get(uid);
-            if (ident == null) {
-                ident = LocalCallingIdentity.fromBinder(getContext(), this);
-                mCachedCallingIdentity.put(uid, ident);
+               ident = LocalCallingIdentity.fromExternal(getContext(), uid);
+               mCachedCallingIdentityForFuse.put(uid, ident);
             }
             return ident;
         }
@@ -400,7 +394,14 @@ public class MediaProvider extends ContentProvider {
      * call is finished.
      */
     private final ThreadLocal<LocalCallingIdentity> mCallingIdentity = ThreadLocal
-            .withInitial(this::getCachedCallingIdentityForBinder);
+            .withInitial(() -> {
+                synchronized (mCachedCallingIdentity) {
+                    final LocalCallingIdentity cached = mCachedCallingIdentity
+                            .get(Binder.getCallingUid());
+                    return (cached != null) ? cached
+                            : LocalCallingIdentity.fromBinder(getContext(), this);
+                }
+            });
 
     /**
      * We simply propagate the UID that is being tracked by
@@ -482,9 +483,7 @@ public class MediaProvider extends ContentProvider {
                     Uri uri = intent.getData();
                     String pkg = uri != null ? uri.getSchemeSpecificPart() : null;
                     if (pkg != null) {
-                        int uid = intent.getIntExtra(Intent.EXTRA_UID, UNKNOWN_UID);
-                        invalidateLocalCallingIdentityCache(uid, pkg,
-                                "package " + intent.getAction());
+                        invalidateLocalCallingIdentityCache(pkg, "package " + intent.getAction());
                     } else {
                         Log.w(TAG, "Failed to retrieve package from intent: " + intent.getAction());
                     }
@@ -493,21 +492,15 @@ public class MediaProvider extends ContentProvider {
         }
     };
 
-    private void invalidateLocalCallingIdentityCache(int uid, String packageName, String reason) {
-        try {
-            if (uid == UNKNOWN_UID) {
-                uid = getContext().getPackageManager().getPackageUid(packageName, 0);
+    private void invalidateLocalCallingIdentityCache(String packageName, String reason) {
+        synchronized (mCachedCallingIdentityForFuse) {
+            try {
+                Log.i(TAG, "Invalidating LocalCallingIdentity cache for package " + packageName
+                        + ". Reason: " + reason);
+                mCachedCallingIdentityForFuse.remove(
+                        getContext().getPackageManager().getPackageUid(packageName, 0));
+            } catch (NameNotFoundException ignored) {
             }
-        } catch (NameNotFoundException e) {
-            Log.wtf(TAG, "Failed to invalidate LocalCallingIdentity cache for package: "
-                    + packageName, e);
-            return;
-        }
-
-        synchronized (mCachedCallingIdentity) {
-            Log.i(TAG, "Invalidating LocalCallingIdentity cache for package " + packageName
-                    + ". Uid: " + uid + ". Reason: " + reason);
-            mCachedCallingIdentity.remove(uid);
         }
     }
 
@@ -826,6 +819,7 @@ public class MediaProvider extends ContentProvider {
                 AppOpsManager.OPSTR_CAMERA
         }, context.getMainExecutor(), mActiveListener);
 
+
         mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_READ_EXTERNAL_STORAGE,
                 null /* all packages */, mModeListener);
         mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_WRITE_EXTERNAL_STORAGE,
@@ -969,11 +963,6 @@ public class MediaProvider extends ContentProvider {
 
         synchronized (mDirectoryCache) {
             mDirectoryCache.clear();
-        }
-
-        // Purge any per uid caches
-        synchronized (mCachedCallingIdentity) {
-            mCachedCallingIdentity.clear();
         }
 
         final long durationMillis = (SystemClock.elapsedRealtime() - startTime);

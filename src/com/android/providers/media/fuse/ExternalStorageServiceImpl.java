@@ -16,9 +16,13 @@
 
 package com.android.providers.media.fuse;
 
+import static com.android.providers.media.scan.MediaScanner.REASON_MOUNTED;
+
 import android.content.ContentProviderClient;
+import android.os.Environment;
 import android.os.OperationCanceledException;
 import android.os.ParcelFileDescriptor;
+import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
 import android.service.storage.ExternalStorageService;
 import android.util.Log;
@@ -27,8 +31,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.providers.media.MediaProvider;
+import com.android.providers.media.MediaService;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -60,6 +66,28 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
                 daemon.start();
                 sFuseDaemons.put(sessionId, daemon);
             }
+        }
+    }
+
+    @Override
+    public void onVolumeStateChanged(StorageVolume vol) throws IOException {
+        MediaProvider mediaProvider = getMediaProvider();
+        String volumeName = vol.getMediaStoreVolumeName();
+
+        switch(vol.getState()) {
+            case Environment.MEDIA_MOUNTED:
+                mediaProvider.attachVolume(volumeName);
+                MediaService.onScanVolume(this, volumeName, REASON_MOUNTED);
+                break;
+            case Environment.MEDIA_UNMOUNTED:
+            case Environment.MEDIA_EJECTING:
+            case Environment.MEDIA_REMOVED:
+            case Environment.MEDIA_BAD_REMOVAL:
+                mediaProvider.detachVolume(volumeName);
+                break;
+            default:
+                Log.i(TAG, "Ignoring volume state for vol:" + volumeName
+                        + ". State: " + vol.getState());
         }
     }
 

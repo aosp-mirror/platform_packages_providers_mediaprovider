@@ -32,6 +32,7 @@ import android.annotation.CurrentTimeMillisLong;
 import android.annotation.Nullable;
 import android.media.ExifInterface;
 
+import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 
 import java.text.ParsePosition;
@@ -49,7 +50,9 @@ public class ExifUtils {
     // Pattern to check non zero timestamp
     private static final Pattern sNonZeroTimePattern = Pattern.compile(".*[1-9].*");
 
+    @GuardedBy("sFormatter")
     private static final SimpleDateFormat sFormatter;
+    @GuardedBy("sFormatterTz")
     private static final SimpleDateFormat sFormatterTz;
 
     static {
@@ -105,7 +108,10 @@ public class ExifUtils {
 
         ParsePosition pos = new ParsePosition(0);
         try {
-            Date datetime = sFormatter.parse(dateTimeString, pos);
+            final Date datetime;
+            synchronized (sFormatter) {
+                datetime = sFormatter.parse(dateTimeString, pos);
+            }
             if (datetime == null) return -1;
             return datetime.getTime();
         } catch (IllegalArgumentException e) {
@@ -122,12 +128,17 @@ public class ExifUtils {
         try {
             // The exif field is in local time. Parsing it as if it is UTC will yield time
             // since 1/1/1970 local time
-            Date datetime = sFormatter.parse(dateTimeString, pos);
+            Date datetime;
+            synchronized (sFormatter) {
+                datetime = sFormatter.parse(dateTimeString, pos);
+            }
 
             if (offsetString != null) {
                 dateTimeString = dateTimeString + " " + offsetString;
                 ParsePosition position = new ParsePosition(0);
-                datetime = sFormatterTz.parse(dateTimeString, position);
+                synchronized (sFormatterTz) {
+                    datetime = sFormatterTz.parse(dateTimeString, position);
+                }
             }
 
             if (datetime == null) return -1;

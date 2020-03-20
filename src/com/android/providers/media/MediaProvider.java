@@ -4380,7 +4380,10 @@ public class MediaProvider extends ContentProvider {
         final String userWhere = extras.getString(QUERY_ARG_SQL_SELECTION);
         final String[] userWhereArgs = extras.getStringArray(QUERY_ARG_SQL_SELECTION_ARGS);
 
-        if ("com.google.android.GoogleCamera".equals(getCallingPackageOrSelf())) {
+        // Limit the hacky workaround to camera targeting Q and below, to allow newer versions
+        // of camera that does the right thing to work correctly.
+        if ("com.google.android.GoogleCamera".equals(getCallingPackageOrSelf())
+                && getCallingPackageTargetSdkVersion() <= Build.VERSION_CODES.Q) {
             if (matchUri(uri, false) == IMAGES_MEDIA_ID) {
                 Log.w(TAG, "Working around app bug in b/111966296");
                 uri = MediaStore.Files.getContentUri("external", ContentUris.parseId(uri));

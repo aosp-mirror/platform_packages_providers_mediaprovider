@@ -43,6 +43,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Optional;
 
 @RunWith(AndroidJUnit4.class)
 public class FileUtilsTest {
@@ -70,6 +71,23 @@ public class FileUtilsTest {
         final File file = new File(mDeleteTarget, name);
         file.createNewFile();
         file.setLastModified(System.currentTimeMillis() - age);
+    }
+
+    @Test
+    public void testString() throws Exception {
+        final File file = new File(mTarget, String.valueOf(System.nanoTime()));
+
+        // Verify initial empty state
+        assertFalse(FileUtils.readString(file).isPresent());
+
+        // Verify simple writing and reading
+        FileUtils.writeString(file, Optional.of("meow"));
+        assertTrue(FileUtils.readString(file).isPresent());
+        assertEquals("meow", FileUtils.readString(file).get());
+
+        // Verify empty writing deletes file
+        FileUtils.writeString(file, Optional.empty());
+        assertFalse(FileUtils.readString(file).isPresent());
     }
 
     @Test

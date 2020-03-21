@@ -29,101 +29,31 @@
     <string name="permission_required_action" msgid="706370952366113539">"បន្ត"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"អនុញ្ញាត"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"បដិសេធ"</string>
-    <!-- no translation found for permission_more_thumb (3530243737498196228) -->
+    <!-- no translation found for permission_more_thumb (4392079224649478923) -->
     <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
       <item quantity="other">បូករួម​ទាំង​ធាតុ <xliff:g id="COUNT_1">^1</xliff:g> បន្ថែម​ទៀត</item>
       <item quantity="one">បូករួម​ទាំង​ធាតុ <xliff:g id="COUNT_0">^1</xliff:g> បន្ថែម​ទៀត</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"សម្អាត​ឃ្លាំងផ្ទុកទិន្នន័យ​កម្មវិធី​ដោយប្រើ <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> ឬ?"</string>
-    <string name="cache_clearing_dialog_text" msgid="425995541409682360">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> ចង់​សម្អាត​ឯកសារ​បណ្ដោះអាសន្ន​មួយចំនួន។ ការយល់ព្រម​អាចនឹង​បង្កើន​ការប្រើប្រាស់​ទិន្នន័យ ឬ​ថ្ម។"</string>
+    <!-- no translation found for cache_clearing_dialog_title (4672878017407595782) -->
+    <skip />
+    <!-- no translation found for cache_clearing_dialog_text (7057784635111940957) -->
+    <skip />
     <string name="allow" msgid="8885707816848569619">"អនុញ្ញាត"</string>
     <string name="deny" msgid="6040983710442068936">"បដិសេធ"</string>
-    <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
-      <item quantity="other">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> ប្ដូរ​ឯកសារ​សំឡេង <xliff:g id="COUNT">^2</xliff:g> ឬ​?</item>
-      <item quantity="one">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> ប្ដូរ​ឯកសារ​សំឡេង​នេះ​ឬ​?</item>
-    </plurals>
-    <plurals name="permission_write_video" formatted="false" msgid="8695335317588947410">
-      <item quantity="other">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> ប្ដូរ​វីដេអូ <xliff:g id="COUNT">^2</xliff:g> ឬ​?</item>
-      <item quantity="one">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> ប្ដូរ​វីដេអូ​នេះ​ឬ​?</item>
-    </plurals>
-    <plurals name="permission_write_image" formatted="false" msgid="9032317900030650266">
-      <item quantity="other">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> ប្ដូរ​រូបថត <xliff:g id="COUNT">^2</xliff:g> សន្លឹក​ឬ​?</item>
-      <item quantity="one">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> ប្ដូរ​រូបថត​នេះ​ឬ​?</item>
-    </plurals>
-    <plurals name="permission_write_generic" formatted="false" msgid="3099002288826692797">
-      <item quantity="other">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> ប្ដូរ​ធាតុ <xliff:g id="COUNT">^2</xliff:g> ឬ​?</item>
-      <item quantity="one">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> ប្ដូរ​ធាតុ​នេះ​ឬ​?</item>
-    </plurals>
-    <string name="permission_write_grant" msgid="3160858917750790130">"ប្ដូរ"</string>
-    <string name="permission_write_deny" msgid="7090074081877311071">"បោះបង់"</string>
-    <plurals name="permission_trash_audio" formatted="false" msgid="6116371056718108592">
-      <item quantity="other">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> ផ្លាស់ទី​ឯកសារ​សំឡេង <xliff:g id="COUNT">^2</xliff:g> ទៅ​ធុងសំរាម​ឬ​?</item>
-      <item quantity="one">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> ផ្លាស់ទី​ឯកសារ​សំឡេង​នេះ​ទៅ​ធុងសំរាម​ឬ​?</item>
-    </plurals>
-    <plurals name="permission_trash_audio_info" formatted="false" msgid="5002847308948758655">
-      <item quantity="other">ឯកសារ​សំឡេង​ទាំងនេះ​នឹង​ត្រូវ​លុប​ជា​អចិន្ត្រៃយ៍ បន្ទាប់ពី​រយៈពេល <xliff:g id="DURATION_1">^3</xliff:g> ថ្ងៃ</item>
-      <item quantity="one">ឯកសារ​សំឡេង​នេះ​នឹង​ត្រូវ​លុប​ជា​អចិន្ត្រៃយ៍ បន្ទាប់ពី​រយៈពេល <xliff:g id="DURATION_0">^3</xliff:g> ថ្ងៃ</item>
-    </plurals>
-    <plurals name="permission_trash_video" formatted="false" msgid="7900111984425589714">
-      <item quantity="other">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> ផ្លាស់ទី​វីដេអូ <xliff:g id="COUNT">^2</xliff:g> ទៅ​ធុងសំរាម​ឬ​?</item>
-      <item quantity="one">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> ផ្លាស់ទី​វីដេអូ​នេះ​ទៅ​ធុងសំរាម​ឬ​?</item>
-    </plurals>
-    <plurals name="permission_trash_video_info" formatted="false" msgid="4604871492287117394">
-      <item quantity="other">វីដេអូ​ទាំងនេះ​នឹង​ត្រូវ​លុប​ជា​អចិន្ត្រៃយ៍ បន្ទាប់ពី​រយៈពេល <xliff:g id="DURATION_1">^3</xliff:g> ថ្ងៃ</item>
-      <item quantity="one">វីដេអូ​នេះ​នឹង​ត្រូវ​លុប​ជា​អចិន្ត្រៃយ៍ បន្ទាប់ពី​រយៈពេល <xliff:g id="DURATION_0">^3</xliff:g> ថ្ងៃ</item>
-    </plurals>
-    <plurals name="permission_trash_image" formatted="false" msgid="9204660448046457869">
-      <item quantity="other">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> ផ្លាស់ទី​រូបថត <xliff:g id="COUNT">^2</xliff:g> សន្លឹក​ទៅ​ធុងសំរាម​ឬ​?</item>
-      <item quantity="one">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> ផ្លាស់ទី​រូបថត​នេះ​ទៅ​ធុងសំរាម​ឬ​?</item>
-    </plurals>
-    <plurals name="permission_trash_image_info" formatted="false" msgid="4214797662365755925">
-      <item quantity="other">រូបថត​ទាំងនេះ​នឹង​ត្រូវ​លុប​ជា​អចិន្ត្រៃយ៍ បន្ទាប់ពី​រយៈពេល <xliff:g id="DURATION_1">^3</xliff:g> ថ្ងៃ</item>
-      <item quantity="one">រូបថត​នេះ​នឹង​ត្រូវ​លុប​ជា​អចិន្ត្រៃយ៍ បន្ទាប់ពី​រយៈពេល <xliff:g id="DURATION_0">^3</xliff:g> ថ្ងៃ</item>
-    </plurals>
-    <plurals name="permission_trash_generic" formatted="false" msgid="427752775725644743">
-      <item quantity="other">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> ផ្លាស់ទី​ធាតុ <xliff:g id="COUNT">^2</xliff:g> ទៅ​ធុងសំរាម​ឬ​?</item>
-      <item quantity="one">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> ផ្លាស់ទី​ធាតុ​នេះ​ទៅ​ធុងសំរាម​ឬ​?</item>
-    </plurals>
-    <plurals name="permission_trash_generic_info" formatted="false" msgid="7932965324027540546">
-      <item quantity="other">ធាតុ​ទាំងនេះ​នឹង​ត្រូវ​លុប​ជា​អចិន្ត្រៃយ៍ បន្ទាប់ពី​រយៈពេល <xliff:g id="DURATION_1">^3</xliff:g> ថ្ងៃ</item>
-      <item quantity="one">ធាតុ​នេះ​នឹង​ត្រូវ​លុប​ជា​អចិន្ត្រៃយ៍ បន្ទាប់ពី​រយៈពេល <xliff:g id="DURATION_0">^3</xliff:g> ថ្ងៃ</item>
-    </plurals>
-    <string name="permission_trash_grant" msgid="2279489962040272178">"ផ្លាស់ទី​ទៅ​ធុងសំរាម"</string>
-    <string name="permission_trash_deny" msgid="2447949475239137483">"បោះបង់"</string>
-    <plurals name="permission_untrash_audio" formatted="false" msgid="5716379492864435914">
-      <item quantity="other">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> ផ្លាស់ទី​ឯកសារ​សំឡេង <xliff:g id="COUNT">^2</xliff:g> ចេញពី​ធុងសំរាម​ឬ​?</item>
-      <item quantity="one">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> ផ្លាស់ទី​ឯកសារ​សំឡេង​នេះ​ចេញពី​ធុងសំរាម​ឬ​?</item>
-    </plurals>
-    <plurals name="permission_untrash_video" formatted="false" msgid="4554487646802678525">
-      <item quantity="other">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> ផ្លាស់ទី​វីដេអូ <xliff:g id="COUNT">^2</xliff:g> ចេញពី​ធុងសំរាម​ឬ​?</item>
-      <item quantity="one">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> ផ្លាស់ទី​វីដេអូ​នេះ​ចេញពី​ធុងសំរាម​ឬ​?</item>
-    </plurals>
-    <plurals name="permission_untrash_image" formatted="false" msgid="3209306923499767662">
-      <item quantity="other">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> ផ្លាស់ទី​រូបថត <xliff:g id="COUNT">^2</xliff:g> សន្លឹក​ចេញពី​ធុងសំរាម​ឬ​?</item>
-      <item quantity="one">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> ផ្លាស់ទី​រូបថត​នេះ​ចេញពី​ធុងសំរាម​ឬ​?</item>
-    </plurals>
-    <plurals name="permission_untrash_generic" formatted="false" msgid="4607666277638602132">
-      <item quantity="other">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> ផ្លាស់ទី​ធាតុ <xliff:g id="COUNT">^2</xliff:g> ចេញពី​ធុងសំរាម​ឬ​?</item>
-      <item quantity="one">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> ផ្លាស់ទី​ធាតុ​នេះ​ចេញពី​ធុងសំរាម​ឬ​?</item>
-    </plurals>
-    <string name="permission_untrash_grant" msgid="8438940480373451790">"ផ្លាស់ទី​ចេញពី​ធុងសំរាម"</string>
-    <string name="permission_untrash_deny" msgid="8008055757469903604">"បោះបង់"</string>
-    <plurals name="permission_delete_audio" formatted="false" msgid="6390202287788379608">
-      <item quantity="other">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> លុប​ឯកសារ​សំឡេង <xliff:g id="COUNT">^2</xliff:g> ឬ​?</item>
-      <item quantity="one">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> លុប​ឯកសារ​សំឡេង​នេះ​ឬ​?</item>
-    </plurals>
-    <plurals name="permission_delete_video" formatted="false" msgid="1577978206881284398">
-      <item quantity="other">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> លុប​វីដេអូ <xliff:g id="COUNT">^2</xliff:g> ឬ​?</item>
-      <item quantity="one">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> លុប​វីដេអូ​នេះ​ឬ​?</item>
-    </plurals>
-    <plurals name="permission_delete_image" formatted="false" msgid="8435429587272893063">
-      <item quantity="other">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> លុប​រូបថត <xliff:g id="COUNT">^2</xliff:g> សន្លឹក​ឬ​?</item>
-      <item quantity="one">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> លុប​រូបថត​នេះ​ឬ​?</item>
-    </plurals>
-    <plurals name="permission_delete_generic" formatted="false" msgid="5949614272661654178">
-      <item quantity="other">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> លុប​ធាតុ <xliff:g id="COUNT">^2</xliff:g> ឬ?</item>
-      <item quantity="one">អនុញ្ញាត​ឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> លុប​ធាតុ​នេះ​ឬ​?</item>
-    </plurals>
-    <string name="permission_delete_grant" msgid="8682518049167813926">"លុប"</string>
-    <string name="permission_delete_deny" msgid="3742780367403897552">"បោះបង់"</string>
+    <!-- no translation found for permission_write_audio (8914759422381305478) -->
+    <!-- no translation found for permission_write_video (1098082003326873084) -->
+    <!-- no translation found for permission_write_image (748745548893845892) -->
+    <!-- no translation found for permission_write_generic (3270172714743671779) -->
+    <!-- no translation found for permission_trash_audio (8907813869381755423) -->
+    <!-- no translation found for permission_trash_video (4672871911555787438) -->
+    <!-- no translation found for permission_trash_image (6400475304599873227) -->
+    <!-- no translation found for permission_trash_generic (3814167365075039711) -->
+    <!-- no translation found for permission_untrash_audio (7795265980168966321) -->
+    <!-- no translation found for permission_untrash_video (332894888445508879) -->
+    <!-- no translation found for permission_untrash_image (7024071378733595056) -->
+    <!-- no translation found for permission_untrash_generic (6872817093731198374) -->
+    <!-- no translation found for permission_delete_audio (6848547621165184719) -->
+    <!-- no translation found for permission_delete_video (1251942606336748563) -->
+    <!-- no translation found for permission_delete_image (2303409455224710111) -->
+    <!-- no translation found for permission_delete_generic (1412218850351841181) -->
 </resources>

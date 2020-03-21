@@ -198,6 +198,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -205,6 +206,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -249,6 +251,14 @@ public class MediaProvider extends ContentProvider {
     private static final String DIRECTORY_ANDROID = "Android";
 
     private static final String DIRECTORY_MEDIA = "media";
+    private static final String DIRECTORY_THUMBNAILS = ".thumbnails";
+
+    /**
+     * Hard-coded filename where the current value of
+     * {@link DatabaseHelper#getOrCreateUuid} is persisted on a physical SD card
+     * to help identify stale thumbnail collections.
+     */
+    private static final String FILE_DATABASE_UUID = ".database_uuid";
 
     /**
      * Specify what default directories the caller gets full access to. By default, the caller
@@ -741,6 +751,48 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    /**
+     * Ensure that any thumbnail collections on the given storage volume can be
+     * used with the given {@link DatabaseHelper}. If the
+     * {@link DatabaseHelper#getOrCreateUuid} doesn't match the UUID found on
+     * disk, then all thumbnails will be considered stable and will be deleted.
+     */
+    private void ensureThumbnailsValid(String volumeName, DatabaseHelper helper) {
+        final String uuidFromDatabase = DatabaseHelper
+                .getOrCreateUuid(helper.getReadableDatabase());
+        try {
+            for (File dir : getThumbnailDirectories(volumeName)) {
+                if (!dir.exists()) {
+                    dir.mkdirs();
+                }
+
+                final File file = new File(dir, FILE_DATABASE_UUID);
+                final Optional<String> uuidFromDisk = FileUtils.readString(file);
+
+                final boolean updateUuid;
+                if (!uuidFromDisk.isPresent()) {
+                    // For newly inserted volumes or upgrading of existing volumes,
+                    // assume that our current UUID is valid
+                    updateUuid = true;
+                } else if (!Objects.equals(uuidFromDatabase, uuidFromDisk.get())) {
+                    // The UUID of database disagrees with the one on disk,
+                    // which means we can't trust any thumbnails
+                    Log.d(TAG, "Invalidating all thumbnails under " + dir);
+                    FileUtils.walkFileTreeContents(dir.toPath(), this::deleteAndInvalidate);
+                    updateUuid = true;
+                } else {
+                    updateUuid = false;
+                }
+
+                if (updateUuid) {
+                    FileUtils.writeString(file, Optional.of(uuidFromDatabase));
+                }
+            }
+        } catch (IOException e) {
+            Log.w(TAG, "Failed to ensure thumbnails valid for " + volumeName, e);
+        }
+    }
+
     @Override
     public void attachInfo(Context context, ProviderInfo info) {
         Log.v(TAG, "Attached " + info.authority + " from " + info.applicationInfo.packageName);
@@ -900,6 +952,9 @@ public class MediaProvider extends ContentProvider {
             } catch (IOException e) {
                 Log.w(TAG, e);
             }
+
+            // Ensure that our thumbnails are valid
+            ensureThumbnailsValid(volumeName, helper);
         }
 
         // Delete any stale thumbnails
@@ -2070,7 +2125,7 @@ public class MediaProvider extends ContentProvider {
                 defaultMediaType = FileColumns.MEDIA_TYPE_IMAGE;
                 defaultPrimary = Environment.DIRECTORY_MUSIC;
                 allowedPrimary = Arrays.asList(defaultPrimary);
-                defaultSecondary = ".thumbnails";
+                defaultSecondary = DIRECTORY_THUMBNAILS;
                 break;
             case VIDEO_THUMBNAILS:
             case VIDEO_THUMBNAILS_ID:
@@ -2078,7 +2133,7 @@ public class MediaProvider extends ContentProvider {
                 defaultMediaType = FileColumns.MEDIA_TYPE_IMAGE;
                 defaultPrimary = Environment.DIRECTORY_MOVIES;
                 allowedPrimary = Arrays.asList(defaultPrimary);
-                defaultSecondary = ".thumbnails";
+                defaultSecondary = DIRECTORY_THUMBNAILS;
                 break;
             case IMAGES_THUMBNAILS:
             case IMAGES_THUMBNAILS_ID:
@@ -2086,7 +2141,7 @@ public class MediaProvider extends ContentProvider {
                 defaultMediaType = FileColumns.MEDIA_TYPE_IMAGE;
                 defaultPrimary = Environment.DIRECTORY_PICTURES;
                 allowedPrimary = Arrays.asList(defaultPrimary);
-                defaultSecondary = ".thumbnails";
+                defaultSecondary = DIRECTORY_THUMBNAILS;
                 break;
             case AUDIO_PLAYLISTS:
             case AUDIO_PLAYLISTS_ID:
@@ -3962,6 +4017,21 @@ public class MediaProvider extends ContentProvider {
 
     private Bundle callInternal(String method, String arg, Bundle extras) {
         switch (method) {
+            case MediaStore.RUN_IDLE_MAINTENANCE_CALL: {
+                // Protect ourselves from random apps by requiring a generic
+                // permission held by common debugging components, such as shell
+                getContext().enforceCallingOrSelfPermission(
+                        android.Manifest.permission.DUMP, TAG);
+                final LocalCallingIdentity token = clearLocalCallingIdentity();
+                final CallingIdentity providerToken = clearCallingIdentity();
+                try {
+                    onIdleMaintenance(new CancellationSignal());
+                } finally {
+                    restoreCallingIdentity(providerToken);
+                    restoreLocalCallingIdentity(token);
+                }
+                return null;
+            }
             case MediaStore.WAIT_FOR_IDLE_CALL: {
                 ForegroundThread.waitForIdle();
                 BackgroundThread.waitForIdle();
@@ -4209,25 +4279,22 @@ public class MediaProvider extends ContentProvider {
         Arrays.sort(knownIdsRaw);
 
         for (String volumeName : getExternalVolumeNames()) {
-            final File volumePath;
+            final List<File> thumbDirs;
             try {
-                volumePath = getVolumePath(volumeName);
+                thumbDirs = getThumbnailDirectories(volumeName);
             } catch (FileNotFoundException e) {
                 Log.w(TAG, "Failed to resolve volume " + volumeName, e);
                 continue;
             }
 
             // Reconcile all thumbnails, deleting stale items
-            for (File thumbDir : new File[] {
-                    FileUtils.buildPath(volumePath, Environment.DIRECTORY_MUSIC, ".thumbnails"),
-                    FileUtils.buildPath(volumePath, Environment.DIRECTORY_MOVIES, ".thumbnails"),
-                    FileUtils.buildPath(volumePath, Environment.DIRECTORY_PICTURES, ".thumbnails"),
-            }) {
+            for (File thumbDir : thumbDirs) {
                 // Possibly bail before digging into each directory
                 signal.throwIfCanceled();
 
                 final File[] files = thumbDir.listFiles();
                 for (File thumbFile : (files != null) ? files : new File[0]) {
+                    if (Objects.equals(thumbFile.getName(), FILE_DATABASE_UUID)) continue;
                     final String name = FileUtils.extractFileName(thumbFile.getName());
                     try {
                         final long id = Long.parseLong(name);
@@ -4239,7 +4306,7 @@ public class MediaProvider extends ContentProvider {
                     }
 
                     Log.v(TAG, "Deleting stale thumbnail " + thumbFile);
-                    thumbFile.delete();
+                    deleteAndInvalidate(thumbFile);
                     prunedCount++;
                 }
             }
@@ -4265,7 +4332,7 @@ public class MediaProvider extends ContentProvider {
             final String volumeName = resolveVolumeName(uri);
             final File volumePath = getVolumePath(volumeName);
             return FileUtils.buildPath(volumePath, directoryName,
-                    ".thumbnails", ContentUris.parseId(uri) + ".jpg");
+                    DIRECTORY_THUMBNAILS, ContentUris.parseId(uri) + ".jpg");
         }
 
         public abstract Bitmap getThumbnailBitmap(Uri uri, CancellationSignal signal)
@@ -4325,12 +4392,12 @@ public class MediaProvider extends ContentProvider {
                 // remaining temporary file and close all our local FDs
                 FileUtils.closeQuietly(thumbWrite);
                 FileUtils.closeQuietly(thumbRead);
-                thumbTempFile.delete();
+                deleteAndInvalidate(thumbTempFile);
             }
         }
 
         public void invalidateThumbnail(Uri uri) throws IOException {
-            getThumbnailFile(uri).delete();
+            deleteAndInvalidate(getThumbnailFile(uri));
         }
     }
 
@@ -4357,6 +4424,14 @@ public class MediaProvider extends ContentProvider {
                     mThumbSize, signal);
         }
     };
+
+    private List<File> getThumbnailDirectories(String volumeName) throws FileNotFoundException {
+        final File volumePath = getVolumePath(volumeName);
+        return Arrays.asList(
+                FileUtils.buildPath(volumePath, DIRECTORY_MUSIC, DIRECTORY_THUMBNAILS),
+                FileUtils.buildPath(volumePath, DIRECTORY_MOVIES, DIRECTORY_THUMBNAILS),
+                FileUtils.buildPath(volumePath, DIRECTORY_PICTURES, DIRECTORY_THUMBNAILS));
+    }
 
     private void invalidateThumbnails(Uri uri) {
         Trace.beginSection("invalidateThumbnails");
@@ -4435,7 +4510,10 @@ public class MediaProvider extends ContentProvider {
         final String userWhere = extras.getString(QUERY_ARG_SQL_SELECTION);
         final String[] userWhereArgs = extras.getStringArray(QUERY_ARG_SQL_SELECTION_ARGS);
 
-        if ("com.google.android.GoogleCamera".equals(getCallingPackageOrSelf())) {
+        // Limit the hacky workaround to camera targeting Q and below, to allow newer versions
+        // of camera that does the right thing to work correctly.
+        if ("com.google.android.GoogleCamera".equals(getCallingPackageOrSelf())
+                && getCallingPackageTargetSdkVersion() <= Build.VERSION_CODES.Q) {
             if (matchUri(uri, false) == IMAGES_MEDIA_ID) {
                 Log.w(TAG, "Working around app bug in b/111966296");
                 uri = MediaStore.Files.getContentUri("external", ContentUris.parseId(uri));
@@ -4632,12 +4710,8 @@ public class MediaProvider extends ContentProvider {
                 Log.d(TAG, "Moving " + beforePath + " to " + afterPath);
                 try {
                     Os.rename(beforePath, afterPath);
-                    if (!FuseDaemon.native_is_fuse_thread()) {
-                        // If we are on a FUSE thread, we don't need to invalidate,
-                        // (and *must* not, otherwise we'd crash) because the rename is already
-                        // reflected in the lower filesystem
-                        invalidateFuseDentry(beforePath);
-                    }
+                    invalidateFuseDentry(beforePath);
+                    invalidateFuseDentry(afterPath);
                 } catch (ErrnoException e) {
                     throw new IllegalStateException(e);
                 }
@@ -5082,7 +5156,7 @@ public class MediaProvider extends ContentProvider {
         return new File(filePath);
     }
 
-    private FuseDaemon getFuseDaemonForFile(File file) {
+    private @Nullable FuseDaemon getFuseDaemonForFile(@NonNull File file) {
         StorageVolume volume = mStorageManager.getStorageVolume(file);
         if (volume == null) {
             return null;
@@ -5090,9 +5164,20 @@ public class MediaProvider extends ContentProvider {
         return ExternalStorageServiceImpl.getFuseDaemon(volume.getId());
     }
 
-    private void invalidateFuseDentry(String path) {
+    private void invalidateFuseDentry(@NonNull File file) {
+        invalidateFuseDentry(file.getAbsolutePath());
+    }
+
+    private void invalidateFuseDentry(@NonNull String path) {
         FuseDaemon daemon = getFuseDaemonForFile(new File(path));
         if (daemon != null) {
+            if (FuseDaemon.native_is_fuse_thread()) {
+                // If we are on a FUSE thread, we don't need to invalidate,
+                // (and *must* not, otherwise we'd crash) because the invalidation
+                // is already reflected in the lower filesystem
+                return;
+            }
+
             daemon.invalidateFuseDentryCache(path);
         } else {
             Log.w(TAG, "Failed to invalidate FUSE dentry. Daemon unavailable for path " + path);
@@ -5245,17 +5330,20 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    private void deleteAndInvalidate(@NonNull Path path) {
+        deleteAndInvalidate(path.toFile());
+    }
+
+    private void deleteAndInvalidate(@NonNull File file) {
+        file.delete();
+        invalidateFuseDentry(file);
+    }
+
     private void deleteIfAllowed(Uri uri, Bundle extras, String path) {
         try {
             final File file = new File(path);
             checkAccess(uri, extras, file, true);
-            file.delete();
-            if (!FuseDaemon.native_is_fuse_thread()) {
-                // If we are on a FUSE thread, we don't need to invalidate,
-                // (and *must* not, otherwise we'd crash) because the delete is already
-                // reflected in the lower filesystem
-                invalidateFuseDentry(path);
-            }
+            deleteAndInvalidate(file);
         } catch (Exception e) {
             Log.e(TAG, "Couldn't delete " + path, e);
         }
@@ -6367,6 +6455,7 @@ public class MediaProvider extends ContentProvider {
                 final DatabaseHelper helper = MediaStore.VOLUME_INTERNAL.equals(volume)
                         ? mInternalDatabase : mExternalDatabase;
                 ensureDefaultFolders(volume, helper);
+                ensureThumbnailsValid(volume, helper);
             });
         }
         return uri;

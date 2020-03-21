@@ -16,83 +16,134 @@
 
 package com.android.providers.media;
 
+import static android.os.Environment.DIRECTORY_MOVIES;
+import static android.os.Environment.DIRECTORY_PICTURES;
 import static android.os.Environment.buildPath;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import android.content.ContentProviderClient;
+import android.app.UiAutomation;
 import android.content.ContentResolver;
 import android.content.ContentUris;
-import android.content.ContentValues;
 import android.content.Context;
 import android.net.Uri;
-import android.os.CancellationSignal;
 import android.os.Environment;
+import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
-import android.provider.MediaStore.MediaColumns;
+import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.scan.MediaScannerTest;
-import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
-import com.android.providers.media.R;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 @RunWith(AndroidJUnit4.class)
 public class IdleServiceTest {
     private static final String TAG = MediaProviderTest.TAG;
 
     @Test
-    @Ignore("Enable as part of b/142561358")
     public void testPruneThumbnails() throws Exception {
         final Context context = InstrumentationRegistry.getTargetContext();
-        final Context isolatedContext = new IsolatedContext(context, "modern");
-        final ContentResolver isolatedResolver = isolatedContext.getContentResolver();
+        final ContentResolver resolver = context.getContentResolver();
+
+        final File dir = Environment.getExternalStorageDirectory();
+        final File mediaDir = context.getExternalMediaDirs()[0];
 
         // Insert valid item into database
-        final ContentValues values = new ContentValues();
-        final File dir = Environment.getExternalStorageDirectory();
         final File file = MediaScannerTest.stage(R.raw.test_image,
-                new File(dir, System.nanoTime() + ".jpg"));
-        values.put(MediaColumns.DATA, file.getAbsolutePath());
-        final Uri uri = isolatedResolver.insert(
-                MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), values);
+                new File(mediaDir, System.nanoTime() + ".jpg"));
+        final Uri uri = MediaStore.scanFile(resolver, file);
         final long id = ContentUris.parseId(uri);
 
-        // Touch some thumbnail files
-        final File a = buildPath(dir, Environment.DIRECTORY_PICTURES, ".thumbnails", "1234567.jpg");
-        final File b = buildPath(dir, Environment.DIRECTORY_MOVIES, ".thumbnails", "7654321.jpg");
-        final File c = buildPath(dir, Environment.DIRECTORY_PICTURES, ".thumbnails", id + ".jpg");
-        final File d = buildPath(dir, Environment.DIRECTORY_PICTURES, ".thumbnails", "random.bin");
+        // Let things settle so our thumbnails don't get invalidated
+        MediaStore.waitForIdle(resolver);
 
-        createNewFileWithMkdirs(a);
-        createNewFileWithMkdirs(b);
-        createNewFileWithMkdirs(c);
-        createNewFileWithMkdirs(d);
+        // Touch some thumbnail files
+        final File a = touch(buildPath(dir, DIRECTORY_PICTURES, ".thumbnails", "1234567.jpg"));
+        final File b = touch(buildPath(dir, DIRECTORY_MOVIES, ".thumbnails", "7654321.jpg"));
+        final File c = touch(buildPath(dir, DIRECTORY_PICTURES, ".thumbnails", id + ".jpg"));
+        final File d = touch(buildPath(dir, DIRECTORY_PICTURES, ".thumbnails", "random.bin"));
 
         // Idle maintenance pass should clean up unknown files
-        try (ContentProviderClient cpc = isolatedResolver
-                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
-            ((MediaProvider) cpc.getLocalContentProvider())
-                    .onIdleMaintenance(new CancellationSignal());
-        }
+        runIdleMaintenance(resolver);
+        assertFalse(exists(a));
+        assertFalse(exists(b));
+        assertTrue(exists(c));
+        assertFalse(exists(d));
 
-        assertFalse(a.exists());
-        assertFalse(b.exists());
-        assertTrue(c.exists());
-        assertFalse(d.exists());
+        // And change the UUID, which emulates ejecting and mounting a different
+        // storage device; all thumbnails should then be invalidated
+        final File uuidFile = buildPath(dir, Environment.DIRECTORY_PICTURES,
+                ".thumbnails", ".database_uuid");
+        delete(uuidFile);
+        touch(uuidFile);
+
+        // Idle maintenance pass should clean up all files
+        runIdleMaintenance(resolver);
+        assertFalse(exists(a));
+        assertFalse(exists(b));
+        assertFalse(exists(c));
+        assertFalse(exists(d));
     }
 
-    private static void createNewFileWithMkdirs(File file) throws IOException {
-        file.getParentFile().mkdirs();
-        file.createNewFile();
+    private static void runIdleMaintenance(ContentResolver resolver) {
+        final UiAutomation ui = InstrumentationRegistry.getInstrumentation().getUiAutomation();
+        ui.adoptShellPermissionIdentity(android.Manifest.permission.DUMP);
+        try {
+            MediaStore.runIdleMaintenance(resolver);
+        } finally {
+            ui.dropShellPermissionIdentity();
+        }
+    }
+
+    public static File delete(File file) throws IOException {
+        executeShellCommand("rm -rf " + file.getAbsolutePath());
+        assertFalse(exists(file));
+        return file;
+    }
+
+    public static File touch(File file) throws IOException {
+        executeShellCommand("mkdir -p " + file.getParentFile().getAbsolutePath());
+        executeShellCommand("touch " + file.getAbsolutePath());
+        assertTrue(exists(file));
+        return file;
+    }
+
+    public static boolean exists(File file) throws IOException {
+        final String path = file.getAbsolutePath();
+        return executeShellCommand("ls -la " + path).contains(path);
+    }
+
+    private static String executeShellCommand(String command) throws IOException {
+        Log.v(TAG, "$ " + command);
+        ParcelFileDescriptor pfd = InstrumentationRegistry.getInstrumentation().getUiAutomation()
+                .executeShellCommand(command.toString());
+        BufferedReader br = null;
+        try (InputStream in = new FileInputStream(pfd.getFileDescriptor());) {
+            br = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            String str = null;
+            StringBuilder out = new StringBuilder();
+            while ((str = br.readLine()) != null) {
+                Log.v(TAG, "> " + str);
+                out.append(str);
+            }
+            return out.toString();
+        } finally {
+            if (br != null) {
+                br.close();
+            }
+        }
     }
 }

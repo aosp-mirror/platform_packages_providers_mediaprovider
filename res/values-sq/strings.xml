@@ -29,101 +29,31 @@
     <string name="permission_required_action" msgid="706370952366113539">"Vazhdo"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Lejo"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Refuzo"</string>
-    <!-- no translation found for permission_more_thumb (3530243737498196228) -->
+    <!-- no translation found for permission_more_thumb (4392079224649478923) -->
     <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
       <item quantity="other">Dhe <xliff:g id="COUNT_1">^1</xliff:g> artikuj të tjerë</item>
       <item quantity="one">Dhe <xliff:g id="COUNT_0">^1</xliff:g> artikull tjetër</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"Të pastrohet memoria specifike e aplikacionit me <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>?"</string>
-    <string name="cache_clearing_dialog_text" msgid="425995541409682360">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> dëshiron të pastrojë disa skedarë të përkohshëm. Pranimi mund të rrisë përdorimin e baterisë ose të të dhënave."</string>
+    <!-- no translation found for cache_clearing_dialog_title (4672878017407595782) -->
+    <skip />
+    <!-- no translation found for cache_clearing_dialog_text (7057784635111940957) -->
+    <skip />
     <string name="allow" msgid="8885707816848569619">"Lejo"</string>
     <string name="deny" msgid="6040983710442068936">"Refuzo"</string>
-    <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
-      <item quantity="other">Të lejohet që <xliff:g id="APP_NAME_1">^1</xliff:g> t\'i ndryshojë <xliff:g id="COUNT">^2</xliff:g> skedarë audio?</item>
-      <item quantity="one">Të lejohet që <xliff:g id="APP_NAME_0">^1</xliff:g> ta ndryshojë këtë skedar audio?</item>
-    </plurals>
-    <plurals name="permission_write_video" formatted="false" msgid="8695335317588947410">
-      <item quantity="other">Të lejohet që <xliff:g id="APP_NAME_1">^1</xliff:g> t\'i ndryshojë <xliff:g id="COUNT">^2</xliff:g> video?</item>
-      <item quantity="one">Të lejohet që <xliff:g id="APP_NAME_0">^1</xliff:g> ta ndryshojë këtë video?</item>
-    </plurals>
-    <plurals name="permission_write_image" formatted="false" msgid="9032317900030650266">
-      <item quantity="other">Të lejohet që <xliff:g id="APP_NAME_1">^1</xliff:g> t\'i ndryshojë <xliff:g id="COUNT">^2</xliff:g> fotografi?</item>
-      <item quantity="one">Të lejohet që <xliff:g id="APP_NAME_0">^1</xliff:g> ta ndryshojë këtë fotografi?</item>
-    </plurals>
-    <plurals name="permission_write_generic" formatted="false" msgid="3099002288826692797">
-      <item quantity="other">Të lejohet që <xliff:g id="APP_NAME_1">^1</xliff:g> t\'i ndryshojë <xliff:g id="COUNT">^2</xliff:g> artikuj?</item>
-      <item quantity="one">Të lejohet që <xliff:g id="APP_NAME_0">^1</xliff:g> ta ndryshojë këtë artikull?</item>
-    </plurals>
-    <string name="permission_write_grant" msgid="3160858917750790130">"Ndrysho"</string>
-    <string name="permission_write_deny" msgid="7090074081877311071">"Anulo"</string>
-    <plurals name="permission_trash_audio" formatted="false" msgid="6116371056718108592">
-      <item quantity="other">Të lejohet që <xliff:g id="APP_NAME_1">^1</xliff:g> t\'i zhvendosë <xliff:g id="COUNT">^2</xliff:g> skedarë audio te koshi?</item>
-      <item quantity="one">Të lejohet që <xliff:g id="APP_NAME_0">^1</xliff:g> ta zhvendosë këtë skedar audio te koshi?</item>
-    </plurals>
-    <plurals name="permission_trash_audio_info" formatted="false" msgid="5002847308948758655">
-      <item quantity="other">Këta skedarë audio do të fshihen përgjithmonë pas <xliff:g id="DURATION_1">^3</xliff:g> ditësh</item>
-      <item quantity="one">Ky skedar audio do të fshihet përgjithmonë pas <xliff:g id="DURATION_0">^3</xliff:g> ditësh</item>
-    </plurals>
-    <plurals name="permission_trash_video" formatted="false" msgid="7900111984425589714">
-      <item quantity="other">Të lejohet që <xliff:g id="APP_NAME_1">^1</xliff:g> t\'i zhvendosë <xliff:g id="COUNT">^2</xliff:g> video te koshi?</item>
-      <item quantity="one">Të lejohet që <xliff:g id="APP_NAME_0">^1</xliff:g> ta zhvendosë këtë video te koshi?</item>
-    </plurals>
-    <plurals name="permission_trash_video_info" formatted="false" msgid="4604871492287117394">
-      <item quantity="other">Këto video do të fshihen përgjithmonë pas <xliff:g id="DURATION_1">^3</xliff:g> ditësh</item>
-      <item quantity="one">Kjo video do të fshihet përgjithmonë pas <xliff:g id="DURATION_0">^3</xliff:g> ditësh</item>
-    </plurals>
-    <plurals name="permission_trash_image" formatted="false" msgid="9204660448046457869">
-      <item quantity="other">Të lejohet që <xliff:g id="APP_NAME_1">^1</xliff:g> t\'i zhvendosë <xliff:g id="COUNT">^2</xliff:g> fotografi te koshi?</item>
-      <item quantity="one">Të lejohet që <xliff:g id="APP_NAME_0">^1</xliff:g> ta zhvendosë këtë fotografi te koshi?</item>
-    </plurals>
-    <plurals name="permission_trash_image_info" formatted="false" msgid="4214797662365755925">
-      <item quantity="other">Këto fotografi do të fshihen përgjithmonë pas <xliff:g id="DURATION_1">^3</xliff:g> ditësh</item>
-      <item quantity="one">Kjo fotografi do të fshihet përgjithmonë pas <xliff:g id="DURATION_0">^3</xliff:g> ditësh</item>
-    </plurals>
-    <plurals name="permission_trash_generic" formatted="false" msgid="427752775725644743">
-      <item quantity="other">Të lejohet që <xliff:g id="APP_NAME_1">^1</xliff:g> t\'i zhvendosë <xliff:g id="COUNT">^2</xliff:g> artikuj te koshi?</item>
-      <item quantity="one">Të lejohet që <xliff:g id="APP_NAME_0">^1</xliff:g> ta zhvendosë këtë artikull te koshi?</item>
-    </plurals>
-    <plurals name="permission_trash_generic_info" formatted="false" msgid="7932965324027540546">
-      <item quantity="other">Këta artikuj do të fshihen përgjithmonë pas <xliff:g id="DURATION_1">^3</xliff:g> ditësh</item>
-      <item quantity="one">Ky artikull do të fshihet përgjithmonë pas <xliff:g id="DURATION_0">^3</xliff:g> ditësh</item>
-    </plurals>
-    <string name="permission_trash_grant" msgid="2279489962040272178">"Zhvendos te koshi"</string>
-    <string name="permission_trash_deny" msgid="2447949475239137483">"Anulo"</string>
-    <plurals name="permission_untrash_audio" formatted="false" msgid="5716379492864435914">
-      <item quantity="other">Të lejohet që <xliff:g id="APP_NAME_1">^1</xliff:g> t\'i zhvendosë <xliff:g id="COUNT">^2</xliff:g> skedarë audio nga koshi?</item>
-      <item quantity="one">Të lejohet që <xliff:g id="APP_NAME_0">^1</xliff:g> ta zhvendosë këtë skedar audio te koshi?</item>
-    </plurals>
-    <plurals name="permission_untrash_video" formatted="false" msgid="4554487646802678525">
-      <item quantity="other">Të lejohet që <xliff:g id="APP_NAME_1">^1</xliff:g> t\'i zhvendosë <xliff:g id="COUNT">^2</xliff:g> video nga koshi?</item>
-      <item quantity="one">Të lejohet që <xliff:g id="APP_NAME_0">^1</xliff:g> ta zhvendosë këtë video nga koshi?</item>
-    </plurals>
-    <plurals name="permission_untrash_image" formatted="false" msgid="3209306923499767662">
-      <item quantity="other">Të lejohet që <xliff:g id="APP_NAME_1">^1</xliff:g> t\'i zhvendosë <xliff:g id="COUNT">^2</xliff:g> fotografi nga koshi?</item>
-      <item quantity="one">Të lejohet që <xliff:g id="APP_NAME_0">^1</xliff:g> ta zhvendosë këtë fotografi nga koshi?</item>
-    </plurals>
-    <plurals name="permission_untrash_generic" formatted="false" msgid="4607666277638602132">
-      <item quantity="other">Të lejohet që <xliff:g id="APP_NAME_1">^1</xliff:g> t\'i zhvendosë <xliff:g id="COUNT">^2</xliff:g> artikuj nga koshi?</item>
-      <item quantity="one">Të lejohet që <xliff:g id="APP_NAME_0">^1</xliff:g> ta zhvendosë këtë artikull nga koshi?</item>
-    </plurals>
-    <string name="permission_untrash_grant" msgid="8438940480373451790">"Zhvendos nga koshi"</string>
-    <string name="permission_untrash_deny" msgid="8008055757469903604">"Anulo"</string>
-    <plurals name="permission_delete_audio" formatted="false" msgid="6390202287788379608">
-      <item quantity="other">Të lejohet që <xliff:g id="APP_NAME_1">^1</xliff:g> t\'i fshijë <xliff:g id="COUNT">^2</xliff:g> skedarë audio?</item>
-      <item quantity="one">Të lejohet që <xliff:g id="APP_NAME_0">^1</xliff:g> ta fshijë këtë skedar audio?</item>
-    </plurals>
-    <plurals name="permission_delete_video" formatted="false" msgid="1577978206881284398">
-      <item quantity="other">Të lejohet që <xliff:g id="APP_NAME_1">^1</xliff:g> t\'i fshijë <xliff:g id="COUNT">^2</xliff:g> video?</item>
-      <item quantity="one">Të lejohet që <xliff:g id="APP_NAME_0">^1</xliff:g> ta fshijë këtë video?</item>
-    </plurals>
-    <plurals name="permission_delete_image" formatted="false" msgid="8435429587272893063">
-      <item quantity="other">Të lejohet që <xliff:g id="APP_NAME_1">^1</xliff:g> t\'i fshijë <xliff:g id="COUNT">^2</xliff:g> fotografi?</item>
-      <item quantity="one">Të lejohet që <xliff:g id="APP_NAME_0">^1</xliff:g> ta fshijë këtë fotografi?</item>
-    </plurals>
-    <plurals name="permission_delete_generic" formatted="false" msgid="5949614272661654178">
-      <item quantity="other">Të lejohet që <xliff:g id="APP_NAME_1">^1</xliff:g> t\'i fshijë <xliff:g id="COUNT">^2</xliff:g> artikuj?</item>
-      <item quantity="one">Të lejohet që <xliff:g id="APP_NAME_0">^1</xliff:g> ta fshijë këtë artikull?</item>
-    </plurals>
-    <string name="permission_delete_grant" msgid="8682518049167813926">"Fshi"</string>
-    <string name="permission_delete_deny" msgid="3742780367403897552">"Anulo"</string>
+    <!-- no translation found for permission_write_audio (8914759422381305478) -->
+    <!-- no translation found for permission_write_video (1098082003326873084) -->
+    <!-- no translation found for permission_write_image (748745548893845892) -->
+    <!-- no translation found for permission_write_generic (3270172714743671779) -->
+    <!-- no translation found for permission_trash_audio (8907813869381755423) -->
+    <!-- no translation found for permission_trash_video (4672871911555787438) -->
+    <!-- no translation found for permission_trash_image (6400475304599873227) -->
+    <!-- no translation found for permission_trash_generic (3814167365075039711) -->
+    <!-- no translation found for permission_untrash_audio (7795265980168966321) -->
+    <!-- no translation found for permission_untrash_video (332894888445508879) -->
+    <!-- no translation found for permission_untrash_image (7024071378733595056) -->
+    <!-- no translation found for permission_untrash_generic (6872817093731198374) -->
+    <!-- no translation found for permission_delete_audio (6848547621165184719) -->
+    <!-- no translation found for permission_delete_video (1251942606336748563) -->
+    <!-- no translation found for permission_delete_image (2303409455224710111) -->
+    <!-- no translation found for permission_delete_generic (1412218850351841181) -->
 </resources>

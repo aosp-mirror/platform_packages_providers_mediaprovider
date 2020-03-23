@@ -524,6 +524,7 @@ public class MediaProvider extends ContentProvider {
         @Override
         public void onInsert(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
                 int mediaType, boolean isDownload) {
+            handleInsertedRowForFuse(id);
             acceptWithExpansion(helper::notifyInsert, volumeName, id, mediaType, isDownload);
 
             helper.postBackground(() -> {
@@ -539,16 +540,20 @@ public class MediaProvider extends ContentProvider {
         }
 
         @Override
-        public void onUpdate(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
-                int oldMediaType, boolean oldIsDownload,
-                int newMediaType, boolean newIsDownload) {
+        public void onUpdate(@NonNull DatabaseHelper helper, @NonNull String volumeName,
+                long oldId, int oldMediaType, boolean oldIsDownload,
+                long newId, int newMediaType, boolean newIsDownload,
+                String ownerPackage, String oldPath) {
             final boolean isDownload = oldIsDownload || newIsDownload;
-            acceptWithExpansion(helper::notifyUpdate, volumeName, id, oldMediaType, isDownload);
+            handleUpdatedRowForFuse(oldPath, ownerPackage, oldId, newId);
+            acceptWithExpansion(helper::notifyUpdate, volumeName, oldId, oldMediaType, isDownload);
+
             if (newMediaType != oldMediaType) {
-                acceptWithExpansion(helper::notifyUpdate, volumeName, id, newMediaType, isDownload);
+                acceptWithExpansion(helper::notifyUpdate, volumeName, oldId, newMediaType,
+                        isDownload);
 
                 helper.postBackground(() -> {
-                    final Uri fileUri = MediaStore.Files.getContentUri(volumeName, id);
+                    final Uri fileUri = MediaStore.Files.getContentUri(volumeName, oldId);
                     if (helper.isExternal()) {
                         // Update the quota type on the filesystem
                         updateQuotaTypeForUri(fileUri, newMediaType);
@@ -562,7 +567,8 @@ public class MediaProvider extends ContentProvider {
 
         @Override
         public void onDelete(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
-                int mediaType, boolean isDownload) {
+                int mediaType, boolean isDownload, String ownerPackageName, String path) {
+            handleDeletedRowForFuse(path, ownerPackageName, id);
             acceptWithExpansion(helper::notifyDelete, volumeName, id, mediaType, isDownload);
 
             helper.postBackground(() -> {
@@ -5103,6 +5109,42 @@ public class MediaProvider extends ContentProvider {
 
         values.put(MediaColumns.WIDTH, bitmapOpts.outWidth);
         values.put(MediaColumns.HEIGHT, bitmapOpts.outHeight);
+    }
+
+    private void handleInsertedRowForFuse(long rowId) {
+        if (isFuseThread()) {
+            // Removes restored row ID saved list.
+            mCallingIdentity.get().removeDeletedRowId(rowId);
+        }
+    }
+
+    private void handleUpdatedRowForFuse(@NonNull String oldPath, @NonNull String ownerPackage,
+            long oldRowId, long newRowId) {
+        if (oldRowId == newRowId) {
+            // Update didn't delete or add row ID. We don't need to save row ID or remove saved
+            // deleted ID.
+            return;
+        }
+
+        handleDeletedRowForFuse(oldPath, ownerPackage, oldRowId);
+        handleInsertedRowForFuse(newRowId);
+    }
+
+    private void handleDeletedRowForFuse(@NonNull String path, @NonNull String ownerPackage,
+            long rowId) {
+        if (!isFuseThread()) {
+            return;
+        }
+
+        // Invalidate saved owned ID's of the previous owner of the deleted path, this prevents old
+        // owner from gaining access to newly created file with restored row ID.
+        if (!ownerPackage.equals("null") && !ownerPackage.equals(getCallingPackageOrSelf())) {
+            invalidateLocalCallingIdentityCache(ownerPackage, "owned_database_row_deleted:"
+                    + path);
+        }
+        // Saves row ID corresponding to deleted path. Saved row ID will be restored on subsequent
+        // create or rename.
+        mCallingIdentity.get().addDeletedRowId(path, rowId);
     }
 
     /**

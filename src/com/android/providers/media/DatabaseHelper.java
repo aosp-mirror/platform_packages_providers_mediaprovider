@@ -70,6 +70,7 @@ import java.io.FilenameFilter;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
@@ -120,11 +121,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     public interface OnFilesChangeListener {
         public void onInsert(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
                 int mediaType, boolean isDownload);
-        public void onUpdate(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
-                int oldMediaType, boolean oldIsDownload,
-                int newMediaType, boolean newIsDownload);
+        public void onUpdate(@NonNull DatabaseHelper helper, @NonNull String volumeName,
+                long oldId, int oldMediaType, boolean oldIsDownload,
+                long newId, int newMediaType, boolean newIsDownload,
+                String ownerPackage, String oldPath);
         public void onDelete(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
-                int mediaType, boolean isDownload);
+                int mediaType, boolean isDownload, String ownerPackage, String path);
     }
 
     public interface OnLegacyMigrationListener {
@@ -241,16 +243,21 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             if (arg != null && mFilesListener != null && !mSchemaChanging) {
                 final String[] split = arg.split(":");
                 final String volumeName = split[0];
-                final long id = Long.parseLong(split[1]);
+                final long oldId = Long.parseLong(split[1]);
                 final int oldMediaType = Integer.parseInt(split[2]);
                 final boolean oldIsDownload = Integer.parseInt(split[3]) != 0;
-                final int newMediaType = Integer.parseInt(split[4]);
-                final boolean newIsDownload = Integer.parseInt(split[5]) != 0;
+                final long newId = Long.parseLong(split[4]);
+                final int newMediaType = Integer.parseInt(split[5]);
+                final boolean newIsDownload = Integer.parseInt(split[6]) != 0;
+                final String ownerPackage = split[7];
+                // Path can include ':',  assume rest of split[8..length] is path.
+                final String oldPath = String.join(":", Arrays.copyOfRange(split, 8, split.length));
 
                 Trace.beginSection("_UPDATE");
                 try {
-                    mFilesListener.onUpdate(DatabaseHelper.this, volumeName, id,
-                            oldMediaType, oldIsDownload, newMediaType, newIsDownload);
+                    mFilesListener.onUpdate(DatabaseHelper.this, volumeName, oldId,
+                            oldMediaType, oldIsDownload, newId, newMediaType, newIsDownload,
+                            ownerPackage, oldPath);
                 } finally {
                     Trace.endSection();
                 }
@@ -264,11 +271,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 final long id = Long.parseLong(split[1]);
                 final int mediaType = Integer.parseInt(split[2]);
                 final boolean isDownload = Integer.parseInt(split[3]) != 0;
+                final String ownerPackage = split[4];
+                // Path can include ':',  assume rest of split[5..length] is path.
+                final String path = String.join(":", Arrays.copyOfRange(split, 5, split.length));
 
                 Trace.beginSection("_DELETE");
                 try {
                     mFilesListener.onDelete(DatabaseHelper.this, volumeName, id,
-                            mediaType, isDownload);
+                            mediaType, isDownload, ownerPackage, path);
                 } finally {
                     Trace.endSection();
                 }
@@ -894,9 +904,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 "new.volume_name||':'||new._id||':'||new.media_type||':'||new.is_download";
         final String updateArg =
                 "old.volume_name||':'||old._id||':'||old.media_type||':'||old.is_download"
-                        + "||':'||new.media_type||':'||new.is_download";
+                        + "||':'||new._id||':'||new.media_type||':'||new.is_download"
+                        + "||':'||ifnull(old.owner_package_name,'null')||':'||old._data";
         final String deleteArg =
-                "old.volume_name||':'||old._id||':'||old.media_type||':'||old.is_download";
+                "old.volume_name||':'||old._id||':'||old.media_type||':'||old.is_download"
+                        + "||':'||ifnull(old.owner_package_name,'null')||':'||old._data";
 
         db.execSQL("CREATE TRIGGER files_insert AFTER INSERT ON files"
                 + " BEGIN SELECT _INSERT(" + insertArg + "); END");
@@ -1151,7 +1163,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
     static final int VERSION_Q = 1023;
-    static final int VERSION_R = 1112;
+    static final int VERSION_R = 1113;
     static final int VERSION_LATEST = VERSION_R;
 
     /**
@@ -1287,6 +1299,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1112) {
                 updateAddXmp(db, internal);
+            }
+            if (fromVersion < 1113) {
+                // Empty version bump to ensure triggers are recreated
             }
 
             if (recomputeDataValues) {

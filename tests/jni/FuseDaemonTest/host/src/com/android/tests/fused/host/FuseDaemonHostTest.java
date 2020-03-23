@@ -270,4 +270,14 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
     public void testSystemGalleryCanRenameImageAndVideoDirs() throws Exception {
         runDeviceTest("testSystemGalleryCanRenameImageAndVideoDirs");
     }
+
+    @Test
+    public void testCreateCanRestoreDeletedRowId() throws Exception {
+        runDeviceTest("testCreateCanRestoreDeletedRowId");
+    }
+
+    @Test
+    public void testRenameCanRestoreDeletedRowId() throws Exception {
+        runDeviceTest("testRenameCanRestoreDeletedRowId");
+    }
 }

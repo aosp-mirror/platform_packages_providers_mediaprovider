@@ -89,6 +89,8 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
                 Log.i(TAG, "Ignoring volume state for vol:" + volumeName
                         + ". State: " + vol.getState());
         }
+        // Check for invalidation of cached volumes
+        mediaProvider.updateVolumes();
     }
 
     @Override

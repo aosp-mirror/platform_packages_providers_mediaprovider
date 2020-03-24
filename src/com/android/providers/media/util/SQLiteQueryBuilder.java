@@ -16,12 +16,20 @@
 
 package com.android.providers.media.util;
 
+import static android.content.ContentResolver.QUERY_ARG_SQL_GROUP_BY;
+import static android.content.ContentResolver.QUERY_ARG_SQL_HAVING;
+import static android.content.ContentResolver.QUERY_ARG_SQL_LIMIT;
+import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
+import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS;
+import static android.content.ContentResolver.QUERY_ARG_SQL_SORT_ORDER;
+
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.OperationCanceledException;
 import android.provider.BaseColumns;
@@ -388,6 +396,18 @@ public class SQLiteQueryBuilder {
             }
         }
         s.append(' ');
+    }
+
+    public Cursor query(DatabaseHelper helper, String[] projectionIn, Bundle queryArgs,
+            CancellationSignal cancellationSignal) {
+        final String selection = queryArgs.getString(QUERY_ARG_SQL_SELECTION);
+        final String[] selectionArgs = queryArgs.getStringArray(QUERY_ARG_SQL_SELECTION_ARGS);
+        final String groupBy = queryArgs.getString(QUERY_ARG_SQL_GROUP_BY);
+        final String having = queryArgs.getString(QUERY_ARG_SQL_HAVING);
+        final String sortOrder = queryArgs.getString(QUERY_ARG_SQL_SORT_ORDER);
+        final String limit = queryArgs.getString(QUERY_ARG_SQL_LIMIT);
+        return query(helper, projectionIn, selection, selectionArgs, groupBy, having, sortOrder,
+                limit, cancellationSignal);
     }
 
     public Cursor query(DatabaseHelper helper, String[] projectionIn,

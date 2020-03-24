@@ -316,6 +316,11 @@ public class ModernMediaScannerTest {
         doPlaylist(R.raw.test_wpl, "test.wpl");
     }
 
+    @Test
+    public void testPlaylistXspf() throws Exception {
+        doPlaylist(R.raw.test_xspf, "test.xspf");
+    }
+
     private void doPlaylist(int res, String name) throws Exception {
         final File music = new File(mDir, "Music");
         music.mkdirs();

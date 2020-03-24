@@ -114,6 +114,7 @@ public class MimeUtils {
             case "application/vnd.ms-wpl":
             case "application/x-extension-smpl":
             case "application/x-mpegurl":
+            case "application/xspf+xml":
             case "audio/mpegurl":
             case "audio/x-mpegurl":
             case "audio/x-scpls":

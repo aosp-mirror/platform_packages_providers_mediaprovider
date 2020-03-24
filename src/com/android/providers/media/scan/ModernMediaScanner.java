@@ -787,7 +787,7 @@ public class ModernMediaScanner implements MediaScanner {
         withOptionalValue(op, MediaColumns.TITLE,
                 parseOptional(mmr.extractMetadata(METADATA_KEY_TITLE)));
         withOptionalValue(op, MediaColumns.YEAR,
-                parseOptionalOrZero(mmr.extractMetadata(METADATA_KEY_YEAR)));
+                parseOptionalYear(mmr.extractMetadata(METADATA_KEY_YEAR)));
         withOptionalValue(op, MediaColumns.DURATION,
                 parseOptional(mmr.extractMetadata(METADATA_KEY_DURATION)));
         withOptionalValue(op, MediaColumns.NUM_TRACKS,

@@ -3032,28 +3032,25 @@ public class MediaProvider extends ContentProvider {
     public ContentProviderResult[] applyBatch(ArrayList<ContentProviderOperation> operations)
                 throws OperationApplicationException {
         // Open transactions on databases for requested volumes
-        final ArrayMap<String, DatabaseHelper> transactions = new ArrayMap<>();
+        final Set<DatabaseHelper> transactions = new ArraySet<>();
         try {
             for (ContentProviderOperation op : operations) {
-                final String volumeName = MediaStore.getVolumeName(op.getUri());
-                if (!transactions.containsKey(volumeName)) {
-                    try {
-                        final DatabaseHelper helper = getDatabaseForUri(op.getUri());
-                        helper.beginTransaction();
-                        transactions.put(volumeName, helper);
-                    } catch (VolumeNotFoundException e) {
-                        Log.w(TAG, e.getMessage());
-                    }
+                final DatabaseHelper helper = getDatabaseForUri(op.getUri());
+                if (!transactions.contains(helper)) {
+                    helper.beginTransaction();
+                    transactions.add(helper);
                 }
             }
 
             final ContentProviderResult[] result = super.applyBatch(operations);
-            for (DatabaseHelper helper : transactions.values()) {
+            for (DatabaseHelper helper : transactions) {
                 helper.setTransactionSuccessful();
             }
             return result;
+        } catch (VolumeNotFoundException e) {
+            throw e.rethrowAsIllegalArgumentException();
         } finally {
-            for (DatabaseHelper helper : transactions.values()) {
+            for (DatabaseHelper helper : transactions) {
                 helper.endTransaction();
             }
         }

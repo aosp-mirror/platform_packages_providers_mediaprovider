@@ -29,6 +29,7 @@ import static org.junit.Assert.fail;
 
 import android.Manifest;
 import android.content.ContentProviderClient;
+import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -833,6 +834,26 @@ public class MediaProviderTest {
             if (!clazz.isAssignableFrom(e.getClass())) {
                 throw e;
             }
+        }
+    }
+
+    @Test
+    public void testNestedTransaction_applyBatch() throws Exception {
+        final Context context = InstrumentationRegistry.getTargetContext();
+        final Context isolatedContext = new IsolatedContext(context, "modern");
+        final ContentResolver isolatedResolver = isolatedContext.getContentResolver();
+
+        final Uri[] uris = new Uri[] {
+                MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL, 0),
+                MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY, 0),
+        };
+        final ArrayList<ContentProviderOperation> ops = new ArrayList<>();
+        ops.add(ContentProviderOperation.newDelete(uris[0]).build());
+        ops.add(ContentProviderOperation.newDelete(uris[1]).build());
+        try {
+            isolatedResolver.applyBatch(MediaStore.AUTHORITY, ops);
+        } catch (IllegalStateException ignore) {
+            fail("Nested transaction");
         }
     }
 }

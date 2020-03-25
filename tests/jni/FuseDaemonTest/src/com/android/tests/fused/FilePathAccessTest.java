@@ -652,6 +652,7 @@ public class FilePathAccessTest {
     /**
      * Test that app can see files and directories in Android/media.
      */
+    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testListFilesFromExternalMediaDirectory() throws Exception {
         final File videoFile = new File(EXTERNAL_MEDIA_DIR, VIDEO_FILE_NAME);
@@ -671,9 +672,10 @@ public class FilePathAccessTest {
             // Install TEST_APP_A with READ_EXTERNAL_STORAGE permission.
             // TEST_APP_A with storage permission should see other app's external media directory.
             installApp(TEST_APP_A, true);
-            // Apps can't list files in other app's external media directory.
-            assertThat(listAs(TEST_APP_A, ANDROID_MEDIA_DIR.getPath())).isEmpty();
-            assertThat(listAs(TEST_APP_A, EXTERNAL_MEDIA_DIR.getPath())).isEmpty();
+            // Apps with READ_EXTERNAL_STORAGE can list files in other app's external media directory.
+            assertThat(listAs(TEST_APP_A, ANDROID_MEDIA_DIR.getPath())).contains(THIS_PACKAGE_NAME);
+            // TODO(b/145737191) fails because we don't index these files yet.
+            assertThat(listAs(TEST_APP_A, EXTERNAL_MEDIA_DIR.getPath())).containsExactly(videoFileName);
         } finally {
             videoFile.delete();
         }

@@ -161,6 +161,8 @@ public final class MediaStore {
     public static final String VOLUME_EXTERNAL_PRIMARY = "external_primary";
 
     /** {@hide} */
+    public static final String RESOLVE_PLAYLIST_MEMBERS_CALL = "resolve_playlist_members";
+    /** {@hide} */
     public static final String RUN_IDLE_MAINTENANCE_CALL = "run_idle_maintenance";
     /** {@hide} */
     public static final String WAIT_FOR_IDLE_CALL = "wait_for_idle";
@@ -3889,6 +3891,14 @@ public final class MediaStore {
         } catch (RemoteException e) {
             throw e.rethrowAsRuntimeException();
         }
+    }
+
+    /** {@hide} */
+    public static void resolvePlaylistMembers(@NonNull ContentResolver resolver,
+            @NonNull Uri playlistUri) {
+        final Bundle in = new Bundle();
+        in.putParcelable(EXTRA_URI, playlistUri);
+        resolver.call(AUTHORITY, RESOLVE_PLAYLIST_MEMBERS_CALL, null, in);
     }
 
     /** {@hide} */

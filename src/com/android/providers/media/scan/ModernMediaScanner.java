@@ -224,6 +224,7 @@ public class ModernMediaScanner implements MediaScanner {
         } catch (OperationCanceledException ignored) {
         }
     }
+
     @Override
     public Uri scanFile(File file, int reason) {
        return scanFile(file, reason, /*ownerPackage*/ null);
@@ -291,9 +292,7 @@ public class ModernMediaScanner implements MediaScanner {
         private int mUpdateCount;
         private int mDeleteCount;
 
-
         public Scan(File root, int reason, @Nullable String ownerPackage) {
-
             Trace.beginSection("ctor");
 
             mClient = mContext.getContentResolver()
@@ -428,14 +427,9 @@ public class ModernMediaScanner implements MediaScanner {
         private void resolvePlaylists() {
             mSignal.throwIfCanceled();
             for (int i = 0; i < mPlaylistIds.size(); i++) {
-                final Uri uri = MediaStore.Files.getContentUri(mVolumeName, mPlaylistIds.get(i));
-                try {
-                    PlaylistResolver.resolvePlaylist(mResolver, uri).forEach(this::addPending);
-                    maybeApplyPending();
-                } catch (IOException e) {
-                    if (LOGW) Log.w(TAG, "Ignoring troubled playlist: " + uri, e);
-                }
-                applyPending();
+                final Uri playlistUri = ContentUris.withAppendedId(
+                        MediaStore.Audio.Playlists.getContentUri(mVolumeName), mPlaylistIds.get(i));
+                MediaStore.resolvePlaylistMembers(mResolver, playlistUri);
             }
         }
 
@@ -793,7 +787,7 @@ public class ModernMediaScanner implements MediaScanner {
         withOptionalValue(op, MediaColumns.TITLE,
                 parseOptional(mmr.extractMetadata(METADATA_KEY_TITLE)));
         withOptionalValue(op, MediaColumns.YEAR,
-                parseOptionalOrZero(mmr.extractMetadata(METADATA_KEY_YEAR)));
+                parseOptionalYear(mmr.extractMetadata(METADATA_KEY_YEAR)));
         withOptionalValue(op, MediaColumns.DURATION,
                 parseOptional(mmr.extractMetadata(METADATA_KEY_DURATION)));
         withOptionalValue(op, MediaColumns.NUM_TRACKS,

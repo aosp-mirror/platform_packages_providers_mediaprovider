@@ -75,6 +75,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.LongSupplier;
+import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 
 /**
@@ -104,6 +105,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     final @Nullable OnSchemaChangeListener mSchemaListener;
     final @Nullable OnFilesChangeListener mFilesListener;
     final @Nullable OnLegacyMigrationListener mMigrationListener;
+    final @Nullable UnaryOperator<String> mIdGenerator;
     final Set<String> mFilterVolumeNames = new ArraySet<>();
     long mScanStartTime;
     long mScanStopTime;
@@ -135,9 +137,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             @Nullable Class<? extends Annotation> columnAnnotation,
             @Nullable OnSchemaChangeListener schemaListener,
             @Nullable OnFilesChangeListener filesListener,
-            @Nullable OnLegacyMigrationListener migrationListener) {
+            @Nullable OnLegacyMigrationListener migrationListener,
+            @Nullable UnaryOperator<String> idGenerator) {
         this(context, name, getDatabaseVersion(context), internal, earlyUpgrade, legacyProvider,
-                columnAnnotation, schemaListener, filesListener, migrationListener);
+                columnAnnotation, schemaListener, filesListener, migrationListener, idGenerator);
     }
 
     public DatabaseHelper(Context context, String name, int version,
@@ -145,7 +148,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             @Nullable Class<? extends Annotation> columnAnnotation,
             @Nullable OnSchemaChangeListener schemaListener,
             @Nullable OnFilesChangeListener filesListener,
-            @Nullable OnLegacyMigrationListener migrationListener) {
+            @Nullable OnLegacyMigrationListener migrationListener,
+            @Nullable UnaryOperator<String> idGenerator) {
         super(context, name, null, version);
         mContext = context;
         mName = name;
@@ -158,6 +162,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         mSchemaListener = schemaListener;
         mFilesListener = filesListener;
         mMigrationListener = migrationListener;
+        mIdGenerator = idGenerator;
 
         // Configure default filters until we hear differently
         if (mInternal) {
@@ -264,6 +269,17 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 try {
                     mFilesListener.onDelete(DatabaseHelper.this, volumeName, id,
                             mediaType, isDownload);
+                } finally {
+                    Trace.endSection();
+                }
+            }
+            return null;
+        });
+        db.setCustomScalarFunction("_GET_ID", (arg) -> {
+            if (mIdGenerator != null && !mSchemaChanging) {
+                Trace.beginSection("_GET_ID");
+                try {
+                    return mIdGenerator.apply(arg);
                 } finally {
                     Trace.endSection();
                 }

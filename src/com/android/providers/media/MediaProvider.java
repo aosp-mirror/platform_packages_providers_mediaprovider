@@ -208,6 +208,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -584,6 +585,14 @@ public class MediaProvider extends ContentProvider {
         }
     };
 
+    private final UnaryOperator<String> mIdGenerator = path -> {
+        final long rowId = mCallingIdentity.get().getDeletedRowId(path);
+        if (rowId != -1 && isFuseThread()) {
+            return String.valueOf(rowId);
+        }
+        return null;
+    };
+
     private final OnLegacyMigrationListener mMigrationListener = new OnLegacyMigrationListener() {
         @Override
         public void onStarted(ContentProviderClient client, String volumeName) {
@@ -787,10 +796,10 @@ public class MediaProvider extends ContentProvider {
 
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME,
                 true, false, mLegacyProvider, Column.class,
-                Metrics::logSchemaChange, mFilesListener, mMigrationListener);
+                Metrics::logSchemaChange, mFilesListener, mMigrationListener, mIdGenerator);
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME,
                 false, false, mLegacyProvider, Column.class,
-                Metrics::logSchemaChange, mFilesListener, mMigrationListener);
+                Metrics::logSchemaChange, mFilesListener, mMigrationListener, mIdGenerator);
 
         final IntentFilter packageFilter = new IntentFilter();
         packageFilter.setPriority(10);

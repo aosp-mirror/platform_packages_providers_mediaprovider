@@ -95,8 +95,6 @@ public class MediaProviderTest {
                 "audio/media/1",
                 "audio/media/1/genres",
                 "audio/media/1/genres/1",
-                "audio/media/1/playlists",
-                "audio/media/1/playlists/1",
                 "audio/genres",
                 "audio/genres/1",
                 "audio/genres/1/members",

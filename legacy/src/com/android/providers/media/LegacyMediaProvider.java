@@ -143,13 +143,11 @@ public class LegacyMediaProvider extends ContentProvider {
                 switch (volumeName) {
                     case MediaStore.VOLUME_INTERNAL: {
                         mInternalDatabase.close();
-                        mInternalDatabase = null;
                         getContext().deleteDatabase(INTERNAL_DATABASE_NAME);
                         break;
                     }
                     default: {
                         mExternalDatabase.close();
-                        mExternalDatabase = null;
                         getContext().deleteDatabase(EXTERNAL_DATABASE_NAME);
                         break;
                     }

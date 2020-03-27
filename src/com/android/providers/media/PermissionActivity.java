@@ -36,6 +36,8 @@ import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.ImageDecoder;
+import android.graphics.ImageDecoder.ImageInfo;
+import android.graphics.ImageDecoder.Source;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -43,6 +45,7 @@ import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.Size;
 import android.view.KeyEvent;
@@ -534,7 +537,15 @@ public class PermissionActivity extends Activity {
                     thumbnail = resolver.loadThumbnail(uri, size, null);
                 }
                 if ((loadFlags & LOAD_FULL) != 0) {
-                    full = ImageDecoder.decodeBitmap(ImageDecoder.createSource(resolver, uri));
+                    // Only offer full decodes when a supported file type;
+                    // otherwise fall back to using thumbnail
+                    final String mimeType = resolver.getType(uri);
+                    if (ImageDecoder.isMimeTypeSupported(mimeType)) {
+                        full = ImageDecoder.decodeBitmap(ImageDecoder.createSource(resolver, uri),
+                                new Resizer(context.getResources().getDisplayMetrics()));
+                    } else {
+                        full = thumbnail;
+                    }
                 }
             } catch (IOException e) {
                 Log.w(TAG, e);
@@ -558,6 +569,30 @@ public class PermissionActivity extends Activity {
             imageView.setImageBitmap(full);
             imageView.setContentDescription(contentDescription);
             imageView.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /**
+     * Utility that will speed up decoding of large images, since we never need
+     * them to be larger than the screen dimensions.
+     */
+    private static class Resizer implements ImageDecoder.OnHeaderDecodedListener {
+        private final int maxSize;
+
+        public Resizer(DisplayMetrics metrics) {
+            this.maxSize = Math.max(metrics.widthPixels, metrics.heightPixels);
+        }
+
+        @Override
+        public void onHeaderDecoded(ImageDecoder decoder, ImageInfo info, Source source) {
+            // We requested a rough thumbnail size, but the remote size may have
+            // returned something giant, so defensively scale down as needed.
+            final int widthSample = info.getSize().getWidth() / maxSize;
+            final int heightSample = info.getSize().getHeight() / maxSize;
+            final int sample = Math.max(widthSample, heightSample);
+            if (sample > 1) {
+                decoder.setTargetSampleSize(sample);
+            }
         }
     }
 }

@@ -772,7 +772,11 @@ public final class MediaStore {
      */
     public static void startLegacyMigration(@NonNull ContentResolver resolver,
             @NonNull String volumeName) {
-        resolver.call(AUTHORITY_LEGACY, START_LEGACY_MIGRATION_CALL, volumeName, null);
+        try {
+            resolver.call(AUTHORITY_LEGACY, START_LEGACY_MIGRATION_CALL, volumeName, null);
+        } catch (Exception e) {
+            Log.wtf(TAG, "Failed to deliver legacy migration event", e);
+        }
     }
 
     /**
@@ -784,7 +788,11 @@ public final class MediaStore {
      */
     public static void finishLegacyMigration(@NonNull ContentResolver resolver,
             @NonNull String volumeName) {
-        resolver.call(AUTHORITY_LEGACY, FINISH_LEGACY_MIGRATION_CALL, volumeName, null);
+        try {
+            resolver.call(AUTHORITY_LEGACY, FINISH_LEGACY_MIGRATION_CALL, volumeName, null);
+        } catch (Exception e) {
+            Log.wtf(TAG, "Failed to deliver legacy migration event", e);
+        }
     }
 
     private static @NonNull PendingIntent createRequest(@NonNull ContentResolver resolver,

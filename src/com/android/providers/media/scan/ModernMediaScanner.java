@@ -646,7 +646,7 @@ public class ModernMediaScanner implements MediaScanner {
                     ContentProviderOperation operation = mPending.get(index);
 
                     if (result.exception != null) {
-                        Log.w(TAG, "Failed to apply " + operation + ": " + result.exception);
+                        Log.w(TAG, "Failed to apply " + operation, result.exception);
                     }
 
                     Uri uri = result.uri;
@@ -669,7 +669,7 @@ public class ModernMediaScanner implements MediaScanner {
                     }
                 }
             } catch (RemoteException | OperationApplicationException e) {
-                Log.w(TAG, "Failed to apply: " + e);
+                Log.w(TAG, "Failed to apply", e);
             } finally {
                 mPending.clear();
                 Trace.endSection();

@@ -194,6 +194,9 @@ public class LegacyProviderMigrationTest {
         Assume.assumeNotNull(legacyProvider);
         Assume.assumeNotNull(modernProvider);
 
+        // Wait until everything calms down
+        MediaStore.waitForIdle(context.getContentResolver());
+
         // Clear data on the legacy provider so that we create a database
         executeShellCommand("pm clear " + legacyProvider.applicationInfo.packageName, ui);
 

@@ -188,15 +188,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             mFilterVolumeNames.addAll(filterVolumeNames);
         }
 
-        // Recreate all views to apply this filter
-        final SQLiteDatabase db = getWritableDatabase();
-        try {
-            db.beginTransaction();
-            createLatestViews(db, mInternal);
-            db.setTransactionSuccessful();
-        } finally {
-            db.endTransaction();
-        }
+        // We might be tempted to open a transaction and recreate views here,
+        // but that would result in an obscure deadlock; instead we simply close
+        // the entire database, letting the views be recreated the next time
+        // it's opened.
+        close();
     }
 
     @Override
@@ -217,6 +213,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     @Override
     public void onConfigure(SQLiteDatabase db) {
+        Log.v(TAG, "onConfigure() for " + mName);
         db.setCustomScalarFunction("_INSERT", (arg) -> {
             if (arg != null && mFilesListener != null && !mSchemaChanging) {
                 final String[] split = arg.split(":");
@@ -273,6 +270,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             return null;
         });
+    }
+
+    @Override
+    public void onOpen(SQLiteDatabase db) {
+        // Always recreate latest views and triggers during open; they're
+        // cheap and it's an easy way to ensure they're defined consistently
+        createLatestViews(db, mInternal);
+        createLatestTriggers(db, mInternal);
     }
 
     @Override
@@ -1272,11 +1277,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 recomputeDataValues(db, internal);
             }
         }
-
-        // Always recreate latest views and triggers during upgrade; they're
-        // cheap and it's an easy way to ensure they're defined consistently
-        createLatestViews(db, internal);
-        createLatestTriggers(db, internal);
 
         getOrCreateUuid(db);
 

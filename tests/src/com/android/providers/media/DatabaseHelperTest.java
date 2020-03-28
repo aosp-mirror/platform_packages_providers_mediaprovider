@@ -114,42 +114,42 @@ public class DatabaseHelperTest {
 
             // Confirm that raw view knows everything
             assertEquals(asSet("Clocks", "Speed of Sound", "Beautiful Day"),
-                    queryValues(db, "audio", "title"));
+                    queryValues(helper, "audio", "title"));
 
             // By default, database only knows about primary storage
             assertEquals(asSet("Coldplay"),
-                    queryValues(db, "audio_artists", "artist"));
+                    queryValues(helper, "audio_artists", "artist"));
             assertEquals(asSet("A Rush of Blood"),
-                    queryValues(db, "audio_albums", "album"));
+                    queryValues(helper, "audio_albums", "album"));
             assertEquals(asSet("Rock"),
-                    queryValues(db, "audio_genres", "name"));
+                    queryValues(helper, "audio_genres", "name"));
 
             // Once we broaden mounted volumes, we know a lot more
             helper.setFilterVolumeNames(asSet(VOLUME_EXTERNAL_PRIMARY, "0000-0000"));
             assertEquals(asSet("Coldplay", "U2"),
-                    queryValues(db, "audio_artists", "artist"));
+                    queryValues(helper, "audio_artists", "artist"));
             assertEquals(asSet("A Rush of Blood", "X&Y", "All That You Can't Leave Behind"),
-                    queryValues(db, "audio_albums", "album"));
+                    queryValues(helper, "audio_albums", "album"));
             assertEquals(asSet("Rock", "Alternative rock"),
-                    queryValues(db, "audio_genres", "name"));
+                    queryValues(helper, "audio_genres", "name"));
 
             // And unmounting primary narrows us the other way
             helper.setFilterVolumeNames(asSet("0000-0000"));
             assertEquals(asSet("Coldplay", "U2"),
-                    queryValues(db, "audio_artists", "artist"));
+                    queryValues(helper, "audio_artists", "artist"));
             assertEquals(asSet("X&Y", "All That You Can't Leave Behind"),
-                    queryValues(db, "audio_albums", "album"));
+                    queryValues(helper, "audio_albums", "album"));
             assertEquals(asSet("Rock", "Alternative rock"),
-                    queryValues(db, "audio_genres", "name"));
+                    queryValues(helper, "audio_genres", "name"));
 
             // Finally fully unmounted means nothing
             helper.setFilterVolumeNames(asSet());
             assertEquals(asSet(),
-                    queryValues(db, "audio_artists", "artist"));
+                    queryValues(helper, "audio_artists", "artist"));
             assertEquals(asSet(),
-                    queryValues(db, "audio_albums", "album"));
+                    queryValues(helper, "audio_albums", "album"));
             assertEquals(asSet(),
-                    queryValues(db, "audio_genres", "name"));
+                    queryValues(helper, "audio_genres", "name"));
         }
     }
 
@@ -411,9 +411,9 @@ public class DatabaseHelperTest {
         return new ArraySet<>(Arrays.asList(vars));
     }
 
-    private static Set<String> queryValues(@NonNull SQLiteDatabase db, @NonNull String table,
+    private static Set<String> queryValues(@NonNull DatabaseHelper helper, @NonNull String table,
             @NonNull String columnName) {
-        try (Cursor c = db.query(table, new String[] { columnName },
+        try (Cursor c = helper.getReadableDatabase().query(table, new String[] { columnName },
                 null, null, null, null, null)) {
             final ArraySet<String> res = new ArraySet<>();
             while (c.moveToNext()) {
@@ -433,6 +433,11 @@ public class DatabaseHelperTest {
         public void onCreate(SQLiteDatabase db) {
             createOSchema(db, false);
         }
+
+        @Override
+        public void onOpen(SQLiteDatabase db) {
+            // Purposefully empty to leave views intact
+        }
     }
 
     private static class DatabaseHelperP extends DatabaseHelper {
@@ -445,6 +450,11 @@ public class DatabaseHelperTest {
         public void onCreate(SQLiteDatabase db) {
             createPSchema(db, false);
         }
+
+        @Override
+        public void onOpen(SQLiteDatabase db) {
+            // Purposefully empty to leave views intact
+        }
     }
 
     private static class DatabaseHelperQ extends DatabaseHelper {
@@ -456,6 +466,11 @@ public class DatabaseHelperTest {
         @Override
         public void onCreate(SQLiteDatabase db) {
             createQSchema(db, false);
+        }
+
+        @Override
+        public void onOpen(SQLiteDatabase db) {
+            // Purposefully empty to leave views intact
         }
     }
 

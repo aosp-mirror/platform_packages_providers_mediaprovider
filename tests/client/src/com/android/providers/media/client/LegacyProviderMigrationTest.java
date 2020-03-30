@@ -106,6 +106,7 @@ public class LegacyProviderMigrationTest {
         final ContentValues values = new ContentValues();
         values.put(FileColumns.MEDIA_TYPE, mediaType);
         values.put(MediaColumns.DATA, file.getAbsolutePath());
+        values.put(MediaColumns.DISPLAY_NAME, file.getName());
         values.put(MediaColumns.MIME_TYPE, mimeType);
         values.put(MediaColumns.VOLUME_NAME, mVolumeName);
         values.put(MediaColumns.DATE_ADDED, String.valueOf(System.currentTimeMillis() / 1_000));
@@ -215,6 +216,9 @@ public class LegacyProviderMigrationTest {
             // Drop media type from the columns we check, since it's implicitly
             // verified via the collection Uri
             values.remove(FileColumns.MEDIA_TYPE);
+
+            // Drop raw path, since we may rename pending or trashed files
+            values.remove(FileColumns.DATA);
         }
 
         // Clear data on the modern provider so that the initial scan recovers
@@ -232,9 +236,9 @@ public class LegacyProviderMigrationTest {
                 .acquireContentProviderClient(MediaStore.AUTHORITY)) {
             final Bundle extras = new Bundle();
             extras.putString(ContentResolver.QUERY_ARG_SQL_SELECTION,
-                    MediaColumns.DATA + "=?");
+                    MediaColumns.DISPLAY_NAME + "=?");
             extras.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS,
-                    new String[] { legacyFile.getAbsolutePath() });
+                    new String[] { legacyFile.getName() });
             extras.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE);
             extras.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
             extras.putInt(MediaStore.QUERY_ARG_MATCH_FAVORITE, MediaStore.MATCH_INCLUDE);

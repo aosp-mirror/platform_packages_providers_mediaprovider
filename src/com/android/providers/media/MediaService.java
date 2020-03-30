@@ -63,10 +63,6 @@ public class MediaService extends JobIntentService {
                     onPackageOrphaned(packageName);
                     break;
                 }
-                case Intent.ACTION_MEDIA_MOUNTED: {
-                    onScanVolume(this, intent.getData(), REASON_MOUNTED);
-                    break;
-                }
                 case Intent.ACTION_MEDIA_SCANNER_SCAN_FILE: {
                     onScanFile(this, intent.getData());
                     break;

@@ -6058,6 +6058,21 @@ public class MediaProvider extends ContentProvider {
         return false;
     }
 
+    private Uri insertFileForFuse(@NonNull String path, @NonNull Uri uri, @NonNull String mimeType,
+            boolean useData) {
+        ContentValues values = new ContentValues();
+        values.put(FileColumns.OWNER_PACKAGE_NAME, getCallingPackageOrSelf());
+        values.put(MediaColumns.MIME_TYPE, mimeType);
+
+        if (useData) {
+            values.put(FileColumns.DATA, getAbsoluteSanitizedPath(path));
+        } else {
+            values.put(FileColumns.RELATIVE_PATH, extractRelativePath(path));
+            values.put(FileColumns.DISPLAY_NAME, extractDisplayName(path));
+        }
+        return insert(uri, values, Bundle.EMPTY);
+    }
+
     /**
      * Enforces file creation restrictions (see return values) for the given file on behalf of the
      * app with the given {@code uid}. If the file is is added to the shared storage, creates a
@@ -6091,32 +6106,29 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.ENOENT;
             }
 
+            final String mimeType = MimeUtils.resolveMimeType(new File(path));
+
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
+                // TODO(b/145737191) Legacy apps don't expect FuseDaemon to update database.
+                // Inserting/deleting the database entry might break app functionality.
+                // Ignore insert errors for apps that bypass scoped storage restriction.
+                // insertFileForFuse(path, Files.getContentUriForPath(path), mimeType,
+                //        /*useData*/ true);
                 return 0;
             }
+
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
                 return OsConstants.EPERM;
             }
 
-            final String mimeType = MimeUtils.resolveMimeType(new File(path));
             final Uri contentUri = getContentUriForFile(path, mimeType);
             if (fileExists(path, contentUri)) {
                 return OsConstants.EEXIST;
             }
 
-            final String displayName = extractDisplayName(path);
-            final String callingPackageName = getCallingPackageOrSelf();
-            final String relativePath = extractRelativePath(path);
-
-            ContentValues values = new ContentValues();
-            values.put(FileColumns.RELATIVE_PATH, relativePath);
-            values.put(FileColumns.DISPLAY_NAME, displayName);
-            values.put(FileColumns.OWNER_PACKAGE_NAME, callingPackageName);
-            values.put(MediaColumns.MIME_TYPE, mimeType);
-
-            final Uri item = insert(contentUri, values);
+            final Uri item = insertFileForFuse(path, contentUri, mimeType, /*useData*/ false);
             if (item == null) {
                 return OsConstants.EPERM;
             }

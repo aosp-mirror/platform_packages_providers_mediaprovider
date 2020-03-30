@@ -28,6 +28,10 @@ android_test {
         "unsupportedappusage",
     ],
 
+    jni_libs: [
+        "libfuse_jni",
+    ],
+
     static_libs: [
         "androidx.appcompat_appcompat",
         "androidx.core_core",

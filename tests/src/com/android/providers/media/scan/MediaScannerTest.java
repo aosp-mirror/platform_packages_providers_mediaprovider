@@ -65,6 +65,10 @@ public class MediaScannerTest {
     private static final String TAG = "MediaScannerTest";
 
     public static class IsolatedContext extends ContextWrapper {
+        static {
+            System.loadLibrary("fuse_jni");
+        }
+
         private final File mDir;
         private final MockContentResolver mResolver;
         private final MediaProvider mProvider;

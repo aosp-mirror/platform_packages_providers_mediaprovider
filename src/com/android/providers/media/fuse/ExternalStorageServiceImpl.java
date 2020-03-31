@@ -32,7 +32,6 @@ import androidx.annotation.Nullable;
 
 import com.android.providers.media.MediaProvider;
 import com.android.providers.media.MediaService;
-import com.android.providers.media.util.BackgroundThread;
 
 import java.io.File;
 import java.io.IOException;
@@ -78,13 +77,6 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
         switch(vol.getState()) {
             case Environment.MEDIA_MOUNTED:
                 mediaProvider.attachVolume(volumeName);
-                BackgroundThread.getExecutor().execute(() -> {
-                    try {
-                        MediaService.onScanVolume(this, volumeName, REASON_MOUNTED);
-                    } catch (IOException e) {
-                        Log.w(TAG, "Failed to scan volume " + volumeName, e);
-                    }
-                });
                 break;
             case Environment.MEDIA_UNMOUNTED:
             case Environment.MEDIA_EJECTING:

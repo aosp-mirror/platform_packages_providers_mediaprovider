@@ -288,7 +288,7 @@ public class MediaProvider extends ContentProvider {
     @GuardedBy("sCacheLock")
     private static final Map<String, Collection<File>> sCachedVolumeScanPaths = new ArrayMap<>();
 
-    private void updateVolumes() {
+    public void updateVolumes() {
         synchronized (sCacheLock) {
             sCachedExternalVolumeNames.clear();
             sCachedExternalVolumeNames.addAll(MediaStore.getExternalVolumeNames(getContext()));
@@ -441,40 +441,6 @@ public class MediaProvider extends ContentProvider {
             "_id NOT IN (SELECT parent FROM files WHERE parent IS NOT NULL)";
 
     private static final String CANONICAL = "canonical";
-
-    private BroadcastReceiver mMediaReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            final StorageVolume sv = intent.getParcelableExtra(StorageVolume.EXTRA_STORAGE_VOLUME);
-            try {
-                final String volumeName;
-                if (sv.isPrimary()) {
-                    volumeName = MediaStore.VOLUME_EXTERNAL_PRIMARY;
-                } else {
-                    try {
-                        volumeName = MediaStore
-                                .checkArgumentVolumeName(sv.getMediaStoreVolumeName());
-                    } catch (IllegalArgumentException ignored) {
-                        return;
-                    }
-                }
-
-                switch (intent.getAction()) {
-                    case Intent.ACTION_MEDIA_MOUNTED:
-                        attachVolume(volumeName);
-                        break;
-                    case Intent.ACTION_MEDIA_UNMOUNTED:
-                    case Intent.ACTION_MEDIA_EJECT:
-                    case Intent.ACTION_MEDIA_REMOVED:
-                    case Intent.ACTION_MEDIA_BAD_REMOVAL:
-                        detachVolume(volumeName);
-                        break;
-                }
-            } catch (Exception e) {
-                Log.w(TAG, "Failed to handle broadcast " + intent, e);
-            }
-        }
-    };
 
     private BroadcastReceiver mPackageReceiver = new BroadcastReceiver() {
         @Override
@@ -826,31 +792,12 @@ public class MediaProvider extends ContentProvider {
                 false, false, mLegacyProvider, Column.class,
                 Metrics::logSchemaChange, mFilesListener, mMigrationListener);
 
-        final IntentFilter filter = new IntentFilter();
-        filter.setPriority(10);
-        filter.addDataScheme("file");
-        filter.addAction(Intent.ACTION_MEDIA_UNMOUNTED);
-        filter.addAction(Intent.ACTION_MEDIA_MOUNTED);
-        filter.addAction(Intent.ACTION_MEDIA_EJECT);
-        filter.addAction(Intent.ACTION_MEDIA_REMOVED);
-        filter.addAction(Intent.ACTION_MEDIA_BAD_REMOVAL);
-        context.registerReceiver(mMediaReceiver, filter);
-
         final IntentFilter packageFilter = new IntentFilter();
         packageFilter.setPriority(10);
-        filter.addDataScheme("package");
+        packageFilter.addDataScheme("package");
         packageFilter.addAction(Intent.ACTION_PACKAGE_ADDED);
         packageFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
         context.registerReceiver(mPackageReceiver, packageFilter);
-
-        // Watch for invalidation of cached volumes
-        mStorageManager.registerStorageVolumeCallback(context.getMainExecutor(),
-                new StorageVolumeCallback() {
-                    @Override
-                    public void onStateChanged(@NonNull StorageVolume volume) {
-                        updateVolumes();
-                    }
-                });
 
         updateVolumes();
         attachVolume(MediaStore.VOLUME_INTERNAL);
@@ -5248,7 +5195,7 @@ public class MediaProvider extends ContentProvider {
     private void invalidateFuseDentry(@NonNull String path) {
         FuseDaemon daemon = getFuseDaemonForFile(new File(path));
         if (daemon != null) {
-            if (FuseDaemon.native_is_fuse_thread()) {
+            if (isFuseThread()) {
                 // If we are on a FUSE thread, we don't need to invalidate,
                 // (and *must* not, otherwise we'd crash) because the invalidation
                 // is already reflected in the lower filesystem
@@ -6174,6 +6121,10 @@ public class MediaProvider extends ContentProvider {
         return false;
     }
 
+    private static boolean isFuseThread() {
+        return FuseDaemon.native_is_fuse_thread();
+    }
+
     @Deprecated
     private boolean checkCallingPermissionAudio(boolean forWrite, String callingPackage) {
         if (forWrite) {
@@ -6447,10 +6398,6 @@ public class MediaProvider extends ContentProvider {
     private @NonNull DatabaseHelper getDatabaseForUri(Uri uri) throws VolumeNotFoundException {
         final String volumeName = resolveVolumeName(uri);
         synchronized (mAttachedVolumeNames) {
-            if (!mAttachedVolumeNames.contains(volumeName)) {
-                // Maybe we are racing onVolumeStateChanged, update our cache and try again
-                updateVolumes();
-            }
             if (!mAttachedVolumeNames.contains(volumeName)) {
                 throw new VolumeNotFoundException(volumeName);
             }

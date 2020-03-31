@@ -5195,7 +5195,7 @@ public class MediaProvider extends ContentProvider {
     private void invalidateFuseDentry(@NonNull String path) {
         FuseDaemon daemon = getFuseDaemonForFile(new File(path));
         if (daemon != null) {
-            if (FuseDaemon.native_is_fuse_thread()) {
+            if (isFuseThread()) {
                 // If we are on a FUSE thread, we don't need to invalidate,
                 // (and *must* not, otherwise we'd crash) because the invalidation
                 // is already reflected in the lower filesystem
@@ -6119,6 +6119,10 @@ public class MediaProvider extends ContentProvider {
         }
 
         return false;
+    }
+
+    private static boolean isFuseThread() {
+        return FuseDaemon.native_is_fuse_thread();
     }
 
     @Deprecated

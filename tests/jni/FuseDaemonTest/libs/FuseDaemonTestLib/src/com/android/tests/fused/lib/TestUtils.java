@@ -90,8 +90,51 @@ public class TestUtils {
     public static final byte[] BYTES_DATA1 = STR_DATA1.getBytes();
     public static final byte[] BYTES_DATA2 = STR_DATA2.getBytes();
 
+    // Root of external storage
+    public static final File EXTERNAL_STORAGE_DIR = Environment.getExternalStorageDirectory();
+    // Default top-level directories
+    public static final File ALARMS_DIR = new File(EXTERNAL_STORAGE_DIR,
+            Environment.DIRECTORY_ALARMS);
+    public static final File AUDIOBOOKS_DIR = new File(EXTERNAL_STORAGE_DIR,
+            Environment.DIRECTORY_AUDIOBOOKS);
+    public static final File DCIM_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_DCIM);
+    public static final File DOCUMENTS_DIR = new File(EXTERNAL_STORAGE_DIR,
+            Environment.DIRECTORY_DOCUMENTS);
+    public static final File DOWNLOAD_DIR = new File(EXTERNAL_STORAGE_DIR,
+            Environment.DIRECTORY_DOWNLOADS);
+    public static final File MUSIC_DIR = new File(EXTERNAL_STORAGE_DIR,
+            Environment.DIRECTORY_MUSIC);
+    public static final File MOVIES_DIR = new File(EXTERNAL_STORAGE_DIR,
+            Environment.DIRECTORY_MOVIES);
+    public static final File NOTIFICATIONS_DIR = new File(EXTERNAL_STORAGE_DIR,
+            Environment.DIRECTORY_NOTIFICATIONS);
+    public static final File PICTURES_DIR = new File(EXTERNAL_STORAGE_DIR,
+            Environment.DIRECTORY_PICTURES);
+    public static final File PODCASTS_DIR = new File(EXTERNAL_STORAGE_DIR,
+            Environment.DIRECTORY_PODCASTS);
+    public static final File RINGTONES_DIR = new File(EXTERNAL_STORAGE_DIR,
+            Environment.DIRECTORY_RINGTONES);
+
+    public static final File ANDROID_DATA_DIR = new File(EXTERNAL_STORAGE_DIR, "Android/data");
+    public static final File ANDROID_MEDIA_DIR = new File(EXTERNAL_STORAGE_DIR, "Android/media");
+
     private static final long POLLING_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(10);
     private static final long POLLING_SLEEP_MILLIS = 100;
+
+    /**
+     * Creates the top level default directories.
+     *
+     * <p>Those are usually created by MediaProvider, but some naughty tests might delete them
+     * and not restore them afterwards. so we make sure we create them before we make any
+     * assumptions about their existence.
+     */
+    public static void setupDefaultDirectories() {
+        for (File dir : new File [] { ALARMS_DIR, AUDIOBOOKS_DIR, DCIM_DIR,
+                DOCUMENTS_DIR, DOWNLOAD_DIR, MUSIC_DIR, MOVIES_DIR, NOTIFICATIONS_DIR,
+                PICTURES_DIR, PODCASTS_DIR, RINGTONES_DIR}) {
+            dir.mkdir();
+        }
+    }
 
     /**
      * Grants {@link Manifest.permission#GRANT_RUNTIME_PERMISSIONS} to the given package.

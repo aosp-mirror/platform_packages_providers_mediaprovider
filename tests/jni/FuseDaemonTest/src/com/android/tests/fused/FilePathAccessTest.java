@@ -56,10 +56,24 @@ import static com.android.tests.fused.lib.TestUtils.openFileAs;
 import static com.android.tests.fused.lib.TestUtils.openWithMediaProvider;
 import static com.android.tests.fused.lib.TestUtils.readExifMetadataFromTestApp;
 import static com.android.tests.fused.lib.TestUtils.revokePermission;
+import static com.android.tests.fused.lib.TestUtils.setupDefaultDirectories;
 import static com.android.tests.fused.lib.TestUtils.uninstallApp;
 import static com.android.tests.fused.lib.TestUtils.uninstallAppNoThrow;
 import static com.android.tests.fused.lib.TestUtils.updateDisplayNameWithMediaProvider;
 import static com.android.tests.fused.lib.TestUtils.pollForExternalStorageState;
+import static com.android.tests.fused.lib.TestUtils.ALARMS_DIR;
+import static com.android.tests.fused.lib.TestUtils.AUDIOBOOKS_DIR;
+import static com.android.tests.fused.lib.TestUtils.DCIM_DIR;
+import static com.android.tests.fused.lib.TestUtils.DOCUMENTS_DIR;
+import static com.android.tests.fused.lib.TestUtils.DOWNLOAD_DIR;
+import static com.android.tests.fused.lib.TestUtils.MUSIC_DIR;
+import static com.android.tests.fused.lib.TestUtils.MOVIES_DIR;
+import static com.android.tests.fused.lib.TestUtils.NOTIFICATIONS_DIR;
+import static com.android.tests.fused.lib.TestUtils.PICTURES_DIR;
+import static com.android.tests.fused.lib.TestUtils.PODCASTS_DIR;
+import static com.android.tests.fused.lib.TestUtils.RINGTONES_DIR;
+import static com.android.tests.fused.lib.TestUtils.ANDROID_DATA_DIR;
+import static com.android.tests.fused.lib.TestUtils.ANDROID_MEDIA_DIR;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -110,24 +124,6 @@ public class FilePathAccessTest {
 
     static final File EXTERNAL_STORAGE_DIR = Environment.getExternalStorageDirectory();
 
-    // Default top-level directories
-    static final File ALARMS_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_ALARMS);
-    static final File AUDIOBOOKS_DIR = new File(EXTERNAL_STORAGE_DIR,
-            Environment.DIRECTORY_AUDIOBOOKS);
-    static final File DCIM_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_DCIM);
-    static final File DOCUMENTS_DIR = new File(EXTERNAL_STORAGE_DIR,
-            Environment.DIRECTORY_DOCUMENTS);
-    static final File DOWNLOAD_DIR = new File(EXTERNAL_STORAGE_DIR,
-            Environment.DIRECTORY_DOWNLOADS);
-    static final File MUSIC_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_MUSIC);
-    static final File MOVIES_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_MOVIES);
-    static final File NOTIFICATIONS_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_NOTIFICATIONS);
-    static final File PICTURES_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_PICTURES);
-    static final File PODCASTS_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_PODCASTS);
-    static final File RINGTONES_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_RINGTONES);
-
-    static final File ANDROID_DATA_DIR = new File(EXTERNAL_STORAGE_DIR, "Android/data");
-    static final File ANDROID_MEDIA_DIR = new File(EXTERNAL_STORAGE_DIR, "Android/media");
     static final String TEST_DIRECTORY_NAME = "FilePathAccessTestDirectory";
 
     static final File EXTERNAL_FILES_DIR = getContext().getExternalFilesDir(null);
@@ -154,12 +150,20 @@ public class FilePathAccessTest {
             permissionToOp(Manifest.permission.MANAGE_EXTERNAL_STORAGE);
 
     @Before
-    public void setUp() throws Exception {
+    public void setup() throws Exception {
         // skips all test cases if FUSE is not active.
         assumeTrue(getBoolean("persist.sys.fuse", false));
 
         pollForExternalStorageState();
         EXTERNAL_FILES_DIR.mkdirs();
+    }
+
+    /**
+     * This method needs to be called once before running the whole test.
+     */
+    @Test
+    public void setupExternalStorage() {
+        setupDefaultDirectories();
     }
 
     /**

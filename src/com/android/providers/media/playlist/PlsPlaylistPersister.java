@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.providers.playlist;
+package com.android.providers.media.playlist;
 
 import androidx.annotation.NonNull;
 

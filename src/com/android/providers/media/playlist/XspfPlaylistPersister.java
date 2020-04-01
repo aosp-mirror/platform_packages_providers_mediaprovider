@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.providers.playlist;
+package com.android.providers.media.playlist;
 
 import static org.xmlpull.v1.XmlPullParser.END_DOCUMENT;
 import static org.xmlpull.v1.XmlPullParser.START_TAG;
@@ -36,13 +36,11 @@ import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.List;
 
-public class WplPlaylistPersister implements PlaylistPersister {
-    private static final String TAG_SMIL = "smil";
-    private static final String TAG_BODY = "body";
-    private static final String TAG_SEQ = "seq";
-    private static final String TAG_MEDIA = "media";
-
-    private static final String ATTR_SRC = "src";
+public class XspfPlaylistPersister implements PlaylistPersister {
+    private static final String TAG_PLAYLIST = "playlist";
+    private static final String TAG_TRACK_LIST = "trackList";
+    private static final String TAG_TRACK = "track";
+    private static final String TAG_LOCATION = "location";
 
     @Override
     public void read(@NonNull InputStream in, @NonNull List<Path> items) throws IOException {
@@ -55,8 +53,8 @@ public class WplPlaylistPersister implements PlaylistPersister {
             while ((type = parser.next()) != END_DOCUMENT) {
                 if (type != START_TAG) continue;
 
-                if (TAG_MEDIA.equals(parser.getName())) {
-                    final String src = parser.getAttributeValue(null, ATTR_SRC);
+                if (TAG_LOCATION.equals(parser.getName())) {
+                    final String src = parser.nextText();
                     if (src != null) {
                         items.add(fs.getPath(src.replace('\\', '/')));
                     }
@@ -72,17 +70,17 @@ public class WplPlaylistPersister implements PlaylistPersister {
         final XmlSerializer doc = Xml.newSerializer();
         doc.setOutput(out, StandardCharsets.UTF_8.name());
         doc.startDocument(null, true);
-        doc.startTag(null, TAG_SMIL);
-        doc.startTag(null, TAG_BODY);
-        doc.startTag(null, TAG_SEQ);
+        doc.startTag(null, TAG_PLAYLIST);
+        doc.startTag(null, TAG_TRACK_LIST);
         for (Path item : items) {
-            doc.startTag(null, TAG_MEDIA);
-            doc.attribute(null, ATTR_SRC, item.toString());
-            doc.endTag(null, TAG_MEDIA);
+            doc.startTag(null, TAG_TRACK);
+            doc.startTag(null, TAG_LOCATION);
+            doc.text(item.toString());
+            doc.endTag(null, TAG_LOCATION);
+            doc.endTag(null, TAG_TRACK);
         }
-        doc.endTag(null, TAG_SEQ);
-        doc.endTag(null, TAG_BODY);
-        doc.endTag(null, TAG_SMIL);
+        doc.endTag(null, TAG_TRACK_LIST);
+        doc.endTag(null, TAG_PLAYLIST);
         doc.endDocument();
     }
 }

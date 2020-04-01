@@ -4149,11 +4149,8 @@ public class MediaProvider extends ContentProvider {
                         mExternalDatabase
                 }) {
                     final SQLiteDatabase db = helper.getReadableDatabase();
-                    try (Cursor c = db.rawQuery("SELECT icu_load_collation(?, ?);",
-                            new String[] { locale, collationName }, null)) {
-                        while (c.moveToNext()) {
-                        }
-                    }
+                    db.execPerConnectionSQL("SELECT icu_load_collation(?, ?);",
+                            new String[] { locale, collationName });
                 }
                 mCustomCollators.add(collationName);
             }

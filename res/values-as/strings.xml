@@ -29,31 +29,80 @@
     <string name="permission_required_action" msgid="706370952366113539">"অব্যাহত ৰাখক"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"অনুমতি দিয়ক"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"অস্বীকাৰ কৰক"</string>
-    <!-- no translation found for permission_more_thumb (4392079224649478923) -->
+    <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
+      <item quantity="one">+<xliff:g id="COUNT_1">^1</xliff:g> টা</item>
+      <item quantity="other">+<xliff:g id="COUNT_1">^1</xliff:g> টা</item>
+    </plurals>
     <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
       <item quantity="one">আৰু <xliff:g id="COUNT_1">^1</xliff:g> টা অতিৰিক্ত বস্তু</item>
       <item quantity="other">আৰু <xliff:g id="COUNT_1">^1</xliff:g> টা অতিৰিক্ত বস্তু</item>
     </plurals>
-    <!-- no translation found for cache_clearing_dialog_title (4672878017407595782) -->
-    <skip />
-    <!-- no translation found for cache_clearing_dialog_text (7057784635111940957) -->
-    <skip />
+    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"অস্থায়ী এপ্‌ ফাইলসমূহ মচিবনে?"</string>
+    <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>এ কিছুমান অস্থায়ী ফাইল মচিব বিচাৰিছে। ইয়াৰ ফলত বেটাৰী অথবা চেলুলাৰ ডেটাৰ ব্যৱহাৰ বৃদ্ধি হ’ব পাৰে।"</string>
     <string name="allow" msgid="8885707816848569619">"অনুমতি দিয়ক"</string>
     <string name="deny" msgid="6040983710442068936">"অস্বীকাৰ কৰক"</string>
-    <!-- no translation found for permission_write_audio (8914759422381305478) -->
-    <!-- no translation found for permission_write_video (1098082003326873084) -->
-    <!-- no translation found for permission_write_image (748745548893845892) -->
-    <!-- no translation found for permission_write_generic (3270172714743671779) -->
-    <!-- no translation found for permission_trash_audio (8907813869381755423) -->
-    <!-- no translation found for permission_trash_video (4672871911555787438) -->
-    <!-- no translation found for permission_trash_image (6400475304599873227) -->
-    <!-- no translation found for permission_trash_generic (3814167365075039711) -->
-    <!-- no translation found for permission_untrash_audio (7795265980168966321) -->
-    <!-- no translation found for permission_untrash_video (332894888445508879) -->
-    <!-- no translation found for permission_untrash_image (7024071378733595056) -->
-    <!-- no translation found for permission_untrash_generic (6872817093731198374) -->
-    <!-- no translation found for permission_delete_audio (6848547621165184719) -->
-    <!-- no translation found for permission_delete_video (1251942606336748563) -->
-    <!-- no translation found for permission_delete_image (2303409455224710111) -->
-    <!-- no translation found for permission_delete_generic (1412218850351841181) -->
+    <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল সংশোধন কৰিবলৈ অনুমতি দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল সংশোধন কৰিবলৈ অনুমতি দিবনে?</item>
+    </plurals>
+    <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা ভিডিঅ’ সংশোধন কৰিবলৈ অনুমতি দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা ভিডিঅ’ সংশোধন কৰিবলৈ অনুমতি দিবনে?</item>
+    </plurals>
+    <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> খন ফট’ সংশোধন কৰিবলৈ অনুমতি দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> খন ফট’ সংশোধন কৰিবলৈ অনুমতি দিবনে?</item>
+    </plurals>
+    <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা বস্তু সংশোধন কৰিবলৈ অনুমতি দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা বস্তু সংশোধন কৰিবলৈ অনুমতি দিবনে?</item>
+    </plurals>
+    <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল ট্ৰেশ্বলৈ স্থানান্তৰ কৰিবলৈ অনুমতি দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল ট্ৰেশ্বলৈ স্থানান্তৰ কৰিবলৈ অনুমতি দিবনে?</item>
+    </plurals>
+    <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা ভিডিঅ’ ট্ৰেশ্বলৈ স্থানান্তৰ কৰিবলৈ অনুমতি দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা ভিডিঅ’ ট্ৰেশ্বলৈ স্থানান্তৰ কৰিবলৈ অনুমতি দিবনে?</item>
+    </plurals>
+    <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> খন ফট’ ট্ৰেশ্বলৈ স্থানান্তৰ কৰিবলৈ অনুমতি দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> খন ফট’ ট্ৰেশ্বলৈ স্থানান্তৰ কৰিবলৈ অনুমতি দিবনে?</item>
+    </plurals>
+    <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা বস্তু ট্ৰেশ্বলৈ স্থানান্তৰ কৰিবলৈ অনুমতি দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা বস্তু ট্ৰেশ্বলৈ স্থানান্তৰ কৰিবলৈ অনুমতি দিবনে?</item>
+    </plurals>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল ট্ৰেশ্বৰ পৰা বাহিৰলৈ স্থানান্তৰ কৰিবলৈ অনুমতি দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল ট্ৰেশ্বৰ পৰা বাহিৰলৈ স্থানান্তৰ কৰিবলৈ অনুমতি দিবনে?</item>
+    </plurals>
+    <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা ভিডিঅ’ ট্ৰেশ্বৰ পৰা বাহিৰলৈ স্থানান্তৰ কৰিবলৈ অনুমতি দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা ভিডিঅ’ ট্ৰেশ্বৰ পৰা বাহিৰলৈ স্থানান্তৰ কৰিবলৈ অনুমতি দিবনে?</item>
+    </plurals>
+    <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> খন ফট’ ট্ৰেশ্বৰ পৰা বাহিৰলৈ স্থানান্তৰ কৰিবলৈ অনুমতি দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> খন ফট’ ট্ৰেশ্বৰ পৰা বাহিৰলৈ স্থানান্তৰ কৰিবলৈ অনুমতি দিবনে?</item>
+    </plurals>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা বস্তু ট্ৰেশ্বৰ পৰা বাহিৰলৈ স্থানান্তৰ কৰিবলৈ অনুমতি দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা বস্তু ট্ৰেশ্বৰ পৰা বাহিৰলৈ স্থানান্তৰ কৰিবলৈ অনুমতি দিবনে?</item>
+    </plurals>
+    <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল মচিবলৈ অনুমতি দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল মচিবলৈ অনুমতি দিবনে?</item>
+    </plurals>
+    <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা ভিডিঅ’ মচিবলৈ অনুমতি দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা ভিডিঅ’ মচিবলৈ অনুমতি দিবনে?</item>
+    </plurals>
+    <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> খন ফট’ মচিবলৈ অনুমতি দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> খন ফট’ মচিবলৈ অনুমতি দিবনে?</item>
+    </plurals>
+    <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা বস্তু মচিবলৈ অনুমতি দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা বস্তু মচিবলৈ অনুমতি দিবনে?</item>
+    </plurals>
 </resources>

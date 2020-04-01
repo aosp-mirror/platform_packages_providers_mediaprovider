@@ -4016,13 +4016,16 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.GET_GENERATION_CALL: {
                 final String volumeName = extras.getString(Intent.EXTRA_TEXT);
 
-                final long generation;
+                final DatabaseHelper helper;
                 try {
-                    generation = getDatabaseForUri(MediaStore.Files.getContentUri(volumeName))
-                            .getGeneration();
+                    helper = getDatabaseForUri(MediaStore.Files.getContentUri(volumeName));
                 } catch (VolumeNotFoundException e) {
                     throw e.rethrowAsIllegalArgumentException();
                 }
+
+                final long generation = helper.runWithoutTransaction((db) -> {
+                    return DatabaseHelper.getGeneration(db);
+                });
 
                 final Bundle res = new Bundle();
                 res.putLong(Intent.EXTRA_INDEX, generation);

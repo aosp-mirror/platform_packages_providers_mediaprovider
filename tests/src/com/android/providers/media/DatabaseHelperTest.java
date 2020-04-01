@@ -433,11 +433,6 @@ public class DatabaseHelperTest {
         public void onCreate(SQLiteDatabase db) {
             createOSchema(db, false);
         }
-
-        @Override
-        public void onOpen(SQLiteDatabase db) {
-            // Purposefully empty to leave views intact
-        }
     }
 
     private static class DatabaseHelperP extends DatabaseHelper {
@@ -450,11 +445,6 @@ public class DatabaseHelperTest {
         public void onCreate(SQLiteDatabase db) {
             createPSchema(db, false);
         }
-
-        @Override
-        public void onOpen(SQLiteDatabase db) {
-            // Purposefully empty to leave views intact
-        }
     }
 
     private static class DatabaseHelperQ extends DatabaseHelper {
@@ -466,11 +456,6 @@ public class DatabaseHelperTest {
         @Override
         public void onCreate(SQLiteDatabase db) {
             createQSchema(db, false);
-        }
-
-        @Override
-        public void onOpen(SQLiteDatabase db) {
-            // Purposefully empty to leave views intact
         }
     }
 

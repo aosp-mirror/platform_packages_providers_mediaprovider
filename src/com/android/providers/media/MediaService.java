@@ -67,6 +67,10 @@ public class MediaService extends JobIntentService {
                     onScanFile(this, intent.getData());
                     break;
                 }
+                case Intent.ACTION_MEDIA_MOUNTED: {
+                    onScanVolume(this, intent.getData(), REASON_MOUNTED);
+                    break;
+                }
                 default: {
                     Log.w(TAG, "Unknown intent " + intent);
                     break;

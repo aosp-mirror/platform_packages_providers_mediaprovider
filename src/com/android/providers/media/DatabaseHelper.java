@@ -75,7 +75,7 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.LongSupplier;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 
@@ -204,17 +204,18 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     @Override
     public SQLiteDatabase getReadableDatabase() {
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            Log.wtf(TAG, "Database operations must not happen on main thread", new Throwable());
-        }
-        return super.getReadableDatabase();
+        throw new UnsupportedOperationException("All database operations must be routed through"
+                + " runWithTransaction() or runWithoutTransaction() to avoid deadlocks");
     }
 
     @Override
     public SQLiteDatabase getWritableDatabase() {
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            Log.wtf(TAG, "Database operations must not happen on main thread", new Throwable());
-        }
+        throw new UnsupportedOperationException("All database operations must be routed through"
+                + " runWithTransaction() or runWithoutTransaction() to avoid deadlocks");
+    }
+
+    @VisibleForTesting
+    SQLiteDatabase getWritableDatabaseForTest() {
         return super.getWritableDatabase();
     }
 
@@ -411,7 +412,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
         mTransactionState.set(new TransactionState());
 
-        final SQLiteDatabase db = getWritableDatabase();
+        final SQLiteDatabase db = super.getWritableDatabase();
         db.beginTransaction();
         db.execSQL("UPDATE local_metadata SET generation=generation+1;");
     }
@@ -423,7 +424,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
         state.successful = true;
 
-        final SQLiteDatabase db = getWritableDatabase();
+        final SQLiteDatabase db = super.getWritableDatabase();
         db.setTransactionSuccessful();
     }
 
@@ -434,7 +435,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
         mTransactionState.remove();
 
-        final SQLiteDatabase db = getWritableDatabase();
+        final SQLiteDatabase db = super.getWritableDatabase();
         db.endTransaction();
 
         if (state.successful) {
@@ -458,25 +459,35 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     /**
-     * Execute the given runnable inside a transaction. If the calling thread is
-     * not already in an active transaction, this method will wrap the given
+     * Execute the given operation inside a transaction. If the calling thread
+     * is not already in an active transaction, this method will wrap the given
      * runnable inside a new transaction.
      */
-    public long runWithTransaction(@NonNull LongSupplier s) {
+    public @NonNull <T> T runWithTransaction(@NonNull Function<SQLiteDatabase, T> op) {
+        // TODO: acquire a schema lock before proceeding
         if (mTransactionState.get() != null) {
             // Already inside a transaction, so we can run directly
-            return s.getAsLong();
+            return op.apply(super.getWritableDatabase());
         } else {
             // Not inside a transaction, so we need to make one
             beginTransaction();
             try {
-                final long res = s.getAsLong();
+                final T res = op.apply(super.getWritableDatabase());
                 setTransactionSuccessful();
                 return res;
             } finally {
                 endTransaction();
             }
         }
+    }
+
+    /**
+     * Execute the given operation regardless of the calling thread being in an
+     * active transaction or not.
+     */
+    public @NonNull <T> T runWithoutTransaction(@NonNull Function<SQLiteDatabase, T> op) {
+        // TODO: acquire a schema lock before proceeding
+        return op.apply(super.getWritableDatabase());
     }
 
     public void notifyInsert(@NonNull Uri uri) {
@@ -1362,7 +1373,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * {@link MediaColumns#GENERATION_MODIFIED}.
      */
     public long getGeneration() {
-        return android.database.DatabaseUtils.longForQuery(getReadableDatabase(),
+        return android.database.DatabaseUtils.longForQuery(super.getReadableDatabase(),
                 CURRENT_GENERATION_CLAUSE + ";", null);
     }
 
@@ -1371,14 +1382,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * only real media items, and does not include directories.
      */
     public long getItemCount() {
-        return getItemCount(getReadableDatabase());
+        return getItemCount(super.getReadableDatabase());
     }
 
     /**
      * Return total number of items tracked inside this database. This includes
      * only real media items, and does not include directories.
      */
-    private long getItemCount(SQLiteDatabase db) {
+    public static long getItemCount(@NonNull SQLiteDatabase db) {
         return android.database.DatabaseUtils.longForQuery(db,
                 "SELECT COUNT(_id) FROM files WHERE " + FileColumns.MIME_TYPE + " IS NOT NULL",
                 null);

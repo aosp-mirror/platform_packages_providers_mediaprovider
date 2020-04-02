@@ -464,6 +464,24 @@ public class ModernMediaScannerTest {
         assertQueryCount(0, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
     }
 
+    /**
+     * All file formats are thoroughly tested by {@code CtsProviderTestCases},
+     * but to prove code coverage we also need to exercise manually here with a
+     * bare-bones scan operation.
+     */
+    @Test
+    public void testScan_Coverage() throws Exception {
+        stage(R.raw.test_audio, new File(mDir, "audio.mp3"));
+        stage(R.raw.test_video, new File(mDir, "video.mp4"));
+        stage(R.raw.test_image, new File(mDir, "image.jpg"));
+        stage(R.raw.test_m3u, new File(mDir, "playlist.m3u"));
+        stage(R.raw.test_srt, new File(mDir, "subtitle.srt"));
+        stage(R.raw.test_txt, new File(mDir, "document.txt"));
+        stage(R.raw.test_bin, new File(mDir, "random.bin"));
+
+        mModern.scanDirectory(mDir, REASON_UNKNOWN);
+    }
+
     @Test
     public void testScan_Nomedia_Dir() throws Exception {
         final File red = new File(mDir, "red");

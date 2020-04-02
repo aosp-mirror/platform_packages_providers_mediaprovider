@@ -67,7 +67,7 @@ public class MediaProviderForFuseTest {
                 .acquireContentProviderClient(MediaStore.AUTHORITY).getLocalContentProvider();
 
         // Use a random app without any permissions
-        sTestUid = context.getPackageManager().getPackageUid("com.android.egg",
+        sTestUid = context.getPackageManager().getPackageUid(MediaProviderTest.PERMISSIONLESS_APP,
                 PackageManager.MATCH_ALL);
         sTestDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
     }

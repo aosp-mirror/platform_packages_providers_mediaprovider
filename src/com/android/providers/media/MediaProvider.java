@@ -52,7 +52,6 @@ import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_
 import static com.android.providers.media.scan.MediaScanner.REASON_DEMAND;
 import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
 import static com.android.providers.media.util.DatabaseUtils.bindList;
-import static com.android.providers.media.util.FileUtils.computeDataValues;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractFileName;
 import static com.android.providers.media.util.FileUtils.extractPathOwnerPackageName;
@@ -62,7 +61,6 @@ import static com.android.providers.media.util.FileUtils.extractTopLevelDir;
 import static com.android.providers.media.util.FileUtils.extractVolumeName;
 import static com.android.providers.media.util.FileUtils.getAbsoluteSanitizedPath;
 import static com.android.providers.media.util.FileUtils.isDownload;
-import static com.android.providers.media.util.FileUtils.sanitizeDisplayName;
 import static com.android.providers.media.util.FileUtils.sanitizePath;
 import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
@@ -1377,7 +1375,7 @@ public class MediaProvider extends ContentProvider {
             computeAudioLocalizedValues(values);
             computeAudioKeyValues(values);
         }
-        computeDataValues(values);
+        FileUtils.computeValuesFromData(values);
         return values;
     }
 
@@ -2105,14 +2103,7 @@ public class MediaProvider extends ContentProvider {
 
         // Force values when raw path provided
         if (!TextUtils.isEmpty(values.getAsString(MediaColumns.DATA))) {
-            final String data = values.getAsString(MediaColumns.DATA);
-
-            if (TextUtils.isEmpty(values.getAsString(MediaColumns.DISPLAY_NAME))) {
-                values.put(MediaColumns.DISPLAY_NAME, extractDisplayName(data));
-            }
-            if (TextUtils.isEmpty(values.getAsString(MediaColumns.MIME_TYPE))) {
-                values.put(MediaColumns.MIME_TYPE, MimeUtils.resolveMimeType(new File(data)));
-            }
+            FileUtils.computeValuesFromData(values);
         }
         // Extract the MIME type from the display name if we couldn't resolve it from the raw path
         if (!TextUtils.isEmpty(values.getAsString(MediaColumns.DISPLAY_NAME))) {
@@ -2170,42 +2161,42 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
+        // Use default directories when missing
+        if (TextUtils.isEmpty(values.getAsString(MediaColumns.RELATIVE_PATH))) {
+            if (defaultSecondary != null) {
+                values.put(MediaColumns.RELATIVE_PATH,
+                        defaultPrimary + '/' + defaultSecondary + '/');
+            } else {
+                values.put(MediaColumns.RELATIVE_PATH,
+                        defaultPrimary + '/');
+            }
+        }
+
         // Generate path when undefined
         if (TextUtils.isEmpty(values.getAsString(MediaColumns.DATA))) {
-            if (TextUtils.isEmpty(values.getAsString(MediaColumns.RELATIVE_PATH))) {
-                if (defaultPrimary != null) {
-                    if (defaultSecondary != null) {
-                        values.put(MediaColumns.RELATIVE_PATH,
-                                defaultPrimary + '/' + defaultSecondary + '/');
-                    } else {
-                        values.put(MediaColumns.RELATIVE_PATH,
-                                defaultPrimary + '/');
-                    }
-                }
-            }
-
-            final String[] relativePath = sanitizePath(
-                    values.getAsString(MediaColumns.RELATIVE_PATH));
-            final String displayName = sanitizeDisplayName(
-                    values.getAsString(MediaColumns.DISPLAY_NAME));
-
-            // Create result file
-            File res;
+            File volumePath;
             try {
-                res = getVolumePath(resolvedVolumeName);
+                volumePath = getVolumePath(resolvedVolumeName);
             } catch (FileNotFoundException e) {
                 throw new IllegalArgumentException(e);
             }
-            res = FileUtils.buildPath(res, relativePath);
+
+            FileUtils.sanitizeValues(values);
+            FileUtils.computeDataFromValues(values, volumePath);
+
+            // Create result file
+            File res = new File(values.getAsString(MediaColumns.DATA));
             try {
                 if (makeUnique) {
-                    res = FileUtils.buildUniqueFile(res, mimeType, displayName);
+                    res = FileUtils.buildUniqueFile(res.getParentFile(),
+                            mimeType, res.getName());
                 } else {
-                    res = FileUtils.buildNonUniqueFile(res, mimeType, displayName);
+                    res = FileUtils.buildNonUniqueFile(res.getParentFile(),
+                            mimeType, res.getName());
                 }
             } catch (FileNotFoundException e) {
                 throw new IllegalStateException(
-                        "Failed to build unique file: " + res + " " + displayName + " " + mimeType);
+                        "Failed to build unique file: " + res + " " + values);
             }
 
             // Require that content lives under well-defined directories to help
@@ -2215,7 +2206,8 @@ public class MediaProvider extends ContentProvider {
             boolean validPath = res.getAbsolutePath().equals(currentPath);
 
             // Next, consider allowing based on allowed primary directory
-            final String primary = relativePath[0];
+            final String[] relativePath = values.getAsString(MediaColumns.RELATIVE_PATH).split("/");
+            final String primary = (relativePath.length > 0) ? relativePath[0] : null;
             if (!validPath) {
                 validPath = allowedPrimary.contains(primary);
             }
@@ -2275,8 +2267,13 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_ALBUMART:
             case VIDEO_THUMBNAILS:
             case IMAGES_THUMBNAILS:
-                values.remove(MediaColumns.DISPLAY_NAME);
-                values.remove(MediaColumns.MIME_TYPE);
+                final Set<String> valid = getProjectionMap(MediaStore.Images.Thumbnails.class)
+                        .keySet();
+                for (String key : new ArraySet<>(values.keySet())) {
+                    if (!valid.contains(key)) {
+                        values.remove(key);
+                    }
+                }
                 break;
         }
 
@@ -2544,7 +2541,7 @@ public class MediaProvider extends ContentProvider {
 
         // compute bucket_id and bucket_display_name for all files
         String path = values.getAsString(MediaStore.MediaColumns.DATA);
-        computeDataValues(values);
+        FileUtils.computeValuesFromData(values);
         values.put(MediaStore.MediaColumns.DATE_ADDED, System.currentTimeMillis() / 1000);
 
         String title = values.getAsString(MediaStore.MediaColumns.TITLE);
@@ -2939,7 +2936,7 @@ public class MediaProvider extends ContentProvider {
                 values.put(MediaStore.Audio.Playlists.DATE_ADDED, System.currentTimeMillis() / 1000);
                 // Playlist names are stored as display names, but leave
                 // values untouched if the caller is ModernMediaScanner
-                if (Binder.getCallingUid() != android.os.Process.myUid()) {
+                if (!isCallingPackageSystem()) {
                     if (values.containsKey(Playlists.NAME)) {
                         values.put(MediaColumns.DISPLAY_NAME, values.getAsString(Playlists.NAME));
                     }
@@ -4597,7 +4594,7 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_PLAYLISTS_ID:
                 // Playlist names are stored as display names, but leave
                 // values untouched if the caller is ModernMediaScanner
-                if (Binder.getCallingUid() != android.os.Process.myUid()) {
+                if (!isCallingPackageSystem()) {
                     if (initialValues.containsKey(Playlists.NAME)) {
                         initialValues.put(MediaColumns.DISPLAY_NAME,
                                 initialValues.getAsString(Playlists.NAME));
@@ -4624,6 +4621,7 @@ public class MediaProvider extends ContentProvider {
                 case VIDEO_MEDIA_ID:
                 case IMAGES_MEDIA_ID:
                 case DOWNLOADS_ID:
+                case FILES_ID:
                     break;
                 default:
                     throw new IllegalArgumentException("Movement of " + uri
@@ -4737,7 +4735,7 @@ public class MediaProvider extends ContentProvider {
             case IMAGES_MEDIA_ID:
             case FILES_ID:
             case DOWNLOADS_ID: {
-                computeDataValues(values);
+                FileUtils.computeValuesFromData(values);
                 break;
             }
         }
@@ -6764,6 +6762,9 @@ public class MediaProvider extends ContentProvider {
         sPlacementColumns.add(MediaStore.MediaColumns.RELATIVE_PATH);
         sPlacementColumns.add(MediaStore.MediaColumns.DISPLAY_NAME);
         sPlacementColumns.add(MediaStore.MediaColumns.MIME_TYPE);
+        sPlacementColumns.add(MediaStore.MediaColumns.IS_PENDING);
+        sPlacementColumns.add(MediaStore.MediaColumns.IS_TRASHED);
+        sPlacementColumns.add(MediaStore.MediaColumns.DATE_EXPIRES);
     }
 
     /**

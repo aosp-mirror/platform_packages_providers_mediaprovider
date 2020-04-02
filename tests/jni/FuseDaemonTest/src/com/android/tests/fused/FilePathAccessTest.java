@@ -102,6 +102,8 @@ import androidx.test.runner.AndroidJUnit4;
 import com.android.cts.install.lib.TestApp;
 import com.android.tests.fused.lib.ReaddirTestHelper;
 
+import com.google.common.io.Files;
+
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -109,6 +111,7 @@ import org.junit.runner.RunWith;
 
 import java.io.File;
 import java.io.FileDescriptor;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -682,6 +685,7 @@ public class FilePathAccessTest {
             assertThat(listAs(TEST_APP_A, EXTERNAL_MEDIA_DIR.getPath())).containsExactly(videoFileName);
         } finally {
             videoFile.delete();
+            uninstallAppNoThrow(TEST_APP_A);
         }
     }
 
@@ -1278,18 +1282,22 @@ public class FilePathAccessTest {
     public void testRenameAndReplaceFile() throws Exception {
         final File videoFile1 = new File(DCIM_DIR, VIDEO_FILE_NAME);
         final File videoFile2 = new File(MOVIES_DIR, VIDEO_FILE_NAME);
+        final ContentResolver cr = getContentResolver();
         try {
             assertThat(videoFile1.createNewFile()).isTrue();
             assertThat(videoFile2.createNewFile()).isTrue();
-            final String[] projection = new String[] {MediaColumns._ID};
-            // Get id of video file in movies which will be deleted on rename.
-            final int id = getFileRowIdFromDatabase(videoFile2);
+            final Uri uriVideoFile1 = MediaStore.scanFile(cr, videoFile1);
+            final Uri uriVideoFile2 = MediaStore.scanFile(cr, videoFile2);
 
             // Renaming a file which replaces file in newPath videoFile2 is allowed.
             assertCanRenameFile(videoFile1, videoFile2);
 
-            // MediaProvider database entry for videoFile2 should be deleted on rename.
-            assertThat(getFileRowIdFromDatabase(videoFile2)).isNotEqualTo(id);
+            // Uri of videoFile2 should be accessible after rename.
+            assertThat(cr.openFileDescriptor(uriVideoFile2, "rw")).isNotNull();
+            // Uri of videoFile1 should not be accessible after rename.
+            assertThrows(FileNotFoundException.class, () -> {
+                cr.openFileDescriptor(uriVideoFile1, "rw");
+            });
         } finally {
             videoFile1.delete();
             videoFile2.delete();
@@ -1684,8 +1692,12 @@ public class FilePathAccessTest {
             executeShellCommand("rm " + otherAppPdfFile2);
             otherAppImageFile1.delete();
             otherAppImageFile2.delete();
+            MediaStore.scanFile(getContentResolver(), otherAppImageFile1);
+            MediaStore.scanFile(getContentResolver(), otherAppImageFile2);
             otherAppVideoFile1.delete();
             otherAppVideoFile2.delete();
+            MediaStore.scanFile(getContentResolver(), otherAppVideoFile1);
+            MediaStore.scanFile(getContentResolver(), otherAppVideoFile2);
             otherAppPdfFile1.delete();
             otherAppPdfFile2.delete();
             dirInDcim.delete();
@@ -1695,6 +1707,71 @@ public class FilePathAccessTest {
         }
     }
 
+    /**
+     * Test that row ID corresponding to deleted path is restored on subsequent create.
+     */
+    @Test
+    public void testCreateCanRestoreDeletedRowId() throws Exception {
+        final File imageFile = new File(DCIM_DIR, IMAGE_FILE_NAME);
+        final ContentResolver cr = getContentResolver();
+
+        try {
+            assertThat(imageFile.createNewFile()).isTrue();
+            final long oldRowId = getFileRowIdFromDatabase(imageFile);
+            assertThat(oldRowId).isNotEqualTo(-1);
+            final Uri uriOfOldFile = MediaStore.scanFile(cr, imageFile);
+            assertThat(uriOfOldFile).isNotNull();
+
+            assertThat(imageFile.delete()).isTrue();
+            // We should restore old row Id corresponding to deleted imageFile.
+            assertThat(imageFile.createNewFile()).isTrue();
+            assertThat(getFileRowIdFromDatabase(imageFile)).isEqualTo(oldRowId);
+            assertThat(cr.openFileDescriptor(uriOfOldFile, "rw")).isNotNull();
+
+            assertThat(imageFile.delete()).isTrue();
+            installApp(TEST_APP_A, false);
+            assertThat(createFileAs(TEST_APP_A, imageFile.getAbsolutePath())).isTrue();
+
+            final Uri uriOfNewFile = MediaStore.scanFile(getContentResolver(), imageFile);
+            assertThat(uriOfNewFile).isNotNull();
+            // We shouldn't restore deleted row Id if delete & create are called from different apps
+            assertThat(Integer.getInteger(uriOfNewFile.getLastPathSegment()))
+                    .isNotEqualTo(oldRowId);
+        } finally {
+            imageFile.delete();
+            deleteFileAsNoThrow(TEST_APP_A, imageFile.getAbsolutePath());
+            uninstallAppNoThrow(TEST_APP_A);
+        }
+    }
+
+    /**
+     * Test that row ID corresponding to deleted path is restored on subsequent rename.
+     */
+    @Test
+    public void testRenameCanRestoreDeletedRowId() throws Exception {
+        final File imageFile = new File(DCIM_DIR, IMAGE_FILE_NAME);
+        final File temporaryFile = new File(DOWNLOAD_DIR, IMAGE_FILE_NAME + "_.tmp");
+        final ContentResolver cr = getContentResolver();
+
+        try {
+            assertThat(imageFile.createNewFile()).isTrue();
+            final Uri oldUri = MediaStore.scanFile(cr, imageFile);
+            assertThat(oldUri).isNotNull();
+
+            Files.copy(imageFile, temporaryFile);
+            assertThat(imageFile.delete()).isTrue();
+            assertCanRenameFile(temporaryFile, imageFile);
+
+            final Uri newUri = MediaStore.scanFile(cr, imageFile);
+            assertThat(newUri).isNotNull();
+            assertThat(newUri.getLastPathSegment()).isEqualTo(oldUri.getLastPathSegment());
+            // oldUri of imageFile is still accessible after delete and rename.
+            assertThat(cr.openFileDescriptor(oldUri, "rw")).isNotNull();
+        } finally {
+            imageFile.delete();
+            temporaryFile.delete();
+        }
+    }
     private static void assertCantQueryFile(File file) {
         assertThat(getFileUri(file)).isNull();
     }

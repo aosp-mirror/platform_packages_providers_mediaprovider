@@ -74,6 +74,18 @@ public class SQLiteQueryBuilder {
 
     private int mStrictFlags;
 
+    /**
+     * Raw SQL clause to obtain the value of {@link MediaColumns#_ID} from custom database function
+     * {@code _GET_ID} for INSERT operation.
+     */
+    private static final String GET_ID_FOR_INSERT_CLAUSE = "_GET_ID('%s')";
+
+    /**
+     * Raw SQL clause to obtain the value of {@link MediaColumns#_ID} from custom database function
+     * {@code _GET_ID} for UPDATE operation.
+     */
+    private static final String GET_ID_FOR_UPDATE_CLAUSE = "ifnull(_GET_ID('%s'), _id)";
+
     public SQLiteQueryBuilder() {
         mDistinct = false;
     }
@@ -838,6 +850,11 @@ public class SQLiteQueryBuilder {
             sql.append(',');
             sql.append(MediaColumns.GENERATION_MODIFIED);
         }
+        if (shouldAppendRowId(values)) {
+            sql.append(',');
+            sql.append(MediaColumns._ID);
+        }
+
         sql.append(") VALUES (");
         for (int i = 0; i < rawValues.size(); i++) {
             if (i > 0) {
@@ -854,6 +871,10 @@ public class SQLiteQueryBuilder {
             sql.append('(');
             sql.append(DatabaseHelper.CURRENT_GENERATION_CLAUSE);
             sql.append(')');
+        }
+        if (shouldAppendRowId(values)) {
+            sql.append(',');
+            sql.append(String.format(GET_ID_FOR_INSERT_CLAUSE, values.get(MediaColumns.DATA)));
         }
         sql.append(")");
         return sql.toString();
@@ -892,6 +913,12 @@ public class SQLiteQueryBuilder {
             sql.append('(');
             sql.append(DatabaseHelper.CURRENT_GENERATION_CLAUSE);
             sql.append(')');
+        }
+        if (shouldAppendRowId(values)) {
+            sql.append(',');
+            sql.append(MediaColumns._ID);
+            sql.append('=');
+            sql.append(String.format(GET_ID_FOR_UPDATE_CLAUSE, values.get(MediaColumns.DATA)));
         }
 
         final String where = computeWhere(selection);
@@ -1043,5 +1070,9 @@ public class SQLiteQueryBuilder {
         } else {
             return "(" + arg + ")";
         }
+    }
+
+    private static boolean shouldAppendRowId(ContentValues values) {
+        return !values.containsKey(MediaColumns._ID) && values.containsKey(MediaColumns.DATA);
     }
 }

@@ -388,6 +388,28 @@ public class ModernMediaScannerTest {
             cursor.moveToNext();
             assertEquals("003.mp3", cursor.getString(0));
         }
+
+        // Replace media file in a completely different location, which normally
+        // wouldn't match the exact playlist path, but we're willing to perform
+        // a relaxed search
+        final File soundtracks = new File(mDir, "Soundtracks");
+        soundtracks.mkdirs();
+        stage(R.raw.test_audio, new File(soundtracks, "002.mp3"));
+        stage(res, new File(music, name));
+
+        mModern.scanDirectory(mDir, REASON_UNKNOWN);
+
+        try (Cursor cursor = mIsolatedResolver.query(membersUri, new String[] {
+                MediaColumns.DISPLAY_NAME
+        }, null, null, MediaStore.Audio.Playlists.Members.PLAY_ORDER + " ASC")) {
+            assertEquals(5, cursor.getCount());
+            cursor.moveToNext();
+            assertEquals("001.mp3", cursor.getString(0));
+            cursor.moveToNext();
+            assertEquals("002.mp3", cursor.getString(0));
+            cursor.moveToNext();
+            assertEquals("003.mp3", cursor.getString(0));
+        }
     }
 
     @Test

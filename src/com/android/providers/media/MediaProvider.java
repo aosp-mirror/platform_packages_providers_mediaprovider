@@ -125,7 +125,6 @@ import android.os.SystemProperties;
 import android.os.Trace;
 import android.os.UserHandle;
 import android.os.storage.StorageManager;
-import android.os.storage.StorageManager.StorageVolumeCallback;
 import android.os.storage.StorageVolume;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
@@ -4802,6 +4801,7 @@ public class MediaProvider extends ContentProvider {
         db.beginTransaction();
         try {
             // Refresh playlist members based on what we parse from disk
+            final String volumeName = getVolumeName(playlistUri);
             final long playlistId = ContentUris.parseId(playlistUri);
             db.delete("audio_playlists_map", "playlist_id=" + playlistId, null);
 
@@ -4811,18 +4811,17 @@ public class MediaProvider extends ContentProvider {
 
             final List<Path> members = playlist.asList();
             for (int i = 0; i < members.size(); i++) {
-                final Path audioPath = playlistPath.getParent().resolve(members.get(i));
-                final Uri audioUri = Audio.Media.getContentUri(getVolumeName(playlistUri));
-                try (Cursor c = query(audioUri, null, MediaColumns.DATA + "=?",
-                        new String[] { audioPath.toFile().getCanonicalPath() }, null)) {
-                    if (c.moveToFirst()) {
-                        final ContentValues values = new ContentValues();
-                        values.put(Playlists.Members.PLAY_ORDER, i + 1);
-                        values.put(Playlists.Members.PLAYLIST_ID, playlistId);
-                        values.put(Playlists.Members.AUDIO_ID,
-                                c.getLong(c.getColumnIndex(MediaColumns._ID)));
-                        db.insert("audio_playlists_map", null, values);
-                    }
+                try {
+                    final Path audioPath = playlistPath.getParent().resolve(members.get(i));
+                    final long audioId = queryForPlaylistMember(volumeName, audioPath);
+
+                    final ContentValues values = new ContentValues();
+                    values.put(Playlists.Members.PLAY_ORDER, i + 1);
+                    values.put(Playlists.Members.PLAYLIST_ID, playlistId);
+                    values.put(Playlists.Members.AUDIO_ID, audioId);
+                    db.insert("audio_playlists_map", null, values);
+                } catch (IOException e) {
+                    Log.w(TAG, "Failed to resolve playlist member", e);
                 }
             }
             db.setTransactionSuccessful();
@@ -4831,6 +4830,30 @@ public class MediaProvider extends ContentProvider {
         } finally {
             db.endTransaction();
         }
+    }
+
+    /**
+     * Make two attempts to query this playlist member: first based on the exact
+     * path, and if that fails, fall back to picking a single item matching the
+     * display name. When there are multiple items with the same display name,
+     * we can't resolve between them, and leave this member unresolved.
+     */
+    private long queryForPlaylistMember(@NonNull String volumeName, @NonNull Path path)
+            throws IOException {
+        final Uri audioUri = Audio.Media.getContentUri(volumeName);
+        try (Cursor c = queryForSingleItem(audioUri,
+                new String[] { BaseColumns._ID }, MediaColumns.DATA + "=?",
+                new String[] { path.toFile().getCanonicalPath() }, null)) {
+            return c.getLong(0);
+        } catch (FileNotFoundException ignored) {
+        }
+        try (Cursor c = queryForSingleItem(audioUri,
+                new String[] { BaseColumns._ID }, MediaColumns.DISPLAY_NAME + "=?",
+                new String[] { path.toFile().getName() }, null)) {
+            return c.getLong(0);
+        } catch (FileNotFoundException ignored) {
+        }
+        throw new FileNotFoundException();
     }
 
     /**

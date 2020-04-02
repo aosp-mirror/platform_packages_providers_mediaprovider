@@ -20,8 +20,6 @@ import static org.junit.Assert.assertEquals;
 
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.providers.playlist.Playlist;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

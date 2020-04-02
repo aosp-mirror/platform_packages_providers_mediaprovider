@@ -20,6 +20,7 @@ import static com.android.providers.media.scan.MediaScanner.REASON_UNKNOWN;
 import static com.android.providers.media.scan.MediaScannerTest.stage;
 import static com.android.providers.media.scan.ModernMediaScanner.isDirectoryHidden;
 import static com.android.providers.media.scan.ModernMediaScanner.isFileAlbumArt;
+import static com.android.providers.media.scan.ModernMediaScanner.isFileHidden;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalDateTaken;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalMimeType;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalYear;
@@ -286,6 +287,18 @@ public class ModernMediaScannerTest {
             assertDirectoryHidden(new File(prefix + "/Android/data"));
             assertDirectoryHidden(new File(prefix + "/Android/obb"));
         }
+    }
+
+    @Test
+    public void testIsFileHidden() throws Exception {
+        assertFalse(isFileHidden(
+                new File("/storage/emulated/0/DCIM/IMG1024.JPG")));
+        assertFalse(isFileHidden(
+                new File("/storage/emulated/0/DCIM/.pending-1577836800-IMG1024.JPG")));
+        assertFalse(isFileHidden(
+                new File("/storage/emulated/0/DCIM/.trashed-1577836800-IMG1024.JPG")));
+        assertTrue(isFileHidden(
+                new File("/storage/emulated/0/DCIM/.IMG1024.JPG")));
     }
 
     @Test
@@ -587,8 +600,7 @@ public class ModernMediaScannerTest {
                 "/storage/emulated/0/albumart1.jpg",
         }) {
             final File file = new File(path);
-            final String name = file.getName();
-            assertEquals(LegacyMediaScannerTest.isNonMediaFile(path), isFileAlbumArt(name));
+            assertEquals(LegacyMediaScannerTest.isNonMediaFile(path), isFileAlbumArt(file));
         }
 
         for (String path : new String[] {
@@ -596,8 +608,7 @@ public class ModernMediaScannerTest {
                 "/storage/emulated/0/albumartlarge.jpg",
         }) {
             final File file = new File(path);
-            final String name = file.getName();
-            assertTrue(isFileAlbumArt(name));
+            assertTrue(isFileAlbumArt(file));
         }
     }
 }

@@ -12,6 +12,9 @@ android_app {
     libs: [
         "unsupportedappusage",
         "app-compat-annotations",
+        "framework-mediaprovider",
+        "framework_mediaprovider_annotation",
+        "framework-statsd-stubs-module_libs_api",
     ],
 
     jni_libs: [
@@ -26,10 +29,6 @@ android_app {
         ":mediaprovider-sources",
     ],
 
-    // Rewrite our hidden API usage of MediaStore to avoid "Inlined method
-    // resolution crossed dex file boundary" errors
-    jarjar_rules: "jarjar-rules.txt",
-
     optimize: {
         proguard_flags_files: ["proguard.flags"],
     },
@@ -38,7 +37,7 @@ android_app {
         "java_api_finder",
     ],
 
-    sdk_version: "system_current",
+    sdk_version: "module_current",
 
     certificate: "media",
     privileged: true,
@@ -46,15 +45,12 @@ android_app {
     aaptflags: ["--custom-package com.android.providers.media"],
 }
 
-// This is defined to give MediaProviderTests all the source it needs to
-// run its tests against
+// Used by MediaProvider and MediaProviderTests
 filegroup {
     name: "mediaprovider-sources",
     srcs: [
         "src/**/*.aidl",
         "src/**/*.java",
-        ":framework-mediaprovider-sources",
-        ":framework-mediaprovider-annotation-sources",
         ":mediaprovider-database-sources",
         ":statslog-mediaprovider-java-gen",
     ],

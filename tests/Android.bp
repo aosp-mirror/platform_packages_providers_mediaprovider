@@ -39,6 +39,7 @@ android_test {
         "androidx.test.rules",
         "guava",
         "mockito-target",
+        "truth-prebuilt",
     ],
 
     certificate: "media",

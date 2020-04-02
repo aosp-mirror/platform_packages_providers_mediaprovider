@@ -34,7 +34,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.CancellationSignal;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Images.ImageColumns;
@@ -51,8 +50,8 @@ import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.SQLiteQueryBuilder;
 
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,25 +65,28 @@ import java.util.regex.Pattern;
 public class MediaProviderTest {
     static final String TAG = "MediaProviderTest";
 
-    @Before
-    public void setUp() {
+    private static Context sIsolatedContext;
+    private static ContentResolver sIsolatedResolver;
+
+    @BeforeClass
+    public static void setUp() {
         InstrumentationRegistry.getInstrumentation().getUiAutomation()
                 .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG);
+
+        final Context context = InstrumentationRegistry.getTargetContext();
+        sIsolatedContext = new IsolatedContext(context, "modern");
+        sIsolatedResolver = sIsolatedContext.getContentResolver();
     }
 
-    @After
-    public void tearDown() {
+    @AfterClass
+    public static void tearDown() {
         InstrumentationRegistry.getInstrumentation()
                 .getUiAutomation().dropShellPermissionIdentity();
     }
 
     @Test
     public void testSchema() {
-        final Context context = InstrumentationRegistry.getTargetContext();
-        final Context isolatedContext = new IsolatedContext(context, "modern");
-        final ContentResolver isolatedResolver = isolatedContext.getContentResolver();
-
         for (String path : new String[] {
                 "images/media",
                 "images/media/1",
@@ -123,11 +125,11 @@ public class MediaProviderTest {
         }) {
             final Uri probe = MediaStore.AUTHORITY_URI.buildUpon()
                     .appendPath(MediaStore.VOLUME_EXTERNAL).appendEncodedPath(path).build();
-            try (Cursor c = isolatedResolver.query(probe, null, null, null)) {
+            try (Cursor c = sIsolatedResolver.query(probe, null, null, null)) {
                 assertNotNull("probe", c);
             }
             try {
-                isolatedResolver.getType(probe);
+                sIsolatedResolver.getType(probe);
             } catch (IllegalStateException tolerated) {
             }
         }
@@ -135,11 +137,7 @@ public class MediaProviderTest {
 
     @Test
     public void testLocale() {
-        final Context context = InstrumentationRegistry.getTargetContext();
-        final Context isolatedContext = new IsolatedContext(context, "modern");
-        final ContentResolver isolatedResolver = isolatedContext.getContentResolver();
-
-        try (ContentProviderClient cpc = isolatedResolver
+        try (ContentProviderClient cpc = sIsolatedResolver
                 .acquireContentProviderClient(MediaStore.AUTHORITY)) {
             ((MediaProvider) cpc.getLocalContentProvider())
                     .onLocaleChanged();
@@ -307,6 +305,78 @@ public class MediaProviderTest {
                 .getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         assertEndsWith("/Download/linux.iso",
                 buildFile(uri, null, "linux.iso", "application/x-iso9660-image"));
+    }
+
+    @Test
+    public void testBuildData_Pending_FromValues() throws Exception {
+        final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        final ContentValues forward = new ContentValues();
+        forward.put(MediaColumns.RELATIVE_PATH, "DCIM/My Vacation/");
+        forward.put(MediaColumns.DISPLAY_NAME, "IMG1024.JPG");
+        forward.put(MediaColumns.MIME_TYPE, "image/jpeg");
+        forward.put(MediaColumns.IS_PENDING, 1);
+        forward.put(MediaColumns.IS_TRASHED, 0);
+        forward.put(MediaColumns.DATE_EXPIRES, 1577836800L);
+        ensureFileColumns(uri, forward);
+
+        // Requested filename remains intact, but raw path on disk is mutated to
+        // reflect that it's a pending item with a specific expiration time
+        assertEquals("IMG1024.JPG",
+                forward.getAsString(MediaColumns.DISPLAY_NAME));
+        assertEndsWith(".pending-1577836800-IMG1024.JPG",
+                forward.getAsString(MediaColumns.DATA));
+    }
+
+    @Test
+    public void testBuildData_Pending_FromData() throws Exception {
+        final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        final ContentValues reverse = new ContentValues();
+        reverse.put(MediaColumns.DATA,
+                "/storage/emulated/0/DCIM/My Vacation/.pending-1577836800-IMG1024.JPG");
+        ensureFileColumns(uri, reverse);
+
+        assertEquals("DCIM/My Vacation/", reverse.getAsString(MediaColumns.RELATIVE_PATH));
+        assertEquals("IMG1024.JPG", reverse.getAsString(MediaColumns.DISPLAY_NAME));
+        assertEquals("image/jpeg", reverse.getAsString(MediaColumns.MIME_TYPE));
+        assertEquals(1, (int) reverse.getAsInteger(MediaColumns.IS_PENDING));
+        assertEquals(0, (int) reverse.getAsInteger(MediaColumns.IS_TRASHED));
+        assertEquals(1577836800, (long) reverse.getAsLong(MediaColumns.DATE_EXPIRES));
+    }
+
+    @Test
+    public void testBuildData_Trashed_FromValues() throws Exception {
+        final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        final ContentValues forward = new ContentValues();
+        forward.put(MediaColumns.RELATIVE_PATH, "DCIM/My Vacation/");
+        forward.put(MediaColumns.DISPLAY_NAME, "IMG1024.JPG");
+        forward.put(MediaColumns.MIME_TYPE, "image/jpeg");
+        forward.put(MediaColumns.IS_PENDING, 0);
+        forward.put(MediaColumns.IS_TRASHED, 1);
+        forward.put(MediaColumns.DATE_EXPIRES, 1577836800L);
+        ensureFileColumns(uri, forward);
+
+        // Requested filename remains intact, but raw path on disk is mutated to
+        // reflect that it's a trashed item with a specific expiration time
+        assertEquals("IMG1024.JPG",
+                forward.getAsString(MediaColumns.DISPLAY_NAME));
+        assertEndsWith(".trashed-1577836800-IMG1024.JPG",
+                forward.getAsString(MediaColumns.DATA));
+    }
+
+    @Test
+    public void testBuildData_Trashed_FromData() throws Exception {
+        final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        final ContentValues reverse = new ContentValues();
+        reverse.put(MediaColumns.DATA,
+                "/storage/emulated/0/DCIM/My Vacation/.trashed-1577836800-IMG1024.JPG");
+        ensureFileColumns(uri, reverse);
+
+        assertEquals("DCIM/My Vacation/", reverse.getAsString(MediaColumns.RELATIVE_PATH));
+        assertEquals("IMG1024.JPG", reverse.getAsString(MediaColumns.DISPLAY_NAME));
+        assertEquals("image/jpeg", reverse.getAsString(MediaColumns.MIME_TYPE));
+        assertEquals(0, (int) reverse.getAsInteger(MediaColumns.IS_PENDING));
+        assertEquals(1, (int) reverse.getAsInteger(MediaColumns.IS_TRASHED));
+        assertEquals(1577836800, (long) reverse.getAsLong(MediaColumns.DATE_EXPIRES));
     }
 
     @Test
@@ -615,7 +685,7 @@ public class MediaProviderTest {
     private static ContentValues computeDataValues(String path) {
         final ContentValues values = new ContentValues();
         values.put(MediaColumns.DATA, path);
-        FileUtils.computeDataValues(values);
+        FileUtils.computeValuesFromData(values);
         Log.v(TAG, "Computed values " + values);
         return values;
     }
@@ -653,7 +723,7 @@ public class MediaProviderTest {
         return false;
     }
 
-    private static String buildFile(Uri uri, String relativePath, String displayName,
+    private String buildFile(Uri uri, String relativePath, String displayName,
             String mimeType) {
         final ContentValues values = new ContentValues();
         if (relativePath != null) {
@@ -662,11 +732,20 @@ public class MediaProviderTest {
         values.put(MediaColumns.DISPLAY_NAME, displayName);
         values.put(MediaColumns.MIME_TYPE, mimeType);
         try {
-            new MediaProvider().ensureFileColumns(uri, values);
+            ensureFileColumns(uri, values);
         } catch (VolumeArgumentException e) {
             throw e.rethrowAsIllegalArgumentException();
         }
         return values.getAsString(MediaColumns.DATA);
+    }
+
+    private void ensureFileColumns(Uri uri, ContentValues values)
+            throws VolumeArgumentException {
+        try (ContentProviderClient cpc = sIsolatedResolver
+                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+            ((MediaProvider) cpc.getLocalContentProvider())
+                    .ensureFileColumns(uri, values);
+        }
     }
 
     private static void assertEndsWith(String expected, String actual) {

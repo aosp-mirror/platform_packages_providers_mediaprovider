@@ -531,4 +531,16 @@ public class DatabaseUtils {
         }
         return sb.toString();
     }
+
+    public static boolean getAsBoolean(@NonNull ContentValues values,
+            @NonNull String key, boolean def) {
+        final Integer value = values.getAsInteger(key);
+        return (value != null) ? (value != 0) : def;
+    }
+
+    public static long getAsLong(@NonNull ContentValues values,
+            @NonNull String key, long def) {
+        final Long value = values.getAsLong(key);
+        return (value != null) ? value : def;
+    }
 }

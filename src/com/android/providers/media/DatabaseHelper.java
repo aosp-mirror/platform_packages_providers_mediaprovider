@@ -734,8 +734,30 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 final ContentValues values = new ContentValues();
                 while (c.moveToNext()) {
                     values.clear();
+
+                    // Start by deriving all values from migrated data column,
+                    // then overwrite with other migrated columns
+                    final String data = c.getString(c.getColumnIndex(MediaColumns.DATA));
+                    values.put(MediaColumns.DATA, data);
+                    FileUtils.computeValuesFromData(values);
                     for (String column : sMigrateColumns) {
                         DatabaseUtils.copyFromCursorToContentValues(column, c, values);
+                    }
+
+                    // When migrating pending or trashed files, we might need to
+                    // rename them on disk to match new schema
+                    FileUtils.computeDataFromValues(values,
+                            new File(FileUtils.extractVolumePath(data)));
+                    final String recomputedData = values.getAsString(MediaColumns.DATA);
+                    if (!Objects.equals(data, recomputedData)) {
+                        try {
+                            Os.rename(data, recomputedData);
+                        } catch (ErrnoException e) {
+                            // We only have one shot to migrate data, so log and
+                            // keep marching forward
+                            Log.w(TAG, "Failed to rename " + values + "; continuing");
+                            FileUtils.computeValuesFromData(values);
+                        }
                     }
 
                     if (db.insert("files", null, values) == -1) {
@@ -752,7 +774,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 // We have to guard ourselves against any weird behavior of the
                 // legacy provider by trying to catch everything
                 db.execSQL("ROLLBACK TO before_migrate");
-                Log.w(TAG, "Failed migration from legacy provider: " + e);
+                Log.wtf(TAG, "Failed migration from legacy provider", e);
                 mMigrationListener.onFinished(client, mVolumeName);
             }
         }
@@ -1119,7 +1141,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 final long id = c.getLong(0);
                 final String data = c.getString(1);
                 values.put(FileColumns.DATA, data);
-                FileUtils.computeDataValues(values);
+                FileUtils.computeValuesFromData(values);
                 values.remove(FileColumns.DATA);
                 if (!values.isEmpty()) {
                     db.update("files", values, "_id=" + id, null);

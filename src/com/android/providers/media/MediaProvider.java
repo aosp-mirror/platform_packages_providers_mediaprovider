@@ -3888,7 +3888,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             if (isFilesTable && !isCallingPackageSystem()) {
-                Metrics.logDeletion(volumeName, System.currentTimeMillis(),
+                Metrics.logDeletion(volumeName, mCallingIdentity.get().uid,
                         getCallingPackageOrSelf(), count);
             }
         }

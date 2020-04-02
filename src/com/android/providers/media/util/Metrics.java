@@ -16,17 +16,17 @@
 
 package com.android.providers.media.util;
 
-import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_DELETION_EVENT;
-import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_IDLE_MAINTENANCE;
-import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_PERMISSION_EVENT;
-import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_PERMISSION_EVENT__RESULT__USER_DENIED;
-import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_PERMISSION_EVENT__RESULT__USER_GRANTED;
-import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_SCAN_EVENT;
-import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_SCAN_EVENT__VOLUME_TYPE__EXTERNAL_OTHER;
-import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_SCAN_EVENT__VOLUME_TYPE__EXTERNAL_PRIMARY;
-import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_SCAN_EVENT__VOLUME_TYPE__INTERNAL;
-import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_SCAN_EVENT__VOLUME_TYPE__UNKNOWN;
-import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_SCHEMA_CHANGE;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_CONTENT_DELETED;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_IDLE_MAINTENANCE_FINISHED;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_PERMISSION_REQUESTED;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_PERMISSION_REQUESTED__RESULT__USER_DENIED;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_PERMISSION_REQUESTED__RESULT__USER_GRANTED;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_SCAN_OCCURRED;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_SCAN_OCCURRED__VOLUME_TYPE__EXTERNAL_OTHER;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_SCAN_OCCURRED__VOLUME_TYPE__EXTERNAL_PRIMARY;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_SCAN_OCCURRED__VOLUME_TYPE__INTERNAL;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_SCAN_OCCURRED__VOLUME_TYPE__UNKNOWN;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_SCHEMA_CHANGED;
 import static com.android.providers.media.scan.MediaScanner.REASON_DEMAND;
 import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
 import static com.android.providers.media.scan.MediaScanner.REASON_MOUNTED;
@@ -55,41 +55,41 @@ public class Metrics {
         final float normalizedUpdateCount = ((float) updateCount) / itemCount;
         final float normalizedDeleteCount = ((float) deleteCount) / itemCount;
 
-        MediaProviderStatsLog.write(MEDIA_PROVIDER_SCAN_EVENT,
+        MediaProviderStatsLog.write(MEDIA_PROVIDER_SCAN_OCCURRED,
                 translateVolumeName(volumeName), reason, itemCount, normalizedDurationMillis,
                 normalizedInsertCount, normalizedUpdateCount, normalizedDeleteCount);
     }
 
-    public static void logDeletion(@NonNull String volumeName, long timestampMillis,
-            String packageName, int itemCount) {
+    public static void logDeletion(@NonNull String volumeName, int uid, String packageName,
+            int itemCount) {
         Logging.logPersistent(String.format(
-                "Deleted %4$d items on %1$s due to %3$s",
-                volumeName, timestampMillis, packageName, itemCount));
+                "Deleted %3$d items on %1$s due to %2$s",
+                volumeName, packageName, itemCount));
 
-        MediaProviderStatsLog.write(MEDIA_PROVIDER_DELETION_EVENT,
-                translateVolumeName(volumeName), timestampMillis, packageName, itemCount);
+        MediaProviderStatsLog.write(MEDIA_CONTENT_DELETED,
+                translateVolumeName(volumeName), uid, itemCount);
     }
 
-    public static void logPermissionGranted(@NonNull String volumeName, long timestampMillis,
-            String packageName, int itemCount) {
+    public static void logPermissionGranted(@NonNull String volumeName, int uid, String packageName,
+            int itemCount) {
         Logging.logPersistent(String.format(
-                "Granted permission to %4$d items on %1$s to %3$s",
-                volumeName, timestampMillis, packageName, itemCount));
+                "Granted permission to %3$d items on %1$s to %2$s",
+                volumeName, packageName, itemCount));
 
-        MediaProviderStatsLog.write(MEDIA_PROVIDER_PERMISSION_EVENT,
-                translateVolumeName(volumeName), timestampMillis, packageName, itemCount,
-                MEDIA_PROVIDER_PERMISSION_EVENT__RESULT__USER_GRANTED);
+        MediaProviderStatsLog.write(MEDIA_PROVIDER_PERMISSION_REQUESTED,
+                translateVolumeName(volumeName), uid, itemCount,
+                MEDIA_PROVIDER_PERMISSION_REQUESTED__RESULT__USER_GRANTED);
     }
 
-    public static void logPermissionDenied(@NonNull String volumeName, long timestampMillis,
-            String packageName, int itemCount) {
+    public static void logPermissionDenied(@NonNull String volumeName, int uid, String packageName,
+            int itemCount) {
         Logging.logPersistent(String.format(
-                "Denied permission to %4$d items on %1$s to %3$s",
-                volumeName, timestampMillis, packageName, itemCount));
+                "Denied permission to %3$d items on %1$s to %2$s",
+                volumeName, packageName, itemCount));
 
-        MediaProviderStatsLog.write(MEDIA_PROVIDER_PERMISSION_EVENT,
-                translateVolumeName(volumeName), timestampMillis, packageName, itemCount,
-                MEDIA_PROVIDER_PERMISSION_EVENT__RESULT__USER_DENIED);
+        MediaProviderStatsLog.write(MEDIA_PROVIDER_PERMISSION_REQUESTED,
+                translateVolumeName(volumeName), uid, itemCount,
+                MEDIA_PROVIDER_PERMISSION_REQUESTED__RESULT__USER_DENIED);
     }
 
     public static void logSchemaChange(@NonNull String volumeName, int versionFrom, int versionTo,
@@ -100,7 +100,7 @@ public class Metrics {
 
         final float normalizedDurationMillis = ((float) durationMillis) / itemCount;
 
-        MediaProviderStatsLog.write(MEDIA_PROVIDER_SCHEMA_CHANGE,
+        MediaProviderStatsLog.write(MEDIA_PROVIDER_SCHEMA_CHANGED,
                 translateVolumeName(volumeName), versionFrom, versionTo, itemCount,
                 normalizedDurationMillis);
     }
@@ -115,7 +115,7 @@ public class Metrics {
         final float normalizedStaleThumbnails = ((float) staleThumbnails) / itemCount;
         final float normalizedExpiredMedia = ((float) expiredMedia) / itemCount;
 
-        MediaProviderStatsLog.write(MEDIA_PROVIDER_IDLE_MAINTENANCE,
+        MediaProviderStatsLog.write(MEDIA_PROVIDER_IDLE_MAINTENANCE_FINISHED,
                 translateVolumeName(volumeName), itemCount, normalizedDurationMillis,
                 normalizedStaleThumbnails, normalizedExpiredMedia);
     }
@@ -133,16 +133,16 @@ public class Metrics {
     private static int translateVolumeName(@NonNull String volumeName) {
         switch (volumeName) {
             case MediaStore.VOLUME_INTERNAL:
-                return MEDIA_PROVIDER_SCAN_EVENT__VOLUME_TYPE__INTERNAL;
+                return MEDIA_PROVIDER_SCAN_OCCURRED__VOLUME_TYPE__INTERNAL;
             case MediaStore.VOLUME_EXTERNAL:
                 // Callers using generic "external" volume name end up applying
                 // to all external volumes, so we can't tell which volumes were
                 // actually changed
-                return MEDIA_PROVIDER_SCAN_EVENT__VOLUME_TYPE__UNKNOWN;
+                return MEDIA_PROVIDER_SCAN_OCCURRED__VOLUME_TYPE__UNKNOWN;
             case MediaStore.VOLUME_EXTERNAL_PRIMARY:
-                return MEDIA_PROVIDER_SCAN_EVENT__VOLUME_TYPE__EXTERNAL_PRIMARY;
+                return MEDIA_PROVIDER_SCAN_OCCURRED__VOLUME_TYPE__EXTERNAL_PRIMARY;
             default:
-                return MEDIA_PROVIDER_SCAN_EVENT__VOLUME_TYPE__EXTERNAL_OTHER;
+                return MEDIA_PROVIDER_SCAN_OCCURRED__VOLUME_TYPE__EXTERNAL_OTHER;
         }
     }
 }

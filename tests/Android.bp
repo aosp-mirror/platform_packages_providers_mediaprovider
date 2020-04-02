@@ -17,6 +17,7 @@ android_test {
         "res",
     ],
     srcs: [
+        ":framework-mediaprovider-sources",
         ":mediaprovider-sources",
         "src/**/*.java",
     ],

@@ -167,6 +167,7 @@ import com.android.providers.media.DatabaseHelper.OnFilesChangeListener;
 import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
 import com.android.providers.media.fuse.FuseDaemon;
+import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
 import com.android.providers.media.scan.NullMediaScanner;
@@ -183,7 +184,6 @@ import com.android.providers.media.util.MimeUtils;
 import com.android.providers.media.util.RedactingFileDescriptor;
 import com.android.providers.media.util.SQLiteQueryBuilder;
 import com.android.providers.media.util.XmpInterface;
-import com.android.providers.playlist.Playlist;
 
 import com.google.common.hash.Hashing;
 
@@ -4149,11 +4149,8 @@ public class MediaProvider extends ContentProvider {
                         mExternalDatabase
                 }) {
                     final SQLiteDatabase db = helper.getReadableDatabase();
-                    try (Cursor c = db.rawQuery("SELECT icu_load_collation(?, ?);",
-                            new String[] { locale, collationName }, null)) {
-                        while (c.moveToNext()) {
-                        }
-                    }
+                    db.execPerConnectionSQL("SELECT icu_load_collation(?, ?);",
+                            new String[] { locale, collationName });
                 }
                 mCustomCollators.add(collationName);
             }

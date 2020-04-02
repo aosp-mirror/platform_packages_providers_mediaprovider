@@ -18,12 +18,6 @@ package com.android.providers.media.playlist;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.providers.playlist.M3uPlaylistPersister;
-import com.android.providers.playlist.PlaylistPersister;
-import com.android.providers.playlist.PlsPlaylistPersister;
-import com.android.providers.playlist.WplPlaylistPersister;
-import com.android.providers.playlist.XspfPlaylistPersister;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;

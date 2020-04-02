@@ -37,6 +37,8 @@ public class LegacyAccessHostTest extends BaseHostJUnit4Test {
 
     public static final String SHELL_FILE = "/sdcard/LegacyAccessHostTest_shell";
 
+    private boolean isExternalStorageSetup = false;
+
     private String executeShellCommand(String cmd) throws Exception {
         return getDevice().executeShellCommand(cmd);
     }
@@ -90,8 +92,16 @@ public class LegacyAccessHostTest extends BaseHostJUnit4Test {
         }
     }
 
+    private void setupExternalStorage() throws Exception {
+        if (!isExternalStorageSetup) {
+            runDeviceTest("setupExternalStorage");
+            isExternalStorageSetup = true;
+        }
+    }
+
     @Before
     public void setup() throws Exception {
+        setupExternalStorage();
         // Granting WRITE automatically grants READ as well, so we grant them both explicitly by
         // default in order to avoid confusion. Test cases that don't want any of those permissions
         // have to revoke the unwanted permissions.

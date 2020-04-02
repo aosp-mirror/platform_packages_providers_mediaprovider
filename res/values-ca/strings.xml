@@ -29,31 +29,80 @@
     <string name="permission_required_action" msgid="706370952366113539">"Continua"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Permet"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Denega"</string>
-    <!-- no translation found for permission_more_thumb (4392079224649478923) -->
+    <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
+      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> més</item>
+      <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> més</item>
+    </plurals>
     <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> elements addicionals més</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> element addicional més</item>
     </plurals>
-    <!-- no translation found for cache_clearing_dialog_title (4672878017407595782) -->
-    <skip />
-    <!-- no translation found for cache_clearing_dialog_text (7057784635111940957) -->
-    <skip />
+    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Vols esborrar els fitxers temporals d\'aplicacions?"</string>
+    <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> vol esborrar alguns fitxers temporals. Això pot suposar un augment de l\'ús de la bateria o de les dades mòbils."</string>
     <string name="allow" msgid="8885707816848569619">"Permet"</string>
     <string name="deny" msgid="6040983710442068936">"Denega"</string>
-    <!-- no translation found for permission_write_audio (8914759422381305478) -->
-    <!-- no translation found for permission_write_video (1098082003326873084) -->
-    <!-- no translation found for permission_write_image (748745548893845892) -->
-    <!-- no translation found for permission_write_generic (3270172714743671779) -->
-    <!-- no translation found for permission_trash_audio (8907813869381755423) -->
-    <!-- no translation found for permission_trash_video (4672871911555787438) -->
-    <!-- no translation found for permission_trash_image (6400475304599873227) -->
-    <!-- no translation found for permission_trash_generic (3814167365075039711) -->
-    <!-- no translation found for permission_untrash_audio (7795265980168966321) -->
-    <!-- no translation found for permission_untrash_video (332894888445508879) -->
-    <!-- no translation found for permission_untrash_image (7024071378733595056) -->
-    <!-- no translation found for permission_untrash_generic (6872817093731198374) -->
-    <!-- no translation found for permission_delete_audio (6848547621165184719) -->
-    <!-- no translation found for permission_delete_video (1251942606336748563) -->
-    <!-- no translation found for permission_delete_image (2303409455224710111) -->
-    <!-- no translation found for permission_delete_generic (1412218850351841181) -->
+    <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
+      <item quantity="other">Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> modifiqui <xliff:g id="COUNT">^2</xliff:g> fitxers d\'àudio?</item>
+      <item quantity="one">Vols permetre que <xliff:g id="APP_NAME_0">^1</xliff:g> modifiqui aquest fitxer d\'àudio?</item>
+    </plurals>
+    <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
+      <item quantity="other">Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> modifiqui <xliff:g id="COUNT">^2</xliff:g> vídeos?</item>
+      <item quantity="one">Vols permetre que <xliff:g id="APP_NAME_0">^1</xliff:g> modifiqui aquest vídeo?</item>
+    </plurals>
+    <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
+      <item quantity="other">Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> modifiqui <xliff:g id="COUNT">^2</xliff:g> fotos?</item>
+      <item quantity="one">Vols permetre que <xliff:g id="APP_NAME_0">^1</xliff:g> modifiqui aquesta foto?</item>
+    </plurals>
+    <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
+      <item quantity="other">Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> modifiqui <xliff:g id="COUNT">^2</xliff:g> elements?</item>
+      <item quantity="one">Vols permetre que <xliff:g id="APP_NAME_0">^1</xliff:g> modifiqui aquest element?</item>
+    </plurals>
+    <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
+      <item quantity="other">Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> mogui <xliff:g id="COUNT">^2</xliff:g> fitxers d\'àudio a la paperera?</item>
+      <item quantity="one">Vols permetre que <xliff:g id="APP_NAME_0">^1</xliff:g> mogui aquest fitxer d\'àudio a la paperera?</item>
+    </plurals>
+    <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
+      <item quantity="other">Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> mogui <xliff:g id="COUNT">^2</xliff:g> vídeos a la paperera?</item>
+      <item quantity="one">Vols permetre que <xliff:g id="APP_NAME_0">^1</xliff:g> mogui aquest vídeo a la paperera?</item>
+    </plurals>
+    <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
+      <item quantity="other">Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> mogui <xliff:g id="COUNT">^2</xliff:g> fotos a la paperera?</item>
+      <item quantity="one">Vols permetre que <xliff:g id="APP_NAME_0">^1</xliff:g> mogui aquesta foto a la paperera?</item>
+    </plurals>
+    <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
+      <item quantity="other">Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> mogui <xliff:g id="COUNT">^2</xliff:g> elements a la paperera?</item>
+      <item quantity="one">Vols permetre que <xliff:g id="APP_NAME_0">^1</xliff:g> mogui aquest element a la paperera?</item>
+    </plurals>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
+      <item quantity="other">Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> tregui <xliff:g id="COUNT">^2</xliff:g> fitxers d\'àudio de la paperera?</item>
+      <item quantity="one">Vols permetre que <xliff:g id="APP_NAME_0">^1</xliff:g> tregui aquest fitxer d\'àudio de la paperera?</item>
+    </plurals>
+    <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
+      <item quantity="other">Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> tregui <xliff:g id="COUNT">^2</xliff:g> vídeos de la paperera?</item>
+      <item quantity="one">Vols permetre que <xliff:g id="APP_NAME_0">^1</xliff:g> tregui aquest vídeo de la paperera?</item>
+    </plurals>
+    <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
+      <item quantity="other">Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> tregui <xliff:g id="COUNT">^2</xliff:g> fotos de la paperera?</item>
+      <item quantity="one">Vols permetre que <xliff:g id="APP_NAME_0">^1</xliff:g> tregui aquesta foto de la paperera?</item>
+    </plurals>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
+      <item quantity="other">Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> tregui <xliff:g id="COUNT">^2</xliff:g> elements de la paperera?</item>
+      <item quantity="one">Vols permetre que <xliff:g id="APP_NAME_0">^1</xliff:g> tregui aquest element de la paperera?</item>
+    </plurals>
+    <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
+      <item quantity="other">Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> suprimeixi <xliff:g id="COUNT">^2</xliff:g> fitxers d\'àudio?</item>
+      <item quantity="one">Vols permetre que <xliff:g id="APP_NAME_0">^1</xliff:g> suprimeixi aquest fitxer d\'àudio?</item>
+    </plurals>
+    <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
+      <item quantity="other">Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> suprimeixi <xliff:g id="COUNT">^2</xliff:g> vídeos?</item>
+      <item quantity="one">Vols permetre que <xliff:g id="APP_NAME_0">^1</xliff:g> suprimeixi aquest vídeo?</item>
+    </plurals>
+    <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
+      <item quantity="other">Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> suprimeixi <xliff:g id="COUNT">^2</xliff:g> fotos?</item>
+      <item quantity="one">Vols permetre que <xliff:g id="APP_NAME_0">^1</xliff:g> suprimeixi aquesta foto?</item>
+    </plurals>
+    <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
+      <item quantity="other">Vols permetre que <xliff:g id="APP_NAME_1">^1</xliff:g> suprimeixi <xliff:g id="COUNT">^2</xliff:g> elements?</item>
+      <item quantity="one">Vols permetre que <xliff:g id="APP_NAME_0">^1</xliff:g> suprimeixi aquest element?</item>
+    </plurals>
 </resources>

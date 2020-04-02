@@ -29,31 +29,80 @@
     <string name="permission_required_action" msgid="706370952366113539">"繼續"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"允許"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"拒絕"</string>
-    <!-- no translation found for permission_more_thumb (4392079224649478923) -->
+    <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
+      <item quantity="other">還有 <xliff:g id="COUNT_1">^1</xliff:g> 個項目</item>
+      <item quantity="one">還有 <xliff:g id="COUNT_0">^1</xliff:g> 個項目</item>
+    </plurals>
     <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
       <item quantity="other">以及另外 <xliff:g id="COUNT_1">^1</xliff:g> 個項目</item>
       <item quantity="one">以及另外 <xliff:g id="COUNT_0">^1</xliff:g> 個項目</item>
     </plurals>
-    <!-- no translation found for cache_clearing_dialog_title (4672878017407595782) -->
-    <skip />
-    <!-- no translation found for cache_clearing_dialog_text (7057784635111940957) -->
-    <skip />
+    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"要清除應用程式暫存檔案嗎？"</string>
+    <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"「<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>」要求清除部分臨時檔案。這可能會導致耗電量或流動數據用量增加。"</string>
     <string name="allow" msgid="8885707816848569619">"允許"</string>
     <string name="deny" msgid="6040983710442068936">"拒絕"</string>
-    <!-- no translation found for permission_write_audio (8914759422381305478) -->
-    <!-- no translation found for permission_write_video (1098082003326873084) -->
-    <!-- no translation found for permission_write_image (748745548893845892) -->
-    <!-- no translation found for permission_write_generic (3270172714743671779) -->
-    <!-- no translation found for permission_trash_audio (8907813869381755423) -->
-    <!-- no translation found for permission_trash_video (4672871911555787438) -->
-    <!-- no translation found for permission_trash_image (6400475304599873227) -->
-    <!-- no translation found for permission_trash_generic (3814167365075039711) -->
-    <!-- no translation found for permission_untrash_audio (7795265980168966321) -->
-    <!-- no translation found for permission_untrash_video (332894888445508879) -->
-    <!-- no translation found for permission_untrash_image (7024071378733595056) -->
-    <!-- no translation found for permission_untrash_generic (6872817093731198374) -->
-    <!-- no translation found for permission_delete_audio (6848547621165184719) -->
-    <!-- no translation found for permission_delete_video (1251942606336748563) -->
-    <!-- no translation found for permission_delete_image (2303409455224710111) -->
-    <!-- no translation found for permission_delete_generic (1412218850351841181) -->
+    <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
+      <item quantity="other">允許 <xliff:g id="APP_NAME_1">^1</xliff:g> 修改 <xliff:g id="COUNT">^2</xliff:g> 部影片嗎？</item>
+      <item quantity="one">允許 <xliff:g id="APP_NAME_0">^1</xliff:g> 修改此影片嗎？</item>
+    </plurals>
+    <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
+      <item quantity="other">允許 <xliff:g id="APP_NAME_1">^1</xliff:g> 修改 <xliff:g id="COUNT">^2</xliff:g> 部影片嗎？</item>
+      <item quantity="one">允許 <xliff:g id="APP_NAME_0">^1</xliff:g> 修改此影片嗎？</item>
+    </plurals>
+    <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
+      <item quantity="other">允許 <xliff:g id="APP_NAME_1">^1</xliff:g> 修改 <xliff:g id="COUNT">^2</xliff:g> 張相片嗎？</item>
+      <item quantity="one">允許 <xliff:g id="APP_NAME_0">^1</xliff:g> 修改此相片嗎？</item>
+    </plurals>
+    <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
+      <item quantity="other">允許 <xliff:g id="APP_NAME_1">^1</xliff:g> 修改 <xliff:g id="COUNT">^2</xliff:g> 個項目嗎？</item>
+      <item quantity="one">允許 <xliff:g id="APP_NAME_0">^1</xliff:g> 修改此項目嗎？</item>
+    </plurals>
+    <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
+      <item quantity="other">允許 <xliff:g id="APP_NAME_1">^1</xliff:g> 將 <xliff:g id="COUNT">^2</xliff:g> 個音訊檔案移至垃圾桶嗎？</item>
+      <item quantity="one">允許 <xliff:g id="APP_NAME_0">^1</xliff:g> 將此音訊檔案移至垃圾桶嗎？</item>
+    </plurals>
+    <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
+      <item quantity="other">允許 <xliff:g id="APP_NAME_1">^1</xliff:g> 將 <xliff:g id="COUNT">^2</xliff:g> 部影片移至垃圾桶嗎？</item>
+      <item quantity="one">允許 <xliff:g id="APP_NAME_0">^1</xliff:g> 將此影片移至垃圾桶嗎？</item>
+    </plurals>
+    <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
+      <item quantity="other">允許 <xliff:g id="APP_NAME_1">^1</xliff:g> 將 <xliff:g id="COUNT">^2</xliff:g> 張相片移至垃圾桶嗎？</item>
+      <item quantity="one">允許 <xliff:g id="APP_NAME_0">^1</xliff:g> 將此相片移至垃圾桶嗎？</item>
+    </plurals>
+    <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
+      <item quantity="other">允許 <xliff:g id="APP_NAME_1">^1</xliff:g> 將 <xliff:g id="COUNT">^2</xliff:g> 個項目移至垃圾桶嗎？</item>
+      <item quantity="one">允許 <xliff:g id="APP_NAME_0">^1</xliff:g> 將此項目移至垃圾桶嗎？</item>
+    </plurals>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
+      <item quantity="other">允許 <xliff:g id="APP_NAME_1">^1</xliff:g> 將 <xliff:g id="COUNT">^2</xliff:g> 個音訊檔案移出垃圾桶嗎？</item>
+      <item quantity="one">允許 <xliff:g id="APP_NAME_0">^1</xliff:g> 將此音訊檔案移出垃圾桶嗎？</item>
+    </plurals>
+    <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
+      <item quantity="other">允許 <xliff:g id="APP_NAME_1">^1</xliff:g> 將 <xliff:g id="COUNT">^2</xliff:g> 部影片移出垃圾桶嗎？</item>
+      <item quantity="one">允許 <xliff:g id="APP_NAME_0">^1</xliff:g> 將此影片移出垃圾桶嗎？</item>
+    </plurals>
+    <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
+      <item quantity="other">允許 <xliff:g id="APP_NAME_1">^1</xliff:g> 將 <xliff:g id="COUNT">^2</xliff:g> 張相片移出垃圾桶嗎？</item>
+      <item quantity="one">允許 <xliff:g id="APP_NAME_0">^1</xliff:g> 將此相片移出垃圾桶嗎？</item>
+    </plurals>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
+      <item quantity="other">允許 <xliff:g id="APP_NAME_1">^1</xliff:g> 將 <xliff:g id="COUNT">^2</xliff:g> 個項目移出垃圾桶嗎？</item>
+      <item quantity="one">允許 <xliff:g id="APP_NAME_0">^1</xliff:g> 將此項目移出垃圾桶嗎？</item>
+    </plurals>
+    <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
+      <item quantity="other">允許 <xliff:g id="APP_NAME_1">^1</xliff:g> 刪除 <xliff:g id="COUNT">^2</xliff:g> 個音訊檔案嗎？</item>
+      <item quantity="one">允許 <xliff:g id="APP_NAME_0">^1</xliff:g> 刪除此音訊檔案嗎？</item>
+    </plurals>
+    <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
+      <item quantity="other">允許 <xliff:g id="APP_NAME_1">^1</xliff:g> 刪除 <xliff:g id="COUNT">^2</xliff:g> 部影片嗎？</item>
+      <item quantity="one">允許 <xliff:g id="APP_NAME_0">^1</xliff:g> 刪除此影片嗎？</item>
+    </plurals>
+    <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
+      <item quantity="other">允許 <xliff:g id="APP_NAME_1">^1</xliff:g> 刪除 <xliff:g id="COUNT">^2</xliff:g> 張相片嗎？</item>
+      <item quantity="one">允許 <xliff:g id="APP_NAME_0">^1</xliff:g> 刪除此相片嗎？</item>
+    </plurals>
+    <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
+      <item quantity="other">允許 <xliff:g id="APP_NAME_1">^1</xliff:g> 刪除 <xliff:g id="COUNT">^2</xliff:g> 個項目嗎？</item>
+      <item quantity="one">允許 <xliff:g id="APP_NAME_0">^1</xliff:g> 刪除此項目嗎？</item>
+    </plurals>
 </resources>

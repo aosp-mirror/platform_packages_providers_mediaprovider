@@ -47,6 +47,9 @@ import android.os.Process;
 import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.os.UserManager;
+import android.util.ArrayMap;
+
+import androidx.annotation.NonNull;
 
 import com.android.providers.media.util.LongArray;
 
@@ -75,6 +78,8 @@ public class LocalCallingIdentity {
      * See definition in {@link android.os.Environment}
      */
     private static final long FORCE_ENABLE_SCOPED_STORAGE = 132649864L;
+
+    private static final long UNKNOWN_ROW_ID = -1;
 
     public static LocalCallingIdentity fromBinder(Context context, ContentProvider provider) {
         String callingPackage = provider.getCallingPackageUnchecked();
@@ -334,5 +339,23 @@ public class LocalCallingIdentity {
                 ownedIds.remove(index);
             }
         }
+    }
+
+    private ArrayMap<String, Long> rowIdOfDeletedPaths = new ArrayMap<>();
+
+    public void addDeletedRowId(@NonNull String path, long id) {
+        rowIdOfDeletedPaths.put(path, id);
+    }
+
+    public void removeDeletedRowId(long id) {
+        int index = rowIdOfDeletedPaths.indexOfValue(id);
+        while (index > -1) {
+            rowIdOfDeletedPaths.removeAt(index);
+            index = rowIdOfDeletedPaths.indexOfValue(id);
+        }
+    }
+
+    public long getDeletedRowId(@NonNull String path) {
+        return rowIdOfDeletedPaths.getOrDefault(path, UNKNOWN_ROW_ID);
     }
 }

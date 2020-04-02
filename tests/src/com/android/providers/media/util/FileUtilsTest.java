@@ -24,11 +24,18 @@ import static com.android.providers.media.util.FileUtils.buildUniqueFile;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractFileExtension;
 import static com.android.providers.media.util.FileUtils.extractFileName;
+import static com.android.providers.media.util.FileUtils.extractRelativePath;
+import static com.android.providers.media.util.FileUtils.extractVolumeName;
+import static com.android.providers.media.util.FileUtils.extractVolumePath;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import android.content.ContentValues;
+import android.provider.MediaStore;
+import android.provider.MediaStore.MediaColumns;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
@@ -248,6 +255,15 @@ public class FileUtilsTest {
     }
 
     @Test
+    public void testBuildUniqueFile_increment_hidden() throws Exception {
+        assertNameEquals(".hidden.jpg",
+                FileUtils.buildUniqueFile(mTarget, "image/jpeg", ".hidden.jpg"));
+        new File(mTarget, ".hidden.jpg").createNewFile();
+        assertNameEquals(".hidden (1).jpg",
+                FileUtils.buildUniqueFile(mTarget, "image/jpeg", ".hidden.jpg"));
+    }
+
+    @Test
     public void testBuildUniqueFile_mimeless() throws Exception {
         assertNameEquals("test.jpg", FileUtils.buildUniqueFile(mTarget, "test.jpg"));
         new File(mTarget, "test.jpg").createNewFile();
@@ -308,6 +324,37 @@ public class FileUtilsTest {
                 buildUniqueFile(mDcimTarget, "IMG_20190102_030405.jpg"));
         assertNameEquals("IMG_20190102_030405~3.jpg",
                 buildUniqueFile(mDcimTarget, "IMG_20190102_030405~2.jpg"));
+    }
+
+    @Test
+    public void testExtractVolumePath() throws Exception {
+        assertEquals("/storage/emulated/0/",
+                extractVolumePath("/storage/emulated/0/foo.jpg"));
+        assertEquals("/storage/0000-0000/",
+                extractVolumePath("/storage/0000-0000/foo.jpg"));
+    }
+
+    @Test
+    public void testExtractVolumeName() throws Exception {
+        assertEquals(MediaStore.VOLUME_EXTERNAL_PRIMARY,
+                extractVolumeName("/storage/emulated/0/foo.jpg"));
+        assertEquals("0000-0000",
+                extractVolumeName("/storage/0000-0000/foo.jpg"));
+    }
+
+    @Test
+    public void testExtractRelativePath() throws Exception {
+        for (String prefix : new String[] {
+                "/storage/emulated/0/",
+                "/storage/0000-0000/"
+        }) {
+            assertEquals("/",
+                    extractRelativePath(prefix + "foo.jpg"));
+            assertEquals("DCIM/",
+                    extractRelativePath(prefix + "DCIM/foo.jpg"));
+            assertEquals("DCIM/My Vacation/",
+                    extractRelativePath(prefix + "DCIM/My Vacation/foo.jpg"));
+        }
     }
 
     @Test
@@ -389,6 +436,24 @@ public class FileUtilsTest {
         }) {
             assertEquals(probe, "", extractFileExtension(probe));
         }
+    }
+
+    @Test
+    public void testSanitizeValues() throws Exception {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.RELATIVE_PATH, "path/in\0valid/data/");
+        values.put(MediaColumns.DISPLAY_NAME, "inva\0lid");
+        FileUtils.sanitizeValues(values);
+        assertEquals("path/in_valid/data/", values.get(MediaColumns.RELATIVE_PATH));
+        assertEquals("inva_lid", values.get(MediaColumns.DISPLAY_NAME));
+    }
+
+    @Test
+    public void testSanitizeValues_Root() throws Exception {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.RELATIVE_PATH, "/");
+        FileUtils.sanitizeValues(values);
+        assertEquals("/", values.get(MediaColumns.RELATIVE_PATH));
     }
 
     private static File touch(File dir, String name) throws IOException {

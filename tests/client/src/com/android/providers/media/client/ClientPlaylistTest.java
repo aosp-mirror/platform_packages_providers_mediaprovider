@@ -20,8 +20,6 @@ import static android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY;
 import static android.provider.MediaStore.VOLUME_INTERNAL;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import android.content.ContentResolver;
@@ -111,38 +109,6 @@ public class ClientPlaylistTest {
         mContentResolver.delete(ContentUris.withAppendedId(mExternalAudio, mRed), null);
         mContentResolver.delete(ContentUris.withAppendedId(mExternalAudio, mGreen), null);
         mContentResolver.delete(ContentUris.withAppendedId(mExternalAudio, mBlue), null);
-    }
-
-    /**
-     * Verify that creating playlists using only {@link Playlists#NAME} defined
-     * will flow into the {@link MediaColumns#DISPLAY_NAME}, both during initial
-     * insert and subsequent updates.
-     */
-    @Test
-    public void testName() throws Exception {
-        final String name1 = "Playlist " + System.nanoTime();
-        final String name2 = "Playlist " + System.nanoTime();
-        assertNotEquals(name1, name2);
-
-        mValues.clear();
-        mValues.put(Playlists.NAME, name1);
-        final Uri playlist = mContentResolver.insert(mExternalPlaylists, mValues);
-        try (Cursor c = mContentResolver.query(playlist,
-                new String[] { Playlists.NAME, MediaColumns.DISPLAY_NAME }, null, null)) {
-            assertTrue(c.moveToFirst());
-            assertTrue(c.getString(0).startsWith(name1));
-            assertTrue(c.getString(1).startsWith(name1));
-        }
-
-        mValues.clear();
-        mValues.put(Playlists.NAME, name2);
-        mContentResolver.update(playlist, mValues, null);
-        try (Cursor c = mContentResolver.query(playlist,
-                new String[] { Playlists.NAME, MediaColumns.DISPLAY_NAME }, null, null)) {
-            assertTrue(c.moveToFirst());
-            assertTrue(c.getString(0).startsWith(name2));
-            assertTrue(c.getString(1).startsWith(name2));
-        }
     }
 
     @Test

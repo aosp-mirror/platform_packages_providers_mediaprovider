@@ -20,7 +20,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.database.sqlite.SQLiteDatabase;
 import android.provider.Column;
 import android.util.Log;
 
@@ -65,19 +64,19 @@ public class MediaUpgradeReceiver extends BroadcastReceiver {
                 if (MediaProvider.isMediaDatabaseName(file)) {
                     long startTime = System.currentTimeMillis();
                     Log.i(TAG, "---> Start upgrade of media database " + file);
-                    SQLiteDatabase db = null;
                     try {
                         DatabaseHelper helper = new DatabaseHelper(
                                 context, file, MediaProvider.isInternalMediaDatabaseName(file),
                                 false, false, Column.class, Metrics::logSchemaChange, null, null,
                                 null);
-                        db = helper.getWritableDatabase();
+                        helper.runWithTransaction((db) -> {
+                            // Perform just enough to force database upgrade
+                            return db.getVersion();
+                        });
+                        helper.close();
                     } catch (Throwable t) {
                         Log.wtf(TAG, "Error during upgrade of media db " + file, t);
                     } finally {
-                        if (db != null) {
-                            db.close();
-                        }
                     }
                     Log.i(TAG, "<--- Finished upgrade of media database " + file
                             + " in " + (System.currentTimeMillis()-startTime) + "ms");

@@ -35,7 +35,6 @@ import android.mtp.MtpConstants;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Looper;
 import android.os.SystemClock;
 import android.os.Trace;
 import android.provider.MediaStore;
@@ -75,7 +74,8 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.LongSupplier;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 
@@ -110,8 +110,19 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     final Set<String> mFilterVolumeNames = new ArraySet<>();
     long mScanStartTime;
     long mScanStopTime;
-    /** Flag indicating if a schema change is in progress */
-    boolean mSchemaChanging;
+
+    /**
+     * Lock used to guard against deadlocks in SQLite; the write lock is used to
+     * guard any schema changes, and the read lock is used for all other
+     * database operations.
+     * <p>
+     * As a concrete example: consider the case where the primary database
+     * connection is performing a schema change inside a transaction, while a
+     * secondary connection is waiting to begin a transaction. When the primary
+     * database connection changes the schema, it attempts to close all other
+     * database connections, which then deadlocks.
+     */
+    private final ReentrantReadWriteLock mSchemaLock = new ReentrantReadWriteLock();
 
     public interface OnSchemaChangeListener {
         public void onSchemaChange(@NonNull String volumeName, int versionFrom, int versionTo,
@@ -195,26 +206,33 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             mFilterVolumeNames.addAll(filterVolumeNames);
         }
 
-        // We might be tempted to open a transaction and recreate views here,
-        // but that would result in an obscure deadlock; instead we simply close
-        // the entire database, letting the views be recreated the next time
-        // it's opened.
-        close();
+        // Recreate all views to apply this filter
+        final SQLiteDatabase db = super.getWritableDatabase();
+        mSchemaLock.writeLock().lock();
+        try {
+            db.beginTransaction();
+            createLatestViews(db, mInternal);
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+            mSchemaLock.writeLock().unlock();
+        }
     }
 
     @Override
     public SQLiteDatabase getReadableDatabase() {
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            Log.wtf(TAG, "Database operations must not happen on main thread", new Throwable());
-        }
-        return super.getReadableDatabase();
+        throw new UnsupportedOperationException("All database operations must be routed through"
+                + " runWithTransaction() or runWithoutTransaction() to avoid deadlocks");
     }
 
     @Override
     public SQLiteDatabase getWritableDatabase() {
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            Log.wtf(TAG, "Database operations must not happen on main thread", new Throwable());
-        }
+        throw new UnsupportedOperationException("All database operations must be routed through"
+                + " runWithTransaction() or runWithoutTransaction() to avoid deadlocks");
+    }
+
+    @VisibleForTesting
+    SQLiteDatabase getWritableDatabaseForTest() {
         return super.getWritableDatabase();
     }
 
@@ -222,7 +240,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     public void onConfigure(SQLiteDatabase db) {
         Log.v(TAG, "onConfigure() for " + mName);
         db.setCustomScalarFunction("_INSERT", (arg) -> {
-            if (arg != null && mFilesListener != null && !mSchemaChanging) {
+            if (arg != null && mFilesListener != null
+                    && !mSchemaLock.isWriteLockedByCurrentThread()) {
                 final String[] split = arg.split(":");
                 final String volumeName = split[0];
                 final long id = Long.parseLong(split[1]);
@@ -240,7 +259,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             return null;
         });
         db.setCustomScalarFunction("_UPDATE", (arg) -> {
-            if (arg != null && mFilesListener != null && !mSchemaChanging) {
+            if (arg != null && mFilesListener != null
+                    && !mSchemaLock.isWriteLockedByCurrentThread()) {
                 final String[] split = arg.split(":");
                 final String volumeName = split[0];
                 final long oldId = Long.parseLong(split[1]);
@@ -265,7 +285,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             return null;
         });
         db.setCustomScalarFunction("_DELETE", (arg) -> {
-            if (arg != null && mFilesListener != null && !mSchemaChanging) {
+            if (arg != null && mFilesListener != null
+                    && !mSchemaLock.isWriteLockedByCurrentThread()) {
                 final String[] split = arg.split(":");
                 final String volumeName = split[0];
                 final long id = Long.parseLong(split[1]);
@@ -286,7 +307,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             return null;
         });
         db.setCustomScalarFunction("_GET_ID", (arg) -> {
-            if (mIdGenerator != null && !mSchemaChanging) {
+            if (mIdGenerator != null && !mSchemaLock.isWriteLockedByCurrentThread()) {
                 Trace.beginSection("_GET_ID");
                 try {
                     return mIdGenerator.apply(arg);
@@ -299,43 +320,35 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     @Override
-    public void onOpen(SQLiteDatabase db) {
-        // Always recreate latest views and triggers during open; they're
-        // cheap and it's an easy way to ensure they're defined consistently
-        createLatestViews(db, mInternal);
-        createLatestTriggers(db, mInternal);
-    }
-
-    @Override
     public void onCreate(final SQLiteDatabase db) {
         Log.v(TAG, "onCreate() for " + mName);
-        mSchemaChanging = true;
+        mSchemaLock.writeLock().lock();
         try {
             updateDatabase(db, 0, mVersion);
         } finally {
-            mSchemaChanging = false;
+            mSchemaLock.writeLock().unlock();
         }
     }
 
     @Override
     public void onUpgrade(final SQLiteDatabase db, final int oldV, final int newV) {
         Log.v(TAG, "onUpgrade() for " + mName + " from " + oldV + " to " + newV);
-        mSchemaChanging = true;
+        mSchemaLock.writeLock().lock();
         try {
             updateDatabase(db, oldV, newV);
         } finally {
-            mSchemaChanging = false;
+            mSchemaLock.writeLock().unlock();
         }
     }
 
     @Override
     public void onDowngrade(final SQLiteDatabase db, final int oldV, final int newV) {
         Log.v(TAG, "onDowngrade() for " + mName + " from " + oldV + " to " + newV);
-        mSchemaChanging = true;
+        mSchemaLock.writeLock().lock();
         try {
             downgradeDatabase(db, oldV, newV);
         } finally {
-            mSchemaChanging = false;
+            mSchemaLock.writeLock().unlock();
         }
     }
 
@@ -411,7 +424,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
         mTransactionState.set(new TransactionState());
 
-        final SQLiteDatabase db = getWritableDatabase();
+        final SQLiteDatabase db = super.getWritableDatabase();
+        mSchemaLock.readLock().lock();
         db.beginTransaction();
         db.execSQL("UPDATE local_metadata SET generation=generation+1;");
     }
@@ -423,7 +437,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
         state.successful = true;
 
-        final SQLiteDatabase db = getWritableDatabase();
+        final SQLiteDatabase db = super.getWritableDatabase();
         db.setTransactionSuccessful();
     }
 
@@ -434,8 +448,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
         mTransactionState.remove();
 
-        final SQLiteDatabase db = getWritableDatabase();
+        final SQLiteDatabase db = super.getWritableDatabase();
         db.endTransaction();
+        mSchemaLock.readLock().unlock();
 
         if (state.successful) {
             // We carefully "phase" our two sets of work here to ensure that we
@@ -458,23 +473,50 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     /**
-     * Execute the given runnable inside a transaction. If the calling thread is
-     * not already in an active transaction, this method will wrap the given
+     * Execute the given operation inside a transaction. If the calling thread
+     * is not already in an active transaction, this method will wrap the given
      * runnable inside a new transaction.
      */
-    public long runWithTransaction(@NonNull LongSupplier s) {
+    public @NonNull <T> T runWithTransaction(@NonNull Function<SQLiteDatabase, T> op) {
+        // We carefully acquire the database here so that any schema changes can
+        // be applied before acquiring the read lock below
+        final SQLiteDatabase db = super.getWritableDatabase();
+
         if (mTransactionState.get() != null) {
             // Already inside a transaction, so we can run directly
-            return s.getAsLong();
+            return op.apply(db);
         } else {
             // Not inside a transaction, so we need to make one
             beginTransaction();
             try {
-                final long res = s.getAsLong();
+                final T res = op.apply(db);
                 setTransactionSuccessful();
                 return res;
             } finally {
                 endTransaction();
+            }
+        }
+    }
+
+    /**
+     * Execute the given operation regardless of the calling thread being in an
+     * active transaction or not.
+     */
+    public @NonNull <T> T runWithoutTransaction(@NonNull Function<SQLiteDatabase, T> op) {
+        // We carefully acquire the database here so that any schema changes can
+        // be applied before acquiring the read lock below
+        final SQLiteDatabase db = super.getWritableDatabase();
+
+        if (mTransactionState.get() != null) {
+            // Already inside a transaction, so we can run directly
+            return op.apply(db);
+        } else {
+            // We still need to acquire a schema read lock
+            mSchemaLock.readLock().lock();
+            try {
+                return op.apply(db);
+            } finally {
+                mSchemaLock.readLock().unlock();
             }
         }
     }
@@ -1331,6 +1373,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
         }
 
+        // Always recreate latest views and triggers during upgrade; they're
+        // cheap and it's an easy way to ensure they're defined consistently
+        createLatestViews(db, internal);
+        createLatestTriggers(db, internal);
+
         getOrCreateUuid(db);
 
         final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
@@ -1383,8 +1430,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * {@link MediaColumns#GENERATION_ADDED} or
      * {@link MediaColumns#GENERATION_MODIFIED}.
      */
-    public long getGeneration() {
-        return android.database.DatabaseUtils.longForQuery(getReadableDatabase(),
+    public static long getGeneration(@NonNull SQLiteDatabase db) {
+        return android.database.DatabaseUtils.longForQuery(db,
                 CURRENT_GENERATION_CLAUSE + ";", null);
     }
 
@@ -1392,15 +1439,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * Return total number of items tracked inside this database. This includes
      * only real media items, and does not include directories.
      */
-    public long getItemCount() {
-        return getItemCount(getReadableDatabase());
-    }
-
-    /**
-     * Return total number of items tracked inside this database. This includes
-     * only real media items, and does not include directories.
-     */
-    private long getItemCount(SQLiteDatabase db) {
+    public static long getItemCount(@NonNull SQLiteDatabase db) {
         return android.database.DatabaseUtils.longForQuery(db,
                 "SELECT COUNT(_id) FROM files WHERE " + FileColumns.MIME_TYPE + " IS NOT NULL",
                 null);

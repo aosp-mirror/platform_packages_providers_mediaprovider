@@ -16,6 +16,8 @@
 
 package com.android.providers.media.util;
 
+import static com.android.providers.media.util.DatabaseUtils.getAsBoolean;
+import static com.android.providers.media.util.DatabaseUtils.getAsLong;
 import static com.android.providers.media.util.Logging.TAG;
 
 import android.content.ClipDescription;
@@ -25,9 +27,9 @@ import android.net.Uri;
 import android.os.Environment;
 import android.os.storage.StorageManager;
 import android.provider.MediaStore;
-import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.text.TextUtils;
+import android.text.format.DateUtils;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
@@ -46,7 +48,6 @@ import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -260,7 +261,7 @@ public class FileUtils {
      * Recursively delete all contents inside the given directory. Gracefully
      * attempts to delete as much as possible in the face of any failures.
      *
-     * @deprecated if you're calling this from inside {@link MediaProvider}, you
+     * @deprecated if you're calling this from inside {@code MediaProvider}, you
      *             likely want to call {@link #forEach} with a separate
      *             invocation to invalidate FUSE entries.
      */
@@ -639,6 +640,30 @@ public class FileUtils {
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?(?:Android/sandbox/[^/]+/)?Download/.+");
     public static final Pattern PATTERN_DOWNLOADS_DIRECTORY = Pattern.compile(
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?(?:Android/sandbox/[^/]+/)?Download/?");
+    public static final Pattern PATTERN_EXPIRES_FILE = Pattern.compile(
+            "(?i)^\\.(pending|trashed)-(\\d+)-(.+)$");
+
+    /**
+     * File prefix indicating that the file {@link MediaColumns#IS_PENDING}.
+     */
+    public static final String PREFIX_PENDING = "pending";
+
+    /**
+     * File prefix indicating that the file {@link MediaColumns#IS_TRASHED}.
+     */
+    public static final String PREFIX_TRASHED = "trashed";
+
+    /**
+     * Default duration that {@link MediaColumns#IS_PENDING} items should be
+     * preserved for until automatically cleaned by {@link #runIdleMaintenance}.
+     */
+    public static final long DEFAULT_DURATION_PENDING = DateUtils.WEEK_IN_MILLIS;
+
+    /**
+     * Default duration that {@link MediaColumns#IS_TRASHED} items should be
+     * preserved for until automatically cleaned by {@link #runIdleMaintenance}.
+     */
+    public static final long DEFAULT_DURATION_TRASHED = DateUtils.WEEK_IN_MILLIS;
 
     public static boolean isDownload(@NonNull String path) {
         return PATTERN_DOWNLOADS_FILE.matcher(path).matches();
@@ -676,6 +701,16 @@ public class FileUtils {
 
     private static @Nullable String normalizeUuid(@Nullable String fsUuid) {
         return fsUuid != null ? fsUuid.toLowerCase(Locale.US) : null;
+    }
+
+    public static @Nullable String extractVolumePath(@Nullable String data) {
+        if (data == null) return null;
+        final Matcher matcher = PATTERN_RELATIVE_PATH.matcher(data);
+        if (matcher.find()) {
+            return data.substring(0, matcher.end());
+        } else {
+            return null;
+        }
     }
 
     public static @Nullable String extractVolumeName(@Nullable String data) {
@@ -750,12 +785,22 @@ public class FileUtils {
         return null;
     }
 
-    public static void computeDataValues(@NonNull ContentValues values) {
+    /**
+     * Compute several scattered {@link MediaColumns} values from
+     * {@link MediaColumns#DATA}. This method performs no enforcement of
+     * argument validity.
+     */
+    public static void computeValuesFromData(@NonNull ContentValues values) {
         // Worst case we have to assume no bucket details
-        values.remove(ImageColumns.BUCKET_ID);
-        values.remove(ImageColumns.BUCKET_DISPLAY_NAME);
-        values.remove(ImageColumns.VOLUME_NAME);
-        values.remove(ImageColumns.RELATIVE_PATH);
+        values.remove(MediaColumns.VOLUME_NAME);
+        values.remove(MediaColumns.RELATIVE_PATH);
+        values.remove(MediaColumns.IS_DOWNLOAD);
+        values.remove(MediaColumns.IS_PENDING);
+        values.remove(MediaColumns.IS_TRASHED);
+        values.remove(MediaColumns.DATE_EXPIRES);
+        values.remove(MediaColumns.DISPLAY_NAME);
+        values.remove(MediaColumns.BUCKET_ID);
+        values.remove(MediaColumns.BUCKET_DISPLAY_NAME);
 
         final String data = values.getAsString(MediaColumns.DATA);
         if (TextUtils.isEmpty(data)) return;
@@ -763,19 +808,76 @@ public class FileUtils {
         final File file = new File(data);
         final File fileLower = new File(data.toLowerCase(Locale.ROOT));
 
-        values.put(ImageColumns.VOLUME_NAME, extractVolumeName(data));
-        values.put(ImageColumns.RELATIVE_PATH, extractRelativePath(data));
-        values.put(ImageColumns.DISPLAY_NAME, extractDisplayName(data));
+        values.put(MediaColumns.VOLUME_NAME, extractVolumeName(data));
+        values.put(MediaColumns.RELATIVE_PATH, extractRelativePath(data));
+        values.put(MediaColumns.IS_DOWNLOAD, isDownload(data));
+
+        final String displayName = extractDisplayName(data);
+        final Matcher matcher = FileUtils.PATTERN_EXPIRES_FILE.matcher(displayName);
+        if (matcher.matches()) {
+            values.put(MediaColumns.IS_PENDING,
+                    matcher.group(1).equals(FileUtils.PREFIX_PENDING) ? 1 : 0);
+            values.put(MediaColumns.IS_TRASHED,
+                    matcher.group(1).equals(FileUtils.PREFIX_TRASHED) ? 1 : 0);
+            values.put(MediaColumns.DATE_EXPIRES, Long.parseLong(matcher.group(2)));
+            values.put(MediaColumns.DISPLAY_NAME, matcher.group(3));
+        } else {
+            values.put(MediaColumns.IS_PENDING, 0);
+            values.put(MediaColumns.IS_TRASHED, 0);
+            values.putNull(MediaColumns.DATE_EXPIRES);
+            values.put(MediaColumns.DISPLAY_NAME, displayName);
+        }
 
         // Buckets are the parent directory
         final String parent = fileLower.getParent();
         if (parent != null) {
-            values.put(ImageColumns.BUCKET_ID, parent.hashCode());
+            values.put(MediaColumns.BUCKET_ID, parent.hashCode());
             // The relative path for files in the top directory is "/"
-            if (!"/".equals(values.getAsString(ImageColumns.RELATIVE_PATH))) {
-                values.put(ImageColumns.BUCKET_DISPLAY_NAME, file.getParentFile().getName());
+            if (!"/".equals(values.getAsString(MediaColumns.RELATIVE_PATH))) {
+                values.put(MediaColumns.BUCKET_DISPLAY_NAME, file.getParentFile().getName());
             }
         }
+    }
+
+    /**
+     * Compute {@link MediaColumns#DATA} from several scattered
+     * {@link MediaColumns} values.  This method performs no enforcement of
+     * argument validity.
+     */
+    public static void computeDataFromValues(@NonNull ContentValues values,
+            @NonNull File volumePath) {
+        values.remove(MediaColumns.DATA);
+
+        final String displayName = values.getAsString(MediaColumns.DISPLAY_NAME);
+        final String resolvedDisplayName;
+        if (getAsBoolean(values, MediaColumns.IS_PENDING, false)) {
+            final long dateExpires = getAsLong(values, MediaColumns.DATE_EXPIRES,
+                    (System.currentTimeMillis() + DEFAULT_DURATION_PENDING) / 1000);
+            resolvedDisplayName = String.format(".%s-%d-%s",
+                    FileUtils.PREFIX_PENDING, dateExpires, displayName);
+        } else if (getAsBoolean(values, MediaColumns.IS_TRASHED, false)) {
+            final long dateExpires = getAsLong(values, MediaColumns.DATE_EXPIRES,
+                    (System.currentTimeMillis() + DEFAULT_DURATION_TRASHED) / 1000);
+            resolvedDisplayName = String.format(".%s-%d-%s",
+                    FileUtils.PREFIX_TRASHED, dateExpires, displayName);
+        } else {
+            resolvedDisplayName = displayName;
+        }
+
+        final File filePath = buildPath(volumePath,
+                values.getAsString(MediaColumns.RELATIVE_PATH), resolvedDisplayName);
+        values.put(MediaColumns.DATA, filePath.getAbsolutePath());
+    }
+
+    public static void sanitizeValues(@NonNull ContentValues values) {
+        final String[] relativePath = values.getAsString(MediaColumns.RELATIVE_PATH).split("/");
+        for (int i = 0; i < relativePath.length; i++) {
+            relativePath[i] = sanitizeDisplayName(relativePath[i]);
+        }
+        values.put(MediaColumns.RELATIVE_PATH,
+                String.join("/", relativePath) + "/");
+        values.put(MediaColumns.DISPLAY_NAME,
+                sanitizeDisplayName(values.getAsString(MediaColumns.DISPLAY_NAME)));
     }
 
     /** {@hide} **/

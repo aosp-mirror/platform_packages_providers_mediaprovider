@@ -17,6 +17,7 @@ android_test {
         "res",
     ],
     srcs: [
+        ":framework-mediaprovider-sources",
         ":mediaprovider-sources",
         "src/**/*.java",
     ],
@@ -38,6 +39,7 @@ android_test {
         "androidx.test.rules",
         "guava",
         "mockito-target",
+        "truth-prebuilt",
     ],
 
     certificate: "media",

@@ -37,6 +37,8 @@ public class MimeUtilsTest {
     public void testResolveMimeType() throws Exception {
         assertEquals("image/jpeg",
                 MimeUtils.resolveMimeType(new File("foo.jpg")));
+        assertEquals("image/jpeg",
+                MimeUtils.resolveMimeType(new File(".hidden.jpg")));
 
         assertEquals(ClipDescription.MIMETYPE_UNKNOWN,
                 MimeUtils.resolveMimeType(new File("foo")));

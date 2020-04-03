@@ -29,6 +29,7 @@ import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SORT_ORDER;
 import static android.content.ContentResolver.QUERY_SORT_DIRECTION_ASCENDING;
 import static android.database.DatabaseUtils.bindSelection;
+import static android.database.DatabaseUtils.escapeForLike;
 
 import static com.android.providers.media.util.DatabaseUtils.maybeBalance;
 import static com.android.providers.media.util.DatabaseUtils.recoverAbusiveLimit;
@@ -59,12 +60,17 @@ public class DatabaseUtilsTest {
     private final Bundle args = new Bundle();
     private final ArraySet<String> honored = new ArraySet<>();
 
-    private static final Object[] ARGS = { "baz", 4, null };
+    private static final Object[] ARGS = { "baz", 4, null, (double) 3.14159, false };
 
     @Before
     public void setUp() {
         args.clear();
         honored.clear();
+    }
+
+    @Test
+    public void testConstructor() {
+        new DatabaseUtils();
     }
 
     @Test
@@ -100,6 +106,15 @@ public class DatabaseUtilsTest {
         assertEquals("foo=10 AND bar=11 AND meow=1",
                 bindSelection("foo=?10 AND bar=? AND meow=?1",
                         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12));
+    }
+
+    @Test
+    public void testBindSelection_types() throws Exception {
+        assertEquals("'baz'", bindSelection("?1", ARGS));
+        assertEquals("4", bindSelection("?2", ARGS));
+        assertEquals("NULL", bindSelection("?3", ARGS));
+        assertEquals("3.14159", bindSelection("?4", ARGS));
+        assertEquals("0", bindSelection("?5", ARGS));
     }
 
     @Test
@@ -339,6 +354,18 @@ public class DatabaseUtilsTest {
         assertEquals("( 'foo' , 'bar' )", DatabaseUtils.bindList("foo", "bar"));
         assertEquals("( 'foo' , 'bar' , 'baz' )", DatabaseUtils.bindList("foo", "bar", "baz"));
         assertEquals("( 'foo' , NULL , 42 )", DatabaseUtils.bindList("foo", null, 42));
+    }
+
+    @Test
+    public void testEscapeForLike() throws Exception {
+        assertEquals("file.bin",
+                escapeForLike("file.bin"));
+        assertEquals("/path/to/file.bin",
+                escapeForLike("/path/to/file.bin"));
+        assertEquals("/path/to/fi\\_le.bin",
+                escapeForLike("/path/to/fi_le.bin"));
+        assertEquals("/path/to/fi\\%le.bin",
+                escapeForLike("/path/to/fi%le.bin"));
     }
 
     private static Pair<String, String> recoverAbusiveGroupBy(

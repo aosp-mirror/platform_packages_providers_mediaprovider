@@ -18,8 +18,8 @@ package com.android.providers.media.util;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-import androidx.test.filters.SmallTest;
 import androidx.test.runner.AndroidJUnit4;
 
 import org.junit.Test;
@@ -75,6 +75,13 @@ public class LongArrayTest {
 
         a.add(50);
         verify(new long[]{10, 20, 50}, a);
+
+        LongArray cloned = a.clone();
+        verify(new long[]{10, 20, 50}, cloned);
+        assertTrue(LongArray.elementsEqual(a, cloned));
+
+        a.remove(0);
+        verify(new long[]{20, 50}, a);
     }
 
     public void verify(long[] expected, LongArray longArrays) {

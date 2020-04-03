@@ -17,6 +17,7 @@
 package com.android.providers.media.util;
 
 import static com.android.providers.media.util.PermissionUtils.checkPermissionBackup;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionManageExternalStorage;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadAudio;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadImages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadStorage;
@@ -40,6 +41,11 @@ import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4.class)
 public class PermissionUtilsTest {
+    @Test
+    public void testConstructor() {
+        new PermissionUtils();
+    }
+
     /**
      * The best we can do here is assert that we're granted the permissions that
      * we expect to be holding.
@@ -53,6 +59,7 @@ public class PermissionUtilsTest {
 
         assertTrue(checkPermissionSystem(context, pid, uid, packageName));
         assertFalse(checkPermissionBackup(context, pid, uid));
+        assertFalse(checkPermissionManageExternalStorage(context, pid, uid, packageName));
 
         assertTrue(checkPermissionReadStorage(context, pid, uid, packageName));
         assertTrue(checkPermissionWriteStorage(context, pid, uid, packageName));

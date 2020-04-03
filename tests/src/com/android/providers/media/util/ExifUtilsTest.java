@@ -30,19 +30,30 @@ import static org.junit.Assert.assertEquals;
 
 public class ExifUtilsTest {
     @Test
-    public void testParseDateTime() throws Exception {
+    public void testConstructor() {
+        new ExifUtils();
+    }
+
+    @Test
+    public void testGetDateTime() throws Exception {
+        final ExifInterface exif = createTestExif();
+        assertParseDateTime(exif, ExifUtils::getDateTime);
+    }
+
+    @Test
+    public void testGetDateTimeOriginal() throws Exception {
         final ExifInterface exif = createTestExif();
         assertParseDateTime(exif, ExifUtils::getDateTimeOriginal);
     }
 
     @Test
-    public void testParseDateTimeTz() throws Exception {
+    public void testGetDateTimeDigitized() throws Exception {
         final ExifInterface exif = createTestExif();
         assertParseDateTime(exif, ExifUtils::getDateTimeDigitized);
     }
 
     @Test
-    public void testParseGpsDateTime() throws Exception {
+    public void testGetGpsDateTime() throws Exception {
         final ExifInterface exif = createTestExif();
         assertParseDateTime(exif, ExifUtils::getGpsDateTime);
     }
@@ -50,6 +61,7 @@ public class ExifUtilsTest {
     private ExifInterface createTestExif() throws Exception {
         final File file = File.createTempFile("test", ".jpg");
         final ExifInterface exif = new ExifInterface(file);
+        exif.setAttribute(ExifInterface.TAG_DATETIME, "2016:01:28 09:17:34");
         exif.setAttribute(ExifInterface.TAG_DATETIME_ORIGINAL, "2016:01:28 09:17:34");
         exif.setAttribute(ExifInterface.TAG_DATETIME_DIGITIZED, "2016:01:28 09:17:34 UTC");
         exif.setAttribute(ExifInterface.TAG_GPS_DATESTAMP, "2016:01:28");

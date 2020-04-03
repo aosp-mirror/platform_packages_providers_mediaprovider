@@ -3046,28 +3046,25 @@ public class MediaProvider extends ContentProvider {
     public ContentProviderResult[] applyBatch(ArrayList<ContentProviderOperation> operations)
                 throws OperationApplicationException {
         // Open transactions on databases for requested volumes
-        final ArrayMap<String, DatabaseHelper> transactions = new ArrayMap<>();
+        final Set<DatabaseHelper> transactions = new ArraySet<>();
         try {
             for (ContentProviderOperation op : operations) {
-                final String volumeName = MediaStore.getVolumeName(op.getUri());
-                if (!transactions.containsKey(volumeName)) {
-                    try {
-                        final DatabaseHelper helper = getDatabaseForUri(op.getUri());
-                        helper.beginTransaction();
-                        transactions.put(volumeName, helper);
-                    } catch (VolumeNotFoundException e) {
-                        Log.w(TAG, e.getMessage());
-                    }
+                final DatabaseHelper helper = getDatabaseForUri(op.getUri());
+                if (!transactions.contains(helper)) {
+                    helper.beginTransaction();
+                    transactions.add(helper);
                 }
             }
 
             final ContentProviderResult[] result = super.applyBatch(operations);
-            for (DatabaseHelper helper : transactions.values()) {
+            for (DatabaseHelper helper : transactions) {
                 helper.setTransactionSuccessful();
             }
             return result;
+        } catch (VolumeNotFoundException e) {
+            throw e.rethrowAsIllegalArgumentException();
         } finally {
-            for (DatabaseHelper helper : transactions.values()) {
+            for (DatabaseHelper helper : transactions) {
                 helper.endTransaction();
             }
         }
@@ -4825,6 +4822,7 @@ public class MediaProvider extends ContentProvider {
             @NonNull SQLiteDatabase db) {
         try {
             // Refresh playlist members based on what we parse from disk
+            final String volumeName = getVolumeName(playlistUri);
             final long playlistId = ContentUris.parseId(playlistUri);
             db.delete("audio_playlists_map", "playlist_id=" + playlistId, null);
 
@@ -4834,23 +4832,46 @@ public class MediaProvider extends ContentProvider {
 
             final List<Path> members = playlist.asList();
             for (int i = 0; i < members.size(); i++) {
-                final Path audioPath = playlistPath.getParent().resolve(members.get(i));
-                final Uri audioUri = Audio.Media.getContentUri(getVolumeName(playlistUri));
-                try (Cursor c = query(audioUri, null, MediaColumns.DATA + "=?",
-                        new String[] { audioPath.toFile().getCanonicalPath() }, null)) {
-                    if (c.moveToFirst()) {
-                        final ContentValues values = new ContentValues();
-                        values.put(Playlists.Members.PLAY_ORDER, i + 1);
-                        values.put(Playlists.Members.PLAYLIST_ID, playlistId);
-                        values.put(Playlists.Members.AUDIO_ID,
-                                c.getLong(c.getColumnIndex(MediaColumns._ID)));
-                        db.insert("audio_playlists_map", null, values);
-                    }
+                try {
+                    final Path audioPath = playlistPath.getParent().resolve(members.get(i));
+                    final long audioId = queryForPlaylistMember(volumeName, audioPath);
+
+                    final ContentValues values = new ContentValues();
+                    values.put(Playlists.Members.PLAY_ORDER, i + 1);
+                    values.put(Playlists.Members.PLAYLIST_ID, playlistId);
+                    values.put(Playlists.Members.AUDIO_ID, audioId);
+                    db.insert("audio_playlists_map", null, values);
+                } catch (IOException e) {
+                    Log.w(TAG, "Failed to resolve playlist member", e);
                 }
             }
         } catch (IOException e) {
             Log.w(TAG, "Failed to refresh playlist", e);
         }
+    }
+
+    /**
+     * Make two attempts to query this playlist member: first based on the exact
+     * path, and if that fails, fall back to picking a single item matching the
+     * display name. When there are multiple items with the same display name,
+     * we can't resolve between them, and leave this member unresolved.
+     */
+    private long queryForPlaylistMember(@NonNull String volumeName, @NonNull Path path)
+            throws IOException {
+        final Uri audioUri = Audio.Media.getContentUri(volumeName);
+        try (Cursor c = queryForSingleItem(audioUri,
+                new String[] { BaseColumns._ID }, MediaColumns.DATA + "=?",
+                new String[] { path.toFile().getCanonicalPath() }, null)) {
+            return c.getLong(0);
+        } catch (FileNotFoundException ignored) {
+        }
+        try (Cursor c = queryForSingleItem(audioUri,
+                new String[] { BaseColumns._ID }, MediaColumns.DISPLAY_NAME + "=?",
+                new String[] { path.toFile().getName() }, null)) {
+            return c.getLong(0);
+        } catch (FileNotFoundException ignored) {
+        }
+        throw new FileNotFoundException();
     }
 
     /**

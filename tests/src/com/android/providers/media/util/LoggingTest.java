@@ -77,5 +77,8 @@ public class LoggingTest {
             Logging.logPersistent(msg);
         }
         assertEquals(3, mTarget.listFiles().length);
+
+        Logging.trimPersistent();
+        assertEquals(3, mTarget.listFiles().length);
     }
 }

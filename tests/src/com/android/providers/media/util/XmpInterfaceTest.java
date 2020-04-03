@@ -19,6 +19,7 @@ package com.android.providers.media.util;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -32,6 +33,8 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.R;
+
+import com.google.common.truth.Truth;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -188,6 +191,35 @@ public class XmpInterfaceTest {
                 assertEquals(expectedElementOffsets[i++], stream.getOffset(parser));
             }
         }
+    }
+
+    /**
+     * Exercise some random methods for code coverage purposes.
+     */
+    @Test
+    public void testStream_Misc() throws Exception {
+        final InputStream xmlStream = new ByteArrayInputStream(
+                "abcdefghijklmnoprstuvwxyz".getBytes(StandardCharsets.UTF_8));
+        final XmpInterface.ByteCountingInputStream stream =
+                new XmpInterface.ByteCountingInputStream(xmlStream);
+
+        {
+            final byte[] buf = new byte[4];
+            stream.read(buf);
+            Truth.assertThat(buf).isEqualTo("abcd".getBytes(StandardCharsets.UTF_8));
+        }
+        {
+            final byte[] buf = new byte[4];
+            stream.read(buf, 0, buf.length);
+            Truth.assertThat(buf).isEqualTo("efgh".getBytes(StandardCharsets.UTF_8));
+        }
+        {
+            assertEquals(4, stream.skip(4));
+            assertEquals((int) 'm', stream.read());
+        }
+
+        assertNotNull(stream.toString());
+        stream.close();
     }
 
     private static File stageFile(int resId) throws Exception {

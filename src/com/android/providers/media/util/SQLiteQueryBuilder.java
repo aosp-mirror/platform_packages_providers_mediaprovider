@@ -425,8 +425,10 @@ public class SQLiteQueryBuilder {
     public Cursor query(DatabaseHelper helper, String[] projectionIn,
             String selection, String[] selectionArgs, String groupBy,
             String having, String sortOrder, String limit, CancellationSignal cancellationSignal) {
-        return query(helper.getReadableDatabase(), projectionIn, selection, selectionArgs, groupBy,
-                having, sortOrder, limit, cancellationSignal);
+        return helper.runWithoutTransaction((db) -> {
+            return query(db, projectionIn, selection, selectionArgs, groupBy,
+                    having, sortOrder, limit, cancellationSignal);
+        });
     }
 
     /**
@@ -524,8 +526,8 @@ public class SQLiteQueryBuilder {
     public long insert(@NonNull DatabaseHelper helper, @NonNull ContentValues values) {
         // We force wrap in a transaction to ensure that all mutations increment
         // the generation counter
-        return (int) helper.runWithTransaction(() -> {
-            return insert(helper.getWritableDatabase(), values);
+        return helper.runWithTransaction((db) -> {
+            return insert(db, values);
         });
     }
 
@@ -568,8 +570,8 @@ public class SQLiteQueryBuilder {
             @Nullable String selection, @Nullable String[] selectionArgs) {
         // We force wrap in a transaction to ensure that all mutations increment
         // the generation counter
-        return (int) helper.runWithTransaction(() -> {
-            return update(helper.getWritableDatabase(), values, selection, selectionArgs);
+        return helper.runWithTransaction((db) -> {
+            return update(db, values, selection, selectionArgs);
         });
     }
 
@@ -654,8 +656,8 @@ public class SQLiteQueryBuilder {
             @Nullable String[] selectionArgs) {
         // We force wrap in a transaction to ensure that all mutations increment
         // the generation counter
-        return (int) helper.runWithTransaction(() -> {
-            return delete(helper.getWritableDatabase(), selection, selectionArgs);
+        return helper.runWithTransaction((db) -> {
+            return delete(db, selection, selectionArgs);
         });
     }
 

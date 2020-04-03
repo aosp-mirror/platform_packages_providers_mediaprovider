@@ -2253,6 +2253,15 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
+            // Consider allowing external media directory of calling package
+            if (!validPath) {
+                final String pathOwnerPackage = extractPathOwnerPackageName(res.getAbsolutePath());
+                if (pathOwnerPackage != null) {
+                    validPath = isExternalMediaDirectory(res.getAbsolutePath()) &&
+                            isCallingIdentitySharedPackageName(pathOwnerPackage);
+                }
+            }
+
             // Nothing left to check; caller can't use this path
             if (!validPath) {
                 throw new IllegalArgumentException(
@@ -5886,6 +5895,14 @@ public class MediaProvider extends ContentProvider {
             // Shouldn't return null
             return c.getCount() > 0;
         }
+    }
+
+    private boolean isExternalMediaDirectory(@NonNull String path) {
+        final String relativePath = extractRelativePath(path);
+        if (relativePath != null) {
+            return relativePath.startsWith("Android/media");
+        }
+        return false;
     }
 
     /**

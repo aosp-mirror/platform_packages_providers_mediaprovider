@@ -23,30 +23,28 @@ import androidx.test.runner.AndroidJUnit4;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.nio.ByteOrder;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 @RunWith(AndroidJUnit4.class)
-public class MemoryTest {
-    private final byte[] buf = new byte[4];
-
+public class CachedSupplierTest {
     @Test
-    public void testConstructor() {
-        new MemoryTest();
-    }
+    public void testSimple() {
+        final AtomicInteger counter = new AtomicInteger();
+        final Supplier<Integer> supplier = new Supplier<Integer>() {
+            @Override
+            public Integer get() {
+                return counter.incrementAndGet();
+            }
+        };
 
-    @Test
-    public void testBigEndian() {
-        final int expected = 42;
-        Memory.pokeInt(buf, 0, expected, ByteOrder.BIG_ENDIAN);
-        final int actual = Memory.peekInt(buf, 0, ByteOrder.BIG_ENDIAN);
-        assertEquals(expected, actual);
-    }
+        // Multiple calls should only return first value
+        final CachedSupplier<Integer> cachedSupplier = new CachedSupplier<Integer>(supplier);
+        assertEquals(1, (int) cachedSupplier.get());
+        assertEquals(1, (int) cachedSupplier.get());
+        assertEquals(1, (int) cachedSupplier.get());
 
-    @Test
-    public void testLittleEndian() {
-        final int expected = 42;
-        Memory.pokeInt(buf, 0, expected, ByteOrder.LITTLE_ENDIAN);
-        final int actual = Memory.peekInt(buf, 0, ByteOrder.LITTLE_ENDIAN);
-        assertEquals(expected, actual);
+        // And confirm we only constructed it once
+        assertEquals(1, counter.get());
     }
 }

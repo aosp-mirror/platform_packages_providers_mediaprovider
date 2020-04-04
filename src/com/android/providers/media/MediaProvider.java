@@ -167,7 +167,6 @@ import com.android.providers.media.fuse.FuseDaemon;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
-import com.android.providers.media.scan.NullMediaScanner;
 import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
@@ -766,7 +765,6 @@ public class MediaProvider extends ContentProvider {
     public void attachInfo(Context context, ProviderInfo info) {
         Log.v(TAG, "Attached " + info.authority + " from " + info.applicationInfo.packageName);
 
-        mLegacyProvider = Objects.equals(info.authority, MediaStore.AUTHORITY_LEGACY);
         mUriMatcher = new LocalUriMatcher(info.authority);
 
         super.attachInfo(context, info);
@@ -788,19 +786,13 @@ public class MediaProvider extends ContentProvider {
         final int thumbSize = Math.min(metrics.widthPixels, metrics.heightPixels) / 2;
         mThumbSize = new Size(thumbSize, thumbSize);
 
-        if (mLegacyProvider) {
-            // When running in legacy mode, we're simply keeping the old
-            // database intact, and so we should perform no scanning operations
-            mMediaScanner = new NullMediaScanner(context);
-        } else {
-            mMediaScanner = new ModernMediaScanner(context);
-        }
+        mMediaScanner = new ModernMediaScanner(context);
 
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME,
-                true, false, mLegacyProvider, Column.class,
+                true, false, false, Column.class,
                 Metrics::logSchemaChange, mFilesListener, mMigrationListener, mIdGenerator);
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME,
-                false, false, mLegacyProvider, Column.class,
+                false, false, false, Column.class,
                 Metrics::logSchemaChange, mFilesListener, mMigrationListener, mIdGenerator);
 
         final IntentFilter packageFilter = new IntentFilter();
@@ -3011,10 +3003,8 @@ public class MediaProvider extends ContentProvider {
             case FILES: {
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
                 final boolean isDownload = maybeMarkAsDownload(initialValues);
-                final boolean isDocumentType = MimeUtils.isDocumentMimeType(
-                        initialValues.getAsString((MediaColumns.MIME_TYPE)));
-                final int mediaType = isDocumentType ? FileColumns.MEDIA_TYPE_DOCUMENT
-                        : FileColumns.MEDIA_TYPE_NONE;
+                final String mimeType = initialValues.getAsString(MediaColumns.MIME_TYPE);
+                final int mediaType = MimeUtils.resolveMediaType(mimeType);
                 rowId = insertFile(qb, helper, match, uri, extras, initialValues,
                         mediaType, true);
 
@@ -3169,10 +3159,15 @@ public class MediaProvider extends ContentProvider {
             qb.setDistinct(true);
         }
         qb.setStrict(true);
-        // TODO: re-enable as part of fixing b/146518586
-        if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.R) {
-            qb.setStrictColumns(true);
-            qb.setStrictGrammar(true);
+        if (isCallingPackageSystem()) {
+            // When caller is system, such as the media scanner, we're willing
+            // to let them access any columns they want
+        } else {
+            // TODO: re-enable regardless of target SDK in b/146518586
+            if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.R) {
+                qb.setStrictColumns(true);
+                qb.setStrictGrammar(true);
+            }
         }
 
         final String callingPackage = getCallingPackageOrSelf();
@@ -3675,12 +3670,6 @@ public class MediaProvider extends ContentProvider {
         // If caller is an older app, we're willing to let through a
         // greylist of technically invalid columns
         if (getCallingPackageTargetSdkVersion() < Build.VERSION_CODES.Q) {
-            qb.setProjectionGreylist(sGreylist);
-        }
-
-        // If we're the legacy provider, and the caller is the system, then
-        // we're willing to let them access any columns they want
-        if (mLegacyProvider && isCallingPackageSystem()) {
             qb.setProjectionGreylist(sGreylist);
         }
 
@@ -6683,8 +6672,6 @@ public class MediaProvider extends ContentProvider {
     static final int DOWNLOADS = 800;
     static final int DOWNLOADS_ID = 801;
 
-    /** Flag if we're running as {@link MediaStore#AUTHORITY_LEGACY} */
-    private boolean mLegacyProvider;
     private LocalUriMatcher mUriMatcher;
 
     private static final String[] PATH_PROJECTION = new String[] {

@@ -94,8 +94,10 @@ public class LegacyMediaProvider extends ContentProvider {
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
             String sortOrder) {
         final DatabaseHelper helper = getDatabaseForUri(uri);
-        return helper.getReadableDatabase().query("files", projection, selection, selectionArgs,
-                null, null, sortOrder);
+        return helper.runWithoutTransaction((db) -> {
+            return db.query("files", projection, selection, selectionArgs,
+                    null, null, sortOrder);
+        });
     }
 
     @Override
@@ -114,7 +116,9 @@ public class LegacyMediaProvider extends ContentProvider {
         }
 
         final DatabaseHelper helper = getDatabaseForUri(uri);
-        final long id = helper.getWritableDatabase().insert("files", null, values);
+        final long id = helper.runWithTransaction((db) -> {
+            return db.insert("files", null, values);
+        });
         return ContentUris.withAppendedId(uri, id);
     }
 

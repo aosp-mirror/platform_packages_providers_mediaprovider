@@ -125,7 +125,6 @@ import android.os.SystemProperties;
 import android.os.Trace;
 import android.os.UserHandle;
 import android.os.storage.StorageManager;
-import android.os.storage.StorageManager.StorageVolumeCallback;
 import android.os.storage.StorageVolume;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
@@ -686,7 +685,7 @@ public class MediaProvider extends ContentProvider {
      * devices. We only do this once per volume so we don't annoy the user if
      * deleted manually.
      */
-    private void ensureDefaultFolders(String volumeName, DatabaseHelper helper) {
+    private void ensureDefaultFolders(@NonNull String volumeName, @NonNull SQLiteDatabase db) {
         try {
             final File path = getVolumePath(volumeName);
             final StorageVolume vol = mStorageManager.getStorageVolume(path);
@@ -709,7 +708,7 @@ public class MediaProvider extends ContentProvider {
                     final File folder = new File(vol.getDirectory(), folderName);
                     if (!folder.exists()) {
                         folder.mkdirs();
-                        insertDirectory(helper, folder.getAbsolutePath());
+                        insertDirectory(db, folder.getAbsolutePath());
                     }
                 }
 
@@ -728,9 +727,8 @@ public class MediaProvider extends ContentProvider {
      * {@link DatabaseHelper#getOrCreateUuid} doesn't match the UUID found on
      * disk, then all thumbnails will be considered stable and will be deleted.
      */
-    private void ensureThumbnailsValid(String volumeName, DatabaseHelper helper) {
-        final String uuidFromDatabase = DatabaseHelper
-                .getOrCreateUuid(helper.getReadableDatabase());
+    private void ensureThumbnailsValid(@NonNull String volumeName, @NonNull SQLiteDatabase db) {
+        final String uuidFromDatabase = DatabaseHelper.getOrCreateUuid(db);
         try {
             for (File dir : getThumbnailDirectories(volumeName)) {
                 if (!dir.exists()) {
@@ -891,9 +889,6 @@ public class MediaProvider extends ContentProvider {
         // Trim any stale log files before we emit new events below
         Logging.trimPersistent();
 
-        final DatabaseHelper helper = mExternalDatabase;
-        final SQLiteDatabase db = helper.getReadableDatabase();
-
         // Scan all volumes to resolve any staleness
         for (String volumeName : getExternalVolumeNames()) {
             // Possibly bail before digging into each volume
@@ -906,81 +901,100 @@ public class MediaProvider extends ContentProvider {
             }
 
             // Ensure that our thumbnails are valid
-            ensureThumbnailsValid(volumeName, helper);
+            mExternalDatabase.runWithTransaction((db) -> {
+                ensureThumbnailsValid(volumeName, db);
+                return null;
+            });
         }
 
         // Delete any stale thumbnails
-        final int staleThumbnails = pruneThumbnails(signal);
+        final int staleThumbnails = mExternalDatabase.runWithTransaction((db) -> {
+            return pruneThumbnails(db, signal);
+        });
         Log.d(TAG, "Pruned " + staleThumbnails + " unknown thumbnails");
 
         // Finished orphaning any content whose package no longer exists
-        final ArraySet<String> unknownPackages = new ArraySet<>();
-        try (Cursor c = db.query(true, "files", new String[] { "owner_package_name" },
-                null, null, null, null, null, null, signal)) {
-            while (c.moveToNext()) {
-                final String packageName = c.getString(0);
-                if (TextUtils.isEmpty(packageName)) continue;
+        final int stalePackages = mExternalDatabase.runWithTransaction((db) -> {
+            final ArraySet<String> unknownPackages = new ArraySet<>();
+            try (Cursor c = db.query(true, "files", new String[] { "owner_package_name" },
+                    null, null, null, null, null, null, signal)) {
+                while (c.moveToNext()) {
+                    final String packageName = c.getString(0);
+                    if (TextUtils.isEmpty(packageName)) continue;
 
-                if (!isPackageKnown(packageName)) {
-                    unknownPackages.add(packageName);
+                    if (!isPackageKnown(packageName)) {
+                        unknownPackages.add(packageName);
+                    }
                 }
             }
-        }
-
-        for (String packageName : unknownPackages) {
-            onPackageOrphaned(packageName);
-        }
-        final int stalePackages = unknownPackages.size();
+            for (String packageName : unknownPackages) {
+                onPackageOrphaned(db, packageName);
+            }
+            return unknownPackages.size();
+        });
         Log.d(TAG, "Pruned " + stalePackages + " unknown packages");
 
         // Delete any expired content; we're paranoid about wildly changing
         // clocks, so only delete items within the last week
         final long from = ((System.currentTimeMillis() - DateUtils.WEEK_IN_MILLIS) / 1000);
         final long to = (System.currentTimeMillis() / 1000);
-        final int expiredMedia;
-        try (Cursor c = db.query(true, "files", new String[] { "volume_name", "_id" },
-                FileColumns.DATE_EXPIRES + " BETWEEN " + from + " AND " + to, null,
-                null, null, null, null, signal)) {
-            while (c.moveToNext()) {
-                final String volumeName = c.getString(0);
-                final long id = c.getLong(1);
-                delete(Files.getContentUri(volumeName, id), null, null);
+        final int expiredMedia = mExternalDatabase.runWithTransaction((db) -> {
+            try (Cursor c = db.query(true, "files", new String[] { "volume_name", "_id" },
+                    FileColumns.DATE_EXPIRES + " BETWEEN " + from + " AND " + to, null,
+                    null, null, null, null, signal)) {
+                while (c.moveToNext()) {
+                    final String volumeName = c.getString(0);
+                    final long id = c.getLong(1);
+                    delete(Files.getContentUri(volumeName, id), null, null);
+                }
+                return c.getCount();
             }
-            expiredMedia = c.getCount();
-            Log.d(TAG, "Deleted " + expiredMedia + " expired items on " + helper.mName);
-        }
+        });
+        Log.d(TAG, "Deleted " + expiredMedia + " expired items");
 
         // Forget any stale volumes
-        final Set<String> recentVolumeNames = MediaStore.getRecentExternalVolumeNames(getContext());
-        final Set<String> knownVolumeNames = new ArraySet<>();
-        try (Cursor c = db.query(true, "files", new String[] { MediaColumns.VOLUME_NAME },
-                null, null, null, null, null, null, signal)) {
-            while (c.moveToNext()) {
-                knownVolumeNames.add(c.getString(0));
+        mExternalDatabase.runWithTransaction((db) -> {
+            final Set<String> recentVolumeNames = MediaStore
+                    .getRecentExternalVolumeNames(getContext());
+            final Set<String> knownVolumeNames = new ArraySet<>();
+            try (Cursor c = db.query(true, "files", new String[] { MediaColumns.VOLUME_NAME },
+                    null, null, null, null, null, null, signal)) {
+                while (c.moveToNext()) {
+                    knownVolumeNames.add(c.getString(0));
+                }
             }
-        }
-        final Set<String> staleVolumeNames = new ArraySet<>();
-        staleVolumeNames.addAll(knownVolumeNames);
-        staleVolumeNames.removeAll(recentVolumeNames);
-        for (String staleVolumeName : staleVolumeNames) {
-            final int num = db.delete("files", FileColumns.VOLUME_NAME + "=?",
-                    new String[] { staleVolumeName });
-            Log.d(TAG, "Forgot " + num + " stale items from " + staleVolumeName);
-        }
+            final Set<String> staleVolumeNames = new ArraySet<>();
+            staleVolumeNames.addAll(knownVolumeNames);
+            staleVolumeNames.removeAll(recentVolumeNames);
+            for (String staleVolumeName : staleVolumeNames) {
+                final int num = db.delete("files", FileColumns.VOLUME_NAME + "=?",
+                        new String[] { staleVolumeName });
+                Log.d(TAG, "Forgot " + num + " stale items from " + staleVolumeName);
+            }
+            return null;
+        });
 
         synchronized (mDirectoryCache) {
             mDirectoryCache.clear();
         }
 
+        final long itemCount = mExternalDatabase.runWithTransaction((db) -> {
+            return DatabaseHelper.getItemCount(db);
+        });
+
         final long durationMillis = (SystemClock.elapsedRealtime() - startTime);
-        Metrics.logIdleMaintenance(MediaStore.VOLUME_EXTERNAL, helper.getItemCount(),
+        Metrics.logIdleMaintenance(MediaStore.VOLUME_EXTERNAL, itemCount,
                 durationMillis, staleThumbnails, expiredMedia);
     }
 
     public void onPackageOrphaned(String packageName) {
-        final DatabaseHelper helper = mExternalDatabase;
-        final SQLiteDatabase db = helper.getWritableDatabase();
+        mExternalDatabase.runWithTransaction((db) -> {
+            onPackageOrphaned(db, packageName);
+            return null;
+        });
+    }
 
+    public void onPackageOrphaned(@NonNull SQLiteDatabase db, @NonNull String packageName) {
         final ContentValues values = new ContentValues();
         values.putNull(FileColumns.OWNER_PACKAGE_NAME);
 
@@ -988,7 +1002,7 @@ public class MediaProvider extends ContentProvider {
                 "owner_package_name=?", new String[] { packageName });
         if (count > 0) {
             Log.d(TAG, "Orphaned " + count + " items belonging to "
-                    + packageName + " on " + helper.mName);
+                    + packageName + " on " + db.getPath());
         }
     }
 
@@ -2328,12 +2342,12 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private long insertDirectory(DatabaseHelper helper, String path) {
+    private long insertDirectory(@NonNull SQLiteDatabase db, @NonNull String path) {
         if (LOGV) Log.v(TAG, "inserting directory " + path);
         ContentValues values = new ContentValues();
         values.put(FileColumns.FORMAT, MtpConstants.FORMAT_ASSOCIATION);
         values.put(FileColumns.DATA, path);
-        values.put(FileColumns.PARENT, getParent(helper, path));
+        values.put(FileColumns.PARENT, getParent(db, path));
         values.put(FileColumns.OWNER_PACKAGE_NAME, extractPathOwnerPackageName(path));
         values.put(FileColumns.VOLUME_NAME, extractVolumeName(path));
         values.put(FileColumns.RELATIVE_PATH, extractRelativePath(path));
@@ -2343,12 +2357,10 @@ public class MediaProvider extends ContentProvider {
         if (file.exists()) {
             values.put(FileColumns.DATE_MODIFIED, file.lastModified() / 1000);
         }
-        final SQLiteDatabase db = helper.getWritableDatabase();
-        long rowId = db.insert("files", FileColumns.DATE_MODIFIED, values);
-        return rowId;
+        return db.insert("files", FileColumns.DATE_MODIFIED, values);
     }
 
-    private long getParent(DatabaseHelper helper, String path) {
+    private long getParent(@NonNull SQLiteDatabase db, @NonNull String path) {
         final String parentPath = new File(path).getParent();
         if (Objects.equals("/", parentPath)) {
             return -1;
@@ -2361,13 +2373,12 @@ public class MediaProvider extends ContentProvider {
             }
 
             final long id;
-            final SQLiteDatabase db = helper.getReadableDatabase();
             try (Cursor c = db.query("files", new String[] { FileColumns._ID },
                     FileColumns.DATA + "=?", new String[] { parentPath }, null, null, null)) {
                 if (c.moveToFirst()) {
                     id = c.getLong(0);
                 } else {
-                    id = insertDirectory(helper, parentPath);
+                    id = insertDirectory(db, parentPath);
                 }
             }
 
@@ -2487,13 +2498,13 @@ public class MediaProvider extends ContentProvider {
     }
 
     public void onLocaleChanged() {
-        localizeTitles();
+        mInternalDatabase.runWithTransaction((db) -> {
+            localizeTitles(db);
+            return null;
+        });
     }
 
-    private void localizeTitles() {
-        final DatabaseHelper helper = mInternalDatabase;
-        final SQLiteDatabase db = helper.getWritableDatabase();
-
+    private void localizeTitles(@NonNull SQLiteDatabase db) {
         try (Cursor c = db.query("files", new String[]{"_id", "title_resource_uri"},
             "title_resource_uri IS NOT NULL", null, null, null, null)) {
             while (c.moveToNext()) {
@@ -2615,7 +2626,9 @@ public class MediaProvider extends ContentProvider {
             Long parent = values.getAsLong(FileColumns.PARENT);
             if (parent == null) {
                 if (path != null) {
-                    long parentId = getParent(helper, path);
+                    final long parentId = helper.runWithTransaction((db) -> {
+                        return getParent(db, path);
+                    });
                     values.put(FileColumns.PARENT, parentId);
                 }
             }
@@ -2638,7 +2651,7 @@ public class MediaProvider extends ContentProvider {
     private long insertAllowingUpsert(@NonNull SQLiteQueryBuilder qb,
             @NonNull DatabaseHelper helper, @NonNull ContentValues values, String path)
             throws SQLiteConstraintException {
-        return helper.runWithTransaction(() -> {
+        return helper.runWithTransaction((db) -> {
             try {
                 return qb.insert(helper, values);
             } catch (SQLiteConstraintException e) {
@@ -3815,16 +3828,19 @@ public class MediaProvider extends ContentProvider {
                             // Update any playlists that reference this item
                             if ((mediaType == FileColumns.MEDIA_TYPE_AUDIO)
                                     && helper.isExternal()) {
-                                final SQLiteDatabase db = helper.getReadableDatabase();
-                                try (Cursor cc = db.query("audio_playlists_map",
-                                        new String[] { "playlist_id" }, "audio_id=" + id,
-                                        null, "playlist_id", null, null)) {
-                                    while (cc.moveToNext()) {
-                                        final Uri playlistUri = ContentUris.withAppendedId(
-                                                Playlists.getContentUri(volumeName), cc.getLong(0));
-                                        resolvePlaylistMembers(playlistUri);
+                                helper.runWithTransaction((db) -> {
+                                    try (Cursor cc = db.query("audio_playlists_map",
+                                            new String[] { "playlist_id" }, "audio_id=" + id,
+                                            null, "playlist_id", null, null)) {
+                                        while (cc.moveToNext()) {
+                                            final Uri playlistUri = ContentUris.withAppendedId(
+                                                    Playlists.getContentUri(volumeName),
+                                                    cc.getLong(0));
+                                            resolvePlaylistMembers(playlistUri);
+                                        }
                                     }
-                                }
+                                    return null;
+                                });
                             }
                         }
                     } finally {
@@ -3894,7 +3910,7 @@ public class MediaProvider extends ContentProvider {
         synchronized (mDirectoryCache) {
             mDirectoryCache.clear();
 
-            return (int) helper.runWithTransaction(() -> {
+            return (int) helper.runWithTransaction((db) -> {
                 int n = 0;
                 int total = 0;
                 do {
@@ -3979,15 +3995,16 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.GET_VERSION_CALL: {
                 final String volumeName = extras.getString(Intent.EXTRA_TEXT);
 
-                final SQLiteDatabase db;
+                final DatabaseHelper helper;
                 try {
-                    db = getDatabaseForUri(MediaStore.Files.getContentUri(volumeName))
-                            .getReadableDatabase();
+                    helper = getDatabaseForUri(MediaStore.Files.getContentUri(volumeName));
                 } catch (VolumeNotFoundException e) {
                     throw e.rethrowAsIllegalArgumentException();
                 }
 
-                final String version = db.getVersion() + ":" + DatabaseHelper.getOrCreateUuid(db);
+                final String version = helper.runWithoutTransaction((db) -> {
+                    return db.getVersion() + ":" + DatabaseHelper.getOrCreateUuid(db);
+                });
 
                 final Bundle res = new Bundle();
                 res.putString(Intent.EXTRA_TEXT, version);
@@ -3996,13 +4013,16 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.GET_GENERATION_CALL: {
                 final String volumeName = extras.getString(Intent.EXTRA_TEXT);
 
-                final long generation;
+                final DatabaseHelper helper;
                 try {
-                    generation = getDatabaseForUri(MediaStore.Files.getContentUri(volumeName))
-                            .getGeneration();
+                    helper = getDatabaseForUri(MediaStore.Files.getContentUri(volumeName));
                 } catch (VolumeNotFoundException e) {
                     throw e.rethrowAsIllegalArgumentException();
                 }
+
+                final long generation = helper.runWithoutTransaction((db) -> {
+                    return DatabaseHelper.getGeneration(db);
+                });
 
                 final Bundle res = new Bundle();
                 res.putLong(Intent.EXTRA_INDEX, generation);
@@ -4160,9 +4180,11 @@ public class MediaProvider extends ContentProvider {
                         mInternalDatabase,
                         mExternalDatabase
                 }) {
-                    final SQLiteDatabase db = helper.getReadableDatabase();
-                    db.execPerConnectionSQL("SELECT icu_load_collation(?, ?);",
-                            new String[] { locale, collationName });
+                    helper.runWithoutTransaction((db) -> {
+                        db.execPerConnectionSQL("SELECT icu_load_collation(?, ?);",
+                                new String[] { locale, collationName });
+                        return null;
+                    });
                 }
                 mCustomCollators.add(collationName);
             }
@@ -4170,11 +4192,8 @@ public class MediaProvider extends ContentProvider {
         return collationName;
     }
 
-    private int pruneThumbnails(@NonNull CancellationSignal signal) {
+    private int pruneThumbnails(@NonNull SQLiteDatabase db, @NonNull CancellationSignal signal) {
         int prunedCount = 0;
-
-        final DatabaseHelper helper = mExternalDatabase;
-        final SQLiteDatabase db = helper.getReadableDatabase();
 
         // Determine all known media items
         final LongArray knownIds = new LongArray();
@@ -4362,27 +4381,28 @@ public class MediaProvider extends ContentProvider {
         }
 
         final DatabaseHelper helper;
-        final SQLiteDatabase db;
         try {
             helper = getDatabaseForUri(uri);
-            db = helper.getWritableDatabase();
         } catch (VolumeNotFoundException e) {
             Log.w(TAG, e);
             return;
         }
 
-        final String idString = Long.toString(id);
-        try (Cursor c = db.rawQuery("select _data from thumbnails where image_id=?"
-                + " union all select _data from videothumbnails where video_id=?",
-                new String[] { idString, idString })) {
-            while (c.moveToNext()) {
-                String path = c.getString(0);
-                deleteIfAllowed(uri, Bundle.EMPTY, path);
+        helper.runWithTransaction((db) -> {
+            final String idString = Long.toString(id);
+            try (Cursor c = db.rawQuery("select _data from thumbnails where image_id=?"
+                    + " union all select _data from videothumbnails where video_id=?",
+                    new String[] { idString, idString })) {
+                while (c.moveToNext()) {
+                    String path = c.getString(0);
+                    deleteIfAllowed(uri, Bundle.EMPTY, path);
+                }
             }
-        }
 
-        db.execSQL("delete from thumbnails where image_id=?", new String[] { idString });
-        db.execSQL("delete from videothumbnails where video_id=?", new String[] { idString });
+            db.execSQL("delete from thumbnails where image_id=?", new String[] { idString });
+            db.execSQL("delete from videothumbnails where video_id=?", new String[] { idString });
+            return null;
+        });
     }
 
     /**
@@ -4785,21 +4805,24 @@ public class MediaProvider extends ContentProvider {
     private void resolvePlaylistMembers(@NonNull Uri playlistUri) {
         Trace.beginSection("resolvePlaylistMembers");
         try {
-            resolvePlaylistMembersInternal(playlistUri);
+            final DatabaseHelper helper;
+            try {
+                helper = getDatabaseForUri(playlistUri);
+            } catch (VolumeNotFoundException e) {
+                throw e.rethrowAsIllegalArgumentException();
+            }
+
+            helper.runWithTransaction((db) -> {
+                resolvePlaylistMembersInternal(playlistUri, db);
+                return null;
+            });
         } finally {
             Trace.endSection();
         }
     }
 
-    private void resolvePlaylistMembersInternal(@NonNull Uri playlistUri) {
-        final SQLiteDatabase db;
-        try {
-            db = getDatabaseForUri(playlistUri).getWritableDatabase();
-        } catch (VolumeNotFoundException e) {
-            throw e.rethrowAsIllegalArgumentException();
-        }
-
-        db.beginTransaction();
+    private void resolvePlaylistMembersInternal(@NonNull Uri playlistUri,
+            @NonNull SQLiteDatabase db) {
         try {
             // Refresh playlist members based on what we parse from disk
             final long playlistId = ContentUris.parseId(playlistUri);
@@ -4825,11 +4848,8 @@ public class MediaProvider extends ContentProvider {
                     }
                 }
             }
-            db.setTransactionSuccessful();
         } catch (IOException e) {
             Log.w(TAG, "Failed to refresh playlist", e);
-        } finally {
-            db.endTransaction();
         }
     }
 
@@ -6518,8 +6538,11 @@ public class MediaProvider extends ContentProvider {
             ForegroundThread.getExecutor().execute(() -> {
                 final DatabaseHelper helper = MediaStore.VOLUME_INTERNAL.equals(volume)
                         ? mInternalDatabase : mExternalDatabase;
-                ensureDefaultFolders(volume, helper);
-                ensureThumbnailsValid(volume, helper);
+                helper.runWithTransaction((db) -> {
+                    ensureDefaultFolders(volume, db);
+                    ensureThumbnailsValid(volume, db);
+                    return null;
+                });
             });
         }
         return uri;

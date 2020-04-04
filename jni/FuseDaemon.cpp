@@ -816,7 +816,7 @@ static handle* create_handle_for_node(struct fuse* fuse, const string& path, int
     // FUSE after that write may be served from cache
     bool direct_io = ri->isRedactionNeeded() || is_file_locked(fd, path);
 
-    handle* h = new handle(path, fd, ri, !direct_io);
+    handle* h = new handle(fd, ri, !direct_io);
     node->AddHandle(h);
     return h;
 }

@@ -36,12 +36,10 @@ namespace mediaprovider {
 namespace fuse {
 
 struct handle {
-    explicit handle(const std::string& path, int fd, const RedactionInfo* ri, bool cached)
-        : path(path), fd(fd), ri(ri), cached(cached) {
+    explicit handle(int fd, const RedactionInfo* ri, bool cached) : fd(fd), ri(ri), cached(cached) {
         CHECK(ri != nullptr);
     }
 
-    const std::string path;
     const int fd;
     const std::unique_ptr<const RedactionInfo> ri;
     const bool cached;

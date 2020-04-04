@@ -27,6 +27,10 @@ import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4.class)
 public class MetricsTest {
+    @Test
+    public void testConstructor() {
+        new Metrics();
+    }
 
     /**
      * The best we can do for coverage is make sure we don't explode?

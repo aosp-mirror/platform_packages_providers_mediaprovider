@@ -133,6 +133,8 @@ public class FilePathAccessTest {
     static final File EXTERNAL_MEDIA_DIR = getContext().getExternalMediaDirs()[0];
 
     static final String AUDIO_FILE_NAME = "FilePathAccessTest_file.mp3";
+    static final String PLAYLIST_FILE_NAME = "FilePathAccessTest_file.m3u";
+    static final String SUBTITLE_FILE_NAME = "FilePathAccessTest_file.srt";
     static final String VIDEO_FILE_NAME = "FilePathAccessTest_file.mp4";
     static final String IMAGE_FILE_NAME = "FilePathAccessTest_file.jpg";
     static final String NONMEDIA_FILE_NAME = "FilePathAccessTest_file.pdf";
@@ -208,6 +210,12 @@ public class FilePathAccessTest {
         assertThrows(IOException.class, "Operation not permitted", () -> {
             new File(PICTURES_DIR, AUDIO_FILE_NAME).createNewFile();
         });
+        assertThrows(IOException.class, "Operation not permitted", () -> {
+            new File(PICTURES_DIR, PLAYLIST_FILE_NAME).createNewFile();
+        });
+        assertThrows(IOException.class, "Operation not permitted", () -> {
+            new File(DCIM_DIR, SUBTITLE_FILE_NAME).createNewFile();
+        });
 
         assertCanCreateFile(new File(ALARMS_DIR, AUDIO_FILE_NAME));
         assertCanCreateFile(new File(AUDIOBOOKS_DIR, AUDIO_FILE_NAME));
@@ -222,7 +230,9 @@ public class FilePathAccessTest {
         assertCanCreateFile(new File(DOWNLOAD_DIR, NONMEDIA_FILE_NAME));
         assertCanCreateFile(new File(DOWNLOAD_DIR, VIDEO_FILE_NAME));
         assertCanCreateFile(new File(MOVIES_DIR, VIDEO_FILE_NAME));
+        assertCanCreateFile(new File(MOVIES_DIR, SUBTITLE_FILE_NAME));
         assertCanCreateFile(new File(MUSIC_DIR, AUDIO_FILE_NAME));
+        assertCanCreateFile(new File(MUSIC_DIR, PLAYLIST_FILE_NAME));
         assertCanCreateFile(new File(NOTIFICATIONS_DIR, AUDIO_FILE_NAME));
         assertCanCreateFile(new File(PICTURES_DIR, IMAGE_FILE_NAME));
         assertCanCreateFile(new File(PICTURES_DIR, VIDEO_FILE_NAME));

@@ -67,9 +67,9 @@ public class MediaProviderForFuseTest {
                 .acquireContentProviderClient(MediaStore.AUTHORITY).getLocalContentProvider();
 
         // Use a random app without any permissions
-        sTestUid = context.getPackageManager().getPackageUid("com.android.egg",
+        sTestUid = context.getPackageManager().getPackageUid(MediaProviderTest.PERMISSIONLESS_APP,
                 PackageManager.MATCH_ALL);
-        sTestDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        sTestDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
     }
 
     @AfterClass
@@ -80,7 +80,7 @@ public class MediaProviderForFuseTest {
 
     @Test
     public void testTypical() throws Exception {
-        final File file = new File(sTestDir, "test" + System.nanoTime());
+        final File file = new File(sTestDir, "test" + System.nanoTime() + ".jpg");
 
         // We can create our file
         Truth.assertThat(sMediaProvider.insertFileIfNecessaryForFuse(
@@ -100,7 +100,7 @@ public class MediaProviderForFuseTest {
                 file.getPath(), sTestUid)).isEqualTo(new long[0]);
 
         // We can rename our file
-        final File renamed = new File(sTestDir, "renamed" + System.nanoTime());
+        final File renamed = new File(sTestDir, "renamed" + System.nanoTime() + ".jpg");
         Truth.assertThat(sMediaProvider.renameForFuse(
                 file.getPath(), renamed.getPath(), sTestUid)).isEqualTo(0);
         Truth.assertThat(Arrays.asList(sMediaProvider.getFilesInDirectoryForFuse(
@@ -117,7 +117,8 @@ public class MediaProviderForFuseTest {
 
     @Test
     public void test_scanFileForFuse() throws Exception {
-        final File file = File.createTempFile("test", ".jpg", sTestDir);
+        final File file = new File(sTestDir, "test" + System.nanoTime() + ".jpg");
+        Truth.assertThat(file.createNewFile()).isTrue();
         sMediaProvider.scanFileForFuse(file.getPath());
     }
 

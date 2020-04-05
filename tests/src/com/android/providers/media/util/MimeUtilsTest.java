@@ -34,6 +34,11 @@ import java.io.File;
 @RunWith(AndroidJUnit4.class)
 public class MimeUtilsTest {
     @Test
+    public void testConstructor() {
+        new MimeUtils();
+    }
+
+    @Test
     public void testResolveMimeType() throws Exception {
         assertEquals("image/jpeg",
                 MimeUtils.resolveMimeType(new File("foo.jpg")));

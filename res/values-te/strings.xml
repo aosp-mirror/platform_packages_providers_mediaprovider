@@ -74,20 +74,20 @@
       <item quantity="one">ఈ ఐటెమ్‌ను ట్రాష్‌కు తరలించడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైల్‌లను ట్రాష్ నుండి వెలుపలకు తీయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
-      <item quantity="one">ఈ ఆడియో ఫైల్‌ను ట్రాష్ నుండి వెలుపలకు తీయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైల్‌లను ట్రాష్ నుండి బయటకు తీయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
+      <item quantity="one">ఈ ఆడియో ఫైల్‌ను ట్రాష్ నుండి బయటకు తీయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
     </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> వీడియోలను ట్రాష్ నుండి వెలుపలకు తీయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
-      <item quantity="one">ఈ వీడియోను ట్రాష్ నుండి వెలుపలకు తీయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> వీడియోలను ట్రాష్ నుండి బయటకు తీయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
+      <item quantity="one">ఈ వీడియోను ట్రాష్ నుండి బయటకు తీయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఫోటోలను ట్రాష్ నుండి వెలుపలకు తీయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
-      <item quantity="one">ఈ ఫోటోను ట్రాష్ నుండి వెలుపలకు తీయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఫోటోలను ట్రాష్ నుండి బయటకు తీయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
+      <item quantity="one">ఈ ఫోటోను ట్రాష్ నుండి బయటకు తీయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
     </plurals>
     <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఐటెమ్‌లను ట్రాష్ నుండి వెలుపలకు తీయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
-      <item quantity="one">ఈ ఐటెమ్‌ను ట్రాష్ నుండి వెలుపలకు తీయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఐటెమ్‌లను ట్రాష్ నుండి బయటకు తీయడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
+      <item quantity="one">ఈ ఐటెమ్‌ను ట్రాష్ నుండి బయటకు తీయడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఆడియో ఫైల్‌లను తొలగించడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
@@ -95,7 +95,7 @@
     </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> వీడియోలను తొలగించడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>
-      <item quantity="one">వీడియోను తొలగించడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
+      <item quantity="one">ఈ వీడియోను తొలగించడానికి <xliff:g id="APP_NAME_0">^1</xliff:g>ను అనుమతించాలా?</item>
     </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ఫోటోలను తొలగించడానికి <xliff:g id="APP_NAME_1">^1</xliff:g>ను అనుమతించాలా?</item>

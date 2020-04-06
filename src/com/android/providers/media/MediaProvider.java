@@ -284,6 +284,8 @@ public class MediaProvider extends ContentProvider {
     private static final Map<String, File> sCachedVolumePaths = new ArrayMap<>();
     @GuardedBy("sCacheLock")
     private static final Map<String, Collection<File>> sCachedVolumeScanPaths = new ArrayMap<>();
+    @GuardedBy("sCacheLock")
+    private static final ArrayMap<File, String> sCachedVolumePathToId = new ArrayMap<>();
 
     public void updateVolumes() {
         synchronized (sCacheLock) {
@@ -292,14 +294,18 @@ public class MediaProvider extends ContentProvider {
 
             sCachedVolumePaths.clear();
             sCachedVolumeScanPaths.clear();
+            sCachedVolumePathToId.clear();
             try {
                 sCachedVolumeScanPaths.put(MediaStore.VOLUME_INTERNAL,
                         FileUtils.getVolumeScanPaths(getContext(), MediaStore.VOLUME_INTERNAL));
                 for (String volumeName : sCachedExternalVolumeNames) {
-                    sCachedVolumePaths.put(volumeName,
-                            FileUtils.getVolumePath(getContext(), volumeName));
+                    final Uri uri = MediaStore.Files.getContentUri(volumeName);
+                    final StorageVolume volume = mStorageManager.getStorageVolume(uri);
+
+                    sCachedVolumePaths.put(volumeName, volume.getDirectory());
                     sCachedVolumeScanPaths.put(volumeName,
                             FileUtils.getVolumeScanPaths(getContext(), volumeName));
+                    sCachedVolumePathToId.put(volume.getDirectory(), volume.getId());
                 }
             } catch (FileNotFoundException e) {
                 throw new IllegalStateException(e.getMessage());
@@ -313,7 +319,7 @@ public class MediaProvider extends ContentProvider {
         });
     }
 
-    public File getVolumePath(String volumeName) throws FileNotFoundException {
+    public @NonNull File getVolumePath(@NonNull String volumeName) throws FileNotFoundException {
         // Ugly hack to keep unit tests passing, where we don't always have a
         // Context to discover volumes with
         if (getContext() == null) {
@@ -327,6 +333,21 @@ public class MediaProvider extends ContentProvider {
                 sCachedVolumePaths.put(volumeName, res);
             }
             return res;
+        }
+    }
+
+    public @NonNull String getVolumeId(@NonNull File file) throws FileNotFoundException {
+        synchronized (sCacheLock) {
+            for (int i = 0; i < sCachedVolumePathToId.size(); i++) {
+                if (FileUtils.contains(sCachedVolumePathToId.keyAt(i), file)) {
+                    return sCachedVolumePathToId.valueAt(i);
+                }
+            }
+
+            // Nothing found above; let's ask directly and cache the answer
+            final StorageVolume volume = mStorageManager.getStorageVolume(file);
+            sCachedVolumePathToId.put(volume.getDirectory(), volume.getId());
+            return volume.getId();
         }
     }
 
@@ -415,14 +436,15 @@ public class MediaProvider extends ContentProvider {
     private final ProxyTransactListener mTransactListener = new ProxyTransactListener() {
         @Override
         public Object onTransactStarted(IBinder binder, int transactionCode) {
-            final int uid = mCallingIdentity.get().uid;
-            return Binder.setCallingWorkSourceUid(uid);
+            if (LOGV) Trace.beginSection(Thread.currentThread().getStackTrace()[5].getMethodName());
+            return Binder.setCallingWorkSourceUid(mCallingIdentity.get().uid);
         }
 
         @Override
         public void onTransactEnded(Object session) {
             final long token = (long) session;
             Binder.restoreCallingWorkSource(token);
+            if (LOGV) Trace.endSection();
         }
     };
 
@@ -2624,16 +2646,6 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
-            Long parent = values.getAsLong(FileColumns.PARENT);
-            if (parent == null) {
-                if (path != null) {
-                    final long parentId = helper.runWithTransaction((db) -> {
-                        return getParent(db, path);
-                    });
-                    values.put(FileColumns.PARENT, parentId);
-                }
-            }
-
             rowId = insertAllowingUpsert(qb, helper, values, path);
         }
         if (format == MtpConstants.FORMAT_ASSOCIATION) {
@@ -2653,6 +2665,14 @@ public class MediaProvider extends ContentProvider {
             @NonNull DatabaseHelper helper, @NonNull ContentValues values, String path)
             throws SQLiteConstraintException {
         return helper.runWithTransaction((db) -> {
+            Long parent = values.getAsLong(FileColumns.PARENT);
+            if (parent == null) {
+                if (path != null) {
+                    final long parentId = getParent(db, path);
+                    values.put(FileColumns.PARENT, parentId);
+                }
+            }
+
             try {
                 return qb.insert(helper, values);
             } catch (SQLiteConstraintException e) {
@@ -5269,12 +5289,14 @@ public class MediaProvider extends ContentProvider {
         return new File(filePath);
     }
 
-    private @Nullable FuseDaemon getFuseDaemonForFile(@NonNull File file) {
-        StorageVolume volume = mStorageManager.getStorageVolume(file);
-        if (volume == null) {
-            return null;
+    private @Nullable FuseDaemon getFuseDaemonForFile(@NonNull File file)
+            throws FileNotFoundException {
+        final FuseDaemon daemon = ExternalStorageServiceImpl.getFuseDaemon(getVolumeId(file));
+        if (daemon == null) {
+            throw new FileNotFoundException("Missing FUSE daemon for " + file);
+        } else {
+            return daemon;
         }
-        return ExternalStorageServiceImpl.getFuseDaemon(volume.getId());
     }
 
     private void invalidateFuseDentry(@NonNull File file) {
@@ -5282,18 +5304,18 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void invalidateFuseDentry(@NonNull String path) {
-        FuseDaemon daemon = getFuseDaemonForFile(new File(path));
-        if (daemon != null) {
+        try {
+            final FuseDaemon daemon = getFuseDaemonForFile(new File(path));
             if (isFuseThread()) {
                 // If we are on a FUSE thread, we don't need to invalidate,
                 // (and *must* not, otherwise we'd crash) because the invalidation
                 // is already reflected in the lower filesystem
                 return;
+            } else {
+                daemon.invalidateFuseDentryCache(path);
             }
-
-            daemon.invalidateFuseDentryCache(path);
-        } else {
-            Log.w(TAG, "Failed to invalidate FUSE dentry. Daemon unavailable for path " + path);
+        } catch (FileNotFoundException e) {
+            Log.w(TAG, "Failed to invalidate FUSE dentry", e);
         }
     }
 

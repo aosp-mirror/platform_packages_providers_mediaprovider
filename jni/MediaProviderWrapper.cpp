@@ -421,9 +421,9 @@ JNIEnv* MediaProviderWrapper::MaybeAttachCurrentThread() {
     // value. Note that we don't really care about the actual value we store
     // in TLS -- we only care about the value destructor being called, which
     // will happen as long as the key is not null.
-    CHECK_EQ(pthread_getspecific(gJniEnvKey), nullptr);
+    CHECK(pthread_getspecific(gJniEnvKey) == nullptr);
     CHECK_EQ(gJavaVm->AttachCurrentThread(&env, nullptr), 0);
-    CHECK_NE(env, nullptr);
+    CHECK(env != nullptr);
 
     pthread_setspecific(gJniEnvKey, env);
     return env;

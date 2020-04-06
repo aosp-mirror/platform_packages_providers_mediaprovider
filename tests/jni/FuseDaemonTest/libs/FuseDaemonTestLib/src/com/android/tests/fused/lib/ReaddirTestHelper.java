@@ -18,6 +18,7 @@ package com.android.tests.fused.lib;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.DirectoryIteratorException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.DirectoryStream.Filter;
 import java.nio.file.Files;
@@ -69,14 +70,15 @@ public class ReaddirTestHelper {
     public static ArrayList<String> readDirectory(String directoryPath, Filter<Path> filter) {
         ArrayList<String> directoryEntries = new ArrayList<String>();
         File dir = new File(directoryPath);
+
         try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(dir.toPath(),
                 filter)) {
             for (Path de: directoryStream) {
                 directoryEntries.add(de.getFileName().toString());
             }
-        } catch (IOException x) {
+        } catch (IOException | DirectoryIteratorException x) {
             Log.e(TAG, "IOException occurred while readding directory entries from " +
-                  directoryPath);
+                  directoryPath, x);
         }
         return directoryEntries;
     }

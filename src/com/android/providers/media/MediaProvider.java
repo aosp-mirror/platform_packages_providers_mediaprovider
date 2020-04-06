@@ -60,6 +60,7 @@ import static com.android.providers.media.util.FileUtils.extractRelativePathForD
 import static com.android.providers.media.util.FileUtils.extractTopLevelDir;
 import static com.android.providers.media.util.FileUtils.extractVolumeName;
 import static com.android.providers.media.util.FileUtils.getAbsoluteSanitizedPath;
+import static com.android.providers.media.util.FileUtils.isDataOrObbPath;
 import static com.android.providers.media.util.FileUtils.isDownload;
 import static com.android.providers.media.util.FileUtils.sanitizePath;
 import static com.android.providers.media.util.Logging.LOGV;
@@ -1273,6 +1274,13 @@ public class MediaProvider extends ContentProvider {
 
         try {
             if (isPrivatePackagePathNotOwnedByCaller(path)) {
+                return new String[] {""};
+            }
+
+            // Do not allow apps to list Android/data or Android/obb dirs. Installer and
+            // MOUNT_EXTERNAL_ANDROID_WRITABLE apps won't be blocked by this, as their OBB dirs
+            // are mounted to lowerfs directly.
+            if (isDataOrObbPath(path)) {
                 return new String[] {""};
             }
 

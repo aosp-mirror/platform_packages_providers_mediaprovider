@@ -118,6 +118,16 @@ public class MediaService extends JobIntentService {
             RingtoneManager.ensureDefaultRingtones(context);
         }
 
+        // Resolve the Uri that we should use for all broadcast intents related
+        // to this volume; we do this once to ensure we can deliver all events
+        // in the situation where a volume is ejected mid-scan
+        final Uri broadcastUri;
+        if (!MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
+            broadcastUri = Uri.fromFile(FileUtils.getVolumePath(context, volumeName));
+        } else {
+            broadcastUri = null;
+        }
+
         try (ContentProviderClient cpc = context.getContentResolver()
                 .acquireContentProviderClient(MediaStore.AUTHORITY)) {
             final MediaProvider provider = ((MediaProvider) cpc.getLocalContentProvider());
@@ -129,9 +139,9 @@ public class MediaService extends JobIntentService {
             values.put(MediaStore.MEDIA_SCANNER_VOLUME, volumeName);
             Uri scanUri = resolver.insert(MediaStore.getMediaScannerUri(), values);
 
-            if (!MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
-                context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_STARTED,
-                        Uri.fromFile(FileUtils.getVolumePath(context, volumeName))));
+            if (broadcastUri != null) {
+                context.sendBroadcast(
+                        new Intent(Intent.ACTION_MEDIA_SCANNER_STARTED, broadcastUri));
             }
 
             for (File dir : FileUtils.getVolumeScanPaths(context, volumeName)) {
@@ -141,9 +151,9 @@ public class MediaService extends JobIntentService {
             resolver.delete(scanUri, null, null);
 
         } finally {
-            if (!MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
-                context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_FINISHED,
-                        Uri.fromFile(FileUtils.getVolumePath(context, volumeName))));
+            if (broadcastUri != null) {
+                context.sendBroadcast(
+                        new Intent(Intent.ACTION_MEDIA_SCANNER_FINISHED, broadcastUri));
             }
         }
     }

@@ -16,6 +16,23 @@
 
 package com.android.providers.media.util;
 
+import static android.os.ParcelFileDescriptor.MODE_APPEND;
+import static android.os.ParcelFileDescriptor.MODE_CREATE;
+import static android.os.ParcelFileDescriptor.MODE_READ_ONLY;
+import static android.os.ParcelFileDescriptor.MODE_READ_WRITE;
+import static android.os.ParcelFileDescriptor.MODE_TRUNCATE;
+import static android.os.ParcelFileDescriptor.MODE_WRITE_ONLY;
+import static android.system.OsConstants.F_OK;
+import static android.system.OsConstants.O_ACCMODE;
+import static android.system.OsConstants.O_APPEND;
+import static android.system.OsConstants.O_CREAT;
+import static android.system.OsConstants.O_RDONLY;
+import static android.system.OsConstants.O_RDWR;
+import static android.system.OsConstants.O_TRUNC;
+import static android.system.OsConstants.O_WRONLY;
+import static android.system.OsConstants.R_OK;
+import static android.system.OsConstants.W_OK;
+
 import static com.android.providers.media.util.DatabaseUtils.getAsBoolean;
 import static com.android.providers.media.util.DatabaseUtils.getAsLong;
 import static com.android.providers.media.util.Logging.TAG;
@@ -121,6 +138,136 @@ public class FileUtils {
             }
         }
         return deleted;
+    }
+
+    /**
+     * Shamelessly borrowed from {@code android.os.FileUtils}.
+     */
+    public static int translateModeStringToPosix(String mode) {
+        // Sanity check for invalid chars
+        for (int i = 0; i < mode.length(); i++) {
+            switch (mode.charAt(i)) {
+                case 'r':
+                case 'w':
+                case 't':
+                case 'a':
+                    break;
+                default:
+                    throw new IllegalArgumentException("Bad mode: " + mode);
+            }
+        }
+
+        int res = 0;
+        if (mode.startsWith("rw")) {
+            res = O_RDWR | O_CREAT;
+        } else if (mode.startsWith("w")) {
+            res = O_WRONLY | O_CREAT;
+        } else if (mode.startsWith("r")) {
+            res = O_RDONLY;
+        } else {
+            throw new IllegalArgumentException("Bad mode: " + mode);
+        }
+        if (mode.indexOf('t') != -1) {
+            res |= O_TRUNC;
+        }
+        if (mode.indexOf('a') != -1) {
+            res |= O_APPEND;
+        }
+        return res;
+    }
+
+    /**
+     * Shamelessly borrowed from {@code android.os.FileUtils}.
+     */
+    public static String translateModePosixToString(int mode) {
+        String res = "";
+        if ((mode & O_ACCMODE) == O_RDWR) {
+            res = "rw";
+        } else if ((mode & O_ACCMODE) == O_WRONLY) {
+            res = "w";
+        } else if ((mode & O_ACCMODE) == O_RDONLY) {
+            res = "r";
+        } else {
+            throw new IllegalArgumentException("Bad mode: " + mode);
+        }
+        if ((mode & O_TRUNC) == O_TRUNC) {
+            res += "t";
+        }
+        if ((mode & O_APPEND) == O_APPEND) {
+            res += "a";
+        }
+        return res;
+    }
+
+    /**
+     * Shamelessly borrowed from {@code android.os.FileUtils}.
+     */
+    public static int translateModePosixToPfd(int mode) {
+        int res = 0;
+        if ((mode & O_ACCMODE) == O_RDWR) {
+            res = MODE_READ_WRITE;
+        } else if ((mode & O_ACCMODE) == O_WRONLY) {
+            res = MODE_WRITE_ONLY;
+        } else if ((mode & O_ACCMODE) == O_RDONLY) {
+            res = MODE_READ_ONLY;
+        } else {
+            throw new IllegalArgumentException("Bad mode: " + mode);
+        }
+        if ((mode & O_CREAT) == O_CREAT) {
+            res |= MODE_CREATE;
+        }
+        if ((mode & O_TRUNC) == O_TRUNC) {
+            res |= MODE_TRUNCATE;
+        }
+        if ((mode & O_APPEND) == O_APPEND) {
+            res |= MODE_APPEND;
+        }
+        return res;
+    }
+
+    /**
+     * Shamelessly borrowed from {@code android.os.FileUtils}.
+     */
+    public static int translateModePfdToPosix(int mode) {
+        int res = 0;
+        if ((mode & MODE_READ_WRITE) == MODE_READ_WRITE) {
+            res = O_RDWR;
+        } else if ((mode & MODE_WRITE_ONLY) == MODE_WRITE_ONLY) {
+            res = O_WRONLY;
+        } else if ((mode & MODE_READ_ONLY) == MODE_READ_ONLY) {
+            res = O_RDONLY;
+        } else {
+            throw new IllegalArgumentException("Bad mode: " + mode);
+        }
+        if ((mode & MODE_CREATE) == MODE_CREATE) {
+            res |= O_CREAT;
+        }
+        if ((mode & MODE_TRUNCATE) == MODE_TRUNCATE) {
+            res |= O_TRUNC;
+        }
+        if ((mode & MODE_APPEND) == MODE_APPEND) {
+            res |= O_APPEND;
+        }
+        return res;
+    }
+
+    /**
+     * Shamelessly borrowed from {@code android.os.FileUtils}.
+     */
+    public static int translateModeAccessToPosix(int mode) {
+        if (mode == F_OK) {
+            // There's not an exact mapping, so we attempt a read-only open to
+            // determine if a file exists
+            return O_RDONLY;
+        } else if ((mode & (R_OK | W_OK)) == (R_OK | W_OK)) {
+            return O_RDWR;
+        } else if ((mode & R_OK) == R_OK) {
+            return O_RDONLY;
+        } else if ((mode & W_OK) == W_OK) {
+            return O_WRONLY;
+        } else {
+            throw new IllegalArgumentException("Bad mode: " + mode);
+        }
     }
 
     /**

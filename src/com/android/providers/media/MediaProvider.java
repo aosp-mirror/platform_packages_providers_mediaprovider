@@ -4623,11 +4623,15 @@ public class MediaProvider extends ContentProvider {
                 break;
         }
 
+        // TODO: remove this as part of fixing b/151768142
+        final boolean isCallingPackageSystem = isCallingPackageSystem()
+                && !"com.android.systemui".equals(getCallingPackageOrSelf());
+
         // If we're touching columns that would change placement of a file,
         // blend in current values and recalculate path
         if (containsAny(initialValues.keySet(), sPlacementColumns)
                 && !initialValues.containsKey(MediaColumns.DATA)
-                && !isCallingPackageSystem()
+                && !isCallingPackageSystem
                 && !isThumbnail) {
             Trace.beginSection("movement");
 

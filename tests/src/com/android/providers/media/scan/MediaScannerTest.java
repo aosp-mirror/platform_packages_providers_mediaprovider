@@ -65,10 +65,6 @@ public class MediaScannerTest {
     private static final String TAG = "MediaScannerTest";
 
     public static class IsolatedContext extends ContextWrapper {
-        static {
-            System.loadLibrary("fuse_jni");
-        }
-
         private final File mDir;
         private final MockContentResolver mResolver;
         private final MediaProvider mProvider;
@@ -84,7 +80,12 @@ public class MediaScannerTest {
 
             final ProviderInfo info = base.getPackageManager()
                     .resolveContentProvider(MediaStore.AUTHORITY, 0);
-            mProvider = new MediaProvider();
+            mProvider = new MediaProvider() {
+                @Override
+                public boolean isFuseThread() {
+                    return false;
+                }
+            };
             mProvider.attachInfo(this, info);
             mResolver.addProvider(MediaStore.AUTHORITY, mProvider);
 

@@ -16,37 +16,19 @@
 
 package com.android.providers.media.util;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import androidx.test.runner.AndroidJUnit4;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.nio.ByteOrder;
-
 @RunWith(AndroidJUnit4.class)
-public class MemoryTest {
-    private final byte[] buf = new byte[4];
-
+public class BackgroundThreadTest {
     @Test
-    public void testConstructor() {
-        new Memory();
-    }
-
-    @Test
-    public void testBigEndian() {
-        final int expected = 42;
-        Memory.pokeInt(buf, 0, expected, ByteOrder.BIG_ENDIAN);
-        final int actual = Memory.peekInt(buf, 0, ByteOrder.BIG_ENDIAN);
-        assertEquals(expected, actual);
-    }
-
-    @Test
-    public void testLittleEndian() {
-        final int expected = 42;
-        Memory.pokeInt(buf, 0, expected, ByteOrder.LITTLE_ENDIAN);
-        final int actual = Memory.peekInt(buf, 0, ByteOrder.LITTLE_ENDIAN);
-        assertEquals(expected, actual);
+    public void testSimple() {
+        assertNotNull(BackgroundThread.get());
+        assertNotNull(BackgroundThread.getExecutor());
+        assertNotNull(BackgroundThread.getHandler());
     }
 }

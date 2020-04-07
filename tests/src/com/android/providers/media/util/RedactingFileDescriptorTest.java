@@ -18,7 +18,9 @@ package com.android.providers.media.util;
 
 import static android.os.ParcelFileDescriptor.MODE_READ_ONLY;
 import static android.os.ParcelFileDescriptor.MODE_READ_WRITE;
-import static android.os.RedactingFileDescriptor.removeRange;
+
+import static com.android.providers.media.util.RedactingFileDescriptor.checkRangesArgument;
+import static com.android.providers.media.util.RedactingFileDescriptor.removeRange;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -63,6 +65,13 @@ public class RedactingFileDescriptorTest {
     @After
     public void tearDown() throws Exception {
         mFile.delete();
+    }
+
+    @Test
+    public void testCheckRangesArgument_Valid() throws Exception {
+        checkRangesArgument(new long[] {});
+        checkRangesArgument(new long[] {0, 10});
+        checkRangesArgument(new long[] {0, 10, 20, 30});
     }
 
     @Test

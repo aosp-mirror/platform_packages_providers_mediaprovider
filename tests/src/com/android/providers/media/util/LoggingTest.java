@@ -42,6 +42,11 @@ public class LoggingTest {
         Logging.initPersistent(mTarget);
     }
 
+    @Test
+    public void testConstructor() throws Exception {
+        new Logging();
+    }
+
     /**
      * Verify that a logged message makes it round-trip.
      */

@@ -17,6 +17,8 @@
 package com.android.providers.media.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 
@@ -24,9 +26,6 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.R;
-import com.android.providers.media.util.FileUtils;
-import com.android.providers.media.util.IsoInterface;
-import com.android.providers.media.util.XmpInterface;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,6 +37,17 @@ import java.io.OutputStream;
 
 @RunWith(AndroidJUnit4.class)
 public class IsoInterfaceTest {
+    @Test
+    public void testSupportedMimeTypes() throws Exception {
+        assertTrue(IsoInterface.isSupportedMimeType("video/mp4"));
+        assertFalse(IsoInterface.isSupportedMimeType("image/jpeg"));
+    }
+
+    @Test
+    public void testTypeToString() throws Exception {
+        assertEquals("moov", IsoInterface.typeToString(0x6d6f6f76));
+    }
+
     @Test
     public void testRepeated() throws Exception {
         final File file = stageFile(R.raw.test_video);

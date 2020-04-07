@@ -7,6 +7,10 @@
 
     <application android:label="MediaProvider Tests">
         <uses-library android:name="android.test.runner" />
+
+        <activity android:name="com.android.providers.media.GetResultActivity" />
+        <activity android:name="com.android.providers.media.PermissionActivity" />
+        <activity android:name="com.android.providers.media.CacheClearingActivity" />
     </application>
 
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"

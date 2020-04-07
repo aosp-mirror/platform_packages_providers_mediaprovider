@@ -346,6 +346,9 @@ public class MediaProvider extends ContentProvider {
 
             // Nothing found above; let's ask directly and cache the answer
             final StorageVolume volume = mStorageManager.getStorageVolume(file);
+            if (volume == null) {
+                throw new FileNotFoundException("Missing volume for " + file);
+            }
             sCachedVolumePathToId.put(volume.getDirectory(), volume.getId());
             return volume.getId();
         }
@@ -3120,7 +3123,8 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private static boolean parseBoolean(String value) {
+    @VisibleForTesting
+    static boolean parseBoolean(String value) {
         if (value == null) return false;
         if ("1".equals(value)) return true;
         if ("true".equalsIgnoreCase(value)) return true;
@@ -5289,7 +5293,7 @@ public class MediaProvider extends ContentProvider {
         return new File(filePath);
     }
 
-    private @Nullable FuseDaemon getFuseDaemonForFile(@NonNull File file)
+    private @NonNull FuseDaemon getFuseDaemonForFile(@NonNull File file)
             throws FileNotFoundException {
         final FuseDaemon daemon = ExternalStorageServiceImpl.getFuseDaemon(getVolumeId(file));
         if (daemon == null) {
@@ -5426,7 +5430,11 @@ public class MediaProvider extends ContentProvider {
                             redactionInfo.freeOffsets);
                 }
             } else {
-                FuseDaemon daemon = getFuseDaemonForFile(file);
+                FuseDaemon daemon = null;
+                try {
+                    daemon = getFuseDaemonForFile(file);
+                } catch (FileNotFoundException ignored) {
+                }
                 ParcelFileDescriptor lowerFsFd = ParcelFileDescriptor.open(file, modeBits);
                 boolean forRead = (modeBits & ParcelFileDescriptor.MODE_READ_ONLY) != 0;
                 boolean shouldOpenWithFuse = daemon != null
@@ -5735,7 +5743,8 @@ public class MediaProvider extends ContentProvider {
      * if there's sensitive metadata
      * @throws IOException if an IOException happens while calculating the redaction ranges
      */
-    private RedactionInfo getRedactionRanges(File file) throws IOException {
+    @VisibleForTesting
+    public static RedactionInfo getRedactionRanges(File file) throws IOException {
         Trace.beginSection("getRedactionRanges");
         final LongArray res = new LongArray();
         final LongArray freeOffsets = new LongArray();
@@ -6389,7 +6398,8 @@ public class MediaProvider extends ContentProvider {
     /**
      * Check whether the path is a world-readable file
      */
-    private static void checkWorldReadAccess(String path) throws FileNotFoundException {
+    @VisibleForTesting
+    public static void checkWorldReadAccess(String path) throws FileNotFoundException {
         // Path has already been canonicalized, and we relax the check to look
         // at groups to support runtime storage permissions.
         final int accessBits = path.startsWith("/storage/") ? OsConstants.S_IRGRP
@@ -6437,7 +6447,8 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private static class FallbackException extends Exception {
+    @VisibleForTesting
+    static class FallbackException extends Exception {
         private final int mThrowSdkVersion;
 
         public FallbackException(String message, int throwSdkVersion) {
@@ -6491,12 +6502,14 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    @VisibleForTesting
     static class VolumeNotFoundException extends FallbackException {
         public VolumeNotFoundException(String volumeName) {
             super("Volume " + volumeName + " not found", Build.VERSION_CODES.Q);
         }
     }
 
+    @VisibleForTesting
     static class VolumeArgumentException extends FallbackException {
         public VolumeArgumentException(File actual, Collection<File> allowed) {
             super("Requested path " + actual + " doesn't appear under " + allowed,

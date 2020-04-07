@@ -1082,7 +1082,8 @@ public class ModernMediaScanner implements MediaScanner {
         return Optional.empty();
     }
 
-    private static @NonNull <T> Optional<T> parseOptional(@Nullable T value) {
+    @VisibleForTesting
+    static @NonNull <T> Optional<T> parseOptional(@Nullable T value) {
         if (value == null) {
             return Optional.empty();
         } else if (value instanceof String && ((String) value).length() == 0) {
@@ -1098,7 +1099,8 @@ public class ModernMediaScanner implements MediaScanner {
         }
     }
 
-    private static @NonNull <T> Optional<T> parseOptionalOrZero(@Nullable T value) {
+    @VisibleForTesting
+    static @NonNull <T> Optional<T> parseOptionalOrZero(@Nullable T value) {
         if (value instanceof String && isZero((String) value)) {
             return Optional.empty();
         } else if (value instanceof Number && ((Number) value).intValue() == 0) {
@@ -1108,7 +1110,8 @@ public class ModernMediaScanner implements MediaScanner {
         }
     }
 
-    private static @NonNull Optional<Integer> parseOptionalNumerator(@Nullable String value) {
+    @VisibleForTesting
+    static @NonNull Optional<Integer> parseOptionalNumerator(@Nullable String value) {
         final Optional<String> parsedValue = parseOptional(value);
         if (parsedValue.isPresent()) {
             value = parsedValue.get();
@@ -1160,7 +1163,8 @@ public class ModernMediaScanner implements MediaScanner {
         }
     }
 
-    private static @NonNull Optional<Integer> parseOptionalOrientation(int orientation) {
+    @VisibleForTesting
+    static @NonNull Optional<Integer> parseOptionalOrientation(int orientation) {
         switch (orientation) {
             case ExifInterface.ORIENTATION_NORMAL: return Optional.of(0);
             case ExifInterface.ORIENTATION_ROTATE_90: return Optional.of(90);
@@ -1170,7 +1174,8 @@ public class ModernMediaScanner implements MediaScanner {
         }
     }
 
-    private static @NonNull Optional<String> parseOptionalVideoResolution(
+    @VisibleForTesting
+    static @NonNull Optional<String> parseOptionalVideoResolution(
             @NonNull MediaMetadataRetriever mmr) {
         final Optional<?> width = parseOptional(mmr.extractMetadata(METADATA_KEY_VIDEO_WIDTH));
         final Optional<?> height = parseOptional(mmr.extractMetadata(METADATA_KEY_VIDEO_HEIGHT));
@@ -1181,7 +1186,8 @@ public class ModernMediaScanner implements MediaScanner {
         }
     }
 
-    private static @NonNull Optional<String> parseOptionalImageResolution(
+    @VisibleForTesting
+    static @NonNull Optional<String> parseOptionalImageResolution(
             @NonNull MediaMetadataRetriever mmr) {
         final Optional<?> width = parseOptional(mmr.extractMetadata(METADATA_KEY_IMAGE_WIDTH));
         final Optional<?> height = parseOptional(mmr.extractMetadata(METADATA_KEY_IMAGE_HEIGHT));
@@ -1192,7 +1198,8 @@ public class ModernMediaScanner implements MediaScanner {
         }
     }
 
-    private static @NonNull Optional<String> parseOptionalResolution(
+    @VisibleForTesting
+    static @NonNull Optional<String> parseOptionalResolution(
             @NonNull ExifInterface exif) {
         final Optional<?> width = parseOptionalOrZero(
                 exif.getAttribute(ExifInterface.TAG_IMAGE_WIDTH));
@@ -1205,7 +1212,8 @@ public class ModernMediaScanner implements MediaScanner {
         }
     }
 
-    private static @NonNull Optional<Long> parseOptionalDate(@Nullable String date) {
+    @VisibleForTesting
+    static @NonNull Optional<Long> parseOptionalDate(@Nullable String date) {
         if (TextUtils.isEmpty(date)) return Optional.empty();
         try {
             synchronized (sDateFormat) {
@@ -1232,7 +1240,8 @@ public class ModernMediaScanner implements MediaScanner {
         }
     }
 
-    private static @NonNull Optional<Integer> parseOptionalTrack(
+    @VisibleForTesting
+    static @NonNull Optional<Integer> parseOptionalTrack(
             @NonNull MediaMetadataRetriever mmr) {
         final Optional<Integer> disc = parseOptionalNumerator(
                 mmr.extractMetadata(METADATA_KEY_DISC_NUMBER));

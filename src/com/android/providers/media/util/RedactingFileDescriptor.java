@@ -16,23 +16,6 @@
 
 package com.android.providers.media.util;
 
-import static android.os.ParcelFileDescriptor.MODE_APPEND;
-import static android.os.ParcelFileDescriptor.MODE_CREATE;
-import static android.os.ParcelFileDescriptor.MODE_READ_ONLY;
-import static android.os.ParcelFileDescriptor.MODE_READ_WRITE;
-import static android.os.ParcelFileDescriptor.MODE_TRUNCATE;
-import static android.os.ParcelFileDescriptor.MODE_WRITE_ONLY;
-import static android.system.OsConstants.F_OK;
-import static android.system.OsConstants.O_ACCMODE;
-import static android.system.OsConstants.O_APPEND;
-import static android.system.OsConstants.O_CREAT;
-import static android.system.OsConstants.O_RDONLY;
-import static android.system.OsConstants.O_RDWR;
-import static android.system.OsConstants.O_TRUNC;
-import static android.system.OsConstants.O_WRONLY;
-import static android.system.OsConstants.R_OK;
-import static android.system.OsConstants.W_OK;
-
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
@@ -41,6 +24,8 @@ import android.os.ProxyFileDescriptorCallback;
 import android.os.storage.StorageManager;
 import android.system.ErrnoException;
 import android.system.Os;
+
+import androidx.annotation.VisibleForTesting;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -72,30 +57,6 @@ public class RedactingFileDescriptor {
         }
     }
 
-    /** {@hide} */
-    public static int translateModePfdToPosix(int mode) {
-        int res = 0;
-        if ((mode & MODE_READ_WRITE) == MODE_READ_WRITE) {
-            res = O_RDWR;
-        } else if ((mode & MODE_WRITE_ONLY) == MODE_WRITE_ONLY) {
-            res = O_WRONLY;
-        } else if ((mode & MODE_READ_ONLY) == MODE_READ_ONLY) {
-            res = O_RDONLY;
-        } else {
-            throw new IllegalArgumentException("Bad mode: " + mode);
-        }
-        if ((mode & MODE_CREATE) == MODE_CREATE) {
-            res |= O_CREAT;
-        }
-        if ((mode & MODE_TRUNCATE) == MODE_TRUNCATE) {
-            res |= O_TRUNC;
-        }
-        if ((mode & MODE_APPEND) == MODE_APPEND) {
-            res |= O_APPEND;
-        }
-        return res;
-    }
-
     private RedactingFileDescriptor(
             Context context, File file, int mode, long[] redactRanges, long[] freeOffsets)
             throws IOException {
@@ -105,7 +66,7 @@ public class RedactingFileDescriptor {
         try {
             try {
                 mInner = Os.open(file.getAbsolutePath(),
-                        translateModePfdToPosix(mode), 0);
+                        FileUtils.translateModePfdToPosix(mode), 0);
                 mOuter = context.getSystemService(StorageManager.class)
                         .openProxyFileDescriptor(mode, mCallback,
                                 new Handler(Looper.getMainLooper()));
@@ -119,7 +80,8 @@ public class RedactingFileDescriptor {
         }
     }
 
-    private static long[] checkRangesArgument(long[] ranges) {
+    @VisibleForTesting
+    public static long[] checkRangesArgument(long[] ranges) {
         if (ranges.length % 2 != 0) {
             throw new IllegalArgumentException();
         }

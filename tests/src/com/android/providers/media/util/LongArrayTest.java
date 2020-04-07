@@ -82,6 +82,9 @@ public class LongArrayTest {
 
         a.remove(0);
         verify(new long[]{20, 50}, a);
+
+        a.clear();
+        verify(new long[]{}, a);
     }
 
     public void verify(long[] expected, LongArray longArrays) {

@@ -43,7 +43,8 @@ public class PermissionUtils {
 
     public static boolean checkPermissionSystem(Context context,
             int pid, int uid, String packageName) {
-        return (uid == android.os.Process.SYSTEM_UID) || (uid == android.os.Process.myUid());
+        return uid == android.os.Process.SYSTEM_UID || uid == android.os.Process.myUid()
+                || uid == android.os.Process.SHELL_UID || uid == android.os.Process.ROOT_UID;
     }
 
     public static boolean checkPermissionBackup(Context context, int pid, int uid) {

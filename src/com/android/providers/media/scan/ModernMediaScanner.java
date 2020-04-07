@@ -38,6 +38,7 @@ import static android.media.MediaMetadataRetriever.METADATA_KEY_MIMETYPE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_NUM_TRACKS;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_TITLE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT;
+import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_WRITER;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_YEAR;
@@ -955,6 +956,8 @@ public class ModernMediaScanner implements MediaScanner {
                         parseOptional(mmr.extractMetadata(METADATA_KEY_VIDEO_HEIGHT)));
                 withOptionalValue(op, MediaColumns.RESOLUTION,
                         parseOptionalVideoResolution(mmr));
+                withOptionalValue(op, MediaColumns.ORIENTATION,
+                        parseOptional(mmr.extractMetadata(METADATA_KEY_VIDEO_ROTATION)));
 
                 withOptionalValue(op, VideoColumns.COLOR_STANDARD,
                         parseOptional(mmr.extractMetadata(METADATA_KEY_COLOR_STANDARD)));

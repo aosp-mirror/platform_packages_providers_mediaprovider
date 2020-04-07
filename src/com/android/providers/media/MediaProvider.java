@@ -6197,7 +6197,8 @@ public class MediaProvider extends ContentProvider {
         return false;
     }
 
-    private static boolean isFuseThread() {
+    @VisibleForTesting
+    public boolean isFuseThread() {
         return FuseDaemon.native_is_fuse_thread();
     }
 

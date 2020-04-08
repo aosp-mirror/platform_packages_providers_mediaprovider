@@ -1498,21 +1498,15 @@ bool FuseDaemon::ShouldOpenWithFuse(int fd, bool for_read, const std::string& pa
 void FuseDaemon::InvalidateFuseDentryCache(const std::string& path) {
     LOG(VERBOSE) << "Invalidating FUSE dentry cache";
     if (active.load(std::memory_order_acquire)) {
-        string name;
-        fuse_ino_t parent;
+        std::lock_guard<std::recursive_mutex> guard(fuse->lock);
 
-        {
-            std::lock_guard<std::recursive_mutex> guard(fuse->lock);
-            const node* node = node::LookupAbsolutePath(fuse->root, path);
-            if (node) {
-                name = node->GetName();
-                parent = fuse->ToInode(node->GetParent());
+        const node* node = node::LookupAbsolutePath(fuse->root, path);
+        if (node) {
+            string name = node->GetName();
+            fuse_ino_t parent = fuse->ToInode(node->GetParent());
+            if (fuse_lowlevel_notify_inval_entry(fuse->se, parent, name.c_str(), name.size())) {
+                LOG(WARNING) << "Failed to invalidate dentry for path";
             }
-        }
-
-        if (!name.empty() &&
-            fuse_lowlevel_notify_inval_entry(fuse->se, parent, name.c_str(), name.size())) {
-            LOG(WARNING) << "Failed to invalidate dentry for path";
         }
     } else {
         LOG(WARNING) << "FUSE daemon is inactive. Cannot invalidate dentry";

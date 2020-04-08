@@ -17,6 +17,7 @@
 package com.android.providers.media.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -51,6 +52,11 @@ public class SQLiteTokenizerTest {
             assertTrue("Expected " + e.getMessage() + " to contain " + message,
                     e.getMessage().contains(message));
         }
+    }
+
+    @Test
+    public void testConstructor() {
+        new SQLiteTokenizer();
     }
 
     @Test
@@ -169,5 +175,29 @@ public class SQLiteTokenizerTest {
         checkTokens("a,abc,a00b,_1,_123,abcdef", "a abc a00b _1 _123 abcdef");
         checkTokens("a--\nabc/**/a00b''_1'''ABC'''`_123`abc[d]\"e\"f",
                 "a abc a00b _1 _123 abc d e f");
+    }
+
+    @Test
+    public void testKeyword() {
+        assertTrue(SQLiteTokenizer.isKeyword("like"));
+        assertTrue(SQLiteTokenizer.isKeyword("LIKE"));
+        assertTrue(SQLiteTokenizer.isKeyword("LiKE"));
+        assertFalse(SQLiteTokenizer.isKeyword("UserProvidedToken"));
+    }
+
+    @Test
+    public void testFunction() {
+        assertTrue(SQLiteTokenizer.isFunction("max"));
+        assertTrue(SQLiteTokenizer.isFunction("MAX"));
+        assertTrue(SQLiteTokenizer.isFunction("MaX"));
+        assertFalse(SQLiteTokenizer.isFunction("UserProvidedToken"));
+    }
+
+    @Test
+    public void testType() {
+        assertTrue(SQLiteTokenizer.isType("integer"));
+        assertTrue(SQLiteTokenizer.isType("INTEGER"));
+        assertTrue(SQLiteTokenizer.isType("INTeGER"));
+        assertFalse(SQLiteTokenizer.isType("UserProvidedToken"));
     }
 }

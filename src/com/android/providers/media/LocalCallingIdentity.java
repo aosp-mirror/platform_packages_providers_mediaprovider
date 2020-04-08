@@ -230,7 +230,7 @@ public class LocalCallingIdentity {
 
         switch (permission) {
             case PERMISSION_IS_SYSTEM:
-                return isSystemInternal() || hasPermission(PERMISSION_MANAGE_EXTERNAL_STORAGE);
+                return isSystemInternal();
             case PERMISSION_IS_BACKUP:
                 return isBackupInternal();
             case PERMISSION_IS_LEGACY_GRANTED:
@@ -254,7 +254,7 @@ public class LocalCallingIdentity {
             case PERMISSION_WRITE_IMAGES:
                 return checkPermissionWriteImages(context, pid, uid, getPackageName());
             case PERMISSION_MANAGE_EXTERNAL_STORAGE:
-                return checkPermissionManageExternalStorage(context, pid, uid, packageName);
+                return checkPermissionManageExternalStorage(context, pid, uid, getPackageName());
             default:
                 return false;
         }

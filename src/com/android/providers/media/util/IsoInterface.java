@@ -24,6 +24,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import java.io.EOFException;
 import java.io.File;
@@ -105,7 +106,8 @@ public class IsoInterface {
         }
     }
 
-    private static String typeToString(int type) {
+    @VisibleForTesting
+    public static String typeToString(int type) {
         final byte[] buf = new byte[4];
         Memory.pokeInt(buf, 0, type, ByteOrder.BIG_ENDIAN);
         return new String(buf);

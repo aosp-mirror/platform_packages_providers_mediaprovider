@@ -65,7 +65,7 @@ cc_library_shared {
 
 cc_test {
     name: "fuse_node_test",
-    test_suites: ["device-tests"],
+    test_suites: ["device-tests", "mts"],
     srcs: [
         "node_test.cpp",
         "node.cpp",
@@ -91,7 +91,7 @@ cc_test {
 
 cc_test {
     name: "RedactionInfoTest",
-    test_suites: ["device-tests"],
+    test_suites: ["device-tests", "mts"],
     srcs: [
         "RedactionInfoTest.cpp",
         "RedactionInfo.cpp",

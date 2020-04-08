@@ -2352,6 +2352,22 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
+            // Allow apps with MANAGE_EXTERNAL_STORAGE to create files anywhere
+            if (!validPath) {
+                validPath = isCallingPackageExternalStorageManager();
+            }
+
+            // Allow system gallery to create image/video files.
+            if (!validPath) {
+                // System gallery can create image/video files in any existing directory, it can
+                // also create subdirectories in any existing top-level directory. However, system
+                // gallery is not allowed to create non-default top level directory.
+                final boolean createNonDefaultTopLevelDir = primary != null &&
+                        !FileUtils.buildPath(volumePath, primary).exists();
+                validPath = !createNonDefaultTopLevelDir &&
+                        canAccessMediaFile(res.getAbsolutePath(), /*allowLegacy*/ false);
+            }
+
             // Nothing left to check; caller can't use this path
             if (!validPath) {
                 throw new IllegalArgumentException(
@@ -5630,7 +5646,10 @@ public class MediaProvider extends ContentProvider {
         return MimeUtils.resolveMediaType(mimeType);
     }
 
-    private boolean canAccessMediaFile(String filePath) {
+    private boolean canAccessMediaFile(String filePath, boolean allowLegacy) {
+        if (!allowLegacy && isCallingPackageRequestingLegacy()) {
+            return false;
+        }
         switch (getFileMediaType(filePath)) {
             case FileColumns.MEDIA_TYPE_IMAGE:
                 return mCallingIdentity.get().hasPermission(PERMISSION_WRITE_IMAGES);
@@ -5659,7 +5678,7 @@ public class MediaProvider extends ContentProvider {
             return true;
         }
 
-        if (mCallingIdentity.get().hasPermission(PERMISSION_MANAGE_EXTERNAL_STORAGE)) {
+        if (isCallingPackageExternalStorageManager()) {
             return true;
         }
 
@@ -5671,7 +5690,7 @@ public class MediaProvider extends ContentProvider {
 
         // Apps with write access to images and/or videos can bypass our restrictions if all of the
         // the files they're accessing are of the compatible media type.
-        if (canAccessMediaFile(filePath)) {
+        if (canAccessMediaFile(filePath, /*allowLegacy*/ true)) {
             return true;
         }
 
@@ -6113,7 +6132,7 @@ public class MediaProvider extends ContentProvider {
                 // Inserting/deleting the database entry might break app functionality.
                 // Ignore insert errors for apps that bypass scoped storage restriction.
                 // insertFileForFuse(path, Files.getContentUriForPath(path), mimeType,
-                //        /*useData*/ true);
+                //        /*useData*/ isCallingPackageRequestingLegacy());
                 return 0;
             }
 
@@ -6332,7 +6351,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Apps that have permission to manage external storage can work with all files
-        if (mCallingIdentity.get().hasPermission(PERMISSION_MANAGE_EXTERNAL_STORAGE)) {
+        if (isCallingPackageExternalStorageManager()) {
             return true;
         }
 
@@ -7069,6 +7088,11 @@ public class MediaProvider extends ContentProvider {
     private boolean isCallingPackageLegacyRead() {
         return mCallingIdentity.get().hasPermission(PERMISSION_IS_LEGACY_READ);
     }
+
+    private boolean isCallingPackageExternalStorageManager() {
+        return mCallingIdentity.get().hasPermission(PERMISSION_MANAGE_EXTERNAL_STORAGE);
+    }
+
 
     @Override
     public void dump(FileDescriptor fd, PrintWriter writer, String[] args) {

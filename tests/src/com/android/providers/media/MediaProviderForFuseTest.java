@@ -116,6 +116,24 @@ public class MediaProviderForFuseTest {
     }
 
     @Test
+    public void testRenameDirectory() throws Exception {
+        sTestDir = new File(sTestDir, "subdir" + System.nanoTime());
+        sTestDir.mkdirs();
+
+        // Create test directory and file
+        final File file = new File(sTestDir, "test" + System.nanoTime() + ".jpg");
+        Truth.assertThat(sMediaProvider.insertFileIfNecessaryForFuse(
+                file.getPath(), sTestUid)).isEqualTo(0);
+
+        // Rename directory should bring along files
+        final File renamed = new File(sTestDir.getParentFile(), "renamed" + System.nanoTime());
+        Truth.assertThat(sMediaProvider.renameForFuse(
+                sTestDir.getPath(), renamed.getPath(), sTestUid)).isEqualTo(0);
+        Truth.assertThat(Arrays.asList(sMediaProvider.getFilesInDirectoryForFuse(
+                renamed.getPath(), sTestUid))).contains(file.getName());
+    }
+
+    @Test
     public void test_scanFileForFuse() throws Exception {
         final File file = new File(sTestDir, "test" + System.nanoTime() + ".jpg");
         Truth.assertThat(file.createNewFile()).isTrue();

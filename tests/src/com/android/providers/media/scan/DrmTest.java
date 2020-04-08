@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
@@ -29,10 +30,15 @@ import android.drm.DrmConvertedStatus;
 import android.drm.DrmManagerClient;
 import android.drm.DrmSupportInfo;
 import android.net.Uri;
+import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
+import android.provider.MediaStore.MediaColumns;
+import android.system.ErrnoException;
+import android.system.Os;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
@@ -49,6 +55,7 @@ import org.junit.runner.RunWith;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -70,6 +77,7 @@ public class DrmTest {
     private static final String TAG = "DrmTest";
 
     private Context mContext;
+    private ContentResolver mResolver;
     private DrmManagerClient mClient;
 
     private static final String MIME_FORWARD_LOCKED = "application/vnd.oma.drm.message";
@@ -78,6 +86,7 @@ public class DrmTest {
     @Before
     public void setUp() throws Exception {
         mContext = InstrumentationRegistry.getContext();
+        mResolver = mContext.getContentResolver();
         mClient = new DrmManagerClient(mContext);
     }
 
@@ -119,10 +128,44 @@ public class DrmTest {
         doForwardLock("application/octet-stream", R.raw.test_image, null);
     }
 
-    private void doForwardLock(String mimeType, int resId,
-            @Nullable Consumer<ContentValues> verifier) throws Exception {
-        Assume.assumeTrue(isForwardLockSupported());
+    /**
+     * Verify that empty files that created with {@link #MIME_FORWARD_LOCKED}
+     * can be adjusted by rescanning to reflect their final MIME type.
+     */
+    @Test
+    public void testForwardLock_130680734() throws Exception {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DISPLAY_NAME, "temp" + System.nanoTime() + ".fl");
+        values.put(MediaColumns.MIME_TYPE, MIME_FORWARD_LOCKED);
+        values.put(MediaColumns.IS_PENDING, 1);
 
+        // Stream our forward-locked file into place
+        final Uri uri = mResolver.insert(
+                MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), values);
+        try (InputStream dmStream = createDmStream("video/mp4", R.raw.test_video);
+                ParcelFileDescriptor pfd = mResolver.openFile(uri, "rw", null)) {
+            convertDmToFl(mContext, dmStream, pfd.getFileDescriptor());
+        }
+
+        // Publish, which will kick off a media scan
+        values.clear();
+        values.put(MediaColumns.IS_PENDING, 0);
+        assertEquals(1, mResolver.update(uri, values, null));
+
+        // Verify that published item reflects final collection
+        final Uri filesUri = MediaStore.Files.getContentUri(MediaStore.getVolumeName(uri),
+                ContentUris.parseId(uri));
+        try (Cursor c = mResolver.query(filesUri, null, null, null)) {
+            assertTrue(c.moveToFirst());
+            assertEquals(FileColumns.MEDIA_TYPE_VIDEO,
+                    c.getInt(c.getColumnIndex(FileColumns.MEDIA_TYPE)));
+            assertEquals("video/mp4",
+                    c.getString(c.getColumnIndex(FileColumns.MIME_TYPE)));
+        }
+    }
+
+    public @NonNull InputStream createDmStream(@NonNull String mimeType, int resId)
+            throws IOException {
         Vector<InputStream> sequence = new Vector<InputStream>();
 
         String dmHeader = "--mime_content_boundary\r\n" +
@@ -137,13 +180,20 @@ public class DrmTest {
         String dmFooter = "\r\n--mime_content_boundary--";
         sequence.add(new ByteArrayInputStream(dmFooter.getBytes(StandardCharsets.UTF_8)));
 
-        SequenceInputStream dmStream = new SequenceInputStream(sequence.elements());
+        return new SequenceInputStream(sequence.elements());
+    }
+
+    private void doForwardLock(String mimeType, int resId,
+            @Nullable Consumer<ContentValues> verifier) throws Exception {
+        Assume.assumeTrue(isForwardLockSupported());
+
+        InputStream dmStream = createDmStream(mimeType, resId);
 
         File flPath = new File(mContext.getExternalMediaDirs()[0],
                 "temp" + System.nanoTime() + ".fl");
         RandomAccessFile flFile = new RandomAccessFile(flPath, "rw");
         assertTrue("couldn't convert to fl file",
-                convertDmToFl(mContext, dmStream,  flFile));
+                convertDmToFl(mContext, dmStream, flFile.getFD()));
         dmStream.close(); // this closes the underlying streams and AFD as well
         flFile.close();
 
@@ -190,7 +240,7 @@ public class DrmTest {
     public static boolean convertDmToFl(
             Context context,
             InputStream dmStream,
-            RandomAccessFile flFile) {
+            FileDescriptor fd) {
         final String MIMETYPE_DRM_MESSAGE = "application/vnd.oma.drm.message";
         byte[] dmData = new byte[10000];
         int totalRead = 0;
@@ -272,8 +322,9 @@ public class DrmTest {
             }
 
             try {
-                flFile.write(convertedStatus.convertedData, 0, convertedStatus.convertedData.length);
-            } catch (IOException e) {
+                Os.write(fd, convertedStatus.convertedData, 0,
+                        convertedStatus.convertedData.length);
+            } catch (IOException | ErrnoException e) {
                 Log.w(TAG, "Failed to write to output file: " + e);
                 return false;
             }
@@ -294,9 +345,9 @@ public class DrmTest {
             }
 
             try {
-                flFile.seek(convertedStatus.offset);
-                flFile.write(convertedStatus.convertedData);
-            } catch (IOException e) {
+                Os.pwrite(fd, convertedStatus.convertedData, 0,
+                        convertedStatus.convertedData.length, convertedStatus.offset);
+            } catch (IOException | ErrnoException e) {
                 Log.w(TAG, "Could not update file.", e);
                 return false;
             }

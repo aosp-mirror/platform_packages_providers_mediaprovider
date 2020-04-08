@@ -419,6 +419,16 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     public void beginTransaction() {
+        Trace.beginSection("transaction " + getDatabaseName());
+        Trace.beginSection("beginTransaction");
+        try {
+            beginTransactionInternal();
+        } finally {
+            Trace.endSection();
+        }
+    }
+
+    private void beginTransactionInternal() {
         if (mTransactionState.get() != null) {
             throw new IllegalStateException("Nested transactions not supported");
         }
@@ -442,6 +452,16 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     public void endTransaction() {
+        Trace.beginSection("endTransaction");
+        try {
+            endTransactionInternal();
+        } finally {
+            Trace.endSection();
+            Trace.endSection();
+        }
+    }
+
+    private void endTransactionInternal() {
         final TransactionState state = mTransactionState.get();
         if (state == null) {
             throw new IllegalStateException("No transaction in progress");

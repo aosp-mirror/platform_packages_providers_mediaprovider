@@ -167,7 +167,6 @@ import com.android.providers.media.fuse.FuseDaemon;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
-import com.android.providers.media.scan.NullMediaScanner;
 import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
@@ -285,6 +284,8 @@ public class MediaProvider extends ContentProvider {
     private static final Map<String, File> sCachedVolumePaths = new ArrayMap<>();
     @GuardedBy("sCacheLock")
     private static final Map<String, Collection<File>> sCachedVolumeScanPaths = new ArrayMap<>();
+    @GuardedBy("sCacheLock")
+    private static final ArrayMap<File, String> sCachedVolumePathToId = new ArrayMap<>();
 
     public void updateVolumes() {
         synchronized (sCacheLock) {
@@ -293,14 +294,18 @@ public class MediaProvider extends ContentProvider {
 
             sCachedVolumePaths.clear();
             sCachedVolumeScanPaths.clear();
+            sCachedVolumePathToId.clear();
             try {
                 sCachedVolumeScanPaths.put(MediaStore.VOLUME_INTERNAL,
                         FileUtils.getVolumeScanPaths(getContext(), MediaStore.VOLUME_INTERNAL));
                 for (String volumeName : sCachedExternalVolumeNames) {
-                    sCachedVolumePaths.put(volumeName,
-                            FileUtils.getVolumePath(getContext(), volumeName));
+                    final Uri uri = MediaStore.Files.getContentUri(volumeName);
+                    final StorageVolume volume = mStorageManager.getStorageVolume(uri);
+
+                    sCachedVolumePaths.put(volumeName, volume.getDirectory());
                     sCachedVolumeScanPaths.put(volumeName,
                             FileUtils.getVolumeScanPaths(getContext(), volumeName));
+                    sCachedVolumePathToId.put(volume.getDirectory(), volume.getId());
                 }
             } catch (FileNotFoundException e) {
                 throw new IllegalStateException(e.getMessage());
@@ -314,7 +319,7 @@ public class MediaProvider extends ContentProvider {
         });
     }
 
-    public File getVolumePath(String volumeName) throws FileNotFoundException {
+    public @NonNull File getVolumePath(@NonNull String volumeName) throws FileNotFoundException {
         // Ugly hack to keep unit tests passing, where we don't always have a
         // Context to discover volumes with
         if (getContext() == null) {
@@ -328,6 +333,24 @@ public class MediaProvider extends ContentProvider {
                 sCachedVolumePaths.put(volumeName, res);
             }
             return res;
+        }
+    }
+
+    public @NonNull String getVolumeId(@NonNull File file) throws FileNotFoundException {
+        synchronized (sCacheLock) {
+            for (int i = 0; i < sCachedVolumePathToId.size(); i++) {
+                if (FileUtils.contains(sCachedVolumePathToId.keyAt(i), file)) {
+                    return sCachedVolumePathToId.valueAt(i);
+                }
+            }
+
+            // Nothing found above; let's ask directly and cache the answer
+            final StorageVolume volume = mStorageManager.getStorageVolume(file);
+            if (volume == null) {
+                throw new FileNotFoundException("Missing volume for " + file);
+            }
+            sCachedVolumePathToId.put(volume.getDirectory(), volume.getId());
+            return volume.getId();
         }
     }
 
@@ -416,14 +439,15 @@ public class MediaProvider extends ContentProvider {
     private final ProxyTransactListener mTransactListener = new ProxyTransactListener() {
         @Override
         public Object onTransactStarted(IBinder binder, int transactionCode) {
-            final int uid = mCallingIdentity.get().uid;
-            return Binder.setCallingWorkSourceUid(uid);
+            if (LOGV) Trace.beginSection(Thread.currentThread().getStackTrace()[5].getMethodName());
+            return Binder.setCallingWorkSourceUid(mCallingIdentity.get().uid);
         }
 
         @Override
         public void onTransactEnded(Object session) {
             final long token = (long) session;
             Binder.restoreCallingWorkSource(token);
+            if (LOGV) Trace.endSection();
         }
     };
 
@@ -766,7 +790,6 @@ public class MediaProvider extends ContentProvider {
     public void attachInfo(Context context, ProviderInfo info) {
         Log.v(TAG, "Attached " + info.authority + " from " + info.applicationInfo.packageName);
 
-        mLegacyProvider = Objects.equals(info.authority, MediaStore.AUTHORITY_LEGACY);
         mUriMatcher = new LocalUriMatcher(info.authority);
 
         super.attachInfo(context, info);
@@ -788,19 +811,13 @@ public class MediaProvider extends ContentProvider {
         final int thumbSize = Math.min(metrics.widthPixels, metrics.heightPixels) / 2;
         mThumbSize = new Size(thumbSize, thumbSize);
 
-        if (mLegacyProvider) {
-            // When running in legacy mode, we're simply keeping the old
-            // database intact, and so we should perform no scanning operations
-            mMediaScanner = new NullMediaScanner(context);
-        } else {
-            mMediaScanner = new ModernMediaScanner(context);
-        }
+        mMediaScanner = new ModernMediaScanner(context);
 
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME,
-                true, false, mLegacyProvider, Column.class,
+                true, false, false, Column.class,
                 Metrics::logSchemaChange, mFilesListener, mMigrationListener, mIdGenerator);
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME,
-                false, false, mLegacyProvider, Column.class,
+                false, false, false, Column.class,
                 Metrics::logSchemaChange, mFilesListener, mMigrationListener, mIdGenerator);
 
         final IntentFilter packageFilter = new IntentFilter();
@@ -2259,6 +2276,15 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
+            // Consider allowing external media directory of calling package
+            if (!validPath) {
+                final String pathOwnerPackage = extractPathOwnerPackageName(res.getAbsolutePath());
+                if (pathOwnerPackage != null) {
+                    validPath = isExternalMediaDirectory(res.getAbsolutePath()) &&
+                            isCallingIdentitySharedPackageName(pathOwnerPackage);
+                }
+            }
+
             // Nothing left to check; caller can't use this path
             if (!validPath) {
                 throw new IllegalArgumentException(
@@ -2623,16 +2649,6 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
-            Long parent = values.getAsLong(FileColumns.PARENT);
-            if (parent == null) {
-                if (path != null) {
-                    final long parentId = helper.runWithTransaction((db) -> {
-                        return getParent(db, path);
-                    });
-                    values.put(FileColumns.PARENT, parentId);
-                }
-            }
-
             rowId = insertAllowingUpsert(qb, helper, values, path);
         }
         if (format == MtpConstants.FORMAT_ASSOCIATION) {
@@ -2652,6 +2668,14 @@ public class MediaProvider extends ContentProvider {
             @NonNull DatabaseHelper helper, @NonNull ContentValues values, String path)
             throws SQLiteConstraintException {
         return helper.runWithTransaction((db) -> {
+            Long parent = values.getAsLong(FileColumns.PARENT);
+            if (parent == null) {
+                if (path != null) {
+                    final long parentId = getParent(db, path);
+                    values.put(FileColumns.PARENT, parentId);
+                }
+            }
+
             try {
                 return qb.insert(helper, values);
             } catch (SQLiteConstraintException e) {
@@ -3002,10 +3026,8 @@ public class MediaProvider extends ContentProvider {
             case FILES: {
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
                 final boolean isDownload = maybeMarkAsDownload(initialValues);
-                final boolean isDocumentType = MimeUtils.isDocumentMimeType(
-                        initialValues.getAsString((MediaColumns.MIME_TYPE)));
-                final int mediaType = isDocumentType ? FileColumns.MEDIA_TYPE_DOCUMENT
-                        : FileColumns.MEDIA_TYPE_NONE;
+                final String mimeType = initialValues.getAsString(MediaColumns.MIME_TYPE);
+                final int mediaType = MimeUtils.resolveMediaType(mimeType);
                 rowId = insertFile(qb, helper, match, uri, extras, initialValues,
                         mediaType, true);
 
@@ -3101,7 +3123,8 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private static boolean parseBoolean(String value) {
+    @VisibleForTesting
+    static boolean parseBoolean(String value) {
         if (value == null) return false;
         if ("1".equals(value)) return true;
         if ("true".equalsIgnoreCase(value)) return true;
@@ -3160,10 +3183,15 @@ public class MediaProvider extends ContentProvider {
             qb.setDistinct(true);
         }
         qb.setStrict(true);
-        // TODO: re-enable as part of fixing b/146518586
-        if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.R) {
-            qb.setStrictColumns(true);
-            qb.setStrictGrammar(true);
+        if (isCallingPackageSystem()) {
+            // When caller is system, such as the media scanner, we're willing
+            // to let them access any columns they want
+        } else {
+            // TODO: re-enable regardless of target SDK in b/146518586
+            if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.R) {
+                qb.setStrictColumns(true);
+                qb.setStrictGrammar(true);
+            }
         }
 
         final String callingPackage = getCallingPackageOrSelf();
@@ -3666,12 +3694,6 @@ public class MediaProvider extends ContentProvider {
         // If caller is an older app, we're willing to let through a
         // greylist of technically invalid columns
         if (getCallingPackageTargetSdkVersion() < Build.VERSION_CODES.Q) {
-            qb.setProjectionGreylist(sGreylist);
-        }
-
-        // If we're the legacy provider, and the caller is the system, then
-        // we're willing to let them access any columns they want
-        if (mLegacyProvider && isCallingPackageSystem()) {
             qb.setProjectionGreylist(sGreylist);
         }
 
@@ -4623,11 +4645,15 @@ public class MediaProvider extends ContentProvider {
                 break;
         }
 
+        // TODO: remove this as part of fixing b/151768142
+        final boolean isCallingPackageSystem = isCallingPackageSystem()
+                && !"com.android.systemui".equals(getCallingPackageOrSelf());
+
         // If we're touching columns that would change placement of a file,
         // blend in current values and recalculate path
         if (containsAny(initialValues.keySet(), sPlacementColumns)
                 && !initialValues.containsKey(MediaColumns.DATA)
-                && !isCallingPackageSystem()
+                && !isCallingPackageSystem
                 && !isThumbnail) {
             Trace.beginSection("movement");
 
@@ -5267,12 +5293,14 @@ public class MediaProvider extends ContentProvider {
         return new File(filePath);
     }
 
-    private @Nullable FuseDaemon getFuseDaemonForFile(@NonNull File file) {
-        StorageVolume volume = mStorageManager.getStorageVolume(file);
-        if (volume == null) {
-            return null;
+    private @NonNull FuseDaemon getFuseDaemonForFile(@NonNull File file)
+            throws FileNotFoundException {
+        final FuseDaemon daemon = ExternalStorageServiceImpl.getFuseDaemon(getVolumeId(file));
+        if (daemon == null) {
+            throw new FileNotFoundException("Missing FUSE daemon for " + file);
+        } else {
+            return daemon;
         }
-        return ExternalStorageServiceImpl.getFuseDaemon(volume.getId());
     }
 
     private void invalidateFuseDentry(@NonNull File file) {
@@ -5280,18 +5308,18 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void invalidateFuseDentry(@NonNull String path) {
-        FuseDaemon daemon = getFuseDaemonForFile(new File(path));
-        if (daemon != null) {
+        try {
+            final FuseDaemon daemon = getFuseDaemonForFile(new File(path));
             if (isFuseThread()) {
                 // If we are on a FUSE thread, we don't need to invalidate,
                 // (and *must* not, otherwise we'd crash) because the invalidation
                 // is already reflected in the lower filesystem
                 return;
+            } else {
+                daemon.invalidateFuseDentryCache(path);
             }
-
-            daemon.invalidateFuseDentryCache(path);
-        } else {
-            Log.w(TAG, "Failed to invalidate FUSE dentry. Daemon unavailable for path " + path);
+        } catch (FileNotFoundException e) {
+            Log.w(TAG, "Failed to invalidate FUSE dentry", e);
         }
     }
 
@@ -5402,7 +5430,11 @@ public class MediaProvider extends ContentProvider {
                             redactionInfo.freeOffsets);
                 }
             } else {
-                FuseDaemon daemon = getFuseDaemonForFile(file);
+                FuseDaemon daemon = null;
+                try {
+                    daemon = getFuseDaemonForFile(file);
+                } catch (FileNotFoundException ignored) {
+                }
                 ParcelFileDescriptor lowerFsFd = ParcelFileDescriptor.open(file, modeBits);
                 boolean forRead = (modeBits & ParcelFileDescriptor.MODE_READ_ONLY) != 0;
                 boolean shouldOpenWithFuse = daemon != null
@@ -5711,7 +5743,8 @@ public class MediaProvider extends ContentProvider {
      * if there's sensitive metadata
      * @throws IOException if an IOException happens while calculating the redaction ranges
      */
-    private RedactionInfo getRedactionRanges(File file) throws IOException {
+    @VisibleForTesting
+    public static RedactionInfo getRedactionRanges(File file) throws IOException {
         Trace.beginSection("getRedactionRanges");
         final LongArray res = new LongArray();
         final LongArray freeOffsets = new LongArray();
@@ -5914,6 +5947,14 @@ public class MediaProvider extends ContentProvider {
             // Shouldn't return null
             return c.getCount() > 0;
         }
+    }
+
+    private boolean isExternalMediaDirectory(@NonNull String path) {
+        final String relativePath = extractRelativePath(path);
+        if (relativePath != null) {
+            return relativePath.startsWith("Android/media");
+        }
+        return false;
     }
 
     /**
@@ -6357,7 +6398,8 @@ public class MediaProvider extends ContentProvider {
     /**
      * Check whether the path is a world-readable file
      */
-    private static void checkWorldReadAccess(String path) throws FileNotFoundException {
+    @VisibleForTesting
+    public static void checkWorldReadAccess(String path) throws FileNotFoundException {
         // Path has already been canonicalized, and we relax the check to look
         // at groups to support runtime storage permissions.
         final int accessBits = path.startsWith("/storage/") ? OsConstants.S_IRGRP
@@ -6405,7 +6447,8 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private static class FallbackException extends Exception {
+    @VisibleForTesting
+    static class FallbackException extends Exception {
         private final int mThrowSdkVersion;
 
         public FallbackException(String message, int throwSdkVersion) {
@@ -6459,12 +6502,14 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    @VisibleForTesting
     static class VolumeNotFoundException extends FallbackException {
         public VolumeNotFoundException(String volumeName) {
             super("Volume " + volumeName + " not found", Build.VERSION_CODES.Q);
         }
     }
 
+    @VisibleForTesting
     static class VolumeArgumentException extends FallbackException {
         public VolumeArgumentException(File actual, Collection<File> allowed) {
             super("Requested path " + actual + " doesn't appear under " + allowed,
@@ -6662,8 +6707,6 @@ public class MediaProvider extends ContentProvider {
     static final int DOWNLOADS = 800;
     static final int DOWNLOADS_ID = 801;
 
-    /** Flag if we're running as {@link MediaStore#AUTHORITY_LEGACY} */
-    private boolean mLegacyProvider;
     private LocalUriMatcher mUriMatcher;
 
     private static final String[] PATH_PROJECTION = new String[] {

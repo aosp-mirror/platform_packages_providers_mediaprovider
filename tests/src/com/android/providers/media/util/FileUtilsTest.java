@@ -51,6 +51,7 @@ import static com.android.providers.media.util.FileUtils.translateModeStringToPo
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -60,6 +61,9 @@ import android.provider.MediaStore.MediaColumns;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
+
+import com.google.common.collect.Range;
+import com.google.common.truth.Truth;
 
 import org.junit.After;
 import org.junit.Before;
@@ -546,6 +550,63 @@ public class FileUtilsTest {
         values.put(MediaColumns.RELATIVE_PATH, "/");
         FileUtils.sanitizeValues(values);
         assertEquals("/", values.get(MediaColumns.RELATIVE_PATH));
+    }
+
+    @Test
+    public void testComputeDateExpires_None() throws Exception {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DATE_EXPIRES, 1577836800L);
+
+        FileUtils.computeDateExpires(values);
+        assertFalse(values.containsKey(MediaColumns.DATE_EXPIRES));
+    }
+
+    @Test
+    public void testComputeDateExpires_Pending_Set() throws Exception {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.IS_PENDING, 1);
+        values.put(MediaColumns.DATE_EXPIRES, 1577836800L);
+
+        FileUtils.computeDateExpires(values);
+        final long target = (System.currentTimeMillis()
+                + FileUtils.DEFAULT_DURATION_PENDING) / 1_000;
+        Truth.assertThat(values.getAsLong(MediaColumns.DATE_EXPIRES))
+                .isIn(Range.closed(target - 5, target + 5));
+    }
+
+    @Test
+    public void testComputeDateExpires_Pending_Clear() throws Exception {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.IS_PENDING, 0);
+        values.put(MediaColumns.DATE_EXPIRES, 1577836800L);
+
+        FileUtils.computeDateExpires(values);
+        assertTrue(values.containsKey(MediaColumns.DATE_EXPIRES));
+        assertNull(values.get(MediaColumns.DATE_EXPIRES));
+    }
+
+    @Test
+    public void testComputeDateExpires_Trashed_Set() throws Exception {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.IS_TRASHED, 1);
+        values.put(MediaColumns.DATE_EXPIRES, 1577836800L);
+
+        FileUtils.computeDateExpires(values);
+        final long target = (System.currentTimeMillis()
+                + FileUtils.DEFAULT_DURATION_TRASHED) / 1_000;
+        Truth.assertThat(values.getAsLong(MediaColumns.DATE_EXPIRES))
+                .isIn(Range.closed(target - 5, target + 5));
+    }
+
+    @Test
+    public void testComputeDateExpires_Trashed_Clear() throws Exception {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.IS_TRASHED, 0);
+        values.put(MediaColumns.DATE_EXPIRES, 1577836800L);
+
+        FileUtils.computeDateExpires(values);
+        assertTrue(values.containsKey(MediaColumns.DATE_EXPIRES));
+        assertNull(values.get(MediaColumns.DATE_EXPIRES));
     }
 
     private static File touch(File dir, String name) throws IOException {

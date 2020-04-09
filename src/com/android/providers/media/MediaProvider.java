@@ -2836,6 +2836,9 @@ public class MediaProvider extends ContentProvider {
             // IDs are forever; nobody should be editing them
             initialValues.remove(MediaColumns._ID);
 
+            // Expiration times are hard-coded; let's derive them
+            FileUtils.computeDateExpires(initialValues);
+
             // Ignore or augment incoming raw filesystem paths
             for (String column : sDataColumns.keySet()) {
                 if (!initialValues.containsKey(column)) continue;
@@ -4159,8 +4162,7 @@ public class MediaProvider extends ContentProvider {
                 break;
             case MediaStore.CREATE_TRASH_REQUEST_CALL:
                 allowedColumns = Arrays.asList(
-                        MediaColumns.IS_TRASHED,
-                        MediaColumns.DATE_EXPIRES);
+                        MediaColumns.IS_TRASHED);
                 break;
             default:
                 allowedColumns = Arrays.asList();
@@ -4543,6 +4545,9 @@ public class MediaProvider extends ContentProvider {
         if (initialValues != null) {
             // IDs are forever; nobody should be editing them
             initialValues.remove(MediaColumns._ID);
+
+            // Expiration times are hard-coded; let's derive them
+            FileUtils.computeDateExpires(initialValues);
 
             // Ignore or augment incoming raw filesystem paths
             for (String column : sDataColumns.keySet()) {
@@ -6813,7 +6818,6 @@ public class MediaProvider extends ContentProvider {
         sMutableColumns.add(MediaStore.MediaColumns.IS_PENDING);
         sMutableColumns.add(MediaStore.MediaColumns.IS_TRASHED);
         sMutableColumns.add(MediaStore.MediaColumns.IS_FAVORITE);
-        sMutableColumns.add(MediaStore.MediaColumns.DATE_EXPIRES);
 
         sMutableColumns.add(MediaStore.Audio.AudioColumns.BOOKMARK);
 

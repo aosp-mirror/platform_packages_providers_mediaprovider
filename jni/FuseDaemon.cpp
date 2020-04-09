@@ -99,14 +99,6 @@ const bool IS_OS_DEBUGABLE = android::base::GetIntProperty("ro.debuggable", 0);
 constexpr size_t MAX_READ_SIZE = 128 * 1024;
 // Stolen from: UserHandle#getUserId
 constexpr int PER_USER_RANGE = 100000;
-// Cache inode attributes forever to improve performance
-// Whenver attributes could have changed on the lower filesystem outside the FUSE driver, we call
-// fuse_invalidate_entry_cache
-constexpr double DEFAULT_ATTR_TIMEOUT_SECONDS = std::numeric_limits<double>::max();
-// Cache dentries forever to improve performance
-// Whenver attributes could have changed on the lower filesystem outside the FUSE driver, we call
-// fuse_invalidate_entry_cache
-constexpr double DEFAULT_ENTRY_TIMEOUT_SECONDS = std::numeric_limits<double>::max();
 
 /*
  * In order to avoid double caching with fuse, call fadvise on the file handles
@@ -354,30 +346,6 @@ static struct fuse* get_fuse(fuse_req_t req) {
     return reinterpret_cast<struct fuse*>(fuse_req_userdata(req));
 }
 
-static bool is_android_path(const string& path, const string& fuse_path, uid_t uid) {
-    int user_id = uid / PER_USER_RANGE;
-    const std::string android_path = fuse_path + "/" + std::to_string(user_id) + "/Android";
-    return path.rfind(android_path, 0) == 0;
-}
-
-static double get_attr_timeout(const string& path, uid_t uid, struct fuse* fuse, node* parent) {
-    if (fuse->IsRoot(parent) || is_android_path(path, fuse->path, uid)) {
-        // The /0 and /0/Android attrs can be always cached, as they never change
-        return std::numeric_limits<double>::max();
-    } else {
-        return DEFAULT_ATTR_TIMEOUT_SECONDS;
-    }
-}
-
-static double get_entry_timeout(const string& path, uid_t uid, struct fuse* fuse, node* parent) {
-    if (fuse->IsRoot(parent) || is_android_path(path, fuse->path, uid)) {
-        // The /0 and /0/Android dentries can be always cached, as they are visible to all apps
-        return std::numeric_limits<double>::max();
-    } else {
-        return DEFAULT_ENTRY_TIMEOUT_SECONDS;
-    }
-}
-
 static node* make_node_entry(fuse_req_t req, node* parent, const string& name, const string& path,
                              struct fuse_entry_param* e, int* error_code) {
     struct fuse* fuse = get_fuse(req);
@@ -402,8 +370,8 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     // reuse inode numbers.
     e->generation = 0;
     e->ino = fuse->ToInode(node);
-    e->entry_timeout = get_entry_timeout(path, ctx->uid, fuse, parent);
-    e->attr_timeout = get_attr_timeout(path, ctx->uid, fuse, parent);
+    e->entry_timeout = std::numeric_limits<double>::max();
+    e->attr_timeout = std::numeric_limits<double>::max();
 
     return node;
 }
@@ -525,7 +493,7 @@ static void pf_getattr(fuse_req_t req,
     if (lstat(path.c_str(), &s) < 0) {
         fuse_reply_err(req, errno);
     } else {
-        fuse_reply_attr(req, &s, get_attr_timeout(path, ctx->uid, fuse, nullptr));
+        fuse_reply_attr(req, &s, std::numeric_limits<double>::max());
     }
 }
 
@@ -591,7 +559,7 @@ static void pf_setattr(fuse_req_t req,
     }
 
     lstat(path.c_str(), attr);
-    fuse_reply_attr(req, attr, get_attr_timeout(path, ctx->uid, fuse, nullptr));
+    fuse_reply_attr(req, attr, std::numeric_limits<double>::max());
 }
 
 static void pf_canonical_path(fuse_req_t req, fuse_ino_t ino)

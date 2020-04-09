@@ -4,6 +4,7 @@ android_test {
         "device-tests",
         "mts",
     ],
+    compile_multilib: "both",
 
     manifest: "AndroidManifest.xml",
 

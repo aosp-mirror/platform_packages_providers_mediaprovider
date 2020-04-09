@@ -1336,8 +1336,36 @@ static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
     const string path = node->BuildPath();
     TRACE_NODE(node);
 
-    int res = access(path.c_str(), F_OK);
-    fuse_reply_err(req, res ? errno : 0);
+    // exists() checks are always allowed.
+    if (mask == F_OK) {
+        int res = access(path.c_str(), F_OK);
+        fuse_reply_err(req, res ? errno : 0);
+        return;
+    }
+    struct stat stat;
+    if (lstat(path.c_str(), &stat)) {
+        // File doesn't exist
+        fuse_reply_err(req, ENOENT);
+        return;
+    }
+
+    // For read and write permission checks we go to MediaProvider.
+    int status = 0;
+    bool is_directory = S_ISDIR(stat.st_mode);
+    if (is_directory) {
+        status = fuse->mp->IsOpendirAllowed(path, ctx->uid);
+    } else {
+        if (mask & X_OK) {
+            // Fuse is mounted with MS_NOEXEC.
+            fuse_reply_err(req, EACCES);
+            return;
+        }
+
+        bool for_write = mask & W_OK;
+        status = fuse->mp->IsOpenAllowed(path, ctx->uid, for_write);
+    }
+
+    fuse_reply_err(req, status);
 }
 
 static void pf_create(fuse_req_t req,

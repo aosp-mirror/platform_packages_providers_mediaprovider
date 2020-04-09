@@ -51,10 +51,7 @@ filegroup {
 
 stubs_defaults {
     name: "framework-mediaprovider-stubs-srcs-defaults",
-    srcs: [
-        ":framework-mediaprovider-sources",
-    ],
-    sdk_version: "system_current",
+    srcs: [":framework-mediaprovider-sources"],
 }
 
 droidstubs {

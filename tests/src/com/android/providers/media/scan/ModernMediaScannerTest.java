@@ -719,6 +719,25 @@ public class ModernMediaScannerTest {
         }
     }
 
+    /**
+     * Verify a narrow exception where we allow an {@code mp4} video file on
+     * disk to be indexed as an {@code m4a} audio file.
+     */
+    @Test
+    public void testScan_148316354() throws Exception {
+        final File file = new File(mDir, "148316354.mp4");
+        stage(R.raw.test_m4a, file);
+
+        final Uri uri = mModern.scanFile(file, REASON_UNKNOWN);
+        try (Cursor cursor = mIsolatedResolver
+                .query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
+            assertEquals(1, cursor.getCount());
+            cursor.moveToFirst();
+            assertEquals("audio/mp4",
+                    cursor.getString(cursor.getColumnIndex(MediaColumns.MIME_TYPE)));
+        }
+    }
+
     @Test
     public void testAlbumArtPattern() throws Exception {
         for (String path : new String[] {

@@ -30,6 +30,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Resources;
@@ -91,6 +92,7 @@ public class PermissionActivity extends Activity {
     private String verb;
     private String data;
     private String volumeName;
+    private ApplicationInfo appInfo;
 
     private TextView titleView;
 
@@ -121,7 +123,8 @@ public class PermissionActivity extends Activity {
             uris = collectUris(getIntent().getExtras().getParcelable(MediaStore.EXTRA_CLIP_DATA));
             values = getIntent().getExtras().getParcelable(MediaStore.EXTRA_CONTENT_VALUES);
 
-            label = resolveCallingLabel();
+            appInfo = resolveCallingAppInfo();
+            label = resolveAppLabel(appInfo);
             verb = resolveVerb();
             data = resolveData();
             volumeName = MediaStore.getVolumeName(uris.get(0));
@@ -177,8 +180,8 @@ public class PermissionActivity extends Activity {
             @Override
             protected Void doInBackground(Void... params) {
                 Log.d(TAG, "User allowed grant for " + uris);
-                Metrics.logPermissionGranted(volumeName,
-                        System.currentTimeMillis(), getCallingPackage(), 1);
+                Metrics.logPermissionGranted(volumeName, appInfo.uid,
+                        getCallingPackage(), 1);
                 try {
                     switch (getIntent().getAction()) {
                         case MediaStore.CREATE_WRITE_REQUEST_CALL: {
@@ -231,8 +234,8 @@ public class PermissionActivity extends Activity {
             @Override
             protected Void doInBackground(Void... params) {
                 Log.d(TAG, "User declined request for " + uris);
-                Metrics.logPermissionDenied(volumeName,
-                        System.currentTimeMillis(), getCallingPackage(), 1);
+                Metrics.logPermissionDenied(volumeName, appInfo.uid, getCallingPackage(),
+                        1);
                 return null;
             }
 
@@ -257,23 +260,29 @@ public class PermissionActivity extends Activity {
     }
 
     /**
-     * Resolve a label that represents the remote calling app, typically the
-     * name of that app.
+     * Resolve a label that represents the app denoted by given {@link ApplicationInfo}.
      */
-    private @NonNull CharSequence resolveCallingLabel() throws NameNotFoundException {
-        final String callingPackage = getCallingPackage();
-        if (TextUtils.isEmpty(callingPackage)) {
-            throw new NameNotFoundException("Missing calling package");
-        }
-
+    private @NonNull CharSequence resolveAppLabel(final ApplicationInfo ai)
+            throws NameNotFoundException {
         final PackageManager pm = getPackageManager();
-        final CharSequence callingLabel = pm
-                .getApplicationLabel(pm.getApplicationInfo(callingPackage, 0));
+        final CharSequence callingLabel = pm.getApplicationLabel(ai);
         if (TextUtils.isEmpty(callingLabel)) {
             throw new NameNotFoundException("Missing calling package");
         }
 
         return callingLabel;
+    }
+
+    /**
+     * Resolve the application info of the calling app.
+     */
+    private @NonNull ApplicationInfo resolveCallingAppInfo() throws NameNotFoundException {
+        final String callingPackage = getCallingPackage();
+        if (TextUtils.isEmpty(callingPackage)) {
+            throw new NameNotFoundException("Missing calling package");
+        }
+
+        return getPackageManager().getApplicationInfo(callingPackage, 0);
     }
 
     private @NonNull String resolveVerb() {

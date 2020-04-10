@@ -50,7 +50,9 @@ import android.util.Log;
 import android.util.Size;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.accessibility.AccessibilityEvent;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -64,6 +66,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -88,6 +91,8 @@ public class PermissionActivity extends Activity {
     private String verb;
     private String data;
     private String volumeName;
+
+    private TextView titleView;
 
     private static final String VERB_WRITE = "write";
     private static final String VERB_TRASH = "trash";
@@ -159,6 +164,12 @@ public class PermissionActivity extends Activity {
         final WindowManager.LayoutParams params = dialog.getWindow().getAttributes();
         params.width = getResources().getDimensionPixelSize(R.dimen.permission_dialog_width);
         dialog.getWindow().setAttributes(params);
+
+        // Hunt around to find the title of our newly created dialog so we can
+        // adjust accessibility focus once descriptions have been loaded
+        titleView = (TextView) findViewByPredicate(dialog.getWindow().getDecorView(), (view) -> {
+            return (view instanceof TextView) && view.isImportantForAccessibility();
+        });
     }
 
     private void onPositiveAction(DialogInterface dialog, int which) {
@@ -361,6 +372,27 @@ public class PermissionActivity extends Activity {
     }
 
     /**
+     * Recursively walk the given view hierarchy looking for the first
+     * {@link View} which matches the given predicate.
+     */
+    private static @Nullable View findViewByPredicate(@NonNull View root,
+            @NonNull Predicate<View> predicate) {
+        if (predicate.test(root)) {
+            return root;
+        }
+        if (root instanceof ViewGroup) {
+            final ViewGroup group = (ViewGroup) root;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                final View res = findViewByPredicate(group.getChildAt(i), predicate);
+                if (res != null) {
+                    return res;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * Task that will load a set of {@link Description} to be eventually
      * displayed in the body of the dialog.
      */
@@ -423,6 +455,11 @@ public class PermissionActivity extends Activity {
             } else {
                 bindAsText(results);
             }
+
+            // This is pretty hacky, but somehow our dynamic loading of content
+            // can confuse accessibility focus, so refocus on the actual dialog
+            // title to announce ourselves properly
+            titleView.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED);
         }
 
         /**

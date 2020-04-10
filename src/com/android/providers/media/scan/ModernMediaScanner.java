@@ -758,13 +758,12 @@ public class ModernMediaScanner implements MediaScanner {
      */
     private static void withGenericValues(ContentProviderOperation.Builder op,
             File file, BasicFileAttributes attrs, String mimeType) {
-        op.withValue(FileColumns.MEDIA_TYPE, MimeUtils.resolveMediaType(mimeType));
+        withOptionalMimeType(op, Optional.ofNullable(mimeType));
 
         op.withValue(MediaColumns.DATA, file.getAbsolutePath());
         op.withValue(MediaColumns.SIZE, attrs.size());
         op.withValue(MediaColumns.DATE_MODIFIED, lastModifiedTime(file, attrs));
         op.withValue(MediaColumns.DATE_TAKEN, null);
-        op.withValue(MediaColumns.MIME_TYPE, mimeType);
         op.withValue(MediaColumns.IS_DRM, 0);
         op.withValue(MediaColumns.WIDTH, null);
         op.withValue(MediaColumns.HEIGHT, null);
@@ -799,11 +798,11 @@ public class ModernMediaScanner implements MediaScanner {
      */
     private static void withRetrieverValues(ContentProviderOperation.Builder op,
             MediaMetadataRetriever mmr, String mimeType) {
-        withOptionalValue(op, MediaColumns.DATE_TAKEN,
-                parseOptionalDate(mmr.extractMetadata(METADATA_KEY_DATE)));
-        withOptionalValue(op, MediaColumns.MIME_TYPE,
+        withOptionalMimeType(op,
                 parseOptionalMimeType(mimeType, mmr.extractMetadata(METADATA_KEY_MIMETYPE)));
 
+        withOptionalValue(op, MediaColumns.DATE_TAKEN,
+                parseOptionalDate(mmr.extractMetadata(METADATA_KEY_DATE)));
         withOptionalValue(op, MediaColumns.CD_TRACK_NUMBER,
                 parseOptional(mmr.extractMetadata(METADATA_KEY_CD_TRACK_NUMBER)));
         withOptionalValue(op, MediaColumns.ALBUM,
@@ -845,8 +844,9 @@ public class ModernMediaScanner implements MediaScanner {
      */
     private static void withXmpValues(ContentProviderOperation.Builder op,
             XmpInterface xmp, String mimeType) {
-        withOptionalValue(op, MediaColumns.MIME_TYPE,
+        withOptionalMimeType(op,
                 parseOptionalMimeType(mimeType, xmp.getFormat()));
+
         op.withValue(MediaColumns.DOCUMENT_ID, xmp.getDocumentId());
         op.withValue(MediaColumns.INSTANCE_ID, xmp.getInstanceId());
         op.withValue(MediaColumns.ORIGINAL_DOCUMENT_ID, xmp.getOriginalDocumentId());
@@ -857,10 +857,29 @@ public class ModernMediaScanner implements MediaScanner {
      * Overwrite a value in the given {@link ContentProviderOperation}, but only
      * when the given {@link Optional} value is present.
      */
-    private static void withOptionalValue(ContentProviderOperation.Builder op,
-            String key, Optional<?> value) {
+    private static void withOptionalValue(@NonNull ContentProviderOperation.Builder op,
+            @NonNull String key, @NonNull Optional<?> value) {
         if (value.isPresent()) {
             op.withValue(key, value.get());
+        }
+    }
+
+    /**
+     * Overwrite the {@link MediaColumns#MIME_TYPE} and
+     * {@link FileColumns#MEDIA_TYPE} values in the given
+     * {@link ContentProviderOperation}, but only when the given
+     * {@link Optional} value is present.
+     *
+     * @param value An optional MIME type to apply to this operation.
+     */
+    private static void withOptionalMimeType(@NonNull ContentProviderOperation.Builder op,
+            @NonNull Optional<String> value) {
+        if (value.isPresent()) {
+            final String mimeType = value.get();
+            final int mediaType = MimeUtils.resolveMediaType(mimeType);
+
+            op.withValue(MediaColumns.MIME_TYPE, mimeType);
+            op.withValue(FileColumns.MEDIA_TYPE, mediaType);
         }
     }
 
@@ -870,9 +889,7 @@ public class ModernMediaScanner implements MediaScanner {
         withGenericValues(op, file, attrs, mimeType);
 
         try {
-            op.withValue(FileColumns.MEDIA_TYPE, 0);
             op.withValue(FileColumns.FORMAT, MtpConstants.FORMAT_ASSOCIATION);
-            op.withValue(FileColumns.MIME_TYPE, null);
         } catch (Exception e) {
             logTroubleScanning(file, e);
         }

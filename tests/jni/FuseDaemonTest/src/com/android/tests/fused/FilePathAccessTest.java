@@ -777,7 +777,7 @@ public class FilePathAccessTest {
                     ParcelFileDescriptor.MODE_READ_WRITE);
             ParcelFileDescriptor writePfd = openWithMediaProvider(file, "rw");
 
-            assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
+            assertRWR(readPfd, writePfd);
             assertUpperFsFd(writePfd); // With cache
         } finally {
             file.delete();
@@ -796,7 +796,7 @@ public class FilePathAccessTest {
             ParcelFileDescriptor readPfd = ParcelFileDescriptor.open(file,
                     ParcelFileDescriptor.MODE_READ_WRITE);
 
-            assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
+            assertRWR(readPfd, writePfd);
             assertLowerFsFd(writePfd);
         } finally {
             file.delete();
@@ -815,7 +815,7 @@ public class FilePathAccessTest {
                     ParcelFileDescriptor.MODE_READ_WRITE);
             ParcelFileDescriptor readPfd = openWithMediaProvider(file, "rw");
 
-            assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
+            assertRWR(readPfd, writePfd);
             assertUpperFsFd(readPfd); // With cache
         } finally {
             file.delete();
@@ -834,7 +834,7 @@ public class FilePathAccessTest {
             ParcelFileDescriptor writePfd = ParcelFileDescriptor.open(file,
                     ParcelFileDescriptor.MODE_READ_WRITE);
 
-            assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
+            assertRWR(readPfd, writePfd);
             assertLowerFsFd(readPfd);
         } finally {
             file.delete();
@@ -854,7 +854,7 @@ public class FilePathAccessTest {
             ParcelFileDescriptor writePfd = openWithMediaProvider(file, "w");
             ParcelFileDescriptor readPfd = openWithMediaProvider(file, "rw");
 
-            assertRWR(readPfd.getFileDescriptor(), writePfd.getFileDescriptor());
+            assertRWR(readPfd, writePfd);
             assertLowerFsFd(writePfd);
             assertUpperFsFd(readPfd); // Without cache
         } finally {
@@ -878,8 +878,40 @@ public class FilePathAccessTest {
             ParcelFileDescriptor readPfd = ParcelFileDescriptor.open(file,
                     ParcelFileDescriptor.MODE_READ_WRITE);
 
-            assertRWR(readPfd.getFileDescriptor(), writePfdDup.getFileDescriptor());
+            assertRWR(readPfd, writePfdDup);
             assertLowerFsFd(writePfdDup);
+        } finally {
+            file.delete();
+        }
+    }
+
+    @Test
+    public void testOpenContentResolverClose() throws Exception {
+        String displayName = "open_content_resolver_close.jpg";
+        File file = new File(DCIM_DIR, displayName);
+
+        try {
+            byte[] readBuffer = new byte[10];
+            byte[] writeBuffer = new byte[10];
+            Arrays.fill(writeBuffer, (byte) 1);
+
+            assertThat(file.createNewFile()).isTrue();
+
+            // Lower fs open and write
+            ParcelFileDescriptor writePfd = openWithMediaProvider(file, "rw");
+            Os.pwrite(writePfd.getFileDescriptor(), writeBuffer, 0, 10, 0);
+
+            // Close so upper fs open will not use direct_io
+            writePfd.close();
+
+            // Upper fs open and read without direct_io
+            ParcelFileDescriptor readPfd = ParcelFileDescriptor.open(file,
+                    ParcelFileDescriptor.MODE_READ_WRITE);
+            Os.pread(readPfd.getFileDescriptor(), readBuffer, 0, 10, 0);
+
+            // Last write on lower fs is visible via upper fs
+            assertThat(readBuffer).isEqualTo(writeBuffer);
+            assertThat(readPfd.getStatSize()).isEqualTo(writeBuffer.length);
         } finally {
             file.delete();
         }
@@ -1819,7 +1851,11 @@ public class FilePathAccessTest {
      * underlying file on disk but may be derived from different mount points and in that case
      * have separate VFS caches.
      */
-    private void assertRWR(FileDescriptor readFd, FileDescriptor writeFd) throws Exception {
+    private void assertRWR(ParcelFileDescriptor readPfd, ParcelFileDescriptor writePfd)
+            throws Exception {
+        FileDescriptor readFd = readPfd.getFileDescriptor();
+        FileDescriptor writeFd = writePfd.getFileDescriptor();
+
         byte[] readBuffer = new byte[10];
         byte[] writeBuffer = new byte[10];
         Arrays.fill(writeBuffer, (byte) 1);
@@ -1840,6 +1876,7 @@ public class FilePathAccessTest {
 
         // Assert that the last write is indeed visible via readFd
         assertThat(readBuffer).isEqualTo(writeBuffer);
+        assertThat(readPfd.getStatSize()).isEqualTo(writePfd.getStatSize());
     }
 
     private void assertLowerFsFd(ParcelFileDescriptor pfd) throws Exception {

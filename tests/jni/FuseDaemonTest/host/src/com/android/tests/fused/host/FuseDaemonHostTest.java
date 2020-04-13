@@ -159,6 +159,7 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
         runDeviceTest("testOpenContentResolverDup");
         runDeviceTest("testContentResolverDelete");
         runDeviceTest("testContentResolverUpdate");
+        runDeviceTest("testOpenContentResolverClose");
     }
 
     @Test

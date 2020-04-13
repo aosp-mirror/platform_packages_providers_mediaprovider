@@ -5454,6 +5454,16 @@ public class MediaProvider extends ContentProvider {
                     }
                 } else {
                     Log.i(TAG, "Using lower FS for " + filePath);
+                    if (forWrite) {
+                        // When opening for write on the lower filesystem, invalidate the VFS dentry
+                        // so subsequent open/getattr calls will return correctly.
+                        //
+                        // A 'dirty' dentry with write back cache enabled can cause the kernel to
+                        // ignore file attributes or even see stale page cache data when the lower
+                        // filesystem has been modified outside of the FUSE driver
+                        invalidateFuseDentry(file);
+                    }
+
                     pfd = lowerFsFd;
                 }
             }

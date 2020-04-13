@@ -4845,6 +4845,19 @@ public class MediaProvider extends ContentProvider {
         if (initialValues.containsKey(FileColumns.DATA)) {
             // If we're changing paths, invalidate any thumbnails
             triggerInvalidate = true;
+
+            // If the new file exists, trigger a scan to adjust any metadata
+            // that might be derived from the path
+            final String data = initialValues.getAsString(FileColumns.DATA);
+            if (!TextUtils.isEmpty(data) && new File(data).exists()) {
+                triggerScan = true;
+            }
+        }
+
+        // If we're already doing this update from an internal scan, no need to
+        // kick off another no-op scan
+        if (isCallingPackageSystem()) {
+            triggerScan = false;
         }
 
         // Since the update mutation may prevent us from matching items after

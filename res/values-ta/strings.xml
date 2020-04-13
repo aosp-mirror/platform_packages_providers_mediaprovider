@@ -58,36 +58,36 @@
       <item quantity="one">இந்த ஃபைலில் மாற்றங்களைச் செய்ய <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ஆடியோ ஃபைல்களைக் குப்பைக்கு நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
-      <item quantity="one">இந்த ஆடியோ ஃபைலைக் குப்பைக்கு நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ஆடியோ ஃபைல்களை நீக்கியவற்றிற்கு நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இந்த ஆடியோ ஃபைலை நீக்கியவற்றிற்கு நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
     </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> வீடியோக்களைக் குப்பைக்கு நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
-      <item quantity="one">இந்த வீடியோவைக் குப்பைக்கு நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> வீடியோக்களை நீக்கியவற்றிற்கு நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இந்த வீடியோவை நீக்கியவற்றிற்கு நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> படங்களைக் குப்பைக்கு நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
-      <item quantity="one">இந்தப் படத்தைக் குப்பைக்கு நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> படங்களை நீக்கியவற்றிற்கு நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இந்தப் படத்தை நீக்கியவற்றிற்கு நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
     </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ஃபைல்களைக் குப்பைக்கு நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
-      <item quantity="one">இந்த ஃபைலைக் குப்பைக்கு நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ஃபைல்களை நீக்கியவற்றிற்கு நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இந்த ஃபைலை நீக்கியவற்றிற்கு நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ஆடியோ ஃபைல்களைக் குப்பையிலிருந்து நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
-      <item quantity="one">இந்த ஆடியோ ஃபைலைக் குப்பையிலிருந்து நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ஆடியோ ஃபைல்களை நீக்கியவற்றில் இருந்து நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இந்த ஆடியோ ஃபைலை நீக்கியவற்றில் இருந்து நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
     </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> வீடியோக்களைக் குப்பையிலிருந்து நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
-      <item quantity="one">இந்த வீடியோவைக் குப்பையிலிருந்து நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> வீடியோக்களை நீக்கியவற்றில் இருந்து நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இந்த வீடியோவை நீக்கியவற்றில் இருந்து நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> படங்களைக் குப்பையிலிருந்து நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
-      <item quantity="one">இந்தப் படத்தைக் குப்பையிலிருந்து நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> படங்களை நீக்கியவற்றில் இருந்து நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இந்தப் படத்தை நீக்கியவற்றில் இருந்து நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
     </plurals>
     <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
-      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ஃபைல்களைக் குப்பையிலிருந்து நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
-      <item quantity="one">இந்த ஃபைலைக் குப்பையிலிருந்து நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ஃபைல்களை நீக்கியவற்றில் இருந்து நகர்த்த <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
+      <item quantity="one">இந்த ஃபைலை நீக்கியவற்றில் இருந்து நகர்த்த <xliff:g id="APP_NAME_0">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ஆடியோ ஃபைல்களை நீக்க <xliff:g id="APP_NAME_1">^1</xliff:g> ஆப்ஸை அனுமதிக்கவா?</item>

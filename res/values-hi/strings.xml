@@ -42,7 +42,7 @@
     <string name="allow" msgid="8885707816848569619">"अनुमति दें"</string>
     <string name="deny" msgid="6040983710442068936">"अनुमति न दें"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
-      <item quantity="one">क्या आप <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> ऑडियो फ़ाइलों में बदलाव करने की अनुमति देना चाहते हैं?</item>
+      <item quantity="one">क्या आप <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> ऑडियो फ़ाइल में बदलाव करने की अनुमति देना चाहते हैं?</item>
       <item quantity="other">क्या आप <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> ऑडियो फ़ाइलों में बदलाव करने की अनुमति देना चाहते हैं?</item>
     </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
@@ -58,7 +58,7 @@
       <item quantity="other">क्या आप <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> आइटम में बदलाव करने की अनुमति देना चाहते हैं?</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
-      <item quantity="one">क्या आप <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> ऑडियो फ़ाइलें, ट्रैश में मूव करने की अनुमति देना चाहते हैं?</item>
+      <item quantity="one">क्या आप <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> ऑडियो फ़ाइल, ट्रैश में मूव करने की अनुमति देना चाहते हैं?</item>
       <item quantity="other">क्या आप <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> ऑडियो फ़ाइलें, ट्रैश में मूव करने की अनुमति देना चाहते हैं?</item>
     </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
@@ -74,7 +74,7 @@
       <item quantity="other">क्या आप <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> आइटम, ट्रैश में मूव करने की अनुमति देना चाहते हैं?</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
-      <item quantity="one">क्या आप <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> ऑडियो फ़ाइलें, ट्रैश से बाहर निकालने की अनुमति देना चाहते हैं?</item>
+      <item quantity="one">क्या आप <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> ऑडियो फ़ाइल, ट्रैश से बाहर निकालने की अनुमति देना चाहते हैं?</item>
       <item quantity="other">क्या आप <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> ऑडियो फ़ाइलें, ट्रैश से बाहर निकालने की अनुमति देना चाहते हैं?</item>
     </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
@@ -90,7 +90,7 @@
       <item quantity="other">क्या आप <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> आइटम, ट्रैश से बाहर निकालने की अनुमति देना चाहते हैं?</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
-      <item quantity="one">क्या आप <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> ऑडियो फ़ाइलें मिटाने की अनुमति देना चाहते हैं?</item>
+      <item quantity="one">क्या आप <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> ऑडियो फ़ाइल मिटाने की अनुमति देना चाहते हैं?</item>
       <item quantity="other">क्या आप <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> ऑडियो फ़ाइलें मिटाने की अनुमति देना चाहते हैं?</item>
     </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">

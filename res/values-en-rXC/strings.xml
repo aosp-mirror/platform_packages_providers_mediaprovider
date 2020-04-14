@@ -29,101 +29,80 @@
     <string name="permission_required_action" msgid="706370952366113539">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‎‏‎‎‏‏‏‎‎‏‏‎‏‏‎‎‎‏‎‎‎‏‎‏‎‎‎‏‏‎‏‏‏‏‏‏‏‎‏‏‎‏‏‏‏‏‏‎‎‎‎‏‏‎‎‎‎‎‎‏‏‎Continue‎‏‎‎‏‎"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‏‏‎‏‏‎‏‏‎‏‎‎‎‏‏‎‏‎‏‏‏‎‎‏‎‏‎‏‏‎‎‏‎‎‎‏‎‎‎‎‏‎‏‎‏‏‎‎‎‎‏‎‎‏‏‏‏‏‏‏‏‏‎Allow‎‏‎‎‏‎"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‏‎‏‎‏‏‏‏‎‏‎‎‏‎‏‏‎‎‏‎‎‎‏‎‏‎‎‏‏‎‎‏‏‏‎‏‎‎‎‎‎‎‎‏‏‎‏‎‎‏‏‏‎‎‎‏‏‏‏‎‏‎Deny‎‏‎‎‏‎"</string>
-    <!-- no translation found for permission_more_thumb (3530243737498196228) -->
+    <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
+      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‏‏‏‎‎‏‏‏‏‎‎‏‏‏‏‎‎‏‏‎‎‏‏‎‎‏‎‎‎‏‏‎‏‏‎‏‎‏‎‎‏‏‎‏‎‏‏‏‏‎‎‏‏‎‎‎‎‏‎‏‏‎+‎‏‎‎‏‏‎<xliff:g id="COUNT_1">^1</xliff:g>‎‏‎‎‏‏‏‎‎‏‎‎‏‎</item>
+      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‏‏‏‎‎‏‏‏‏‎‎‏‏‏‏‎‎‏‏‎‎‏‏‎‎‏‎‎‎‏‏‎‏‏‎‏‎‏‎‎‏‏‎‏‎‏‏‏‏‎‎‏‏‎‎‎‎‏‎‏‏‎+‎‏‎‎‏‏‎<xliff:g id="COUNT_0">^1</xliff:g>‎‏‎‎‏‏‏‎‎‏‎‎‏‎</item>
+    </plurals>
     <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
       <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‎‎‏‎‏‎‎‏‏‎‎‏‎‎‏‏‎‎‎‎‎‏‏‏‎‏‎‎‎‎‎‏‏‏‎‎‏‎‎‏‏‎‎‎‏‏‏‏‎‏‏‏‏‎‎‏‏‏‏‎‎‎Plus ‎‏‎‎‏‏‎<xliff:g id="COUNT_1">^1</xliff:g>‎‏‎‎‏‏‏‎ additional items‎‏‎‎‏‎</item>
       <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‎‎‏‎‏‎‎‏‏‎‎‏‎‎‏‏‎‎‎‎‎‏‏‏‎‏‎‎‎‎‎‏‏‏‎‎‏‎‎‏‏‎‎‎‏‏‏‏‎‏‏‏‏‎‎‏‏‏‏‎‎‎Plus ‎‏‎‎‏‏‎<xliff:g id="COUNT_0">^1</xliff:g>‎‏‎‎‏‏‏‎ additional item‎‏‎‎‏‎</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="543177167845854283">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‎‏‏‏‏‏‏‎‎‎‏‎‎‏‏‏‎‎‎‎‎‎‏‏‎‎‎‎‎‏‏‎‎‏‏‎‏‏‏‎‎‎‏‏‏‎‎‎‎‎‏‏‎‎‎‏‎‎‏‎‏‏‎Clear app cache with ‎‏‎‎‏‏‎<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>‎‏‎‎‏‏‏‎?‎‏‎‎‏‎"</string>
-    <string name="cache_clearing_dialog_text" msgid="425995541409682360">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‎‏‏‏‎‏‏‏‏‎‏‎‎‏‎‏‏‏‎‎‎‎‏‎‏‏‎‎‎‎‎‎‎‏‏‎‎‏‏‎‎‏‏‏‏‏‏‏‎‏‎‎‏‏‏‎‏‏‏‎‎‎‎‎‏‎‎‏‏‎<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>‎‏‎‎‏‏‏‎ would like to clear some temporary files. Accepting may increase battery or data use.‎‏‎‎‏‎"</string>
+    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‎‎‎‎‎‏‏‎‏‏‎‎‏‎‏‏‎‎‏‎‏‏‏‎‎‏‏‎‎‏‎‎‎‎‎‏‎‎‏‎‎‏‏‏‏‏‎‏‏‎‏‎‏‎‎‎‎‎‏‏‎‎Clear temporary app files?‎‏‎‎‏‎"</string>
+    <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‎‎‎‎‏‏‏‏‏‎‎‏‎‎‏‎‎‏‎‎‏‏‎‏‏‏‎‏‏‎‏‎‏‏‏‎‏‎‎‎‎‏‏‏‎‏‎‏‎‎‎‏‏‎‏‎‏‏‏‎‏‎‎‏‎‎‏‏‎<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>‎‏‎‎‏‏‏‎ would like to clear some temporary files. This may result in an increased usage of battery or cellular data.‎‏‎‎‏‎"</string>
     <string name="allow" msgid="8885707816848569619">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‏‏‎‏‏‎‏‎‏‎‎‎‎‎‏‏‎‎‎‎‎‎‎‏‎‏‏‏‎‎‏‎‏‎‎‎‏‎‎‏‎‏‎‏‏‏‎‏‏‎‏‎‏‎‎‎‏‎‎‏‏‎Allow‎‏‎‎‏‎"</string>
     <string name="deny" msgid="6040983710442068936">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‏‎‎‏‏‏‏‎‏‎‏‎‏‏‏‏‎‎‎‏‎‏‎‏‎‏‏‎‏‏‎‎‏‏‎‏‎‏‏‎‏‎‎‏‎‎‎‎‏‏‎‏‏‏‏‎‎‏‎‎‎‎Deny‎‏‎‎‏‎"</string>
-    <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
-      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‏‎‎‎‏‎‎‏‎‎‎‎‎‏‎‎‏‏‎‏‎‎‎‎‎‎‎‎‏‏‎‎‎‏‏‎‏‎‏‏‎‏‎‏‏‏‏‏‏‎‏‏‎‏‏‏‏‏‎‎‏‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ change ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ audio files?‎‏‎‎‏‎</item>
-      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‏‎‎‎‏‎‎‏‎‎‎‎‎‏‎‎‏‏‎‏‎‎‎‎‎‎‎‎‏‏‎‎‎‏‏‎‏‎‏‏‎‏‎‏‏‏‏‏‏‎‏‏‎‏‏‏‏‏‎‎‏‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ change this audio file?‎‏‎‎‏‎</item>
+    <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
+      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‏‏‎‏‏‏‎‏‏‎‏‏‏‏‎‎‏‎‏‏‎‎‏‏‏‎‏‏‎‎‏‎‏‎‏‎‏‎‎‎‏‏‎‏‎‏‎‏‎‏‏‏‎‏‎‎‎‎‏‏‎‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ to modify ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ audio files?‎‏‎‎‏‎</item>
+      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‏‏‎‏‏‏‎‏‏‎‏‏‏‏‎‎‏‎‏‏‎‎‏‏‏‎‏‏‎‎‏‎‏‎‏‎‏‎‎‎‏‏‎‏‎‏‎‏‎‏‏‏‎‏‎‎‎‎‏‏‎‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ to modify this audio file?‎‏‎‎‏‎</item>
     </plurals>
-    <plurals name="permission_write_video" formatted="false" msgid="8695335317588947410">
-      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‏‏‎‎‎‏‎‏‎‏‏‎‎‎‎‎‎‏‎‎‏‎‏‏‎‎‏‏‎‏‏‎‎‎‏‏‏‏‏‎‎‏‏‎‎‎‎‏‏‎‎‎‏‏‏‎‏‎‎‏‎‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ change ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ videos?‎‏‎‎‏‎</item>
-      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‏‏‎‎‎‏‎‏‎‏‏‎‎‎‎‎‎‏‎‎‏‎‏‏‎‎‏‏‎‏‏‎‎‎‏‏‏‏‏‎‎‏‏‎‎‎‎‏‏‎‎‎‏‏‏‎‏‎‎‏‎‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ change this video?‎‏‎‎‏‎</item>
+    <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
+      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‎‏‏‏‏‎‎‏‏‏‏‎‏‎‎‏‎‏‎‏‏‏‏‎‎‎‎‏‏‏‎‎‏‏‏‏‎‏‎‎‎‏‏‎‎‎‎‏‎‏‏‎‏‏‏‏‏‏‏‎‎‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ to modify ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ videos?‎‏‎‎‏‎</item>
+      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‎‏‏‏‏‎‎‏‏‏‏‎‏‎‎‏‎‏‎‏‏‏‏‎‎‎‎‏‏‏‎‎‏‏‏‏‎‏‎‎‎‏‏‎‎‎‎‏‎‏‏‎‏‏‏‏‏‏‏‎‎‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ to modify this video?‎‏‎‎‏‎</item>
     </plurals>
-    <plurals name="permission_write_image" formatted="false" msgid="9032317900030650266">
-      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‏‏‏‎‏‎‏‎‏‏‎‎‏‎‎‏‏‏‏‎‏‎‏‎‎‎‏‏‎‎‏‎‏‏‎‎‏‏‎‏‏‏‎‏‎‏‎‏‎‎‏‏‏‏‎‎‏‏‎‏‎‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ change ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ photos?‎‏‎‎‏‎</item>
-      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‏‏‏‎‏‎‏‎‏‏‎‎‏‎‎‏‏‏‏‎‏‎‏‎‎‎‏‏‎‎‏‎‏‏‎‎‏‏‎‏‏‏‎‏‎‏‎‏‎‎‏‏‏‏‎‎‏‏‎‏‎‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ change this photo?‎‏‎‎‏‎</item>
+    <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
+      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‎‏‎‏‎‎‏‏‎‎‏‎‎‎‎‎‏‎‏‎‎‎‎‎‏‏‏‎‎‎‎‎‏‎‏‎‎‏‏‏‏‏‎‎‎‏‏‏‏‏‎‎‏‏‎‎‎‎‏‎‎‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ to modify ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ photos?‎‏‎‎‏‎</item>
+      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‎‏‎‏‎‎‏‏‎‎‏‎‎‎‎‎‏‎‏‎‎‎‎‎‏‏‏‎‎‎‎‎‏‎‏‎‎‏‏‏‏‏‎‎‎‏‏‏‏‏‎‎‏‏‎‎‎‎‏‎‎‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ to modify this photo?‎‏‎‎‏‎</item>
     </plurals>
-    <plurals name="permission_write_generic" formatted="false" msgid="3099002288826692797">
-      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‎‏‎‏‏‎‎‎‎‎‎‎‏‏‏‎‏‏‏‏‎‎‎‏‎‏‎‎‏‏‎‎‏‎‏‏‏‏‎‏‎‎‎‏‏‎‎‏‏‎‏‎‎‏‎‏‏‏‏‎‏‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ change ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ items?‎‏‎‎‏‎</item>
-      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‎‏‎‏‏‎‎‎‎‎‎‎‏‏‏‎‏‏‏‏‎‎‎‏‎‏‎‎‏‏‎‎‏‎‏‏‏‏‎‏‎‎‎‏‏‎‎‏‏‎‏‎‎‏‎‏‏‏‏‎‏‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ change this item?‎‏‎‎‏‎</item>
+    <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
+      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‎‏‏‎‏‎‏‏‎‎‎‎‏‏‏‏‏‏‏‎‎‏‏‎‎‎‎‏‎‎‎‎‎‏‎‎‎‎‏‏‏‏‎‎‎‏‎‏‎‏‎‏‏‏‏‏‎‎‎‏‏‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ to modify ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ items?‎‏‎‎‏‎</item>
+      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‎‏‏‎‏‎‏‏‎‎‎‎‏‏‏‏‏‏‏‎‎‏‏‎‎‎‎‏‎‎‎‎‎‏‎‎‎‎‏‏‏‏‎‎‎‏‎‏‎‏‎‏‏‏‏‏‎‎‎‏‏‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ to modify this item?‎‏‎‎‏‎</item>
     </plurals>
-    <string name="permission_write_grant" msgid="3160858917750790130">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‎‏‎‏‏‏‏‎‏‏‏‎‏‏‎‏‎‎‎‎‎‎‏‏‏‎‎‎‎‎‏‎‏‎‎‎‏‏‎‏‎‏‎‎‏‎‏‎‏‎‏‏‏‏‏‏‏‎‎‏‎‎Change‎‏‎‎‏‎"</string>
-    <string name="permission_write_deny" msgid="7090074081877311071">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‎‎‎‏‎‎‏‏‎‎‏‎‏‎‎‎‎‎‎‎‎‏‏‎‏‎‎‎‎‎‎‎‎‏‎‎‏‏‎‎‎‎‎‎‎‎‎‏‏‏‏‏‎‎‏‎‏‏‏‏‏‎Cancel‎‏‎‎‏‎"</string>
-    <plurals name="permission_trash_audio" formatted="false" msgid="6116371056718108592">
-      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‏‎‏‎‎‏‏‏‎‎‎‎‏‏‎‏‏‎‏‏‏‎‎‎‏‎‎‎‏‏‏‏‏‎‏‏‎‎‎‏‎‏‎‎‏‏‏‎‏‎‏‏‏‏‎‏‏‎‎‎‎‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ move ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ audio files to trash?‎‏‎‎‏‎</item>
-      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‏‎‏‎‎‏‏‏‎‎‎‎‏‏‎‏‏‎‏‏‏‎‎‎‏‎‎‎‏‏‏‏‏‎‏‏‎‎‎‏‎‏‎‎‏‏‏‎‏‎‏‏‏‏‎‏‏‎‎‎‎‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ move this audio file to trash?‎‏‎‎‏‎</item>
+    <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
+      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‏‏‎‏‏‏‎‎‏‏‏‏‎‏‏‏‎‏‎‎‏‏‎‎‎‎‏‎‎‏‏‎‎‎‎‎‏‏‏‎‎‏‏‎‎‎‎‏‎‎‎‏‎‎‎‎‏‏‏‏‏‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ to move ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ audio files to trash?‎‏‎‎‏‎</item>
+      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‏‏‎‏‏‏‎‎‏‏‏‏‎‏‏‏‎‏‎‎‏‏‎‎‎‎‏‎‎‏‏‎‎‎‎‎‏‏‏‎‎‏‏‎‎‎‎‏‎‎‎‏‎‎‎‎‏‏‏‏‏‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ to move this audio file to trash?‎‏‎‎‏‎</item>
     </plurals>
-    <plurals name="permission_trash_audio_info" formatted="false" msgid="5002847308948758655">
-      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‎‎‏‎‏‎‏‏‎‏‏‎‏‏‎‏‎‏‏‏‏‎‎‎‏‏‏‏‏‎‎‎‎‏‎‏‏‎‏‏‎‏‎‎‎‏‏‏‎‎‎‎‎‎‏‏‏‏‏‏‏‎These audio files will be permanently deleted after ‎‏‎‎‏‏‎<xliff:g id="DURATION_1">^3</xliff:g>‎‏‎‎‏‏‏‎ days‎‏‎‎‏‎</item>
-      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‎‎‏‎‏‎‏‏‎‏‏‎‏‏‎‏‎‏‏‏‏‎‎‎‏‏‏‏‏‎‎‎‎‏‎‏‏‎‏‏‎‏‎‎‎‏‏‏‎‎‎‎‎‎‏‏‏‏‏‏‏‎This audio file will be permanently deleted after ‎‏‎‎‏‏‎<xliff:g id="DURATION_0">^3</xliff:g>‎‏‎‎‏‏‏‎ days‎‏‎‎‏‎</item>
+    <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
+      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‎‎‎‎‎‏‏‎‏‏‎‎‏‎‏‏‎‎‎‎‎‎‎‏‏‏‏‏‎‏‏‏‎‎‎‎‏‎‎‏‎‏‏‏‎‏‏‏‎‏‎‏‎‏‎‏‎‏‏‏‎‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ to move ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ videos to trash?‎‏‎‎‏‎</item>
+      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‎‎‎‎‎‏‏‎‏‏‎‎‏‎‏‏‎‎‎‎‎‎‎‏‏‏‏‏‎‏‏‏‎‎‎‎‏‎‎‏‎‏‏‏‎‏‏‏‎‏‎‏‎‏‎‏‎‏‏‏‎‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ to move this video to trash?‎‏‎‎‏‎</item>
     </plurals>
-    <plurals name="permission_trash_video" formatted="false" msgid="7900111984425589714">
-      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‎‏‏‎‏‏‎‏‎‎‎‏‎‏‏‎‏‎‏‎‏‏‏‏‏‏‏‏‎‎‏‎‎‎‏‎‏‎‏‏‏‏‏‏‎‎‏‎‏‏‎‏‏‏‏‎‏‎‎‏‎‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ move ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ videos to trash?‎‏‎‎‏‎</item>
-      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‎‏‏‎‏‏‎‏‎‎‎‏‎‏‏‎‏‎‏‎‏‏‏‏‏‏‏‏‎‎‏‎‎‎‏‎‏‎‏‏‏‏‏‏‎‎‏‎‏‏‎‏‏‏‏‎‏‎‎‏‎‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ move this video to trash?‎‏‎‎‏‎</item>
+    <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
+      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‏‏‎‎‎‏‏‎‏‎‎‏‏‎‎‎‎‏‏‏‎‎‏‏‎‎‎‎‎‏‏‎‏‏‏‎‎‎‏‎‏‎‏‎‏‏‏‏‎‎‏‏‎‏‏‎‎‏‎‏‏‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ to move ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ photos to trash?‎‏‎‎‏‎</item>
+      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‏‏‎‎‎‏‏‎‏‎‎‏‏‎‎‎‎‏‏‏‎‎‏‏‎‎‎‎‎‏‏‎‏‏‏‎‎‎‏‎‏‎‏‎‏‏‏‏‎‎‏‏‎‏‏‎‎‏‎‏‏‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ to move this photo to trash?‎‏‎‎‏‎</item>
     </plurals>
-    <plurals name="permission_trash_video_info" formatted="false" msgid="4604871492287117394">
-      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‏‏‏‏‏‏‏‏‎‎‏‏‏‏‏‎‎‏‎‏‎‎‎‏‏‏‎‎‏‎‏‏‏‏‏‏‎‎‎‎‏‏‎‎‎‏‎‏‏‏‎‎‎‎‏‎‏‎‎‏‎‎These videos will be permanently deleted after ‎‏‎‎‏‏‎<xliff:g id="DURATION_1">^3</xliff:g>‎‏‎‎‏‏‏‎ days‎‏‎‎‏‎</item>
-      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‏‏‏‏‏‏‏‏‎‎‏‏‏‏‏‎‎‏‎‏‎‎‎‏‏‏‎‎‏‎‏‏‏‏‏‏‎‎‎‎‏‏‎‎‎‏‎‏‏‏‎‎‎‎‏‎‏‎‎‏‎‎This video will be permanently deleted after ‎‏‎‎‏‏‎<xliff:g id="DURATION_0">^3</xliff:g>‎‏‎‎‏‏‏‎ days‎‏‎‎‏‎</item>
+    <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
+      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‏‎‏‎‎‏‏‏‎‏‏‏‎‏‎‏‎‎‏‎‏‎‎‎‎‎‎‏‎‏‎‎‏‏‏‎‏‎‎‏‎‏‏‏‏‎‏‏‏‎‏‎‏‏‏‎‏‏‏‏‏‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ to move ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ items to trash?‎‏‎‎‏‎</item>
+      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‏‎‏‎‎‏‏‏‎‏‏‏‎‏‎‏‎‎‏‎‏‎‎‎‎‎‎‏‎‏‎‎‏‏‏‎‏‎‎‏‎‏‏‏‏‎‏‏‏‎‏‎‏‏‏‎‏‏‏‏‏‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ to move this item to trash?‎‏‎‎‏‎</item>
     </plurals>
-    <plurals name="permission_trash_image" formatted="false" msgid="9204660448046457869">
-      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‏‏‏‏‏‏‎‏‏‏‏‎‏‏‎‎‎‎‏‎‏‏‏‏‎‏‎‎‎‏‎‏‏‏‎‏‏‏‏‏‎‎‏‎‏‏‎‏‎‎‏‎‎‎‎‎‎‏‏‎‏‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ move ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ photos to trash?‎‏‎‎‏‎</item>
-      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‏‏‏‏‏‏‎‏‏‏‏‎‏‏‎‎‎‎‏‎‏‏‏‏‎‏‎‎‎‏‎‏‏‏‎‏‏‏‏‏‎‎‏‎‏‏‎‏‎‎‏‎‎‎‎‎‎‏‏‎‏‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ move this photo to trash?‎‏‎‎‏‎</item>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
+      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‎‏‏‎‎‎‎‏‎‏‏‏‎‎‏‎‏‏‎‎‏‎‎‎‏‏‎‏‏‏‎‎‏‏‏‎‏‏‎‏‎‏‎‎‎‏‎‎‏‎‎‎‎‏‎‏‏‎‎‎‏‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ to move ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ audio files out of trash?‎‏‎‎‏‎</item>
+      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‎‏‏‎‎‎‎‏‎‏‏‏‎‎‏‎‏‏‎‎‏‎‎‎‏‏‎‏‏‏‎‎‏‏‏‎‏‏‎‏‎‏‎‎‎‏‎‎‏‎‎‎‎‏‎‏‏‎‎‎‏‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ to move this audio file out of trash?‎‏‎‎‏‎</item>
     </plurals>
-    <plurals name="permission_trash_image_info" formatted="false" msgid="4214797662365755925">
-      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‏‏‎‏‎‎‏‏‏‏‏‎‏‏‏‏‏‏‎‎‎‎‎‏‎‎‏‎‎‏‎‎‏‏‎‎‏‎‏‏‏‎‏‎‏‎‎‏‎‏‎‏‎‎‎‎‏‎‏‎‏‎These photos will be permanently deleted after ‎‏‎‎‏‏‎<xliff:g id="DURATION_1">^3</xliff:g>‎‏‎‎‏‏‏‎ days‎‏‎‎‏‎</item>
-      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‏‏‎‏‎‎‏‏‏‏‏‎‏‏‏‏‏‏‎‎‎‎‎‏‎‎‏‎‎‏‎‎‏‏‎‎‏‎‏‏‏‎‏‎‏‎‎‏‎‏‎‏‎‎‎‎‏‎‏‎‏‎This photo will be permanently deleted after ‎‏‎‎‏‏‎<xliff:g id="DURATION_0">^3</xliff:g>‎‏‎‎‏‏‏‎ days‎‏‎‎‏‎</item>
+    <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
+      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‎‏‏‏‎‎‏‎‎‏‏‏‏‎‏‎‏‎‏‏‏‎‎‎‏‎‎‎‏‏‎‎‏‎‎‏‎‏‎‏‎‏‎‏‏‎‎‏‏‏‏‏‎‏‎‎‎‎‏‏‏‏‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ to move ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ videos out of trash?‎‏‎‎‏‎</item>
+      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‎‏‏‏‎‎‏‎‎‏‏‏‏‎‏‎‏‎‏‏‏‎‎‎‏‎‎‎‏‏‎‎‏‎‎‏‎‏‎‏‎‏‎‏‏‎‎‏‏‏‏‏‎‏‎‎‎‎‏‏‏‏‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ to move this video out of trash?‎‏‎‎‏‎</item>
     </plurals>
-    <plurals name="permission_trash_generic" formatted="false" msgid="427752775725644743">
-      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‎‏‏‏‎‏‏‏‏‎‏‏‏‏‏‎‏‎‏‏‏‎‏‏‏‎‎‎‏‎‎‎‎‏‏‎‎‎‏‏‎‏‎‎‎‎‎‏‏‏‏‎‏‏‏‏‎‎‎‏‏‏‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ move ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ items to trash?‎‏‎‎‏‎</item>
-      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‎‏‏‏‎‏‏‏‏‎‏‏‏‏‏‎‏‎‏‏‏‎‏‏‏‎‎‎‏‎‎‎‎‏‏‎‎‎‏‏‎‏‎‎‎‎‎‏‏‏‏‎‏‏‏‏‎‎‎‏‏‏‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ move this item to trash?‎‏‎‎‏‎</item>
+    <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
+      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‎‎‎‎‏‎‏‏‏‏‎‏‎‏‎‎‎‎‎‏‏‏‎‏‏‎‏‎‎‎‎‏‎‏‏‏‎‎‏‏‎‎‏‏‏‎‏‏‏‏‎‎‏‏‎‏‏‎‎‎‎‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ to move ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ photos out of trash?‎‏‎‎‏‎</item>
+      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‎‎‎‎‏‎‏‏‏‏‎‏‎‏‎‎‎‎‎‏‏‏‎‏‏‎‏‎‎‎‎‏‎‏‏‏‎‎‏‏‎‎‏‏‏‎‏‏‏‏‎‎‏‏‎‏‏‎‎‎‎‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ to move this photo out of trash?‎‏‎‎‏‎</item>
     </plurals>
-    <plurals name="permission_trash_generic_info" formatted="false" msgid="7932965324027540546">
-      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‎‏‏‏‎‎‎‎‏‎‏‏‏‏‎‎‎‏‏‎‏‏‏‏‎‏‏‏‎‎‏‏‏‏‎‏‎‎‎‏‎‎‏‏‏‎‎‏‏‎‏‎‎‎‏‎‎‎‎‏‎‎These items will be permanently deleted after ‎‏‎‎‏‏‎<xliff:g id="DURATION_1">^3</xliff:g>‎‏‎‎‏‏‏‎ days‎‏‎‎‏‎</item>
-      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‎‏‏‏‎‎‎‎‏‎‏‏‏‏‎‎‎‏‏‎‏‏‏‏‎‏‏‏‎‎‏‏‏‏‎‏‎‎‎‏‎‎‏‏‏‎‎‏‏‎‏‎‎‎‏‎‎‎‎‏‎‎This item will be permanently deleted after ‎‏‎‎‏‏‎<xliff:g id="DURATION_0">^3</xliff:g>‎‏‎‎‏‏‏‎ days‎‏‎‎‏‎</item>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
+      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‏‏‏‏‏‎‏‏‎‎‎‎‏‎‎‏‎‎‏‏‎‏‎‏‏‏‎‏‏‏‎‏‎‎‏‏‎‎‎‎‏‎‏‎‎‏‎‏‎‎‏‎‏‏‎‏‎‎‏‏‎‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ to move ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ items out of trash?‎‏‎‎‏‎</item>
+      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‏‏‏‏‏‎‏‏‎‎‎‎‏‎‎‏‎‎‏‏‎‏‎‏‏‏‎‏‏‏‎‏‎‎‏‏‎‎‎‎‏‎‏‎‎‏‎‏‎‎‏‎‏‏‎‏‎‎‏‏‎‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ to move this item out of trash?‎‏‎‎‏‎</item>
     </plurals>
-    <string name="permission_trash_grant" msgid="2279489962040272178">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‏‏‏‏‏‏‏‎‏‎‎‎‏‎‎‏‏‎‎‎‎‎‎‎‎‎‏‎‏‏‎‎‎‏‎‎‎‎‎‏‏‏‏‎‏‎‏‎‏‎‎‏‎‏‎‎‏‏‎‎‏‎‎Move to trash‎‏‎‎‏‎"</string>
-    <string name="permission_trash_deny" msgid="2447949475239137483">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‎‎‎‎‏‏‏‏‏‏‎‎‎‏‏‎‏‏‏‎‏‎‎‎‏‎‎‏‏‏‏‏‏‎‎‏‏‏‎‏‏‏‎‏‏‏‎‎‏‎‎‎‎‏‏‎‎‏‎‏‏‎Cancel‎‏‎‎‏‎"</string>
-    <plurals name="permission_untrash_audio" formatted="false" msgid="5716379492864435914">
-      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‎‏‏‏‏‎‏‎‏‎‏‎‎‏‎‏‎‏‎‎‎‏‏‎‏‏‏‎‎‏‎‏‏‎‎‎‏‏‎‎‎‎‎‏‏‎‎‏‎‎‏‏‎‏‏‎‎‏‎‏‎‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ move ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ audio files out of trash?‎‏‎‎‏‎</item>
-      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‎‏‏‏‏‎‏‎‏‎‏‎‎‏‎‏‎‏‎‎‎‏‏‎‏‏‏‎‎‏‎‏‏‎‎‎‏‏‎‎‎‎‎‏‏‎‎‏‎‎‏‏‎‏‏‎‎‏‎‏‎‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ move this audio file out of trash?‎‏‎‎‏‎</item>
+    <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
+      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‏‏‏‏‏‎‎‎‎‏‎‏‎‏‏‏‎‏‏‎‏‏‏‎‎‎‏‏‎‏‎‏‏‏‎‏‎‏‏‏‎‎‏‎‏‏‎‏‏‎‏‏‎‏‏‎‎‏‏‏‏‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ to delete ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ audio files?‎‏‎‎‏‎</item>
+      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‏‏‏‏‏‎‎‎‎‏‎‏‎‏‏‏‎‏‏‎‏‏‏‎‎‎‏‏‎‏‎‏‏‏‎‏‎‏‏‏‎‎‏‎‏‏‎‏‏‎‏‏‎‏‏‎‎‏‏‏‏‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ to delete this audio file?‎‏‎‎‏‎</item>
     </plurals>
-    <plurals name="permission_untrash_video" formatted="false" msgid="4554487646802678525">
-      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‏‏‏‏‏‎‎‏‏‎‏‎‎‏‏‎‎‏‎‏‎‎‏‏‎‎‎‏‎‎‏‎‏‎‎‎‏‏‎‎‏‎‏‎‎‎‎‎‏‎‎‏‎‏‏‏‏‏‏‎‏‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ move ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ videos out of trash?‎‏‎‎‏‎</item>
-      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‏‏‏‏‏‎‎‏‏‎‏‎‎‏‏‎‎‏‎‏‎‎‏‏‎‎‎‏‎‎‏‎‏‎‎‎‏‏‎‎‏‎‏‎‎‎‎‎‏‎‎‏‎‏‏‏‏‏‏‎‏‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ move this video out of trash?‎‏‎‎‏‎</item>
+    <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
+      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‏‏‎‎‎‏‎‏‎‏‏‏‏‏‏‏‎‎‏‎‏‏‎‎‏‎‏‎‏‎‏‏‎‏‏‎‎‏‏‏‏‎‎‎‎‎‏‏‏‎‏‏‎‎‎‎‎‏‎‎‏‏‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ to delete ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ videos?‎‏‎‎‏‎</item>
+      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‏‏‎‎‎‏‎‏‎‏‏‏‏‏‏‏‎‎‏‎‏‏‎‎‏‎‏‎‏‎‏‏‎‏‏‎‎‏‏‏‏‎‎‎‎‎‏‏‏‎‏‏‎‎‎‎‎‏‎‎‏‏‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ to delete this video?‎‏‎‎‏‎</item>
     </plurals>
-    <plurals name="permission_untrash_image" formatted="false" msgid="3209306923499767662">
-      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‎‏‏‎‎‏‎‎‎‏‎‎‏‏‎‏‏‏‏‏‏‏‎‏‎‎‏‎‎‏‎‏‎‏‏‏‎‎‏‏‎‎‏‏‏‏‏‎‎‎‏‏‏‎‏‏‎‏‏‏‎‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ move ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ photos out of trash?‎‏‎‎‏‎</item>
-      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‎‏‏‎‎‏‎‎‎‏‎‎‏‏‎‏‏‏‏‏‏‏‎‏‎‎‏‎‎‏‎‏‎‏‏‏‎‎‏‏‎‎‏‏‏‏‏‎‎‎‏‏‏‎‏‏‎‏‏‏‎‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ move this photo out of trash?‎‏‎‎‏‎</item>
+    <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
+      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‏‏‏‏‏‏‏‏‏‏‎‏‏‏‎‏‎‏‏‎‏‎‏‎‏‏‎‎‏‎‎‎‎‎‏‏‏‎‏‏‏‏‎‎‎‏‏‏‏‎‎‎‏‏‏‏‎‏‏‏‏‏‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ to delete ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ photos?‎‏‎‎‏‎</item>
+      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‏‏‏‏‏‏‏‏‏‏‎‏‏‏‎‏‎‏‏‎‏‎‏‎‏‏‎‎‏‎‎‎‎‎‏‏‏‎‏‏‏‏‎‎‎‏‏‏‏‎‎‎‏‏‏‏‎‏‏‏‏‏‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ to delete this photo?‎‏‎‎‏‎</item>
     </plurals>
-    <plurals name="permission_untrash_generic" formatted="false" msgid="4607666277638602132">
-      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‏‏‏‏‏‏‏‏‏‎‎‎‏‏‎‏‏‏‎‎‎‎‎‎‏‎‎‎‏‎‎‏‎‏‎‏‎‎‎‏‏‎‎‎‏‏‏‏‏‏‏‎‏‏‎‎‏‎‏‎‎‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ move ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ items out of trash?‎‏‎‎‏‎</item>
-      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‏‏‏‏‏‏‏‏‏‎‎‎‏‏‎‏‏‏‎‎‎‎‎‎‏‎‎‎‏‎‎‏‎‏‎‏‎‎‎‏‏‎‎‎‏‏‏‏‏‏‏‎‏‏‎‎‏‎‏‎‎‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ move this item out of trash?‎‏‎‎‏‎</item>
+    <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
+      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‏‏‎‎‏‏‏‎‎‏‏‎‎‏‎‎‏‏‎‏‎‏‏‎‎‎‏‏‏‏‏‏‏‎‏‎‎‎‎‏‎‏‎‏‎‎‏‏‏‏‏‏‏‏‏‎‎‏‏‏‎‏‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ to delete ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ items?‎‏‎‎‏‎</item>
+      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‏‏‎‎‏‏‏‎‎‏‏‎‎‏‎‎‏‏‎‏‎‏‏‎‎‎‏‏‏‏‏‏‏‎‏‎‎‎‎‏‎‏‎‏‎‎‏‏‏‏‏‏‏‏‏‎‎‏‏‏‎‏‎Allow ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ to delete this item?‎‏‎‎‏‎</item>
     </plurals>
-    <string name="permission_untrash_grant" msgid="8438940480373451790">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‏‎‏‎‏‎‎‎‏‏‏‎‏‎‎‏‎‎‎‏‏‏‎‏‎‎‏‏‏‏‏‎‎‏‏‎‏‎‏‎‏‎‎‏‎‏‏‏‎‏‏‎‎‎‎‎‎‏‏‏‎‎Move out of trash‎‏‎‎‏‎"</string>
-    <string name="permission_untrash_deny" msgid="8008055757469903604">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‎‏‏‏‏‎‎‏‎‎‎‏‎‎‏‎‏‎‏‎‎‎‏‎‎‏‎‎‎‎‏‏‎‏‏‎‏‏‎‎‎‎‎‏‏‏‏‏‎‏‎‏‎‏‏‏‏‎‏‎‎‎Cancel‎‏‎‎‏‎"</string>
-    <plurals name="permission_delete_audio" formatted="false" msgid="6390202287788379608">
-      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‏‏‎‎‎‏‎‏‎‏‏‏‎‏‎‎‎‏‏‏‏‎‎‎‏‏‏‏‏‏‎‏‏‏‏‏‎‏‎‎‎‎‎‏‏‏‏‎‎‏‏‎‏‏‏‎‏‏‎‎‎‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ delete ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ audio files?‎‏‎‎‏‎</item>
-      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‏‏‎‎‎‏‎‏‎‏‏‏‎‏‎‎‎‏‏‏‏‎‎‎‏‏‏‏‏‏‎‏‏‏‏‏‎‏‎‎‎‎‎‏‏‏‏‎‎‏‏‎‏‏‏‎‏‏‎‎‎‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ delete this audio file?‎‏‎‎‏‎</item>
-    </plurals>
-    <plurals name="permission_delete_video" formatted="false" msgid="1577978206881284398">
-      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‏‏‎‏‎‏‏‏‏‎‎‏‏‎‎‎‎‏‏‎‏‎‏‏‎‏‎‎‎‏‏‎‎‏‎‏‎‎‎‏‏‏‎‏‏‏‏‎‎‎‎‎‎‏‎‎‏‎‏‏‏‎‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ delete ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ videos?‎‏‎‎‏‎</item>
-      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‏‏‎‏‎‏‏‏‏‎‎‏‏‎‎‎‎‏‏‎‏‎‏‏‎‏‎‎‎‏‏‎‎‏‎‏‎‎‎‏‏‏‎‏‏‏‏‎‎‎‎‎‎‏‎‎‏‎‏‏‏‎‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ delete this video?‎‏‎‎‏‎</item>
-    </plurals>
-    <plurals name="permission_delete_image" formatted="false" msgid="8435429587272893063">
-      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‏‎‏‎‏‎‎‎‏‎‎‎‎‏‎‏‎‏‎‏‎‏‎‎‎‎‏‎‎‎‏‎‎‏‏‎‏‎‎‏‏‏‎‎‎‏‎‎‎‎‎‏‎‏‎‎‎‎‏‏‏‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ delete ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ photos?‎‏‎‎‏‎</item>
-      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‏‎‏‎‏‎‎‎‏‎‎‎‎‏‎‏‎‏‎‏‎‏‎‎‎‎‏‎‎‎‏‎‎‏‏‎‏‎‎‏‏‏‎‎‎‏‎‎‎‎‎‏‎‏‎‎‎‎‏‏‏‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ delete this photo?‎‏‎‎‏‎</item>
-    </plurals>
-    <plurals name="permission_delete_generic" formatted="false" msgid="5949614272661654178">
-      <item quantity="other">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‏‎‎‏‎‏‎‎‏‎‎‎‏‎‏‎‎‎‏‏‎‏‎‏‎‏‎‎‎‏‎‎‏‏‎‎‎‏‎‎‏‎‏‏‏‏‎‎‎‏‎‏‎‏‎‏‎‎‎‏‎‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_1">^1</xliff:g>‎‏‎‎‏‏‏‎ delete ‎‏‎‎‏‏‎<xliff:g id="COUNT">^2</xliff:g>‎‏‎‎‏‏‏‎ items?‎‏‎‎‏‎</item>
-      <item quantity="one">‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‏‎‎‏‎‏‎‎‏‎‎‎‏‎‏‎‎‎‏‏‎‏‎‏‎‏‎‎‎‏‎‎‏‏‎‎‎‏‎‎‏‎‏‏‏‏‎‎‎‏‎‏‎‏‎‏‎‎‎‏‎‎Let ‎‏‎‎‏‏‎<xliff:g id="APP_NAME_0">^1</xliff:g>‎‏‎‎‏‏‏‎ delete this item?‎‏‎‎‏‎</item>
-    </plurals>
-    <string name="permission_delete_grant" msgid="8682518049167813926">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‏‏‎‎‎‎‏‏‏‏‏‏‎‏‎‎‎‎‎‎‎‎‎‏‎‏‎‎‏‏‏‏‎‏‏‎‎‏‎‎‏‎‎‎‎‏‎‏‎‏‏‎‏‎‎‏‎‎‏‏‎‎Delete‎‏‎‎‏‎"</string>
-    <string name="permission_delete_deny" msgid="3742780367403897552">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‏‎‎‏‏‏‏‏‏‎‎‎‏‎‎‎‎‎‏‏‎‏‏‏‎‏‎‎‏‏‏‏‏‏‏‏‏‎‏‏‎‏‎‏‎‎‏‎‏‎‎‏‎‏‏‎‏‎‎‎‎‎Cancel‎‏‎‎‏‎"</string>
 </resources>

@@ -120,6 +120,7 @@ import android.os.Environment;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.ParcelFileDescriptor.OnCloseListener;
+import android.os.Process;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.os.SystemProperties;
@@ -6283,6 +6284,17 @@ public class MediaProvider extends ContentProvider {
             }
 
             return 0;
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
+    }
+
+    @Keep
+    public boolean isUidForPackageForFuse(@NonNull String packageName, int uid) {
+        final LocalCallingIdentity token =
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+        try {
+            return isCallingIdentitySharedPackageName(packageName);
         } finally {
             restoreLocalCallingIdentity(token);
         }

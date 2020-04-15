@@ -831,7 +831,7 @@ public class FileUtils {
      * and which captures the package name as the first group.
      */
     public static final Pattern PATTERN_OWNED_PATH = Pattern.compile(
-            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|media|obb|sandbox)/([^/]+)(/.*)?");
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|media|obb|sandbox)/([^/]+)(/?.*)?");
 
     /**
      * Regex that matches Android/obb or Android/data path.

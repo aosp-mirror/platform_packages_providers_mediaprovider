@@ -19,14 +19,21 @@ package com.android.providers.media;
 import android.app.Instrumentation;
 import android.content.ClipData;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
+import android.os.Environment;
 import android.provider.MediaStore;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.providers.media.scan.MediaScannerTest;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import java.io.File;
 
 /**
  * We already have solid coverage of this logic in {@code CtsProviderTestCases},
@@ -45,11 +52,18 @@ public class PermissionActivityTest {
         activity.startActivityForResult(createIntent(), 42);
     }
 
-    private static Intent createIntent() {
+    private static Intent createIntent() throws Exception {
+        final Context context = InstrumentationRegistry.getContext();
+
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
+        final File file = MediaScannerTest.stage(R.raw.test_image,
+                new File(dir, "test" + System.nanoTime() + ".jpg"));
+        final Uri uri = MediaStore.scanFile(context.getContentResolver(), file);
+
         final Intent intent = new Intent(MediaStore.CREATE_WRITE_REQUEST_CALL, null,
-                InstrumentationRegistry.getContext(), PermissionActivity.class);
-        intent.putExtra(MediaStore.EXTRA_CLIP_DATA, ClipData.newRawUri("",
-                MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY, 42)));
+                context, PermissionActivity.class);
+        intent.putExtra(MediaStore.EXTRA_CLIP_DATA, ClipData.newRawUri("", uri));
         intent.putExtra(MediaStore.EXTRA_CONTENT_VALUES, new ContentValues());
         return intent;
     }

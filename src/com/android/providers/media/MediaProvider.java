@@ -3186,11 +3186,8 @@ public class MediaProvider extends ContentProvider {
             // When caller is system, such as the media scanner, we're willing
             // to let them access any columns they want
         } else {
-            // TODO: re-enable regardless of target SDK in b/146518586
-            if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.R) {
-                qb.setStrictColumns(true);
-                qb.setStrictGrammar(true);
-            }
+            qb.setStrictColumns(true);
+            qb.setStrictGrammar(true);
         }
 
         final String callingPackage = getCallingPackageOrSelf();

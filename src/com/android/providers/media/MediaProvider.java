@@ -2679,8 +2679,7 @@ public class MediaProvider extends ContentProvider {
             try {
                 return qb.insert(helper, values);
             } catch (SQLiteConstraintException e) {
-                final long rowId = getIdIfPathExistsForPackage(qb, helper, path,
-                        getCallingPackageOrSelf());
+                final long rowId = getIdIfPathExistsForCallingPackage(qb, helper, path);
                 // Apps sometimes create a file via direct path and then insert it into
                 // MediaStore via ContentResolver. The former should create a database entry,
                 // so we have to treat the latter as an upsert.
@@ -2696,21 +2695,21 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * @return row id of the entry with path {@code path} and owner {@code packageName}, if it
+     * @return row id of the entry with path {@code path} and owner as shared calling package, if it
      * exists.
      */
-    private long getIdIfPathExistsForPackage(@NonNull SQLiteQueryBuilder qb,
-            @NonNull DatabaseHelper helper, String path, String packageName) {
-        final String[] projection = new String[] {FileColumns._ID};
-        final String selection = FileColumns.DATA + " LIKE ? AND " +
-                FileColumns.OWNER_PACKAGE_NAME + " LIKE ? ";
+    private long getIdIfPathExistsForCallingPackage(@NonNull SQLiteQueryBuilder qb,
+            @NonNull DatabaseHelper helper, String path) {
+        final String[] projection = new String[] {FileColumns._ID, FileColumns.OWNER_PACKAGE_NAME};
+        final String selection = FileColumns.DATA + " =? ";
 
-        // TODO(b:149842708) Handle sharedUid. Package name check will fail if FUSE didn't
-        // use the right package name for sharedUid.
-        try (Cursor c = qb.query(helper, projection, selection, new String[] {path, packageName},
-                null, null, null, null, null)) {
+        try (Cursor c = qb.query(helper, projection, selection, new String[] {path}, null, null,
+                null, null, null)) {
             if (c.moveToFirst()) {
-                return c.getLong(0);
+                final String ownerPackage = c.getString(1);
+                if (ownerPackage != null && isCallingIdentitySharedPackageName(ownerPackage)) {
+                    return c.getLong(0);
+                }
             }
         }
         return -1;

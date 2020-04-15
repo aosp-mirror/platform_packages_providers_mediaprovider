@@ -896,11 +896,8 @@ public final class MediaStore {
         final ContentValues values = new ContentValues();
         if (value) {
             values.put(MediaColumns.IS_TRASHED, 1);
-            values.put(MediaColumns.DATE_EXPIRES,
-                    (System.currentTimeMillis() + DateUtils.WEEK_IN_MILLIS) / 1000);
         } else {
             values.put(MediaColumns.IS_TRASHED, 0);
-            values.putNull(MediaColumns.DATE_EXPIRES);
         }
         return createRequest(resolver, CREATE_TRASH_REQUEST_CALL, uris, values);
     }
@@ -1103,9 +1100,17 @@ public final class MediaStore {
          * The time the media item should be considered expired. Typically only
          * meaningful in the context of {@link #IS_PENDING} or
          * {@link #IS_TRASHED}.
+         * <p>
+         * The value stored in this column is automatically calculated when
+         * {@link #IS_PENDING} or {@link #IS_TRASHED} is changed. The default
+         * pending expiration is typically 7 days, and the default trashed
+         * expiration is typically 30 days.
+         * <p>
+         * Expired media items are automatically deleted once their expiration
+         * time has passed, typically during during the next device idle period.
          */
         @CurrentTimeSecondsLong
-        @Column(Cursor.FIELD_TYPE_INTEGER)
+        @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
         public static final String DATE_EXPIRES = "date_expires";
 
         /**
@@ -2058,7 +2063,6 @@ public final class MediaStore {
                 values.put(MediaColumns.MIME_TYPE, "image/jpeg");
                 values.put(MediaColumns.DATE_ADDED, now / 1000);
                 values.put(MediaColumns.DATE_MODIFIED, now / 1000);
-                values.put(MediaColumns.DATE_EXPIRES, (now + DateUtils.DAY_IN_MILLIS) / 1000);
                 values.put(MediaColumns.IS_PENDING, 1);
 
                 final Uri uri = cr.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
@@ -2070,7 +2074,6 @@ public final class MediaStore {
                     // Everything went well above, publish it!
                     values.clear();
                     values.put(MediaColumns.IS_PENDING, 0);
-                    values.putNull(MediaColumns.DATE_EXPIRES);
                     cr.update(uri, values, null, null);
                     return uri.toString();
                 } catch (Exception e) {

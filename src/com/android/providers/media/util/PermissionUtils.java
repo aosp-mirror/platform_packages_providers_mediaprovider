@@ -35,16 +35,22 @@ import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import android.annotation.NonNull;
 import android.app.AppOpsManager;
 import android.content.Context;
+import android.provider.MediaStore;
 
 public class PermissionUtils {
     // Callers must hold both the old and new permissions, so that we can
     // handle obscure cases like when an app targets Q but was installed on
     // a device that was originally running on P before being upgraded to Q.
 
+    private static volatile int sLegacyMediaProviderUid = -1;
+
     public static boolean checkPermissionSystem(Context context,
             int pid, int uid, String packageName) {
+        // Apps sharing legacy MediaProvider's uid like DownloadProvider and MTP are treated as
+        // system.
         return uid == android.os.Process.SYSTEM_UID || uid == android.os.Process.myUid()
-                || uid == android.os.Process.SHELL_UID || uid == android.os.Process.ROOT_UID;
+                || uid == android.os.Process.SHELL_UID || uid == android.os.Process.ROOT_UID
+                || isLegacyMediaProvider(context, uid);
     }
 
     public static boolean checkPermissionBackup(Context context, int pid, int uid) {
@@ -208,5 +214,16 @@ public class PermissionUtils {
             default:
                 throw new IllegalStateException(op + " has unknown mode " + mode);
         }
+    }
+
+    private static boolean isLegacyMediaProvider(Context context, int uid) {
+        if (sLegacyMediaProviderUid == -1) {
+            // Uid stays constant while legacy Media Provider stays installed. Cache legacy
+            // MediaProvider's uid for the first time.
+            sLegacyMediaProviderUid = context.getPackageManager()
+                    .resolveContentProvider(MediaStore.AUTHORITY_LEGACY, 0)
+                    .applicationInfo.uid;
+        }
+        return (uid == sLegacyMediaProviderUid);
     }
 }

@@ -834,6 +834,12 @@ public class FileUtils {
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|media|obb|sandbox)/([^/]+)(/.*)?");
 
     /**
+     * Regex that matches Android/obb or Android/data path.
+     */
+    public static final Pattern PATTERN_DATA_OR_OBB_PATH = Pattern.compile(
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb)/?$");
+
+    /**
      * Regex that matches paths for {@link MediaColumns#RELATIVE_PATH}; it
      * captures both top-level paths and sandboxed paths.
      */
@@ -917,6 +923,15 @@ public class FileUtils {
         } else {
             return null;
         }
+    }
+
+    /**
+     * Returns true if relative path is Android/data or Android/obb path.
+     */
+    public static boolean isDataOrObbPath(String path) {
+        if (path == null) return false;
+        final Matcher m = PATTERN_DATA_OR_OBB_PATH.matcher(path);
+        return m.matches();
     }
 
     /**

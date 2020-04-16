@@ -806,17 +806,19 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
                     // When migrating pending or trashed files, we might need to
                     // rename them on disk to match new schema
-                    FileUtils.computeDataFromValues(values,
-                            new File(FileUtils.extractVolumePath(data)));
-                    final String recomputedData = values.getAsString(MediaColumns.DATA);
-                    if (!Objects.equals(data, recomputedData)) {
-                        try {
-                            Os.rename(data, recomputedData);
-                        } catch (ErrnoException e) {
-                            // We only have one shot to migrate data, so log and
-                            // keep marching forward
-                            Log.w(TAG, "Failed to rename " + values + "; continuing");
-                            FileUtils.computeValuesFromData(values);
+                    final String volumePath = FileUtils.extractVolumePath(data);
+                    if (volumePath != null) {
+                        FileUtils.computeDataFromValues(values, new File(volumePath));
+                        final String recomputedData = values.getAsString(MediaColumns.DATA);
+                        if (!Objects.equals(data, recomputedData)) {
+                            try {
+                                Os.rename(data, recomputedData);
+                            } catch (ErrnoException e) {
+                                // We only have one shot to migrate data, so log and
+                                // keep marching forward
+                                Log.w(TAG, "Failed to rename " + values + "; continuing");
+                                FileUtils.computeValuesFromData(values);
+                            }
                         }
                     }
 

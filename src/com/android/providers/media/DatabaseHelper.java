@@ -135,7 +135,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         public void onUpdate(@NonNull DatabaseHelper helper, @NonNull String volumeName,
                 long oldId, int oldMediaType, boolean oldIsDownload,
                 long newId, int newMediaType, boolean newIsDownload,
-                String ownerPackage, String oldPath);
+                String oldOwnerPackage, String newOwnerPackage, String oldPath);
         public void onDelete(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
                 int mediaType, boolean isDownload, String ownerPackage, String path);
     }
@@ -269,15 +269,16 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 final long newId = Long.parseLong(split[4]);
                 final int newMediaType = Integer.parseInt(split[5]);
                 final boolean newIsDownload = Integer.parseInt(split[6]) != 0;
-                final String ownerPackage = split[7];
-                // Path can include ':',  assume rest of split[8..length] is path.
-                final String oldPath = String.join(":", Arrays.copyOfRange(split, 8, split.length));
+                final String oldOwnerPackage = split[7];
+                final String newOwnerPackage = split[8];
+                // Path can include ':',  assume rest of split[9..length] is path.
+                final String oldPath = String.join(":", Arrays.copyOfRange(split, 9, split.length));
 
                 Trace.beginSection("_UPDATE");
                 try {
                     mFilesListener.onUpdate(DatabaseHelper.this, volumeName, oldId,
                             oldMediaType, oldIsDownload, newId, newMediaType, newIsDownload,
-                            ownerPackage, oldPath);
+                            oldOwnerPackage, newOwnerPackage, oldPath);
                 } finally {
                     Trace.endSection();
                 }
@@ -989,7 +990,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         final String updateArg =
                 "old.volume_name||':'||old._id||':'||old.media_type||':'||old.is_download"
                         + "||':'||new._id||':'||new.media_type||':'||new.is_download"
-                        + "||':'||ifnull(old.owner_package_name,'null')||':'||old._data";
+                        + "||':'||ifnull(old.owner_package_name,'null')"
+                        + "||':'||ifnull(new.owner_package_name,'null')||':'||old._data";
         final String deleteArg =
                 "old.volume_name||':'||old._id||':'||old.media_type||':'||old.is_download"
                         + "||':'||ifnull(old.owner_package_name,'null')||':'||old._data";
@@ -1247,7 +1249,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
     static final int VERSION_Q = 1023;
-    static final int VERSION_R = 1113;
+    static final int VERSION_R = 1114;
     static final int VERSION_LATEST = VERSION_R;
 
     /**
@@ -1385,6 +1387,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 updateAddXmp(db, internal);
             }
             if (fromVersion < 1113) {
+                // Empty version bump to ensure triggers are recreated
+            }
+            if (fromVersion < 1114) {
                 // Empty version bump to ensure triggers are recreated
             }
 

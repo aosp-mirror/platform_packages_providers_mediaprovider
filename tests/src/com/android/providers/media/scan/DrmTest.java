@@ -97,6 +97,7 @@ public class DrmTest {
 
     @Test
     public void testForwardLock_Audio() throws Exception {
+        Assume.assumeTrue(isForwardLockSupported());
         doForwardLock("audio/mpeg", R.raw.test_audio, (values) -> {
             assertEquals(1_045L, (long) values.getAsLong(FileColumns.DURATION));
             assertEquals(FileColumns.MEDIA_TYPE_AUDIO,
@@ -106,6 +107,7 @@ public class DrmTest {
 
     @Test
     public void testForwardLock_Video() throws Exception {
+        Assume.assumeTrue(isForwardLockSupported());
         doForwardLock("video/mp4", R.raw.test_video, (values) -> {
             assertEquals(40_000L, (long) values.getAsLong(FileColumns.DURATION));
             assertEquals(FileColumns.MEDIA_TYPE_VIDEO,
@@ -115,6 +117,7 @@ public class DrmTest {
 
     @Test
     public void testForwardLock_Image() throws Exception {
+        Assume.assumeTrue(isForwardLockSupported());
         doForwardLock("image/jpeg", R.raw.test_image, (values) -> {
             // ExifInterface currently doesn't know how to scan DRM images, so
             // the best we can do is verify the base test metadata
@@ -125,6 +128,7 @@ public class DrmTest {
 
     @Test
     public void testForwardLock_Binary() throws Exception {
+        Assume.assumeTrue(isForwardLockSupported());
         doForwardLock("application/octet-stream", R.raw.test_image, null);
     }
 
@@ -134,6 +138,8 @@ public class DrmTest {
      */
     @Test
     public void testForwardLock_130680734() throws Exception {
+        Assume.assumeTrue(isForwardLockSupported());
+
         final ContentValues values = new ContentValues();
         values.put(MediaColumns.DISPLAY_NAME, "temp" + System.nanoTime() + ".fl");
         values.put(MediaColumns.MIME_TYPE, MIME_FORWARD_LOCKED);
@@ -185,8 +191,6 @@ public class DrmTest {
 
     private void doForwardLock(String mimeType, int resId,
             @Nullable Consumer<ContentValues> verifier) throws Exception {
-        Assume.assumeTrue(isForwardLockSupported());
-
         InputStream dmStream = createDmStream(mimeType, resId);
 
         File flPath = new File(mContext.getExternalMediaDirs()[0],

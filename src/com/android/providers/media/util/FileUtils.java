@@ -804,13 +804,13 @@ public class FileUtils {
      * Default duration that {@link MediaColumns#IS_PENDING} items should be
      * preserved for until automatically cleaned by {@link #runIdleMaintenance}.
      */
-    public static final long DEFAULT_DURATION_PENDING = DateUtils.WEEK_IN_MILLIS;
+    public static final long DEFAULT_DURATION_PENDING = 7 * DateUtils.DAY_IN_MILLIS;
 
     /**
      * Default duration that {@link MediaColumns#IS_TRASHED} items should be
      * preserved for until automatically cleaned by {@link #runIdleMaintenance}.
      */
-    public static final long DEFAULT_DURATION_TRASHED = DateUtils.WEEK_IN_MILLIS;
+    public static final long DEFAULT_DURATION_TRASHED = 30 * DateUtils.DAY_IN_MILLIS;
 
     public static boolean isDownload(@NonNull String path) {
         return PATTERN_DOWNLOADS_FILE.matcher(path).matches();
@@ -832,6 +832,12 @@ public class FileUtils {
      */
     public static final Pattern PATTERN_OWNED_PATH = Pattern.compile(
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|media|obb|sandbox)/([^/]+)(/.*)?");
+
+    /**
+     * Regex that matches Android/obb or Android/data path.
+     */
+    public static final Pattern PATTERN_DATA_OR_OBB_PATH = Pattern.compile(
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb)/?$");
 
     /**
      * Regex that matches paths for {@link MediaColumns#RELATIVE_PATH}; it
@@ -920,6 +926,15 @@ public class FileUtils {
     }
 
     /**
+     * Returns true if relative path is Android/data or Android/obb path.
+     */
+    public static boolean isDataOrObbPath(String path) {
+        if (path == null) return false;
+        final Matcher m = PATTERN_DATA_OR_OBB_PATH.matcher(path);
+        return m.matches();
+    }
+
+    /**
      * Returns the name of the top level directory, or null if the path doesn't go through the
      * external storage directory.
      */
@@ -930,6 +945,36 @@ public class FileUtils {
             return m.group(1);
         }
         return null;
+    }
+
+    /**
+     * Compute the value of {@link MediaColumns#DATE_EXPIRES} based on other
+     * columns being modified by this operation.
+     */
+    public static void computeDateExpires(@NonNull ContentValues values) {
+        // External apps have no ability to change this field
+        values.remove(MediaColumns.DATE_EXPIRES);
+
+        // Only define the field when this modification is actually adjusting
+        // one of the flags that should influence the expiration
+        final Integer pending = values.getAsInteger(MediaColumns.IS_PENDING);
+        if (pending != null) {
+            if (pending != 0) {
+                values.put(MediaColumns.DATE_EXPIRES,
+                        (System.currentTimeMillis() + DEFAULT_DURATION_PENDING) / 1000);
+            } else {
+                values.putNull(MediaColumns.DATE_EXPIRES);
+            }
+        }
+        final Integer trashed = values.getAsInteger(MediaColumns.IS_TRASHED);
+        if (trashed != null) {
+            if (trashed != 0) {
+                values.put(MediaColumns.DATE_EXPIRES,
+                        (System.currentTimeMillis() + DEFAULT_DURATION_TRASHED) / 1000);
+            } else {
+                values.putNull(MediaColumns.DATE_EXPIRES);
+            }
+        }
     }
 
     /**

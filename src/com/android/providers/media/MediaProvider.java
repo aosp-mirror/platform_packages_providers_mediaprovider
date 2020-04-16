@@ -60,6 +60,7 @@ import static com.android.providers.media.util.FileUtils.extractRelativePathForD
 import static com.android.providers.media.util.FileUtils.extractTopLevelDir;
 import static com.android.providers.media.util.FileUtils.extractVolumeName;
 import static com.android.providers.media.util.FileUtils.getAbsoluteSanitizedPath;
+import static com.android.providers.media.util.FileUtils.isDataOrObbPath;
 import static com.android.providers.media.util.FileUtils.isDownload;
 import static com.android.providers.media.util.FileUtils.sanitizePath;
 import static com.android.providers.media.util.Logging.LOGV;
@@ -564,9 +565,10 @@ public class MediaProvider extends ContentProvider {
         public void onUpdate(@NonNull DatabaseHelper helper, @NonNull String volumeName,
                 long oldId, int oldMediaType, boolean oldIsDownload,
                 long newId, int newMediaType, boolean newIsDownload,
-                String ownerPackage, String oldPath) {
+                String oldOwnerPackage, String newOwnerPackage, String oldPath) {
             final boolean isDownload = oldIsDownload || newIsDownload;
-            handleUpdatedRowForFuse(oldPath, ownerPackage, oldId, newId);
+            handleUpdatedRowForFuse(oldPath, oldOwnerPackage, oldId, newId);
+            handleOwnerPackageNameChange(oldPath, oldOwnerPackage, newOwnerPackage);
             acceptWithExpansion(helper::notifyUpdate, volumeName, oldId, oldMediaType, isDownload);
 
             if (newMediaType != oldMediaType) {
@@ -1276,6 +1278,13 @@ public class MediaProvider extends ContentProvider {
                 return new String[] {""};
             }
 
+            // Do not allow apps to list Android/data or Android/obb dirs. Installer and
+            // MOUNT_EXTERNAL_ANDROID_WRITABLE apps won't be blocked by this, as their OBB dirs
+            // are mounted to lowerfs directly.
+            if (isDataOrObbPath(path)) {
+                return new String[] {""};
+            }
+
             if (shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
                 return new String[] {"/"};
             }
@@ -1340,6 +1349,55 @@ public class MediaProvider extends ContentProvider {
         }
         return (supportedPrimaryMimeType.equals(ClipDescription.MIMETYPE_UNKNOWN) ||
                 mimeType.startsWith(supportedPrimaryMimeType));
+    }
+
+    /**
+     * Removes owner package for the renamed path if the calling package doesn't own the db row
+     *
+     * When oldPath is renamed to newPath, if newPath exists in the database, and caller is not the
+     * owner of the file, owner package is set to 'null'. This prevents previous owner of newPath
+     * from accessing renamed file.
+     * @return {@code true} if
+     * <ul>
+     * <li> there is no corresponding database row for given {@code path}
+     * <li> shared calling package is the owner of the database row
+     * <li> owner package name is already set to 'null'
+     * <li> updating owner package name to 'null' was successful.
+     * </ul>
+     * Returns {@code false} otherwise.
+     */
+    private boolean maybeRemoveOwnerPackageForFuseRename(@NonNull DatabaseHelper helper,
+            @NonNull String path) {
+
+        final Uri uri = Files.getContentUriForPath(path);
+        final int match = matchUri(uri, isCallingPackageAllowedHidden());
+        final String ownerPackageName;
+        final String selection = MediaColumns.DATA + " =? AND "
+                + MediaColumns.OWNER_PACKAGE_NAME + " != 'null'";
+        final String[] selectionArgs = new String[] {path};
+
+        final SQLiteQueryBuilder qbForQuery =
+                getQueryBuilder(TYPE_QUERY, match, uri, Bundle.EMPTY, null);
+        try (Cursor c = qbForQuery.query(helper, new String[] {FileColumns.OWNER_PACKAGE_NAME},
+                selection, selectionArgs, null, null, null, null, null)) {
+            if (!c.moveToFirst()) {
+                // We don't need to remove owner_package from db row if path doesn't exist in
+                // database or owner_package is already set to 'null'
+                return true;
+            }
+            ownerPackageName = c.getString(0);
+            if (isCallingIdentitySharedPackageName(ownerPackageName)) {
+                // We don't need to remove owner_package from db row if calling package is the owner
+                // of the database row
+                return true;
+            }
+        }
+
+        final SQLiteQueryBuilder qbForUpdate =
+                getQueryBuilder(TYPE_UPDATE, match, uri, Bundle.EMPTY, null);
+        ContentValues values = new ContentValues();
+        values.put(FileColumns.OWNER_PACKAGE_NAME, "null");
+        return qbForUpdate.update(helper, values, selection, selectionArgs) == 1;
     }
 
     private boolean updateDatabaseForFuseRename(@NonNull DatabaseHelper helper,
@@ -1623,26 +1681,34 @@ public class MediaProvider extends ContentProvider {
         if (!isMimeTypeSupportedInPath(newPath, newMimeType)) {
             return OsConstants.EPERM;
         }
-        return renameFileUncheckedForFuse(oldPath, newPath);
+        return renameFileForFuse(oldPath, newPath, /* bypassRestrictions */ false) ;
     }
 
     private int renameFileUncheckedForFuse(String oldPath, String newPath) {
-        final String newMimeType = MimeUtils.resolveMimeType(new File(newPath));
+        return renameFileForFuse(oldPath, newPath, /* bypassRestrictions */ true) ;
+    }
+
+    private int renameFileForFuse(String oldPath, String newPath, boolean bypassRestrictions) {
         final DatabaseHelper helper;
         try {
             helper = getDatabaseForUri(Files.getContentUriForPath(oldPath));
         } catch (VolumeNotFoundException e) {
-            throw new IllegalStateException("Volume not found while trying to update database for"
-                + oldPath + ". Rename failed due to database update error", e);
+            throw new IllegalStateException("Failed to update database row with " + oldPath, e);
         }
 
         helper.beginTransaction();
         try {
+            final String newMimeType = MimeUtils.resolveMimeType(new File(newPath));
             final String oldMimeType = MimeUtils.resolveMimeType(new File(oldPath));
             if (!updateDatabaseForFuseRename(helper, oldPath, newPath,
                     getContentValuesForFuseRename(newPath, oldMimeType, newMimeType))) {
-                Log.e(TAG, "Calling package doesn't have write permission to rename file.");
-                return OsConstants.EPERM;
+                if (!bypassRestrictions) {
+                    Log.e(TAG, "Calling package doesn't have write permission to rename file.");
+                    return OsConstants.EPERM;
+                } else if (!maybeRemoveOwnerPackageForFuseRename(helper, newPath)) {
+                    Log.wtf(TAG, "Couldn't clear owner package name for " + newPath);
+                    return OsConstants.EPERM;
+                }
             }
 
             // Try renaming oldPath to newPath in lower file system.
@@ -2834,6 +2900,9 @@ public class MediaProvider extends ContentProvider {
         if (initialValues != null) {
             // IDs are forever; nobody should be editing them
             initialValues.remove(MediaColumns._ID);
+
+            // Expiration times are hard-coded; let's derive them
+            FileUtils.computeDateExpires(initialValues);
 
             // Ignore or augment incoming raw filesystem paths
             for (String column : sDataColumns.keySet()) {
@@ -4155,8 +4224,7 @@ public class MediaProvider extends ContentProvider {
                 break;
             case MediaStore.CREATE_TRASH_REQUEST_CALL:
                 allowedColumns = Arrays.asList(
-                        MediaColumns.IS_TRASHED,
-                        MediaColumns.DATE_EXPIRES);
+                        MediaColumns.IS_TRASHED);
                 break;
             default:
                 allowedColumns = Arrays.asList();
@@ -4539,6 +4607,9 @@ public class MediaProvider extends ContentProvider {
         if (initialValues != null) {
             // IDs are forever; nobody should be editing them
             initialValues.remove(MediaColumns._ID);
+
+            // Expiration times are hard-coded; let's derive them
+            FileUtils.computeDateExpires(initialValues);
 
             // Ignore or augment incoming raw filesystem paths
             for (String column : sDataColumns.keySet()) {
@@ -5203,6 +5274,16 @@ public class MediaProvider extends ContentProvider {
         // Saves row ID corresponding to deleted path. Saved row ID will be restored on subsequent
         // create or rename.
         mCallingIdentity.get().addDeletedRowId(path, rowId);
+    }
+
+    private void handleOwnerPackageNameChange(@NonNull String oldPath,
+            @NonNull String oldOwnerPackage, @NonNull String newOwnerPackage) {
+        if (Objects.equals(oldOwnerPackage, newOwnerPackage)) {
+            return;
+        }
+        // Invalidate saved owned ID's of the previous owner of the renamed path, this prevents old
+        // owner from gaining access to replaced file.
+        invalidateLocalCallingIdentityCache(oldOwnerPackage, "owner_package_changed:" + oldPath);
     }
 
     /**
@@ -6819,7 +6900,6 @@ public class MediaProvider extends ContentProvider {
         sMutableColumns.add(MediaStore.MediaColumns.IS_PENDING);
         sMutableColumns.add(MediaStore.MediaColumns.IS_TRASHED);
         sMutableColumns.add(MediaStore.MediaColumns.IS_FAVORITE);
-        sMutableColumns.add(MediaStore.MediaColumns.DATE_EXPIRES);
 
         sMutableColumns.add(MediaStore.Audio.AudioColumns.BOOKMARK);
 

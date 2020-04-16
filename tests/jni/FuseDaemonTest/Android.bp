@@ -47,6 +47,7 @@ android_test {
     manifest: "AndroidManifest.xml",
     srcs: ["src/**/*.java"],
     static_libs: ["androidx.test.rules", "truth-prebuilt", "tests-fusedaemon-lib"],
+    compile_multilib: "both",
     test_suites: ["general-tests", "mts"],
     sdk_version: "test_current",
     java_resources: [
@@ -61,6 +62,7 @@ android_test {
     manifest: "legacy/AndroidManifest.xml",
     srcs: ["legacy/src/**/*.java"],
     static_libs: ["androidx.test.rules", "truth-prebuilt",  "tests-fusedaemon-lib"],
+    compile_multilib: "both",
     test_suites: ["general-tests", "mts"],
     sdk_version: "test_current",
     target_sdk_version: "29",

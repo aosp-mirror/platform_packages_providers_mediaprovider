@@ -20,15 +20,19 @@ import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
 
 import android.content.ContentProvider;
+import android.content.ContentProviderOperation;
+import android.content.ContentProviderResult;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.OperationApplicationException;
 import android.content.pm.ProviderInfo;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
+import android.util.ArraySet;
 
 import androidx.annotation.NonNull;
 
@@ -38,7 +42,9 @@ import java.io.File;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Very limited subset of {@link MediaProvider} which only surfaces
@@ -106,13 +112,41 @@ public class LegacyMediaProvider extends ContentProvider {
     }
 
     @Override
-    public Uri insert(Uri uri, ContentValues values) {
+    public ContentProviderResult[] applyBatch(ArrayList<ContentProviderOperation> operations)
+                throws OperationApplicationException {
+        // Open transactions on databases for requested volumes
+        final Set<DatabaseHelper> transactions = new ArraySet<>();
         try {
-            final File file = new File(values.getAsString(MediaColumns.DATA));
-            file.getParentFile().mkdirs();
-            file.createNewFile();
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
+            for (ContentProviderOperation op : operations) {
+                final DatabaseHelper helper = getDatabaseForUri(op.getUri());
+                if (!transactions.contains(helper)) {
+                    helper.beginTransaction();
+                    transactions.add(helper);
+                }
+            }
+
+            final ContentProviderResult[] result = super.applyBatch(operations);
+            for (DatabaseHelper helper : transactions) {
+                helper.setTransactionSuccessful();
+            }
+            return result;
+        } finally {
+            for (DatabaseHelper helper : transactions) {
+                helper.endTransaction();
+            }
+        }
+    }
+
+    @Override
+    public Uri insert(Uri uri, ContentValues values) {
+        if (!uri.getBooleanQueryParameter("silent", false)) {
+            try {
+                final File file = new File(values.getAsString(MediaColumns.DATA));
+                file.getParentFile().mkdirs();
+                file.createNewFile();
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
         }
 
         final DatabaseHelper helper = getDatabaseForUri(uri);

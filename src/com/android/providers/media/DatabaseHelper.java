@@ -69,7 +69,6 @@ import java.io.FilenameFilter;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
@@ -242,7 +241,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.setCustomScalarFunction("_INSERT", (arg) -> {
             if (arg != null && mFilesListener != null
                     && !mSchemaLock.isWriteLockedByCurrentThread()) {
-                final String[] split = arg.split(":");
+                final String[] split = arg.split(":", 4);
                 final String volumeName = split[0];
                 final long id = Long.parseLong(split[1]);
                 final int mediaType = Integer.parseInt(split[2]);
@@ -261,7 +260,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.setCustomScalarFunction("_UPDATE", (arg) -> {
             if (arg != null && mFilesListener != null
                     && !mSchemaLock.isWriteLockedByCurrentThread()) {
-                final String[] split = arg.split(":");
+                final String[] split = arg.split(":", 10);
                 final String volumeName = split[0];
                 final long oldId = Long.parseLong(split[1]);
                 final int oldMediaType = Integer.parseInt(split[2]);
@@ -271,8 +270,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 final boolean newIsDownload = Integer.parseInt(split[6]) != 0;
                 final String oldOwnerPackage = split[7];
                 final String newOwnerPackage = split[8];
-                // Path can include ':',  assume rest of split[9..length] is path.
-                final String oldPath = String.join(":", Arrays.copyOfRange(split, 9, split.length));
+                final String oldPath = split[9];
 
                 Trace.beginSection("_UPDATE");
                 try {
@@ -288,14 +286,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.setCustomScalarFunction("_DELETE", (arg) -> {
             if (arg != null && mFilesListener != null
                     && !mSchemaLock.isWriteLockedByCurrentThread()) {
-                final String[] split = arg.split(":");
+                final String[] split = arg.split(":", 6);
                 final String volumeName = split[0];
                 final long id = Long.parseLong(split[1]);
                 final int mediaType = Integer.parseInt(split[2]);
                 final boolean isDownload = Integer.parseInt(split[3]) != 0;
                 final String ownerPackage = split[4];
-                // Path can include ':',  assume rest of split[5..length] is path.
-                final String path = String.join(":", Arrays.copyOfRange(split, 5, split.length));
+                final String path = split[5];
 
                 Trace.beginSection("_DELETE");
                 try {
@@ -809,17 +806,19 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
                     // When migrating pending or trashed files, we might need to
                     // rename them on disk to match new schema
-                    FileUtils.computeDataFromValues(values,
-                            new File(FileUtils.extractVolumePath(data)));
-                    final String recomputedData = values.getAsString(MediaColumns.DATA);
-                    if (!Objects.equals(data, recomputedData)) {
-                        try {
-                            Os.rename(data, recomputedData);
-                        } catch (ErrnoException e) {
-                            // We only have one shot to migrate data, so log and
-                            // keep marching forward
-                            Log.w(TAG, "Failed to rename " + values + "; continuing");
-                            FileUtils.computeValuesFromData(values);
+                    final String volumePath = FileUtils.extractVolumePath(data);
+                    if (volumePath != null) {
+                        FileUtils.computeDataFromValues(values, new File(volumePath));
+                        final String recomputedData = values.getAsString(MediaColumns.DATA);
+                        if (!Objects.equals(data, recomputedData)) {
+                            try {
+                                Os.rename(data, recomputedData);
+                            } catch (ErrnoException e) {
+                                // We only have one shot to migrate data, so log and
+                                // keep marching forward
+                                Log.w(TAG, "Failed to rename " + values + "; continuing");
+                                FileUtils.computeValuesFromData(values);
+                            }
                         }
                     }
 

@@ -986,7 +986,6 @@ public class FileUtils {
         // Worst case we have to assume no bucket details
         values.remove(MediaColumns.VOLUME_NAME);
         values.remove(MediaColumns.RELATIVE_PATH);
-        values.remove(MediaColumns.IS_DOWNLOAD);
         values.remove(MediaColumns.IS_PENDING);
         values.remove(MediaColumns.IS_TRASHED);
         values.remove(MediaColumns.DATE_EXPIRES);
@@ -1002,8 +1001,6 @@ public class FileUtils {
 
         values.put(MediaColumns.VOLUME_NAME, extractVolumeName(data));
         values.put(MediaColumns.RELATIVE_PATH, extractRelativePath(data));
-        values.put(MediaColumns.IS_DOWNLOAD, isDownload(data));
-
         final String displayName = extractDisplayName(data);
         final Matcher matcher = FileUtils.PATTERN_EXPIRES_FILE.matcher(displayName);
         if (matcher.matches()) {

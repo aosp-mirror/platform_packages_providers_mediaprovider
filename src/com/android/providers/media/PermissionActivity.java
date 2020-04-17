@@ -198,6 +198,7 @@ public class PermissionActivity extends Activity {
                             for (Uri uri : uris) {
                                 ops.add(ContentProviderOperation.newUpdate(uri)
                                         .withValues(values)
+                                        .withExtra(MediaStore.QUERY_ARG_ALLOW_MOVEMENT, true)
                                         .withExceptionAllowed(true)
                                         .build());
                             }

@@ -609,6 +609,15 @@ public final class MediaStore {
     public static final String QUERY_ARG_RELATED_URI = "android:query-arg-related-uri";
 
     /**
+     * Flag that can be used to enable movement of media items on disk through
+     * {@link ContentResolver#update} calls. This is typically true for
+     * third-party apps, but false for system components.
+     *
+     * @hide
+     */
+    public static final String QUERY_ARG_ALLOW_MOVEMENT = "android:query-arg-allow-movement";
+
+    /**
      * Specify how {@link MediaColumns#IS_PENDING} items should be filtered when
      * performing a {@link MediaStore} operation.
      * <p>

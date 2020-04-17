@@ -24,6 +24,7 @@ import static org.junit.Assert.fail;
 
 import android.app.UiAutomation;
 import android.content.ContentProviderClient;
+import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
@@ -49,6 +50,8 @@ import androidx.annotation.NonNull;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.google.common.truth.Truth;
+
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -61,6 +64,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -79,6 +83,11 @@ public class LegacyProviderMigrationTest {
 
     private static final long POLLING_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(10);
     private static final long POLLING_SLEEP_MILLIS = 100;
+
+    /**
+     * Number of media items to insert for {@link #testLegacy_Extreme()}.
+     */
+    private static final int EXTREME_COUNT = 10_000;
 
     private Uri mExternalAudio;
     private Uri mExternalVideo;
@@ -180,6 +189,67 @@ public class LegacyProviderMigrationTest {
         values.put(DownloadColumns.DOWNLOAD_URI, "http://example.com/download");
         values.put(DownloadColumns.REFERER_URI, "http://example.com/referer");
         doLegacy(mExternalDownloads, values);
+    }
+
+    /**
+     * Verify that a legacy database with thousands of media entries can be
+     * successfully migrated.
+     */
+    @Test
+    public void testLegacy_Extreme() throws Exception {
+        final Context context = InstrumentationRegistry.getTargetContext();
+        final UiAutomation ui = InstrumentationRegistry.getInstrumentation().getUiAutomation();
+
+        final ProviderInfo legacyProvider = context.getPackageManager()
+                .resolveContentProvider(MediaStore.AUTHORITY_LEGACY, 0);
+        final ProviderInfo modernProvider = context.getPackageManager()
+                .resolveContentProvider(MediaStore.AUTHORITY, 0);
+
+        // Only continue if we have both providers to test against
+        Assume.assumeNotNull(legacyProvider);
+        Assume.assumeNotNull(modernProvider);
+
+        // Wait until everything calms down
+        MediaStore.waitForIdle(context.getContentResolver());
+
+        // Clear data on the legacy provider so that we create a database
+        executeShellCommand("pm clear " + legacyProvider.applicationInfo.packageName, ui);
+
+        // Create thousands of items in the legacy provider
+        try (ContentProviderClient legacy = context.getContentResolver()
+                .acquireContentProviderClient(MediaStore.AUTHORITY_LEGACY)) {
+            // We're purposefully "silent" to avoid creating the raw file on
+            // disk, since otherwise this test would take several minutes
+            final Uri insertTarget = rewriteToLegacy(
+                    mExternalImages.buildUpon().appendQueryParameter("silent", "true").build());
+
+            final ArrayList<ContentProviderOperation> ops = new ArrayList<>();
+            for (int i = 0; i < EXTREME_COUNT; i++) {
+                ops.add(ContentProviderOperation.newInsert(insertTarget)
+                        .withValues(generateValues(FileColumns.MEDIA_TYPE_IMAGE, "image/png",
+                                Environment.DIRECTORY_PICTURES))
+                        .build());
+
+                if ((ops.size() > 1_000) || (i == (EXTREME_COUNT - 1))) {
+                    Log.v(TAG, "Inserting items...");
+                    legacy.applyBatch(MediaStore.AUTHORITY_LEGACY, ops);
+                    ops.clear();
+                }
+            }
+        }
+
+        // Clear data on the modern provider so that the initial scan recovers
+        // metadata from the legacy provider
+        executeShellCommand("pm clear " + modernProvider.applicationInfo.packageName, ui);
+        pollForExternalStorageState();
+
+        // Confirm that details from legacy provider have migrated
+        try (ContentProviderClient modern = context.getContentResolver()
+                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+            try (Cursor cursor = modern.query(mExternalImages, null, null, null)) {
+                Truth.assertThat(cursor.getCount()).isAtLeast(EXTREME_COUNT);
+            }
+        }
     }
 
     private void doLegacy(Uri collectionUri, ContentValues values) throws Exception {

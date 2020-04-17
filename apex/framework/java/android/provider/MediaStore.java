@@ -57,7 +57,6 @@ import android.os.RemoteException;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.text.TextUtils;
-import android.text.format.DateUtils;
 import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.Log;
@@ -728,7 +727,7 @@ public final class MediaStore {
     /** @hide */
     @Deprecated
     public static boolean getIncludePending(@NonNull Uri uri) {
-        return parseBoolean(uri.getQueryParameter(MediaStore.PARAM_INCLUDE_PENDING));
+        return uri.getBooleanQueryParameter(MediaStore.PARAM_INCLUDE_PENDING, false);
     }
 
     /**
@@ -758,7 +757,7 @@ public final class MediaStore {
      * @see MediaStore#setRequireOriginal(Uri)
      */
     public static boolean getRequireOriginal(@NonNull Uri uri) {
-        return parseBoolean(uri.getQueryParameter(MediaStore.PARAM_REQUIRE_ORIGINAL));
+        return uri.getBooleanQueryParameter(MediaStore.PARAM_REQUIRE_ORIGINAL, false);
     }
 
     /**
@@ -3742,13 +3741,6 @@ public final class MediaStore {
             }
         }
         return volumeName;
-    }
-
-    private static boolean parseBoolean(@Nullable String value) {
-        if (value == null) return false;
-        if ("1".equals(value)) return true;
-        if ("true".equalsIgnoreCase(value)) return true;
-        return false;
     }
 
     /**

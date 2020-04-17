@@ -2444,7 +2444,7 @@ public class MediaProvider extends ContentProvider {
         values.put(FileColumns.VOLUME_NAME, extractVolumeName(path));
         values.put(FileColumns.RELATIVE_PATH, extractRelativePath(path));
         values.put(FileColumns.DISPLAY_NAME, extractDisplayName(path));
-        values.put(FileColumns.IS_DOWNLOAD, isDownload(path));
+        values.put(FileColumns.IS_DOWNLOAD, isDownload(path) ? 1 : 0);
         File file = new File(path);
         if (file.exists()) {
             values.put(FileColumns.DATE_MODIFIED, file.lastModified() / 1000);
@@ -2791,7 +2791,7 @@ public class MediaProvider extends ContentProvider {
     private boolean maybeMarkAsDownload(@NonNull ContentValues values) {
         final String path = values.getAsString(MediaColumns.DATA);
         if (path != null && isDownload(path)) {
-            values.put(FileColumns.IS_DOWNLOAD, true);
+            values.put(FileColumns.IS_DOWNLOAD, 1);
             return true;
         }
         return false;
@@ -3107,7 +3107,7 @@ public class MediaProvider extends ContentProvider {
 
             case DOWNLOADS:
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
-                initialValues.put(FileColumns.IS_DOWNLOAD, true);
+                initialValues.put(FileColumns.IS_DOWNLOAD, 1);
                 rowId = insertFile(qb, helper, match, uri, extras, initialValues,
                         FileColumns.MEDIA_TYPE_NONE, false);
                 if (rowId > 0) {
@@ -3191,14 +3191,6 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    @VisibleForTesting
-    static boolean parseBoolean(String value) {
-        if (value == null) return false;
-        if ("1".equals(value)) return true;
-        if ("true".equalsIgnoreCase(value)) return true;
-        return false;
-    }
-
     @Deprecated
     private String getSharedPackages(String callingPackage) {
         final String[] sharedPackageNames = mCallingIdentity.get().getSharedPackageNames();
@@ -3247,7 +3239,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         final SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
-        if (parseBoolean(uri.getQueryParameter("distinct"))) {
+        if (uri.getBooleanQueryParameter("distinct", false)) {
             qb.setDistinct(true);
         }
         qb.setStrict(true);
@@ -4555,7 +4547,7 @@ public class MediaProvider extends ContentProvider {
                 final Uri playlistUri = ContentUris.withAppendedId(
                         MediaStore.Audio.Playlists.getContentUri(volumeName), playlistId);
 
-                if (parseBoolean(uri.getQueryParameter("move"))) {
+                if (uri.getBooleanQueryParameter("move", false)) {
                     // Convert explicit request into query; sigh, moveItem()
                     // uses zero-based indexing instead of one-based indexing
                     final int from = Integer.parseInt(uri.getPathSegments().get(5)) + 1;

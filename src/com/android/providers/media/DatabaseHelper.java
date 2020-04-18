@@ -111,6 +111,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     long mScanStopTime;
 
     /**
+     * Flag indicating that this database should invoke
+     * {@link #migrateFromLegacy} to migrate from a legacy database, typically
+     * only set when this database is starting from scratch.
+     */
+    boolean mMigrateFromLegacy;
+
+    /**
      * Lock used to guard against deadlocks in SQLite; the write lock is used to
      * guard any schema changes, and the read lock is used for all other
      * database operations.
@@ -347,6 +354,22 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             downgradeDatabase(db, oldV, newV);
         } finally {
             mSchemaLock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public void onOpen(final SQLiteDatabase db) {
+        Log.v(TAG, "onOpen() for " + mName);
+        if (mMigrateFromLegacy) {
+            // Clear flag, since we should only attempt once
+            mMigrateFromLegacy = false;
+
+            mSchemaLock.writeLock().lock();
+            try {
+                migrateFromLegacy(db);
+            } finally {
+                mSchemaLock.writeLock().unlock();
+            }
         }
     }
 
@@ -757,7 +780,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         // Since this code is used by both the legacy and modern providers, we
         // only want to migrate when we're running as the modern provider
         if (!mLegacyProvider) {
-            migrateFromLegacy(db);
+            mMigrateFromLegacy = true;
         }
     }
 
@@ -786,8 +809,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             extras.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
             extras.putInt(MediaStore.QUERY_ARG_MATCH_FAVORITE, MediaStore.MATCH_INCLUDE);
 
-            db.execSQL("SAVEPOINT before_migrate");
-            Log.d(TAG, "Starting migration from legacy provider for " + mName);
+            db.beginTransaction();
+            Log.d(TAG, "Starting migration from legacy provider");
             mMigrationListener.onStarted(client, mVolumeName);
             try (Cursor c = client.query(queryUri, sMigrateColumns.toArray(new String[0]),
                     extras, null)) {
@@ -827,18 +850,28 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         // keep marching forward
                         Log.w(TAG, "Failed to insert " + values + "; continuing");
                     }
+
+                    // To avoid SQLITE_NOMEM errors, we need to periodically
+                    // flush the current transaction and start another one
+                    if ((c.getPosition() % 1_000) == 0) {
+                        db.setTransactionSuccessful();
+                        db.endTransaction();
+                        db.beginTransaction();
+                    }
                 }
 
-                db.execSQL("RELEASE before_migrate");
-                Log.d(TAG, "Finished migration from legacy provider for " + mName);
-                mMigrationListener.onFinished(client, mVolumeName);
+                Log.d(TAG, "Finished migration from legacy provider");
             } catch (Exception e) {
                 // We have to guard ourselves against any weird behavior of the
                 // legacy provider by trying to catch everything
-                db.execSQL("ROLLBACK TO before_migrate");
                 Log.wtf(TAG, "Failed migration from legacy provider", e);
-                mMigrationListener.onFinished(client, mVolumeName);
             }
+
+            // We tried our best above to migrate everything we could, and we
+            // only have one possible shot, so mark everything successful
+            db.setTransactionSuccessful();
+            db.endTransaction();
+            mMigrationListener.onFinished(client, mVolumeName);
         }
     }
 

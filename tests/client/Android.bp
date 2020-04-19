@@ -21,6 +21,7 @@ android_test {
     static_libs: [
         "androidx.test.rules",
         "mockito-target",
+        "truth-prebuilt",
     ],
 
     certificate: "media",

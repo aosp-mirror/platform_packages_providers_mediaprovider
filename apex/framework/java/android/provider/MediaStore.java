@@ -57,7 +57,6 @@ import android.os.RemoteException;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.text.TextUtils;
-import android.text.format.DateUtils;
 import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.Log;
@@ -609,6 +608,15 @@ public final class MediaStore {
     public static final String QUERY_ARG_RELATED_URI = "android:query-arg-related-uri";
 
     /**
+     * Flag that can be used to enable movement of media items on disk through
+     * {@link ContentResolver#update} calls. This is typically true for
+     * third-party apps, but false for system components.
+     *
+     * @hide
+     */
+    public static final String QUERY_ARG_ALLOW_MOVEMENT = "android:query-arg-allow-movement";
+
+    /**
      * Specify how {@link MediaColumns#IS_PENDING} items should be filtered when
      * performing a {@link MediaStore} operation.
      * <p>
@@ -719,7 +727,7 @@ public final class MediaStore {
     /** @hide */
     @Deprecated
     public static boolean getIncludePending(@NonNull Uri uri) {
-        return parseBoolean(uri.getQueryParameter(MediaStore.PARAM_INCLUDE_PENDING));
+        return uri.getBooleanQueryParameter(MediaStore.PARAM_INCLUDE_PENDING, false);
     }
 
     /**
@@ -749,7 +757,7 @@ public final class MediaStore {
      * @see MediaStore#setRequireOriginal(Uri)
      */
     public static boolean getRequireOriginal(@NonNull Uri uri) {
-        return parseBoolean(uri.getQueryParameter(MediaStore.PARAM_REQUIRE_ORIGINAL));
+        return uri.getBooleanQueryParameter(MediaStore.PARAM_REQUIRE_ORIGINAL, false);
     }
 
     /**
@@ -3733,13 +3741,6 @@ public final class MediaStore {
             }
         }
         return volumeName;
-    }
-
-    private static boolean parseBoolean(@Nullable String value) {
-        if (value == null) return false;
-        if ("1".equals(value)) return true;
-        if ("true".equalsIgnoreCase(value)) return true;
-        return false;
     }
 
     /**

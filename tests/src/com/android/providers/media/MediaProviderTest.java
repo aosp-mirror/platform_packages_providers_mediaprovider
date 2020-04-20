@@ -741,18 +741,6 @@ public class MediaProviderTest {
     }
 
     @Test
-    public void testParseBoolean() throws Exception {
-        assertTrue(MediaProvider.parseBoolean("TRUE"));
-        assertTrue(MediaProvider.parseBoolean("true"));
-        assertTrue(MediaProvider.parseBoolean("1"));
-
-        assertFalse(MediaProvider.parseBoolean("FALSE"));
-        assertFalse(MediaProvider.parseBoolean("false"));
-        assertFalse(MediaProvider.parseBoolean("0"));
-        assertFalse(MediaProvider.parseBoolean(null));
-    }
-
-    @Test
     public void testIsDownload() throws Exception {
         assertTrue(isDownload("/storage/emulated/0/Download/colors.png"));
         assertTrue(isDownload("/storage/emulated/0/Download/test.pdf"));

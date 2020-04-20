@@ -2745,12 +2745,13 @@ public class MediaProvider extends ContentProvider {
             try {
                 return qb.insert(helper, values);
             } catch (SQLiteConstraintException e) {
-                final long rowId = getIdIfPathExistsForCallingPackage(qb, helper, path);
+                SQLiteQueryBuilder qbForUpsert = getQueryBuilderForUpsert(path);
+                final long rowId = getIdIfPathExistsForCallingPackage(qbForUpsert, helper, path);
                 // Apps sometimes create a file via direct path and then insert it into
                 // MediaStore via ContentResolver. The former should create a database entry,
                 // so we have to treat the latter as an upsert.
                 // TODO(b/149917493) Perform all INSERT operations as UPSERT.
-                if (rowId != -1 && qb.update(helper, values, "_id=?",
+                if (rowId != -1 && qbForUpsert.update(helper, values, "_id=?",
                         new String[]{Long.toString(rowId)}) == 1) {
                     return rowId;
                 }
@@ -2779,6 +2780,28 @@ public class MediaProvider extends ContentProvider {
             }
         }
         return -1;
+    }
+
+    /**
+     * @return {@link SQLiteQueryBuilder} for upsert with Files uri. This disables strict columns
+     * check to allow upsert to update any column with Files uri.
+     */
+    private SQLiteQueryBuilder getQueryBuilderForUpsert(@NonNull String path) {
+        final Uri uri = Files.getContentUriForPath(path);
+        final boolean allowHidden = isCallingPackageAllowedHidden();
+        // When Fuse inserts a file to database it doesn't set is_download column. When app tries
+        // insert with Downloads uri, upsert fails because getIdIfPathExistsForCallingPackage can't
+        // find a row ID with is_download=1. Use Files uri to query & update any existing row
+        // irrespective of is_download=1.
+        SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, matchUri(uri, allowHidden), uri,
+                Bundle.EMPTY, null);
+
+        // We won't be able to update columns that are not part of projection map of Files table. We
+        // have already checked strict columns in previous insert operation which failed with
+        // exception. Any malicious column usage would have got caught in insert operation, hence we
+        // can safely disable strict column check for upsert.
+        qb.setStrictColumns(false);
+        return qb;
     }
 
     private void maybePut(@NonNull ContentValues values, @NonNull String key,

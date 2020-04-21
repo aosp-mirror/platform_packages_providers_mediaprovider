@@ -20,6 +20,7 @@ import static com.android.providers.media.MediaProvider.AUDIO_MEDIA_ID;
 import static com.android.providers.media.MediaProvider.IMAGES_MEDIA_ID;
 import static com.android.providers.media.MediaProvider.VIDEO_MEDIA_ID;
 import static com.android.providers.media.MediaProvider.collectUris;
+import static com.android.providers.media.util.DatabaseUtils.getAsBoolean;
 import static com.android.providers.media.util.Logging.TAG;
 
 import android.app.Activity;
@@ -198,6 +199,7 @@ public class PermissionActivity extends Activity {
                             for (Uri uri : uris) {
                                 ops.add(ContentProviderOperation.newUpdate(uri)
                                         .withValues(values)
+                                        .withExtra(MediaStore.QUERY_ARG_ALLOW_MOVEMENT, true)
                                         .withExceptionAllowed(true)
                                         .build());
                             }
@@ -290,10 +292,10 @@ public class PermissionActivity extends Activity {
             case MediaStore.CREATE_WRITE_REQUEST_CALL:
                 return VERB_WRITE;
             case MediaStore.CREATE_TRASH_REQUEST_CALL:
-                return (values.getAsInteger(MediaColumns.IS_TRASHED) != 0)
+                return getAsBoolean(values, MediaColumns.IS_TRASHED, false)
                         ? VERB_TRASH : VERB_UNTRASH;
             case MediaStore.CREATE_FAVORITE_REQUEST_CALL:
-                return (values.getAsInteger(MediaColumns.IS_FAVORITE) != 0)
+                return getAsBoolean(values, MediaColumns.IS_FAVORITE, false)
                         ? VERB_FAVORITE : VERB_UNFAVORITE;
             case MediaStore.CREATE_DELETE_REQUEST_CALL:
                 return VERB_DELETE;

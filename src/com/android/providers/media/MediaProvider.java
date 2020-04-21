@@ -3991,19 +3991,19 @@ public class MediaProvider extends ContentProvider {
      */
     private int deleteRecursive(SQLiteQueryBuilder qb, DatabaseHelper helper, String userWhere,
             String[] userWhereArgs) {
-        synchronized (mDirectoryCache) {
-            mDirectoryCache.clear();
+        return (int) helper.runWithTransaction((db) -> {
+            synchronized (mDirectoryCache) {
+                mDirectoryCache.clear();
+            }
 
-            return (int) helper.runWithTransaction((db) -> {
-                int n = 0;
-                int total = 0;
-                do {
-                    n = qb.delete(helper, userWhere, userWhereArgs);
-                    total += n;
-                } while (n > 0);
-                return total;
-            });
-        }
+            int n = 0;
+            int total = 0;
+            do {
+                n = qb.delete(helper, userWhere, userWhereArgs);
+                total += n;
+            } while (n > 0);
+            return total;
+        });
     }
 
     @Override

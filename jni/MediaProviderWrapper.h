@@ -136,6 +136,15 @@ class MediaProviderWrapper final {
     int IsOpendirAllowed(const std::string& path, uid_t uid);
 
     /**
+     * Determines if the given package name matches its uid.
+     *
+     * @param pkg the package name of the app
+     * @param uid UID of the app
+     * @return true if it matches, otherwise return false.
+     */
+    bool IsUidForPackage(const std::string& pkg, uid_t uid);
+
+    /**
      * Renames a file or directory to new path.
      *
      * @param old_path path of the file or directory to be renamed.
@@ -169,6 +178,7 @@ class MediaProviderWrapper final {
     jmethodID mid_is_opendir_allowed_;
     jmethodID mid_get_files_in_dir_;
     jmethodID mid_rename_;
+    jmethodID mid_is_uid_for_package_;
 
     /**
      * Auxiliary for caching MediaProvider methods.

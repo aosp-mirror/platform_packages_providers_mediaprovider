@@ -146,6 +146,18 @@ int isOpendirAllowedInternal(JNIEnv* env, jobject media_provider_object,
     return res;
 }
 
+bool isUidForPackageInternal(JNIEnv* env, jobject media_provider_object,
+                             jmethodID mid_is_uid_for_package, const string& pkg, uid_t uid) {
+    ScopedLocalRef<jstring> j_pkg(env, env->NewStringUTF(pkg.c_str()));
+    bool res = env->CallBooleanMethod(media_provider_object, mid_is_uid_for_package, j_pkg.get(),
+            uid);
+
+    if (CheckForJniException(env)) {
+        return false;
+    }
+    return res;
+}
+
 std::vector<std::shared_ptr<DirectoryEntry>> getFilesInDirectoryInternal(
         JNIEnv* env, jobject media_provider_object, jmethodID mid_get_files_in_dir, uid_t uid,
         const string& path) {
@@ -252,7 +264,8 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
                         /*is_static*/ false);
     mid_rename_ = CacheMethod(env, "rename", "(Ljava/lang/String;Ljava/lang/String;I)I",
                               /*is_static*/ false);
-
+    mid_is_uid_for_package_ = CacheMethod(env, "isUidForPackage", "(Ljava/lang/String;I)Z",
+                              /*is_static*/ false);
 }
 
 MediaProviderWrapper::~MediaProviderWrapper() {
@@ -366,6 +379,15 @@ int MediaProviderWrapper::IsOpendirAllowed(const string& path, uid_t uid) {
 
     JNIEnv* env = MaybeAttachCurrentThread();
     return isOpendirAllowedInternal(env, media_provider_object_, mid_is_opendir_allowed_, path, uid);
+}
+
+bool MediaProviderWrapper::IsUidForPackage(const string& pkg, uid_t uid) {
+    if (shouldBypassMediaProvider(uid)) {
+        return true;
+    }
+
+    JNIEnv* env = MaybeAttachCurrentThread();
+    return isUidForPackageInternal(env, media_provider_object_, mid_is_uid_for_package_, pkg, uid);
 }
 
 int MediaProviderWrapper::Rename(const string& old_path, const string& new_path, uid_t uid) {

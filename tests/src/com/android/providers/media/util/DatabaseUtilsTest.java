@@ -32,6 +32,7 @@ import static android.database.DatabaseUtils.bindSelection;
 import static android.database.DatabaseUtils.escapeForLike;
 
 import static com.android.providers.media.util.DatabaseUtils.maybeBalance;
+import static com.android.providers.media.util.DatabaseUtils.parseBoolean;
 import static com.android.providers.media.util.DatabaseUtils.recoverAbusiveLimit;
 import static com.android.providers.media.util.DatabaseUtils.recoverAbusiveSortOrder;
 import static com.android.providers.media.util.DatabaseUtils.resolveQueryArgs;
@@ -366,6 +367,24 @@ public class DatabaseUtilsTest {
                 escapeForLike("/path/to/fi_le.bin"));
         assertEquals("/path/to/fi\\%le.bin",
                 escapeForLike("/path/to/fi%le.bin"));
+    }
+
+    @Test
+    public void testParseBoolean() throws Exception {
+        assertTrue(parseBoolean("TRUE", false));
+        assertTrue(parseBoolean("true", false));
+        assertTrue(parseBoolean("1", false));
+        assertTrue(parseBoolean(1, false));
+        assertTrue(parseBoolean(true, false));
+
+        assertFalse(parseBoolean("FALSE", true));
+        assertFalse(parseBoolean("false", true));
+        assertFalse(parseBoolean("0", true));
+        assertFalse(parseBoolean(0, true));
+        assertFalse(parseBoolean(false, true));
+
+        assertFalse(parseBoolean(null, false));
+        assertTrue(parseBoolean(null, true));
     }
 
     private static Pair<String, String> recoverAbusiveGroupBy(

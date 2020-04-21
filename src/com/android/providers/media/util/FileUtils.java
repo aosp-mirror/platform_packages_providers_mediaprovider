@@ -35,6 +35,7 @@ import static android.system.OsConstants.W_OK;
 
 import static com.android.providers.media.util.DatabaseUtils.getAsBoolean;
 import static com.android.providers.media.util.DatabaseUtils.getAsLong;
+import static com.android.providers.media.util.DatabaseUtils.parseBoolean;
 import static com.android.providers.media.util.Logging.TAG;
 
 import android.content.ClipDescription;
@@ -957,18 +958,18 @@ public class FileUtils {
 
         // Only define the field when this modification is actually adjusting
         // one of the flags that should influence the expiration
-        final Integer pending = values.getAsInteger(MediaColumns.IS_PENDING);
+        final Object pending = values.get(MediaColumns.IS_PENDING);
         if (pending != null) {
-            if (pending != 0) {
+            if (parseBoolean(pending, false)) {
                 values.put(MediaColumns.DATE_EXPIRES,
                         (System.currentTimeMillis() + DEFAULT_DURATION_PENDING) / 1000);
             } else {
                 values.putNull(MediaColumns.DATE_EXPIRES);
             }
         }
-        final Integer trashed = values.getAsInteger(MediaColumns.IS_TRASHED);
+        final Object trashed = values.get(MediaColumns.IS_TRASHED);
         if (trashed != null) {
-            if (trashed != 0) {
+            if (parseBoolean(trashed, false)) {
                 values.put(MediaColumns.DATE_EXPIRES,
                         (System.currentTimeMillis() + DEFAULT_DURATION_TRASHED) / 1000);
             } else {

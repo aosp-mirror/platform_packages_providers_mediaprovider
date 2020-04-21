@@ -2444,7 +2444,7 @@ public class MediaProvider extends ContentProvider {
         values.put(FileColumns.VOLUME_NAME, extractVolumeName(path));
         values.put(FileColumns.RELATIVE_PATH, extractRelativePath(path));
         values.put(FileColumns.DISPLAY_NAME, extractDisplayName(path));
-        values.put(FileColumns.IS_DOWNLOAD, isDownload(path));
+        values.put(FileColumns.IS_DOWNLOAD, isDownload(path) ? 1 : 0);
         File file = new File(path);
         if (file.exists()) {
             values.put(FileColumns.DATE_MODIFIED, file.lastModified() / 1000);
@@ -2745,12 +2745,13 @@ public class MediaProvider extends ContentProvider {
             try {
                 return qb.insert(helper, values);
             } catch (SQLiteConstraintException e) {
-                final long rowId = getIdIfPathExistsForCallingPackage(qb, helper, path);
+                SQLiteQueryBuilder qbForUpsert = getQueryBuilderForUpsert(path);
+                final long rowId = getIdIfPathExistsForCallingPackage(qbForUpsert, helper, path);
                 // Apps sometimes create a file via direct path and then insert it into
                 // MediaStore via ContentResolver. The former should create a database entry,
                 // so we have to treat the latter as an upsert.
                 // TODO(b/149917493) Perform all INSERT operations as UPSERT.
-                if (rowId != -1 && qb.update(helper, values, "_id=?",
+                if (rowId != -1 && qbForUpsert.update(helper, values, "_id=?",
                         new String[]{Long.toString(rowId)}) == 1) {
                     return rowId;
                 }
@@ -2781,6 +2782,28 @@ public class MediaProvider extends ContentProvider {
         return -1;
     }
 
+    /**
+     * @return {@link SQLiteQueryBuilder} for upsert with Files uri. This disables strict columns
+     * check to allow upsert to update any column with Files uri.
+     */
+    private SQLiteQueryBuilder getQueryBuilderForUpsert(@NonNull String path) {
+        final Uri uri = Files.getContentUriForPath(path);
+        final boolean allowHidden = isCallingPackageAllowedHidden();
+        // When Fuse inserts a file to database it doesn't set is_download column. When app tries
+        // insert with Downloads uri, upsert fails because getIdIfPathExistsForCallingPackage can't
+        // find a row ID with is_download=1. Use Files uri to query & update any existing row
+        // irrespective of is_download=1.
+        SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, matchUri(uri, allowHidden), uri,
+                Bundle.EMPTY, null);
+
+        // We won't be able to update columns that are not part of projection map of Files table. We
+        // have already checked strict columns in previous insert operation which failed with
+        // exception. Any malicious column usage would have got caught in insert operation, hence we
+        // can safely disable strict column check for upsert.
+        qb.setStrictColumns(false);
+        return qb;
+    }
+
     private void maybePut(@NonNull ContentValues values, @NonNull String key,
             @Nullable String value) {
         if (value != null) {
@@ -2791,7 +2814,7 @@ public class MediaProvider extends ContentProvider {
     private boolean maybeMarkAsDownload(@NonNull ContentValues values) {
         final String path = values.getAsString(MediaColumns.DATA);
         if (path != null && isDownload(path)) {
-            values.put(FileColumns.IS_DOWNLOAD, true);
+            values.put(FileColumns.IS_DOWNLOAD, 1);
             return true;
         }
         return false;
@@ -3107,7 +3130,7 @@ public class MediaProvider extends ContentProvider {
 
             case DOWNLOADS:
                 maybePut(initialValues, FileColumns.OWNER_PACKAGE_NAME, ownerPackageName);
-                initialValues.put(FileColumns.IS_DOWNLOAD, true);
+                initialValues.put(FileColumns.IS_DOWNLOAD, 1);
                 rowId = insertFile(qb, helper, match, uri, extras, initialValues,
                         FileColumns.MEDIA_TYPE_NONE, false);
                 if (rowId > 0) {
@@ -3191,14 +3214,6 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    @VisibleForTesting
-    static boolean parseBoolean(String value) {
-        if (value == null) return false;
-        if ("1".equals(value)) return true;
-        if ("true".equalsIgnoreCase(value)) return true;
-        return false;
-    }
-
     @Deprecated
     private String getSharedPackages(String callingPackage) {
         final String[] sharedPackageNames = mCallingIdentity.get().getSharedPackageNames();
@@ -3247,7 +3262,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         final SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
-        if (parseBoolean(uri.getQueryParameter("distinct"))) {
+        if (uri.getBooleanQueryParameter("distinct", false)) {
             qb.setDistinct(true);
         }
         qb.setStrict(true);
@@ -4555,7 +4570,7 @@ public class MediaProvider extends ContentProvider {
                 final Uri playlistUri = ContentUris.withAppendedId(
                         MediaStore.Audio.Playlists.getContentUri(volumeName), playlistId);
 
-                if (parseBoolean(uri.getQueryParameter("move"))) {
+                if (uri.getBooleanQueryParameter("move", false)) {
                     // Convert explicit request into query; sigh, moveItem()
                     // uses zero-based indexing instead of one-based indexing
                     final int from = Integer.parseInt(uri.getPathSegments().get(5)) + 1;
@@ -4712,16 +4727,14 @@ public class MediaProvider extends ContentProvider {
                 break;
         }
 
-        // TODO: remove this as part of fixing b/151768142
-        final boolean isCallingPackageSystem = isCallingPackageSystem()
-                && !"com.android.systemui".equals(getCallingPackageOrSelf());
-
         // If we're touching columns that would change placement of a file,
         // blend in current values and recalculate path
+        final boolean allowMovement = extras.getBoolean(MediaStore.QUERY_ARG_ALLOW_MOVEMENT,
+                !isCallingPackageSystem());
         if (containsAny(initialValues.keySet(), sPlacementColumns)
                 && !initialValues.containsKey(MediaColumns.DATA)
-                && !isCallingPackageSystem
-                && !isThumbnail) {
+                && !isThumbnail
+                && allowMovement) {
             Trace.beginSection("movement");
 
             // We only support movement under well-defined collections

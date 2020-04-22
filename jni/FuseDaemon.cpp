@@ -96,9 +96,17 @@ const bool IS_OS_DEBUGABLE = android::base::GetIntProperty("ro.debuggable", 0);
 
 #define FUSE_UNKNOWN_INO 0xffffffff
 
+// Stolen from: android_filesystem_config.h
+#define AID_APP_START 10000
+
 constexpr size_t MAX_READ_SIZE = 128 * 1024;
 // Stolen from: UserHandle#getUserId
 constexpr int PER_USER_RANGE = 100000;
+
+// Regex copied from FileUtils.java in MediaProvider, but without media directory.
+const std::regex PATTERN_OWNED_PATH(
+    "^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb|sandbox)/([^/]+)(/?.*)?",
+    std::regex_constants::icase);
 
 /*
  * In order to avoid double caching with fuse, call fadvise on the file handles
@@ -240,12 +248,29 @@ struct fuse {
     // because fuse_lowlevel_ops documents that the root inode is always one
     // (see FUSE_ROOT_ID in fuse_lowlevel.h). There are no particular requirements
     // on any of the other inodes in the FS.
-    inline node* FromInode(__u64 inode) {
+    // Also, if ctx is not nullptr, it will also check if the path can be accessible
+    // by the caller, and return nullptr if it cannot access.
+    inline node* FromInode(__u64 inode, const struct fuse_ctx* ctx) {
         if (inode == FUSE_ROOT_ID) {
             return root;
         }
 
-        return node::FromInode(inode, &tracker);
+        node* result = node::FromInode(inode, &tracker);
+        if (ctx == nullptr || ctx->uid < AID_APP_START) {
+            return result;
+        }
+
+        string path = result->BuildPath();
+        std::smatch match;
+        if (std::regex_match(path, match, PATTERN_OWNED_PATH)) {
+            std::string const & pkg = match[1];
+            if (!mp->IsUidForPackage(pkg, ctx->uid)) {
+                PLOG(WARNING) << "Invalid file access from " << pkg << ": " << path;
+                return nullptr;
+            }
+        }
+
+        return result;
     }
 
     inline __u64 ToInode(node* node) const {
@@ -346,6 +371,13 @@ static struct fuse* get_fuse(fuse_req_t req) {
     return reinterpret_cast<struct fuse*>(fuse_req_userdata(req));
 }
 
+static bool is_package_owned_path(const string& path, const string& fuse_path) {
+    if (path.rfind(fuse_path, 0) != 0) {
+        return false;
+    }
+    return std::regex_match(path, PATTERN_OWNED_PATH);
+}
+
 static node* make_node_entry(fuse_req_t req, node* parent, const string& name, const string& path,
                              struct fuse_entry_param* e, int* error_code) {
     struct fuse* fuse = get_fuse(req);
@@ -370,8 +402,10 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     // reuse inode numbers.
     e->generation = 0;
     e->ino = fuse->ToInode(node);
-    e->entry_timeout = std::numeric_limits<double>::max();
-    e->attr_timeout = std::numeric_limits<double>::max();
+    e->entry_timeout = is_package_owned_path(path, fuse->path) ?
+            0 : std::numeric_limits<double>::max();
+    e->attr_timeout = is_package_owned_path(path, fuse->path) ?
+            0 : std::numeric_limits<double>::max();
 
     return node;
 }
@@ -415,7 +449,11 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
                        struct fuse_entry_param* e, int* error_code) {
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    node* parent_node = fuse->FromInode(parent);
+    node* parent_node = fuse->FromInode(parent, ctx);
+    if (!parent_node) {
+        *error_code = ENOENT;
+        return nullptr;
+    }
     string parent_path = parent_node->BuildPath();
     string child_path = parent_path + "/" + name;
 
@@ -445,7 +483,8 @@ static void pf_lookup(fuse_req_t req, fuse_ino_t parent, const char* name) {
 }
 
 static void do_forget(struct fuse* fuse, fuse_ino_t ino, uint64_t nlookup) {
-    node* node = fuse->FromInode(ino);
+    // Always allow to forget so we put ctx as nullptr.
+    node* node = fuse->FromInode(ino, nullptr);
     TRACE_NODE(node);
     if (node) {
         // This is a narrowing conversion from an unsigned 64bit to a 32bit value. For
@@ -482,18 +521,21 @@ static void pf_getattr(fuse_req_t req,
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    node* node = fuse->FromInode(ino);
+    node* node = fuse->FromInode(ino, ctx);
+    if (!node) {
+        fuse_reply_err(req, ENOENT);
+        return;
+    }
     string path = node->BuildPath();
     TRACE_NODE(node);
-
-    if (!node) fuse_reply_err(req, ENOENT);
 
     struct stat s;
     memset(&s, 0, sizeof(s));
     if (lstat(path.c_str(), &s) < 0) {
         fuse_reply_err(req, errno);
     } else {
-        fuse_reply_attr(req, &s, std::numeric_limits<double>::max());
+        fuse_reply_attr(req, &s, is_package_owned_path(path, fuse->path) ?
+                0 : std::numeric_limits<double>::max());
     }
 }
 
@@ -505,16 +547,15 @@ static void pf_setattr(fuse_req_t req,
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    node* node = fuse->FromInode(ino);
-    string path = node->BuildPath();
-    struct timespec times[2];
-
-    TRACE_NODE(node);
-
+    node* node = fuse->FromInode(ino, ctx);
     if (!node) {
         fuse_reply_err(req, ENOENT);
         return;
     }
+    string path = node->BuildPath();
+    struct timespec times[2];
+
+    TRACE_NODE(node);
 
     /* XXX: incomplete implementation on purpose.
      * chmod/chown should NEVER be implemented.*/
@@ -559,12 +600,13 @@ static void pf_setattr(fuse_req_t req,
     }
 
     lstat(path.c_str(), attr);
-    fuse_reply_attr(req, attr, std::numeric_limits<double>::max());
+    fuse_reply_attr(req, attr, is_package_owned_path(path, fuse->path) ?
+            0 : std::numeric_limits<double>::max());
 }
 
 static void pf_canonical_path(fuse_req_t req, fuse_ino_t ino)
 {
-    node* node = get_fuse(req)->FromInode(ino);
+    node* node = get_fuse(req)->FromInode(ino, fuse_req_ctx(req));
 
     if (node) {
         // TODO(b/147482155): Check that uid has access to |path| and its contents
@@ -582,15 +624,15 @@ static void pf_mknod(fuse_req_t req,
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    node* parent_node = fuse->FromInode(parent);
-    string parent_path = parent_node->BuildPath();
-
-    TRACE_NODE(parent_node);
-
+    node* parent_node = fuse->FromInode(parent, ctx);
     if (!parent_node) {
         fuse_reply_err(req, ENOENT);
         return;
     }
+    string parent_path = parent_node->BuildPath();
+
+    TRACE_NODE(parent_node);
+
     const string child_path = parent_path + "/" + name;
 
     mode = (mode & (~0777)) | 0664;
@@ -616,7 +658,11 @@ static void pf_mkdir(fuse_req_t req,
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    node* parent_node = fuse->FromInode(parent);
+    node* parent_node = fuse->FromInode(parent, ctx);
+    if (!parent_node) {
+        fuse_reply_err(req, ENOENT);
+        return;
+    }
     const string parent_path = parent_node->BuildPath();
 
     TRACE_NODE(parent_node);
@@ -649,7 +695,11 @@ static void pf_unlink(fuse_req_t req, fuse_ino_t parent, const char* name) {
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    node* parent_node = fuse->FromInode(parent);
+    node* parent_node = fuse->FromInode(parent, ctx);
+    if (!parent_node) {
+        fuse_reply_err(req, ENOENT);
+        return;
+    }
     const string parent_path = parent_node->BuildPath();
 
     TRACE_NODE(parent_node);
@@ -675,7 +725,11 @@ static void pf_rmdir(fuse_req_t req, fuse_ino_t parent, const char* name) {
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    node* parent_node = fuse->FromInode(parent);
+    node* parent_node = fuse->FromInode(parent, ctx);
+    if (!parent_node) {
+        fuse_reply_err(req, ENOENT);
+        return;
+    }
     const string parent_path = parent_node->BuildPath();
 
     TRACE_NODE(parent_node);
@@ -718,9 +772,11 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
         return EINVAL;
     }
 
-    node* old_parent_node = fuse->FromInode(parent);
+    node* old_parent_node = fuse->FromInode(parent, ctx);
+    if (!old_parent_node) return ENOENT;
     const string old_parent_path = old_parent_node->BuildPath();
-    node* new_parent_node = fuse->FromInode(new_parent);
+    node* new_parent_node = fuse->FromInode(new_parent, ctx);
+    if (!new_parent_node) return ENOENT;
     const string new_parent_path = new_parent_node->BuildPath();
 
     if (!old_parent_node || !new_parent_node) {
@@ -793,15 +849,14 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    node* node = fuse->FromInode(ino);
-    const string path = node->BuildPath();
-
-    TRACE_NODE(node) << (is_requesting_write(fi->flags) ? "write" : "read");
-
+    node* node = fuse->FromInode(ino, ctx);
     if (!node) {
         fuse_reply_err(req, ENOENT);
         return;
     }
+    const string path = node->BuildPath();
+
+    TRACE_NODE(node) << (is_requesting_write(fi->flags) ? "write" : "read");
 
     if (fi->flags & O_DIRECT) {
         fi->flags &= ~O_DIRECT;
@@ -1042,7 +1097,7 @@ static void pf_release(fuse_req_t req,
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
 
-    node* node = fuse->FromInode(ino);
+    node* node = fuse->FromInode(ino, fuse_req_ctx(req));
     handle* h = reinterpret_cast<handle*>(fi->fh);
     TRACE_NODE(node);
 
@@ -1088,15 +1143,14 @@ static void pf_opendir(fuse_req_t req,
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    node* node = fuse->FromInode(ino);
-    const string path = node->BuildPath();
-
-    TRACE_NODE(node);
-
+    node* node = fuse->FromInode(ino, ctx);
     if (!node) {
         fuse_reply_err(req, ENOENT);
         return;
     }
+    const string path = node->BuildPath();
+
+    TRACE_NODE(node);
 
     int status = fuse->mp->IsOpendirAllowed(path, ctx->uid);
     if (status) {
@@ -1135,7 +1189,11 @@ static void do_readdir_common(fuse_req_t req,
     struct fuse_entry_param e;
     size_t entry_size = 0;
 
-    node* node = fuse->FromInode(ino);
+    node* node = fuse->FromInode(ino, fuse_req_ctx(req));
+    if (!node) {
+        fuse_reply_err(req, ENOENT);
+        return;
+    }
     const string path = node->BuildPath();
 
     TRACE_NODE(node);
@@ -1223,7 +1281,7 @@ static void pf_releasedir(fuse_req_t req,
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
 
-    node* node = fuse->FromInode(ino);
+    node* node = fuse->FromInode(ino, fuse_req_ctx(req));
     dirhandle* h = reinterpret_cast<dirhandle*>(fi->fh);
     TRACE_NODE(node);
     if (node) {
@@ -1271,7 +1329,11 @@ static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
 
-    node* node = fuse->FromInode(ino);
+    node* node = fuse->FromInode(ino, ctx);
+    if (!node) {
+        fuse_reply_err(req, ENOENT);
+        return;
+    }
     const string path = node->BuildPath();
     TRACE_NODE(node);
 
@@ -1287,7 +1349,11 @@ static void pf_create(fuse_req_t req,
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    node* parent_node = fuse->FromInode(parent);
+    node* parent_node = fuse->FromInode(parent, ctx);
+    if (!parent_node) {
+        fuse_reply_err(req, ENOENT);
+        return;
+    }
     const string parent_path = parent_node->BuildPath();
 
     TRACE_NODE(parent_node);

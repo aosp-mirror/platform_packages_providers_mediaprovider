@@ -228,3 +228,17 @@ TEST_F(NodeTest, AddDestroyHandle) {
             new handle(-1, new mediaprovider::fuse::RedactionInfo, true /* cached */));
     EXPECT_DEATH(node->DestroyHandle(h2.get()), "");
 }
+
+TEST_F(NodeTest, CaseInsensitive) {
+    unique_node_ptr parent = CreateNode(nullptr, "/path");
+    unique_node_ptr lower_child = CreateNode(parent.get(), "child");
+    unique_node_ptr upper_child = CreateNode(parent.get(), "CHILD");
+    unique_node_ptr mixed_child = CreateNode(parent.get(), "cHiLd");
+
+    std::vector<std::string> children = parent->MatchChildrenCaseInsensitive("ChIld");
+
+    ASSERT_EQ(3, children.size());
+    ASSERT_EQ("child", children[0]);
+    ASSERT_EQ("CHILD", children[1]);
+    ASSERT_EQ("cHiLd", children[2]);
+}

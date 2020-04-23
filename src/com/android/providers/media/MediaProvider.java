@@ -4007,19 +4007,19 @@ public class MediaProvider extends ContentProvider {
      */
     private int deleteRecursive(SQLiteQueryBuilder qb, DatabaseHelper helper, String userWhere,
             String[] userWhereArgs) {
-        synchronized (mDirectoryCache) {
-            mDirectoryCache.clear();
+        return (int) helper.runWithTransaction((db) -> {
+            synchronized (mDirectoryCache) {
+                mDirectoryCache.clear();
+            }
 
-            return (int) helper.runWithTransaction((db) -> {
-                int n = 0;
-                int total = 0;
-                do {
-                    n = qb.delete(helper, userWhere, userWhereArgs);
-                    total += n;
-                } while (n > 0);
-                return total;
-            });
-        }
+            int n = 0;
+            int total = 0;
+            do {
+                n = qb.delete(helper, userWhere, userWhereArgs);
+                total += n;
+            } while (n > 0);
+            return total;
+        });
     }
 
     @Override
@@ -4816,15 +4816,6 @@ public class MediaProvider extends ContentProvider {
         // Make sure any updated paths look sane
         assertFileColumnsSane(match, uri, initialValues);
 
-        // if the media type is being changed, check if it's being changed from image or video
-        // to something else
-        if (initialValues.containsKey(FileColumns.MEDIA_TYPE)) {
-            final int newMediaType = initialValues.getAsInteger(FileColumns.MEDIA_TYPE);
-
-            // If we're changing media types, invalidate any thumbnails
-            triggerInvalidate = true;
-        }
-
         if (initialValues.containsKey(FileColumns.DATA)) {
             // If we're changing paths, invalidate any thumbnails
             triggerInvalidate = true;
@@ -4849,11 +4840,7 @@ public class MediaProvider extends ContentProvider {
 
         final ContentValues values = new ContentValues(initialValues);
         switch (match) {
-            case AUDIO_MEDIA_ID: {
-                computeAudioLocalizedValues(values);
-                computeAudioKeyValues(values);
-                // fall-through
-            }
+            case AUDIO_MEDIA_ID:
             case AUDIO_PLAYLISTS_ID:
             case VIDEO_MEDIA_ID:
             case IMAGES_MEDIA_ID:
@@ -4861,6 +4848,17 @@ public class MediaProvider extends ContentProvider {
             case DOWNLOADS_ID: {
                 FileUtils.computeValuesFromData(values);
                 break;
+            }
+        }
+
+        if (initialValues.containsKey(FileColumns.MEDIA_TYPE)) {
+            final int mediaType = initialValues.getAsInteger(FileColumns.MEDIA_TYPE);
+            switch (mediaType) {
+                case FileColumns.MEDIA_TYPE_AUDIO: {
+                    computeAudioLocalizedValues(values);
+                    computeAudioKeyValues(values);
+                    break;
+                }
             }
         }
 

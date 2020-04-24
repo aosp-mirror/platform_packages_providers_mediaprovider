@@ -164,7 +164,6 @@ public class LegacyAccessHostTest extends BaseHostJUnit4Test {
 
     }
 
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testCanRename_hasRW() throws Exception {
         runDeviceTest("testCanRename_hasRW");
@@ -181,7 +180,6 @@ public class LegacyAccessHostTest extends BaseHostJUnit4Test {
         }
     }
 
-
     @Test
     public void testCantRename_noStoragePermission() throws Exception {
         revokePermissions("android.permission.WRITE_EXTERNAL_STORAGE",
@@ -194,13 +192,11 @@ public class LegacyAccessHostTest extends BaseHostJUnit4Test {
         }
     }
 
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testCanDeleteAllFiles_hasRW() throws Exception {
         runDeviceTest("testCanDeleteAllFiles_hasRW");
     }
 
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testLegacyAppCanOwnAFile_hasW() throws Exception {
         runDeviceTest("testLegacyAppCanOwnAFile_hasW");
@@ -215,7 +211,6 @@ public class LegacyAccessHostTest extends BaseHostJUnit4Test {
     public void testRenameDoesntInvalidateUri_hasRW() throws Exception {
         runDeviceTest("testRenameDoesntInvalidateUri_hasRW");
     }
-
 
     @Test
     public void testCanRenameAFileWithNoDBRow_hasRW() throws Exception {

@@ -4372,7 +4372,7 @@ public class MediaProvider extends ContentProvider {
             // doesn't exist we fall through to create it below
             final File thumbFile = getThumbnailFile(uri);
             try {
-                return ParcelFileDescriptor.open(thumbFile,
+                return FileUtils.openSafely(thumbFile,
                         ParcelFileDescriptor.MODE_READ_ONLY);
             } catch (FileNotFoundException ignored) {
             }
@@ -4395,9 +4395,9 @@ public class MediaProvider extends ContentProvider {
                 // once for remote reading. Both FDs point at the same
                 // underlying inode on disk, so they're stable across renames
                 // to avoid race conditions between threads.
-                thumbWrite = ParcelFileDescriptor.open(thumbTempFile,
+                thumbWrite = FileUtils.openSafely(thumbTempFile,
                         ParcelFileDescriptor.MODE_WRITE_ONLY | ParcelFileDescriptor.MODE_CREATE);
-                thumbRead = ParcelFileDescriptor.open(thumbTempFile,
+                thumbRead = FileUtils.openSafely(thumbTempFile,
                         ParcelFileDescriptor.MODE_READ_ONLY);
 
                 final Bitmap thumbnail = getThumbnailBitmap(uri, signal);
@@ -5506,7 +5506,7 @@ public class MediaProvider extends ContentProvider {
                     // If fuse is enabled, we can provide an fd that points to the fuse
                     // file system and handle redaction in the fuse handler when the caller reads.
                     Log.i(TAG, "Redacting with new FUSE for " + filePath);
-                    pfd = ParcelFileDescriptor.open(getFuseFile(file), modeBits);
+                    pfd = FileUtils.openSafely(getFuseFile(file), modeBits);
                 } else {
                     // TODO(b/135341978): Remove this and associated code
                     // when fuse is on by default.
@@ -5524,7 +5524,7 @@ public class MediaProvider extends ContentProvider {
                     daemon = getFuseDaemonForFile(file);
                 } catch (FileNotFoundException ignored) {
                 }
-                ParcelFileDescriptor lowerFsFd = ParcelFileDescriptor.open(file, modeBits);
+                ParcelFileDescriptor lowerFsFd = FileUtils.openSafely(file, modeBits);
                 boolean forRead = (modeBits & ParcelFileDescriptor.MODE_READ_ONLY) != 0;
                 boolean shouldOpenWithFuse = daemon != null
                         && daemon.shouldOpenWithFuse(filePath, forRead, lowerFsFd.getFd());
@@ -5535,7 +5535,7 @@ public class MediaProvider extends ContentProvider {
                     // resulting from cache inconsistencies between the upper and lower
                     // filesystem caches
                     Log.w(TAG, "Using FUSE for " + filePath);
-                    pfd = ParcelFileDescriptor.open(getFuseFile(file), modeBits);
+                    pfd = FileUtils.openSafely(getFuseFile(file), modeBits);
                     try {
                         lowerFsFd.close();
                     } catch (IOException e) {

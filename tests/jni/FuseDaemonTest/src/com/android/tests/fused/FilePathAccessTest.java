@@ -669,7 +669,6 @@ public class FilePathAccessTest {
     /**
      * Test that app can see files and directories in Android/media.
      */
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testListFilesFromExternalMediaDirectory() throws Exception {
         final File videoFile = new File(EXTERNAL_MEDIA_DIR, VIDEO_FILE_NAME);
@@ -702,7 +701,6 @@ public class FilePathAccessTest {
     /**
      * Test that readdir lists unsupported file types in default directories.
      */
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testListUnsupportedFileType() throws Exception {
         final File pdfFile = new File(DCIM_DIR, NONMEDIA_FILE_NAME);
@@ -718,9 +716,8 @@ public class FilePathAccessTest {
 
 
             executeShellCommand("touch " + videoFile.getAbsolutePath());
-            // ScanFile doesn't insert an empty media file to database. Write some data to ensure
-            // file is inserted into database.
-            executeShellCommand("echo " + STR_DATA1 + " > " + videoFile.getAbsolutePath());
+            // We don't insert files to db for files created by shell.
+            assertThat(MediaStore.scanFile(getContentResolver(), videoFile)).isNotNull();
             // TEST_APP_A with storage permission should see video file in Music directory.
             assertThat(listAs(TEST_APP_A, MUSIC_DIR.getPath())).contains(VIDEO_FILE_NAME);
         } finally {
@@ -1203,7 +1200,6 @@ public class FilePathAccessTest {
         }
     }
 
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testSystemGalleryCanRenameImagesAndVideos() throws Exception {
         final File otherAppVideoFile = new File(DCIM_DIR, "other_" + VIDEO_FILE_NAME);
@@ -1245,7 +1241,7 @@ public class FilePathAccessTest {
             imageFile.delete();
             videoFile.delete();
             topLevelVideoFile.delete();
-            musicFile.delete();
+            executeShellCommand("rm  " + musicFile.getAbsolutePath());
             denyAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
         }
     }
@@ -1492,7 +1488,6 @@ public class FilePathAccessTest {
         }
     }
 
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testManageExternalStorageCanCreateFilesAnywhere() throws Exception {
         final File topLevelPdf = new File(EXTERNAL_STORAGE_DIR, NONMEDIA_FILE_NAME);
@@ -1533,7 +1528,6 @@ public class FilePathAccessTest {
         }
     }
 
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testManageExternalStorageCanDeleteOtherAppsContents() throws Exception {
         final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
@@ -1566,7 +1560,6 @@ public class FilePathAccessTest {
         }
     }
 
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testManageExternalStorageCanRenameOtherAppsContents() throws Exception {
         final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
@@ -1734,12 +1727,8 @@ public class FilePathAccessTest {
             executeShellCommand("rm " + otherAppPdfFile2);
             otherAppImageFile1.delete();
             otherAppImageFile2.delete();
-            MediaStore.scanFile(getContentResolver(), otherAppImageFile1);
-            MediaStore.scanFile(getContentResolver(), otherAppImageFile2);
             otherAppVideoFile1.delete();
             otherAppVideoFile2.delete();
-            MediaStore.scanFile(getContentResolver(), otherAppVideoFile1);
-            MediaStore.scanFile(getContentResolver(), otherAppVideoFile2);
             otherAppPdfFile1.delete();
             otherAppPdfFile2.delete();
             dirInDcim.delete();

@@ -1554,7 +1554,7 @@ bool FuseDaemon::IsStarted() const {
     return active.load(std::memory_order_acquire);
 }
 
-void FuseDaemon::Start(const int fd, const std::string& path) {
+void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path) {
     struct fuse_args args;
     struct fuse_cmdline_opts opts;
 

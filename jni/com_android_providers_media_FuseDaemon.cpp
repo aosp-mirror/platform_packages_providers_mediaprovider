@@ -24,6 +24,7 @@
 #include "FuseDaemon.h"
 #include "MediaProviderWrapper.h"
 #include "android-base/logging.h"
+#include "android-base/unique_fd.h"
 
 namespace mediaprovider {
 namespace {
@@ -42,12 +43,14 @@ void com_android_providers_media_FuseDaemon_start(JNIEnv* env, jobject self, jlo
     LOG(DEBUG) << "Starting the FUSE daemon...";
     fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
 
+    android::base::unique_fd ufd(fd);
+
     ScopedUtfChars utf_chars_path(env, java_path);
     if (!utf_chars_path.c_str()) {
         return;
     }
 
-    daemon->Start(fd, utf_chars_path.c_str());
+    daemon->Start(std::move(ufd), utf_chars_path.c_str());
 }
 
 bool com_android_providers_media_FuseDaemon_is_started(JNIEnv* env, jobject self,

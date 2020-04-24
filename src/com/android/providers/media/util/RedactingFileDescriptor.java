@@ -47,15 +47,10 @@ public class RedactingFileDescriptor {
     private volatile long[] mRedactRanges;
     private volatile long[] mFreeOffsets;
 
-    private FileDescriptor mInner = null;
+    private ParcelFileDescriptor mInner = null;
     private ParcelFileDescriptor mOuter = null;
 
-    public static void closeQuietly(FileDescriptor fd) {
-        try {
-            Os.close(fd);
-        } catch (ErrnoException ignored) {
-        }
-    }
+    private FileDescriptor mInnerFd = null;
 
     private RedactingFileDescriptor(
             Context context, File file, int mode, long[] redactRanges, long[] freeOffsets)
@@ -64,17 +59,13 @@ public class RedactingFileDescriptor {
         mFreeOffsets = freeOffsets;
 
         try {
-            try {
-                mInner = Os.open(file.getAbsolutePath(),
-                        FileUtils.translateModePfdToPosix(mode), 0);
-                mOuter = context.getSystemService(StorageManager.class)
-                        .openProxyFileDescriptor(mode, mCallback,
-                                new Handler(Looper.getMainLooper()));
-            } catch (ErrnoException e) {
-                throw e.rethrowAsIOException();
-            }
+            mInner = FileUtils.openSafely(file, mode);
+            mInnerFd = mInner.getFileDescriptor();
+            mOuter = context.getSystemService(StorageManager.class)
+                    .openProxyFileDescriptor(mode, mCallback,
+                            new Handler(Looper.getMainLooper()));
         } catch (IOException e) {
-            closeQuietly(mInner);
+            FileUtils.closeQuietly(mInner);
             FileUtils.closeQuietly(mOuter);
             throw e;
         }
@@ -158,7 +149,7 @@ public class RedactingFileDescriptor {
     private final ProxyFileDescriptorCallback mCallback = new ProxyFileDescriptorCallback() {
         @Override
         public long onGetSize() throws ErrnoException {
-            return Os.fstat(mInner).st_size;
+            return Os.fstat(mInnerFd).st_size;
         }
 
         @Override
@@ -166,7 +157,7 @@ public class RedactingFileDescriptor {
             int n = 0;
             while (n < size) {
                 try {
-                    final int res = Os.pread(mInner, data, n, size - n, offset + n);
+                    final int res = Os.pread(mInnerFd, data, n, size - n, offset + n);
                     if (res == 0) {
                         break;
                     } else {
@@ -203,7 +194,7 @@ public class RedactingFileDescriptor {
             int n = 0;
             while (n < size) {
                 try {
-                    final int res = Os.pwrite(mInner, data, n, size - n, offset + n);
+                    final int res = Os.pwrite(mInnerFd, data, n, size - n, offset + n);
                     if (res == 0) {
                         break;
                     } else {
@@ -222,12 +213,12 @@ public class RedactingFileDescriptor {
 
         @Override
         public void onFsync() throws ErrnoException {
-            Os.fsync(mInner);
+            Os.fsync(mInnerFd);
         }
 
         @Override
         public void onRelease() {
-            closeQuietly(mInner);
+            FileUtils.closeQuietly(mInner);
         }
     };
 }

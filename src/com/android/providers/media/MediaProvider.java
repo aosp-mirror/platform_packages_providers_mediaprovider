@@ -1732,16 +1732,12 @@ public class MediaProvider extends ContentProvider {
      * However, we update database entries for renamed files to keep the database consistent.
      */
     private int renameUncheckedForFuse(String oldPath, String newPath) {
-
-        return renameInLowerFs(oldPath, newPath);
-        // TODO(b/145737191) Legacy apps don't expect FuseDaemon to update database.
-        // Inserting/deleting the database entry might break app functionality.
-        //if (new File(oldPath).isFile()) {
-        //     return renameFileUncheckedForFuse(oldPath, newPath);
-        // } else {
-        //    return renameDirectoryUncheckedForFuse(oldPath, newPath,
-        //            getAllFilesForRenameDirectory(oldPath));
-        // }
+        if (new File(oldPath).isFile()) {
+            return renameFileUncheckedForFuse(oldPath, newPath);
+        } else {
+            return renameDirectoryUncheckedForFuse(oldPath, newPath,
+                    getAllFilesForRenameDirectory(oldPath));
+        }
     }
 
     /**
@@ -2350,6 +2346,22 @@ public class MediaProvider extends ContentProvider {
                     validPath = isExternalMediaDirectory(res.getAbsolutePath()) &&
                             isCallingIdentitySharedPackageName(pathOwnerPackage);
                 }
+            }
+
+            // Allow apps with MANAGE_EXTERNAL_STORAGE to create files anywhere
+            if (!validPath) {
+                validPath = isCallingPackageExternalStorageManager();
+            }
+
+            // Allow system gallery to create image/video files.
+            if (!validPath) {
+                // System gallery can create image/video files in any existing directory, it can
+                // also create subdirectories in any existing top-level directory. However, system
+                // gallery is not allowed to create non-default top level directory.
+                final boolean createNonDefaultTopLevelDir = primary != null &&
+                        !FileUtils.buildPath(volumePath, primary).exists();
+                validPath = !createNonDefaultTopLevelDir &&
+                        canAccessMediaFile(res.getAbsolutePath(), /*allowLegacy*/ false);
             }
 
             // Nothing left to check; caller can't use this path
@@ -4372,7 +4384,7 @@ public class MediaProvider extends ContentProvider {
             // doesn't exist we fall through to create it below
             final File thumbFile = getThumbnailFile(uri);
             try {
-                return ParcelFileDescriptor.open(thumbFile,
+                return FileUtils.openSafely(thumbFile,
                         ParcelFileDescriptor.MODE_READ_ONLY);
             } catch (FileNotFoundException ignored) {
             }
@@ -4395,9 +4407,9 @@ public class MediaProvider extends ContentProvider {
                 // once for remote reading. Both FDs point at the same
                 // underlying inode on disk, so they're stable across renames
                 // to avoid race conditions between threads.
-                thumbWrite = ParcelFileDescriptor.open(thumbTempFile,
+                thumbWrite = FileUtils.openSafely(thumbTempFile,
                         ParcelFileDescriptor.MODE_WRITE_ONLY | ParcelFileDescriptor.MODE_CREATE);
-                thumbRead = ParcelFileDescriptor.open(thumbTempFile,
+                thumbRead = FileUtils.openSafely(thumbTempFile,
                         ParcelFileDescriptor.MODE_READ_ONLY);
 
                 final Bitmap thumbnail = getThumbnailBitmap(uri, signal);
@@ -5506,7 +5518,7 @@ public class MediaProvider extends ContentProvider {
                     // If fuse is enabled, we can provide an fd that points to the fuse
                     // file system and handle redaction in the fuse handler when the caller reads.
                     Log.i(TAG, "Redacting with new FUSE for " + filePath);
-                    pfd = ParcelFileDescriptor.open(getFuseFile(file), modeBits);
+                    pfd = FileUtils.openSafely(getFuseFile(file), modeBits);
                 } else {
                     // TODO(b/135341978): Remove this and associated code
                     // when fuse is on by default.
@@ -5524,7 +5536,7 @@ public class MediaProvider extends ContentProvider {
                     daemon = getFuseDaemonForFile(file);
                 } catch (FileNotFoundException ignored) {
                 }
-                ParcelFileDescriptor lowerFsFd = ParcelFileDescriptor.open(file, modeBits);
+                ParcelFileDescriptor lowerFsFd = FileUtils.openSafely(file, modeBits);
                 boolean forRead = (modeBits & ParcelFileDescriptor.MODE_READ_ONLY) != 0;
                 boolean shouldOpenWithFuse = daemon != null
                         && daemon.shouldOpenWithFuse(filePath, forRead, lowerFsFd.getFd());
@@ -5535,7 +5547,7 @@ public class MediaProvider extends ContentProvider {
                     // resulting from cache inconsistencies between the upper and lower
                     // filesystem caches
                     Log.w(TAG, "Using FUSE for " + filePath);
-                    pfd = ParcelFileDescriptor.open(getFuseFile(file), modeBits);
+                    pfd = FileUtils.openSafely(getFuseFile(file), modeBits);
                     try {
                         lowerFsFd.close();
                     } catch (IOException e) {
@@ -5628,7 +5640,10 @@ public class MediaProvider extends ContentProvider {
         return MimeUtils.resolveMediaType(mimeType);
     }
 
-    private boolean canAccessMediaFile(String filePath) {
+    private boolean canAccessMediaFile(String filePath, boolean allowLegacy) {
+        if (!allowLegacy && isCallingPackageRequestingLegacy()) {
+            return false;
+        }
         switch (getFileMediaType(filePath)) {
             case FileColumns.MEDIA_TYPE_IMAGE:
                 return mCallingIdentity.get().hasPermission(PERMISSION_WRITE_IMAGES);
@@ -5657,7 +5672,7 @@ public class MediaProvider extends ContentProvider {
             return true;
         }
 
-        if (mCallingIdentity.get().hasPermission(PERMISSION_MANAGE_EXTERNAL_STORAGE)) {
+        if (isCallingPackageExternalStorageManager()) {
             return true;
         }
 
@@ -5669,7 +5684,7 @@ public class MediaProvider extends ContentProvider {
 
         // Apps with write access to images and/or videos can bypass our restrictions if all of the
         // the files they're accessing are of the compatible media type.
-        if (canAccessMediaFile(filePath)) {
+        if (canAccessMediaFile(filePath, /*allowLegacy*/ true)) {
             return true;
         }
 
@@ -6056,6 +6071,21 @@ public class MediaProvider extends ContentProvider {
         return false;
     }
 
+    private Uri insertFileForFuse(@NonNull String path, @NonNull Uri uri, @NonNull String mimeType,
+            boolean useData) {
+        ContentValues values = new ContentValues();
+        values.put(FileColumns.OWNER_PACKAGE_NAME, getCallingPackageOrSelf());
+        values.put(MediaColumns.MIME_TYPE, mimeType);
+
+        if (useData) {
+            values.put(FileColumns.DATA, getAbsoluteSanitizedPath(path));
+        } else {
+            values.put(FileColumns.RELATIVE_PATH, extractRelativePath(path));
+            values.put(FileColumns.DISPLAY_NAME, extractDisplayName(path));
+        }
+        return insert(uri, values, Bundle.EMPTY);
+    }
+
     /**
      * Enforces file creation restrictions (see return values) for the given file on behalf of the
      * app with the given {@code uid}. If the file is is added to the shared storage, creates a
@@ -6089,32 +6119,27 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.ENOENT;
             }
 
+            final String mimeType = MimeUtils.resolveMimeType(new File(path));
+
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
+                // Ignore insert errors for apps that bypass scoped storage restriction.
+                insertFileForFuse(path, Files.getContentUriForPath(path), mimeType,
+                        /*useData*/ isCallingPackageRequestingLegacy());
                 return 0;
             }
+
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
                 return OsConstants.EPERM;
             }
 
-            final String mimeType = MimeUtils.resolveMimeType(new File(path));
             final Uri contentUri = getContentUriForFile(path, mimeType);
             if (fileExists(path, contentUri)) {
                 return OsConstants.EEXIST;
             }
 
-            final String displayName = extractDisplayName(path);
-            final String callingPackageName = getCallingPackageOrSelf();
-            final String relativePath = extractRelativePath(path);
-
-            ContentValues values = new ContentValues();
-            values.put(FileColumns.RELATIVE_PATH, relativePath);
-            values.put(FileColumns.DISPLAY_NAME, displayName);
-            values.put(FileColumns.OWNER_PACKAGE_NAME, callingPackageName);
-            values.put(MediaColumns.MIME_TYPE, mimeType);
-
-            final Uri item = insert(contentUri, values);
+            final Uri item = insertFileForFuse(path, contentUri, mimeType, /*useData*/ false);
             if (item == null) {
                 return OsConstants.EPERM;
             }
@@ -6164,14 +6189,11 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.ENOENT;
             }
 
-            if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
-                // TODO(b/145737191) Legacy apps don't expect FuseDaemon to update database.
-                // Inserting/deleting the database entry might break app functionality.
-                return deleteFileUnchecked(path);
-            }
+            final boolean shouldBypass = shouldBypassFuseRestrictions(/*forWrite*/ true, path);
+
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
-            if (isCallingPackageRequestingLegacy()) {
+            if (!shouldBypass && isCallingPackageRequestingLegacy()) {
                 return OsConstants.EPERM;
             }
 
@@ -6185,6 +6207,9 @@ public class MediaProvider extends ContentProvider {
             final String[] whereArgs = {sanitizedPath};
 
             if (delete(contentUri, where, whereArgs) == 0) {
+                if (shouldBypass) {
+                    return deleteFileUnchecked(path);
+                }
                 return OsConstants.ENOENT;
             } else if (!path.equals(sanitizedPath)) {
                 // delete() doesn't delete the file in lower file system if sanitized path is
@@ -6318,7 +6343,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Apps that have permission to manage external storage can work with all files
-        if (mCallingIdentity.get().hasPermission(PERMISSION_MANAGE_EXTERNAL_STORAGE)) {
+        if (isCallingPackageExternalStorageManager()) {
             return true;
         }
 
@@ -7055,6 +7080,11 @@ public class MediaProvider extends ContentProvider {
     private boolean isCallingPackageLegacyRead() {
         return mCallingIdentity.get().hasPermission(PERMISSION_IS_LEGACY_READ);
     }
+
+    private boolean isCallingPackageExternalStorageManager() {
+        return mCallingIdentity.get().hasPermission(PERMISSION_MANAGE_EXTERNAL_STORAGE);
+    }
+
 
     @Override
     public void dump(FileDescriptor fd, PrintWriter writer, String[] args) {

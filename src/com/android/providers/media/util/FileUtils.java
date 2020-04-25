@@ -25,12 +25,16 @@ import static android.os.ParcelFileDescriptor.MODE_WRITE_ONLY;
 import static android.system.OsConstants.F_OK;
 import static android.system.OsConstants.O_ACCMODE;
 import static android.system.OsConstants.O_APPEND;
+import static android.system.OsConstants.O_CLOEXEC;
 import static android.system.OsConstants.O_CREAT;
+import static android.system.OsConstants.O_NOFOLLOW;
 import static android.system.OsConstants.O_RDONLY;
 import static android.system.OsConstants.O_RDWR;
 import static android.system.OsConstants.O_TRUNC;
 import static android.system.OsConstants.O_WRONLY;
 import static android.system.OsConstants.R_OK;
+import static android.system.OsConstants.S_IRWXG;
+import static android.system.OsConstants.S_IRWXU;
 import static android.system.OsConstants.W_OK;
 
 import static com.android.providers.media.util.DatabaseUtils.getAsBoolean;
@@ -43,9 +47,13 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Environment;
+import android.os.ParcelFileDescriptor;
 import android.os.storage.StorageManager;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
+import android.system.ErrnoException;
+import android.system.Os;
+import android.system.OsConstants;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.util.Log;
@@ -56,6 +64,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -80,8 +89,37 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class FileUtils {
+    /**
+     * Drop-in replacement for {@link ParcelFileDescriptor#open(File, int)}
+     * which adds security features like {@link OsConstants#O_CLOEXEC} and
+     * {@link OsConstants#O_NOFOLLOW}.
+     */
+    public static @NonNull ParcelFileDescriptor openSafely(@NonNull File file, int pfdFlags)
+            throws FileNotFoundException {
+        final int posixFlags = translateModePfdToPosix(pfdFlags) | O_CLOEXEC | O_NOFOLLOW;
+        try {
+            final FileDescriptor fd = Os.open(file.getAbsolutePath(), posixFlags,
+                    S_IRWXU | S_IRWXG);
+            try {
+                return ParcelFileDescriptor.dup(fd);
+            } finally {
+                closeQuietly(fd);
+            }
+        } catch (IOException | ErrnoException e) {
+            throw new FileNotFoundException(e.getMessage());
+        }
+    }
+
     public static void closeQuietly(@Nullable AutoCloseable closeable) {
         android.os.FileUtils.closeQuietly(closeable);
+    }
+
+    public static void closeQuietly(@Nullable FileDescriptor fd) {
+        if (fd == null) return;
+        try {
+            Os.close(fd);
+        } catch (ErrnoException ignored) {
+        }
     }
 
     public static long copy(@NonNull InputStream in, @NonNull OutputStream out) throws IOException {

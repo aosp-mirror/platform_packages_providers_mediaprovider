@@ -297,7 +297,6 @@ public class LegacyFileAccessTest {
      * Test that rename for legacy app with WRITE_EXTERNAL_STORAGE permission bypasses rename
      * restrictions imposed by MediaProvider
      */
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testCanRename_hasRW() throws Exception {
         pollForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, /*granted*/ true);
@@ -404,7 +403,6 @@ public class LegacyFileAccessTest {
      * Test that legacy app with WRITE_EXTERNAL_STORAGE can delete all files, and corresponding
      * database entry is deleted on deleting the file.
      */
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testCanDeleteAllFiles_hasRW() throws Exception {
         pollForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, /*granted*/ true);
@@ -442,7 +440,6 @@ public class LegacyFileAccessTest {
      * Test that file created by legacy app is inserted to MediaProvider database. And,
      * MediaColumns.OWNER_PACKAGE_NAME is updated with calling package's name.
      */
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testLegacyAppCanOwnAFile_hasW() throws Exception {
         pollForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, /*granted*/ true);
@@ -501,7 +498,6 @@ public class LegacyFileAccessTest {
         } finally {
             videoFile.delete();
             renamedVideoFile.delete();
-            MediaStore.scanFile(cr, renamedVideoFile);
         }
     }
 
@@ -545,7 +541,6 @@ public class LegacyFileAccessTest {
         } finally {
             imageFile.delete();
             temporaryImageFile.delete();
-            MediaStore.scanFile(cr, imageFile);
         }
     }
 
@@ -586,7 +581,6 @@ public class LegacyFileAccessTest {
         } finally {
             imageInNoMediaDir.delete();
             renamedImageInDCIM.delete();
-            MediaStore.scanFile(cr, renamedImageInDCIM);
             noMediaFile.delete();
         }
 

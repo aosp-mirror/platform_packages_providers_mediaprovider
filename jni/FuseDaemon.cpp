@@ -1532,15 +1532,21 @@ bool FuseDaemon::ShouldOpenWithFuse(int fd, bool for_read, const std::string& pa
 void FuseDaemon::InvalidateFuseDentryCache(const std::string& path) {
     LOG(VERBOSE) << "Invalidating FUSE dentry cache";
     if (active.load(std::memory_order_acquire)) {
-        std::lock_guard<std::recursive_mutex> guard(fuse->lock);
+        string name;
+        fuse_ino_t parent;
 
-        const node* node = node::LookupAbsolutePath(fuse->root, path);
-        if (node) {
-            string name = node->GetName();
-            fuse_ino_t parent = fuse->ToInode(node->GetParent());
-            if (fuse_lowlevel_notify_inval_entry(fuse->se, parent, name.c_str(), name.size())) {
-                LOG(WARNING) << "Failed to invalidate dentry for path";
+        {
+            std::lock_guard<std::recursive_mutex> guard(fuse->lock);
+            const node* node = node::LookupAbsolutePath(fuse->root, path);
+            if (node) {
+                name = node->GetName();
+                parent = fuse->ToInode(node->GetParent());
             }
+        }
+
+        if (!name.empty() &&
+            fuse_lowlevel_notify_inval_entry(fuse->se, parent, name.c_str(), name.size())) {
+            LOG(WARNING) << "Failed to invalidate dentry for path";
         }
     } else {
         LOG(WARNING) << "FUSE daemon is inactive. Cannot invalidate dentry";
@@ -1554,7 +1560,7 @@ bool FuseDaemon::IsStarted() const {
     return active.load(std::memory_order_acquire);
 }
 
-void FuseDaemon::Start(const int fd, const std::string& path) {
+void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path) {
     struct fuse_args args;
     struct fuse_cmdline_opts opts;
 

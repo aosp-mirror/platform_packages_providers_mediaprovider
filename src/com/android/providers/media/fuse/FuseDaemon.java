@@ -151,7 +151,10 @@ public final class FuseDaemon extends Thread {
     }
 
     private native long native_new(MediaProvider mediaProvider);
+
+    // Takes ownership of the passed in file descriptor!
     private native void native_start(long daemon, int deviceFd, String path);
+
     private native void native_delete(long daemon);
     private native boolean native_should_open_with_fuse(long daemon, String path, boolean readLock,
             int fd);

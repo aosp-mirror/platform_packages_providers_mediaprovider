@@ -20,6 +20,8 @@
 #include <memory>
 #include <string>
 
+#include <android-base/unique_fd.h>
+
 #include "MediaProviderWrapper.h"
 #include "jni.h"
 
@@ -35,7 +37,7 @@ class FuseDaemon final {
     /**
      * Start the FUSE daemon loop that will handle filesystem calls.
      */
-    void Start(const int fd, const std::string& path);
+    void Start(android::base::unique_fd fd, const std::string& path);
 
     /**
      * Checks if the FUSE daemon is started.

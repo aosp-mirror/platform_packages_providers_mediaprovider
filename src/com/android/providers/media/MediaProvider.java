@@ -2694,7 +2694,12 @@ public class MediaProvider extends ContentProvider {
 
         if (mimeType != null) {
             values.put(FileColumns.MIME_TYPE, mimeType);
-            values.put(FileColumns.MEDIA_TYPE, MimeUtils.resolveMediaType(mimeType));
+            if (isCallingPackageSystem() && values.containsKey(FileColumns.MEDIA_TYPE)) {
+                // Leave FileColumns.MEDIA_TYPE untouched if the caller is ModernMediaScanner and
+                // FileColumns.MEDIA_TYPE is already populated.
+            } else{
+                values.put(FileColumns.MEDIA_TYPE, MimeUtils.resolveMediaType(mimeType));
+            }
         } else {
             values.put(FileColumns.MEDIA_TYPE, mediaType);
         }

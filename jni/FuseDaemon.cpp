@@ -579,16 +579,15 @@ static void pf_setattr(fuse_req_t req,
             if (to_set & FATTR_ATIME_NOW) {
                 times[0].tv_nsec = UTIME_NOW;
             } else {
-                times[0].tv_sec = attr->st_atime;
-                // times[0].tv_nsec = attr->st_atime.tv_nsec;
+                times[0] = attr->st_atim;
             }
         }
+
         if (to_set & FATTR_MTIME) {
             if (to_set & FATTR_MTIME_NOW) {
                 times[1].tv_nsec = UTIME_NOW;
             } else {
-                times[1].tv_sec = attr->st_mtime;
-                // times[1].tv_nsec = attr->st_mtime.tv_nsec;
+                times[1] = attr->st_mtim;
             }
         }
 

@@ -162,6 +162,13 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
     }
 
     @Test
+    public void testCaseInsensitivity() throws Exception {
+        runDeviceTest("testCreateLowerCaseDeleteUpperCase");
+        runDeviceTest("testCreateUpperCaseDeleteLowerCase");
+        runDeviceTest("testCreateMixedCaseDeleteDifferentMixedCase");
+    }
+
+    @Test
     public void testCallingIdentityCacheInvalidation() throws Exception {
         // General IO access
         runDeviceTest("testReadStorageInvalidation");

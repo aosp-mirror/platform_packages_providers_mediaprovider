@@ -221,6 +221,22 @@ class node {
         return parent_;
     }
 
+    std::vector<std::string> MatchChildrenCaseInsensitive(const std::string& name) const {
+        std::lock_guard<std::recursive_mutex> guard(*lock_);
+
+        const char* name_char = name.c_str();
+        std::vector<std::string> matches;
+
+        for (node* child : children_) {
+            std::string child_name = child->GetName();
+            if (!strcasecmp(name_char, child_name.c_str())) {
+                matches.push_back(child_name);
+            }
+        }
+
+        return matches;
+    }
+
     inline void AddHandle(handle* h) {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
         handles_.emplace_back(std::unique_ptr<handle>(h));

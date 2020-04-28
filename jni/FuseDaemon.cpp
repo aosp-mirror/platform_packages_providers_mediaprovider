@@ -378,6 +378,25 @@ static bool is_package_owned_path(const string& path, const string& fuse_path) {
     return std::regex_match(path, PATTERN_OWNED_PATH);
 }
 
+static void invalidate_case_insensitive_dentry_matches(struct fuse* fuse, node* parent,
+                                                       const string& name) {
+    vector<string> children = parent->MatchChildrenCaseInsensitive(name);
+    if (children.empty() || (children.size() == 1 && children[0] == name)) {
+        return;
+    }
+
+    fuse_ino_t parent_ino = fuse->ToInode(parent);
+    std::thread t([=]() {
+        for (const string& child_name : children) {
+            if (fuse_lowlevel_notify_inval_entry(fuse->se, parent_ino, child_name.c_str(),
+                                                 child_name.size())) {
+                LOG(ERROR) << "Failed to invalidate dentry " << child_name;
+            }
+        }
+    });
+    t.detach();
+}
+
 static node* make_node_entry(fuse_req_t req, node* parent, const string& name, const string& path,
                              struct fuse_entry_param* e, int* error_code) {
     struct fuse* fuse = get_fuse(req);
@@ -396,6 +415,9 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     }
 
     TRACE_NODE(node);
+
+    invalidate_case_insensitive_dentry_matches(fuse, parent, name);
+
     // This FS is not being exported via NFS so just a fixed generation number
     // for now. If we do need this, we need to increment the generation ID each
     // time the fuse daemon restarts because that's what it takes for us to

@@ -59,16 +59,17 @@ public class PermissionUtilsTest {
 
         assertTrue(checkPermissionSystem(context, pid, uid, packageName));
         assertFalse(checkPermissionBackup(context, pid, uid));
-        assertFalse(checkPermissionManageExternalStorage(context, pid, uid, packageName));
+        assertFalse(
+                checkPermissionManageExternalStorage(context, pid, uid, packageName, null, null));
 
-        assertTrue(checkPermissionReadStorage(context, pid, uid, packageName));
-        assertTrue(checkPermissionWriteStorage(context, pid, uid, packageName));
+        assertTrue(checkPermissionReadStorage(context, pid, uid, packageName, null, null));
+        assertTrue(checkPermissionWriteStorage(context, pid, uid, packageName, null, null));
 
-        assertTrue(checkPermissionReadAudio(context, pid, uid, packageName));
-        assertFalse(checkPermissionWriteAudio(context, pid, uid, packageName));
-        assertTrue(checkPermissionReadVideo(context, pid, uid, packageName));
-        assertFalse(checkPermissionWriteVideo(context, pid, uid, packageName));
-        assertTrue(checkPermissionReadImages(context, pid, uid, packageName));
-        assertFalse(checkPermissionWriteImages(context, pid, uid, packageName));
+        assertTrue(checkPermissionReadAudio(context, pid, uid, packageName, null, null));
+        assertFalse(checkPermissionWriteAudio(context, pid, uid, packageName, null, null));
+        assertTrue(checkPermissionReadVideo(context, pid, uid, packageName, null, null));
+        assertFalse(checkPermissionWriteVideo(context, pid, uid, packageName, null, null));
+        assertTrue(checkPermissionReadImages(context, pid, uid, packageName, null, null));
+        assertFalse(checkPermissionWriteImages(context, pid, uid, packageName, null, null));
     }
 }

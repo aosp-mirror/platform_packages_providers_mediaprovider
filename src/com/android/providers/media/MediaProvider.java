@@ -166,7 +166,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -4155,18 +4154,6 @@ public class MediaProvider extends ContentProvider {
     @Override
     public Bundle call(String method, String arg, Bundle extras) {
         switch (method) {
-            case MediaStore.WAIT_FOR_IDLE_CALL: {
-                final CountDownLatch latch = new CountDownLatch(1);
-                BackgroundThread.getExecutor().execute(() -> {
-                    latch.countDown();
-                });
-                try {
-                    latch.await(30, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    throw new IllegalStateException(e);
-                }
-                return null;
-            }
             case MediaStore.SCAN_FILE_CALL:
             case MediaStore.SCAN_VOLUME_CALL: {
                 final LocalCallingIdentity token = clearLocalCallingIdentity();
@@ -4504,7 +4491,10 @@ public class MediaProvider extends ContentProvider {
 
     private int updateInternal(Uri uri, ContentValues initialValues, String userWhere,
             String[] userWhereArgs) {
-        if ("com.google.android.GoogleCamera".equals(getCallingPackageOrSelf())) {
+        // Limit the hacky workaround to camera targeting Q and below, to allow newer versions
+        // of camera that does the right thing to work correctly.
+        if ("com.google.android.GoogleCamera".equals(getCallingPackageOrSelf())
+                && getCallingPackageTargetSdkVersion() <= Build.VERSION_CODES.Q) {
             if (matchUri(uri, false) == IMAGES_MEDIA_ID) {
                 Log.w(TAG, "Working around app bug in b/111966296");
                 uri = MediaStore.Files.getContentUri("external", ContentUris.parseId(uri));

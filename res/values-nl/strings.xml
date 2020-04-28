@@ -26,7 +26,7 @@
     <string name="root_images" msgid="5861633549189045666">"Afbeeldingen"</string>
     <string name="root_videos" msgid="8792703517064649453">"Video\'s"</string>
     <string name="root_audio" msgid="3505830755201326018">"Audio"</string>
-    <string name="permission_required" msgid="1460820436132943754">"Machtiging vereist om dit item aan te passen of te verwijderen."</string>
+    <string name="permission_required" msgid="1460820436132943754">"Toestemming vereist om dit item aan te passen of te verwijderen."</string>
     <string name="permission_required_action" msgid="706370952366113539">"Doorgaan"</string>
     <string name="permission_audio" msgid="344061911159388398"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" toestaan deze muziek aan te passen of te verwijderen?"</string>
     <string name="permission_video" msgid="8188037202573267740"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" toestaan deze video aan te passen of te verwijderen?"</string>
@@ -42,10 +42,10 @@
     <string name="sound_name_rise" msgid="2200258555031675806">"Rise"</string>
     <string name="sound_name_sway" msgid="348448316663085643">"Sway"</string>
     <string name="sound_name_wag" msgid="2730733083078126563">"Wag"</string>
-    <string name="add_ringtone_text" msgid="8077717303037760418">"Beltoon toevoegen"</string>
+    <string name="add_ringtone_text" msgid="8077717303037760418">"Ringtone toevoegen"</string>
     <string name="add_alarm_text" msgid="2440919366091720815">"Wekker toevoegen"</string>
     <string name="add_notification_text" msgid="5013822215567515665">"Melding toevoegen"</string>
     <string name="delete_ringtone_text" msgid="2963662097583300181">"Verwijderen"</string>
-    <string name="unable_to_add_ringtone" msgid="6256097521165711269">"Toevoegen van aangepaste beltoon is mislukt"</string>
-    <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"Verwijderen van aangepaste beltoon is mislukt"</string>
+    <string name="unable_to_add_ringtone" msgid="6256097521165711269">"Toevoegen van aangepaste ringtone is mislukt"</string>
+    <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"Verwijderen van aangepaste ringtone is mislukt"</string>
 </resources>

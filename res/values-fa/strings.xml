@@ -43,7 +43,7 @@
     <string name="sound_name_sway" msgid="348448316663085643">"نوسان"</string>
     <string name="sound_name_wag" msgid="2730733083078126563">"تکان"</string>
     <string name="add_ringtone_text" msgid="8077717303037760418">"افزودن آهنگ زنگ"</string>
-    <string name="add_alarm_text" msgid="2440919366091720815">"افزودن زنگ ساعت"</string>
+    <string name="add_alarm_text" msgid="2440919366091720815">"افزودن زنگ"</string>
     <string name="add_notification_text" msgid="5013822215567515665">"افزودن اعلان"</string>
     <string name="delete_ringtone_text" msgid="2963662097583300181">"حذف"</string>
     <string name="unable_to_add_ringtone" msgid="6256097521165711269">"افزودن آهنگ زنگ سفارشی ممکن نیست"</string>

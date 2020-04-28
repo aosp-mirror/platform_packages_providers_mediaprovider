@@ -20,7 +20,8 @@ import android.content.Context;
 import android.net.Uri;
 import android.os.Trace;
 import android.provider.MediaStore;
-import android.webkit.MimeTypeMap;
+
+import libcore.net.MimeUtils;
 
 import java.io.File;
 
@@ -60,7 +61,7 @@ public class LegacyMediaScanner implements MediaScanner {
                 new android.media.MediaScanner(mContext, volumeName)) {
             final String ext = path.substring(path.lastIndexOf('.') + 1);
             return scanner.scanSingleFile(path,
-                    MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext));
+                    MimeUtils.guessMimeTypeFromExtension(ext));
         } finally {
             Trace.traceEnd(Trace.TRACE_TAG_DATABASE);
         }

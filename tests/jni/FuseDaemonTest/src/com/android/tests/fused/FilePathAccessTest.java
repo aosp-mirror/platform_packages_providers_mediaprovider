@@ -955,6 +955,46 @@ public class FilePathAccessTest {
     }
 
     @Test
+    public void testCreateLowerCaseDeleteUpperCase() throws Exception {
+        File upperCase = new File(DOWNLOAD_DIR, "CREATE_LOWER_DELETE_UPPER");
+        File lowerCase = new File(DOWNLOAD_DIR, "create_lower_delete_upper");
+
+        createDeleteCreate(lowerCase, upperCase);
+    }
+
+    @Test
+    public void testCreateUpperCaseDeleteLowerCase() throws Exception {
+        File upperCase = new File(DOWNLOAD_DIR, "CREATE_UPPER_DELETE_LOWER");
+        File lowerCase = new File(DOWNLOAD_DIR, "create_upper_delete_lower");
+
+        createDeleteCreate(upperCase, lowerCase);
+    }
+
+    @Test
+    public void testCreateMixedCaseDeleteDifferentMixedCase() throws Exception {
+        File mixedCase1 = new File(DOWNLOAD_DIR, "CrEaTe_MiXeD_dElEtE_mIxEd");
+        File mixedCase2 = new File(DOWNLOAD_DIR, "cReAtE_mIxEd_DeLeTe_MiXeD");
+
+        createDeleteCreate(mixedCase1, mixedCase2);
+    }
+
+    private void createDeleteCreate(File create, File delete) throws Exception {
+        try {
+            assertThat(create.createNewFile()).isTrue();
+            Thread.sleep(5);
+
+            assertThat(delete.delete()).isTrue();
+            Thread.sleep(5);
+
+            assertThat(create.createNewFile()).isTrue();
+            Thread.sleep(5);
+        } finally {
+            create.delete();
+            create.delete();
+        }
+    }
+
+    @Test
     public void testReadStorageInvalidation() throws Exception {
         testAppOpInvalidation(TEST_APP_C, new File(DCIM_DIR, "read_storage.jpg"),
                 Manifest.permission.READ_EXTERNAL_STORAGE,

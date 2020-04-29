@@ -22,6 +22,7 @@ import static android.content.ContentResolver.QUERY_ARG_SQL_LIMIT;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SORT_ORDER;
+import static com.android.providers.media.util.DatabaseUtils.bindSelection;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -78,13 +79,13 @@ public class SQLiteQueryBuilder {
      * Raw SQL clause to obtain the value of {@link MediaColumns#_ID} from custom database function
      * {@code _GET_ID} for INSERT operation.
      */
-    private static final String GET_ID_FOR_INSERT_CLAUSE = "_GET_ID('%s')";
+    private static final String GET_ID_FOR_INSERT_CLAUSE = "_GET_ID(?)";
 
     /**
      * Raw SQL clause to obtain the value of {@link MediaColumns#_ID} from custom database function
      * {@code _GET_ID} for UPDATE operation.
      */
-    private static final String GET_ID_FOR_UPDATE_CLAUSE = "ifnull(_GET_ID('%s'), _id)";
+    private static final String GET_ID_FOR_UPDATE_CLAUSE = "ifnull(_GET_ID(?), _id)";
 
     public SQLiteQueryBuilder() {
         mDistinct = false;
@@ -876,7 +877,8 @@ public class SQLiteQueryBuilder {
         }
         if (shouldAppendRowId(values)) {
             sql.append(',');
-            sql.append(String.format(GET_ID_FOR_INSERT_CLAUSE, values.get(MediaColumns.DATA)));
+            sql.append(bindSelection(GET_ID_FOR_INSERT_CLAUSE,
+                    values.getAsString(MediaColumns.DATA)));
         }
         sql.append(")");
         return sql.toString();
@@ -920,7 +922,8 @@ public class SQLiteQueryBuilder {
             sql.append(',');
             sql.append(MediaColumns._ID);
             sql.append('=');
-            sql.append(String.format(GET_ID_FOR_UPDATE_CLAUSE, values.get(MediaColumns.DATA)));
+            sql.append(bindSelection(GET_ID_FOR_UPDATE_CLAUSE,
+                    values.getAsString(MediaColumns.DATA)));
         }
 
         final String where = computeWhere(selection);

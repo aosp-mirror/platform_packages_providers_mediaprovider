@@ -1622,7 +1622,9 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path) {
     }
 
     // Custom logging for libfuse
-    fuse_set_log_func(fuse_logger);
+    if (android::base::GetBoolProperty("persist.sys.fuse.log", false)) {
+        fuse_set_log_func(fuse_logger);
+    }
 
     struct fuse_session
             * se = fuse_session_new(&args, &ops, sizeof(ops), &fuse_default);

@@ -64,6 +64,12 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
         executeShellCommand("mkdir /sdcard/Android/data/com.android.shell/files -m 2770");
     }
 
+    @Before
+    public void revokeStoragePermissions() throws Exception {
+        revokePermissions("android.permission.WRITE_EXTERNAL_STORAGE",
+                "android.permission.READ_EXTERNAL_STORAGE");
+    }
+
     @After
     public void tearDown() throws Exception {
         executeShellCommand("rm -r /sdcard/Android/data/com.android.shell");
@@ -293,5 +299,39 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
     @Test
     public void testRenameCanRestoreDeletedRowId() throws Exception {
         runDeviceTest("testRenameCanRestoreDeletedRowId");
+    }
+
+    @Test
+    public void testAccess_file() throws Exception {
+        grantPermissions("android.permission.READ_EXTERNAL_STORAGE");
+        try {
+            runDeviceTest("testAccess_file");
+        } finally {
+            revokePermissions("android.permission.READ_EXTERNAL_STORAGE");
+        }
+    }
+
+    @Test
+    public void testAccess_directory() throws Exception {
+        grantPermissions("android.permission.WRITE_EXTERNAL_STORAGE",
+                "android.permission.READ_EXTERNAL_STORAGE");
+        try {
+            runDeviceTest("testAccess_directory");
+        } finally {
+            revokePermissions("android.permission.READ_EXTERNAL_STORAGE",
+                    "android.permission.READ_EXTERNAL_STORAGE");
+        }
+    }
+
+    private void grantPermissions(String... perms) throws Exception {
+        for (String perm : perms) {
+            executeShellCommand("pm grant com.android.tests.fused " + perm);
+        }
+    }
+
+    private void revokePermissions(String... perms) throws Exception {
+        for (String perm : perms) {
+            executeShellCommand("pm revoke com.android.tests.fused " + perm);
+        }
     }
 }

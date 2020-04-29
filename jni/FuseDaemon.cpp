@@ -1632,7 +1632,7 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path) {
     }
     fuse_default.se = se;
     fuse_default.active = &active;
-    se->fd = fd;
+    se->fd = fd.release();  // libfuse owns the FD now
     se->mountpoint = strdup(path.c_str());
 
     // Single thread. Useful for debugging

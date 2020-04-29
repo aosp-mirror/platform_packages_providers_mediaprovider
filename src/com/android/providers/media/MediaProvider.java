@@ -66,6 +66,7 @@ import static com.android.providers.media.util.FileUtils.sanitizePath;
 import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionManageExternalStorage;
+import static com.android.providers.media.util.PermissionUtils.generateAppOpMessage;
 
 import android.app.AppOpsManager;
 import android.app.AppOpsManager.OnOpActiveChangedListener;
@@ -120,7 +121,6 @@ import android.os.Environment;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.ParcelFileDescriptor.OnCloseListener;
-import android.os.Process;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.os.SystemProperties;
@@ -407,13 +407,19 @@ public class MediaProvider extends ContentProvider {
     private OnOpChangedListener mModeListener =
             (op, packageName) -> invalidateLocalCallingIdentityCache(packageName, "op " + op);
 
-    private LocalCallingIdentity getCachedCallingIdentityForFuse(int uid) {
+    /**
+     * Retrieves a cached calling identity or creates a new one. Also, always sets the app-op
+     * description for the calling identity.
+     */
+    private LocalCallingIdentity getCachedCallingIdentityForFuse(
+            int uid, @Nullable String opDescription) {
         synchronized (mCachedCallingIdentityForFuse) {
             LocalCallingIdentity ident = mCachedCallingIdentityForFuse.get(uid);
             if (ident == null) {
                ident = LocalCallingIdentity.fromExternal(getContext(), uid);
                mCachedCallingIdentityForFuse.put(uid, ident);
             }
+            ident.setOpDescription(opDescription);
             return ident;
         }
     }
@@ -1054,7 +1060,9 @@ public class MediaProvider extends ContentProvider {
      * to clear other apps' cache directories.
      */
     static boolean hasPermissionToClearCaches(Context context, ApplicationInfo ai) {
-        return checkPermissionManageExternalStorage(context, /*pid*/-1, ai.uid, ai.packageName);
+        final String opMessage = generateAppOpMessage(ai.packageName, "clear app cache");
+        return checkPermissionManageExternalStorage(context, /*pid*/ -1, ai.uid, ai.packageName,
+                /*attributionTag*/ null, opMessage);
     }
 
     /**
@@ -1272,7 +1280,7 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public String[] getFilesInDirectoryForFuse(String path, int uid) {
         final LocalCallingIdentity token =
-                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid, "readdir " + path));
 
         try {
             if (isPrivatePackagePathNotOwnedByCaller(path)) {
@@ -1759,8 +1767,8 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public int renameForFuse(String oldPath, String newPath, int uid) {
         final String errorMessage = "Rename " + oldPath + " to " + newPath + " failed. ";
-        final LocalCallingIdentity token =
-                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+        final LocalCallingIdentity token = clearLocalCallingIdentity(
+                getCachedCallingIdentityForFuse(uid, "rename " + oldPath + " to " + newPath));
 
         try {
             if (isPrivatePackagePathNotOwnedByCaller(oldPath)
@@ -1843,7 +1851,8 @@ public class MediaProvider extends ContentProvider {
     public int checkUriPermission(@NonNull Uri uri, int uid,
             /* @Intent.AccessUriMode */ int modeFlags) {
         final LocalCallingIdentity token =
-                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid,
+                        /*opDescription*/ null));
 
         try {
             final boolean allowHidden = isCallingPackageAllowedHidden();
@@ -2694,7 +2703,12 @@ public class MediaProvider extends ContentProvider {
 
         if (mimeType != null) {
             values.put(FileColumns.MIME_TYPE, mimeType);
-            values.put(FileColumns.MEDIA_TYPE, MimeUtils.resolveMediaType(mimeType));
+            if (isCallingPackageSystem() && values.containsKey(FileColumns.MEDIA_TYPE)) {
+                // Leave FileColumns.MEDIA_TYPE untouched if the caller is ModernMediaScanner and
+                // FileColumns.MEDIA_TYPE is already populated.
+            } else{
+                values.put(FileColumns.MEDIA_TYPE, MimeUtils.resolveMediaType(mimeType));
+            }
         } else {
             values.put(FileColumns.MEDIA_TYPE, mediaType);
         }
@@ -5797,8 +5811,8 @@ public class MediaProvider extends ContentProvider {
             return getRedactionRanges(file).redactionRanges;
         }
 
-        final LocalCallingIdentity token =
-                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+        final LocalCallingIdentity token = clearLocalCallingIdentity(
+                getCachedCallingIdentityForFuse(uid, "read metadata from " + path));
 
         long[] res = new long[0];
         try {
@@ -5918,9 +5932,8 @@ public class MediaProvider extends ContentProvider {
      */
     @Keep
     public int isOpenAllowedForFuse(String path, int uid, boolean forWrite) {
-        final LocalCallingIdentity token =
-                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
-
+        final LocalCallingIdentity token = clearLocalCallingIdentity(
+                getCachedCallingIdentityForFuse(uid, (forWrite ? "write " : "read ") + path));
 
         try {
             if (isPrivatePackagePathNotOwnedByCaller(path)) {
@@ -6111,7 +6124,7 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public int insertFileIfNecessaryForFuse(@NonNull String path, int uid) {
         final LocalCallingIdentity token =
-                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid, "create " + path));
 
         try {
             if (isPrivatePackagePathNotOwnedByCaller(path)) {
@@ -6181,7 +6194,7 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public int deleteFileForFuse(@NonNull String path, int uid) throws IOException {
         final LocalCallingIdentity token =
-                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid, "delete " + path));
 
         try {
             if (isPrivatePackagePathNotOwnedByCaller(path)) {
@@ -6248,8 +6261,8 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public int isDirectoryCreationOrDeletionAllowedForFuse(
             @NonNull String path, int uid, boolean forCreate) {
-        final LocalCallingIdentity token =
-                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+        final LocalCallingIdentity token = clearLocalCallingIdentity(
+                getCachedCallingIdentityForFuse(uid, (forCreate ? "mkdir " : "rmdir ") + path));
 
         try {
             // App dirs are not indexed, so we don't create an entry for the file.
@@ -6301,8 +6314,8 @@ public class MediaProvider extends ContentProvider {
      */
     @Keep
     public int isOpendirAllowedForFuse(@NonNull String path, int uid) {
-        final LocalCallingIdentity token =
-                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+        final LocalCallingIdentity token = clearLocalCallingIdentity(
+                getCachedCallingIdentityForFuse(uid, "directory access " + path));
 
         try {
             if (isPrivatePackagePathNotOwnedByCaller(path)) {
@@ -6328,7 +6341,8 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public boolean isUidForPackageForFuse(@NonNull String packageName, int uid) {
         final LocalCallingIdentity token =
-                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid,
+                        /*opDescription*/ null));
         try {
             return isCallingIdentitySharedPackageName(packageName);
         } finally {

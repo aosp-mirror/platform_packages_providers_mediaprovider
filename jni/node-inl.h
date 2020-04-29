@@ -72,7 +72,7 @@ class node;
 // can assert that we only ever return an active node in response to a lookup.
 class NodeTracker {
   public:
-    NodeTracker(std::recursive_mutex* lock) : lock_(lock) {}
+    explicit NodeTracker(std::recursive_mutex* lock) : lock_(lock) {}
 
     void CheckTracked(__u64 ino) const {
         if (kEnableInodeTracking) {

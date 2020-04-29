@@ -228,7 +228,7 @@ class node {
         std::vector<std::string> matches;
 
         for (node* child : children_) {
-            std::string child_name = child->GetName();
+            const std::string& child_name = child->GetName();
             if (!strcasecmp(name_char, child_name.c_str())) {
                 matches.push_back(child_name);
             }

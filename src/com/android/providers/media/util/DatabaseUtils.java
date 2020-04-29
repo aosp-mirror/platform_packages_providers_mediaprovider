@@ -127,7 +127,8 @@ public class DatabaseUtils {
                             res.append(((Boolean) arg).booleanValue() ? 1 : 0);
                         } else {
                             res.append('\'');
-                            res.append(arg.toString());
+                            // Escape single quote character while appending the string.
+                            res.append(arg.toString().replace("'", "''"));
                             res.append('\'');
                         }
                         break;

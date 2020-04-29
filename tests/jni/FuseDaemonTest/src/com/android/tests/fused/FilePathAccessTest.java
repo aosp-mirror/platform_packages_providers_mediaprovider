@@ -19,6 +19,9 @@ package com.android.tests.fused;
 import static android.app.AppOpsManager.permissionToOp;
 import static android.os.SystemProperties.getBoolean;
 import static android.provider.MediaStore.MediaColumns;
+import static android.system.OsConstants.F_OK;
+import static android.system.OsConstants.R_OK;
+import static android.system.OsConstants.W_OK;
 
 import static androidx.test.InstrumentationRegistry.getContext;
 
@@ -38,6 +41,7 @@ import static com.android.tests.fused.lib.TestUtils.assertCantRenameFile;
 import static com.android.tests.fused.lib.TestUtils.assertFileContent;
 import static com.android.tests.fused.lib.TestUtils.assertThrows;
 import static com.android.tests.fused.lib.TestUtils.canOpen;
+import static com.android.tests.fused.lib.TestUtils.canReadAndWriteAs;
 import static com.android.tests.fused.lib.TestUtils.createFileAs;
 import static com.android.tests.fused.lib.TestUtils.deleteFileAs;
 import static com.android.tests.fused.lib.TestUtils.deleteFileAsNoThrow;
@@ -54,6 +58,7 @@ import static com.android.tests.fused.lib.TestUtils.installApp;
 import static com.android.tests.fused.lib.TestUtils.listAs;
 import static com.android.tests.fused.lib.TestUtils.openFileAs;
 import static com.android.tests.fused.lib.TestUtils.openWithMediaProvider;
+import static com.android.tests.fused.lib.TestUtils.pollForPermission;
 import static com.android.tests.fused.lib.TestUtils.readExifMetadataFromTestApp;
 import static com.android.tests.fused.lib.TestUtils.revokePermission;
 import static com.android.tests.fused.lib.TestUtils.setupDefaultDirectories;
@@ -79,6 +84,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static junit.framework.Assert.fail;
 
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import android.Manifest;
@@ -140,6 +146,8 @@ public class FilePathAccessTest {
     static final String NONMEDIA_FILE_NAME = "FilePathAccessTest_file.pdf";
 
     static final String FILE_CREATION_ERROR_MESSAGE = "No such file or directory";
+    private static final File ANDROID_DIR = new File(Environment.getExternalStorageDirectory(),
+            "Android");
 
     private static final TestApp TEST_APP_A  = new TestApp("TestAppA",
             "com.android.tests.fused.testapp.A", 1, false, "TestAppA.apk");
@@ -582,14 +590,8 @@ public class FilePathAccessTest {
             assertThat(listAs(TEST_APP_B, dir.getPath())).doesNotContain(videoFileName);
         } finally {
             uninstallAppNoThrow(TEST_APP_B);
-            if(videoFile.exists()) {
-                deleteFileAsNoThrow(TEST_APP_A, videoFile.getPath());
-            }
-            if (dir.exists()) {
-                  // Try deleting the directory. Do we delete directory if app doesn't own all
-                  // files in it?
-                  dir.delete();
-            }
+            deleteFileAsNoThrow(TEST_APP_A, videoFile.getPath());
+            dir.delete();
             uninstallAppNoThrow(TEST_APP_A);
         }
     }
@@ -624,12 +626,8 @@ public class FilePathAccessTest {
             assertThat(listAs(TEST_APP_B, dir.getPath())).doesNotContain(pdfFileName);
         } finally {
             uninstallAppNoThrow(TEST_APP_B);
-            if(pdfFile.exists()) {
-                deleteFileAsNoThrow(TEST_APP_A, pdfFile.getPath());
-            }
-            if (dir.exists()) {
-                  dir.delete();
-            }
+            deleteFileAsNoThrow(TEST_APP_A, pdfFile.getPath());
+            dir.delete();
             uninstallAppNoThrow(TEST_APP_A);
         }
     }
@@ -1401,9 +1399,7 @@ public class FilePathAccessTest {
             // TODO(b/146346138): Test that app with right URI permission should be able to rename
             // the corresponding file
         } finally {
-            if(videoFile1.exists()) {
-                deleteFileAsNoThrow(TEST_APP_A, videoFile1.getAbsolutePath());
-            }
+            deleteFileAsNoThrow(TEST_APP_A, videoFile1.getAbsolutePath());
             videoFile2.delete();
             uninstallAppNoThrow(TEST_APP_A);
         }
@@ -1601,6 +1597,83 @@ public class FilePathAccessTest {
     }
 
     @Test
+    public void testAccess_file() throws Exception {
+        pollForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, /*granted*/ true);
+
+        final File otherAppPdf = new File(DOWNLOAD_DIR, "other-" + NONMEDIA_FILE_NAME);
+        final File otherAppImage = new File(DCIM_DIR, "other-" + IMAGE_FILE_NAME);
+        final File myAppPdf = new File(DOWNLOAD_DIR, "my-" + NONMEDIA_FILE_NAME);
+        final File doesntExistPdf = new File(DOWNLOAD_DIR, "nada-" + NONMEDIA_FILE_NAME);
+
+        try {
+            installApp(TEST_APP_A);
+
+            assertThat(createFileAs(TEST_APP_A, otherAppPdf.getPath())).isTrue();
+            assertThat(createFileAs(TEST_APP_A, otherAppImage.getPath())).isTrue();
+
+            // We can read our image and pdf files.
+            assertThat(myAppPdf.createNewFile()).isTrue();
+            assertFileAccess_readWrite(myAppPdf);
+
+            // We can read the other app's image file because we hold R_E_S, but we can only
+            // check exists for the pdf file.
+            assertFileAccess_readOnly(otherAppImage);
+            assertFileAccess_existsOnly(otherAppPdf);
+            assertAccess(doesntExistPdf, false, false, false);
+        } finally {
+            deleteFileAsNoThrow(TEST_APP_A, otherAppPdf.getAbsolutePath());
+            deleteFileAsNoThrow(TEST_APP_A, otherAppImage.getAbsolutePath());
+            myAppPdf.delete();
+            uninstallApp(TEST_APP_A);
+        }
+    }
+
+    @Test
+    public void testAccess_directory() throws Exception {
+        pollForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, /*granted*/ true);
+        pollForPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE, /*granted*/ true);
+        try {
+            installApp(TEST_APP_A);
+
+            // Let app A create a file in its data dir
+            final File otherAppExternalDataDir = new File(EXTERNAL_FILES_DIR.getPath()
+                    .replace(THIS_PACKAGE_NAME, TEST_APP_A.getPackageName()));
+            final File otherAppExternalDataSubDir = new File(otherAppExternalDataDir, "subdir");
+            final File otherAppExternalDataFile = new File(otherAppExternalDataSubDir, "abc.jpg");
+            assertThat(
+                    createFileAs(TEST_APP_A, otherAppExternalDataFile.getAbsolutePath())).isTrue();
+
+            // TODO(152645823): Readd app data dir testss
+//            // We cannot read or write the file, but app A can.
+//            assertThat(canReadAndWriteAs(TEST_APP_A,
+//                    otherAppExternalDataFile.getAbsolutePath())).isTrue();
+//            assertAccess(otherAppExternalDataFile, true, false, false);
+//
+//            // We cannot read or write the dir, but app A can.
+//            assertThat(canReadAndWriteAs(TEST_APP_A,
+//                    otherAppExternalDataDir.getAbsolutePath())).isTrue();
+//            assertAccess(otherAppExternalDataDir, true, false, false);
+//
+//            // We cannot read or write the sub dir, but app A can.
+//            assertThat(canReadAndWriteAs(TEST_APP_A,
+//                    otherAppExternalDataSubDir.getAbsolutePath())).isTrue();
+//            assertAccess(otherAppExternalDataSubDir, true, false, false);
+//
+//            // We can read and write our own app dir, but app A cannot.
+//            assertThat(canReadAndWriteAs(TEST_APP_A,
+//                    EXTERNAL_FILES_DIR.getAbsolutePath())).isFalse();
+            assertAccess(EXTERNAL_FILES_DIR, true, true, true);
+
+            assertDirectoryAccess(DCIM_DIR, /* exists */ true);
+            assertDirectoryAccess(EXTERNAL_STORAGE_DIR, true);
+            assertDirectoryAccess(new File(EXTERNAL_STORAGE_DIR, "Android"), true);
+            assertDirectoryAccess(new File(EXTERNAL_STORAGE_DIR, "doesnt/exist"), false);
+        } finally {
+            uninstallApp(TEST_APP_A);  // Uninstalling deletes external app dirs
+        }
+    }
+
+    @Test
     public void testManageExternalStorageCanRenameOtherAppsContents() throws Exception {
         final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
         final File pdf = new File(DOWNLOAD_DIR, NONMEDIA_FILE_NAME);
@@ -1744,7 +1817,7 @@ public class FilePathAccessTest {
         final File otherAppVideoFile2 = new File(dirInPictures, "other_" + VIDEO_FILE_NAME);
         final File otherAppPdfFile2 = new File(dirInPictures, "other_" + NONMEDIA_FILE_NAME);
         try {
-            assertThat(dirInDcim.mkdir()).isTrue();
+            assertThat( dirInDcim.exists() || dirInDcim.mkdir()).isTrue();
 
             executeShellCommand("touch " + otherAppPdfFile1);
 
@@ -1926,6 +1999,59 @@ public class FilePathAccessTest {
         } else {
             Log.w(TAG, "Couldn't assertCanCreateFile(" + file + ") because file existed prior to "
                     + "running the test!");
+        }
+    }
+
+    private static void assertFileAccess_existsOnly(File file) throws Exception {
+        assertThat(file.isFile()).isTrue();
+        assertAccess(file, true, false, false);
+    }
+
+    private static void assertFileAccess_readOnly(File file) throws Exception {
+        assertThat(file.isFile()).isTrue();
+        assertAccess(file, true, true, false);
+    }
+
+    private static void assertFileAccess_readWrite(File file) throws Exception {
+        assertThat(file.isFile()).isTrue();
+        assertAccess(file, true, true, true);
+    }
+
+    private static void assertDirectoryAccess(File dir, boolean exists) throws Exception {
+        // This util does not handle app data directories.
+        assumeFalse(dir.getAbsolutePath().startsWith(ANDROID_DIR.getAbsolutePath())
+                && !dir.equals(ANDROID_DIR));
+        assertThat(dir.isDirectory()).isEqualTo(exists);
+        // For non-app data directories, exists => canRead() and canWrite().
+         assertAccess(dir, exists, exists, exists);
+    }
+
+    private static void assertAccess(File file, boolean exists, boolean canRead, boolean canWrite)
+            throws Exception {
+        assertThat(file.exists()).isEqualTo(exists);
+        assertThat(file.canRead()).isEqualTo(canRead);
+        assertThat(file.canWrite()).isEqualTo(canWrite);
+        if (file.isDirectory()) {
+            assertThat(file.canExecute()).isEqualTo(exists);
+        } else {
+            assertThat(file.canExecute()).isFalse();  // Filesytem is mounted with MS_NOEXEC
+        }
+
+        // Test some combinations of mask.
+        assertAccess(file, R_OK, canRead);
+        assertAccess(file, W_OK, canWrite);
+        assertAccess(file, R_OK | W_OK, canRead && canWrite);
+        assertAccess(file, W_OK | F_OK, canWrite);
+        assertAccess(file, F_OK, exists);
+    }
+
+    private static void assertAccess(File file, int mask, boolean expected) throws Exception {
+        if (expected) {
+            assertThat(Os.access(file.getAbsolutePath(), mask)).isTrue();
+        } else {
+            assertThrows(ErrnoException.class, () -> {
+                Os.access(file.getAbsolutePath(), mask);
+            });
         }
     }
 }

@@ -28,9 +28,9 @@ import static android.content.ContentResolver.QUERY_ARG_SQL_LIMIT;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SORT_ORDER;
 import static android.content.ContentResolver.QUERY_SORT_DIRECTION_ASCENDING;
-import static android.database.DatabaseUtils.bindSelection;
-import static android.database.DatabaseUtils.escapeForLike;
 
+import static com.android.providers.media.util.DatabaseUtils.bindSelection;
+import static com.android.providers.media.util.DatabaseUtils.escapeForLike;
 import static com.android.providers.media.util.DatabaseUtils.maybeBalance;
 import static com.android.providers.media.util.DatabaseUtils.parseBoolean;
 import static com.android.providers.media.util.DatabaseUtils.recoverAbusiveLimit;
@@ -116,6 +116,14 @@ public class DatabaseUtilsTest {
         assertEquals("NULL", bindSelection("?3", ARGS));
         assertEquals("3.14159", bindSelection("?4", ARGS));
         assertEquals("0", bindSelection("?5", ARGS));
+    }
+
+    @Test
+    public void testBindSelection_singleQuoteCharacter() throws Exception {
+        assertEquals("DATA='Fo''o'",
+                bindSelection("DATA=?", "Fo'o"));
+        assertEquals("DATA='Fo''''o'",
+                bindSelection("DATA=?", "Fo''o"));
     }
 
     @Test

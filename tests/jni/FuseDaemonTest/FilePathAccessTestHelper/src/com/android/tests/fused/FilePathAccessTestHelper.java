@@ -20,6 +20,7 @@ import static com.android.tests.fused.lib.RedactionTestHelper.EXIF_METADATA_QUER
 import static com.android.tests.fused.lib.RedactionTestHelper.getExifMetadata;
 import static com.android.tests.fused.lib.TestUtils.CREATE_FILE_QUERY;
 import static com.android.tests.fused.lib.TestUtils.DELETE_FILE_QUERY;
+import static com.android.tests.fused.lib.TestUtils.CAN_READ_WRITE_QUERY;
 import static com.android.tests.fused.lib.TestUtils.INTENT_EXCEPTION;
 import static com.android.tests.fused.lib.TestUtils.INTENT_EXTRA_PATH;
 import static com.android.tests.fused.lib.TestUtils.OPEN_FILE_FOR_READ_QUERY;
@@ -30,6 +31,7 @@ import static com.android.tests.fused.lib.TestUtils.canOpen;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 
 import com.android.tests.fused.lib.ReaddirTestHelper;
@@ -46,6 +48,9 @@ import java.util.ArrayList;
  */
 public class FilePathAccessTestHelper extends Activity {
     private static final String TAG = "FilePathAccessTestHelper";
+    private static final File ANDROID_DIR = new File(Environment.getExternalStorageDirectory(),
+            "Android");
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -55,6 +60,7 @@ public class FilePathAccessTestHelper extends Activity {
             case READDIR_QUERY:
                 sendDirectoryEntries(queryType);
                 break;
+            case CAN_READ_WRITE_QUERY:
             case CREATE_FILE_QUERY:
             case DELETE_FILE_QUERY:
             case OPEN_FILE_FOR_READ_QUERY:
@@ -110,7 +116,10 @@ public class FilePathAccessTestHelper extends Activity {
             final File file = new File(filePath);
             boolean returnStatus = false;
             try {
-                if (queryType.equals(CREATE_FILE_QUERY)) {
+                if (queryType.equals(CAN_READ_WRITE_QUERY)) {
+                    returnStatus = file.exists() && file.canRead() && file.canWrite();
+                } else if (queryType.equals(CREATE_FILE_QUERY)) {
+                    maybeCreateParentDirInAndroid(file);
                     returnStatus = file.createNewFile();
                 } else if (queryType.equals(DELETE_FILE_QUERY)) {
                     returnStatus = file.delete();
@@ -127,6 +136,42 @@ public class FilePathAccessTestHelper extends Activity {
             sendBroadcast(intent);
         } else {
             Log.e(TAG, "file path not set from launcher app");
+        }
+    }
+
+    private void maybeCreateParentDirInAndroid(File file) {
+        if (!file.getAbsolutePath().startsWith(ANDROID_DIR.getAbsolutePath())) {
+            return;
+        }
+        String[] segments = file.getAbsolutePath().split("/");
+        int index = ANDROID_DIR.getAbsolutePath().split("/").length;
+        if (index < segments.length) {
+            // Create the external app dir first.
+            if (createExternalAppDir(segments[index])) {
+                // Then create everything along the path.
+                file.getParentFile().mkdirs();
+            }
+        }
+    }
+
+    private boolean createExternalAppDir(String name) {
+        // Apps are not allowed to create data/cache/obb etc under Android directly and are expected
+        // to call one of the following methods.
+        switch (name) {
+            case "data":
+                getApplicationContext().getExternalFilesDir(null);
+                return true;
+            case "cache":
+                getApplicationContext().getExternalCacheDir();
+                return true;
+            case "obb":
+                getApplicationContext().getObbDir();
+                return true;
+            case "media":
+                getApplicationContext().getExternalMediaDirs();
+                return true;
+            default:
+                return false;
         }
     }
 }

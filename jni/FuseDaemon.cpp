@@ -129,8 +129,6 @@ class FAdviser {
     void Close(int fd) { SendMessage(Message::close, fd); }
 
   private:
-    std::thread thread_;
-
     struct Message {
         enum Type { record, close, quit };
         Type type;
@@ -218,8 +216,9 @@ class FAdviser {
         cv_.notify_one();
     }
 
-    std::queue<Message> queue_;
     std::mutex mutex_;
+    std::thread thread_;
+    std::queue<Message> queue_;
     std::condition_variable cv_;
 
     typedef std::multimap<size_t, int> Sizes;

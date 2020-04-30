@@ -265,6 +265,13 @@ public class TestUtils {
     }
 
     /**
+     * Installs a {@link TestApp} with storage permissions.
+     */
+    public static void installAppWithStoragePermissions(TestApp testApp) throws Exception {
+        installApp(testApp, /* grantStoragePermission */ true);
+    }
+
+    /**
      * Installs a {@link TestApp} and may grant it storage permissions.
      */
     public static void installApp(TestApp testApp, boolean grantStoragePermission)

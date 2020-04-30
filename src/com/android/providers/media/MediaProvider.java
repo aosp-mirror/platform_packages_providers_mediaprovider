@@ -6093,6 +6093,7 @@ public class MediaProvider extends ContentProvider {
         if (useData) {
             values.put(FileColumns.DATA, getAbsoluteSanitizedPath(path));
         } else {
+            values.put(FileColumns.VOLUME_NAME, extractVolumeName(path));
             values.put(FileColumns.RELATIVE_PATH, extractRelativePath(path));
             values.put(FileColumns.DISPLAY_NAME, extractDisplayName(path));
         }

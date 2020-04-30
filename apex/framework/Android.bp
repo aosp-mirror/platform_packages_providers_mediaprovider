@@ -52,6 +52,7 @@ filegroup {
 stubs_defaults {
     name: "framework-mediaprovider-stubs-srcs-defaults",
     srcs: [":framework-mediaprovider-sources"],
+    dist: { dest: "framework-mediaprovider.txt" },
 }
 
 droidstubs {
@@ -90,18 +91,21 @@ java_library {
     name: "framework-mediaprovider-stubs-publicapi",
     srcs: [":framework-mediaprovider-stubs-srcs-publicapi"],
     defaults: ["framework-module-stubs-lib-defaults-publicapi"],
+    dist: { dest: "framework-mediaprovider.jar" },
 }
 
 java_library {
     name: "framework-mediaprovider-stubs-systemapi",
     srcs: [":framework-mediaprovider-stubs-srcs-systemapi"],
     defaults: ["framework-module-stubs-lib-defaults-systemapi"],
+    dist: { dest: "framework-mediaprovider.jar" },
 }
 
 java_library {
     name: "framework-mediaprovider-stubs-module_libs_api",
     srcs: [":framework-mediaprovider-stubs-srcs-module_libs_api"],
     defaults: ["framework-module-stubs-lib-defaults-module_libs_api"],
+    dist: { dest: "framework-mediaprovider.jar" },
 }
 
 java_library {

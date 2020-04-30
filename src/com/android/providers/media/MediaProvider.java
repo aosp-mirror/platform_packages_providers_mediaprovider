@@ -4700,6 +4700,11 @@ public class MediaProvider extends ContentProvider {
                     // make sure metadata is updated
                     if (MediaColumns.IS_PENDING.equals(column)) {
                         triggerScan = true;
+
+                        // Explicitly clear columns used to ignore no-op scans,
+                        // since we need to force a scan on publish
+                        initialValues.putNull(MediaColumns.DATE_MODIFIED);
+                        initialValues.putNull(MediaColumns.SIZE);
                     }
                 }
 

@@ -130,10 +130,12 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     static final String TYPE_DOCUMENTS_BUCKET = "documents_bucket";
     static final String TYPE_DOCUMENT = "document";
 
-    private static boolean sReturnedImagesEmpty = false;
-    private static boolean sReturnedVideosEmpty = false;
-    private static boolean sReturnedAudioEmpty = false;
-    private static boolean sReturnedDocumentsEmpty = false;
+    private static volatile boolean sMediaStoreReady = false;
+
+    private static volatile boolean sReturnedImagesEmpty = false;
+    private static volatile boolean sReturnedVideosEmpty = false;
+    private static volatile boolean sReturnedAudioEmpty = false;
+    private static volatile boolean sReturnedDocumentsEmpty = false;
 
     private static String joinNewline(String... args) {
         return TextUtils.join("\n", args);
@@ -198,6 +200,15 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     private static void notifyRootsChanged(Context context) {
         context.getContentResolver()
                 .notifyChange(DocumentsContract.buildRootsUri(AUTHORITY), null, false);
+    }
+
+    /**
+     * When underlying provider is ready, we kick off a notification of roots
+     * changed so they can be refreshed.
+     */
+    static void onMediaStoreReady(Context context, String volumeName) {
+        sMediaStoreReady = true;
+        notifyRootsChanged(context);
     }
 
     /**
@@ -558,10 +569,15 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     @Override
     public Cursor queryRoots(String[] projection) throws FileNotFoundException {
         final MatrixCursor result = new MatrixCursor(resolveRootProjection(projection));
-        includeImagesRoot(result);
-        includeVideosRoot(result);
-        includeAudioRoot(result);
-        includeDocumentsRoot(result);
+        // Skip all roots when the underlying provider isn't ready yet so that
+        // we avoid triggering an ANR; we'll circle back to notify and refresh
+        // once it's ready
+        if (sMediaStoreReady) {
+            includeImagesRoot(result);
+            includeVideosRoot(result);
+            includeAudioRoot(result);
+            includeDocumentsRoot(result);
+        }
         return result;
     }
 

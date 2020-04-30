@@ -636,6 +636,12 @@ public class MediaProvider extends ContentProvider {
         }
 
         @Override
+        public void onProgress(ContentProviderClient client, String volumeName,
+                long progress, long total) {
+            // TODO: notify blocked threads of progress once we can change APIs
+        }
+
+        @Override
         public void onFinished(ContentProviderClient client, String volumeName) {
             MediaStore.finishLegacyMigration(ContentResolver.wrap(client), volumeName);
         }
@@ -846,7 +852,6 @@ public class MediaProvider extends ContentProvider {
         mAppOpsManager.startWatchingActive(new String[] {
                 AppOpsManager.OPSTR_CAMERA
         }, context.getMainExecutor(), mActiveListener);
-
 
         mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_READ_EXTERNAL_STORAGE,
                 null /* all packages */, mModeListener);
@@ -6770,6 +6775,11 @@ public class MediaProvider extends ContentProvider {
                     ensureThumbnailsValid(volume, db);
                     return null;
                 });
+
+                // We just finished the database operation above, we know that
+                // it's ready to answer queries, so notify our DocumentProvider
+                // so it can answer queries without risking ANR
+                MediaDocumentsProvider.onMediaStoreReady(getContext(), volume);
             });
         }
         return uri;

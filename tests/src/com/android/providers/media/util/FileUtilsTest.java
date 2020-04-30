@@ -41,6 +41,7 @@ import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractFileExtension;
 import static com.android.providers.media.util.FileUtils.extractFileName;
 import static com.android.providers.media.util.FileUtils.extractRelativePath;
+import static com.android.providers.media.util.FileUtils.extractTopLevelDir;
 import static com.android.providers.media.util.FileUtils.extractVolumeName;
 import static com.android.providers.media.util.FileUtils.extractVolumePath;
 import static com.android.providers.media.util.FileUtils.translateModeAccessToPosix;
@@ -450,6 +451,21 @@ public class FileUtilsTest {
                     extractRelativePath(prefix + "DCIM/foo.jpg"));
             assertEquals("DCIM/My Vacation/",
                     extractRelativePath(prefix + "DCIM/My Vacation/foo.jpg"));
+        }
+    }
+
+    @Test
+    public void testExtractTopLevelDir() throws Exception {
+        for (String prefix : new String[] {
+                "/storage/emulated/0/",
+                "/storage/0000-0000/"
+        }) {
+            assertEquals(null,
+                    extractTopLevelDir(prefix + "foo.jpg"));
+            assertEquals("DCIM",
+                    extractTopLevelDir(prefix + "DCIM/foo.jpg"));
+            assertEquals("DCIM",
+                    extractTopLevelDir(prefix + "DCIM/My Vacation/foo.jpg"));
         }
     }
 

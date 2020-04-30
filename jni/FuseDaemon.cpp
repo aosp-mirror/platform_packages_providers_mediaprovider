@@ -129,8 +129,6 @@ class FAdviser {
     void Close(int fd) { SendMessage(Message::close, fd); }
 
   private:
-    std::thread thread_;
-
     struct Message {
         enum Type { record, close, quit };
         Type type;
@@ -218,8 +216,9 @@ class FAdviser {
         cv_.notify_one();
     }
 
-    std::queue<Message> queue_;
     std::mutex mutex_;
+    std::thread thread_;
+    std::queue<Message> queue_;
     std::condition_variable cv_;
 
     typedef std::multimap<size_t, int> Sizes;
@@ -1358,8 +1357,36 @@ static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
     const string path = node->BuildPath();
     TRACE_NODE(node);
 
-    int res = access(path.c_str(), F_OK);
-    fuse_reply_err(req, res ? errno : 0);
+    // exists() checks are always allowed.
+    if (mask == F_OK) {
+        int res = access(path.c_str(), F_OK);
+        fuse_reply_err(req, res ? errno : 0);
+        return;
+    }
+    struct stat stat;
+    if (lstat(path.c_str(), &stat)) {
+        // File doesn't exist
+        fuse_reply_err(req, ENOENT);
+        return;
+    }
+
+    // For read and write permission checks we go to MediaProvider.
+    int status = 0;
+    bool is_directory = S_ISDIR(stat.st_mode);
+    if (is_directory) {
+        status = fuse->mp->IsOpendirAllowed(path, ctx->uid);
+    } else {
+        if (mask & X_OK) {
+            // Fuse is mounted with MS_NOEXEC.
+            fuse_reply_err(req, EACCES);
+            return;
+        }
+
+        bool for_write = mask & W_OK;
+        status = fuse->mp->IsOpenAllowed(path, ctx->uid, for_write);
+    }
+
+    fuse_reply_err(req, status);
 }
 
 static void pf_create(fuse_req_t req,
@@ -1622,7 +1649,9 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path) {
     }
 
     // Custom logging for libfuse
-    fuse_set_log_func(fuse_logger);
+    if (android::base::GetBoolProperty("persist.sys.fuse.log", false)) {
+        fuse_set_log_func(fuse_logger);
+    }
 
     struct fuse_session
             * se = fuse_session_new(&args, &ops, sizeof(ops), &fuse_default);
@@ -1632,7 +1661,7 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path) {
     }
     fuse_default.se = se;
     fuse_default.active = &active;
-    se->fd = fd;
+    se->fd = fd.release();  // libfuse owns the FD now
     se->mountpoint = strdup(path.c_str());
 
     // Single thread. Useful for debugging

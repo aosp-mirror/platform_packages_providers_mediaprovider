@@ -72,7 +72,7 @@ class node;
 // can assert that we only ever return an active node in response to a lookup.
 class NodeTracker {
   public:
-    NodeTracker(std::recursive_mutex* lock) : lock_(lock) {}
+    explicit NodeTracker(std::recursive_mutex* lock) : lock_(lock) {}
 
     void CheckTracked(__u64 ino) const {
         if (kEnableInodeTracking) {
@@ -228,7 +228,7 @@ class node {
         std::vector<std::string> matches;
 
         for (node* child : children_) {
-            std::string child_name = child->GetName();
+            const std::string& child_name = child->GetName();
             if (!strcasecmp(name_char, child_name.c_str())) {
                 matches.push_back(child_name);
             }

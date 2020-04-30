@@ -2081,8 +2081,9 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void ensureUniqueFileColumns(int match, @NonNull Uri uri, @NonNull Bundle extras,
-            @NonNull ContentValues values) throws VolumeArgumentException {
-        ensureFileColumns(match, uri, extras, values, true, null /* currentPath */);
+            @NonNull ContentValues values, @Nullable String currentPath)
+            throws VolumeArgumentException {
+        ensureFileColumns(match, uri, extras, values, true, currentPath);
     }
 
     private void ensureNonUniqueFileColumns(int match, @NonNull Uri uri,
@@ -2305,8 +2306,10 @@ public class MediaProvider extends ContentProvider {
             // Require that content lives under well-defined directories to help
             // keep the user's content organized
 
-            // Start by saying unchanged paths are valid
-            boolean validPath = res.getAbsolutePath().equals(currentPath);
+            // Start by saying unchanged directories are valid
+            final String currentDir = (currentPath != null)
+                    ? new File(currentPath).getParent() : null;
+            boolean validPath = res.getParent().equals(currentDir);
 
             // Next, consider allowing based on allowed primary directory
             final String[] relativePath = values.getAsString(MediaColumns.RELATIVE_PATH).split("/");
@@ -2646,7 +2649,7 @@ public class MediaProvider extends ContentProvider {
 
         // Make sure all file-related columns are defined
         try {
-            ensureUniqueFileColumns(match, uri, extras, values);
+            ensureUniqueFileColumns(match, uri, extras, values, null);
         } catch (VolumeArgumentException e) {
             if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q) {
                 throw new IllegalArgumentException(e.getMessage());
@@ -3028,7 +3031,7 @@ public class MediaProvider extends ContentProvider {
                         MediaStore.Images.Media.getContentUri(resolvedVolumeName), imageId),
                         extras, true);
 
-                ensureUniqueFileColumns(match, uri, extras, initialValues);
+                ensureUniqueFileColumns(match, uri, extras, initialValues, null);
 
                 rowId = qb.insert(helper, initialValues);
                 if (rowId > 0) {
@@ -3050,7 +3053,7 @@ public class MediaProvider extends ContentProvider {
                         MediaStore.Video.Media.getContentUri(resolvedVolumeName), videoId),
                         Bundle.EMPTY, true);
 
-                ensureUniqueFileColumns(match, uri, extras, initialValues);
+                ensureUniqueFileColumns(match, uri, extras, initialValues, null);
 
                 rowId = qb.insert(helper, initialValues);
                 if (rowId > 0) {
@@ -3132,7 +3135,7 @@ public class MediaProvider extends ContentProvider {
                     throw new UnsupportedOperationException("no internal album art allowed");
                 }
 
-                ensureUniqueFileColumns(match, uri, extras, initialValues);
+                ensureUniqueFileColumns(match, uri, extras, initialValues, null);
 
                 rowId = qb.insert(helper, initialValues);
                 if (rowId > 0) {
@@ -4822,7 +4825,7 @@ public class MediaProvider extends ContentProvider {
                 // Now that we've confirmed an actual movement is taking place,
                 // ensure we have a unique destination
                 initialValues.remove(MediaColumns.DATA);
-                ensureUniqueFileColumns(match, uri, extras, initialValues);
+                ensureUniqueFileColumns(match, uri, extras, initialValues, beforePath);
 
                 final String afterPath = initialValues.getAsString(MediaColumns.DATA);
 

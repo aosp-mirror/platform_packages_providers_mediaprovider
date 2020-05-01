@@ -64,7 +64,6 @@ import android.text.format.DateUtils;
 import android.util.Log;
 import android.util.Pair;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.MimeTypeFilter;
 
@@ -174,13 +173,6 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         AUDIO_COLUMN_MAP.put(AudioColumns.DURATION, MediaMetadata.METADATA_KEY_DURATION);
     }
 
-    private void copyNotificationUri(@NonNull MatrixCursor result, @NonNull Cursor cursor) {
-        final Uri uri = cursor.getNotificationUri();
-        if (uri != null) {
-            result.setNotificationUri(getContext().getContentResolver(), uri);
-        }
-    }
-
     @Override
     public boolean onCreate() {
         notifyRootsChanged(getContext());
@@ -216,7 +208,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
      * refresh to clear a previously reported {@link Root#FLAG_EMPTY}.
      */
     static void onMediaStoreInsert(Context context, String volumeName, int type, long id) {
-        if (!"external".equals(volumeName)) return;
+        if (MediaStore.VOLUME_INTERNAL.equals(volumeName)) return;
 
         if (type == FileColumns.MEDIA_TYPE_IMAGE && sReturnedImagesEmpty) {
             sReturnedImagesEmpty = false;
@@ -237,7 +229,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
      * When deleting an item, we need to revoke any outstanding Uri grants.
      */
     static void onMediaStoreDelete(Context context, String volumeName, int type, long id) {
-        if (!"external".equals(volumeName)) return;
+        if (MediaStore.VOLUME_INTERNAL.equals(volumeName)) return;
 
         if (type == FileColumns.MEDIA_TYPE_IMAGE) {
             final Uri uri = DocumentsContract.buildDocumentUri(
@@ -600,7 +592,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
                         ImagesBucketQuery.PROJECTION, ImageColumns.BUCKET_ID + "=?",
                         queryArgs, ImagesBucketQuery.SORT_ORDER);
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Images.Media.EXTERNAL_CONTENT_URI);
                 if (cursor.moveToFirst()) {
                     includeImagesBucket(result, cursor);
                 }
@@ -609,7 +601,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
                         ImageQuery.PROJECTION, BaseColumns._ID + "=?", queryArgs,
                         null);
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Images.Media.EXTERNAL_CONTENT_URI);
                 if (cursor.moveToFirst()) {
                     includeImage(result, cursor);
                 }
@@ -621,7 +613,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Video.Media.EXTERNAL_CONTENT_URI,
                         VideosBucketQuery.PROJECTION, VideoColumns.BUCKET_ID + "=?",
                         queryArgs, VideosBucketQuery.SORT_ORDER);
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Video.Media.EXTERNAL_CONTENT_URI);
                 if (cursor.moveToFirst()) {
                     includeVideosBucket(result, cursor);
                 }
@@ -630,7 +622,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Video.Media.EXTERNAL_CONTENT_URI,
                         VideoQuery.PROJECTION, BaseColumns._ID + "=?", queryArgs,
                         null);
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Video.Media.EXTERNAL_CONTENT_URI);
                 if (cursor.moveToFirst()) {
                     includeVideo(result, cursor);
                 }
@@ -642,7 +634,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Artists.EXTERNAL_CONTENT_URI,
                         ArtistQuery.PROJECTION, BaseColumns._ID + "=?", queryArgs,
                         null);
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Audio.Media.EXTERNAL_CONTENT_URI);
                 if (cursor.moveToFirst()) {
                     includeArtist(result, cursor);
                 }
@@ -651,7 +643,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Albums.EXTERNAL_CONTENT_URI,
                         AlbumQuery.PROJECTION, BaseColumns._ID + "=?", queryArgs,
                         null);
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Audio.Media.EXTERNAL_CONTENT_URI);
                 if (cursor.moveToFirst()) {
                     includeAlbum(result, cursor);
                 }
@@ -660,7 +652,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Audio.Media.EXTERNAL_CONTENT_URI,
                         SongQuery.PROJECTION, BaseColumns._ID + "=?", queryArgs,
                         null);
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Audio.Media.EXTERNAL_CONTENT_URI);
                 if (cursor.moveToFirst()) {
                     includeAudio(result, cursor);
                 }
@@ -673,7 +665,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                         FileColumns.BUCKET_ID + "=?", queryArgs);
                 cursor = resolver.query(Files.EXTERNAL_CONTENT_URI, DocumentsBucketQuery.PROJECTION,
                         selectionPair.first, selectionPair.second, DocumentsBucketQuery.SORT_ORDER);
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Files.EXTERNAL_CONTENT_URI);
                 if (cursor.moveToFirst()) {
                     includeDocumentsBucket(result, cursor);
                 }
@@ -681,7 +673,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 // single document
                 cursor = resolver.query(Files.EXTERNAL_CONTENT_URI, DocumentQuery.PROJECTION,
                         FileColumns._ID + "=?", queryArgs, null);
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Files.EXTERNAL_CONTENT_URI);
                 if (cursor.moveToFirst()) {
                     includeDocument(result, cursor);
                 }
@@ -712,7 +704,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
                         ImagesBucketQuery.PROJECTION, null, null, ImagesBucketQuery.SORT_ORDER);
                 // multiple orders
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Images.Media.EXTERNAL_CONTENT_URI);
                 long lastId = Long.MIN_VALUE;
                 while (cursor.moveToNext()) {
                     final long id = cursor.getLong(ImagesBucketQuery.BUCKET_ID);
@@ -726,7 +718,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
                         ImageQuery.PROJECTION, ImageColumns.BUCKET_ID + "=?",
                         queryArgs, null);
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Images.Media.EXTERNAL_CONTENT_URI);
                 while (cursor.moveToNext()) {
                     includeImage(result, cursor);
                 }
@@ -734,7 +726,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 // include all unique buckets
                 cursor = resolver.query(Video.Media.EXTERNAL_CONTENT_URI,
                         VideosBucketQuery.PROJECTION, null, null, VideosBucketQuery.SORT_ORDER);
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Video.Media.EXTERNAL_CONTENT_URI);
                 long lastId = Long.MIN_VALUE;
                 while (cursor.moveToNext()) {
                     final long id = cursor.getLong(VideosBucketQuery.BUCKET_ID);
@@ -748,7 +740,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Video.Media.EXTERNAL_CONTENT_URI,
                         VideoQuery.PROJECTION, VideoColumns.BUCKET_ID + "=?",
                         queryArgs, null);
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Video.Media.EXTERNAL_CONTENT_URI);
                 while (cursor.moveToNext()) {
                     includeVideo(result, cursor);
                 }
@@ -756,7 +748,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 // include all artists
                 cursor = resolver.query(Audio.Artists.EXTERNAL_CONTENT_URI,
                         ArtistQuery.PROJECTION, null, null, null);
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Audio.Media.EXTERNAL_CONTENT_URI);
                 while (cursor.moveToNext()) {
                     includeArtist(result, cursor);
                 }
@@ -764,7 +756,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 // include all albums under artist
                 cursor = resolver.query(Artists.Albums.getContentUri("external", ident.id),
                         AlbumQuery.PROJECTION, null, null, null);
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Audio.Media.EXTERNAL_CONTENT_URI);
                 while (cursor.moveToNext()) {
                     includeAlbum(result, cursor);
                 }
@@ -773,7 +765,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Audio.Media.EXTERNAL_CONTENT_URI,
                         SongQuery.PROJECTION, AudioColumns.ALBUM_ID + "=?",
                         queryArgs, null);
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Audio.Media.EXTERNAL_CONTENT_URI);
                 while (cursor.moveToNext()) {
                     includeAudio(result, cursor);
                 }
@@ -782,7 +774,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 final Pair<String, String[]> selectionPair = addDocumentSelection(null, null);
                 cursor = resolver.query(Files.EXTERNAL_CONTENT_URI, DocumentsBucketQuery.PROJECTION,
                         selectionPair.first, selectionPair.second, DocumentsBucketQuery.SORT_ORDER);
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Files.EXTERNAL_CONTENT_URI);
                 long lastId = Long.MIN_VALUE;
                 while (cursor.moveToNext()) {
                     final long id = cursor.getLong(DocumentsBucketQuery.BUCKET_ID);
@@ -797,7 +789,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                         FileColumns.BUCKET_ID + "=?", queryArgs);
                 cursor = resolver.query(Files.EXTERNAL_CONTENT_URI, DocumentQuery.PROJECTION,
                         selectionPair.first, selectionPair.second, null);
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Files.EXTERNAL_CONTENT_URI);
                 while (cursor.moveToNext()) {
                     includeDocument(result, cursor);
                 }
@@ -843,7 +835,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 // include all unique buckets
                 cursor = resolver.query(Images.Media.EXTERNAL_CONTENT_URI,
                         ImageQuery.PROJECTION, null, null, ImageColumns.DATE_MODIFIED + " DESC");
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Images.Media.EXTERNAL_CONTENT_URI);
                 while (cursor.moveToNext() && result.getCount() < limit) {
                     includeImage(result, cursor);
                 }
@@ -851,7 +843,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 // include all unique buckets
                 cursor = resolver.query(Video.Media.EXTERNAL_CONTENT_URI,
                         VideoQuery.PROJECTION, null, null, VideoColumns.DATE_MODIFIED + " DESC");
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Video.Media.EXTERNAL_CONTENT_URI);
                 while (cursor.moveToNext() && result.getCount() < limit) {
                     includeVideo(result, cursor);
                 }
@@ -861,7 +853,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Files.EXTERNAL_CONTENT_URI, DocumentQuery.PROJECTION,
                         selectionPair.first, selectionPair.second,
                         FileColumns.DATE_MODIFIED + " DESC");
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Files.EXTERNAL_CONTENT_URI);
                 while (cursor.moveToNext() && result.getCount() < limit) {
                     includeDocument(result, cursor);
                 }
@@ -913,7 +905,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                             selectionPair.first, selectionPair.second,
                             ImageColumns.DATE_MODIFIED + " DESC");
 
-                    copyNotificationUri(result, cursor);
+                    result.setNotificationUri(resolver, Images.Media.EXTERNAL_CONTENT_URI);
                     while (cursor.moveToNext()) {
                         includeImage(result, cursor);
                     }
@@ -932,7 +924,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                     cursor = resolver.query(Video.Media.EXTERNAL_CONTENT_URI, VideoQuery.PROJECTION,
                             selectionPair.first, selectionPair.second,
                             VideoColumns.DATE_MODIFIED + " DESC");
-                    copyNotificationUri(result, cursor);
+                    result.setNotificationUri(resolver, Video.Media.EXTERNAL_CONTENT_URI);
                     while (cursor.moveToNext()) {
                         includeVideo(result, cursor);
                     }
@@ -952,7 +944,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                     cursor = resolver.query(Audio.Media.EXTERNAL_CONTENT_URI, SongQuery.PROJECTION,
                             selectionPair.first, selectionPair.second,
                             AudioColumns.DATE_MODIFIED + " DESC");
-                    copyNotificationUri(result, cursor);
+                    result.setNotificationUri(resolver, Audio.Media.EXTERNAL_CONTENT_URI);
                     while (cursor.moveToNext()) {
                         includeAudio(result, cursor);
                     }
@@ -968,7 +960,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 cursor = resolver.query(Files.EXTERNAL_CONTENT_URI, DocumentQuery.PROJECTION,
                         selectionPair.first, selectionPair.second,
                         FileColumns.DATE_MODIFIED + " DESC");
-                copyNotificationUri(result, cursor);
+                result.setNotificationUri(resolver, Files.EXTERNAL_CONTENT_URI);
                 while (cursor.moveToNext()) {
                     includeDocument(result, cursor);
                 }

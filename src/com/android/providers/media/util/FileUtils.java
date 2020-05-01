@@ -860,12 +860,6 @@ public class FileUtils {
     }
 
     /**
-     * Regex that matches any valid path in external storage,
-     * and captures the top-level directory as the first group.
-     */
-    private static final Pattern PATTERN_TOP_LEVEL_DIR = Pattern.compile(
-            "(?i)^/storage/[^/]+/[0-9]+/([^/]+)(/.*)?");
-    /**
      * Regex that matches paths in all well-known package-specific directories,
      * and which captures the package name as the first group.
      */
@@ -979,11 +973,12 @@ public class FileUtils {
      */
     @Nullable
     public static String extractTopLevelDir(String path) {
-        Matcher m = PATTERN_TOP_LEVEL_DIR.matcher(path);
-        if (m.matches()) {
-            return m.group(1);
+        final String relativePath = extractRelativePath(path);
+        if (relativePath == null) {
+            return null;
         }
-        return null;
+        final String[] relativePathSegments = relativePath.split("/");
+        return relativePathSegments.length > 0 ? relativePathSegments[0] : null;
     }
 
     /**

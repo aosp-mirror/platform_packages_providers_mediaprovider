@@ -83,6 +83,7 @@ public class TestUtils {
     public static final String DELETE_FILE_QUERY = "com.android.tests.fused.deletefile";
     public static final String OPEN_FILE_FOR_READ_QUERY = "com.android.tests.fused.openfile_read";
     public static final String OPEN_FILE_FOR_WRITE_QUERY = "com.android.tests.fused.openfile_write";
+    public static final String CAN_READ_WRITE_QUERY = "com.android.tests.fused.can_read_and_write";
 
     public static final String STR_DATA1 = "Just some random text";
     public static final String STR_DATA2 = "More arbitrary stuff";
@@ -192,6 +193,15 @@ public class TestUtils {
     }
 
     /**
+     * Returns {@code true} iff the given {@code path} exists and is readable and
+     * writable for for {@code testApp}.
+     */
+    public static boolean canReadAndWriteAs(TestApp testApp, String path)
+            throws Exception {
+        return getResultFromTestApp(testApp, path, CAN_READ_WRITE_QUERY);
+    }
+
+    /**
      * Makes the given {@code testApp} read the EXIF metadata from the given file and returns the
      * result as an {@link HashMap}
      */
@@ -245,6 +255,20 @@ public class TestUtils {
             throws Exception {
         return getResultFromTestApp(testApp, path,
                 forWrite ? OPEN_FILE_FOR_WRITE_QUERY : OPEN_FILE_FOR_READ_QUERY);
+    }
+
+    /**
+     * Installs a {@link TestApp} without storage permissions.
+     */
+    public static void installApp(TestApp testApp) throws Exception {
+        installApp(testApp, /* grantStoragePermission */ false);
+    }
+
+    /**
+     * Installs a {@link TestApp} with storage permissions.
+     */
+    public static void installAppWithStoragePermissions(TestApp testApp) throws Exception {
+        installApp(testApp, /* grantStoragePermission */ true);
     }
 
     /**

@@ -20,7 +20,13 @@ import static android.app.AppOpsManager.permissionToOp;
 import static android.os.SystemProperties.getBoolean;
 import static android.provider.MediaStore.MediaColumns;
 import static android.system.OsConstants.F_OK;
+import static android.system.OsConstants.O_APPEND;
+import static android.system.OsConstants.O_CREAT;
+import static android.system.OsConstants.O_EXCL;
+import static android.system.OsConstants.O_RDWR;
+import static android.system.OsConstants.O_TRUNC;
 import static android.system.OsConstants.R_OK;
+import static android.system.OsConstants.S_IRWXU;
 import static android.system.OsConstants.W_OK;
 
 import static androidx.test.InstrumentationRegistry.getContext;
@@ -55,6 +61,7 @@ import static com.android.tests.fused.lib.TestUtils.getFileRowIdFromDatabase;
 import static com.android.tests.fused.lib.TestUtils.getFileUri;
 import static com.android.tests.fused.lib.TestUtils.grantPermission;
 import static com.android.tests.fused.lib.TestUtils.installApp;
+import static com.android.tests.fused.lib.TestUtils.installAppWithStoragePermissions;
 import static com.android.tests.fused.lib.TestUtils.listAs;
 import static com.android.tests.fused.lib.TestUtils.openFileAs;
 import static com.android.tests.fused.lib.TestUtils.openWithMediaProvider;
@@ -99,7 +106,6 @@ import android.os.Process;
 import android.provider.MediaStore;
 import android.system.ErrnoException;
 import android.system.Os;
-import android.system.OsConstants;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -404,7 +410,7 @@ public class FilePathAccessTest {
         final File mediaFile = new File(PICTURES_DIR, IMAGE_FILE_NAME);
         final File nonMediaFile = new File(DOWNLOAD_DIR, NONMEDIA_FILE_NAME);
         try {
-            installApp(TEST_APP_A, false);
+            installApp(TEST_APP_A);
 
             assertThat(createFileAs(TEST_APP_A, mediaFile.getPath())).isTrue();
             assertThat(createFileAs(TEST_APP_A, nonMediaFile.getPath())).isTrue();
@@ -431,7 +437,7 @@ public class FilePathAccessTest {
         final File mediaFile = new File(dirInDownload, IMAGE_FILE_NAME);
         final File nonMediaFile = new File(dirInDownload, NONMEDIA_FILE_NAME);
         try {
-            installApp(TEST_APP_A, false);
+            installApp(TEST_APP_A);
             assertThat(dirInDownload.mkdir()).isTrue();
             // Have another app create a media file in the directory
             assertThat(createFileAs(TEST_APP_A, mediaFile.getPath())).isTrue();
@@ -513,16 +519,16 @@ public class FilePathAccessTest {
     public void testLowLevelFileIO() throws Exception {
         String filePath = new File(DOWNLOAD_DIR, NONMEDIA_FILE_NAME).toString();
         try {
-            int createFlags = OsConstants.O_CREAT | OsConstants.O_RDWR;
-            int createExclFlags = createFlags | OsConstants.O_EXCL;
+            int createFlags = O_CREAT | O_RDWR;
+            int createExclFlags = createFlags | O_EXCL;
 
-            FileDescriptor fd = Os.open(filePath, createExclFlags, OsConstants.S_IRWXU);
+            FileDescriptor fd = Os.open(filePath, createExclFlags, S_IRWXU);
             Os.close(fd);
             assertThrows(ErrnoException.class, () -> {
-                Os.open(filePath, createExclFlags, OsConstants.S_IRWXU);
+                Os.open(filePath, createExclFlags, S_IRWXU);
             });
 
-            fd = Os.open(filePath, createFlags, OsConstants.S_IRWXU);
+            fd = Os.open(filePath, createFlags, S_IRWXU);
             try {
                 assertThat(Os.write(fd, ByteBuffer.wrap(BYTES_DATA1)))
                         .isEqualTo(BYTES_DATA1.length);
@@ -531,7 +537,7 @@ public class FilePathAccessTest {
                 Os.close(fd);
             }
             // should just append the data
-            fd = Os.open(filePath, createFlags | OsConstants.O_APPEND, OsConstants.S_IRWXU);
+            fd = Os.open(filePath, createFlags | O_APPEND, S_IRWXU);
             try {
                 assertThat(Os.write(fd, ByteBuffer.wrap(BYTES_DATA2)))
                         .isEqualTo(BYTES_DATA2.length);
@@ -541,7 +547,7 @@ public class FilePathAccessTest {
                 Os.close(fd);
             }
             // should overwrite everything
-            fd = Os.open(filePath, createFlags | OsConstants.O_TRUNC, OsConstants.S_IRWXU);
+            fd = Os.open(filePath, createFlags | O_TRUNC, S_IRWXU);
             try {
                 final byte[] otherData = "this is different data".getBytes();
                 assertThat(Os.write(fd, ByteBuffer.wrap(otherData))).isEqualTo(otherData.length);
@@ -568,14 +574,14 @@ public class FilePathAccessTest {
             }
 
             // Install TEST_APP_A and create media file in the new directory.
-            installApp(TEST_APP_A, false);
+            installApp(TEST_APP_A);
             assertThat(createFileAs(TEST_APP_A, videoFile.getPath())).isTrue();
             // TEST_APP_A should see TEST_DIRECTORY in DCIM and new file in TEST_DIRECTORY.
             assertThat(listAs(TEST_APP_A, DCIM_DIR.getPath())).contains(TEST_DIRECTORY_NAME);
             assertThat(listAs(TEST_APP_A, dir.getPath())).containsExactly(videoFileName);
 
             // Install TEST_APP_B with storage permission.
-            installApp(TEST_APP_B, true);
+            installAppWithStoragePermissions(TEST_APP_B);
             // TEST_APP_B with storage permission should see TEST_DIRECTORY in DCIM and new file
             // in TEST_DIRECTORY.
             assertThat(listAs(TEST_APP_B, DCIM_DIR.getPath())).contains(TEST_DIRECTORY_NAME);
@@ -610,7 +616,7 @@ public class FilePathAccessTest {
             }
 
             // Install TEST_APP_A and create non media file in the new directory.
-            installApp(TEST_APP_A, false);
+            installApp(TEST_APP_A);
             assertThat(createFileAs(TEST_APP_A, pdfFile.getPath())).isTrue();
 
             // TEST_APP_A should see TEST_DIRECTORY in DOWNLOAD_DIR and new non media file in
@@ -619,7 +625,7 @@ public class FilePathAccessTest {
             assertThat(listAs(TEST_APP_A, dir.getPath())).containsExactly(pdfFileName);
 
             // Install TEST_APP_B with storage permission.
-            installApp(TEST_APP_B, true);
+            installAppWithStoragePermissions(TEST_APP_B);
             // TEST_APP_B with storage permission should see TEST_DIRECTORY in DOWNLOAD_DIR
             // and should not see new non media file in TEST_DIRECTORY.
             assertThat(listAs(TEST_APP_B, DOWNLOAD_DIR.getPath())).contains(TEST_DIRECTORY_NAME);
@@ -653,7 +659,7 @@ public class FilePathAccessTest {
 
             // Install TEST_APP_A with READ_EXTERNAL_STORAGE permission.
             // TEST_APP_A should not see other app's external files directory.
-            installApp(TEST_APP_A, true);
+            installAppWithStoragePermissions(TEST_APP_A);
             // TODO(b/146497700): This is passing because ReaddirTestHelper ignores IOException and
             //  returns empty list.
             assertThat(listAs(TEST_APP_A, ANDROID_DATA_DIR.getPath())).doesNotContain(packageName);
@@ -685,7 +691,7 @@ public class FilePathAccessTest {
 
             // Install TEST_APP_A with READ_EXTERNAL_STORAGE permission.
             // TEST_APP_A with storage permission should see other app's external media directory.
-            installApp(TEST_APP_A, true);
+            installAppWithStoragePermissions(TEST_APP_A);
             // Apps with READ_EXTERNAL_STORAGE can list files in other app's external media directory.
             assertThat(listAs(TEST_APP_A, ANDROID_MEDIA_DIR.getPath())).contains(THIS_PACKAGE_NAME);
             // TODO(b/145737191) fails because we don't index these files yet.
@@ -709,7 +715,7 @@ public class FilePathAccessTest {
             assertThat(pdfFile.exists()).isTrue();
             assertThat(MediaStore.scanFile(getContentResolver(), pdfFile)).isNotNull();
 
-            installApp(TEST_APP_A, true);
+            installAppWithStoragePermissions(TEST_APP_A);
             assertThat(listAs(TEST_APP_A, DCIM_DIR.getPath())).doesNotContain(NONMEDIA_FILE_NAME);
 
 
@@ -746,7 +752,7 @@ public class FilePathAccessTest {
             HashMap<String, String> exif = getExifMetadata(jpgFile);
             assertExifMetadataMatch(exif, originalExif);
 
-            installApp(TEST_APP_A, /*grantStoragePermissions*/ true);
+           installAppWithStoragePermissions(TEST_APP_A);
             HashMap<String, String> exifFromTestApp = readExifMetadataFromTestApp(TEST_APP_A,
                     jpgFile.getPath());
             // Other apps shouldn't have access to the same metadata without explicit permission
@@ -1042,7 +1048,7 @@ public class FilePathAccessTest {
             assertExifMetadataMatch(exif, originalExif);
 
             // Install test app
-            installApp(TEST_APP_C, /* grantStoragePermissions */ true);
+            installAppWithStoragePermissions(TEST_APP_C);
 
             // Grant A_M_L and verify access to sensitive data
             grantPermission(TEST_APP_C.getPackageName(), Manifest.permission.ACCESS_MEDIA_LOCATION);
@@ -1075,7 +1081,7 @@ public class FilePathAccessTest {
             assertThat(file.createNewFile()).isTrue();
 
             // Install legacy
-            installApp(TEST_APP_C_LEGACY, /* grantStoragePermissions */ true);
+            installAppWithStoragePermissions(TEST_APP_C_LEGACY);
             grantPermission(TEST_APP_C_LEGACY.getPackageName(),
                     Manifest.permission.WRITE_EXTERNAL_STORAGE); // Grants write access for legacy
             // Legacy app can read and write media files contributed by others
@@ -1084,7 +1090,7 @@ public class FilePathAccessTest {
             assertThat(openFileAs(TEST_APP_C_LEGACY, file.getPath(), /* forWrite */ true)).isTrue();
 
             // Update to non-legacy
-            installApp(TEST_APP_C, /* grantStoragePermissions */ true);
+            installAppWithStoragePermissions(TEST_APP_C);
             grantPermission(TEST_APP_C_LEGACY.getPackageName(),
                     Manifest.permission.WRITE_EXTERNAL_STORAGE); // No effect for non-legacy
             // Non-legacy app can read media files contributed by others
@@ -1105,12 +1111,12 @@ public class FilePathAccessTest {
             assertThat(file.createNewFile()).isTrue();
 
             // Install
-            installApp(TEST_APP_C, /* grantStoragePermissions */ true);
+            installAppWithStoragePermissions(TEST_APP_C);
             assertThat(openFileAs(TEST_APP_C, file.getPath(), /* forWrite */ false)).isTrue();
 
             // Re-install
             uninstallAppNoThrow(TEST_APP_C);
-            installApp(TEST_APP_C, /* grantStoragePermissions */ false);
+            installApp(TEST_APP_C);
             assertThat(openFileAs(TEST_APP_C, file.getPath(), /* forWrite */ false)).isFalse();
         } finally {
             file.delete();
@@ -1121,7 +1127,7 @@ public class FilePathAccessTest {
     private void testAppOpInvalidation(TestApp app, File file, @Nullable String permission,
             String opstr, boolean forWrite) throws Exception {
         try {
-            installApp(app, false);
+            installApp(app);
             assertThat(file.createNewFile()).isTrue();
             assertAppOpInvalidation(app, file, permission, opstr, forWrite);
         } finally {
@@ -1168,7 +1174,7 @@ public class FilePathAccessTest {
         final File imageInAnObviouslyWrongPlace = new File(MUSIC_DIR, IMAGE_FILE_NAME);
 
         try {
-            installApp(TEST_APP_A, false);
+            installApp(TEST_APP_A);
             allowAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
 
             // Have another app create an image file
@@ -1208,7 +1214,7 @@ public class FilePathAccessTest {
         final File audioInAnObviouslyWrongPlace = new File(PICTURES_DIR, AUDIO_FILE_NAME);
 
         try {
-            installApp(TEST_APP_A, false);
+            installApp(TEST_APP_A);
             allowAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
 
             // Have another app create an audio file
@@ -1246,7 +1252,7 @@ public class FilePathAccessTest {
         final File topLevelVideoFile = new File(EXTERNAL_STORAGE_DIR, VIDEO_FILE_NAME);
         final File musicFile = new File(MUSIC_DIR, AUDIO_FILE_NAME);
         try {
-            installApp(TEST_APP_A, false);
+            installApp(TEST_APP_A);
             allowAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
 
             // Have another app create a video file
@@ -1388,7 +1394,7 @@ public class FilePathAccessTest {
         final File videoFile1 = new File(DCIM_DIR, VIDEO_FILE_NAME);
         final File videoFile2 = new File(MOVIES_DIR, VIDEO_FILE_NAME);
         try {
-            installApp(TEST_APP_A, false);
+            installApp(TEST_APP_A);
             assertThat(createFileAs(TEST_APP_A, videoFile1.getAbsolutePath())).isTrue();
             // App can't rename a file owned by TEST_APP_A.
             assertCantRenameFile(videoFile1, videoFile2);
@@ -1487,7 +1493,7 @@ public class FilePathAccessTest {
         File videoFile = new File(mediaDirectory1, VIDEO_FILE_NAME);
 
         try {
-            installApp(TEST_APP_A, false);
+            installApp(TEST_APP_A);
 
             if (!mediaDirectory1.exists()) {
                 assertThat(mediaDirectory1.mkdirs()).isTrue();
@@ -1570,7 +1576,7 @@ public class FilePathAccessTest {
         final File otherAppImage = new File(DCIM_DIR, "other" + IMAGE_FILE_NAME);
         final File otherAppMusic = new File(MUSIC_DIR, "other" + AUDIO_FILE_NAME);
         try {
-            installApp(TEST_APP_A, false);
+            installApp(TEST_APP_A);
 
             // Create all of the files as another app
             assertThat(createFileAs(TEST_APP_A, otherAppPdf.getPath())).isTrue();
@@ -1681,7 +1687,7 @@ public class FilePathAccessTest {
         final File topLevelPdf = new File(EXTERNAL_STORAGE_DIR, NONMEDIA_FILE_NAME);
         final File musicFile = new File(MUSIC_DIR, AUDIO_FILE_NAME);
         try {
-            installApp(TEST_APP_A, false);
+            installApp(TEST_APP_A);
 
             // Have another app create a PDF
             assertThat(createFileAs(TEST_APP_A, otherAppPdf.getPath())).isTrue();
@@ -1740,7 +1746,7 @@ public class FilePathAccessTest {
         final File otherAppImg = new File(DCIM_DIR, "other" + IMAGE_FILE_NAME);
         final File otherAppMusic = new File(MUSIC_DIR, "other" + AUDIO_FILE_NAME);
         try {
-            installApp(TEST_APP_A, false);
+            installApp(TEST_APP_A);
             assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
 
             // Once the test has permission to manage external storage, it can query for other apps'
@@ -1763,7 +1769,7 @@ public class FilePathAccessTest {
         final File otherAppImg = new File(DCIM_DIR, "other" + IMAGE_FILE_NAME);
         final File otherAppMusic = new File(MUSIC_DIR, "other" + AUDIO_FILE_NAME);
         try {
-            installApp(TEST_APP_A, false);
+            installApp(TEST_APP_A);
             assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
 
             // Since the test doesn't have READ_EXTERNAL_STORAGE nor any other special permissions,
@@ -1783,7 +1789,7 @@ public class FilePathAccessTest {
         final File otherAppImg = new File(DCIM_DIR, "other" + IMAGE_FILE_NAME);
         final File otherAppMusic = new File(MUSIC_DIR, "other" + AUDIO_FILE_NAME);
         try {
-            installApp(TEST_APP_A, false);
+            installApp(TEST_APP_A);
             assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
 
             // System gallery apps have access to video and image files
@@ -1821,7 +1827,7 @@ public class FilePathAccessTest {
 
             executeShellCommand("touch " + otherAppPdfFile1);
 
-            installApp(TEST_APP_A, true);
+            installAppWithStoragePermissions(TEST_APP_A);
             allowAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
 
             assertCreateFilesAs(TEST_APP_A, otherAppImageFile1, otherAppVideoFile1);
@@ -1873,7 +1879,7 @@ public class FilePathAccessTest {
             assertThat(cr.openFileDescriptor(uriOfOldFile, "rw")).isNotNull();
 
             assertThat(imageFile.delete()).isTrue();
-            installApp(TEST_APP_A, false);
+            installApp(TEST_APP_A);
             assertThat(createFileAs(TEST_APP_A, imageFile.getAbsolutePath())).isTrue();
 
             final Uri uriOfNewFile = MediaStore.scanFile(getContentResolver(), imageFile);

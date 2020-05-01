@@ -636,6 +636,12 @@ public class MediaProvider extends ContentProvider {
         }
 
         @Override
+        public void onProgress(ContentProviderClient client, String volumeName,
+                long progress, long total) {
+            // TODO: notify blocked threads of progress once we can change APIs
+        }
+
+        @Override
         public void onFinished(ContentProviderClient client, String volumeName) {
             MediaStore.finishLegacyMigration(ContentResolver.wrap(client), volumeName);
         }
@@ -846,7 +852,6 @@ public class MediaProvider extends ContentProvider {
         mAppOpsManager.startWatchingActive(new String[] {
                 AppOpsManager.OPSTR_CAMERA
         }, context.getMainExecutor(), mActiveListener);
-
 
         mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_READ_EXTERNAL_STORAGE,
                 null /* all packages */, mModeListener);
@@ -2081,8 +2086,9 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void ensureUniqueFileColumns(int match, @NonNull Uri uri, @NonNull Bundle extras,
-            @NonNull ContentValues values) throws VolumeArgumentException {
-        ensureFileColumns(match, uri, extras, values, true, null /* currentPath */);
+            @NonNull ContentValues values, @Nullable String currentPath)
+            throws VolumeArgumentException {
+        ensureFileColumns(match, uri, extras, values, true, currentPath);
     }
 
     private void ensureNonUniqueFileColumns(int match, @NonNull Uri uri,
@@ -2305,8 +2311,10 @@ public class MediaProvider extends ContentProvider {
             // Require that content lives under well-defined directories to help
             // keep the user's content organized
 
-            // Start by saying unchanged paths are valid
-            boolean validPath = res.getAbsolutePath().equals(currentPath);
+            // Start by saying unchanged directories are valid
+            final String currentDir = (currentPath != null)
+                    ? new File(currentPath).getParent() : null;
+            boolean validPath = res.getParent().equals(currentDir);
 
             // Next, consider allowing based on allowed primary directory
             final String[] relativePath = values.getAsString(MediaColumns.RELATIVE_PATH).split("/");
@@ -2646,7 +2654,7 @@ public class MediaProvider extends ContentProvider {
 
         // Make sure all file-related columns are defined
         try {
-            ensureUniqueFileColumns(match, uri, extras, values);
+            ensureUniqueFileColumns(match, uri, extras, values, null);
         } catch (VolumeArgumentException e) {
             if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.Q) {
                 throw new IllegalArgumentException(e.getMessage());
@@ -3028,7 +3036,7 @@ public class MediaProvider extends ContentProvider {
                         MediaStore.Images.Media.getContentUri(resolvedVolumeName), imageId),
                         extras, true);
 
-                ensureUniqueFileColumns(match, uri, extras, initialValues);
+                ensureUniqueFileColumns(match, uri, extras, initialValues, null);
 
                 rowId = qb.insert(helper, initialValues);
                 if (rowId > 0) {
@@ -3050,7 +3058,7 @@ public class MediaProvider extends ContentProvider {
                         MediaStore.Video.Media.getContentUri(resolvedVolumeName), videoId),
                         Bundle.EMPTY, true);
 
-                ensureUniqueFileColumns(match, uri, extras, initialValues);
+                ensureUniqueFileColumns(match, uri, extras, initialValues, null);
 
                 rowId = qb.insert(helper, initialValues);
                 if (rowId > 0) {
@@ -3132,7 +3140,7 @@ public class MediaProvider extends ContentProvider {
                     throw new UnsupportedOperationException("no internal album art allowed");
                 }
 
-                ensureUniqueFileColumns(match, uri, extras, initialValues);
+                ensureUniqueFileColumns(match, uri, extras, initialValues, null);
 
                 rowId = qb.insert(helper, initialValues);
                 if (rowId > 0) {
@@ -4700,6 +4708,11 @@ public class MediaProvider extends ContentProvider {
                     // make sure metadata is updated
                     if (MediaColumns.IS_PENDING.equals(column)) {
                         triggerScan = true;
+
+                        // Explicitly clear columns used to ignore no-op scans,
+                        // since we need to force a scan on publish
+                        initialValues.putNull(MediaColumns.DATE_MODIFIED);
+                        initialValues.putNull(MediaColumns.SIZE);
                     }
                 }
 
@@ -4817,7 +4830,7 @@ public class MediaProvider extends ContentProvider {
                 // Now that we've confirmed an actual movement is taking place,
                 // ensure we have a unique destination
                 initialValues.remove(MediaColumns.DATA);
-                ensureUniqueFileColumns(match, uri, extras, initialValues);
+                ensureUniqueFileColumns(match, uri, extras, initialValues, beforePath);
 
                 final String afterPath = initialValues.getAsString(MediaColumns.DATA);
 
@@ -4845,6 +4858,19 @@ public class MediaProvider extends ContentProvider {
         if (initialValues.containsKey(FileColumns.DATA)) {
             // If we're changing paths, invalidate any thumbnails
             triggerInvalidate = true;
+
+            // If the new file exists, trigger a scan to adjust any metadata
+            // that might be derived from the path
+            final String data = initialValues.getAsString(FileColumns.DATA);
+            if (!TextUtils.isEmpty(data) && new File(data).exists()) {
+                triggerScan = true;
+            }
+        }
+
+        // If we're already doing this update from an internal scan, no need to
+        // kick off another no-op scan
+        if (isCallingPackageSystem()) {
+            triggerScan = false;
         }
 
         // Since the update mutation may prevent us from matching items after
@@ -6093,6 +6119,7 @@ public class MediaProvider extends ContentProvider {
         if (useData) {
             values.put(FileColumns.DATA, getAbsoluteSanitizedPath(path));
         } else {
+            values.put(FileColumns.VOLUME_NAME, extractVolumeName(path));
             values.put(FileColumns.RELATIVE_PATH, extractRelativePath(path));
             values.put(FileColumns.DISPLAY_NAME, extractDisplayName(path));
         }
@@ -6748,6 +6775,11 @@ public class MediaProvider extends ContentProvider {
                     ensureThumbnailsValid(volume, db);
                     return null;
                 });
+
+                // We just finished the database operation above, we know that
+                // it's ready to answer queries, so notify our DocumentProvider
+                // so it can answer queries without risking ANR
+                MediaDocumentsProvider.onMediaStoreReady(getContext(), volume);
             });
         }
         return uri;

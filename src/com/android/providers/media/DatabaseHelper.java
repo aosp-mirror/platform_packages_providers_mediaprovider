@@ -148,6 +148,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     public interface OnLegacyMigrationListener {
         public void onStarted(ContentProviderClient client, String volumeName);
+        public void onProgress(ContentProviderClient client, String volumeName,
+                long progress, long total);
         public void onFinished(ContentProviderClient client, String volumeName);
     }
 
@@ -366,11 +368,15 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
             mSchemaLock.writeLock().lock();
             try {
+                // Temporarily drop indexes to improve migration performance
+                makePristineIndexes(db);
                 migrateFromLegacy(db);
+                createLatestIndexes(db, mInternal);
             } finally {
                 mSchemaLock.writeLock().unlock();
             }
         }
+        Log.v(TAG, "onOpen() finished for " + mName);
     }
 
     @GuardedBy("mProjectionMapCache")
@@ -759,23 +765,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     + "play_order INTEGER NOT NULL)");
         }
 
-        db.execSQL("CREATE INDEX image_id_index on thumbnails(image_id)");
-        db.execSQL("CREATE INDEX video_id_index on videothumbnails(video_id)");
-        db.execSQL("CREATE INDEX album_id_idx ON files(album_id)");
-        db.execSQL("CREATE INDEX artist_id_idx ON files(artist_id)");
-        db.execSQL("CREATE INDEX genre_id_idx ON files(genre_id)");
-        db.execSQL("CREATE INDEX bucket_index on files(bucket_id,media_type,datetaken, _id)");
-        db.execSQL("CREATE INDEX bucket_name on files(bucket_id,media_type,bucket_display_name)");
-        db.execSQL("CREATE INDEX format_index ON files(format)");
-        db.execSQL("CREATE INDEX media_type_index ON files(media_type)");
-        db.execSQL("CREATE INDEX parent_index ON files(parent)");
-        db.execSQL("CREATE INDEX path_index ON files(_data)");
-        db.execSQL("CREATE INDEX sort_index ON files(datetaken ASC, _id ASC)");
-        db.execSQL("CREATE INDEX title_idx ON files(title)");
-        db.execSQL("CREATE INDEX titlekey_index ON files(title_key)");
-
         createLatestViews(db, mInternal);
         createLatestTriggers(db, mInternal);
+        createLatestIndexes(db, mInternal);
 
         // Since this code is used by both the legacy and modern providers, we
         // only want to migrate when we're running as the modern provider
@@ -853,10 +845,16 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
                     // To avoid SQLITE_NOMEM errors, we need to periodically
                     // flush the current transaction and start another one
-                    if ((c.getPosition() % 1_000) == 0) {
+                    if ((c.getPosition() % 2_000) == 0) {
                         db.setTransactionSuccessful();
                         db.endTransaction();
                         db.beginTransaction();
+
+                        // And announce that we're actively making progress
+                        final int progress = c.getPosition();
+                        final int total = c.getCount();
+                        Log.v(TAG, "Migrated " + progress + " of " + total + "...");
+                        mMigrationListener.onProgress(client, mVolumeName, progress, total);
                     }
                 }
 
@@ -1034,6 +1032,36 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + " BEGIN SELECT _UPDATE(" + updateArg + "); END");
         db.execSQL("CREATE TRIGGER files_delete AFTER DELETE ON files"
                 + " BEGIN SELECT _DELETE(" + deleteArg + "); END");
+    }
+
+    private static void makePristineIndexes(SQLiteDatabase db) {
+        // drop all indexes
+        Cursor c = db.query("sqlite_master", new String[] {"name"}, "type is 'index'",
+                null, null, null, null);
+        while (c.moveToNext()) {
+            if (c.getString(0).startsWith("sqlite_")) continue;
+            db.execSQL("DROP INDEX IF EXISTS " + c.getString(0));
+        }
+        c.close();
+    }
+
+    private static void createLatestIndexes(SQLiteDatabase db, boolean internal) {
+        makePristineIndexes(db);
+
+        db.execSQL("CREATE INDEX image_id_index on thumbnails(image_id)");
+        db.execSQL("CREATE INDEX video_id_index on videothumbnails(video_id)");
+        db.execSQL("CREATE INDEX album_id_idx ON files(album_id)");
+        db.execSQL("CREATE INDEX artist_id_idx ON files(artist_id)");
+        db.execSQL("CREATE INDEX genre_id_idx ON files(genre_id)");
+        db.execSQL("CREATE INDEX bucket_index on files(bucket_id,media_type,datetaken, _id)");
+        db.execSQL("CREATE INDEX bucket_name on files(bucket_id,media_type,bucket_display_name)");
+        db.execSQL("CREATE INDEX format_index ON files(format)");
+        db.execSQL("CREATE INDEX media_type_index ON files(media_type)");
+        db.execSQL("CREATE INDEX parent_index ON files(parent)");
+        db.execSQL("CREATE INDEX path_index ON files(_data)");
+        db.execSQL("CREATE INDEX sort_index ON files(datetaken ASC, _id ASC)");
+        db.execSQL("CREATE INDEX title_idx ON files(title)");
+        db.execSQL("CREATE INDEX titlekey_index ON files(title_key)");
     }
 
     private static void updateCollationKeys(SQLiteDatabase db) {
@@ -1423,6 +1451,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1114) {
                 // Empty version bump to ensure triggers are recreated
+            }
+
+            // If this is the legacy database, it's not worth recomputing data
+            // values locally, since they'll be recomputed after the migration
+            if (mLegacyProvider) {
+                recomputeDataValues = false;
             }
 
             if (recomputeDataValues) {

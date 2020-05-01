@@ -182,7 +182,7 @@ public class PermissionActivity extends Activity {
             protected Void doInBackground(Void... params) {
                 Log.d(TAG, "User allowed grant for " + uris);
                 Metrics.logPermissionGranted(volumeName, appInfo.uid,
-                        getCallingPackage(), 1);
+                        getCallingPackage(), uris.size());
                 try {
                     switch (getIntent().getAction()) {
                         case MediaStore.CREATE_WRITE_REQUEST_CALL: {

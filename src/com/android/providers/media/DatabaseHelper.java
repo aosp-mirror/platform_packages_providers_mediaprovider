@@ -445,6 +445,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         public final ArrayList<Runnable> backgroundTasks = new ArrayList<>();
     }
 
+    public boolean isTransactionActive() {
+        return (mTransactionState.get() != null);
+    }
+
     public void beginTransaction() {
         Trace.beginSection("transaction " + getDatabaseName());
         Trace.beginSection("beginTransaction");

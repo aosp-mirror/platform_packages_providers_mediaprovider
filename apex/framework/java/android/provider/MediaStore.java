@@ -709,7 +709,6 @@ public final class MediaStore {
      * By default no pending items are returned.
      *
      * @see MediaColumns#IS_PENDING
-     * @see MediaStore#getIncludePending(Uri)
      * @deprecated consider migrating to {@link #QUERY_ARG_MATCH_PENDING} which
      *             is more expressive.
      */

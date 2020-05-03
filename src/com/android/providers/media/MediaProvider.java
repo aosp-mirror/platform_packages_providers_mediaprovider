@@ -3198,9 +3198,20 @@ public class MediaProvider extends ContentProvider {
         try {
             for (ContentProviderOperation op : operations) {
                 final DatabaseHelper helper = getDatabaseForUri(op.getUri());
-                if (!transactions.contains(helper)) {
+                if (transactions.contains(helper)) continue;
+
+                if (!helper.isTransactionActive()) {
                     helper.beginTransaction();
                     transactions.add(helper);
+                } else {
+                    // We normally don't allow nested transactions (since we
+                    // don't have a good way to selectively roll them back) but
+                    // if the incoming operation is ignoring exceptions, then we
+                    // don't need to worry about partial rollback and can
+                    // piggyback on the larger active transaction
+                    if (!op.isExceptionAllowed()) {
+                        throw new IllegalStateException("Nested transactions not supported");
+                    }
                 }
             }
 

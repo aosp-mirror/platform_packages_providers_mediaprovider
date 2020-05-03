@@ -89,8 +89,8 @@ public class Logging {
      */
     public static void dumpPersistent(@NonNull PrintWriter pw) {
         if (sPersistentDir == null) return;
-        try {
-            Files.list(sPersistentDir).sorted().forEach((path) -> {
+        try (Stream<Path> stream = Files.list(sPersistentDir)) {
+            stream.sorted().forEach((path) -> {
                 dumpPersistentFile(path, pw);
             });
         } catch (IOException e) {
@@ -101,8 +101,8 @@ public class Logging {
 
     private static void dumpPersistentFile(@NonNull Path path, @NonNull PrintWriter pw) {
         pw.println("Persistent logs in " + path + ":");
-        try {
-            Files.lines(path).forEach((line) -> {
+        try (Stream<String> stream = Files.lines(path)) {
+            stream.forEach((line) -> {
                 pw.println("  " + line);
             });
             pw.println();

@@ -43,6 +43,14 @@ android_app {
     privileged: true,
 
     aaptflags: ["--custom-package com.android.providers.media"],
+
+    errorprone: {
+        javacflags: [
+            "-Xep:FallThrough:ERROR",
+            "-Xep:GuardedBy:ERROR",
+            "-Xep:StreamResourceLeak:ERROR",
+        ],
+    },
 }
 
 // Used by MediaProvider and MediaProviderTests

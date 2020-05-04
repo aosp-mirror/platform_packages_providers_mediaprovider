@@ -1745,12 +1745,16 @@ public class MediaProvider extends ContentProvider {
      * However, we update database entries for renamed files to keep the database consistent.
      */
     private int renameUncheckedForFuse(String oldPath, String newPath) {
-        if (new File(oldPath).isFile()) {
-            return renameFileUncheckedForFuse(oldPath, newPath);
-        } else {
-            return renameDirectoryUncheckedForFuse(oldPath, newPath,
-                    getAllFilesForRenameDirectory(oldPath));
-        }
+
+        return renameInLowerFs(oldPath, newPath);
+        // TODO(b/145737191) Legacy apps don't expect FuseDaemon to update database.
+        // Inserting/deleting the database entry might break app functionality.
+        //if (new File(oldPath).isFile()) {
+        //     return renameFileUncheckedForFuse(oldPath, newPath);
+        // } else {
+        //    return renameDirectoryUncheckedForFuse(oldPath, newPath,
+        //            getAllFilesForRenameDirectory(oldPath));
+        // }
     }
 
     /**
@@ -4925,7 +4929,7 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        count = qb.update(helper, values, userWhere, userWhereArgs);
+        count = updateAllowingReplace(qb, helper, values, userWhere, userWhereArgs);
 
         // If the caller tried (and failed) to update metadata, the file on disk
         // might have changed, to scan it to collect the latest metadata.
@@ -4956,6 +4960,54 @@ public class MediaProvider extends ContentProvider {
         }
 
         return count;
+    }
+
+    /**
+     * Update row(s) that match {@code userWhere} in MediaProvider database with {@code values}.
+     * Treats update as replace for updates with conflicts.
+     */
+    private int updateAllowingReplace(@NonNull SQLiteQueryBuilder qb,
+            @NonNull DatabaseHelper helper, @NonNull ContentValues values, String userWhere,
+            String[] userWhereArgs) throws SQLiteConstraintException {
+        return helper.runWithTransaction((db) -> {
+            try {
+                return qb.update(helper, values, userWhere, userWhereArgs);
+            } catch (SQLiteConstraintException e) {
+                // b/155320967 Apps sometimes create a file via file path and then update another
+                // explicitly inserted db row to this file. We have to resolve this update with a
+                // replace.
+
+                if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.R) {
+                    // We don't support replace for non-legacy apps. Non legacy apps should have
+                    // clearer interactions with MediaProvider.
+                    throw e;
+                }
+
+                final String path = values.getAsString(FileColumns.DATA);
+
+                // We will only handle UNIQUE constraint error for FileColumns.DATA. We will not try
+                // update and replace if no file exists for conflicting db row.
+                if (path == null || !new File(path).exists()) {
+                    throw e;
+                }
+
+                final Uri uri = Files.getContentUriForPath(path);
+                final boolean allowHidden = isCallingPackageAllowedHidden();
+                // The db row which caused UNIQUE constraint error may not match all column values
+                // of the given queryBuilder, hence using a generic queryBuilder with Files uri.
+                final SQLiteQueryBuilder qbForReplace = getQueryBuilder(TYPE_DELETE,
+                        matchUri(uri, allowHidden), uri, Bundle.EMPTY, null);
+                final long rowId = getIdIfPathExistsForCallingPackage(qbForReplace, helper, path);
+
+                if (rowId != -1 && qbForReplace.delete(helper, "_id=?",
+                        new String[] {Long.toString(rowId)}) == 1) {
+                    Log.i(TAG, "Retrying database update after deleting conflicting entry");
+                    return qb.update(helper, values, userWhere, userWhereArgs);
+                }
+                // Rethrow SQLiteConstraintException if app doesn't own the conflicting db row.
+                throw e;
+            }
+        });
     }
 
     /**
@@ -6173,9 +6225,11 @@ public class MediaProvider extends ContentProvider {
             final String mimeType = MimeUtils.resolveMimeType(new File(path));
 
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
+                // TODO(b/145737191) Legacy apps don't expect FuseDaemon to update database.
+                // Inserting/deleting the database entry might break app functionality.
                 // Ignore insert errors for apps that bypass scoped storage restriction.
-                insertFileForFuse(path, Files.getContentUriForPath(path), mimeType,
-                        /*useData*/ isCallingPackageRequestingLegacy());
+                // insertFileForFuse(path, Files.getContentUriForPath(path), mimeType,
+                //        /*useData*/ isCallingPackageRequestingLegacy());
                 return 0;
             }
 
@@ -6240,11 +6294,14 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.ENOENT;
             }
 
-            final boolean shouldBypass = shouldBypassFuseRestrictions(/*forWrite*/ true, path);
-
+            if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
+                // TODO(b/145737191) Legacy apps don't expect FuseDaemon to update database.
+                // Inserting/deleting the database entry might break app functionality.
+                return deleteFileUnchecked(path);
+            }
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
-            if (!shouldBypass && isCallingPackageRequestingLegacy()) {
+            if (isCallingPackageRequestingLegacy()) {
                 return OsConstants.EPERM;
             }
 
@@ -6258,9 +6315,6 @@ public class MediaProvider extends ContentProvider {
             final String[] whereArgs = {sanitizedPath};
 
             if (delete(contentUri, where, whereArgs) == 0) {
-                if (shouldBypass) {
-                    return deleteFileUnchecked(path);
-                }
                 return OsConstants.ENOENT;
             } else if (!path.equals(sanitizedPath)) {
                 // delete() doesn't delete the file in lower file system if sanitized path is

@@ -252,6 +252,11 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
     }
 
     @Test
+    public void testManageExternalStorageReaddir() throws Exception {
+        runDeviceTest("testManageExternalStorageReaddir");
+    }
+
+    @Test
     public void testManageExternalStorageCanRenameOtherAppsContents() throws Exception {
         runDeviceTest("testManageExternalStorageCanRenameOtherAppsContents");
     }

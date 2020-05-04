@@ -15,30 +15,28 @@
  */
 package com.android.tests.fused;
 
-import static com.android.tests.fused.lib.ReaddirTestHelper.READDIR_QUERY;
 import static com.android.tests.fused.lib.RedactionTestHelper.EXIF_METADATA_QUERY;
 import static com.android.tests.fused.lib.RedactionTestHelper.getExifMetadata;
+import static com.android.tests.fused.lib.TestUtils.CAN_READ_WRITE_QUERY;
 import static com.android.tests.fused.lib.TestUtils.CREATE_FILE_QUERY;
 import static com.android.tests.fused.lib.TestUtils.DELETE_FILE_QUERY;
-import static com.android.tests.fused.lib.TestUtils.CAN_READ_WRITE_QUERY;
 import static com.android.tests.fused.lib.TestUtils.INTENT_EXCEPTION;
 import static com.android.tests.fused.lib.TestUtils.INTENT_EXTRA_PATH;
 import static com.android.tests.fused.lib.TestUtils.OPEN_FILE_FOR_READ_QUERY;
 import static com.android.tests.fused.lib.TestUtils.OPEN_FILE_FOR_WRITE_QUERY;
 import static com.android.tests.fused.lib.TestUtils.QUERY_TYPE;
+import static com.android.tests.fused.lib.TestUtils.READDIR_QUERY;
 import static com.android.tests.fused.lib.TestUtils.canOpen;
 
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
-import android.util.Log;
-
-import com.android.tests.fused.lib.ReaddirTestHelper;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 
 /**
  * App for FilePathAccessTest Functions.
@@ -56,86 +54,91 @@ public class FilePathAccessTestHelper extends Activity {
         super.onCreate(savedInstanceState);
         String queryType = getIntent().getStringExtra(QUERY_TYPE);
         queryType = queryType == null ? "null" : queryType;
-        switch (queryType) {
-            case READDIR_QUERY:
-                sendDirectoryEntries(queryType);
-                break;
-            case CAN_READ_WRITE_QUERY:
-            case CREATE_FILE_QUERY:
-            case DELETE_FILE_QUERY:
-            case OPEN_FILE_FOR_READ_QUERY:
-            case OPEN_FILE_FOR_WRITE_QUERY:
-                accessFile(queryType);
-                break;
-            case EXIF_METADATA_QUERY:
-                sendMetadata(queryType);
-                break;
-            case "null":
-            default:
-                Log.e(TAG, "Unknown query received from launcher app: " + queryType);
+        Intent returnIntent;
+        try {
+            switch (queryType) {
+                case READDIR_QUERY:
+                    returnIntent = sendDirectoryEntries(queryType);
+                    break;
+                case CAN_READ_WRITE_QUERY:
+                case CREATE_FILE_QUERY:
+                case DELETE_FILE_QUERY:
+                case OPEN_FILE_FOR_READ_QUERY:
+                case OPEN_FILE_FOR_WRITE_QUERY:
+                    returnIntent = accessFile(queryType);
+                    break;
+                case EXIF_METADATA_QUERY:
+                    returnIntent = sendMetadata(queryType);
+                    break;
+                case "null":
+                default:
+                    throw new IllegalStateException(
+                            "Unknown query received from launcher app: " + queryType);
+            }
+        } catch (Exception e) {
+            returnIntent = new Intent(queryType);
+            returnIntent.putExtra(INTENT_EXCEPTION, e);
         }
+        sendBroadcast(returnIntent);
     }
 
-    private void sendMetadata(String queryType) {
+    private Intent sendMetadata(String queryType) throws IOException {
         final Intent intent = new Intent(queryType);
         if (getIntent().hasExtra(INTENT_EXTRA_PATH)) {
             final String filePath = getIntent().getStringExtra(INTENT_EXTRA_PATH);
-            try {
-                if (EXIF_METADATA_QUERY.equals(queryType)) {
-                    intent.putExtra(queryType, getExifMetadata(new File(filePath)));
-                }
-            } catch (Exception e) {
-                intent.putExtra(INTENT_EXCEPTION, e);
+            if (EXIF_METADATA_QUERY.equals(queryType)) {
+                intent.putExtra(queryType, getExifMetadata(new File(filePath)));
             }
         } else {
-            Log.e(TAG, "File path not set from launcher app");
-            intent.putExtra(INTENT_EXCEPTION, new IllegalStateException(
-                    "File path not set from launcher app"));
+            throw new IllegalStateException(EXIF_METADATA_QUERY
+                    + ": File path not set from launcher app");
         }
-        sendBroadcast(intent);
+        return intent;
     }
 
-    private void sendDirectoryEntries(String queryType) {
+    private Intent sendDirectoryEntries(String queryType) throws IOException {
         if (getIntent().hasExtra(INTENT_EXTRA_PATH)) {
             final String directoryPath = getIntent().getStringExtra(INTENT_EXTRA_PATH);
-            ArrayList<String> directoryEntries = new ArrayList<String>();
+            ArrayList<String> directoryEntriesList = new ArrayList<>();
             if (queryType.equals(READDIR_QUERY)) {
-                directoryEntries = ReaddirTestHelper.readDirectory(directoryPath);
+                final String[] directoryEntries = new File(directoryPath).list();
+                if (directoryEntries == null) {
+                    throw new IOException(
+                            "I/O exception while listing entries for " + directoryPath);
+                }
+                Collections.addAll(directoryEntriesList, directoryEntries);
             }
             final Intent intent = new Intent(queryType);
-            intent.putStringArrayListExtra(queryType, directoryEntries);
-            sendBroadcast(intent);
+            intent.putStringArrayListExtra(queryType, directoryEntriesList);
+            return intent;
         } else {
-            Log.e(TAG, "Directory path not set from launcher app");
+            throw new IllegalStateException(READDIR_QUERY
+                    + ": Directory path not set from launcher app");
         }
     }
 
-    private void accessFile(String queryType) {
+    private Intent accessFile(String queryType) throws IOException {
         if (getIntent().hasExtra(INTENT_EXTRA_PATH)) {
             final String filePath = getIntent().getStringExtra(INTENT_EXTRA_PATH);
             final File file = new File(filePath);
             boolean returnStatus = false;
-            try {
-                if (queryType.equals(CAN_READ_WRITE_QUERY)) {
+            if (queryType.equals(CAN_READ_WRITE_QUERY)) {
                     returnStatus = file.exists() && file.canRead() && file.canWrite();
-                } else if (queryType.equals(CREATE_FILE_QUERY)) {
-                    maybeCreateParentDirInAndroid(file);
-                    returnStatus = file.createNewFile();
-                } else if (queryType.equals(DELETE_FILE_QUERY)) {
-                    returnStatus = file.delete();
-                } else if (queryType.equals(OPEN_FILE_FOR_READ_QUERY)) {
-                    returnStatus = canOpen(file, false /* forWrite */);
-                } else if (queryType.equals(OPEN_FILE_FOR_WRITE_QUERY)) {
-                    returnStatus = canOpen(file, true /* forWrite */);
-                }
-            } catch(IOException e) {
-                Log.e(TAG, "Failed to access file: " + filePath + ". Query type: " + queryType, e);
+            } else if (queryType.equals(CREATE_FILE_QUERY)) {
+                maybeCreateParentDirInAndroid(file);
+                returnStatus = file.createNewFile();
+            } else if (queryType.equals(DELETE_FILE_QUERY)) {
+                returnStatus = file.delete();
+            } else if (queryType.equals(OPEN_FILE_FOR_READ_QUERY)) {
+                returnStatus = canOpen(file, false /* forWrite */);
+            } else if (queryType.equals(OPEN_FILE_FOR_WRITE_QUERY)) {
+                returnStatus = canOpen(file, true /* forWrite */);
             }
             final Intent intent = new Intent(queryType);
             intent.putExtra(queryType, returnStatus);
-            sendBroadcast(intent);
+            return intent;
         } else {
-            Log.e(TAG, "file path not set from launcher app");
+            throw new IllegalStateException(queryType + ": File path not set from launcher app");
         }
     }
 

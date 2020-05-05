@@ -30,11 +30,12 @@ import static android.app.AppOpsManager.OPSTR_WRITE_MEDIA_IMAGES;
 import static android.app.AppOpsManager.OPSTR_WRITE_MEDIA_VIDEO;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
-import android.annotation.NonNull;
-import android.annotation.Nullable;
 import android.app.AppOpsManager;
 import android.content.Context;
 import android.provider.MediaStore;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 public class PermissionUtils {
     // Callers must hold both the old and new permissions, so that we can
@@ -42,6 +43,14 @@ public class PermissionUtils {
     // a device that was originally running on P before being upgraded to Q.
 
     private static volatile int sLegacyMediaProviderUid = -1;
+
+    private static ThreadLocal<String> sOpDescription = new ThreadLocal<>();
+
+    public static void setOpDescription(@Nullable String description) {
+        sOpDescription.set(description);
+    }
+
+    public static void clearOpDescription() { sOpDescription.set(null); }
 
     public static boolean checkPermissionSystem(
             @NonNull Context context, int pid, int uid, String packageName) {
@@ -57,24 +66,21 @@ public class PermissionUtils {
     }
 
     public static boolean checkPermissionManageExternalStorage(@NonNull Context context, int pid,
-            int uid, @NonNull String packageName, @Nullable String attributionTag,
-            @Nullable String opMessage) {
+            int uid, @NonNull String packageName, @Nullable String attributionTag) {
         return noteAppOpPermission(context, pid, uid, packageName, OPSTR_MANAGE_EXTERNAL_STORAGE,
-                attributionTag, opMessage);
+                attributionTag, generateAppOpMessage(packageName, sOpDescription.get()));
     }
 
     public static boolean checkPermissionWriteStorage(@NonNull Context context, int pid, int uid,
-            @NonNull String packageName, @Nullable String attributionTag,
-            @Nullable String opMessage) {
+            @NonNull String packageName, @Nullable String attributionTag) {
         return noteAppOpPermission(context, pid, uid, packageName, OPSTR_WRITE_EXTERNAL_STORAGE,
-                attributionTag, opMessage);
+                attributionTag, generateAppOpMessage(packageName, sOpDescription.get()));
     }
 
     public static boolean checkPermissionReadStorage(@NonNull Context context, int pid, int uid,
-            @NonNull String packageName, @Nullable String attributionTag,
-            @Nullable String opMessage) {
+            @NonNull String packageName, @Nullable String attributionTag) {
         return noteAppOpPermission(context, pid, uid, packageName, OPSTR_READ_EXTERNAL_STORAGE,
-                attributionTag, opMessage);
+                attributionTag, generateAppOpMessage(packageName, sOpDescription.get()));
     }
 
     public static boolean checkIsLegacyStorageGranted(
@@ -84,73 +90,67 @@ public class PermissionUtils {
     }
 
     public static boolean checkPermissionReadAudio(@NonNull Context context, int pid, int uid,
-            @NonNull String packageName, @Nullable String attributionTag,
-            @Nullable String opMessage) {
+            @NonNull String packageName, @Nullable String attributionTag) {
         if (!checkPermissionAppOp(context, pid, uid, packageName, OPSTR_READ_EXTERNAL_STORAGE)) {
             return false;
         }
-        return noteAppOpAllowingLegacy(
-                context, pid, uid, packageName, OPSTR_READ_MEDIA_AUDIO, attributionTag, opMessage);
+        return noteAppOpAllowingLegacy(context, pid, uid, packageName, OPSTR_READ_MEDIA_AUDIO,
+                attributionTag, generateAppOpMessage(packageName, sOpDescription.get()));
     }
 
     public static boolean checkPermissionWriteAudio(@NonNull Context context, int pid, int uid,
-            @NonNull String packageName, @Nullable String attributionTag,
-            @Nullable String opMessage) {
+            @NonNull String packageName, @Nullable String attributionTag) {
         if (!checkPermissionAppOpAllowingNonLegacy(
                     context, pid, uid, packageName, OPSTR_WRITE_EXTERNAL_STORAGE)) {
             return false;
         }
-        return noteAppOpAllowingLegacy(
-                context, pid, uid, packageName, OPSTR_WRITE_MEDIA_AUDIO, attributionTag, opMessage);
+        return noteAppOpAllowingLegacy(context, pid, uid, packageName, OPSTR_WRITE_MEDIA_AUDIO,
+                attributionTag, generateAppOpMessage(packageName, sOpDescription.get()));
     }
 
     public static boolean checkPermissionReadVideo(@NonNull Context context, int pid, int uid,
-            @NonNull String packageName, @Nullable String attributionTag,
-            @Nullable String opMessage) {
+            @NonNull String packageName, @Nullable String attributionTag) {
         if (!checkPermissionAppOp(context, pid, uid, packageName, OPSTR_READ_EXTERNAL_STORAGE)) {
             return false;
         }
-        return noteAppOpAllowingLegacy(
-                context, pid, uid, packageName, OPSTR_READ_MEDIA_VIDEO, attributionTag, opMessage);
+        return noteAppOpAllowingLegacy(context, pid, uid, packageName, OPSTR_READ_MEDIA_VIDEO,
+                attributionTag, generateAppOpMessage(packageName, sOpDescription.get()));
     }
 
     public static boolean checkPermissionWriteVideo(@NonNull Context context, int pid, int uid,
-            @NonNull String packageName, @Nullable String attributionTag,
-            @Nullable String opMessage) {
+            @NonNull String packageName, @Nullable String attributionTag) {
         if (!checkPermissionAppOpAllowingNonLegacy(
                     context, pid, uid, packageName, OPSTR_WRITE_EXTERNAL_STORAGE)) {
             return false;
         }
-        return noteAppOpAllowingLegacy(
-                context, pid, uid, packageName, OPSTR_WRITE_MEDIA_VIDEO, attributionTag, opMessage);
+        return noteAppOpAllowingLegacy(context, pid, uid, packageName, OPSTR_WRITE_MEDIA_VIDEO,
+                attributionTag, generateAppOpMessage(packageName, sOpDescription.get()));
     }
 
     public static boolean checkPermissionReadImages(@NonNull Context context, int pid, int uid,
-            @NonNull String packageName, @Nullable String attributionTag,
-            @Nullable String opMessage) {
+            @NonNull String packageName, @Nullable String attributionTag) {
         if (!checkPermissionAppOp(context, pid, uid, packageName, OPSTR_READ_EXTERNAL_STORAGE)) {
             return false;
         }
-        return noteAppOpAllowingLegacy(
-                context, pid, uid, packageName, OPSTR_READ_MEDIA_IMAGES, attributionTag, opMessage);
+        return noteAppOpAllowingLegacy(context, pid, uid, packageName, OPSTR_READ_MEDIA_IMAGES,
+                attributionTag, generateAppOpMessage(packageName, sOpDescription.get()));
     }
 
     public static boolean checkPermissionWriteImages(@NonNull Context context, int pid, int uid,
-            @NonNull String packageName, @Nullable String attributionTag,
-            @Nullable String opMessage) {
+            @NonNull String packageName, @Nullable String attributionTag) {
         if (!checkPermissionAppOpAllowingNonLegacy(
                     context, pid, uid, packageName, OPSTR_WRITE_EXTERNAL_STORAGE)) {
             return false;
         }
         return noteAppOpAllowingLegacy(context, pid, uid, packageName, OPSTR_WRITE_MEDIA_IMAGES,
-                attributionTag, opMessage);
+                attributionTag, generateAppOpMessage(packageName, sOpDescription.get()));
     }
 
     /**
      * Generates a message to be used with the different {@link AppOpsManager#noteOp} variations.
      * If the supplied description is {@code null}, the returned message will be {@code null}.
      */
-    public static String generateAppOpMessage(
+    private static String generateAppOpMessage(
             @NonNull String packageName, @Nullable String description) {
         if (description == null) {
             return null;

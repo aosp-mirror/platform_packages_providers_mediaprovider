@@ -33,7 +33,6 @@ import static com.android.providers.media.util.PermissionUtils.checkPermissionWr
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteImages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteStorage;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteVideo;
-import static com.android.providers.media.util.PermissionUtils.generateAppOpMessage;
 
 import android.annotation.Nullable;
 import android.app.AppOpsManager;
@@ -61,7 +60,6 @@ public class LocalCallingIdentity {
     public final String packageNameUnchecked;
     // Info used for logging permission checks
     public @Nullable String attributionTag;
-    private @Nullable String opDescription;
 
     private LocalCallingIdentity(Context context, int pid, int uid, String packageNameUnchecked,
             @Nullable String attributionTag) {
@@ -70,7 +68,6 @@ public class LocalCallingIdentity {
         this.uid = uid;
         this.packageNameUnchecked = packageNameUnchecked;
         this.attributionTag = attributionTag;
-        this.opDescription = null;
     }
 
     /**
@@ -216,7 +213,7 @@ public class LocalCallingIdentity {
 
     public boolean hasPermission(int permission) {
         if ((hasPermissionResolved & permission) == 0) {
-            if (hasPermissionInternal(permission, opDescription)) {
+            if (hasPermissionInternal(permission)) {
                 hasPermission |= permission;
             }
             hasPermissionResolved |= permission;
@@ -224,7 +221,7 @@ public class LocalCallingIdentity {
         return (hasPermission & permission) != 0;
     }
 
-    private boolean hasPermissionInternal(int permission, @Nullable String description) {
+    private boolean hasPermissionInternal(int permission) {
         // While we're here, enforce any broad user-level restrictions
         if ((uid == Process.SHELL_UID) && context.getSystemService(UserManager.class)
                 .hasUserRestriction(UserManager.DISALLOW_USB_FILE_TRANSFER)) {
@@ -246,26 +243,24 @@ public class LocalCallingIdentity {
             case PERMISSION_IS_REDACTION_NEEDED:
                 return isRedactionNeededInternal();
             case PERMISSION_READ_AUDIO:
-                return checkPermissionReadAudio(context, pid, uid, getPackageName(), attributionTag,
-                        generateAppOpMessage(packageName, description));
+                return checkPermissionReadAudio(context, pid, uid, getPackageName(), attributionTag);
             case PERMISSION_READ_VIDEO:
-                return checkPermissionReadVideo(context, pid, uid, getPackageName(), attributionTag,
-                        generateAppOpMessage(packageName, description));
+                return checkPermissionReadVideo(context, pid, uid, getPackageName(), attributionTag);
             case PERMISSION_READ_IMAGES:
-                return checkPermissionReadImages(context, pid, uid, getPackageName(),
-                        attributionTag, generateAppOpMessage(packageName, description));
+                return checkPermissionReadImages(
+                        context, pid, uid, getPackageName(), attributionTag);
             case PERMISSION_WRITE_AUDIO:
-                return checkPermissionWriteAudio(context, pid, uid, getPackageName(),
-                        attributionTag, generateAppOpMessage(packageName, description));
+                return checkPermissionWriteAudio(
+                        context, pid, uid, getPackageName(), attributionTag);
             case PERMISSION_WRITE_VIDEO:
-                return checkPermissionWriteVideo(context, pid, uid, getPackageName(),
-                        attributionTag, generateAppOpMessage(packageName, description));
+                return checkPermissionWriteVideo(
+                        context, pid, uid, getPackageName(), attributionTag);
             case PERMISSION_WRITE_IMAGES:
-                return checkPermissionWriteImages(context, pid, uid, getPackageName(),
-                        attributionTag, generateAppOpMessage(packageName, description));
+                return checkPermissionWriteImages(
+                        context, pid, uid, getPackageName(), attributionTag);
             case PERMISSION_MANAGE_EXTERNAL_STORAGE:
-                return checkPermissionManageExternalStorage(context, pid, uid, getPackageName(),
-                        attributionTag, generateAppOpMessage(packageName, description));
+                return checkPermissionManageExternalStorage(
+                        context, pid, uid, getPackageName(), attributionTag);
             default:
                 return false;
         }
@@ -309,14 +304,12 @@ public class LocalCallingIdentity {
 
     private boolean isLegacyWriteInternal() {
         return hasPermission(PERMISSION_IS_LEGACY_GRANTED)
-                && checkPermissionWriteStorage(context, pid, uid, getPackageName(), attributionTag,
-                        /*opMessage*/ null);
+                && checkPermissionWriteStorage(context, pid, uid, getPackageName(), attributionTag);
     }
 
     private boolean isLegacyReadInternal() {
         return hasPermission(PERMISSION_IS_LEGACY_GRANTED)
-                && checkPermissionReadStorage(context, pid, uid, getPackageName(), attributionTag,
-                        /*opMessage*/ null);
+                && checkPermissionReadStorage(context, pid, uid, getPackageName(), attributionTag);
     }
 
     /** System internals or callers holding permission have no redaction */
@@ -370,9 +363,5 @@ public class LocalCallingIdentity {
 
     public long getDeletedRowId(@NonNull String path) {
         return rowIdOfDeletedPaths.getOrDefault(path, UNKNOWN_ROW_ID);
-    }
-
-    public void setOpDescription(@Nullable String opDescription) {
-        this.opDescription = opDescription;
     }
 }

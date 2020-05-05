@@ -4928,7 +4928,7 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        count = qb.update(helper, values, userWhere, userWhereArgs);
+        count = updateAllowingReplace(qb, helper, values, userWhere, userWhereArgs);
 
         // If the caller tried (and failed) to update metadata, the file on disk
         // might have changed, to scan it to collect the latest metadata.
@@ -4959,6 +4959,54 @@ public class MediaProvider extends ContentProvider {
         }
 
         return count;
+    }
+
+    /**
+     * Update row(s) that match {@code userWhere} in MediaProvider database with {@code values}.
+     * Treats update as replace for updates with conflicts.
+     */
+    private int updateAllowingReplace(@NonNull SQLiteQueryBuilder qb,
+            @NonNull DatabaseHelper helper, @NonNull ContentValues values, String userWhere,
+            String[] userWhereArgs) throws SQLiteConstraintException {
+        return helper.runWithTransaction((db) -> {
+            try {
+                return qb.update(helper, values, userWhere, userWhereArgs);
+            } catch (SQLiteConstraintException e) {
+                // b/155320967 Apps sometimes create a file via file path and then update another
+                // explicitly inserted db row to this file. We have to resolve this update with a
+                // replace.
+
+                if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.R) {
+                    // We don't support replace for non-legacy apps. Non legacy apps should have
+                    // clearer interactions with MediaProvider.
+                    throw e;
+                }
+
+                final String path = values.getAsString(FileColumns.DATA);
+
+                // We will only handle UNIQUE constraint error for FileColumns.DATA. We will not try
+                // update and replace if no file exists for conflicting db row.
+                if (path == null || !new File(path).exists()) {
+                    throw e;
+                }
+
+                final Uri uri = Files.getContentUriForPath(path);
+                final boolean allowHidden = isCallingPackageAllowedHidden();
+                // The db row which caused UNIQUE constraint error may not match all column values
+                // of the given queryBuilder, hence using a generic queryBuilder with Files uri.
+                final SQLiteQueryBuilder qbForReplace = getQueryBuilder(TYPE_DELETE,
+                        matchUri(uri, allowHidden), uri, Bundle.EMPTY, null);
+                final long rowId = getIdIfPathExistsForCallingPackage(qbForReplace, helper, path);
+
+                if (rowId != -1 && qbForReplace.delete(helper, "_id=?",
+                        new String[] {Long.toString(rowId)}) == 1) {
+                    Log.i(TAG, "Retrying database update after deleting conflicting entry");
+                    return qb.update(helper, values, userWhere, userWhereArgs);
+                }
+                // Rethrow SQLiteConstraintException if app doesn't own the conflicting db row.
+                throw e;
+            }
+        });
     }
 
     /**

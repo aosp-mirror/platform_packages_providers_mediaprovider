@@ -18,7 +18,6 @@ package com.android.tests.fused.lib;
 
 import static androidx.test.InstrumentationRegistry.getContext;
 
-import static com.android.tests.fused.lib.ReaddirTestHelper.READDIR_QUERY;
 import static com.android.tests.fused.lib.RedactionTestHelper.EXIF_METADATA_QUERY;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -66,7 +65,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -84,6 +85,7 @@ public class TestUtils {
     public static final String OPEN_FILE_FOR_READ_QUERY = "com.android.tests.fused.openfile_read";
     public static final String OPEN_FILE_FOR_WRITE_QUERY = "com.android.tests.fused.openfile_write";
     public static final String CAN_READ_WRITE_QUERY = "com.android.tests.fused.can_read_and_write";
+    public static final String READDIR_QUERY = "com.android.tests.fused.readdir";
 
     public static final String STR_DATA1 = "Just some random text";
     public static final String STR_DATA2 = "More arbitrary stuff";
@@ -96,6 +98,8 @@ public class TestUtils {
     // Default top-level directories
     public static final File ALARMS_DIR = new File(EXTERNAL_STORAGE_DIR,
             Environment.DIRECTORY_ALARMS);
+    public static final File ANDROID_DIR = new File(EXTERNAL_STORAGE_DIR,
+            "Android");
     public static final File AUDIOBOOKS_DIR = new File(EXTERNAL_STORAGE_DIR,
             Environment.DIRECTORY_AUDIOBOOKS);
     public static final File DCIM_DIR = new File(EXTERNAL_STORAGE_DIR, Environment.DIRECTORY_DCIM);
@@ -116,8 +120,12 @@ public class TestUtils {
     public static final File RINGTONES_DIR = new File(EXTERNAL_STORAGE_DIR,
             Environment.DIRECTORY_RINGTONES);
 
-    public static final File ANDROID_DATA_DIR = new File(EXTERNAL_STORAGE_DIR, "Android/data");
-    public static final File ANDROID_MEDIA_DIR = new File(EXTERNAL_STORAGE_DIR, "Android/media");
+    public static final File[] DEFAULT_TOP_LEVEL_DIRS = new File [] { ALARMS_DIR, ANDROID_DIR,
+            AUDIOBOOKS_DIR, DCIM_DIR, DOCUMENTS_DIR, DOWNLOAD_DIR, MUSIC_DIR, MOVIES_DIR,
+            NOTIFICATIONS_DIR, PICTURES_DIR, PODCASTS_DIR, RINGTONES_DIR};
+
+    public static final File ANDROID_DATA_DIR = new File(ANDROID_DIR, "data");
+    public static final File ANDROID_MEDIA_DIR = new File(ANDROID_DIR, "media");
 
     private static final long POLLING_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(10);
     private static final long POLLING_SLEEP_MILLIS = 100;
@@ -130,9 +138,7 @@ public class TestUtils {
      * assumptions about their existence.
      */
     public static void setupDefaultDirectories() {
-        for (File dir : new File [] { ALARMS_DIR, AUDIOBOOKS_DIR, DCIM_DIR,
-                DOCUMENTS_DIR, DOWNLOAD_DIR, MUSIC_DIR, MOVIES_DIR, NOTIFICATIONS_DIR,
-                PICTURES_DIR, PODCASTS_DIR, RINGTONES_DIR}) {
+        for (File dir : DEFAULT_TOP_LEVEL_DIRS) {
             dir.mkdir();
         }
     }
@@ -209,9 +215,6 @@ public class TestUtils {
             String filePath) throws Exception {
         HashMap<String, String> res =
                 getMetadataFromTestApp(testApp, filePath, EXIF_METADATA_QUERY);
-        if (res.containsKey(INTENT_EXCEPTION)) {
-            throw new IllegalStateException(res.get(INTENT_EXCEPTION));
-        }
         return res;
     }
 
@@ -452,13 +455,13 @@ public class TestUtils {
         return pfd;
     }
 
-    public static <T extends Exception> void assertThrows(Class<T> clazz, Operation<T> r)
+    public static <T extends Exception> void assertThrows(Class<T> clazz, Operation<Exception> r)
             throws Exception {
         assertThrows(clazz, "", r);
     }
 
     public static <T extends Exception> void assertThrows(Class<T> clazz, String errMsg,
-            Operation<T> r) throws Exception {
+            Operation<Exception> r) throws Exception {
         try {
             r.run();
             fail("Expected " + clazz + " to be thrown");
@@ -677,12 +680,13 @@ public class TestUtils {
             String actionName) throws Exception {
         final CountDownLatch latch = new CountDownLatch(1);
         final HashMap<String, String> appOutputList = new HashMap<>();
+        final Exception[] exception = new Exception[1];
+        exception[0] = null;
         final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 if (intent.hasExtra(INTENT_EXCEPTION)) {
-                    appOutputList.put(INTENT_EXCEPTION,
-                            ((Exception)intent.getExtras().get(INTENT_EXCEPTION)).getMessage());
+                    exception[0] = (Exception)(intent.getExtras().get(INTENT_EXCEPTION));
                 } else if(intent.hasExtra(actionName)) {
                     HashMap<String, String> res =
                             (HashMap<String, String>) intent.getExtras().get(actionName);
@@ -692,6 +696,7 @@ public class TestUtils {
             }
         };
         sendIntentToTestApp(testApp, dirPath, actionName, broadcastReceiver, latch);
+        if (exception[0] != null) throw exception[0];
         return appOutputList;
     }
 
@@ -702,10 +707,14 @@ public class TestUtils {
             String actionName) throws Exception {
         final CountDownLatch latch = new CountDownLatch(1);
         final ArrayList<String> appOutputList = new ArrayList<String>();
+        final Exception[] exception = new Exception[1];
+        exception[0] = null;
         final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                if(intent.hasExtra(actionName)) {
+                if (intent.hasExtra(INTENT_EXCEPTION)) {
+                    exception[0] = (Exception)(intent.getSerializableExtra(INTENT_EXCEPTION));
+                } else if(intent.hasExtra(actionName)) {
                     appOutputList.addAll(intent.getStringArrayListExtra(actionName));
                 }
                 latch.countDown();
@@ -713,6 +722,7 @@ public class TestUtils {
         };
 
         sendIntentToTestApp(testApp, dirPath, actionName, broadcastReceiver, latch);
+        if (exception[0] != null) throw exception[0];
         return appOutputList;
     }
 
@@ -723,10 +733,14 @@ public class TestUtils {
             String actionName) throws Exception {
         final CountDownLatch latch = new CountDownLatch(1);
         final boolean[] appOutput = new boolean[1];
+        final Exception[] exception = new Exception[1];
+        exception[0] = null;
         BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                if(intent.hasExtra(actionName)) {
+                if (intent.hasExtra(INTENT_EXCEPTION)) {
+                    exception[0] = (Exception)(intent.getSerializableExtra(INTENT_EXCEPTION));
+                } else if(intent.hasExtra(actionName)) {
                     appOutput[0] = intent.getBooleanExtra(actionName, false);
                 }
                 latch.countDown();
@@ -734,6 +748,7 @@ public class TestUtils {
         };
 
         sendIntentToTestApp(testApp, dirPath, actionName, broadcastReceiver, latch);
+        if (exception[0] != null) throw exception[0];
         return appOutput[0];
     }
 
@@ -765,5 +780,16 @@ public class TestUtils {
                 /*sortOrder*/ null);
         assertThat(c).isNotNull();
         return c;
+    }
+
+    /**
+     * Asserts that {@code dir} is a directory and that it contains all of {@code expectedContent}
+     */
+    public static void assertDirectoryContains(@NonNull File dir, File... expectedContent) {
+        assertThat(dir.isDirectory()).isTrue();
+        final List<File> actualContent = Arrays.asList(dir.listFiles());
+        for (File f: expectedContent) {
+            assertThat(actualContent).contains(f);
+        }
     }
 }

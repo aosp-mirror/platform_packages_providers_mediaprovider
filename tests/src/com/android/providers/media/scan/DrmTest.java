@@ -62,10 +62,12 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.io.SequenceInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
-import java.util.Vector;
 import java.util.function.Consumer;
 
 /**
@@ -172,7 +174,7 @@ public class DrmTest {
 
     public @NonNull InputStream createDmStream(@NonNull String mimeType, int resId)
             throws IOException {
-        Vector<InputStream> sequence = new Vector<InputStream>();
+        List<InputStream> sequence = new ArrayList<>();
 
         String dmHeader = "--mime_content_boundary\r\n" +
                 "Content-Type: " + mimeType + "\r\n" +
@@ -186,7 +188,7 @@ public class DrmTest {
         String dmFooter = "\r\n--mime_content_boundary--";
         sequence.add(new ByteArrayInputStream(dmFooter.getBytes(StandardCharsets.UTF_8)));
 
-        return new SequenceInputStream(sequence.elements());
+        return new SequenceInputStream(new EnumerationAdapter<InputStream>(sequence.iterator()));
     }
 
     private void doForwardLock(String mimeType, int resId,
@@ -372,5 +374,28 @@ public class DrmTest {
             }
         }
         return false;
+    }
+
+    /**
+     * This is purely an adapter to convert modern {@link Iterator} back into an
+     * {@link Enumeration} for legacy code.
+     */
+    @SuppressWarnings("JdkObsolete")
+    private static class EnumerationAdapter<T> implements Enumeration<T> {
+        private final Iterator<T> it;
+
+        public EnumerationAdapter(Iterator<T> it) {
+            this.it = it;
+        }
+
+        @Override
+        public boolean hasMoreElements() {
+            return it.hasNext();
+        }
+
+        @Override
+        public T nextElement() {
+            return it.next();
+        }
     }
 }

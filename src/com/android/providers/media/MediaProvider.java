@@ -1152,7 +1152,7 @@ public class MediaProvider extends ContentProvider {
             // Many apps break if we generate negative IDs, so trim off the
             // highest bit to ensure we're always unsigned
             final long id = Hashing.farmHashFingerprint64()
-                    .hashString(key, StandardCharsets.UTF_8).asLong() & ~(1 << 63);
+                    .hashString(key, StandardCharsets.UTF_8).asLong() & ~(1L << 63);
             values.put(focusId, id);
         }
     }
@@ -1177,6 +1177,7 @@ public class MediaProvider extends ContentProvider {
                         builder.appendQueryParameter(CANONICAL, "1");
                         return builder.build();
                     }
+                    break;
                 }
                 case VIDEO_MEDIA_ID:
                 case IMAGES_MEDIA_ID: {
@@ -1188,6 +1189,7 @@ public class MediaProvider extends ContentProvider {
                         builder.appendQueryParameter(CANONICAL, "1");
                         return builder.build();
                     }
+                    break;
                 }
             }
         } catch (FileNotFoundException e) {
@@ -7195,7 +7197,9 @@ public class MediaProvider extends ContentProvider {
     @Override
     public void dump(FileDescriptor fd, PrintWriter writer, String[] args) {
         writer.println("mThumbSize=" + mThumbSize);
-        writer.println("mAttachedVolumeNames=" + mAttachedVolumeNames);
+        synchronized (mAttachedVolumeNames) {
+            writer.println("mAttachedVolumeNames=" + mAttachedVolumeNames);
+        }
         writer.println();
 
         Logging.dumpPersistent(writer);

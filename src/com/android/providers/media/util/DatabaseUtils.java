@@ -365,7 +365,7 @@ public class DatabaseUtils {
         final String origGroupBy = queryArgs.getString(QUERY_ARG_SQL_GROUP_BY);
 
         final int index = (origSelection != null)
-                ? origSelection.toUpperCase().indexOf(" GROUP BY ") : -1;
+                ? origSelection.toUpperCase(Locale.ROOT).indexOf(" GROUP BY ") : -1;
         if (index != -1) {
             String selection = origSelection.substring(0, index);
             String groupBy = origSelection.substring(index + " GROUP BY ".length());
@@ -397,7 +397,7 @@ public class DatabaseUtils {
         final String origLimit = queryArgs.getString(QUERY_ARG_SQL_LIMIT);
 
         final int index = (origSortOrder != null)
-                ? origSortOrder.toUpperCase().indexOf(" LIMIT ") : -1;
+                ? origSortOrder.toUpperCase(Locale.ROOT).indexOf(" LIMIT ") : -1;
         if (index != -1) {
             String sortOrder = origSortOrder.substring(0, index);
             String limit = origSortOrder.substring(index + " LIMIT ".length());

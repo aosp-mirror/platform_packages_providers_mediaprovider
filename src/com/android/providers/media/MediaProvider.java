@@ -1354,7 +1354,8 @@ public class MediaProvider extends ContentProvider {
      */
     private boolean isMimeTypeSupportedInPath(String path, String mimeType) {
         final String supportedPrimaryMimeType;
-        switch (matchUri(getContentUriForFile(path, mimeType), true)) {
+        final int match = matchUri(getContentUriForFile(path, mimeType), true);
+        switch (match) {
             case AUDIO_MEDIA:
                 supportedPrimaryMimeType = "audio";
                 break;
@@ -1367,8 +1368,8 @@ public class MediaProvider extends ContentProvider {
             default:
                 supportedPrimaryMimeType = ClipDescription.MIMETYPE_UNKNOWN;
         }
-        return (supportedPrimaryMimeType.equals(ClipDescription.MIMETYPE_UNKNOWN) ||
-                mimeType.startsWith(supportedPrimaryMimeType));
+        return (supportedPrimaryMimeType.equalsIgnoreCase(ClipDescription.MIMETYPE_UNKNOWN) ||
+                MimeUtils.startsWithIgnoreCase(mimeType, supportedPrimaryMimeType));
     }
 
     /**
@@ -1474,12 +1475,12 @@ public class MediaProvider extends ContentProvider {
         values.put(MediaColumns.MIME_TYPE, newMimeType);
         values.put(MediaColumns.DATA, path);
 
-        if (!oldMimeType.equals(newMimeType)) {
+        if (!oldMimeType.equalsIgnoreCase(newMimeType)) {
             int mediaType = MimeUtils.resolveMediaType(newMimeType);
             values.put(FileColumns.MEDIA_TYPE, mediaType);
         }
         final boolean allowHidden = isCallingPackageAllowedHidden();
-        if (!newMimeType.equals("null") &&
+        if (!newMimeType.equalsIgnoreCase("null") &&
                 matchUri(getContentUriForFile(path, newMimeType), allowHidden) == AUDIO_MEDIA) {
             computeAudioLocalizedValues(values);
             computeAudioKeyValues(values);
@@ -5288,7 +5289,7 @@ public class MediaProvider extends ContentProvider {
 
         // Offer thumbnail of media, when requested
         final boolean wantsThumb = (opts != null) && opts.containsKey(ContentResolver.EXTRA_SIZE)
-                && (mimeTypeFilter != null) && mimeTypeFilter.startsWith("image/");
+                && MimeUtils.startsWithIgnoreCase(mimeTypeFilter, "image/");
         if (wantsThumb) {
             final ParcelFileDescriptor pfd = ensureThumbnail(uri, signal);
             return new AssetFileDescriptor(pfd, 0, AssetFileDescriptor.UNKNOWN_LENGTH);
@@ -5332,7 +5333,8 @@ public class MediaProvider extends ContentProvider {
                 case FILES_ID:
                 case DOWNLOADS_ID: {
                     // When item is referenced in a generic way, resolve to actual type
-                    switch (MimeUtils.resolveMediaType(getType(uri))) {
+                    final int mediaType = MimeUtils.resolveMediaType(getType(uri));
+                    switch (mediaType) {
                         case FileColumns.MEDIA_TYPE_AUDIO:
                             return mAudioThumbnailer.ensureThumbnail(uri, signal);
                         case FileColumns.MEDIA_TYPE_VIDEO:

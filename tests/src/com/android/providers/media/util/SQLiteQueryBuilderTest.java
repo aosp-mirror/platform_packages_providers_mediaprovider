@@ -34,6 +34,8 @@ import android.os.OperationCanceledException;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.google.common.util.concurrent.Uninterruptibles;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -358,11 +360,8 @@ public class SQLiteQueryBuilderTest {
             } finally {
                 barrier1.release();
                 barrier2.release();
-                try {
-                    contentionThread.join();
-                    cancellationThread.join();
-                } catch (InterruptedException e) {
-                }
+                Uninterruptibles.joinUninterruptibly(contentionThread);
+                Uninterruptibles.joinUninterruptibly(cancellationThread);
             }
         }
 
@@ -419,10 +418,7 @@ public class SQLiteQueryBuilderTest {
                     return; // success!
                 }
             } finally {
-                try {
-                    cancellationThread.join();
-                } catch (InterruptedException e) {
-                }
+                Uninterruptibles.joinUninterruptibly(cancellationThread);
             }
         }
 

@@ -24,6 +24,7 @@ import static com.android.tests.fused.lib.TestUtils.STR_DATA2;
 import static com.android.tests.fused.lib.TestUtils.assertCanRenameFile;
 import static com.android.tests.fused.lib.TestUtils.assertCanRenameDirectory;
 import static com.android.tests.fused.lib.TestUtils.assertCantRenameFile;
+import static com.android.tests.fused.lib.TestUtils.assertDirectoryContains;
 import static com.android.tests.fused.lib.TestUtils.assertFileContent;
 import static com.android.tests.fused.lib.TestUtils.createFileAs;
 import static com.android.tests.fused.lib.TestUtils.deleteFileAsNoThrow;
@@ -61,7 +62,6 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.cts.install.lib.TestApp;
-import com.android.tests.fused.lib.ReaddirTestHelper;
 import com.android.tests.fused.lib.TestUtils;
 
 import com.google.common.io.Files;
@@ -297,7 +297,6 @@ public class LegacyFileAccessTest {
      * Test that rename for legacy app with WRITE_EXTERNAL_STORAGE permission bypasses rename
      * restrictions imposed by MediaProvider
      */
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testCanRename_hasRW() throws Exception {
         pollForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, /*granted*/ true);
@@ -404,7 +403,6 @@ public class LegacyFileAccessTest {
      * Test that legacy app with WRITE_EXTERNAL_STORAGE can delete all files, and corresponding
      * database entry is deleted on deleting the file.
      */
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testCanDeleteAllFiles_hasRW() throws Exception {
         pollForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, /*granted*/ true);
@@ -415,8 +413,7 @@ public class LegacyFileAccessTest {
 
         try {
             assertThat(videoFile.createNewFile()).isTrue();
-            assertThat(ReaddirTestHelper.readDirectory(EXTERNAL_STORAGE_DIR))
-                    .contains(VIDEO_FILE_NAME);
+            assertDirectoryContains(videoFile.getParentFile(), videoFile);
 
             assertThat(getFileRowIdFromDatabase(videoFile)).isNotEqualTo(-1);
             // Legacy app can delete its own file.
@@ -442,7 +439,6 @@ public class LegacyFileAccessTest {
      * Test that file created by legacy app is inserted to MediaProvider database. And,
      * MediaColumns.OWNER_PACKAGE_NAME is updated with calling package's name.
      */
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testLegacyAppCanOwnAFile_hasW() throws Exception {
         pollForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, /*granted*/ true);
@@ -501,7 +497,6 @@ public class LegacyFileAccessTest {
         } finally {
             videoFile.delete();
             renamedVideoFile.delete();
-            MediaStore.scanFile(cr, renamedVideoFile);
         }
     }
 
@@ -545,7 +540,6 @@ public class LegacyFileAccessTest {
         } finally {
             imageFile.delete();
             temporaryImageFile.delete();
-            MediaStore.scanFile(cr, imageFile);
         }
     }
 
@@ -586,7 +580,6 @@ public class LegacyFileAccessTest {
         } finally {
             imageInNoMediaDir.delete();
             renamedImageInDCIM.delete();
-            MediaStore.scanFile(cr, renamedImageInDCIM);
             noMediaFile.delete();
         }
 

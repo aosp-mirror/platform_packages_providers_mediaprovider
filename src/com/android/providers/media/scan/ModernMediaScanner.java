@@ -1285,10 +1285,10 @@ public class ModernMediaScanner implements MediaScanner {
         final int refinedSplit = refinedMimeType.indexOf('/');
         if (refinedSplit == -1) return Optional.empty();
 
-        if (fileMimeType.regionMatches(0, refinedMimeType, 0, refinedSplit + 1)) {
+        if (fileMimeType.regionMatches(true, 0, refinedMimeType, 0, refinedSplit + 1)) {
             return Optional.of(refinedMimeType);
-        } else if ("video/mp4".equals(fileMimeType)
-                && "audio/mp4".equals(refinedMimeType)) {
+        } else if ("video/mp4".equalsIgnoreCase(fileMimeType)
+                && "audio/mp4".equalsIgnoreCase(refinedMimeType)) {
             // We normally only allow MIME types to be customized when the
             // top-level type agrees, but this one very narrow case is added to
             // support a music service that was writing "m4a" files as "mp4".

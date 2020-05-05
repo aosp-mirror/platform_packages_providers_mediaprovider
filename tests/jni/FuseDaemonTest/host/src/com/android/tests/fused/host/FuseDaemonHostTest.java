@@ -135,7 +135,6 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
         runDeviceTest("testListFilesFromExternalMediaDirectory");
     }
 
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testListUnsupportedFileType() throws Exception {
         final ITestDevice device = getDevice();
@@ -237,25 +236,26 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
         runDeviceTest("testSystemGalleryAppHasNoFullAccessToAudio");
     }
 
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testSystemGalleryCanRenameImagesAndVideos() throws Exception {
         runDeviceTest("testSystemGalleryCanRenameImagesAndVideos");
     }
 
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testManageExternalStorageCanCreateFilesAnywhere() throws Exception {
         runDeviceTest("testManageExternalStorageCanCreateFilesAnywhere");
     }
 
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testManageExternalStorageCanDeleteOtherAppsContents() throws Exception {
         runDeviceTest("testManageExternalStorageCanDeleteOtherAppsContents");
     }
 
-    @Ignore("Re-enable as part of b/145737191")
+    @Test
+    public void testManageExternalStorageReaddir() throws Exception {
+        runDeviceTest("testManageExternalStorageReaddir");
+    }
+
     @Test
     public void testManageExternalStorageCanRenameOtherAppsContents() throws Exception {
         runDeviceTest("testManageExternalStorageCanRenameOtherAppsContents");

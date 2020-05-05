@@ -35,19 +35,33 @@ import static com.android.tests.fused.lib.RedactionTestHelper.assertExifMetadata
 import static com.android.tests.fused.lib.RedactionTestHelper.assertExifMetadataMismatch;
 import static com.android.tests.fused.lib.RedactionTestHelper.getExifMetadata;
 import static com.android.tests.fused.lib.RedactionTestHelper.getExifMetadataFromRawResource;
+import static com.android.tests.fused.lib.TestUtils.ALARMS_DIR;
+import static com.android.tests.fused.lib.TestUtils.ANDROID_DATA_DIR;
+import static com.android.tests.fused.lib.TestUtils.ANDROID_MEDIA_DIR;
+import static com.android.tests.fused.lib.TestUtils.AUDIOBOOKS_DIR;
 import static com.android.tests.fused.lib.TestUtils.BYTES_DATA1;
 import static com.android.tests.fused.lib.TestUtils.BYTES_DATA2;
+import static com.android.tests.fused.lib.TestUtils.DCIM_DIR;
+import static com.android.tests.fused.lib.TestUtils.DEFAULT_TOP_LEVEL_DIRS;
+import static com.android.tests.fused.lib.TestUtils.DOCUMENTS_DIR;
+import static com.android.tests.fused.lib.TestUtils.DOWNLOAD_DIR;
+import static com.android.tests.fused.lib.TestUtils.MOVIES_DIR;
+import static com.android.tests.fused.lib.TestUtils.MUSIC_DIR;
+import static com.android.tests.fused.lib.TestUtils.NOTIFICATIONS_DIR;
+import static com.android.tests.fused.lib.TestUtils.PICTURES_DIR;
+import static com.android.tests.fused.lib.TestUtils.PODCASTS_DIR;
+import static com.android.tests.fused.lib.TestUtils.RINGTONES_DIR;
 import static com.android.tests.fused.lib.TestUtils.STR_DATA1;
 import static com.android.tests.fused.lib.TestUtils.STR_DATA2;
-import static com.android.tests.fused.lib.TestUtils.assertCanRenameFile;
-import static com.android.tests.fused.lib.TestUtils.assertCanRenameDirectory;
 import static com.android.tests.fused.lib.TestUtils.allowAppOpsToUid;
+import static com.android.tests.fused.lib.TestUtils.assertCanRenameDirectory;
+import static com.android.tests.fused.lib.TestUtils.assertCanRenameFile;
 import static com.android.tests.fused.lib.TestUtils.assertCantRenameDirectory;
 import static com.android.tests.fused.lib.TestUtils.assertCantRenameFile;
+import static com.android.tests.fused.lib.TestUtils.assertDirectoryContains;
 import static com.android.tests.fused.lib.TestUtils.assertFileContent;
 import static com.android.tests.fused.lib.TestUtils.assertThrows;
 import static com.android.tests.fused.lib.TestUtils.canOpen;
-import static com.android.tests.fused.lib.TestUtils.canReadAndWriteAs;
 import static com.android.tests.fused.lib.TestUtils.createFileAs;
 import static com.android.tests.fused.lib.TestUtils.deleteFileAs;
 import static com.android.tests.fused.lib.TestUtils.deleteFileAsNoThrow;
@@ -65,6 +79,7 @@ import static com.android.tests.fused.lib.TestUtils.installAppWithStoragePermiss
 import static com.android.tests.fused.lib.TestUtils.listAs;
 import static com.android.tests.fused.lib.TestUtils.openFileAs;
 import static com.android.tests.fused.lib.TestUtils.openWithMediaProvider;
+import static com.android.tests.fused.lib.TestUtils.pollForExternalStorageState;
 import static com.android.tests.fused.lib.TestUtils.pollForPermission;
 import static com.android.tests.fused.lib.TestUtils.readExifMetadataFromTestApp;
 import static com.android.tests.fused.lib.TestUtils.revokePermission;
@@ -72,24 +87,8 @@ import static com.android.tests.fused.lib.TestUtils.setupDefaultDirectories;
 import static com.android.tests.fused.lib.TestUtils.uninstallApp;
 import static com.android.tests.fused.lib.TestUtils.uninstallAppNoThrow;
 import static com.android.tests.fused.lib.TestUtils.updateDisplayNameWithMediaProvider;
-import static com.android.tests.fused.lib.TestUtils.pollForExternalStorageState;
-import static com.android.tests.fused.lib.TestUtils.ALARMS_DIR;
-import static com.android.tests.fused.lib.TestUtils.AUDIOBOOKS_DIR;
-import static com.android.tests.fused.lib.TestUtils.DCIM_DIR;
-import static com.android.tests.fused.lib.TestUtils.DOCUMENTS_DIR;
-import static com.android.tests.fused.lib.TestUtils.DOWNLOAD_DIR;
-import static com.android.tests.fused.lib.TestUtils.MUSIC_DIR;
-import static com.android.tests.fused.lib.TestUtils.MOVIES_DIR;
-import static com.android.tests.fused.lib.TestUtils.NOTIFICATIONS_DIR;
-import static com.android.tests.fused.lib.TestUtils.PICTURES_DIR;
-import static com.android.tests.fused.lib.TestUtils.PODCASTS_DIR;
-import static com.android.tests.fused.lib.TestUtils.RINGTONES_DIR;
-import static com.android.tests.fused.lib.TestUtils.ANDROID_DATA_DIR;
-import static com.android.tests.fused.lib.TestUtils.ANDROID_MEDIA_DIR;
 
 import static com.google.common.truth.Truth.assertThat;
-
-import static junit.framework.Assert.fail;
 
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
@@ -112,12 +111,10 @@ import androidx.annotation.Nullable;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.cts.install.lib.TestApp;
-import com.android.tests.fused.lib.ReaddirTestHelper;
 
 import com.google.common.io.Files;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -645,7 +642,6 @@ public class FilePathAccessTest {
     public void testListFilesFromExternalFilesDirectory() throws Exception {
         final String packageName = THIS_PACKAGE_NAME;
         final File videoFile = new File(EXTERNAL_FILES_DIR, NONMEDIA_FILE_NAME);
-        final String videoFileName = videoFile.getName();
 
         try {
             // Create a file in app's external files directory
@@ -654,16 +650,14 @@ public class FilePathAccessTest {
             }
             // App should see its directory and directories of shared packages. App should see all
             // files and directories in its external directory.
-            assertThat(ReaddirTestHelper.readDirectory(videoFile.getParentFile()))
-                    .containsExactly(videoFileName);
+            assertDirectoryContains(videoFile.getParentFile(), videoFile);
 
             // Install TEST_APP_A with READ_EXTERNAL_STORAGE permission.
             // TEST_APP_A should not see other app's external files directory.
             installAppWithStoragePermissions(TEST_APP_A);
-            // TODO(b/146497700): This is passing because ReaddirTestHelper ignores IOException and
-            //  returns empty list.
-            assertThat(listAs(TEST_APP_A, ANDROID_DATA_DIR.getPath())).doesNotContain(packageName);
-            assertThat(listAs(TEST_APP_A, EXTERNAL_FILES_DIR.getPath())).isEmpty();
+
+            assertThrows(IOException.class, () -> listAs(TEST_APP_A, ANDROID_DATA_DIR.getPath()));
+            assertThrows(IOException.class, () -> listAs(TEST_APP_A, EXTERNAL_FILES_DIR.getPath()));
         } finally {
             videoFile.delete();
             uninstallAppNoThrow(TEST_APP_A);
@@ -673,11 +667,9 @@ public class FilePathAccessTest {
     /**
      * Test that app can see files and directories in Android/media.
      */
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testListFilesFromExternalMediaDirectory() throws Exception {
         final File videoFile = new File(EXTERNAL_MEDIA_DIR, VIDEO_FILE_NAME);
-        final String videoFileName = videoFile.getName();
 
         try {
             // Create a file in app's external media directory
@@ -687,16 +679,15 @@ public class FilePathAccessTest {
 
             // App should see its directory and other app's external media directories with media
             // files.
-            assertThat(ReaddirTestHelper.readDirectory(EXTERNAL_MEDIA_DIR))
-                    .containsExactly(videoFileName);
+            assertDirectoryContains(videoFile.getParentFile(), videoFile);
 
             // Install TEST_APP_A with READ_EXTERNAL_STORAGE permission.
             // TEST_APP_A with storage permission should see other app's external media directory.
             installAppWithStoragePermissions(TEST_APP_A);
             // Apps with READ_EXTERNAL_STORAGE can list files in other app's external media directory.
             assertThat(listAs(TEST_APP_A, ANDROID_MEDIA_DIR.getPath())).contains(THIS_PACKAGE_NAME);
-            // TODO(b/145737191) fails because we don't index these files yet.
-            assertThat(listAs(TEST_APP_A, EXTERNAL_MEDIA_DIR.getPath())).containsExactly(videoFileName);
+            assertThat(listAs(TEST_APP_A, EXTERNAL_MEDIA_DIR.getPath()))
+                    .containsExactly(videoFile.getName());
         } finally {
             videoFile.delete();
             uninstallAppNoThrow(TEST_APP_A);
@@ -706,7 +697,6 @@ public class FilePathAccessTest {
     /**
      * Test that readdir lists unsupported file types in default directories.
      */
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testListUnsupportedFileType() throws Exception {
         final File pdfFile = new File(DCIM_DIR, NONMEDIA_FILE_NAME);
@@ -722,9 +712,8 @@ public class FilePathAccessTest {
 
 
             executeShellCommand("touch " + videoFile.getAbsolutePath());
-            // ScanFile doesn't insert an empty media file to database. Write some data to ensure
-            // file is inserted into database.
-            executeShellCommand("echo " + STR_DATA1 + " > " + videoFile.getAbsolutePath());
+            // We don't insert files to db for files created by shell.
+            assertThat(MediaStore.scanFile(getContentResolver(), videoFile)).isNotNull();
             // TEST_APP_A with storage permission should see video file in Music directory.
             assertThat(listAs(TEST_APP_A, MUSIC_DIR.getPath())).contains(VIDEO_FILE_NAME);
         } finally {
@@ -1247,7 +1236,6 @@ public class FilePathAccessTest {
         }
     }
 
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testSystemGalleryCanRenameImagesAndVideos() throws Exception {
         final File otherAppVideoFile = new File(DCIM_DIR, "other_" + VIDEO_FILE_NAME);
@@ -1289,7 +1277,7 @@ public class FilePathAccessTest {
             imageFile.delete();
             videoFile.delete();
             topLevelVideoFile.delete();
-            musicFile.delete();
+            executeShellCommand("rm  " + musicFile.getAbsolutePath());
             denyAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
         }
     }
@@ -1534,7 +1522,6 @@ public class FilePathAccessTest {
         }
     }
 
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testManageExternalStorageCanCreateFilesAnywhere() throws Exception {
         final File topLevelPdf = new File(EXTERNAL_STORAGE_DIR, NONMEDIA_FILE_NAME);
@@ -1575,7 +1562,6 @@ public class FilePathAccessTest {
         }
     }
 
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testManageExternalStorageCanDeleteOtherAppsContents() throws Exception {
         final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
@@ -1608,7 +1594,6 @@ public class FilePathAccessTest {
         }
     }
 
-    @Ignore("Re-enable as part of b/145737191")
     @Test
     public void testAccess_file() throws Exception {
         pollForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, /*granted*/ true);
@@ -1748,6 +1733,36 @@ public class FilePathAccessTest {
     }
 
     @Test
+    public void testManageExternalStorageReaddir() throws Exception {
+        final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
+        final File otherAppImg = new File(DCIM_DIR, "other" + IMAGE_FILE_NAME);
+        final File otherAppMusic = new File(MUSIC_DIR, "other" + AUDIO_FILE_NAME);
+        final File otherTopLevelFile = new File(EXTERNAL_STORAGE_DIR, "other" + NONMEDIA_FILE_NAME);
+        try {
+            installApp(TEST_APP_A);
+            assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
+            executeShellCommand("touch " + otherTopLevelFile);
+
+            allowAppOpsToUid(Process.myUid(), OPSTR_MANAGE_EXTERNAL_STORAGE);
+
+            // We can list other apps' files
+            assertDirectoryContains(otherAppPdf.getParentFile(), otherAppPdf);
+            assertDirectoryContains(otherAppImg.getParentFile(), otherAppImg);
+            assertDirectoryContains(otherAppMusic.getParentFile(), otherAppMusic);
+            // We can list top level files
+            assertDirectoryContains(EXTERNAL_STORAGE_DIR, otherTopLevelFile);
+
+            // We can also list all top level directories
+            assertDirectoryContains(EXTERNAL_STORAGE_DIR, DEFAULT_TOP_LEVEL_DIRS);
+        } finally {
+            denyAppOpsToUid(Process.myUid(), OPSTR_MANAGE_EXTERNAL_STORAGE);
+            executeShellCommand("rm " + otherTopLevelFile);
+            deleteFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
+            uninstallApp(TEST_APP_A);
+        }
+    }
+
+    @Test
     public void testManageExternalStorageQueryOtherAppsFile() throws Exception {
         final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
         final File otherAppImg = new File(DCIM_DIR, "other" + IMAGE_FILE_NAME);
@@ -1853,12 +1868,8 @@ public class FilePathAccessTest {
             executeShellCommand("rm " + otherAppPdfFile2);
             otherAppImageFile1.delete();
             otherAppImageFile2.delete();
-            MediaStore.scanFile(getContentResolver(), otherAppImageFile1);
-            MediaStore.scanFile(getContentResolver(), otherAppImageFile2);
             otherAppVideoFile1.delete();
             otherAppVideoFile2.delete();
-            MediaStore.scanFile(getContentResolver(), otherAppVideoFile1);
-            MediaStore.scanFile(getContentResolver(), otherAppVideoFile2);
             otherAppPdfFile1.delete();
             otherAppPdfFile2.delete();
             dirInDcim.delete();

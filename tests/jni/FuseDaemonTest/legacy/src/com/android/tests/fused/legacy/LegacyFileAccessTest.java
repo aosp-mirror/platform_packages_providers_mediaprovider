@@ -24,6 +24,7 @@ import static com.android.tests.fused.lib.TestUtils.STR_DATA2;
 import static com.android.tests.fused.lib.TestUtils.assertCanRenameFile;
 import static com.android.tests.fused.lib.TestUtils.assertCanRenameDirectory;
 import static com.android.tests.fused.lib.TestUtils.assertCantRenameFile;
+import static com.android.tests.fused.lib.TestUtils.assertDirectoryContains;
 import static com.android.tests.fused.lib.TestUtils.assertFileContent;
 import static com.android.tests.fused.lib.TestUtils.createFileAs;
 import static com.android.tests.fused.lib.TestUtils.deleteFileAsNoThrow;
@@ -61,7 +62,6 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.cts.install.lib.TestApp;
-import com.android.tests.fused.lib.ReaddirTestHelper;
 import com.android.tests.fused.lib.TestUtils;
 
 import com.google.common.io.Files;
@@ -413,8 +413,7 @@ public class LegacyFileAccessTest {
 
         try {
             assertThat(videoFile.createNewFile()).isTrue();
-            assertThat(ReaddirTestHelper.readDirectory(EXTERNAL_STORAGE_DIR))
-                    .contains(VIDEO_FILE_NAME);
+            assertDirectoryContains(videoFile.getParentFile(), videoFile);
 
             assertThat(getFileRowIdFromDatabase(videoFile)).isNotEqualTo(-1);
             // Legacy app can delete its own file.

@@ -702,13 +702,14 @@ public class FileUtils {
             }
 
             final String extFromMimeType;
-            if (ClipDescription.MIMETYPE_UNKNOWN.equals(mimeType)) {
+            if (ClipDescription.MIMETYPE_UNKNOWN.equalsIgnoreCase(mimeType)) {
                 extFromMimeType = null;
             } else {
                 extFromMimeType = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
             }
 
-            if (Objects.equals(mimeType, mimeTypeFromExt) || Objects.equals(ext, extFromMimeType)) {
+            if (MimeUtils.equalIgnoreCase(mimeType, mimeTypeFromExt)
+                    || MimeUtils.equalIgnoreCase(ext, extFromMimeType)) {
                 // Extension maps back to requested MIME type; allow it
             } else {
                 // No match; insist that create file matches requested MIME
@@ -886,7 +887,7 @@ public class FileUtils {
             "(?i)^/storage/([^/]+)");
 
     private static @Nullable String normalizeUuid(@Nullable String fsUuid) {
-        return fsUuid != null ? fsUuid.toLowerCase(Locale.US) : null;
+        return fsUuid != null ? fsUuid.toLowerCase(Locale.ROOT) : null;
     }
 
     public static @Nullable String extractVolumePath(@Nullable String data) {

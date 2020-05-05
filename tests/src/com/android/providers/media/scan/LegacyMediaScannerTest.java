@@ -17,6 +17,7 @@
 package com.android.providers.media.scan;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import android.provider.MediaStore;
 
@@ -38,19 +39,23 @@ public class LegacyMediaScannerTest {
 
         try {
             scanner.scanDirectory(new File("/dev/null"), MediaScanner.REASON_UNKNOWN);
+            fail();
         } catch (UnsupportedOperationException expected) {
         }
         try {
             scanner.scanFile(new File("/dev/null"), MediaScanner.REASON_UNKNOWN);
+            fail();
         } catch (UnsupportedOperationException expected) {
         }
         try {
             scanner.scanFile(new File("/dev/null"), MediaScanner.REASON_UNKNOWN,
                     InstrumentationRegistry.getContext().getPackageName());
+            fail();
         } catch (UnsupportedOperationException expected) {
         }
         try {
             scanner.onDetachVolume(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+            fail();
         } catch (UnsupportedOperationException expected) {
         }
     }

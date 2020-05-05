@@ -189,7 +189,7 @@ public class ModernMediaScanner implements MediaScanner {
      * Map from directory to locks designed to ensure that parallel scans don't
      * overlap and confuse each other.
      */
-    @GuardedBy("mLocks")
+    @GuardedBy("mDirectoryLocks")
     private final Map<Path, DirectoryLock> mDirectoryLocks = new ArrayMap<>();
 
     /**

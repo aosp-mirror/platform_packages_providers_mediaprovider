@@ -42,4 +42,11 @@ android_test {
     certificate: "media",
 
     aaptflags: ["--custom-package com.android.providers.media"],
+
+    errorprone: {
+        javacflags: [
+            "-Xep:CatchFail:ERROR",
+            "-Xep:MissingFail:ERROR",
+        ],
+    },
 }

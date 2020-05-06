@@ -66,7 +66,6 @@ import static com.android.providers.media.util.FileUtils.sanitizePath;
 import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionManageExternalStorage;
-import static com.android.providers.media.util.PermissionUtils.generateAppOpMessage;
 
 import android.app.AppOpsManager;
 import android.app.AppOpsManager.OnOpActiveChangedListener;
@@ -179,6 +178,7 @@ import com.android.providers.media.util.Logging;
 import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
+import com.android.providers.media.util.PermissionUtils;
 import com.android.providers.media.util.RedactingFileDescriptor;
 import com.android.providers.media.util.SQLiteQueryBuilder;
 import com.android.providers.media.util.XmpInterface;
@@ -411,15 +411,14 @@ public class MediaProvider extends ContentProvider {
      * Retrieves a cached calling identity or creates a new one. Also, always sets the app-op
      * description for the calling identity.
      */
-    private LocalCallingIdentity getCachedCallingIdentityForFuse(
-            int uid, @Nullable String opDescription) {
+    private LocalCallingIdentity getCachedCallingIdentityForFuse(int uid) {
         synchronized (mCachedCallingIdentityForFuse) {
+            PermissionUtils.setOpDescription("via FUSE");
             LocalCallingIdentity ident = mCachedCallingIdentityForFuse.get(uid);
             if (ident == null) {
                ident = LocalCallingIdentity.fromExternal(getContext(), uid);
                mCachedCallingIdentityForFuse.put(uid, ident);
             }
-            ident.setOpDescription(opDescription);
             return ident;
         }
     }
@@ -431,6 +430,7 @@ public class MediaProvider extends ContentProvider {
      */
     private final ThreadLocal<LocalCallingIdentity> mCallingIdentity = ThreadLocal
             .withInitial(() -> {
+                PermissionUtils.setOpDescription("via MediaProvider");
                 synchronized (mCachedCallingIdentity) {
                     final LocalCallingIdentity cached = mCachedCallingIdentity
                             .get(Binder.getCallingUid());
@@ -1065,9 +1065,13 @@ public class MediaProvider extends ContentProvider {
      * to clear other apps' cache directories.
      */
     static boolean hasPermissionToClearCaches(Context context, ApplicationInfo ai) {
-        final String opMessage = generateAppOpMessage(ai.packageName, "clear app cache");
-        return checkPermissionManageExternalStorage(context, /*pid*/ -1, ai.uid, ai.packageName,
-                /*attributionTag*/ null, opMessage);
+        PermissionUtils.setOpDescription("clear app cache");
+        try {
+            return checkPermissionManageExternalStorage(context, /*pid*/ -1, ai.uid, ai.packageName,
+                    /*attributionTag*/ null);
+        } finally {
+            PermissionUtils.clearOpDescription();
+        }
     }
 
     /**
@@ -1148,7 +1152,7 @@ public class MediaProvider extends ContentProvider {
             // Many apps break if we generate negative IDs, so trim off the
             // highest bit to ensure we're always unsigned
             final long id = Hashing.farmHashFingerprint64()
-                    .hashString(key, StandardCharsets.UTF_8).asLong() & ~(1 << 63);
+                    .hashString(key, StandardCharsets.UTF_8).asLong() & ~(1L << 63);
             values.put(focusId, id);
         }
     }
@@ -1173,6 +1177,7 @@ public class MediaProvider extends ContentProvider {
                         builder.appendQueryParameter(CANONICAL, "1");
                         return builder.build();
                     }
+                    break;
                 }
                 case VIDEO_MEDIA_ID:
                 case IMAGES_MEDIA_ID: {
@@ -1184,6 +1189,7 @@ public class MediaProvider extends ContentProvider {
                         builder.appendQueryParameter(CANONICAL, "1");
                         return builder.build();
                     }
+                    break;
                 }
             }
         } catch (FileNotFoundException e) {
@@ -1285,7 +1291,7 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public String[] getFilesInDirectoryForFuse(String path, int uid) {
         final LocalCallingIdentity token =
-                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid, "readdir " + path));
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
 
         try {
             if (isPrivatePackagePathNotOwnedByCaller(path)) {
@@ -1348,7 +1354,8 @@ public class MediaProvider extends ContentProvider {
      */
     private boolean isMimeTypeSupportedInPath(String path, String mimeType) {
         final String supportedPrimaryMimeType;
-        switch (matchUri(getContentUriForFile(path, mimeType), true)) {
+        final int match = matchUri(getContentUriForFile(path, mimeType), true);
+        switch (match) {
             case AUDIO_MEDIA:
                 supportedPrimaryMimeType = "audio";
                 break;
@@ -1361,8 +1368,8 @@ public class MediaProvider extends ContentProvider {
             default:
                 supportedPrimaryMimeType = ClipDescription.MIMETYPE_UNKNOWN;
         }
-        return (supportedPrimaryMimeType.equals(ClipDescription.MIMETYPE_UNKNOWN) ||
-                mimeType.startsWith(supportedPrimaryMimeType));
+        return (supportedPrimaryMimeType.equalsIgnoreCase(ClipDescription.MIMETYPE_UNKNOWN) ||
+                MimeUtils.startsWithIgnoreCase(mimeType, supportedPrimaryMimeType));
     }
 
     /**
@@ -1468,12 +1475,12 @@ public class MediaProvider extends ContentProvider {
         values.put(MediaColumns.MIME_TYPE, newMimeType);
         values.put(MediaColumns.DATA, path);
 
-        if (!oldMimeType.equals(newMimeType)) {
+        if (!oldMimeType.equalsIgnoreCase(newMimeType)) {
             int mediaType = MimeUtils.resolveMediaType(newMimeType);
             values.put(FileColumns.MEDIA_TYPE, mediaType);
         }
         final boolean allowHidden = isCallingPackageAllowedHidden();
-        if (!newMimeType.equals("null") &&
+        if (!newMimeType.equalsIgnoreCase("null") &&
                 matchUri(getContentUriForFile(path, newMimeType), allowHidden) == AUDIO_MEDIA) {
             computeAudioLocalizedValues(values);
             computeAudioKeyValues(values);
@@ -1772,8 +1779,8 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public int renameForFuse(String oldPath, String newPath, int uid) {
         final String errorMessage = "Rename " + oldPath + " to " + newPath + " failed. ";
-        final LocalCallingIdentity token = clearLocalCallingIdentity(
-                getCachedCallingIdentityForFuse(uid, "rename " + oldPath + " to " + newPath));
+        final LocalCallingIdentity token =
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
 
         try {
             if (isPrivatePackagePathNotOwnedByCaller(oldPath)
@@ -1855,9 +1862,8 @@ public class MediaProvider extends ContentProvider {
     @Override
     public int checkUriPermission(@NonNull Uri uri, int uid,
             /* @Intent.AccessUriMode */ int modeFlags) {
-        final LocalCallingIdentity token =
-                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid,
-                        /*opDescription*/ null));
+        final LocalCallingIdentity token = clearLocalCallingIdentity(
+                LocalCallingIdentity.fromExternal(getContext(), uid));
 
         try {
             final boolean allowHidden = isCallingPackageAllowedHidden();
@@ -4925,7 +4931,7 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        count = qb.update(helper, values, userWhere, userWhereArgs);
+        count = updateAllowingReplace(qb, helper, values, userWhere, userWhereArgs);
 
         // If the caller tried (and failed) to update metadata, the file on disk
         // might have changed, to scan it to collect the latest metadata.
@@ -4956,6 +4962,54 @@ public class MediaProvider extends ContentProvider {
         }
 
         return count;
+    }
+
+    /**
+     * Update row(s) that match {@code userWhere} in MediaProvider database with {@code values}.
+     * Treats update as replace for updates with conflicts.
+     */
+    private int updateAllowingReplace(@NonNull SQLiteQueryBuilder qb,
+            @NonNull DatabaseHelper helper, @NonNull ContentValues values, String userWhere,
+            String[] userWhereArgs) throws SQLiteConstraintException {
+        return helper.runWithTransaction((db) -> {
+            try {
+                return qb.update(helper, values, userWhere, userWhereArgs);
+            } catch (SQLiteConstraintException e) {
+                // b/155320967 Apps sometimes create a file via file path and then update another
+                // explicitly inserted db row to this file. We have to resolve this update with a
+                // replace.
+
+                if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.R) {
+                    // We don't support replace for non-legacy apps. Non legacy apps should have
+                    // clearer interactions with MediaProvider.
+                    throw e;
+                }
+
+                final String path = values.getAsString(FileColumns.DATA);
+
+                // We will only handle UNIQUE constraint error for FileColumns.DATA. We will not try
+                // update and replace if no file exists for conflicting db row.
+                if (path == null || !new File(path).exists()) {
+                    throw e;
+                }
+
+                final Uri uri = Files.getContentUriForPath(path);
+                final boolean allowHidden = isCallingPackageAllowedHidden();
+                // The db row which caused UNIQUE constraint error may not match all column values
+                // of the given queryBuilder, hence using a generic queryBuilder with Files uri.
+                final SQLiteQueryBuilder qbForReplace = getQueryBuilder(TYPE_DELETE,
+                        matchUri(uri, allowHidden), uri, Bundle.EMPTY, null);
+                final long rowId = getIdIfPathExistsForCallingPackage(qbForReplace, helper, path);
+
+                if (rowId != -1 && qbForReplace.delete(helper, "_id=?",
+                        new String[] {Long.toString(rowId)}) == 1) {
+                    Log.i(TAG, "Retrying database update after deleting conflicting entry");
+                    return qb.update(helper, values, userWhere, userWhereArgs);
+                }
+                // Rethrow SQLiteConstraintException if app doesn't own the conflicting db row.
+                throw e;
+            }
+        });
     }
 
     /**
@@ -5235,7 +5289,7 @@ public class MediaProvider extends ContentProvider {
 
         // Offer thumbnail of media, when requested
         final boolean wantsThumb = (opts != null) && opts.containsKey(ContentResolver.EXTRA_SIZE)
-                && (mimeTypeFilter != null) && mimeTypeFilter.startsWith("image/");
+                && MimeUtils.startsWithIgnoreCase(mimeTypeFilter, "image/");
         if (wantsThumb) {
             final ParcelFileDescriptor pfd = ensureThumbnail(uri, signal);
             return new AssetFileDescriptor(pfd, 0, AssetFileDescriptor.UNKNOWN_LENGTH);
@@ -5279,7 +5333,8 @@ public class MediaProvider extends ContentProvider {
                 case FILES_ID:
                 case DOWNLOADS_ID: {
                     // When item is referenced in a generic way, resolve to actual type
-                    switch (MimeUtils.resolveMediaType(getType(uri))) {
+                    final int mediaType = MimeUtils.resolveMediaType(getType(uri));
+                    switch (mediaType) {
                         case FileColumns.MEDIA_TYPE_AUDIO:
                             return mAudioThumbnailer.ensureThumbnail(uri, signal);
                         case FileColumns.MEDIA_TYPE_VIDEO:
@@ -5848,8 +5903,8 @@ public class MediaProvider extends ContentProvider {
             return getRedactionRanges(file).redactionRanges;
         }
 
-        final LocalCallingIdentity token = clearLocalCallingIdentity(
-                getCachedCallingIdentityForFuse(uid, "read metadata from " + path));
+        final LocalCallingIdentity token =
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
 
         long[] res = new long[0];
         try {
@@ -5969,8 +6024,8 @@ public class MediaProvider extends ContentProvider {
      */
     @Keep
     public int isOpenAllowedForFuse(String path, int uid, boolean forWrite) {
-        final LocalCallingIdentity token = clearLocalCallingIdentity(
-                getCachedCallingIdentityForFuse(uid, (forWrite ? "write " : "read ") + path));
+        final LocalCallingIdentity token =
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
 
         try {
             if (isPrivatePackagePathNotOwnedByCaller(path)) {
@@ -6162,7 +6217,7 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public int insertFileIfNecessaryForFuse(@NonNull String path, int uid) {
         final LocalCallingIdentity token =
-                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid, "create " + path));
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
 
         try {
             if (isPrivatePackagePathNotOwnedByCaller(path)) {
@@ -6232,8 +6287,7 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public int deleteFileForFuse(@NonNull String path, int uid) throws IOException {
         final LocalCallingIdentity token =
-                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid, "delete " + path));
-
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
         try {
             if (isPrivatePackagePathNotOwnedByCaller(path)) {
                 Log.e(TAG, "Can't delete a file in another app's external directory!");
@@ -6299,8 +6353,8 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public int isDirectoryCreationOrDeletionAllowedForFuse(
             @NonNull String path, int uid, boolean forCreate) {
-        final LocalCallingIdentity token = clearLocalCallingIdentity(
-                getCachedCallingIdentityForFuse(uid, (forCreate ? "mkdir " : "rmdir ") + path));
+        final LocalCallingIdentity token =
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
 
         try {
             // App dirs are not indexed, so we don't create an entry for the file.
@@ -6352,8 +6406,8 @@ public class MediaProvider extends ContentProvider {
      */
     @Keep
     public int isOpendirAllowedForFuse(@NonNull String path, int uid) {
-        final LocalCallingIdentity token = clearLocalCallingIdentity(
-                getCachedCallingIdentityForFuse(uid, "directory access " + path));
+        final LocalCallingIdentity token =
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
 
         try {
             if (isPrivatePackagePathNotOwnedByCaller(path)) {
@@ -6379,8 +6433,7 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public boolean isUidForPackageForFuse(@NonNull String packageName, int uid) {
         final LocalCallingIdentity token =
-                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid,
-                        /*opDescription*/ null));
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
         try {
             return isCallingIdentitySharedPackageName(packageName);
         } finally {
@@ -7146,7 +7199,9 @@ public class MediaProvider extends ContentProvider {
     @Override
     public void dump(FileDescriptor fd, PrintWriter writer, String[] args) {
         writer.println("mThumbSize=" + mThumbSize);
-        writer.println("mAttachedVolumeNames=" + mAttachedVolumeNames);
+        synchronized (mAttachedVolumeNames) {
+            writer.println("mAttachedVolumeNames=" + mAttachedVolumeNames);
+        }
         writer.println();
 
         Logging.dumpPersistent(writer);

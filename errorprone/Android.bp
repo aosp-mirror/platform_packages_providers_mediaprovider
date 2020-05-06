@@ -1,0 +1,25 @@
+
+java_plugin {
+    name: "error_prone_mediaprovider",
+
+    static_libs: [
+        "error_prone_mediaprovider_lib",
+    ],
+}
+
+java_library_host {
+    name: "error_prone_mediaprovider_lib",
+
+    srcs: ["src/**/*.java"],
+
+    static_libs: [
+        "//external/error_prone:error_prone_core",
+        "//external/dagger2:dagger2-auto-service",
+    ],
+
+    plugins: [
+        "//external/dagger2:dagger2-auto-service",
+    ],
+
+    javacflags: ["-verbose"],
+}

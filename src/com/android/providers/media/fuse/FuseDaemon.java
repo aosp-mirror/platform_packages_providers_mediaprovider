@@ -16,7 +16,6 @@
 
 package com.android.providers.media.fuse;
 
-import android.os.ConditionVariable;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
@@ -56,15 +55,17 @@ public final class FuseDaemon extends Thread {
     /** Starts a FUSE session. Does not return until the lower filesystem is unmounted. */
     @Override
     public void run() {
+        final long ptr;
         synchronized (mLock) {
             mPtr = native_new(mMediaProvider);
             if (mPtr == 0) {
                 throw new IllegalStateException("Unable to create native FUSE daemon");
             }
+            ptr = mPtr;
         }
 
         Log.i(TAG, "Starting thread for " + getName() + " ...");
-        native_start(mPtr, mFuseDeviceFd, mPath); // Blocks
+        native_start(ptr, mFuseDeviceFd, mPath); // Blocks
         Log.i(TAG, "Exiting thread for " + getName() + " ...");
 
         synchronized (mLock) {
@@ -76,7 +77,7 @@ public final class FuseDaemon extends Thread {
     }
 
     @Override
-    public void start() {
+    public synchronized void start() {
         super.start();
 
         // Wait for native_start

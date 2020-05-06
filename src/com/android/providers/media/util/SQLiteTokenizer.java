@@ -212,7 +212,7 @@ public class SQLiteTokenizer {
      * keyword</a>.
      */
     public static boolean isKeyword(@NonNull String token) {
-        switch (token.toUpperCase(Locale.US)) {
+        switch (token.toUpperCase(Locale.ROOT)) {
             case "ABORT": case "ACTION": case "ADD": case "AFTER":
             case "ALL": case "ALTER": case "ANALYZE": case "AND":
             case "AS": case "ASC": case "ATTACH": case "AUTOINCREMENT":
@@ -261,7 +261,7 @@ public class SQLiteTokenizer {
      * function</a>.
      */
     public static boolean isFunction(@NonNull String token) {
-        switch (token.toLowerCase(Locale.US)) {
+        switch (token.toLowerCase(Locale.ROOT)) {
             case "abs": case "avg": case "char": case "coalesce":
             case "count": case "glob": case "group_concat": case "hex":
             case "ifnull": case "instr": case "length": case "like":
@@ -282,7 +282,7 @@ public class SQLiteTokenizer {
      * <a href="https://www.sqlite.org/datatype3.html">SQLite reserved type</a>.
      */
     public static boolean isType(@NonNull String token) {
-        switch (token.toUpperCase(Locale.US)) {
+        switch (token.toUpperCase(Locale.ROOT)) {
             case "INT": case "INTEGER": case "TINYINT": case "SMALLINT":
             case "MEDIUMINT": case "BIGINT": case "INT2": case "INT8":
             case "CHARACTER": case "VARCHAR": case "NCHAR": case "NVARCHAR":

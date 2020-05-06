@@ -32,8 +32,8 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteOrder;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -125,8 +125,8 @@ public class IsoInterface {
 
     private static @NonNull UUID readUuid(@NonNull FileDescriptor fd)
             throws ErrnoException, IOException {
-        final long high = (((long) readInt(fd)) << 32L) | ((long) readInt(fd)) & 0xffffffffL;
-        final long low = (((long) readInt(fd)) << 32L) | ((long) readInt(fd)) & 0xffffffffL;
+        final long high = (((long) readInt(fd)) << 32L) | (((long) readInt(fd)) & 0xffffffffL);
+        final long low = (((long) readInt(fd)) << 32L) | (((long) readInt(fd)) & 0xffffffffL);
         return new UUID(high, low);
     }
 
@@ -216,7 +216,7 @@ public class IsoInterface {
         }
 
         // Also create a flattened structure to speed up searching
-        final Queue<Box> queue = new LinkedList<>(mRoots);
+        final Queue<Box> queue = new ArrayDeque<>(mRoots);
         while (!queue.isEmpty()) {
             final Box box = queue.poll();
             mFlattened.add(box);

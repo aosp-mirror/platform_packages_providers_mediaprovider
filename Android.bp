@@ -35,6 +35,7 @@ android_app {
 
     plugins: [
         "java_api_finder",
+        "error_prone_mediaprovider",
     ],
 
     sdk_version: "module_current",
@@ -43,6 +44,18 @@ android_app {
     privileged: true,
 
     aaptflags: ["--custom-package com.android.providers.media"],
+
+    errorprone: {
+        javacflags: [
+            "-Xep:FallThrough:ERROR",
+            "-Xep:GuardedBy:ERROR",
+            "-Xep:StreamResourceLeak:ERROR",
+
+            // Local checkers specific to this module
+            "-Xep:MediaProviderLocaleRoot:ERROR",
+            "-Xep:MediaProviderMimeType:ERROR",
+        ],
+    },
 }
 
 // Used by MediaProvider and MediaProviderTests

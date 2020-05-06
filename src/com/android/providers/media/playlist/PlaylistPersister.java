@@ -29,6 +29,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Interface that knows how to {@link #read} and {@link #write} a set of
@@ -64,7 +65,7 @@ public interface PlaylistPersister {
      */
     public static @NonNull PlaylistPersister resolvePersister(@NonNull String mimeType)
             throws IOException {
-        switch (mimeType) {
+        switch (mimeType.toLowerCase(Locale.ROOT)) {
             case "audio/mpegurl":
             case "audio/x-mpegurl":
             case "application/vnd.apple.mpegurl":

@@ -765,7 +765,7 @@ public class SQLiteQueryBuilder {
         // clauses or create subqueries, since they could leak data that should
         // have been filtered by the trusted where clause
         boolean isAllowedKeyword = SQLiteTokenizer.isKeyword(token);
-        switch (token.toUpperCase(Locale.US)) {
+        switch (token.toUpperCase(Locale.ROOT)) {
             case "SELECT":
             case "FROM":
             case "WHERE":

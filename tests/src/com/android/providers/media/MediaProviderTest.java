@@ -885,14 +885,13 @@ public class MediaProviderTest {
 
     @Test
     public void testRelativePathForValidDirectories() throws Exception {
-        for (Pair<String, String> top: new ArrayList<Pair<String, String>>() {{
-            add(new Pair("/storage/emulated/0", new String("/")));
-            add(new Pair("/storage/emulated/0/DCIM", "DCIM/"));
-            add(new Pair("/storage/emulated/0/DCIM/Camera", "DCIM/Camera/"));
-            add(new Pair("/storage/emulated/0/Android/media/com.example/Foo",
-                    "Android/media/com.example/Foo/"));
-            add(new Pair("/storage/0000-0000/DCIM/Camera", "DCIM/Camera/"));
-        }}) {
+        for (Pair<String, String> top : Arrays.asList(
+                Pair.create("/storage/emulated/0", new String("/")),
+                Pair.create("/storage/emulated/0/DCIM", "DCIM/"),
+                Pair.create("/storage/emulated/0/DCIM/Camera", "DCIM/Camera/"),
+                Pair.create("/storage/emulated/0/Android/media/com.example/Foo",
+                        "Android/media/com.example/Foo/"),
+                Pair.create("/storage/0000-0000/DCIM/Camera", "DCIM/Camera/"))) {
             assertEquals(top.second, FileUtils.extractRelativePathForDirectory(top.first));
         }
     }
@@ -989,10 +988,6 @@ public class MediaProviderTest {
         final ArrayList<ContentProviderOperation> ops = new ArrayList<>();
         ops.add(ContentProviderOperation.newDelete(uris[0]).build());
         ops.add(ContentProviderOperation.newDelete(uris[1]).build());
-        try {
-            sIsolatedResolver.applyBatch(MediaStore.AUTHORITY, ops);
-        } catch (IllegalStateException ignore) {
-            fail("Nested transaction");
-        }
+        sIsolatedResolver.applyBatch(MediaStore.AUTHORITY, ops);
     }
 }

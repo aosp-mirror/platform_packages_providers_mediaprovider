@@ -61,6 +61,15 @@ droidstubs {
         "framework-module-stubs-defaults-publicapi",
         "framework-mediaprovider-stubs-srcs-defaults",
     ],
+    check_api: {
+        last_released: {
+            api_file: ":framework-mediaprovider.api.public.latest",
+            removed_api_file: ":framework-mediaprovider-removed.api.public.latest",
+        },
+        api_lint: {
+            new_since: ":framework-mediaprovider.api.public.latest",
+        },
+    },
 }
 
 droidstubs {

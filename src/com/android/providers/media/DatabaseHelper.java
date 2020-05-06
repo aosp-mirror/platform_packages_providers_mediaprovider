@@ -419,7 +419,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * Local state related to any transaction currently active on a specific
      * thread, such as collecting the set of {@link Uri} that should be notified
      * upon transaction success.
+     * <p>
+     * We suppress Error Prone here because there are multiple
+     * {@link DatabaseHelper} instances within the process, and state needs to
+     * be tracked uniquely per-helper.
      */
+    @SuppressWarnings("ThreadLocalUsage")
     private final ThreadLocal<TransactionState> mTransactionState = new ThreadLocal<>();
 
     private static class TransactionState {

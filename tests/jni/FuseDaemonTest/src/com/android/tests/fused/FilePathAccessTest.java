@@ -1918,9 +1918,11 @@ public class FilePathAccessTest {
         final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
         final File otherAppImg = new File(DCIM_DIR, "other" + IMAGE_FILE_NAME);
         final File otherAppMusic = new File(MUSIC_DIR, "other" + AUDIO_FILE_NAME);
+        final File otherHiddenFile = new File(PICTURES_DIR, ".otherHiddenFile.jpg");
         try {
             installApp(TEST_APP_A);
-            assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
+            assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf,
+                    otherHiddenFile);
 
             // Once the test has permission to manage external storage, it can query for other apps'
             // files and open them for read and write
@@ -1929,9 +1931,10 @@ public class FilePathAccessTest {
             assertCanQueryAndOpenFile(otherAppPdf, "rw");
             assertCanQueryAndOpenFile(otherAppImg, "rw");
             assertCanQueryAndOpenFile(otherAppMusic, "rw");
+            assertCanQueryAndOpenFile(otherHiddenFile, "rw");
         } finally {
             denyAppOpsToUid(Process.myUid(), OPSTR_MANAGE_EXTERNAL_STORAGE);
-            deleteFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
+            deleteFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf, otherHiddenFile);
             uninstallApp(TEST_APP_A);
         }
     }
@@ -1941,17 +1944,20 @@ public class FilePathAccessTest {
         final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
         final File otherAppImg = new File(DCIM_DIR, "other" + IMAGE_FILE_NAME);
         final File otherAppMusic = new File(MUSIC_DIR, "other" + AUDIO_FILE_NAME);
+        final File otherHiddenFile = new File(PICTURES_DIR, ".otherHiddenFile.jpg");
         try {
             installApp(TEST_APP_A);
-            assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
+            assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf,
+                    otherHiddenFile);
 
             // Since the test doesn't have READ_EXTERNAL_STORAGE nor any other special permissions,
             // it can't query for another app's contents.
             assertCantQueryFile(otherAppImg);
             assertCantQueryFile(otherAppMusic);
             assertCantQueryFile(otherAppPdf);
+            assertCantQueryFile(otherHiddenFile);
         } finally {
-            deleteFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
+            deleteFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf, otherHiddenFile);
             uninstallApp(TEST_APP_A);
         }
     }
@@ -1961,20 +1967,24 @@ public class FilePathAccessTest {
         final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
         final File otherAppImg = new File(DCIM_DIR, "other" + IMAGE_FILE_NAME);
         final File otherAppMusic = new File(MUSIC_DIR, "other" + AUDIO_FILE_NAME);
+        final File otherHiddenFile = new File(PICTURES_DIR, ".otherHiddenFile.jpg");
         try {
             installApp(TEST_APP_A);
-            assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
+            assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf,
+                    otherHiddenFile);
 
             // System gallery apps have access to video and image files
             allowAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
 
             assertCanQueryAndOpenFile(otherAppImg, "rw");
+            // System gallery doesn't have access to hidden image files of other app
+            assertCantQueryFile(otherHiddenFile);
             // But no access to PDFs or music files
             assertCantQueryFile(otherAppMusic);
             assertCantQueryFile(otherAppPdf);
         } finally {
             denyAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
-            deleteFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
+            deleteFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf, otherHiddenFile);
             uninstallApp(TEST_APP_A);
         }
     }

@@ -81,6 +81,7 @@ import android.text.TextUtils;
 import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.Log;
+import android.util.Pair;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
@@ -112,6 +113,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
@@ -158,7 +160,8 @@ public class ModernMediaScanner implements MediaScanner {
     private static final Pattern PATTERN_VISIBLE = Pattern.compile(
             "(?i)^/storage/[^/]+(?:/[0-9]+)?(?:/Android/sandbox/([^/]+))?$");
     private static final Pattern PATTERN_INVISIBLE = Pattern.compile(
-            "(?i)^/storage/[^/]+(?:/[0-9]+)?(?:/Android/sandbox/([^/]+))?/Android/(?:data|obb)$");
+            "(?i)^/storage/[^/]+(?:/[0-9]+)?(?:/Android/sandbox/([^/]+))?/" +
+                    "(?:(?:Android/(?:data|obb)$)|(?:(?:Movies|Music|Pictures)/.thumbnails$))");
 
     private static final Pattern PATTERN_YEAR = Pattern.compile("([1-9][0-9][0-9][0-9])");
 
@@ -291,6 +294,12 @@ public class ModernMediaScanner implements MediaScanner {
         private int mUpdateCount;
         private int mDeleteCount;
 
+        /**
+         * Tracks hidden directory and hidden subdirectories in a directory tree. A positive count
+         * indicates that one or more of the current file's parents is a hidden directory.
+         */
+        private int mHiddenDirCount;
+
         public Scan(File root, int reason, @Nullable String ownerPackage) {
             Trace.beginSection("ctor");
 
@@ -340,8 +349,16 @@ public class ModernMediaScanner implements MediaScanner {
 
         private void walkFileTree() {
             mSignal.throwIfCanceled();
-            if (!isDirectoryHiddenRecursive(mSingleFile ? mRoot.getParentFile() : mRoot)) {
+            final Pair<Boolean, Boolean> isDirScannableAndHidden =
+                    shouldScanPathAndIsPathHidden(mSingleFile ? mRoot.getParentFile() : mRoot);
+            if (isDirScannableAndHidden.first) {
+                // This directory is scannable.
                 Trace.beginSection("walkFileTree");
+
+                if (isDirScannableAndHidden.second) {
+                    // This directory is hidden
+                    mHiddenDirCount++;
+                }
                 if (mSingleFile) {
                     acquireDirectoryLock(mRoot.getParentFile().toPath());
                 }
@@ -509,13 +526,17 @@ public class ModernMediaScanner implements MediaScanner {
             // Possibly bail before digging into each directory
             mSignal.throwIfCanceled();
 
-            if (isDirectoryHidden(dir.toFile())) {
+            if (!shouldScanDirectory(dir.toFile())) {
                 return FileVisitResult.SKIP_SUBTREE;
             }
 
             // Acquire lock on this directory to ensure parallel scans don't
             // overlap and confuse each other
             acquireDirectoryLock(dir);
+
+            if (isDirectoryHidden(dir.toFile())) {
+                mHiddenDirCount++;
+            }
 
             // Scan this directory as a normal file so that "parent" database
             // entries are created
@@ -549,7 +570,8 @@ public class ModernMediaScanner implements MediaScanner {
 
             int actualMediaType = FileColumns.MEDIA_TYPE_NONE;
             if (actualMimeType != null) {
-                actualMediaType = resolveMediaTypeFromFilePath(realFile, actualMimeType);
+                actualMediaType = resolveMediaTypeFromFilePath(realFile, actualMimeType,
+                        /*isHidden*/ mHiddenDirCount > 0);
             }
 
             Trace.beginSection("checkChanged");
@@ -635,6 +657,10 @@ public class ModernMediaScanner implements MediaScanner {
             // We need to drain all pending changes related to this directory
             // before releasing our lock below
             applyPending();
+
+            if (isDirectoryHidden(dir.toFile())) {
+                mHiddenDirCount--;
+            }
 
             // Now that we're finished scanning this directory, release lock to
             // allow other parallel scans to proceed
@@ -729,8 +755,8 @@ public class ModernMediaScanner implements MediaScanner {
      */
     private static @Nullable ContentProviderOperation.Builder scanItem(long existingId, File file,
             BasicFileAttributes attrs, String mimeType, int mediaType, String volumeName) {
-        if (isFileHidden(file)) {
-            if (LOGD) Log.d(TAG, "Ignoring hidden file: " + file);
+        if (Objects.equals(file.getName(), ".nomedia")) {
+            if (LOGD) Log.d(TAG, "Ignoring .nomedia file: " + file);
             return null;
         }
 
@@ -1340,21 +1366,47 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     /**
-     * Test if any parents of given directory should be considered hidden.
+     * Test if any parents of given path should be scanned and test if any parents of given
+     * path should be considered hidden.
      */
-    static boolean isDirectoryHiddenRecursive(@NonNull File dir) {
-        Trace.beginSection("isDirectoryHiddenRecursive");
+    static Pair<Boolean, Boolean> shouldScanPathAndIsPathHidden(@NonNull File dir) {
+        Trace.beginSection("shouldScanPathAndIsPathHiodden");
         try {
+            boolean isPathHidden = false;
             while (dir != null) {
-                if (isDirectoryHidden(dir)) {
-                    return true;
+                if (!shouldScanDirectory(dir)) {
+                    // When the path is not scannable, we don't care if it's hidden or not.
+                    return Pair.create(false, false);
                 }
+                isPathHidden = isPathHidden || isDirectoryHidden(dir);
                 dir = dir.getParentFile();
             }
-            return false;
+            return Pair.create(true, isPathHidden);
         } finally {
             Trace.endSection();
         }
+    }
+
+    @VisibleForTesting
+    static boolean shouldScanDirectory(@NonNull File dir) {
+        final File nomedia = new File(dir, ".nomedia");
+
+        // Handle well-known paths that should always be visible or invisible,
+        // regardless of .nomedia presence
+        if (PATTERN_VISIBLE.matcher(dir.getAbsolutePath()).matches()) {
+            // Well known paths can never be a hidden directory. Delete any non-standard nomedia
+            // presence in well known path.
+            nomedia.delete();
+            return true;
+        }
+
+        if (PATTERN_INVISIBLE.matcher(dir.getAbsolutePath()).matches()) {
+            // .nomedia in this directory is pointless, .nomedia doesn't determine if the directory
+            // should be scanned.
+            nomedia.delete();
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -1362,27 +1414,13 @@ public class ModernMediaScanner implements MediaScanner {
      */
     @VisibleForTesting
     static boolean isDirectoryHidden(@NonNull File dir) {
-        final File nomedia = new File(dir, ".nomedia");
-
-        // Handle well-known paths that should always be visible or invisible,
-        // regardless of .nomedia presence
-        if (PATTERN_VISIBLE.matcher(dir.getAbsolutePath()).matches()) {
-            nomedia.delete();
-            return false;
-        }
-        if (PATTERN_INVISIBLE.matcher(dir.getAbsolutePath()).matches()) {
-            try {
-                nomedia.createNewFile();
-            } catch (IOException ignored) {
-            }
-            return true;
-        }
-
-        // Otherwise fall back to directory name or .nomedia presence
         final String name = dir.getName();
         if (name.startsWith(".")) {
             return true;
         }
+
+        final File nomedia = new File(dir, ".nomedia");
+        // check for .nomedia presence
         if (nomedia.exists()) {
             Logging.logPersistent("Observed non-standard " + nomedia);
             return true;
@@ -1414,10 +1452,13 @@ public class ModernMediaScanner implements MediaScanner {
      * @return {@link FileColumns#MEDIA_TYPE}, resolved based on the file path and given
      * {@code mimeType}.
      */
-    private static int resolveMediaTypeFromFilePath(@NonNull File file, @NonNull String mimeType) {
-
+    private static int resolveMediaTypeFromFilePath(@NonNull File file, @NonNull String mimeType,
+            boolean isHidden) {
         int mediaType = MimeUtils.resolveMediaType(mimeType);
 
+        if (isHidden || isFileHidden(file)) {
+            mediaType = FileColumns.MEDIA_TYPE_NONE;
+        }
         if (mediaType == FileColumns.MEDIA_TYPE_IMAGE && isFileAlbumArt(file)) {
             mediaType = FileColumns.MEDIA_TYPE_NONE;
         }

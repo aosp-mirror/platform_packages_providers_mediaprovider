@@ -2106,6 +2106,24 @@ public class FilePathAccessTest {
         }
     }
 
+    @Test
+    public void testCantCreateOrRenameFileWithInvalidName() throws Exception {
+        File invalidFile = new File(DOWNLOAD_DIR, "<>");
+        File validFile = new File(DOWNLOAD_DIR, NONMEDIA_FILE_NAME);
+        try {
+            assertThrows(IOException.class, "Operation not permitted", () -> {
+                invalidFile.createNewFile();
+            });
+
+            assertThat(validFile.createNewFile()).isTrue();
+            // We can't rename a file to a file name with invalid FAT characters.
+            assertCantRenameFile(validFile, invalidFile);
+        } finally {
+            invalidFile.delete();
+            validFile.delete();
+        }
+    }
+
     private static void assertIsMediaTypeImage(File file) {
         final Cursor c = queryImageFile(file);
         assertEquals(1, c.getCount());

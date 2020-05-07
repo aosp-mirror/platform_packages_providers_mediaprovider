@@ -866,7 +866,13 @@ public class MediaProviderTest {
         final ContentValues values = new ContentValues();
         values.put(MediaColumns.DISPLAY_NAME, "pngimage.png");
 
-        new MediaProvider().ensureFileColumns(uri, values);
+        final MediaProvider provider = new MediaProvider() {
+            @Override
+            public boolean isFuseThread() {
+                return false;
+            }
+        };
+        provider.ensureFileColumns(uri, values);
 
         assertMimetype(values, "image/png");
     }

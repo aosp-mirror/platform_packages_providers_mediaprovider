@@ -28,6 +28,7 @@ import android.database.sqlite.SQLiteCursor;
 import android.database.sqlite.SQLiteCursorDriver;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQuery;
+import android.os.Build;
 import android.os.CancellationSignal;
 import android.os.OperationCanceledException;
 
@@ -46,6 +47,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
+import java.util.regex.Pattern;
 
 @RunWith(AndroidJUnit4.class)
 public class SQLiteQueryBuilderTest {
@@ -689,6 +691,28 @@ public class SQLiteQueryBuilderTest {
             values.clear();
             values.put(column, 42);
             assertStrictUpdateInvalid(values, null, null);
+        }
+    }
+
+    @Test
+    public void testStrict_154193772() {
+        final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
+        final HashMap<String, String> map = new HashMap<>();
+        map.put("_data", "_data");
+        map.put("date_added", "date_added");
+        map.put("date_modified", "date_modified");
+        builder.setProjectionMap(map);
+
+        final String selection = "(LOWER(_data) LIKE \"%.wmv\" OR LOWER(_data) LIKE \"%.wm\" OR LOWER(_data) LIKE \"%.wtv\" OR LOWER(_data) LIKE \"%.asf\" OR LOWER(_data) LIKE \"%.hls\" OR LOWER(_data) LIKE \"%.mp4\" OR LOWER(_data) LIKE \"%.m4v\" OR LOWER(_data) LIKE \"%.mov\" OR LOWER(_data) LIKE \"%.mp4v\" OR LOWER(_data) LIKE \"%.3g2\" OR LOWER(_data) LIKE \"%.3gp\" OR LOWER(_data) LIKE \"%.3gp2\" OR LOWER(_data) LIKE \"%.3gpp\" OR LOWER(_data) LIKE \"%.mj2\" OR LOWER(_data) LIKE \"%.qt\" OR LOWER(_data) LIKE \"%.external\" OR LOWER(_data) LIKE \"%.mov\" OR LOWER(_data) LIKE \"%.asf\" OR LOWER(_data) LIKE \"%.avi\" OR LOWER(_data) LIKE \"%.divx\" OR LOWER(_data) LIKE \"%.mpg\" OR LOWER(_data) LIKE \"%.mpeg\" OR LOWER(_data) LIKE \"%.mkv\" OR LOWER(_data) LIKE \"%.webm\" OR LOWER(_data) LIKE \"%.mk3d\" OR LOWER(_data) LIKE \"%.mks\" OR LOWER(_data) LIKE \"%.3gp\" OR LOWER(_data) LIKE \"%.mpegts\" OR LOWER(_data) LIKE \"%.ts\" OR LOWER(_data) LIKE \"%.m2ts\" OR LOWER(_data) LIKE \"%.m2t\") AND (date_added >= ? OR date_modified >=?)";
+        {
+            builder.setTargetSdkVersion(Build.VERSION_CODES.Q);
+            builder.enforceStrictGrammar(selection, null, null, null, null);
+        }
+        try {
+            builder.setTargetSdkVersion(Build.VERSION_CODES.R);
+            builder.enforceStrictGrammar(selection, null, null, null, null);
+            fail("Expected to throw");
+        } catch (IllegalArgumentException expected) {
         }
     }
 

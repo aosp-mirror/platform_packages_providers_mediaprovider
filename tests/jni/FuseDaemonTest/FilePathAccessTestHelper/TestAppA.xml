@@ -20,6 +20,7 @@
     android:versionName="1.0" >
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
 
     <application android:label="TestAppA">
         <activity android:name="com.android.tests.fused.FilePathAccessTestHelper">

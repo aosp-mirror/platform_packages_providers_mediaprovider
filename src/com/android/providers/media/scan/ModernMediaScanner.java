@@ -397,8 +397,7 @@ public class ModernMediaScanner implements MediaScanner {
             final Bundle queryArgs = new Bundle();
             queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SELECTION,
                     formatClause + " AND " + dataClause + " AND " + generationClause);
-            final String pathEscapedForLike = DatabaseUtils.escapeForLike(
-                    FileUtils.getAbsoluteSanitizedPath(mRoot.getAbsolutePath()));
+            final String pathEscapedForLike = DatabaseUtils.escapeForLike(mRoot.getAbsolutePath());
             queryArgs.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS,
                     new String[] {pathEscapedForLike + "/%", pathEscapedForLike});
             queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,

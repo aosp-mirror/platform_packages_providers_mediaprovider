@@ -328,6 +328,11 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
     }
 
     @Test
+    public void testCantCreateOrRenameFileWithInvalidName() throws Exception {
+        runDeviceTest("testCantCreateOrRenameFileWithInvalidName");
+    }
+
+    @Test
     public void testAccess_file() throws Exception {
         grantPermissions("android.permission.READ_EXTERNAL_STORAGE");
         try {

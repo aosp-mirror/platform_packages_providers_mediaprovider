@@ -1826,6 +1826,11 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EACCES;
             }
 
+            if (!newPath.equals(getAbsoluteSanitizedPath(newPath))) {
+                Log.e(TAG, "New path name contains invalid characters.");
+                return OsConstants.EPERM;
+            }
+
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, oldPath)
                     && shouldBypassFuseRestrictions(/*forWrite*/ true, newPath)) {
                 return renameUncheckedForFuse(oldPath, newPath);
@@ -5951,11 +5956,6 @@ public class MediaProvider extends ContentProvider {
                 return res;
             }
 
-            path = getAbsoluteSanitizedPath(path);
-            if (path == null) {
-                throw new IOException("Invalid path " + path);
-            }
-
             final Uri contentUri = Files.getContentUri(MediaStore.getVolumeName(new File(path)));
             final String[] projection = new String[]{
                     MediaColumns.OWNER_PACKAGE_NAME, MediaColumns._ID };
@@ -6078,12 +6078,6 @@ public class MediaProvider extends ContentProvider {
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
                 return OsConstants.EACCES;
-            }
-
-            path = getAbsoluteSanitizedPath(path);
-            if (path == null) {
-                Log.e(TAG, "Invalid path " + path);
-                return OsConstants.EPERM;
             }
 
             final Uri contentUri = Files.getContentUri(MediaStore.getVolumeName(new File(path)));
@@ -6221,7 +6215,7 @@ public class MediaProvider extends ContentProvider {
         values.put(MediaColumns.MIME_TYPE, mimeType);
 
         if (useData) {
-            values.put(FileColumns.DATA, getAbsoluteSanitizedPath(path));
+            values.put(FileColumns.DATA, path);
         } else {
             values.put(FileColumns.VOLUME_NAME, extractVolumeName(path));
             values.put(FileColumns.RELATIVE_PATH, extractRelativePath(path));
@@ -6261,6 +6255,11 @@ public class MediaProvider extends ContentProvider {
             if (isPrivatePackagePathNotOwnedByCaller(path)) {
                 Log.e(TAG, "Can't create a file in another app's external directory");
                 return OsConstants.ENOENT;
+            }
+
+            if (!path.equals(getAbsoluteSanitizedPath(path))) {
+                Log.e(TAG, "File name contains invalid characters");
+                return OsConstants.EPERM;
             }
 
             final String mimeType = MimeUtils.resolveMimeType(new File(path));
@@ -6340,24 +6339,15 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EPERM;
             }
 
-            final String sanitizedPath = getAbsoluteSanitizedPath(path);
-            if (sanitizedPath == null) {
-                throw new IOException("Invalid path " + path);
-            }
-
-            final Uri contentUri = Files.getContentUri(MediaStore.getVolumeName(new File(path)));
+            final Uri contentUri = Files.getContentUri(getVolumeName(new File(path)));
             final String where = FileColumns.DATA + " = ?";
-            final String[] whereArgs = {sanitizedPath};
+            final String[] whereArgs = {path};
 
             if (delete(contentUri, where, whereArgs) == 0) {
                 if (shouldBypass) {
                     return deleteFileUnchecked(path);
                 }
                 return OsConstants.ENOENT;
-            } else if (!path.equals(sanitizedPath)) {
-                // delete() doesn't delete the file in lower file system if sanitized path is
-                // different path from actual path. Delete the file using actual path of the file.
-                return deleteFileUnchecked(path);
             } else {
                 // success - 1 file was deleted
                 return 0;

@@ -22,6 +22,7 @@ import static android.content.ContentResolver.QUERY_ARG_SQL_LIMIT;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SORT_ORDER;
+
 import static com.android.providers.media.util.DatabaseUtils.bindSelection;
 
 import android.annotation.NonNull;
@@ -30,6 +31,7 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.OperationCanceledException;
@@ -38,6 +40,8 @@ import android.provider.MediaStore.MediaColumns;
 import android.text.TextUtils;
 import android.util.ArrayMap;
 import android.util.Log;
+
+import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.DatabaseHelper;
 
@@ -62,6 +66,14 @@ public class SQLiteQueryBuilder {
     private static final Pattern sAggregationPattern = Pattern.compile(
             "(?i)(AVG|COUNT|MAX|MIN|SUM|TOTAL|GROUP_CONCAT|UNICODE)\\((.+)\\)");
 
+    /**
+     * Narrow concession to support legacy apps that aren't using proper SQL
+     * string substitution; these values come from the raw query in b/154193772.
+     */
+    private static final Pattern sExtensionPattern = Pattern.compile(
+            "%.(wmv|wm|wtv|asf|hls|mp4|m4v|mov|mp4v|3g2|3gp|3gp2|3gpp|mj2|qt|external|"
+                    + "mov|asf|avi|divx|mpg|mpeg|mkv|webm|mk3d|mks|3gp|mpegts|ts|m2ts|m2t)");
+
     private Map<String, String> mProjectionMap = null;
     private Collection<Pattern> mProjectionGreylist = null;
 
@@ -74,6 +86,12 @@ public class SQLiteQueryBuilder {
     private static final int STRICT_GRAMMAR = 1 << 2;
 
     private int mStrictFlags;
+
+    private int mTargetSdkVersion = Build.VERSION_CODES.CUR_DEVELOPMENT;
+
+    public void setTargetSdkVersion(int targetSdkVersion) {
+        mTargetSdkVersion = targetSdkVersion;
+    }
 
     /**
      * Raw SQL clause to obtain the value of {@link MediaColumns#_ID} from custom database function
@@ -741,7 +759,8 @@ public class SQLiteQueryBuilder {
         }
     }
 
-    private void enforceStrictGrammar(@Nullable String selection, @Nullable String groupBy,
+    @VisibleForTesting
+    void enforceStrictGrammar(@Nullable String selection, @Nullable String groupBy,
             @Nullable String having, @Nullable String sortOrder, @Nullable String limit) {
         SQLiteTokenizer.tokenize(selection, SQLiteTokenizer.OPTION_NONE,
                 this::enforceStrictToken);
@@ -778,9 +797,15 @@ public class SQLiteQueryBuilder {
                 isAllowedKeyword = false;
                 break;
         }
-        if (!isAllowedKeyword) {
-            throw new IllegalArgumentException("Invalid token " + token);
+        if (isAllowedKeyword) return;
+
+        if (mTargetSdkVersion < Build.VERSION_CODES.R) {
+            // Narrow concession to support legacy apps that aren't using proper
+            // SQL string substitution
+            if (sExtensionPattern.matcher(token).matches()) return;
         }
+
+        throw new IllegalArgumentException("Invalid token " + token);
     }
 
     /**

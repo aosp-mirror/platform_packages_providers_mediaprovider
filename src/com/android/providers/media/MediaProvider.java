@@ -1350,6 +1350,40 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     * Scan files during renames for the following reasons:
+     * <ul>
+     * <li>When a file or directory is renamed, media type for the corresponding db row will be
+     * updated with media type resolved based on the mime type of the file. This updated media type
+     * doesn't consider hidden file/hidden directory, so we must scan the new path to update the
+     * media type based on the path of the file.
+     * <li>When a .nomedia file is moved to new path, old parent of the .nomedia file is no more
+     * hidden. We should scan old parent directory to ensure all files in that directory will be
+     * updated with appropriate media type.
+     * <li>When a file is renamed to .nomedia, the new parent will be a hidden directory. We should
+     * scan new parent directory to ensure all files in that directory are updated with
+     * MEDIA_TYPE_NONE.
+     * </ul>
+     */
+    private void scanRenamedPathForFuse(@NonNull String oldPath, @NonNull String newPath) {
+        final LocalCallingIdentity token = clearLocalCallingIdentity();
+        try {
+            if (extractDisplayName(oldPath).equals(".nomedia")) {
+                // .nomedia file is moved to a new directory. Old directory may not be treated as
+                // hidden anymore.
+                scanFile(new File(oldPath).getParentFile(), REASON_DEMAND);
+            }
+
+            // We should always scan new path to update the media type, but if new file is .nomedia
+            // we should scan new parent as well
+            File newPathToScan = extractDisplayName(newPath).equals(".nomedia") ?
+                    new File(newPath).getParentFile() : new File(newPath);
+            scanFile(newPathToScan, REASON_DEMAND);
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
+    }
+
+    /**
      * Checks if given {@code mimeType} is supported in {@code path}.
      */
     private boolean isMimeTypeSupportedInPath(String path, String mimeType) {
@@ -1676,6 +1710,8 @@ public class MediaProvider extends ContentProvider {
         } finally {
             helper.endTransaction();
         }
+        // File or directory movement might have made new/old path hidden.
+        scanRenamedPathForFuse(oldPath, newPath);
         return 0;
     }
 
@@ -1742,6 +1778,8 @@ public class MediaProvider extends ContentProvider {
         } finally {
             helper.endTransaction();
         }
+        // File or directory movement might have made new/old path hidden.
+        scanRenamedPathForFuse(oldPath, newPath);
         return 0;
     }
 

@@ -2296,7 +2296,7 @@ public class MediaProvider extends ContentProvider {
                 throw new IllegalArgumentException(e);
             }
 
-            FileUtils.sanitizeValues(values);
+            FileUtils.sanitizeValues(values, /*rewriteHiddenFileName*/ !isFuseThread());
             FileUtils.computeDataFromValues(values, volumePath);
 
             // Create result file

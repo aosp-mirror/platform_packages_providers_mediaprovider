@@ -18,6 +18,7 @@ package com.android.providers.media.scan;
 
 import static com.android.providers.media.scan.MediaScanner.REASON_UNKNOWN;
 import static com.android.providers.media.scan.MediaScannerTest.stage;
+import static com.android.providers.media.scan.ModernMediaScanner.shouldScanPathAndIsPathHidden;
 import static com.android.providers.media.scan.ModernMediaScanner.isDirectoryHidden;
 import static com.android.providers.media.scan.ModernMediaScanner.isFileAlbumArt;
 import static com.android.providers.media.scan.ModernMediaScanner.isFileHidden;
@@ -33,11 +34,11 @@ import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalR
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalTrack;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalVideoResolution;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalYear;
+import static com.android.providers.media.scan.ModernMediaScanner.shouldScanDirectory;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -56,6 +57,7 @@ import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
+import android.util.Pair;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
@@ -361,6 +363,77 @@ public class ModernMediaScannerTest {
         assertEquals(Optional.of(2016), parseOptionalYear("Thu, 01 Sep 2016 10:11:12.123456 -0500"));
     }
 
+    private static void assertShouldScanPathAndIsPathHidden(boolean isScannable, boolean isHidden,
+        File dir) {
+        assertEquals(Pair.create(isScannable, isHidden), shouldScanPathAndIsPathHidden(dir));
+    }
+
+    @Test
+    public void testShouldScanPathAndIsPathHidden() {
+        for (String prefix : new String[] {
+                "/storage/emulated/0",
+                "/storage/emulated/0/Android/sandbox/com.example",
+                "/storage/0000-0000",
+                "/storage/0000-0000/Android/sandbox/com.example",
+        }) {
+            assertShouldScanPathAndIsPathHidden(true, false, new File(prefix));
+            assertShouldScanPathAndIsPathHidden(true, false, new File(prefix + "/meow"));
+            assertShouldScanPathAndIsPathHidden(true, false, new File(prefix + "/Android/meow"));
+            assertShouldScanPathAndIsPathHidden(true, false,
+                    new File(prefix + "/Android/sandbox/meow"));
+
+            assertShouldScanPathAndIsPathHidden(true, true, new File(prefix + "/.meow/dir"));
+
+            assertShouldScanPathAndIsPathHidden(false, false,
+                    new File(prefix + "/Android/data/meow"));
+            assertShouldScanPathAndIsPathHidden(false, false,
+                    new File(prefix + "/Android/obb/meow"));
+
+            // When the path is not scannable, we don't care if it's hidden or not.
+            assertShouldScanPathAndIsPathHidden(false, false,
+                    new File(prefix + "/Pictures/.thumbnails/meow"));
+            assertShouldScanPathAndIsPathHidden(false, false,
+                    new File(prefix + "/Movies/.thumbnails/meow"));
+            assertShouldScanPathAndIsPathHidden(false, false,
+                    new File(prefix + "/Music/.thumbnails/meow"));
+        }
+    }
+
+    private static void assertShouldScanDirectory(File file) {
+        assertTrue(file.getAbsolutePath(), shouldScanDirectory(file));
+    }
+
+    private static void assertShouldntScanDirectory(File file) {
+        assertFalse(file.getAbsolutePath(), shouldScanDirectory(file));
+    }
+
+    @Test
+    public void testShouldScanDirectory() throws Exception {
+        for (String prefix : new String[] {
+                "/storage/emulated/0",
+                "/storage/emulated/0/Android/sandbox/com.example",
+                "/storage/0000-0000",
+                "/storage/0000-0000/Android/sandbox/com.example",
+        }) {
+            assertShouldScanDirectory(new File(prefix));
+            assertShouldScanDirectory(new File(prefix + "/meow"));
+            assertShouldScanDirectory(new File(prefix + "/Android"));
+            assertShouldScanDirectory(new File(prefix + "/Android/meow"));
+            assertShouldScanDirectory(new File(prefix + "/Android/sandbox"));
+            assertShouldScanDirectory(new File(prefix + "/Android/sandbox/meow"));
+            assertShouldScanDirectory(new File(prefix + "/.meow"));
+
+            assertShouldntScanDirectory(new File(prefix + "/Android/data"));
+            assertShouldntScanDirectory(new File(prefix + "/Android/obb"));
+
+            assertShouldntScanDirectory(new File(prefix + "/Pictures/.thumbnails"));
+            assertShouldntScanDirectory(new File(prefix + "/Movies/.thumbnails"));
+            assertShouldntScanDirectory(new File(prefix + "/Music/.thumbnails"));
+
+            assertShouldScanDirectory(new File(prefix + "/DCIM/.thumbnails"));
+        }
+    }
+
     private static void assertDirectoryHidden(File file) {
         assertTrue(file.getAbsolutePath(), isDirectoryHidden(file));
     }
@@ -379,14 +452,24 @@ public class ModernMediaScannerTest {
         }) {
             assertDirectoryNotHidden(new File(prefix));
             assertDirectoryNotHidden(new File(prefix + "/meow"));
-            assertDirectoryNotHidden(new File(prefix + "/Android"));
-            assertDirectoryNotHidden(new File(prefix + "/Android/meow"));
-            assertDirectoryNotHidden(new File(prefix + "/Android/sandbox"));
-            assertDirectoryNotHidden(new File(prefix + "/Android/sandbox/meow"));
 
             assertDirectoryHidden(new File(prefix + "/.meow"));
-            assertDirectoryHidden(new File(prefix + "/Android/data"));
-            assertDirectoryHidden(new File(prefix + "/Android/obb"));
+        }
+
+
+        final File nomediaFile = new File("storage/emulated/0/Download/meow", ".nomedia");
+        try {
+            assertTrue(nomediaFile.getParentFile().mkdirs());
+            assertTrue(nomediaFile.createNewFile());
+
+            assertDirectoryHidden(nomediaFile.getParentFile());
+
+            assertTrue(nomediaFile.delete());
+
+            assertDirectoryNotHidden(nomediaFile.getParentFile());
+        } finally {
+            nomediaFile.delete();
+            nomediaFile.getParentFile().delete();
         }
     }
 
@@ -638,19 +721,18 @@ public class ModernMediaScannerTest {
         stage(R.raw.test_image, image);
         nomedia.createNewFile();
 
-        // Direct scan with nomedia means no image
-        assertNull(mModern.scanFile(image, REASON_UNKNOWN));
+        // Direct scan with nomedia will change media type to MEDIA_TYPE_NONE
+        assertNotNull(mModern.scanFile(image, REASON_UNKNOWN));
         assertQueryCount(0, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
 
         // Direct scan without nomedia means image
         nomedia.delete();
         assertNotNull(mModern.scanFile(image, REASON_UNKNOWN));
-        assertNotNull(mModern.scanFile(image, REASON_UNKNOWN));
         assertQueryCount(1, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
 
-        // Direct scan again hides it again
+        // Direct scan again changes the media type to MEDIA_TYPE_NONE
         nomedia.createNewFile();
-        assertNull(mModern.scanFile(image, REASON_UNKNOWN));
+        assertNotNull(mModern.scanFile(image, REASON_UNKNOWN));
         assertQueryCount(0, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
     }
 

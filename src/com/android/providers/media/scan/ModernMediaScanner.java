@@ -532,6 +532,26 @@ public class ModernMediaScanner implements MediaScanner {
             // changed since they were last scanned
             final File realFile = file.toFile();
             long existingId = -1;
+
+            String actualMimeType;
+            if (attrs.isDirectory()) {
+                actualMimeType = null;
+            } else {
+                actualMimeType = MimeUtils.resolveMimeType(realFile);
+            }
+
+            // Resolve the MIME type of DRM files before scanning them; if we
+            // have trouble then we'll continue scanning as a generic file
+            final boolean isDrm = mDrmMimeTypes.contains(actualMimeType);
+            if (isDrm) {
+                actualMimeType = mDrmClient.getOriginalMimeType(realFile.getPath());
+            }
+
+            int actualMediaType = FileColumns.MEDIA_TYPE_NONE;
+            if (actualMimeType != null) {
+                actualMediaType = resolveMediaTypeFromFilePath(realFile, actualMimeType);
+            }
+
             Trace.beginSection("checkChanged");
 
             final Bundle queryArgs = new Bundle();
@@ -542,14 +562,16 @@ public class ModernMediaScanner implements MediaScanner {
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE);
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_FAVORITE, MediaStore.MATCH_INCLUDE);
+            final String[] projection = new String[] {FileColumns._ID, FileColumns.DATE_MODIFIED,
+                    FileColumns.SIZE, FileColumns.MIME_TYPE, FileColumns.MEDIA_TYPE};
 
-            try (Cursor c = mResolver.query(mFilesUri,
-                    new String[] { FileColumns._ID, FileColumns.DATE_MODIFIED, FileColumns.SIZE },
-                    queryArgs, mSignal)) {
+            try (Cursor c = mResolver.query(mFilesUri, projection, queryArgs, mSignal)) {
                 if (c.moveToFirst()) {
                     existingId = c.getLong(0);
                     final long dateModified = c.getLong(1);
                     final long size = c.getLong(2);
+                    final String mimeType = c.getString(3);
+                    final int mediaType = c.getInt(4);
 
                     // Remember visiting this existing item, even if we skipped
                     // due to it being unchanged; this is needed so we don't
@@ -563,7 +585,11 @@ public class ModernMediaScanner implements MediaScanner {
 
                     final boolean sameTime = (lastModifiedTime(realFile, attrs) == dateModified);
                     final boolean sameSize = (attrs.size() == size);
-                    if (attrs.isDirectory() || (sameTime && sameSize)) {
+                    final boolean sameMimeType = mimeType == null ? actualMimeType == null :
+                            mimeType.equalsIgnoreCase(actualMimeType);
+                    final boolean sameMediaType = (actualMediaType == mediaType);
+                    final boolean isSame = sameTime && sameSize && sameMediaType && sameMimeType;
+                    if (attrs.isDirectory() || isSame) {
                         if (LOGV) Log.v(TAG, "Skipping unchanged " + file);
                         return FileVisitResult.CONTINUE;
                     }
@@ -572,24 +598,11 @@ public class ModernMediaScanner implements MediaScanner {
                 Trace.endSection();
             }
 
-            String mimeType;
-            if (attrs.isDirectory()) {
-                mimeType = null;
-            } else {
-                mimeType = MimeUtils.resolveMimeType(realFile);
-            }
-
-            // Resolve the MIME type of DRM files before scanning them; if we
-            // have trouble then we'll continue scanning as a generic file
-            final boolean isDrm = mDrmMimeTypes.contains(mimeType);
-            if (isDrm) {
-                mimeType = mDrmClient.getOriginalMimeType(realFile.getPath());
-            }
-
             final ContentProviderOperation.Builder op;
             Trace.beginSection("scanItem");
             try {
-                op = scanItem(existingId, realFile, attrs, mimeType, mVolumeName);
+                op = scanItem(existingId, realFile, attrs, actualMimeType, actualMediaType,
+                        mVolumeName);
             } finally {
                 Trace.endSection();
             }
@@ -715,7 +728,7 @@ public class ModernMediaScanner implements MediaScanner {
      * {@link SQLiteDatabase#replace} operation.
      */
     private static @Nullable ContentProviderOperation.Builder scanItem(long existingId, File file,
-            BasicFileAttributes attrs, String mimeType, String volumeName) {
+            BasicFileAttributes attrs, String mimeType, int mediaType, String volumeName) {
         if (isFileHidden(file)) {
             if (LOGD) Log.d(TAG, "Ignoring hidden file: " + file);
             return null;
@@ -725,25 +738,21 @@ public class ModernMediaScanner implements MediaScanner {
             return scanItemDirectory(existingId, file, attrs, mimeType, volumeName);
         }
 
-        int mediaType = MimeUtils.resolveMediaType(mimeType);
-        if (mediaType == FileColumns.MEDIA_TYPE_IMAGE && isFileAlbumArt(file)) {
-            mediaType = FileColumns.MEDIA_TYPE_NONE;
-        }
         switch (mediaType) {
             case FileColumns.MEDIA_TYPE_AUDIO:
-                return scanItemAudio(existingId, file, attrs, mimeType, volumeName);
+                return scanItemAudio(existingId, file, attrs, mimeType, mediaType, volumeName);
             case FileColumns.MEDIA_TYPE_VIDEO:
-                return scanItemVideo(existingId, file, attrs, mimeType, volumeName);
+                return scanItemVideo(existingId, file, attrs, mimeType, mediaType, volumeName);
             case FileColumns.MEDIA_TYPE_IMAGE:
-                return scanItemImage(existingId, file, attrs, mimeType, volumeName);
+                return scanItemImage(existingId, file, attrs, mimeType, mediaType, volumeName);
             case FileColumns.MEDIA_TYPE_PLAYLIST:
-                return scanItemPlaylist(existingId, file, attrs, mimeType, volumeName);
+                return scanItemPlaylist(existingId, file, attrs, mimeType, mediaType, volumeName);
             case FileColumns.MEDIA_TYPE_SUBTITLE:
-                return scanItemSubtitle(existingId, file, attrs, mimeType, volumeName);
+                return scanItemSubtitle(existingId, file, attrs, mimeType, mediaType, volumeName);
             case FileColumns.MEDIA_TYPE_DOCUMENT:
-                return scanItemDocument(existingId, file, attrs, mimeType, volumeName);
+                return scanItemDocument(existingId, file, attrs, mimeType, mediaType, volumeName);
             default:
-                return scanItemFile(existingId, file, attrs, mimeType, volumeName);
+                return scanItemFile(existingId, file, attrs, mimeType, mediaType, volumeName);
         }
     }
 
@@ -757,8 +766,9 @@ public class ModernMediaScanner implements MediaScanner {
      * longer present in the media item.
      */
     private static void withGenericValues(ContentProviderOperation.Builder op,
-            File file, BasicFileAttributes attrs, String mimeType) {
-        withOptionalMimeType(op, Optional.ofNullable(mimeType));
+            File file, BasicFileAttributes attrs, String mimeType, Integer mediaType) {
+        withOptionalMimeTypeAndMediaType(op, Optional.ofNullable(mimeType),
+                Optional.ofNullable(mediaType));
 
         op.withValue(MediaColumns.DATA, file.getAbsolutePath());
         op.withValue(MediaColumns.SIZE, attrs.size());
@@ -798,8 +808,9 @@ public class ModernMediaScanner implements MediaScanner {
      */
     private static void withRetrieverValues(ContentProviderOperation.Builder op,
             MediaMetadataRetriever mmr, String mimeType) {
-        withOptionalMimeType(op,
-                parseOptionalMimeType(mimeType, mmr.extractMetadata(METADATA_KEY_MIMETYPE)));
+        withOptionalMimeTypeAndMediaType(op,
+                parseOptionalMimeType(mimeType, mmr.extractMetadata(METADATA_KEY_MIMETYPE)),
+                /*optionalMediaType*/ Optional.empty());
 
         withOptionalValue(op, MediaColumns.DATE_TAKEN,
                 parseOptionalDate(mmr.extractMetadata(METADATA_KEY_DATE)));
@@ -844,8 +855,9 @@ public class ModernMediaScanner implements MediaScanner {
      */
     private static void withXmpValues(ContentProviderOperation.Builder op,
             XmpInterface xmp, String mimeType) {
-        withOptionalMimeType(op,
-                parseOptionalMimeType(mimeType, xmp.getFormat()));
+        withOptionalMimeTypeAndMediaType(op,
+                parseOptionalMimeType(mimeType, xmp.getFormat()),
+                /*optionalMediaType*/ Optional.empty());
 
         op.withValue(MediaColumns.DOCUMENT_ID, xmp.getDocumentId());
         op.withValue(MediaColumns.INSTANCE_ID, xmp.getInstanceId());
@@ -868,25 +880,33 @@ public class ModernMediaScanner implements MediaScanner {
      * Overwrite the {@link MediaColumns#MIME_TYPE} and
      * {@link FileColumns#MEDIA_TYPE} values in the given
      * {@link ContentProviderOperation}, but only when the given
-     * {@link Optional} value is present.
+     * {@link Optional} optionalMimeType is present.
+     * If {@link Optional} optionalMediaType is not present, {@link FileColumns#MEDIA_TYPE} is
+     * resolved from given {@code optionalMimeType} when {@code optionalMimeType} is present.
      *
-     * @param value An optional MIME type to apply to this operation.
+     * @param optionalMimeType An optional MIME type to apply to this operation.
+     * @param optionalMediaType An optional Media type to apply to this operation.
      */
-    private static void withOptionalMimeType(@NonNull ContentProviderOperation.Builder op,
-            @NonNull Optional<String> value) {
-        if (value.isPresent()) {
-            final String mimeType = value.get();
-            final int mediaType = MimeUtils.resolveMediaType(mimeType);
-
+    private static void withOptionalMimeTypeAndMediaType(
+            @NonNull ContentProviderOperation.Builder op,
+            @NonNull Optional<String> optionalMimeType,
+            @NonNull Optional<Integer> optionalMediaType) {
+        if (optionalMimeType.isPresent()) {
+            final String mimeType = optionalMimeType.get();
             op.withValue(MediaColumns.MIME_TYPE, mimeType);
-            op.withValue(FileColumns.MEDIA_TYPE, mediaType);
+            if (optionalMediaType.isPresent()) {
+                op.withValue(FileColumns.MEDIA_TYPE, optionalMediaType.get());
+            } else {
+                op.withValue(FileColumns.MEDIA_TYPE, MimeUtils.resolveMediaType(mimeType));
+            }
         }
     }
 
     private static @NonNull ContentProviderOperation.Builder scanItemDirectory(long existingId,
             File file, BasicFileAttributes attrs, String mimeType, String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
-        withGenericValues(op, file, attrs, mimeType);
+        // Directory doesn't have any MIME type or Media Type.
+        withGenericValues(op, file, attrs, mimeType, /*mediaType*/ null);
 
         try {
             op.withValue(FileColumns.FORMAT, MtpConstants.FORMAT_ASSOCIATION);
@@ -908,9 +928,10 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     private static @NonNull ContentProviderOperation.Builder scanItemAudio(long existingId,
-            File file, BasicFileAttributes attrs, String mimeType, String volumeName) {
+            File file, BasicFileAttributes attrs, String mimeType, int mediaType,
+            String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
-        withGenericValues(op, file, attrs, mimeType);
+        withGenericValues(op, file, attrs, mimeType, mediaType);
 
         op.withValue(MediaColumns.ARTIST, UNKNOWN_STRING);
         op.withValue(MediaColumns.ALBUM, file.getParentFile().getName());
@@ -949,9 +970,10 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     private static @NonNull ContentProviderOperation.Builder scanItemPlaylist(long existingId,
-            File file, BasicFileAttributes attrs, String mimeType, String volumeName) {
+            File file, BasicFileAttributes attrs, String mimeType, int mediaType,
+            String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
-        withGenericValues(op, file, attrs, mimeType);
+        withGenericValues(op, file, attrs, mimeType, mediaType);
 
         try {
             op.withValue(PlaylistsColumns.NAME, FileUtils.extractFileName(file.getName()));
@@ -962,25 +984,28 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     private static @NonNull ContentProviderOperation.Builder scanItemSubtitle(long existingId,
-            File file, BasicFileAttributes attrs, String mimeType, String volumeName) {
+            File file, BasicFileAttributes attrs, String mimeType, int mediaType,
+            String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
-        withGenericValues(op, file, attrs, mimeType);
+        withGenericValues(op, file, attrs, mimeType, mediaType);
 
         return op;
     }
 
     private static @NonNull ContentProviderOperation.Builder scanItemDocument(long existingId,
-            File file, BasicFileAttributes attrs, String mimeType, String volumeName) {
+            File file, BasicFileAttributes attrs, String mimeType, int mediaType,
+            String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
-        withGenericValues(op, file, attrs, mimeType);
+        withGenericValues(op, file, attrs, mimeType, mediaType);
 
         return op;
     }
 
     private static @NonNull ContentProviderOperation.Builder scanItemVideo(long existingId,
-            File file, BasicFileAttributes attrs, String mimeType, String volumeName) {
+            File file, BasicFileAttributes attrs, String mimeType, int mediaType,
+            String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
-        withGenericValues(op, file, attrs, mimeType);
+        withGenericValues(op, file, attrs, mimeType, mediaType);
 
         op.withValue(MediaColumns.ARTIST, UNKNOWN_STRING);
         op.withValue(MediaColumns.ALBUM, file.getParentFile().getName());
@@ -1023,9 +1048,10 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     private static @NonNull ContentProviderOperation.Builder scanItemImage(long existingId,
-            File file, BasicFileAttributes attrs, String mimeType, String volumeName) {
+            File file, BasicFileAttributes attrs, String mimeType, int mediaType,
+            String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
-        withGenericValues(op, file, attrs, mimeType);
+        withGenericValues(op, file, attrs, mimeType, mediaType);
 
         op.withValue(ImageColumns.DESCRIPTION, null);
 
@@ -1066,9 +1092,10 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     private static @NonNull ContentProviderOperation.Builder scanItemFile(long existingId,
-            File file, BasicFileAttributes attrs, String mimeType, String volumeName) {
+            File file, BasicFileAttributes attrs, String mimeType, int mediaType,
+            String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
-        withGenericValues(op, file, attrs, mimeType);
+        withGenericValues(op, file, attrs, mimeType, mediaType);
 
         return op;
     }
@@ -1381,6 +1408,20 @@ public class ModernMediaScanner implements MediaScanner {
             return true;
         }
         return false;
+    }
+
+    /**
+     * @return {@link FileColumns#MEDIA_TYPE}, resolved based on the file path and given
+     * {@code mimeType}.
+     */
+    private static int resolveMediaTypeFromFilePath(@NonNull File file, @NonNull String mimeType) {
+
+        int mediaType = MimeUtils.resolveMediaType(mimeType);
+
+        if (mediaType == FileColumns.MEDIA_TYPE_IMAGE && isFileAlbumArt(file)) {
+            mediaType = FileColumns.MEDIA_TYPE_NONE;
+        }
+        return mediaType;
     }
 
     @VisibleForTesting

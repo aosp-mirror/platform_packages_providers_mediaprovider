@@ -1546,7 +1546,8 @@ public class FilePathAccessTest {
      */
     @Test
     public void testCanCreateHiddenFile() throws Exception {
-        final File hiddenFile = new File(DOWNLOAD_DIR, ".hiddenFile");
+        final String hiddenFileName = ".hiddenFile";
+        final File hiddenFile = new File(DOWNLOAD_DIR, hiddenFileName);
         try {
             assertThat(hiddenFile.createNewFile()).isTrue();
             // Write to hidden file is allowed.
@@ -1554,6 +1555,10 @@ public class FilePathAccessTest {
                 fos.write(BYTES_DATA1);
             }
             assertFileContent(hiddenFile, BYTES_DATA1);
+            assertThat(ReaddirTestHelper.readDirectory(hiddenFile.getParentFile()))
+                    .contains(hiddenFileName);
+            assertThat(getFileRowIdFromDatabase(hiddenFile)).isNotEqualTo(-1);
+
             // We can delete hidden file
             assertThat(hiddenFile.delete()).isTrue();
             assertThat(hiddenFile.exists()).isFalse();

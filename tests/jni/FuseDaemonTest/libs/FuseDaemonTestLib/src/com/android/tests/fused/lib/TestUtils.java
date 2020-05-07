@@ -368,6 +368,11 @@ public class TestUtils {
         return ownerPackage;
     }
 
+    @NonNull
+    public static Cursor queryImageFile(File file, String... projection) {
+        return queryFile(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, file, projection);
+    }
+
     /**
      * Queries {@link ContentResolver} for a file and returns the corresponding mime type for its
      * entry in the database.
@@ -772,9 +777,14 @@ public class TestUtils {
     @NonNull
     private static Cursor queryFile(@NonNull File file,
             String... projection) {
-        final Cursor c = getContentResolver().query(
-                MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL),
-                projection,
+        return queryFile(MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL),
+                file, projection);
+    }
+
+    @NonNull
+    private static Cursor queryFile(@NonNull Uri uri, @NonNull File file,
+            String... projection) {
+        final Cursor c = getContentResolver().query(uri, projection,
                 /*selection*/ MediaStore.MediaColumns.DATA + " = ?",
                 /*selectionArgs*/ new String[] { file.getAbsolutePath() },
                 /*sortOrder*/ null);

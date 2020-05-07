@@ -1484,6 +1484,10 @@ static void pf_create(fuse_req_t req,
         return;
     }
 
+    // File was inserted to MP database with default mime type/media type values. ScanFile will
+    // update the db columns with appropriate values. This is used for hidden file handling.
+    fuse->mp->ScanFile(child_path.c_str());
+
     int error_code = 0;
     struct fuse_entry_param e;
     node* node = make_node_entry(req, parent_node, name, child_path, &e, &error_code);

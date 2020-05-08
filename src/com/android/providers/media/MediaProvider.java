@@ -1350,6 +1350,40 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     * Scan files during renames for the following reasons:
+     * <ul>
+     * <li>When a file or directory is renamed, media type for the corresponding db row will be
+     * updated with media type resolved based on the mime type of the file. This updated media type
+     * doesn't consider hidden file/hidden directory, so we must scan the new path to update the
+     * media type based on the path of the file.
+     * <li>When a .nomedia file is moved to new path, old parent of the .nomedia file is no more
+     * hidden. We should scan old parent directory to ensure all files in that directory will be
+     * updated with appropriate media type.
+     * <li>When a file is renamed to .nomedia, the new parent will be a hidden directory. We should
+     * scan new parent directory to ensure all files in that directory are updated with
+     * MEDIA_TYPE_NONE.
+     * </ul>
+     */
+    private void scanRenamedPathForFuse(@NonNull String oldPath, @NonNull String newPath) {
+        final LocalCallingIdentity token = clearLocalCallingIdentity();
+        try {
+            if (extractDisplayName(oldPath).equals(".nomedia")) {
+                // .nomedia file is moved to a new directory. Old directory may not be treated as
+                // hidden anymore.
+                scanFile(new File(oldPath).getParentFile(), REASON_DEMAND);
+            }
+
+            // We should always scan new path to update the media type, but if new file is .nomedia
+            // we should scan new parent as well
+            File newPathToScan = extractDisplayName(newPath).equals(".nomedia") ?
+                    new File(newPath).getParentFile() : new File(newPath);
+            scanFile(newPathToScan, REASON_DEMAND);
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
+    }
+
+    /**
      * Checks if given {@code mimeType} is supported in {@code path}.
      */
     private boolean isMimeTypeSupportedInPath(String path, String mimeType) {
@@ -1676,6 +1710,8 @@ public class MediaProvider extends ContentProvider {
         } finally {
             helper.endTransaction();
         }
+        // File or directory movement might have made new/old path hidden.
+        scanRenamedPathForFuse(oldPath, newPath);
         return 0;
     }
 
@@ -1742,6 +1778,8 @@ public class MediaProvider extends ContentProvider {
         } finally {
             helper.endTransaction();
         }
+        // File or directory movement might have made new/old path hidden.
+        scanRenamedPathForFuse(oldPath, newPath);
         return 0;
     }
 
@@ -1786,6 +1824,11 @@ public class MediaProvider extends ContentProvider {
             if (isPrivatePackagePathNotOwnedByCaller(oldPath)
                     || isPrivatePackagePathNotOwnedByCaller(newPath)) {
                 return OsConstants.EACCES;
+            }
+
+            if (!newPath.equals(getAbsoluteSanitizedPath(newPath))) {
+                Log.e(TAG, "New path name contains invalid characters.");
+                return OsConstants.EPERM;
             }
 
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, oldPath)
@@ -2296,7 +2339,7 @@ public class MediaProvider extends ContentProvider {
                 throw new IllegalArgumentException(e);
             }
 
-            FileUtils.sanitizeValues(values);
+            FileUtils.sanitizeValues(values, /*rewriteHiddenFileName*/ !isFuseThread());
             FileUtils.computeDataFromValues(values, volumePath);
 
             // Create result file
@@ -3322,6 +3365,7 @@ public class MediaProvider extends ContentProvider {
             // When caller is system, such as the media scanner, we're willing
             // to let them access any columns they want
         } else {
+            qb.setTargetSdkVersion(getCallingPackageTargetSdkVersion());
             qb.setStrictColumns(true);
             qb.setStrictGrammar(true);
         }
@@ -3337,6 +3381,9 @@ public class MediaProvider extends ContentProvider {
             includeVolumes = bindList(volumeName);
         }
         final String sharedPackages = getSharedPackages(callingPackage);
+        final String matchSharedPackagesClause = FileColumns.OWNER_PACKAGE_NAME + " IN "
+                + sharedPackages;
+
         final boolean allowGlobal = checkCallingPermissionGlobal(uri, forWrite);
         final boolean allowLegacy =
                 forWrite ? isCallingPackageLegacyWrite() : isCallingPackageLegacyRead();
@@ -3381,8 +3428,7 @@ public class MediaProvider extends ContentProvider {
                             FileColumns.MEDIA_TYPE_IMAGE);
                 }
                 if (!allowGlobal && !checkCallingPermissionImages(forWrite, callingPackage)) {
-                    appendWhereStandalone(qb, FileColumns.OWNER_PACKAGE_NAME + " IN "
-                            + sharedPackages);
+                    appendWhereStandalone(qb, matchSharedPackagesClause);
                 }
                 appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending);
                 appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed);
@@ -3411,8 +3457,8 @@ public class MediaProvider extends ContentProvider {
 
                 if (!allowGlobal && !checkCallingPermissionImages(forWrite, callingPackage)) {
                     appendWhereStandalone(qb,
-                            "image_id IN (SELECT _id FROM images WHERE owner_package_name IN "
-                                    + sharedPackages + ")");
+                            "image_id IN (SELECT _id FROM images WHERE "
+                                    + matchSharedPackagesClause + ")");
                 }
                 break;
             }
@@ -3438,8 +3484,7 @@ public class MediaProvider extends ContentProvider {
                     // media, but we also let them see ringtone-style media to
                     // support legacy use-cases.
                     appendWhereStandalone(qb,
-                            DatabaseUtils.bindSelection(FileColumns.OWNER_PACKAGE_NAME
-                                    + " IN " + sharedPackages
+                            DatabaseUtils.bindSelection(matchSharedPackagesClause
                                     + " OR is_ringtone=1 OR is_alarm=1 OR is_notification=1"));
                 }
                 appendWhereStandaloneFilter(qb, new String[] {
@@ -3533,8 +3578,7 @@ public class MediaProvider extends ContentProvider {
                             FileColumns.MEDIA_TYPE_PLAYLIST);
                 }
                 if (!allowGlobal && !checkCallingPermissionAudio(forWrite, callingPackage)) {
-                    appendWhereStandalone(qb, FileColumns.OWNER_PACKAGE_NAME + " IN "
-                            + sharedPackages);
+                    appendWhereStandalone(qb, matchSharedPackagesClause);
                 }
                 appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending);
                 appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed);
@@ -3676,8 +3720,7 @@ public class MediaProvider extends ContentProvider {
                             FileColumns.MEDIA_TYPE_VIDEO);
                 }
                 if (!allowGlobal && !checkCallingPermissionVideo(forWrite, callingPackage)) {
-                    appendWhereStandalone(qb, FileColumns.OWNER_PACKAGE_NAME + " IN "
-                            + sharedPackages);
+                    appendWhereStandalone(qb, matchSharedPackagesClause);
                 }
                 appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending);
                 appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed);
@@ -3700,8 +3743,8 @@ public class MediaProvider extends ContentProvider {
                 qb.setProjectionMap(getProjectionMap(Video.Thumbnails.class));
                 if (!allowGlobal && !checkCallingPermissionVideo(forWrite, callingPackage)) {
                     appendWhereStandalone(qb,
-                            "video_id IN (SELECT _id FROM video WHERE owner_package_name IN "
-                                    + sharedPackages + ")");
+                            "video_id IN (SELECT _id FROM video WHERE " +
+                                    matchSharedPackagesClause + ")");
                 }
                 break;
             }
@@ -3716,8 +3759,7 @@ public class MediaProvider extends ContentProvider {
 
                 final ArrayList<String> options = new ArrayList<>();
                 if (!allowGlobal && !allowLegacyRead) {
-                    options.add(DatabaseUtils.bindSelection("owner_package_name IN "
-                            + sharedPackages));
+                    options.add(DatabaseUtils.bindSelection(matchSharedPackagesClause));
                     if (allowLegacy) {
                         options.add(DatabaseUtils.bindSelection("volume_name=?",
                                 MediaStore.VOLUME_EXTERNAL_PRIMARY));
@@ -3729,19 +3771,22 @@ public class MediaProvider extends ContentProvider {
                                 FileColumns.MEDIA_TYPE_PLAYLIST));
                         options.add(DatabaseUtils.bindSelection("media_type=?",
                                 FileColumns.MEDIA_TYPE_SUBTITLE));
-                        options.add("media_type=0 AND mime_type LIKE 'audio/%'");
+                        options.add(matchSharedPackagesClause
+                                + " AND media_type=0 AND mime_type LIKE 'audio/%'");
                     }
                     if (checkCallingPermissionVideo(forWrite, callingPackage)) {
                         options.add(DatabaseUtils.bindSelection("media_type=?",
                                 FileColumns.MEDIA_TYPE_VIDEO));
                         options.add(DatabaseUtils.bindSelection("media_type=?",
                                 FileColumns.MEDIA_TYPE_SUBTITLE));
-                        options.add("media_type=0 AND mime_type LIKE 'video/%'");
+                        options.add(matchSharedPackagesClause
+                                + " AND media_type=0 AND mime_type LIKE 'video/%'");
                     }
                     if (checkCallingPermissionImages(forWrite, callingPackage)) {
                         options.add(DatabaseUtils.bindSelection("media_type=?",
                                 FileColumns.MEDIA_TYPE_IMAGE));
-                        options.add("media_type=0 AND mime_type LIKE 'image/%'");
+                        options.add(matchSharedPackagesClause
+                                + " AND media_type=0 AND mime_type LIKE 'image/%'");
                     }
                     if (includedDefaultDirs != null) {
                         for (String defaultDir : includedDefaultDirs) {
@@ -3788,8 +3833,7 @@ public class MediaProvider extends ContentProvider {
 
                 final ArrayList<String> options = new ArrayList<>();
                 if (!allowGlobal && !allowLegacyRead) {
-                    options.add(DatabaseUtils.bindSelection("owner_package_name IN "
-                            + sharedPackages));
+                    options.add(DatabaseUtils.bindSelection(matchSharedPackagesClause));
                     if (allowLegacy) {
                         options.add(DatabaseUtils.bindSelection("volume_name=?",
                                 MediaStore.VOLUME_EXTERNAL_PRIMARY));
@@ -5913,11 +5957,6 @@ public class MediaProvider extends ContentProvider {
                 return res;
             }
 
-            path = getAbsoluteSanitizedPath(path);
-            if (path == null) {
-                throw new IOException("Invalid path " + path);
-            }
-
             final Uri contentUri = Files.getContentUri(MediaStore.getVolumeName(new File(path)));
             final String[] projection = new String[]{
                     MediaColumns.OWNER_PACKAGE_NAME, MediaColumns._ID };
@@ -6040,12 +6079,6 @@ public class MediaProvider extends ContentProvider {
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
                 return OsConstants.EACCES;
-            }
-
-            path = getAbsoluteSanitizedPath(path);
-            if (path == null) {
-                Log.e(TAG, "Invalid path " + path);
-                return OsConstants.EPERM;
             }
 
             final Uri contentUri = Files.getContentUri(MediaStore.getVolumeName(new File(path)));
@@ -6183,7 +6216,7 @@ public class MediaProvider extends ContentProvider {
         values.put(MediaColumns.MIME_TYPE, mimeType);
 
         if (useData) {
-            values.put(FileColumns.DATA, getAbsoluteSanitizedPath(path));
+            values.put(FileColumns.DATA, path);
         } else {
             values.put(FileColumns.VOLUME_NAME, extractVolumeName(path));
             values.put(FileColumns.RELATIVE_PATH, extractRelativePath(path));
@@ -6223,6 +6256,11 @@ public class MediaProvider extends ContentProvider {
             if (isPrivatePackagePathNotOwnedByCaller(path)) {
                 Log.e(TAG, "Can't create a file in another app's external directory");
                 return OsConstants.ENOENT;
+            }
+
+            if (!path.equals(getAbsoluteSanitizedPath(path))) {
+                Log.e(TAG, "File name contains invalid characters");
+                return OsConstants.EPERM;
             }
 
             final String mimeType = MimeUtils.resolveMimeType(new File(path));
@@ -6302,24 +6340,15 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EPERM;
             }
 
-            final String sanitizedPath = getAbsoluteSanitizedPath(path);
-            if (sanitizedPath == null) {
-                throw new IOException("Invalid path " + path);
-            }
-
-            final Uri contentUri = Files.getContentUri(MediaStore.getVolumeName(new File(path)));
+            final Uri contentUri = Files.getContentUri(getVolumeName(new File(path)));
             final String where = FileColumns.DATA + " = ?";
-            final String[] whereArgs = {sanitizedPath};
+            final String[] whereArgs = {path};
 
             if (delete(contentUri, where, whereArgs) == 0) {
                 if (shouldBypass) {
                     return deleteFileUnchecked(path);
                 }
                 return OsConstants.ENOENT;
-            } else if (!path.equals(sanitizedPath)) {
-                // delete() doesn't delete the file in lower file system if sanitized path is
-                // different path from actual path. Delete the file using actual path of the file.
-                return deleteFileUnchecked(path);
             } else {
                 // success - 1 file was deleted
                 return 0;

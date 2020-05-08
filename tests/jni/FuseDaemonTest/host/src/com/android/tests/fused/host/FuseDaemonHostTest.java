@@ -272,6 +272,27 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
     }
 
     @Test
+    public void testCanRenameHiddenFile() throws Exception {
+        runDeviceTest("testCanRenameHiddenFile");
+
+    }
+
+    @Test
+    public void testHiddenDirectory() throws Exception {
+        runDeviceTest("testHiddenDirectory");
+    }
+
+    @Test
+    public void testHiddenDirectory_nomedia() throws Exception {
+        runDeviceTest("testHiddenDirectory_nomedia");
+    }
+
+    @Test
+    public void testListHiddenFile() throws Exception {
+        runDeviceTest("testListHiddenFile");
+    }
+
+    @Test
     public void testCanCreateDefaultDirectory() throws Exception {
         runDeviceTest("testCanCreateDefaultDirectory");
     }
@@ -304,6 +325,11 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
     @Test
     public void testRenameCanRestoreDeletedRowId() throws Exception {
         runDeviceTest("testRenameCanRestoreDeletedRowId");
+    }
+
+    @Test
+    public void testCantCreateOrRenameFileWithInvalidName() throws Exception {
+        runDeviceTest("testCantCreateOrRenameFileWithInvalidName");
     }
 
     @Test

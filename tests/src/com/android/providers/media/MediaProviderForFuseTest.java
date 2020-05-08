@@ -124,6 +124,7 @@ public class MediaProviderForFuseTest {
         final File file = new File(sTestDir, "test" + System.nanoTime() + ".jpg");
         Truth.assertThat(sMediaProvider.insertFileIfNecessaryForFuse(
                 file.getPath(), sTestUid)).isEqualTo(0);
+        Truth.assertThat(file.createNewFile()).isTrue();
 
         // Rename directory should bring along files
         final File renamed = new File(sTestDir.getParentFile(), "renamed" + System.nanoTime());

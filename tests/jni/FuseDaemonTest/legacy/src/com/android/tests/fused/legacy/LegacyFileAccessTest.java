@@ -581,8 +581,8 @@ public class LegacyFileAccessTest {
             imageInNoMediaDir.delete();
             renamedImageInDCIM.delete();
             noMediaFile.delete();
+            directoryNoMedia.delete();
         }
-
     }
 
     private static void assertCanCreateFile(File file) throws IOException {

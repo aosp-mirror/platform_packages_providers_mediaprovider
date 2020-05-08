@@ -81,6 +81,7 @@ import static com.android.tests.fused.lib.TestUtils.openFileAs;
 import static com.android.tests.fused.lib.TestUtils.openWithMediaProvider;
 import static com.android.tests.fused.lib.TestUtils.pollForExternalStorageState;
 import static com.android.tests.fused.lib.TestUtils.pollForPermission;
+import static com.android.tests.fused.lib.TestUtils.queryImageFile;
 import static com.android.tests.fused.lib.TestUtils.readExifMetadataFromTestApp;
 import static com.android.tests.fused.lib.TestUtils.revokePermission;
 import static com.android.tests.fused.lib.TestUtils.setupDefaultDirectories;
@@ -92,6 +93,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
+import static org.junit.Assert.assertEquals;
 
 import android.Manifest;
 import android.app.AppOpsManager;
@@ -1542,23 +1544,172 @@ public class FilePathAccessTest {
     }
 
     /**
-     * Test that apps can create hidden file
+     * Test that apps can create and delete hidden file.
      */
     @Test
     public void testCanCreateHiddenFile() throws Exception {
-        final File hiddenFile = new File(DOWNLOAD_DIR, ".hiddenFile");
+        final File hiddenImageFile = new File(DOWNLOAD_DIR, ".hiddenFile" + IMAGE_FILE_NAME);
         try {
-            assertThat(hiddenFile.createNewFile()).isTrue();
+            assertThat(hiddenImageFile.createNewFile()).isTrue();
             // Write to hidden file is allowed.
-            try (final FileOutputStream fos = new FileOutputStream(hiddenFile)) {
+            try (final FileOutputStream fos = new FileOutputStream(hiddenImageFile)) {
                 fos.write(BYTES_DATA1);
             }
-            assertFileContent(hiddenFile, BYTES_DATA1);
+            assertFileContent(hiddenImageFile, BYTES_DATA1);
+
+            assertNotMediaTypeImage(hiddenImageFile);
+
+            assertDirectoryContains(DOWNLOAD_DIR, hiddenImageFile);
+            assertThat(getFileRowIdFromDatabase(hiddenImageFile)).isNotEqualTo(-1);
+
             // We can delete hidden file
-            assertThat(hiddenFile.delete()).isTrue();
-            assertThat(hiddenFile.exists()).isFalse();
+            assertThat(hiddenImageFile.delete()).isTrue();
+            assertThat(hiddenImageFile.exists()).isFalse();
         } finally {
-            hiddenFile.delete();
+            hiddenImageFile.delete();
+        }
+    }
+
+    /**
+     * Test that apps can rename a hidden file.
+     */
+    @Test
+    public void testCanRenameHiddenFile() throws Exception {
+        final String hiddenFileName = ".hidden" + IMAGE_FILE_NAME;
+        final File hiddenImageFile1 = new File(DCIM_DIR, hiddenFileName);
+        final File hiddenImageFile2 = new File(DOWNLOAD_DIR, hiddenFileName);
+        final File imageFile = new File(DOWNLOAD_DIR, IMAGE_FILE_NAME);
+        try {
+            assertThat(hiddenImageFile1.createNewFile()).isTrue();
+            assertCanRenameFile(hiddenImageFile1, hiddenImageFile2);
+            assertNotMediaTypeImage(hiddenImageFile2);
+
+            // We can also rename hidden file to non-hidden
+            assertCanRenameFile(hiddenImageFile2, imageFile);
+            assertIsMediaTypeImage(imageFile);
+
+            // We can rename non-hidden file to hidden
+            assertCanRenameFile(imageFile, hiddenImageFile1);
+            assertNotMediaTypeImage(hiddenImageFile1);
+        } finally {
+            hiddenImageFile1.delete();
+            hiddenImageFile2.delete();
+            imageFile.delete();
+        }
+    }
+
+    /**
+     * Test that files in hidden directory have MEDIA_TYPE=MEDIA_TYPE_NONE
+     */
+    @Test
+    public void testHiddenDirectory() throws Exception {
+        final File hiddenDir = new File(DOWNLOAD_DIR, ".hidden" + TEST_DIRECTORY_NAME);
+        final File hiddenImageFile = new File(hiddenDir, IMAGE_FILE_NAME);
+        final File nonHiddenDir = new File(DOWNLOAD_DIR, TEST_DIRECTORY_NAME);
+        final File imageFile = new File(nonHiddenDir, IMAGE_FILE_NAME);
+        try {
+            if (!hiddenDir.exists()) {
+                assertThat(hiddenDir.mkdir()).isTrue();
+            }
+            assertThat(hiddenImageFile.createNewFile()).isTrue();
+
+            assertNotMediaTypeImage(hiddenImageFile);
+
+            // Renaming hiddenDir to nonHiddenDir makes the imageFile non-hidden and vice versa
+            assertCanRenameDirectory(hiddenDir, nonHiddenDir, new File[] {hiddenImageFile},
+                    new File[] {imageFile});
+            assertIsMediaTypeImage(imageFile);
+
+            assertCanRenameDirectory(nonHiddenDir, hiddenDir, new File[] {imageFile},
+                    new File[] {hiddenImageFile});
+            assertNotMediaTypeImage(hiddenImageFile);
+        } finally {
+            hiddenImageFile.delete();
+            imageFile.delete();
+            hiddenDir.delete();
+            nonHiddenDir.delete();
+        }
+    }
+
+    /**
+     * Test that files in directory with nomedia have MEDIA_TYPE=MEDIA_TYPE_NONE
+     */
+    @Test
+    public void testHiddenDirectory_nomedia() throws Exception {
+        final File directoryNoMedia = new File(DOWNLOAD_DIR, "nomedia" + TEST_DIRECTORY_NAME);
+        final File noMediaFile = new File(directoryNoMedia, ".nomedia");
+        final File imageFile = new File(directoryNoMedia, IMAGE_FILE_NAME);
+        final File videoFile = new File(directoryNoMedia, VIDEO_FILE_NAME);
+        try {
+            if (!directoryNoMedia.exists()) {
+                assertThat(directoryNoMedia.mkdir()).isTrue();
+            }
+            assertThat(noMediaFile.createNewFile()).isTrue();
+            assertThat(imageFile.createNewFile()).isTrue();
+
+            assertNotMediaTypeImage(imageFile);
+
+            // Deleting the .nomedia file makes the parent directory non hidden.
+            noMediaFile.delete();
+            MediaStore.scanFile(getContentResolver(), directoryNoMedia);
+            assertIsMediaTypeImage(imageFile);
+
+            // Creating the .nomedia file makes the parent directory hidden again
+            assertThat(noMediaFile.createNewFile()).isTrue();
+            MediaStore.scanFile(getContentResolver(), directoryNoMedia);
+            assertNotMediaTypeImage(imageFile);
+
+            // Renaming the .nomedia file to non hidden file makes the parent directory non hidden.
+            assertCanRenameFile(noMediaFile, videoFile);
+            assertIsMediaTypeImage(imageFile);
+        } finally {
+            noMediaFile.delete();
+            imageFile.delete();
+            videoFile.delete();
+            directoryNoMedia.delete();
+        }
+    }
+
+    /**
+     * Test that only file manager and app that created the hidden file can list it.
+     */
+    @Test
+    public void testListHiddenFile() throws Exception {
+        final String hiddenImageFileName = ".hidden" + IMAGE_FILE_NAME;
+        final File hiddenImageFile = new File(DCIM_DIR, hiddenImageFileName);
+        try {
+            assertThat(hiddenImageFile.createNewFile()).isTrue();
+            assertNotMediaTypeImage(hiddenImageFile);
+
+            assertDirectoryContains(DCIM_DIR, hiddenImageFile);
+
+            installApp(TEST_APP_A, true);
+            // TestApp with read permissions can't see the hidden image file created by other app
+            assertThat(listAs(TEST_APP_A, DCIM_DIR.getAbsolutePath()))
+                    .doesNotContain(hiddenImageFileName);
+
+            final int testAppUid =
+                    getContext().getPackageManager().getPackageUid(TEST_APP_A.getPackageName(), 0);
+            // FileManager can see the hidden image file created by other app
+            try {
+                allowAppOpsToUid(testAppUid, OPSTR_MANAGE_EXTERNAL_STORAGE);
+                assertThat(listAs(TEST_APP_A, DCIM_DIR.getAbsolutePath()))
+                        .contains(hiddenImageFileName);
+            } finally {
+                denyAppOpsToUid(testAppUid, OPSTR_MANAGE_EXTERNAL_STORAGE);
+            }
+
+            // Gallery can not see the hidden image file created by other app
+            try {
+                allowAppOpsToUid(testAppUid, SYSTEM_GALERY_APPOPS);
+                assertThat(listAs(TEST_APP_A, DCIM_DIR.getAbsolutePath()))
+                        .doesNotContain(hiddenImageFileName);
+            } finally {
+                denyAppOpsToUid(testAppUid, SYSTEM_GALERY_APPOPS);
+            }
+        } finally {
+            hiddenImageFile.delete();
+            uninstallAppNoThrow(TEST_APP_A);
         }
     }
 
@@ -1767,9 +1918,11 @@ public class FilePathAccessTest {
         final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
         final File otherAppImg = new File(DCIM_DIR, "other" + IMAGE_FILE_NAME);
         final File otherAppMusic = new File(MUSIC_DIR, "other" + AUDIO_FILE_NAME);
+        final File otherHiddenFile = new File(PICTURES_DIR, ".otherHiddenFile.jpg");
         try {
             installApp(TEST_APP_A);
-            assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
+            assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf,
+                    otherHiddenFile);
 
             // Once the test has permission to manage external storage, it can query for other apps'
             // files and open them for read and write
@@ -1778,9 +1931,10 @@ public class FilePathAccessTest {
             assertCanQueryAndOpenFile(otherAppPdf, "rw");
             assertCanQueryAndOpenFile(otherAppImg, "rw");
             assertCanQueryAndOpenFile(otherAppMusic, "rw");
+            assertCanQueryAndOpenFile(otherHiddenFile, "rw");
         } finally {
             denyAppOpsToUid(Process.myUid(), OPSTR_MANAGE_EXTERNAL_STORAGE);
-            deleteFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
+            deleteFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf, otherHiddenFile);
             uninstallApp(TEST_APP_A);
         }
     }
@@ -1790,17 +1944,20 @@ public class FilePathAccessTest {
         final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
         final File otherAppImg = new File(DCIM_DIR, "other" + IMAGE_FILE_NAME);
         final File otherAppMusic = new File(MUSIC_DIR, "other" + AUDIO_FILE_NAME);
+        final File otherHiddenFile = new File(PICTURES_DIR, ".otherHiddenFile.jpg");
         try {
             installApp(TEST_APP_A);
-            assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
+            assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf,
+                    otherHiddenFile);
 
             // Since the test doesn't have READ_EXTERNAL_STORAGE nor any other special permissions,
             // it can't query for another app's contents.
             assertCantQueryFile(otherAppImg);
             assertCantQueryFile(otherAppMusic);
             assertCantQueryFile(otherAppPdf);
+            assertCantQueryFile(otherHiddenFile);
         } finally {
-            deleteFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
+            deleteFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf, otherHiddenFile);
             uninstallApp(TEST_APP_A);
         }
     }
@@ -1810,20 +1967,24 @@ public class FilePathAccessTest {
         final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
         final File otherAppImg = new File(DCIM_DIR, "other" + IMAGE_FILE_NAME);
         final File otherAppMusic = new File(MUSIC_DIR, "other" + AUDIO_FILE_NAME);
+        final File otherHiddenFile = new File(PICTURES_DIR, ".otherHiddenFile.jpg");
         try {
             installApp(TEST_APP_A);
-            assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
+            assertCreateFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf,
+                    otherHiddenFile);
 
             // System gallery apps have access to video and image files
             allowAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
 
             assertCanQueryAndOpenFile(otherAppImg, "rw");
+            // System gallery doesn't have access to hidden image files of other app
+            assertCantQueryFile(otherHiddenFile);
             // But no access to PDFs or music files
             assertCantQueryFile(otherAppMusic);
             assertCantQueryFile(otherAppPdf);
         } finally {
             denyAppOpsToUid(Process.myUid(), SYSTEM_GALERY_APPOPS);
-            deleteFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf);
+            deleteFilesAs(TEST_APP_A, otherAppImg, otherAppMusic, otherAppPdf, otherHiddenFile);
             uninstallApp(TEST_APP_A);
         }
     }
@@ -1944,6 +2105,35 @@ public class FilePathAccessTest {
             temporaryFile.delete();
         }
     }
+
+    @Test
+    public void testCantCreateOrRenameFileWithInvalidName() throws Exception {
+        File invalidFile = new File(DOWNLOAD_DIR, "<>");
+        File validFile = new File(DOWNLOAD_DIR, NONMEDIA_FILE_NAME);
+        try {
+            assertThrows(IOException.class, "Operation not permitted", () -> {
+                invalidFile.createNewFile();
+            });
+
+            assertThat(validFile.createNewFile()).isTrue();
+            // We can't rename a file to a file name with invalid FAT characters.
+            assertCantRenameFile(validFile, invalidFile);
+        } finally {
+            invalidFile.delete();
+            validFile.delete();
+        }
+    }
+
+    private static void assertIsMediaTypeImage(File file) {
+        final Cursor c = queryImageFile(file);
+        assertEquals(1, c.getCount());
+    }
+
+    private static void assertNotMediaTypeImage(File file) {
+        final Cursor c = queryImageFile(file);
+        assertEquals(0, c.getCount());
+    }
+
     private static void assertCantQueryFile(File file) {
         assertThat(getFileUri(file)).isNull();
     }

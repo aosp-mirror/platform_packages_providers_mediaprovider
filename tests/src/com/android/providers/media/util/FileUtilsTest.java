@@ -555,7 +555,7 @@ public class FileUtilsTest {
         final ContentValues values = new ContentValues();
         values.put(MediaColumns.RELATIVE_PATH, "path/in\0valid/data/");
         values.put(MediaColumns.DISPLAY_NAME, "inva\0lid");
-        FileUtils.sanitizeValues(values);
+        FileUtils.sanitizeValues(values, /*rewriteHiddenFileName*/ true);
         assertEquals("path/in_valid/data/", values.get(MediaColumns.RELATIVE_PATH));
         assertEquals("inva_lid", values.get(MediaColumns.DISPLAY_NAME));
     }
@@ -564,8 +564,25 @@ public class FileUtilsTest {
     public void testSanitizeValues_Root() throws Exception {
         final ContentValues values = new ContentValues();
         values.put(MediaColumns.RELATIVE_PATH, "/");
-        FileUtils.sanitizeValues(values);
+        FileUtils.sanitizeValues(values, /*rewriteHiddenFileName*/ true);
         assertEquals("/", values.get(MediaColumns.RELATIVE_PATH));
+    }
+
+    @Test
+    public void testSanitizeValues_HiddenFile() throws Exception {
+        final String hiddenDirectoryPath = ".hiddenDirectory/";
+        final String hiddenFileName = ".hiddenFile";
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.RELATIVE_PATH, hiddenDirectoryPath);
+        values.put(MediaColumns.DISPLAY_NAME, hiddenFileName);
+
+        FileUtils.sanitizeValues(values, /*rewriteHiddenFileName*/ false);
+        assertEquals(hiddenDirectoryPath, values.get(MediaColumns.RELATIVE_PATH));
+        assertEquals(hiddenFileName, values.get(MediaColumns.DISPLAY_NAME));
+
+        FileUtils.sanitizeValues(values, /*rewriteHiddenFileName*/ true);
+        assertEquals("_" + hiddenDirectoryPath, values.get(MediaColumns.RELATIVE_PATH));
+        assertEquals("_" + hiddenFileName, values.get(MediaColumns.DISPLAY_NAME));
     }
 
     @Test

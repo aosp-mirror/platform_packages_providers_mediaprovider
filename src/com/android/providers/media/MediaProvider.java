@@ -266,6 +266,15 @@ public class MediaProvider extends ContentProvider {
             "android:included-default-directories";
 
     /**
+     * Value indicating that operations should include database rows matching the criteria defined
+     * by this key only when calling package has write permission to the database row.
+     * <p>
+     * Note that items <em>not</em> matching the criteria will also be included, and as part of this
+     * match no additional write permission checks are carried out for those items.
+     */
+    private static final int MATCH_WRITABLE = 32;
+
+    /**
      * Set of {@link Cursor} columns that refer to raw filesystem paths.
      */
     private static final ArrayMap<String, Object> sDataColumns = new ArrayMap<>();
@@ -1268,6 +1277,94 @@ public class MediaProvider extends ContentProvider {
             return newUri;
         }
         return uri;
+    }
+
+    /**
+     * @return where clause to include database rows where
+     * <ul>
+     * <li> {@code column} is not set or
+     * <li> {@code column} is set and calling package has write permission to corresponding db row.
+     * </ul>
+     * The method is used to match db rows corresponding to writable pending and trashed files.
+     */
+    @Nullable
+    private String getWhereClauseForWritableMatch(@NonNull Uri uri, @NonNull String column) {
+        if (isCallingPackageLegacyWrite() || checkCallingPermissionGlobal(uri, /*forWrite*/ true)) {
+            // No special filtering needed
+            return null;
+        }
+
+        final String callingPackage = getCallingPackageOrSelf();
+
+        final ArrayList<String> options = new ArrayList<>();
+        switch(matchUri(uri, isCallingPackageAllowedHidden())) {
+            case IMAGES_MEDIA_ID:
+            case IMAGES_MEDIA:
+            case IMAGES_THUMBNAILS_ID:
+            case IMAGES_THUMBNAILS:
+                if (checkCallingPermissionImages(/*forWrite*/ true, callingPackage)) {
+                    // No special filtering needed
+                    return null;
+                }
+                break;
+            case AUDIO_MEDIA_ID:
+            case AUDIO_MEDIA:
+            case AUDIO_PLAYLISTS_ID:
+            case AUDIO_PLAYLISTS:
+                if (checkCallingPermissionAudio(/*forWrite*/ true, callingPackage)) {
+                    // No special filtering needed
+                    return null;
+                }
+                break;
+            case VIDEO_MEDIA_ID:
+            case VIDEO_MEDIA:
+            case VIDEO_THUMBNAILS_ID:
+            case VIDEO_THUMBNAILS:
+                if (checkCallingPermissionVideo(/*firWrite*/ true, callingPackage)) {
+                    // No special filtering needed
+                    return null;
+                }
+                break;
+            case DOWNLOADS_ID:
+            case DOWNLOADS:
+                // No app has special permissions for downloads.
+                break;
+            case FILES_ID:
+            case FILES:
+                if (checkCallingPermissionAudio(/*forWrite*/ true, callingPackage)) {
+                    // Allow apps with audio permission to include audio* media types.
+                    options.add(DatabaseUtils.bindSelection("media_type=?",
+                            FileColumns.MEDIA_TYPE_AUDIO));
+                    options.add(DatabaseUtils.bindSelection("media_type=?",
+                            FileColumns.MEDIA_TYPE_PLAYLIST));
+                    options.add(DatabaseUtils.bindSelection("media_type=?",
+                            FileColumns.MEDIA_TYPE_SUBTITLE));
+                }
+                if (checkCallingPermissionVideo(/*forWrite*/ true, callingPackage)) {
+                    // Allow apps with video permission to include video* media types.
+                    options.add(DatabaseUtils.bindSelection("media_type=?",
+                            FileColumns.MEDIA_TYPE_VIDEO));
+                    options.add(DatabaseUtils.bindSelection("media_type=?",
+                            FileColumns.MEDIA_TYPE_SUBTITLE));
+                }
+                if (checkCallingPermissionImages(/*forWrite*/ true, callingPackage)) {
+                    // Allow apps with images permission to include images* media types.
+                    options.add(DatabaseUtils.bindSelection("media_type=?",
+                            FileColumns.MEDIA_TYPE_IMAGE));
+                }
+                break;
+            default:
+                // is_pending, is_trashed are not applicable for rest of the media tables.
+                return null;
+        }
+
+        final String matchSharedPackagesClause = FileColumns.OWNER_PACKAGE_NAME + " IN "
+                + getSharedPackages(callingPackage);
+        options.add(DatabaseUtils.bindSelection(matchSharedPackagesClause));
+
+        final String matchWritableRowsClause = String.format("%s=0 OR (%s=1 AND %s)", column,
+                column, TextUtils.join(" OR ", options));
+        return matchWritableRowsClause;
     }
 
     /**
@@ -3281,8 +3378,8 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private static void appendWhereStandaloneMatch(@NonNull SQLiteQueryBuilder qb,
-            @NonNull String column, /* @Match */ int match) {
+    private void appendWhereStandaloneMatch(@NonNull SQLiteQueryBuilder qb,
+            @NonNull String column, /* @Match */ int match, Uri uri) {
         switch (match) {
             case MATCH_INCLUDE:
                 // No special filtering needed
@@ -3292,6 +3389,12 @@ public class MediaProvider extends ContentProvider {
                 break;
             case MATCH_ONLY:
                 appendWhereStandalone(qb, column + "=?", 1);
+                break;
+            case MATCH_WRITABLE:
+                final String whereClause = getWhereClauseForWritableMatch(uri, column);
+                if (whereClause != null) {
+                    appendWhereStandalone(qb, whereClause);
+                }
                 break;
             default:
                 throw new IllegalArgumentException();
@@ -3403,8 +3506,16 @@ public class MediaProvider extends ContentProvider {
         if (MediaStore.getIncludePending(uri)) matchPending = MATCH_INCLUDE;
 
         // Resolve any remaining default options
-        if (matchPending == MATCH_DEFAULT) matchPending = MATCH_EXCLUDE;
-        if (matchTrashed == MATCH_DEFAULT) matchTrashed = MATCH_EXCLUDE;
+        final int defaultMatchForPendingAndTrashed;
+        if (isFuseThread()) {
+            // Write operations always check for file ownership, we don't need additional write
+            // permission check for is_pending and is_trashed.
+            defaultMatchForPendingAndTrashed = forWrite ? MATCH_INCLUDE : MATCH_WRITABLE;
+        } else {
+            defaultMatchForPendingAndTrashed = MATCH_EXCLUDE;
+        }
+        if (matchPending == MATCH_DEFAULT) matchPending = defaultMatchForPendingAndTrashed;
+        if (matchTrashed == MATCH_DEFAULT) matchTrashed = defaultMatchForPendingAndTrashed;
         if (matchFavorite == MATCH_DEFAULT) matchFavorite = MATCH_INCLUDE;
 
         // Handle callers using legacy filtering
@@ -3433,9 +3544,9 @@ public class MediaProvider extends ContentProvider {
                 if (!allowGlobal && !checkCallingPermissionImages(forWrite, callingPackage)) {
                     appendWhereStandalone(qb, matchSharedPackagesClause);
                 }
-                appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending);
-                appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed);
-                appendWhereStandaloneMatch(qb, FileColumns.IS_FAVORITE, matchFavorite);
+                appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending, uri);
+                appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed, uri);
+                appendWhereStandaloneMatch(qb, FileColumns.IS_FAVORITE, matchFavorite, uri);
                 if (honored != null) {
                     honored.accept(QUERY_ARG_MATCH_PENDING);
                     honored.accept(QUERY_ARG_MATCH_TRASHED);
@@ -3493,9 +3604,9 @@ public class MediaProvider extends ContentProvider {
                 appendWhereStandaloneFilter(qb, new String[] {
                         AudioColumns.ARTIST_KEY, AudioColumns.ALBUM_KEY, AudioColumns.TITLE_KEY
                 }, filter);
-                appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending);
-                appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed);
-                appendWhereStandaloneMatch(qb, FileColumns.IS_FAVORITE, matchFavorite);
+                appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending, uri);
+                appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed, uri);
+                appendWhereStandaloneMatch(qb, FileColumns.IS_FAVORITE, matchFavorite, uri);
                 if (honored != null) {
                     honored.accept(QUERY_ARG_MATCH_PENDING);
                     honored.accept(QUERY_ARG_MATCH_TRASHED);
@@ -3583,9 +3694,9 @@ public class MediaProvider extends ContentProvider {
                 if (!allowGlobal && !checkCallingPermissionAudio(forWrite, callingPackage)) {
                     appendWhereStandalone(qb, matchSharedPackagesClause);
                 }
-                appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending);
-                appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed);
-                appendWhereStandaloneMatch(qb, FileColumns.IS_FAVORITE, matchFavorite);
+                appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending, uri);
+                appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed, uri);
+                appendWhereStandaloneMatch(qb, FileColumns.IS_FAVORITE, matchFavorite, uri);
                 if (honored != null) {
                     honored.accept(QUERY_ARG_MATCH_PENDING);
                     honored.accept(QUERY_ARG_MATCH_TRASHED);
@@ -3725,9 +3836,9 @@ public class MediaProvider extends ContentProvider {
                 if (!allowGlobal && !checkCallingPermissionVideo(forWrite, callingPackage)) {
                     appendWhereStandalone(qb, matchSharedPackagesClause);
                 }
-                appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending);
-                appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed);
-                appendWhereStandaloneMatch(qb, FileColumns.IS_FAVORITE, matchFavorite);
+                appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending, uri);
+                appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed, uri);
+                appendWhereStandaloneMatch(qb, FileColumns.IS_FAVORITE, matchFavorite, uri);
                 if (honored != null) {
                     honored.accept(QUERY_ARG_MATCH_PENDING);
                     honored.accept(QUERY_ARG_MATCH_TRASHED);
@@ -3804,9 +3915,9 @@ public class MediaProvider extends ContentProvider {
                 appendWhereStandaloneFilter(qb, new String[] {
                         AudioColumns.ARTIST_KEY, AudioColumns.ALBUM_KEY, AudioColumns.TITLE_KEY
                 }, filter);
-                appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending);
-                appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed);
-                appendWhereStandaloneMatch(qb, FileColumns.IS_FAVORITE, matchFavorite);
+                appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending, uri);
+                appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed, uri);
+                appendWhereStandaloneMatch(qb, FileColumns.IS_FAVORITE, matchFavorite, uri);
                 if (honored != null) {
                     honored.accept(QUERY_ARG_MATCH_PENDING);
                     honored.accept(QUERY_ARG_MATCH_TRASHED);
@@ -3846,9 +3957,9 @@ public class MediaProvider extends ContentProvider {
                     appendWhereStandalone(qb, TextUtils.join(" OR ", options));
                 }
 
-                appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending);
-                appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed);
-                appendWhereStandaloneMatch(qb, FileColumns.IS_FAVORITE, matchFavorite);
+                appendWhereStandaloneMatch(qb, FileColumns.IS_PENDING, matchPending, uri);
+                appendWhereStandaloneMatch(qb, FileColumns.IS_TRASHED, matchTrashed, uri);
+                appendWhereStandaloneMatch(qb, FileColumns.IS_FAVORITE, matchFavorite, uri);
                 if (honored != null) {
                     honored.accept(QUERY_ARG_MATCH_PENDING);
                     honored.accept(QUERY_ARG_MATCH_TRASHED);

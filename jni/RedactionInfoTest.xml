@@ -30,4 +30,8 @@
         <!-- test-timeout unit is ms, value = 10 min -->
         <option name="native-test-timeout" value="600000" />
     </test>
+
+    <object type="module_controller" class="com.android.tradefed.testtype.suite.module.MainlineTestModuleController">
+        <option name="mainline-module-package-name" value="com.google.android.mediaprovider" />
+    </object>
 </configuration>

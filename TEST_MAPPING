@@ -15,10 +15,9 @@
             ]
         },
         {
+            // This is a typo and is tracked in b/155715039 but flaky on CF.
+            // Will fix this once the root cause of flake is fixed.
             "name": "AdoptableHostTest"
-        },
-        {
-            "name": "AdoptableFeatureConsistentTest"
         },
         {
             "name": "FuseDaemonHostTest"

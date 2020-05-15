@@ -430,7 +430,7 @@ namespace fuse {
 
 static void pf_init(void* userdata, struct fuse_conn_info* conn) {
     // We don't want a getattr request with every read request
-    conn->want &= ~FUSE_CAP_AUTO_INVAL_DATA;
+    conn->want &= ~FUSE_CAP_AUTO_INVAL_DATA & ~FUSE_CAP_READDIRPLUS_AUTO;
     unsigned mask = (FUSE_CAP_SPLICE_WRITE | FUSE_CAP_SPLICE_MOVE | FUSE_CAP_SPLICE_READ |
                      FUSE_CAP_ASYNC_READ | FUSE_CAP_ATOMIC_O_TRUNC | FUSE_CAP_WRITEBACK_CACHE |
                      FUSE_CAP_EXPORT_SUPPORT | FUSE_CAP_FLOCK_LOCKS);
@@ -1302,8 +1302,11 @@ static void do_readdir_common(fuse_req_t req,
                 return;
             }
         } else {
+            // This should never happen because we have readdir_plus enabled without adaptive
+            // readdir_plus, FUSE_CAP_READDIRPLUS_AUTO
+            LOG(WARNING) << "Handling plain readdir for " << de->d_name << ". Invalid d_ino";
             e.attr.st_ino = FUSE_UNKNOWN_INO;
-            e.attr.st_mode = de->d_type;
+            e.attr.st_mode = de->d_type << 12;
             entry_size = fuse_add_direntry(req, buf + used, len - used, de->d_name.c_str(), &e.attr,
                                            h->next_off);
         }

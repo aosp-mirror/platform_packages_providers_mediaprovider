@@ -812,6 +812,18 @@ public class FileUtils {
     }
 
     /**
+     * Returns the content URI for the volume that contains the given path.
+     *
+     * <p>{@link MediaStore.Files#getContentUriForPath(String)} can't detect public volumes and can
+     * only return the URI for the primary external storage, that's why this utility should be used
+     * instead.
+     */
+    public static @NonNull Uri getContentUriForPath(@NonNull String path) {
+        Objects.requireNonNull(path);
+        return MediaStore.Files.getContentUri(extractVolumeName(path));
+    }
+
+    /**
      * Return volume name which hosts the given path.
      */
     public static @NonNull String getVolumeName(@NonNull Context context, @NonNull File path) {

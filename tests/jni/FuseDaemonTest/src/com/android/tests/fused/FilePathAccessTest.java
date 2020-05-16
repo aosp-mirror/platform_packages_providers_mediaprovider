@@ -1514,10 +1514,11 @@ public class FilePathAccessTest {
         File emptyDirectoryOldPath = new File(DCIM_DIR, emptyDirectoryName);
         File emptyDirectoryNewPath = new File(MOVIES_DIR, TEST_DIRECTORY_NAME);
         try {
-            if (!emptyDirectoryOldPath.exists()) {
-                assertThat(emptyDirectoryOldPath.mkdirs()).isTrue();
-                assertCanRenameDirectory(emptyDirectoryOldPath, emptyDirectoryNewPath, null, null);
+            if (emptyDirectoryOldPath.exists()) {
+                executeShellCommand("rm -r " + emptyDirectoryOldPath.getPath());
             }
+            assertThat(emptyDirectoryOldPath.mkdirs()).isTrue();
+            assertCanRenameDirectory(emptyDirectoryOldPath, emptyDirectoryNewPath, null, null);
         } finally {
             emptyDirectoryOldPath.delete();
             emptyDirectoryNewPath.delete();

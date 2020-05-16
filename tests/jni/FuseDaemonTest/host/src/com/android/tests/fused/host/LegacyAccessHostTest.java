@@ -193,6 +193,11 @@ public class LegacyAccessHostTest extends BaseHostJUnit4Test {
     }
 
     @Test
+    public void testRenameDirectoryAndUpdateDB_hasW() throws Exception {
+        runDeviceTest("testRenameDirectoryAndUpdateDB_hasW");
+    }
+
+    @Test
     public void testCanDeleteAllFiles_hasRW() throws Exception {
         runDeviceTest("testCanDeleteAllFiles_hasRW");
     }

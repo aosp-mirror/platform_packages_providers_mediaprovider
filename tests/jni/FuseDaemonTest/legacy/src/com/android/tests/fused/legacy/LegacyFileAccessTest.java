@@ -18,7 +18,9 @@ package com.android.tests.fused.legacy;
 
 import static com.android.tests.fused.lib.TestUtils.BYTES_DATA1;
 import static com.android.tests.fused.lib.TestUtils.BYTES_DATA2;
+import static com.android.tests.fused.lib.TestUtils.DCIM_DIR;
 import static com.android.tests.fused.lib.TestUtils.EXTERNAL_STORAGE_DIR;
+import static com.android.tests.fused.lib.TestUtils.MOVIES_DIR;
 import static com.android.tests.fused.lib.TestUtils.STR_DATA1;
 import static com.android.tests.fused.lib.TestUtils.STR_DATA2;
 import static com.android.tests.fused.lib.TestUtils.assertCanRenameFile;
@@ -28,6 +30,7 @@ import static com.android.tests.fused.lib.TestUtils.assertDirectoryContains;
 import static com.android.tests.fused.lib.TestUtils.assertFileContent;
 import static com.android.tests.fused.lib.TestUtils.createFileAs;
 import static com.android.tests.fused.lib.TestUtils.deleteFileAsNoThrow;
+import static com.android.tests.fused.lib.TestUtils.executeShellCommand;
 import static com.android.tests.fused.lib.TestUtils.getContentResolver;
 import static com.android.tests.fused.lib.TestUtils.getFileOwnerPackageFromDatabase;
 import static com.android.tests.fused.lib.TestUtils.getFileRowIdFromDatabase;
@@ -98,7 +101,6 @@ public class LegacyFileAccessTest {
 
     private static final TestApp TEST_APP_A  = new TestApp("TestAppA",
             "com.android.tests.fused.testapp.A", 1, false, "TestAppA.apk");
-
 
     /**
      * This method needs to be called once before running the whole test.
@@ -396,6 +398,36 @@ public class LegacyFileAccessTest {
         } finally {
             mediaFile1.delete();
             mediaFile2.delete();
+        }
+    }
+
+    /**
+     * b/156046098, Test that MediaProvider doesn't throw UNIQUE constraint error while updating db
+     * rows corresponding to renamed directory.
+     */
+    @Test
+    public void testRenameDirectoryAndUpdateDB_hasW() throws Exception {
+        final String testDirectoryName = "LegacyFileAccessTestDirectory";
+        File directoryOldPath = new File(DCIM_DIR, testDirectoryName);
+        File directoryNewPath = new File(MOVIES_DIR, testDirectoryName);
+        try {
+            if (directoryOldPath.exists()) {
+                executeShellCommand("rm -r " + directoryOldPath.getPath());
+            }
+            assertThat(directoryOldPath.mkdirs()).isTrue();
+            assertCanRenameDirectory(directoryOldPath, directoryNewPath, null, null);
+
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.MediaColumns.DATA, directoryNewPath.getPath());
+            // Verify that updating directoryOldPath to directoryNewPath doesn't throw
+            // UNIQUE constraint error.
+            getContentResolver().update(
+                    MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL),
+                    values, /*where*/ MediaStore.MediaColumns.DATA + "=?",
+                    /*whereArgs*/ new String[] {directoryOldPath.getPath()});
+        } finally {
+            directoryOldPath.delete();
+            directoryNewPath.delete();
         }
     }
 

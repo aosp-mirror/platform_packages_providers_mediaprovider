@@ -24,4 +24,8 @@
         <option name="class" value="com.android.tests.fused.host.LegacyAccessHostTest" />
         <option name="class" value="com.android.tests.fused.host.FuseDaemonHostTest" />
     </test>
+
+    <object type="module_controller" class="com.android.tradefed.testtype.suite.module.MainlineTestModuleController">
+        <option name="mainline-module-package-name" value="com.google.android.mediaprovider" />
+    </object>
 </configuration>

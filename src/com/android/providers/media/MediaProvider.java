@@ -1337,7 +1337,7 @@ public class MediaProvider extends ContentProvider {
             queryArgs.putString(QUERY_ARG_SQL_SELECTION, MediaColumns.RELATIVE_PATH +
                     " =? and mime_type not like 'null'");
             queryArgs.putStringArray(QUERY_ARG_SQL_SELECTION_ARGS, new String[] {relativePath});
-            try (final Cursor cursor = query(Files.getContentUriForPath(path), projection,
+            try (final Cursor cursor = query(FileUtils.getContentUriForPath(path), projection,
                     queryArgs, null)) {
                 while(cursor.moveToNext()) {
                     fileNamesList.add(cursor.getString(cursor.getColumnIndex(projection[0])));
@@ -1356,26 +1356,29 @@ public class MediaProvider extends ContentProvider {
      * updated with media type resolved based on the mime type of the file. This updated media type
      * doesn't consider hidden file/hidden directory, so we must scan the new path to update the
      * media type based on the path of the file.
-     * <li>When a .nomedia file is moved to new path, old parent of the .nomedia file is no more
-     * hidden. We should scan old parent directory to ensure all files in that directory will be
-     * updated with appropriate media type.
      * <li>When a file is renamed to .nomedia, the new parent will be a hidden directory. We should
      * scan new parent directory to ensure all files in that directory are updated with
      * MEDIA_TYPE_NONE.
+     * <li>When a .nomedia file is moved to new path, old parent of the .nomedia file is no more
+     * hidden. We should scan old parent directory to ensure all files in that directory will be
+     * updated with appropriate media type.
+     * <li>Because we don't update db rows for directories, we scan the oldPath to discard stale
+     * directory db rows. This prevents conflicts during subsequent db operations with oldPath.
      * </ul>
      */
     private void scanRenamedPathForFuse(@NonNull String oldPath, @NonNull String newPath) {
         final LocalCallingIdentity token = clearLocalCallingIdentity();
         try {
-            if (extractDisplayName(oldPath).equals(".nomedia")) {
-                // .nomedia file is moved to a new directory. Old directory may not be treated as
-                // hidden anymore.
-                scanFile(new File(oldPath).getParentFile(), REASON_DEMAND);
-            }
+            // We should always scan oldPath to ensure stale db rows corresponding to directories in
+            // oldPath are removed. If oldPath is .nomedia file and is now moved to a new directory,
+            // we should scan parent directory of oldPath to make parent directory non-hidden.
+            final File oldPathToScan = extractDisplayName(oldPath).equals(".nomedia") ?
+                    new File(oldPath).getParentFile() : new File(oldPath);
+            scanFile(oldPathToScan, REASON_DEMAND);
 
             // We should always scan new path to update the media type, but if new file is .nomedia
             // we should scan new parent as well
-            File newPathToScan = extractDisplayName(newPath).equals(".nomedia") ?
+            final File newPathToScan = extractDisplayName(newPath).equals(".nomedia") ?
                     new File(newPath).getParentFile() : new File(newPath);
             scanFile(newPathToScan, REASON_DEMAND);
         } finally {
@@ -1424,7 +1427,7 @@ public class MediaProvider extends ContentProvider {
     private boolean maybeRemoveOwnerPackageForFuseRename(@NonNull DatabaseHelper helper,
             @NonNull String path) {
 
-        final Uri uri = Files.getContentUriForPath(path);
+        final Uri uri = FileUtils.getContentUriForPath(path);
         final int match = matchUri(uri, isCallingPackageAllowedHidden());
         final String ownerPackageName;
         final String selection = MediaColumns.DATA + " =? AND "
@@ -1466,7 +1469,7 @@ public class MediaProvider extends ContentProvider {
     private boolean updateDatabaseForFuseRename(@NonNull DatabaseHelper helper,
             @NonNull String oldPath, @NonNull String newPath, @NonNull ContentValues values,
             @NonNull Bundle qbExtras) {
-        final Uri uriOldPath = Files.getContentUriForPath(oldPath);
+        final Uri uriOldPath = FileUtils.getContentUriForPath(oldPath);
         boolean allowHidden = isCallingPackageAllowedHidden();
         final SQLiteQueryBuilder qbForUpdate = getQueryBuilder(TYPE_UPDATE,
                 matchUri(uriOldPath, allowHidden), uriOldPath, qbExtras, null);
@@ -1487,7 +1490,7 @@ public class MediaProvider extends ContentProvider {
         if (retryUpdateWithReplace) {
             // We are replacing file in newPath with file in oldPath. If calling package has
             // write permission for newPath, delete existing database entry and retry update.
-            final Uri uriNewPath = Files.getContentUriForPath(oldPath);
+            final Uri uriNewPath = FileUtils.getContentUriForPath(oldPath);
             final SQLiteQueryBuilder qbForDelete = getQueryBuilder(TYPE_DELETE,
                     matchUri(uriNewPath, allowHidden), uriNewPath, qbExtras, null);
             if (qbForDelete.delete(helper, selection, new String[] {newPath}) == 1) {
@@ -1545,7 +1548,7 @@ public class MediaProvider extends ContentProvider {
         ArrayList<String> fileList = new ArrayList<>();
 
         final LocalCallingIdentity token = clearLocalCallingIdentity();
-        try (final Cursor c = query(Files.getContentUriForPath(oldPath),
+        try (final Cursor c = query(FileUtils.getContentUriForPath(oldPath),
                 new String[] {MediaColumns.DATA}, selection, null, null)) {
             while (c.moveToNext()) {
                 final String filePath = c.getString(0).replaceFirst("^" + oldPath + "/(.*)", "$1");
@@ -1584,7 +1587,7 @@ public class MediaProvider extends ContentProvider {
         final int countAllFilesInDirectory;
         final String selection = MediaColumns.RELATIVE_PATH + " REGEXP '^" +
                 extractRelativePathForDirectory(oldPath) + "/?.*' and mime_type not like 'null'";
-        final Uri uriOldPath = Files.getContentUriForPath(oldPath);
+        final Uri uriOldPath = FileUtils.getContentUriForPath(oldPath);
 
         final LocalCallingIdentity token = clearLocalCallingIdentity();
         try (final Cursor c = query(uriOldPath, new String[] {MediaColumns._ID}, selection, null,
@@ -1679,7 +1682,7 @@ public class MediaProvider extends ContentProvider {
             ArrayList<String> fileList) {
         final DatabaseHelper helper;
         try {
-            helper = getDatabaseForUri(Files.getContentUriForPath(oldPath));
+            helper = getDatabaseForUri(FileUtils.getContentUriForPath(oldPath));
         } catch (VolumeNotFoundException e) {
             throw new IllegalStateException("Volume not found while trying to update database for "
                     + oldPath, e);
@@ -1748,7 +1751,7 @@ public class MediaProvider extends ContentProvider {
     private int renameFileForFuse(String oldPath, String newPath, boolean bypassRestrictions) {
         final DatabaseHelper helper;
         try {
-            helper = getDatabaseForUri(Files.getContentUriForPath(oldPath));
+            helper = getDatabaseForUri(FileUtils.getContentUriForPath(oldPath));
         } catch (VolumeNotFoundException e) {
             throw new IllegalStateException("Failed to update database row with " + oldPath, e);
         }
@@ -2871,7 +2874,7 @@ public class MediaProvider extends ContentProvider {
      * check to allow upsert to update any column with Files uri.
      */
     private SQLiteQueryBuilder getQueryBuilderForUpsert(@NonNull String path) {
-        final Uri uri = Files.getContentUriForPath(path);
+        final Uri uri = FileUtils.getContentUriForPath(path);
         final boolean allowHidden = isCallingPackageAllowedHidden();
         // When Fuse inserts a file to database it doesn't set is_download column. When app tries
         // insert with Downloads uri, upsert fails because getIdIfPathExistsForCallingPackage can't
@@ -5037,7 +5040,7 @@ public class MediaProvider extends ContentProvider {
                     throw e;
                 }
 
-                final Uri uri = Files.getContentUriForPath(path);
+                final Uri uri = FileUtils.getContentUriForPath(path);
                 final boolean allowHidden = isCallingPackageAllowedHidden();
                 // The db row which caused UNIQUE constraint error may not match all column values
                 // of the given queryBuilder, hence using a generic queryBuilder with Files uri.
@@ -5957,7 +5960,7 @@ public class MediaProvider extends ContentProvider {
                 return res;
             }
 
-            final Uri contentUri = Files.getContentUri(MediaStore.getVolumeName(new File(path)));
+            final Uri contentUri = FileUtils.getContentUriForPath(path);
             final String[] projection = new String[]{
                     MediaColumns.OWNER_PACKAGE_NAME, MediaColumns._ID };
             final String selection = MediaColumns.DATA + "=?";
@@ -6081,7 +6084,7 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EACCES;
             }
 
-            final Uri contentUri = Files.getContentUri(MediaStore.getVolumeName(new File(path)));
+            final Uri contentUri = FileUtils.getContentUriForPath(path);
             final String[] projection = new String[]{
                     MediaColumns._ID,
                     MediaColumns.OWNER_PACKAGE_NAME,
@@ -6267,7 +6270,7 @@ public class MediaProvider extends ContentProvider {
 
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
                 // Ignore insert errors for apps that bypass scoped storage restriction.
-                insertFileForFuse(path, Files.getContentUriForPath(path), mimeType,
+                insertFileForFuse(path, FileUtils.getContentUriForPath(path), mimeType,
                         /*useData*/ isCallingPackageRequestingLegacy());
                 return 0;
             }
@@ -6340,7 +6343,7 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EPERM;
             }
 
-            final Uri contentUri = Files.getContentUri(getVolumeName(new File(path)));
+            final Uri contentUri = FileUtils.getContentUriForPath(path);
             final String where = FileColumns.DATA + " = ?";
             final String[] whereArgs = {path};
 

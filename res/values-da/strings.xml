@@ -19,7 +19,7 @@
     <string name="uid_label" msgid="8421971615411294156">"Medier"</string>
     <string name="storage_description" msgid="4081716890357580107">"Lokalt lager"</string>
     <string name="app_label" msgid="9035307001052716210">"Medielagring"</string>
-    <string name="artist_label" msgid="8105600993099120273">"Musiker"</string>
+    <string name="artist_label" msgid="8105600993099120273">"Kunstner"</string>
     <string name="ringtone_default" msgid="1744846699922263043">"Standardringetone"</string>
     <string name="notification_sound_default" msgid="6541609166469990135">"Standardlyd for notifikationer"</string>
     <string name="alarm_sound_default" msgid="5488847775252870314">"Standardlyd for alarmer"</string>

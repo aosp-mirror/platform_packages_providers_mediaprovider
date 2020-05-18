@@ -32,7 +32,7 @@
     <string name="permission_video" msgid="8188037202573267740">"ଏହି ଭିଡିଓକୁ ସଂଶୋଧନ କିମ୍ବା ଡିଲିଟ୍‌ କରିବାକୁ "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" ଅନୁମତି ଦେବେ?"</string>
     <string name="permission_images" msgid="6711726334380945124">"ଏହି ଛବିକୁ ସଂଶୋଧନ କିମ୍ବା ଡିଲିଟ୍‌ କରିବାକୁ "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" ଅନୁମତି ଦେବେ?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"ଅନୁମତି ଦିଅନ୍ତୁ"</string>
-    <string name="grant_dialog_button_deny" msgid="6190589471415815741">"ଅସ୍ଵୀକାର କରନ୍ତୁ"</string>
+    <string name="grant_dialog_button_deny" msgid="6190589471415815741">"ଅଗ୍ରାହ୍ୟ କରନ୍ତୁ"</string>
     <string name="sound_name_awaken" msgid="5266892392848526147">"ଆୱେକନ୍"</string>
     <string name="sound_name_bounce" msgid="8771447635446665231">"ବାଉନ୍ସ"</string>
     <string name="sound_name_drip" msgid="1744684469020662152">"ଡ୍ରିପ୍"</string>

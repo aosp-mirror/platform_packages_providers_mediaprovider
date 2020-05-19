@@ -18,10 +18,12 @@ package com.android.providers.media;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Typeface;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.BidiFormatter;
 import android.text.SpannableString;
@@ -32,16 +34,18 @@ import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import com.android.providers.media.util.ForegroundThread;
+import com.android.providers.media.util.FileUtils;
 
 public class CacheClearingActivity extends Activity implements DialogInterface.OnClickListener {
     private static final String TAG = "CacheClearingActivity";
     private static final float MAX_APP_NAME_SIZE_PX = 500f;
     private static final float TEXT_SIZE = 42f;
 
-    private AlertDialog mDialog;
+    private AlertDialog mActionDialog;
+    private Dialog mLoadingDialog;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -70,16 +74,79 @@ public class CacheClearingActivity extends Activity implements DialogInterface.O
             return;
         }
 
-        final TextPaint paint = new TextPaint();
-        paint.setTextSize(TEXT_SIZE);
-
         // If the label contains new line characters it may push the security
         // message below the fold of the dialog. Labels shouldn't have new line
         // characters anyways, so we just delete all of the newlines (if there are any).
         final String label = aInfo.loadSafeLabel(packageManager, MAX_APP_NAME_SIZE_PX,
                 TextUtils.SAFE_STRING_FLAG_SINGLE_LINE).toString();
 
-        final String unsanitizedAppName = TextUtils.ellipsize(label,
+        createActionDialog(label);
+        mActionDialog.show();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        dismissDialogs(mActionDialog, mLoadingDialog);
+    }
+
+    @Override
+    public void onClick(DialogInterface dialog, int which) {
+        dismissDialogs(mActionDialog);
+
+        if (which == AlertDialog.BUTTON_POSITIVE) {
+            new CacheClearingTask().execute();
+        } else {
+            finish();
+        }
+    }
+
+    private class CacheClearingTask extends AsyncTask<Void, Void, Integer> {
+        @Override
+        protected void onPreExecute() {
+            dismissDialogs(mActionDialog);
+            createLoadingDialog();
+            mLoadingDialog.show();
+        }
+
+        @Override
+        public Integer doInBackground(Void... unused) {
+            return FileUtils.clearAppCacheDirectories();
+        }
+
+        @Override
+        protected void onPostExecute(Integer result) {
+            // We take the convention of not using primitive wrapper pretty seriously
+            int status = result.intValue();
+            dismissDialogs(mLoadingDialog);
+            if (result == 0) {
+                setResult(RESULT_OK);
+            } else {
+                setResult(status);
+            }
+            finish();
+        }
+    }
+
+    private void createLoadingDialog() {
+        final CharSequence dialogTitle = getString(R.string.cache_clearing_in_progress_title);
+        final View dialogTitleView = View.inflate(this, R.layout.cache_clearing_dialog, null);
+        final TextView titleText = dialogTitleView.findViewById(R.id.dialog_title);
+        titleText.setText(dialogTitle);
+        mLoadingDialog = new AlertDialog.Builder(this)
+                .setCustomTitle(dialogTitleView)
+                .setView(new ProgressBar(CacheClearingActivity.this))
+                .setCancelable(false)
+                .create();
+        mLoadingDialog.create();
+        setDialogOverlaySettings(mLoadingDialog);
+    }
+
+    private void createActionDialog(CharSequence appLabel) {
+        final TextPaint paint = new TextPaint();
+        paint.setTextSize(TEXT_SIZE);
+
+        final String unsanitizedAppName = TextUtils.ellipsize(appLabel,
                 paint, MAX_APP_NAME_SIZE_PX, TextUtils.TruncateAt.END).toString();
         final String appName = BidiFormatter.getInstance().unicodeWrap(unsanitizedAppName);
 
@@ -91,52 +158,37 @@ public class CacheClearingActivity extends Activity implements DialogInterface.O
             message.setSpan(new StyleSpan(Typeface.BOLD),
                     appNameIndex, appNameIndex + appName.length(), 0);
         }
-        final CharSequence dialogTitle = getString(R.string.cache_clearing_dialog_title, appName);
+
+        final CharSequence dialogTitle = getString(R.string.cache_clearing_dialog_title);
 
         final View dialogTitleView = View.inflate(this, R.layout.cache_clearing_dialog, null);
         final TextView titleText = dialogTitleView.findViewById(R.id.dialog_title);
         titleText.setText(dialogTitle);
-
-        mDialog = new AlertDialog.Builder(this)
+        mActionDialog = new AlertDialog.Builder(this)
                 .setCustomTitle(dialogTitleView)
                 .setMessage(message)
                 .setPositiveButton(R.string.allow, this)
                 .setNegativeButton(R.string.deny, this)
+                .setCancelable(false)
                 .create();
 
-        mDialog.create();
-        mDialog.getButton(DialogInterface.BUTTON_POSITIVE).setFilterTouchesWhenObscured(true);
+        mActionDialog.create();
+        mActionDialog.getButton(DialogInterface.BUTTON_POSITIVE).setFilterTouchesWhenObscured(true);
 
-        final Window w = mDialog.getWindow();
+        setDialogOverlaySettings(mActionDialog);
+    }
+
+    private static void setDialogOverlaySettings(Dialog d) {
+        final Window w = d.getWindow();
         w.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY);
         w.addSystemFlags(WindowManager.LayoutParams.SYSTEM_FLAG_HIDE_NON_SYSTEM_OVERLAY_WINDOWS);
-        mDialog.show();
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (mDialog != null) {
-            mDialog.dismiss();
-        }
-    }
-
-    @Override
-    public void onClick(DialogInterface dialog, int which) {
-        try {
-            if (which == AlertDialog.BUTTON_POSITIVE) {
-                ForegroundThread.getExecutor().execute(this::clearAppCache);
-                setResult(RESULT_OK);
+    private static void dismissDialogs(Dialog... dialogs) {
+        for (Dialog d : dialogs) {
+            if (d != null) {
+                d.dismiss();
             }
-        } finally {
-            if (mDialog != null) {
-                mDialog.dismiss();
-            }
-            finish();
         }
-    }
-
-    private void clearAppCache() {
-        MediaProvider.clearAppCacheDirectories();
     }
 }

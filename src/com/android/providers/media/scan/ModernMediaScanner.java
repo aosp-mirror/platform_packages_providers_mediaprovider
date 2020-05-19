@@ -1400,9 +1400,13 @@ public class ModernMediaScanner implements MediaScanner {
         }
 
         if (PATTERN_INVISIBLE.matcher(dir.getAbsolutePath()).matches()) {
-            // .nomedia in this directory is pointless, .nomedia doesn't determine if the directory
-            // should be scanned.
-            nomedia.delete();
+            // Create the .nomedia file in paths that are not scannable. This is useful when user
+            // ejects the SD card and brings it to an older device and its media scanner can
+            // now correctly identify these paths as not scannable.
+            try {
+                nomedia.createNewFile();
+            } catch (IOException ignored) {
+            }
             return false;
         }
         return true;

@@ -686,7 +686,7 @@ public class FileUtils {
 
             // Extract requested extension from display name
             final int lastDot = displayName.lastIndexOf('.');
-            if (lastDot >= 0) {
+            if (lastDot > 0) {
                 name = displayName.substring(0, lastDot);
                 ext = displayName.substring(lastDot + 1);
                 mimeTypeFromExt = MimeTypeMap.getSingleton().getMimeTypeFromExtension(

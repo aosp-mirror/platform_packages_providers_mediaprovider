@@ -97,6 +97,24 @@ public class PlaylistTest {
     }
 
     @Test
+    public void testExtreme() throws Exception {
+        playlist.add(-100, RED);
+        assertPlaylistEquals(RED);
+        playlist.add(100, GREEN);
+        assertPlaylistEquals(RED, GREEN);
+
+        playlist.move(-100, 100);
+        assertPlaylistEquals(GREEN, RED);
+        playlist.move(100, -100);
+        assertPlaylistEquals(RED, GREEN);
+
+        playlist.remove(-100);
+        assertPlaylistEquals(GREEN);
+        playlist.remove(100);
+        assertPlaylistEquals();
+    }
+
+    @Test
     public void testRemove() throws Exception {
         playlist.add(0, RED);
         playlist.add(1, GREEN);

@@ -47,7 +47,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
-import java.util.regex.Pattern;
 
 @RunWith(AndroidJUnit4.class)
 public class SQLiteQueryBuilderTest {
@@ -714,6 +713,15 @@ public class SQLiteQueryBuilderTest {
             fail("Expected to throw");
         } catch (IllegalArgumentException expected) {
         }
+    }
+
+    @Test
+    public void testStrict_156136746() {
+        // Verify that both keywords column names are allowed to be
+        // case-insensitive, per the SQLite specification
+        assertStrictQueryValid(new String[] { "Name", "Max(Month)" },
+                "IfNull(Month,-1) Between 1100 And 1900", null,
+                "Month", "Month In (1,2)", null, null);
     }
 
     private void assertStrictInsertValid(ContentValues values) {

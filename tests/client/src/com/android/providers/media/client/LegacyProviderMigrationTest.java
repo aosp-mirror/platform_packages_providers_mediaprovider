@@ -244,6 +244,7 @@ public class LegacyProviderMigrationTest {
         pollForExternalStorageState();
 
         // Confirm that details from legacy provider have migrated
+        MediaStore.waitForIdle(context.getContentResolver());
         try (ContentProviderClient modern = context.getContentResolver()
                 .acquireContentProviderClient(MediaStore.AUTHORITY)) {
             try (Cursor cursor = modern.query(mExternalImages, null, null, null)) {

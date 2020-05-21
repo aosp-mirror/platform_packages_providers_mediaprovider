@@ -76,7 +76,7 @@ public class Playlist {
     public int add(int index, Path item) {
         // Gracefully handle items beyond end
         final int size = mItems.size();
-        index = Math.min(index, size);
+        index = constrain(index, 0, size);
 
         mItems.add(index, item);
         return index;
@@ -89,8 +89,8 @@ public class Playlist {
     public int move(int from, int to) {
         // Gracefully handle items beyond end
         final int size = mItems.size();
-        from = Math.min(from, size - 1);
-        to = Math.min(to, size - 1);
+        from = constrain(from, 0, size - 1);
+        to = constrain(to, 0, size - 1);
 
         final Path item = mItems.remove(from);
         mItems.add(to, item);
@@ -103,9 +103,13 @@ public class Playlist {
     public int remove(int index) {
         // Gracefully handle items beyond end
         final int size = mItems.size();
-        index = Math.min(index, size - 1);
+        index = constrain(index, 0, size - 1);
 
         mItems.remove(index);
         return index;
+    }
+
+    private static int constrain(int amount, int low, int high) {
+        return amount < low ? low : (amount > high ? high : amount);
     }
 }

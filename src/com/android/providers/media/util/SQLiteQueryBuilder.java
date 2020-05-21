@@ -213,7 +213,14 @@ public class SQLiteQueryBuilder {
      * @param columnMap maps from the user column names to the database column names
      */
     public void setProjectionMap(@Nullable Map<String, String> columnMap) {
-        mProjectionMap = columnMap;
+        if (columnMap != null) {
+            mProjectionMap = new ArrayMap<String, String>();
+            for (Entry<String, String> entry : columnMap.entrySet()) {
+                mProjectionMap.put(entry.getKey().toLowerCase(Locale.ROOT), entry.getValue());
+            }
+        } else {
+            mProjectionMap = null;
+        }
     }
 
     /**
@@ -1021,7 +1028,7 @@ public class SQLiteQueryBuilder {
         }
 
         String operator = null;
-        String column = mProjectionMap.get(userColumn);
+        String column = mProjectionMap.get(userColumn.toLowerCase(Locale.ROOT));
 
         // When no direct match found, look for aggregation
         if (column == null) {
@@ -1029,7 +1036,7 @@ public class SQLiteQueryBuilder {
             if (matcher.matches()) {
                 operator = matcher.group(1);
                 userColumn = matcher.group(2);
-                column = mProjectionMap.get(userColumn);
+                column = mProjectionMap.get(userColumn.toLowerCase(Locale.ROOT));
             }
         }
 

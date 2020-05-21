@@ -313,6 +313,7 @@ public class FileUtilsTest {
         assertNameEquals("test.jpg", FileUtils.buildUniqueFile(mTarget, "image/jpeg", "test.jpg"));
         assertNameEquals("test.jpeg", FileUtils.buildUniqueFile(mTarget, "image/jpeg", "test.jpeg"));
         assertNameEquals("TEst.JPeg", FileUtils.buildUniqueFile(mTarget, "image/jpeg", "TEst.JPeg"));
+        assertNameEquals(".test.jpg", FileUtils.buildUniqueFile(mTarget, "image/jpeg", ".test"));
         assertNameEquals("test.png.jpg",
                 FileUtils.buildUniqueFile(mTarget, "image/jpeg", "test.png.jpg"));
         assertNameEquals("test.png.jpg",

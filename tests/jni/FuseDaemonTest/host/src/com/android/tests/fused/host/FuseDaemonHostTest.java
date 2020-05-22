@@ -293,6 +293,21 @@ public class FuseDaemonHostTest extends BaseHostJUnit4Test {
     }
 
     @Test
+    public void testOpenPendingAndTrashed() throws Exception {
+        runDeviceTest("testOpenPendingAndTrashed");
+    }
+
+    @Test
+    public void testDeletePendingAndTrashed() throws Exception {
+        runDeviceTest("testDeletePendingAndTrashed");
+    }
+
+    @Test
+    public void testListPendingAndTrashed() throws Exception {
+        runDeviceTest("testListPendingAndTrashed");
+    }
+
+    @Test
     public void testCanCreateDefaultDirectory() throws Exception {
         runDeviceTest("testCanCreateDefaultDirectory");
     }

@@ -1399,20 +1399,20 @@ public class MediaProvider extends ContentProvider {
             // For all other paths, get file names from media provider database.
             // Return media and non-media files visible to the calling package.
             ArrayList<String> fileNamesList = new ArrayList<>();
-            // Escape '(' & ')'to avoid regex conflicts
-            relativePath = relativePath.replace("(","\\(").replace(")", "\\)");
 
-            // Get database entries for files from MediaProvider database with
-            // MediaColumns.RELATIVE_PATH as the given path.
-            String[] projection = {MediaColumns.DISPLAY_NAME};
+            // Only FileColumns.DATA contains actual name of the file.
+            String[] projection = {MediaColumns.DATA};
+
             Bundle queryArgs = new Bundle();
             queryArgs.putString(QUERY_ARG_SQL_SELECTION, MediaColumns.RELATIVE_PATH +
                     " =? and mime_type not like 'null'");
             queryArgs.putStringArray(QUERY_ARG_SQL_SELECTION_ARGS, new String[] {relativePath});
+            // Get database entries for files from MediaProvider database with
+            // MediaColumns.RELATIVE_PATH as the given path.
             try (final Cursor cursor = query(FileUtils.getContentUriForPath(path), projection,
                     queryArgs, null)) {
                 while(cursor.moveToNext()) {
-                    fileNamesList.add(cursor.getString(cursor.getColumnIndex(projection[0])));
+                    fileNamesList.add(extractDisplayName(cursor.getString(0)));
                 }
             }
             return fileNamesList.toArray(new String[fileNamesList.size()]);

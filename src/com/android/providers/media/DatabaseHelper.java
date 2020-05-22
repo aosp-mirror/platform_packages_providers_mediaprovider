@@ -47,6 +47,8 @@ import android.provider.MediaStore.Video;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
+import android.system.StructStatVfs;
+import android.text.format.DateUtils;
 import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.Log;
@@ -802,6 +804,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 return;
             }
 
+            // Since our migration below may need to rename files on disk, we
+            // need to wait until our pass-through view of storage is mounted
+            waitForPassthrough();
+
             final Uri queryUri = MediaStore
                     .rewriteToLegacy(MediaStore.Files.getContentUri(mVolumeName));
 
@@ -1522,6 +1528,38 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             } else {
                 throw new RuntimeException(e);
             }
+        }
+    }
+
+    /**
+     * Since our migration below may need to rename files on disk, we need to
+     * wait until our pass-through view of storage is mounted.
+     */
+    public static void waitForPassthrough() {
+        final long start = SystemClock.elapsedRealtime();
+        while (true) {
+            if (SystemClock.elapsedRealtime() - start > DateUtils.MINUTE_IN_MILLIS) {
+                Log.wtf(TAG, "Passthrough failed to mount; proceeding anyway");
+                return;
+            }
+
+            try {
+                final StructStatVfs outer = Os
+                        .statvfs(Environment.getStorageDirectory().getAbsolutePath());
+                final StructStatVfs inner = Os
+                        .statvfs(Environment.getExternalStorageDirectory().getAbsolutePath());
+
+                if (outer.f_fsid != inner.f_fsid) {
+                    // Yay, both paths are mounted and they point at different
+                    // filesystems, so we know passthrough is mounted
+                    return;
+                }
+            } catch (ErrnoException e) {
+                Log.i(TAG, "Failed statvfs: " + e);
+            }
+
+            Log.i(TAG, "Waiting for passthrough to be mounted...");
+            SystemClock.sleep(100);
         }
     }
 

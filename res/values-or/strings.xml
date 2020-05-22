@@ -28,7 +28,7 @@
     <string name="permission_required" msgid="1460820436132943754">"ଏହି ଆଇଟମ୍‌କୁ ସଂଶୋଧନ କିମ୍ବା ଡିଲିଟ୍‌ କରିବାକୁ ଅନୁମତି ଆବଶ୍ୟକ।"</string>
     <string name="permission_required_action" msgid="706370952366113539">"ଜାରି ରଖନ୍ତୁ"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"ଅନୁମତି ଦିଅନ୍ତୁ"</string>
-    <string name="grant_dialog_button_deny" msgid="6190589471415815741">"ଅସ୍ଵୀକାର କରନ୍ତୁ"</string>
+    <string name="grant_dialog_button_deny" msgid="6190589471415815741">"ଅଗ୍ରାହ୍ୟ କରନ୍ତୁ"</string>
     <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
       <item quantity="other">+<xliff:g id="COUNT_1">^1</xliff:g></item>
       <item quantity="one">+<xliff:g id="COUNT_0">^1</xliff:g></item>
@@ -39,8 +39,10 @@
     </plurals>
     <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"ଅସ୍ଥାୟୀ ଆପ୍ ଫାଇଲଗୁଡ଼ିକୁ ଖାଲି କରିବେ?"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> କିଛି ଅସ୍ଥାୟୀ ଫାଇଲ୍ ଖାଲି କରିବାକୁ ଚାହୁଁଛି। ଏହା ଫଳରେ ବ୍ୟାଟେରୀ କିମ୍ବା ସେଲ୍ୟୁଲାର୍ ଡାଟାର ବ୍ୟବହାର ଅଧିକ ହୋଇପାରେ।"</string>
+    <!-- no translation found for cache_clearing_in_progress_title (6902220064511664209) -->
+    <skip />
     <string name="allow" msgid="8885707816848569619">"ଅନୁମତି ଦିଅନ୍ତୁ"</string>
-    <string name="deny" msgid="6040983710442068936">"ପ୍ରତ୍ୟାଖ୍ୟାନ କରନ୍ତୁ"</string>
+    <string name="deny" msgid="6040983710442068936">"ଅଗ୍ରାହ୍ୟ କରନ୍ତୁ"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g>ଟି ଅଡିଓ ଫାଇଲକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>
       <item quantity="one">ଏହି ଅଡିଓ ଫାଇଲକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_0">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>

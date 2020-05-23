@@ -67,6 +67,7 @@ import static com.android.tests.fused.lib.TestUtils.deleteFileAs;
 import static com.android.tests.fused.lib.TestUtils.deleteFileAsNoThrow;
 import static com.android.tests.fused.lib.TestUtils.deleteRecursively;
 import static com.android.tests.fused.lib.TestUtils.deleteWithMediaProvider;
+import static com.android.tests.fused.lib.TestUtils.deleteWithMediaProviderNoThrow;
 import static com.android.tests.fused.lib.TestUtils.denyAppOpsToUid;
 import static com.android.tests.fused.lib.TestUtils.executeShellCommand;
 import static com.android.tests.fused.lib.TestUtils.getContentResolver;
@@ -82,6 +83,7 @@ import static com.android.tests.fused.lib.TestUtils.openWithMediaProvider;
 import static com.android.tests.fused.lib.TestUtils.pollForExternalStorageState;
 import static com.android.tests.fused.lib.TestUtils.pollForPermission;
 import static com.android.tests.fused.lib.TestUtils.queryImageFile;
+import static com.android.tests.fused.lib.TestUtils.queryVideoFile;
 import static com.android.tests.fused.lib.TestUtils.readExifMetadataFromTestApp;
 import static com.android.tests.fused.lib.TestUtils.revokePermission;
 import static com.android.tests.fused.lib.TestUtils.setupDefaultDirectories;
@@ -91,6 +93,10 @@ import static com.android.tests.fused.lib.TestUtils.updateDisplayNameWithMediaPr
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertTrue;
+
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 import static org.junit.Assert.assertEquals;
@@ -98,8 +104,10 @@ import static org.junit.Assert.assertEquals;
 import android.Manifest;
 import android.app.AppOpsManager;
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.FileUtils;
 import android.os.ParcelFileDescriptor;
@@ -130,6 +138,7 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 
 @RunWith(AndroidJUnit4.class)
 public class FilePathAccessTest {
@@ -746,7 +755,7 @@ public class FilePathAccessTest {
             HashMap<String, String> exif = getExifMetadata(jpgFile);
             assertExifMetadataMatch(exif, originalExif);
 
-           installAppWithStoragePermissions(TEST_APP_A);
+            installAppWithStoragePermissions(TEST_APP_A);
             HashMap<String, String> exifFromTestApp = readExifMetadataFromTestApp(TEST_APP_A,
                     jpgFile.getPath());
             // Other apps shouldn't have access to the same metadata without explicit permission
@@ -1715,6 +1724,149 @@ public class FilePathAccessTest {
     }
 
     @Test
+    public void testOpenPendingAndTrashed() throws Exception {
+        final File pendingImageFile = new File(DCIM_DIR, IMAGE_FILE_NAME);
+        final File trashedVideoFile = new File(PICTURES_DIR, VIDEO_FILE_NAME);
+        final File pendingPdfFile = new File(DOCUMENTS_DIR, NONMEDIA_FILE_NAME);
+        final File trashedPdfFile = new File(DOWNLOAD_DIR, NONMEDIA_FILE_NAME);
+        Uri pendingImgaeFileUri = null;
+        Uri trashedVideoFileUri = null;
+        Uri pendingPdfFileUri = null;
+        Uri trashedPdfFileUri = null;
+        try {
+            installAppWithStoragePermissions(TEST_APP_A);
+
+            pendingImgaeFileUri = createPendingFile(pendingImageFile);
+            assertOpenPendingOrTrashed(pendingImgaeFileUri, TEST_APP_A, /*isImageOrVideo*/ true);
+
+            pendingPdfFileUri = createPendingFile(pendingPdfFile);
+            assertOpenPendingOrTrashed(pendingPdfFileUri, TEST_APP_A,
+                    /*isImageOrVideo*/ false);
+
+            trashedVideoFileUri = createTrashedFile(trashedVideoFile);
+            assertOpenPendingOrTrashed(trashedVideoFileUri, TEST_APP_A, /*isImageOrVideo*/ true);
+
+            trashedPdfFileUri = createTrashedFile(trashedPdfFile);
+            assertOpenPendingOrTrashed(trashedPdfFileUri, TEST_APP_A,
+                    /*isImageOrVideo*/ false);
+
+        } finally {
+            deleteFiles(pendingImageFile, pendingImageFile, trashedVideoFile,
+                    trashedPdfFile);
+            deleteWithMediaProviderNoThrow(pendingImgaeFileUri, trashedVideoFileUri,
+                    pendingPdfFileUri, trashedPdfFileUri);
+            uninstallAppNoThrow(TEST_APP_A);
+        }
+    }
+
+    @Test
+    public void testListPendingAndTrashed() throws Exception {
+        final File imageFile = new File(DCIM_DIR, IMAGE_FILE_NAME);
+        final File pdfFile = new File(DOWNLOAD_DIR, NONMEDIA_FILE_NAME);
+        Uri imageFileUri = null;
+        Uri pdfFileUri = null;
+        try {
+            installAppWithStoragePermissions(TEST_APP_A);
+
+            imageFileUri = createPendingFile(imageFile);
+            // Check that only owner package, file manager and system gallery can list pending image
+            // file.
+            assertListPendingOrTrashed(imageFileUri, imageFile, TEST_APP_A,
+                    /*isImageOrVideo*/ true);
+
+            trashFile(imageFileUri);
+            // Check that only owner package, file manager and system gallery can list trashed image
+            // file.
+            assertListPendingOrTrashed(imageFileUri, imageFile, TEST_APP_A,
+                    /*isImageOrVideo*/ true);
+
+            pdfFileUri = createPendingFile(pdfFile);
+            // Check that only owner package, file manager can list pending non media file.
+            assertListPendingOrTrashed(pdfFileUri, pdfFile, TEST_APP_A,
+                    /*isImageOrVideo*/ false);
+
+            trashFile(pdfFileUri);
+            // Check that only owner package, file manager can list trashed non media file.
+            assertListPendingOrTrashed(pdfFileUri, pdfFile, TEST_APP_A,
+                    /*isImageOrVideo*/ false);
+        } finally {
+            deleteWithMediaProviderNoThrow(imageFileUri, pdfFileUri);
+            deleteFiles(imageFile, pdfFile);
+            uninstallAppNoThrow(TEST_APP_A);
+        }
+    }
+
+    @Test
+    public void testDeletePendingAndTrashed() throws Exception {
+        final File pendingVideoFile = new File(DCIM_DIR, VIDEO_FILE_NAME);
+        final File trashedImageFile = new File(PICTURES_DIR, IMAGE_FILE_NAME);
+        final File pendingPdfFile = new File(DOWNLOAD_DIR, NONMEDIA_FILE_NAME);
+        final File trashedPdfFile = new File(DOCUMENTS_DIR, NONMEDIA_FILE_NAME);
+        // Actual path of the file gets rewritten for pending and trashed files.
+        String pendingVideoFilePath = null;
+        String trashedImageFilePath = null;
+        String pendingPdfFilePath = null;
+        String trashedPdfFilePath = null;
+        try {
+            pendingVideoFilePath = getFilePathFromUri(createPendingFile(pendingVideoFile));
+            trashedImageFilePath = getFilePathFromUri(createTrashedFile(trashedImageFile));
+            pendingPdfFilePath = getFilePathFromUri(createPendingFile(pendingPdfFile));
+            trashedPdfFilePath = getFilePathFromUri(createTrashedFile(trashedPdfFile));
+
+            // App can delete its own pending and trashed file.
+            assertCanDeletePaths(pendingVideoFilePath, trashedImageFilePath, pendingPdfFilePath,
+                    trashedPdfFilePath);
+
+            pendingVideoFilePath = getFilePathFromUri(createPendingFile(pendingVideoFile));
+            trashedImageFilePath = getFilePathFromUri(createTrashedFile(trashedImageFile));
+            pendingPdfFilePath = getFilePathFromUri(createPendingFile(pendingPdfFile));
+            trashedPdfFilePath = getFilePathFromUri(createTrashedFile(trashedPdfFile));
+
+            installAppWithStoragePermissions(TEST_APP_A);
+
+            // App can't delete other app's pending and trashed file.
+            assertCantDeletePathsAs(TEST_APP_A, pendingVideoFilePath, trashedImageFilePath,
+                    pendingPdfFilePath, trashedPdfFilePath);
+
+            final int testAppUid =
+                    getContext().getPackageManager().getPackageUid(TEST_APP_A.getPackageName(), 0);
+            try {
+                allowAppOpsToUid(testAppUid, OPSTR_MANAGE_EXTERNAL_STORAGE);
+                // File Manager can delete any pending and trashed file
+                assertCanDeletePathsAs(TEST_APP_A, pendingVideoFilePath, trashedImageFilePath,
+                        pendingPdfFilePath, trashedPdfFilePath);
+            } finally {
+                denyAppOpsToUid(testAppUid, OPSTR_MANAGE_EXTERNAL_STORAGE);
+            }
+
+            pendingVideoFilePath = getFilePathFromUri(createPendingFile(pendingVideoFile));
+            trashedImageFilePath = getFilePathFromUri(createTrashedFile(trashedImageFile));
+            pendingPdfFilePath = getFilePathFromUri(createPendingFile(pendingPdfFile));
+            trashedPdfFilePath = getFilePathFromUri(createTrashedFile(trashedPdfFile));
+
+            try {
+                allowAppOpsToUid(testAppUid, SYSTEM_GALERY_APPOPS);
+                // System Gallery can delete any pending and trashed image or video file.
+                assertTrue(isMediaTypeImageOrVideo(new File(pendingVideoFilePath)));
+                assertTrue(isMediaTypeImageOrVideo(new File(trashedImageFilePath)));
+                assertCanDeletePathsAs(TEST_APP_A, pendingVideoFilePath, trashedImageFilePath);
+
+                // System Gallery can't delete other app's pending and trashed pdf file.
+                assertFalse(isMediaTypeImageOrVideo(new File(pendingPdfFilePath)));
+                assertFalse(isMediaTypeImageOrVideo(new File(trashedPdfFilePath)));
+                assertCantDeletePathsAs(TEST_APP_A, pendingPdfFilePath, trashedPdfFilePath);
+            } finally {
+                denyAppOpsToUid(testAppUid, SYSTEM_GALERY_APPOPS);
+            }
+        } finally {
+            deletePaths(pendingVideoFilePath, trashedImageFilePath, pendingPdfFilePath,
+                    trashedPdfFilePath);
+            deleteFiles(pendingVideoFile, trashedImageFile, pendingPdfFile, trashedPdfFile);
+            uninstallAppNoThrow(TEST_APP_A);
+        }
+    }
+
+    @Test
     public void testManageExternalStorageCanDeleteOtherAppsContents() throws Exception {
         final File otherAppPdf = new File(DOWNLOAD_DIR, "other" + NONMEDIA_FILE_NAME);
         final File otherAppImage = new File(DCIM_DIR, "other" + IMAGE_FILE_NAME);
@@ -2125,6 +2277,148 @@ public class FilePathAccessTest {
         }
     }
 
+    /**
+     * Checks restrictions for opening pending and trashed files by different apps. Assumes that
+     * given {@code testApp} is already installed and has READ_EXTERNAL_STORAGE permission. This
+     * method doesn't uninstall given {@code testApp} at the end.
+     */
+    private void assertOpenPendingOrTrashed(Uri uri, TestApp testApp, boolean isImageOrVideo)
+            throws Exception {
+        final File pendingOrTrashedFile = new File(getFilePathFromUri(uri));
+
+        // App can open its pending or trashed file for read or write
+        assertTrue(canOpen(pendingOrTrashedFile, /*forWrite*/ false));
+        assertTrue(canOpen(pendingOrTrashedFile, /*forWrite*/ true));
+
+        // App with READ_EXTERNAL_STORAGE can't open other app's pending or trashed file for read or
+        // write
+        assertFalse(openFileAs(testApp, pendingOrTrashedFile, /*forWrite*/ false));
+        assertFalse(openFileAs(testApp, pendingOrTrashedFile, /*forWrite*/ true));
+
+        final int testAppUid =
+                getContext().getPackageManager().getPackageUid(testApp.getPackageName(), 0);
+        try {
+            allowAppOpsToUid(testAppUid, OPSTR_MANAGE_EXTERNAL_STORAGE);
+            // File Manager can open any pending or trashed file for read or write
+            assertTrue(openFileAs(testApp, pendingOrTrashedFile, /*forWrite*/ false));
+            assertTrue(openFileAs(testApp, pendingOrTrashedFile, /*forWrite*/ true));
+        } finally {
+            denyAppOpsToUid(testAppUid, OPSTR_MANAGE_EXTERNAL_STORAGE);
+        }
+
+        try {
+            allowAppOpsToUid(testAppUid, SYSTEM_GALERY_APPOPS);
+            if (isImageOrVideo) {
+                // System Gallery can open any pending or trashed image/video file for read or write
+                assertTrue(isMediaTypeImageOrVideo(pendingOrTrashedFile));
+                assertTrue(openFileAs(testApp, pendingOrTrashedFile, /*forWrite*/ false));
+                assertTrue(openFileAs(testApp, pendingOrTrashedFile, /*forWrite*/ true));
+            } else {
+                // System Gallery can't open other app's pending or trashed non-media file for read
+                // or write
+                assertFalse(isMediaTypeImageOrVideo(pendingOrTrashedFile));
+                assertFalse(openFileAs(testApp, pendingOrTrashedFile, /*forWrite*/ false));
+                assertFalse(openFileAs(testApp, pendingOrTrashedFile, /*forWrite*/ true));
+            }
+        } finally {
+            denyAppOpsToUid(testAppUid, SYSTEM_GALERY_APPOPS);
+        }
+    }
+
+    /**
+     * Checks restrictions for listing pending and trashed files by different apps. Assumes that
+     * given {@code testApp} is already installed and has READ_EXTERNAL_STORAGE permission. This
+     * method doesn't uninstall given {@code testApp} at the end.
+     */
+    private void assertListPendingOrTrashed(Uri uri, File file, TestApp testApp,
+            boolean isImageOrVideo) throws Exception {
+        final String parentDirPath = file.getParent();
+        assertTrue(new File(parentDirPath).isDirectory());
+
+        final List<String> listedFileNames = Arrays.asList(new File(parentDirPath).list());
+        assertThat(listedFileNames).doesNotContain(file);
+
+        final File pendingOrTrashedFile = new File(getFilePathFromUri(uri));
+
+        assertThat(listedFileNames).contains(pendingOrTrashedFile.getName());
+
+        // App with READ_EXTERNAL_STORAGE can't see other app's pending or trashed file.
+        assertThat(listAs(testApp, parentDirPath)).doesNotContain(pendingOrTrashedFile.getName());
+
+        final int testAppUid =
+                getContext().getPackageManager().getPackageUid(testApp.getPackageName(), 0);
+        try {
+            allowAppOpsToUid(testAppUid, OPSTR_MANAGE_EXTERNAL_STORAGE);
+            // File Manager can see any pending or trashed file.
+            assertThat(listAs(testApp, parentDirPath)).contains(pendingOrTrashedFile.getName());
+        } finally {
+            denyAppOpsToUid(testAppUid, OPSTR_MANAGE_EXTERNAL_STORAGE);
+        }
+
+        try {
+            allowAppOpsToUid(testAppUid, SYSTEM_GALERY_APPOPS);
+            if (isImageOrVideo) {
+                // System Gallery can see any pending or trashed image/video file.
+                assertTrue(isMediaTypeImageOrVideo(pendingOrTrashedFile));
+                assertThat(listAs(testApp, parentDirPath)).contains(pendingOrTrashedFile.getName());
+            } else {
+                // System Gallery can't see other app's pending or trashed non media file.
+                assertFalse(isMediaTypeImageOrVideo(pendingOrTrashedFile));
+                assertThat(listAs(testApp, parentDirPath))
+                        .doesNotContain(pendingOrTrashedFile.getName());
+            }
+        } finally {
+            denyAppOpsToUid(testAppUid, SYSTEM_GALERY_APPOPS);
+        }
+    }
+
+    private Uri createPendingFile(File pendingFile) throws Exception {
+        assertTrue(pendingFile.createNewFile());
+
+        final ContentResolver cr = getContentResolver();
+        final Uri trashedFileUri = MediaStore.scanFile(cr, pendingFile);
+        assertNotNull(trashedFileUri);
+
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.IS_PENDING, 1);
+        assertEquals(1, cr.update(trashedFileUri, values, Bundle.EMPTY));
+
+        return trashedFileUri;
+    }
+
+    private Uri createTrashedFile(File trashedFile) throws Exception {
+        assertTrue(trashedFile.createNewFile());
+
+        final ContentResolver cr = getContentResolver();
+        final Uri trashedFileUri = MediaStore.scanFile(cr, trashedFile);
+        assertNotNull(trashedFileUri);
+
+        trashFile(trashedFileUri);
+        return trashedFileUri;
+    }
+
+    private void trashFile(Uri uri) throws Exception {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.IS_TRASHED, 1);
+        assertEquals(1, getContentResolver().update(uri, values, Bundle.EMPTY));
+    }
+
+    /**
+     * Gets file path corresponding to the db row pointed by {@code uri}. If {@code uri} points to
+     * multiple db rows, file path is extracted from the first db row of the database query result.
+     */
+    private String getFilePathFromUri(Uri uri) {
+        final String[] projection = new String[] {MediaColumns.DATA};
+        try (Cursor c = getContentResolver().query(uri, projection, null, null)) {
+            assertTrue(c.moveToFirst());
+            return c.getString(0);
+        }
+    }
+
+    private boolean isMediaTypeImageOrVideo(File file) {
+        return queryImageFile(file).getCount() == 1 || queryVideoFile(file).getCount() == 1;
+    }
+
     private static void assertIsMediaTypeImage(File file) {
         final Cursor c = queryImageFile(file);
         assertEquals(1, c.getCount());
@@ -2148,6 +2442,40 @@ public class FilePathAccessTest {
     private static void deleteFilesAs(TestApp testApp, File... files) throws Exception {
         for (File file : files) {
             deleteFileAs(testApp, file.getPath());
+        }
+    }
+
+    private static void assertCanDeletePathsAs(TestApp testApp, String... filePaths)
+            throws Exception {
+        for (String path: filePaths) {
+            assertTrue(deleteFileAs(testApp, path));
+        }
+    }
+
+    private static void assertCantDeletePathsAs(TestApp testApp, String... filePaths)
+            throws Exception {
+        for (String path: filePaths) {
+            assertFalse(deleteFileAs(testApp, path));
+        }
+    }
+
+    private void deleteFiles(File... files) {
+        for (File file: files) {
+            if (file == null) continue;
+            file.delete();
+        }
+    }
+
+    private void deletePaths(String... paths) {
+        for (String path: paths) {
+            if (path == null) continue;
+            new File(path).delete();
+        }
+    }
+
+    private static void assertCanDeletePaths(String... filePaths) {
+        for (String filePath : filePaths) {
+            assertTrue(new File(filePath).delete());
         }
     }
 

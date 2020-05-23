@@ -39,6 +39,7 @@
     </plurals>
     <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"অস্থায়ী এপ্‌ ফাইলসমূহ মচিবনে?"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>এ কিছুমান অস্থায়ী ফাইল মচিব বিচাৰিছে। ইয়াৰ ফলত বেটাৰী অথবা চেলুলাৰ ডেটাৰ ব্যৱহাৰ বৃদ্ধি হ’ব পাৰে।"</string>
+    <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"অস্থায়ী এপ্‌ ফাইলসমূহ মচি থকা হৈছে…"</string>
     <string name="allow" msgid="8885707816848569619">"অনুমতি দিয়ক"</string>
     <string name="deny" msgid="6040983710442068936">"অস্বীকাৰ কৰক"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

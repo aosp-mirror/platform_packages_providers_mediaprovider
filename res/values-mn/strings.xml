@@ -39,6 +39,7 @@
     </plurals>
     <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Аппын түр зуурын файлуудыг арилгах уу?"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> нь түр зуурын зарим файлыг арилгах хүсэлтэй байна. Энэ нь батарей эсвэл мобайл дата ашиглалтыг нэмэгдүүлэхэд хүргэж болзошгүй."</string>
+    <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Аппын түр зуурын файлуудыг арилгаж байна…"</string>
     <string name="allow" msgid="8885707816848569619">"Зөвшөөрөх"</string>
     <string name="deny" msgid="6040983710442068936">"Татгалзах"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

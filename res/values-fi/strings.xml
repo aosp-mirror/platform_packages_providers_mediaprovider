@@ -39,6 +39,7 @@
     </plurals>
     <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Poistetaanko väliaikaisia sovellustiedostoja?"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> haluaa poistaa joitain väliaikaisia tiedostoja. Tämä voi lisätä akun tai mobiilidatan käyttöä."</string>
+    <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Poistetaan väliaikaisia sovellustiedostoja…"</string>
     <string name="allow" msgid="8885707816848569619">"Salli"</string>
     <string name="deny" msgid="6040983710442068936">"Estä"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

@@ -52,7 +52,8 @@
         </provider>
 
         <!-- Handles database upgrades after OTAs, then disables itself -->
-        <receiver android:name="com.android.providers.media.MediaUpgradeReceiver">
+        <receiver android:name="com.android.providers.media.MediaUpgradeReceiver"
+            android:exported="true">
             <!-- This broadcast is sent after the core system has finished
                  booting, before the home app is launched or BOOT_COMPLETED
                  is sent. -->
@@ -61,7 +62,8 @@
             </intent-filter>
         </receiver>
 
-        <receiver android:name="com.android.providers.media.MediaReceiver">
+        <receiver android:name="com.android.providers.media.MediaReceiver"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
@@ -94,6 +96,7 @@
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
         <service android:name="com.android.providers.media.fuse.ExternalStorageServiceImpl"
+                 android:exported="true"
                  android:permission="android.permission.BIND_EXTERNAL_STORAGE_SERVICE">
             <intent-filter>
                 <action android:name="android.service.storage.ExternalStorageService" />

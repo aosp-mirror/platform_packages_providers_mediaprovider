@@ -298,6 +298,9 @@ public class MediaProvider extends ContentProvider {
     @GuardedBy("sCacheLock")
     private static final ArrayMap<File, String> sCachedVolumePathToId = new ArrayMap<>();
 
+    @GuardedBy("mShouldRedactThreadIds")
+    private final LongArray mShouldRedactThreadIds = new LongArray();
+
     public void updateVolumes() {
         synchronized (sCacheLock) {
             sCachedExternalVolumeNames.clear();
@@ -5757,7 +5760,17 @@ public class MediaProvider extends ContentProvider {
                     // If fuse is enabled, we can provide an fd that points to the fuse
                     // file system and handle redaction in the fuse handler when the caller reads.
                     Log.i(TAG, "Redacting with new FUSE for " + filePath);
-                    pfd = FileUtils.openSafely(getFuseFile(file), modeBits);
+                    long tid = android.os.Process.myTid();
+                    synchronized (mShouldRedactThreadIds) {
+                        mShouldRedactThreadIds.add(tid);
+                    }
+                    try {
+                        pfd = FileUtils.openSafely(getFuseFile(file), modeBits);
+                    } finally {
+                        synchronized (mShouldRedactThreadIds) {
+                            mShouldRedactThreadIds.remove(mShouldRedactThreadIds.indexOf(tid));
+                        }
+                    }
                 } else {
                     // TODO(b/135341978): Remove this and associated code
                     // when fuse is on by default.
@@ -6018,6 +6031,7 @@ public class MediaProvider extends ContentProvider {
      *
      * @param uid UID of the package wanting to access the file
      * @param path File path
+     * @param tid thread id making IO on the FUSE filesystem
      * @return Ranges that should be redacted.
      *
      * @throws IOException if an error occurs while calculating the redaction ranges
@@ -6026,14 +6040,22 @@ public class MediaProvider extends ContentProvider {
      */
     @Keep
     @NonNull
-    public long[] getRedactionRangesForFuse(String path, int uid) throws IOException {
+    public long[] getRedactionRangesForFuse(String path, int uid, int tid) throws IOException {
         final File file = new File(path);
 
         // When we're calculating redaction ranges for MediaProvider, it means we're actually
-        // calculating redaction ranges for another app that called to MediaProvider through Binder,
-        // so we always need to redact because the redaction checks were done earlier
+        // calculating redaction ranges for another app that called to MediaProvider through Binder.
+        // If the tid is in mShouldRedactThreadIds, we should redact, otherwise, we don't redact
         if (uid == android.os.Process.myUid()) {
-            return getRedactionRanges(file).redactionRanges;
+            boolean shouldRedact = false;
+            synchronized (mShouldRedactThreadIds) {
+                shouldRedact = mShouldRedactThreadIds.indexOf(tid) != -1;
+            }
+            if (shouldRedact) {
+                return getRedactionRanges(file).redactionRanges;
+            } else {
+                return new long[0];
+            }
         }
 
         final LocalCallingIdentity token =

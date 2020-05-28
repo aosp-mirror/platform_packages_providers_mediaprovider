@@ -20,7 +20,7 @@
             "name": "AdoptableHostTest"
         },
         {
-            "name": "FuseDaemonHostTest"
+            "name": "CtsScopedStorageHostTest"
         },
         {
             "name": "fuse_node_test"

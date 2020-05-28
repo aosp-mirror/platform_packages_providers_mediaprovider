@@ -457,6 +457,11 @@ static bool is_app_accessible_path(MediaProviderWrapper* mp, const string& path,
     std::smatch match;
     if (std::regex_match(path, match, PATTERN_OWNED_PATH)) {
         const std::string& pkg = match[1];
+        // .nomedia is not a valid package. .nomedia always exists in /Android/data directory,
+        // and it's not an external file/directory of any package
+        if (pkg == ".nomedia") {
+            return true;
+        }
         if (!mp->IsUidForPackage(pkg, uid)) {
             PLOG(WARNING) << "Invalid other package file access from " << pkg << "(: " << path;
             return false;

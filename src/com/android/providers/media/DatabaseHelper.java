@@ -47,7 +47,7 @@ import android.provider.MediaStore.Video;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
-import android.system.StructStatVfs;
+import android.system.StructStat;
 import android.text.format.DateUtils;
 import android.util.ArrayMap;
 import android.util.ArraySet;
@@ -1544,12 +1544,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
 
             try {
-                final StructStatVfs outer = Os
-                        .statvfs(Environment.getStorageDirectory().getAbsolutePath());
-                final StructStatVfs inner = Os
-                        .statvfs(Environment.getExternalStorageDirectory().getAbsolutePath());
+                final StructStat outer = Os
+                        .stat(Environment.getStorageDirectory().getAbsolutePath());
+                final StructStat inner = Os
+                        .stat(Environment.getExternalStorageDirectory().getAbsolutePath());
 
-                if (outer.f_fsid != inner.f_fsid) {
+                if (outer.st_dev != inner.st_dev) {
                     // Yay, both paths are mounted and they point at different
                     // filesystems, so we know passthrough is mounted
                     return;

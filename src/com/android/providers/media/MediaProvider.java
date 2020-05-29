@@ -6356,8 +6356,10 @@ public class MediaProvider extends ContentProvider {
 
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
                 // Ignore insert errors for apps that bypass scoped storage restriction.
-                insertFileForFuse(path, FileUtils.getContentUriForPath(path), mimeType,
-                        /*useData*/ isCallingPackageRequestingLegacy());
+                try {
+                    insertFileForFuse(path, FileUtils.getContentUriForPath(path), mimeType,
+                            /*useData*/ isCallingPackageRequestingLegacy());
+                } catch (Exception ignored) {}
                 return 0;
             }
 

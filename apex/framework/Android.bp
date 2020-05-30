@@ -12,8 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-java_library {
+java_sdk_library {
     name: "framework-mediaprovider",
+    defaults: ["framework-module-defaults"],
+
+    // TODO(b/155480189) - Remove naming_scheme once references have been resolved.
+    // Temporary java_sdk_library component naming scheme to use to ease the transition from separate
+    // modules to java_sdk_library.
+    naming_scheme: "framework-modules",
 
     srcs: [
         ":framework-mediaprovider-sources",
@@ -25,16 +31,14 @@ java_library {
 
     installable: true,
 
-    sdk_version: "module_current",
     libs: [
         "framework_mediaprovider_annotation",
         "unsupportedappusage",
     ],
 
-    plugins: ["java_api_finder"],
-
     hostdex: true, // for hiddenapi check
     visibility: ["//packages/providers/MediaProvider:__subpackages__"],
+    stubs_library_visibility: ["//visibility:public"],
     apex_available: [
         "com.android.mediaprovider",
         "test_com.android.mediaprovider",
@@ -47,74 +51,6 @@ filegroup {
         "java/**/*.java",
     ],
     path: "java",
-}
-
-stubs_defaults {
-    name: "framework-mediaprovider-stubs-srcs-defaults",
-    srcs: [":framework-mediaprovider-sources"],
-    dist: { dest: "framework-mediaprovider.txt" },
-}
-
-droidstubs {
-    name: "framework-mediaprovider-stubs-srcs-publicapi",
-    defaults: [
-        "framework-module-stubs-defaults-publicapi",
-        "framework-mediaprovider-stubs-srcs-defaults",
-    ],
-    check_api: {
-        last_released: {
-            api_file: ":framework-mediaprovider.api.public.latest",
-            removed_api_file: ":framework-mediaprovider-removed.api.public.latest",
-        },
-        api_lint: {
-            new_since: ":framework-mediaprovider.api.public.latest",
-        },
-    },
-}
-
-droidstubs {
-    name: "framework-mediaprovider-stubs-srcs-systemapi",
-    defaults: [
-        "framework-module-stubs-defaults-systemapi",
-        "framework-mediaprovider-stubs-srcs-defaults",
-    ],
-}
-
-droidstubs {
-    name: "framework-mediaprovider-api-module_libs_api",
-    defaults: [
-        "framework-module-api-defaults-module_libs_api",
-        "framework-mediaprovider-stubs-srcs-defaults",
-    ],
-}
-
-droidstubs {
-    name: "framework-mediaprovider-stubs-srcs-module_libs_api",
-    defaults: [
-        "framework-module-stubs-defaults-module_libs_api",
-        "framework-mediaprovider-stubs-srcs-defaults",
-    ],
-}
-
-java_library {
-    name: "framework-mediaprovider-stubs-publicapi",
-    srcs: [":framework-mediaprovider-stubs-srcs-publicapi"],
-    defaults: ["framework-module-stubs-lib-defaults-publicapi"],
-    dist: { dest: "framework-mediaprovider.jar" },
-}
-
-java_library {
-    name: "framework-mediaprovider-stubs-systemapi",
-    srcs: [":framework-mediaprovider-stubs-srcs-systemapi"],
-    defaults: ["framework-module-stubs-lib-defaults-systemapi"],
-    dist: { dest: "framework-mediaprovider.jar" },
-}
-
-java_library {
-    name: "framework-mediaprovider-stubs-module_libs_api",
-    srcs: [":framework-mediaprovider-stubs-srcs-module_libs_api"],
-    defaults: ["framework-module-stubs-lib-defaults-module_libs_api"],
-    dist: { dest: "framework-mediaprovider.jar" },
 }
 
 java_library {

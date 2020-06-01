@@ -97,7 +97,7 @@ public class MediaProviderForFuseTest {
 
         // We should have no redaction
         Truth.assertThat(sMediaProvider.getRedactionRangesForFuse(
-                file.getPath(), sTestUid)).isEqualTo(new long[0]);
+                        file.getPath(), sTestUid, 0)).isEqualTo(new long[0]);
 
         // We can rename our file
         final File renamed = new File(sTestDir, "renamed" + System.nanoTime() + ".jpg");

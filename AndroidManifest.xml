@@ -101,12 +101,14 @@
 
         <activity
                 android:name="com.android.providers.media.PermissionActivity"
+                android:configChanges="orientation|keyboardHidden|screenSize"
                 android:theme="@style/PickerDialogTheme"
                 android:exported="false"
                 android:excludeFromRecents="true" />
 
         <activity
                 android:name="com.android.providers.media.CacheClearingActivity"
+                android:configChanges="orientation|keyboardHidden|screenSize"
                 android:exported="true"
                 android:theme="@style/CacheClearingAlertDialogTheme"
                 android:finishOnCloseSystemDialogs="true"

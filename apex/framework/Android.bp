@@ -37,8 +37,11 @@ java_sdk_library {
     ],
 
     hostdex: true, // for hiddenapi check
-    visibility: ["//packages/providers/MediaProvider:__subpackages__"],
-    stubs_library_visibility: ["//visibility:public"],
+    visibility: ["//visibility:public"],
+    impl_library_visibility: [
+        "//visibility:override",
+        "//packages/providers/MediaProvider:__subpackages__",
+    ],
     apex_available: [
         "com.android.mediaprovider",
         "test_com.android.mediaprovider",

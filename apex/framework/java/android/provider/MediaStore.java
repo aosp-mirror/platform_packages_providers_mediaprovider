@@ -2597,7 +2597,7 @@ public final class MediaStore {
          */
         @Deprecated
         public static @Nullable String keyFor(@Nullable String name) {
-            if (TextUtils.isEmpty(name)) return null;
+            if (TextUtils.isEmpty(name)) return "";
 
             if (UNKNOWN_STRING.equals(name)) {
                 return "01";
@@ -2606,7 +2606,7 @@ public final class MediaStore {
             final boolean sortFirst = name.startsWith("\001");
 
             name = PATTERN_TRIM_BEFORE.matcher(name).replaceAll("");
-            if (TextUtils.isEmpty(name)) return null;
+            if (TextUtils.isEmpty(name)) return "";
 
             final Collator c = Collator.getInstance(Locale.ROOT);
             c.setStrength(Collator.PRIMARY);

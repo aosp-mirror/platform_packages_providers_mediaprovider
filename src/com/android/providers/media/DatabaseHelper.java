@@ -47,7 +47,6 @@ import android.provider.MediaStore.Video;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
-import android.system.StructStat;
 import android.text.format.DateUtils;
 import android.util.ArrayMap;
 import android.util.ArraySet;
@@ -68,6 +67,7 @@ import com.android.providers.media.util.MimeUtils;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -804,10 +804,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 return;
             }
 
-            // Since our migration below may need to rename files on disk, we
-            // need to wait until our pass-through view of storage is mounted
-            waitForPassthrough();
-
             final Uri queryUri = MediaStore
                     .rewriteToLegacy(MediaStore.Files.getContentUri(mVolumeName));
 
@@ -842,11 +838,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         final String recomputedData = values.getAsString(MediaColumns.DATA);
                         if (!Objects.equals(data, recomputedData)) {
                             try {
-                                Os.rename(data, recomputedData);
-                            } catch (ErrnoException e) {
+                                renameWithRetry(data, recomputedData);
+                            } catch (IOException e) {
                                 // We only have one shot to migrate data, so log and
                                 // keep marching forward
-                                Log.w(TAG, "Failed to rename " + values + "; continuing");
+                                Log.wtf(TAG, "Failed to rename " + values + "; continuing", e);
                                 FileUtils.computeValuesFromData(values);
                             }
                         }
@@ -1531,31 +1527,26 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
     }
 
+    private static final long RENAME_TIMEOUT = 10 * DateUtils.SECOND_IN_MILLIS;
+
     /**
-     * Since our migration below may need to rename files on disk, we need to
-     * wait until our pass-through view of storage is mounted.
+     * When renaming files during migration, the underlying pass-through view of
+     * storage may not be mounted yet, so we're willing to retry several times
+     * before giving up.
      */
-    public static void waitForPassthrough() {
+    private static void renameWithRetry(@NonNull String oldPath, @NonNull String newPath)
+            throws IOException {
         final long start = SystemClock.elapsedRealtime();
         while (true) {
-            if (SystemClock.elapsedRealtime() - start > DateUtils.MINUTE_IN_MILLIS) {
-                Log.wtf(TAG, "Passthrough failed to mount; proceeding anyway");
-                return;
+            if (SystemClock.elapsedRealtime() - start > RENAME_TIMEOUT) {
+                throw new IOException("Passthrough failed to mount");
             }
 
             try {
-                final StructStat outer = Os
-                        .stat(Environment.getStorageDirectory().getAbsolutePath());
-                final StructStat inner = Os
-                        .stat(Environment.getExternalStorageDirectory().getAbsolutePath());
-
-                if (outer.st_dev != inner.st_dev) {
-                    // Yay, both paths are mounted and they point at different
-                    // filesystems, so we know passthrough is mounted
-                    return;
-                }
+                Os.rename(oldPath, newPath);
+                return;
             } catch (ErrnoException e) {
-                Log.i(TAG, "Failed statvfs: " + e);
+                Log.i(TAG, "Failed to rename: " + e);
             }
 
             Log.i(TAG, "Waiting for passthrough to be mounted...");

@@ -213,6 +213,7 @@ public class LegacyProviderMigrationTest {
         MediaStore.waitForIdle(context.getContentResolver());
 
         // Clear data on the legacy provider so that we create a database
+        executeShellCommand("sync", ui);
         executeShellCommand("pm clear " + legacyProvider.applicationInfo.packageName, ui);
 
         // Create thousands of items in the legacy provider
@@ -240,6 +241,7 @@ public class LegacyProviderMigrationTest {
 
         // Clear data on the modern provider so that the initial scan recovers
         // metadata from the legacy provider
+        executeShellCommand("sync", ui);
         executeShellCommand("pm clear " + modernProvider.applicationInfo.packageName, ui);
         pollForExternalStorageState();
 
@@ -270,6 +272,7 @@ public class LegacyProviderMigrationTest {
         MediaStore.waitForIdle(context.getContentResolver());
 
         // Clear data on the legacy provider so that we create a database
+        executeShellCommand("sync", ui);
         executeShellCommand("pm clear " + legacyProvider.applicationInfo.packageName, ui);
 
         // Create a well-known entry in legacy provider, and write data into
@@ -294,6 +297,7 @@ public class LegacyProviderMigrationTest {
 
         // Clear data on the modern provider so that the initial scan recovers
         // metadata from the legacy provider
+        executeShellCommand("sync", ui);
         executeShellCommand("pm clear " + modernProvider.applicationInfo.packageName, ui);
         pollForExternalStorageState();
 

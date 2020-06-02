@@ -949,7 +949,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     if (is_requesting_write(fi->flags)) {
         ri = std::make_unique<RedactionInfo>();
     } else {
-        ri = fuse->mp->GetRedactionInfo(path, req->ctx.uid);
+        ri = fuse->mp->GetRedactionInfo(path, req->ctx.uid, req->ctx.pid);
     }
 
     if (!ri) {

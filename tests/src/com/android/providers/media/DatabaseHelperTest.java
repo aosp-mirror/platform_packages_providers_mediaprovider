@@ -66,7 +66,7 @@ public class DatabaseHelperTest {
     @Before
     public void setUp() {
         final Context context = InstrumentationRegistry.getTargetContext();
-        sIsolatedContext = new IsolatedContext(context, TAG);
+        sIsolatedContext = new IsolatedContext(context, TAG, /*asFuseThread*/ false);
         sIsolatedResolver = sIsolatedContext.getContentResolver();
     }
 

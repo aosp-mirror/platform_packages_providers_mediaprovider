@@ -43,6 +43,8 @@ import android.provider.MediaStore.DownloadColumns;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Video.VideoColumns;
+import android.system.ErrnoException;
+import android.system.Os;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
@@ -209,12 +211,11 @@ public class LegacyProviderMigrationTest {
         Assume.assumeNotNull(legacyProvider);
         Assume.assumeNotNull(modernProvider);
 
-        // Wait until everything calms down
-        MediaStore.waitForIdle(context.getContentResolver());
-
         // Clear data on the legacy provider so that we create a database
+        waitForMountedAndIdle(context.getContentResolver());
         executeShellCommand("sync", ui);
         executeShellCommand("pm clear " + legacyProvider.applicationInfo.packageName, ui);
+        waitForMountedAndIdle(context.getContentResolver());
 
         // Create thousands of items in the legacy provider
         try (ContentProviderClient legacy = context.getContentResolver()
@@ -241,12 +242,12 @@ public class LegacyProviderMigrationTest {
 
         // Clear data on the modern provider so that the initial scan recovers
         // metadata from the legacy provider
+        waitForMountedAndIdle(context.getContentResolver());
         executeShellCommand("sync", ui);
         executeShellCommand("pm clear " + modernProvider.applicationInfo.packageName, ui);
-        pollForExternalStorageState();
+        waitForMountedAndIdle(context.getContentResolver());
 
         // Confirm that details from legacy provider have migrated
-        MediaStore.waitForIdle(context.getContentResolver());
         try (ContentProviderClient modern = context.getContentResolver()
                 .acquireContentProviderClient(MediaStore.AUTHORITY)) {
             try (Cursor cursor = modern.query(mExternalImages, null, null, null)) {
@@ -268,12 +269,11 @@ public class LegacyProviderMigrationTest {
         Assume.assumeNotNull(legacyProvider);
         Assume.assumeNotNull(modernProvider);
 
-        // Wait until everything calms down
-        MediaStore.waitForIdle(context.getContentResolver());
-
         // Clear data on the legacy provider so that we create a database
+        waitForMountedAndIdle(context.getContentResolver());
         executeShellCommand("sync", ui);
         executeShellCommand("pm clear " + legacyProvider.applicationInfo.packageName, ui);
+        waitForMountedAndIdle(context.getContentResolver());
 
         // Create a well-known entry in legacy provider, and write data into
         // place to ensure the file is created on disk
@@ -297,12 +297,12 @@ public class LegacyProviderMigrationTest {
 
         // Clear data on the modern provider so that the initial scan recovers
         // metadata from the legacy provider
+        waitForMountedAndIdle(context.getContentResolver());
         executeShellCommand("sync", ui);
         executeShellCommand("pm clear " + modernProvider.applicationInfo.packageName, ui);
-        pollForExternalStorageState();
+        waitForMountedAndIdle(context.getContentResolver());
 
         // And force a scan to confirm upgraded data survives
-        MediaStore.waitForIdle(context.getContentResolver());
         MediaStore.scanVolume(context.getContentResolver(),
                 MediaStore.getVolumeName(collectionUri));
 
@@ -329,12 +329,29 @@ public class LegacyProviderMigrationTest {
         }
     }
 
-    private static void pollForExternalStorageState() throws Exception {
+    private static void waitForMountedAndIdle(ContentResolver resolver) {
+        // We purposefully perform these operations twice in this specific
+        // order, since clearing the data on a package can asynchronously
+        // perform a vold reset, which can make us think storage is ready and
+        // mounted when it's moments away from being torn down.
+        pollForExternalStorageState();
+        MediaStore.waitForIdle(resolver);
+        pollForExternalStorageState();
+        MediaStore.waitForIdle(resolver);
+    }
+
+    private static void pollForExternalStorageState() {
+        final File target = Environment.getExternalStorageDirectory();
         for (int i = 0; i < POLLING_TIMEOUT_MILLIS / POLLING_SLEEP_MILLIS; i++) {
-            if(Environment.getExternalStorageState(Environment.getExternalStorageDirectory())
-                    .equals(Environment.MEDIA_MOUNTED)) {
-                return;
+            try {
+                if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState(target))
+                        && Os.statvfs(target.getAbsolutePath()).f_blocks > 0) {
+                    return;
+                }
+            } catch (ErrnoException ignored) {
             }
+
+            Log.v(TAG, "Waiting for external storage...");
             SystemClock.sleep(POLLING_SLEEP_MILLIS);
         }
         fail("Timed out while waiting for ExternalStorageState to be MEDIA_MOUNTED");

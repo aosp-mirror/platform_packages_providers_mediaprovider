@@ -807,8 +807,13 @@ public class FileUtils {
         }
 
         final Uri uri = MediaStore.Files.getContentUri(volumeName);
-        return context.getSystemService(StorageManager.class).getStorageVolume(uri)
+        final File path = context.getSystemService(StorageManager.class).getStorageVolume(uri)
                 .getDirectory();
+        if (path != null) {
+            return path;
+        } else {
+            throw new FileNotFoundException(volumeName + " has no associated path");
+        }
     }
 
     /**

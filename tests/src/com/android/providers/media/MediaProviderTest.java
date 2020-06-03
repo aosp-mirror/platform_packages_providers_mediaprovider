@@ -967,14 +967,14 @@ public class MediaProviderTest {
         values.put(MediaColumns.MIME_TYPE, mimeType);
         try {
             ensureFileColumns(uri, values);
-        } catch (VolumeArgumentException e) {
+        } catch (VolumeArgumentException | VolumeNotFoundException e) {
             throw e.rethrowAsIllegalArgumentException();
         }
         return values.getAsString(MediaColumns.DATA);
     }
 
     private void ensureFileColumns(Uri uri, ContentValues values)
-            throws VolumeArgumentException {
+            throws VolumeArgumentException, VolumeNotFoundException {
         try (ContentProviderClient cpc = sIsolatedResolver
                 .acquireContentProviderClient(MediaStore.AUTHORITY)) {
             ((MediaProvider) cpc.getLocalContentProvider())

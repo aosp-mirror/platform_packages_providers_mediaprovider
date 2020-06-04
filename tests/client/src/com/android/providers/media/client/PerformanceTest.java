@@ -24,7 +24,9 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.database.ContentObserver;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.SystemClock;
+import android.platform.test.scenario.annotation.Scenario;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
 import android.util.Log;
@@ -46,6 +48,7 @@ import java.util.concurrent.TimeUnit;
  * Since we're right in the critical path between camera and gallery apps, we
  * need to meet some pretty strict performance deadlines.
  */
+@Scenario
 @RunWith(AndroidJUnit4.class)
 public class PerformanceTest {
     private static final String TAG = "PerformanceTest";
@@ -70,7 +73,7 @@ public class PerformanceTest {
             doSingle(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, timers);
         }
 
-        timers.dump();
+        timers.dumpResults();
 
         // Verify that core actions finished within 30ms deadline
         final long actionDeadline = 30;
@@ -149,7 +152,7 @@ public class PerformanceTest {
             doBulk(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, timers);
         }
 
-        timers.dump();
+        timers.dumpResults();
 
         // Verify that core actions finished within 30ms deadline
         final long actionDeadline = 30 * COUNT_BULK;
@@ -240,9 +243,14 @@ public class PerformanceTest {
      * averaged based on the number of times it was cycled.
      */
     private static class Timer {
+        private final String name;
         private int count;
         private long duration;
         private long start;
+
+        public Timer(String name) {
+            this.name = name;
+        }
 
         public void start() {
             if (start != 0) {
@@ -266,28 +274,31 @@ public class PerformanceTest {
             return TimeUnit.MILLISECONDS.convert(duration / count, TimeUnit.NANOSECONDS);
         }
 
-        @Override
-        public String toString() {
-            return String.format("count=%d duration=%dns average=%dms", count, duration,
-                    getAverageDurationMillis());
+        public void dumpResults() {
+            final long duration = getAverageDurationMillis();
+            Log.v(TAG, name + ": " + duration + "ms");
+
+            final Bundle results = new Bundle();
+            results.putLong(name, duration);
+            InstrumentationRegistry.getInstrumentation().sendStatus(0, results);
         }
     }
 
     private static class Timers {
-        public final Timer actionInsert = new Timer();
-        public final Timer actionUpdate = new Timer();
-        public final Timer actionDelete = new Timer();
-        public final Timer notifyInsert = new Timer();
-        public final Timer notifyUpdate = new Timer();
-        public final Timer notifyDelete = new Timer();
+        public final Timer actionInsert = new Timer("action_insert");
+        public final Timer actionUpdate = new Timer("action_update");
+        public final Timer actionDelete = new Timer("action_delete");
+        public final Timer notifyInsert = new Timer("notify_insert");
+        public final Timer notifyUpdate = new Timer("notify_update");
+        public final Timer notifyDelete = new Timer("notify_delete");
 
-        public void dump() {
-            Log.v(TAG, "actionInsert " + actionInsert);
-            Log.v(TAG, "actionUpdate " + actionUpdate);
-            Log.v(TAG, "actionDelete " + actionDelete);
-            Log.v(TAG, "notifyInsert " + notifyInsert);
-            Log.v(TAG, "notifyUpdate " + notifyUpdate);
-            Log.v(TAG, "notifyDelete " + notifyDelete);
+        public void dumpResults() {
+            actionInsert.dumpResults();
+            actionUpdate.dumpResults();
+            actionDelete.dumpResults();
+            notifyInsert.dumpResults();
+            notifyUpdate.dumpResults();
+            notifyDelete.dumpResults();
         }
     }
 

@@ -160,6 +160,9 @@ public final class MediaStore {
     public static final String VOLUME_EXTERNAL_PRIMARY = "external_primary";
 
     /** {@hide} */
+    public static final String VOLUME_DEMO = "demo";
+
+    /** {@hide} */
     public static final String RESOLVE_PLAYLIST_MEMBERS_CALL = "resolve_playlist_members";
     /** {@hide} */
     public static final String RUN_IDLE_MAINTENANCE_CALL = "run_idle_maintenance";
@@ -3727,6 +3730,8 @@ public final class MediaStore {
         } else if (VOLUME_EXTERNAL.equals(volumeName)) {
             return volumeName;
         } else if (VOLUME_EXTERNAL_PRIMARY.equals(volumeName)) {
+            return volumeName;
+        } else if (VOLUME_DEMO.equals(volumeName)) {
             return volumeName;
         }
 

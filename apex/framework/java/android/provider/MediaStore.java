@@ -3665,6 +3665,8 @@ public final class MediaStore {
         final StorageManager sm = context.getSystemService(StorageManager.class);
         final Set<String> res = new ArraySet<>();
         for (StorageVolume sv : sm.getStorageVolumes()) {
+            Log.v(TAG, "Examining volume " + sv.getId() + " with name "
+                    + sv.getMediaStoreVolumeName() + " and state " + sv.getState());
             switch (sv.getState()) {
                 case Environment.MEDIA_MOUNTED:
                 case Environment.MEDIA_MOUNTED_READ_ONLY: {

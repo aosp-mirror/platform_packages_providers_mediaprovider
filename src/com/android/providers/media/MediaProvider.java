@@ -305,6 +305,7 @@ public class MediaProvider extends ContentProvider {
         synchronized (sCacheLock) {
             sCachedExternalVolumeNames.clear();
             sCachedExternalVolumeNames.addAll(MediaStore.getExternalVolumeNames(getContext()));
+            Log.v(TAG, "Updated external volumes to: " + sCachedExternalVolumeNames.toString());
 
             sCachedVolumePaths.clear();
             sCachedVolumeScanPaths.clear();

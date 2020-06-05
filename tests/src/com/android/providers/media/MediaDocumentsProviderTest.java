@@ -75,7 +75,8 @@ public class MediaDocumentsProviderTest {
     @Test
     public void testSimple() throws Exception {
         final Context context = InstrumentationRegistry.getTargetContext();
-        final Context isolatedContext = new IsolatedContext(context, "modern");
+        final Context isolatedContext = new IsolatedContext(context, "modern",
+                /*asFuseThread*/ false);
         final ContentResolver resolver = isolatedContext.getContentResolver();
 
         // Give ourselves some basic media to work with
@@ -134,7 +135,8 @@ public class MediaDocumentsProviderTest {
     @Test
     public void testTraverse() throws Exception {
         final Context context = InstrumentationRegistry.getTargetContext();
-        final Context isolatedContext = new IsolatedContext(context, "modern");
+        final Context isolatedContext = new IsolatedContext(context, "modern",
+                /*asFuseThread*/ false);
         final ContentResolver resolver = isolatedContext.getContentResolver();
 
         // Give ourselves some basic media to work with

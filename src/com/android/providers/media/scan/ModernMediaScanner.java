@@ -584,7 +584,13 @@ public class ModernMediaScanner implements MediaScanner {
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_FAVORITE, MediaStore.MATCH_INCLUDE);
             final String[] projection = new String[] {FileColumns._ID, FileColumns.DATE_MODIFIED,
-                    FileColumns.SIZE, FileColumns.MIME_TYPE, FileColumns.MEDIA_TYPE};
+                    FileColumns.SIZE, FileColumns.MIME_TYPE, FileColumns.MEDIA_TYPE,
+                    FileColumns.IS_PENDING};
+
+            final Matcher matcher = FileUtils.PATTERN_EXPIRES_FILE.matcher(realFile.getName());
+            // If IS_PENDING is set by FUSE, we should scan the file and update IS_PENDING to zero.
+            // Pending files from FUSE will not be rewritten to contain expiry timestamp.
+            boolean isPendingFromFuse = !matcher.matches();
 
             try (Cursor c = mResolver.query(mFilesUri, projection, queryArgs, mSignal)) {
                 if (c.moveToFirst()) {
@@ -593,6 +599,7 @@ public class ModernMediaScanner implements MediaScanner {
                     final long size = c.getLong(2);
                     final String mimeType = c.getString(3);
                     final int mediaType = c.getInt(4);
+                    isPendingFromFuse &= c.getInt(5) != 0;
 
                     // Remember visiting this existing item, even if we skipped
                     // due to it being unchanged; this is needed so we don't
@@ -609,7 +616,8 @@ public class ModernMediaScanner implements MediaScanner {
                     final boolean sameMimeType = mimeType == null ? actualMimeType == null :
                             mimeType.equalsIgnoreCase(actualMimeType);
                     final boolean sameMediaType = (actualMediaType == mediaType);
-                    final boolean isSame = sameTime && sameSize && sameMediaType && sameMimeType;
+                    final boolean isSame = sameTime && sameSize && sameMediaType && sameMimeType
+                            && !isPendingFromFuse;
                     if (attrs.isDirectory() || isSame) {
                         if (LOGV) Log.v(TAG, "Skipping unchanged " + file);
                         return FileVisitResult.CONTINUE;

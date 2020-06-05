@@ -131,7 +131,7 @@ public class MediaService extends JobIntentService {
         try (ContentProviderClient cpc = context.getContentResolver()
                 .acquireContentProviderClient(MediaStore.AUTHORITY)) {
             final MediaProvider provider = ((MediaProvider) cpc.getLocalContentProvider());
-            provider.attachVolume(volumeName);
+            provider.attachVolume(volumeName, /* validate */ true);
 
             final ContentResolver resolver = ContentResolver.wrap(cpc.getLocalContentProvider());
 

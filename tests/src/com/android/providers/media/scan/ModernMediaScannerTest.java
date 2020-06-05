@@ -97,7 +97,7 @@ public class ModernMediaScannerTest {
         mDir.mkdirs();
         FileUtils.deleteContents(mDir);
 
-        mIsolatedContext = new IsolatedContext(context, "modern");
+        mIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
         mIsolatedResolver = mIsolatedContext.getContentResolver();
 
         mModern = new ModernMediaScanner(mIsolatedContext);

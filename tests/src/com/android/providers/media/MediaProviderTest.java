@@ -97,7 +97,7 @@ public class MediaProviderTest {
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG);
 
         final Context context = InstrumentationRegistry.getTargetContext();
-        sIsolatedContext = new IsolatedContext(context, "modern");
+        sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
         sIsolatedResolver = sIsolatedContext.getContentResolver();
     }
 
@@ -242,7 +242,7 @@ public class MediaProviderTest {
     public void testCanonicalize() throws Exception {
         // We might have old files lurking, so force a clean slate
         final Context context = InstrumentationRegistry.getTargetContext();
-        sIsolatedContext = new IsolatedContext(context, "modern");
+        sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
         sIsolatedResolver = sIsolatedContext.getContentResolver();
 
         final File dir = Environment
@@ -919,7 +919,7 @@ public class MediaProviderTest {
     private static ContentValues computeDataValues(String path) {
         final ContentValues values = new ContentValues();
         values.put(MediaColumns.DATA, path);
-        FileUtils.computeValuesFromData(values);
+        FileUtils.computeValuesFromData(values, /*forFuse*/ false);
         Log.v(TAG, "Computed values " + values);
         return values;
     }

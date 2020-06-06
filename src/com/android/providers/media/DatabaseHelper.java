@@ -825,7 +825,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     // then overwrite with other migrated columns
                     final String data = c.getString(c.getColumnIndex(MediaColumns.DATA));
                     values.put(MediaColumns.DATA, data);
-                    FileUtils.computeValuesFromData(values);
+                    FileUtils.computeValuesFromData(values, /*isForFuse*/ false);
                     for (String column : sMigrateColumns) {
                         DatabaseUtils.copyFromCursorToContentValues(column, c, values);
                     }
@@ -834,7 +834,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     // rename them on disk to match new schema
                     final String volumePath = FileUtils.extractVolumePath(data);
                     if (volumePath != null) {
-                        FileUtils.computeDataFromValues(values, new File(volumePath));
+                        FileUtils.computeDataFromValues(values, new File(volumePath),
+                                /*isForFuse*/ false);
                         final String recomputedData = values.getAsString(MediaColumns.DATA);
                         if (!Objects.equals(data, recomputedData)) {
                             try {
@@ -843,7 +844,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                                 // We only have one shot to migrate data, so log and
                                 // keep marching forward
                                 Log.wtf(TAG, "Failed to rename " + values + "; continuing", e);
-                                FileUtils.computeValuesFromData(values);
+                                FileUtils.computeValuesFromData(values, /*isForFuse*/ false);
                             }
                         }
                     }
@@ -1276,7 +1277,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 final long id = c.getLong(0);
                 final String data = c.getString(1);
                 values.put(FileColumns.DATA, data);
-                FileUtils.computeValuesFromData(values);
+                FileUtils.computeValuesFromData(values, /*isForFuse*/ false);
                 values.remove(FileColumns.DATA);
                 if (!values.isEmpty()) {
                     db.update("files", values, "_id=" + id, null);

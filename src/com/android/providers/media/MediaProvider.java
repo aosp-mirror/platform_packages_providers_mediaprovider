@@ -1309,7 +1309,7 @@ public class MediaProvider extends ContentProvider {
         if (column.equalsIgnoreCase(MediaColumns.IS_PENDING)) {
             final String callingPackage = getCallingPackageOrSelf();
             final String matchSharedPackagesClause = FileColumns.OWNER_PACKAGE_NAME + " IN "
-                    + getSharedPackages(callingPackage);
+                    + getSharedPackages();
             // Include owned pending files from Fuse
             return String.format("%s=0 OR (%s=1 AND %s AND %s)", column, column,
                     MATCH_PENDING_FROM_FUSE, matchSharedPackagesClause);
@@ -1399,7 +1399,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         final String matchSharedPackagesClause = FileColumns.OWNER_PACKAGE_NAME + " IN "
-                + getSharedPackages(callingPackage);
+                + getSharedPackages();
         options.add(DatabaseUtils.bindSelection(matchSharedPackagesClause));
 
         if (column.equalsIgnoreCase(MediaColumns.IS_PENDING)) {
@@ -3481,7 +3481,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     @Deprecated
-    private String getSharedPackages(String callingPackage) {
+    private String getSharedPackages() {
         final String[] sharedPackageNames = mCallingIdentity.get().getSharedPackageNames();
         return bindList((Object[]) sharedPackageNames);
     }
@@ -3554,8 +3554,6 @@ public class MediaProvider extends ContentProvider {
             qb.setStrictGrammar(true);
         }
 
-        final String callingPackage = getCallingPackageOrSelf();
-
         // TODO: throw when requesting a currently unmounted volume
         final String volumeName = MediaStore.getVolumeName(uri);
         final String includeVolumes;
@@ -3564,7 +3562,7 @@ public class MediaProvider extends ContentProvider {
         } else {
             includeVolumes = bindList(volumeName);
         }
-        final String sharedPackages = getSharedPackages(callingPackage);
+        final String sharedPackages = getSharedPackages();
         final String matchSharedPackagesClause = FileColumns.OWNER_PACKAGE_NAME + " IN "
                 + sharedPackages;
 
@@ -3601,6 +3599,7 @@ public class MediaProvider extends ContentProvider {
         final String filter = uri.getQueryParameter("filter");
 
         boolean includeAllVolumes = false;
+        final String callingPackage = getCallingPackageOrSelf();
 
         switch (match) {
             case IMAGES_MEDIA_ID:
@@ -5245,7 +5244,7 @@ public class MediaProvider extends ContentProvider {
                 final SQLiteQueryBuilder qbForReplace = getQueryBuilder(TYPE_DELETE,
                         matchUri(uri, allowHidden), uri, extras, null);
                 final long rowId = getIdIfPathOwnedByPackages(qbForReplace, helper, path,
-                        getSharedPackages(getCallingPackageOrSelf()));
+                        getSharedPackages());
 
                 if (rowId != -1 && qbForReplace.delete(helper, "_id=?",
                         new String[] {Long.toString(rowId)}) == 1) {

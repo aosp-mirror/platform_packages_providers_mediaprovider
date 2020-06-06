@@ -2936,8 +2936,10 @@ public class MediaProvider extends ContentProvider {
             try {
                 return qb.insert(helper, values);
             } catch (SQLiteConstraintException e) {
+                final String packages = getAllowedPackagesForUpsert(
+                        values.getAsString(MediaColumns.OWNER_PACKAGE_NAME));
                 SQLiteQueryBuilder qbForUpsert = getQueryBuilderForUpsert(path);
-                final long rowId = getIdIfPathExistsForCallingPackage(qbForUpsert, helper, path);
+                final long rowId = getIdIfPathOwnedByPackages(qbForUpsert, helper, path, packages);
                 // Apps sometimes create a file via direct path and then insert it into
                 // MediaStore via ContentResolver. The former should create a database entry,
                 // so we have to treat the latter as an upsert.
@@ -2953,24 +2955,48 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * @return row id of the entry with path {@code path} and owner as shared calling package, if it
-     * exists.
+     * @return row id of the entry with path {@code path} if the owner is one of {@code packages}.
      */
-    private long getIdIfPathExistsForCallingPackage(@NonNull SQLiteQueryBuilder qb,
-            @NonNull DatabaseHelper helper, String path) {
-        final String[] projection = new String[] {FileColumns._ID, FileColumns.OWNER_PACKAGE_NAME};
-        final String selection = FileColumns.DATA + " =? ";
+    private long getIdIfPathOwnedByPackages(@NonNull SQLiteQueryBuilder qb,
+            @NonNull DatabaseHelper helper, String path, String packages) {
+        final String[] projection = new String[] {FileColumns._ID};
+        final  String ownerPackageMatchClause = DatabaseUtils.bindSelection(
+                MediaColumns.OWNER_PACKAGE_NAME + " IN " + packages);
+        final String selection = FileColumns.DATA + " =? AND " + ownerPackageMatchClause;
 
         try (Cursor c = qb.query(helper, projection, selection, new String[] {path}, null, null,
                 null, null, null)) {
             if (c.moveToFirst()) {
-                final String ownerPackage = c.getString(1);
-                if (ownerPackage != null && isCallingIdentitySharedPackageName(ownerPackage)) {
-                    return c.getLong(0);
-                }
+                return c.getLong(0);
             }
         }
         return -1;
+    }
+
+    /**
+     * Gets packages that should match to upsert a db row.
+     *
+     * A database row can be upserted if
+     * <ul>
+     * <li> Calling package or one of the shared packages owns the db row.
+     * <li> {@code givenOwnerPackage} owns the db row. This is useful when DownloadProvider
+     * requests upsert on behalf of another app
+     * </ul>
+     */
+    private String getAllowedPackagesForUpsert(@Nullable String givenOwnerPackage) {
+        ArrayList<String> packages = new ArrayList<>();
+        packages.addAll(Arrays.asList(mCallingIdentity.get().getSharedPackageNames()));
+
+        // If givenOwnerPackage is CallingIdentity, packages list would already have shared package
+        // names of givenOwnerPackage. If givenOwnerPackage is not CallingIdentity, since
+        // DownloadProvider can upsert a row on behalf of app, we should include all shared packages
+        // of givenOwnerPackage.
+        if (givenOwnerPackage != null && isCallingPackageSystem() &&
+                !isCallingIdentitySharedPackageName(givenOwnerPackage)) {
+            // Allow DownloadProvider to Upsert if givenOwnerPackage is owner of the db row.
+            packages.addAll(Arrays.asList(getSharedPackagesForPackage(givenOwnerPackage)));
+        }
+        return bindList((Object[]) packages.toArray());
     }
 
     /**
@@ -3408,6 +3434,19 @@ public class MediaProvider extends ContentProvider {
     private String getSharedPackages(String callingPackage) {
         final String[] sharedPackageNames = mCallingIdentity.get().getSharedPackageNames();
         return bindList((Object[]) sharedPackageNames);
+    }
+
+    /**
+     * Gets shared packages names for given {@code packageName}
+     */
+    private String[] getSharedPackagesForPackage(String packageName) {
+        try {
+            final int packageUid = getContext().getPackageManager()
+                    .getPackageUid(packageName, 0);
+            return getContext().getPackageManager().getPackagesForUid(packageUid);
+        } catch (NameNotFoundException ignored) {
+            return new String[] {packageName};
+        }
     }
 
     private static final int TYPE_QUERY = 0;
@@ -5150,7 +5189,8 @@ public class MediaProvider extends ContentProvider {
                 extras.putInt(QUERY_ARG_MATCH_TRASHED, MATCH_INCLUDE);
                 final SQLiteQueryBuilder qbForReplace = getQueryBuilder(TYPE_DELETE,
                         matchUri(uri, allowHidden), uri, extras, null);
-                final long rowId = getIdIfPathExistsForCallingPackage(qbForReplace, helper, path);
+                final long rowId = getIdIfPathOwnedByPackages(qbForReplace, helper, path,
+                        getSharedPackages(getCallingPackageOrSelf()));
 
                 if (rowId != -1 && qbForReplace.delete(helper, "_id=?",
                         new String[] {Long.toString(rowId)}) == 1) {

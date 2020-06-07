@@ -70,7 +70,7 @@ public class MediaScannerTest {
         private final MediaProvider mProvider;
         private final MediaDocumentsProvider mDocumentsProvider;
 
-        public IsolatedContext(Context base, String tag) {
+        public IsolatedContext(Context base, String tag, boolean asFuseThread) {
             super(base);
             mDir = new File(base.getFilesDir(), tag);
             mDir.mkdirs();
@@ -83,7 +83,7 @@ public class MediaScannerTest {
             mProvider = new MediaProvider() {
                 @Override
                 public boolean isFuseThread() {
-                    return false;
+                    return asFuseThread;
                 }
             };
             mProvider.attachInfo(this, info);
@@ -123,8 +123,10 @@ public class MediaScannerTest {
     public void setUp() {
         final Context context = InstrumentationRegistry.getTargetContext();
 
-        mLegacy = new LegacyMediaScanner(new IsolatedContext(context, "legacy"));
-        mModern = new ModernMediaScanner(new IsolatedContext(context, "modern"));
+        mLegacy = new LegacyMediaScanner(
+                new IsolatedContext(context, "legacy", /*asFuseThread*/ false));
+        mModern = new ModernMediaScanner(
+                new IsolatedContext(context, "modern", /*asFuseThread*/ false));
     }
 
     /**

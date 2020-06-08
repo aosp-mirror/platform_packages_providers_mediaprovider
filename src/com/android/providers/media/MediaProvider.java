@@ -126,6 +126,7 @@ import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.Trace;
 import android.os.UserHandle;
+import android.os.storage.StorageManager.StorageVolumeCallback;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.preference.PreferenceManager;
@@ -871,10 +872,19 @@ public class MediaProvider extends ContentProvider {
         packageFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
         context.registerReceiver(mPackageReceiver, packageFilter);
 
+        // Watch for invalidation of cached volumes
+        mStorageManager.registerStorageVolumeCallback(context.getMainExecutor(),
+                new StorageVolumeCallback() {
+                    @Override
+                    public void onStateChanged(@NonNull StorageVolume volume) {
+                        updateVolumes();
+                   }
+                });
+
         updateVolumes();
-        attachVolume(MediaStore.VOLUME_INTERNAL);
+        attachVolume(MediaStore.VOLUME_INTERNAL, /* validate */ false);
         for (String volumeName : getExternalVolumeNames()) {
-            attachVolume(volumeName);
+            attachVolume(volumeName, /* validate */ false);
         }
 
         // Watch for performance-sensitive activity
@@ -3069,7 +3079,7 @@ public class MediaProvider extends ContentProvider {
 
         if (match == VOLUMES) {
             String name = initialValues.getAsString("name");
-            Uri attachedVolume = attachVolume(name);
+            Uri attachedVolume = attachVolume(name, /* validate */ true);
             if (mMediaScannerVolume != null && mMediaScannerVolume.equals(name)) {
                 final DatabaseHelper helper = getDatabaseForUri(
                         MediaStore.Files.getContentUri(mMediaScannerVolume));
@@ -6948,11 +6958,7 @@ public class MediaProvider extends ContentProvider {
         return MediaStore.AUTHORITY_URI.buildUpon().appendPath(volumeName).build();
     }
 
-    private void attachVolume(Uri uri) {
-        attachVolume(MediaStore.getVolumeName(uri));
-    }
-
-    public Uri attachVolume(String volume) {
+    public Uri attachVolume(String volume, boolean validate) {
         if (mCallingIdentity.get().pid != android.os.Process.myPid()) {
             throw new SecurityException(
                     "Opening and closing databases not allowed.");
@@ -6962,7 +6968,7 @@ public class MediaProvider extends ContentProvider {
         MediaStore.checkArgumentVolumeName(volume);
 
         // Quick sanity check that volume actually exists
-        if (!MediaStore.VOLUME_INTERNAL.equals(volume)) {
+        if (!MediaStore.VOLUME_INTERNAL.equals(volume) && validate) {
             try {
                 getVolumePath(volume);
             } catch (IOException e) {

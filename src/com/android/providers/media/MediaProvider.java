@@ -1461,37 +1461,19 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Scan files during renames for the following reasons:
+     * Scan files during directory renames for the following reasons:
      * <ul>
-     * <li>When a file or directory is renamed, media type for the corresponding db row will be
-     * updated with media type resolved based on the mime type of the file. This updated media type
-     * doesn't consider hidden file/hidden directory, so we must scan the new path to update the
-     * media type based on the path of the file.
-     * <li>When a file is renamed to .nomedia, the new parent will be a hidden directory. We should
-     * scan new parent directory to ensure all files in that directory are updated with
-     * MEDIA_TYPE_NONE.
-     * <li>When a .nomedia file is moved to new path, old parent of the .nomedia file is no more
-     * hidden. We should scan old parent directory to ensure all files in that directory will be
-     * updated with appropriate media type.
      * <li>Because we don't update db rows for directories, we scan the oldPath to discard stale
      * directory db rows. This prevents conflicts during subsequent db operations with oldPath.
+     * <li>We need to scan newPath as well, because the new directory may have become hidden
+     * or unhidden, in which case we need to update the media types of the contained files
      * </ul>
      */
-    private void scanRenamedPathForFuse(@NonNull String oldPath, @NonNull String newPath) {
+    private void scanRenamedDirectoryForFuse(@NonNull String oldPath, @NonNull String newPath) {
         final LocalCallingIdentity token = clearLocalCallingIdentity();
         try {
-            // We should always scan oldPath to ensure stale db rows corresponding to directories in
-            // oldPath are removed. If oldPath is .nomedia file and is now moved to a new directory,
-            // we should scan parent directory of oldPath to make parent directory non-hidden.
-            final File oldPathToScan = extractDisplayName(oldPath).equals(".nomedia") ?
-                    new File(oldPath).getParentFile() : new File(oldPath);
-            scanFile(oldPathToScan, REASON_DEMAND);
-
-            // We should always scan new path to update the media type, but if new file is .nomedia
-            // we should scan new parent as well
-            final File newPathToScan = extractDisplayName(newPath).equals(".nomedia") ?
-                    new File(newPath).getParentFile() : new File(newPath);
-            scanFile(newPathToScan, REASON_DEMAND);
+            scanFile(new File(oldPath), REASON_DEMAND);
+            scanFile(new File(newPath), REASON_DEMAND);
         } finally {
             restoreLocalCallingIdentity(token);
         }
@@ -1617,13 +1599,15 @@ public class MediaProvider extends ContentProvider {
     /**
      * Gets {@link ContentValues} for updating database entry to {@code path}.
      */
-    private ContentValues getContentValuesForFuseRename(String path, String oldMimeType,
-            String newMimeType) {
+    private ContentValues getContentValuesForFuseRename(String path, String newMimeType,
+            boolean checkHidden) {
         ContentValues values = new ContentValues();
         values.put(MediaColumns.MIME_TYPE, newMimeType);
         values.put(MediaColumns.DATA, path);
 
-        if (!oldMimeType.equalsIgnoreCase(newMimeType)) {
+        if (checkHidden && shouldFileBeHidden(new File(path))) {
+            values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_NONE);
+        } else {
             int mediaType = MimeUtils.resolveMediaType(newMimeType);
             values.put(FileColumns.MEDIA_TYPE, mediaType);
         }
@@ -1808,7 +1792,8 @@ public class MediaProvider extends ContentProvider {
                 final String newFilePath = newPath + "/" + filePath;
                 final String mimeType = MimeUtils.resolveMimeType(new File(newFilePath));
                 if(!updateDatabaseForFuseRename(helper, oldPath + "/" + filePath, newFilePath,
-                        getContentValuesForFuseRename(newFilePath, mimeType, mimeType), qbExtras)) {
+                        getContentValuesForFuseRename(newFilePath, mimeType,
+                                false /* checkHidden  - will be fixed up below */), qbExtras)) {
                     Log.e(TAG, "Calling package doesn't have write permission to rename file.");
                     return OsConstants.EPERM;
                 }
@@ -1824,8 +1809,8 @@ public class MediaProvider extends ContentProvider {
         } finally {
             helper.endTransaction();
         }
-        // File or directory movement might have made new/old path hidden.
-        scanRenamedPathForFuse(oldPath, newPath);
+        // Directory movement might have made new/old path hidden.
+        scanRenamedDirectoryForFuse(oldPath, newPath);
         return 0;
     }
 
@@ -1859,6 +1844,21 @@ public class MediaProvider extends ContentProvider {
         return renameFileForFuse(oldPath, newPath, /* bypassRestrictions */ true) ;
     }
 
+    private static boolean shouldFileBeHidden(@NonNull File file) {
+        if (FileUtils.isFileHidden(file)) {
+            return true;
+        }
+        File parent = file.getParentFile();
+        while (parent != null) {
+            if (FileUtils.isDirectoryHidden(parent)) {
+                return true;
+            }
+            parent = parent.getParentFile();
+        }
+
+        return false;
+    }
+
     private int renameFileForFuse(String oldPath, String newPath, boolean bypassRestrictions) {
         final DatabaseHelper helper;
         try {
@@ -1870,9 +1870,8 @@ public class MediaProvider extends ContentProvider {
         helper.beginTransaction();
         try {
             final String newMimeType = MimeUtils.resolveMimeType(new File(newPath));
-            final String oldMimeType = MimeUtils.resolveMimeType(new File(oldPath));
             if (!updateDatabaseForFuseRename(helper, oldPath, newPath,
-                    getContentValuesForFuseRename(newPath, oldMimeType, newMimeType))) {
+                    getContentValuesForFuseRename(newPath, newMimeType, true /* checkHidden */))) {
                 if (!bypassRestrictions) {
                     Log.e(TAG, "Calling package doesn't have write permission to rename file.");
                     return OsConstants.EPERM;
@@ -1892,8 +1891,22 @@ public class MediaProvider extends ContentProvider {
         } finally {
             helper.endTransaction();
         }
-        // File or directory movement might have made new/old path hidden.
-        scanRenamedPathForFuse(oldPath, newPath);
+        // The above code should have taken are of the mime/media type of the new file,
+        // even if it was moved to/from a hidden directory.
+        // This leaves cases where the source/dest of the move is a .nomedia file itself. Eg:
+        // 1) /sdcard/foo/.nomedia => /sdcard/foo/bar.mp3
+        //    in this case, the code above has given bar.mp3 the correct mime type, but we should
+        //    still can /sdcard/foo, because it's now no longer hidden
+        // 2) /sdcard/foo/.nomedia => /sdcard/bar/.nomedia
+        //    in this case, we need to scan both /sdcard/foo and /sdcard/bar/
+        // 3) /sdcard/foo/bar.mp3 => /sdcard/foo/.nomedia
+        //    in this case, we need to scan all of /sdcard/foo
+        if (extractDisplayName(oldPath).equals(".nomedia")) {
+            scanFile(new File(oldPath).getParentFile(), REASON_DEMAND);
+        }
+        if (extractDisplayName(newPath).equals(".nomedia")) {
+            scanFile(new File(newPath).getParentFile(), REASON_DEMAND);
+        }
         return 0;
     }
 

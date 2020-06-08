@@ -533,7 +533,7 @@ public class ModernMediaScanner implements MediaScanner {
             // overlap and confuse each other
             acquireDirectoryLock(dir);
 
-            if (isDirectoryHidden(dir.toFile())) {
+            if (FileUtils.isDirectoryHidden(dir.toFile())) {
                 mHiddenDirCount++;
             }
 
@@ -665,7 +665,7 @@ public class ModernMediaScanner implements MediaScanner {
             // before releasing our lock below
             applyPending();
 
-            if (isDirectoryHidden(dir.toFile())) {
+            if (FileUtils.isDirectoryHidden(dir.toFile())) {
                 mHiddenDirCount--;
             }
 
@@ -1385,7 +1385,7 @@ public class ModernMediaScanner implements MediaScanner {
                     // When the path is not scannable, we don't care if it's hidden or not.
                     return Pair.create(false, false);
                 }
-                isPathHidden = isPathHidden || isDirectoryHidden(dir);
+                isPathHidden = isPathHidden || FileUtils.isDirectoryHidden(dir);
                 dir = dir.getParentFile();
             }
             return Pair.create(true, isPathHidden);
@@ -1421,45 +1421,6 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     /**
-     * Test if this given directory should be considered hidden.
-     */
-    @VisibleForTesting
-    static boolean isDirectoryHidden(@NonNull File dir) {
-        final String name = dir.getName();
-        if (name.startsWith(".")) {
-            return true;
-        }
-
-        final File nomedia = new File(dir, ".nomedia");
-        // check for .nomedia presence
-        if (nomedia.exists()) {
-            Logging.logPersistent("Observed non-standard " + nomedia);
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Test if this given file should be considered hidden.
-     */
-    @VisibleForTesting
-    static boolean isFileHidden(@NonNull File file) {
-        final String name = file.getName();
-
-        // Handle well-known file names that are pending or trashed; they
-        // normally appear hidden, but we give them special treatment
-        if (FileUtils.PATTERN_EXPIRES_FILE.matcher(name).matches()) {
-            return false;
-        }
-
-        // Otherwise fall back to file name
-        if (name.startsWith(".")) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
      * @return {@link FileColumns#MEDIA_TYPE}, resolved based on the file path and given
      * {@code mimeType}.
      */
@@ -1467,7 +1428,7 @@ public class ModernMediaScanner implements MediaScanner {
             boolean isHidden) {
         int mediaType = MimeUtils.resolveMediaType(mimeType);
 
-        if (isHidden || isFileHidden(file)) {
+        if (isHidden || FileUtils.isFileHidden(file)) {
             mediaType = FileColumns.MEDIA_TYPE_NONE;
         }
         if (mediaType == FileColumns.MEDIA_TYPE_IMAGE && isFileAlbumArt(file)) {

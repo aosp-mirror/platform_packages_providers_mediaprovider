@@ -76,7 +76,7 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
 
         switch(vol.getState()) {
             case Environment.MEDIA_MOUNTED:
-                mediaProvider.attachVolume(volumeName);
+                mediaProvider.attachVolume(volumeName, /* validate */ false);
                 break;
             case Environment.MEDIA_UNMOUNTED:
             case Environment.MEDIA_EJECTING:

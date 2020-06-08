@@ -61,7 +61,7 @@ public class MediaProviderForFuseTest {
                 Manifest.permission.UPDATE_APP_OPS_STATS);
 
         final Context context = InstrumentationRegistry.getTargetContext();
-        sIsolatedContext = new IsolatedContext(context, "modern");
+        sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ true);
         sIsolatedResolver = sIsolatedContext.getContentResolver();
         sMediaProvider = (MediaProvider) sIsolatedResolver
                 .acquireContentProviderClient(MediaStore.AUTHORITY).getLocalContentProvider();

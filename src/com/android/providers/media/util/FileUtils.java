@@ -845,7 +845,9 @@ public class FileUtils {
     public static final Pattern PATTERN_DOWNLOADS_DIRECTORY = Pattern.compile(
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?(?:Android/sandbox/[^/]+/)?Download/?");
     public static final Pattern PATTERN_EXPIRES_FILE = Pattern.compile(
-            "(?i)^\\.(pending|trashed)-(\\d+)-(.+)$");
+            "(?i)^\\.(pending|trashed)-(\\d+)-([^/]+)$");
+    public static final Pattern PATTERN_PENDING_FILEPATH_FOR_SQL = Pattern.compile(
+            ".*/\\.pending-(\\d+)-([^/]+)$");
 
     /**
      * File prefix indicating that the file {@link MediaColumns#IS_PENDING}.
@@ -1034,11 +1036,10 @@ public class FileUtils {
      * {@link MediaColumns#DATA}. This method performs no enforcement of
      * argument validity.
      */
-    public static void computeValuesFromData(@NonNull ContentValues values) {
+    public static void computeValuesFromData(@NonNull ContentValues values, boolean isForFuse) {
         // Worst case we have to assume no bucket details
         values.remove(MediaColumns.VOLUME_NAME);
         values.remove(MediaColumns.RELATIVE_PATH);
-        values.remove(MediaColumns.IS_PENDING);
         values.remove(MediaColumns.IS_TRASHED);
         values.remove(MediaColumns.DATE_EXPIRES);
         values.remove(MediaColumns.DISPLAY_NAME);
@@ -1063,7 +1064,14 @@ public class FileUtils {
             values.put(MediaColumns.DATE_EXPIRES, Long.parseLong(matcher.group(2)));
             values.put(MediaColumns.DISPLAY_NAME, matcher.group(3));
         } else {
-            values.put(MediaColumns.IS_PENDING, 0);
+            if (isForFuse) {
+                // Allow Fuse thread to set IS_PENDING when using DATA column.
+                // TODO(b/156867379) Unset IS_PENDING when Fuse thread doesn't explicitly specify
+                // IS_PENDING. It can't be done now because we scan after create. Scan doesn't
+                // explicitly specify the value of IS_PENDING.
+            } else {
+                values.put(MediaColumns.IS_PENDING, 0);
+            }
             values.put(MediaColumns.IS_TRASHED, 0);
             values.putNull(MediaColumns.DATE_EXPIRES);
             values.put(MediaColumns.DISPLAY_NAME, displayName);
@@ -1086,12 +1094,13 @@ public class FileUtils {
      * argument validity.
      */
     public static void computeDataFromValues(@NonNull ContentValues values,
-            @NonNull File volumePath) {
+            @NonNull File volumePath, boolean isForFuse) {
         values.remove(MediaColumns.DATA);
 
         final String displayName = values.getAsString(MediaColumns.DISPLAY_NAME);
         final String resolvedDisplayName;
-        if (getAsBoolean(values, MediaColumns.IS_PENDING, false)) {
+        // Pending file path shouldn't be rewritten for files inserted via filepath.
+        if (!isForFuse && getAsBoolean(values, MediaColumns.IS_PENDING, false)) {
             final long dateExpires = getAsLong(values, MediaColumns.DATE_EXPIRES,
                     (System.currentTimeMillis() + DEFAULT_DURATION_PENDING) / 1000);
             resolvedDisplayName = String.format(".%s-%d-%s",

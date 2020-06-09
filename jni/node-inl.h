@@ -175,13 +175,10 @@ class node {
     node* LookupChildByName(const std::string& name, bool acquire) const {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
 
+        const char* name_char = name.c_str();
         for (node* child : children_) {
-            // Use exact string comparison, nodes that differ by case
-            // must be considered distinct even if they refer to the same
-            // underlying file as otherwise operations such as "mv x x"
-            // will not work because the source and target nodes are the same.
-
-            if ((name == child->name_) && !child->deleted_) {
+            const std::string& child_name = child->GetName();
+            if (!strcasecmp(name_char, child_name.c_str()) && !child->deleted_) {
                 if (acquire) {
                     child->Acquire();
                 }
@@ -219,22 +216,6 @@ class node {
     node* GetParent() const {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
         return parent_;
-    }
-
-    std::vector<std::string> MatchChildrenCaseInsensitive(const std::string& name) const {
-        std::lock_guard<std::recursive_mutex> guard(*lock_);
-
-        const char* name_char = name.c_str();
-        std::vector<std::string> matches;
-
-        for (node* child : children_) {
-            const std::string& child_name = child->GetName();
-            if (!strcasecmp(name_char, child_name.c_str())) {
-                matches.push_back(child_name);
-            }
-        }
-
-        return matches;
     }
 
     inline void AddHandle(handle* h) {

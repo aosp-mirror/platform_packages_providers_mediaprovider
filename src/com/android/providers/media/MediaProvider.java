@@ -5659,8 +5659,13 @@ public class MediaProvider extends ContentProvider {
      */
     private ParcelFileDescriptor openFileAndEnforcePathPermissionsHelper(Uri uri, int match,
             String mode, CancellationSignal signal) throws FileNotFoundException {
-        final int modeBits = ParcelFileDescriptor.parseMode(mode);
-        final boolean forWrite = (modeBits & ParcelFileDescriptor.MODE_WRITE_ONLY) != 0;
+        int modeBits = ParcelFileDescriptor.parseMode(mode);
+        boolean forWrite = (modeBits & ParcelFileDescriptor.MODE_WRITE_ONLY) != 0;
+        if (forWrite) {
+            // Upgrade 'w' only to 'rw'. This allows us acquire a WR_LOCK when calling
+            // #shouldOpenWithFuse
+            modeBits |= ParcelFileDescriptor.MODE_READ_WRITE;
+        }
 
         final boolean hasOwnerPackageName = hasOwnerPackageName(uri);
         final String[] projection = new String[] {
@@ -5773,9 +5778,10 @@ public class MediaProvider extends ContentProvider {
                 } catch (FileNotFoundException ignored) {
                 }
                 ParcelFileDescriptor lowerFsFd = FileUtils.openSafely(file, modeBits);
-                boolean forRead = (modeBits & ParcelFileDescriptor.MODE_READ_ONLY) != 0;
+                // Always acquire a readLock. This allows us make multiple opens via lower
+                // filesystem
                 boolean shouldOpenWithFuse = daemon != null
-                        && daemon.shouldOpenWithFuse(filePath, forRead, lowerFsFd.getFd());
+                        && daemon.shouldOpenWithFuse(filePath, true /* forRead */, lowerFsFd.getFd());
 
                 if (SystemProperties.getBoolean(PROP_FUSE, false) && shouldOpenWithFuse) {
                     // If the file is already opened on the FUSE mount with VFS caching enabled

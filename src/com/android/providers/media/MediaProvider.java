@@ -6578,6 +6578,13 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.ENOENT;
             }
 
+            // Do not allow apps to open Android/data or Android/obb dirs. Installer and
+            // MOUNT_EXTERNAL_ANDROID_WRITABLE apps won't be blocked by this, as their OBB dirs
+            // are mounted to lowerfs directly.
+            if (isDataOrObbPath(path)) {
+                return OsConstants.EACCES;
+            }
+
             if (shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
                 return 0;
             }

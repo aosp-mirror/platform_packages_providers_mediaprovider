@@ -139,6 +139,7 @@ public class CacheClearingActivity extends Activity implements DialogInterface.O
                 .setCancelable(false)
                 .create();
         mLoadingDialog.create();
+        setDialogOverlaySettings(mActionDialog);
     }
 
     private void createActionDialog(CharSequence appLabel) {
@@ -173,6 +174,13 @@ public class CacheClearingActivity extends Activity implements DialogInterface.O
 
         mActionDialog.create();
         mActionDialog.getButton(DialogInterface.BUTTON_POSITIVE).setFilterTouchesWhenObscured(true);
+
+        setDialogOverlaySettings(mActionDialog);
+    }
+
+    private static void setDialogOverlaySettings(Dialog d) {
+        final Window w = d.getWindow();
+        w.addSystemFlags(WindowManager.LayoutParams.SYSTEM_FLAG_HIDE_NON_SYSTEM_OVERLAY_WINDOWS);
     }
 
     private static void dismissDialogs(Dialog... dialogs) {

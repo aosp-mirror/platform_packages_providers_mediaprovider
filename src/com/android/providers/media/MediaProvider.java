@@ -545,6 +545,10 @@ public class MediaProvider extends ContentProvider {
         File file;
         try {
             file = queryForDataFile(uri, null);
+            if (!file.exists()) {
+                // This can happen if an item is inserted in MediaStore before it is created
+                return;
+            }
         } catch (FileNotFoundException e) {
             // Ignore
             return;
@@ -604,21 +608,23 @@ public class MediaProvider extends ContentProvider {
                 long newId, int newMediaType, boolean newIsDownload,
                 String oldOwnerPackage, String newOwnerPackage, String oldPath) {
             final boolean isDownload = oldIsDownload || newIsDownload;
+            final Uri fileUri = MediaStore.Files.getContentUri(volumeName, oldId);
             handleUpdatedRowForFuse(oldPath, oldOwnerPackage, oldId, newId);
             handleOwnerPackageNameChange(oldPath, oldOwnerPackage, newOwnerPackage);
             acceptWithExpansion(helper::notifyUpdate, volumeName, oldId, oldMediaType, isDownload);
+
+            helper.postBackground(() -> {
+                if (helper.isExternal()) {
+                    // Update the quota type on the filesystem
+                    updateQuotaTypeForUri(fileUri, newMediaType);
+                }
+            });
 
             if (newMediaType != oldMediaType) {
                 acceptWithExpansion(helper::notifyUpdate, volumeName, oldId, newMediaType,
                         isDownload);
 
                 helper.postBackground(() -> {
-                    final Uri fileUri = MediaStore.Files.getContentUri(volumeName, oldId);
-                    if (helper.isExternal()) {
-                        // Update the quota type on the filesystem
-                        updateQuotaTypeForUri(fileUri, newMediaType);
-                    }
-
                     // Invalidate any thumbnails when the media type changes
                     invalidateThumbnails(fileUri);
                 });

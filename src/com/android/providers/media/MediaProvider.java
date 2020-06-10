@@ -6180,10 +6180,9 @@ public class MediaProvider extends ContentProvider {
      * @param path the path of the file to be opened
      * @param uid UID of the app requesting to open the file
      * @param forWrite specifies if the file is to be opened for write
-     * @return 0 upon success. If the operation is illegal or not permitted, returns
-     * {@link OsConstants#ENOENT} to prevent malicious apps from distinguishing whether a file
-     * they have no access to exists or not, or {@link OsConstants#EACCES} or if the calling package
-     * is a legacy app that doesn't have right storage permission.
+     * @return 0 upon success. {@link OsConstants#EACCES} if the operation is illegal or not
+     * permitted for the given {@code uid} or if the calling package is a legacy app that doesn't
+     * have right storage permission.
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
@@ -6237,13 +6236,16 @@ public class MediaProvider extends ContentProvider {
             }
             return 0;
         } catch (FileNotFoundException e) {
+            // We are here because
+            // * App doesn't have read permission to the requested path, hence queryForSingleItem
+            //   couldn't return a valid db row, or,
+            // * There is no db row corresponding to the requested path, which is more unlikely.
+            // In both of these cases, it means that app doesn't have access permission to the file.
             Log.e(TAG, "Couldn't find file: " + path);
-            // It's an illegal state because FuseDaemon shouldn't forward the request if
-            // the file doesn't exist.
-            throw new IllegalStateException(e);
+            return OsConstants.EACCES;
         } catch (IllegalStateException | SecurityException e) {
             Log.e(TAG, "Permission to access file: " + path + " is denied");
-            return OsConstants.ENOENT;
+            return OsConstants.EACCES;
         } finally {
             restoreLocalCallingIdentity(token);
         }

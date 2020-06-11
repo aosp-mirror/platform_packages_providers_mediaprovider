@@ -6573,6 +6573,9 @@ public class MediaProvider extends ContentProvider {
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
 
         try {
+            if ("/storage/emulated".equals(path)) {
+                return OsConstants.EPERM;
+            }
             if (isPrivatePackagePathNotOwnedByCaller(path)) {
                 Log.e(TAG, "Can't access another app's external directory!");
                 return OsConstants.ENOENT;

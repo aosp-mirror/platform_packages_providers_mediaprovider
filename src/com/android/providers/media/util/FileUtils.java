@@ -1188,6 +1188,45 @@ public class FileUtils {
     }
 
     /**
+     * Test if this given directory should be considered hidden.
+     */
+    @VisibleForTesting
+    public static boolean isDirectoryHidden(@NonNull File dir) {
+        final String name = dir.getName();
+        if (name.startsWith(".")) {
+            return true;
+        }
+
+        final File nomedia = new File(dir, ".nomedia");
+        // check for .nomedia presence
+        if (nomedia.exists()) {
+            Logging.logPersistent("Observed non-standard " + nomedia);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Test if this given file should be considered hidden.
+     */
+    @VisibleForTesting
+    public static boolean isFileHidden(@NonNull File file) {
+        final String name = file.getName();
+
+        // Handle well-known file names that are pending or trashed; they
+        // normally appear hidden, but we give them special treatment
+        if (PATTERN_EXPIRES_FILE.matcher(name).matches()) {
+            return false;
+        }
+
+        // Otherwise fall back to file name
+        if (name.startsWith(".")) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Clears all app's external cache directories, i.e. for each app we delete
      * /sdcard/Android/data/app/cache/* but we keep the directory itself.
      *

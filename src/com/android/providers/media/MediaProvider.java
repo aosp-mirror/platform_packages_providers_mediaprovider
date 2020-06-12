@@ -2095,6 +2095,9 @@ public class MediaProvider extends ContentProvider {
             CancellationSignal signal) throws FallbackException {
         queryArgs = (queryArgs != null) ? queryArgs : new Bundle();
 
+        // INCLUDED_DEFAULT_DIRECTORIES extra should only be set inside MediaProvider.
+        queryArgs.remove(INCLUDED_DEFAULT_DIRECTORIES);
+
         final ArraySet<String> honoredArgs = new ArraySet<>();
         DatabaseUtils.resolveQueryArgs(queryArgs, honoredArgs::add, this::ensureCustomCollator);
 
@@ -3104,6 +3107,9 @@ public class MediaProvider extends ContentProvider {
             @Nullable Bundle extras) throws FallbackException {
         extras = (extras != null) ? extras : new Bundle();
 
+        // INCLUDED_DEFAULT_DIRECTORIES extra should only be set inside MediaProvider.
+        extras.remove(INCLUDED_DEFAULT_DIRECTORIES);
+
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
@@ -4086,6 +4092,9 @@ public class MediaProvider extends ContentProvider {
             throws FallbackException {
         extras = (extras != null) ? extras : new Bundle();
 
+        // INCLUDED_DEFAULT_DIRECTORIES extra should only be set inside MediaProvider.
+        extras.remove(INCLUDED_DEFAULT_DIRECTORIES);
+
         final String userWhere = extras.getString(QUERY_ARG_SQL_SELECTION);
         final String[] userWhereArgs = extras.getStringArray(QUERY_ARG_SQL_SELECTION_ARGS);
 
@@ -4792,6 +4801,8 @@ public class MediaProvider extends ContentProvider {
         // Related items are only considered for new media creation, and they
         // can't be leveraged to move existing content into blocked locations
         extras.remove(QUERY_ARG_RELATED_URI);
+        // INCLUDED_DEFAULT_DIRECTORIES extra should only be set inside MediaProvider.
+        extras.remove(INCLUDED_DEFAULT_DIRECTORIES);
 
         final String userWhere = extras.getString(QUERY_ARG_SQL_SELECTION);
         final String[] userWhereArgs = extras.getStringArray(QUERY_ARG_SQL_SELECTION_ARGS);

@@ -19,9 +19,7 @@ package com.android.providers.media.scan;
 import static com.android.providers.media.scan.MediaScanner.REASON_UNKNOWN;
 import static com.android.providers.media.scan.MediaScannerTest.stage;
 import static com.android.providers.media.scan.ModernMediaScanner.shouldScanPathAndIsPathHidden;
-import static com.android.providers.media.scan.ModernMediaScanner.isDirectoryHidden;
 import static com.android.providers.media.scan.ModernMediaScanner.isFileAlbumArt;
-import static com.android.providers.media.scan.ModernMediaScanner.isFileHidden;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptional;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalDate;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalDateTaken;
@@ -35,6 +33,8 @@ import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalT
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalVideoResolution;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalYear;
 import static com.android.providers.media.scan.ModernMediaScanner.shouldScanDirectory;
+import static com.android.providers.media.util.FileUtils.isDirectoryHidden;
+import static com.android.providers.media.util.FileUtils.isFileHidden;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

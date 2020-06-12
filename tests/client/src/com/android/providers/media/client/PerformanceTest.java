@@ -26,7 +26,6 @@ import android.database.ContentObserver;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
-import android.platform.test.scenario.annotation.Scenario;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
 import android.util.Log;
@@ -48,7 +47,6 @@ import java.util.concurrent.TimeUnit;
  * Since we're right in the critical path between camera and gallery apps, we
  * need to meet some pretty strict performance deadlines.
  */
-@Scenario
 @RunWith(AndroidJUnit4.class)
 public class PerformanceTest {
     private static final String TAG = "PerformanceTest";

@@ -364,7 +364,6 @@ static bool is_package_owned_path(const string& path, const string& fuse_path) {
 }
 
 static void invalidate_case_insensitive_dentry_matches(struct fuse* fuse, node* parent,
-                                                       const string& name,
                                                        const vector<string>& children) {
     fuse_ino_t parent_ino = fuse->ToInode(parent);
     std::thread t([=]() {
@@ -392,44 +391,18 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
 
     node = parent->LookupChildByName(name, true /* acquire */);
     if (!node) {
-        // Handle case insensitivity
-        vector<string> children = parent->MatchChildrenCaseInsensitive(name);
-        bool should_invalidate = false;
-
-        // Check if path exists again, this time case insensitive.
-        // If there are case insensitive children, we may reuse the node or create a new one
-        if (!children.empty()) {
-            // We use the first child because for Android/, Android/data or Android/obb
-            // the code below ensures there can only be one node.
-            // For other paths, the code is still correct because we will still create a new node
-            // regardless and invalidate all previous case-insensitive children
-            const string& child_i = children[0];
-            // We don't acquire the node yet because we will create a new node if it isn't an
-            // Android/, Android/data or Android/obb path
-            class node* node_i = parent->LookupChildByName(child_i, false /* acquire */);
-            CHECK(node_i != nullptr);
-            string path_i = node_i->BuildPath();
-
-            LOG(DEBUG) << "Case insensitive match: " << path_i;
-            if (std::regex_match(path_i, ANDROID_DATA_OBB_PATH)) {
-                // Reuse the existing node by acquiring the node
-                // We don't invalidate because Android/data and Android/obb
-                // are mount points and we will lose the mounts if we invalidate.
-                node = parent->LookupChildByName(child_i, true /* acquire */);
-                LOG(DEBUG) << "Reusing name: " << child_i;
-            } else {
-                // Don't reuse the existing node so we don't mix up the kernel node ref count
-                // Instead, invalidate all previous nodes and we will create a new one below
-                invalidate_case_insensitive_dentry_matches(fuse, parent, name, children);
-            }
-        }
-
-        // If we didn't reuse a node, then we create a new node
-        if (!node) {
-            node = ::node::Create(parent, name, &fuse->lock, &fuse->tracker);
-        }
+        node = ::node::Create(parent, name, &fuse->lock, &fuse->tracker);
+    } else if (!std::regex_match(node->BuildPath(), ANDROID_DATA_OBB_PATH)) {
+        // Invalidate both names to ensure there's no dentry left in the kernel after the following
+        // operations:
+        // 1) touch foo, touch FOO, unlink *foo*
+        // 2) touch foo, touch FOO, unlink *FOO*
+        // Invalidating lookup_name fixes (1) and invalidating node_name fixes (2)
+        vector<string> children;
+        children.push_back(name);
+        children.push_back(node->GetName());
+        invalidate_case_insensitive_dentry_matches(fuse, parent, children);
     }
-
     TRACE_NODE(node);
 
     // This FS is not being exported via NFS so just a fixed generation number

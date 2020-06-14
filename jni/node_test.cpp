@@ -231,14 +231,11 @@ TEST_F(NodeTest, AddDestroyHandle) {
 
 TEST_F(NodeTest, CaseInsensitive) {
     unique_node_ptr parent = CreateNode(nullptr, "/path");
-    unique_node_ptr lower_child = CreateNode(parent.get(), "child");
-    unique_node_ptr upper_child = CreateNode(parent.get(), "CHILD");
     unique_node_ptr mixed_child = CreateNode(parent.get(), "cHiLd");
 
-    std::vector<std::string> children = parent->MatchChildrenCaseInsensitive("ChIld");
+    node* upper_child = parent->LookupChildByName("CHILD", false /* acquire */);
+    node* lower_child = parent->LookupChildByName("child", false /* acquire */);
 
-    ASSERT_EQ(3, children.size());
-    ASSERT_EQ("child", children[0]);
-    ASSERT_EQ("CHILD", children[1]);
-    ASSERT_EQ("cHiLd", children[2]);
+    ASSERT_EQ(mixed_child.get(), lower_child);
+    ASSERT_EQ(mixed_child.get(), upper_child);
 }

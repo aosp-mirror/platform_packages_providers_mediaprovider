@@ -5074,7 +5074,11 @@ public class MediaProvider extends ContentProvider {
                     invalidateFuseDentry(beforePath);
                     invalidateFuseDentry(afterPath);
                 } catch (ErrnoException e) {
-                    throw new IllegalStateException(e);
+                    if (e.errno == OsConstants.ENOENT) {
+                        Log.d(TAG, "Missing file at " + beforePath + "; continuing anyway");
+                    } else {
+                        throw new IllegalStateException(e);
+                    }
                 }
                 initialValues.put(MediaColumns.DATA, afterPath);
 

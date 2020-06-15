@@ -4119,17 +4119,40 @@ public class MediaProvider extends ContentProvider {
         // INCLUDED_DEFAULT_DIRECTORIES extra should only be set inside MediaProvider.
         extras.remove(INCLUDED_DEFAULT_DIRECTORIES);
 
+        uri = safeUncanonicalize(uri);
+        final boolean allowHidden = isCallingPackageAllowedHidden();
+        final int match = matchUri(uri, allowHidden);
+
+        switch(match) {
+            case AUDIO_MEDIA_ID:
+            case AUDIO_PLAYLISTS_ID:
+            case VIDEO_MEDIA_ID:
+            case IMAGES_MEDIA_ID:
+            case DOWNLOADS_ID:
+            case FILES_ID: {
+                if (!isFuseThread() && getCachedCallingIdentityForFuse(Binder.getCallingUid()).
+                        removeDeletedRowId(Long.parseLong(uri.getLastPathSegment()))) {
+                    // Apps sometimes delete the file via filePath and then try to delete the db row
+                    // using MediaProvider#delete. Since we would have already deleted the db row
+                    // during the filePath operation, the latter will result in a security
+                    // exception. Apps which don't expect an exception will break here. Since we
+                    // have already deleted the db row, silently return zero as deleted count.
+                    return 0;
+                }
+            }
+            break;
+            default:
+                // For other match types, given uri will not correspond to a valid file.
+                break;
+        }
+
         final String userWhere = extras.getString(QUERY_ARG_SQL_SELECTION);
         final String[] userWhereArgs = extras.getStringArray(QUERY_ARG_SQL_SELECTION_ARGS);
-
-        uri = safeUncanonicalize(uri);
 
         int count = 0;
 
         final String volumeName = getVolumeName(uri);
         final int targetSdkVersion = getCallingPackageTargetSdkVersion();
-        final boolean allowHidden = isCallingPackageAllowedHidden();
-        final int match = matchUri(uri, allowHidden);
 
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
         if (match == MEDIA_SCANNER) {

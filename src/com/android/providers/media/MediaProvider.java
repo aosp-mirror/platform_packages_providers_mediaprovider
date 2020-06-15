@@ -6397,16 +6397,22 @@ public class MediaProvider extends ContentProvider {
         return uri;
     }
 
-    private boolean fileExists(@NonNull String absolutePath, @NonNull Uri contentUri) {
+    private boolean fileExists(@NonNull String absolutePath) {
         // We don't care about specific columns in the match,
         // we just want to check IF there's a match
         final String[] projection = {};
         final String selection = FileColumns.DATA + " = ?";
         final String[] selectionArgs = {absolutePath};
+        final Uri uri = FileUtils.getContentUriForPath(absolutePath);
 
-        try (final Cursor c = query(contentUri, projection, selection, selectionArgs, null)) {
-            // Shouldn't return null
-            return c.getCount() > 0;
+        final LocalCallingIdentity token = clearLocalCallingIdentity();
+        try {
+            try (final Cursor c = query(uri, projection, selection, selectionArgs, null)) {
+                // Shouldn't return null
+                return c.getCount() > 0;
+            }
+        } finally {
+            clearLocalCallingIdentity(token);
         }
     }
 
@@ -6477,10 +6483,16 @@ public class MediaProvider extends ContentProvider {
 
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
                 // Ignore insert errors for apps that bypass scoped storage restriction.
-                try {
-                    insertFileForFuse(path, FileUtils.getContentUriForPath(path), mimeType,
-                            /*useData*/ isCallingPackageRequestingLegacy());
-                } catch (Exception ignored) {}
+                if (!fileExists(path)) {
+                    // If app has already inserted the db row, inserting the row again might set
+                    // IS_PENDING=1. We shouldn't overwrite existing entry as part of FUSE
+                    // operation, hence, insert the db row only when it doesn't exist.
+                    try {
+                        insertFileForFuse(path, FileUtils.getContentUriForPath(path), mimeType,
+                                /*useData*/ isCallingPackageRequestingLegacy());
+                    } catch (Exception ignored) {
+                    }
+                }
                 return 0;
             }
 
@@ -6490,11 +6502,12 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EPERM;
             }
 
-            final Uri contentUri = getContentUriForFile(path, mimeType);
-            if (fileExists(path, contentUri)) {
+            if (fileExists(path)) {
+                // If the file already exists in the db, we shouldn't allow the file creation.
                 return OsConstants.EEXIST;
             }
 
+            final Uri contentUri = getContentUriForFile(path, mimeType);
             final Uri item = insertFileForFuse(path, contentUri, mimeType, /*useData*/ false);
             if (item == null) {
                 return OsConstants.EPERM;

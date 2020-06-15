@@ -220,9 +220,9 @@ class FAdviser {
     }
 
     std::mutex mutex_;
-    std::thread thread_;
-    std::queue<Message> queue_;
     std::condition_variable cv_;
+    std::queue<Message> queue_;
+    std::thread thread_;
 
     typedef std::multimap<size_t, int> Sizes;
     typedef std::map<int, Sizes::iterator> Files;

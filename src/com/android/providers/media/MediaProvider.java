@@ -278,6 +278,13 @@ public class MediaProvider extends ContentProvider {
     private static final int MATCH_VISIBLE_FOR_FILEPATH = 32;
 
     /**
+     * Where clause to match pending files from FUSE. Pending files from FUSE will not have
+     * PATTERN_PENDING_FILEPATH_FOR_SQL pattern.
+     */
+    private static final String MATCH_PENDING_FROM_FUSE = String.format("lower(%s) NOT REGEXP '%s'",
+            MediaColumns.DATA, PATTERN_PENDING_FILEPATH_FOR_SQL);
+
+    /**
      * Set of {@link Cursor} columns that refer to raw filesystem paths.
      */
     private static final ArrayMap<String, Object> sDataColumns = new ArrayMap<>();
@@ -1291,6 +1298,26 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     * @return where clause to exclude database rows where
+     * <ul>
+     * <li> {@code column} is set or
+     * <li> {@code column} is {@link MediaColumns#IS_PENDING} and is set by FUSE and not owned by
+     * calling package.
+     * </ul>
+     */
+    private String getWhereClauseForMatchExclude(@NonNull String column) {
+        if (column.equalsIgnoreCase(MediaColumns.IS_PENDING)) {
+            final String callingPackage = getCallingPackageOrSelf();
+            final String matchSharedPackagesClause = FileColumns.OWNER_PACKAGE_NAME + " IN "
+                    + getSharedPackages(callingPackage);
+            // Include owned pending files from Fuse
+            return String.format("%s=0 OR (%s=1 AND %s AND %s)", column, column,
+                    MATCH_PENDING_FROM_FUSE, matchSharedPackagesClause);
+        }
+        return column + "=0";
+    }
+
+    /**
      * @return where clause to include database rows where
      * <ul>
      * <li> {@code column} is not set or
@@ -1377,9 +1404,7 @@ public class MediaProvider extends ContentProvider {
 
         if (column.equalsIgnoreCase(MediaColumns.IS_PENDING)) {
             // Include all pending files from Fuse
-            final String matchPendingFromFuse = String.format("lower(%s) NOT REGEXP '%s'",
-                    MediaColumns.DATA, PATTERN_PENDING_FILEPATH_FOR_SQL);
-            options.add(matchPendingFromFuse);
+            options.add(MATCH_PENDING_FROM_FUSE);
         }
 
         final String matchWritableRowsClause = String.format("%s=0 OR (%s=1 AND %s)", column,
@@ -3424,7 +3449,7 @@ public class MediaProvider extends ContentProvider {
                 // No special filtering needed
                 break;
             case MATCH_EXCLUDE:
-                appendWhereStandalone(qb, column + "=?", 0);
+                appendWhereStandalone(qb, getWhereClauseForMatchExclude(column));
                 break;
             case MATCH_ONLY:
                 appendWhereStandalone(qb, column + "=?", 1);
@@ -5796,7 +5821,8 @@ public class MediaProvider extends ContentProvider {
 
         checkAccess(uri, Bundle.EMPTY, file, forWrite);
 
-        if (isPending) {
+        // We don't check ownership for files with IS_PENDING set by FUSE
+        if (isPending && !isPendingFromFuse(file)) {
             requireOwnershipForItem(ownerPackageName, uri);
         }
 
@@ -6250,6 +6276,16 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     * @return {@code true} if {@code file} is pending from FUSE, {@code false} otherwise.
+     * Files pending from FUSE will not have pending file pattern.
+     */
+    private static boolean isPendingFromFuse(@NonNull File file) {
+        final Matcher matcher =
+                FileUtils.PATTERN_EXPIRES_FILE.matcher(extractDisplayName(file.getName()));
+        return !matcher.matches();
+    }
+
+    /**
      * Checks if the app identified by the given UID is allowed to open the given file for the given
      * access mode.
      *
@@ -6302,12 +6338,8 @@ public class MediaProvider extends ContentProvider {
             final File file = new File(path);
             checkAccess(fileUri, Bundle.EMPTY, file, forWrite);
 
-            final Matcher matcher =
-                    FileUtils.PATTERN_EXPIRES_FILE.matcher(extractDisplayName(path));
-            final boolean isPendingFromFuse = !matcher.matches();
-            // For filePath operations, we don't check ownership for files with IS_PENDING set by
-            // FUSE
-            if (isPending && !isPendingFromFuse) {
+            // We don't check ownership for files with IS_PENDING set by FUSE
+            if (isPending && !isPendingFromFuse(new File(path))) {
                 requireOwnershipForItem(ownerPackageName, fileUri);
             }
             return 0;

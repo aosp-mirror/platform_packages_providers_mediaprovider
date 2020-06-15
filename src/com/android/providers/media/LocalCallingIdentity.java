@@ -353,12 +353,14 @@ public class LocalCallingIdentity {
         rowIdOfDeletedPaths.put(path, id);
     }
 
-    public void removeDeletedRowId(long id) {
+    public boolean removeDeletedRowId(long id) {
         int index = rowIdOfDeletedPaths.indexOfValue(id);
+        final boolean isDeleted = index > -1;
         while (index > -1) {
             rowIdOfDeletedPaths.removeAt(index);
             index = rowIdOfDeletedPaths.indexOfValue(id);
         }
+        return isDeleted;
     }
 
     public long getDeletedRowId(@NonNull String path) {

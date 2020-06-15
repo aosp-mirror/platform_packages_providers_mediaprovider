@@ -2917,7 +2917,9 @@ public class MediaProvider extends ContentProvider {
             if (isCallingPackageSystem() && values.containsKey(FileColumns.MEDIA_TYPE)) {
                 // Leave FileColumns.MEDIA_TYPE untouched if the caller is ModernMediaScanner and
                 // FileColumns.MEDIA_TYPE is already populated.
-            } else{
+            } else if (path != null && shouldFileBeHidden(new File(path))) {
+                values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_NONE);
+            } else {
                 values.put(FileColumns.MEDIA_TYPE, MimeUtils.resolveMediaType(mimeType));
             }
         } else {

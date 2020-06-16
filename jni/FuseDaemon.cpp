@@ -459,6 +459,12 @@ static bool is_app_accessible_path(MediaProviderWrapper* mp, const string& path,
         return true;
     }
 
+    if (path == "/storage/emulated") {
+        // Apps should never refer to /storage/emulated - they should be using the user-spcific
+        // subdirs, eg /storage/emulated/0
+        return false;
+    }
+
     std::smatch match;
     if (std::regex_match(path, match, PATTERN_OWNED_PATH)) {
         const std::string& pkg = match[1];

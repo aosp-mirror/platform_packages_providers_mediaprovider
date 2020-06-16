@@ -108,8 +108,9 @@ const std::regex PATTERN_OWNED_PATH(
     "^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb|sandbox)/([^/]+)(/?.*)?",
     std::regex_constants::icase);
 
-const std::regex ANDROID_DATA_OBB_PATH("^/storage/[^/]+/(?:[0-9]+/)?(?:Android)/?(?:data|obb)?$",
-                                       std::regex_constants::icase);
+const std::regex PRIMARY_ROOT_ANDROID_DATA_OBB_PATH(
+        "^/storage/emulated/(?:[0-9]+)(?:/Android|/Android/data|/Android/obb)?$",
+        std::regex_constants::icase);
 
 /*
  * In order to avoid double caching with fuse, call fadvise on the file handles
@@ -392,7 +393,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     node = parent->LookupChildByName(name, true /* acquire */);
     if (!node) {
         node = ::node::Create(parent, name, &fuse->lock, &fuse->tracker);
-    } else if (!std::regex_match(node->BuildPath(), ANDROID_DATA_OBB_PATH)) {
+    } else if (!std::regex_match(node->BuildPath(), PRIMARY_ROOT_ANDROID_DATA_OBB_PATH)) {
         // Invalidate both names to ensure there's no dentry left in the kernel after the following
         // operations:
         // 1) touch foo, touch FOO, unlink *foo*

@@ -33,6 +33,7 @@ import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import android.app.AppOpsManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.content.pm.ProviderInfo;
 import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
@@ -213,9 +214,13 @@ public class PermissionUtils {
         if (sLegacyMediaProviderUid == -1) {
             // Uid stays constant while legacy Media Provider stays installed. Cache legacy
             // MediaProvider's uid for the first time.
-            sLegacyMediaProviderUid = context.getPackageManager()
-                    .resolveContentProvider(MediaStore.AUTHORITY_LEGACY, 0)
-                    .applicationInfo.uid;
+            ProviderInfo pi = context.getPackageManager()
+                    .resolveContentProvider(MediaStore.AUTHORITY_LEGACY, 0);
+            if (pi == null) {
+                return false;
+            }
+
+            sLegacyMediaProviderUid = pi.applicationInfo.uid;
         }
         return (uid == sLegacyMediaProviderUid);
     }

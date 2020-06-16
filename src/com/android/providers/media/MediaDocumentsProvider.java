@@ -76,6 +76,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Presents a {@link DocumentsContract} view of {@link MediaProvider} external
@@ -1172,13 +1173,15 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final String[] PROJECTION = new String[] {
                 ImageColumns.BUCKET_ID,
                 ImageColumns.BUCKET_DISPLAY_NAME,
-                ImageColumns.DATE_MODIFIED };
+                ImageColumns.DATE_MODIFIED,
+                ImageColumns.VOLUME_NAME };
         final String SORT_ORDER = ImageColumns.BUCKET_ID + ", " + ImageColumns.DATE_MODIFIED
                 + " DESC";
 
         final int BUCKET_ID = 0;
         final int BUCKET_DISPLAY_NAME = 1;
         final int DATE_MODIFIED = 2;
+        final int VOLUME_NAME = 3;
     }
 
     private void includeImagesBucket(MatrixCursor result, Cursor cursor) {
@@ -1187,8 +1190,9 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
         final RowBuilder row = result.newRow();
         row.add(Document.COLUMN_DOCUMENT_ID, docId);
-        row.add(Document.COLUMN_DISPLAY_NAME,
-            cleanUpMediaBucketName(cursor.getString(ImagesBucketQuery.BUCKET_DISPLAY_NAME)));
+        row.add(Document.COLUMN_DISPLAY_NAME, cleanUpMediaBucketName(
+                cursor.getString(ImagesBucketQuery.BUCKET_DISPLAY_NAME),
+                cursor.getString(ImagesBucketQuery.VOLUME_NAME)));
         row.add(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
         row.add(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(ImagesBucketQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
@@ -1232,13 +1236,15 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final String[] PROJECTION = new String[] {
                 VideoColumns.BUCKET_ID,
                 VideoColumns.BUCKET_DISPLAY_NAME,
-                VideoColumns.DATE_MODIFIED };
+                VideoColumns.DATE_MODIFIED,
+                VideoColumns.VOLUME_NAME };
         final String SORT_ORDER = VideoColumns.BUCKET_ID + ", " + VideoColumns.DATE_MODIFIED
                 + " DESC";
 
         final int BUCKET_ID = 0;
         final int BUCKET_DISPLAY_NAME = 1;
         final int DATE_MODIFIED = 2;
+        final int VOLUME_NAME = 3;
     }
 
     private void includeVideosBucket(MatrixCursor result, Cursor cursor) {
@@ -1247,8 +1253,9 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
         final RowBuilder row = result.newRow();
         row.add(Document.COLUMN_DOCUMENT_ID, docId);
-        row.add(Document.COLUMN_DISPLAY_NAME,
-            cleanUpMediaBucketName(cursor.getString(VideosBucketQuery.BUCKET_DISPLAY_NAME)));
+        row.add(Document.COLUMN_DISPLAY_NAME, cleanUpMediaBucketName(
+                cursor.getString(VideosBucketQuery.BUCKET_DISPLAY_NAME),
+                cursor.getString(VideosBucketQuery.VOLUME_NAME)));
         row.add(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
         row.add(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(VideosBucketQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
@@ -1292,13 +1299,15 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         final String[] PROJECTION = new String[] {
                 FileColumns.BUCKET_ID,
                 FileColumns.BUCKET_DISPLAY_NAME,
-                FileColumns.DATE_MODIFIED };
+                FileColumns.DATE_MODIFIED,
+                FileColumns.VOLUME_NAME };
         final String SORT_ORDER = FileColumns.BUCKET_ID + ", " + FileColumns.DATE_MODIFIED
                 + " DESC";
 
         final int BUCKET_ID = 0;
         final int BUCKET_DISPLAY_NAME = 1;
         final int DATE_MODIFIED = 2;
+        final int VOLUME_NAME = 3;
     }
 
     private void includeDocumentsBucket(MatrixCursor result, Cursor cursor) {
@@ -1307,8 +1316,9 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
         final RowBuilder row = result.newRow();
         row.add(Document.COLUMN_DOCUMENT_ID, docId);
-        row.add(Document.COLUMN_DISPLAY_NAME,
-                cleanUpMediaBucketName(cursor.getString(DocumentsBucketQuery.BUCKET_DISPLAY_NAME)));
+        row.add(Document.COLUMN_DISPLAY_NAME, cleanUpMediaBucketName(
+                cursor.getString(DocumentsBucketQuery.BUCKET_DISPLAY_NAME),
+                cursor.getString(DocumentsBucketQuery.VOLUME_NAME)));
         row.add(Document.COLUMN_MIME_TYPE, Document.MIME_TYPE_DIR);
         row.add(Document.COLUMN_LAST_MODIFIED,
                 cursor.getLong(DocumentsBucketQuery.DATE_MODIFIED) * DateUtils.SECOND_IN_MILLIS);
@@ -1495,10 +1505,13 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         return getContext().getResources().getString(R.string.unknown);
     }
 
-    private String cleanUpMediaBucketName(String bucketDisplayName) {
+    private String cleanUpMediaBucketName(String bucketDisplayName, String volumeName) {
         if (!TextUtils.isEmpty(bucketDisplayName)) {
             return bucketDisplayName;
+        } else if (!Objects.equals(volumeName, MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
+            return volumeName;
+        } else {
+            return getContext().getResources().getString(R.string.unknown);
         }
-        return getContext().getResources().getString(R.string.unknown);
     }
 }

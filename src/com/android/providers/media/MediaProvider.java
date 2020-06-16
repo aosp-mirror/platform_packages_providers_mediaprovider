@@ -5170,7 +5170,15 @@ public class MediaProvider extends ContentProvider {
                     if (triggerScan) {
                         try (Cursor c = queryForSingleItem(updatedUri,
                                 new String[] { FileColumns.DATA }, null, null, null)) {
-                            mMediaScanner.scanFile(new File(c.getString(0)), REASON_DEMAND);
+                            final File file = new File(c.getString(0));
+                            helper.postBlocking(() -> {
+                                final LocalCallingIdentity tokenInner = clearLocalCallingIdentity();
+                                try {
+                                    mMediaScanner.scanFile(file, REASON_DEMAND);
+                                } finally {
+                                    restoreLocalCallingIdentity(tokenInner);
+                                }
+                            });
                         } catch (Exception e) {
                             Log.w(TAG, "Failed to update metadata for " + updatedUri, e);
                         }

@@ -1060,13 +1060,15 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     private boolean isEmpty(Uri uri) {
         final ContentResolver resolver = getContext().getContentResolver();
         final long token = Binder.clearCallingIdentity();
-        Cursor cursor = null;
-        try {
-            cursor = resolver.query(uri, new String[] {
-                    BaseColumns._ID }, null, null, null);
-            return (cursor == null) || (cursor.getCount() == 0);
+        try (Cursor cursor = resolver.query(uri,
+                new String[] { "COUNT(_id)" }, null, null, null)) {
+            if (cursor.moveToFirst()) {
+                return cursor.getInt(0) == 0;
+            } else {
+                // No count information means we need to assume empty
+                return true;
+            }
         } finally {
-            FileUtils.closeQuietly(cursor);
             Binder.restoreCallingIdentity(token);
         }
     }

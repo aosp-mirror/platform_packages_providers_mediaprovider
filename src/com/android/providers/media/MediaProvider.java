@@ -278,6 +278,13 @@ public class MediaProvider extends ContentProvider {
     private static final int MATCH_VISIBLE_FOR_FILEPATH = 32;
 
     /**
+     * Where clause to match pending files from FUSE. Pending files from FUSE will not have
+     * PATTERN_PENDING_FILEPATH_FOR_SQL pattern.
+     */
+    private static final String MATCH_PENDING_FROM_FUSE = String.format("lower(%s) NOT REGEXP '%s'",
+            MediaColumns.DATA, PATTERN_PENDING_FILEPATH_FOR_SQL);
+
+    /**
      * Set of {@link Cursor} columns that refer to raw filesystem paths.
      */
     private static final ArrayMap<String, Object> sDataColumns = new ArrayMap<>();
@@ -1291,6 +1298,26 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     * @return where clause to exclude database rows where
+     * <ul>
+     * <li> {@code column} is set or
+     * <li> {@code column} is {@link MediaColumns#IS_PENDING} and is set by FUSE and not owned by
+     * calling package.
+     * </ul>
+     */
+    private String getWhereClauseForMatchExclude(@NonNull String column) {
+        if (column.equalsIgnoreCase(MediaColumns.IS_PENDING)) {
+            final String callingPackage = getCallingPackageOrSelf();
+            final String matchSharedPackagesClause = FileColumns.OWNER_PACKAGE_NAME + " IN "
+                    + getSharedPackages();
+            // Include owned pending files from Fuse
+            return String.format("%s=0 OR (%s=1 AND %s AND %s)", column, column,
+                    MATCH_PENDING_FROM_FUSE, matchSharedPackagesClause);
+        }
+        return column + "=0";
+    }
+
+    /**
      * @return where clause to include database rows where
      * <ul>
      * <li> {@code column} is not set or
@@ -1372,14 +1399,12 @@ public class MediaProvider extends ContentProvider {
         }
 
         final String matchSharedPackagesClause = FileColumns.OWNER_PACKAGE_NAME + " IN "
-                + getSharedPackages(callingPackage);
+                + getSharedPackages();
         options.add(DatabaseUtils.bindSelection(matchSharedPackagesClause));
 
         if (column.equalsIgnoreCase(MediaColumns.IS_PENDING)) {
             // Include all pending files from Fuse
-            final String matchPendingFromFuse = String.format("lower(%s) NOT REGEXP '%s'",
-                    MediaColumns.DATA, PATTERN_PENDING_FILEPATH_FOR_SQL);
-            options.add(matchPendingFromFuse);
+            options.add(MATCH_PENDING_FROM_FUSE);
         }
 
         final String matchWritableRowsClause = String.format("%s=0 OR (%s=1 AND %s)", column,
@@ -3424,7 +3449,7 @@ public class MediaProvider extends ContentProvider {
                 // No special filtering needed
                 break;
             case MATCH_EXCLUDE:
-                appendWhereStandalone(qb, column + "=?", 0);
+                appendWhereStandalone(qb, getWhereClauseForMatchExclude(column));
                 break;
             case MATCH_ONLY:
                 appendWhereStandalone(qb, column + "=?", 1);
@@ -3456,7 +3481,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     @Deprecated
-    private String getSharedPackages(String callingPackage) {
+    private String getSharedPackages() {
         final String[] sharedPackageNames = mCallingIdentity.get().getSharedPackageNames();
         return bindList((Object[]) sharedPackageNames);
     }
@@ -3529,8 +3554,6 @@ public class MediaProvider extends ContentProvider {
             qb.setStrictGrammar(true);
         }
 
-        final String callingPackage = getCallingPackageOrSelf();
-
         // TODO: throw when requesting a currently unmounted volume
         final String volumeName = MediaStore.getVolumeName(uri);
         final String includeVolumes;
@@ -3539,7 +3562,7 @@ public class MediaProvider extends ContentProvider {
         } else {
             includeVolumes = bindList(volumeName);
         }
-        final String sharedPackages = getSharedPackages(callingPackage);
+        final String sharedPackages = getSharedPackages();
         final String matchSharedPackagesClause = FileColumns.OWNER_PACKAGE_NAME + " IN "
                 + sharedPackages;
 
@@ -3576,6 +3599,7 @@ public class MediaProvider extends ContentProvider {
         final String filter = uri.getQueryParameter("filter");
 
         boolean includeAllVolumes = false;
+        final String callingPackage = getCallingPackageOrSelf();
 
         switch (match) {
             case IMAGES_MEDIA_ID:
@@ -4095,17 +4119,40 @@ public class MediaProvider extends ContentProvider {
         // INCLUDED_DEFAULT_DIRECTORIES extra should only be set inside MediaProvider.
         extras.remove(INCLUDED_DEFAULT_DIRECTORIES);
 
+        uri = safeUncanonicalize(uri);
+        final boolean allowHidden = isCallingPackageAllowedHidden();
+        final int match = matchUri(uri, allowHidden);
+
+        switch(match) {
+            case AUDIO_MEDIA_ID:
+            case AUDIO_PLAYLISTS_ID:
+            case VIDEO_MEDIA_ID:
+            case IMAGES_MEDIA_ID:
+            case DOWNLOADS_ID:
+            case FILES_ID: {
+                if (!isFuseThread() && getCachedCallingIdentityForFuse(Binder.getCallingUid()).
+                        removeDeletedRowId(Long.parseLong(uri.getLastPathSegment()))) {
+                    // Apps sometimes delete the file via filePath and then try to delete the db row
+                    // using MediaProvider#delete. Since we would have already deleted the db row
+                    // during the filePath operation, the latter will result in a security
+                    // exception. Apps which don't expect an exception will break here. Since we
+                    // have already deleted the db row, silently return zero as deleted count.
+                    return 0;
+                }
+            }
+            break;
+            default:
+                // For other match types, given uri will not correspond to a valid file.
+                break;
+        }
+
         final String userWhere = extras.getString(QUERY_ARG_SQL_SELECTION);
         final String[] userWhereArgs = extras.getStringArray(QUERY_ARG_SQL_SELECTION_ARGS);
-
-        uri = safeUncanonicalize(uri);
 
         int count = 0;
 
         final String volumeName = getVolumeName(uri);
         final int targetSdkVersion = getCallingPackageTargetSdkVersion();
-        final boolean allowHidden = isCallingPackageAllowedHidden();
-        final int match = matchUri(uri, allowHidden);
 
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
         if (match == MEDIA_SCANNER) {
@@ -5220,7 +5267,7 @@ public class MediaProvider extends ContentProvider {
                 final SQLiteQueryBuilder qbForReplace = getQueryBuilder(TYPE_DELETE,
                         matchUri(uri, allowHidden), uri, extras, null);
                 final long rowId = getIdIfPathOwnedByPackages(qbForReplace, helper, path,
-                        getSharedPackages(getCallingPackageOrSelf()));
+                        getSharedPackages());
 
                 if (rowId != -1 && qbForReplace.delete(helper, "_id=?",
                         new String[] {Long.toString(rowId)}) == 1) {
@@ -5796,7 +5843,8 @@ public class MediaProvider extends ContentProvider {
 
         checkAccess(uri, Bundle.EMPTY, file, forWrite);
 
-        if (isPending) {
+        // We don't check ownership for files with IS_PENDING set by FUSE
+        if (isPending && !isPendingFromFuse(file)) {
             requireOwnershipForItem(ownerPackageName, uri);
         }
 
@@ -6250,16 +6298,25 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     * @return {@code true} if {@code file} is pending from FUSE, {@code false} otherwise.
+     * Files pending from FUSE will not have pending file pattern.
+     */
+    private static boolean isPendingFromFuse(@NonNull File file) {
+        final Matcher matcher =
+                FileUtils.PATTERN_EXPIRES_FILE.matcher(extractDisplayName(file.getName()));
+        return !matcher.matches();
+    }
+
+    /**
      * Checks if the app identified by the given UID is allowed to open the given file for the given
      * access mode.
      *
      * @param path the path of the file to be opened
      * @param uid UID of the app requesting to open the file
      * @param forWrite specifies if the file is to be opened for write
-     * @return 0 upon success. If the operation is illegal or not permitted, returns
-     * {@link OsConstants#ENOENT} to prevent malicious apps from distinguishing whether a file
-     * they have no access to exists or not, or {@link OsConstants#EACCES} or if the calling package
-     * is a legacy app that doesn't have right storage permission.
+     * @return 0 upon success. {@link OsConstants#EACCES} if the operation is illegal or not
+     * permitted for the given {@code uid} or if the calling package is a legacy app that doesn't
+     * have right storage permission.
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
@@ -6303,23 +6360,22 @@ public class MediaProvider extends ContentProvider {
             final File file = new File(path);
             checkAccess(fileUri, Bundle.EMPTY, file, forWrite);
 
-            final Matcher matcher =
-                    FileUtils.PATTERN_EXPIRES_FILE.matcher(extractDisplayName(path));
-            final boolean isPendingFromFuse = !matcher.matches();
-            // For filePath operations, we don't check ownership for files with IS_PENDING set by
-            // FUSE
-            if (isPending && !isPendingFromFuse) {
+            // We don't check ownership for files with IS_PENDING set by FUSE
+            if (isPending && !isPendingFromFuse(new File(path))) {
                 requireOwnershipForItem(ownerPackageName, fileUri);
             }
             return 0;
         } catch (FileNotFoundException e) {
+            // We are here because
+            // * App doesn't have read permission to the requested path, hence queryForSingleItem
+            //   couldn't return a valid db row, or,
+            // * There is no db row corresponding to the requested path, which is more unlikely.
+            // In both of these cases, it means that app doesn't have access permission to the file.
             Log.e(TAG, "Couldn't find file: " + path);
-            // It's an illegal state because FuseDaemon shouldn't forward the request if
-            // the file doesn't exist.
-            throw new IllegalStateException(e);
+            return OsConstants.EACCES;
         } catch (IllegalStateException | SecurityException e) {
             Log.e(TAG, "Permission to access file: " + path + " is denied");
-            return OsConstants.ENOENT;
+            return OsConstants.EACCES;
         } finally {
             restoreLocalCallingIdentity(token);
         }
@@ -6395,16 +6451,22 @@ public class MediaProvider extends ContentProvider {
         return uri;
     }
 
-    private boolean fileExists(@NonNull String absolutePath, @NonNull Uri contentUri) {
+    private boolean fileExists(@NonNull String absolutePath) {
         // We don't care about specific columns in the match,
         // we just want to check IF there's a match
         final String[] projection = {};
         final String selection = FileColumns.DATA + " = ?";
         final String[] selectionArgs = {absolutePath};
+        final Uri uri = FileUtils.getContentUriForPath(absolutePath);
 
-        try (final Cursor c = query(contentUri, projection, selection, selectionArgs, null)) {
-            // Shouldn't return null
-            return c.getCount() > 0;
+        final LocalCallingIdentity token = clearLocalCallingIdentity();
+        try {
+            try (final Cursor c = query(uri, projection, selection, selectionArgs, null)) {
+                // Shouldn't return null
+                return c.getCount() > 0;
+            }
+        } finally {
+            clearLocalCallingIdentity(token);
         }
     }
 
@@ -6475,10 +6537,16 @@ public class MediaProvider extends ContentProvider {
 
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
                 // Ignore insert errors for apps that bypass scoped storage restriction.
-                try {
-                    insertFileForFuse(path, FileUtils.getContentUriForPath(path), mimeType,
-                            /*useData*/ isCallingPackageRequestingLegacy());
-                } catch (Exception ignored) {}
+                if (!fileExists(path)) {
+                    // If app has already inserted the db row, inserting the row again might set
+                    // IS_PENDING=1. We shouldn't overwrite existing entry as part of FUSE
+                    // operation, hence, insert the db row only when it doesn't exist.
+                    try {
+                        insertFileForFuse(path, FileUtils.getContentUriForPath(path), mimeType,
+                                /*useData*/ isCallingPackageRequestingLegacy());
+                    } catch (Exception ignored) {
+                    }
+                }
                 return 0;
             }
 
@@ -6488,11 +6556,12 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EPERM;
             }
 
-            final Uri contentUri = getContentUriForFile(path, mimeType);
-            if (fileExists(path, contentUri)) {
+            if (fileExists(path)) {
+                // If the file already exists in the db, we shouldn't allow the file creation.
                 return OsConstants.EEXIST;
             }
 
+            final Uri contentUri = getContentUriForFile(path, mimeType);
             final Uri item = insertFileForFuse(path, contentUri, mimeType, /*useData*/ false);
             if (item == null) {
                 return OsConstants.EPERM;
@@ -6655,6 +6724,13 @@ public class MediaProvider extends ContentProvider {
             if (isPrivatePackagePathNotOwnedByCaller(path)) {
                 Log.e(TAG, "Can't access another app's external directory!");
                 return OsConstants.ENOENT;
+            }
+
+            // Do not allow apps to open Android/data or Android/obb dirs. Installer and
+            // MOUNT_EXTERNAL_ANDROID_WRITABLE apps won't be blocked by this, as their OBB dirs
+            // are mounted to lowerfs directly.
+            if (isDataOrObbPath(path)) {
+                return OsConstants.EACCES;
             }
 
             if (shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {

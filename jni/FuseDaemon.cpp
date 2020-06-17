@@ -491,7 +491,9 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
         return nullptr;
     }
     string parent_path = parent_node->BuildPath();
-    if (!is_app_accessible_path(fuse->mp, parent_path, req->ctx.uid)) {
+    // We should always allow lookups on the root, because failing them could cause
+    // bind mounts to be invalidated.
+    if (!fuse->IsRoot(parent_node) && !is_app_accessible_path(fuse->mp, parent_path, req->ctx.uid)) {
         *error_code = ENOENT;
         return nullptr;
     }

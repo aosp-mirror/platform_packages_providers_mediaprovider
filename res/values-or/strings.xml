@@ -39,8 +39,7 @@
     </plurals>
     <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"ଅସ୍ଥାୟୀ ଆପ୍ ଫାଇଲଗୁଡ଼ିକୁ ଖାଲି କରିବେ?"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> କିଛି ଅସ୍ଥାୟୀ ଫାଇଲ୍ ଖାଲି କରିବାକୁ ଚାହୁଁଛି। ଏହା ଫଳରେ ବ୍ୟାଟେରୀ କିମ୍ବା ସେଲ୍ୟୁଲାର୍ ଡାଟାର ବ୍ୟବହାର ଅଧିକ ହୋଇପାରେ।"</string>
-    <!-- no translation found for cache_clearing_in_progress_title (6902220064511664209) -->
-    <skip />
+    <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"ଅସ୍ଥାୟୀ ଆପ୍ ଫାଇଲଗୁଡ଼ିକୁ ଖାଲି କରାଯାଉଛି…"</string>
     <string name="allow" msgid="8885707816848569619">"ଅନୁମତି ଦିଅନ୍ତୁ"</string>
     <string name="deny" msgid="6040983710442068936">"ଅଗ୍ରାହ୍ୟ କରନ୍ତୁ"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

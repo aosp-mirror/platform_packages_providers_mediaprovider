@@ -600,6 +600,12 @@ static void pf_setattr(fuse_req_t req,
         fuse_reply_err(req, ENOENT);
         return;
     }
+    const struct fuse_ctx* ctx = fuse_req_ctx(req);
+    int status = fuse->mp->IsOpenAllowed(path, ctx->uid, true);
+    if (status) {
+        fuse_reply_err(req, EACCES);
+        return;
+    }
     struct timespec times[2];
 
     TRACE_NODE(node);

@@ -16,6 +16,7 @@
 
 package com.android.providers.media.util;
 
+import static com.android.providers.media.util.PermissionUtils.checkNoIsolatedStorageGranted;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionBackup;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionManageExternalStorage;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadAudio;
@@ -70,5 +71,16 @@ public class PermissionUtilsTest {
         assertFalse(checkPermissionWriteVideo(context, pid, uid, packageName, null));
         assertTrue(checkPermissionReadImages(context, pid, uid, packageName, null));
         assertFalse(checkPermissionWriteImages(context, pid, uid, packageName, null));
+    }
+
+    /**
+     * Test that {@code android:no_isolated_storage} app op is by default denied.
+     */
+    @Test
+    public void testNoIsolatedStorageIsByDefaultDenied() throws Exception {
+        final Context context = InstrumentationRegistry.getContext();
+        final int uid = android.os.Process.myUid();
+        final String packageName = context.getPackageName();
+        assertFalse(checkNoIsolatedStorageGranted(context, uid, packageName, null));
     }
 }

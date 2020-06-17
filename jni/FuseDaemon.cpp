@@ -220,9 +220,9 @@ class FAdviser {
     }
 
     std::mutex mutex_;
-    std::thread thread_;
-    std::queue<Message> queue_;
     std::condition_variable cv_;
+    std::queue<Message> queue_;
+    std::thread thread_;
 
     typedef std::multimap<size_t, int> Sizes;
     typedef std::map<int, Sizes::iterator> Files;
@@ -491,7 +491,9 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
         return nullptr;
     }
     string parent_path = parent_node->BuildPath();
-    if (!is_app_accessible_path(fuse->mp, parent_path, req->ctx.uid)) {
+    // We should always allow lookups on the root, because failing them could cause
+    // bind mounts to be invalidated.
+    if (!fuse->IsRoot(parent_node) && !is_app_accessible_path(fuse->mp, parent_path, req->ctx.uid)) {
         *error_code = ENOENT;
         return nullptr;
     }
@@ -598,6 +600,12 @@ static void pf_setattr(fuse_req_t req,
     string path = node->BuildPath();
     if (!is_app_accessible_path(fuse->mp, path, req->ctx.uid)) {
         fuse_reply_err(req, ENOENT);
+        return;
+    }
+    const struct fuse_ctx* ctx = fuse_req_ctx(req);
+    int status = fuse->mp->IsOpenAllowed(path, ctx->uid, true);
+    if (status) {
+        fuse_reply_err(req, EACCES);
         return;
     }
     struct timespec times[2];

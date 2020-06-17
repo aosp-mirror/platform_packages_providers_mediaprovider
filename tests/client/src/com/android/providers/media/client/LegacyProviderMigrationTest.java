@@ -65,6 +65,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.InterruptedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
@@ -358,6 +359,21 @@ public class LegacyProviderMigrationTest {
     }
 
     public static String executeShellCommand(String command, UiAutomation uiAutomation)
+            throws IOException {
+        int attempt = 0;
+        while (attempt++ < 5) {
+            try {
+                return executeShellCommandInternal(command, uiAutomation);
+            } catch (InterruptedIOException e) {
+                // Hmm, we had trouble executing the shell command; the best we
+                // can do is try again a few more times
+                Log.v(TAG, "Trouble executing " + command + "; trying again", e);
+            }
+        }
+        throw new IOException("Failed to execute " + command);
+    }
+
+    public static String executeShellCommandInternal(String command, UiAutomation uiAutomation)
             throws IOException {
         Log.v(TAG, "$ " + command);
         ParcelFileDescriptor pfd = uiAutomation.executeShellCommand(command.toString());

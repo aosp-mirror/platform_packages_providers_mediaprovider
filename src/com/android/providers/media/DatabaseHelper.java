@@ -437,6 +437,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         public boolean successful;
 
         /**
+         * List of tasks that should be executed in a blocking fashion when this
+         * transaction has been successfully finished.
+         */
+        public final ArrayList<Runnable> blockingTasks = new ArrayList<>();
+
+        /**
          * Map from {@code flags} value to set of {@link Uri} that would have
          * been sent directly via {@link ContentResolver#notifyChange}, but are
          * instead being collected due to this ongoing transaction.
@@ -511,6 +517,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         mSchemaLock.readLock().unlock();
 
         if (state.successful) {
+            for (int i = 0; i < state.blockingTasks.size(); i++) {
+                state.blockingTasks.get(i).run();
+            }
+
             // We carefully "phase" our two sets of work here to ensure that we
             // completely finish dispatching all change notifications before we
             // process background tasks, to ensure that the background work
@@ -632,9 +642,23 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     /**
-     * Post given task to be run in background. This enqueues the task if
-     * currently inside a transaction, and they'll be clustered and sent when
-     * the transaction completes.
+     * Post the given task to be run in a blocking fashion after any current
+     * transaction has finished. If there is no active transaction, the task is
+     * immediately executed.
+     */
+    public void postBlocking(@NonNull Runnable command) {
+        final TransactionState state = mTransactionState.get();
+        if (state != null) {
+            state.blockingTasks.add(command);
+        } else {
+            command.run();
+        }
+    }
+
+    /**
+     * Post the given task to be run in background after any current transaction
+     * has finished. If there is no active transaction, the task is immediately
+     * dispatched to run in the background.
      */
     public void postBackground(@NonNull Runnable command) {
         final TransactionState state = mTransactionState.get();

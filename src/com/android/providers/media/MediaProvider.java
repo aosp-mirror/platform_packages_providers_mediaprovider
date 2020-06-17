@@ -4529,13 +4529,7 @@ public class MediaProvider extends ContentProvider {
         final ClipData clipData = extras.getParcelable(MediaStore.EXTRA_CLIP_DATA);
         final List<Uri> uris = collectUris(clipData);
 
-        final String volumeName = MediaStore.getVolumeName(uris.get(0));
         for (Uri uri : uris) {
-            // Require that everything is on the same volume
-            if (!Objects.equals(volumeName, MediaStore.getVolumeName(uri))) {
-                throw new IllegalArgumentException("All requested items must be on same volume");
-            }
-
             final int match = matchUri(uri, false);
             switch (match) {
                 case IMAGES_MEDIA_ID:

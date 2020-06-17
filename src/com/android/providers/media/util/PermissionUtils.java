@@ -33,12 +33,17 @@ import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import android.app.AppOpsManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.content.pm.ProviderInfo;
 import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 public class PermissionUtils {
+
+    public static final String OPSTR_NO_ISOLATED_STORAGE = "android:no_isolated_storage";
+
     // Callers must hold both the old and new permissions, so that we can
     // handle obscure cases like when an app targets Q but was installed on
     // a device that was originally running on P before being upgraded to Q.
@@ -68,9 +73,13 @@ public class PermissionUtils {
 
     public static boolean checkPermissionManageExternalStorage(@NonNull Context context, int pid,
             int uid, @NonNull String packageName, @Nullable String attributionTag) {
-        return checkPermissionForDataDelivery(context, MANAGE_EXTERNAL_STORAGE, pid, uid,
+        if (checkPermissionForDataDelivery(context, MANAGE_EXTERNAL_STORAGE, pid, uid,
                 packageName, attributionTag,
-                generateAppOpMessage(packageName,sOpDescription.get()));
+                generateAppOpMessage(packageName,sOpDescription.get()))) {
+            return true;
+        }
+        // Fallback to OPSTR_NO_ISOLATED_STORAGE app op.
+        return checkNoIsolatedStorageGranted(context, uid, packageName, attributionTag);
     }
 
     public static boolean checkPermissionWriteStorage(@NonNull Context context, int pid, int uid,
@@ -156,6 +165,15 @@ public class PermissionUtils {
                 generateAppOpMessage(packageName, sOpDescription.get()));
     }
 
+    @VisibleForTesting
+    static boolean checkNoIsolatedStorageGranted(@NonNull Context context, int uid,
+            @NonNull String packageName, @Nullable String attributionTag) {
+        final AppOpsManager appOps = context.getSystemService(AppOpsManager.class);
+        int ret = appOps.noteOpNoThrow(OPSTR_NO_ISOLATED_STORAGE, uid, packageName, attributionTag,
+                generateAppOpMessage(packageName, "am instrument --no-isolated-storage"));
+        return ret == AppOpsManager.MODE_ALLOWED;
+    }
+
     /**
      * Generates a message to be used with the different {@link AppOpsManager#noteOp} variations.
      * If the supplied description is {@code null}, the returned message will be {@code null}.
@@ -213,9 +231,13 @@ public class PermissionUtils {
         if (sLegacyMediaProviderUid == -1) {
             // Uid stays constant while legacy Media Provider stays installed. Cache legacy
             // MediaProvider's uid for the first time.
-            sLegacyMediaProviderUid = context.getPackageManager()
-                    .resolveContentProvider(MediaStore.AUTHORITY_LEGACY, 0)
-                    .applicationInfo.uid;
+            ProviderInfo pi = context.getPackageManager()
+                    .resolveContentProvider(MediaStore.AUTHORITY_LEGACY, 0);
+            if (pi == null) {
+                return false;
+            }
+
+            sLegacyMediaProviderUid = pi.applicationInfo.uid;
         }
         return (uid == sLegacyMediaProviderUid);
     }

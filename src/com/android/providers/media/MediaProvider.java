@@ -156,6 +156,7 @@ import android.util.Log;
 import android.util.LongSparseArray;
 import android.util.Size;
 import android.util.SparseArray;
+import android.webkit.MimeTypeMap;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.Keep;
@@ -2431,13 +2432,55 @@ public class MediaProvider extends ContentProvider {
         if (!TextUtils.isEmpty(values.getAsString(MediaColumns.DATA))) {
             FileUtils.computeValuesFromData(values, isFuseThread());
         }
-        // Extract the MIME type from the display name if we couldn't resolve it from the raw path
-        if (!TextUtils.isEmpty(values.getAsString(MediaColumns.DISPLAY_NAME))) {
-            final String displayName = values.getAsString(MediaColumns.DISPLAY_NAME);
 
-            if (TextUtils.isEmpty(values.getAsString(MediaColumns.MIME_TYPE))) {
-                values.put(
-                        MediaColumns.MIME_TYPE, MimeUtils.resolveMimeType(new File(displayName)));
+        final boolean isTargetSdkROrHigher =
+                getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.R;
+        final String displayName = values.getAsString(MediaColumns.DISPLAY_NAME);
+        final String mimeTypeFromExt = TextUtils.isEmpty(displayName) ? null :
+                MimeUtils.resolveMimeType(new File(displayName));
+
+        if (TextUtils.isEmpty(values.getAsString(MediaColumns.MIME_TYPE))) {
+            if (isTargetSdkROrHigher) {
+                // Extract the MIME type from the display name if we couldn't resolve it from the
+                // raw path
+                if (mimeTypeFromExt != null) {
+                    values.put(MediaColumns.MIME_TYPE, mimeTypeFromExt);
+                } else {
+                    // We couldn't resolve mimeType, it means that both display name and MIME type
+                    // were missing in values, so we use defaultMimeType.
+                    values.put(MediaColumns.MIME_TYPE, defaultMimeType);
+                }
+            } else if (defaultMediaType == FileColumns.MEDIA_TYPE_NONE) {
+                values.put(MediaColumns.MIME_TYPE, mimeTypeFromExt);
+            } else {
+                // We don't use mimeTypeFromExt to preserve legacy behavior.
+                values.put(MediaColumns.MIME_TYPE, defaultMimeType);
+            }
+        }
+
+        String mimeType = values.getAsString(MediaColumns.MIME_TYPE);
+        if (defaultMediaType == FileColumns.MEDIA_TYPE_NONE) {
+            // We allow any mimeType for generic uri with default media type as MEDIA_TYPE_NONE.
+        } else if (mimeType != null &&
+                MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) == null) {
+            if (mimeTypeFromExt != null &&
+                    defaultMediaType == MimeUtils.resolveMediaType(mimeTypeFromExt)) {
+                // If mimeType from extension matches the defaultMediaType of uri, we use mimeType
+                // from file extension as mimeType. This is an effort to guess the mimeType when we
+                // get unsupported mimeType.
+                // Note: We can't force defaultMimeType because when we force defaultMimeType, we
+                // will force the file extension as well. For example, if DISPLAY_NAME=Foo.png and
+                // mimeType="image/*". If we force mimeType to be "image/jpeg", we append the file
+                // name with the new file extension i.e., "Foo.png.jpg" where as the expected file
+                // name was "Foo.png"
+                values.put(MediaColumns.MIME_TYPE, mimeTypeFromExt);
+            } else if (isTargetSdkROrHigher) {
+                // We are here because given mimeType is unsupported also we couldn't guess valid
+                // mimeType from file extension.
+                throw new IllegalArgumentException("Unsupported MIME type " + mimeType);
+            } else {
+                // We can't throw error for legacy apps, so we try to use defaultMimeType.
+                values.put(MediaColumns.MIME_TYPE, defaultMimeType);
             }
         }
 
@@ -2450,12 +2493,10 @@ public class MediaProvider extends ContentProvider {
         final int format = formatObject == null ? 0 : formatObject.intValue();
         if (format == MtpConstants.FORMAT_ASSOCIATION) {
             values.putNull(MediaColumns.MIME_TYPE);
-        } else if (TextUtils.isEmpty(values.getAsString(MediaColumns.MIME_TYPE))) {
-            values.put(MediaColumns.MIME_TYPE, defaultMimeType);
         }
 
+        mimeType = values.getAsString(MediaColumns.MIME_TYPE);
         // Sanity check MIME type against table
-        final String mimeType = values.getAsString(MediaColumns.MIME_TYPE);
         if (mimeType != null) {
             final int actualMediaType = MimeUtils.resolveMediaType(mimeType);
             if (defaultMediaType == FileColumns.MEDIA_TYPE_NONE) {
@@ -2611,6 +2652,10 @@ public class MediaProvider extends ContentProvider {
                 throw new IllegalStateException("Failed to create directory: " + res);
             }
             values.put(MediaColumns.DATA, res.getAbsolutePath());
+            // buildFile may have changed the file name, compute values to extract new DISPLAY_NAME.
+            // Note: We can't extract displayName from res.getPath() because for pending & trashed
+            // files DISPLAY_NAME will not be same as file name.
+            FileUtils.computeValuesFromData(values, isFuseThread());
         } else {
             assertFileColumnsSane(match, uri, values);
         }
@@ -7521,7 +7566,8 @@ public class MediaProvider extends ContentProvider {
     }
 
     @Deprecated
-    private int getCallingPackageTargetSdkVersion() {
+    @VisibleForTesting
+    public int getCallingPackageTargetSdkVersion() {
         return mCallingIdentity.get().getTargetSdkVersion();
     }
 

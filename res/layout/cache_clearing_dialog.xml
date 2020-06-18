@@ -21,13 +21,17 @@
         android:paddingStart="?android:attr/dialogPreferredPadding"
         android:paddingEnd="?android:attr/dialogPreferredPadding"
         android:orientation="vertical">
+    <ImageView
+        android:adjustViewBounds="true"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginTop="20dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_warning"
+        android:contentDescription="@null"/>
+
     <TextView
         android:id="@+id/dialog_title"
-        android:gravity="center"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingTop="15dp"
-        android:textSize="20sp"
-        android:textColor="?android:attr/textColorPrimary"
-        android:textAppearance="@*android:style/TextAppearance.DeviceDefault.Title" />
+        style="@style/CacheClearingAlertDialogTitle"/>
 </LinearLayout>

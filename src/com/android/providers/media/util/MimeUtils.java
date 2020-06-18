@@ -43,7 +43,8 @@ public class MimeUtils {
      */
     public static boolean startsWithIgnoreCase(@Nullable String target, @Nullable String other) {
         if (target == null || other == null) return false;
-        return target.regionMatches(true, 0, other, 0, Math.min(target.length(), other.length()));
+        if (other.length() > target.length()) return false;
+        return target.regionMatches(true, 0, other, 0, other.length());
     }
 
     /**

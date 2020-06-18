@@ -503,6 +503,73 @@ public class MediaProviderTest {
     }
 
     @Test
+    public void testBuildData_InvalidSecondaryTypes() throws Exception {
+        assertEndsWith("/Pictures/foo.png",
+                buildFile(MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                        null, "foo.png", "image/*"));
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            buildFile(MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                    null, "foo", "video/*");
+        });
+        assertThrows(IllegalArgumentException.class, () -> {
+            buildFile(MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                    null, "foo.mp4", "audio/*");
+        });
+    }
+
+    @Test
+    public void testBuildData_EmptyTypes() throws Exception {
+        Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        assertEndsWith("/Pictures/foo.png",
+                buildFile(uri, null, "foo.png", ""));
+
+        uri = MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        assertEndsWith(".mp4",
+                buildFile(uri, null, "", ""));
+    }
+
+    @Test
+    public void testEnsureFileColumns_InvalidMimeType_targetSdkQ() throws Exception {
+        final MediaProvider provider = new MediaProvider() {
+            @Override
+            public boolean isFuseThread() {
+                return false;
+            }
+
+            @Override
+            public int getCallingPackageTargetSdkVersion() {
+                return Build.VERSION_CODES.Q;
+            }
+        };
+
+        final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        final ContentValues values = new ContentValues();
+
+        values.put(MediaColumns.DISPLAY_NAME, "pngimage.png");
+        provider.ensureFileColumns(uri, values);
+        assertMimetype(values, "image/jpeg");
+        assertDisplayName(values, "pngimage.png.jpg");
+
+        values.clear();
+        values.put(MediaColumns.DISPLAY_NAME, "pngimage.png");
+        values.put(MediaColumns.MIME_TYPE, "");
+        provider.ensureFileColumns(uri, values);
+        assertMimetype(values, "image/jpeg");
+        assertDisplayName(values, "pngimage.png.jpg");
+
+        values.clear();
+        values.put(MediaColumns.MIME_TYPE, "");
+        provider.ensureFileColumns(uri, values);
+        assertMimetype(values, "image/jpeg");
+
+        values.clear();
+        values.put(MediaColumns.DISPLAY_NAME, "foo.foo");
+        provider.ensureFileColumns(uri, values);
+        assertMimetype(values, "image/jpeg");
+        assertDisplayName(values, "foo.foo.jpg");
+    }
+
     @Ignore("Enable as part of b/142561358")
     public void testBuildData_Charset() throws Exception {
         final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
@@ -885,6 +952,11 @@ public class MediaProviderTest {
             public boolean isFuseThread() {
                 return false;
             }
+
+            @Override
+            public int getCallingPackageTargetSdkVersion() {
+                return Build.VERSION_CODES.CUR_DEVELOPMENT;
+            }
         };
         provider.ensureFileColumns(uri, values);
 
@@ -946,6 +1018,10 @@ public class MediaProviderTest {
 
     private static void assertMimetype(ContentValues values, String type) {
         assertEquals(type, values.get(MediaColumns.MIME_TYPE));
+    }
+
+    private static void assertDisplayName(ContentValues values, String type) {
+        assertEquals(type, values.get(MediaColumns.DISPLAY_NAME));
     }
 
     private static boolean isGreylistMatch(String raw) {

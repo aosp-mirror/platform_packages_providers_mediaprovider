@@ -75,8 +75,9 @@ using std::string;
 using std::vector;
 
 // logging macros to avoid duplication.
-#define TRACE_NODE(__node) \
-    LOG(VERBOSE) << __FUNCTION__ << " : " << #__node << " = [" << get_name(__node) << "] "
+#define TRACE_NODE(__node, __req)                                                  \
+    LOG(VERBOSE) << __FUNCTION__ << " : " << #__node << " = [" << get_name(__node) \
+                 << "] (uid=" << __req->ctx.uid << ") "
 
 #define ATRACE_NAME(name) ScopedTrace ___tracer(name)
 #define ATRACE_CALL() ATRACE_NAME(__FUNCTION__)
@@ -294,10 +295,8 @@ struct fuse {
 
 static inline string get_name(node* n) {
     if (n) {
-        std::string name("node_path: " + n->BuildSafePath());
-        if (IS_OS_DEBUGABLE) {
-            name += " real_path: " + n->BuildPath();
-        }
+        std::string name = IS_OS_DEBUGABLE ? "real_path: " + n->BuildPath() + " " : "";
+        name += "node_path: " + n->BuildSafePath();
         return name;
     }
     return "?";
@@ -404,7 +403,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
         children.push_back(node->GetName());
         invalidate_case_insensitive_dentry_matches(fuse, parent, children);
     }
-    TRACE_NODE(node);
+    TRACE_NODE(node, req);
 
     // This FS is not being exported via NFS so just a fixed generation number
     // for now. If we do need this, we need to increment the generation ID each
@@ -501,7 +500,7 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
 
     string child_path = parent_path + "/" + name;
 
-    TRACE_NODE(parent_node);
+    TRACE_NODE(parent_node, req);
 
     std::smatch match;
     std::regex_search(child_path, match, storage_emulated_regex);
@@ -526,9 +525,9 @@ static void pf_lookup(fuse_req_t req, fuse_ino_t parent, const char* name) {
     }
 }
 
-static void do_forget(struct fuse* fuse, fuse_ino_t ino, uint64_t nlookup) {
+static void do_forget(fuse_req_t req, struct fuse* fuse, fuse_ino_t ino, uint64_t nlookup) {
     node* node = fuse->FromInode(ino);
-    TRACE_NODE(node);
+    TRACE_NODE(node, req);
     if (node) {
         // This is a narrowing conversion from an unsigned 64bit to a 32bit value. For
         // some reason we only keep 32 bit refcounts but the kernel issues
@@ -543,7 +542,7 @@ static void pf_forget(fuse_req_t req, fuse_ino_t ino, uint64_t nlookup) {
     node* node;
     struct fuse* fuse = get_fuse(req);
 
-    do_forget(fuse, ino, nlookup);
+    do_forget(req, fuse, ino, nlookup);
     fuse_reply_none(req);
 }
 
@@ -554,7 +553,7 @@ static void pf_forget_multi(fuse_req_t req,
     struct fuse* fuse = get_fuse(req);
 
     for (int i = 0; i < count; i++) {
-        do_forget(fuse, forgets[i].ino, forgets[i].nlookup);
+        do_forget(req, fuse, forgets[i].ino, forgets[i].nlookup);
     }
     fuse_reply_none(req);
 }
@@ -574,7 +573,7 @@ static void pf_getattr(fuse_req_t req,
         fuse_reply_err(req, ENOENT);
         return;
     }
-    TRACE_NODE(node);
+    TRACE_NODE(node, req);
 
     struct stat s;
     memset(&s, 0, sizeof(s));
@@ -611,7 +610,7 @@ static void pf_setattr(fuse_req_t req,
     }
     struct timespec times[2];
 
-    TRACE_NODE(node);
+    TRACE_NODE(node, req);
 
     /* XXX: incomplete implementation on purpose.
      * chmod/chown should NEVER be implemented.*/
@@ -647,7 +646,7 @@ static void pf_setattr(fuse_req_t req,
             }
         }
 
-        TRACE_NODE(node);
+        TRACE_NODE(node, req);
         if (utimensat(-1, path.c_str(), times, 0) < 0) {
             fuse_reply_err(req, errno);
             return;
@@ -691,7 +690,7 @@ static void pf_mknod(fuse_req_t req,
         return;
     }
 
-    TRACE_NODE(parent_node);
+    TRACE_NODE(parent_node, req);
 
     const string child_path = parent_path + "/" + name;
 
@@ -729,7 +728,7 @@ static void pf_mkdir(fuse_req_t req,
         return;
     }
 
-    TRACE_NODE(parent_node);
+    TRACE_NODE(parent_node, req);
 
     const string child_path = parent_path + "/" + name;
 
@@ -770,7 +769,7 @@ static void pf_unlink(fuse_req_t req, fuse_ino_t parent, const char* name) {
         return;
     }
 
-    TRACE_NODE(parent_node);
+    TRACE_NODE(parent_node, req);
 
     const string child_path = parent_path + "/" + name;
 
@@ -781,7 +780,7 @@ static void pf_unlink(fuse_req_t req, fuse_ino_t parent, const char* name) {
     }
 
     node* child_node = parent_node->LookupChildByName(name, false /* acquire */);
-    TRACE_NODE(child_node);
+    TRACE_NODE(child_node, req);
     if (child_node) {
         child_node->SetDeleted();
     }
@@ -802,7 +801,7 @@ static void pf_rmdir(fuse_req_t req, fuse_ino_t parent, const char* name) {
         fuse_reply_err(req, ENOENT);
         return;
     }
-    TRACE_NODE(parent_node);
+    TRACE_NODE(parent_node, req);
 
     const string child_path = parent_path + "/" + name;
 
@@ -818,7 +817,7 @@ static void pf_rmdir(fuse_req_t req, fuse_ino_t parent, const char* name) {
     }
 
     node* child_node = parent_node->LookupChildByName(name, false /* acquire */);
-    TRACE_NODE(child_node);
+    TRACE_NODE(child_node, req);
     if (child_node) {
         child_node->SetDeleted();
     }
@@ -863,11 +862,11 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
         return 0;
     }
 
-    TRACE_NODE(old_parent_node);
-    TRACE_NODE(new_parent_node);
+    TRACE_NODE(old_parent_node, req);
+    TRACE_NODE(new_parent_node, req);
 
     node* child_node = old_parent_node->LookupChildByName(name, true /* acquire */);
-    TRACE_NODE(child_node) << "old_child";
+    TRACE_NODE(child_node, req) << "old_child";
 
     const string old_child_path = child_node->BuildPath();
     const string new_child_path = new_parent_path + "/" + new_name;
@@ -879,7 +878,7 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
     if (res == 0) {
         child_node->Rename(new_name, new_parent_node);
     }
-    TRACE_NODE(child_node) << "new_child";
+    TRACE_NODE(child_node, req) << "new_child";
 
     child_node->Release(1);
     return res;
@@ -937,7 +936,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         return;
     }
 
-    TRACE_NODE(node) << (is_requesting_write(fi->flags) ? "write" : "read");
+    TRACE_NODE(node, req) << (is_requesting_write(fi->flags) ? "write" : "read");
 
     if (fi->flags & O_DIRECT) {
         fi->flags &= ~O_DIRECT;
@@ -1168,7 +1167,7 @@ static void pf_flush(fuse_req_t req,
                      struct fuse_file_info* fi) {
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
-    TRACE_NODE(nullptr) << "noop";
+    TRACE_NODE(nullptr, req) << "noop";
     fuse_reply_err(req, 0);
 }
 
@@ -1180,7 +1179,7 @@ static void pf_release(fuse_req_t req,
 
     node* node = fuse->FromInode(ino);
     handle* h = reinterpret_cast<handle*>(fi->fh);
-    TRACE_NODE(node);
+    TRACE_NODE(node, req);
 
     fuse->fadviser.Close(h->fd);
     if (node) {
@@ -1235,7 +1234,7 @@ static void pf_opendir(fuse_req_t req,
         return;
     }
 
-    TRACE_NODE(node);
+    TRACE_NODE(node, req);
 
     int status = fuse->mp->IsOpendirAllowed(path, ctx->uid);
     if (status) {
@@ -1285,7 +1284,7 @@ static void do_readdir_common(fuse_req_t req,
         return;
     }
 
-    TRACE_NODE(node);
+    TRACE_NODE(node, req);
     // Get all directory entries from MediaProvider on first readdir() call of
     // directory handle. h->next_off = 0 indicates that current readdir() call
     // is first readdir() call for the directory handle, Avoid multiple JNI calls
@@ -1343,7 +1342,7 @@ static void do_readdir_common(fuse_req_t req,
             // When an entry is rejected, lookup called by readdir_plus will not be tracked by
             // kernel. Call forget on the rejected node to decrement the reference count.
             if (plus) {
-                do_forget(fuse, e.ino, 1);
+                do_forget(req, fuse, e.ino, 1);
             }
             break;
         }
@@ -1376,7 +1375,7 @@ static void pf_releasedir(fuse_req_t req,
     node* node = fuse->FromInode(ino);
 
     dirhandle* h = reinterpret_cast<dirhandle*>(fi->fh);
-    TRACE_NODE(node);
+    TRACE_NODE(node, req);
     if (node) {
         node->DestroyDirHandle(h);
     }
@@ -1431,7 +1430,7 @@ static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
         fuse_reply_err(req, ENOENT);
         return;
     }
-    TRACE_NODE(node);
+    TRACE_NODE(node, req);
 
     // exists() checks are always allowed.
     if (mask == F_OK) {
@@ -1483,7 +1482,7 @@ static void pf_create(fuse_req_t req,
         return;
     }
 
-    TRACE_NODE(parent_node);
+    TRACE_NODE(parent_node, req);
 
     const string child_path = parent_path + "/" + name;
 
@@ -1515,7 +1514,7 @@ static void pf_create(fuse_req_t req,
     int error_code = 0;
     struct fuse_entry_param e;
     node* node = make_node_entry(req, parent_node, name, child_path, &e, &error_code);
-    TRACE_NODE(node);
+    TRACE_NODE(node, req);
     if (!node) {
         CHECK(error_code != 0);
         fuse_reply_err(req, error_code);

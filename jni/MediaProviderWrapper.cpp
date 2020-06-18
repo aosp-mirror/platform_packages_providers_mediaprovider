@@ -292,7 +292,7 @@ std::unique_ptr<RedactionInfo> MediaProviderWrapper::GetRedactionInfo(const stri
 }
 
 int MediaProviderWrapper::InsertFile(const string& path, uid_t uid) {
-    if (shouldBypassMediaProvider(uid)) {
+    if (uid == ROOT_UID) {
         return 0;
     }
 
@@ -301,7 +301,7 @@ int MediaProviderWrapper::InsertFile(const string& path, uid_t uid) {
 }
 
 int MediaProviderWrapper::DeleteFile(const string& path, uid_t uid) {
-    if (shouldBypassMediaProvider(uid)) {
+    if (uid == ROOT_UID) {
         int res = unlink(path.c_str());
         ScanFile(path);
         return res;

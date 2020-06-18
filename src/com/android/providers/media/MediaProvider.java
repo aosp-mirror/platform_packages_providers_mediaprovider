@@ -6549,17 +6549,30 @@ public class MediaProvider extends ContentProvider {
             final String mimeType = MimeUtils.resolveMimeType(new File(path));
 
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
-                // Ignore insert errors for apps that bypass scoped storage restriction.
+                final boolean callerRequestingLegacy = isCallingPackageRequestingLegacy();
                 if (!fileExists(path)) {
                     // If app has already inserted the db row, inserting the row again might set
                     // IS_PENDING=1. We shouldn't overwrite existing entry as part of FUSE
                     // operation, hence, insert the db row only when it doesn't exist.
                     try {
-                        insertFileForFuse(path, FileUtils.getContentUriForPath(path), mimeType,
-                                /*useData*/ isCallingPackageRequestingLegacy());
+                        insertFileForFuse(path, FileUtils.getContentUriForPath(path),
+                                mimeType, /*useData*/ callerRequestingLegacy);
                     } catch (Exception ignored) {
                     }
+                } else {
+                    // Upon creating a file via FUSE, if a row matching the path already exists
+                    // but a file doesn't exist on the filesystem, we transfer ownership to the
+                    // app attempting to create the file. If we don't update ownership, then the
+                    // app that inserted the original row may be able to observe the contents of
+                    // written file even though they don't hold the right permissions to do so.
+                    if (callerRequestingLegacy) {
+                        final String owner = getCallingPackageOrSelf();
+                        if (owner != null && !updateOwnerForPath(path, owner)) {
+                            return OsConstants.EPERM;
+                        }
+                    }
                 }
+
                 return 0;
             }
 
@@ -6586,6 +6599,23 @@ public class MediaProvider extends ContentProvider {
         } finally {
             restoreLocalCallingIdentity(token);
         }
+    }
+
+    private boolean updateOwnerForPath(@NonNull String path, @NonNull String newOwner) {
+        final DatabaseHelper helper;
+        try {
+            helper = getDatabaseForUri(FileUtils.getContentUriForPath(path));
+        } catch (VolumeNotFoundException e) {
+            // Cannot happen, as this is a path that we already resolved.
+            throw new AssertionError("Path must already be resolved", e);
+        }
+
+        ContentValues values = new ContentValues(1);
+        values.put(FileColumns.OWNER_PACKAGE_NAME, newOwner);
+
+        return helper.runWithoutTransaction((db) -> {
+            return db.update("files", values, "_data=?", new String[] { path });
+        }) == 1;
     }
 
     private static int deleteFileUnchecked(@NonNull String path) {

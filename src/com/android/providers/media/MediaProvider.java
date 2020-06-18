@@ -4529,13 +4529,7 @@ public class MediaProvider extends ContentProvider {
         final ClipData clipData = extras.getParcelable(MediaStore.EXTRA_CLIP_DATA);
         final List<Uri> uris = collectUris(clipData);
 
-        final String volumeName = MediaStore.getVolumeName(uris.get(0));
         for (Uri uri : uris) {
-            // Require that everything is on the same volume
-            if (!Objects.equals(volumeName, MediaStore.getVolumeName(uri))) {
-                throw new IllegalArgumentException("All requested items must be on same volume");
-            }
-
             final int match = matchUri(uri, false);
             switch (match) {
                 case IMAGES_MEDIA_ID:
@@ -5128,7 +5122,11 @@ public class MediaProvider extends ContentProvider {
                     invalidateFuseDentry(beforePath);
                     invalidateFuseDentry(afterPath);
                 } catch (ErrnoException e) {
-                    throw new IllegalStateException(e);
+                    if (e.errno == OsConstants.ENOENT) {
+                        Log.d(TAG, "Missing file at " + beforePath + "; continuing anyway");
+                    } else {
+                        throw new IllegalStateException(e);
+                    }
                 }
                 initialValues.put(MediaColumns.DATA, afterPath);
 
@@ -5220,7 +5218,15 @@ public class MediaProvider extends ContentProvider {
                     if (triggerScan) {
                         try (Cursor c = queryForSingleItem(updatedUri,
                                 new String[] { FileColumns.DATA }, null, null, null)) {
-                            mMediaScanner.scanFile(new File(c.getString(0)), REASON_DEMAND);
+                            final File file = new File(c.getString(0));
+                            helper.postBlocking(() -> {
+                                final LocalCallingIdentity tokenInner = clearLocalCallingIdentity();
+                                try {
+                                    mMediaScanner.scanFile(file, REASON_DEMAND);
+                                } finally {
+                                    restoreLocalCallingIdentity(tokenInner);
+                                }
+                            });
                         } catch (Exception e) {
                             Log.w(TAG, "Failed to update metadata for " + updatedUri, e);
                         }

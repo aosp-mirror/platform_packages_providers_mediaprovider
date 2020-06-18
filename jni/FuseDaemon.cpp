@@ -108,8 +108,9 @@ const std::regex PATTERN_OWNED_PATH(
     "^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb|sandbox)/([^/]+)(/?.*)?",
     std::regex_constants::icase);
 
-const std::regex ANDROID_DATA_OBB_PATH("^/storage/[^/]+/(?:[0-9]+/)?(?:Android)/?(?:data|obb)?$",
-                                       std::regex_constants::icase);
+const std::regex PRIMARY_ROOT_ANDROID_DATA_OBB_PATH(
+        "^/storage/emulated/(?:[0-9]+)(?:/Android|/Android/data|/Android/obb)?$",
+        std::regex_constants::icase);
 
 /*
  * In order to avoid double caching with fuse, call fadvise on the file handles
@@ -220,9 +221,9 @@ class FAdviser {
     }
 
     std::mutex mutex_;
-    std::thread thread_;
-    std::queue<Message> queue_;
     std::condition_variable cv_;
+    std::queue<Message> queue_;
+    std::thread thread_;
 
     typedef std::multimap<size_t, int> Sizes;
     typedef std::map<int, Sizes::iterator> Files;
@@ -392,7 +393,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     node = parent->LookupChildByName(name, true /* acquire */);
     if (!node) {
         node = ::node::Create(parent, name, &fuse->lock, &fuse->tracker);
-    } else if (!std::regex_match(node->BuildPath(), ANDROID_DATA_OBB_PATH)) {
+    } else if (!std::regex_match(node->BuildPath(), PRIMARY_ROOT_ANDROID_DATA_OBB_PATH)) {
         // Invalidate both names to ensure there's no dentry left in the kernel after the following
         // operations:
         // 1) touch foo, touch FOO, unlink *foo*
@@ -491,7 +492,9 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
         return nullptr;
     }
     string parent_path = parent_node->BuildPath();
-    if (!is_app_accessible_path(fuse->mp, parent_path, req->ctx.uid)) {
+    // We should always allow lookups on the root, because failing them could cause
+    // bind mounts to be invalidated.
+    if (!fuse->IsRoot(parent_node) && !is_app_accessible_path(fuse->mp, parent_path, req->ctx.uid)) {
         *error_code = ENOENT;
         return nullptr;
     }
@@ -598,6 +601,12 @@ static void pf_setattr(fuse_req_t req,
     string path = node->BuildPath();
     if (!is_app_accessible_path(fuse->mp, path, req->ctx.uid)) {
         fuse_reply_err(req, ENOENT);
+        return;
+    }
+    const struct fuse_ctx* ctx = fuse_req_ctx(req);
+    int status = fuse->mp->IsOpenAllowed(path, ctx->uid, true);
+    if (status) {
+        fuse_reply_err(req, EACCES);
         return;
     }
     struct timespec times[2];

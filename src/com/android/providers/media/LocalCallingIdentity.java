@@ -22,13 +22,14 @@ import static android.app.AppOpsManager.permissionToOp;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
 
 import static com.android.providers.media.util.PermissionUtils.checkIsLegacyStorageGranted;
-import static com.android.providers.media.util.PermissionUtils.checkPermissionBackup;
-import static com.android.providers.media.util.PermissionUtils.checkPermissionManageExternalStorage;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionDelegator;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionManager;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadAudio;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadImages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadStorage;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadVideo;
-import static com.android.providers.media.util.PermissionUtils.checkPermissionSystem;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionSelf;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionShell;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteAudio;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteImages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteStorage;
@@ -132,7 +133,8 @@ public class LocalCallingIdentity {
         ident.targetSdkVersion = Build.VERSION_CODES.CUR_DEVELOPMENT;
         ident.targetSdkVersionResolved = true;
         ident.hasPermission = ~(PERMISSION_IS_LEGACY_GRANTED | PERMISSION_IS_LEGACY_WRITE
-                | PERMISSION_IS_LEGACY_READ | PERMISSION_IS_REDACTION_NEEDED);
+                | PERMISSION_IS_LEGACY_READ | PERMISSION_IS_REDACTION_NEEDED
+                | PERMISSION_IS_SHELL | PERMISSION_IS_DELEGATOR);
         ident.hasPermissionResolved = ~0;
         return ident;
     }
@@ -194,19 +196,22 @@ public class LocalCallingIdentity {
         return Build.VERSION_CODES.CUR_DEVELOPMENT;
     }
 
-    public static final int PERMISSION_IS_SYSTEM = 1 << 0;
-    public static final int PERMISSION_IS_LEGACY_WRITE = 1 << 1;
-    public static final int PERMISSION_IS_REDACTION_NEEDED = 1 << 2;
-    public static final int PERMISSION_READ_AUDIO = 1 << 3;
-    public static final int PERMISSION_READ_VIDEO = 1 << 4;
-    public static final int PERMISSION_READ_IMAGES = 1 << 5;
-    public static final int PERMISSION_WRITE_AUDIO = 1 << 6;
-    public static final int PERMISSION_WRITE_VIDEO = 1 << 7;
-    public static final int PERMISSION_WRITE_IMAGES = 1 << 8;
-    public static final int PERMISSION_IS_LEGACY_READ = 1 << 9;
-    public static final int PERMISSION_IS_LEGACY_GRANTED = 1 << 10;
-    public static final int PERMISSION_IS_BACKUP = 1 << 11;
-    public static final int PERMISSION_MANAGE_EXTERNAL_STORAGE = 1 << 12;
+    public static final int PERMISSION_IS_SELF = 1 << 0;
+    public static final int PERMISSION_IS_SHELL = 1 << 1;
+    public static final int PERMISSION_IS_MANAGER = 1 << 2;
+    public static final int PERMISSION_IS_DELEGATOR = 1 << 3;
+
+    public static final int PERMISSION_IS_REDACTION_NEEDED = 1 << 8;
+    public static final int PERMISSION_IS_LEGACY_GRANTED = 1 << 9;
+    public static final int PERMISSION_IS_LEGACY_READ = 1 << 10;
+    public static final int PERMISSION_IS_LEGACY_WRITE = 1 << 11;
+
+    public static final int PERMISSION_READ_AUDIO = 1 << 16;
+    public static final int PERMISSION_READ_VIDEO = 1 << 17;
+    public static final int PERMISSION_READ_IMAGES = 1 << 18;
+    public static final int PERMISSION_WRITE_AUDIO = 1 << 19;
+    public static final int PERMISSION_WRITE_VIDEO = 1 << 20;
+    public static final int PERMISSION_WRITE_IMAGES = 1 << 21;
 
     private int hasPermission;
     private int hasPermissionResolved;
@@ -230,22 +235,30 @@ public class LocalCallingIdentity {
         }
 
         switch (permission) {
-            case PERMISSION_IS_SYSTEM:
-                return isSystemInternal();
-            case PERMISSION_IS_BACKUP:
-                return isBackupInternal();
-            case PERMISSION_IS_LEGACY_GRANTED:
-                return isLegacyStorageGranted();
-            case PERMISSION_IS_LEGACY_WRITE:
-                return isLegacyWriteInternal();
-            case PERMISSION_IS_LEGACY_READ:
-                return isLegacyReadInternal();
+            case PERMISSION_IS_SELF:
+                return checkPermissionSelf(context, pid, uid);
+            case PERMISSION_IS_SHELL:
+                return checkPermissionShell(context, pid, uid);
+            case PERMISSION_IS_MANAGER:
+                return checkPermissionManager(context, pid, uid, getPackageName(), attributionTag);
+            case PERMISSION_IS_DELEGATOR:
+                return checkPermissionDelegator(context, pid, uid);
+
             case PERMISSION_IS_REDACTION_NEEDED:
                 return isRedactionNeededInternal();
+            case PERMISSION_IS_LEGACY_GRANTED:
+                return isLegacyStorageGranted();
+            case PERMISSION_IS_LEGACY_READ:
+                return isLegacyReadInternal();
+            case PERMISSION_IS_LEGACY_WRITE:
+                return isLegacyWriteInternal();
+
             case PERMISSION_READ_AUDIO:
-                return checkPermissionReadAudio(context, pid, uid, getPackageName(), attributionTag);
+                return checkPermissionReadAudio(
+                        context, pid, uid, getPackageName(), attributionTag);
             case PERMISSION_READ_VIDEO:
-                return checkPermissionReadVideo(context, pid, uid, getPackageName(), attributionTag);
+                return checkPermissionReadVideo(
+                        context, pid, uid, getPackageName(), attributionTag);
             case PERMISSION_READ_IMAGES:
                 return checkPermissionReadImages(
                         context, pid, uid, getPackageName(), attributionTag);
@@ -258,20 +271,9 @@ public class LocalCallingIdentity {
             case PERMISSION_WRITE_IMAGES:
                 return checkPermissionWriteImages(
                         context, pid, uid, getPackageName(), attributionTag);
-            case PERMISSION_MANAGE_EXTERNAL_STORAGE:
-                return checkPermissionManageExternalStorage(
-                        context, pid, uid, getPackageName(), attributionTag);
             default:
                 return false;
         }
-    }
-
-    private boolean isSystemInternal() {
-        return checkPermissionSystem(context, pid, uid, getPackageName());
-    }
-
-    private boolean isBackupInternal() {
-        return checkPermissionBackup(context, pid, uid);
     }
 
     private boolean isLegacyStorageGranted() {
@@ -314,7 +316,7 @@ public class LocalCallingIdentity {
 
     /** System internals or callers holding permission have no redaction */
     private boolean isRedactionNeededInternal() {
-        if (hasPermission(PERMISSION_IS_SYSTEM)) {
+        if (hasPermission(PERMISSION_IS_SELF) || hasPermission(PERMISSION_IS_SHELL)) {
             return false;
         }
 

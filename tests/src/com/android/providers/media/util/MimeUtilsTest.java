@@ -57,12 +57,12 @@ public class MimeUtilsTest {
         assertTrue(startsWithIgnoreCase("image/jpg", "image/"));
         assertTrue(startsWithIgnoreCase("Image/Jpg", "image/"));
 
-        assertFalse(equalIgnoreCase("image/", "image/jpg"));
+        assertFalse(startsWithIgnoreCase("image/", "image/jpg"));
 
-        assertFalse(equalIgnoreCase("image/jpg", "audio/"));
-        assertFalse(equalIgnoreCase("image/jpg", null));
-        assertFalse(equalIgnoreCase(null, "audio/"));
-        assertFalse(equalIgnoreCase(null, null));
+        assertFalse(startsWithIgnoreCase("image/jpg", "audio/"));
+        assertFalse(startsWithIgnoreCase("image/jpg", null));
+        assertFalse(startsWithIgnoreCase(null, "audio/"));
+        assertFalse(startsWithIgnoreCase(null, null));
     }
 
     @Test

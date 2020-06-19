@@ -2230,7 +2230,8 @@ public class MediaProvider extends ContentProvider {
         if (c != null) {
             // As a performance optimization, only configure notifications when
             // resulting cursor will leave our process
-            if (mCallingIdentity.get().pid != android.os.Process.myPid()) {
+            final boolean callerIsRemote = mCallingIdentity.get().pid != android.os.Process.myPid();
+            if (callerIsRemote && !isFuseThread()) {
                 c.setNotificationUri(getContext().getContentResolver(), uri);
             }
 

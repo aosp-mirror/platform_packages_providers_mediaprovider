@@ -740,6 +740,17 @@ public class SQLiteQueryBuilderTest {
                 "Month", "Month In (1,2)", null, null);
     }
 
+    @Test
+    public void testStrictCustomCollator() {
+        final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
+        final HashMap<String, String> map = new HashMap<>();
+        map.put("bucket_id", "bucket_id");
+        builder.setProjectionMap(map);
+
+        final String sortOrder = "bucket_id COLLATE custom_zh ASC";
+        builder.enforceStrictGrammar(null, null, null, sortOrder, null);
+    }
+
     private void assertStrictInsertValid(ContentValues values) {
         mStrictBuilder.insert(mDatabase, values);
     }

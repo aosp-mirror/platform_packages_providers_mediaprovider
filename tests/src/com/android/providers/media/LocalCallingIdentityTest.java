@@ -67,19 +67,22 @@ public class LocalCallingIdentityTest {
         assertEquals(Arrays.asList(pm.getPackagesForUid(android.os.Process.myUid())),
                 Arrays.asList(ident.getSharedPackageNames()));
 
-        assertTrue(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_SYSTEM));
-        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_LEGACY_WRITE));
+        assertTrue(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_SELF));
+        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_SHELL));
+        assertTrue(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_MANAGER));
+        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_DELEGATOR));
+
         assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED));
+        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_LEGACY_GRANTED));
+        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_LEGACY_READ));
+        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_LEGACY_WRITE));
+
         assertTrue(ident.hasPermission(LocalCallingIdentity.PERMISSION_READ_AUDIO));
         assertTrue(ident.hasPermission(LocalCallingIdentity.PERMISSION_READ_VIDEO));
         assertTrue(ident.hasPermission(LocalCallingIdentity.PERMISSION_READ_IMAGES));
         assertTrue(ident.hasPermission(LocalCallingIdentity.PERMISSION_WRITE_AUDIO));
         assertTrue(ident.hasPermission(LocalCallingIdentity.PERMISSION_WRITE_VIDEO));
         assertTrue(ident.hasPermission(LocalCallingIdentity.PERMISSION_WRITE_IMAGES));
-        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_LEGACY_READ));
-        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_LEGACY_GRANTED));
-        assertTrue(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_BACKUP));
-        assertTrue(ident.hasPermission(LocalCallingIdentity.PERMISSION_MANAGE_EXTERNAL_STORAGE));
     }
 
     @Test
@@ -95,18 +98,21 @@ public class LocalCallingIdentityTest {
         assertEquals(Arrays.asList(MediaProviderTest.PERMISSIONLESS_APP),
                 Arrays.asList(ident.getSharedPackageNames()));
 
-        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_SYSTEM));
-        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_LEGACY_WRITE));
+        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_SELF));
+        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_SHELL));
+        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_MANAGER));
+        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_DELEGATOR));
+
         assertTrue(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED));
+        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_LEGACY_GRANTED));
+        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_LEGACY_READ));
+        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_LEGACY_WRITE));
+
         assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_READ_AUDIO));
         assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_READ_VIDEO));
         assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_READ_IMAGES));
         assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_WRITE_AUDIO));
         assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_WRITE_VIDEO));
         assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_WRITE_IMAGES));
-        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_LEGACY_READ));
-        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_LEGACY_GRANTED));
-        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_IS_BACKUP));
-        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_MANAGE_EXTERNAL_STORAGE));
     }
 }

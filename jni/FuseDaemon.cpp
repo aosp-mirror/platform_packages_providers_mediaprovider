@@ -1521,6 +1521,9 @@ static void pf_create(fuse_req_t req,
         return;
     }
 
+    // Let MediaProvider know we've created a new file
+    fuse->mp->OnFileCreated(child_path);
+
     // TODO(b/147274248): Assume there will be no EXIF to redact.
     // This prevents crashing during reads but can be a security hole if a malicious app opens an fd
     // to the file before all the EXIF content is written. We could special case reads before the

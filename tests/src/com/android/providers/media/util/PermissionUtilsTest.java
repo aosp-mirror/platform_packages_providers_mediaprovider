@@ -17,13 +17,14 @@
 package com.android.providers.media.util;
 
 import static com.android.providers.media.util.PermissionUtils.checkNoIsolatedStorageGranted;
-import static com.android.providers.media.util.PermissionUtils.checkPermissionBackup;
-import static com.android.providers.media.util.PermissionUtils.checkPermissionManageExternalStorage;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionDelegator;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionManager;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadAudio;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadImages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadStorage;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadVideo;
-import static com.android.providers.media.util.PermissionUtils.checkPermissionSystem;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionSelf;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionShell;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteAudio;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteImages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteStorage;
@@ -58,9 +59,10 @@ public class PermissionUtilsTest {
         final int uid = android.os.Process.myUid();
         final String packageName = context.getPackageName();
 
-        assertTrue(checkPermissionSystem(context, pid, uid, packageName));
-        assertFalse(checkPermissionBackup(context, pid, uid));
-        assertFalse(checkPermissionManageExternalStorage(context, pid, uid, packageName, null));
+        assertTrue(checkPermissionSelf(context, pid, uid));
+        assertFalse(checkPermissionShell(context, pid, uid));
+        assertFalse(checkPermissionManager(context, pid, uid, packageName, null));
+        assertFalse(checkPermissionDelegator(context, pid, uid));
 
         assertTrue(checkPermissionReadStorage(context, pid, uid, packageName, null));
         assertTrue(checkPermissionWriteStorage(context, pid, uid, packageName, null));

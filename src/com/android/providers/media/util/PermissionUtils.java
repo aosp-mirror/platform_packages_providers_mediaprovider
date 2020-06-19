@@ -19,6 +19,7 @@ package com.android.providers.media.util;
 import static android.Manifest.permission.BACKUP;
 import static android.Manifest.permission.MANAGE_EXTERNAL_STORAGE;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
+import static android.Manifest.permission.UPDATE_DEVICE_STATS;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.app.AppOpsManager.MODE_ALLOWED;
 import static android.app.AppOpsManager.OPSTR_LEGACY_STORAGE;
@@ -31,20 +32,21 @@ import static android.app.AppOpsManager.OPSTR_WRITE_MEDIA_VIDEO;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 import android.app.AppOpsManager;
+import android.app.DownloadManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.content.pm.ProviderInfo;
-import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 public class PermissionUtils {
+
+    public static final String OPSTR_NO_ISOLATED_STORAGE = "android:no_isolated_storage";
+
     // Callers must hold both the old and new permissions, so that we can
     // handle obscure cases like when an app targets Q but was installed on
     // a device that was originally running on P before being upgraded to Q.
-
-    private static volatile int sLegacyMediaProviderUid = -1;
 
     private static ThreadLocal<String> sOpDescription = new ThreadLocal<>();
 
@@ -54,24 +56,50 @@ public class PermissionUtils {
 
     public static void clearOpDescription() { sOpDescription.set(null); }
 
-    public static boolean checkPermissionSystem(
-            @NonNull Context context, int pid, int uid, String packageName) {
-        // Apps sharing legacy MediaProvider's uid like DownloadProvider and MTP are treated as
-        // system.
-        return uid == android.os.Process.SYSTEM_UID || uid == android.os.Process.myUid()
-                || uid == android.os.Process.SHELL_UID || uid == android.os.Process.ROOT_UID
-                || isLegacyMediaProvider(context, uid);
+    public static boolean checkPermissionSelf(@NonNull Context context, int pid, int uid) {
+        return android.os.Process.myUid() == uid;
     }
 
-    public static boolean checkPermissionBackup(@NonNull Context context, int pid, int uid) {
-        return context.checkPermission(BACKUP, pid, uid) == PERMISSION_GRANTED;
+    public static boolean checkPermissionShell(@NonNull Context context, int pid, int uid) {
+        switch (uid) {
+            case android.os.Process.ROOT_UID:
+            case android.os.Process.SHELL_UID:
+                return true;
+            default:
+                return false;
+        }
     }
 
-    public static boolean checkPermissionManageExternalStorage(@NonNull Context context, int pid,
+    /**
+     * Check if the given package has been granted the "file manager" role on
+     * the device, which should grant them certain broader access.
+     */
+    public static boolean checkPermissionManager(@NonNull Context context, int pid,
             int uid, @NonNull String packageName, @Nullable String attributionTag) {
-        return checkPermissionForDataDelivery(context, MANAGE_EXTERNAL_STORAGE, pid, uid,
+        if (checkPermissionForDataDelivery(context, MANAGE_EXTERNAL_STORAGE, pid, uid,
                 packageName, attributionTag,
-                generateAppOpMessage(packageName,sOpDescription.get()));
+                generateAppOpMessage(packageName,sOpDescription.get()))) {
+            return true;
+        }
+        // Fallback to OPSTR_NO_ISOLATED_STORAGE app op.
+        return checkNoIsolatedStorageGranted(context, uid, packageName, attributionTag);
+    }
+
+    /**
+     * Check if the given package has the ability to "delegate" the ownership of
+     * media items that they own to other apps, typically when they've finished
+     * performing operations on behalf of those apps.
+     * <p>
+     * One use-case for this is backup/restore apps, where the app restoring the
+     * content needs to shift the ownership back to the app that originally
+     * owned that media.
+     * <p>
+     * Another use-case is {@link DownloadManager}, which shifts ownership of
+     * finished downloads to the app that originally requested them.
+     */
+    public static boolean checkPermissionDelegator(@NonNull Context context, int pid, int uid) {
+        return (context.checkPermission(BACKUP, pid, uid) == PERMISSION_GRANTED)
+                || (context.checkPermission(UPDATE_DEVICE_STATS, pid, uid) == PERMISSION_GRANTED);
     }
 
     public static boolean checkPermissionWriteStorage(@NonNull Context context, int pid, int uid,
@@ -157,6 +185,15 @@ public class PermissionUtils {
                 generateAppOpMessage(packageName, sOpDescription.get()));
     }
 
+    @VisibleForTesting
+    static boolean checkNoIsolatedStorageGranted(@NonNull Context context, int uid,
+            @NonNull String packageName, @Nullable String attributionTag) {
+        final AppOpsManager appOps = context.getSystemService(AppOpsManager.class);
+        int ret = appOps.noteOpNoThrow(OPSTR_NO_ISOLATED_STORAGE, uid, packageName, attributionTag,
+                generateAppOpMessage(packageName, "am instrument --no-isolated-storage"));
+        return ret == AppOpsManager.MODE_ALLOWED;
+    }
+
     /**
      * Generates a message to be used with the different {@link AppOpsManager#noteOp} variations.
      * If the supplied description is {@code null}, the returned message will be {@code null}.
@@ -208,21 +245,6 @@ public class PermissionUtils {
             default:
                 throw new IllegalStateException(op + " has unknown mode " + mode);
         }
-    }
-
-    private static boolean isLegacyMediaProvider(Context context, int uid) {
-        if (sLegacyMediaProviderUid == -1) {
-            // Uid stays constant while legacy Media Provider stays installed. Cache legacy
-            // MediaProvider's uid for the first time.
-            ProviderInfo pi = context.getPackageManager()
-                    .resolveContentProvider(MediaStore.AUTHORITY_LEGACY, 0);
-            if (pi == null) {
-                return false;
-            }
-
-            sLegacyMediaProviderUid = pi.applicationInfo.uid;
-        }
-        return (uid == sLegacyMediaProviderUid);
     }
 
     /**

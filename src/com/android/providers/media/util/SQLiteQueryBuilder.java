@@ -76,6 +76,9 @@ public class SQLiteQueryBuilder {
     private static final Pattern sPattern156832140 = Pattern.compile(
             "(?i)%com\\.gopro\\.smarty%");
 
+    private static final Pattern sCustomCollatorPattern = Pattern.compile(
+            "(?i)custom_[a-zA-Z]+");
+
     private Map<String, String> mProjectionMap = null;
     private Collection<Pattern> mProjectionGreylist = null;
 
@@ -786,6 +789,7 @@ public class SQLiteQueryBuilder {
     private void enforceStrictToken(@NonNull String token) {
         if (TextUtils.isEmpty(token)) return;
         if (isTableOrColumn(token)) return;
+        if (isCustomCollator(token)) return;
         if (SQLiteTokenizer.isFunction(token)) return;
         if (SQLiteTokenizer.isType(token)) return;
 
@@ -1076,6 +1080,10 @@ public class SQLiteQueryBuilder {
     private boolean isTableOrColumn(String token) {
         if (mTables.equals(token)) return true;
         return computeSingleProjection(token) != null;
+    }
+
+    private boolean isCustomCollator(String token) {
+        return sCustomCollatorPattern.matcher(token).matches();
     }
 
     /** {@hide} */

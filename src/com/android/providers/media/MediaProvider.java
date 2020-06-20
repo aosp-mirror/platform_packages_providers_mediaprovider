@@ -4381,13 +4381,12 @@ public class MediaProvider extends ContentProvider {
             }
 
             if (deletedDownloadIds.size() > 0) {
-                final long token = Binder.clearCallingIdentity();
-                try {
+                // Do this on a background thread, since we don't want to make binder
+                // calls as part of a FUSE call.
+                helper.postBackground(() -> {
                     getContext().getSystemService(DownloadManager.class)
                             .onMediaStoreDownloadsDeleted(deletedDownloadIds);
-                } finally {
-                    Binder.restoreCallingIdentity(token);
-                }
+                });
             }
 
             if (isFilesTable && !isCallingPackageSelf()) {

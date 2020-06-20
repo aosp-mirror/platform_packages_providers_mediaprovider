@@ -368,10 +368,8 @@ static void invalidate_case_insensitive_dentry_matches(struct fuse* fuse, node* 
     fuse_ino_t parent_ino = fuse->ToInode(parent);
     std::thread t([=]() {
         for (const string& child_name : children) {
-            if (fuse_lowlevel_notify_inval_entry(fuse->se, parent_ino, child_name.c_str(),
-                                                 child_name.size())) {
-                LOG(ERROR) << "Failed to invalidate dentry " << child_name;
-            }
+            fuse_lowlevel_notify_inval_entry(fuse->se, parent_ino, child_name.c_str(),
+                                             child_name.size());
         }
     });
     t.detach();

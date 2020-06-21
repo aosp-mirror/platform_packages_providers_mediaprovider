@@ -157,6 +157,13 @@ class MediaProviderWrapper final {
     int Rename(const std::string& old_path, const std::string& new_path, uid_t uid);
 
     /**
+     * Called whenever a file has been created through FUSE.
+     *
+     * @param path path of the file that has been created.
+     */
+    void OnFileCreated(const std::string& path);
+
+    /**
      * Initializes per-process static variables associated with the lifetime of
      * a managed runtime.
      */
@@ -179,6 +186,7 @@ class MediaProviderWrapper final {
     jmethodID mid_get_files_in_dir_;
     jmethodID mid_rename_;
     jmethodID mid_is_uid_for_package_;
+    jmethodID mid_on_file_created_;
 
     /**
      * Auxiliary for caching MediaProvider methods.

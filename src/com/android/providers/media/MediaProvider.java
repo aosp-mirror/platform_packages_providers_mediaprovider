@@ -542,14 +542,6 @@ public class MediaProvider extends ContentProvider {
 
     private final void updateQuotaTypeForUri(@NonNull Uri uri, int mediaType) {
         Trace.beginSection("updateQuotaTypeForUri");
-        try {
-            updateQuotaTypeForUriInternal(uri, mediaType);
-        } finally {
-            Trace.endSection();
-        }
-    }
-
-    private final void updateQuotaTypeForUriInternal(@NonNull Uri uri, int mediaType) {
         File file;
         try {
             file = queryForDataFile(uri, null);
@@ -557,10 +549,24 @@ public class MediaProvider extends ContentProvider {
                 // This can happen if an item is inserted in MediaStore before it is created
                 return;
             }
+
+            if (mediaType == FileColumns.MEDIA_TYPE_NONE) {
+                // This might be because the file is hidden; but we still want to
+                // attribute its quota to the correct type, so get the type from
+                // the extension instead.
+                mediaType = MimeUtils.resolveMediaType(MimeUtils.resolveMimeType(file));
+            }
+
+            updateQuotaTypeForFileInternal(file, mediaType);
         } catch (FileNotFoundException e) {
             // Ignore
             return;
+        } finally {
+            Trace.endSection();
         }
+    }
+
+    private final void updateQuotaTypeForFileInternal(File file, int mediaType) {
         try {
             switch (mediaType) {
                 case FileColumns.MEDIA_TYPE_AUDIO:
@@ -1118,6 +1124,23 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public void scanFileForFuse(String file) {
         scanFile(new File(file), REASON_DEMAND);
+    }
+
+    /**
+     * Called when a new file is created through FUSE
+     *
+     * @param file path of the file that was created
+     *
+     * Called from JNI in jni/MediaProviderWrapper.cpp
+     */
+    @Keep
+    public void onFileCreatedForFuse(String path) {
+        // Make sure we update the quota type of the file
+        BackgroundThread.getExecutor().execute(() -> {
+            File file = new File(path);
+            int mediaType = MimeUtils.resolveMediaType(MimeUtils.resolveMimeType(file));
+            updateQuotaTypeForFileInternal(file, mediaType);
+        });
     }
 
     /**
@@ -2230,7 +2253,8 @@ public class MediaProvider extends ContentProvider {
         if (c != null) {
             // As a performance optimization, only configure notifications when
             // resulting cursor will leave our process
-            if (mCallingIdentity.get().pid != android.os.Process.myPid()) {
+            final boolean callerIsRemote = mCallingIdentity.get().pid != android.os.Process.myPid();
+            if (callerIsRemote && !isFuseThread()) {
                 c.setNotificationUri(getContext().getContentResolver(), uri);
             }
 
@@ -4357,13 +4381,12 @@ public class MediaProvider extends ContentProvider {
             }
 
             if (deletedDownloadIds.size() > 0) {
-                final long token = Binder.clearCallingIdentity();
-                try {
+                // Do this on a background thread, since we don't want to make binder
+                // calls as part of a FUSE call.
+                helper.postBackground(() -> {
                     getContext().getSystemService(DownloadManager.class)
                             .onMediaStoreDownloadsDeleted(deletedDownloadIds);
-                } finally {
-                    Binder.restoreCallingIdentity(token);
-                }
+                });
             }
 
             if (isFilesTable && !isCallingPackageSelf()) {

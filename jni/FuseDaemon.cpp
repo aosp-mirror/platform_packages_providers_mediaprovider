@@ -368,10 +368,8 @@ static void invalidate_case_insensitive_dentry_matches(struct fuse* fuse, node* 
     fuse_ino_t parent_ino = fuse->ToInode(parent);
     std::thread t([=]() {
         for (const string& child_name : children) {
-            if (fuse_lowlevel_notify_inval_entry(fuse->se, parent_ino, child_name.c_str(),
-                                                 child_name.size())) {
-                LOG(ERROR) << "Failed to invalidate dentry " << child_name;
-            }
+            fuse_lowlevel_notify_inval_entry(fuse->se, parent_ino, child_name.c_str(),
+                                             child_name.size());
         }
     });
     t.detach();
@@ -1520,6 +1518,9 @@ static void pf_create(fuse_req_t req,
         fuse_reply_err(req, error_code);
         return;
     }
+
+    // Let MediaProvider know we've created a new file
+    fuse->mp->OnFileCreated(child_path);
 
     // TODO(b/147274248): Assume there will be no EXIF to redact.
     // This prevents crashing during reads but can be a security hole if a malicious app opens an fd

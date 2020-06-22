@@ -248,6 +248,13 @@ struct fuse {
 
     inline bool IsRoot(const node* node) const { return node == root; }
 
+    inline string GetEffectiveRootPath() {
+        if (path.find("/storage/emulated", 0) == 0) {
+            return path + "/" + std::to_string(getuid() / PER_USER_RANGE);
+        }
+        return path;
+    }
+
     // Note that these two (FromInode / ToInode) conversion wrappers are required
     // because fuse_lowlevel_ops documents that the root inode is always one
     // (see FUSE_ROOT_ID in fuse_lowlevel.h). There are no particular requirements
@@ -375,6 +382,21 @@ static void invalidate_case_insensitive_dentry_matches(struct fuse* fuse, node* 
     t.detach();
 }
 
+static double get_timeout(struct fuse* fuse, const string& path) {
+    string media_path = fuse->GetEffectiveRootPath() + "/Android/media";
+    if (path.find(media_path, 0) == 0 || is_package_owned_path(path, fuse->path)) {
+        // We set dentry timeout to 0 for the following reasons:
+        // 1. Installd might delete Android/media/<package> dirs when app data is cleared.
+        // This can leave a stale entry in the kernel dcache, and break subsequent creation of the
+        // dir via FUSE.
+        // 2. With app data isolation enabled, app A should not guess existence of app B from the
+        // Android/{data,obb}/<package> paths, hence we prevent the kernel from caching that
+        // information.
+        return 0;
+    }
+    return std::numeric_limits<double>::max();
+}
+
 static node* make_node_entry(fuse_req_t req, node* parent, const string& name, const string& path,
                              struct fuse_entry_param* e, int* error_code) {
     struct fuse* fuse = get_fuse(req);
@@ -409,8 +431,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     // reuse inode numbers.
     e->generation = 0;
     e->ino = fuse->ToInode(node);
-    e->entry_timeout = is_package_owned_path(path, fuse->path) ?
-            0 : std::numeric_limits<double>::max();
+    e->entry_timeout = get_timeout(fuse, path);
     e->attr_timeout = is_package_owned_path(path, fuse->path) ?
             0 : std::numeric_limits<double>::max();
 

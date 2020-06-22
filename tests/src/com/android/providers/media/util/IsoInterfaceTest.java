@@ -84,6 +84,28 @@ public class IsoInterfaceTest {
         assertEquals("3F9DD7A46B26513A7C35272F0D623A06", xmp.getOriginalDocumentId());
     }
 
+    @Test
+    public void testIsoMeta() throws Exception {
+        final IsoInterface isoMeta = IsoInterface.fromFile(stageFile(R.raw.test_video_xmp));
+        final long[] hdlrRanges = isoMeta.getBoxRanges(IsoInterface.BOX_HDLR);
+
+        // There are 3 hdlr boxes, the 3rd is inside the meta box. Check it was parsed correctly.
+        assertEquals(3 * 2, hdlrRanges.length);
+        assertEquals(30145, hdlrRanges[2 * 2 + 0]);
+        assertEquals(30170, hdlrRanges[2 * 2 + 1]);
+    }
+
+    @Test
+    public void testQtMeta() throws Exception {
+        final IsoInterface qtMeta = IsoInterface.fromFile(stageFile(R.raw.testvideo_meta));
+        final long[] hdlrRanges = qtMeta.getBoxRanges(IsoInterface.BOX_HDLR);
+
+        // There are 3 hdlr boxes, the 1st is inside the meta box. Check it was parsed correctly.
+        assertEquals(3 * 2, hdlrRanges.length);
+        assertEquals(16636, hdlrRanges[2 * 0 + 0]);
+        assertEquals(16661, hdlrRanges[2 * 0 + 1]);
+    }
+
     private static File stageFile(int resId) throws Exception {
         final Context context = InstrumentationRegistry.getContext();
         final File file = File.createTempFile("test", ".mp4");

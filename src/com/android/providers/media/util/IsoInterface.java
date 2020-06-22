@@ -49,6 +49,7 @@ public class IsoInterface {
     private static final boolean LOGV = Log.isLoggable(TAG, Log.VERBOSE);
 
     public static final int BOX_FTYP = 0x66747970;
+    public static final int BOX_HDLR = 0x68646c72;
     public static final int BOX_UUID = 0x75756964;
     public static final int BOX_META = 0x6d657461;
     public static final int BOX_XMP = 0x584d505f;
@@ -160,11 +161,6 @@ public class IsoInterface {
             return null;
         }
 
-        // Skip past legacy data on 'meta' box
-        if (type == BOX_META) {
-            readInt(fd);
-        }
-
         final Box box = new Box(type, new long[] { pos, len });
         box.headerSize = headerSize;
 
@@ -183,16 +179,26 @@ public class IsoInterface {
 
             box.data = new byte[(int) (len - box.headerSize)];
             Os.read(fd, box.data, 0, box.data.length);
-        }
-
-        // Parse XMP box
-        if (type == BOX_XMP) {
+        } else if (type == BOX_XMP) {
             if (len > Integer.MAX_VALUE) {
                 Log.w(TAG, "Skipping abnormally large xmp box");
                 return null;
             }
             box.data = new byte[(int) (len - box.headerSize)];
             Os.read(fd, box.data, 0, box.data.length);
+        } else if (type == BOX_META && len != headerSize) {
+            // The format of this differs in ISO and QT encoding:
+            // (iso) [1 byte version + 3 bytes flags][4 byte size of next atom]
+            // (qt)  [4 byte size of next atom      ][4 byte hdlr atom type   ]
+            // In case of (iso) we need to skip the next 4 bytes before parsing
+            // the children.
+            readInt(fd);
+            int maybeBoxType = readInt(fd);
+            if (maybeBoxType != BOX_HDLR) {
+                // ISO, skip 4 bytes.
+                box.headerSize += 4;
+            }
+            Os.lseek(fd, pos + box.headerSize, OsConstants.SEEK_SET);
         }
 
         if (LOGV) {

@@ -49,6 +49,7 @@ public class IsoInterface {
     private static final boolean LOGV = Log.isLoggable(TAG, Log.VERBOSE);
 
     public static final int BOX_FTYP = 0x66747970;
+    public static final int BOX_HDLR = 0x68646c72;
     public static final int BOX_UUID = 0x75756964;
     public static final int BOX_META = 0x6d657461;
     public static final int BOX_XMP = 0x584d505f;
@@ -99,6 +100,7 @@ public class IsoInterface {
         public UUID uuid;
         public byte[] data;
         public List<Box> children;
+        public int headerSize;
 
         public Box(int type, long[] range) {
             this.type = type;
@@ -133,44 +135,75 @@ public class IsoInterface {
     private static @Nullable Box parseNextBox(@NonNull FileDescriptor fd, long end,
             @NonNull String prefix) throws ErrnoException, IOException {
         final long pos = Os.lseek(fd, 0, OsConstants.SEEK_CUR);
-        if (pos == end) {
+
+        int headerSize = 8;
+        if (end - pos < headerSize) {
             return null;
         }
 
-        final long len = Integer.toUnsignedLong(readInt(fd));
-        if (len <= 0 || pos + len > end) {
-            Log.w(TAG, "Invalid box at " + pos + " of length " + len
-                    + " reached beyond end of parent " + end);
-            return null;
-        }
-
-        // Skip past legacy data on 'meta' box
+        long len = Integer.toUnsignedLong(readInt(fd));
         final int type = readInt(fd);
-        if (type == BOX_META) {
-            readInt(fd);
+
+        if (len == 0) {
+            // Length 0 means the box extends to the end of the file.
+            len = end - pos;
+        } else if (len == 1) {
+            // Actually 64-bit box length.
+            headerSize += 8;
+            long high = readInt(fd);
+            long low = readInt(fd);
+            len = (high << 32L) | (low & 0xffffffffL);
+        }
+
+        if (len < headerSize || pos + len > end) {
+            Log.w(TAG, "Invalid box at " + pos + " of length " + len
+                    + ". End of parent " + end);
+            return null;
         }
 
         final Box box = new Box(type, new long[] { pos, len });
-        if (LOGV) {
-            Log.v(TAG, prefix + "Found box " + typeToString(type)
-                    + " at " + pos + " length " + len);
-        }
+        box.headerSize = headerSize;
 
         // Parse UUID box
         if (type == BOX_UUID) {
+            box.headerSize += 16;
             box.uuid = readUuid(fd);
             if (LOGV) {
                 Log.v(TAG, prefix + "  UUID " + box.uuid);
             }
 
-            box.data = new byte[(int) (len - 8 - 16)];
+            if (len > Integer.MAX_VALUE) {
+                Log.w(TAG, "Skipping abnormally large uuid box");
+                return null;
+            }
+
+            box.data = new byte[(int) (len - box.headerSize)];
             Os.read(fd, box.data, 0, box.data.length);
+        } else if (type == BOX_XMP) {
+            if (len > Integer.MAX_VALUE) {
+                Log.w(TAG, "Skipping abnormally large xmp box");
+                return null;
+            }
+            box.data = new byte[(int) (len - box.headerSize)];
+            Os.read(fd, box.data, 0, box.data.length);
+        } else if (type == BOX_META && len != headerSize) {
+            // The format of this differs in ISO and QT encoding:
+            // (iso) [1 byte version + 3 bytes flags][4 byte size of next atom]
+            // (qt)  [4 byte size of next atom      ][4 byte hdlr atom type   ]
+            // In case of (iso) we need to skip the next 4 bytes before parsing
+            // the children.
+            readInt(fd);
+            int maybeBoxType = readInt(fd);
+            if (maybeBoxType != BOX_HDLR) {
+                // ISO, skip 4 bytes.
+                box.headerSize += 4;
+            }
+            Os.lseek(fd, pos + box.headerSize, OsConstants.SEEK_SET);
         }
 
-        // Parse XMP box
-        if (type == BOX_XMP) {
-            box.data = new byte[(int) (len - 8)];
-            Os.read(fd, box.data, 0, box.data.length);
+        if (LOGV) {
+            Log.v(TAG, prefix + "Found box " + typeToString(type)
+                    + " at " + pos + " hdr " + box.headerSize + " length " + len);
         }
 
         // Recursively parse any children boxes
@@ -248,7 +281,7 @@ public class IsoInterface {
         LongArray res = new LongArray();
         for (Box box : mFlattened) {
             if (box.type == type) {
-                res.add(box.range[0] + 8);
+                res.add(box.range[0] + box.headerSize);
                 res.add(box.range[0] + box.range[1]);
             }
         }
@@ -259,7 +292,7 @@ public class IsoInterface {
         LongArray res = new LongArray();
         for (Box box : mFlattened) {
             if (box.type == BOX_UUID && Objects.equals(box.uuid, uuid)) {
-                res.add(box.range[0] + 8 + 16);
+                res.add(box.range[0] + box.headerSize);
                 res.add(box.range[0] + box.range[1]);
             }
         }

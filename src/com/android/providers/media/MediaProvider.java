@@ -7540,6 +7540,9 @@ public class MediaProvider extends ContentProvider {
         sMutableColumns.add(MediaStore.Audio.Playlists.Members.AUDIO_ID);
         sMutableColumns.add(MediaStore.Audio.Playlists.Members.PLAY_ORDER);
 
+        sMutableColumns.add(MediaStore.DownloadColumns.DOWNLOAD_URI);
+        sMutableColumns.add(MediaStore.DownloadColumns.REFERER_URI);
+
         sMutableColumns.add(MediaStore.Files.FileColumns.MIME_TYPE);
         sMutableColumns.add(MediaStore.Files.FileColumns.MEDIA_TYPE);
     }

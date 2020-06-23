@@ -248,6 +248,13 @@ struct fuse {
 
     inline bool IsRoot(const node* node) const { return node == root; }
 
+    inline string GetEffectiveRootPath() {
+        if (path.find("/storage/emulated", 0) == 0) {
+            return path + "/" + std::to_string(getuid() / PER_USER_RANGE);
+        }
+        return path;
+    }
+
     // Note that these two (FromInode / ToInode) conversion wrappers are required
     // because fuse_lowlevel_ops documents that the root inode is always one
     // (see FUSE_ROOT_ID in fuse_lowlevel.h). There are no particular requirements
@@ -363,16 +370,36 @@ static bool is_package_owned_path(const string& path, const string& fuse_path) {
     return std::regex_match(path, PATTERN_OWNED_PATH);
 }
 
-static void invalidate_case_insensitive_dentry_matches(struct fuse* fuse, node* parent,
-                                                       const vector<string>& children) {
-    fuse_ino_t parent_ino = fuse->ToInode(parent);
-    std::thread t([=]() {
-        for (const string& child_name : children) {
-            fuse_lowlevel_notify_inval_entry(fuse->se, parent_ino, child_name.c_str(),
-                                             child_name.size());
-        }
-    });
-    t.detach();
+// See fuse_lowlevel.h fuse_lowlevel_notify_inval_entry for how to call this safetly without
+// deadlocking the kernel
+static void fuse_inval(fuse_session* se, fuse_ino_t parent_ino, fuse_ino_t child_ino,
+                       const string& child_name, const string& path) {
+    if (std::regex_match(path, PRIMARY_ROOT_ANDROID_DATA_OBB_PATH)) {
+        LOG(WARNING) << "Ignoring attempt to invalidate dentry for FUSE mounts";
+        return;
+    }
+
+    if (fuse_lowlevel_notify_inval_entry(se, parent_ino, child_name.c_str(), child_name.size())) {
+        // Invalidating the dentry can fail if there's no dcache entry, however, there may still
+        // be cached attributes, so attempt to invalidate those by invalidating the inode
+        fuse_lowlevel_notify_inval_inode(se, child_ino, 0, 0);
+    }
+}
+
+static double get_timeout(struct fuse* fuse, const string& path, bool should_inval) {
+    string media_path = fuse->GetEffectiveRootPath() + "/Android/media";
+    if (should_inval || path.find(media_path, 0) == 0 || is_package_owned_path(path, fuse->path)) {
+        // We set dentry timeout to 0 for the following reasons:
+        // 1. Case-insensitive lookups need to invalidate other case-insensitive dentry matches
+        // 2. Installd might delete Android/media/<package> dirs when app data is cleared.
+        // This can leave a stale entry in the kernel dcache, and break subsequent creation of the
+        // dir via FUSE.
+        // 3. With app data isolation enabled, app A should not guess existence of app B from the
+        // Android/{data,obb}/<package> paths, hence we prevent the kernel from caching that
+        // information.
+        return 0;
+    }
+    return std::numeric_limits<double>::max();
 }
 
 static node* make_node_entry(fuse_req_t req, node* parent, const string& name, const string& path,
@@ -387,19 +414,27 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
         return NULL;
     }
 
+    bool should_inval = false;
     node = parent->LookupChildByName(name, true /* acquire */);
     if (!node) {
         node = ::node::Create(parent, name, &fuse->lock, &fuse->tracker);
-    } else if (!std::regex_match(node->BuildPath(), PRIMARY_ROOT_ANDROID_DATA_OBB_PATH)) {
+    } else if (!std::regex_match(path, PRIMARY_ROOT_ANDROID_DATA_OBB_PATH)) {
+        should_inval = true;
         // Invalidate both names to ensure there's no dentry left in the kernel after the following
         // operations:
         // 1) touch foo, touch FOO, unlink *foo*
         // 2) touch foo, touch FOO, unlink *FOO*
         // Invalidating lookup_name fixes (1) and invalidating node_name fixes (2)
-        vector<string> children;
-        children.push_back(name);
-        children.push_back(node->GetName());
-        invalidate_case_insensitive_dentry_matches(fuse, parent, children);
+        // |should_inval| invalidates lookup_name by using 0 timeout below and we explicitly
+        // invalidate node_name if different case
+        // Note that we invalidate async otherwise we will deadlock the kernel
+        if (name != node->GetName()) {
+            std::thread t([=]() {
+                fuse_inval(fuse->se, fuse->ToInode(parent), fuse->ToInode(node), node->GetName(),
+                           path);
+            });
+            t.detach();
+        }
     }
     TRACE_NODE(node, req);
 
@@ -409,10 +444,10 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     // reuse inode numbers.
     e->generation = 0;
     e->ino = fuse->ToInode(node);
-    e->entry_timeout = is_package_owned_path(path, fuse->path) ?
-            0 : std::numeric_limits<double>::max();
-    e->attr_timeout = is_package_owned_path(path, fuse->path) ?
-            0 : std::numeric_limits<double>::max();
+    e->entry_timeout = get_timeout(fuse, path, should_inval);
+    e->attr_timeout = is_package_owned_path(path, fuse->path) || should_inval
+                              ? 0
+                              : std::numeric_limits<double>::max();
 
     return node;
 }
@@ -1661,19 +1696,19 @@ void FuseDaemon::InvalidateFuseDentryCache(const std::string& path) {
     if (active.load(std::memory_order_acquire)) {
         string name;
         fuse_ino_t parent;
-
+        fuse_ino_t child;
         {
             std::lock_guard<std::recursive_mutex> guard(fuse->lock);
             const node* node = node::LookupAbsolutePath(fuse->root, path);
             if (node) {
                 name = node->GetName();
+                child = fuse->ToInode(const_cast<class node*>(node));
                 parent = fuse->ToInode(node->GetParent());
             }
         }
 
-        if (!name.empty() &&
-            fuse_lowlevel_notify_inval_entry(fuse->se, parent, name.c_str(), name.size())) {
-            LOG(WARNING) << "Failed to invalidate dentry for path";
+        if (!name.empty()) {
+            fuse_inval(fuse->se, parent, child, name, path);
         }
     } else {
         LOG(WARNING) << "FUSE daemon is inactive. Cannot invalidate dentry";

@@ -251,12 +251,12 @@ public class PerformanceTest {
     }
 
     @Test
-    public void testDirOperations_500() throws Exception {
+    public void testDirOperations_100() throws Exception {
         Timer createTimer = new Timer("mkdir");
         Timer readTimer = new Timer("readdir");
         Timer deleteTimer = new Timer("rmdir");
         for (int i = 0; i < COUNT_REPEAT; i++ ){
-            doDirOperations(500, createTimer, readTimer, deleteTimer);
+            doDirOperations(100, createTimer, readTimer, deleteTimer);
         }
         createTimer.dumpResults();
         readTimer.dumpResults();

@@ -929,13 +929,17 @@ public class MediaProvider extends ContentProvider {
                 null /* all packages */, mModeListener);
         mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_WRITE_MEDIA_VIDEO,
                 null /* all packages */, mModeListener);
-        // Here we are forced to depend on the non-public API of AppOpsManager. If
-        // OPSTR_NO_ISOLATED_STORAGE app op is not defined in AppOpsManager, then this call will
-        // throw an IllegalArgumentException during MediaProvider startup. In combination with
-        // MediaProvider's CTS tests it should give us guarantees that OPSTR_NO_ISOLATED_STORAGE is
-        // defined.
-        mAppOpsManager.startWatchingMode(PermissionUtils.OPSTR_NO_ISOLATED_STORAGE,
-                null /* all packages */, mModeListener);
+        try {
+            // Here we are forced to depend on the non-public API of AppOpsManager. If
+            // OPSTR_NO_ISOLATED_STORAGE app op is not defined in AppOpsManager, then this call will
+            // throw an IllegalArgumentException during MediaProvider startup. In combination with
+            // MediaProvider's CTS tests it should give us guarantees that OPSTR_NO_ISOLATED_STORAGE
+            // is defined.
+            mAppOpsManager.startWatchingMode(PermissionUtils.OPSTR_NO_ISOLATED_STORAGE,
+                    null /* all packages */, mModeListener);
+        } catch (IllegalArgumentException e) {
+            Log.w(TAG, "Failed to start watching " + PermissionUtils.OPSTR_NO_ISOLATED_STORAGE, e);
+        }
         return true;
     }
 
@@ -7539,6 +7543,9 @@ public class MediaProvider extends ContentProvider {
         sMutableColumns.add(MediaStore.Audio.Playlists.NAME);
         sMutableColumns.add(MediaStore.Audio.Playlists.Members.AUDIO_ID);
         sMutableColumns.add(MediaStore.Audio.Playlists.Members.PLAY_ORDER);
+
+        sMutableColumns.add(MediaStore.DownloadColumns.DOWNLOAD_URI);
+        sMutableColumns.add(MediaStore.DownloadColumns.REFERER_URI);
 
         sMutableColumns.add(MediaStore.Files.FileColumns.MIME_TYPE);
         sMutableColumns.add(MediaStore.Files.FileColumns.MEDIA_TYPE);

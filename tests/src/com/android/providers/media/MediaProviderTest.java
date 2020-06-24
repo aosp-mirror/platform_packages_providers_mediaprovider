@@ -17,8 +17,11 @@
 package com.android.providers.media;
 
 import static com.android.providers.media.scan.MediaScannerTest.stage;
+import static com.android.providers.media.util.FileUtils.extractRelativePathForDirectory;
 import static com.android.providers.media.util.FileUtils.isDownload;
 import static com.android.providers.media.util.FileUtils.isDownloadDir;
+
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -965,27 +968,37 @@ public class MediaProviderTest {
 
     @Test
     public void testRelativePathForInvalidDirectories() throws Exception {
-        for (String data : new String[] {
-            "/storage/IMG1024.JPG",
-            "/data/media/IMG1024.JPG",
-            "IMG1024.JPG",
-            "storage/emulated/",
+        for (String path : new String[] {
+                "/storage/emulated",
+                "/storage",
+                "/data/media/Foo.jpg",
+                "Foo.jpg",
+                "storage/Foo"
         }) {
-            assertEquals(FileUtils.extractRelativePathForDirectory(data), null);
+            assertEquals(null, FileUtils.extractRelativePathForDirectory(path));
         }
     }
 
     @Test
     public void testRelativePathForValidDirectories() throws Exception {
-        for (Pair<String, String> top : Arrays.asList(
-                Pair.create("/storage/emulated/0", new String("/")),
-                Pair.create("/storage/emulated/0/DCIM", "DCIM/"),
-                Pair.create("/storage/emulated/0/DCIM/Camera", "DCIM/Camera/"),
-                Pair.create("/storage/emulated/0/Android/media/com.example/Foo",
-                        "Android/media/com.example/Foo/"),
-                Pair.create("/storage/0000-0000/DCIM/Camera", "DCIM/Camera/"))) {
-            assertEquals(top.second, FileUtils.extractRelativePathForDirectory(top.first));
+        for (String prefix : new String[] {
+                "/storage/emulated/0",
+                "/storage/emulated/10",
+                "/storage/ABCD-1234"
+        }) {
+            assertRelativePathForDirectory(prefix, "/");
+            assertRelativePathForDirectory(prefix + "/DCIM", "DCIM/");
+            assertRelativePathForDirectory(prefix + "/DCIM/Camera", "DCIM/Camera/");
+            assertRelativePathForDirectory(prefix + "/Z", "Z/");
+            assertRelativePathForDirectory(prefix + "/Android/media/com.example/Foo",
+                    "Android/media/com.example/Foo/");
         }
+    }
+
+    private static void assertRelativePathForDirectory(String directoryPath, String relativePath) {
+        assertWithMessage("extractRelativePathForDirectory(" + directoryPath + ") :")
+                .that(extractRelativePathForDirectory(directoryPath))
+                .isEqualTo(relativePath);
     }
 
     private static ContentValues computeDataValues(String path) {

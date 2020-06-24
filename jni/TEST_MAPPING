@@ -1,6 +1,9 @@
 {
   "presubmit": [
     {
+      "name": "FuseUtilsTest"
+    },
+    {
       "name": "RedactionInfoTest"
     },
     {

@@ -21,6 +21,7 @@ cc_library_shared {
         "jni_init.cpp",
         "com_android_providers_media_FuseDaemon.cpp",
         "FuseDaemon.cpp",
+        "FuseUtils.cpp",
         "MediaProviderWrapper.cpp",
         "ReaddirHelper.cpp",
         "RedactionInfo.cpp",
@@ -111,6 +112,42 @@ cc_test {
     srcs: [
         "RedactionInfoTest.cpp",
         "RedactionInfo.cpp",
+    ],
+
+    local_include_dirs: ["include"],
+
+    static_libs: [
+        "libbase_ndk",
+    ],
+
+    shared_libs: [
+        "liblog",
+    ],
+
+    tidy: true,
+
+    sdk_version: "current",
+    stl: "c++_static",
+}
+
+cc_test {
+    name: "FuseUtilsTest",
+    test_suites: ["device-tests", "mts"],
+    test_config: "FuseUtilsTest.xml",
+
+    compile_multilib: "both",
+    multilib: {
+        lib32: { suffix: "32", },
+        lib64: { suffix: "64", },
+    },
+
+    srcs: [
+        "FuseUtilsTest.cpp",
+        "FuseUtils.cpp",
+    ],
+
+    header_libs: [
+        "libnativehelper_header_only",
     ],
 
     local_include_dirs: ["include"],

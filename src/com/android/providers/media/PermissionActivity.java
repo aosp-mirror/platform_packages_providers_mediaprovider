@@ -177,6 +177,10 @@ public class PermissionActivity extends Activity {
     }
 
     private void onPositiveAction(DialogInterface dialog, int which) {
+        // Disable the buttons
+        ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
+        ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(false);
+
         new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... params) {
@@ -423,13 +427,40 @@ public class PermissionActivity extends Activity {
             final List<Uri> uris = params[0];
             final List<Description> res = new ArrayList<>();
 
+            // If the size is zero, return the res directly.
+            if (uris.isEmpty()) {
+                return res;
+            }
+
             // Default information that we'll load for each item
             int loadFlags = Description.LOAD_THUMBNAIL | Description.LOAD_CONTENT_DESCRIPTION;
             int neededThumbs = MAX_THUMBS;
 
             // If we're only asking for single item, load the full image
             if (uris.size() == 1) {
+                // Set visible to the thumb_full to avoid the size
+                // changed of the dialog in full decoding.
+                final ImageView thumbFull = bodyView.requireViewById(R.id.thumb_full);
+                thumbFull.setVisibility(View.VISIBLE);
                 loadFlags |= Description.LOAD_FULL;
+            } else {
+                // If the size equals 2, we will remove thumb1 later.
+                // Set visible to the thumb2 and thumb3 first to avoid
+                // the size changed of the dialog.
+                ImageView thumb = bodyView.requireViewById(R.id.thumb2);
+                thumb.setVisibility(View.VISIBLE);
+                thumb = bodyView.requireViewById(R.id.thumb3);
+                thumb.setVisibility(View.VISIBLE);
+                // If the count of thumbs equals to MAX_THUMBS, set visible to thumb1.
+                if (uris.size() == MAX_THUMBS) {
+                    thumb = bodyView.requireViewById(R.id.thumb1);
+                    thumb.setVisibility(View.VISIBLE);
+                } else if (uris.size() > MAX_THUMBS) {
+                    // If the count is larger than MAX_THUMBS, set visible to
+                    // thumb_more_container.
+                    final View container = bodyView.requireViewById(R.id.thumb_more_container);
+                    container.setVisibility(View.VISIBLE);
+                }
             }
 
             for (Uri uri : uris) {

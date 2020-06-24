@@ -957,13 +957,29 @@ public class FileUtils {
     @VisibleForTesting
     public static @Nullable String extractRelativePathForDirectory(@Nullable String directoryPath) {
         if (directoryPath == null) return null;
+
+        if (directoryPath.equals("/storage/emulated") ||
+                directoryPath.equals("/storage/emulated/")) {
+            // This path is not reachable for MediaProvider.
+            return null;
+        }
+
+        // We are extracting relative path for the directory itself, we add "/" so that we can use
+        // same PATTERN_RELATIVE_PATH to match relative path for directory. For example, relative
+        // path of '/storage/<volume_name>' is null where as relative path for directory is "/", for
+        // PATTERN_RELATIVE_PATH to match '/storage/<volume_name>', it should end with "/".
+        if (!directoryPath.endsWith("/")) {
+            // Relative path for directory should end with "/".
+            directoryPath += "/";
+        }
+
         final Matcher matcher = PATTERN_RELATIVE_PATH.matcher(directoryPath);
         if (matcher.find()) {
-            if (matcher.end() == directoryPath.length() - 1) {
+            if (matcher.end() == directoryPath.length()) {
                 // This is the top-level directory, so relative path is "/"
                 return "/";
             }
-            return directoryPath.substring(matcher.end()) + "/";
+            return directoryPath.substring(matcher.end());
         }
         return null;
     }

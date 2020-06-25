@@ -61,6 +61,7 @@
 #include <vector>
 
 #include "MediaProviderWrapper.h"
+#include "libfuse_jni/FuseUtils.h"
 #include "libfuse_jni/ReaddirHelper.h"
 #include "libfuse_jni/RedactionInfo.h"
 #include "node-inl.h"
@@ -108,10 +109,6 @@ constexpr int PER_USER_RANGE = 100000;
 const std::regex PATTERN_OWNED_PATH(
     "^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb|sandbox)/([^/]+)(/?.*)?",
     std::regex_constants::icase);
-
-const std::regex PRIMARY_ROOT_ANDROID_DATA_OBB_PATH(
-        "^/storage/emulated/(?:[0-9]+)(?:/Android|/Android/data|/Android/obb)?$",
-        std::regex_constants::icase);
 
 /*
  * In order to avoid double caching with fuse, call fadvise on the file handles
@@ -374,7 +371,7 @@ static bool is_package_owned_path(const string& path, const string& fuse_path) {
 // deadlocking the kernel
 static void fuse_inval(fuse_session* se, fuse_ino_t parent_ino, fuse_ino_t child_ino,
                        const string& child_name, const string& path) {
-    if (std::regex_match(path, PRIMARY_ROOT_ANDROID_DATA_OBB_PATH)) {
+    if (mediaprovider::fuse::containsMount(path, std::to_string(getuid() / PER_USER_RANGE))) {
         LOG(WARNING) << "Ignoring attempt to invalidate dentry for FUSE mounts";
         return;
     }
@@ -418,8 +415,9 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     node = parent->LookupChildByName(name, true /* acquire */);
     if (!node) {
         node = ::node::Create(parent, name, &fuse->lock, &fuse->tracker);
-    } else if (!std::regex_match(path, PRIMARY_ROOT_ANDROID_DATA_OBB_PATH)) {
+    } else if (!mediaprovider::fuse::containsMount(path, std::to_string(getuid() / PER_USER_RANGE))) {
         should_inval = true;
+        // Only invalidate a path if it does not contain mount.
         // Invalidate both names to ensure there's no dentry left in the kernel after the following
         // operations:
         // 1) touch foo, touch FOO, unlink *foo*

@@ -315,7 +315,6 @@ int MediaProviderWrapper::InsertFile(const string& path, uid_t uid) {
 int MediaProviderWrapper::DeleteFile(const string& path, uid_t uid) {
     if (uid == ROOT_UID) {
         int res = unlink(path.c_str());
-        ScanFile(path);
         return res;
     }
 
@@ -403,7 +402,9 @@ bool MediaProviderWrapper::IsUidForPackage(const string& pkg, uid_t uid) {
 }
 
 int MediaProviderWrapper::Rename(const string& old_path, const string& new_path, uid_t uid) {
-    if (shouldBypassMediaProvider(uid)) {
+    // Rename from SHELL_UID should go through MediaProvider to update database rows, so only bypass
+    // MediaProvider for ROOT_UID.
+    if (uid == ROOT_UID) {
         int res = rename(old_path.c_str(), new_path.c_str());
         if (res != 0) res = -errno;
         return res;

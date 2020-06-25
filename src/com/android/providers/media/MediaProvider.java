@@ -6844,7 +6844,7 @@ public class MediaProvider extends ContentProvider {
             final boolean isTopLevelDir =
                     relativePath.length == 1 && TextUtils.isEmpty(relativePath[0]);
             if (isTopLevelDir) {
-                // We allow creating the default top level directories only, all other oprations on
+                // We allow creating the default top level directories only, all other operations on
                 // top level directories are not allowed.
                 if (forCreate && isDefaultDirectoryName(extractDisplayName(path))) {
                     return 0;
@@ -6873,10 +6873,9 @@ public class MediaProvider extends ContentProvider {
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public int isOpendirAllowedForFuse(@NonNull String path, int uid) {
+    public int isOpendirAllowedForFuse(@NonNull String path, int uid, boolean forWrite) {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
-
         try {
             if ("/storage/emulated".equals(path)) {
                 return OsConstants.EPERM;
@@ -6893,13 +6892,33 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EACCES;
             }
 
-            if (shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
+            if (shouldBypassFuseRestrictions(forWrite, path)) {
                 return 0;
             }
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
                 return OsConstants.EACCES;
+            }
+            // This is a non-legacy app. Rest of the directories are generally writable
+            // except for non-default top-level directories.
+            if (forWrite) {
+                final String[] relativePath = sanitizePath(extractRelativePath(path));
+                if (relativePath.length == 0) {
+                    Log.e(TAG, "Directoy write not allowed on invalid relative path for " + path);
+                    return OsConstants.EPERM;
+                }
+                final boolean isTopLevelDir =
+                        relativePath.length == 1 && TextUtils.isEmpty(relativePath[0]);
+                if (isTopLevelDir) {
+                    if (isDefaultDirectoryName(extractDisplayName(path))) {
+                        return 0;
+                    } else {
+                        Log.e(TAG,
+                                "Writing to a non-default top level directory is not allowed!");
+                        return OsConstants.EACCES;
+                    }
+                }
             }
 
             return 0;

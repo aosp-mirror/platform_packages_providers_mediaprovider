@@ -992,6 +992,17 @@ public final class MediaStore {
         /**
          * Absolute filesystem path to the media item on disk.
          * <p>
+         * On Android 11, you can use this value when you access an existing
+         * media file using direct file paths. That's because this value has
+         * a valid file path. However, don't assume that the file is always
+         * available. Be prepared to handle any file-based I/O errors that
+         * could occur.
+         * <p>
+         * Don't use this value when you create or update a media file, even
+         * if you're on Android 11 and are using direct file paths. Instead,
+         * use the values of the {@link #DISPLAY_NAME} and
+         * {@link #RELATIVE_PATH} columns.
+         * <p>
          * Note that apps may not have filesystem permissions to directly access
          * this path. Instead of trying to open this path directly, apps should
          * use {@link ContentResolver#openFileDescriptor(Uri, String)} to gain

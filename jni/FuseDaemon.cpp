@@ -1721,10 +1721,10 @@ bool FuseDaemon::IsStarted() const {
 }
 
 void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path) {
+    android::base::SetDefaultTag(LOG_TAG);
+
     struct fuse_args args;
     struct fuse_cmdline_opts opts;
-
-    SetMinimumLogSeverity(android::base::VERBOSE);
 
     struct stat stat;
 

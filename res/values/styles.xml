@@ -21,9 +21,10 @@
     </style>
 
     <style name="AlertDialogTheme"
-      parent="@*android:style/Theme.DeviceDefault.Light.Dialog.Alert" />
+      parent="@*android:style/Theme.DeviceDefault.Dialog.Alert.DayNight" />
 
-    <style name="CacheClearingAlertDialogTheme">
+    <style name="CacheClearingAlertDialogTheme"
+           parent="@*android:style/Theme.DeviceDefault.Dialog.Alert.DayNight">
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowContentOverlay">@null</item>

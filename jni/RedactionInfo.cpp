@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-#define LOG_TAG "RedactionInfo"
-
 #include "include/libfuse_jni/RedactionInfo.h"
-
-#include <android-base/logging.h>
 
 using std::unique_ptr;
 using std::vector;
@@ -94,7 +90,6 @@ RedactionInfo::RedactionInfo(int redaction_ranges_num, const off64_t* redaction_
 
 unique_ptr<vector<RedactionRange>> RedactionInfo::getOverlappingRedactionRanges(size_t size,
                                                                                 off64_t off) const {
-    LOG(DEBUG) << "Computing redaction ranges for request: sz = " << size << " off = " << off;
     if (hasOverlapWithReadRequest(size, off)) {
         auto first_redaction = redaction_ranges_.end();
         auto last_redaction = redaction_ranges_.end();
@@ -112,12 +107,9 @@ unique_ptr<vector<RedactionRange>> RedactionInfo::getOverlappingRedactionRanges(
             last_redaction = iter;
         }
         if (first_redaction != redaction_ranges_.end()) {
-            LOG(DEBUG) << "Returning " << (int)(last_redaction - first_redaction + 1)
-                       << " redaction ranges!";
             return std::make_unique<vector<RedactionRange>>(first_redaction, last_redaction + 1);
         }
     }
-    LOG(DEBUG) << "No relevant redaction ranges!";
     return std::make_unique<vector<RedactionRange>>();
 }
 }  // namespace fuse

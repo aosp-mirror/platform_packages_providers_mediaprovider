@@ -25,6 +25,7 @@ import static com.android.providers.media.util.Logging.TAG;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -43,6 +44,7 @@ import android.graphics.ImageDecoder.Source;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
 import android.text.TextUtils;
@@ -95,7 +97,10 @@ public class PermissionActivity extends Activity {
     private String volumeName;
     private ApplicationInfo appInfo;
 
+    private ProgressDialog progressDialog;
     private TextView titleView;
+
+    private static final Long LEAST_SHOW_PROGRESS_TIME_MS = 300L;
 
     private static final String VERB_WRITE = "write";
     private static final String VERB_TRASH = "trash";
@@ -174,6 +179,8 @@ public class PermissionActivity extends Activity {
         titleView = (TextView) findViewByPredicate(dialog.getWindow().getDecorView(), (view) -> {
             return (view instanceof TextView) && view.isImportantForAccessibility();
         });
+
+        progressDialog = new ProgressDialog(this);
     }
 
     private void onPositiveAction(DialogInterface dialog, int which) {
@@ -181,6 +188,8 @@ public class PermissionActivity extends Activity {
         ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
         ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(false);
 
+        progressDialog.show();
+        final long startTime = System.currentTimeMillis();
         new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... params) {
@@ -230,7 +239,18 @@ public class PermissionActivity extends Activity {
             @Override
             protected void onPostExecute(Void result) {
                 setResult(Activity.RESULT_OK);
-                finish();
+                // Don't dismiss the progress dialog too quick, it will cause bad UX.
+                final long duration = System.currentTimeMillis() - startTime;
+                if (duration > LEAST_SHOW_PROGRESS_TIME_MS) {
+                    progressDialog.dismiss();
+                    finish();
+                } else {
+                    Handler handler = new Handler(getMainLooper());
+                    handler.postDelayed(() -> {
+                        progressDialog.dismiss();
+                        finish();
+                    }, LEAST_SHOW_PROGRESS_TIME_MS - duration);
+                }
             }
         }.execute();
     }

@@ -227,11 +227,6 @@ public class MediaProvider extends ContentProvider {
             "(?:image_id|video_id)\\s*=\\s*(\\d+)");
 
     /**
-     * Property that indicates whether fuse is enabled.
-     */
-    private static final String PROP_FUSE = "persist.sys.fuse";
-
-    /**
      * These directory names aren't declared in Environment as final variables, and so we need to
      * have the same values in separate final variables in order to have them considered constant
      * expressions.
@@ -6024,31 +6019,19 @@ public class MediaProvider extends ContentProvider {
             final ParcelFileDescriptor pfd;
             final String filePath = file.getPath();
             if (redactionInfo.redactionRanges.length > 0) {
-                if (SystemProperties.getBoolean(PROP_FUSE, false)) {
-                    // If fuse is enabled, we can provide an fd that points to the fuse
-                    // file system and handle redaction in the fuse handler when the caller reads.
-                    Log.i(TAG, "Redacting with new FUSE for " + filePath);
-                    long tid = android.os.Process.myTid();
+                // If fuse is enabled, we can provide an fd that points to the fuse
+                // file system and handle redaction in the fuse handler when the caller reads.
+                Log.i(TAG, "Redacting with new FUSE for " + filePath);
+                long tid = android.os.Process.myTid();
+                synchronized (mShouldRedactThreadIds) {
+                    mShouldRedactThreadIds.add(tid);
+                }
+                try {
+                    pfd = FileUtils.openSafely(getFuseFile(file), modeBits);
+                } finally {
                     synchronized (mShouldRedactThreadIds) {
-                        mShouldRedactThreadIds.add(tid);
+                        mShouldRedactThreadIds.remove(mShouldRedactThreadIds.indexOf(tid));
                     }
-                    try {
-                        pfd = FileUtils.openSafely(getFuseFile(file), modeBits);
-                    } finally {
-                        synchronized (mShouldRedactThreadIds) {
-                            mShouldRedactThreadIds.remove(mShouldRedactThreadIds.indexOf(tid));
-                        }
-                    }
-                } else {
-                    // TODO(b/135341978): Remove this and associated code
-                    // when fuse is on by default.
-                    Log.i(TAG, "Redacting with old FUSE for " + filePath);
-                    pfd = RedactingFileDescriptor.open(
-                            getContext(),
-                            file,
-                            modeBits,
-                            redactionInfo.redactionRanges,
-                            redactionInfo.freeOffsets);
                 }
             } else {
                 FuseDaemon daemon = null;
@@ -6062,7 +6045,7 @@ public class MediaProvider extends ContentProvider {
                 boolean shouldOpenWithFuse = daemon != null
                         && daemon.shouldOpenWithFuse(filePath, true /* forRead */, lowerFsFd.getFd());
 
-                if (SystemProperties.getBoolean(PROP_FUSE, false) && shouldOpenWithFuse) {
+                if (shouldOpenWithFuse) {
                     // If the file is already opened on the FUSE mount with VFS caching enabled
                     // we return an upper filesystem fd (via FUSE) to avoid file corruption
                     // resulting from cache inconsistencies between the upper and lower

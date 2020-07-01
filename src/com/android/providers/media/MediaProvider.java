@@ -2148,10 +2148,13 @@ public class MediaProvider extends ContentProvider {
             }
 
             final int type;
+            final boolean forWrite;
             if ((modeFlags & Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != 0) {
                 type = TYPE_UPDATE;
+                forWrite = true;
             } else {
                 type = TYPE_QUERY;
+                forWrite = false;
             }
 
             final SQLiteQueryBuilder qb = getQueryBuilder(type, table, uri, Bundle.EMPTY, null);
@@ -2161,6 +2164,24 @@ public class MediaProvider extends ContentProvider {
                     return PackageManager.PERMISSION_GRANTED;
                 }
             }
+
+            try {
+                if (ContentUris.parseId(uri) != -1) {
+                    return PackageManager.PERMISSION_DENIED;
+                }
+            } catch (NumberFormatException ignored) { }
+
+            // If the uri is a valid content uri and doesn't have a valid ID at the end of the uri,
+            // (i.e., uri is uri of the table not of the item/row), and app doesn't request prefix
+            // grant, we are willing to grant this uri permission since this doesn't grant them any
+            // extra access. This grant will only grant permissions on given uri, it will not grant
+            // access to db rows of the corresponding table.
+            if ((modeFlags & Intent.FLAG_GRANT_PREFIX_URI_PERMISSION) == 0) {
+                return PackageManager.PERMISSION_GRANTED;
+            }
+
+            // For prefix grant on the uri with content uri without id, we don't allow apps to
+            // grant access as they might end up granting access to all files.
         } finally {
             restoreLocalCallingIdentity(token);
         }

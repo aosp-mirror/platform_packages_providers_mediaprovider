@@ -70,6 +70,9 @@ public class MediaProviderForFuseTest {
         sTestUid = context.getPackageManager().getPackageUid(MediaProviderTest.PERMISSIONLESS_APP,
                 PackageManager.MATCH_ALL);
         sTestDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
+        // Some tests delete top-level directories. Try to create DIRECTORY_PICTURES to ensure
+        // sTestDir always exists.
+        sTestDir.mkdir();
     }
 
     @AfterClass

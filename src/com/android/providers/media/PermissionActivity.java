@@ -140,6 +140,8 @@ public class PermissionActivity extends Activity {
             return;
         }
 
+        progressDialog = new ProgressDialog(this);
+
         // Favorite-related requests are automatically granted for now; we still
         // make developers go through this no-op dialog flow to preserve our
         // ability to start prompting in the future
@@ -179,14 +181,14 @@ public class PermissionActivity extends Activity {
         titleView = (TextView) findViewByPredicate(dialog.getWindow().getDecorView(), (view) -> {
             return (view instanceof TextView) && view.isImportantForAccessibility();
         });
-
-        progressDialog = new ProgressDialog(this);
     }
 
-    private void onPositiveAction(DialogInterface dialog, int which) {
+    private void onPositiveAction(@Nullable DialogInterface dialog, int which) {
         // Disable the buttons
-        ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
-        ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(false);
+        if (dialog != null) {
+            ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
+            ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(false);
+        }
 
         progressDialog.show();
         final long startTime = System.currentTimeMillis();

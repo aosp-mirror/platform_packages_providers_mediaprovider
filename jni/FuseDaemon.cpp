@@ -1010,6 +1010,10 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         open_flags |= O_RDWR;
     }
 
+    if (open_flags & O_APPEND) {
+        open_flags &= ~O_APPEND;
+    }
+
     const int fd = open(path.c_str(), open_flags);
     if (fd < 0) {
         fuse_reply_err(req, errno);
@@ -1551,6 +1555,10 @@ static void pf_create(fuse_req_t req,
     if (open_flags & O_WRONLY) {
         open_flags &= ~O_WRONLY;
         open_flags |= O_RDWR;
+    }
+
+    if (open_flags & O_APPEND) {
+        open_flags &= ~O_APPEND;
     }
 
     mode = (mode & (~0777)) | 0664;

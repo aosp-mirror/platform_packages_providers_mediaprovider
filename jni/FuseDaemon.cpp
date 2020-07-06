@@ -1293,7 +1293,7 @@ static void pf_opendir(fuse_req_t req,
 
     TRACE_NODE(node, req);
 
-    int status = fuse->mp->IsOpendirAllowed(path, ctx->uid);
+    int status = fuse->mp->IsOpendirAllowed(path, ctx->uid, /* forWrite */ false);
     if (status) {
         fuse_reply_err(req, status);
         return;
@@ -1504,9 +1504,10 @@ static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
 
     // For read and write permission checks we go to MediaProvider.
     int status = 0;
+    bool for_write = mask & W_OK;
     bool is_directory = S_ISDIR(stat.st_mode);
     if (is_directory) {
-        status = fuse->mp->IsOpendirAllowed(path, req->ctx.uid);
+        status = fuse->mp->IsOpendirAllowed(path, req->ctx.uid, for_write);
     } else {
         if (mask & X_OK) {
             // Fuse is mounted with MS_NOEXEC.
@@ -1514,7 +1515,6 @@ static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
             return;
         }
 
-        bool for_write = mask & W_OK;
         status = fuse->mp->IsOpenAllowed(path, req->ctx.uid, for_write);
     }
 

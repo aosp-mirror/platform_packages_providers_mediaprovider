@@ -131,9 +131,10 @@ class MediaProviderWrapper final {
      *
      * @param path the path of the directory to be opened
      * @param uid UID of the calling app
+     * @param forWrite if it's a write access
      * @return 0 if it's allowed, or errno error code if operation isn't allowed.
      */
-    int IsOpendirAllowed(const std::string& path, uid_t uid);
+    int IsOpendirAllowed(const std::string& path, uid_t uid, bool forWrite);
 
     /**
      * Determines if the given package name matches its uid.

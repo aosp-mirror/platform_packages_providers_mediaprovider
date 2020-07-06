@@ -6904,6 +6904,10 @@ public class MediaProvider extends ContentProvider {
             // except for non-default top-level directories.
             if (forWrite) {
                 final String[] relativePath = sanitizePath(extractRelativePath(path));
+                if (relativePath.length == 0) {
+                    Log.e(TAG, "Directoy write not allowed on invalid relative path for " + path);
+                    return OsConstants.EPERM;
+                }
                 final boolean isTopLevelDir =
                         relativePath.length == 1 && TextUtils.isEmpty(relativePath[0]);
                 if (isTopLevelDir) {

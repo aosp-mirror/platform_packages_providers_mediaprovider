@@ -147,7 +147,7 @@ public class MediaProviderForFuseTest {
     @Test
     public void test_isOpendirAllowedForFuse() throws Exception {
         Truth.assertThat(sMediaProvider.isOpendirAllowedForFuse(
-                sTestDir.getPath(), sTestUid)).isEqualTo(0);
+                sTestDir.getPath(), sTestUid, /* forWrite */ false)).isEqualTo(0);
     }
 
     @Test

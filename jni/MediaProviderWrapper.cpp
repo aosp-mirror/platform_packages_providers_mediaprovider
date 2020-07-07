@@ -136,9 +136,11 @@ int isMkdirOrRmdirAllowedInternal(JNIEnv* env, jobject media_provider_object,
 }
 
 int isOpendirAllowedInternal(JNIEnv* env, jobject media_provider_object,
-                             jmethodID mid_is_opendir_allowed, const string& path, uid_t uid) {
+                             jmethodID mid_is_opendir_allowed, const string& path, uid_t uid,
+                             bool forWrite) {
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
-    int res = env->CallIntMethod(media_provider_object, mid_is_opendir_allowed, j_path.get(), uid);
+    int res = env->CallIntMethod(media_provider_object, mid_is_opendir_allowed, j_path.get(), uid,
+                                 forWrite);
 
     if (CheckForJniException(env)) {
         return EFAULT;
@@ -267,7 +269,7 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
                                  /*is_static*/ false);
     mid_is_mkdir_or_rmdir_allowed_ = CacheMethod(env, "isDirectoryCreationOrDeletionAllowed",
                                                  "(Ljava/lang/String;IZ)I", /*is_static*/ false);
-    mid_is_opendir_allowed_ = CacheMethod(env, "isOpendirAllowed", "(Ljava/lang/String;I)I",
+    mid_is_opendir_allowed_ = CacheMethod(env, "isOpendirAllowed", "(Ljava/lang/String;IZ)I",
                                           /*is_static*/ false);
     mid_get_files_in_dir_ =
             CacheMethod(env, "getFilesInDirectory", "(Ljava/lang/String;I)[Ljava/lang/String;",
@@ -383,13 +385,14 @@ std::vector<std::shared_ptr<DirectoryEntry>> MediaProviderWrapper::GetDirectoryE
     return res;
 }
 
-int MediaProviderWrapper::IsOpendirAllowed(const string& path, uid_t uid) {
+int MediaProviderWrapper::IsOpendirAllowed(const string& path, uid_t uid, bool forWrite) {
     if (shouldBypassMediaProvider(uid)) {
         return 0;
     }
 
     JNIEnv* env = MaybeAttachCurrentThread();
-    return isOpendirAllowedInternal(env, media_provider_object_, mid_is_opendir_allowed_, path, uid);
+    return isOpendirAllowedInternal(env, media_provider_object_, mid_is_opendir_allowed_, path, uid,
+                                    forWrite);
 }
 
 bool MediaProviderWrapper::IsUidForPackage(const string& pkg, uid_t uid) {

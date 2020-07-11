@@ -23,8 +23,8 @@ namespace mediaprovider {
 namespace fuse {
 
 /**
- * Returns true if the given path is mounted for the given userid. Mounted paths
- * are:
+ * Returns true if the given path (ignoring case) is mounted for the given
+ * userid. Mounted paths are:
  * "/storage/emulated/<userid>/Android"
  * "/storage/emulated/<userid>/Android/data"
  * "/storage/emulated/<userid>/Android/obb" *

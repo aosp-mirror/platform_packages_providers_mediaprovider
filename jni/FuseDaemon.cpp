@@ -245,7 +245,8 @@ struct fuse {
           root(node::CreateRoot(_path, &lock, &tracker)),
           mp(0),
           zero_addr(0),
-          disable_dentry_cache(false) {}
+          disable_dentry_cache(false),
+          passthrough(false) {}
 
     inline bool IsRoot(const node* node) const { return node == root; }
 
@@ -300,6 +301,7 @@ struct fuse {
 
     std::atomic_bool* active;
     std::atomic_bool disable_dentry_cache;
+    bool passthrough;
 };
 
 static inline string get_name(node* n) {
@@ -528,15 +530,26 @@ namespace fuse {
  */
 
 static void pf_init(void* userdata, struct fuse_conn_info* conn) {
+    struct fuse* fuse = reinterpret_cast<struct fuse*>(userdata);
+
     // We don't want a getattr request with every read request
     conn->want &= ~FUSE_CAP_AUTO_INVAL_DATA & ~FUSE_CAP_READDIRPLUS_AUTO;
     unsigned mask = (FUSE_CAP_SPLICE_WRITE | FUSE_CAP_SPLICE_MOVE | FUSE_CAP_SPLICE_READ |
                      FUSE_CAP_ASYNC_READ | FUSE_CAP_ATOMIC_O_TRUNC | FUSE_CAP_WRITEBACK_CACHE |
                      FUSE_CAP_EXPORT_SUPPORT | FUSE_CAP_FLOCK_LOCKS);
+
+    if (fuse->passthrough) {
+        if (conn->capable & FUSE_CAP_PASSTHROUGH) {
+            mask |= FUSE_CAP_PASSTHROUGH;
+        } else {
+            LOG(WARNING) << "Passthrough feature not supported by the kernel";
+            fuse->passthrough = false;
+        }
+    }
+
     conn->want |= conn->capable & mask;
     conn->max_read = MAX_READ_SIZE;
 
-    struct fuse* fuse = reinterpret_cast<struct fuse*>(userdata);
     fuse->active->store(true, std::memory_order_release);
 }
 
@@ -1051,6 +1064,17 @@ static handle* create_handle_for_node(struct fuse* fuse, const string& path, int
     return h;
 }
 
+bool do_passthrough_enable(fuse_req_t req, struct fuse_file_info* fi, unsigned int fd) {
+    int passthrough_fh = fuse_passthrough_enable(req, fd);
+
+    if (passthrough_fh <= 0) {
+        return false;
+    }
+
+    fi->passthrough_fh = passthrough_fh;
+    return true;
+}
+
 static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
@@ -1123,6 +1147,16 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     fi->fh = ptr_to_id(h);
     fi->keep_cache = keep_cache;
     fi->direct_io = !h->cached;
+
+    // TODO(b/173190192) ensuring that h->cached must be enabled in order to
+    // user FUSE passthrough is a conservative rule and might be dropped as
+    // soon as demonstrated its correctness.
+    if (fuse->passthrough && h->cached) {
+        if (!do_passthrough_enable(req, fi, fd)) {
+            LOG(WARNING) << "Passthrough OPEN failed for " << path;
+        }
+    }
+
     fuse_reply_open(req, fi);
 }
 
@@ -1661,6 +1695,16 @@ static void pf_create(fuse_req_t req,
     fi->fh = ptr_to_id(h);
     fi->keep_cache = keep_cache;
     fi->direct_io = !h->cached;
+
+    // TODO(b/173190192) ensuring that h->cached must be enabled in order to
+    // user FUSE passthrough is a conservative rule and might be dropped as
+    // soon as demonstrated its correctness.
+    if (fuse->passthrough && h->cached) {
+        if (!do_passthrough_enable(req, fi, fd)) {
+            LOG(WARNING) << "Passthrough CREATE failed for " << child_path;
+        }
+    }
+
     fuse_reply_create(req, &e, fi);
 }
 /*
@@ -1868,6 +1912,8 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path) {
         // Disable dentry caching for the app clone user
         fuse->disable_dentry_cache = true;
     }
+
+    fuse->passthrough = android::base::GetBoolProperty("persist.sys.fuse.passthrough", false);
 
     struct fuse_session
             * se = fuse_session_new(&args, &ops, sizeof(ops), &fuse_default);

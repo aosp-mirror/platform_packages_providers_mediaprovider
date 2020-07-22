@@ -20,15 +20,18 @@
         android:theme="@style/CacheClearingAlertDialogTheme"
         android:paddingStart="?android:attr/dialogPreferredPadding"
         android:paddingEnd="?android:attr/dialogPreferredPadding"
+        android:paddingTop="@dimen/dialog_space"
+        android:paddingBottom="10dp"
         android:orientation="vertical">
     <ImageView
         android:adjustViewBounds="true"
+        android:id="@+id/dialog_icon"
         android:layout_gravity="bottom|center_horizontal"
         android:layout_width="24dp"
         android:layout_height="24dp"
-        android:layout_marginTop="20dp"
+        android:layout_marginBottom="7dp"
         android:scaleType="fitCenter"
-        android:src="@drawable/ic_warning"
+        android:src="@drawable/ic_delete"
         android:contentDescription="@null"/>
 
     <TextView

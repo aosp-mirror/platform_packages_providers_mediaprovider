@@ -2024,6 +2024,10 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EPERM;
             }
 
+            if (shouldBypassDatabaseForFuse(uid)) {
+                return renameInLowerFs(oldPath, newPath);
+            }
+
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, oldPath)
                     && shouldBypassFuseRestrictions(/*forWrite*/ true, newPath)) {
                 return renameUncheckedForFuse(oldPath, newPath);
@@ -6238,6 +6242,16 @@ public class MediaProvider extends ContentProvider {
         return !isCallingIdentitySharedPackageName(appSpecificDir);
     }
 
+    private boolean shouldBypassDatabaseForFuse(int uid) {
+        final LocalCallingIdentity token =
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+        try {
+            return uid != android.os.Process.SHELL_UID && isCallingPackageManager();
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
+    }
+
     /**
      * Set of Exif tags that should be considered for redaction.
      */
@@ -6666,6 +6680,10 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EPERM;
             }
 
+            if (shouldBypassDatabaseForFuse(uid)) {
+                return 0;
+            }
+
             final String mimeType = MimeUtils.resolveMimeType(new File(path));
 
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
@@ -6772,6 +6790,10 @@ public class MediaProvider extends ContentProvider {
             if (isPrivatePackagePathNotOwnedByCaller(path)) {
                 Log.e(TAG, "Can't delete a file in another app's external directory!");
                 return OsConstants.ENOENT;
+            }
+
+            if (shouldBypassDatabaseForFuse(uid)) {
+                return deleteFileUnchecked(path);
             }
 
             final boolean shouldBypass = shouldBypassFuseRestrictions(/*forWrite*/ true, path);

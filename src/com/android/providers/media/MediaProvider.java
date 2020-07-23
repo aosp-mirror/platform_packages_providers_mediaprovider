@@ -3281,6 +3281,9 @@ public class MediaProvider extends ContentProvider {
 
                 if (isCallingPackageSelf() || isCallingPackageLegacyWrite()) {
                     // Mutation allowed
+                } else if (isCallingPackageManager()) {
+                    // Apps with MANAGE_EXTERNAL_STORAGE have all files access, hence they are
+                    // allowed to insert files anywhere.
                 } else {
                     Log.w(TAG, "Ignoring mutation of  " + column + " from "
                             + getCallingPackageOrSelf());

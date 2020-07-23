@@ -1219,14 +1219,6 @@ static void pf_copy_file_range(fuse_req_t req, fuse_ino_t ino_in,
     fuse_reply_write(req, size);
 }
 #endif
-static void pf_flush(fuse_req_t req,
-                     fuse_ino_t ino,
-                     struct fuse_file_info* fi) {
-    ATRACE_CALL();
-    struct fuse* fuse = get_fuse(req);
-    TRACE_NODE(nullptr, req) << "noop";
-    fuse_reply_err(req, 0);
-}
 
 static void pf_release(fuse_req_t req,
                        fuse_ino_t ino,
@@ -1656,7 +1648,7 @@ static struct fuse_lowlevel_ops ops{
     /*.link = pf_link,*/
     .open = pf_open, .read = pf_read,
     /*.write = pf_write,*/
-    .flush = pf_flush,
+    /*.flush = pf_flush,*/
     .release = pf_release, .fsync = pf_fsync, .opendir = pf_opendir, .readdir = pf_readdir,
     .releasedir = pf_releasedir, .fsyncdir = pf_fsyncdir, .statfs = pf_statfs,
     /*.setxattr = pf_setxattr,

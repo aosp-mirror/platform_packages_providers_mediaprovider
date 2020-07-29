@@ -427,10 +427,14 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
         // invalidate node_name if different case
         // Note that we invalidate async otherwise we will deadlock the kernel
         if (name != node->GetName()) {
-            std::thread t([=]() {
-                fuse_inval(fuse->se, fuse->ToInode(parent), fuse->ToInode(node), node->GetName(),
-                           path);
-            });
+            // Make copies of the node name and path so we're not attempting to acquire
+            // any node locks from the invalidation thread. Depending on timing, we may end
+            // up invalidating the wrong inode but that shouldn't result in correctness issues.
+            const fuse_ino_t parent_ino = fuse->ToInode(parent);
+            const fuse_ino_t child_ino = fuse->ToInode(node);
+            const std::string& node_name = node->GetName();
+
+            std::thread t([=]() { fuse_inval(fuse->se, parent_ino, child_ino, node_name, path); });
             t.detach();
         }
     }

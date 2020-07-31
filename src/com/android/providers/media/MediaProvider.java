@@ -1699,15 +1699,17 @@ public class MediaProvider extends ContentProvider {
      * Gets all files in the given {@code path} and subdirectories of the given {@code path}.
      */
     private ArrayList<String> getAllFilesForRenameDirectory(String oldPath) {
-        final String selection = MediaColumns.RELATIVE_PATH + " REGEXP '^" +
-                extractRelativePathForDirectory(oldPath) + "/?.*' and mime_type not like 'null'";
+        final String selection = FileColumns.DATA + " LIKE ? ESCAPE '\\'"
+                + " and mime_type not like 'null'";
+        final String[] selectionArgs = new String[] {DatabaseUtils.escapeForLike(oldPath) + "/%"};
         ArrayList<String> fileList = new ArrayList<>();
 
         final LocalCallingIdentity token = clearLocalCallingIdentity();
         try (final Cursor c = query(FileUtils.getContentUriForPath(oldPath),
-                new String[] {MediaColumns.DATA}, selection, null, null)) {
+                new String[] {MediaColumns.DATA}, selection, selectionArgs, null)) {
             while (c.moveToNext()) {
-                final String filePath = c.getString(0).replaceFirst("^" + oldPath + "/(.*)", "$1");
+                String filePath = c.getString(0);
+                filePath = filePath.replaceFirst(Pattern.quote(oldPath + "/"), "");
                 fileList.add(filePath);
             }
         } finally {
@@ -1741,13 +1743,15 @@ public class MediaProvider extends ContentProvider {
         }
 
         final int countAllFilesInDirectory;
-        final String selection = MediaColumns.RELATIVE_PATH + " REGEXP '^" +
-                extractRelativePathForDirectory(oldPath) + "/?.*' and mime_type not like 'null'";
+        final String selection = FileColumns.DATA + " LIKE ? ESCAPE '\\'"
+                + " and mime_type not like 'null'";
+        final String[] selectionArgs = new String[] {DatabaseUtils.escapeForLike(oldPath) + "/%"};
+
         final Uri uriOldPath = FileUtils.getContentUriForPath(oldPath);
 
         final LocalCallingIdentity token = clearLocalCallingIdentity();
-        try (final Cursor c = query(uriOldPath, new String[] {MediaColumns._ID}, selection, null,
-                null)) {
+        try (final Cursor c = query(uriOldPath, new String[] {MediaColumns._ID}, selection,
+                selectionArgs, null)) {
             // get actual number of files in the given directory.
             countAllFilesInDirectory = c.getCount();
         } finally {
@@ -1767,8 +1771,8 @@ public class MediaProvider extends ContentProvider {
 
         ArrayList<String> fileList = new ArrayList<>();
         final String[] projection = {MediaColumns.DATA, MediaColumns.MIME_TYPE};
-        try (Cursor c = qb.query(helper, projection, selection, null,
-                null, null, null, null, null)) {
+        try (Cursor c = qb.query(helper, projection, selection, selectionArgs, null, null, null,
+                null, null)) {
             // Check if the calling package has write permission to all files in the given
             // directory. If calling package has write permission to all files in the directory, the
             // query with update uri should return same number of files as previous query.
@@ -1777,7 +1781,9 @@ public class MediaProvider extends ContentProvider {
                         + " to rename one or more files in " + oldPath);
             }
             while(c.moveToNext()) {
-                final String filePath = c.getString(0).replaceFirst("^" + oldPath + "/(.*)", "$1");
+                String filePath = c.getString(0);
+                filePath = filePath.replaceFirst(Pattern.quote(oldPath + "/"), "");
+
                 final String mimeType = c.getString(1);
                 if (!isMimeTypeSupportedInPath(newPath + "/" + filePath, mimeType)) {
                     throw new IllegalArgumentException("Can't rename " + oldPath + "/" + filePath

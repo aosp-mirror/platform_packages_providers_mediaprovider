@@ -65,6 +65,8 @@ import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.Logging;
 import com.android.providers.media.util.MimeUtils;
 
+import com.google.common.collect.Iterables;
+
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -72,6 +74,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -95,6 +98,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * {@link MediaColumns#GENERATION_MODIFIED}.
      */
     public static final String CURRENT_GENERATION_CLAUSE = "SELECT generation FROM local_metadata";
+
+    private static final int NOTIFY_BATCH_SIZE = 256;
 
     final Context mContext;
     final String mName;
@@ -635,7 +640,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     private void notifyChangeInternal(@NonNull Collection<Uri> uris, int flags) {
         Trace.beginSection("notifyChange");
         try {
-            mContext.getContentResolver().notifyChange(uris, null, flags);
+            for (List<Uri> partition : Iterables.partition(uris, NOTIFY_BATCH_SIZE)) {
+                mContext.getContentResolver().notifyChange(partition, null, flags);
+            }
         } finally {
             Trace.endSection();
         }

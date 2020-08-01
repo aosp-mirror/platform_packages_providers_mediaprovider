@@ -41,6 +41,8 @@ import android.graphics.Bitmap;
 import android.graphics.ImageDecoder;
 import android.graphics.ImageDecoder.ImageInfo;
 import android.graphics.ImageDecoder.Source;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -68,9 +70,11 @@ import com.android.providers.media.util.Metrics;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
 /**
@@ -113,6 +117,12 @@ public class PermissionActivity extends Activity {
     private static final String DATA_VIDEO = "video";
     private static final String DATA_IMAGE = "image";
     private static final String DATA_GENERIC = "generic";
+
+    // Use to sort the thumbnails.
+    private static final int ORDER_IMAGE = 1;
+    private static final int ORDER_VIDEO = 2;
+    private static final int ORDER_AUDIO = 3;
+    private static final int ORDER_GENERIC = 4;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -485,6 +495,25 @@ public class PermissionActivity extends Activity {
                 }
             }
 
+            // Sort the uris in DATA_GENERIC case (Image, Video, Audio, Others)
+            if (TextUtils.equals(data, DATA_GENERIC) && uris.size() > 1) {
+                final ToIntFunction<Uri> score = (uri) -> {
+                    final LocalUriMatcher matcher = new LocalUriMatcher(MediaStore.AUTHORITY);
+                    final int match = matcher.matchUri(uri, false);
+
+                    switch (match) {
+                        case AUDIO_MEDIA_ID: return ORDER_AUDIO;
+                        case VIDEO_MEDIA_ID: return ORDER_VIDEO;
+                        case IMAGES_MEDIA_ID: return ORDER_IMAGE;
+                        default: return ORDER_GENERIC;
+                    }
+                };
+                final Comparator<Uri> bestScore = (a, b) ->
+                        score.applyAsInt(a) - score.applyAsInt(b);
+
+                uris.sort(bestScore);
+            }
+
             for (Uri uri : uris) {
                 try {
                     final Description desc = new Description(bodyView.getContext(), uri, loadFlags);
@@ -527,15 +556,23 @@ public class PermissionActivity extends Activity {
         }
 
         /**
-         * Bind dialog as a single full-bleed image.
+         * Bind dialog as a single full-bleed image. If there is no image, use
+         * the icon of Mime type instead.
          */
         private void bindAsFull(@NonNull Description result) {
             final ImageView thumbFull = bodyView.requireViewById(R.id.thumb_full);
-            result.bindFull(thumbFull);
+            if (result.full != null) {
+                result.bindFull(thumbFull);
+            } else {
+                thumbFull.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                thumbFull.setBackground(new ColorDrawable(getColor(R.color.thumb_gray_color)));
+                result.bindMimeIcon(thumbFull);
+            }
         }
 
         /**
-         * Bind dialog as a list of multiple thumbnails.
+         * Bind dialog as a list of multiple thumbnails. If there is no thumbnail for some
+         * items, use the icons of the MIME type instead.
          */
         private void bindAsThumbs(@NonNull List<Description> results,
                 @NonNull List<Description> visualResults) {
@@ -552,6 +589,7 @@ public class PermissionActivity extends Activity {
                 final View thumbMoreContainer = bodyView.requireViewById(R.id.thumb_more_container);
                 final ImageView thumbMore = bodyView.requireViewById(R.id.thumb_more);
                 final TextView thumbMoreText = bodyView.requireViewById(R.id.thumb_more_text);
+                final View gradientView = bodyView.requireViewById(R.id.thumb_more_gradient);
 
                 // Since we only want three tiles displayed maximum, swap out
                 // the first tile for our "more" tile
@@ -565,6 +603,7 @@ public class PermissionActivity extends Activity {
 
                 thumbMoreText.setText(moreText);
                 thumbMoreContainer.setVisibility(View.VISIBLE);
+                gradientView.setVisibility(View.VISIBLE);
             }
 
             // Trim off extra thumbnails from the front of our list, so that we
@@ -577,7 +616,11 @@ public class PermissionActivity extends Activity {
             for (int i = 0; i < thumbs.size(); i++) {
                 final Description desc = visualResults.get(i);
                 final ImageView imageView = thumbs.get(i);
-                desc.bindThumbnail(imageView);
+                if (desc.thumbnail != null) {
+                    desc.bindThumbnail(imageView);
+                } else {
+                    desc.bindMimeIcon(imageView);
+                }
             }
         }
 
@@ -612,6 +655,7 @@ public class PermissionActivity extends Activity {
         public @Nullable CharSequence contentDescription;
         public @Nullable Bitmap thumbnail;
         public @Nullable Bitmap full;
+        public @Nullable Icon mimeIcon;
 
         public static final int LOAD_CONTENT_DESCRIPTION = 1 << 0;
         public static final int LOAD_THUMBNAIL = 1 << 1;
@@ -650,11 +694,15 @@ public class PermissionActivity extends Activity {
                 }
             } catch (IOException e) {
                 Log.w(TAG, e);
+                if (thumbnail == null && full == null) {
+                    final String mimeType = resolver.getType(uri);
+                    mimeIcon = resolver.getTypeInfo(mimeType).getIcon();
+                }
             }
         }
 
         public boolean isVisual() {
-            return thumbnail != null || full != null;
+            return thumbnail != null || full != null || mimeIcon != null;
         }
 
         public void bindThumbnail(ImageView imageView) {
@@ -670,6 +718,14 @@ public class PermissionActivity extends Activity {
             imageView.setImageBitmap(full);
             imageView.setContentDescription(contentDescription);
             imageView.setVisibility(View.VISIBLE);
+        }
+
+        public void bindMimeIcon(ImageView imageView) {
+            Objects.requireNonNull(mimeIcon);
+            imageView.setImageIcon(mimeIcon);
+            imageView.setContentDescription(contentDescription);
+            imageView.setVisibility(View.VISIBLE);
+            imageView.setClipToOutline(true);
         }
     }
 

@@ -1483,7 +1483,7 @@ static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
         return;
     }
     const string path = node->BuildPath();
-    if (!is_app_accessible_path(fuse->mp, path, req->ctx.uid)) {
+    if (path != "/storage/emulated" && !is_app_accessible_path(fuse->mp, path, req->ctx.uid)) {
         fuse_reply_err(req, ENOENT);
         return;
     }
@@ -1507,6 +1507,13 @@ static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
     bool for_write = mask & W_OK;
     bool is_directory = S_ISDIR(stat.st_mode);
     if (is_directory) {
+        if (path == "/storage/emulated" && mask == X_OK) {
+            // Special case for this path: apps should be allowed to enter it,
+            // but not list directory contents (which would be user numbers).
+            int res = access(path.c_str(), X_OK);
+            fuse_reply_err(req, res ? errno : 0);
+            return;
+        }
         status = fuse->mp->IsOpendirAllowed(path, req->ctx.uid, for_write);
     } else {
         if (mask & X_OK) {

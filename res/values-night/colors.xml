@@ -16,5 +16,6 @@
   -->
 
 <resources>
-    <color name="thumb_gray_color">#3c4043</color>
+    <color name="thumb_gray_color">#3C4043</color>
+    <color name="clear_cache_icon_color">#DADCE0</color>
 </resources>

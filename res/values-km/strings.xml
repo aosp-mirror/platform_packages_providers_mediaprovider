@@ -37,9 +37,10 @@
       <item quantity="other">បូករួម​ទាំង​ធាតុ <xliff:g id="COUNT_1">^1</xliff:g> បន្ថែម​ទៀត</item>
       <item quantity="one">បូករួម​ទាំង​ធាតុ <xliff:g id="COUNT_0">^1</xliff:g> បន្ថែម​ទៀត</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"សម្អាត​ឯកសារ​កម្មវិធី​បណ្ដោះអាសន្ន​ឬ?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"សម្អាត​ឯកសារ​កម្មវិធី​បណ្ដោះអាសន្ន"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> ចង់​សម្អាត​ឯកសារ​បណ្ដោះអាសន្ន​មួយចំនួន។ សកម្មភាពនេះ​អាច​បណ្ដាលឱ្យ​ការប្រើប្រាស់​ថ្ម ឬ​ទិន្នន័យ​ទូរសព្ទចល័ត​មានការកើនឡើង​។"</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"កំពុងសម្អាត​ឯកសារ​កម្មវិធី​បណ្ដោះអាសន្ន…"</string>
+    <string name="clear" msgid="5524638938415865915">"សម្អាត"</string>
     <string name="allow" msgid="8885707816848569619">"អនុញ្ញាត"</string>
     <string name="deny" msgid="6040983710442068936">"បដិសេធ"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

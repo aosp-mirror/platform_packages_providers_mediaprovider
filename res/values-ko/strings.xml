@@ -37,9 +37,10 @@
       <item quantity="other">그 외 항목 <xliff:g id="COUNT_1">^1</xliff:g>개</item>
       <item quantity="one">그 외 항목 <xliff:g id="COUNT_0">^1</xliff:g>개</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"임시 앱 파일을 삭제하시겠습니까?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"임시 앱 파일 삭제"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>에서 일부 임시 파일을 삭제하려고 합니다. 이로 인해 배터리 또는 모바일 데이터 사용량이 늘어날 수 있습니다."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"임시 앱 파일 삭제 중…"</string>
+    <string name="clear" msgid="5524638938415865915">"삭제"</string>
     <string name="allow" msgid="8885707816848569619">"허용"</string>
     <string name="deny" msgid="6040983710442068936">"거부"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

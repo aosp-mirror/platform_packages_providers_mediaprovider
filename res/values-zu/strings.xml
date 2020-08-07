@@ -37,9 +37,10 @@
       <item quantity="one">Kanye no-<xliff:g id="COUNT_1">^1</xliff:g> izinto ezingeziwe</item>
       <item quantity="other">Kanye no-<xliff:g id="COUNT_1">^1</xliff:g> izinto ezingeziwe</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Sula amafayela ohlelo lokusebenza wesikhashana?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Sula amafayela ohlelo lokusebenza wesikhashana"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"I-<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> ingathanda ukusula amanye amafayela esikhashana. Lokhu kungaholela ekusetshenzisweni kwebhethri okuphezulu noma kwedatha yeselula."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Isula amafayela wohlelo lokusebenza wesikhashana…"</string>
+    <string name="clear" msgid="5524638938415865915">"Sula"</string>
     <string name="allow" msgid="8885707816848569619">"Vumela"</string>
     <string name="deny" msgid="6040983710442068936">"Nqaba"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

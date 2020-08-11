@@ -679,7 +679,9 @@ public class MediaProvider extends ContentProvider {
         return null;
     };
 
-    private final OnLegacyMigrationListener mMigrationListener = new OnLegacyMigrationListener() {
+    /** {@hide} */
+    public static final OnLegacyMigrationListener MIGRATION_LISTENER =
+            new OnLegacyMigrationListener() {
         @Override
         public void onStarted(ContentProviderClient client, String volumeName) {
             MediaStore.startLegacyMigration(ContentResolver.wrap(client), volumeName);
@@ -880,10 +882,10 @@ public class MediaProvider extends ContentProvider {
 
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME,
                 true, false, false, Column.class,
-                Metrics::logSchemaChange, mFilesListener, mMigrationListener, mIdGenerator);
+                Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER, mIdGenerator);
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME,
                 false, false, false, Column.class,
-                Metrics::logSchemaChange, mFilesListener, mMigrationListener, mIdGenerator);
+                Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER, mIdGenerator);
 
         final IntentFilter packageFilter = new IntentFilter();
         packageFilter.setPriority(10);

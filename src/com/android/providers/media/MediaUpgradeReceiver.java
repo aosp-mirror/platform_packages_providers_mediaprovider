@@ -67,8 +67,8 @@ public class MediaUpgradeReceiver extends BroadcastReceiver {
                     try {
                         DatabaseHelper helper = new DatabaseHelper(
                                 context, file, MediaProvider.isInternalMediaDatabaseName(file),
-                                false, false, Column.class, Metrics::logSchemaChange, null, null,
-                                null);
+                                false, false, Column.class, Metrics::logSchemaChange, null,
+                                MediaProvider.MIGRATION_LISTENER, null);
                         helper.runWithTransaction((db) -> {
                             // Perform just enough to force database upgrade
                             return db.getVersion();

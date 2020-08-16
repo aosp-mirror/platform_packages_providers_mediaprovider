@@ -461,7 +461,8 @@ public class DatabaseHelperTest {
     private static class DatabaseHelperR extends DatabaseHelper {
         public DatabaseHelperR(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_R,
-                    false, false, false, Column.class, null, null, null, null);
+                    false, false, false, Column.class, null, null,
+                    MediaProvider.MIGRATION_LISTENER, null);
         }
     }
 

@@ -6012,6 +6012,8 @@ public class MediaProvider extends ContentProvider {
             // the remote writer tried claiming an exception
             invalidateThumbnails(uri);
 
+            // Invalidate so subsequent stat(2) on the upper fs is eventually consistent
+            invalidateFuseDentry(file);
             try {
                 switch (match) {
                     case IMAGES_THUMBNAILS_ID:

@@ -60,9 +60,10 @@ std::unique_ptr<RedactionInfo> getRedactionInfoInternal(JNIEnv* env, jobject med
                                                         jmethodID mid_get_redaction_ranges,
                                                         uid_t uid, pid_t tid, const string& path) {
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
-    ScopedLongArrayRO redaction_ranges(
+    ScopedLocalRef<jlongArray> redaction_ranges_local_ref(
             env, static_cast<jlongArray>(env->CallObjectMethod(
                          media_provider_object, mid_get_redaction_ranges, j_path.get(), uid, tid)));
+    ScopedLongArrayRO redaction_ranges(env, redaction_ranges_local_ref.get());
 
     if (CheckForJniException(env)) {
         return nullptr;

@@ -679,7 +679,9 @@ public class MediaProvider extends ContentProvider {
         return null;
     };
 
-    private final OnLegacyMigrationListener mMigrationListener = new OnLegacyMigrationListener() {
+    /** {@hide} */
+    public static final OnLegacyMigrationListener MIGRATION_LISTENER =
+            new OnLegacyMigrationListener() {
         @Override
         public void onStarted(ContentProviderClient client, String volumeName) {
             MediaStore.startLegacyMigration(ContentResolver.wrap(client), volumeName);
@@ -880,10 +882,10 @@ public class MediaProvider extends ContentProvider {
 
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME,
                 true, false, false, Column.class,
-                Metrics::logSchemaChange, mFilesListener, mMigrationListener, mIdGenerator);
+                Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER, mIdGenerator);
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME,
                 false, false, false, Column.class,
-                Metrics::logSchemaChange, mFilesListener, mMigrationListener, mIdGenerator);
+                Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER, mIdGenerator);
 
         final IntentFilter packageFilter = new IntentFilter();
         packageFilter.setPriority(10);
@@ -1704,15 +1706,17 @@ public class MediaProvider extends ContentProvider {
      * Gets all files in the given {@code path} and subdirectories of the given {@code path}.
      */
     private ArrayList<String> getAllFilesForRenameDirectory(String oldPath) {
-        final String selection = MediaColumns.RELATIVE_PATH + " REGEXP '^" +
-                extractRelativePathForDirectory(oldPath) + "/?.*' and mime_type not like 'null'";
+        final String selection = FileColumns.DATA + " LIKE ? ESCAPE '\\'"
+                + " and mime_type not like 'null'";
+        final String[] selectionArgs = new String[] {DatabaseUtils.escapeForLike(oldPath) + "/%"};
         ArrayList<String> fileList = new ArrayList<>();
 
         final LocalCallingIdentity token = clearLocalCallingIdentity();
         try (final Cursor c = query(FileUtils.getContentUriForPath(oldPath),
-                new String[] {MediaColumns.DATA}, selection, null, null)) {
+                new String[] {MediaColumns.DATA}, selection, selectionArgs, null)) {
             while (c.moveToNext()) {
-                final String filePath = c.getString(0).replaceFirst("^" + oldPath + "/(.*)", "$1");
+                String filePath = c.getString(0);
+                filePath = filePath.replaceFirst(Pattern.quote(oldPath + "/"), "");
                 fileList.add(filePath);
             }
         } finally {
@@ -1746,13 +1750,15 @@ public class MediaProvider extends ContentProvider {
         }
 
         final int countAllFilesInDirectory;
-        final String selection = MediaColumns.RELATIVE_PATH + " REGEXP '^" +
-                extractRelativePathForDirectory(oldPath) + "/?.*' and mime_type not like 'null'";
+        final String selection = FileColumns.DATA + " LIKE ? ESCAPE '\\'"
+                + " and mime_type not like 'null'";
+        final String[] selectionArgs = new String[] {DatabaseUtils.escapeForLike(oldPath) + "/%"};
+
         final Uri uriOldPath = FileUtils.getContentUriForPath(oldPath);
 
         final LocalCallingIdentity token = clearLocalCallingIdentity();
-        try (final Cursor c = query(uriOldPath, new String[] {MediaColumns._ID}, selection, null,
-                null)) {
+        try (final Cursor c = query(uriOldPath, new String[] {MediaColumns._ID}, selection,
+                selectionArgs, null)) {
             // get actual number of files in the given directory.
             countAllFilesInDirectory = c.getCount();
         } finally {
@@ -1772,8 +1778,8 @@ public class MediaProvider extends ContentProvider {
 
         ArrayList<String> fileList = new ArrayList<>();
         final String[] projection = {MediaColumns.DATA, MediaColumns.MIME_TYPE};
-        try (Cursor c = qb.query(helper, projection, selection, null,
-                null, null, null, null, null)) {
+        try (Cursor c = qb.query(helper, projection, selection, selectionArgs, null, null, null,
+                null, null)) {
             // Check if the calling package has write permission to all files in the given
             // directory. If calling package has write permission to all files in the directory, the
             // query with update uri should return same number of files as previous query.
@@ -1782,7 +1788,9 @@ public class MediaProvider extends ContentProvider {
                         + " to rename one or more files in " + oldPath);
             }
             while(c.moveToNext()) {
-                final String filePath = c.getString(0).replaceFirst("^" + oldPath + "/(.*)", "$1");
+                String filePath = c.getString(0);
+                filePath = filePath.replaceFirst(Pattern.quote(oldPath + "/"), "");
+
                 final String mimeType = c.getString(1);
                 if (!isMimeTypeSupportedInPath(newPath + "/" + filePath, mimeType)) {
                     throw new IllegalArgumentException("Can't rename " + oldPath + "/" + filePath
@@ -2022,6 +2030,10 @@ public class MediaProvider extends ContentProvider {
             if (!newPath.equals(getAbsoluteSanitizedPath(newPath))) {
                 Log.e(TAG, "New path name contains invalid characters.");
                 return OsConstants.EPERM;
+            }
+
+            if (shouldBypassDatabaseForFuse(uid)) {
+                return renameInLowerFs(oldPath, newPath);
             }
 
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, oldPath)
@@ -3286,6 +3298,9 @@ public class MediaProvider extends ContentProvider {
 
                 if (isCallingPackageSelf() || isCallingPackageLegacyWrite()) {
                     // Mutation allowed
+                } else if (isCallingPackageManager()) {
+                    // Apps with MANAGE_EXTERNAL_STORAGE have all files access, hence they are
+                    // allowed to insert files anywhere.
                 } else {
                     Log.w(TAG, "Ignoring mutation of  " + column + " from "
                             + getCallingPackageOrSelf());
@@ -6002,6 +6017,8 @@ public class MediaProvider extends ContentProvider {
             // the remote writer tried claiming an exception
             invalidateThumbnails(uri);
 
+            // Invalidate so subsequent stat(2) on the upper fs is eventually consistent
+            invalidateFuseDentry(file);
             try {
                 switch (match) {
                     case IMAGES_THUMBNAILS_ID:
@@ -6233,6 +6250,16 @@ public class MediaProvider extends ContentProvider {
 
         // This is a private-package path; return true if not owned by the caller
         return !isCallingIdentitySharedPackageName(appSpecificDir);
+    }
+
+    private boolean shouldBypassDatabaseForFuse(int uid) {
+        final LocalCallingIdentity token =
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+        try {
+            return uid != android.os.Process.SHELL_UID && isCallingPackageManager();
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
     }
 
     /**
@@ -6663,6 +6690,10 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EPERM;
             }
 
+            if (shouldBypassDatabaseForFuse(uid)) {
+                return 0;
+            }
+
             final String mimeType = MimeUtils.resolveMimeType(new File(path));
 
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
@@ -6769,6 +6800,10 @@ public class MediaProvider extends ContentProvider {
             if (isPrivatePackagePathNotOwnedByCaller(path)) {
                 Log.e(TAG, "Can't delete a file in another app's external directory!");
                 return OsConstants.ENOENT;
+            }
+
+            if (shouldBypassDatabaseForFuse(uid)) {
+                return deleteFileUnchecked(path);
             }
 
             final boolean shouldBypass = shouldBypassFuseRestrictions(/*forWrite*/ true, path);

@@ -61,8 +61,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="@drawable/thumb_clip"
-                android:scaleType="centerCrop"
-                android:tint="@color/thumb_more_tint" />
+                android:scaleType="centerCrop"/>
+            <View
+                android:id="@+id/thumb_more_gradient"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/thumb_clip_gradient"
+                android:visibility="gone"/>
             <TextView
                 android:id="@+id/thumb_more_text"
                 android:layout_width="match_parent"

@@ -160,7 +160,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             @Nullable Class<? extends Annotation> columnAnnotation,
             @Nullable OnSchemaChangeListener schemaListener,
             @Nullable OnFilesChangeListener filesListener,
-            @Nullable OnLegacyMigrationListener migrationListener,
+            @NonNull OnLegacyMigrationListener migrationListener,
             @Nullable UnaryOperator<String> idGenerator) {
         this(context, name, getDatabaseVersion(context), internal, earlyUpgrade, legacyProvider,
                 columnAnnotation, schemaListener, filesListener, migrationListener, idGenerator);
@@ -171,7 +171,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             @Nullable Class<? extends Annotation> columnAnnotation,
             @Nullable OnSchemaChangeListener schemaListener,
             @Nullable OnFilesChangeListener filesListener,
-            @Nullable OnLegacyMigrationListener migrationListener,
+            @NonNull OnLegacyMigrationListener migrationListener,
             @Nullable UnaryOperator<String> idGenerator) {
         super(context, name, null, version);
         mContext = context;

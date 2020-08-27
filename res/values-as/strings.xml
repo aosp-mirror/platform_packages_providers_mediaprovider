@@ -20,32 +20,114 @@
     <string name="storage_description" msgid="4081716890357580107">"স্থানীয় সঞ্চয়াগাৰ"</string>
     <string name="app_label" msgid="9035307001052716210">"মিডিয়া সঞ্চয়াগাৰ"</string>
     <string name="artist_label" msgid="8105600993099120273">"শিল্পী"</string>
-    <string name="ringtone_default" msgid="1744846699922263043">"ডিফ\'ল্ট ৰিংট\'ন"</string>
-    <string name="notification_sound_default" msgid="6541609166469990135">"জাননীৰ ডিফ\'ল্ট ধ্বনি"</string>
-    <string name="alarm_sound_default" msgid="5488847775252870314">"এলাৰ্মৰ ডিফ\'ল্ট ধ্বনি"</string>
+    <string name="unknown" msgid="2059049215682829375">"অজ্ঞাত"</string>
     <string name="root_images" msgid="5861633549189045666">"প্ৰতিচ্ছবিসমূহ"</string>
     <string name="root_videos" msgid="8792703517064649453">"ভিডিঅ\'সমূহ"</string>
     <string name="root_audio" msgid="3505830755201326018">"অডিঅ’"</string>
+    <string name="root_documents" msgid="3829103301363849237">"নথিপত্র"</string>
     <string name="permission_required" msgid="1460820436132943754">"এই বস্তুটো সংশোধন কৰিবলৈ বা মচিবলৈ অনুমতিৰ প্ৰয়োজন।"</string>
     <string name="permission_required_action" msgid="706370952366113539">"অব্যাহত ৰাখক"</string>
-    <string name="permission_audio" msgid="344061911159388398"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"ক এই সংগীতটো সংশোধন কৰিবলৈ বা মচিবলৈ অনুমতি দিবনে?"</string>
-    <string name="permission_video" msgid="8188037202573267740"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"ক এই ভিডিঅ’টো সংশোধন কৰিবলৈ বা মচিবলৈ অনুমতি দিবনে?"</string>
-    <string name="permission_images" msgid="6711726334380945124"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"ক এই ছবিখন সংশোধন কৰিবলৈ বা মচিবলৈ অনুমতি দিবনে?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"অনুমতি দিয়ক"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"অস্বীকাৰ কৰক"</string>
-    <string name="sound_name_awaken" msgid="5266892392848526147">"জাগি উঠাৰ ধ্বনি"</string>
-    <string name="sound_name_bounce" msgid="8771447635446665231">"বাউঞ্চ ধ্বনি"</string>
-    <string name="sound_name_drip" msgid="1744684469020662152">"ড্ৰিপ ধ্বনি"</string>
-    <string name="sound_name_gallop" msgid="2664454314532060876">"গেল\'প ধ্বনি"</string>
-    <string name="sound_name_nudge" msgid="5445751598250698244">"নাজ ধ্বনি"</string>
-    <string name="sound_name_orbit" msgid="4623457897813255481">"অৰবিট ধ্বনি"</string>
-    <string name="sound_name_rise" msgid="2200258555031675806">"ৰাইজ ধ্বনি"</string>
-    <string name="sound_name_sway" msgid="348448316663085643">"শ্ব\'ৱে ধ্বনি"</string>
-    <string name="sound_name_wag" msgid="2730733083078126563">"ৱাগ ধ্বনি"</string>
-    <string name="add_ringtone_text" msgid="8077717303037760418">"ৰিংট\'ন যোগ কৰক"</string>
-    <string name="add_alarm_text" msgid="2440919366091720815">"এলাৰ্ম যোগ কৰক"</string>
-    <string name="add_notification_text" msgid="5013822215567515665">"জাননী যোগ কৰক"</string>
-    <string name="delete_ringtone_text" msgid="2963662097583300181">"মচক"</string>
-    <string name="unable_to_add_ringtone" msgid="6256097521165711269">"নিজৰ উপযোগিতা অনুযায়ী তৈয়াৰ কৰা ৰিংট\'ন যোগ কৰিব পৰা নগ\'ল"</string>
-    <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"নিজৰ উপযোগিতা অনুযায়ী তৈয়াৰ কৰা ৰিংট\'ন মচিব পৰা নগ\'ল"</string>
+    <!-- no translation found for permission_more_thumb (3530243737498196228) -->
+    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
+      <item quantity="one">আৰু <xliff:g id="COUNT_1">^1</xliff:g> টা অতিৰিক্ত বস্তু</item>
+      <item quantity="other">আৰু <xliff:g id="COUNT_1">^1</xliff:g> টা অতিৰিক্ত বস্তু</item>
+    </plurals>
+    <!-- no translation found for cache_clearing_dialog_title (543177167845854283) -->
+    <skip />
+    <!-- no translation found for cache_clearing_dialog_text (425995541409682360) -->
+    <skip />
+    <!-- no translation found for allow (8885707816848569619) -->
+    <skip />
+    <!-- no translation found for deny (6040983710442068936) -->
+    <skip />
+    <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল সলনি কৰিবলৈ দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল সলনি কৰিবলৈ দিবনে?</item>
+    </plurals>
+    <plurals name="permission_write_video" formatted="false" msgid="8695335317588947410">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা ভিডিঅ’ সলনি কৰিবলৈ দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা ভিডিঅ’ সলনি কৰিবলৈ দিবনে?</item>
+    </plurals>
+    <plurals name="permission_write_image" formatted="false" msgid="9032317900030650266">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> খন ফট’ সলনি কৰিবলৈ দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> খন ফট’ সলনি কৰিবলৈ দিবনে?</item>
+    </plurals>
+    <plurals name="permission_write_generic" formatted="false" msgid="3099002288826692797">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা বস্তু সলনি কৰিবলৈ দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা বস্তু সলনি কৰিবলৈ দিবনে?</item>
+    </plurals>
+    <string name="permission_write_grant" msgid="3160858917750790130">"সলনি কৰক"</string>
+    <string name="permission_write_deny" msgid="7090074081877311071">"বাতিল কৰক"</string>
+    <plurals name="permission_trash_audio" formatted="false" msgid="6116371056718108592">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল ট্ৰেশ্বলৈ স্থানান্তৰ কৰিবলৈ দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল ট্ৰেশ্বলৈ স্থানান্তৰ কৰিবলৈ দিবনে?</item>
+    </plurals>
+    <plurals name="permission_trash_audio_info" formatted="false" msgid="5002847308948758655">
+      <item quantity="one">এই অডিঅ’ ফাইলসমূহ <xliff:g id="DURATION_1">^3</xliff:g> দিনৰ পাছত স্থায়ীভাৱে মচা হ’ব</item>
+      <item quantity="other">এই অডিঅ’ ফাইলসমূহ <xliff:g id="DURATION_1">^3</xliff:g> দিনৰ পাছত স্থায়ীভাৱে মচা হ’ব</item>
+    </plurals>
+    <plurals name="permission_trash_video" formatted="false" msgid="7900111984425589714">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা ভিডিঅ’ ট্ৰেশ্বলৈ স্থানান্তৰ কৰিবলৈ দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা ভিডিঅ’ ট্ৰেশ্বলৈ স্থানান্তৰ কৰিবলৈ দিবনে?</item>
+    </plurals>
+    <plurals name="permission_trash_video_info" formatted="false" msgid="4604871492287117394">
+      <item quantity="one">এই ভিডিঅ’সমূহ <xliff:g id="DURATION_1">^3</xliff:g> দিনৰ পাছত স্থায়ীভাৱে মচা হ’ব</item>
+      <item quantity="other">এই ভিডিঅ’সমূহ <xliff:g id="DURATION_1">^3</xliff:g> দিনৰ পাছত স্থায়ীভাৱে মচা হ’ব</item>
+    </plurals>
+    <plurals name="permission_trash_image" formatted="false" msgid="9204660448046457869">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> খন ফট’ ট্ৰেশ্বলৈ স্থানান্তৰ কৰিবলৈ দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> খন ফট’ ট্ৰেশ্বলৈ স্থানান্তৰ কৰিবলৈ দিবনে?</item>
+    </plurals>
+    <plurals name="permission_trash_image_info" formatted="false" msgid="4214797662365755925">
+      <item quantity="one">এই ফট’কেইখন <xliff:g id="DURATION_1">^3</xliff:g> দিনৰ পাছত স্থায়ীভাৱে মচা হ’ব</item>
+      <item quantity="other">এই ফট’কেইখন <xliff:g id="DURATION_1">^3</xliff:g> দিনৰ পাছত স্থায়ীভাৱে মচা হ’ব</item>
+    </plurals>
+    <plurals name="permission_trash_generic" formatted="false" msgid="427752775725644743">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা বস্তু ট্ৰেশ্বলৈ স্থানান্তৰ কৰিবলৈ দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা বস্তু ট্ৰেশ্বলৈ স্থানান্তৰ কৰিবলৈ দিবনে?</item>
+    </plurals>
+    <plurals name="permission_trash_generic_info" formatted="false" msgid="7932965324027540546">
+      <item quantity="one">এই বস্তুকেইটা <xliff:g id="DURATION_1">^3</xliff:g> দিনৰ পাছত স্থায়ীভাৱে মচা হ’ব</item>
+      <item quantity="other">এই বস্তুকেইটা <xliff:g id="DURATION_1">^3</xliff:g> দিনৰ পাছত স্থায়ীভাৱে মচা হ’ব</item>
+    </plurals>
+    <string name="permission_trash_grant" msgid="2279489962040272178">"ট্ৰেশ্বলৈ স্থানান্তৰ কৰক"</string>
+    <string name="permission_trash_deny" msgid="2447949475239137483">"বাতিল কৰক"</string>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="5716379492864435914">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল ট্ৰেশ্বৰ পৰা বাহিৰলৈ স্থানান্তৰ কৰিবলৈ দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল ট্ৰেশ্বৰ পৰা বাহিৰলৈ স্থানান্তৰ কৰিবলৈ দিবনে?</item>
+    </plurals>
+    <plurals name="permission_untrash_video" formatted="false" msgid="4554487646802678525">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা ভিডিঅ’ ট্ৰেশ্বৰ পৰা বাহিৰলৈ স্থানান্তৰ কৰিবলৈ দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা ভিডিঅ’ ট্ৰেশ্বৰ পৰা বাহিৰলৈ স্থানান্তৰ কৰিবলৈ দিবনে?</item>
+    </plurals>
+    <plurals name="permission_untrash_image" formatted="false" msgid="3209306923499767662">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> খন ফট’ ট্ৰেশ্বৰ পৰা বাহিৰলৈ স্থানান্তৰ কৰিবলৈ দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> খন ফট’ ট্ৰেশ্বৰ পৰা বাহিৰলৈ স্থানান্তৰ কৰিবলৈ দিবনে?</item>
+    </plurals>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="4607666277638602132">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা বস্তু ট্ৰেশ্বৰ পৰা বাহিৰলৈ স্থানান্তৰ কৰিবলৈ দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা বস্তু ট্ৰেশ্বৰ পৰা বাহিৰলৈ স্থানান্তৰ কৰিবলৈ দিবনে?</item>
+    </plurals>
+    <string name="permission_untrash_grant" msgid="8438940480373451790">"ট্ৰেশ্বৰ পৰা বাহিৰলৈ নিয়ক"</string>
+    <string name="permission_untrash_deny" msgid="8008055757469903604">"বাতিল কৰক"</string>
+    <plurals name="permission_delete_audio" formatted="false" msgid="6390202287788379608">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল মচিবলৈ দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল মচিবলৈ দিবনে?</item>
+    </plurals>
+    <plurals name="permission_delete_video" formatted="false" msgid="1577978206881284398">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা ভিডিঅ’ মচিবলৈ দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা ভিডিঅ’ মচিবলৈ দিবনে?</item>
+    </plurals>
+    <plurals name="permission_delete_image" formatted="false" msgid="8435429587272893063">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> খন ফট’ মচিবলৈ দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> খন ফট’ মচিবলৈ দিবনে?</item>
+    </plurals>
+    <plurals name="permission_delete_generic" formatted="false" msgid="5949614272661654178">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা বস্তু মচিবলৈ দিবনে?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা বস্তু মচিবলৈ দিবনে?</item>
+    </plurals>
+    <string name="permission_delete_grant" msgid="8682518049167813926">"মচক"</string>
+    <string name="permission_delete_deny" msgid="3742780367403897552">"বাতিল কৰক"</string>
 </resources>

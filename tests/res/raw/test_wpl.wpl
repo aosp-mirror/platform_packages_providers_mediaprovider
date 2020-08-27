@@ -4,7 +4,7 @@
         <meta name="Generator" content="Microsoft Windows Media Player -- 11.0.5721.5145"/>
         <meta name="AverageRating" content="33"/>
         <meta name="TotalDuration" content="1102"/>
-        <meta name="ItemCount" content="3"/>
+        <meta name="ItemCount" content="5"/>
         <author/>
         <title>Bach Organ Works</title>
     </head>
@@ -13,6 +13,8 @@
             <media src="001.mp3"/>
             <media src="../Music/002.mp3"/>
             <media src="003.mp3" tid="{35B39D45-94D8-40E1-8FC2-9F6714191E47}"/>
+            <media src="..\Music\004.mp3"/>
+            <media src="../music/005.mp3"/>
         </seq>
     </body>
 </smil>

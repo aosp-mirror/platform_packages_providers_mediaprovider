@@ -16,13 +16,12 @@
 
 package com.android.providers.media;
 
-import static android.provider.MediaStore.Downloads.isDownload;
-import static android.provider.MediaStore.Downloads.isDownloadDir;
+import static com.android.providers.media.scan.MediaScannerTest.stage;
+import static com.android.providers.media.util.FileUtils.extractRelativePathForDirectory;
+import static com.android.providers.media.util.FileUtils.isDownload;
+import static com.android.providers.media.util.FileUtils.isDownloadDir;
 
-import static com.android.providers.media.MediaProvider.ensureFileColumns;
-import static com.android.providers.media.MediaProvider.extractPathOwnerPackageName;
-import static com.android.providers.media.MediaProvider.maybeBalance;
-import static com.android.providers.media.MediaProvider.recoverAbusiveGroupBy;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -32,12 +31,20 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import android.Manifest;
+import android.content.ContentProviderClient;
+import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Images.ImageColumns;
@@ -49,25 +56,75 @@ import android.util.Pair;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.providers.media.MediaProvider.FallbackException;
 import com.android.providers.media.MediaProvider.VolumeArgumentException;
+import com.android.providers.media.MediaProvider.VolumeNotFoundException;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
+import com.android.providers.media.util.FileUtils;
+import com.android.providers.media.util.SQLiteQueryBuilder;
 
+import org.junit.AfterClass;
+import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 @RunWith(AndroidJUnit4.class)
 public class MediaProviderTest {
     static final String TAG = "MediaProviderTest";
 
+    /**
+     * To confirm behaviors, we need to pick an app installed on all devices
+     * which has no permissions, and the best candidate is the "Easter Egg" app.
+     */
+    static final String PERMISSIONLESS_APP = "com.android.egg";
+
+    private static Context sIsolatedContext;
+    private static ContentResolver sIsolatedResolver;
+
+    @BeforeClass
+    public static void setUp() {
+        InstrumentationRegistry.getInstrumentation().getUiAutomation()
+                .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
+                        Manifest.permission.READ_COMPAT_CHANGE_CONFIG);
+
+        final Context context = InstrumentationRegistry.getTargetContext();
+        sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
+        sIsolatedResolver = sIsolatedContext.getContentResolver();
+    }
+
+    @AfterClass
+    public static void tearDown() {
+        InstrumentationRegistry.getInstrumentation()
+                .getUiAutomation().dropShellPermissionIdentity();
+    }
+
+    /**
+     * To fully exercise all our tests, we require that the Cuttlefish emulator
+     * have both emulated primary storage and an SD card be present.
+     */
+    @Test
+    public void testCuttlefish() {
+        Assume.assumeTrue(Build.MODEL.contains("Cuttlefish"));
+
+        assertTrue("Cuttlefish must have both emulated storage and an SD card to exercise tests",
+                MediaStore.getExternalVolumeNames(InstrumentationRegistry.getTargetContext())
+                        .size() > 1);
+    }
+
     @Test
     public void testSchema() {
-        final Context context = InstrumentationRegistry.getTargetContext();
-        final Context isolatedContext = new IsolatedContext(context, "modern");
-        final ContentResolver isolatedResolver = isolatedContext.getContentResolver();
-
         for (String path : new String[] {
                 "images/media",
                 "images/media/1",
@@ -78,8 +135,6 @@ public class MediaProviderTest {
                 "audio/media/1",
                 "audio/media/1/genres",
                 "audio/media/1/genres/1",
-                "audio/media/1/playlists",
-                "audio/media/1/playlists/1",
                 "audio/genres",
                 "audio/genres/1",
                 "audio/genres/1/members",
@@ -108,10 +163,217 @@ public class MediaProviderTest {
         }) {
             final Uri probe = MediaStore.AUTHORITY_URI.buildUpon()
                     .appendPath(MediaStore.VOLUME_EXTERNAL).appendEncodedPath(path).build();
-            try (Cursor c = isolatedResolver.query(probe, null, null, null)) {
+            try (Cursor c = sIsolatedResolver.query(probe, null, null, null)) {
                 assertNotNull("probe", c);
             }
+            try {
+                sIsolatedResolver.getType(probe);
+            } catch (IllegalStateException tolerated) {
+            }
         }
+    }
+
+    @Test
+    public void testLocale() {
+        try (ContentProviderClient cpc = sIsolatedResolver
+                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+            ((MediaProvider) cpc.getLocalContentProvider())
+                    .onLocaleChanged();
+        }
+    }
+
+    @Test
+    public void testDump() throws Exception {
+        try (ContentProviderClient cpc = sIsolatedResolver
+                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+            cpc.getLocalContentProvider().dump(null,
+                    new PrintWriter(new ByteArrayOutputStream()), null);
+        }
+    }
+
+    /**
+     * Verify that our fallback exceptions throw on modern apps while degrading
+     * gracefully for legacy apps.
+     */
+    @Test
+    public void testFallbackException() throws Exception {
+        for (FallbackException e : new FallbackException[] {
+                new FallbackException("test", Build.VERSION_CODES.Q),
+                new VolumeNotFoundException("test"),
+                new VolumeArgumentException(new File("/"), Collections.emptyList())
+        }) {
+            // Modern apps should get thrown
+            assertThrows(Exception.class, () -> {
+                e.translateForInsert(Build.VERSION_CODES.CUR_DEVELOPMENT);
+            });
+            assertThrows(Exception.class, () -> {
+                e.translateForUpdateDelete(Build.VERSION_CODES.CUR_DEVELOPMENT);
+            });
+            assertThrows(Exception.class, () -> {
+                e.translateForQuery(Build.VERSION_CODES.CUR_DEVELOPMENT);
+            });
+
+            // Legacy apps gracefully log without throwing
+            assertEquals(null, e.translateForInsert(Build.VERSION_CODES.BASE));
+            assertEquals(0, e.translateForUpdateDelete(Build.VERSION_CODES.BASE));
+            assertEquals(null, e.translateForQuery(Build.VERSION_CODES.BASE));
+        }
+    }
+
+    /**
+     * We already have solid coverage of this logic in {@link IdleServiceTest},
+     * but the coverage system currently doesn't measure that, so we add the
+     * bare minimum local testing here to convince the tooling that it's
+     * covered.
+     */
+    @Test
+    public void testIdle() throws Exception {
+        try (ContentProviderClient cpc = sIsolatedResolver
+                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+            ((MediaProvider) cpc.getLocalContentProvider())
+                    .onIdleMaintenance(new CancellationSignal());
+        }
+    }
+
+    /**
+     * We already have solid coverage of this logic in
+     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * measure that, so we add the bare minimum local testing here to convince
+     * the tooling that it's covered.
+     */
+    @Test
+    public void testCanonicalize() throws Exception {
+        // We might have old files lurking, so force a clean slate
+        final Context context = InstrumentationRegistry.getTargetContext();
+        sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
+        sIsolatedResolver = sIsolatedContext.getContentResolver();
+
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        for (File file : new File[] {
+                stage(R.raw.test_audio, new File(dir, "test" + System.nanoTime() + ".mp3")),
+                stage(R.raw.test_video_xmp, new File(dir, "test" + System.nanoTime() + ".mp4")),
+                stage(R.raw.lg_g4_iso_800_jpg, new File(dir, "test" + System.nanoTime() + ".jpg"))
+        }) {
+            final Uri uri = MediaStore.scanFile(sIsolatedResolver, file);
+            Log.v(TAG, "Scanned " + file + " as " + uri);
+
+            final Uri forward = sIsolatedResolver.canonicalize(uri);
+            final Uri reverse = sIsolatedResolver.uncanonicalize(forward);
+
+            assertEquals(ContentUris.parseId(uri), ContentUris.parseId(forward));
+            assertEquals(ContentUris.parseId(uri), ContentUris.parseId(reverse));
+        }
+    }
+
+    /**
+     * We already have solid coverage of this logic in
+     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * measure that, so we add the bare minimum local testing here to convince
+     * the tooling that it's covered.
+     */
+    @Test
+    public void testMetadata() {
+        assertNotNull(MediaStore.getVersion(sIsolatedContext,
+                MediaStore.VOLUME_EXTERNAL_PRIMARY));
+        assertNotNull(MediaStore.getGeneration(sIsolatedResolver,
+                MediaStore.VOLUME_EXTERNAL_PRIMARY));
+    }
+
+    /**
+     * We already have solid coverage of this logic in
+     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * measure that, so we add the bare minimum local testing here to convince
+     * the tooling that it's covered.
+     */
+    @Test
+    public void testCreateRequest() throws Exception {
+        final Collection<Uri> uris = Arrays.asList(
+                MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY, 42));
+        assertNotNull(MediaStore.createWriteRequest(sIsolatedResolver, uris));
+    }
+
+    /**
+     * We already have solid coverage of this logic in
+     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * measure that, so we add the bare minimum local testing here to convince
+     * the tooling that it's covered.
+     */
+    @Test
+    public void testCheckUriPermission() throws Exception {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DISPLAY_NAME, "test.mp3");
+        values.put(MediaColumns.MIME_TYPE, "audio/mpeg");
+        final Uri uri = sIsolatedResolver.insert(
+                MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), values);
+
+        assertEquals(PackageManager.PERMISSION_GRANTED, sIsolatedResolver.checkUriPermission(uri,
+                android.os.Process.myUid(), Intent.FLAG_GRANT_READ_URI_PERMISSION));
+    }
+
+    /**
+     * We already have solid coverage of this logic in
+     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * measure that, so we add the bare minimum local testing here to convince
+     * the tooling that it's covered.
+     */
+    @Test
+    public void testBulkInsert() throws Exception {
+        final ContentValues values1 = new ContentValues();
+        values1.put(MediaColumns.DISPLAY_NAME, "test1.mp3");
+        values1.put(MediaColumns.MIME_TYPE, "audio/mpeg");
+
+        final ContentValues values2 = new ContentValues();
+        values2.put(MediaColumns.DISPLAY_NAME, "test2.mp3");
+        values2.put(MediaColumns.MIME_TYPE, "audio/mpeg");
+
+        final Uri targetUri = MediaStore.Audio.Media
+                .getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        assertEquals(2, sIsolatedResolver.bulkInsert(targetUri,
+                new ContentValues[] { values1, values2 }));
+    }
+
+    /**
+     * We already have solid coverage of this logic in
+     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * measure that, so we add the bare minimum local testing here to convince
+     * the tooling that it's covered.
+     */
+    @Test
+    public void testCustomCollator() throws Exception {
+        final Bundle extras = new Bundle();
+        extras.putString(ContentResolver.QUERY_ARG_SORT_LOCALE, "en");
+
+        try (Cursor c = sIsolatedResolver.query(MediaStore.Files.EXTERNAL_CONTENT_URI,
+                null, extras, null)) {
+            assertNotNull(c);
+        }
+    }
+
+    /**
+     * We already have solid coverage of this logic in
+     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * measure that, so we add the bare minimum local testing here to convince
+     * the tooling that it's covered.
+     */
+    @Test
+    public void testGetRedactionRanges_Image() throws Exception {
+        final File file = File.createTempFile("test", ".jpg");
+        stage(R.raw.test_image, file);
+        assertNotNull(MediaProvider.getRedactionRanges(file));
+    }
+
+    /**
+     * We already have solid coverage of this logic in
+     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * measure that, so we add the bare minimum local testing here to convince
+     * the tooling that it's covered.
+     */
+    @Test
+    public void testGetRedactionRanges_Video() throws Exception {
+        final File file = File.createTempFile("test", ".mp4");
+        stage(R.raw.test_video, file);
+        assertNotNull(MediaProvider.getRedactionRanges(file));
     }
 
     @Test
@@ -147,7 +409,7 @@ public class MediaProviderTest {
     }
 
     private static String getPathOwnerPackageName(String path) {
-        return extractPathOwnerPackageName(path);
+        return FileUtils.extractPathOwnerPackageName(path);
     }
 
     @Test
@@ -186,34 +448,35 @@ public class MediaProviderTest {
     public void testBuildData_Simple() throws Exception {
         final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         assertEndsWith("/Pictures/file.png",
-                buildFile(uri, null, null, "file", "image/png"));
+                buildFile(uri, null, "file", "image/png"));
         assertEndsWith("/Pictures/file.png",
-                buildFile(uri, null, null, "file.png", "image/png"));
+                buildFile(uri, null, "file.png", "image/png"));
         assertEndsWith("/Pictures/file.jpg.png",
-                buildFile(uri, null, null, "file.jpg", "image/png"));
+                buildFile(uri, null, "file.jpg", "image/png"));
     }
 
     @Test
     public void testBuildData_Primary() throws Exception {
         final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         assertEndsWith("/DCIM/IMG_1024.JPG",
-                buildFile(uri, Environment.DIRECTORY_DCIM, null, "IMG_1024.JPG", "image/jpeg"));
+                buildFile(uri, Environment.DIRECTORY_DCIM, "IMG_1024.JPG", "image/jpeg"));
     }
 
     @Test
+    @Ignore("Enable as part of b/142561358")
     public void testBuildData_Secondary() throws Exception {
         final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         assertEndsWith("/Pictures/Screenshots/foo.png",
-                buildFile(uri, null, Environment.DIRECTORY_SCREENSHOTS, "foo.png", "image/png"));
+                buildFile(uri, "Pictures/Screenshots", "foo.png", "image/png"));
     }
 
     @Test
     public void testBuildData_InvalidNames() throws Exception {
         final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         assertEndsWith("/Pictures/foo_bar.png",
-            buildFile(uri, null, null, "foo/bar", "image/png"));
+            buildFile(uri, null, "foo/bar", "image/png"));
         assertEndsWith("/Pictures/_.hidden.png",
-            buildFile(uri, null, null, ".hidden", "image/png"));
+            buildFile(uri, null, ".hidden", "image/png"));
     }
 
     @Test
@@ -224,141 +487,195 @@ public class MediaProviderTest {
             if (!type.startsWith("audio/")) {
                 assertThrows(IllegalArgumentException.class, () -> {
                     buildFile(MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
-                            null, null, "foo", type);
+                            null, "foo", type);
                 });
             }
             if (!type.startsWith("video/")) {
                 assertThrows(IllegalArgumentException.class, () -> {
                     buildFile(MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
-                            null, null, "foo", type);
+                            null, "foo", type);
                 });
             }
             if (!type.startsWith("image/")) {
                 assertThrows(IllegalArgumentException.class, () -> {
                     buildFile(MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
-                            null, null, "foo", type);
+                            null, "foo", type);
                 });
             }
         }
     }
 
     @Test
+    public void testBuildData_InvalidSecondaryTypes() throws Exception {
+        assertEndsWith("/Pictures/foo.png",
+                buildFile(MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                        null, "foo.png", "image/*"));
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            buildFile(MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                    null, "foo", "video/*");
+        });
+        assertThrows(IllegalArgumentException.class, () -> {
+            buildFile(MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                    null, "foo.mp4", "audio/*");
+        });
+    }
+
+    @Test
+    public void testBuildData_EmptyTypes() throws Exception {
+        Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        assertEndsWith("/Pictures/foo.png",
+                buildFile(uri, null, "foo.png", ""));
+
+        uri = MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        assertEndsWith(".mp4",
+                buildFile(uri, null, "", ""));
+    }
+
+    @Test
+    public void testEnsureFileColumns_InvalidMimeType_targetSdkQ() throws Exception {
+        final MediaProvider provider = new MediaProvider() {
+            @Override
+            public boolean isFuseThread() {
+                return false;
+            }
+
+            @Override
+            public int getCallingPackageTargetSdkVersion() {
+                return Build.VERSION_CODES.Q;
+            }
+        };
+
+        final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        final ContentValues values = new ContentValues();
+
+        values.put(MediaColumns.DISPLAY_NAME, "pngimage.png");
+        provider.ensureFileColumns(uri, values);
+        assertMimetype(values, "image/jpeg");
+        assertDisplayName(values, "pngimage.png.jpg");
+
+        values.clear();
+        values.put(MediaColumns.DISPLAY_NAME, "pngimage.png");
+        values.put(MediaColumns.MIME_TYPE, "");
+        provider.ensureFileColumns(uri, values);
+        assertMimetype(values, "image/jpeg");
+        assertDisplayName(values, "pngimage.png.jpg");
+
+        values.clear();
+        values.put(MediaColumns.MIME_TYPE, "");
+        provider.ensureFileColumns(uri, values);
+        assertMimetype(values, "image/jpeg");
+
+        values.clear();
+        values.put(MediaColumns.DISPLAY_NAME, "foo.foo");
+        provider.ensureFileColumns(uri, values);
+        assertMimetype(values, "image/jpeg");
+        assertDisplayName(values, "foo.foo.jpg");
+    }
+
+    @Ignore("Enable as part of b/142561358")
     public void testBuildData_Charset() throws Exception {
         final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         assertEndsWith("/Pictures/foo__bar/bar__baz.png",
-                buildFile(uri, null, "foo\0\0bar", "bar::baz.png", "image/png"));
+                buildFile(uri, "Pictures/foo\0\0bar", "bar::baz.png", "image/png"));
     }
 
     @Test
-    public void testRecoverAbusiveGroupBy_Conflicting() throws Exception {
-        // Abusive group is fine
-        recoverAbusiveGroupBy(Pair.create("foo=bar GROUP BY foo", null));
-
-        // Official group is fine
-        recoverAbusiveGroupBy(Pair.create("foo=bar", "foo"));
-
-        // Conflicting groups should yell
-        try {
-            recoverAbusiveGroupBy(Pair.create("foo=bar GROUP BY foo", "foo"));
-            fail("Expected IAE when conflicting groups defined");
-        } catch (IllegalArgumentException expected) {
-        }
+    public void testBuildData_Playlists() throws Exception {
+        final Uri uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        assertEndsWith("/Music/my_playlist.m3u",
+                buildFile(uri, null, "my_playlist", "audio/mpegurl"));
+        assertEndsWith("/Movies/my_playlist.pls",
+                buildFile(uri, "Movies", "my_playlist", "audio/x-scpls"));
     }
 
     @Test
-    public void testRecoverAbusiveGroupBy_Buckets() throws Exception {
-        final Pair<String, String> input = Pair.create(
-                "(media_type = 1 OR media_type = 3) AND bucket_display_name IS NOT NULL AND bucket_id IS NOT NULL AND _data NOT LIKE \"%/DCIM/%\" ) GROUP BY (bucket_id",
-                null);
-        final Pair<String, String> expected = Pair.create(
-                "((media_type = 1 OR media_type = 3) AND bucket_display_name IS NOT NULL AND bucket_id IS NOT NULL AND _data NOT LIKE \"%/DCIM/%\" )",
-                "(bucket_id)");
-        assertEquals(expected, recoverAbusiveGroupBy(input));
+    public void testBuildData_Subtitles() throws Exception {
+        final Uri uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        assertEndsWith("/Movies/my_subtitle.srt",
+                buildFile(uri, null, "my_subtitle", "application/x-subrip"));
+        assertEndsWith("/Music/my_lyrics.lrc",
+                buildFile(uri, "Music", "my_lyrics", "application/lrc"));
     }
 
     @Test
-    public void testRecoverAbusiveGroupBy_BucketsByPath() throws Exception {
-        final Pair<String, String> input = Pair.create(
-                "_data LIKE ? AND _data IS NOT NULL) GROUP BY (bucket_id",
-                null);
-        final Pair<String, String> expected = Pair.create(
-                "(_data LIKE ? AND _data IS NOT NULL)",
-                "(bucket_id)");
-        assertEquals(expected, recoverAbusiveGroupBy(input));
+    public void testBuildData_Downloads() throws Exception {
+        final Uri uri = MediaStore.Downloads
+                .getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        assertEndsWith("/Download/linux.iso",
+                buildFile(uri, null, "linux.iso", "application/x-iso9660-image"));
     }
 
     @Test
-    public void testRecoverAbusiveGroupBy_113651872() throws Exception {
-        final Pair<String, String> input = Pair.create(
-                "(LOWER(SUBSTR(_data, -4))=? OR LOWER(SUBSTR(_data, -5))=? OR LOWER(SUBSTR(_data, -4))=?) AND LOWER(SUBSTR(_data, 1, 65))!=?) GROUP BY (bucket_id),(bucket_display_name",
-                null);
-        final Pair<String, String> expected = Pair.create(
-                "((LOWER(SUBSTR(_data, -4))=? OR LOWER(SUBSTR(_data, -5))=? OR LOWER(SUBSTR(_data, -4))=?) AND LOWER(SUBSTR(_data, 1, 65))!=?)",
-                "(bucket_id),(bucket_display_name)");
-        assertEquals(expected, recoverAbusiveGroupBy(input));
+    public void testBuildData_Pending_FromValues() throws Exception {
+        final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        final ContentValues forward = new ContentValues();
+        forward.put(MediaColumns.RELATIVE_PATH, "DCIM/My Vacation/");
+        forward.put(MediaColumns.DISPLAY_NAME, "IMG1024.JPG");
+        forward.put(MediaColumns.MIME_TYPE, "image/jpeg");
+        forward.put(MediaColumns.IS_PENDING, 1);
+        forward.put(MediaColumns.IS_TRASHED, 0);
+        forward.put(MediaColumns.DATE_EXPIRES, 1577836800L);
+        ensureFileColumns(uri, forward);
+
+        // Requested filename remains intact, but raw path on disk is mutated to
+        // reflect that it's a pending item with a specific expiration time
+        assertEquals("IMG1024.JPG",
+                forward.getAsString(MediaColumns.DISPLAY_NAME));
+        assertEndsWith(".pending-1577836800-IMG1024.JPG",
+                forward.getAsString(MediaColumns.DATA));
     }
 
     @Test
-    public void testRecoverAbusiveGroupBy_113652519() throws Exception {
-        final Pair<String, String> input = Pair.create(
-                "1) GROUP BY 1,(2",
-                null);
-        final Pair<String, String> expected = Pair.create(
-                "(1)",
-                "1,(2)");
-        assertEquals(expected, recoverAbusiveGroupBy(input));
+    public void testBuildData_Pending_FromData() throws Exception {
+        final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        final ContentValues reverse = new ContentValues();
+        reverse.put(MediaColumns.DATA,
+                "/storage/emulated/0/DCIM/My Vacation/.pending-1577836800-IMG1024.JPG");
+        ensureFileColumns(uri, reverse);
+
+        assertEquals("DCIM/My Vacation/", reverse.getAsString(MediaColumns.RELATIVE_PATH));
+        assertEquals("IMG1024.JPG", reverse.getAsString(MediaColumns.DISPLAY_NAME));
+        assertEquals("image/jpeg", reverse.getAsString(MediaColumns.MIME_TYPE));
+        assertEquals(1, (int) reverse.getAsInteger(MediaColumns.IS_PENDING));
+        assertEquals(0, (int) reverse.getAsInteger(MediaColumns.IS_TRASHED));
+        assertEquals(1577836800, (long) reverse.getAsLong(MediaColumns.DATE_EXPIRES));
     }
 
     @Test
-    public void testRecoverAbusiveGroupBy_113652519_longer() throws Exception {
-        final Pair<String, String> input = Pair.create(
-                "mime_type IN ( ?, ?, ? ) AND 1) GROUP BY 1,(2",
-                null);
-        final Pair<String, String> expected = Pair.create(
-                "(mime_type IN ( ?, ?, ? ) AND 1)",
-                "1,(2)");
-        assertEquals(expected, recoverAbusiveGroupBy(input));
+    public void testBuildData_Trashed_FromValues() throws Exception {
+        final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        final ContentValues forward = new ContentValues();
+        forward.put(MediaColumns.RELATIVE_PATH, "DCIM/My Vacation/");
+        forward.put(MediaColumns.DISPLAY_NAME, "IMG1024.JPG");
+        forward.put(MediaColumns.MIME_TYPE, "image/jpeg");
+        forward.put(MediaColumns.IS_PENDING, 0);
+        forward.put(MediaColumns.IS_TRASHED, 1);
+        forward.put(MediaColumns.DATE_EXPIRES, 1577836800L);
+        ensureFileColumns(uri, forward);
+
+        // Requested filename remains intact, but raw path on disk is mutated to
+        // reflect that it's a trashed item with a specific expiration time
+        assertEquals("IMG1024.JPG",
+                forward.getAsString(MediaColumns.DISPLAY_NAME));
+        assertEndsWith(".trashed-1577836800-IMG1024.JPG",
+                forward.getAsString(MediaColumns.DATA));
     }
 
     @Test
-    public void testRecoverAbusiveGroupBy_115340326() throws Exception {
-        final Pair<String, String> input = Pair.create(
-                "(1) GROUP BY bucket_id,(bucket_display_name)",
-                null);
-        final Pair<String, String> expected = Pair.create(
-                "(1)",
-                "bucket_id,(bucket_display_name)");
-        assertEquals(expected, recoverAbusiveGroupBy(input));
-    }
+    public void testBuildData_Trashed_FromData() throws Exception {
+        final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        final ContentValues reverse = new ContentValues();
+        reverse.put(MediaColumns.DATA,
+                "/storage/emulated/0/DCIM/My Vacation/.trashed-1577836800-IMG1024.JPG");
+        ensureFileColumns(uri, reverse);
 
-    @Test
-    public void testRecoverAbusiveGroupBy_116845885() throws Exception {
-        final Pair<String, String> input = Pair.create(
-                "(title like 'C360%' or title like 'getInstance%') group by ((datetaken+19800000)/86400000)",
-                null);
-        final Pair<String, String> expected = Pair.create(
-                "(title like 'C360%' or title like 'getInstance%')",
-                "((datetaken+19800000)/86400000)");
-        assertEquals(expected, recoverAbusiveGroupBy(input));
-    }
-
-    @Test
-    public void testMaybeBalance() throws Exception {
-        assertEquals(null, maybeBalance(null));
-        assertEquals("", maybeBalance(""));
-
-        assertEquals("()", maybeBalance(")"));
-        assertEquals("()", maybeBalance("("));
-        assertEquals("()", maybeBalance("()"));
-
-        assertEquals("(1==1)", maybeBalance("1==1)"));
-        assertEquals("((foo)bar)baz", maybeBalance("foo)bar)baz"));
-        assertEquals("foo(bar(baz))", maybeBalance("foo(bar(baz"));
-
-        assertEquals("IN '('", maybeBalance("IN '('"));
-        assertEquals("IN ('(')", maybeBalance("IN ('('"));
-        assertEquals("IN (\")\")", maybeBalance("IN (\")\""));
-        assertEquals("IN ('\"(')", maybeBalance("IN ('\"('"));
+        assertEquals("DCIM/My Vacation/", reverse.getAsString(MediaColumns.RELATIVE_PATH));
+        assertEquals("IMG1024.JPG", reverse.getAsString(MediaColumns.DISPLAY_NAME));
+        assertEquals("image/jpeg", reverse.getAsString(MediaColumns.MIME_TYPE));
+        assertEquals(0, (int) reverse.getAsInteger(MediaColumns.IS_PENDING));
+        assertEquals(1, (int) reverse.getAsInteger(MediaColumns.IS_TRASHED));
+        assertEquals(1577836800, (long) reverse.getAsLong(MediaColumns.DATE_EXPIRES));
     }
 
     @Test
@@ -508,15 +825,6 @@ public class MediaProviderTest {
     }
 
     @Test
-    public void testBindList() {
-        assertEquals("()", MediaProvider.bindList());
-        assertEquals("( 'foo' )", MediaProvider.bindList("foo"));
-        assertEquals("( 'foo' , 'bar' )", MediaProvider.bindList("foo", "bar"));
-        assertEquals("( 'foo' , 'bar' , 'baz' )", MediaProvider.bindList("foo", "bar", "baz"));
-        assertEquals("( 'foo' , NULL , 42 )", MediaProvider.bindList("foo", null, 42));
-    }
-
-    @Test
     public void testIsDownload() throws Exception {
         assertTrue(isDownload("/storage/emulated/0/Download/colors.png"));
         assertTrue(isDownload("/storage/emulated/0/Download/test.pdf"));
@@ -565,8 +873,7 @@ public class MediaProviderTest {
             final ContentValues values = computeDataValues(data);
             assertVolume(values, "0000-0000");
             assertBucket(values, "/storage/0000-0000/DCIM/Camera", "Camera");
-            assertGroup(values, "IMG1024");
-            assertDirectories(values, "DCIM/Camera/", "DCIM", "Camera");
+            assertRelativePath(values, "DCIM/Camera/");
         }
     }
 
@@ -577,14 +884,22 @@ public class MediaProviderTest {
         values = computeDataValues("/storage/0000-0000/DCIM/Camera/IMG1024");
         assertVolume(values, "0000-0000");
         assertBucket(values, "/storage/0000-0000/DCIM/Camera", "Camera");
-        assertGroup(values, null);
-        assertDirectories(values, "DCIM/Camera/", "DCIM", "Camera");
+        assertRelativePath(values, "DCIM/Camera/");
 
         values = computeDataValues("/storage/0000-0000/DCIM/Camera/.foo");
         assertVolume(values, "0000-0000");
         assertBucket(values, "/storage/0000-0000/DCIM/Camera", "Camera");
-        assertGroup(values, null);
-        assertDirectories(values, "DCIM/Camera/", "DCIM", "Camera");
+        assertRelativePath(values, "DCIM/Camera/");
+
+        values = computeDataValues("/storage/476A-17F8/123456/test.png");
+        assertVolume(values, "476a-17f8");
+        assertBucket(values, "/storage/476A-17F8/123456", "123456");
+        assertRelativePath(values, "123456/");
+
+        values = computeDataValues("/storage/476A-17F8/123456/789/test.mp3");
+        assertVolume(values, "476a-17f8");
+        assertBucket(values, "/storage/476A-17F8/123456/789", "789");
+        assertRelativePath(values, "123456/789/");
     }
 
     @Test
@@ -595,7 +910,7 @@ public class MediaProviderTest {
                 "IMG1024.JPG",
         }) {
             final ContentValues values = computeDataValues(data);
-            assertDirectories(values, null, null, null);
+            assertRelativePath(values, null);
         }
     }
 
@@ -610,33 +925,86 @@ public class MediaProviderTest {
             values = computeDataValues(top + "/IMG1024.JPG");
             assertVolume(values, MediaStore.VOLUME_EXTERNAL_PRIMARY);
             assertBucket(values, top, null);
-            assertGroup(values, "IMG1024");
-            assertDirectories(values, "/", null, null);
+            assertRelativePath(values, "/");
 
             values = computeDataValues(top + "/One/IMG1024.JPG");
             assertVolume(values, MediaStore.VOLUME_EXTERNAL_PRIMARY);
             assertBucket(values, top + "/One", "One");
-            assertGroup(values, "IMG1024");
-            assertDirectories(values, "One/", "One", null);
+            assertRelativePath(values, "One/");
 
             values = computeDataValues(top + "/One/Two/IMG1024.JPG");
             assertVolume(values, MediaStore.VOLUME_EXTERNAL_PRIMARY);
             assertBucket(values, top + "/One/Two", "Two");
-            assertGroup(values, "IMG1024");
-            assertDirectories(values, "One/Two/", "One", "Two");
+            assertRelativePath(values, "One/Two/");
 
             values = computeDataValues(top + "/One/Two/Three/IMG1024.JPG");
             assertVolume(values, MediaStore.VOLUME_EXTERNAL_PRIMARY);
             assertBucket(values, top + "/One/Two/Three", "Three");
-            assertGroup(values, "IMG1024");
-            assertDirectories(values, "One/Two/Three/", "One", "Two");
+            assertRelativePath(values, "One/Two/Three/");
         }
+    }
+
+    @Test
+    public void testEnsureFileColumns_resolvesMimeType() throws Exception {
+        final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DISPLAY_NAME, "pngimage.png");
+
+        final MediaProvider provider = new MediaProvider() {
+            @Override
+            public boolean isFuseThread() {
+                return false;
+            }
+
+            @Override
+            public int getCallingPackageTargetSdkVersion() {
+                return Build.VERSION_CODES.CUR_DEVELOPMENT;
+            }
+        };
+        provider.ensureFileColumns(uri, values);
+
+        assertMimetype(values, "image/png");
+    }
+
+    @Test
+    public void testRelativePathForInvalidDirectories() throws Exception {
+        for (String path : new String[] {
+                "/storage/emulated",
+                "/storage",
+                "/data/media/Foo.jpg",
+                "Foo.jpg",
+                "storage/Foo"
+        }) {
+            assertEquals(null, FileUtils.extractRelativePathForDirectory(path));
+        }
+    }
+
+    @Test
+    public void testRelativePathForValidDirectories() throws Exception {
+        for (String prefix : new String[] {
+                "/storage/emulated/0",
+                "/storage/emulated/10",
+                "/storage/ABCD-1234"
+        }) {
+            assertRelativePathForDirectory(prefix, "/");
+            assertRelativePathForDirectory(prefix + "/DCIM", "DCIM/");
+            assertRelativePathForDirectory(prefix + "/DCIM/Camera", "DCIM/Camera/");
+            assertRelativePathForDirectory(prefix + "/Z", "Z/");
+            assertRelativePathForDirectory(prefix + "/Android/media/com.example/Foo",
+                    "Android/media/com.example/Foo/");
+        }
+    }
+
+    private static void assertRelativePathForDirectory(String directoryPath, String relativePath) {
+        assertWithMessage("extractRelativePathForDirectory(" + directoryPath + ") :")
+                .that(extractRelativePathForDirectory(directoryPath))
+                .isEqualTo(relativePath);
     }
 
     private static ContentValues computeDataValues(String path) {
         final ContentValues values = new ContentValues();
         values.put(MediaColumns.DATA, path);
-        MediaProvider.computeDataValues(values);
+        FileUtils.computeValuesFromData(values, /*forFuse*/ false);
         Log.v(TAG, "Computed values " + values);
         return values;
     }
@@ -645,7 +1013,7 @@ public class MediaProviderTest {
         if (bucketId != null) {
             assertEquals(bucketName,
                     values.getAsString(ImageColumns.BUCKET_DISPLAY_NAME));
-            assertEquals(bucketId.toLowerCase().hashCode(),
+            assertEquals(bucketId.toLowerCase(Locale.ROOT).hashCode(),
                     (long) values.getAsLong(ImageColumns.BUCKET_ID));
         } else {
             assertNull(values.get(ImageColumns.BUCKET_DISPLAY_NAME));
@@ -653,24 +1021,20 @@ public class MediaProviderTest {
         }
     }
 
-    private static void assertGroup(ContentValues values, String groupId) {
-        if (groupId != null) {
-            assertEquals(groupId.toLowerCase().hashCode(),
-                    (long) values.getAsLong(ImageColumns.GROUP_ID));
-        } else {
-            assertNull(values.get(ImageColumns.GROUP_ID));
-        }
-    }
-
     private static void assertVolume(ContentValues values, String volumeName) {
         assertEquals(volumeName, values.getAsString(ImageColumns.VOLUME_NAME));
     }
 
-    private static void assertDirectories(ContentValues values, String relativePath,
-            String primaryDir, String secondaryDir) {
+    private static void assertRelativePath(ContentValues values, String relativePath) {
         assertEquals(relativePath, values.get(ImageColumns.RELATIVE_PATH));
-        assertEquals(primaryDir, values.get(ImageColumns.PRIMARY_DIRECTORY));
-        assertEquals(secondaryDir, values.get(ImageColumns.SECONDARY_DIRECTORY));
+    }
+
+    private static void assertMimetype(ContentValues values, String type) {
+        assertEquals(type, values.get(MediaColumns.MIME_TYPE));
+    }
+
+    private static void assertDisplayName(ContentValues values, String type) {
+        assertEquals(type, values.get(MediaColumns.DISPLAY_NAME));
     }
 
     private static boolean isGreylistMatch(String raw) {
@@ -682,23 +1046,29 @@ public class MediaProviderTest {
         return false;
     }
 
-    private static String buildFile(Uri uri, String primaryDir, String secondaryDir,
-            String displayName, String mimeType) {
+    private String buildFile(Uri uri, String relativePath, String displayName,
+            String mimeType) {
         final ContentValues values = new ContentValues();
-        if (primaryDir != null) {
-            values.put(MediaColumns.PRIMARY_DIRECTORY, primaryDir);
-        }
-        if (secondaryDir != null) {
-            values.put(MediaColumns.SECONDARY_DIRECTORY, secondaryDir);
+        if (relativePath != null) {
+            values.put(MediaColumns.RELATIVE_PATH, relativePath);
         }
         values.put(MediaColumns.DISPLAY_NAME, displayName);
         values.put(MediaColumns.MIME_TYPE, mimeType);
         try {
             ensureFileColumns(uri, values);
-        } catch (VolumeArgumentException e) {
+        } catch (VolumeArgumentException | VolumeNotFoundException e) {
             throw e.rethrowAsIllegalArgumentException();
         }
         return values.getAsString(MediaColumns.DATA);
+    }
+
+    private void ensureFileColumns(Uri uri, ContentValues values)
+            throws VolumeArgumentException, VolumeNotFoundException {
+        try (ContentProviderClient cpc = sIsolatedResolver
+                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+            ((MediaProvider) cpc.getLocalContentProvider())
+                    .ensureFileColumns(uri, values);
+        }
     }
 
     private static void assertEndsWith(String expected, String actual) {
@@ -716,5 +1086,17 @@ public class MediaProviderTest {
                 throw e;
             }
         }
+    }
+
+    @Test
+    public void testNestedTransaction_applyBatch() throws Exception {
+        final Uri[] uris = new Uri[] {
+                MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL, 0),
+                MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY, 0),
+        };
+        final ArrayList<ContentProviderOperation> ops = new ArrayList<>();
+        ops.add(ContentProviderOperation.newDelete(uris[0]).build());
+        ops.add(ContentProviderOperation.newDelete(uris[1]).build());
+        sIsolatedResolver.applyBatch(MediaStore.AUTHORITY, ops);
     }
 }

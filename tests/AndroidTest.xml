@@ -16,6 +16,7 @@
 <configuration description="Runs Tests for MediaProvder.">
     <target_preparer class="com.android.tradefed.targetprep.TestAppInstallSetup">
         <option name="test-file-name" value="MediaProviderTests.apk" />
+        <option name="install-arg" value="-g" />
     </target_preparer>
 
     <option name="test-suite-tag" value="apct" />
@@ -26,4 +27,8 @@
         <option name="runner" value="androidx.test.runner.AndroidJUnitRunner" />
         <option name="hidden-api-checks" value="false"/>
     </test>
+
+    <object type="module_controller" class="com.android.tradefed.testtype.suite.module.MainlineTestModuleController">
+        <option name="mainline-module-package-name" value="com.google.android.mediaprovider" />
+    </object>
 </configuration>

@@ -1,24 +1,99 @@
+
 android_app {
     name: "MediaProvider",
-
     manifest: "AndroidManifest.xml",
+
+    static_libs: [
+        "androidx.appcompat_appcompat",
+        "androidx.core_core",
+        "guava",
+    ],
+
+    libs: [
+        "unsupportedappusage",
+        "app-compat-annotations",
+        "framework-mediaprovider.impl",
+        "framework_mediaprovider_annotation",
+        "framework-statsd",
+    ],
+
+    jni_libs: [
+        "libfuse_jni",
+        "libfuse"
+    ],
 
     resource_dirs: [
         "res",
     ],
-
     srcs: [
-        "src/**/*.aidl",
-        "src/**/*.java",
+        ":mediaprovider-sources",
     ],
 
     optimize: {
         proguard_flags_files: ["proguard.flags"],
     },
 
-    platform_apis: true,
+    plugins: [
+        "java_api_finder",
+        "error_prone_mediaprovider",
+    ],
+
+    sdk_version: "module_current",
 
     certificate: "media",
-
     privileged: true,
+
+    aaptflags: ["--custom-package com.android.providers.media"],
+
+    errorprone: {
+        javacflags: [
+            "-Xep:FallThrough:ERROR",
+            "-Xep:GuardedBy:ERROR",
+            "-Xep:StreamResourceLeak:ERROR",
+
+            // Local checkers specific to this module
+            "-Xep:MediaProviderLocaleRoot:ERROR",
+            "-Xep:MediaProviderMimeType:ERROR",
+        ],
+    },
+}
+
+// Used by MediaProvider and MediaProviderTests
+filegroup {
+    name: "mediaprovider-sources",
+    srcs: [
+        "src/**/*.aidl",
+        "src/**/*.java",
+        ":mediaprovider-database-sources",
+        ":statslog-mediaprovider-java-gen",
+    ],
+}
+
+// This is defined to give LegacyMediaProvider the bare minimum it needs
+// to keep the legacy database schema working while also building
+// against "system_current"
+filegroup {
+    name: "mediaprovider-database-sources",
+    srcs: [
+        "src/com/android/providers/media/DatabaseHelper.java",
+        "src/com/android/providers/media/util/BackgroundThread.java",
+        "src/com/android/providers/media/util/DatabaseUtils.java",
+        "src/com/android/providers/media/util/FileUtils.java",
+        "src/com/android/providers/media/util/ForegroundThread.java",
+        "src/com/android/providers/media/util/HandlerExecutor.java",
+        "src/com/android/providers/media/util/Logging.java",
+        "src/com/android/providers/media/util/MimeUtils.java",
+    ],
+}
+
+platform_compat_config {
+    name: "media-provider-platform-compat-config",
+    src: ":MediaProvider",
+}
+
+genrule {
+    name: "statslog-mediaprovider-java-gen",
+    tools: ["stats-log-api-gen"],
+    cmd: "$(location stats-log-api-gen) --java $(out) --module mediaprovider --javaPackage com.android.providers.media --javaClass MediaProviderStatsLog",
+    out: ["com/android/providers/media/MediaProviderStatsLog.java"],
 }

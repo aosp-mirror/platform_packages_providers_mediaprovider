@@ -853,4 +853,21 @@ public class ModernMediaScannerTest {
             assertTrue(isFileAlbumArt(file));
         }
     }
+
+    @Test
+    public void testScan_BitmapFile() throws Exception {
+        final File bmp = new File(mDir, "image.bmp");
+        stage(R.raw.test_bmp, bmp);
+
+        final Uri uri = mModern.scanFile(bmp, REASON_UNKNOWN);
+        try (Cursor cursor = mIsolatedResolver
+                .query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
+            assertEquals(1, cursor.getCount());
+            cursor.moveToFirst();
+            assertEquals(1280,
+                    cursor.getInt(cursor.getColumnIndex(MediaColumns.WIDTH)));
+            assertEquals(720,
+                    cursor.getInt(cursor.getColumnIndex(MediaColumns.HEIGHT)));
+        }
+    }
 }

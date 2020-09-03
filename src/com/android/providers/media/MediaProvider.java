@@ -3268,8 +3268,11 @@ public class MediaProvider extends ContentProvider {
 
                 final long audioId = initialValues
                         .getAsLong(MediaStore.Audio.Playlists.Members.AUDIO_ID);
+                final String audioVolumeName =
+                        MediaStore.VOLUME_INTERNAL.equals(resolvedVolumeName)
+                                ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL;
                 final Uri audioUri = ContentUris.withAppendedId(
-                        MediaStore.Audio.Media.getContentUri(resolvedVolumeName), audioId);
+                        MediaStore.Audio.Media.getContentUri(audioVolumeName), audioId);
 
                 // Require that caller has write access to underlying media
                 enforceCallingPermission(playlistUri, Bundle.EMPTY, true);
@@ -5518,7 +5521,9 @@ public class MediaProvider extends ContentProvider {
     private long addPlaylistMembers(@NonNull Uri playlistUri, @NonNull ContentValues values)
             throws FallbackException {
         final long audioId = values.getAsLong(Audio.Playlists.Members.AUDIO_ID);
-        final Uri audioUri = Audio.Media.getContentUri(getVolumeName(playlistUri), audioId);
+        final String audioVolumeName = MediaStore.VOLUME_INTERNAL.equals(getVolumeName(playlistUri))
+                ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL;
+        final Uri audioUri = Audio.Media.getContentUri(audioVolumeName, audioId);
 
         Integer playOrder = values.getAsInteger(Playlists.Members.PLAY_ORDER);
         playOrder = (playOrder != null) ? (playOrder - 1) : Integer.MAX_VALUE;

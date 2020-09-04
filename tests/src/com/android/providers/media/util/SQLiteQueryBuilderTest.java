@@ -741,6 +741,25 @@ public class SQLiteQueryBuilderTest {
     }
 
     @Test
+    public void testStrict_158537159() {
+        final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
+        final HashMap<String, String> map = new HashMap<>();
+        map.put("bucket_id", "bucket_id");
+        builder.setProjectionMap(map);
+        final String sortOrder = "bucket_id COLLATE LOCALIZED ASC";
+        {
+            builder.setTargetSdkVersion(Build.VERSION_CODES.Q);
+            builder.enforceStrictGrammar(null, null, null, sortOrder, null);
+        }
+        try {
+            builder.setTargetSdkVersion(Build.VERSION_CODES.R);
+            builder.enforceStrictGrammar(null, null, null, sortOrder, null);
+            fail("Expected to throw");
+        } catch (IllegalArgumentException expected) {
+        }
+    }
+
+    @Test
     public void testStrictCustomCollator() {
         final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
         final HashMap<String, String> map = new HashMap<>();

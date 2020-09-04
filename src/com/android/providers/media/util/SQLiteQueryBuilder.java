@@ -75,6 +75,7 @@ public class SQLiteQueryBuilder {
                     + "mov|asf|avi|divx|mpg|mpeg|mkv|webm|mk3d|mks|3gp|mpegts|ts|m2ts|m2t)");
     private static final Pattern sPattern156832140 = Pattern.compile(
             "(?i)%com\\.gopro\\.smarty%");
+    private static final Pattern sPattern158537159 = Pattern.compile("(?i)localized");
 
     private static final Pattern sCustomCollatorPattern = Pattern.compile(
             "(?i)custom_[a-zA-Z]+");
@@ -817,6 +818,7 @@ public class SQLiteQueryBuilder {
             // proper SQL string substitution
             if (sPattern154193772.matcher(token).matches()) return;
             if (sPattern156832140.matcher(token).matches()) return;
+            if (sPattern158537159.matcher(token).matches()) return;
         }
 
         throw new IllegalArgumentException("Invalid token " + token);

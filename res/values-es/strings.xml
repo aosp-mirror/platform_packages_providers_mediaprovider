@@ -28,9 +28,9 @@
     <string name="root_audio" msgid="3505830755201326018">"Audio"</string>
     <string name="permission_required" msgid="1460820436132943754">"Se necesitan permisos para modificar o eliminar este elemento."</string>
     <string name="permission_required_action" msgid="706370952366113539">"Continuar"</string>
-    <string name="permission_audio" msgid="344061911159388398">"¿Quieres permitir que "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" modifique o elimine esta pista de audio?"</string>
-    <string name="permission_video" msgid="8188037202573267740">"¿Quieres permitir que "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" modifique o elimine este vídeo?"</string>
-    <string name="permission_images" msgid="6711726334380945124">"¿Quieres permitir que "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" modifique o elimine esta imagen?"</string>
+    <string name="permission_audio" msgid="344061911159388398">"¿Permitir que "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" modifique o elimine esta pista de audio?"</string>
+    <string name="permission_video" msgid="8188037202573267740">"¿Permitir que "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" modifique o elimine este vídeo?"</string>
+    <string name="permission_images" msgid="6711726334380945124">"¿Permitir que "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" modifique o elimine esta imagen?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Permitir"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Denegar"</string>
     <string name="sound_name_awaken" msgid="5266892392848526147">"Awaken"</string>

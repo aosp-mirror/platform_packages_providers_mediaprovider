@@ -46,6 +46,6 @@
     <string name="add_alarm_text" msgid="2440919366091720815">"அலாரத்தைச் சேர்"</string>
     <string name="add_notification_text" msgid="5013822215567515665">"அறிவிப்பைச் சேர்"</string>
     <string name="delete_ringtone_text" msgid="2963662097583300181">"நீக்கு"</string>
-    <string name="unable_to_add_ringtone" msgid="6256097521165711269">"தனிப்பயன் ரிங்டோனைச் சேர்க்க முடியவில்லை"</string>
-    <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"தனிப்பயன் ரிங்டோனை நீக்க முடியவில்லை"</string>
+    <string name="unable_to_add_ringtone" msgid="6256097521165711269">"பிரத்தியேக ரிங்டோனைச் சேர்க்க முடியவில்லை"</string>
+    <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"பிரத்தியேக ரிங்டோனை நீக்க முடியவில்லை"</string>
 </resources>

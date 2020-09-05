@@ -22,7 +22,7 @@
     <string name="artist_label" msgid="8105600993099120273">"ಕಲಾವಿದರು"</string>
     <string name="ringtone_default" msgid="1744846699922263043">"ಡಿಫಾಲ್ಟ್ ರಿಂಗ್‌ಟೋನ್"</string>
     <string name="notification_sound_default" msgid="6541609166469990135">"ಡಿಫಾಲ್ಟ್ ಅಧಿಸೂಚನೆ ಧ್ವನಿ"</string>
-    <string name="alarm_sound_default" msgid="5488847775252870314">"ಡಿಫಾಲ್ಟ್ ಅಲಾರಮ್ ಧ್ವನಿ"</string>
+    <string name="alarm_sound_default" msgid="5488847775252870314">"ಡೀಫಾಲ್ಟ್ ಅಲಾರಾಂ ಧ್ವನಿ"</string>
     <string name="root_images" msgid="5861633549189045666">"ಚಿತ್ರಗಳು"</string>
     <string name="root_videos" msgid="8792703517064649453">"ವೀಡಿಯೊಗಳು"</string>
     <string name="root_audio" msgid="3505830755201326018">"ಆಡಿಯೊ"</string>

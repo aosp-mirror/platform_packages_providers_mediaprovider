@@ -28,9 +28,12 @@
     <string name="root_audio" msgid="3505830755201326018">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‏‎‎‎‎‏‎‏‎‎‏‏‏‎‎‏‏‎‏‏‎‎‏‏‏‏‏‏‏‎‏‎‎‎‏‏‎‎‏‏‎‏‎‏‎‎‎‎‏‏‎‏‏‏‏‎‎‎‎‏‎‎Audio‎‏‎‎‏‎"</string>
     <string name="permission_required" msgid="1460820436132943754">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‏‏‎‏‎‎‎‏‎‎‎‏‎‏‏‏‏‎‎‎‎‎‎‏‏‏‎‎‏‎‎‏‏‎‏‎‎‎‎‏‎‏‎‏‎‏‏‏‎‏‎‏‏‏‏‎‎‎‏‎‏‎‎Permission required to modify or delete this item.‎‏‎‎‏‎"</string>
     <string name="permission_required_action" msgid="706370952366113539">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‎‏‎‎‏‏‏‎‎‏‏‎‏‏‎‎‎‏‎‎‎‏‎‏‎‎‎‏‏‎‏‏‏‏‏‏‏‎‏‏‎‏‏‏‏‏‏‎‎‎‎‏‏‎‎‎‎‎‎‏‏‎Continue‎‏‎‎‏‎"</string>
-    <string name="permission_audio" msgid="344061911159388398">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‎‏‏‏‎‎‏‏‎‎‎‏‏‎‎‏‎‏‏‎‏‎‎‏‏‏‏‏‎‎‎‎‏‏‏‎‏‏‎‏‏‎‎‏‎‏‏‎‏‏‏‎‎‎‏‏‏‎‏‏‏‎‎Allow ‎‏‎‎‏‏‎"<b>"‎‏‎‎‏‏‏‎‎‏‎‎‏‏‎<xliff:g id="APP_NAME">^1</xliff:g>‎‏‎‎‏‏‏‎‎‏‎‎‏‏‎"</b>"‎‏‎‎‏‏‏‎ to modify or delete this music?‎‏‎‎‏‎"</string>
-    <string name="permission_video" msgid="8188037202573267740">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‏‎‎‎‏‏‎‏‎‎‎‎‏‏‏‎‎‎‎‎‎‎‏‏‏‎‏‎‎‎‎‏‎‎‎‏‏‎‎‎‏‎‎‎‎‎‎‎‏‎‎‏‏‎‎‎‏‏‏‎‎‎Allow ‎‏‎‎‏‏‎"<b>"‎‏‎‎‏‏‏‎‎‏‎‎‏‏‎<xliff:g id="APP_NAME">^1</xliff:g>‎‏‎‎‏‏‏‎‎‏‎‎‏‏‎"</b>"‎‏‎‎‏‏‏‎ to modify or delete this video?‎‏‎‎‏‎"</string>
-    <string name="permission_images" msgid="6711726334380945124">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‏‏‏‎‏‎‎‏‎‎‏‎‎‏‏‎‏‎‏‏‏‏‎‎‎‏‎‏‎‎‏‏‏‎‏‏‎‎‏‏‎‏‎‎‏‎‎‏‎‏‏‏‎‏‏‏‎‎‏‎‎‎Allow ‎‏‎‎‏‏‎"<b>"‎‏‎‎‏‏‏‎‎‏‎‎‏‏‎<xliff:g id="APP_NAME">^1</xliff:g>‎‏‎‎‏‏‏‎‎‏‎‎‏‏‎"</b>"‎‏‎‎‏‏‏‎ to modify or delete this image?‎‏‎‎‏‎"</string>
+    <!-- no translation found for permission_audio (344061911159388398) -->
+    <skip />
+    <!-- no translation found for permission_video (8188037202573267740) -->
+    <skip />
+    <!-- no translation found for permission_images (6711726334380945124) -->
+    <skip />
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‏‏‎‏‏‎‏‏‎‏‎‎‎‏‏‎‏‎‏‏‏‎‎‏‎‏‎‏‏‎‎‏‎‎‎‏‎‎‎‎‏‎‏‎‏‏‎‎‎‎‏‎‎‏‏‏‏‏‏‏‏‏‎Allow‎‏‎‎‏‎"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‏‎‏‎‏‏‏‏‎‏‎‎‏‎‏‏‎‎‏‎‎‎‏‎‏‎‎‏‏‎‎‏‏‏‎‏‎‎‎‎‎‎‎‏‏‎‏‎‎‏‏‏‎‎‎‏‏‏‏‎‏‎Deny‎‏‎‎‏‎"</string>
     <string name="sound_name_awaken" msgid="5266892392848526147">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‎‏‎‎‏‎‎‎‏‎‏‏‏‏‏‎‎‎‎‏‎‏‎‏‏‏‎‎‏‏‏‏‎‎‎‎‏‏‏‏‏‎‎‎‏‏‎‎‎‏‎‏‏‎‏‎‎‎‎‏‏‎Awaken‎‏‎‎‏‎"</string>
@@ -43,8 +46,10 @@
     <string name="sound_name_sway" msgid="348448316663085643">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‎‏‏‏‎‎‏‏‎‏‎‏‎‏‏‏‏‎‏‏‏‏‏‏‏‎‎‏‎‏‏‏‎‏‏‎‎‏‎‏‎‎‏‎‎‏‎‎‏‏‏‎‏‎‎‏‎‎‏‎‏‏‎Sway‎‏‎‎‏‎"</string>
     <string name="sound_name_wag" msgid="2730733083078126563">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‎‎‏‎‏‏‏‏‎‎‏‎‏‏‎‎‎‎‎‏‏‎‏‎‎‎‏‎‏‎‏‏‎‎‎‎‏‎‏‎‎‎‏‏‏‎‏‏‎‏‎‏‏‏‏‏‎‎‎‏‏‎Wag‎‏‎‎‏‎"</string>
     <string name="add_ringtone_text" msgid="8077717303037760418">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‏‏‎‎‎‎‎‎‎‏‏‎‎‏‏‏‎‏‎‎‎‏‎‎‎‏‎‏‏‎‏‏‏‎‏‎‏‏‏‎‎‏‎‏‏‏‏‎‎‏‎‎‏‏‏‎‏‎‎‎‏‎‎Add ringtone‎‏‎‎‏‎"</string>
-    <string name="add_alarm_text" msgid="2440919366091720815">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‎‎‎‎‏‏‏‎‏‏‏‏‏‏‏‏‎‎‎‏‏‎‎‏‏‏‎‏‏‎‎‎‏‏‏‎‏‎‏‎‎‎‏‎‎‏‏‎‎‏‎‎‎‎‏‏‎‏‏‏‏‎Add alarm‎‏‎‎‏‎"</string>
-    <string name="add_notification_text" msgid="5013822215567515665">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‎‎‏‎‏‏‎‎‏‎‏‎‎‏‎‏‎‏‏‎‎‏‎‏‏‏‏‎‏‏‎‎‏‏‏‎‏‏‏‎‏‏‏‎‏‎‎‏‎‎‎‎‎‎‎‎‏‎‎‎‏‎Add notification‎‏‎‎‏‎"</string>
+    <!-- no translation found for add_alarm_text (2440919366091720815) -->
+    <skip />
+    <!-- no translation found for add_notification_text (5013822215567515665) -->
+    <skip />
     <string name="delete_ringtone_text" msgid="2963662097583300181">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‏‎‏‎‎‏‎‎‏‎‎‎‎‏‎‎‎‎‏‎‏‎‏‏‏‏‏‎‎‏‏‏‎‎‎‎‎‎‏‎‏‏‏‏‎‏‏‏‎‏‏‏‏‎‎‏‎‏‎‏‎‏‎Delete‎‏‎‎‏‎"</string>
     <string name="unable_to_add_ringtone" msgid="6256097521165711269">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‏‏‎‏‎‏‏‎‏‏‎‏‎‎‏‎‎‎‎‏‏‏‏‏‏‎‎‎‏‏‎‎‏‎‎‏‏‏‎‏‎‏‎‎‏‎‎‎‏‎‏‏‎‏‏‏‏‎‏‎‎‏‎‏‎Unable to add custom ringtone‎‏‎‎‏‎"</string>
     <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"‎‏‎‎‎‎‎‏‎‏‏‏‎‎‎‎‎‎‏‎‎‏‎‎‎‎‏‏‏‏‏‎‏‏‏‏‏‏‎‏‎‏‎‏‏‎‏‎‏‎‏‎‏‎‏‏‎‏‎‎‎‎‎‎‎‏‎‏‎‏‎‎‏‏‏‏‏‏‎‎‎‎‎‏‎‎‏‏‏‏‎‏‏‏‎Unable to delete custom ringtone‎‏‎‎‏‎"</string>

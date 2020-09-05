@@ -26,10 +26,8 @@
     <string name="root_images" msgid="5861633549189045666">"სურათები"</string>
     <string name="root_videos" msgid="8792703517064649453">"ვიდეოები"</string>
     <string name="root_audio" msgid="3505830755201326018">"აუდიო"</string>
-    <!-- no translation found for permission_required (1460820436132943754) -->
-    <skip />
-    <!-- no translation found for permission_required_action (706370952366113539) -->
-    <skip />
+    <string name="permission_required" msgid="1460820436132943754">"ამ ერთეულის შესაცვლელად ან წასაშლელად საჭიროა ნებართვა."</string>
+    <string name="permission_required_action" msgid="706370952366113539">"გაგრძელება"</string>
     <string name="permission_audio" msgid="344061911159388398">"გსურთ "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"-ისთვის ამ მუსიკის შეცვლის ან წაშლის დაშვება?"</string>
     <string name="permission_video" msgid="8188037202573267740">"გსურთ "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"-ისთვის ამ ვიდეოს შეცვლის ან წაშლის დაშვება?"</string>
     <string name="permission_images" msgid="6711726334380945124">"გსურთ "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"-ისთვის ამ სურათის შეცვლის ან წაშლის დაშვება?"</string>

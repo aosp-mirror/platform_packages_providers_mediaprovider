@@ -24,6 +24,7 @@ import static android.app.PendingIntent.FLAG_ONE_SHOT;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+import static android.provider.MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT;
 import static android.provider.MediaStore.MATCH_DEFAULT;
 import static android.provider.MediaStore.MATCH_EXCLUDE;
 import static android.provider.MediaStore.MATCH_INCLUDE;
@@ -6574,9 +6575,7 @@ public class MediaProvider extends ContentProvider {
             final ParcelFileDescriptor pfd;
             final String filePath = file.getPath();
             final int uid = Binder.getCallingUid();
-            // TODO(b/158465539): Use API constant
-            final boolean shouldTranscode =
-                    !opts.containsKey("android.provider.extra.ACCEPT_ORIGINAL_MEDIA_FORMAT")
+            final boolean shouldTranscode = !opts.containsKey(EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT)
                     && mTranscodeHelper.shouldTranscode(filePath, uid);
             if (redactionInfo.redactionRanges.length > 0) {
                 // If fuse is enabled, we can provide an fd that points to the fuse

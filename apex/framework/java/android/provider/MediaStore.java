@@ -585,6 +585,26 @@ public final class MediaStore {
      */
     public final static String EXTRA_OUTPUT = "output";
 
+    // TODO(b/158465539): Add API to explicitly specify media capabilities via Bundle
+    /**
+     * Specify that the caller wants to receive the original media format without transcoding.
+     *
+     * This is a very dangerous flag to use because apps can suddenly fail to play media after
+     * an OS upgrade. Clients should instead specify their supported media capabilities explicitly
+     * in their manifest.
+     *
+     * This is useful for apps that usually receive transcoded media, but want to have more granular
+     * control.
+     *
+     * <p>This option can be added to the {@code opts} {@link Bundle} in various
+     * {@link ContentResolver} {@code open} methods.
+     *
+     * @see ContentResolver#openTypedAssetFileDescriptor(Uri, String, Bundle)
+     * @see ContentResolver#openTypedAssetFile(Uri, String, Bundle, CancellationSignal)
+     */
+    public final static String EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT =
+            "android.provider.extra.ACCEPT_ORIGINAL_MEDIA_FORMAT";
+
     /**
       * The string that is used when a media attribute is not known. For example,
       * if an audio file does not have any meta data, the artist and album columns

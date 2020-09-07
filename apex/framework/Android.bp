@@ -32,9 +32,7 @@ java_sdk_library {
     ],
 
     hostdex: true, // for hiddenapi check
-    visibility: ["//visibility:public"],
     impl_library_visibility: [
-        "//visibility:override",
         "//packages/providers/MediaProvider:__subpackages__",
     ],
     apex_available: [

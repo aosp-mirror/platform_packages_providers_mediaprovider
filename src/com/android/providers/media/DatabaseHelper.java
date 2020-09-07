@@ -131,6 +131,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * database connections, which then deadlocks.
      */
     private final ReentrantReadWriteLock mSchemaLock = new ReentrantReadWriteLock();
+    private ArraySet<String> mPlaylistFiles;
 
     public interface OnSchemaChangeListener {
         public void onSchemaChange(@NonNull String volumeName, int versionFrom, int versionTo,
@@ -186,6 +187,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         mFilesListener = filesListener;
         mMigrationListener = migrationListener;
         mIdGenerator = idGenerator;
+        mPlaylistFiles =  new ArraySet<>();
 
         // Configure default filters until we hear differently
         if (mInternal) {
@@ -854,9 +856,43 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         DatabaseUtils.copyFromCursorToContentValues(column, c, values);
                     }
 
+                    final String volumePath = FileUtils.extractVolumePath(data);
+
+                    // Next migrate playlists, which need special handling if there are no "real"
+                    // playlist files.
+                    final int mediaType = c.getInt(c.getColumnIndex(FileColumns.MEDIA_TYPE));
+                    if (!mInternal && volumePath != null &&
+                            mediaType == FileColumns.MEDIA_TYPE_PLAYLIST){
+                        File playListFile = new File(data);
+                        if (!playListFile.exists()) {
+                            String mimeType = c.getString(c.getColumnIndex(MediaColumns.MIME_TYPE));
+                            // Sometimes, playlists in Q may have mimeType as
+                            // "application/octet-stream". Ensure that playlist rows have the right
+                            // playlist mimeType. These rows will be committed to a file and hence
+                            // they should have correct playlist mimeType for Playlist#write to
+                            // identify the right child playlist class.
+                            if (MimeUtils.resolveMediaType(mimeType) !=
+                                    FileColumns.MEDIA_TYPE_PLAYLIST) {
+                                // Playlist files should always have right mimeType, default to
+                                // audio/mpegurl when mimeType doesn't match playlist media_type.
+                                mimeType = "audio/mpegurl";
+                            }
+                            // Build playlist file path with a file extension that matches
+                            // playlist mimeType.
+                            final String playlistName = c.getString(c.getColumnIndex(
+                                    MediaStore.Audio.PlaylistsColumns.NAME));
+                            try {
+                                playListFile = buildUniquePlaylistFile(playListFile.getParentFile(),
+                                        mimeType, playlistName);
+                            } catch (IllegalStateException ignored) {}
+                            values.put(MediaColumns.DATA, playListFile.getAbsolutePath());
+                            // Recompute values based on updated playlist path.
+                            FileUtils.computeValuesFromData(values, /*isForFuse*/ false);
+                        }
+                    }
+
                     // When migrating pending or trashed files, we might need to
                     // rename them on disk to match new schema
-                    final String volumePath = FileUtils.extractVolumePath(data);
                     if (volumePath != null) {
                         FileUtils.computeDataFromValues(values, new File(volumePath),
                                 /*isForFuse*/ false);
@@ -894,11 +930,49 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     }
                 }
 
-                Log.d(TAG, "Finished migration from legacy provider");
+                Log.d(TAG, "Finished migration of files table from legacy provider");
             } catch (Exception e) {
                 // We have to guard ourselves against any weird behavior of the
                 // legacy provider by trying to catch everything
                 Log.wtf(TAG, "Failed migration from legacy provider", e);
+            }
+
+            if (!mInternal) {
+                // Migrating music->playlist association.
+                final Uri playlistUri = MediaStore.rewriteToLegacy(MediaStore.AUTHORITY_URI
+                        .buildUpon()
+                        .appendPath(MediaStore.VOLUME_EXTERNAL)
+                        .appendPath("legacy_audio_playlists_map").build());
+                try (Cursor c = client.query(playlistUri,
+                        sPlaylistMapColumns.toArray(new String[0]), Bundle.EMPTY, null)) {
+                    final ContentValues values = new ContentValues();
+                    while (c.moveToNext()) {
+                        values.clear();
+                        for (String column : sPlaylistMapColumns) {
+                            DatabaseUtils.copyFromCursorToContentValues(column, c, values);
+                        }
+
+                        if (db.insert("audio_playlists_map", null, values) == -1) {
+                            Log.w(TAG, "Failed to insert " + values + " into audio_playlists_map.");
+                        }
+
+                        // To avoid SQLITE_NOMEM errors, we need to periodically
+                        // flush the current transaction and start another one
+                        if ((c.getPosition() % 2_000) == 0) {
+                            db.setTransactionSuccessful();
+                            db.endTransaction();
+                            db.beginTransaction();
+                            // Don't call back to the migration listener for playlist migration
+                            // progress as it may not be expecting the progress to move backwards
+                            // or the totals to change). Instead, pretend as though there's no
+                            // progress.
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.wtf(TAG, "Failed migration of playlist map from legacy provider", e);
+                }
+
+                Log.d(TAG, "Finished migration of playlist map from legacy provider");
             }
 
             // We tried our best above to migrate everything we could, and we
@@ -907,6 +981,39 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             db.endTransaction();
             mMigrationListener.onFinished(client, mVolumeName);
         }
+    }
+
+    private File buildUniquePlaylistFile(File parentFile, String mimeType, String name) {
+        // If the directory is Playlists/ change the directory to Music/ since defaultPrimary for
+        // playlists is Music/. This helps resolve any future app-compat issues around renaming
+        // playlist files.
+        if (parentFile.getName().equalsIgnoreCase("Playlists")) {
+            parentFile = new File(parentFile.getParentFile(), Environment.DIRECTORY_MUSIC);
+        }
+        File file = FileUtils.buildNonUniqueFile(parentFile, mimeType, name);
+        int count = 0;
+        while (count < 100) {
+            if (!file.exists() && !mPlaylistFiles.contains(file.getAbsolutePath())) {
+                mPlaylistFiles.add(file.getAbsolutePath());
+                return file;
+            }
+            count ++;
+            file = FileUtils.buildNonUniqueFile(parentFile, mimeType, name + " (" + count + ")");
+        }
+        throw new IllegalStateException("Can't create unique files, reached unique file limit for "
+                + file.getAbsolutePath());
+    }
+
+    /**
+     * Set of columns from audio_playlists_map table that should be migrated from the
+     * legacy provider.
+     */
+    private static final ArraySet<String> sPlaylistMapColumns = new ArraySet<>();
+    {
+            sPlaylistMapColumns.add(Audio.Playlists.Members._ID);
+            sPlaylistMapColumns.add(Audio.Playlists.Members.AUDIO_ID);
+            sPlaylistMapColumns.add(Audio.Playlists.Members.PLAYLIST_ID);
+            sPlaylistMapColumns.add(Audio.Playlists.Members.PLAY_ORDER);
     }
 
     /**
@@ -923,6 +1030,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         sMigrateColumns.add(MediaStore.MediaColumns.DATA);
         sMigrateColumns.add(MediaStore.MediaColumns.VOLUME_NAME);
         sMigrateColumns.add(MediaStore.Files.FileColumns.MEDIA_TYPE);
+
+        sMigrateColumns.add(MediaStore.MediaColumns.MIME_TYPE);
+        sMigrateColumns.add(MediaStore.MediaColumns.TITLE);
+        sMigrateColumns.add(MediaStore.Audio.PlaylistsColumns.NAME);
 
         sMigrateColumns.add(MediaStore.MediaColumns.DATE_ADDED);
         sMigrateColumns.add(MediaStore.MediaColumns.DATE_EXPIRES);

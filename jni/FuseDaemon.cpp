@@ -543,10 +543,15 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
 
     std::smatch match;
     std::regex_search(child_path, match, storage_emulated_regex);
+
+    // Ensure the FuseDaemon user id matches the user id or cross-user lookups are allowed in
+    // requested path
     if (match.size() == 2 && std::to_string(getuid() / PER_USER_RANGE) != match[1].str()) {
-        // Ensure the FuseDaemon user id matches the user id in requested path
-        *error_code = EACCES;
-        return nullptr;
+        // If user id mismatch, check cross-user lookups
+        if (!fuse->mp->ShouldAllowLookup(req->ctx.uid, std::stoi(match[1].str()))) {
+            *error_code = EACCES;
+            return nullptr;
+        }
     }
     return make_node_entry(req, parent_node, name, child_path, e, error_code);
 }

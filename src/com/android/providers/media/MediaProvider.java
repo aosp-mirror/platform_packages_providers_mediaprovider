@@ -34,6 +34,9 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.getVolumeName;
 
+import static android.content.pm.PackageManager.MATCH_ANY_USER;
+import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_AWARE;
+import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_UNAWARE;
 import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_DELEGATOR;
@@ -63,6 +66,7 @@ import static com.android.providers.media.util.FileUtils.extractRelativePath;
 import static com.android.providers.media.util.FileUtils.extractRelativePathForDirectory;
 import static com.android.providers.media.util.FileUtils.extractTopLevelDir;
 import static com.android.providers.media.util.FileUtils.extractVolumeName;
+import static com.android.providers.media.util.FileUtils.extractVolumePath;
 import static com.android.providers.media.util.FileUtils.getAbsoluteSanitizedPath;
 import static com.android.providers.media.util.FileUtils.isDataOrObbPath;
 import static com.android.providers.media.util.FileUtils.isDownload;
@@ -77,6 +81,7 @@ import android.app.DownloadManager;
 import android.app.PendingIntent;
 import android.app.RecoverableSecurityException;
 import android.app.RemoteAction;
+import android.app.admin.DevicePolicyManager;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipDescription;
@@ -198,6 +203,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -286,6 +293,11 @@ public class MediaProvider extends ContentProvider {
      */
     private static final String MATCH_PENDING_FROM_FUSE = String.format("lower(%s) NOT REGEXP '%s'",
             MediaColumns.DATA, PATTERN_PENDING_FILEPATH_FOR_SQL);
+
+    // Stolen from: UserHandle#getUserId
+    private static final int PER_USER_RANGE = 100000;
+    private static final boolean PROP_CROSS_USER_ALLOWED =
+            SystemProperties.getBoolean("external_storage.cross_user.enabled", false);
 
     /**
      * Set of {@link Cursor} columns that refer to raw filesystem paths.
@@ -414,6 +426,8 @@ public class MediaProvider extends ContentProvider {
     private StorageManager mStorageManager;
     private AppOpsManager mAppOpsManager;
     private PackageManager mPackageManager;
+    private DevicePolicyManager mDevicePolicyManager;
+
     private int mExternalStorageAuthorityAppId;
     private int mDownloadsAuthorityAppId;
 
@@ -451,6 +465,9 @@ public class MediaProvider extends ContentProvider {
 
     private OnOpChangedListener mModeListener =
             (op, packageName) -> invalidateLocalCallingIdentityCache(packageName, "op " + op);
+
+    @GuardedBy("mNonWorkProfileUsers")
+    private final List<Integer> mNonWorkProfileUsers = new ArrayList<>();
 
     /**
      * Retrieves a cached calling identity or creates a new one. Also, always sets the app-op
@@ -756,6 +773,10 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    private static boolean isCrossUserEnabled() {
+        return PROP_CROSS_USER_ALLOWED && Build.VERSION.SDK_INT <= Build.VERSION_CODES.R;
+    }
+
     /**
      * Ensure that default folders are created on mounted primary storage
      * devices. We only do this once per volume so we don't annoy the user if
@@ -857,6 +878,7 @@ public class MediaProvider extends ContentProvider {
         mStorageManager = context.getSystemService(StorageManager.class);
         mAppOpsManager = context.getSystemService(AppOpsManager.class);
         mPackageManager = context.getPackageManager();
+        mDevicePolicyManager = context.getSystemService(DevicePolicyManager.class);
 
         // Reasonable thumbnail size is half of the smallest screen edge width
         final DisplayMetrics metrics = context.getResources().getDisplayMetrics();
@@ -1150,6 +1172,81 @@ public class MediaProvider extends ContentProvider {
             int mediaType = MimeUtils.resolveMediaType(MimeUtils.resolveMimeType(file));
             updateQuotaTypeForFileInternal(file, mediaType);
         });
+    }
+
+    /**
+     * Determines if to allow FUSE_LOOKUP for uid. Might allow uids that don't belong to the
+     * MediaProvider user, depending on OEM configuration.
+     *
+     * @param uid linux uid to check
+     *
+     * Called from JNI in jni/MediaProviderWrapper.cpp
+     */
+    @Keep
+    public boolean shouldAllowLookupForFuse(int uid, int pathUserId) {
+        int callingUserId = uid / PER_USER_RANGE;
+        if (!isCrossUserEnabled()) {
+            Log.d(TAG, "CrossUser not enabled. Users: " + callingUserId + " and " + pathUserId);
+            return false;
+        }
+
+        if (callingUserId != 0 && pathUserId != 0) {
+            Log.w(TAG, "CrossUser at least one user is 0 check failed. Users: " + callingUserId
+                    + " and " + pathUserId);
+            return false;
+        }
+
+        if (!isWorkProfile(callingUserId) || !isWorkProfile(pathUserId)) {
+            // Cross-user lookup not allowed if one user in the pair has a profile owner app
+            Log.w(TAG, "CrossUser work profile check failed. Users: " + callingUserId + " and "
+                    + pathUserId);
+            return false;
+        }
+
+        try {
+            Method isAppCloneUserPair = StorageManager.class.getMethod("isAppCloneUserPair",
+                    int.class, int.class);
+            boolean result = (Boolean) isAppCloneUserPair.invoke(mStorageManager, pathUserId,
+                    callingUserId);
+
+            if (result) {
+                Log.i(TAG, "CrossUser allowed. Users: " + callingUserId + " and " + pathUserId);
+            } else {
+                Log.w(TAG, "CrossUser isAppCloneUserPair check failed. Users: " + callingUserId
+                        + " and " + pathUserId);
+            }
+            return result;
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            Log.w(TAG, "isAppCloneUserPair failed. Users: " + callingUserId + " and " + pathUserId);
+            return false;
+        }
+    }
+
+    private boolean isWorkProfile(int userId) {
+        synchronized (mNonWorkProfileUsers) {
+            if (mNonWorkProfileUsers.contains(userId)) {
+                return false;
+            }
+            if (userId == 0) {
+                mNonWorkProfileUsers.add(userId);
+                // user 0 cannot have a profile owner
+                return false;
+            }
+        }
+
+        List<Integer> uids = new ArrayList<>();
+        for (ApplicationInfo ai : mPackageManager.getInstalledApplications(MATCH_DIRECT_BOOT_AWARE
+                        | MATCH_DIRECT_BOOT_UNAWARE | MATCH_ANY_USER)) {
+            if (((ai.uid / PER_USER_RANGE) == userId)
+                    && mDevicePolicyManager.isProfileOwnerApp(ai.packageName)) {
+                return true;
+            }
+        }
+
+        synchronized (mNonWorkProfileUsers) {
+            mNonWorkProfileUsers.add(userId);
+            return false;
+        }
     }
 
     /**
@@ -5316,7 +5413,22 @@ public class MediaProvider extends ContentProvider {
                 initialValues.remove(MediaColumns.DATA);
                 ensureUniqueFileColumns(match, uri, extras, initialValues, beforePath);
 
-                final String afterPath = initialValues.getAsString(MediaColumns.DATA);
+                String afterPath = initialValues.getAsString(MediaColumns.DATA);
+
+                if (isCrossUserEnabled()) {
+                    String afterVolume = extractVolumeName(afterPath);
+                    String afterVolumePath =  extractVolumePath(afterPath);
+                    String beforeVolumePath = extractVolumePath(beforePath);
+
+                    if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equals(beforeVolume)
+                            && beforeVolume.equals(afterVolume)
+                            && !beforeVolumePath.equals(afterVolumePath)) {
+                        // On cross-user enabled devices, it can happen that a rename intended as
+                        // /storage/emulated/999/foo -> /storage/emulated/999/foo can end up as
+                        // /storage/emulated/999/foo -> /storage/emulated/0/foo. We now fix-up
+                        afterPath = afterPath.replaceFirst(afterVolumePath, beforeVolumePath);
+                    }
+                }
 
                 Log.d(TAG, "Moving " + beforePath + " to " + afterPath);
                 try {

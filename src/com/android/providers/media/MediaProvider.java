@@ -558,8 +558,9 @@ public class MediaProvider extends ContentProvider {
             }
 
             updateQuotaTypeForFileInternal(file, mediaType);
-        } catch (FileNotFoundException e) {
+        } catch (FileNotFoundException | IllegalArgumentException e) {
             // Ignore
+            Log.w(TAG, "Failed to update quota for uri: " + uri, e);
             return;
         } finally {
             Trace.endSection();

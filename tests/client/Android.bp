@@ -1,0 +1,29 @@
+android_test {
+    name: "MediaProviderClientTests",
+    test_suites: [
+        "device-tests",
+        "mts",
+    ],
+    compile_multilib: "both",
+
+    manifest: "AndroidManifest.xml",
+
+    srcs: [
+        "src/**/*.java",
+    ],
+
+    libs: [
+        "android.test.base",
+        "android.test.mock",
+        "android.test.runner",
+    ],
+
+    static_libs: [
+        "androidx.test.rules",
+        "collector-device-lib-platform",
+        "mockito-target",
+        "truth-prebuilt",
+    ],
+
+    certificate: "media",
+}

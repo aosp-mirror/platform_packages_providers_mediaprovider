@@ -16,17 +16,15 @@
 
 package com.android.providers.media.util;
 
-import android.annotation.NonNull;
-import android.annotation.Nullable;
 import android.media.ExifInterface;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
 import android.util.Log;
-import android.util.LongArray;
 
-import libcore.io.IoBridge;
-import libcore.io.Memory;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import java.io.EOFException;
 import java.io.File;
@@ -34,9 +32,10 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteOrder;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.UUID;
@@ -50,6 +49,7 @@ public class IsoInterface {
     private static final boolean LOGV = Log.isLoggable(TAG, Log.VERBOSE);
 
     public static final int BOX_FTYP = 0x66747970;
+    public static final int BOX_HDLR = 0x68646c72;
     public static final int BOX_UUID = 0x75756964;
     public static final int BOX_META = 0x6d657461;
     public static final int BOX_XMP = 0x584d505f;
@@ -100,6 +100,7 @@ public class IsoInterface {
         public UUID uuid;
         public byte[] data;
         public List<Box> children;
+        public int headerSize;
 
         public Box(int type, long[] range) {
             this.type = type;
@@ -107,7 +108,8 @@ public class IsoInterface {
         }
     }
 
-    private static String typeToString(int type) {
+    @VisibleForTesting
+    public static String typeToString(int type) {
         final byte[] buf = new byte[4];
         Memory.pokeInt(buf, 0, type, ByteOrder.BIG_ENDIAN);
         return new String(buf);
@@ -125,52 +127,83 @@ public class IsoInterface {
 
     private static @NonNull UUID readUuid(@NonNull FileDescriptor fd)
             throws ErrnoException, IOException {
-        final long high = (((long) readInt(fd)) << 32L) | ((long) readInt(fd)) & 0xffffffffL;
-        final long low = (((long) readInt(fd)) << 32L) | ((long) readInt(fd)) & 0xffffffffL;
+        final long high = (((long) readInt(fd)) << 32L) | (((long) readInt(fd)) & 0xffffffffL);
+        final long low = (((long) readInt(fd)) << 32L) | (((long) readInt(fd)) & 0xffffffffL);
         return new UUID(high, low);
     }
 
     private static @Nullable Box parseNextBox(@NonNull FileDescriptor fd, long end,
             @NonNull String prefix) throws ErrnoException, IOException {
         final long pos = Os.lseek(fd, 0, OsConstants.SEEK_CUR);
-        if (pos == end) {
+
+        int headerSize = 8;
+        if (end - pos < headerSize) {
             return null;
         }
 
-        final long len = Integer.toUnsignedLong(readInt(fd));
-        if (len <= 0 || pos + len > end) {
-            Log.w(TAG, "Invalid box at " + pos + " of length " + len
-                    + " reached beyond end of parent " + end);
-            return null;
-        }
-
-        // Skip past legacy data on 'meta' box
+        long len = Integer.toUnsignedLong(readInt(fd));
         final int type = readInt(fd);
-        if (type == BOX_META) {
-            readInt(fd);
+
+        if (len == 0) {
+            // Length 0 means the box extends to the end of the file.
+            len = end - pos;
+        } else if (len == 1) {
+            // Actually 64-bit box length.
+            headerSize += 8;
+            long high = readInt(fd);
+            long low = readInt(fd);
+            len = (high << 32L) | (low & 0xffffffffL);
+        }
+
+        if (len < headerSize || pos + len > end) {
+            Log.w(TAG, "Invalid box at " + pos + " of length " + len
+                    + ". End of parent " + end);
+            return null;
         }
 
         final Box box = new Box(type, new long[] { pos, len });
-        if (LOGV) {
-            Log.v(TAG, prefix + "Found box " + typeToString(type)
-                    + " at " + pos + " length " + len);
-        }
+        box.headerSize = headerSize;
 
         // Parse UUID box
         if (type == BOX_UUID) {
+            box.headerSize += 16;
             box.uuid = readUuid(fd);
             if (LOGV) {
                 Log.v(TAG, prefix + "  UUID " + box.uuid);
             }
 
-            box.data = new byte[(int) (len - 8 - 16)];
-            IoBridge.read(fd, box.data, 0, box.data.length);
+            if (len > Integer.MAX_VALUE) {
+                Log.w(TAG, "Skipping abnormally large uuid box");
+                return null;
+            }
+
+            box.data = new byte[(int) (len - box.headerSize)];
+            Os.read(fd, box.data, 0, box.data.length);
+        } else if (type == BOX_XMP) {
+            if (len > Integer.MAX_VALUE) {
+                Log.w(TAG, "Skipping abnormally large xmp box");
+                return null;
+            }
+            box.data = new byte[(int) (len - box.headerSize)];
+            Os.read(fd, box.data, 0, box.data.length);
+        } else if (type == BOX_META && len != headerSize) {
+            // The format of this differs in ISO and QT encoding:
+            // (iso) [1 byte version + 3 bytes flags][4 byte size of next atom]
+            // (qt)  [4 byte size of next atom      ][4 byte hdlr atom type   ]
+            // In case of (iso) we need to skip the next 4 bytes before parsing
+            // the children.
+            readInt(fd);
+            int maybeBoxType = readInt(fd);
+            if (maybeBoxType != BOX_HDLR) {
+                // ISO, skip 4 bytes.
+                box.headerSize += 4;
+            }
+            Os.lseek(fd, pos + box.headerSize, OsConstants.SEEK_SET);
         }
 
-        // Parse XMP box
-        if (type == BOX_XMP) {
-            box.data = new byte[(int) (len - 8)];
-            IoBridge.read(fd, box.data, 0, box.data.length);
+        if (LOGV) {
+            Log.v(TAG, prefix + "Found box " + typeToString(type)
+                    + " at " + pos + " hdr " + box.headerSize + " length " + len);
         }
 
         // Recursively parse any children boxes
@@ -191,7 +224,14 @@ public class IsoInterface {
     private IsoInterface(@NonNull FileDescriptor fd) throws IOException {
         try {
             Os.lseek(fd, 4, OsConstants.SEEK_SET);
-            if (readInt(fd) != BOX_FTYP) {
+            boolean hasFtypHeader;
+            try {
+                hasFtypHeader = readInt(fd) == BOX_FTYP;
+            } catch (EOFException e) {
+                hasFtypHeader = false;
+            }
+
+            if (!hasFtypHeader) {
                 if (LOGV) {
                     Log.w(TAG, "Missing 'ftyp' header");
                 }
@@ -209,7 +249,7 @@ public class IsoInterface {
         }
 
         // Also create a flattened structure to speed up searching
-        final Queue<Box> queue = new LinkedList<>(mRoots);
+        final Queue<Box> queue = new ArrayDeque<>(mRoots);
         while (!queue.isEmpty()) {
             final Box box = queue.poll();
             mFlattened.add(box);
@@ -241,7 +281,7 @@ public class IsoInterface {
         LongArray res = new LongArray();
         for (Box box : mFlattened) {
             if (box.type == type) {
-                res.add(box.range[0] + 8);
+                res.add(box.range[0] + box.headerSize);
                 res.add(box.range[0] + box.range[1]);
             }
         }
@@ -252,7 +292,7 @@ public class IsoInterface {
         LongArray res = new LongArray();
         for (Box box : mFlattened) {
             if (box.type == BOX_UUID && Objects.equals(box.uuid, uuid)) {
-                res.add(box.range[0] + 8 + 16);
+                res.add(box.range[0] + box.headerSize);
                 res.add(box.range[0] + box.range[1]);
             }
         }
@@ -281,5 +321,36 @@ public class IsoInterface {
             }
         }
         return null;
+    }
+
+    /**
+     * Returns whether IsoInterface currently supports parsing data from the specified mime type
+     * or not.
+     *
+     * @param mimeType the string value of mime type
+     */
+    public static boolean isSupportedMimeType(@NonNull String mimeType) {
+        if (mimeType == null) {
+            throw new NullPointerException("mimeType shouldn't be null");
+        }
+
+        switch (mimeType.toLowerCase(Locale.ROOT)) {
+            case "audio/3gp2":
+            case "audio/3gpp":
+            case "audio/3gpp2":
+            case "audio/aac":
+            case "audio/mp4":
+            case "audio/mpeg":
+            case "video/3gp2":
+            case "video/3gpp":
+            case "video/3gpp2":
+            case "video/mj2":
+            case "video/mp4":
+            case "video/mpeg":
+            case "video/x-flv":
+                return true;
+            default:
+                return false;
+        }
     }
 }

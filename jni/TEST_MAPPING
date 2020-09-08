@@ -1,0 +1,13 @@
+{
+  "presubmit": [
+    {
+      "name": "FuseUtilsTest"
+    },
+    {
+      "name": "RedactionInfoTest"
+    },
+    {
+      "name": "fuse_node_test"
+    }
+  ]
+}

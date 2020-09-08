@@ -1,0 +1,26 @@
+apex {
+    name: "com.android.mediaprovider",
+    defaults: ["com.android.mediaprovider-defaults"],
+    manifest: "apex_manifest.json",
+    apps: ["MediaProvider"],
+    prebuilts: ["media-provider-platform-compat-config"],
+}
+
+apex_defaults {
+    name: "com.android.mediaprovider-defaults",
+    java_libs: ["framework-mediaprovider"],
+    key: "com.android.mediaprovider.key",
+    certificate: ":com.android.mediaprovider.certificate",
+    file_contexts: ":com.android.mediaprovider-file_contexts",
+}
+
+apex_key {
+    name: "com.android.mediaprovider.key",
+    public_key: "com.android.mediaprovider.avbpubkey",
+    private_key: "com.android.mediaprovider.pem",
+}
+
+android_app_certificate {
+    name: "com.android.mediaprovider.certificate",
+    certificate: "com.android.mediaprovider",
+}

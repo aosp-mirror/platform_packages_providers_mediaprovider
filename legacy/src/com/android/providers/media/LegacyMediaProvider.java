@@ -26,6 +26,7 @@ import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.OperationApplicationException;
+import android.content.UriMatcher;
 import android.content.pm.ProviderInfo;
 import android.database.Cursor;
 import android.net.Uri;
@@ -99,9 +100,10 @@ public class LegacyMediaProvider extends ContentProvider {
     @Override
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
             String sortOrder) {
+        final String appendedSelection = getAppendedSelection(selection, uri);
         final DatabaseHelper helper = getDatabaseForUri(uri);
         return helper.runWithoutTransaction((db) -> {
-            return db.query("files", projection, selection, selectionArgs,
+            return db.query(getTableName(uri), projection, appendedSelection, selectionArgs,
                     null, null, sortOrder);
         });
     }
@@ -151,7 +153,7 @@ public class LegacyMediaProvider extends ContentProvider {
 
         final DatabaseHelper helper = getDatabaseForUri(uri);
         final long id = helper.runWithTransaction((db) -> {
-            return db.insert("files", null, values);
+            return db.insert(getTableName(uri), null, values);
         });
         return ContentUris.withAppendedId(uri, id);
     }
@@ -164,6 +166,48 @@ public class LegacyMediaProvider extends ContentProvider {
     @Override
     public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
         throw new UnsupportedOperationException();
+    }
+
+    private static final int AUDIO_PLAYLISTS_ID_MEMBERS = 112;
+    private static final int FILES_ID = 701;
+    private static final UriMatcher BASIC_URI_MATCHER = new UriMatcher(UriMatcher.NO_MATCH);
+    static {
+        final UriMatcher basicUriMatcher = BASIC_URI_MATCHER;
+        basicUriMatcher.addURI(MediaStore.AUTHORITY_LEGACY, "*/audio/playlists/#/members",
+                AUDIO_PLAYLISTS_ID_MEMBERS);
+        basicUriMatcher.addURI(MediaStore.AUTHORITY_LEGACY, "*/file/#", FILES_ID);
+    };
+
+    private static String getAppendedSelection(String selection, Uri uri) {
+        String whereClause = "";
+        final int match = BASIC_URI_MATCHER.match(uri);
+        switch (match) {
+            case AUDIO_PLAYLISTS_ID_MEMBERS:
+                whereClause = "playlist_id=" + uri.getPathSegments().get(3);
+                break;
+            case FILES_ID:
+                whereClause = "_id=" + uri.getPathSegments().get(2);
+                break;
+            default:
+                // No additional whereClause required
+        }
+        if (selection == null || selection.isEmpty()) {
+            return whereClause;
+        } else if (whereClause.isEmpty()) {
+            return selection;
+        } else {
+            return  whereClause + " AND " + selection;
+        }
+    }
+
+    private static String getTableName(Uri uri) {
+        final int playlistMatch = BASIC_URI_MATCHER.match(uri);
+        if (playlistMatch == AUDIO_PLAYLISTS_ID_MEMBERS) {
+            return "audio_playlists_map";
+        } else {
+            // Return the "files" table by default for all other Uris.
+            return "files";
+        }
     }
 
     @Override

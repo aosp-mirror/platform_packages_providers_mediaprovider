@@ -43,7 +43,6 @@ import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -102,7 +101,7 @@ public class LegacyMediaProvider extends ContentProvider {
             String sortOrder) {
         final DatabaseHelper helper = getDatabaseForUri(uri);
         return helper.runWithoutTransaction((db) -> {
-            return db.query(getTableName(uri), projection, selection, selectionArgs,
+            return db.query("files", projection, selection, selectionArgs,
                     null, null, sortOrder);
         });
     }
@@ -152,7 +151,7 @@ public class LegacyMediaProvider extends ContentProvider {
 
         final DatabaseHelper helper = getDatabaseForUri(uri);
         final long id = helper.runWithTransaction((db) -> {
-            return db.insert(getTableName(uri), null, values);
+            return db.insert("files", null, values);
         });
         return ContentUris.withAppendedId(uri, id);
     }
@@ -165,20 +164,6 @@ public class LegacyMediaProvider extends ContentProvider {
     @Override
     public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
         throw new UnsupportedOperationException();
-    }
-
-    private static String getTableName(Uri uri) {
-        final List<String> pathSegments = uri.getPathSegments();
-        // There isn't any way to do this using public APIs given how the legacy
-        // provider interface is structured.
-        // The Uris to query the playlists map are are generally of the form
-        // content://media/<volume_name>/legacy_audio_playlists_map.
-        if (pathSegments.size() == 2 && pathSegments.get(1).equals("legacy_audio_playlists_map")) {
-            return "audio_playlists_map";
-        }
-
-        // Return the "files" table by default for all other Uris.
-        return "files";
     }
 
     @Override

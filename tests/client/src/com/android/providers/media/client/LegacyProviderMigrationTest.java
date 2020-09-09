@@ -18,9 +18,7 @@ package com.android.providers.media.client;
 
 import static android.provider.MediaStore.rewriteToLegacy;
 
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -28,7 +26,6 @@ import android.app.UiAutomation;
 import android.content.ContentProviderClient;
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
-import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.pm.ProviderInfo;
@@ -99,7 +96,6 @@ public class LegacyProviderMigrationTest {
     private Uri mExternalVideo;
     private Uri mExternalImages;
     private Uri mExternalDownloads;
-    private Uri mExternalPlaylists;
 
     @Before
     public void setUp() throws Exception {
@@ -108,10 +104,6 @@ public class LegacyProviderMigrationTest {
         mExternalVideo = MediaStore.Video.Media.getContentUri(mVolumeName);
         mExternalImages = MediaStore.Images.Media.getContentUri(mVolumeName);
         mExternalDownloads = MediaStore.Downloads.getContentUri(mVolumeName);
-
-        Uri playlists = MediaStore.Audio.Playlists.getContentUri(mVolumeName);
-        mExternalPlaylists = playlists.buildUpon()
-                .appendQueryParameter("silent", "true").build();
     }
 
     private ContentValues generateValues(int mediaType, String mimeType, String dirName) {
@@ -202,128 +194,15 @@ public class LegacyProviderMigrationTest {
         doLegacy(mExternalDownloads, values);
     }
 
+    /**
+     * Verify that a legacy database with thousands of media entries can be
+     * successfully migrated.
+     */
     @Test
-    public void testLegacy_PlaylistMap() throws Exception {
+    public void testLegacy_Extreme() throws Exception {
         final Context context = InstrumentationRegistry.getTargetContext();
         final UiAutomation ui = InstrumentationRegistry.getInstrumentation().getUiAutomation();
 
-        final ContentValues audio = generateValues(FileColumns.MEDIA_TYPE_AUDIO,
-                "audio/mpeg", Environment.DIRECTORY_MUSIC);
-        final String playlistMimeType = "audio/mpegurl";
-        final ContentValues playlist = generateValues(FileColumns.MEDIA_TYPE_PLAYLIST,
-                playlistMimeType, "Playlists");
-        playlist.put(MediaColumns.GENERATION_MODIFIED, 200);
-        final String playlistName = "LegacyPlaylistName_" + System.nanoTime();
-        playlist.put(MediaStore.Audio.PlaylistsColumns.NAME, playlistName);
-        File playlistFile = new File(playlist.getAsString(MediaColumns.DATA));
-
-        playlistFile.delete();
-
-        final ContentValues playlistMap = new ContentValues();
-        playlistMap.put(MediaStore.Audio.Playlists.Members.PLAY_ORDER, 1);
-
-        prepareProviders(context, ui);
-
-        try (ContentProviderClient legacy = context.getContentResolver()
-                .acquireContentProviderClient(MediaStore.AUTHORITY_LEGACY)) {
-            // Step 1: Write the audio file to the legacy mediastore.
-            final Uri audioUri =
-                    rewriteToLegacy(legacy.insert(rewriteToLegacy(mExternalAudio), audio));
-
-            // Remember our ID to check it later
-            audio.put(MediaColumns._ID, audioUri.getLastPathSegment());
-
-            // Step 2: Insert the playlist entry into the playlists table.
-            final Uri playlistUri = rewriteToLegacy(legacy.insert(
-                    rewriteToLegacy(mExternalPlaylists), playlist));
-
-            long playlistId = ContentUris.parseId(playlistUri);
-            long audioId = ContentUris.parseId(audioUri);
-            playlistMap.put(MediaStore.Audio.Playlists.Members.PLAYLIST_ID, playlistId);
-            playlistMap.put(MediaStore.Audio.Playlists.Members.AUDIO_ID, audioId);
-
-            // Step 3: Add a mapping to playlist members. There isn't any way to do this
-            // using public APIs given how the legacy provider interface is structured.
-            // We'll query the data post migration using public APIs though.
-            Uri legacyPlaylistMap = MediaStore.AUTHORITY_URI.buildUpon()
-                    .appendPath(MediaStore.VOLUME_EXTERNAL)
-                    .appendPath("legacy_audio_playlists_map")
-                    .appendQueryParameter("silent", "true").build();
-            legacy.insert(rewriteToLegacy(legacyPlaylistMap), playlistMap);
-        }
-
-        // This will delete MediaProvider data and restarts MediaProvider, and mounts storage.
-        clearProviders(context, ui);
-
-        // Verify scan on DEMAND doesn't delete any virtual playlist files.
-        MediaStore.scanFile(context.getContentResolver(),
-                Environment.getExternalStorageDirectory());
-
-        // Playlist files are created from playlist NAME
-        final File musicDir = new File(context.getSystemService(StorageManager.class)
-                .getStorageVolume(MediaStore.Files.getContentUri(mVolumeName)).getDirectory(),
-                Environment.DIRECTORY_MUSIC);
-        playlistFile = new File(musicDir, playlistName + "."
-                + MimeTypeMap.getSingleton().getExtensionFromMimeType(playlistMimeType));
-        // Wait for scan on MEDIA_MOUNTED to create "real" playlist files.
-        pollForFile(playlistFile);
-
-        // Scan again to verify updated playlist metadata
-        MediaStore.scanFile(context.getContentResolver(), playlistFile);
-
-        try (ContentProviderClient modern = context.getContentResolver()
-                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
-            final long legacyPlaylistId =
-                    playlistMap.getAsLong(MediaStore.Audio.Playlists.Members.PLAYLIST_ID);
-            final long legacyAudioId =
-                    playlistMap.getAsLong(MediaStore.Audio.Playlists.Members.AUDIO_ID);
-
-            // Verify that playlist_id matches with legacy playlist_id
-            {
-                Uri playlists = MediaStore.Audio.Playlists.getContentUri(mVolumeName);
-                final String[] project = {FileColumns._ID, MediaStore.Audio.PlaylistsColumns.NAME};
-
-                try (Cursor cursor = modern.query(playlists, project, null, null, null)) {
-                    boolean found = false;
-                    while(cursor.moveToNext()) {
-                        if (cursor.getLong(0) == legacyPlaylistId) {
-                            found = true;
-                            assertEquals(playlistName, cursor.getString(1));
-                            break;
-                        }
-                    }
-                    assertTrue(found);
-                }
-            }
-
-            // Verify that playlist_members map matches legacy playlist_members map.
-            {
-                 Uri members = MediaStore.Audio.Playlists.Members.getContentUri(
-                        mVolumeName, legacyPlaylistId);
-                 final String[] project = { MediaStore.Audio.Playlists.Members.AUDIO_ID };
-
-                 try (Cursor cursor = modern.query(members, project, null, null, null)) {
-                      assertTrue(cursor.moveToFirst());
-                      assertEquals(cursor.getLong(0), legacyAudioId);
-                      assertFalse(cursor.moveToNext());
-                 }
-            }
-
-            // Verify that migrated playlist audio_id refers to legacy audio file.
-            {
-                Uri modernAudioUri = ContentUris.withAppendedId(
-                        MediaStore.Audio.Media.getContentUri(mVolumeName), legacyAudioId);
-                final String[] project = {FileColumns.DATA};
-
-                try (Cursor cursor = modern.query(modernAudioUri, project, null, null, null)) {
-                    assertTrue(cursor.moveToFirst());
-                    assertEquals(audio.getAsString(MediaColumns.DATA), cursor.getString(0));
-                }
-            }
-        }
-    }
-
-    private static void prepareProviders(Context context, UiAutomation ui) throws Exception {
         final ProviderInfo legacyProvider = context.getPackageManager()
                 .resolveContentProvider(MediaStore.AUTHORITY_LEGACY, 0);
         final ProviderInfo modernProvider = context.getPackageManager()
@@ -338,30 +217,6 @@ public class LegacyProviderMigrationTest {
         executeShellCommand("sync", ui);
         executeShellCommand("pm clear " + legacyProvider.applicationInfo.packageName, ui);
         waitForMountedAndIdle(context.getContentResolver());
-    }
-
-    private static void clearProviders(Context context, UiAutomation ui) throws Exception {
-        final ProviderInfo modernProvider = context.getPackageManager()
-                .resolveContentProvider(MediaStore.AUTHORITY, 0);
-
-        // Clear data on the modern provider so that the initial scan recovers
-        // metadata from the legacy provider
-        waitForMountedAndIdle(context.getContentResolver());
-        executeShellCommand("sync", ui);
-        executeShellCommand("pm clear " + modernProvider.applicationInfo.packageName, ui);
-        waitForMountedAndIdle(context.getContentResolver());
-    }
-
-    /**
-     * Verify that a legacy database with thousands of media entries can be
-     * successfully migrated.
-     */
-    @Test
-    public void testLegacy_Extreme() throws Exception {
-        final Context context = InstrumentationRegistry.getTargetContext();
-        final UiAutomation ui = InstrumentationRegistry.getInstrumentation().getUiAutomation();
-
-        prepareProviders(context, ui);
 
         // Create thousands of items in the legacy provider
         try (ContentProviderClient legacy = context.getContentResolver()
@@ -386,7 +241,12 @@ public class LegacyProviderMigrationTest {
             }
         }
 
-        clearProviders(context, ui);
+        // Clear data on the modern provider so that the initial scan recovers
+        // metadata from the legacy provider
+        waitForMountedAndIdle(context.getContentResolver());
+        executeShellCommand("sync", ui);
+        executeShellCommand("pm clear " + modernProvider.applicationInfo.packageName, ui);
+        waitForMountedAndIdle(context.getContentResolver());
 
         // Confirm that details from legacy provider have migrated
         try (ContentProviderClient modern = context.getContentResolver()
@@ -401,7 +261,20 @@ public class LegacyProviderMigrationTest {
         final Context context = InstrumentationRegistry.getTargetContext();
         final UiAutomation ui = InstrumentationRegistry.getInstrumentation().getUiAutomation();
 
-        prepareProviders(context, ui);
+        final ProviderInfo legacyProvider = context.getPackageManager()
+                .resolveContentProvider(MediaStore.AUTHORITY_LEGACY, 0);
+        final ProviderInfo modernProvider = context.getPackageManager()
+                .resolveContentProvider(MediaStore.AUTHORITY, 0);
+
+        // Only continue if we have both providers to test against
+        Assume.assumeNotNull(legacyProvider);
+        Assume.assumeNotNull(modernProvider);
+
+        // Clear data on the legacy provider so that we create a database
+        waitForMountedAndIdle(context.getContentResolver());
+        executeShellCommand("sync", ui);
+        executeShellCommand("pm clear " + legacyProvider.applicationInfo.packageName, ui);
+        waitForMountedAndIdle(context.getContentResolver());
 
         // Create a well-known entry in legacy provider, and write data into
         // place to ensure the file is created on disk
@@ -423,7 +296,12 @@ public class LegacyProviderMigrationTest {
             values.remove(FileColumns.DATA);
         }
 
-        clearProviders(context, ui);
+        // Clear data on the modern provider so that the initial scan recovers
+        // metadata from the legacy provider
+        waitForMountedAndIdle(context.getContentResolver());
+        executeShellCommand("sync", ui);
+        executeShellCommand("pm clear " + modernProvider.applicationInfo.packageName, ui);
+        waitForMountedAndIdle(context.getContentResolver());
 
         // And force a scan to confirm upgraded data survives
         MediaStore.scanVolume(context.getContentResolver(),
@@ -461,16 +339,6 @@ public class LegacyProviderMigrationTest {
         MediaStore.waitForIdle(resolver);
         pollForExternalStorageState();
         MediaStore.waitForIdle(resolver);
-    }
-
-    private static void pollForFile(File file) {
-        for (int i = 0; i < POLLING_TIMEOUT_MILLIS / POLLING_SLEEP_MILLIS; i++) {
-            if (file.exists()) return;
-
-            Log.v(TAG, "Waiting for..." + file);
-            SystemClock.sleep(POLLING_SLEEP_MILLIS);
-        }
-        fail("Timed out while waiting for file " + file);
     }
 
     private static void pollForExternalStorageState() {

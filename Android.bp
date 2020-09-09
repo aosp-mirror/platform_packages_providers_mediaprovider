@@ -83,6 +83,7 @@ filegroup {
         "src/com/android/providers/media/util/HandlerExecutor.java",
         "src/com/android/providers/media/util/Logging.java",
         "src/com/android/providers/media/util/MimeUtils.java",
+        "src/com/android/providers/media/playlist/*.java",
     ],
 }
 

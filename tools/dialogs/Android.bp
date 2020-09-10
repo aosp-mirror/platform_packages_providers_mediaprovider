@@ -1,0 +1,6 @@
+android_app {
+    name: "MediaProviderDialogsTool",
+    manifest: "AndroidManifest.xml",
+    srcs: ["src/**/*.java"],
+    sdk_version: "system_current",
+}

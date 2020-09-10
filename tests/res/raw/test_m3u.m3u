@@ -8,3 +8,9 @@
 
 #EXTINF:321,Example Artist - Example title
 003.mp3
+
+#Example to test windows style file path
+..\Music\004.mp3
+
+#Example to test case-sensitive
+../music/005.mp3

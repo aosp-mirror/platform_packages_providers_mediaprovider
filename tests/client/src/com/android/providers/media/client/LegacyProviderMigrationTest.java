@@ -207,12 +207,16 @@ public class LegacyProviderMigrationTest {
         final Context context = InstrumentationRegistry.getTargetContext();
         final UiAutomation ui = InstrumentationRegistry.getInstrumentation().getUiAutomation();
 
-        final ContentValues audio = generateValues(FileColumns.MEDIA_TYPE_AUDIO,
-                "audio/mpeg", Environment.DIRECTORY_MUSIC);
+        final ContentValues audios[] = new ContentValues[] {
+                generateValues(FileColumns.MEDIA_TYPE_AUDIO, "audio/mpeg",
+                        Environment.DIRECTORY_MUSIC),
+                generateValues(FileColumns.MEDIA_TYPE_AUDIO, "audio/mpeg",
+                        Environment.DIRECTORY_MUSIC),
+        };
+
         final String playlistMimeType = "audio/mpegurl";
         final ContentValues playlist = generateValues(FileColumns.MEDIA_TYPE_PLAYLIST,
                 playlistMimeType, "Playlists");
-        playlist.put(MediaColumns.GENERATION_MODIFIED, 200);
         final String playlistName = "LegacyPlaylistName_" + System.nanoTime();
         playlist.put(MediaStore.Audio.PlaylistsColumns.NAME, playlistName);
         File playlistFile = new File(playlist.getAsString(MediaColumns.DATA));
@@ -226,30 +230,38 @@ public class LegacyProviderMigrationTest {
 
         try (ContentProviderClient legacy = context.getContentResolver()
                 .acquireContentProviderClient(MediaStore.AUTHORITY_LEGACY)) {
-            // Step 1: Write the audio file to the legacy mediastore.
-            final Uri audioUri =
-                    rewriteToLegacy(legacy.insert(rewriteToLegacy(mExternalAudio), audio));
 
-            // Remember our ID to check it later
-            audio.put(MediaColumns._ID, audioUri.getLastPathSegment());
-
-            // Step 2: Insert the playlist entry into the playlists table.
+            // Step 1: Insert the playlist entry into the playlists table.
             final Uri playlistUri = rewriteToLegacy(legacy.insert(
                     rewriteToLegacy(mExternalPlaylists), playlist));
-
             long playlistId = ContentUris.parseId(playlistUri);
-            long audioId = ContentUris.parseId(audioUri);
-            playlistMap.put(MediaStore.Audio.Playlists.Members.PLAYLIST_ID, playlistId);
-            playlistMap.put(MediaStore.Audio.Playlists.Members.AUDIO_ID, audioId);
+            final Uri playlistMemberUri = MediaStore.rewriteToLegacy(
+                    MediaStore.Audio.Playlists.Members.getContentUri(mVolumeName, playlistId)
+                            .buildUpon()
+                            .appendQueryParameter("silent", "true").build());
 
-            // Step 3: Add a mapping to playlist members. There isn't any way to do this
-            // using public APIs given how the legacy provider interface is structured.
-            // We'll query the data post migration using public APIs though.
-            Uri legacyPlaylistMap = MediaStore.AUTHORITY_URI.buildUpon()
-                    .appendPath(MediaStore.VOLUME_EXTERNAL)
-                    .appendPath("legacy_audio_playlists_map")
-                    .appendQueryParameter("silent", "true").build();
-            legacy.insert(rewriteToLegacy(legacyPlaylistMap), playlistMap);
+
+            for (ContentValues values : audios) {
+                // Step 2: Write the audio file to the legacy mediastore.
+                final Uri audioUri =
+                        rewriteToLegacy(legacy.insert(rewriteToLegacy(mExternalAudio), values));
+                // Remember our ID to check it later
+                values.put(MediaColumns._ID, audioUri.getLastPathSegment());
+
+
+                long audioId = ContentUris.parseId(audioUri);
+                playlistMap.put(MediaStore.Audio.Playlists.Members.PLAYLIST_ID, playlistId);
+                playlistMap.put(MediaStore.Audio.Playlists.Members.AUDIO_ID, audioId);
+
+                // Step 3: Add a mapping to playlist members.
+                legacy.insert(playlistMemberUri, playlistMap);
+            }
+
+            // Insert a stale row, We only have 3 items in the database. #4 is a stale row
+            // and will be skipped from the playlist during the migration.
+            playlistMap.put(MediaStore.Audio.Playlists.Members.AUDIO_ID, 4);
+            legacy.insert(playlistMemberUri, playlistMap);
+
         }
 
         // This will delete MediaProvider data and restarts MediaProvider, and mounts storage.
@@ -273,10 +285,10 @@ public class LegacyProviderMigrationTest {
 
         try (ContentProviderClient modern = context.getContentResolver()
                 .acquireContentProviderClient(MediaStore.AUTHORITY)) {
-            final long legacyPlaylistId =
+            long legacyPlaylistId =
                     playlistMap.getAsLong(MediaStore.Audio.Playlists.Members.PLAYLIST_ID);
-            final long legacyAudioId =
-                    playlistMap.getAsLong(MediaStore.Audio.Playlists.Members.AUDIO_ID);
+            long legacyAudioId1 = audios[0].getAsLong(MediaColumns._ID);
+            long legacyAudioId2 = audios[1].getAsLong(MediaColumns._ID);
 
             // Verify that playlist_id matches with legacy playlist_id
             {
@@ -302,22 +314,25 @@ public class LegacyProviderMigrationTest {
                         mVolumeName, legacyPlaylistId);
                  final String[] project = { MediaStore.Audio.Playlists.Members.AUDIO_ID };
 
-                 try (Cursor cursor = modern.query(members, project, null, null, null)) {
-                      assertTrue(cursor.moveToFirst());
-                      assertEquals(cursor.getLong(0), legacyAudioId);
-                      assertFalse(cursor.moveToNext());
+                 try (Cursor cursor = modern.query(members, project, null, null,
+                         MediaStore.Audio.Playlists.Members.DEFAULT_SORT_ORDER)) {
+                     assertTrue(cursor.moveToNext());
+                     assertEquals(legacyAudioId1, cursor.getLong(0));
+                     assertTrue(cursor.moveToNext());
+                     assertEquals(legacyAudioId2, cursor.getLong(0));
+                     assertFalse(cursor.moveToNext());
                  }
             }
 
             // Verify that migrated playlist audio_id refers to legacy audio file.
             {
                 Uri modernAudioUri = ContentUris.withAppendedId(
-                        MediaStore.Audio.Media.getContentUri(mVolumeName), legacyAudioId);
+                        MediaStore.Audio.Media.getContentUri(mVolumeName), legacyAudioId1);
                 final String[] project = {FileColumns.DATA};
 
                 try (Cursor cursor = modern.query(modernAudioUri, project, null, null, null)) {
                     assertTrue(cursor.moveToFirst());
-                    assertEquals(audio.getAsString(MediaColumns.DATA), cursor.getString(0));
+                    assertEquals(audios[0].getAsString(MediaColumns.DATA), cursor.getString(0));
                 }
             }
         }

@@ -26,6 +26,7 @@ import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.OperationApplicationException;
+import android.content.UriMatcher;
 import android.content.pm.ProviderInfo;
 import android.database.Cursor;
 import android.net.Uri;
@@ -43,7 +44,6 @@ import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -100,9 +100,10 @@ public class LegacyMediaProvider extends ContentProvider {
     @Override
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
             String sortOrder) {
+        final String appendedSelection = getAppendedSelection(selection, uri);
         final DatabaseHelper helper = getDatabaseForUri(uri);
         return helper.runWithoutTransaction((db) -> {
-            return db.query(getTableName(uri), projection, selection, selectionArgs,
+            return db.query(getTableName(uri), projection, appendedSelection, selectionArgs,
                     null, null, sortOrder);
         });
     }
@@ -167,18 +168,46 @@ public class LegacyMediaProvider extends ContentProvider {
         throw new UnsupportedOperationException();
     }
 
-    private static String getTableName(Uri uri) {
-        final List<String> pathSegments = uri.getPathSegments();
-        // There isn't any way to do this using public APIs given how the legacy
-        // provider interface is structured.
-        // The Uris to query the playlists map are are generally of the form
-        // content://media/<volume_name>/legacy_audio_playlists_map.
-        if (pathSegments.size() == 2 && pathSegments.get(1).equals("legacy_audio_playlists_map")) {
-            return "audio_playlists_map";
-        }
+    private static final int AUDIO_PLAYLISTS_ID_MEMBERS = 112;
+    private static final int FILES_ID = 701;
+    private static final UriMatcher BASIC_URI_MATCHER = new UriMatcher(UriMatcher.NO_MATCH);
+    static {
+        final UriMatcher basicUriMatcher = BASIC_URI_MATCHER;
+        basicUriMatcher.addURI(MediaStore.AUTHORITY_LEGACY, "*/audio/playlists/#/members",
+                AUDIO_PLAYLISTS_ID_MEMBERS);
+        basicUriMatcher.addURI(MediaStore.AUTHORITY_LEGACY, "*/file/#", FILES_ID);
+    };
 
-        // Return the "files" table by default for all other Uris.
-        return "files";
+    private static String getAppendedSelection(String selection, Uri uri) {
+        String whereClause = "";
+        final int match = BASIC_URI_MATCHER.match(uri);
+        switch (match) {
+            case AUDIO_PLAYLISTS_ID_MEMBERS:
+                whereClause = "playlist_id=" + uri.getPathSegments().get(3);
+                break;
+            case FILES_ID:
+                whereClause = "_id=" + uri.getPathSegments().get(2);
+                break;
+            default:
+                // No additional whereClause required
+        }
+        if (selection == null || selection.isEmpty()) {
+            return whereClause;
+        } else if (whereClause.isEmpty()) {
+            return selection;
+        } else {
+            return  whereClause + " AND " + selection;
+        }
+    }
+
+    private static String getTableName(Uri uri) {
+        final int playlistMatch = BASIC_URI_MATCHER.match(uri);
+        if (playlistMatch == AUDIO_PLAYLISTS_ID_MEMBERS) {
+            return "audio_playlists_map";
+        } else {
+            // Return the "files" table by default for all other Uris.
+            return "files";
+        }
     }
 
     @Override

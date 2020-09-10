@@ -58,6 +58,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.drm.DrmManagerClient;
 import android.drm.DrmSupportInfo;
+import android.graphics.BitmapFactory;
 import android.media.ExifInterface;
 import android.media.MediaMetadataRetriever;
 import android.mtp.MtpConstants;
@@ -88,11 +89,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
-import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.ExifUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.IsoInterface;
+import com.android.providers.media.util.Logging;
 import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
@@ -121,8 +122,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.annotation.Nonnull;
 
 /**
  * Modern implementation of media scanner.
@@ -330,15 +329,7 @@ public class ModernMediaScanner implements MediaScanner {
             // location, tracking scanned IDs along the way
             walkFileTree();
 
-            // Second, Create missing "real" playlist files for virtual playlist files.
-            // DEMAND scan from apps shouldn't create playlist files for stale db rows to avoid
-            // duplicate playlist files when playlist files are moved.
-            if (mVolumeName != MediaStore.VOLUME_INTERNAL && !mSingleFile &&
-                    mReason != MediaScanner.REASON_DEMAND) {
-                maybeCreatePlaylistFiles();
-             }
-
-            // Third, reconcile all items known in the database against all the
+            // Second, reconcile all items known in the database against all the
             // items we scanned above
             if (mSingleFile && mScannedIds.size() == 1) {
                 // We can safely skip this step if the scan targeted a single
@@ -347,7 +338,7 @@ public class ModernMediaScanner implements MediaScanner {
                 reconcileAndClean();
             }
 
-            // Forth, resolve any playlists that we scanned
+            // Third, resolve any playlists that we scanned
             resolvePlaylists();
 
             if (!mSingleFile) {
@@ -396,20 +387,17 @@ public class ModernMediaScanner implements MediaScanner {
             mSignal.throwIfCanceled();
             Trace.beginSection("reconcile");
 
-            // Ignore abstract playlists which don't have files on disk. We shouldn't delete virtual
-            // files that were migrated from previous OS version. i.e., Don't delete virtual
-            // playlist files when GENERATION_MODIFIED is zero. GENERATION_MODIFIED defaults to zero
-            // for all migrated database rows until database row is updated.
-            final String playlistClause = "( "
-                    + FileColumns.MEDIA_TYPE + "=" + FileColumns.MEDIA_TYPE_PLAYLIST + " AND "
-                            + FileColumns.GENERATION_MODIFIED + "=0 )";
+            // Ignore abstract playlists which don't have files on disk
+            final String formatClause = "ifnull(" + FileColumns.FORMAT + ","
+                    + MtpConstants.FORMAT_UNDEFINED + ") != "
+                    + MtpConstants.FORMAT_ABSTRACT_AV_PLAYLIST;
             final String dataClause = "(" + FileColumns.DATA + " LIKE ? ESCAPE '\\' OR "
                     + FileColumns.DATA + " LIKE ? ESCAPE '\\')";
             final String generationClause = FileColumns.GENERATION_ADDED + " <= "
                     + mStartGeneration;
             final Bundle queryArgs = new Bundle();
             queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SELECTION,
-                    " NOT " + playlistClause + " AND " + dataClause + " AND " + generationClause);
+                    formatClause + " AND " + dataClause + " AND " + generationClause);
             final String pathEscapedForLike = DatabaseUtils.escapeForLike(mRoot.getAbsolutePath());
             queryArgs.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS,
                     new String[] {pathEscapedForLike + "/%", pathEscapedForLike});
@@ -448,98 +436,6 @@ public class ModernMediaScanner implements MediaScanner {
             } finally {
                 Trace.endSection();
             }
-        }
-
-        private void maybeCreatePlaylistFiles() {
-            mSignal.throwIfCanceled();
-
-            final String dataClause = "(" + FileColumns.DATA + " LIKE ? ESCAPE '\\' OR "
-                    + FileColumns.DATA + " LIKE ? ESCAPE '\\')";
-
-            final Bundle queryArgs = new Bundle();
-            queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, dataClause);
-            final String pathEscapedForLike = DatabaseUtils.escapeForLike(mRoot.getAbsolutePath());
-            queryArgs.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS,
-                    new String[] {pathEscapedForLike + "/%", pathEscapedForLike});
-
-            queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE);
-            queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
-            queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_FAVORITE, MediaStore.MATCH_INCLUDE);
-
-            final Uri playlistUri = MediaStore.Audio.Playlists.getContentUri(mVolumeName);
-            try (Cursor c = mResolver.query(playlistUri,
-                    new String[] { FileColumns._ID, FileColumns.DATA, FileColumns.VOLUME_NAME},
-                    queryArgs, mSignal)) {
-                while (c.moveToNext()) {
-                    final long id = c.getLong(0);
-                    final String path = c.getString(1);
-                    final String volumeName = c.getString(2);
-                    if (!new File(path).exists()) {
-                        final Uri playlistMembersUri =
-                                MediaStore.Audio.Playlists.Members.getContentUri(volumeName, id);
-                        createPlaylistFile(playlistMembersUri, path);
-                        // Ensure we don't delete the playlist file in reconcileAndClean().
-                        // We should add id to mScannedIds even if createPlaylistFile() fails to
-                        // ensure we don't clear virtual playlist data on file creation error
-                        // or any other error.
-                        mScannedIds.add(id);
-                    }
-                }
-            }
-        }
-
-        /**
-         * Creates "real" playlist files on disk from the playlist data from the database.
-         */
-        private void createPlaylistFile(@Nonnull Uri playlistUri, @Nonnull String path) {
-            final File playlistFile = new File(path);
-            final String[] projection = new String[] {
-                    MediaStore.Audio.Playlists.Members.AUDIO_ID,
-                    MediaStore.Audio.Playlists.Members.PLAY_ORDER,
-            };
-
-            final Playlist playlist = new Playlist();
-            try (Cursor c = mResolver.query(playlistUri, projection, null, null, null, mSignal)) {
-                while (c.moveToNext()) {
-                    final long audioId = c.getLong(0);
-                    final int playOrder = c.getInt(1);
-
-                    final Uri audioFileUri = ContentUris.withAppendedId(
-                            MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL), audioId);
-                    final String audioFilePath = queryForData(audioFileUri);
-                    if (audioFilePath == null)  {
-                        // This shouldn't happen, we should always find audio file unless audio_file
-                        // is removed, and database has stale db row. However this shouldn't block
-                        // creating playlist files;
-                        Log.e(TAG, "Couldn't find audio file for " + audioId + ", continuing..");
-                        continue;
-                    }
-
-                    playlist.add(playOrder, playlistFile.toPath().getParent().
-                            relativize(new File(audioFilePath).toPath()));
-                }
-            }
-            try {
-                playlistFile.getParentFile().mkdirs();
-                playlistFile.createNewFile();
-                playlist.write(playlistFile);
-            } catch (Exception e) {
-                // Any error here shouldn't block scan, so continue with other playlist files.
-                Log.e(TAG, "Failed to create playlist file", e);
-            }
-        }
-
-        /**
-         * Return the {@link MediaColumns#DATA} field for the given {@code uri}.
-         */
-        private String queryForData(@Nonnull Uri uri) {
-            try (Cursor c = mResolver.query(uri, new String[] {FileColumns.DATA}, null, null, null,
-                    mSignal)) {
-                if (c.moveToFirst()) {
-                    return c.getString(0);
-                }
-            }
-            return null;
         }
 
         private void resolvePlaylists() {
@@ -1040,6 +936,40 @@ public class ModernMediaScanner implements MediaScanner {
         }
     }
 
+    private static void withResolutionValues(
+            @NonNull ContentProviderOperation.Builder op,
+            @NonNull ExifInterface exif, @NonNull File file) {
+        final Optional<?> width = parseOptionalOrZero(
+                exif.getAttribute(ExifInterface.TAG_IMAGE_WIDTH));
+        final Optional<?> height = parseOptionalOrZero(
+                exif.getAttribute(ExifInterface.TAG_IMAGE_LENGTH));
+        final Optional<String> resolution = parseOptionalResolution(width, height);
+        if (resolution.isPresent()) {
+            withOptionalValue(op, MediaColumns.WIDTH, width);
+            withOptionalValue(op, MediaColumns.HEIGHT, height);
+            op.withValue(MediaColumns.RESOLUTION, resolution.get());
+        } else {
+            withBitmapResolutionValues(op, file);
+        }
+    }
+
+    private static void withBitmapResolutionValues(
+            @NonNull ContentProviderOperation.Builder op,
+            @NonNull File file) {
+        final BitmapFactory.Options bitmapOptions = new BitmapFactory.Options();
+        bitmapOptions.inSampleSize = 1;
+        bitmapOptions.inJustDecodeBounds = true;
+        bitmapOptions.outWidth = 0;
+        bitmapOptions.outHeight = 0;
+        BitmapFactory.decodeFile(file.getAbsolutePath(), bitmapOptions);
+
+        final Optional<?> width = parseOptionalOrZero(bitmapOptions.outWidth);
+        final Optional<?> height = parseOptionalOrZero(bitmapOptions.outHeight);
+        withOptionalValue(op, MediaColumns.WIDTH, width);
+        withOptionalValue(op, MediaColumns.HEIGHT, height);
+        withOptionalValue(op, MediaColumns.RESOLUTION, parseOptionalResolution(width, height));
+    }
+
     private static @NonNull ContentProviderOperation.Builder scanItemDirectory(long existingId,
             File file, BasicFileAttributes attrs, String mimeType, String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
@@ -1196,12 +1126,8 @@ public class ModernMediaScanner implements MediaScanner {
         try (FileInputStream is = new FileInputStream(file)) {
             final ExifInterface exif = new ExifInterface(is);
 
-            withOptionalValue(op, MediaColumns.WIDTH,
-                    parseOptionalOrZero(exif.getAttribute(ExifInterface.TAG_IMAGE_WIDTH)));
-            withOptionalValue(op, MediaColumns.HEIGHT,
-                    parseOptionalOrZero(exif.getAttribute(ExifInterface.TAG_IMAGE_LENGTH)));
-            withOptionalValue(op, MediaColumns.RESOLUTION,
-                    parseOptionalResolution(exif));
+            withResolutionValues(op, exif, file);
+
             withOptionalValue(op, MediaColumns.DATE_TAKEN,
                     parseOptionalDateTaken(exif, lastModifiedTime(file, attrs) * 1000));
             withOptionalValue(op, MediaColumns.ORIENTATION,
@@ -1361,11 +1287,7 @@ public class ModernMediaScanner implements MediaScanner {
             @NonNull MediaMetadataRetriever mmr) {
         final Optional<?> width = parseOptional(mmr.extractMetadata(METADATA_KEY_VIDEO_WIDTH));
         final Optional<?> height = parseOptional(mmr.extractMetadata(METADATA_KEY_VIDEO_HEIGHT));
-        if (width.isPresent() && height.isPresent()) {
-            return Optional.of(width.get() + "\u00d7" + height.get());
-        } else {
-            return Optional.empty();
-        }
+        return parseOptionalResolution(width, height);
     }
 
     @VisibleForTesting
@@ -1373,11 +1295,7 @@ public class ModernMediaScanner implements MediaScanner {
             @NonNull MediaMetadataRetriever mmr) {
         final Optional<?> width = parseOptional(mmr.extractMetadata(METADATA_KEY_IMAGE_WIDTH));
         final Optional<?> height = parseOptional(mmr.extractMetadata(METADATA_KEY_IMAGE_HEIGHT));
-        if (width.isPresent() && height.isPresent()) {
-            return Optional.of(width.get() + "\u00d7" + height.get());
-        } else {
-            return Optional.empty();
-        }
+        return parseOptionalResolution(width, height);
     }
 
     @VisibleForTesting
@@ -1387,11 +1305,15 @@ public class ModernMediaScanner implements MediaScanner {
                 exif.getAttribute(ExifInterface.TAG_IMAGE_WIDTH));
         final Optional<?> height = parseOptionalOrZero(
                 exif.getAttribute(ExifInterface.TAG_IMAGE_LENGTH));
+        return parseOptionalResolution(width, height);
+    }
+
+    private static @NonNull Optional<String> parseOptionalResolution(
+            @NonNull Optional<?> width, @NonNull Optional<?> height) {
         if (width.isPresent() && height.isPresent()) {
             return Optional.of(width.get() + "\u00d7" + height.get());
-        } else {
-            return Optional.empty();
         }
+        return Optional.empty();
     }
 
     @VisibleForTesting

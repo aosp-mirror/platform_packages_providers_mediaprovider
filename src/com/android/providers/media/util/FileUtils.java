@@ -807,8 +807,15 @@ public class FileUtils {
         }
 
         final Uri uri = MediaStore.Files.getContentUri(volumeName);
-        final File path = context.getSystemService(StorageManager.class).getStorageVolume(uri)
-                .getDirectory();
+        File path = null;
+
+        try {
+            path = context.getSystemService(StorageManager.class).getStorageVolume(uri)
+                    .getDirectory();
+        } catch (IllegalStateException e) {
+            Log.w("Ignoring volume not found exception", e);
+        }
+
         if (path != null) {
             return path;
         } else {

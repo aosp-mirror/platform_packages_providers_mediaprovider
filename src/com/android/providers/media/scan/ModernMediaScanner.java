@@ -58,6 +58,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.drm.DrmManagerClient;
 import android.drm.DrmSupportInfo;
+import android.graphics.BitmapFactory;
 import android.media.ExifInterface;
 import android.media.MediaMetadataRetriever;
 import android.mtp.MtpConstants;
@@ -402,7 +403,7 @@ public class ModernMediaScanner implements MediaScanner {
                     new String[] {pathEscapedForLike + "/%", pathEscapedForLike});
             queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,
                     FileColumns._ID + " DESC");
-            queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE);
+            queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_EXCLUDE);
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_FAVORITE, MediaStore.MATCH_INCLUDE);
 
@@ -935,6 +936,40 @@ public class ModernMediaScanner implements MediaScanner {
         }
     }
 
+    private static void withResolutionValues(
+            @NonNull ContentProviderOperation.Builder op,
+            @NonNull ExifInterface exif, @NonNull File file) {
+        final Optional<?> width = parseOptionalOrZero(
+                exif.getAttribute(ExifInterface.TAG_IMAGE_WIDTH));
+        final Optional<?> height = parseOptionalOrZero(
+                exif.getAttribute(ExifInterface.TAG_IMAGE_LENGTH));
+        final Optional<String> resolution = parseOptionalResolution(width, height);
+        if (resolution.isPresent()) {
+            withOptionalValue(op, MediaColumns.WIDTH, width);
+            withOptionalValue(op, MediaColumns.HEIGHT, height);
+            op.withValue(MediaColumns.RESOLUTION, resolution.get());
+        } else {
+            withBitmapResolutionValues(op, file);
+        }
+    }
+
+    private static void withBitmapResolutionValues(
+            @NonNull ContentProviderOperation.Builder op,
+            @NonNull File file) {
+        final BitmapFactory.Options bitmapOptions = new BitmapFactory.Options();
+        bitmapOptions.inSampleSize = 1;
+        bitmapOptions.inJustDecodeBounds = true;
+        bitmapOptions.outWidth = 0;
+        bitmapOptions.outHeight = 0;
+        BitmapFactory.decodeFile(file.getAbsolutePath(), bitmapOptions);
+
+        final Optional<?> width = parseOptionalOrZero(bitmapOptions.outWidth);
+        final Optional<?> height = parseOptionalOrZero(bitmapOptions.outHeight);
+        withOptionalValue(op, MediaColumns.WIDTH, width);
+        withOptionalValue(op, MediaColumns.HEIGHT, height);
+        withOptionalValue(op, MediaColumns.RESOLUTION, parseOptionalResolution(width, height));
+    }
+
     private static @NonNull ContentProviderOperation.Builder scanItemDirectory(long existingId,
             File file, BasicFileAttributes attrs, String mimeType, String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
@@ -1091,12 +1126,8 @@ public class ModernMediaScanner implements MediaScanner {
         try (FileInputStream is = new FileInputStream(file)) {
             final ExifInterface exif = new ExifInterface(is);
 
-            withOptionalValue(op, MediaColumns.WIDTH,
-                    parseOptionalOrZero(exif.getAttribute(ExifInterface.TAG_IMAGE_WIDTH)));
-            withOptionalValue(op, MediaColumns.HEIGHT,
-                    parseOptionalOrZero(exif.getAttribute(ExifInterface.TAG_IMAGE_LENGTH)));
-            withOptionalValue(op, MediaColumns.RESOLUTION,
-                    parseOptionalResolution(exif));
+            withResolutionValues(op, exif, file);
+
             withOptionalValue(op, MediaColumns.DATE_TAKEN,
                     parseOptionalDateTaken(exif, lastModifiedTime(file, attrs) * 1000));
             withOptionalValue(op, MediaColumns.ORIENTATION,
@@ -1256,11 +1287,7 @@ public class ModernMediaScanner implements MediaScanner {
             @NonNull MediaMetadataRetriever mmr) {
         final Optional<?> width = parseOptional(mmr.extractMetadata(METADATA_KEY_VIDEO_WIDTH));
         final Optional<?> height = parseOptional(mmr.extractMetadata(METADATA_KEY_VIDEO_HEIGHT));
-        if (width.isPresent() && height.isPresent()) {
-            return Optional.of(width.get() + "\u00d7" + height.get());
-        } else {
-            return Optional.empty();
-        }
+        return parseOptionalResolution(width, height);
     }
 
     @VisibleForTesting
@@ -1268,11 +1295,7 @@ public class ModernMediaScanner implements MediaScanner {
             @NonNull MediaMetadataRetriever mmr) {
         final Optional<?> width = parseOptional(mmr.extractMetadata(METADATA_KEY_IMAGE_WIDTH));
         final Optional<?> height = parseOptional(mmr.extractMetadata(METADATA_KEY_IMAGE_HEIGHT));
-        if (width.isPresent() && height.isPresent()) {
-            return Optional.of(width.get() + "\u00d7" + height.get());
-        } else {
-            return Optional.empty();
-        }
+        return parseOptionalResolution(width, height);
     }
 
     @VisibleForTesting
@@ -1282,11 +1305,15 @@ public class ModernMediaScanner implements MediaScanner {
                 exif.getAttribute(ExifInterface.TAG_IMAGE_WIDTH));
         final Optional<?> height = parseOptionalOrZero(
                 exif.getAttribute(ExifInterface.TAG_IMAGE_LENGTH));
+        return parseOptionalResolution(width, height);
+    }
+
+    private static @NonNull Optional<String> parseOptionalResolution(
+            @NonNull Optional<?> width, @NonNull Optional<?> height) {
         if (width.isPresent() && height.isPresent()) {
             return Optional.of(width.get() + "\u00d7" + height.get());
-        } else {
-            return Optional.empty();
         }
+        return Optional.empty();
     }
 
     @VisibleForTesting

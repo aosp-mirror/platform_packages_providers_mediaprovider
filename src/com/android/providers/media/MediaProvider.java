@@ -1183,18 +1183,39 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     static void computeAudioKeyValues(ContentValues values) {
-        computeAudioKeyValue(values,
-                AudioColumns.TITLE, AudioColumns.TITLE_KEY, null);
-        computeAudioKeyValue(values,
-                AudioColumns.ALBUM, AudioColumns.ALBUM_KEY, AudioColumns.ALBUM_ID);
-        computeAudioKeyValue(values,
-                AudioColumns.ARTIST, AudioColumns.ARTIST_KEY, AudioColumns.ARTIST_ID);
-        computeAudioKeyValue(values,
-                AudioColumns.GENRE, AudioColumns.GENRE_KEY, AudioColumns.GENRE_ID);
+        computeAudioKeyValue(values, AudioColumns.TITLE, AudioColumns.TITLE_KEY, /* focusId */
+                null, /* hashValue */ 0);
+        computeAudioKeyValue(values, AudioColumns.ARTIST, AudioColumns.ARTIST_KEY,
+                AudioColumns.ARTIST_ID, /* hashValue */ 0);
+        computeAudioKeyValue(values, AudioColumns.GENRE, AudioColumns.GENRE_KEY,
+                AudioColumns.GENRE_ID, /* hashValue */ 0);
+        computeAudioAlbumKeyValue(values);
+    }
+
+    /**
+     * To distinguish same-named albums, we append a hash. The hash is
+     * based on the "album artist" tag if present, otherwise on the path of
+     * the parent directory of the audio file.
+     */
+    private static void computeAudioAlbumKeyValue(ContentValues values) {
+        int hashCode = 0;
+
+        final String albumArtist = values.getAsString(MediaColumns.ALBUM_ARTIST);
+        if (!TextUtils.isEmpty(albumArtist)) {
+            hashCode = albumArtist.hashCode();
+        } else {
+            final String path = values.getAsString(MediaColumns.DATA);
+            if (!TextUtils.isEmpty(path)) {
+                hashCode = path.substring(0, path.lastIndexOf('/')).hashCode();
+            }
+        }
+
+        computeAudioKeyValue(values, AudioColumns.ALBUM, AudioColumns.ALBUM_KEY,
+                AudioColumns.ALBUM_ID, hashCode);
     }
 
     private static void computeAudioKeyValue(@NonNull ContentValues values, @NonNull String focus,
-            @Nullable String focusKey, @Nullable String focusId) {
+            @Nullable String focusKey, @Nullable String focusId, int hashValue) {
         if (focusKey != null) values.remove(focusKey);
         if (focusId != null) values.remove(focusId);
 
@@ -1210,8 +1231,8 @@ public class MediaProvider extends ContentProvider {
         if (focusId != null) {
             // Many apps break if we generate negative IDs, so trim off the
             // highest bit to ensure we're always unsigned
-            final long id = Hashing.farmHashFingerprint64()
-                    .hashString(key, StandardCharsets.UTF_8).asLong() & ~(1L << 63);
+            final long id = Hashing.farmHashFingerprint64().hashString(key + hashValue,
+                    StandardCharsets.UTF_8).asLong() & ~(1L << 63);
             values.put(focusId, id);
         }
     }

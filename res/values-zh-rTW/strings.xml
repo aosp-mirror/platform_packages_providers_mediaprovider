@@ -37,9 +37,10 @@
       <item quantity="other">還有另外 <xliff:g id="COUNT_1">^1</xliff:g> 個項目</item>
       <item quantity="one">還有另外 <xliff:g id="COUNT_0">^1</xliff:g> 個項目</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"要清除應用程式暫存檔案嗎？"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"清除應用程式暫存檔案"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"「<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>」想要清除某些暫存檔案，這可能會導致耗電量或行動數據用量增加。"</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"正在清除應用程式暫存檔案…"</string>
+    <string name="clear" msgid="5524638938415865915">"清除"</string>
     <string name="allow" msgid="8885707816848569619">"允許"</string>
     <string name="deny" msgid="6040983710442068936">"拒絕"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

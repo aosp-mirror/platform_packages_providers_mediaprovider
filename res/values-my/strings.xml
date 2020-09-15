@@ -37,9 +37,10 @@
       <item quantity="other">ထပ်ပေါင်းအရာ <xliff:g id="COUNT_1">^1</xliff:g> ခု အပါအဝင်</item>
       <item quantity="one">ထပ်ပေါင်းအရာ <xliff:g id="COUNT_0">^1</xliff:g> ခု အပါအဝင်</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"ယာယီအက်ပ်ဖိုင်များ ရှင်းထုတ်မလား။"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"ယာယီအက်ပ်ဖိုင်များ ရှင်းရန်"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> သည် ယာယီဖိုင်များမှ အချို့ကို ရှင်းထုတ်လိုသည်။ ထို့ကြောင့် ဘက်ထရီ သို့မဟုတ် ဆယ်လူလာဒေတာ အသုံးပြုမှု မြင့်တက်လာနိုင်သည်။"</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"ယာယီအက်ပ်ဖိုင်များ ရှင်းထုတ်နေသည်…"</string>
+    <string name="clear" msgid="5524638938415865915">"ရှင်းရန်"</string>
     <string name="allow" msgid="8885707816848569619">"ခွင့်ပြုရန်"</string>
     <string name="deny" msgid="6040983710442068936">"ပယ်ရန်"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

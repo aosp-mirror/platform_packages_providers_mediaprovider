@@ -541,7 +541,7 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
     std::regex_search(child_path, match, storage_emulated_regex);
     if (match.size() == 2 && std::to_string(getuid() / PER_USER_RANGE) != match[1].str()) {
         // Ensure the FuseDaemon user id matches the user id in requested path
-        *error_code = EPERM;
+        *error_code = EACCES;
         return nullptr;
     }
     return make_node_entry(req, parent_node, name, child_path, e, error_code);

@@ -169,7 +169,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             @Nullable Class<? extends Annotation> columnAnnotation,
             @Nullable OnSchemaChangeListener schemaListener,
             @Nullable OnFilesChangeListener filesListener,
-            @Nullable OnLegacyMigrationListener migrationListener,
+            @NonNull OnLegacyMigrationListener migrationListener,
             @Nullable UnaryOperator<String> idGenerator) {
         this(context, name, getDatabaseVersion(context), internal, earlyUpgrade, legacyProvider,
                 columnAnnotation, schemaListener, filesListener, migrationListener, idGenerator);
@@ -180,7 +180,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             @Nullable Class<? extends Annotation> columnAnnotation,
             @Nullable OnSchemaChangeListener schemaListener,
             @Nullable OnFilesChangeListener filesListener,
-            @Nullable OnLegacyMigrationListener migrationListener,
+            @NonNull OnLegacyMigrationListener migrationListener,
             @Nullable UnaryOperator<String> idGenerator) {
         super(context, name, null, version);
         mContext = context;
@@ -1103,6 +1103,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         sMigrateColumns.add(MediaStore.MediaColumns.IS_FAVORITE);
         sMigrateColumns.add(MediaStore.MediaColumns.OWNER_PACKAGE_NAME);
 
+        sMigrateColumns.add(MediaStore.MediaColumns.ORIENTATION);
+
         sMigrateColumns.add(MediaStore.Audio.AudioColumns.BOOKMARK);
 
         sMigrateColumns.add(MediaStore.Video.VideoColumns.TAGS);
@@ -1181,7 +1183,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + ", COUNT(DISTINCT album_id) AS " + Audio.Artists.NUMBER_OF_ALBUMS
                 + ", COUNT(DISTINCT _id) AS " + Audio.Artists.NUMBER_OF_TRACKS
                 + " FROM audio"
-                + " WHERE volume_name IN " + filterVolumeNames
+                + " WHERE is_music=1 AND volume_name IN " + filterVolumeNames
                 + " GROUP BY artist_id");
 
         db.execSQL("CREATE VIEW audio_albums AS SELECT "
@@ -1198,7 +1200,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + ", MAX(year) AS " + Audio.Albums.LAST_YEAR
                 + ", NULL AS " + Audio.Albums.ALBUM_ART
                 + " FROM audio"
-                + " WHERE volume_name IN " + filterVolumeNames
+                + " WHERE is_music=1 AND volume_name IN " + filterVolumeNames
                 + " GROUP BY album_id");
 
         db.execSQL("CREATE VIEW audio_genres AS SELECT "

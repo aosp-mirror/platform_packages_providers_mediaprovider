@@ -558,8 +558,9 @@ public class MediaProvider extends ContentProvider {
             }
 
             updateQuotaTypeForFileInternal(file, mediaType);
-        } catch (FileNotFoundException e) {
+        } catch (FileNotFoundException | IllegalArgumentException e) {
             // Ignore
+            Log.w(TAG, "Failed to update quota for uri: " + uri, e);
             return;
         } finally {
             Trace.endSection();
@@ -679,7 +680,9 @@ public class MediaProvider extends ContentProvider {
         return null;
     };
 
-    private final OnLegacyMigrationListener mMigrationListener = new OnLegacyMigrationListener() {
+    /** {@hide} */
+    public static final OnLegacyMigrationListener MIGRATION_LISTENER =
+            new OnLegacyMigrationListener() {
         @Override
         public void onStarted(ContentProviderClient client, String volumeName) {
             MediaStore.startLegacyMigration(ContentResolver.wrap(client), volumeName);
@@ -880,10 +883,10 @@ public class MediaProvider extends ContentProvider {
 
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME,
                 true, false, false, Column.class,
-                Metrics::logSchemaChange, mFilesListener, mMigrationListener, mIdGenerator);
+                Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER, mIdGenerator);
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME,
                 false, false, false, Column.class,
-                Metrics::logSchemaChange, mFilesListener, mMigrationListener, mIdGenerator);
+                Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER, mIdGenerator);
 
         final IntentFilter packageFilter = new IntentFilter();
         packageFilter.setPriority(10);
@@ -2545,17 +2548,17 @@ public class MediaProvider extends ContentProvider {
                         defaultMimeType = "audio/mpegurl";
                         defaultMediaType = FileColumns.MEDIA_TYPE_PLAYLIST;
                         defaultPrimary = Environment.DIRECTORY_MUSIC;
-                        allowedPrimary = Arrays.asList(
-                                Environment.DIRECTORY_MUSIC,
-                                Environment.DIRECTORY_MOVIES);
+                        allowedPrimary = new ArrayList<>(allowedPrimary);
+                        allowedPrimary.add(Environment.DIRECTORY_MUSIC);
+                        allowedPrimary.add(Environment.DIRECTORY_MOVIES);
                         break;
                     case FileColumns.MEDIA_TYPE_SUBTITLE:
                         defaultMimeType = "application/x-subrip";
                         defaultMediaType = FileColumns.MEDIA_TYPE_SUBTITLE;
                         defaultPrimary = Environment.DIRECTORY_MOVIES;
-                        allowedPrimary = Arrays.asList(
-                                Environment.DIRECTORY_MUSIC,
-                                Environment.DIRECTORY_MOVIES);
+                        allowedPrimary = new ArrayList<>(allowedPrimary);
+                        allowedPrimary.add(Environment.DIRECTORY_MUSIC);
+                        allowedPrimary.add(Environment.DIRECTORY_MOVIES);
                         break;
                 }
             } else if (defaultMediaType != actualMediaType) {
@@ -3321,6 +3324,15 @@ public class MediaProvider extends ContentProvider {
             }
             if (initialValues.containsKey(ImageColumns.LONGITUDE)) {
                 initialValues.putNull(ImageColumns.LONGITUDE);
+            }
+            if (getCallingPackageTargetSdkVersion() <= Build.VERSION_CODES.Q) {
+                // These columns are removed in R.
+                if (initialValues.containsKey("primary_directory")) {
+                    initialValues.remove("primary_directory");
+                }
+                if (initialValues.containsKey("secondary_directory")) {
+                    initialValues.remove("secondary_directory");
+                }
             }
 
             if (isCallingPackageSelf() || isCallingPackageShell()) {
@@ -5142,6 +5154,15 @@ public class MediaProvider extends ContentProvider {
             }
             if (initialValues.containsKey(ImageColumns.LONGITUDE)) {
                 initialValues.putNull(ImageColumns.LONGITUDE);
+            }
+            if (getCallingPackageTargetSdkVersion() <= Build.VERSION_CODES.Q) {
+                // These columns are removed in R.
+                if (initialValues.containsKey("primary_directory")) {
+                    initialValues.remove("primary_directory");
+                }
+                if (initialValues.containsKey("secondary_directory")) {
+                    initialValues.remove("secondary_directory");
+                }
             }
         }
 

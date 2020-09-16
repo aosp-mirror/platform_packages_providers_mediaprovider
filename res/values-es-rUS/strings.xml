@@ -37,9 +37,10 @@
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> elementos adicionales</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> elemento adicional</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"¿Deseas borrar archivos temporales de apps?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Borra archivos temporales de apps"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> quiere borrar algunos archivos temporales, lo que podría ocasionar un mayor uso de la batería o los datos móviles."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Borrando archivos temporales de apps…"</string>
+    <string name="clear" msgid="5524638938415865915">"Borrar"</string>
     <string name="allow" msgid="8885707816848569619">"Permitir"</string>
     <string name="deny" msgid="6040983710442068936">"Rechazar"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

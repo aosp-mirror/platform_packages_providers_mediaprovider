@@ -1,0 +1,43 @@
+// Signature format: 2.0
+package android.provider {
+
+  public static interface MediaStore.Audio.AudioColumns extends android.provider.MediaStore.MediaColumns {
+    field public static final String ALBUM = "album";
+    field public static final String ARTIST = "artist";
+    field public static final String COMPOSER = "composer";
+    field public static final String DURATION = "duration";
+  }
+
+  public static interface MediaStore.DownloadColumns extends android.provider.MediaStore.MediaColumns {
+    field @Deprecated public static final String DESCRIPTION = "description";
+  }
+
+  public static interface MediaStore.Files.FileColumns extends android.provider.MediaStore.MediaColumns {
+    field public static final String TITLE = "title";
+  }
+
+  public static interface MediaStore.Images.ImageColumns extends android.provider.MediaStore.MediaColumns {
+    field public static final String BUCKET_DISPLAY_NAME = "bucket_display_name";
+    field public static final String BUCKET_ID = "bucket_id";
+    field public static final String DATE_TAKEN = "datetaken";
+    field public static final String GROUP_ID = "group_id";
+    field public static final String ORIENTATION = "orientation";
+  }
+
+  public static interface MediaStore.MediaColumns extends android.provider.BaseColumns {
+    field @Deprecated public static final String GROUP_ID = "group_id";
+  }
+
+  public static interface MediaStore.Video.VideoColumns extends android.provider.MediaStore.MediaColumns {
+    field public static final String ALBUM = "album";
+    field public static final String ARTIST = "artist";
+    field public static final String BUCKET_DISPLAY_NAME = "bucket_display_name";
+    field public static final String BUCKET_ID = "bucket_id";
+    field public static final String DATE_TAKEN = "datetaken";
+    field public static final String DURATION = "duration";
+    field public static final String GROUP_ID = "group_id";
+    field public static final String RESOLUTION = "resolution";
+  }
+
+}
+

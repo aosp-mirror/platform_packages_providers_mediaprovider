@@ -1,0 +1,23 @@
+
+android_app {
+    name: "MediaProviderLegacy",
+    manifest: "AndroidManifest.xml",
+
+    static_libs: [
+        "androidx.appcompat_appcompat",
+        "androidx.core_core",
+        "guava",
+    ],
+
+    libs: ["app-compat-annotations"],
+
+    srcs: [
+        "src/**/*.aidl",
+        "src/**/*.java",
+        ":mediaprovider-database-sources",
+    ],
+
+    certificate: "media",
+    privileged: true,
+    sdk_version: "system_current",
+}

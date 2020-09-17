@@ -27,15 +27,8 @@
     <!-- Description line for music artists in the search/suggestion results -->
     <string name="artist_label">Artist</string>
 
-    <!-- Choice in the ringtone picker.  If chosen, the default ringtone will be used. -->
-    <string name="ringtone_default">Default ringtone</string>
-
-    <!-- Choice in the notification sound picker.  If chosen, the default notification sound will be
-         used. -->
-    <string name="notification_sound_default">Default notification sound</string>
-
-    <!-- Choice in the alarm sound picker.  If chosen, the default alarm sound will be used. -->
-    <string name="alarm_sound_default">Default alarm sound</string>
+    <!-- Label for a file or directory which has no valid user-visible description [CHAR LIMIT=32] -->
+    <string name="unknown">Unknown</string>
 
     <!-- Title for documents backend that offers images. [CHAR LIMIT=24] -->
     <string name="root_images">Images</string>
@@ -43,116 +36,140 @@
     <string name="root_videos">Videos</string>
     <!-- Title for documents backend that offers audio. [CHAR LIMIT=24] -->
     <string name="root_audio">Audio</string>
+    <!-- Title for documents backend that offers documents. [CHAR LIMIT=24] -->
+    <string name="root_documents">Documents</string>
 
     <!-- Message telling users that the app must request permission before working with a media item. [CHAR LIMIT=128] -->
     <string name="permission_required">Permission required to modify or delete this item.</string>
     <!-- Button text that users can click on to request permission before working with a media item. [CHAR LIMIT=32] -->
     <string name="permission_required_action">Continue</string>
 
-    <!-- Prompt asking if user will allow permission to the audio item shown below this string. [CHAR LIMIT=128] -->
-    <string name="permission_audio">Allow <b><xliff:g id="app_name" example="Gmail">^1</xliff:g></b> to modify or delete this music?</string>
-    <!-- Prompt asking if user will allow permission to the video item shown below this string. [CHAR LIMIT=128] -->
-    <string name="permission_video">Allow <b><xliff:g id="app_name" example="Gmail">^1</xliff:g></b> to modify or delete this video?</string>
-    <!-- Prompt asking if user will allow permission to the image item shown below this string. [CHAR LIMIT=128] -->
-    <string name="permission_images">Allow <b><xliff:g id="app_name" example="Gmail">^1</xliff:g></b> to modify or delete this image?</string>
-
     <!-- Title for the dialog button to allow a permission grant. [CHAR LIMIT=15]  -->
     <string name="grant_dialog_button_allow">Allow</string>
     <!-- Title for the dialog button to deny a permission grant. [CHAR LIMIT=15]  -->
     <string name="grant_dialog_button_deny">Deny</string>
 
-    <!-- Strings of localized sound names below:
-         VERY IMPORTANT: the lower case version of the names must match the resource
-                         name as extracted from the metadata or the file name, all
-                         non-alphanumeric characters are replaced by "_", each
-                         resource name is preceded by "sound_name_".
-    -->
+    <!-- Text placed over a visual thumbnail indicating that there are more items beyond the number currently displayed on the screen. [CHAR LIMIT=6] -->
+    <plurals name="permission_more_thumb">
+        <item quantity="one">+<xliff:g id="count" example="1">^1</xliff:g></item>
+        <item quantity="other">+<xliff:g id="count" example="42">^1</xliff:g></item>
+    </plurals>
 
-    <!-- Name of alarm in the alarm sound picker: theme:motion, style:ambient tempo:flowing -->
-    <string name="sound_name_awaken">Awaken</string>
-    <!-- Name of alarm in the alarm sound picker: theme:motion, style:soft pure tones
-         tempo:initially downtempo -->
-    <string name="sound_name_bounce">Bounce</string>
-    <!-- Name of alarm in the alarm sound picker: theme:motion, style:traditional tempo:mid -->
-    <string name="sound_name_drip">Drip</string>
-    <!-- Name of alarm in the alarm sound picker: theme:motion, style:rhythmic tempo:up-tempo -->
-    <string name="sound_name_gallop">Gallop</string>
-    <!-- Name of alarm in the alarm sound picker: theme:motion, style:traditional tempo:mid -->
-    <string name="sound_name_nudge">Nudge</string>
-    <!-- Name of alarm in the alarm sound picker: theme:motion, style:traditional tempo:mid -->
-    <string name="sound_name_orbit">Orbit</string>
-    <!-- Name of alarm in the alarm sound picker: theme:motion, style:digital tempo:mid -->
-    <string name="sound_name_rise">Rise</string>
-    <!-- Name of alarm in the alarm sound picker: theme:motion, style:musical tempo:swaying -->
-    <string name="sound_name_sway">Sway</string>
-    <!-- Name of alarm in the alarm sound picker: theme:motion, style:sound design tempo:mid -->
-    <string name="sound_name_wag">Wag</string>
+    <!-- Text shown at the end of a list indicating that there are more items beyond the number currently displayed on the screen. [CHAR LIMIT=32]  -->
+    <plurals name="permission_more_text">
+        <item quantity="one">Plus <xliff:g id="count" example="42">^1</xliff:g> additional item</item>
+        <item quantity="other">Plus <xliff:g id="count" example="42">^1</xliff:g> additional items</item>
+    </plurals>
 
-    <!-- Text for the RingtonePicker item that allows adding a new ringtone. -->
-    <string name="add_ringtone_text">Add ringtone</string>
-    <!-- Text for the RingtonePicker item that allows adding a new alarm. -->
-    <string name="add_alarm_text">Add alarm</string>
-    <!-- Text for the RingtonePicker item that allows adding a new notification. -->
-    <string name="add_notification_text">Add notification</string>
-    <!-- Text for the RingtonePicker item ContextMenu that allows deleting a custom ringtone. -->
-    <string name="delete_ringtone_text">Delete</string>
-    <!-- Text for the Toast displayed when adding a custom ringtone fails. -->
-    <string name="unable_to_add_ringtone">Unable to add custom ringtone</string>
-    <!-- Text for the Toast displayed when deleting a custom ringtone fails. -->
-    <string name="unable_to_delete_ringtone">Unable to delete custom ringtone</string>
+    <!-- Cache clearing permission dialog warning title. [CHAR LIMIT=NONE] -->
+    <string name="cache_clearing_dialog_title">Clear temporary app files?</string>
 
-    <!--  When adding sounds as overlays, you can use the resources defined below.
-          For the translation of the names to be picked up by the RingtonePicker:
-          - in the sound files, set the "TITLE" tag as "alarm_XX" or "notification_XX"
-            or "ringtone_XX",
-          - in the overlay for packages/providers/MediaProvider/res/values/strings.xml
-            define the strings for the names "sound_name_alarm_XX" etc -->
-    <add-resource type="string" name="sound_name_alarm_01" />
-    <add-resource type="string" name="sound_name_alarm_02" />
-    <add-resource type="string" name="sound_name_alarm_03" />
-    <add-resource type="string" name="sound_name_alarm_04" />
-    <add-resource type="string" name="sound_name_alarm_05" />
-    <add-resource type="string" name="sound_name_alarm_06" />
-    <add-resource type="string" name="sound_name_alarm_07" />
-    <add-resource type="string" name="sound_name_alarm_08" />
-    <add-resource type="string" name="sound_name_alarm_09" />
-    <add-resource type="string" name="sound_name_alarm_10" />
-    <add-resource type="string" name="sound_name_alarm_11" />
-    <add-resource type="string" name="sound_name_alarm_12" />
-    <add-resource type="string" name="sound_name_alarm_13" />
-    <add-resource type="string" name="sound_name_alarm_14" />
-    <add-resource type="string" name="sound_name_alarm_15" />
+    <!-- Cache clearing permission dialog warning text. [CHAR LIMIT=NONE] -->
+    <string name="cache_clearing_dialog_text"><xliff:g id="app_seeking_permission" example="File manager">%s</xliff:g> would like to clear some temporary files. This may result in an increased usage of battery or cellular data.</string>
 
-    <add-resource type="string" name="sound_name_notification_01" />
-    <add-resource type="string" name="sound_name_notification_02" />
-    <add-resource type="string" name="sound_name_notification_03" />
-    <add-resource type="string" name="sound_name_notification_04" />
-    <add-resource type="string" name="sound_name_notification_05" />
-    <add-resource type="string" name="sound_name_notification_06" />
-    <add-resource type="string" name="sound_name_notification_07" />
-    <add-resource type="string" name="sound_name_notification_08" />
-    <add-resource type="string" name="sound_name_notification_09" />
-    <add-resource type="string" name="sound_name_notification_10" />
-    <add-resource type="string" name="sound_name_notification_11" />
-    <add-resource type="string" name="sound_name_notification_12" />
-    <add-resource type="string" name="sound_name_notification_13" />
-    <add-resource type="string" name="sound_name_notification_14" />
-    <add-resource type="string" name="sound_name_notification_15" />
+    <!-- Cache clearing in progress title. [CHAR LIMIT=NONE] -->
+    <string name="cache_clearing_in_progress_title">Clearing temporary app files\u2026</string>
 
-    <add-resource type="string" name="sound_name_ringtone_01" />
-    <add-resource type="string" name="sound_name_ringtone_02" />
-    <add-resource type="string" name="sound_name_ringtone_03" />
-    <add-resource type="string" name="sound_name_ringtone_04" />
-    <add-resource type="string" name="sound_name_ringtone_05" />
-    <add-resource type="string" name="sound_name_ringtone_06" />
-    <add-resource type="string" name="sound_name_ringtone_07" />
-    <add-resource type="string" name="sound_name_ringtone_08" />
-    <add-resource type="string" name="sound_name_ringtone_09" />
-    <add-resource type="string" name="sound_name_ringtone_10" />
-    <add-resource type="string" name="sound_name_ringtone_11" />
-    <add-resource type="string" name="sound_name_ringtone_12" />
-    <add-resource type="string" name="sound_name_ringtone_13" />
-    <add-resource type="string" name="sound_name_ringtone_14" />
-    <add-resource type="string" name="sound_name_ringtone_15" />
+    <!-- Allow dialog action text. [CHAR LIMIT=30] -->
+    <string name="allow">Allow</string>
+
+    <!-- Deny dialog action text. [CHAR LIMIT=30] -->
+    <string name="deny">Deny</string>
+
+    <!-- ========================= BEGIN AUTO-GENERATED BY gen_strings.py ========================= -->
+
+    <!-- ========================= WRITE STRINGS ========================= -->
+
+    <!-- Dialog title asking if user will allow write permission to the audio item displayed below this string. [CHAR LIMIT=128] -->
+    <plurals name="permission_write_audio">
+        <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to modify this audio file?</item>
+        <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to modify <xliff:g id="count" example="42">^2</xliff:g> audio files?</item>
+    </plurals>
+    <!-- Dialog title asking if user will allow write permission to the video item displayed below this string. [CHAR LIMIT=128] -->
+    <plurals name="permission_write_video">
+        <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to modify this video?</item>
+        <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to modify <xliff:g id="count" example="42">^2</xliff:g> videos?</item>
+    </plurals>
+    <!-- Dialog title asking if user will allow write permission to the image item displayed below this string. [CHAR LIMIT=128] -->
+    <plurals name="permission_write_image">
+        <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to modify this photo?</item>
+        <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to modify <xliff:g id="count" example="42">^2</xliff:g> photos?</item>
+    </plurals>
+    <!-- Dialog title asking if user will allow write permission to the generic item displayed below this string. [CHAR LIMIT=128] -->
+    <plurals name="permission_write_generic">
+        <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to modify this item?</item>
+        <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to modify <xliff:g id="count" example="42">^2</xliff:g> items?</item>
+    </plurals>
+
+    <!-- ========================= TRASH STRINGS ========================= -->
+
+    <!-- Dialog title asking if user will allow trash permission to the audio item displayed below this string. [CHAR LIMIT=128] -->
+    <plurals name="permission_trash_audio">
+        <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move this audio file to trash?</item>
+        <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move <xliff:g id="count" example="42">^2</xliff:g> audio files to trash?</item>
+    </plurals>
+    <!-- Dialog title asking if user will allow trash permission to the video item displayed below this string. [CHAR LIMIT=128] -->
+    <plurals name="permission_trash_video">
+        <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move this video to trash?</item>
+        <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move <xliff:g id="count" example="42">^2</xliff:g> videos to trash?</item>
+    </plurals>
+    <!-- Dialog title asking if user will allow trash permission to the image item displayed below this string. [CHAR LIMIT=128] -->
+    <plurals name="permission_trash_image">
+        <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move this photo to trash?</item>
+        <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move <xliff:g id="count" example="42">^2</xliff:g> photos to trash?</item>
+    </plurals>
+    <!-- Dialog title asking if user will allow trash permission to the generic item displayed below this string. [CHAR LIMIT=128] -->
+    <plurals name="permission_trash_generic">
+        <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move this item to trash?</item>
+        <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move <xliff:g id="count" example="42">^2</xliff:g> items to trash?</item>
+    </plurals>
+
+    <!-- ========================= UNTRASH STRINGS ========================= -->
+
+    <!-- Dialog title asking if user will allow untrash permission to the audio item displayed below this string. [CHAR LIMIT=128] -->
+    <plurals name="permission_untrash_audio">
+        <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move this audio file out of trash?</item>
+        <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move <xliff:g id="count" example="42">^2</xliff:g> audio files out of trash?</item>
+    </plurals>
+    <!-- Dialog title asking if user will allow untrash permission to the video item displayed below this string. [CHAR LIMIT=128] -->
+    <plurals name="permission_untrash_video">
+        <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move this video out of trash?</item>
+        <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move <xliff:g id="count" example="42">^2</xliff:g> videos out of trash?</item>
+    </plurals>
+    <!-- Dialog title asking if user will allow untrash permission to the image item displayed below this string. [CHAR LIMIT=128] -->
+    <plurals name="permission_untrash_image">
+        <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move this photo out of trash?</item>
+        <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move <xliff:g id="count" example="42">^2</xliff:g> photos out of trash?</item>
+    </plurals>
+    <!-- Dialog title asking if user will allow untrash permission to the generic item displayed below this string. [CHAR LIMIT=128] -->
+    <plurals name="permission_untrash_generic">
+        <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move this item out of trash?</item>
+        <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move <xliff:g id="count" example="42">^2</xliff:g> items out of trash?</item>
+    </plurals>
+
+    <!-- ========================= DELETE STRINGS ========================= -->
+
+    <!-- Dialog title asking if user will allow delete permission to the audio item displayed below this string. [CHAR LIMIT=128] -->
+    <plurals name="permission_delete_audio">
+        <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to delete this audio file?</item>
+        <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to delete <xliff:g id="count" example="42">^2</xliff:g> audio files?</item>
+    </plurals>
+    <!-- Dialog title asking if user will allow delete permission to the video item displayed below this string. [CHAR LIMIT=128] -->
+    <plurals name="permission_delete_video">
+        <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to delete this video?</item>
+        <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to delete <xliff:g id="count" example="42">^2</xliff:g> videos?</item>
+    </plurals>
+    <!-- Dialog title asking if user will allow delete permission to the image item displayed below this string. [CHAR LIMIT=128] -->
+    <plurals name="permission_delete_image">
+        <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to delete this photo?</item>
+        <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to delete <xliff:g id="count" example="42">^2</xliff:g> photos?</item>
+    </plurals>
+    <!-- Dialog title asking if user will allow delete permission to the generic item displayed below this string. [CHAR LIMIT=128] -->
+    <plurals name="permission_delete_generic">
+        <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to delete this item?</item>
+        <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to delete <xliff:g id="count" example="42">^2</xliff:g> items?</item>
+    </plurals>
+
+    <!-- ========================= END AUTO-GENERATED BY gen_strings.py ========================= -->
 
 </resources>

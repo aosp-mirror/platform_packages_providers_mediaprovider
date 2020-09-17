@@ -1,39 +1,46 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-        package="com.android.providers.media"
-        android:sharedUserId="android.media"
-        android:sharedUserLabel="@string/uid_label"
-        android:versionCode="1023">
+        package="com.android.providers.media.module">
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.RECEIVE_DEVICE_CUSTOMIZATION_READY" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE" />
-    <uses-permission android:name="android.permission.ACCESS_MTP" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+
     <uses-permission android:name="android.permission.MANAGE_USERS" />
     <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
-    <uses-permission android:name="android.permission.USE_RESERVED_DISK" />
+
     <uses-permission android:name="android.permission.WATCH_APPOPS" />
+    <uses-permission android:name="android.permission.UPDATE_APP_OPS_STATS" />
     <uses-permission android:name="android.permission.UPDATE_DEVICE_STATS" />
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.USE_RESERVED_DISK" />
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <uses-permission android:name="android.permission.HIDE_NON_SYSTEM_OVERLAY_WINDOWS" />
+
+    <!-- Permissions required for reading and logging compat changes -->
+    <uses-permission android:name="android.permission.LOG_COMPAT_CHANGE"/>
+    <uses-permission android:name="android.permission.READ_COMPAT_CHANGE_CONFIG"/>
 
     <application
-            android:process="android.process.media"
+            android:name="com.android.providers.media.MediaApplication"
             android:label="@string/app_label"
             android:allowBackup="false"
             android:supportsRtl="true"
+            android:forceQueryable="true"
             android:usesCleartextTraffic="true">
         <provider
-                android:name=".MediaProvider"
+                android:name="com.android.providers.media.MediaProvider"
                 android:authorities="media"
                 android:grantUriPermissions="true"
                 android:forceUriPermissions="true"
                 android:exported="true" />
 
         <provider
-                android:name=".MediaDocumentsProvider"
+                android:name="com.android.providers.media.MediaDocumentsProvider"
                 android:label="@string/storage_description"
                 android:authorities="com.android.providers.media.documents"
                 android:grantUriPermissions="true"
@@ -45,7 +52,7 @@
         </provider>
 
         <!-- Handles database upgrades after OTAs, then disables itself -->
-        <receiver android:name="MediaUpgradeReceiver">
+        <receiver android:name="com.android.providers.media.MediaUpgradeReceiver">
             <!-- This broadcast is sent after the core system has finished
                  booting, before the home app is launched or BOOT_COMPLETED
                  is sent. -->
@@ -54,10 +61,11 @@
             </intent-filter>
         </receiver>
 
-        <receiver android:name=".MediaReceiver">
+        <receiver android:name="com.android.providers.media.MediaReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.DEVICE_CUSTOMIZATION_READY"/>
+            </intent-filter>
+            <intent-filter>
                 <action android:name="android.intent.action.LOCALE_CHANGED" />
             </intent-filter>
             <intent-filter>
@@ -76,49 +84,43 @@
         </receiver>
 
         <service
-            android:name=".IdleService"
+            android:name="com.android.providers.media.IdleService"
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
         <service
-            android:name=".MediaService"
-            android:exported="false" />
+            android:name="com.android.providers.media.MediaService"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
 
-        <service
-            android:name=".MediaScannerService"
-            android:exported="true">
+        <service android:name="com.android.providers.media.fuse.ExternalStorageServiceImpl"
+                 android:permission="android.permission.BIND_EXTERNAL_STORAGE_SERVICE">
             <intent-filter>
-                <action android:name="android.media.IMediaScannerService" />
+                <action android:name="android.service.storage.ExternalStorageService" />
             </intent-filter>
         </service>
 
-        <receiver android:name=".MtpReceiver">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.hardware.usb.action.USB_STATE" />
-            </intent-filter>
-        </receiver>
-
-        <service android:name="MtpService" />
-
-        <service android:name="RingtoneOverlayService" />
-
-        <activity android:name="RingtonePickerActivity"
+        <activity
+                android:name="com.android.providers.media.PermissionActivity"
+                android:configChanges="orientation|keyboardHidden|screenSize"
                 android:theme="@style/PickerDialogTheme"
-                android:enabled="@*android:bool/config_defaultRingtonePickerEnabled"
-                android:excludeFromRecents="true">
+                android:exported="false"
+                android:excludeFromRecents="true" />
+
+        <activity
+                android:name="com.android.providers.media.CacheClearingActivity"
+                android:configChanges="orientation|keyboardHidden|screenSize"
+                android:exported="true"
+                android:theme="@style/CacheClearingAlertDialogTheme"
+                android:finishOnCloseSystemDialogs="true"
+                android:launchMode="singleTop"
+                android:excludeFromRecents="true"
+                android:visibleToInstantApps="true"
+                android:priority="100" >
             <intent-filter>
-                <action android:name="android.intent.action.RINGTONE_PICKER" />
+                <action android:name="android.os.storage.action.CLEAR_APP_CACHE" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-
-        <activity
-            android:name=".PermissionActivity"
-            android:theme="@style/PickerDialogTheme"
-            android:permission="android.permission.WRITE_MEDIA_STORAGE"
-            android:excludeFromRecents="true" />
     </application>
 </manifest>

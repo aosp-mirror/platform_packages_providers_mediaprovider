@@ -16,24 +16,27 @@
 
 package com.android.providers.media.scan;
 
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_SCAN_OCCURRED__REASON__DEMAND;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_SCAN_OCCURRED__REASON__IDLE;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_SCAN_OCCURRED__REASON__MOUNTED;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_SCAN_OCCURRED__REASON__UNKNOWN;
+
 import android.content.Context;
 import android.net.Uri;
 
-import com.android.providers.media.MediaProvider;
+import androidx.annotation.Nullable;
 
 import java.io.File;
 
 public interface MediaScanner {
-    public Context getContext();
-    public void scanDirectory(File file);
-    public Uri scanFile(File file);
-    public void onDetachVolume(String volumeName);
+    public static final int REASON_UNKNOWN = MEDIA_PROVIDER_SCAN_OCCURRED__REASON__UNKNOWN;
+    public static final int REASON_MOUNTED = MEDIA_PROVIDER_SCAN_OCCURRED__REASON__MOUNTED;
+    public static final int REASON_DEMAND = MEDIA_PROVIDER_SCAN_OCCURRED__REASON__DEMAND;
+    public static final int REASON_IDLE = MEDIA_PROVIDER_SCAN_OCCURRED__REASON__IDLE;
 
-    public static MediaScanner instance(Context context) {
-        if (MediaProvider.ENABLE_MODERN_SCANNER) {
-            return new ModernMediaScanner(context);
-        } else {
-            return new LegacyMediaScanner(context);
-        }
-    }
+    public Context getContext();
+    public void scanDirectory(File file, int reason);
+    public Uri scanFile(File file, int reason);
+    public Uri scanFile(File file, int reason, @Nullable String ownerPackage);
+    public void onDetachVolume(String volumeName);
 }

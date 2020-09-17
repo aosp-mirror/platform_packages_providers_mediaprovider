@@ -4,12 +4,26 @@
             "name": "MediaProviderTests"
         },
         {
+            "name": "MediaProviderClientTests"
+        },
+        {
             "name": "CtsProviderTestCases",
             "options": [
                 {
-                    "include-annotation": "android.platform.test.annotations.Presubmit"
+                    "include-filter": "android.provider.cts.media."
                 }
             ]
+        },
+        {
+            // This is a typo and is tracked in b/155715039 but flaky on CF.
+            // Will fix this once the root cause of flake is fixed.
+            "name": "AdoptableHostTest"
+        },
+        {
+            "name": "CtsScopedStorageHostTest"
+        },
+        {
+            "name": "fuse_node_test"
         }
     ]
 }

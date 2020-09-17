@@ -1,10 +1,25 @@
+// This looks a bit awkward, but we need our tests to run against either
+// MediaProvider or MediaProviderGoogle, and we don't know which one is
+// on the device being tested, so we can't sign our tests with a key that
+// will allow instrumentation.  Thus we pull all the sources we need to
+// run tests against into the test itself.
 android_test {
     name: "MediaProviderTests",
-    test_suites: ["device-tests"],
+    test_suites: [
+        "device-tests",
+        "mts",
+    ],
+    compile_multilib: "both",
 
     manifest: "AndroidManifest.xml",
 
+    resource_dirs: [
+        "main_res",
+        "res",
+    ],
     srcs: [
+        ":framework-mediaprovider-sources",
+        ":mediaprovider-sources",
         "src/**/*.java",
     ],
 
@@ -12,14 +27,26 @@ android_test {
         "android.test.base",
         "android.test.mock",
         "android.test.runner",
+        "unsupportedappusage",
     ],
 
     static_libs: [
+        "androidx.appcompat_appcompat",
+        "androidx.core_core",
         "androidx.test.rules",
+        "guava",
         "mockito-target",
+        "truth-prebuilt",
     ],
 
     certificate: "media",
 
-    instrumentation_for: "MediaProvider",
+    aaptflags: ["--custom-package com.android.providers.media"],
+
+    errorprone: {
+        javacflags: [
+            "-Xep:CatchFail:ERROR",
+            "-Xep:MissingFail:ERROR",
+        ],
+    },
 }

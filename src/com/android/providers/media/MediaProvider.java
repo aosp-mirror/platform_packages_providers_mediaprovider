@@ -124,6 +124,7 @@ import android.os.ParcelFileDescriptor;
 import android.os.ParcelFileDescriptor.OnCloseListener;
 import android.os.RemoteException;
 import android.os.SystemClock;
+import android.os.SystemProperties;
 import android.os.Trace;
 import android.os.UserHandle;
 import android.os.storage.StorageManager;
@@ -182,6 +183,7 @@ import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
 import com.android.providers.media.util.PermissionUtils;
+import com.android.providers.media.util.RedactingFileDescriptor;
 import com.android.providers.media.util.SQLiteQueryBuilder;
 import com.android.providers.media.util.XmpInterface;
 

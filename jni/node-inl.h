@@ -320,6 +320,7 @@ class node {
           refcount_(0),
           parent_(nullptr),
           deleted_(false),
+          has_case_insensitive_match_(false),
           lock_(lock),
           tracker_(tracker) {
         tracker_->NodeCreated(this);

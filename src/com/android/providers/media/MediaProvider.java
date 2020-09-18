@@ -44,6 +44,7 @@ import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_MAN
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_SELF;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_SHELL;
+import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_SYSTEM_GALLERY;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_READ_AUDIO;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_READ_IMAGES;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_READ_VIDEO;
@@ -123,7 +124,6 @@ import android.os.ParcelFileDescriptor;
 import android.os.ParcelFileDescriptor.OnCloseListener;
 import android.os.RemoteException;
 import android.os.SystemClock;
-import android.os.SystemProperties;
 import android.os.Trace;
 import android.os.UserHandle;
 import android.os.storage.StorageManager;
@@ -182,7 +182,6 @@ import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
 import com.android.providers.media.util.PermissionUtils;
-import com.android.providers.media.util.RedactingFileDescriptor;
 import com.android.providers.media.util.SQLiteQueryBuilder;
 import com.android.providers.media.util.XmpInterface;
 
@@ -6263,7 +6262,15 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
         try {
-            return uid != android.os.Process.SHELL_UID && isCallingPackageManager();
+            if (uid != android.os.Process.SHELL_UID && isCallingPackageManager()) {
+                return true;
+            }
+            // We bypass db operations for legacy system galleries with W_E_S (see b/167307393).
+            // Tracking a longer term solution in b/168784136.
+            if (isCallingPackageLegacyWrite() && isCallingPackageSystemGallery()) {
+                return true;
+            }
+            return false;
         } finally {
             restoreLocalCallingIdentity(token);
         }
@@ -7693,6 +7700,10 @@ public class MediaProvider extends ContentProvider {
             builder.appendPath(basePath.get(i));
         }
         return builder.build();
+    }
+
+    private boolean isCallingPackageSystemGallery() {
+        return mCallingIdentity.get().hasPermission(PERMISSION_IS_SYSTEM_GALLERY);
     }
 
     @Deprecated

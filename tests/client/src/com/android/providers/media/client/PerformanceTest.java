@@ -39,7 +39,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -367,6 +366,7 @@ public class PerformanceTest {
     public static class CountingContentObserver extends ContentObserver {
         private final int uriCount;
         private final int flags;
+        private int accumulatedCount = 0;
 
         private final CountDownLatch latch = new CountDownLatch(1);
 
@@ -381,8 +381,19 @@ public class PerformanceTest {
             Log.v(TAG, String.format("onChange(%b, %s, %d)",
                     selfChange, asSet(uris).toString(), flags));
 
-            if ((asSet(uris).size() == this.uriCount) && (flags == this.flags)) {
-                latch.countDown();
+            if (this.uriCount == 1) {
+                if (asSet(uris).size() == 1 && flags == this.flags) {
+                    latch.countDown();
+                }
+            } else if (flags == this.flags) {
+                // NotifyChange for bulk operations will be sent in batches.
+                final int receivedCount = asSet(uris).size();
+
+                if (receivedCount + accumulatedCount == this.uriCount) {
+                    latch.countDown();
+                } else {
+                    accumulatedCount += receivedCount;
+                }
             }
         }
 

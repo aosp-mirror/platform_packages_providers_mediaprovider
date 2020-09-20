@@ -37,9 +37,10 @@
       <item quantity="other">थप <xliff:g id="COUNT_1">^1</xliff:g> वटा अतिरिक्त वस्तु</item>
       <item quantity="one">थप <xliff:g id="COUNT_0">^1</xliff:g> अतिरिक्त वस्तु</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"अनुप्रयोगका अस्थायी फाइलहरू मेटाउने हो?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"एपका अस्थायी फाइलहरू हटाउनुहोस्"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> केही अस्थायी फाइलहरू मेटाउन चाहन्छ। यो कार्य गर्ने अनुमति दिनुभएका खण्डमा ब्याट्रीको खपत वा सेलुलर डेटाको प्रयोग बढ्न सक्छ।"</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"एपका अस्थायी फाइलहरू मेटाउँदै…"</string>
+    <string name="clear" msgid="5524638938415865915">"हटाउनुहोस्"</string>
     <string name="allow" msgid="8885707816848569619">"अनुमति दिनुहोस्"</string>
     <string name="deny" msgid="6040983710442068936">"अस्वीकार गर्नुहोस्"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
@@ -51,8 +52,8 @@
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो भिडियो परिमार्जन गर्न दिने हो?</item>
     </plurals>
     <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> लाई यी <xliff:g id="COUNT">^2</xliff:g> तस्बिरहरू परिमार्जन गर्न दिने हो?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो तस्बिर परिमार्जन गर्न दिने हो?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> लाई यी <xliff:g id="COUNT">^2</xliff:g> फोटोहरू परिमार्जन गर्न दिने हो?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो फोटो परिमार्जन गर्न दिने हो?</item>
     </plurals>
     <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> लाई यी <xliff:g id="COUNT">^2</xliff:g> वस्तुहरू परिमार्जन गर्न दिने हो?</item>
@@ -67,8 +68,8 @@
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो भिडियो सारेर रद्दीको टोकरीमा लैजान दिने हो?</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> लाई यी <xliff:g id="COUNT">^2</xliff:g> तस्बिरहरू सारेर रद्दीको टोकरीमा लैजान दिने हो?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो तस्बिर सारेर रद्दीको टोकरीमा लैजान दिने हो?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> लाई यी <xliff:g id="COUNT">^2</xliff:g> फोटोहरू सारेर रद्दीको टोकरीमा लैजान दिने हो?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो फोटो सारेर रद्दीको टोकरीमा लैजान दिने हो?</item>
     </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> लाई यी <xliff:g id="COUNT">^2</xliff:g> वस्तुहरू सारेर रद्दीको टोकरीमा लैजान दिने हो?</item>
@@ -83,8 +84,8 @@
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो भिडियो रद्दीको टोकरीबाट निकालेर ल्याउन दिने हो?</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> लाई यी <xliff:g id="COUNT">^2</xliff:g> तस्बिरहरू रद्दीको टोकरीबाट निकालेर ल्याउन दिने हो?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो तस्बिर रद्दीको टोकरीबाट निकालेर ल्याउन दिने हो?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> लाई यी <xliff:g id="COUNT">^2</xliff:g> फोटोहरू रद्दीको टोकरीबाट निकालेर ल्याउन दिने हो?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो फोटो रद्दीको टोकरीबाट निकालेर ल्याउन दिने हो?</item>
     </plurals>
     <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> लाई यी <xliff:g id="COUNT">^2</xliff:g> वस्तुहरू रद्दीको टोकरीबाट निकालेर ल्याउन दिने हो?</item>
@@ -99,8 +100,8 @@
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो भिडियो मेटाउन दिने हो?</item>
     </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> लाई यी <xliff:g id="COUNT">^2</xliff:g> तस्बिरहरू मेटाउन दिने हो?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो तस्बिर मेटाउन दिने हो?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> लाई यी <xliff:g id="COUNT">^2</xliff:g> फोटोहरू मेटाउन दिने हो?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो फोटो मेटाउन दिने हो?</item>
     </plurals>
     <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> लाई यी <xliff:g id="COUNT">^2</xliff:g> वस्तुहरू मेटाउन दिने हो?</item>

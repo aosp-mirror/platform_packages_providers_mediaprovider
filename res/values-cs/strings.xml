@@ -41,9 +41,10 @@
       <item quantity="other">Plus <xliff:g id="COUNT_1">^1</xliff:g> dalších položek</item>
       <item quantity="one">Plus <xliff:g id="COUNT_0">^1</xliff:g> další položka</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Vymazat dočasné soubory aplikací?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Vymazání dočasných souborů aplikací"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"Aplikace <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> chce vymazat nějaké dočasné soubory. Tato akce může vést ke zvýšenému využití baterie nebo mobilních dat."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Mazání dočasných souborů aplikace…"</string>
+    <string name="clear" msgid="5524638938415865915">"Vymazat"</string>
     <string name="allow" msgid="8885707816848569619">"Povolit"</string>
     <string name="deny" msgid="6040983710442068936">"Zakázat"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

@@ -37,9 +37,10 @@
       <item quantity="one">अन्य <xliff:g id="COUNT_1">^1</xliff:g> आइटम</item>
       <item quantity="other">अन्य <xliff:g id="COUNT_1">^1</xliff:g> आइटम</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"ऐप्लिकेशन से जुड़ी, कुछ समय तक रहने वाली फ़ाइलें मिटाना चाहते हैं?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"ऐप्लिकेशन से जुड़ी, कुछ समय तक सेव रहने वाली फ़ाइलें मिटाएं"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> कुछ समय तक रहने वाली फ़ाइलें हटाना चाहता है. इससे बैटरी या मोबाइल डेटा का इस्तेमाल बढ़ सकता है."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"ऐप्लिकेशन से जुड़ी, कुछ समय तक सेव रहने वाली फ़ाइलें मिटाई जा रही हैं…"</string>
+    <string name="clear" msgid="5524638938415865915">"मिटाएं"</string>
     <string name="allow" msgid="8885707816848569619">"अनुमति दें"</string>
     <string name="deny" msgid="6040983710442068936">"अनुमति न दें"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

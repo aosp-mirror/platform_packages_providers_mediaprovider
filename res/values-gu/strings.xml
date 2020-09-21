@@ -22,7 +22,7 @@
     <string name="artist_label" msgid="8105600993099120273">"કલાકાર"</string>
     <string name="unknown" msgid="2059049215682829375">"અજાણ"</string>
     <string name="root_images" msgid="5861633549189045666">"છબીઓ"</string>
-    <string name="root_videos" msgid="8792703517064649453">"વિડિઓઝ"</string>
+    <string name="root_videos" msgid="8792703517064649453">"વીડિયો"</string>
     <string name="root_audio" msgid="3505830755201326018">"ઑડિયો"</string>
     <string name="root_documents" msgid="3829103301363849237">"દસ્તાવેજો"</string>
     <string name="permission_required" msgid="1460820436132943754">"આ આઇટમમાં ફેરફાર કરવા માટે અથવા તેને ડિલીટ કરવા માટે પરવાનગી હોવી જરૂરી છે."</string>
@@ -37,9 +37,10 @@
       <item quantity="one">ઉપરાંત <xliff:g id="COUNT_1">^1</xliff:g> વધારાની આઇટમ</item>
       <item quantity="other">ઉપરાંત <xliff:g id="COUNT_1">^1</xliff:g> વધારાની આઇટમ</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"ઍપની બધી અસ્થાયી ફાઇલોને સાફ કરીએ?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"ઍપની બધી અસ્થાયી ફાઇલ સાફ કરો"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> કેટલીક અસ્થાયી ફાઇલોને સાફ કરવા માગે છે. આના પરિણામે બૅટરી અથવા સેલ્યુલર ડેટાના વપરાશમાં વધારો થઈ શકે છે."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"ઍપની બધી અસ્થાયી ફાઇલો સાફ કરી રહ્યાં છીએ…"</string>
+    <string name="clear" msgid="5524638938415865915">"સાફ કરો"</string>
     <string name="allow" msgid="8885707816848569619">"મંજૂરી આપો"</string>
     <string name="deny" msgid="6040983710442068936">"નકારો"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

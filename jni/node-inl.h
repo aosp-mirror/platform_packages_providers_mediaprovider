@@ -332,7 +332,6 @@ class node {
           has_redacted_cache_(false),
           has_case_insensitive_match_(false),
           deleted_(false),
-          has_case_insensitive_match_(false),
           lock_(lock),
           tracker_(tracker) {
         tracker_->NodeCreated(this);

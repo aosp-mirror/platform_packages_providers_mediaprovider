@@ -1290,6 +1290,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("ALTER TABLE files ADD COLUMN xmp BLOB DEFAULT NULL;");
     }
 
+    private static void updateAudioAlbumId(SQLiteDatabase db, boolean internal) {
+        // We change the logic for generating album id, rescan all audio files
+        db.execSQL("UPDATE files SET date_modified=0 WHERE media_type=2;");
+    }
+
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
                 null, null, null, null, null, null)) {
@@ -1345,7 +1350,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
     static final int VERSION_Q = 1023;
-    static final int VERSION_R = 1114;
+    static final int VERSION_R = 1115;
     static final int VERSION_LATEST = VERSION_R;
 
     /**
@@ -1487,6 +1492,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1114) {
                 // Empty version bump to ensure triggers are recreated
+            }
+            if (fromVersion < 1115) {
+                updateAudioAlbumId(db, internal);
             }
 
             // If this is the legacy database, it's not worth recomputing data

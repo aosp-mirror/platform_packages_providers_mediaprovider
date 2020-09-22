@@ -434,8 +434,6 @@ public class MediaProviderTest {
                 getPathOwnerPackageName("/storage/emulated/0/Android/obb/com.example/foo.jpg"));
         assertEquals("com.example",
                 getPathOwnerPackageName("/storage/emulated/0/Android/media/com.example/foo.jpg"));
-        assertEquals("com.example",
-                getPathOwnerPackageName("/storage/emulated/0/Android/sandbox/com.example/foo.jpg"));
     }
 
     @Test
@@ -832,36 +830,19 @@ public class MediaProviderTest {
         assertTrue(isDownload("/storage/emulated/0/Download/test.pdf"));
         assertTrue(isDownload("/storage/emulated/0/Download/dir/foo.mp4"));
         assertTrue(isDownload("/storage/0000-0000/Download/foo.txt"));
-        assertTrue(isDownload(
-                "/storage/emulated/0/Android/sandbox/com.example/Download/colors.png"));
-        assertTrue(isDownload(
-                "/storage/emulated/0/Android/sandbox/shared-com.uid.shared/Download/colors.png"));
-        assertTrue(isDownload(
-                "/storage/0000-0000/Android/sandbox/com.example/Download/colors.png"));
-        assertTrue(isDownload(
-                "/storage/0000-0000/Android/sandbox/shared-com.uid.shared/Download/colors.png"));
-
 
         assertFalse(isDownload("/storage/emulated/0/Pictures/colors.png"));
         assertFalse(isDownload("/storage/emulated/0/Pictures/Download/colors.png"));
         assertFalse(isDownload("/storage/emulated/0/Android/data/com.example/Download/foo.txt"));
-        assertFalse(isDownload(
-                "/storage/emulated/0/Android/sandbox/com.example/dir/Download/foo.txt"));
         assertFalse(isDownload("/storage/emulated/0/Download"));
-        assertFalse(isDownload("/storage/emulated/0/Android/sandbox/com.example/Download"));
-        assertFalse(isDownload(
-                "/storage/0000-0000/Android/sandbox/shared-com.uid.shared/Download"));
     }
 
     @Test
     public void testIsDownloadDir() throws Exception {
         assertTrue(isDownloadDir("/storage/emulated/0/Download"));
-        assertTrue(isDownloadDir("/storage/emulated/0/Android/sandbox/com.example/Download"));
 
         assertFalse(isDownloadDir("/storage/emulated/0/Download/colors.png"));
         assertFalse(isDownloadDir("/storage/emulated/0/Download/dir/"));
-        assertFalse(isDownloadDir(
-                "/storage/emulated/0/Android/sandbox/com.example/Download/dir/foo.txt"));
     }
 
     @Test
@@ -922,7 +903,6 @@ public class MediaProviderTest {
 
         for (String top : new String[] {
                 "/storage/emulated/0",
-                "/storage/emulated/0/Android/sandbox/com.example",
         }) {
             values = computeDataValues(top + "/IMG1024.JPG");
             assertVolume(values, MediaStore.VOLUME_EXTERNAL_PRIMARY);

@@ -107,8 +107,8 @@ constexpr int PER_USER_RANGE = 100000;
 
 // Regex copied from FileUtils.java in MediaProvider, but without media directory.
 const std::regex PATTERN_OWNED_PATH(
-    "^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb|sandbox)/([^/]+)(/?.*)?",
-    std::regex_constants::icase);
+        "^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb)/([^/]+)(/?.*)?",
+        std::regex_constants::icase);
 
 /*
  * In order to avoid double caching with fuse, call fadvise on the file handles

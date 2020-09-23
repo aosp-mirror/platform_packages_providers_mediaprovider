@@ -412,9 +412,13 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     }
 
     bool should_inval = false;
+    bool transforms_complete = true;
+    int transforms = 0;
+    string io_path;
     node = parent->LookupChildByName(name, true /* acquire */);
     if (!node) {
-        node = ::node::Create(parent, name, &fuse->lock, &fuse->tracker);
+        node = ::node::Create(parent, name, io_path, transforms_complete, transforms, &fuse->lock,
+                              &fuse->tracker);
     } else if (!mediaprovider::fuse::containsMount(path, std::to_string(getuid() / PER_USER_RANGE))) {
         should_inval = node->HasCaseInsensitiveMatch();
         // Only invalidate a path if it does not contain mount.

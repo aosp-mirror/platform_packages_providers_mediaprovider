@@ -19,6 +19,7 @@
 
 #include <android-base/logging.h>
 
+#include <atomic>
 #include <cstdint>
 #include <limits>
 #include <list>
@@ -114,13 +115,14 @@ class NodeTracker {
 class node {
   public:
     // Creates a new node with the specified parent, name and lock.
-    static node* Create(node* parent, const std::string& name, std::recursive_mutex* lock,
+    static node* Create(node* parent, const std::string& name, const std::string& io_path,
+                        bool transforms_complete, const int transforms, std::recursive_mutex* lock,
                         NodeTracker* tracker) {
         // Place the entire constructor under a critical section to make sure
         // node creation, tracking (if enabled) and the addition to a parent are
         // atomic.
         std::lock_guard<std::recursive_mutex> guard(*lock);
-        return new node(parent, name, lock, tracker);
+        return new node(parent, name, io_path, transforms_complete, transforms, lock, tracker);
     }
 
     // Creates a new root node. Root nodes have no parents by definition
@@ -128,7 +130,7 @@ class node {
     static node* CreateRoot(const std::string& path, std::recursive_mutex* lock,
                             NodeTracker* tracker) {
         std::lock_guard<std::recursive_mutex> guard(*lock);
-        node* root = new node(nullptr, path, lock, tracker);
+        node* root = new node(nullptr, path, path, true, 0, lock, tracker);
 
         // The root always has one extra reference to avoid it being
         // accidentally collected.
@@ -176,12 +178,15 @@ class node {
 
     // Looks up a direct descendant of this node by name. If |acquire| is true,
     // also Acquire the node before returning a reference to it.
-    node* LookupChildByName(const std::string& name, bool acquire) const {
-        return ForChild(name, [acquire](node* child) {
-            if (acquire) {
-                child->Acquire();
+    node* LookupChildByName(const std::string& name, bool acquire, const int transforms = 0) const {
+        return ForChild(name, [acquire, transforms](node* child) {
+            if (child->transforms_ == transforms) {
+                if (acquire) {
+                    child->Acquire();
+                }
+                return true;
             }
-            return true;
+            return false;
         });
     }
 
@@ -252,6 +257,16 @@ class node {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
         return name_;
     }
+
+    const std::string& GetIoPath() const { return io_path_; }
+
+    int GetTransforms() const { return transforms_; }
+
+    bool IsTransformsComplete() const {
+        return transforms_complete_.load(std::memory_order_acquire);
+    }
+
+    void SetTransformsComplete() { transforms_complete_.store(true, std::memory_order_release); }
 
     node* GetParent() const {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
@@ -326,8 +341,12 @@ class node {
     static const node* LookupAbsolutePath(const node* root, const std::string& absolute_path);
 
   private:
-    node(node* parent, const std::string& name, std::recursive_mutex* lock, NodeTracker* tracker)
+    node(node* parent, const std::string& name, const std::string& io_path, bool transforms_complete,
+         const int transforms, std::recursive_mutex* lock, NodeTracker* tracker)
         : name_(name),
+          io_path_(io_path),
+          transforms_complete_(transforms_complete),
+          transforms_(transforms),
           refcount_(0),
           parent_(nullptr),
           has_redacted_cache_(false),
@@ -454,6 +473,15 @@ class node {
 
     // The name of this node. Non-const because it can change during renames.
     std::string name_;
+    // Filesystem path that will be used for IO (if it is non-empty) instead of node->BuildPath
+    const std::string io_path_;
+    // Whether any transforms required on |io_path_| are complete.
+    // If false, might need to call a node transform function with |transforms| below
+    std::atomic_bool transforms_complete_;
+    // Opaque flags that determine the 'supported' and 'required' transforms to perform on node
+    // before IO. These flags should not be interpreted in native but should be passed as part
+    // of a transform function and if successful, |transforms_complete_| should be set to true
+    const int transforms_;
     // The reference count for this node. Guarded by |lock_|.
     uint32_t refcount_;
     // Set of children of this node. All of them contain a back reference

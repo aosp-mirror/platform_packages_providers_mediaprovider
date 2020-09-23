@@ -6069,6 +6069,19 @@ public class MediaProvider extends ContentProvider {
         return new File(filePath);
     }
 
+    private ParcelFileDescriptor openWithTranscode(String filePath, int uid, int modeBits)
+            throws FileNotFoundException {
+        String transcodePath = mTranscodeHelper.getIoPath(filePath, uid);
+        File transcodeFile = new File(transcodePath);
+
+        if (mTranscodeHelper.transcode(filePath, transcodePath, uid)) {
+            Log.w(TAG, "Using FUSE with transcode for " + filePath);
+            return FileUtils.openSafely(getFuseFile(transcodeFile), modeBits);
+        } else {
+            throw new FileNotFoundException("Failed to transcode " + filePath);
+        }
+    }
+
     private @NonNull FuseDaemon getFuseDaemonForFile(@NonNull File file)
             throws FileNotFoundException {
         final FuseDaemon daemon = ExternalStorageServiceImpl.getFuseDaemon(getVolumeId(file));
@@ -6196,6 +6209,8 @@ public class MediaProvider extends ContentProvider {
             // First, handle any redaction that is needed for caller
             final ParcelFileDescriptor pfd;
             final String filePath = file.getPath();
+            final int uid = Binder.getCallingUid();
+            final boolean shouldTranscode = mTranscodeHelper.shouldTranscode(filePath, uid);
             if (redactionInfo.redactionRanges.length > 0) {
                 // If fuse is enabled, we can provide an fd that points to the fuse
                 // file system and handle redaction in the fuse handler when the caller reads.
@@ -6204,13 +6219,20 @@ public class MediaProvider extends ContentProvider {
                 synchronized (mShouldRedactThreadIds) {
                     mShouldRedactThreadIds.add(tid);
                 }
+
                 try {
-                    pfd = FileUtils.openSafely(getFuseFile(file), modeBits);
+                    if (shouldTranscode) {
+                        pfd = openWithTranscode(filePath, uid, modeBits);
+                    } else {
+                        pfd = FileUtils.openSafely(getFuseFile(file), modeBits);
+                    }
                 } finally {
                     synchronized (mShouldRedactThreadIds) {
                         mShouldRedactThreadIds.remove(mShouldRedactThreadIds.indexOf(tid));
                     }
                 }
+            } else if (shouldTranscode) {
+                pfd = openWithTranscode(filePath, uid, modeBits);
             } else {
                 FuseDaemon daemon = null;
                 try {

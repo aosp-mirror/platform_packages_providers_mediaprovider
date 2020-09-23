@@ -2568,17 +2568,17 @@ public class MediaProvider extends ContentProvider {
                         defaultMimeType = "audio/mpegurl";
                         defaultMediaType = FileColumns.MEDIA_TYPE_PLAYLIST;
                         defaultPrimary = Environment.DIRECTORY_MUSIC;
-                        allowedPrimary = Arrays.asList(
-                                Environment.DIRECTORY_MUSIC,
-                                Environment.DIRECTORY_MOVIES);
+                        allowedPrimary = new ArrayList<>(allowedPrimary);
+                        allowedPrimary.add(Environment.DIRECTORY_MUSIC);
+                        allowedPrimary.add(Environment.DIRECTORY_MOVIES);
                         break;
                     case FileColumns.MEDIA_TYPE_SUBTITLE:
                         defaultMimeType = "application/x-subrip";
                         defaultMediaType = FileColumns.MEDIA_TYPE_SUBTITLE;
                         defaultPrimary = Environment.DIRECTORY_MOVIES;
-                        allowedPrimary = Arrays.asList(
-                                Environment.DIRECTORY_MUSIC,
-                                Environment.DIRECTORY_MOVIES);
+                        allowedPrimary = new ArrayList<>(allowedPrimary);
+                        allowedPrimary.add(Environment.DIRECTORY_MUSIC);
+                        allowedPrimary.add(Environment.DIRECTORY_MOVIES);
                         break;
                 }
             } else if (defaultMediaType != actualMediaType) {

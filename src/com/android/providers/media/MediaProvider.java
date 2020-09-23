@@ -1037,7 +1037,7 @@ public class MediaProvider extends ContentProvider {
         });
         Log.d(TAG, "Pruned " + stalePackages + " unknown packages");
 
-        // Delete any expired content; we're paranoid about wildly changing
+        // Delete any expired content; we're cautious about wildly changing
         // clocks, so only delete items within the last week
         final long from = ((System.currentTimeMillis() - DateUtils.WEEK_IN_MILLIS) / 1000);
         final long to = (System.currentTimeMillis() / 1000);
@@ -2378,7 +2378,7 @@ public class MediaProvider extends ContentProvider {
 
     /**
      * Get the various file-related {@link MediaColumns} in the given
-     * {@link ContentValues} into sane condition. Also validates that defined
+     * {@link ContentValues} into a consistent condition. Also validates that defined
      * columns are valid for the given {@link Uri}, such as ensuring that only
      * {@code image/*} can be inserted into
      * {@link android.provider.MediaStore.Images}.
@@ -2545,7 +2545,7 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        // Give ourselves sane defaults when missing
+        // Give ourselves reasonable defaults when missing
         if (TextUtils.isEmpty(values.getAsString(MediaColumns.DISPLAY_NAME))) {
             values.put(MediaColumns.DISPLAY_NAME,
                     String.valueOf(System.currentTimeMillis()));
@@ -2557,7 +2557,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         mimeType = values.getAsString(MediaColumns.MIME_TYPE);
-        // Sanity check MIME type against table
+        // Quick check MIME type against table
         if (mimeType != null) {
             final int actualMediaType = MimeUtils.resolveMediaType(mimeType);
             if (defaultMediaType == FileColumns.MEDIA_TYPE_NONE) {
@@ -2718,7 +2718,7 @@ public class MediaProvider extends ContentProvider {
             // files DISPLAY_NAME will not be same as file name.
             FileUtils.computeValuesFromData(values, isFuseThread());
         } else {
-            assertFileColumnsSane(match, uri, values);
+            assertFileColumnsConsistent(match, uri, values);
         }
 
         // Drop columns that aren't relevant for special tables
@@ -2740,16 +2740,16 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Sanity check that any requested {@link MediaColumns#DATA} paths actually
+     * Check that any requested {@link MediaColumns#DATA} paths actually
      * live on the storage volume being targeted.
      */
-    private void assertFileColumnsSane(int match, Uri uri, ContentValues values)
+    private void assertFileColumnsConsistent(int match, Uri uri, ContentValues values)
             throws VolumeArgumentException, VolumeNotFoundException {
         if (!values.containsKey(MediaColumns.DATA)) return;
 
         final String volumeName = resolveVolumeName(uri);
         try {
-            // Sanity check that the requested path actually lives on volume
+            // Quick check that the requested path actually lives on volume
             final Collection<File> allowed = getVolumeScanPaths(volumeName);
             final File actual = new File(values.getAsString(MediaColumns.DATA))
                     .getCanonicalFile();
@@ -4650,7 +4650,7 @@ public class MediaProvider extends ContentProvider {
 
     /**
      * Generate the {@link PendingIntent} for the given grant request. This
-     * method also sanity checks the incoming arguments for security purposes
+     * method also checks the incoming arguments for security purposes
      * before creating the privileged {@link PendingIntent}.
      */
     private @NonNull PendingIntent createRequest(@NonNull String method, @NonNull Bundle extras) {
@@ -4711,7 +4711,7 @@ public class MediaProvider extends ContentProvider {
      *         {@code ORDER BY} clauses.
      */
     private @NonNull String ensureCustomCollator(@NonNull String locale) {
-        // Quick sanity check that requested locale looks sane
+        // Quick check that requested locale looks reasonable
         new ULocale(locale);
 
         final String collationName = "custom_" + locale.replaceAll("[^a-zA-Z]", "");
@@ -5309,8 +5309,8 @@ public class MediaProvider extends ContentProvider {
             Trace.endSection();
         }
 
-        // Make sure any updated paths look sane
-        assertFileColumnsSane(match, uri, initialValues);
+        // Make sure any updated paths look consistent
+        assertFileColumnsConsistent(match, uri, initialValues);
 
         if (initialValues.containsKey(FileColumns.DATA)) {
             // If we're changing paths, invalidate any thumbnails
@@ -7200,7 +7200,7 @@ public class MediaProvider extends ContentProvider {
         // First, does caller have the needed row-level access?
         enforceCallingPermission(uri, extras, isWrite);
 
-        // Second, does the path look sane?
+        // Second, does the path look consistent?
         if (!FileUtils.contains(Environment.getStorageDirectory(), file)) {
             checkWorldReadAccess(file.getAbsolutePath());
         }
@@ -7372,10 +7372,10 @@ public class MediaProvider extends ContentProvider {
                     "Opening and closing databases not allowed.");
         }
 
-        // Quick sanity check for shady volume names
+        // Quick check for shady volume names
         MediaStore.checkArgumentVolumeName(volume);
 
-        // Quick sanity check that volume actually exists
+        // Quick check that volume actually exists
         if (!MediaStore.VOLUME_INTERNAL.equals(volume) && validate) {
             try {
                 getVolumePath(volume);
@@ -7426,7 +7426,7 @@ public class MediaProvider extends ContentProvider {
                     "Opening and closing databases not allowed.");
         }
 
-        // Quick sanity check for shady volume names
+        // Quick check for shady volume names
         MediaStore.checkArgumentVolumeName(volume);
 
         if (MediaStore.VOLUME_INTERNAL.equals(volume)) {

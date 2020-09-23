@@ -37,9 +37,10 @@
       <item quantity="other">И още <xliff:g id="COUNT_1">^1</xliff:g> допълнителни елемента</item>
       <item quantity="one">И още <xliff:g id="COUNT_0">^1</xliff:g> допълнителен елемент</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Да се изчистят ли временните файлове на приложенията?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Изчистване на временните файлове на приложенията"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> иска да изчисти някои временни файлове. Това може да доведе до увеличено използване на батерията или мобилните данни."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Временните файлове на приложенията се изчистват…"</string>
+    <string name="clear" msgid="5524638938415865915">"Изчистване"</string>
     <string name="allow" msgid="8885707816848569619">"Разрешаване"</string>
     <string name="deny" msgid="6040983710442068936">"Отказ"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

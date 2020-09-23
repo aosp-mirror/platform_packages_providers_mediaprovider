@@ -47,12 +47,14 @@ import static org.mockito.Mockito.when;
 import android.Manifest;
 import android.content.ContentResolver;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.media.ExifInterface;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
+import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
@@ -72,6 +74,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.util.Optional;
 
@@ -817,6 +820,31 @@ public class ModernMediaScannerTest {
             cursor.moveToFirst();
             assertEquals("audio/mp4",
                     cursor.getString(cursor.getColumnIndex(MediaColumns.MIME_TYPE)));
+        }
+    }
+
+    /**
+     * If there is a scan action between invoking {@link ContentResolver#insert} and
+     * {@link ContentResolver#openFileDescriptor}, it should not raise
+     * (@link FileNotFoundException}.
+     */
+    @Test
+    public void testScan_166063754() throws Exception {
+        Uri collection = MediaStore.Images.Media
+                .getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Images.Media.DISPLAY_NAME, mDir.getName() + "_166063754.jpg");
+        values.put(MediaStore.Images.Media.IS_PENDING, 1);
+
+        Uri uri = mIsolatedResolver.insert(collection, values);
+
+        File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
+        mModern.scanFile(dir, REASON_UNKNOWN);
+        try {
+            mIsolatedResolver.openFileDescriptor(uri, "w", null);
+        } catch (FileNotFoundException e) {
+            throw new AssertionError("Can't open uri " + uri, e);
         }
     }
 

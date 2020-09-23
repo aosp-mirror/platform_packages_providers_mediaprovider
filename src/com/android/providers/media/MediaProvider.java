@@ -3342,6 +3342,15 @@ public class MediaProvider extends ContentProvider {
             if (initialValues.containsKey(ImageColumns.LONGITUDE)) {
                 initialValues.putNull(ImageColumns.LONGITUDE);
             }
+            if (getCallingPackageTargetSdkVersion() <= Build.VERSION_CODES.Q) {
+                // These columns are removed in R.
+                if (initialValues.containsKey("primary_directory")) {
+                    initialValues.remove("primary_directory");
+                }
+                if (initialValues.containsKey("secondary_directory")) {
+                    initialValues.remove("secondary_directory");
+                }
+            }
 
             if (isCallingPackageSelf() || isCallingPackageShell()) {
                 // When media inserted by ourselves during a scan, or by the
@@ -5162,6 +5171,15 @@ public class MediaProvider extends ContentProvider {
             }
             if (initialValues.containsKey(ImageColumns.LONGITUDE)) {
                 initialValues.putNull(ImageColumns.LONGITUDE);
+            }
+            if (getCallingPackageTargetSdkVersion() <= Build.VERSION_CODES.Q) {
+                // These columns are removed in R.
+                if (initialValues.containsKey("primary_directory")) {
+                    initialValues.remove("primary_directory");
+                }
+                if (initialValues.containsKey("secondary_directory")) {
+                    initialValues.remove("secondary_directory");
+                }
             }
         }
 

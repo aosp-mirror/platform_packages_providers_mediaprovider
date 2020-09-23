@@ -164,6 +164,15 @@ class MediaProviderWrapper final {
      */
     void OnFileCreated(const std::string& path);
 
+    /** Get path for actual I/O */
+    std::string GetIoPath(const std::string& path, uid_t uid);
+
+    /** Get supported transformations for path and transform actions for uid on path. */
+    int GetTransforms(const std::string& path, uid_t uid);
+
+    /** Transforms from src to dst file */
+    bool Transform(const std::string& src, const std::string& dst, int transforms, uid_t uid);
+
     /**
      * Initializes per-process static variables associated with the lifetime of
      * a managed runtime.
@@ -188,6 +197,9 @@ class MediaProviderWrapper final {
     jmethodID mid_rename_;
     jmethodID mid_is_uid_for_package_;
     jmethodID mid_on_file_created_;
+    jmethodID mid_get_io_path_;
+    jmethodID mid_get_transforms_;
+    jmethodID mid_transform_;
 
     /**
      * Auxiliary for caching MediaProvider methods.

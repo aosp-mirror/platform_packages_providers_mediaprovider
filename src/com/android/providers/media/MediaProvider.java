@@ -228,6 +228,11 @@ public class MediaProvider extends ContentProvider {
     static final Pattern PATTERN_SELECTION_ID = Pattern.compile(
             "(?:image_id|video_id)\\s*=\\s*(\\d+)");
 
+    /** File supports transforms and uid requires transcoding */
+    private static final int FLAG_TRANSFORM_TRANSCODING = 1;
+    /** File supports transforms */
+    private static final int FLAG_TRANSFORM_SUPPORTED = 1 << 30;
+
     /**
      * These directory names aren't declared in Environment as final variables, and so we need to
      * have the same values in separate final variables in order to have them considered constant
@@ -409,9 +414,9 @@ public class MediaProvider extends ContentProvider {
     private StorageManager mStorageManager;
     private AppOpsManager mAppOpsManager;
     private PackageManager mPackageManager;
+
     private int mExternalStorageAuthorityAppId;
     private int mDownloadsAuthorityAppId;
-
     private Size mThumbSize;
 
     /**
@@ -867,6 +872,8 @@ public class MediaProvider extends ContentProvider {
                 false, false, false, Column.class,
                 Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER, mIdGenerator);
 
+        mTranscodeHelper = new TranscodeHelper(context);
+
         final IntentFilter packageFilter = new IntentFilter();
         packageFilter.setPriority(10);
         packageFilter.addDataScheme("package");
@@ -1165,8 +1172,10 @@ public class MediaProvider extends ContentProvider {
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public boolean transformForFuse(String src, String dst, int flags, int uid) {
-        // TODO: Add logic
+    public boolean transformForFuse(String src, String dst, int transforms, int uid) {
+        if ((transforms & FLAG_TRANSFORM_TRANSCODING) != 0) {
+            return mTranscodeHelper.transcode(src, dst, uid);
+        }
         return true;
     }
 
@@ -1183,8 +1192,7 @@ public class MediaProvider extends ContentProvider {
      */
     @Keep
     public String getIoPathForFuse(String path, int uid) {
-        // TODO: Add logic
-        return "";
+        return mTranscodeHelper.getIoPath(path, uid);
     }
 
     /**
@@ -1202,8 +1210,14 @@ public class MediaProvider extends ContentProvider {
      */
     @Keep
     public int getTransformsForFuse(String path, int uid) {
-        // TODO: Add logic
-        return 0;
+        int result = 0;
+        if (mTranscodeHelper.supportsTranscode(path)) {
+            result |= FLAG_TRANSFORM_SUPPORTED;
+        }
+        if (mTranscodeHelper.shouldTranscode(path, uid)) {
+            result |= FLAG_TRANSFORM_TRANSCODING;
+        }
+        return result;
     }
 
     /**
@@ -7555,6 +7569,7 @@ public class MediaProvider extends ContentProvider {
 
     private DatabaseHelper mInternalDatabase;
     private DatabaseHelper mExternalDatabase;
+    private TranscodeHelper mTranscodeHelper;
 
     // name of the volume currently being scanned by the media scanner (or null)
     private String mMediaScannerVolume;

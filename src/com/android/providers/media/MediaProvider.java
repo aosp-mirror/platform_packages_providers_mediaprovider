@@ -665,6 +665,14 @@ public class MediaProvider extends ContentProvider {
                     Trace.endSection();
                 }
 
+                switch (mediaType) {
+                    case FileColumns.MEDIA_TYPE_PLAYLIST:
+                    case FileColumns.MEDIA_TYPE_AUDIO:
+                        if (helper.isExternal()) {
+                            removePlaylistMembers(mediaType, id);
+                        }
+                }
+
                 // Invalidate any thumbnails now that media is gone
                 invalidateThumbnails(MediaStore.Files.getContentUri(volumeName, id));
 
@@ -4454,24 +4462,6 @@ public class MediaProvider extends ContentProvider {
                             if (isDownload == 1) {
                                 deletedDownloadIds.put(id, mimeType);
                             }
-
-                            // Update any playlists that reference this item
-                            if ((mediaType == FileColumns.MEDIA_TYPE_AUDIO)
-                                    && helper.isExternal()) {
-                                helper.runWithTransaction((db) -> {
-                                    try (Cursor cc = db.query("audio_playlists_map",
-                                            new String[] { "playlist_id" }, "audio_id=" + id,
-                                            null, "playlist_id", null, null)) {
-                                        while (cc.moveToNext()) {
-                                            final Uri playlistUri = ContentUris.withAppendedId(
-                                                    Playlists.getContentUri(volumeName),
-                                                    cc.getLong(0));
-                                            resolvePlaylistMembers(playlistUri);
-                                        }
-                                    }
-                                    return null;
-                                });
-                            }
                         }
                     } finally {
                         FileUtils.closeQuietly(c);
@@ -5577,7 +5567,6 @@ public class MediaProvider extends ContentProvider {
             @NonNull SQLiteDatabase db) {
         try {
             // Refresh playlist members based on what we parse from disk
-            final String volumeName = getVolumeName(playlistUri);
             final long playlistId = ContentUris.parseId(playlistUri);
             db.delete("audio_playlists_map", "playlist_id=" + playlistId, null);
 
@@ -5589,7 +5578,7 @@ public class MediaProvider extends ContentProvider {
             for (int i = 0; i < members.size(); i++) {
                 try {
                     final Path audioPath = playlistPath.getParent().resolve(members.get(i));
-                    final long audioId = queryForPlaylistMember(volumeName, audioPath);
+                    final long audioId = queryForPlaylistMember(audioPath);
 
                     final ContentValues values = new ContentValues();
                     values.put(Playlists.Members.PLAY_ORDER, i + 1);
@@ -5611,9 +5600,8 @@ public class MediaProvider extends ContentProvider {
      * display name. When there are multiple items with the same display name,
      * we can't resolve between them, and leave this member unresolved.
      */
-    private long queryForPlaylistMember(@NonNull String volumeName, @NonNull Path path)
-            throws IOException {
-        final Uri audioUri = Audio.Media.getContentUri(volumeName);
+    private long queryForPlaylistMember(@NonNull Path path) throws IOException {
+        final Uri audioUri = Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL);
         try (Cursor c = queryForSingleItem(audioUri,
                 new String[] { BaseColumns._ID }, MediaColumns.DATA + "=?",
                 new String[] { path.toFile().getCanonicalPath() }, null)) {
@@ -5653,6 +5641,7 @@ public class MediaProvider extends ContentProvider {
             playOrder = playlist.add(playOrder,
                     playlistFile.toPath().getParent().relativize(audioFile.toPath()));
             playlist.write(playlistFile);
+            invalidateFuseDentry(playlistFile);
 
             resolvePlaylistMembers(playlistUri);
 
@@ -5688,6 +5677,7 @@ public class MediaProvider extends ContentProvider {
             playlist.read(playlistFile);
             final int finalIndex = playlist.move(fromIndex, toIndex);
             playlist.write(playlistFile);
+            invalidateFuseDentry(playlistFile);
 
             resolvePlaylistMembers(playlistUri);
             return finalIndex;
@@ -5717,6 +5707,7 @@ public class MediaProvider extends ContentProvider {
                 playlist.remove(index);
             }
             playlist.write(playlistFile);
+            invalidateFuseDentry(playlistFile);
 
             resolvePlaylistMembers(playlistUri);
             return count;
@@ -5724,6 +5715,31 @@ public class MediaProvider extends ContentProvider {
             throw new FallbackException("Failed to update playlist", e,
                     android.os.Build.VERSION_CODES.R);
         }
+    }
+
+    /**
+     * Remove an audio item from the given playlist since the playlist file or the audio file is
+     * already removed.
+     */
+    private void removePlaylistMembers(int mediaType, long id) {
+        final DatabaseHelper helper;
+        try {
+            helper = getDatabaseForUri(Audio.Media.EXTERNAL_CONTENT_URI);
+        } catch (VolumeNotFoundException e) {
+            Log.w(TAG, e);
+            return;
+        }
+
+        helper.runWithTransaction((db) -> {
+            final String where;
+            if (mediaType == FileColumns.MEDIA_TYPE_PLAYLIST) {
+                where = "playlist_id=?";
+            } else {
+                where = "audio_id=?";
+            }
+            db.delete("audio_playlists_map", where, new String[] { "" + id });
+            return null;
+        });
     }
 
     /**

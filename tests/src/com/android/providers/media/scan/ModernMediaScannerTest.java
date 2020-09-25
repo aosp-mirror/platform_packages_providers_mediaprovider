@@ -375,15 +375,11 @@ public class ModernMediaScannerTest {
     public void testShouldScanPathAndIsPathHidden() {
         for (String prefix : new String[] {
                 "/storage/emulated/0",
-                "/storage/emulated/0/Android/sandbox/com.example",
                 "/storage/0000-0000",
-                "/storage/0000-0000/Android/sandbox/com.example",
         }) {
             assertShouldScanPathAndIsPathHidden(true, false, new File(prefix));
             assertShouldScanPathAndIsPathHidden(true, false, new File(prefix + "/meow"));
             assertShouldScanPathAndIsPathHidden(true, false, new File(prefix + "/Android/meow"));
-            assertShouldScanPathAndIsPathHidden(true, false,
-                    new File(prefix + "/Android/sandbox/meow"));
 
             assertShouldScanPathAndIsPathHidden(true, true, new File(prefix + "/.meow/dir"));
 
@@ -417,16 +413,12 @@ public class ModernMediaScannerTest {
     public void testShouldScanDirectory() throws Exception {
         for (String prefix : new String[] {
                 "/storage/emulated/0",
-                "/storage/emulated/0/Android/sandbox/com.example",
                 "/storage/0000-0000",
-                "/storage/0000-0000/Android/sandbox/com.example",
         }) {
             assertShouldScanDirectory(new File(prefix));
             assertShouldScanDirectory(new File(prefix + "/meow"));
             assertShouldScanDirectory(new File(prefix + "/Android"));
             assertShouldScanDirectory(new File(prefix + "/Android/meow"));
-            assertShouldScanDirectory(new File(prefix + "/Android/sandbox"));
-            assertShouldScanDirectory(new File(prefix + "/Android/sandbox/meow"));
             assertShouldScanDirectory(new File(prefix + "/.meow"));
 
             assertShouldntScanDirectory(new File(prefix + "/Android/data"));
@@ -453,9 +445,7 @@ public class ModernMediaScannerTest {
     public void testIsDirectoryHidden() throws Exception {
         for (String prefix : new String[] {
                 "/storage/emulated/0",
-                "/storage/emulated/0/Android/sandbox/com.example",
                 "/storage/0000-0000",
-                "/storage/0000-0000/Android/sandbox/com.example",
         }) {
             assertDirectoryNotHidden(new File(prefix));
             assertDirectoryNotHidden(new File(prefix + "/meow"));

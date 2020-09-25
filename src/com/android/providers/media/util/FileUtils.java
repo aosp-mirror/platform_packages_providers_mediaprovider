@@ -848,9 +848,9 @@ public class FileUtils {
     }
 
     public static final Pattern PATTERN_DOWNLOADS_FILE = Pattern.compile(
-            "(?i)^/storage/[^/]+/(?:[0-9]+/)?(?:Android/sandbox/[^/]+/)?Download/.+");
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Download/.+");
     public static final Pattern PATTERN_DOWNLOADS_DIRECTORY = Pattern.compile(
-            "(?i)^/storage/[^/]+/(?:[0-9]+/)?(?:Android/sandbox/[^/]+/)?Download/?");
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Download/?");
     public static final Pattern PATTERN_EXPIRES_FILE = Pattern.compile(
             "(?i)^\\.(pending|trashed)-(\\d+)-([^/]+)$");
     public static final Pattern PATTERN_PENDING_FILEPATH_FOR_SQL = Pattern.compile(
@@ -891,7 +891,7 @@ public class FileUtils {
      * and which captures the package name as the first group.
      */
     public static final Pattern PATTERN_OWNED_PATH = Pattern.compile(
-            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|media|obb|sandbox)/([^/]+)(/?.*)?");
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|media|obb)/([^/]+)(/?.*)?");
 
     /**
      * Regex that matches Android/obb or Android/data path.
@@ -900,11 +900,10 @@ public class FileUtils {
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb)/?$");
 
     /**
-     * Regex that matches paths for {@link MediaColumns#RELATIVE_PATH}; it
-     * captures both top-level paths and sandboxed paths.
+     * Regex that matches paths for {@link MediaColumns#RELATIVE_PATH}
      */
     private static final Pattern PATTERN_RELATIVE_PATH = Pattern.compile(
-            "(?i)^/storage/(?:emulated/[0-9]+/|[^/]+/)(Android/sandbox/([^/]+)/)?");
+            "(?i)^/storage/(?:emulated/[0-9]+/|[^/]+/)");
 
     /**
      * Regex that matches paths under well-known storage paths.

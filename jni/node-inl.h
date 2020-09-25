@@ -177,33 +177,34 @@ class node {
     // Looks up a direct descendant of this node by name. If |acquire| is true,
     // also Acquire the node before returning a reference to it.
     node* LookupChildByName(const std::string& name, bool acquire) const {
-        std::lock_guard<std::recursive_mutex> guard(*lock_);
-
-        // lower_bound will give us the first child with strcasecmp(child->name, name) >=0.
-        // For more context see comment on the NodeCompare struct.
-        auto start = children_.lower_bound(std::make_pair(name, 0));
-        // upper_bound will give us the first child with strcasecmp(child->name, name) > 0
-        auto end =
-                children_.upper_bound(std::make_pair(name, std::numeric_limits<uintptr_t>::max()));
-        for (auto it = start; it != end; it++) {
-            node* child = *it;
-            if (!child->deleted_) {
-                if (acquire) {
-                    child->Acquire();
-                }
-                return child;
+        return ForChild(name, [acquire](node* child) {
+            if (acquire) {
+                child->Acquire();
             }
-        }
-        return nullptr;
+            return true;
+        });
     }
 
-    // Marks this node as deleted. It is still associated with its parent, and
-    // all open handles etc. to this node are preserved until its refcount goes
+    // Marks this node children as deleted. They are still associated with their parent, and
+    // all open handles etc. to the deleted nodes are preserved until their refcount goes
     // to zero.
+    void SetDeletedForChild(const std::string& name) {
+        ForChild(name, [](node* child) {
+            child->SetDeleted();
+            return false;
+        });
+    }
+
     void SetDeleted() {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
-
         deleted_ = true;
+    }
+
+    void RenameChild(const std::string& old_name, const std::string& new_name, node* new_parent) {
+        ForChild(old_name, [=](node* child) {
+            child->Rename(new_name, new_parent);
+            return false;
+        });
     }
 
     void Rename(const std::string& name, node* new_parent) {
@@ -379,6 +380,32 @@ class node {
             parent_->Release(1);
             parent_ = nullptr;
         }
+    }
+
+    // Finds *all* non-deleted nodes matching |name| and runs the function |callback| on each
+    // node until |callback| returns true.
+    // When |callback| returns true, the matched node is returned
+    node* ForChild(const std::string& name, const std::function<bool(node*)>& callback) const {
+        std::lock_guard<std::recursive_mutex> guard(*lock_);
+
+        // lower_bound will give us the first child with strcasecmp(child->name, name) >=0.
+        // For more context see comment on the NodeCompare struct.
+        auto start = children_.lower_bound(std::make_pair(name, 0));
+        // upper_bound will give us the first child with strcasecmp(child->name, name) > 0
+        auto end =
+                children_.upper_bound(std::make_pair(name, std::numeric_limits<uintptr_t>::max()));
+
+        // Make a copy of the matches because calling callback might modify the list which will
+        // cause issues while iterating over them.
+        std::vector<node*> children(start, end);
+
+        for (node* child : children) {
+            if (!child->deleted_ && callback(child)) {
+                return child;
+            }
+        }
+
+        return nullptr;
     }
 
     // A custom heterogeneous comparator used for set of this node's children_ to speed up child

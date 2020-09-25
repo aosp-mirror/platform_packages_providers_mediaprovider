@@ -54,6 +54,7 @@ import static com.android.providers.media.LocalCallingIdentity.PERMISSION_WRITE_
 import static com.android.providers.media.scan.MediaScanner.REASON_DEMAND;
 import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
 import static com.android.providers.media.util.DatabaseUtils.bindList;
+import static com.android.providers.media.util.FileUtils.DEFAULT_FOLDER_NAMES;
 import static com.android.providers.media.util.FileUtils.PATTERN_PENDING_FILEPATH_FOR_SQL;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractFileName;
@@ -750,29 +751,6 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private static final String[] sDefaultFolderNames = {
-            Environment.DIRECTORY_MUSIC,
-            Environment.DIRECTORY_PODCASTS,
-            Environment.DIRECTORY_RINGTONES,
-            Environment.DIRECTORY_ALARMS,
-            Environment.DIRECTORY_NOTIFICATIONS,
-            Environment.DIRECTORY_PICTURES,
-            Environment.DIRECTORY_MOVIES,
-            Environment.DIRECTORY_DOWNLOADS,
-            Environment.DIRECTORY_DCIM,
-            Environment.DIRECTORY_AUDIOBOOKS,
-            Environment.DIRECTORY_DOCUMENTS,
-    };
-
-    private static boolean isDefaultDirectoryName(@Nullable String dirName) {
-        for (String defaultDirName : sDefaultFolderNames) {
-            if (defaultDirName.equals(dirName)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     /**
      * Ensure that default folders are created on mounted primary storage
      * devices. We only do this once per volume so we don't annoy the user if
@@ -797,7 +775,7 @@ public class MediaProvider extends ContentProvider {
             final SharedPreferences prefs = PreferenceManager
                     .getDefaultSharedPreferences(getContext());
             if (prefs.getInt(key, 0) == 0) {
-                for (String folderName : sDefaultFolderNames) {
+                for (String folderName : DEFAULT_FOLDER_NAMES) {
                     final File folder = new File(vol.getDirectory(), folderName);
                     if (!folder.exists()) {
                         folder.mkdirs();
@@ -2078,7 +2056,7 @@ public class MediaProvider extends ContentProvider {
             } else if (oldRelativePath.length == 1 && TextUtils.isEmpty(oldRelativePath[0])) {
                 // Allow rename of files/folders other than default directories.
                 final String displayName = extractDisplayName(oldPath);
-                for (String defaultFolder : sDefaultFolderNames) {
+                for (String defaultFolder : DEFAULT_FOLDER_NAMES) {
                     if (displayName.equals(defaultFolder)) {
                         Log.e(TAG, errorMessage + oldPath + " is a default folder."
                                 + " Renaming a default folder is not allowed.");
@@ -3053,7 +3031,11 @@ public class MediaProvider extends ContentProvider {
             if (isCallingPackageSelf() && values.containsKey(FileColumns.MEDIA_TYPE)) {
                 // Leave FileColumns.MEDIA_TYPE untouched if the caller is ModernMediaScanner and
                 // FileColumns.MEDIA_TYPE is already populated.
-            } else if (path != null && shouldFileBeHidden(new File(path))) {
+            } else if (isFuseThread() && path != null && shouldFileBeHidden(new File(path))) {
+                // We should only mark MEDIA_TYPE as MEDIA_TYPE_NONE for Fuse Thread.
+                // MediaProvider#insert() returns the uri by appending the "rowId" to the given
+                // uri, hence to ensure the correct working of the returned uri, we shouldn't
+                // change the MEDIA_TYPE in insert operation and let scan change it for us.
                 values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_NONE);
             } else {
                 values.put(FileColumns.MEDIA_TYPE, MimeUtils.resolveMediaType(mimeType));
@@ -6956,7 +6938,7 @@ public class MediaProvider extends ContentProvider {
             if (isTopLevelDir) {
                 // We allow creating the default top level directories only, all other operations on
                 // top level directories are not allowed.
-                if (forCreate && isDefaultDirectoryName(extractDisplayName(path))) {
+                if (forCreate && FileUtils.isDefaultDirectoryName(extractDisplayName(path))) {
                     return 0;
                 }
                 Log.e(TAG,
@@ -7021,7 +7003,7 @@ public class MediaProvider extends ContentProvider {
                 final boolean isTopLevelDir =
                         relativePath.length == 1 && TextUtils.isEmpty(relativePath[0]);
                 if (isTopLevelDir) {
-                    if (isDefaultDirectoryName(extractDisplayName(path))) {
+                    if (FileUtils.isDefaultDirectoryName(extractDisplayName(path))) {
                         return 0;
                     } else {
                         Log.e(TAG,

@@ -107,8 +107,8 @@ constexpr int PER_USER_RANGE = 100000;
 
 // Regex copied from FileUtils.java in MediaProvider, but without media directory.
 const std::regex PATTERN_OWNED_PATH(
-    "^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb|sandbox)/([^/]+)(/?.*)?",
-    std::regex_constants::icase);
+        "^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb)/([^/]+)(/?.*)?",
+        std::regex_constants::icase);
 
 /*
  * In order to avoid double caching with fuse, call fadvise on the file handles
@@ -840,12 +840,8 @@ static void pf_unlink(fuse_req_t req, fuse_ino_t parent, const char* name) {
         return;
     }
 
-    node* child_node = parent_node->LookupChildByName(name, false /* acquire */);
-    TRACE_NODE(child_node, req);
-    if (child_node) {
-        child_node->SetDeleted();
-    }
-
+    // TODO(b/169306422): Log each deleted node
+    parent_node->SetDeletedForChild(name);
     fuse_reply_err(req, 0);
 }
 
@@ -926,10 +922,7 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
     TRACE_NODE(old_parent_node, req);
     TRACE_NODE(new_parent_node, req);
 
-    node* child_node = old_parent_node->LookupChildByName(name, true /* acquire */);
-    TRACE_NODE(child_node, req) << "old_child";
-
-    const string old_child_path = child_node->BuildPath();
+    const string old_child_path = old_parent_path + "/" + name;
     const string new_child_path = new_parent_path + "/" + new_name;
 
     // TODO(b/147408834): Check ENOTEMPTY & EEXIST error conditions before JNI call.
@@ -937,11 +930,9 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
     // TODO(b/145663158): Lookups can go out of sync if file/directory is actually moved but
     // EFAULT/EIO is reported due to JNI exception.
     if (res == 0) {
-        child_node->Rename(new_name, new_parent_node);
+        // TODO(b/169306422): Log each renamed node
+        old_parent_node->RenameChild(name, new_name, new_parent_node);
     }
-    TRACE_NODE(child_node, req) << "new_child";
-
-    child_node->Release(1);
     return res;
 }
 

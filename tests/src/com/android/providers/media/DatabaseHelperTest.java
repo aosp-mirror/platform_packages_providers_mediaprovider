@@ -336,17 +336,6 @@ public class DatabaseHelperTest {
             {
                 final ContentValues values = new ContentValues();
                 values.put(FileColumns.DATA,
-                        "/storage/0000-0000/Android/sandbox/com.example2/Download/dir/foo.mp4");
-                values.put(FileColumns.DATE_ADDED, System.currentTimeMillis());
-                values.put(FileColumns.DATE_MODIFIED, System.currentTimeMillis());
-                values.put(FileColumns.DISPLAY_NAME, "foo.mp4");
-                values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_VIDEO);
-                values.put(FileColumns.MIME_TYPE, "video/mp4");
-                assertFalse(db.insert("files", FileColumns.DATA, values) == -1);
-            }
-            {
-                final ContentValues values = new ContentValues();
-                values.put(FileColumns.DATA,
                         "/storage/emulated/0/Download/foo");
                 values.put(FileColumns.DATE_ADDED, System.currentTimeMillis());
                 values.put(FileColumns.DATE_MODIFIED, System.currentTimeMillis());
@@ -393,18 +382,6 @@ public class DatabaseHelperTest {
                 assertEquals("text/plain",
                         c.getString(c.getColumnIndexOrThrow(FileColumns.MIME_TYPE)));
                 assertEquals(null,
-                        c.getString(c.getColumnIndexOrThrow(FileColumns.OWNER_PACKAGE_NAME)));
-                assertEquals("1", c.getString(c.getColumnIndexOrThrow(FileColumns.IS_DOWNLOAD)));
-            }
-            try (Cursor c = db.query("files", null, FileColumns.DISPLAY_NAME + "='foo.mp4'",
-                    null, null, null, null)) {
-                assertEquals(1, c.getCount());
-                assertTrue(c.moveToFirst());
-                assertEquals("/storage/0000-0000/Android/sandbox/com.example2/Download/dir/foo.mp4",
-                        c.getString(c.getColumnIndexOrThrow(FileColumns.DATA)));
-                assertEquals("video/mp4",
-                        c.getString(c.getColumnIndexOrThrow(FileColumns.MIME_TYPE)));
-                assertEquals("com.example2",
                         c.getString(c.getColumnIndexOrThrow(FileColumns.OWNER_PACKAGE_NAME)));
                 assertEquals("1", c.getString(c.getColumnIndexOrThrow(FileColumns.IS_DOWNLOAD)));
             }

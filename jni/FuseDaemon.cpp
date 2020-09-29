@@ -416,7 +416,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     if (!node) {
         node = ::node::Create(parent, name, &fuse->lock, &fuse->tracker);
     } else if (!mediaprovider::fuse::containsMount(path, std::to_string(getuid() / PER_USER_RANGE))) {
-        should_inval = true;
+        should_inval = node->HasCaseInsensitiveMatch();
         // Only invalidate a path if it does not contain mount.
         // Invalidate both names to ensure there's no dentry left in the kernel after the following
         // operations:
@@ -427,13 +427,17 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
         // invalidate node_name if different case
         // Note that we invalidate async otherwise we will deadlock the kernel
         if (name != node->GetName()) {
+            should_inval = true;
+            // Record that we have made a case insensitive lookup, this allows us invalidate nodes
+            // correctly on subsequent lookups for the case of |node|
+            node->SetCaseInsensitiveMatch();
+
             // Make copies of the node name and path so we're not attempting to acquire
             // any node locks from the invalidation thread. Depending on timing, we may end
             // up invalidating the wrong inode but that shouldn't result in correctness issues.
             const fuse_ino_t parent_ino = fuse->ToInode(parent);
             const fuse_ino_t child_ino = fuse->ToInode(node);
             const std::string& node_name = node->GetName();
-
             std::thread t([=]() { fuse_inval(fuse->se, parent_ino, child_ino, node_name, path); });
             t.detach();
         }
@@ -956,7 +960,7 @@ static void pf_link(fuse_req_t req, fuse_ino_t ino, fuse_ino_t new_parent,
 */
 
 static handle* create_handle_for_node(struct fuse* fuse, const string& path, int fd, node* node,
-                                      const RedactionInfo* ri) {
+                                      const RedactionInfo* ri, int* keep_cache) {
     std::lock_guard<std::recursive_mutex> guard(fuse->lock);
     // We don't want to use the FUSE VFS cache in two cases:
     // 1. When redaction is needed because app A with EXIF access might access
@@ -971,8 +975,21 @@ static handle* create_handle_for_node(struct fuse* fuse, const string& path, int
     // b. Reading from a FUSE fd with caching enabled may not see the latest writes using
     // the lower fs fd because those writes did not go through the FUSE layer and reads from
     // FUSE after that write may be served from cache
-    bool direct_io = ri->isRedactionNeeded() || is_file_locked(fd, path);
+    bool has_redacted = node->HasRedactedCache();
+    bool redaction_needed = ri->isRedactionNeeded();
+    bool is_redaction_change =
+            (redaction_needed && !has_redacted) || (!redaction_needed && has_redacted);
+    bool is_cached_file_open = node->HasCachedHandle();
 
+    if (!is_cached_file_open && is_redaction_change) {
+        node->SetRedactedCache(redaction_needed);
+        // Purges stale page cache before open
+        *keep_cache = 0;
+    } else {
+        *keep_cache = 1;
+    }
+
+    bool direct_io = (is_cached_file_open && is_redaction_change) || is_file_locked(fd, path);
     handle* h = new handle(fd, ri, !direct_io);
     node->AddHandle(h);
     return h;
@@ -1038,9 +1055,10 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         return;
     }
 
-    handle* h = create_handle_for_node(fuse, path, fd, node, ri.release());
+    int keep_cache = 1;
+    handle* h = create_handle_for_node(fuse, path, fd, node, ri.release(), &keep_cache);
     fi->fh = ptr_to_id(h);
-    fi->keep_cache = 1;
+    fi->keep_cache = keep_cache;
     fi->direct_io = !h->cached;
     fuse_reply_open(req, fi);
 }
@@ -1600,9 +1618,10 @@ static void pf_create(fuse_req_t req,
     // This prevents crashing during reads but can be a security hole if a malicious app opens an fd
     // to the file before all the EXIF content is written. We could special case reads before the
     // first close after a file has just been created.
-    handle* h = create_handle_for_node(fuse, child_path, fd, node, new RedactionInfo());
+    int keep_cache = 1;
+    handle* h = create_handle_for_node(fuse, child_path, fd, node, new RedactionInfo(), &keep_cache);
     fi->fh = ptr_to_id(h);
-    fi->keep_cache = 1;
+    fi->keep_cache = keep_cache;
     fi->direct_io = !h->cached;
     fuse_reply_create(req, &e, fi);
 }

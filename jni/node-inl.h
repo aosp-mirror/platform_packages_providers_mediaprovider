@@ -282,6 +282,26 @@ class node {
         return false;
     }
 
+    bool HasCaseInsensitiveMatch() const {
+        std::lock_guard<std::recursive_mutex> guard(*lock_);
+        return has_case_insensitive_match_;
+    }
+
+    void SetCaseInsensitiveMatch() {
+        std::lock_guard<std::recursive_mutex> guard(*lock_);
+        has_case_insensitive_match_ = true;
+    }
+
+    bool HasRedactedCache() const {
+        std::lock_guard<std::recursive_mutex> guard(*lock_);
+        return has_redacted_cache_;
+    }
+
+    void SetRedactedCache(bool state) {
+        std::lock_guard<std::recursive_mutex> guard(*lock_);
+        has_redacted_cache_ = state;
+    }
+
     inline void AddDirHandle(dirhandle* d) {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
 
@@ -309,6 +329,8 @@ class node {
         : name_(name),
           refcount_(0),
           parent_(nullptr),
+          has_redacted_cache_(false),
+          has_case_insensitive_match_(false),
           deleted_(false),
           lock_(lock),
           tracker_(tracker) {
@@ -416,6 +438,8 @@ class node {
     std::vector<std::unique_ptr<handle>> handles_;
     // List of directory handles associated with this node. Guarded by |lock_|.
     std::vector<std::unique_ptr<dirhandle>> dirhandles_;
+    bool has_redacted_cache_;
+    bool has_case_insensitive_match_;
     bool deleted_;
     std::recursive_mutex* lock_;
 

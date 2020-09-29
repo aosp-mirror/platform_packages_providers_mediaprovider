@@ -44,6 +44,7 @@ import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_MAN
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_SELF;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_SHELL;
+import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_SYSTEM_GALLERY;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_READ_AUDIO;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_READ_IMAGES;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_READ_VIDEO;
@@ -1189,18 +1190,39 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     static void computeAudioKeyValues(ContentValues values) {
-        computeAudioKeyValue(values,
-                AudioColumns.TITLE, AudioColumns.TITLE_KEY, null);
-        computeAudioKeyValue(values,
-                AudioColumns.ALBUM, AudioColumns.ALBUM_KEY, AudioColumns.ALBUM_ID);
-        computeAudioKeyValue(values,
-                AudioColumns.ARTIST, AudioColumns.ARTIST_KEY, AudioColumns.ARTIST_ID);
-        computeAudioKeyValue(values,
-                AudioColumns.GENRE, AudioColumns.GENRE_KEY, AudioColumns.GENRE_ID);
+        computeAudioKeyValue(values, AudioColumns.TITLE, AudioColumns.TITLE_KEY, /* focusId */
+                null, /* hashValue */ 0);
+        computeAudioKeyValue(values, AudioColumns.ARTIST, AudioColumns.ARTIST_KEY,
+                AudioColumns.ARTIST_ID, /* hashValue */ 0);
+        computeAudioKeyValue(values, AudioColumns.GENRE, AudioColumns.GENRE_KEY,
+                AudioColumns.GENRE_ID, /* hashValue */ 0);
+        computeAudioAlbumKeyValue(values);
+    }
+
+    /**
+     * To distinguish same-named albums, we append a hash. The hash is
+     * based on the "album artist" tag if present, otherwise on the path of
+     * the parent directory of the audio file.
+     */
+    private static void computeAudioAlbumKeyValue(ContentValues values) {
+        int hashCode = 0;
+
+        final String albumArtist = values.getAsString(MediaColumns.ALBUM_ARTIST);
+        if (!TextUtils.isEmpty(albumArtist)) {
+            hashCode = albumArtist.hashCode();
+        } else {
+            final String path = values.getAsString(MediaColumns.DATA);
+            if (!TextUtils.isEmpty(path)) {
+                hashCode = path.substring(0, path.lastIndexOf('/')).hashCode();
+            }
+        }
+
+        computeAudioKeyValue(values, AudioColumns.ALBUM, AudioColumns.ALBUM_KEY,
+                AudioColumns.ALBUM_ID, hashCode);
     }
 
     private static void computeAudioKeyValue(@NonNull ContentValues values, @NonNull String focus,
-            @Nullable String focusKey, @Nullable String focusId) {
+            @Nullable String focusKey, @Nullable String focusId, int hashValue) {
         if (focusKey != null) values.remove(focusKey);
         if (focusId != null) values.remove(focusId);
 
@@ -1216,8 +1238,8 @@ public class MediaProvider extends ContentProvider {
         if (focusId != null) {
             // Many apps break if we generate negative IDs, so trim off the
             // highest bit to ensure we're always unsigned
-            final long id = Hashing.farmHashFingerprint64()
-                    .hashString(key, StandardCharsets.UTF_8).asLong() & ~(1L << 63);
+            final long id = Hashing.farmHashFingerprint64().hashString(key + hashValue,
+                    StandardCharsets.UTF_8).asLong() & ~(1L << 63);
             values.put(focusId, id);
         }
     }
@@ -2126,10 +2148,13 @@ public class MediaProvider extends ContentProvider {
             }
 
             final int type;
+            final boolean forWrite;
             if ((modeFlags & Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != 0) {
                 type = TYPE_UPDATE;
+                forWrite = true;
             } else {
                 type = TYPE_QUERY;
+                forWrite = false;
             }
 
             final SQLiteQueryBuilder qb = getQueryBuilder(type, table, uri, Bundle.EMPTY, null);
@@ -2139,6 +2164,24 @@ public class MediaProvider extends ContentProvider {
                     return PackageManager.PERMISSION_GRANTED;
                 }
             }
+
+            try {
+                if (ContentUris.parseId(uri) != -1) {
+                    return PackageManager.PERMISSION_DENIED;
+                }
+            } catch (NumberFormatException ignored) { }
+
+            // If the uri is a valid content uri and doesn't have a valid ID at the end of the uri,
+            // (i.e., uri is uri of the table not of the item/row), and app doesn't request prefix
+            // grant, we are willing to grant this uri permission since this doesn't grant them any
+            // extra access. This grant will only grant permissions on given uri, it will not grant
+            // access to db rows of the corresponding table.
+            if ((modeFlags & Intent.FLAG_GRANT_PREFIX_URI_PERMISSION) == 0) {
+                return PackageManager.PERMISSION_GRANTED;
+            }
+
+            // For prefix grant on the uri with content uri without id, we don't allow apps to
+            // grant access as they might end up granting access to all files.
         } finally {
             restoreLocalCallingIdentity(token);
         }
@@ -6280,7 +6323,15 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
         try {
-            return uid != android.os.Process.SHELL_UID && isCallingPackageManager();
+            if (uid != android.os.Process.SHELL_UID && isCallingPackageManager()) {
+                return true;
+            }
+            // We bypass db operations for legacy system galleries with W_E_S (see b/167307393).
+            // Tracking a longer term solution in b/168784136.
+            if (isCallingPackageLegacyWrite() && isCallingPackageSystemGallery()) {
+                return true;
+            }
+            return false;
         } finally {
             restoreLocalCallingIdentity(token);
         }
@@ -7710,6 +7761,10 @@ public class MediaProvider extends ContentProvider {
             builder.appendPath(basePath.get(i));
         }
         return builder.build();
+    }
+
+    private boolean isCallingPackageSystemGallery() {
+        return mCallingIdentity.get().hasPermission(PERMISSION_IS_SYSTEM_GALLERY);
     }
 
     @Deprecated

@@ -55,4 +55,9 @@ public class LegacyMediaScanner implements MediaScanner {
     public void onDetachVolume(String volumeName) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public void onIdleScanStopped() {
+        throw new UnsupportedOperationException();
+    }
 }

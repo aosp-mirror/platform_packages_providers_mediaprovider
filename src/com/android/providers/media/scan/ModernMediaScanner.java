@@ -111,6 +111,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -174,11 +175,11 @@ public class ModernMediaScanner implements MediaScanner {
     private final DrmManagerClient mDrmClient;
 
     /**
-     * Map from volume name to signals that can be used to cancel any active
-     * scan operations on those volumes.
+     * List of active scans.
      */
-    @GuardedBy("mSignals")
-    private final ArrayMap<String, CancellationSignal> mSignals = new ArrayMap<>();
+    @GuardedBy("mActiveScans")
+
+    private final List<Scan> mActiveScans = new ArrayList<>();
 
     /**
      * Holder that contains a reference count of the number of threads
@@ -247,22 +248,35 @@ public class ModernMediaScanner implements MediaScanner {
 
     @Override
     public void onDetachVolume(String volumeName) {
-        synchronized (mSignals) {
-            final CancellationSignal signal = mSignals.remove(volumeName);
-            if (signal != null) {
-                signal.cancel();
+        synchronized (mActiveScans) {
+            for (Scan scan : mActiveScans) {
+                if (volumeName.equals(scan.mVolumeName)) {
+                    scan.mSignal.cancel();
+                }
             }
         }
     }
 
-    private CancellationSignal getOrCreateSignal(String volumeName) {
-        synchronized (mSignals) {
-            CancellationSignal signal = mSignals.get(volumeName);
-            if (signal == null) {
-                signal = new CancellationSignal();
-                mSignals.put(volumeName, signal);
+    @Override
+    public void onIdleScanStopped() {
+        synchronized (mActiveScans) {
+            for (Scan scan : mActiveScans) {
+                if (scan.mReason == REASON_IDLE) {
+                    scan.mSignal.cancel();
+                }
             }
-            return signal;
+        }
+    }
+
+    private void addActiveScan(Scan scan) {
+        synchronized (mActiveScans) {
+            mActiveScans.add(scan);
+        }
+    }
+
+    private void removeActiveScan(Scan scan) {
+        synchronized (mActiveScans) {
+            mActiveScans.remove(scan);
         }
     }
 
@@ -313,7 +327,7 @@ public class ModernMediaScanner implements MediaScanner {
             mReason = reason;
             mVolumeName = FileUtils.getVolumeName(mContext, root);
             mFilesUri = MediaStore.Files.getContentUri(mVolumeName);
-            mSignal = getOrCreateSignal(mVolumeName);
+            mSignal = new CancellationSignal();
 
             mStartGeneration = MediaStore.getGeneration(mResolver, mVolumeName);
             mSingleFile = mRoot.isFile();
@@ -324,6 +338,15 @@ public class ModernMediaScanner implements MediaScanner {
 
         @Override
         public void run() {
+            addActiveScan(this);
+            try {
+                runInternal();
+            } finally {
+                removeActiveScan(this);
+            }
+        }
+
+        private void runInternal() {
             final long startTime = SystemClock.elapsedRealtime();
 
             // First, scan everything that should be visible under requested

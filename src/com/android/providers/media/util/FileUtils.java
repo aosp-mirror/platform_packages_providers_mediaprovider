@@ -56,6 +56,7 @@ import android.system.Os;
 import android.system.OsConstants;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
+import android.util.ArraySet;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
@@ -84,6 +85,7 @@ import java.util.Iterator;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -1327,5 +1329,61 @@ public class FileUtils {
             }
         }
         return status;
+    }
+
+    /**
+     * @return {@code true} if {@code dir} is dirty and should be scanned, {@code false} otherwise.
+     */
+    public static boolean isDirectoryDirty(File dir) {
+        File nomedia = new File(dir, ".nomedia");
+        if (nomedia.exists()) {
+            try {
+                Optional<String> expectedPath = readString(nomedia);
+                // Returns true If .nomedia file is empty or content doesn't match |dir|
+                // Returns false otherwise
+                return !expectedPath.isPresent()
+                        || !expectedPath.get().equals(dir.getPath());
+            } catch (IOException e) {
+                Log.w(TAG, "Failed to read directory dirty" + dir);
+            }
+        }
+        return true;
+    }
+
+    /**
+     * {@code isDirty} == {@code true} will force {@code dir} scanning even if it's hidden
+     * {@code isDirty} == {@code false} will skip {@code dir} scanning on next scan.
+     */
+    public static void setDirectoryDirty(File dir, boolean isDirty) {
+        File nomedia = new File(dir, ".nomedia");
+        if (nomedia.exists()) {
+            try {
+                writeString(nomedia, isDirty ? Optional.of("") : Optional.of(dir.getPath()));
+            } catch (IOException e) {
+                Log.w(TAG, "Failed to change directory dirty: " + dir + ". isDirty: " + isDirty);
+            }
+        }
+    }
+
+    /**
+     * @return the folder containing the top-most .nomedia in {@code file} hierarchy.
+     * E.g input as /sdcard/foo/bar/ will return /sdcard/foo
+     * even if foo and bar contain .nomedia files.
+     *
+     * Returns {@code null} if there's no .nomedia in hierarchy
+     */
+    public static File getTopLevelNoMedia(@NonNull File file) {
+        File topNoMedia = null;
+
+        File parent = file;
+        while (parent != null) {
+            File nomedia = new File(parent, ".nomedia");
+            if (nomedia.exists()) {
+                topNoMedia = nomedia;
+            }
+            parent = parent.getParentFile();
+        }
+
+        return topNoMedia;
     }
 }

@@ -203,6 +203,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -280,6 +281,8 @@ public class MediaProvider extends ContentProvider {
      */
     private static final int MATCH_VISIBLE_FOR_FILEPATH = 32;
 
+    private static final int NON_HIDDEN_CACHE_SIZE = 50;
+
     /**
      * Where clause to match pending files from FUSE. Pending files from FUSE will not have
      * PATTERN_PENDING_FILEPATH_FOR_SQL pattern.
@@ -316,6 +319,9 @@ public class MediaProvider extends ContentProvider {
 
     @GuardedBy("mShouldRedactThreadIds")
     private final LongArray mShouldRedactThreadIds = new LongArray();
+
+    @GuardedBy("mNonHiddenPaths")
+    private final LRUCache<String, Integer> mNonHiddenPaths = new LRUCache<>(NON_HIDDEN_CACHE_SIZE);
 
     public void updateVolumes() {
         synchronized (sCacheLock) {
@@ -2056,7 +2062,7 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EPERM;
             }
 
-            if (shouldBypassDatabaseForFuse(uid)) {
+            if (shouldBypassDatabaseAndSetDirtyForFuse(uid, newPath)) {
                 return renameInLowerFs(oldPath, newPath);
             }
 
@@ -6324,19 +6330,36 @@ public class MediaProvider extends ContentProvider {
         return !isCallingIdentitySharedPackageName(appSpecificDir);
     }
 
-    private boolean shouldBypassDatabaseForFuse(int uid) {
+    private boolean shouldBypassDatabaseAndSetDirtyForFuse(int uid, String path) {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
         try {
+            boolean shouldBypass = false;
             if (uid != android.os.Process.SHELL_UID && isCallingPackageManager()) {
-                return true;
+                shouldBypass = true;
+            }  else if (isCallingPackageLegacyWrite() && isCallingPackageSystemGallery()) {
+                // We bypass db operations for legacy system galleries with W_E_S (see b/167307393).
+                // Tracking a longer term solution in b/168784136.
+                shouldBypass = true;
             }
-            // We bypass db operations for legacy system galleries with W_E_S (see b/167307393).
-            // Tracking a longer term solution in b/168784136.
-            if (isCallingPackageLegacyWrite() && isCallingPackageSystemGallery()) {
-                return true;
+
+            if (shouldBypass) {
+                synchronized (mNonHiddenPaths) {
+                    File file = new File(path);
+                    String key = file.getParent();
+                    boolean maybeHidden = !mNonHiddenPaths.containsKey(key);
+
+                    if (maybeHidden) {
+                        File topNoMedia = FileUtils.getTopLevelNoMedia(new File(path));
+                        if (topNoMedia == null) {
+                            mNonHiddenPaths.put(key, 0);
+                        } else {
+                            mMediaScanner.onDirectoryDirty(topNoMedia);
+                        }
+                    }
+                }
             }
-            return false;
+            return shouldBypass;
         } finally {
             restoreLocalCallingIdentity(token);
         }
@@ -6398,6 +6421,19 @@ public class MediaProvider extends ContentProvider {
         public RedactionInfo(long[] redactionRanges, long[] freeOffsets) {
             this.redactionRanges = redactionRanges;
             this.freeOffsets = freeOffsets;
+        }
+    }
+
+    private static class LRUCache<K, V> extends LinkedHashMap<K, V> {
+        private final int mMaxSize;
+
+        public LRUCache(int maxSize) {
+            this.mMaxSize = maxSize;
+        }
+
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+            return size() > mMaxSize;
         }
     }
 
@@ -6770,7 +6806,14 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EPERM;
             }
 
-            if (shouldBypassDatabaseForFuse(uid)) {
+            if (shouldBypassDatabaseAndSetDirtyForFuse(uid, path)) {
+                if (path.endsWith("/.nomedia")) {
+                    File parent = new File(path).getParentFile();
+                    synchronized (mNonHiddenPaths) {
+                        mNonHiddenPaths.keySet().removeIf(
+                                k -> FileUtils.contains(parent, new File(k)));
+                    }
+                }
                 return 0;
             }
 
@@ -6882,7 +6925,7 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.ENOENT;
             }
 
-            if (shouldBypassDatabaseForFuse(uid)) {
+            if (shouldBypassDatabaseAndSetDirtyForFuse(uid, path)) {
                 return deleteFileUnchecked(path);
             }
 

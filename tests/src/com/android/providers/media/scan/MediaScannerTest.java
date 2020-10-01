@@ -16,6 +16,10 @@
 
 package com.android.providers.media.scan;
 
+import static android.provider.MediaStore.VOLUME_EXTERNAL;
+
+import static com.android.providers.media.scan.MediaScanner.REASON_UNKNOWN;
+
 import static org.junit.Assert.assertEquals;
 
 import android.content.ContentResolver;
@@ -27,7 +31,6 @@ import android.database.DatabaseUtils;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.FileUtils;
 import android.os.SystemClock;
 import android.provider.BaseColumns;
 import android.provider.MediaStore;
@@ -37,8 +40,13 @@ import android.test.mock.MockContentProvider;
 import android.test.mock.MockContentResolver;
 import android.util.Log;
 
+import androidx.test.InstrumentationRegistry;
+import androidx.test.runner.AndroidJUnit4;
+
+import com.android.providers.media.MediaDocumentsProvider;
 import com.android.providers.media.MediaProvider;
-import com.android.providers.media.tests.R;
+import com.android.providers.media.R;
+import com.android.providers.media.util.FileUtils;
 
 import org.junit.Before;
 import org.junit.Ignore;
@@ -52,9 +60,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
 
-import androidx.test.InstrumentationRegistry;
-import androidx.test.runner.AndroidJUnit4;
-
 @RunWith(AndroidJUnit4.class)
 public class MediaScannerTest {
     private static final String TAG = "MediaScannerTest";
@@ -63,8 +68,9 @@ public class MediaScannerTest {
         private final File mDir;
         private final MockContentResolver mResolver;
         private final MediaProvider mProvider;
+        private final MediaDocumentsProvider mDocumentsProvider;
 
-        public IsolatedContext(Context base, String tag) {
+        public IsolatedContext(Context base, String tag, boolean asFuseThread) {
             super(base);
             mDir = new File(base.getFilesDir(), tag);
             mDir.mkdirs();
@@ -74,16 +80,29 @@ public class MediaScannerTest {
 
             final ProviderInfo info = base.getPackageManager()
                     .resolveContentProvider(MediaStore.AUTHORITY, 0);
-            mProvider = new MediaProvider();
+            mProvider = new MediaProvider() {
+                @Override
+                public boolean isFuseThread() {
+                    return asFuseThread;
+                }
+            };
             mProvider.attachInfo(this, info);
-
             mResolver.addProvider(MediaStore.AUTHORITY, mProvider);
+
+            final ProviderInfo documentsInfo = base.getPackageManager()
+                    .resolveContentProvider(MediaDocumentsProvider.AUTHORITY, 0);
+            mDocumentsProvider = new MediaDocumentsProvider();
+            mDocumentsProvider.attachInfo(this, documentsInfo);
+            mResolver.addProvider(MediaDocumentsProvider.AUTHORITY, mDocumentsProvider);
+
             mResolver.addProvider(Settings.AUTHORITY, new MockContentProvider() {
                 @Override
                 public Bundle call(String method, String request, Bundle args) {
                     return Bundle.EMPTY;
                 }
             });
+
+            MediaStore.waitForIdle(mResolver);
         }
 
         @Override
@@ -104,8 +123,10 @@ public class MediaScannerTest {
     public void setUp() {
         final Context context = InstrumentationRegistry.getTargetContext();
 
-        mLegacy = new LegacyMediaScanner(new IsolatedContext(context, "legacy"));
-        mModern = new ModernMediaScanner(new IsolatedContext(context, "modern"));
+        mLegacy = new LegacyMediaScanner(
+                new IsolatedContext(context, "legacy", /*asFuseThread*/ false));
+        mModern = new ModernMediaScanner(
+                new IsolatedContext(context, "modern", /*asFuseThread*/ false));
     }
 
     /**
@@ -186,7 +207,8 @@ public class MediaScannerTest {
         scanDirectory(scanner, scanDir, "Initial");
         scanDirectory(scanner, scanDir, "No-op");
 
-        FileUtils.deleteContentsAndDir(dir);
+        FileUtils.deleteContents(dir);
+        dir.delete();
         scanDirectory(scanner, scanDir, "Clean");
     }
 
@@ -195,7 +217,7 @@ public class MediaScannerTest {
         final long beforeTime = SystemClock.elapsedRealtime();
         final int[] beforeCounts = getCounts(context);
 
-        scanner.scanDirectory(dir);
+        scanner.scanDirectory(dir, REASON_UNKNOWN);
 
         final long deltaTime = SystemClock.elapsedRealtime() - beforeTime;
         final int[] deltaCounts = subtract(getCounts(context), beforeCounts);
@@ -212,10 +234,10 @@ public class MediaScannerTest {
 
     private static int[] getCounts(Context context) {
         return new int[] {
-                getCount(context, MediaStore.Files.EXTERNAL_CONTENT_URI),
-                getCount(context, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI),
-                getCount(context, MediaStore.Video.Media.EXTERNAL_CONTENT_URI),
-                getCount(context, MediaStore.Images.Media.EXTERNAL_CONTENT_URI),
+                getCount(context, MediaStore.Files.getContentUri(VOLUME_EXTERNAL)),
+                getCount(context, MediaStore.Audio.Media.getContentUri(VOLUME_EXTERNAL)),
+                getCount(context, MediaStore.Video.Media.getContentUri(VOLUME_EXTERNAL)),
+                getCount(context, MediaStore.Images.Media.getContentUri(VOLUME_EXTERNAL)),
         };
     }
 

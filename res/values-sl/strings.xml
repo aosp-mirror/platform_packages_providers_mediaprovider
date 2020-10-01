@@ -20,32 +20,126 @@
     <string name="storage_description" msgid="4081716890357580107">"Lokalna shramba"</string>
     <string name="app_label" msgid="9035307001052716210">"Shramba za predstavnost"</string>
     <string name="artist_label" msgid="8105600993099120273">"Izvajalec"</string>
-    <string name="ringtone_default" msgid="1744846699922263043">"Privzeti ton zvonjenja"</string>
-    <string name="notification_sound_default" msgid="6541609166469990135">"Privzeti zvok obvestila"</string>
-    <string name="alarm_sound_default" msgid="5488847775252870314">"Privzeti zvok alarma"</string>
+    <string name="unknown" msgid="2059049215682829375">"Neznano"</string>
     <string name="root_images" msgid="5861633549189045666">"Slike"</string>
     <string name="root_videos" msgid="8792703517064649453">"Videoposnetki"</string>
     <string name="root_audio" msgid="3505830755201326018">"Zvočni posnetki"</string>
+    <string name="root_documents" msgid="3829103301363849237">"Dokumenti"</string>
     <string name="permission_required" msgid="1460820436132943754">"Za spreminjanje ali brisanje tega elementa je potrebno dovoljenje."</string>
     <string name="permission_required_action" msgid="706370952366113539">"Nadaljuj"</string>
-    <string name="permission_audio" msgid="344061911159388398">"Želite aplikaciji "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" dovoliti spreminjanje ali brisanje te glasbe?"</string>
-    <string name="permission_video" msgid="8188037202573267740">"Želite aplikaciji "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" dovoliti spreminjanje ali brisanje tega videoposnetka?"</string>
-    <string name="permission_images" msgid="6711726334380945124">"Želite aplikaciji "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" dovoliti spreminjanje ali brisanje te slike?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Dovoli"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Zavrni"</string>
-    <string name="sound_name_awaken" msgid="5266892392848526147">"Prebujanje"</string>
-    <string name="sound_name_bounce" msgid="8771447635446665231">"Poskakovanje"</string>
-    <string name="sound_name_drip" msgid="1744684469020662152">"Curljanje"</string>
-    <string name="sound_name_gallop" msgid="2664454314532060876">"Galopiranje"</string>
-    <string name="sound_name_nudge" msgid="5445751598250698244">"Dreganje"</string>
-    <string name="sound_name_orbit" msgid="4623457897813255481">"Orbita"</string>
-    <string name="sound_name_rise" msgid="2200258555031675806">"Pokonci"</string>
-    <string name="sound_name_sway" msgid="348448316663085643">"Guganje"</string>
-    <string name="sound_name_wag" msgid="2730733083078126563">"Mahanje"</string>
-    <string name="add_ringtone_text" msgid="8077717303037760418">"Dodaj ton zvonjenja"</string>
-    <string name="add_alarm_text" msgid="2440919366091720815">"Dodaj alarm"</string>
-    <string name="add_notification_text" msgid="5013822215567515665">"Dodaj obvestilo"</string>
-    <string name="delete_ringtone_text" msgid="2963662097583300181">"Izbriši"</string>
-    <string name="unable_to_add_ringtone" msgid="6256097521165711269">"Tona zvonjenja po meri ni mogoče dodati"</string>
-    <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"Tona zvonjenja po meri ni mogoče izbrisati"</string>
+    <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
+      <item quantity="one">+<xliff:g id="COUNT_1">^1</xliff:g></item>
+      <item quantity="two">+<xliff:g id="COUNT_1">^1</xliff:g></item>
+      <item quantity="few">+<xliff:g id="COUNT_1">^1</xliff:g></item>
+      <item quantity="other">+<xliff:g id="COUNT_1">^1</xliff:g></item>
+    </plurals>
+    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
+      <item quantity="one">In še <xliff:g id="COUNT_1">^1</xliff:g> dodaten element</item>
+      <item quantity="two">In še <xliff:g id="COUNT_1">^1</xliff:g> dodatna elementa</item>
+      <item quantity="few">In še <xliff:g id="COUNT_1">^1</xliff:g> dodatni elementi</item>
+      <item quantity="other">In še <xliff:g id="COUNT_1">^1</xliff:g> dodatnih elementov</item>
+    </plurals>
+    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Želite izbrisati začasne datoteke aplikacij?"</string>
+    <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"Aplikacija <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> želi izbrisati nekaj začasnih datotek. To lahko povzroči povečano porabo energije baterije ali povečan prenos podatkov v mobilnem omrežju."</string>
+    <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Brisanje začasnih datotek aplikacij …"</string>
+    <string name="allow" msgid="8885707816848569619">"Dovoli"</string>
+    <string name="deny" msgid="6040983710442068936">"Zavrni"</string>
+    <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
+      <item quantity="one">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> zvočno datoteko?</item>
+      <item quantity="two">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> zvočni datoteki?</item>
+      <item quantity="few">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> zvočne datoteke?</item>
+      <item quantity="other">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> zvočnih datotek?</item>
+    </plurals>
+    <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
+      <item quantity="one">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> videoposnetek?</item>
+      <item quantity="two">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> videoposnetka?</item>
+      <item quantity="few">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> videoposnetke?</item>
+      <item quantity="other">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> videoposnetkov?</item>
+    </plurals>
+    <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
+      <item quantity="one">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> fotografijo?</item>
+      <item quantity="two">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> fotografiji?</item>
+      <item quantity="few">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> fotografije?</item>
+      <item quantity="other">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> fotografij?</item>
+    </plurals>
+    <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
+      <item quantity="one">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> element?</item>
+      <item quantity="two">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> elementa?</item>
+      <item quantity="few">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> elemente?</item>
+      <item quantity="other">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> elementov?</item>
+    </plurals>
+    <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
+      <item quantity="one">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> zvočno datoteko v smetnjak?</item>
+      <item quantity="two">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> zvočni datoteki v smetnjak?</item>
+      <item quantity="few">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> zvočne datoteke v smetnjak?</item>
+      <item quantity="other">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> zvočnih datotek v smetnjak?</item>
+    </plurals>
+    <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
+      <item quantity="one">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> videoposnetek v smetnjak?</item>
+      <item quantity="two">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> videoposnetka v smetnjak?</item>
+      <item quantity="few">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> videoposnetke v smetnjak?</item>
+      <item quantity="other">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> videoposnetkov v smetnjak?</item>
+    </plurals>
+    <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
+      <item quantity="one">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> fotografijo v smetnjak?</item>
+      <item quantity="two">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> fotografiji v smetnjak?</item>
+      <item quantity="few">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> fotografije v smetnjak?</item>
+      <item quantity="other">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> fotografij v smetnjak?</item>
+    </plurals>
+    <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
+      <item quantity="one">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> element v smetnjak?</item>
+      <item quantity="two">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> elementa v smetnjak?</item>
+      <item quantity="few">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> elemente v smetnjak?</item>
+      <item quantity="other">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> elementov v smetnjak?</item>
+    </plurals>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
+      <item quantity="one">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> zvočno datoteko iz smetnjaka?</item>
+      <item quantity="two">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> zvočni datoteki iz smetnjaka?</item>
+      <item quantity="few">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> zvočne datoteke iz smetnjaka?</item>
+      <item quantity="other">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> zvočnih datotek iz smetnjaka?</item>
+    </plurals>
+    <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
+      <item quantity="one">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> videoposnetek iz smetnjaka?</item>
+      <item quantity="two">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> videoposnetka iz smetnjaka?</item>
+      <item quantity="few">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> videoposnetke iz smetnjaka?</item>
+      <item quantity="other">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> videoposnetkov iz smetnjaka?</item>
+    </plurals>
+    <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
+      <item quantity="one">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> fotografijo iz smetnjaka?</item>
+      <item quantity="two">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> fotografiji iz smetnjaka?</item>
+      <item quantity="few">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> fotografije iz smetnjaka?</item>
+      <item quantity="other">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> fotografij iz smetnjaka?</item>
+    </plurals>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
+      <item quantity="one">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> element iz smetnjaka?</item>
+      <item quantity="two">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> elementa iz smetnjaka?</item>
+      <item quantity="few">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> elemente iz smetnjaka?</item>
+      <item quantity="other">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da premakne <xliff:g id="COUNT">^2</xliff:g> elementov iz smetnjaka?</item>
+    </plurals>
+    <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
+      <item quantity="one">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da izbriše <xliff:g id="COUNT">^2</xliff:g> zvočno datoteko?</item>
+      <item quantity="two">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da izbriše <xliff:g id="COUNT">^2</xliff:g> zvočni datoteki?</item>
+      <item quantity="few">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da izbriše <xliff:g id="COUNT">^2</xliff:g> zvočne datoteke?</item>
+      <item quantity="other">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da izbriše <xliff:g id="COUNT">^2</xliff:g> zvočnih datotek?</item>
+    </plurals>
+    <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
+      <item quantity="one">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da izbriše <xliff:g id="COUNT">^2</xliff:g> videoposnetek?</item>
+      <item quantity="two">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da izbriše <xliff:g id="COUNT">^2</xliff:g> videoposnetka?</item>
+      <item quantity="few">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da izbriše <xliff:g id="COUNT">^2</xliff:g> videoposnetke?</item>
+      <item quantity="other">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da izbriše <xliff:g id="COUNT">^2</xliff:g> videoposnetkov?</item>
+    </plurals>
+    <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
+      <item quantity="one">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da izbriše <xliff:g id="COUNT">^2</xliff:g> fotografijo?</item>
+      <item quantity="two">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da izbriše <xliff:g id="COUNT">^2</xliff:g> fotografiji?</item>
+      <item quantity="few">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da izbriše <xliff:g id="COUNT">^2</xliff:g> fotografije?</item>
+      <item quantity="other">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da izbriše <xliff:g id="COUNT">^2</xliff:g> fotografij?</item>
+    </plurals>
+    <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
+      <item quantity="one">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da izbriše <xliff:g id="COUNT">^2</xliff:g> element?</item>
+      <item quantity="two">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da izbriše <xliff:g id="COUNT">^2</xliff:g> elementa?</item>
+      <item quantity="few">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da izbriše <xliff:g id="COUNT">^2</xliff:g> elemente?</item>
+      <item quantity="other">Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da izbriše <xliff:g id="COUNT">^2</xliff:g> elementov?</item>
+    </plurals>
 </resources>

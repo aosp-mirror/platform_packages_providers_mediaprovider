@@ -17,6 +17,29 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android">
 
     <style name="PickerDialogTheme" parent="@*android:style/Theme.DeviceDefault.Settings.Dialog">
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
+    <style name="AlertDialogTheme"
+      parent="@*android:style/Theme.DeviceDefault.Dialog.Alert.DayNight" />
+
+    <style name="CacheClearingAlertDialogTheme"
+           parent="@*android:style/Theme.DeviceDefault.Dialog.Alert.DayNight">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:alertDialogTheme">@style/AlertDialogTheme</item>
+    </style>
+
+    <style name="CacheClearingAlertDialogTitle"
+           parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textSize">16sp</item>
     </style>
 
 </resources>

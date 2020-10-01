@@ -20,34 +20,126 @@
     <string name="storage_description" msgid="4081716890357580107">"Локальное хранилище"</string>
     <string name="app_label" msgid="9035307001052716210">"Хранилище мультимедиа"</string>
     <string name="artist_label" msgid="8105600993099120273">"Исполнитель"</string>
-    <string name="ringtone_default" msgid="1744846699922263043">"Рингтон по умолчанию"</string>
-    <string name="notification_sound_default" msgid="6541609166469990135">"Звук уведомления по умолчанию"</string>
-    <string name="alarm_sound_default" msgid="5488847775252870314">"Звук будильника по умолчанию"</string>
+    <string name="unknown" msgid="2059049215682829375">"Неизвестно"</string>
     <string name="root_images" msgid="5861633549189045666">"Изображения"</string>
     <string name="root_videos" msgid="8792703517064649453">"Видео"</string>
     <string name="root_audio" msgid="3505830755201326018">"Аудио"</string>
-    <!-- no translation found for permission_required (1460820436132943754) -->
-    <skip />
-    <!-- no translation found for permission_required_action (706370952366113539) -->
-    <skip />
-    <string name="permission_audio" msgid="344061911159388398">"Разрешить приложению "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" изменить или удалить этот аудиофайл?"</string>
-    <string name="permission_video" msgid="8188037202573267740">"Разрешить приложению "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" изменить или удалить это видео?"</string>
-    <string name="permission_images" msgid="6711726334380945124">"Разрешить приложению "<b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" изменить или удалить это изображение?"</string>
+    <string name="root_documents" msgid="3829103301363849237">"Документы"</string>
+    <string name="permission_required" msgid="1460820436132943754">"Чтобы изменить или удалить этот объект, необходимо разрешение."</string>
+    <string name="permission_required_action" msgid="706370952366113539">"Продолжить"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Разрешить"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Запретить"</string>
-    <string name="sound_name_awaken" msgid="5266892392848526147">"Awaken"</string>
-    <string name="sound_name_bounce" msgid="8771447635446665231">"Bounce"</string>
-    <string name="sound_name_drip" msgid="1744684469020662152">"Drip"</string>
-    <string name="sound_name_gallop" msgid="2664454314532060876">"Gallop"</string>
-    <string name="sound_name_nudge" msgid="5445751598250698244">"Nudge"</string>
-    <string name="sound_name_orbit" msgid="4623457897813255481">"Orbit"</string>
-    <string name="sound_name_rise" msgid="2200258555031675806">"Rise"</string>
-    <string name="sound_name_sway" msgid="348448316663085643">"Sway"</string>
-    <string name="sound_name_wag" msgid="2730733083078126563">"Wag"</string>
-    <string name="add_ringtone_text" msgid="8077717303037760418">"Добавить рингтон"</string>
-    <string name="add_alarm_text" msgid="2440919366091720815">"Добавить будильник"</string>
-    <string name="add_notification_text" msgid="5013822215567515665">"Добавить уведомление"</string>
-    <string name="delete_ringtone_text" msgid="2963662097583300181">"Удалить"</string>
-    <string name="unable_to_add_ringtone" msgid="6256097521165711269">"Не удалось добавить рингтон"</string>
-    <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"Не удалось удалить рингтон"</string>
+    <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
+      <item quantity="one">Ещё <xliff:g id="COUNT_1">^1</xliff:g></item>
+      <item quantity="few">Ещё <xliff:g id="COUNT_1">^1</xliff:g></item>
+      <item quantity="many">Ещё <xliff:g id="COUNT_1">^1</xliff:g></item>
+      <item quantity="other">Ещё <xliff:g id="COUNT_1">^1</xliff:g></item>
+    </plurals>
+    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
+      <item quantity="one">и ещё <xliff:g id="COUNT_1">^1</xliff:g> объект</item>
+      <item quantity="few">и ещё <xliff:g id="COUNT_1">^1</xliff:g> объекта</item>
+      <item quantity="many">и ещё <xliff:g id="COUNT_1">^1</xliff:g> объектов</item>
+      <item quantity="other">и ещё <xliff:g id="COUNT_1">^1</xliff:g> объекта</item>
+    </plurals>
+    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Удалить временные файлы приложения?"</string>
+    <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"Приложение \"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>\" запрашивает разрешение на удаление временных файлов. Это может увеличить расход заряда или трафика."</string>
+    <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Удаление временных файлов приложения…"</string>
+    <string name="allow" msgid="8885707816848569619">"Разрешить"</string>
+    <string name="deny" msgid="6040983710442068936">"Запретить"</string>
+    <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
+      <item quantity="one">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> аудиофайл?</item>
+      <item quantity="few">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> аудиофайла?</item>
+      <item quantity="many">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> аудиофайлов?</item>
+      <item quantity="other">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> аудиофайла?</item>
+    </plurals>
+    <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
+      <item quantity="one">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> видео?</item>
+      <item quantity="few">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> видео?</item>
+      <item quantity="many">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> видео?</item>
+      <item quantity="other">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> видео?</item>
+    </plurals>
+    <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
+      <item quantity="one">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> фото?</item>
+      <item quantity="few">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> фото?</item>
+      <item quantity="many">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> фото?</item>
+      <item quantity="other">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> фото?</item>
+    </plurals>
+    <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
+      <item quantity="one">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> объект?</item>
+      <item quantity="few">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> объекта?</item>
+      <item quantity="many">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> объектов?</item>
+      <item quantity="other">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" изменить <xliff:g id="COUNT">^2</xliff:g> объекта?</item>
+    </plurals>
+    <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
+      <item quantity="one">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" переместить <xliff:g id="COUNT">^2</xliff:g> аудиофайл в корзину?</item>
+      <item quantity="few">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" переместить <xliff:g id="COUNT">^2</xliff:g> аудиофайла в корзину?</item>
+      <item quantity="many">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" переместить <xliff:g id="COUNT">^2</xliff:g> аудиофайлов в корзину?</item>
+      <item quantity="other">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" переместить <xliff:g id="COUNT">^2</xliff:g> аудиофайла в корзину?</item>
+    </plurals>
+    <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
+      <item quantity="one">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" переместить <xliff:g id="COUNT">^2</xliff:g> видео в корзину?</item>
+      <item quantity="few">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" переместить <xliff:g id="COUNT">^2</xliff:g> видео в корзину?</item>
+      <item quantity="many">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" переместить <xliff:g id="COUNT">^2</xliff:g> видео в корзину?</item>
+      <item quantity="other">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" переместить <xliff:g id="COUNT">^2</xliff:g> видео в корзину?</item>
+    </plurals>
+    <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
+      <item quantity="one">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" переместить <xliff:g id="COUNT">^2</xliff:g> фото в корзину?</item>
+      <item quantity="few">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" переместить <xliff:g id="COUNT">^2</xliff:g> фото в корзину?</item>
+      <item quantity="many">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" переместить <xliff:g id="COUNT">^2</xliff:g> фото в корзину?</item>
+      <item quantity="other">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" переместить <xliff:g id="COUNT">^2</xliff:g> фото в корзину?</item>
+    </plurals>
+    <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
+      <item quantity="one">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" переместить <xliff:g id="COUNT">^2</xliff:g> объект в корзину?</item>
+      <item quantity="few">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" переместить <xliff:g id="COUNT">^2</xliff:g> объекта в корзину?</item>
+      <item quantity="many">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" переместить <xliff:g id="COUNT">^2</xliff:g> объектов в корзину?</item>
+      <item quantity="other">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" переместить <xliff:g id="COUNT">^2</xliff:g> объекта в корзину?</item>
+    </plurals>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
+      <item quantity="one">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" восстановить <xliff:g id="COUNT">^2</xliff:g> аудиофайл из корзины?</item>
+      <item quantity="few">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" восстановить <xliff:g id="COUNT">^2</xliff:g> аудиофайла из корзины?</item>
+      <item quantity="many">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" восстановить <xliff:g id="COUNT">^2</xliff:g> аудиофайлов из корзины?</item>
+      <item quantity="other">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" восстановить <xliff:g id="COUNT">^2</xliff:g> аудиофайла из корзины?</item>
+    </plurals>
+    <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
+      <item quantity="one">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" восстановить <xliff:g id="COUNT">^2</xliff:g> видео из корзины?</item>
+      <item quantity="few">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" восстановить <xliff:g id="COUNT">^2</xliff:g> видео из корзины?</item>
+      <item quantity="many">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" восстановить <xliff:g id="COUNT">^2</xliff:g> видео из корзины?</item>
+      <item quantity="other">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" восстановить <xliff:g id="COUNT">^2</xliff:g> видео из корзины?</item>
+    </plurals>
+    <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
+      <item quantity="one">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" восстановить <xliff:g id="COUNT">^2</xliff:g> фото из корзины?</item>
+      <item quantity="few">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" восстановить <xliff:g id="COUNT">^2</xliff:g> фото из корзины?</item>
+      <item quantity="many">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" восстановить <xliff:g id="COUNT">^2</xliff:g> фото из корзины?</item>
+      <item quantity="other">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" восстановить <xliff:g id="COUNT">^2</xliff:g> фото из корзины?</item>
+    </plurals>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
+      <item quantity="one">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" восстановить <xliff:g id="COUNT">^2</xliff:g> объект из корзины?</item>
+      <item quantity="few">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" восстановить <xliff:g id="COUNT">^2</xliff:g> объекта из корзины?</item>
+      <item quantity="many">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" восстановить <xliff:g id="COUNT">^2</xliff:g> объектов из корзины?</item>
+      <item quantity="other">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" восстановить <xliff:g id="COUNT">^2</xliff:g> объекта из корзины?</item>
+    </plurals>
+    <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
+      <item quantity="one">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" удалить <xliff:g id="COUNT">^2</xliff:g> аудиофайл?</item>
+      <item quantity="few">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" удалить <xliff:g id="COUNT">^2</xliff:g> аудиофайла?</item>
+      <item quantity="many">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" удалить <xliff:g id="COUNT">^2</xliff:g> аудиофайлов?</item>
+      <item quantity="other">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" удалить <xliff:g id="COUNT">^2</xliff:g> аудиофайла?</item>
+    </plurals>
+    <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
+      <item quantity="one">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" удалить <xliff:g id="COUNT">^2</xliff:g> видео?</item>
+      <item quantity="few">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" удалить <xliff:g id="COUNT">^2</xliff:g> видео?</item>
+      <item quantity="many">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" удалить <xliff:g id="COUNT">^2</xliff:g> видео?</item>
+      <item quantity="other">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" удалить <xliff:g id="COUNT">^2</xliff:g> видео?</item>
+    </plurals>
+    <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
+      <item quantity="one">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" удалить <xliff:g id="COUNT">^2</xliff:g> фото?</item>
+      <item quantity="few">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" удалить <xliff:g id="COUNT">^2</xliff:g> фото?</item>
+      <item quantity="many">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" удалить <xliff:g id="COUNT">^2</xliff:g> фото?</item>
+      <item quantity="other">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" удалить <xliff:g id="COUNT">^2</xliff:g> фото?</item>
+    </plurals>
+    <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
+      <item quantity="one">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" удалить <xliff:g id="COUNT">^2</xliff:g> объект?</item>
+      <item quantity="few">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" удалить <xliff:g id="COUNT">^2</xliff:g> объекта?</item>
+      <item quantity="many">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" удалить <xliff:g id="COUNT">^2</xliff:g> объектов?</item>
+      <item quantity="other">Разрешить приложению \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" удалить <xliff:g id="COUNT">^2</xliff:g> объекта?</item>
+    </plurals>
 </resources>

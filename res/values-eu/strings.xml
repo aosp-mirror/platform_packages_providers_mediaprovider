@@ -20,32 +20,90 @@
     <string name="storage_description" msgid="4081716890357580107">"Biltegi lokala"</string>
     <string name="app_label" msgid="9035307001052716210">"Multimediaren memoria-unitatea"</string>
     <string name="artist_label" msgid="8105600993099120273">"Artista"</string>
-    <string name="ringtone_default" msgid="1744846699922263043">"Tonu lehenetsia"</string>
-    <string name="notification_sound_default" msgid="6541609166469990135">"Jakinarazpenen soinu lehenetsia"</string>
-    <string name="alarm_sound_default" msgid="5488847775252870314">"Alarmaren soinu lehenetsia"</string>
+    <string name="unknown" msgid="2059049215682829375">"Ezezaguna"</string>
     <string name="root_images" msgid="5861633549189045666">"Irudiak"</string>
     <string name="root_videos" msgid="8792703517064649453">"Bideoak"</string>
     <string name="root_audio" msgid="3505830755201326018">"Audioa"</string>
+    <string name="root_documents" msgid="3829103301363849237">"Dokumentuak"</string>
     <string name="permission_required" msgid="1460820436132943754">"Baimena behar da elementu hau aldatu edo ezabatzeko."</string>
     <string name="permission_required_action" msgid="706370952366113539">"Egin aurrera"</string>
-    <string name="permission_audio" msgid="344061911159388398"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" aplikazioari musika hau aldatzea edo ezabatzea baimendu nahi diozu?"</string>
-    <string name="permission_video" msgid="8188037202573267740"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" aplikazioari bideo hau aldatzea edo ezabatzea baimendu nahi diozu?"</string>
-    <string name="permission_images" msgid="6711726334380945124"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>" aplikazioari irudi hau aldatzea edo ezabatzea baimendu nahi diozu?"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Baimendu"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Ukatu"</string>
-    <string name="sound_name_awaken" msgid="5266892392848526147">"Esnatu"</string>
-    <string name="sound_name_bounce" msgid="8771447635446665231">"Errebotea"</string>
-    <string name="sound_name_drip" msgid="1744684469020662152">"Tantaka"</string>
-    <string name="sound_name_gallop" msgid="2664454314532060876">"Lauhazka"</string>
-    <string name="sound_name_nudge" msgid="5445751598250698244">"Bultzadatxoa"</string>
-    <string name="sound_name_orbit" msgid="4623457897813255481">"Orbita"</string>
-    <string name="sound_name_rise" msgid="2200258555031675806">"Igoera"</string>
-    <string name="sound_name_sway" msgid="348448316663085643">"Kulunka"</string>
-    <string name="sound_name_wag" msgid="2730733083078126563">"Mugimendua"</string>
-    <string name="add_ringtone_text" msgid="8077717303037760418">"Gehitu tonua"</string>
-    <string name="add_alarm_text" msgid="2440919366091720815">"Gehitu alarma"</string>
-    <string name="add_notification_text" msgid="5013822215567515665">"Gehitu jakinarazpena"</string>
-    <string name="delete_ringtone_text" msgid="2963662097583300181">"Ezabatu"</string>
-    <string name="unable_to_add_ringtone" msgid="6256097521165711269">"Ezin da gehitu tonu pertsonalizatua"</string>
-    <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"Ezin da ezabatu tonu pertsonalizatua"</string>
+    <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
+      <item quantity="other">+<xliff:g id="COUNT_1">^1</xliff:g></item>
+      <item quantity="one">+<xliff:g id="COUNT_0">^1</xliff:g></item>
+    </plurals>
+    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
+      <item quantity="other">Eta beste <xliff:g id="COUNT_1">^1</xliff:g> elementu</item>
+      <item quantity="one">Eta beste <xliff:g id="COUNT_0">^1</xliff:g> elementu</item>
+    </plurals>
+    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Aplikazioen aldi baterako fitxategiak garbitu nahi dituzu?"</string>
+    <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> aplikazioak aldi baterako fitxategi batzuk ezabatu nahi ditu. Ondorioz, baliteke bateria edo datu-konexioko datu gehiago erabiltzea."</string>
+    <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Aplikazioaren aldi baterako fitxategiak garbitzen…"</string>
+    <string name="allow" msgid="8885707816848569619">"Baimendu"</string>
+    <string name="deny" msgid="6040983710442068936">"Ukatu"</string>
+    <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> audio-fitxategiri aldaketak egiteko baimena eman nahi diozu <xliff:g id="APP_NAME_1">^1</xliff:g> aplikazioari?</item>
+      <item quantity="one">Audio-fitxategi honi aldaketak egiteko baimena eman nahi diozu <xliff:g id="APP_NAME_0">^1</xliff:g> aplikazioari?</item>
+    </plurals>
+    <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> bideori aldaketak egiteko baimena eman nahi diozu <xliff:g id="APP_NAME_1">^1</xliff:g> aplikazioari?</item>
+      <item quantity="one">Bideo honi aldaketak egiteko baimena eman nahi diozu <xliff:g id="APP_NAME_0">^1</xliff:g> aplikazioari?</item>
+    </plurals>
+    <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> argazkiri aldaketak egiteko baimena eman nahi diozu <xliff:g id="APP_NAME_1">^1</xliff:g> aplikazioari?</item>
+      <item quantity="one">Argazki honi aldaketak egiteko baimena eman nahi diozu <xliff:g id="APP_NAME_0">^1</xliff:g> aplikazioari?</item>
+    </plurals>
+    <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> elementuri aldaketak egiteko baimena eman nahi diozu <xliff:g id="APP_NAME_1">^1</xliff:g> aplikazioari?</item>
+      <item quantity="one">Elementu honi aldaketak egiteko baimena eman nahi diozu <xliff:g id="APP_NAME_0">^1</xliff:g> aplikazioari?</item>
+    </plurals>
+    <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> audio-fitxategi zaborrontzira eramateko baimena eman nahi diozu <xliff:g id="APP_NAME_1">^1</xliff:g> aplikazioari?</item>
+      <item quantity="one">Audio-fitxategi hau zaborrontzira eramateko baimena eman nahi diozu <xliff:g id="APP_NAME_0">^1</xliff:g> aplikazioari?</item>
+    </plurals>
+    <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> bideo zaborrontzira eramateko baimena eman nahi diozu <xliff:g id="APP_NAME_1">^1</xliff:g> aplikazioari?</item>
+      <item quantity="one">Bideo hau zaborrontzira eramateko baimena eman nahi diozu <xliff:g id="APP_NAME_0">^1</xliff:g> aplikazioari?</item>
+    </plurals>
+    <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> argazki zaborrontzira eramateko baimena eman nahi diozu <xliff:g id="APP_NAME_1">^1</xliff:g> aplikazioari?</item>
+      <item quantity="one">Argazki hau zaborrontzira eramateko baimena eman nahi diozu <xliff:g id="APP_NAME_0">^1</xliff:g> aplikazioari?</item>
+    </plurals>
+    <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> elementu zaborrontzira eramateko baimena eman nahi diozu <xliff:g id="APP_NAME_1">^1</xliff:g> aplikazioari?</item>
+      <item quantity="one">Elementu hau zaborrontzira eramateko baimena eman nahi diozu <xliff:g id="APP_NAME_0">^1</xliff:g> aplikazioari?</item>
+    </plurals>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> audio-fitxategi zaborrontzitik ateratzeko baimena eman nahi diozu <xliff:g id="APP_NAME_1">^1</xliff:g> aplikazioari?</item>
+      <item quantity="one">Audio-fitxategi hau zaborrontzitik ateratzeko baimena eman nahi diozu <xliff:g id="APP_NAME_0">^1</xliff:g> aplikazioari?</item>
+    </plurals>
+    <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> bideo zaborrontzitik ateratzeko baimena eman nahi diozu <xliff:g id="APP_NAME_1">^1</xliff:g> aplikazioari?</item>
+      <item quantity="one">Bideo hau zaborrontzitik ateratzeko baimena eman nahi diozu <xliff:g id="APP_NAME_0">^1</xliff:g> aplikazioari?</item>
+    </plurals>
+    <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> argazki zaborrontzitik ateratzeko baimena eman nahi diozu <xliff:g id="APP_NAME_1">^1</xliff:g> aplikazioari?</item>
+      <item quantity="one">Argazki hau zaborrontzitik ateratzeko baimena eman nahi diozu <xliff:g id="APP_NAME_0">^1</xliff:g> aplikazioari?</item>
+    </plurals>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> elementu zaborrontzitik ateratzeko baimena eman nahi diozu <xliff:g id="APP_NAME_1">^1</xliff:g> aplikazioari?</item>
+      <item quantity="one">Elementu hau zaborrontzitik ateratzeko baimena eman nahi diozu <xliff:g id="APP_NAME_0">^1</xliff:g> aplikazioari?</item>
+    </plurals>
+    <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> audio-fitxategi ezabatzeko baimena eman nahi diozu <xliff:g id="APP_NAME_1">^1</xliff:g> aplikazioari?</item>
+      <item quantity="one">Audio-fitxategi hau ezabatzeko baimena eman nahi diozu <xliff:g id="APP_NAME_0">^1</xliff:g> aplikazioari?</item>
+    </plurals>
+    <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> bideo ezabatzeko baimena eman nahi diozu <xliff:g id="APP_NAME_1">^1</xliff:g> aplikazioari?</item>
+      <item quantity="one">Bideo hau ezabatzeko baimena eman nahi diozu <xliff:g id="APP_NAME_0">^1</xliff:g> aplikazioari?</item>
+    </plurals>
+    <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> argazki ezabatzeko baimena eman nahi diozu <xliff:g id="APP_NAME_1">^1</xliff:g> aplikazioari?</item>
+      <item quantity="one">Argazki hau ezabatzeko baimena eman nahi diozu <xliff:g id="APP_NAME_0">^1</xliff:g> aplikazioari?</item>
+    </plurals>
+    <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
+      <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> elementu ezabatzeko baimena eman nahi diozu <xliff:g id="APP_NAME_1">^1</xliff:g> aplikazioari?</item>
+      <item quantity="one">Elementu hau ezabatzeko baimena eman nahi diozu <xliff:g id="APP_NAME_0">^1</xliff:g> aplikazioari?</item>
+    </plurals>
 </resources>

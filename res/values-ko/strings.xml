@@ -20,34 +20,90 @@
     <string name="storage_description" msgid="4081716890357580107">"로컬 저장소"</string>
     <string name="app_label" msgid="9035307001052716210">"미디어 저장소"</string>
     <string name="artist_label" msgid="8105600993099120273">"아티스트"</string>
-    <string name="ringtone_default" msgid="1744846699922263043">"기본 벨소리"</string>
-    <string name="notification_sound_default" msgid="6541609166469990135">"기본 알림 소리"</string>
-    <string name="alarm_sound_default" msgid="5488847775252870314">"기본 알람 소리"</string>
+    <string name="unknown" msgid="2059049215682829375">"알 수 없음"</string>
     <string name="root_images" msgid="5861633549189045666">"이미지"</string>
     <string name="root_videos" msgid="8792703517064649453">"동영상"</string>
     <string name="root_audio" msgid="3505830755201326018">"오디오"</string>
-    <!-- no translation found for permission_required (1460820436132943754) -->
-    <skip />
-    <!-- no translation found for permission_required_action (706370952366113539) -->
-    <skip />
-    <string name="permission_audio" msgid="344061911159388398"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"에서 이 음악을 수정하거나 삭제하도록 허용하시겠습니까?"</string>
-    <string name="permission_video" msgid="8188037202573267740"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"에서 이 동영상을 수정하거나 삭제하도록 허용하시겠습니까?"</string>
-    <string name="permission_images" msgid="6711726334380945124"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"에서 이 이미지를 수정하거나 삭제하도록 허용하시겠습니까?"</string>
+    <string name="root_documents" msgid="3829103301363849237">"문서"</string>
+    <string name="permission_required" msgid="1460820436132943754">"이 항목을 수정하거나 삭제하려면 권한이 필요합니다."</string>
+    <string name="permission_required_action" msgid="706370952366113539">"계속"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"허용"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"거부"</string>
-    <string name="sound_name_awaken" msgid="5266892392848526147">"잠을 깨우는 소리"</string>
-    <string name="sound_name_bounce" msgid="8771447635446665231">"깡충깡충 뛰는 소리"</string>
-    <string name="sound_name_drip" msgid="1744684469020662152">"물방울이 똑똑 떨어지는 소리"</string>
-    <string name="sound_name_gallop" msgid="2664454314532060876">"말 달리는 소리"</string>
-    <string name="sound_name_nudge" msgid="5445751598250698244">"쿡쿡 찌르는 소리"</string>
-    <string name="sound_name_orbit" msgid="4623457897813255481">"궤도를 도는 소리"</string>
-    <string name="sound_name_rise" msgid="2200258555031675806">"점점 커지는 소리"</string>
-    <string name="sound_name_sway" msgid="348448316663085643">"천천히 흔들리는 소리"</string>
-    <string name="sound_name_wag" msgid="2730733083078126563">"개가 꼬리를 흔드는 소리"</string>
-    <string name="add_ringtone_text" msgid="8077717303037760418">"벨소리 추가"</string>
-    <string name="add_alarm_text" msgid="2440919366091720815">"알람 추가"</string>
-    <string name="add_notification_text" msgid="5013822215567515665">"알림 추가"</string>
-    <string name="delete_ringtone_text" msgid="2963662097583300181">"삭제"</string>
-    <string name="unable_to_add_ringtone" msgid="6256097521165711269">"맞춤 벨소리를 추가할 수 없습니다."</string>
-    <string name="unable_to_delete_ringtone" msgid="2258180073859253495">"맞춤 벨소리를 삭제할 수 없습니다."</string>
+    <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
+      <item quantity="other">그 외 <xliff:g id="COUNT_1">^1</xliff:g>개</item>
+      <item quantity="one">그 외 <xliff:g id="COUNT_0">^1</xliff:g>개</item>
+    </plurals>
+    <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
+      <item quantity="other">그 외 항목 <xliff:g id="COUNT_1">^1</xliff:g>개</item>
+      <item quantity="one">그 외 항목 <xliff:g id="COUNT_0">^1</xliff:g>개</item>
+    </plurals>
+    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"임시 앱 파일을 삭제하시겠습니까?"</string>
+    <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>에서 일부 임시 파일을 삭제하려고 합니다. 이로 인해 배터리 또는 모바일 데이터 사용량이 늘어날 수 있습니다."</string>
+    <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"임시 앱 파일 삭제 중…"</string>
+    <string name="allow" msgid="8885707816848569619">"허용"</string>
+    <string name="deny" msgid="6040983710442068936">"거부"</string>
+    <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>에서 오디오 파일 <xliff:g id="COUNT">^2</xliff:g>개를 수정하도록 허용하시겠습니까?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 오디오 파일을 수정하도록 허용하시겠습니까?</item>
+    </plurals>
+    <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>에서 동영상 <xliff:g id="COUNT">^2</xliff:g>개를 수정하도록 허용하시겠습니까?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 동영상을 수정하도록 허용하시겠습니까?</item>
+    </plurals>
+    <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>에서 사진 <xliff:g id="COUNT">^2</xliff:g>개를 수정하도록 허용하시겠습니까?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 사진을 수정하도록 허용하시겠습니까?</item>
+    </plurals>
+    <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>에서 항목 <xliff:g id="COUNT">^2</xliff:g>개를 수정하도록 허용하시겠습니까?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 항목을 수정하도록 허용하시겠습니까?</item>
+    </plurals>
+    <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>에서 오디오 파일 <xliff:g id="COUNT">^2</xliff:g>개를 휴지통으로 이동하도록 허용하시겠습니까?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 오디오 파일을 휴지통으로 이동하도록 허용하시겠습니까?</item>
+    </plurals>
+    <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>에서 동영상 <xliff:g id="COUNT">^2</xliff:g>개를 휴지통으로 이동하도록 허용하시겠습니까?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 동영상을 휴지통으로 이동하도록 허용하시겠습니까?</item>
+    </plurals>
+    <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>에서 사진 <xliff:g id="COUNT">^2</xliff:g>개를 휴지통으로 이동하도록 허용하시겠습니까?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 사진을 휴지통으로 이동하도록 허용하시겠습니까?</item>
+    </plurals>
+    <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>에서 항목 <xliff:g id="COUNT">^2</xliff:g>개를 휴지통으로 이동하도록 허용하시겠습니까?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 항목을 휴지통으로 이동하도록 허용하시겠습니까?</item>
+    </plurals>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>에서 오디오 파일 <xliff:g id="COUNT">^2</xliff:g>개를 휴지통에서 꺼내도록 허용하시겠습니까?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 오디오 파일을 휴지통에서 꺼내도록 허용하시겠습니까?</item>
+    </plurals>
+    <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>에서 동영상 <xliff:g id="COUNT">^2</xliff:g>개를 휴지통에서 꺼내도록 허용하시겠습니까?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 동영상을 휴지통에서 꺼내도록 허용하시겠습니까?</item>
+    </plurals>
+    <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>에서 사진 <xliff:g id="COUNT">^2</xliff:g>개를 휴지통에서 꺼내도록 허용하시겠습니까?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 사진을 휴지통에서 꺼내도록 허용하시겠습니까?</item>
+    </plurals>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>에서 항목 <xliff:g id="COUNT">^2</xliff:g>개를 휴지통에서 꺼내도록 허용하시겠습니까?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 항목을 휴지통에서 꺼내도록 허용하시겠습니까?</item>
+    </plurals>
+    <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>에서 오디오 파일 <xliff:g id="COUNT">^2</xliff:g>개를 삭제하도록 허용하시겠습니까?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 오디오 파일을 삭제하도록 허용하시겠습니까?</item>
+    </plurals>
+    <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>에서 동영상 <xliff:g id="COUNT">^2</xliff:g>개를 삭제하도록 허용하시겠습니까?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 동영상을 삭제하도록 허용하시겠습니까?</item>
+    </plurals>
+    <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>에서 사진 <xliff:g id="COUNT">^2</xliff:g>개를 삭제하도록 허용하시겠습니까?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 사진을 삭제하도록 허용하시겠습니까?</item>
+    </plurals>
+    <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>에서 항목 <xliff:g id="COUNT">^2</xliff:g>개를 삭제하도록 허용하시겠습니까?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 항목을 삭제하도록 허용하시겠습니까?</item>
+    </plurals>
 </resources>

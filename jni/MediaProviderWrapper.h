@@ -137,7 +137,8 @@ class MediaProviderWrapper final {
     int IsOpendirAllowed(const std::string& path, uid_t uid, bool forWrite);
 
     /**
-     * Determines if the given package name matches its uid.
+     * Determines if the given package name matches its uid
+     * or has special access to priv-app directories
      *
      * @param pkg the package name of the app
      * @param uid UID of the app

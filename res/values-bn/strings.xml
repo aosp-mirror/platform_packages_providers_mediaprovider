@@ -37,9 +37,10 @@
       <item quantity="one">এছাড়াও <xliff:g id="COUNT_1">^1</xliff:g>টি অতিরিক্ত আইটেম</item>
       <item quantity="other">এছাড়াও <xliff:g id="COUNT_1">^1</xliff:g>টি অতিরিক্ত আইটেম</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"অস্থায়ী অ্যাপ ফাইল মুছে দিতে চান?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"অস্থায়ী অ্যাপ ফাইলগুলি খালি করুন"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> কিছু অস্থায়ী ফাইলকে মুছে দিতে চায়। এর ফলে, ব্যাটারি বা মোবাইল ডেটা বেশি খরচ হতে পারে।"</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"অস্থায়ী অ্যাপ ফাইল মুছে ফেলা হচ্ছে…"</string>
+    <string name="clear" msgid="5524638938415865915">"সরান"</string>
     <string name="allow" msgid="8885707816848569619">"অনুমতি দিন"</string>
     <string name="deny" msgid="6040983710442068936">"বাতিল করুন"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

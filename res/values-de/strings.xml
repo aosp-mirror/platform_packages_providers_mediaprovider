@@ -37,9 +37,10 @@
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> weitere Elemente</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> weiteres Element</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Temporäre App-Dateien löschen?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Temporäre App-Dateien löschen"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> möchte einige temporäre Dateien löschen. Dadurch können Akkuverbrauch und mobile Datennutzung steigen."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Temporäre App-Dateien werden gelöscht…"</string>
+    <string name="clear" msgid="5524638938415865915">"Löschen"</string>
     <string name="allow" msgid="8885707816848569619">"Zulassen"</string>
     <string name="deny" msgid="6040983710442068936">"Ablehnen"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

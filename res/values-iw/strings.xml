@@ -41,9 +41,10 @@
       <item quantity="other">ועוד <xliff:g id="COUNT_1">^1</xliff:g> פריטים נוספים</item>
       <item quantity="one">ועוד פריט אחד נוסף (<xliff:g id="COUNT_0">^1</xliff:g>)</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"לנקות קובצי אפליקציה זמניים?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"ניקוי קובצי אפליקציה זמניים"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"קיבלת בקשה מהאפליקציה <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> לניקוי של חלק מהקבצים הזמניים. הפעולה עשויה להגביר את השימוש בסוללה או בחבילת הגלישה."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"מתבצע ניקוי של קובצי אפליקציה זמניים…"</string>
+    <string name="clear" msgid="5524638938415865915">"ניקוי"</string>
     <string name="allow" msgid="8885707816848569619">"אישור"</string>
     <string name="deny" msgid="6040983710442068936">"דחייה"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

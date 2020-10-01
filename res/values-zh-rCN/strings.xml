@@ -37,9 +37,10 @@
       <item quantity="other">还有 <xliff:g id="COUNT_1">^1</xliff:g> 项</item>
       <item quantity="one">还有 <xliff:g id="COUNT_0">^1</xliff:g> 项</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"要清除临时应用文件吗？"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"清除临时应用文件"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>请求清除一些临时文件。这可能消耗更多电量或数据流量。"</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"正在清除临时应用文件…"</string>
+    <string name="clear" msgid="5524638938415865915">"清除"</string>
     <string name="allow" msgid="8885707816848569619">"允许"</string>
     <string name="deny" msgid="6040983710442068936">"拒绝"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

@@ -281,6 +281,12 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
                               /*is_static*/ false);
     mid_on_file_created_ = CacheMethod(env, "onFileCreated", "(Ljava/lang/String;)V",
                                        /*is_static*/ false);
+    mid_get_io_path_ = CacheMethod(env, "getIoPath", "(Ljava/lang/String;I)Ljava/lang/String;",
+                                   /*is_static*/ false);
+    mid_get_transforms_ = CacheMethod(env, "getTransforms", "(Ljava/lang/String;I)I",
+                                      /*is_static*/ false);
+    mid_transform_ = CacheMethod(env, "transform", "(Ljava/lang/String;Ljava/lang/String;II)Z",
+                                 /*is_static*/ false);
 }
 
 MediaProviderWrapper::~MediaProviderWrapper() {
@@ -422,6 +428,50 @@ void MediaProviderWrapper::OnFileCreated(const string& path) {
     JNIEnv* env = MaybeAttachCurrentThread();
 
     return onFileCreatedInternal(env, media_provider_object_, mid_on_file_created_, path);
+}
+
+std::string MediaProviderWrapper::GetIoPath(const std::string& path, uid_t uid) {
+    JNIEnv* env = MaybeAttachCurrentThread();
+
+    ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
+    ScopedLocalRef<jstring> j_res_path(
+            env, static_cast<jstring>(env->CallObjectMethod(media_provider_object_,
+                                                            mid_get_io_path_, j_path.get(), uid)));
+    ScopedUtfChars j_res_utf(env, j_res_path.get());
+    if (CheckForJniException(env)) {
+        return "";
+    }
+
+    return string(j_res_utf.c_str());
+}
+
+int MediaProviderWrapper::GetTransforms(const std::string& path, uid_t uid) {
+    JNIEnv* env = MaybeAttachCurrentThread();
+
+    ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
+    int res = env->CallIntMethod(media_provider_object_, mid_get_transforms_, j_path.get(), uid);
+
+    if (CheckForJniException(env)) {
+        return -1;
+    }
+
+    return res;
+}
+
+bool MediaProviderWrapper::Transform(const std::string& src, const std::string& dst, int transforms,
+                                     uid_t uid) {
+    JNIEnv* env = MaybeAttachCurrentThread();
+
+    ScopedLocalRef<jstring> j_src(env, env->NewStringUTF(src.c_str()));
+    ScopedLocalRef<jstring> j_dst(env, env->NewStringUTF(dst.c_str()));
+    bool res = env->CallBooleanMethod(media_provider_object_, mid_transform_, j_src.get(),
+                                      j_dst.get(), uid);
+
+    if (CheckForJniException(env)) {
+        return false;
+    }
+
+    return res;
 }
 
 /*****************************************************************************************/

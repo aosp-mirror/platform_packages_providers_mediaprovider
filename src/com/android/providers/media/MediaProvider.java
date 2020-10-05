@@ -1144,6 +1144,65 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     * Called from FUSE to transform a file
+     *
+     * A transform can change the file contents for {@code uid} from {@code src} to {@code dst}
+     * depending on {@code flags}. This allows the FUSE daemon serve different file contents for
+     * the same file to different apps.
+     *
+     * The only supported transform for now is transcoding which re-encodes a file taken in a modern
+     * format like HEVC to a legacy format like AVC.
+     *
+     * @param src file path to transform
+     * @param dst file path to save transformed file
+     * @param flags determines the kind of transform
+     * @param uid app requesting transform
+     *
+     * Called from JNI in jni/MediaProviderWrapper.cpp
+     */
+    @Keep
+    public boolean transformForFuse(String src, String dst, int flags, int uid) {
+        // TODO: Add logic
+        return true;
+    }
+
+    /**
+     * Called from FUSE to get IO path for {@code uid}
+     *
+     * IO path is the actual path to be used on the lower fs for IO via FUSE. For some file
+     * transforms, this path might be different from the path the app is requesting IO on.
+     *
+     * @param path file path to get an IO path for
+     * @param uid app requesting IO
+     *
+     * Called from JNI in jni/MediaProviderWrapper.cpp
+     */
+    @Keep
+    public String getIoPathForFuse(String path, int uid) {
+        // TODO: Add logic
+        return "";
+    }
+
+    /**
+     * Called from FUSE to get transforms for {@code uid}
+     *
+     * If transforms are not supported for {@code path}, {@code 0} will be returned. Otherwise,
+     * a bitwise OR of supported transforms for {@code path} and actual transforms to perform for
+     * {@code uid} will be returned.
+     *
+     * @param path file path to get transforms for
+     * @param uid app requesting IO
+     *
+     * Called from JNI in jni/MediaProviderWrapper.cpp
+     * @see {@link transformForFuse}
+     */
+    @Keep
+    public int getTransformsForFuse(String path, int uid) {
+        // TODO: Add logic
+        return 0;
+    }
+
+    /**
      * Returns true if the app denoted by the given {@code uid} and {@code packageName} is allowed
      * to clear other apps' cache directories.
      */

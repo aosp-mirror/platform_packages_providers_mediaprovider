@@ -306,6 +306,9 @@ public class MediaProvider extends ContentProvider {
     @GuardedBy("sCacheLock")
     private static final ArrayMap<File, String> sCachedVolumePathToId = new ArrayMap<>();
 
+    // WARNING/TODO: This will be replaced by signature APIs in S
+    private static final String DOWNLOADS_PROVIDER_AUTHORITY = "downloads";
+
     @GuardedBy("mShouldRedactThreadIds")
     private final LongArray mShouldRedactThreadIds = new LongArray();
 
@@ -406,6 +409,8 @@ public class MediaProvider extends ContentProvider {
     private StorageManager mStorageManager;
     private AppOpsManager mAppOpsManager;
     private PackageManager mPackageManager;
+    private int mExternalStorageAuthorityAppId;
+    private int mDownloadsAuthorityAppId;
 
     private Size mThumbSize;
 
@@ -916,6 +921,20 @@ public class MediaProvider extends ContentProvider {
                     null /* all packages */, mModeListener);
         } catch (IllegalArgumentException e) {
             Log.w(TAG, "Failed to start watching " + PermissionUtils.OPSTR_NO_ISOLATED_STORAGE, e);
+        }
+
+        ProviderInfo provider = mPackageManager.resolveContentProvider(
+            DOWNLOADS_PROVIDER_AUTHORITY, PackageManager.MATCH_DIRECT_BOOT_AWARE
+                | PackageManager.MATCH_DIRECT_BOOT_UNAWARE);
+        if (provider != null) {
+            mDownloadsAuthorityAppId = UserHandle.getAppId(provider.applicationInfo.uid);
+        }
+
+        provider = mPackageManager.resolveContentProvider(
+            MediaStore.EXTERNAL_STORAGE_PROVIDER_AUTHORITY, PackageManager.MATCH_DIRECT_BOOT_AWARE
+                | PackageManager.MATCH_DIRECT_BOOT_UNAWARE);
+        if (provider != null) {
+            mExternalStorageAuthorityAppId = UserHandle.getAppId(provider.applicationInfo.uid);
         }
         return true;
     }
@@ -7007,10 +7026,20 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
         try {
-            return isCallingIdentitySharedPackageName(packageName);
+            return isCallingIdentitySharedPackageName(packageName) ||
+                    isCallingIdentityAllowedPrivAppAccess(uid);
         } finally {
             restoreLocalCallingIdentity(token);
         }
+    }
+
+    /**
+     * External Storage Provider and Download Provider can access priv app directories.
+     *
+     * @param uid UID of the calling package
+     */
+    private boolean isCallingIdentityAllowedPrivAppAccess(int uid) {
+        return (uid == mExternalStorageAuthorityAppId) || (uid == mDownloadsAuthorityAppId);
     }
 
     private boolean checkCallingPermissionGlobal(Uri uri, boolean forWrite) {

@@ -16,6 +16,8 @@
 
 #include "include/libfuse_jni/RedactionInfo.h"
 
+#include <android-base/logging.h>
+
 using std::unique_ptr;
 using std::vector;
 
@@ -53,8 +55,8 @@ static void mergeOverlappingRedactionRanges(vector<RedactionRange>& ranges) {
  * This function assumes redaction_ranges_ within RedactionInfo is sorted.
  */
 bool RedactionInfo::hasOverlapWithReadRequest(size_t size, off64_t off) const {
-    if (!isRedactionNeeded() || off > redaction_ranges_.back().second ||
-        off + size < redaction_ranges_.front().first) {
+    if (!isRedactionNeeded() || off >= redaction_ranges_.back().second ||
+        off + size <= redaction_ranges_.front().first) {
         return false;
     }
     return true;
@@ -91,26 +93,69 @@ RedactionInfo::RedactionInfo(int redaction_ranges_num, const off64_t* redaction_
 unique_ptr<vector<RedactionRange>> RedactionInfo::getOverlappingRedactionRanges(size_t size,
                                                                                 off64_t off) const {
     if (hasOverlapWithReadRequest(size, off)) {
+        const off64_t start = off;
+        const off64_t end = static_cast<off64_t>(off + size);
+
         auto first_redaction = redaction_ranges_.end();
-        auto last_redaction = redaction_ranges_.end();
+        auto last_redaction = redaction_ranges_.begin();
         for (auto iter = redaction_ranges_.begin(); iter != redaction_ranges_.end(); ++iter) {
-            const RedactionRange& rr = *iter;
-            // Look for the first range that overlaps with the read request
-            if (first_redaction == redaction_ranges_.end() && off <= rr.second &&
-                off + size >= rr.first) {
-                first_redaction = iter;
-            } else if (first_redaction != redaction_ranges_.end() && off + size < rr.first) {
-                // Once we're in the read request range, we start checking if
-                // we're out of it so we can return the result to the caller
+            if (iter->second >= start && iter->first < end) {
+                if (iter < first_redaction) first_redaction = iter;
+                if (iter > last_redaction) last_redaction = iter;
+            }
+
+            if (iter->first >= end) {
                 break;
             }
-            last_redaction = iter;
         }
-        if (first_redaction != redaction_ranges_.end()) {
-            return std::make_unique<vector<RedactionRange>>(first_redaction, last_redaction + 1);
-        }
+
+        CHECK(first_redaction <= last_redaction);
+        return std::make_unique<vector<RedactionRange>>(first_redaction, last_redaction + 1);
     }
     return std::make_unique<vector<RedactionRange>>();
 }
+
+void RedactionInfo::getReadRanges(off64_t off, size_t size, std::vector<ReadRange>* out) const {
+    auto rr = getOverlappingRedactionRanges(size, off);
+    if (rr->size() == 0) {
+        return;
+    }
+
+    // Add a sentinel redaction range to make sure we don't go out of vector
+    // limits when computing the end of the last non-redacted range.
+    // This ranges is invalid because its starting point is larger than it's ending point.
+    rr->push_back(RedactionRange(LLONG_MAX, LLONG_MAX - 1));
+
+    int rr_idx = 0;
+    off64_t start = off;
+    const off64_t read_end = static_cast<off64_t>(start + size);
+
+    while (true) {
+        const auto& current_redaction = rr->at(rr_idx);
+        off64_t end;
+        if (current_redaction.first <= start && start < current_redaction.second) {
+            // |start| is within a redaction range, so we must serve a redacted read.
+            end = std::min(read_end, current_redaction.second);
+            out->push_back(ReadRange(start, (end - start), true /* is_redaction */));
+            rr_idx++;
+        } else {
+            // |start| is either before the current redaction range, or beyond the end
+            // of the last redaction range, in which case redaction.first is LLONG_MAX.
+            end = std::min(read_end, current_redaction.first);
+            out->push_back(ReadRange(start, (end - start), false /* is_redaction */));
+        }
+
+        start = end;
+        // If we've done things correctly, start must point at |off + size| once we're
+        // through computing all of our redaction ranges.
+        if (start == read_end) {
+            break;
+        }
+        // If we're continuing iteration, the start of the next range must always be within
+        // the read bounds.
+        CHECK(start < read_end);
+    }
+}
+
 }  // namespace fuse
 }  // namespace mediaprovider

@@ -39,4 +39,5 @@ public interface MediaScanner {
     public Uri scanFile(File file, int reason);
     public Uri scanFile(File file, int reason, @Nullable String ownerPackage);
     public void onDetachVolume(String volumeName);
+    public void onIdleScanStopped();
 }

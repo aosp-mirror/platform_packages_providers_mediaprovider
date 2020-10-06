@@ -51,6 +51,11 @@ public class IdleService extends JobService {
     @Override
     public boolean onStopJob(JobParameters params) {
         mSignal.cancel();
+        try (ContentProviderClient cpc = getContentResolver()
+                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+            ((MediaProvider) cpc.getLocalContentProvider()).onIdleMaintenanceStopped();
+        } catch (OperationCanceledException ignored) {
+        }
         return false;
     }
 

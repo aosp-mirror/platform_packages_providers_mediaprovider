@@ -1084,6 +1084,10 @@ public class MediaProvider extends ContentProvider {
                 durationMillis, staleThumbnails, expiredMedia);
     }
 
+    public void onIdleMaintenanceStopped() {
+        mMediaScanner.onIdleScanStopped();
+    }
+
     public void onPackageOrphaned(String packageName) {
         mExternalDatabase.runWithTransaction((db) -> {
             onPackageOrphaned(db, packageName);

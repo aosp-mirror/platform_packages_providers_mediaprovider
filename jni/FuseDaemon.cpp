@@ -1066,10 +1066,6 @@ static void do_read(fuse_req_t req, size_t size, off_t off, struct fuse_file_inf
     fuse_reply_data(req, &buf, (enum fuse_buf_copy_flags) 0);
 }
 
-static bool range_contains(const RedactionRange& rr, off_t off) {
-    return rr.first <= off && off <= rr.second;
-}
-
 /**
  * Sets the parameters for a fuse_buf that reads from memory, including flags.
  * Makes buf->mem point to an already mapped region of zeroized memory.
@@ -1096,24 +1092,17 @@ static void create_file_fuse_buf(size_t size, off_t pos, int fd, fuse_buf* buf) 
 
 static void do_read_with_redaction(fuse_req_t req, size_t size, off_t off, fuse_file_info* fi) {
     handle* h = reinterpret_cast<handle*>(fi->fh);
-    auto overlapping_rr = h->ri->getOverlappingRedactionRanges(size, off);
 
-    if (overlapping_rr->size() <= 0) {
-        // no relevant redaction ranges for this request
+    std::vector<ReadRange> ranges;
+    h->ri->getReadRanges(off, size, &ranges);
+
+    // As an optimization, return early if there are no ranges to redact.
+    if (ranges.size() == 0) {
         do_read(req, size, off, fi);
         return;
     }
-    // the number of buffers we need, if the read doesn't start or end with
-    //  a redaction range.
-    int num_bufs = overlapping_rr->size() * 2 + 1;
-    if (overlapping_rr->front().first <= off) {
-        // the beginning of the read request is redacted
-        num_bufs--;
-    }
-    if (overlapping_rr->back().second >= off + size) {
-        // the end of the read request is redacted
-        num_bufs--;
-    }
+
+    const size_t num_bufs = ranges.size();
     auto bufvec_ptr = std::unique_ptr<fuse_bufvec, decltype(free)*>{
             reinterpret_cast<fuse_bufvec*>(
                     malloc(sizeof(fuse_bufvec) + (num_bufs - 1) * sizeof(fuse_buf))),
@@ -1125,31 +1114,13 @@ static void do_read_with_redaction(fuse_req_t req, size_t size, off_t off, fuse_
     bufvec.idx = 0;
     bufvec.off = 0;
 
-    int rr_idx = 0;
-    off_t start = off;
-    // Add a dummy redaction range to make sure we don't go out of vector
-    // limits when computing the end of the last non-redacted range.
-    // This ranges is invalid because its starting point is larger than it's ending point.
-    overlapping_rr->push_back(RedactionRange(LLONG_MAX, LLONG_MAX - 1));
-
     for (int i = 0; i < num_bufs; ++i) {
-        off_t end;
-        if (range_contains(overlapping_rr->at(rr_idx), start)) {
-            // Handle a redacted range
-            // end should be the end of the redacted range, but can't be out of
-            // the read request bounds
-            end = std::min(static_cast<off_t>(off + size - 1), overlapping_rr->at(rr_idx).second);
-            create_mem_fuse_buf(/*size*/ end - start + 1, &(bufvec.buf[i]), get_fuse(req));
-            ++rr_idx;
+        const ReadRange& range = ranges[i];
+        if (range.is_redaction) {
+            create_mem_fuse_buf(range.size, &(bufvec.buf[i]), get_fuse(req));
         } else {
-            // Handle a non-redacted range
-            // end should be right before the next redaction range starts or
-            // the end of the read request
-            end = std::min(static_cast<off_t>(off + size - 1),
-                    overlapping_rr->at(rr_idx).first - 1);
-            create_file_fuse_buf(/*size*/ end - start + 1, start, h->fd, &(bufvec.buf[i]));
+            create_file_fuse_buf(range.size, range.start, h->fd, &(bufvec.buf[i]));
         }
-        start = end + 1;
     }
 
     fuse_reply_data(req, &bufvec, static_cast<fuse_buf_copy_flags>(0));

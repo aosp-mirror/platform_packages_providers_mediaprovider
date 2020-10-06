@@ -4054,7 +4054,7 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_ARTISTS_ID_ALBUMS: {
                 if (type == TYPE_QUERY) {
                     qb.setTables("audio_albums");
-                    qb.setProjectionMap(getProjectionMap(Audio.Artists.Albums.class));
+                    qb.setProjectionMap(getProjectionMap(Audio.Albums.class));
 
                     final String artistId = uri.getPathSegments().get(3);
                     appendWhereStandalone(qb, "artist_id=?", artistId);

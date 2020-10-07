@@ -281,6 +281,8 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
                               /*is_static*/ false);
     mid_on_file_created_ = CacheMethod(env, "onFileCreated", "(Ljava/lang/String;)V",
                                        /*is_static*/ false);
+    mid_should_allow_lookup_ = CacheMethod(env, "shouldAllowLookup", "(II)Z",
+                                           /*is_static*/ false);
     mid_get_io_path_ = CacheMethod(env, "getIoPath", "(Ljava/lang/String;I)Ljava/lang/String;",
                                    /*is_static*/ false);
     mid_get_transforms_ = CacheMethod(env, "getTransforms", "(Ljava/lang/String;I)I",
@@ -428,6 +430,18 @@ void MediaProviderWrapper::OnFileCreated(const string& path) {
     JNIEnv* env = MaybeAttachCurrentThread();
 
     return onFileCreatedInternal(env, media_provider_object_, mid_on_file_created_, path);
+}
+
+bool MediaProviderWrapper::ShouldAllowLookup(uid_t uid, int path_user_id) {
+    JNIEnv* env = MaybeAttachCurrentThread();
+
+    bool res = env->CallBooleanMethod(media_provider_object_, mid_should_allow_lookup_, uid,
+                                      path_user_id);
+
+    if (CheckForJniException(env)) {
+        return false;
+    }
+    return res;
 }
 
 std::string MediaProviderWrapper::GetIoPath(const std::string& path, uid_t uid) {

@@ -3074,7 +3074,7 @@ public final class MediaStore {
              * Sub-directory of each artist containing all albums on which
              * a song by the artist appears.
              */
-            public static final class Albums implements AlbumColumns {
+            public static final class Albums implements BaseColumns, AlbumColumns {
                 public static final Uri getContentUri(String volumeName,long artistId) {
                     return ContentUris
                             .withAppendedId(Audio.Artists.getContentUri(volumeName), artistId)

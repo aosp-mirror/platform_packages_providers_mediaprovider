@@ -567,8 +567,8 @@ static bool is_app_accessible_path(MediaProviderWrapper* mp, const string& path,
         if (pkg == ".nomedia") {
             return true;
         }
-        if (!mp->IsUidForPackage(pkg, uid)) {
-            PLOG(WARNING) << "Invalid other package file access from " << pkg << "(: " << path;
+        if (!mp->isUidAllowedAccessToDataOrObbPath(uid, path)) {
+            PLOG(WARNING) << "Invalid other package file access from " << uid << "(: " << path;
             return false;
         }
     }

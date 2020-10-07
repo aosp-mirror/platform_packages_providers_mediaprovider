@@ -4744,8 +4744,16 @@ public class MediaProvider extends ContentProvider {
                 case IMAGES_MEDIA_ID:
                 case AUDIO_MEDIA_ID:
                 case VIDEO_MEDIA_ID:
+                case AUDIO_PLAYLISTS_ID:
                     // Caller is requesting a specific media item by its ID,
                     // which means it's valid for requests
+                    break;
+                case FILES_ID:
+                    // Allow only subtitle files
+                    if (!isSubtitleFile(uri)) {
+                        throw new IllegalArgumentException(
+                                "All requested items must be Media items");
+                    }
                     break;
                 default:
                     throw new IllegalArgumentException(
@@ -4782,6 +4790,19 @@ public class MediaProvider extends ContentProvider {
         intent.putExtras(extras);
         return PendingIntent.getActivity(context, PermissionActivity.REQUEST_CODE, intent,
                 FLAG_ONE_SHOT | FLAG_CANCEL_CURRENT | FLAG_IMMUTABLE);
+    }
+
+    /**
+     * @return true if the given Files uri has media_type=MEDIA_TYPE_SUBTITLE
+     */
+    private boolean isSubtitleFile(Uri uri) {
+        try (Cursor cursor = queryForSingleItem(uri, new String[]{FileColumns.MEDIA_TYPE}, null,
+                null, null)) {
+            return cursor.getInt(0) == FileColumns.MEDIA_TYPE_SUBTITLE;
+        } catch (FileNotFoundException e) {
+            Log.e(TAG, "Couldn't find database row for requested uri " + uri, e);
+        }
+        return false;
     }
 
     /**

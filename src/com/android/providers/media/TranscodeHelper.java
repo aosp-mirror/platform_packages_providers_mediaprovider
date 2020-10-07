@@ -194,7 +194,7 @@ public class TranscodeHelper {
         return !name.startsWith(TRANSCODE_FILE_PREFIX) && name.endsWith(".mp4");
     }
 
-        private TranscodingJob enqueueTranscodingJob(String src, String dst, int uid,
+    private TranscodingJob enqueueTranscodingJob(String src, String dst, int uid,
             final CountDownLatch latch) throws FileNotFoundException, MediaTranscodingException {
         int bitRate = 20000000; // 20Mbps
         int width = 1920;

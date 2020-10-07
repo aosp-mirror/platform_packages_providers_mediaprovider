@@ -20,6 +20,9 @@
             "name": "AdoptableHostTest"
         },
         {
+            "name": "CtsScopedStorageCoreHostTest"
+        },
+        {
             "name": "CtsScopedStorageHostTest"
         },
         {

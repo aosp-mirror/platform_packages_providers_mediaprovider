@@ -465,7 +465,7 @@ bool MediaProviderWrapper::Transform(const std::string& src, const std::string& 
     ScopedLocalRef<jstring> j_src(env, env->NewStringUTF(src.c_str()));
     ScopedLocalRef<jstring> j_dst(env, env->NewStringUTF(dst.c_str()));
     bool res = env->CallBooleanMethod(media_provider_object_, mid_transform_, j_src.get(),
-                                      j_dst.get(), uid);
+                                      j_dst.get(), transforms, uid);
 
     if (CheckForJniException(env)) {
         return false;

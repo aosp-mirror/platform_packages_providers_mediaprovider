@@ -69,4 +69,9 @@ public class NullMediaScanner implements MediaScanner {
     public void onIdleScanStopped() {
         // Ignored
     }
+
+    @Override
+    public void onDirectoryDirty(File file) {
+        // Ignored
+    }
 }

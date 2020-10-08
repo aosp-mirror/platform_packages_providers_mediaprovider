@@ -56,6 +56,7 @@ import android.system.Os;
 import android.system.OsConstants;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
+import android.util.ArraySet;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
@@ -84,6 +85,7 @@ import java.util.Iterator;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -899,6 +901,21 @@ public class FileUtils {
     public static final Pattern PATTERN_DATA_OR_OBB_PATH = Pattern.compile(
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb)/?$");
 
+    @VisibleForTesting
+    public static final String[] DEFAULT_FOLDER_NAMES = {
+            Environment.DIRECTORY_MUSIC,
+            Environment.DIRECTORY_PODCASTS,
+            Environment.DIRECTORY_RINGTONES,
+            Environment.DIRECTORY_ALARMS,
+            Environment.DIRECTORY_NOTIFICATIONS,
+            Environment.DIRECTORY_PICTURES,
+            Environment.DIRECTORY_MOVIES,
+            Environment.DIRECTORY_DOWNLOADS,
+            Environment.DIRECTORY_DCIM,
+            Environment.DIRECTORY_DOCUMENTS,
+            Environment.DIRECTORY_AUDIOBOOKS,
+    };
+
     /**
      * Regex that matches paths for {@link MediaColumns#RELATIVE_PATH}; it
      * captures both top-level paths and sandboxed paths.
@@ -911,6 +928,9 @@ public class FileUtils {
      */
     private static final Pattern PATTERN_VOLUME_NAME = Pattern.compile(
             "(?i)^/storage/([^/]+)");
+
+    private static final String CAMERA_RELATIVE_PATH =
+            String.format("%s/%s/", Environment.DIRECTORY_DCIM, "Camera");
 
     private static @Nullable String normalizeUuid(@Nullable String fsUuid) {
         return fsUuid != null ? fsUuid.toLowerCase(Locale.ROOT) : null;
@@ -1022,6 +1042,15 @@ public class FileUtils {
         }
         final String[] relativePathSegments = relativePath.split("/");
         return relativePathSegments.length > 0 ? relativePathSegments[0] : null;
+    }
+
+    public static boolean isDefaultDirectoryName(@Nullable String dirName) {
+        for (String defaultDirName : DEFAULT_FOLDER_NAMES) {
+            if (defaultDirName.equalsIgnoreCase(dirName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -1221,12 +1250,32 @@ public class FileUtils {
         }
 
         final File nomedia = new File(dir, ".nomedia");
+
         // check for .nomedia presence
-        if (nomedia.exists()) {
-            Logging.logPersistent("Observed non-standard " + nomedia);
-            return true;
+        if (!nomedia.exists()) {
+            return false;
         }
-        return false;
+
+        // Handle top-level default directories. These directories should always be visible,
+        // regardless of .nomedia presence.
+        final String[] relativePath = sanitizePath(extractRelativePath(dir.getAbsolutePath()));
+        final boolean isTopLevelDir =
+                relativePath.length == 1 && TextUtils.isEmpty(relativePath[0]);
+        if (isTopLevelDir && isDefaultDirectoryName(name)) {
+            nomedia.delete();
+            return false;
+        }
+
+        // DCIM/Camera should always be visible regardless of .nomedia presence.
+        if (CAMERA_RELATIVE_PATH.equalsIgnoreCase(
+                extractRelativePathForDirectory(dir.getAbsolutePath()))) {
+            nomedia.delete();
+            return false;
+        }
+
+        // .nomedia is present which makes this directory as hidden directory
+        Logging.logPersistent("Observed non-standard " + nomedia);
+        return true;
     }
 
     /**
@@ -1281,5 +1330,61 @@ public class FileUtils {
             }
         }
         return status;
+    }
+
+    /**
+     * @return {@code true} if {@code dir} is dirty and should be scanned, {@code false} otherwise.
+     */
+    public static boolean isDirectoryDirty(File dir) {
+        File nomedia = new File(dir, ".nomedia");
+        if (nomedia.exists()) {
+            try {
+                Optional<String> expectedPath = readString(nomedia);
+                // Returns true If .nomedia file is empty or content doesn't match |dir|
+                // Returns false otherwise
+                return !expectedPath.isPresent()
+                        || !expectedPath.get().equals(dir.getPath());
+            } catch (IOException e) {
+                Log.w(TAG, "Failed to read directory dirty" + dir);
+            }
+        }
+        return true;
+    }
+
+    /**
+     * {@code isDirty} == {@code true} will force {@code dir} scanning even if it's hidden
+     * {@code isDirty} == {@code false} will skip {@code dir} scanning on next scan.
+     */
+    public static void setDirectoryDirty(File dir, boolean isDirty) {
+        File nomedia = new File(dir, ".nomedia");
+        if (nomedia.exists()) {
+            try {
+                writeString(nomedia, isDirty ? Optional.of("") : Optional.of(dir.getPath()));
+            } catch (IOException e) {
+                Log.w(TAG, "Failed to change directory dirty: " + dir + ". isDirty: " + isDirty);
+            }
+        }
+    }
+
+    /**
+     * @return the folder containing the top-most .nomedia in {@code file} hierarchy.
+     * E.g input as /sdcard/foo/bar/ will return /sdcard/foo
+     * even if foo and bar contain .nomedia files.
+     *
+     * Returns {@code null} if there's no .nomedia in hierarchy
+     */
+    public static File getTopLevelNoMedia(@NonNull File file) {
+        File topNoMedia = null;
+
+        File parent = file;
+        while (parent != null) {
+            File nomedia = new File(parent, ".nomedia");
+            if (nomedia.exists()) {
+                topNoMedia = nomedia;
+            }
+            parent = parent.getParentFile();
+        }
+
+        return topNoMedia;
     }
 }

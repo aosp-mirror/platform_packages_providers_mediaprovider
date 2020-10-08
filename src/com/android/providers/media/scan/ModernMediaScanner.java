@@ -112,6 +112,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -171,13 +172,15 @@ public class ModernMediaScanner implements MediaScanner {
 
     private final Context mContext;
     private final DrmManagerClient mDrmClient;
+    @GuardedBy("mPendingCleanDirectories")
+    private final Set<String> mPendingCleanDirectories = new ArraySet<>();
 
     /**
-     * Map from volume name to signals that can be used to cancel any active
-     * scan operations on those volumes.
+     * List of active scans.
      */
-    @GuardedBy("mSignals")
-    private final ArrayMap<String, CancellationSignal> mSignals = new ArrayMap<>();
+    @GuardedBy("mActiveScans")
+
+    private final List<Scan> mActiveScans = new ArrayList<>();
 
     /**
      * Holder that contains a reference count of the number of threads
@@ -246,22 +249,43 @@ public class ModernMediaScanner implements MediaScanner {
 
     @Override
     public void onDetachVolume(String volumeName) {
-        synchronized (mSignals) {
-            final CancellationSignal signal = mSignals.remove(volumeName);
-            if (signal != null) {
-                signal.cancel();
+        synchronized (mActiveScans) {
+            for (Scan scan : mActiveScans) {
+                if (volumeName.equals(scan.mVolumeName)) {
+                    scan.mSignal.cancel();
+                }
             }
         }
     }
 
-    private CancellationSignal getOrCreateSignal(String volumeName) {
-        synchronized (mSignals) {
-            CancellationSignal signal = mSignals.get(volumeName);
-            if (signal == null) {
-                signal = new CancellationSignal();
-                mSignals.put(volumeName, signal);
+    @Override
+    public void onIdleScanStopped() {
+        synchronized (mActiveScans) {
+            for (Scan scan : mActiveScans) {
+                if (scan.mReason == REASON_IDLE) {
+                    scan.mSignal.cancel();
+                }
             }
-            return signal;
+        }
+    }
+
+    @Override
+    public void onDirectoryDirty(File dir) {
+        synchronized (mPendingCleanDirectories) {
+            mPendingCleanDirectories.remove(dir.getPath());
+            FileUtils.setDirectoryDirty(dir, /*isDirty*/ true);
+        }
+    }
+
+    private void addActiveScan(Scan scan) {
+        synchronized (mActiveScans) {
+            mActiveScans.add(scan);
+        }
+    }
+
+    private void removeActiveScan(Scan scan) {
+        synchronized (mActiveScans) {
+            mActiveScans.remove(scan);
         }
     }
 
@@ -280,6 +304,7 @@ public class ModernMediaScanner implements MediaScanner {
         private final Uri mFilesUri;
         private final CancellationSignal mSignal;
         private final String mOwnerPackage;
+        private final List<String> mExcludeDirs;
 
         private final long mStartGeneration;
         private final boolean mSingleFile;
@@ -312,17 +337,27 @@ public class ModernMediaScanner implements MediaScanner {
             mReason = reason;
             mVolumeName = FileUtils.getVolumeName(mContext, root);
             mFilesUri = MediaStore.Files.getContentUri(mVolumeName);
-            mSignal = getOrCreateSignal(mVolumeName);
+            mSignal = new CancellationSignal();
 
             mStartGeneration = MediaStore.getGeneration(mResolver, mVolumeName);
             mSingleFile = mRoot.isFile();
             mOwnerPackage = ownerPackage;
+            mExcludeDirs = new ArrayList<>();
 
             Trace.endSection();
         }
 
         @Override
         public void run() {
+            addActiveScan(this);
+            try {
+                runInternal();
+            } finally {
+                removeActiveScan(this);
+            }
+        }
+
+        private void runInternal() {
             final long startTime = SystemClock.elapsedRealtime();
 
             // First, scan everything that should be visible under requested
@@ -378,6 +413,49 @@ public class ModernMediaScanner implements MediaScanner {
             }
         }
 
+        private String buildExcludeDirClause(int count) {
+            if (count == 0) {
+                return "";
+            }
+            String notLikeClause = FileColumns.DATA + " NOT LIKE ? ESCAPE '\\'";
+            String andClause = " AND ";
+            StringBuilder sb = new StringBuilder();
+            sb.append("(");
+            for (int i = 0; i < count; i++) {
+                // Append twice because we want to match the path itself and the expanded path
+                // using the SQL % LIKE operator. For instance, to exclude /sdcard/foo and all
+                // subdirs, we need the following:
+                // "NOT LIKE '/sdcard/foo/%' AND "NOT LIKE '/sdcard/foo'"
+                // The first clause matches *just* subdirs, and the second clause matches the dir
+                // itself
+                sb.append(notLikeClause);
+                sb.append(andClause);
+                sb.append(notLikeClause);
+                if (i != count - 1) {
+                    sb.append(andClause);
+                }
+            }
+            sb.append(")");
+            return sb.toString();
+        }
+
+        private void addEscapedAndExpandedPath(String path, List<String> paths) {
+            String escapedPath = DatabaseUtils.escapeForLike(path);
+            paths.add(escapedPath + "/%");
+            paths.add(escapedPath);
+        }
+
+        private String[] buildSqlSelectionArgs() {
+            List<String> escapedPaths = new ArrayList<>();
+
+            addEscapedAndExpandedPath(mRoot.getAbsolutePath(), escapedPaths);
+            for (String dir : mExcludeDirs) {
+                addEscapedAndExpandedPath(dir, escapedPaths);
+            }
+
+            return escapedPaths.toArray(new String[0]);
+        }
+
         private void reconcileAndClean() {
             final long[] scannedIds = mScannedIds.toArray();
             Arrays.sort(scannedIds);
@@ -393,14 +471,16 @@ public class ModernMediaScanner implements MediaScanner {
                     + MtpConstants.FORMAT_ABSTRACT_AV_PLAYLIST;
             final String dataClause = "(" + FileColumns.DATA + " LIKE ? ESCAPE '\\' OR "
                     + FileColumns.DATA + " LIKE ? ESCAPE '\\')";
+            final String excludeDirClause = buildExcludeDirClause(mExcludeDirs.size());
             final String generationClause = FileColumns.GENERATION_ADDED + " <= "
                     + mStartGeneration;
+            final String sqlSelection = formatClause + " AND " + dataClause + " AND "
+                    + generationClause
+                    + (excludeDirClause.isEmpty() ? "" : " AND " + excludeDirClause);
             final Bundle queryArgs = new Bundle();
-            queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SELECTION,
-                    formatClause + " AND " + dataClause + " AND " + generationClause);
-            final String pathEscapedForLike = DatabaseUtils.escapeForLike(mRoot.getAbsolutePath());
+            queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, sqlSelection);
             queryArgs.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS,
-                    new String[] {pathEscapedForLike + "/%", pathEscapedForLike});
+                    buildSqlSelectionArgs());
             queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,
                     FileColumns._ID + " DESC");
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_EXCLUDE);
@@ -528,6 +608,16 @@ public class ModernMediaScanner implements MediaScanner {
 
             if (!shouldScanDirectory(dir.toFile())) {
                 return FileVisitResult.SKIP_SUBTREE;
+            }
+
+            synchronized (mPendingCleanDirectories) {
+                if (FileUtils.isDirectoryDirty(dir.toFile())) {
+                    mPendingCleanDirectories.add(dir.toFile().getPath());
+                } else {
+                    Log.d(TAG, "Skipping preVisitDirectory " + dir.toFile());
+                    mExcludeDirs.add(dir.toFile().getPath());
+                    return FileVisitResult.SKIP_SUBTREE;
+                }
             }
 
             // Acquire lock on this directory to ensure parallel scans don't
@@ -673,7 +763,12 @@ public class ModernMediaScanner implements MediaScanner {
             // Now that we're finished scanning this directory, release lock to
             // allow other parallel scans to proceed
             releaseDirectoryLock(dir);
-
+            synchronized (mPendingCleanDirectories) {
+                if (mPendingCleanDirectories.remove(dir.toFile().getPath())) {
+                    // If |dir| is still clean, then persist
+                    FileUtils.setDirectoryDirty(dir.toFile(), false /* isDirty */);
+                }
+            }
             return FileVisitResult.CONTINUE;
         }
 

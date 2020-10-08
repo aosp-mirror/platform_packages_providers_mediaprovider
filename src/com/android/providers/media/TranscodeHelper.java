@@ -19,9 +19,9 @@ package com.android.providers.media;
 import android.content.Context;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.media.MediaFormat;
+import android.media.MediaTranscodeManager;
 import android.media.MediaTranscodeManager.TranscodingJob;
 import android.media.MediaTranscodeManager.TranscodingRequest;
-import android.media.MediaTranscodeManager;
 import android.media.MediaTranscodingException;
 import android.net.Uri;
 import android.os.Environment;
@@ -31,7 +31,6 @@ import android.util.Log;
 import android.util.SparseArray;
 
 import androidx.annotation.GuardedBy;
-import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 
 import com.android.providers.media.util.FileUtils;
@@ -244,7 +243,7 @@ public class TranscodeHelper {
         return (int) (sizeMb * TRANSCODING_TIMEOUT_COEFFICIENT);
     }
 
-    private void finishTranscodingResult(String src, TranscodingJob job, CountDownLatch latch)  {
+    private void finishTranscodingResult(String src, TranscodingJob job, CountDownLatch latch) {
         synchronized (mTranscodingJobs) {
             latch.countDown();
             job.cancel();
@@ -252,5 +251,9 @@ public class TranscodeHelper {
             mTranscodingLatches.remove(job.getJobId());
         }
         Log.d(TAG, "Transcoding finished" + job);
+    }
+
+    public boolean deleteCachedTranscodeFile(long rowId) {
+        return new File(getTranscodeDirectory(), String.valueOf(rowId)).delete();
     }
 }

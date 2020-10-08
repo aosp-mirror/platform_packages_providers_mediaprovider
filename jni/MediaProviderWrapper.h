@@ -175,6 +175,14 @@ class MediaProviderWrapper final {
     bool Transform(const std::string& src, const std::string& dst, int transforms, uid_t uid);
 
     /**
+     * Determines if to allow FUSE_LOOKUP for uid. Might allow uids that don't belong to the
+     * MediaProvider user, depending on OEM configuration.
+     *
+     * @param uid linux uid to check
+     */
+    bool ShouldAllowLookup(uid_t uid, int path_user_id);
+
+    /**
      * Initializes per-process static variables associated with the lifetime of
      * a managed runtime.
      */
@@ -198,6 +206,7 @@ class MediaProviderWrapper final {
     jmethodID mid_rename_;
     jmethodID mid_is_uid_for_package_;
     jmethodID mid_on_file_created_;
+    jmethodID mid_should_allow_lookup_;
     jmethodID mid_get_io_path_;
     jmethodID mid_get_transforms_;
     jmethodID mid_transform_;

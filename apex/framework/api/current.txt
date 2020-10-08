@@ -114,7 +114,7 @@ package android.provider {
     field public static final android.net.Uri INTERNAL_CONTENT_URI;
   }
 
-  public static final class MediaStore.Audio.Artists.Albums implements android.provider.MediaStore.Audio.AlbumColumns {
+  public static final class MediaStore.Audio.Artists.Albums implements android.provider.BaseColumns android.provider.MediaStore.Audio.AlbumColumns {
     ctor public MediaStore.Audio.Artists.Albums();
     method public static android.net.Uri getContentUri(String, long);
   }

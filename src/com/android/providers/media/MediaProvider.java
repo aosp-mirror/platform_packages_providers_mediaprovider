@@ -680,6 +680,9 @@ public class MediaProvider extends ContentProvider {
                 int mediaType, boolean isDownload, String ownerPackageName, String path) {
             handleDeletedRowForFuse(path, ownerPackageName, id);
             acceptWithExpansion(helper::notifyDelete, volumeName, id, mediaType, isDownload);
+            // Remove cached transcoded file if any
+            mTranscodeHelper.deleteCachedTranscodeFile(id);
+
 
             helper.postBackground(() -> {
                 // Item no longer exists, so revoke all access to it

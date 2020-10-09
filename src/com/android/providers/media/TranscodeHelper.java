@@ -27,7 +27,6 @@ import static com.android.providers.media.MediaProvider.VolumeNotFoundException;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.database.Cursor;
 import android.media.MediaFormat;
 import android.media.MediaTranscodeManager;
@@ -55,6 +54,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -90,6 +91,26 @@ public class TranscodeHelper {
             {FileColumns._ID, FileColumns._TRANSCODE_STATUS};
     private static final String TRANSCODE_WHERE_CLAUSE =
             FileColumns.DATA + "=?" + " and mime_type not like 'null'";
+
+    /**
+     * Never transcode for these packages.
+     * TODO(b/169327180): Replace this with allow list from server.
+     */
+    private static final String[] ALLOW_LIST = new String[0];
+    /**
+     * Force transcode for these package names.
+     * TODO(b/169849854): Remove this when app capabilities can be used to make this decision.
+     */
+    private String[] TRANSCODE_LIST = new String[] {
+            "com.facebook.katana",
+            "com.google.android.talk",
+            "com.snapchat.android",
+            "com.instagram.android",
+            "com.google.android.apps.photos",
+            "com.linecorp.b612.android",
+            "com.zhiliaoapp.musically",
+            "com.tencent.mm"
+    };
 
     public TranscodeHelper(Context context, MediaProvider mediaProvider) {
         mContext = context;
@@ -206,8 +227,28 @@ public class TranscodeHelper {
     }
 
     public boolean shouldTranscode(String path, int uid) {
+        final boolean transcodeEnabled
+                = SystemProperties.getBoolean("persist.fuse.sys.transcode", false);
+        if (!transcodeEnabled) {
+            return false;
+        }
+
         if (!supportsTranscode(path) || uid < android.os.Process.FIRST_APPLICATION_UID) {
             return false;
+        }
+
+        // TODO(b/169327180): We should also check app's targetSDK version to verify if app still
+        //  qualifies to be on the allow list.
+        List<String> allowList = Arrays.asList(ALLOW_LIST);
+        List<String> transcodeList = Arrays.asList(TRANSCODE_LIST);
+        final String[] callingPackages = mMediaProvider.getSharedPackagesForTranscoding();
+        for (String callingPackage: callingPackages) {
+            if (allowList.contains(callingPackage)) {
+                return false;
+            }
+            if (transcodeList.contains(callingPackage)) {
+                return true;
+            }
         }
 
         int supportedUid = SystemProperties.getInt("fuse.sys.transcode_uid", -2);
@@ -215,21 +256,13 @@ public class TranscodeHelper {
             return true;
         }
 
-        String[] supportedPackages = SystemProperties.get("fuse.sys.transcode_package").split(",");
-        for (String packageName : supportedPackages) {
-            if (packageName.isEmpty()) {
-                continue;
-            }
-
-            try {
-                if (uid == mContext.getPackageManager().getPackageUid(packageName, 0)) {
-                    return true;
-                }
-            } catch (NameNotFoundException e) {
-                Log.i(TAG, "Ignoring package not found", e);
+        List<String> supportedPackages =
+                Arrays.asList(SystemProperties.get("fuse.sys.transcode_package").split(","));
+        for (String callingPackage: callingPackages) {
+            if (supportedPackages.contains(callingPackage)) {
+                return true;
             }
         }
-
         return false;
     }
 

@@ -37,6 +37,7 @@ import static android.media.MediaMetadataRetriever.METADATA_KEY_IMAGE_WIDTH;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_MIMETYPE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_NUM_TRACKS;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_TITLE;
+import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_CODEC_MIME_TYPE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH;
@@ -1176,6 +1177,7 @@ public class ModernMediaScanner implements MediaScanner {
         op.withValue(VideoColumns.COLOR_STANDARD, null);
         op.withValue(VideoColumns.COLOR_TRANSFER, null);
         op.withValue(VideoColumns.COLOR_RANGE, null);
+        op.withValue(FileColumns._VIDEO_CODEC_TYPE, null);
 
         try (FileInputStream is = new FileInputStream(file)) {
             try (MediaMetadataRetriever mmr = new MediaMetadataRetriever()) {
@@ -1198,6 +1200,8 @@ public class ModernMediaScanner implements MediaScanner {
                         parseOptional(mmr.extractMetadata(METADATA_KEY_COLOR_TRANSFER)));
                 withOptionalValue(op, VideoColumns.COLOR_RANGE,
                         parseOptional(mmr.extractMetadata(METADATA_KEY_COLOR_RANGE)));
+                withOptionalValue(op, FileColumns._VIDEO_CODEC_TYPE,
+                        parseOptional(mmr.extractMetadata(METADATA_KEY_VIDEO_CODEC_MIME_TYPE)));
             }
 
             // Also hunt around for XMP metadata

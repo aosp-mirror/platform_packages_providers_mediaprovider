@@ -1712,6 +1712,14 @@ public final class MediaStore {
              * @hide
              */
             public static final int TRANSCODE_COMPLETE = 1;
+
+            /**
+             * Indexed value of {@link MediaMetadataRetriever#METADATA_KEY_VIDEO_CODEC_TYPE}
+             * extracted from the video file. This value be null for non-video files.
+             * @hide
+             */
+            @Column(value = Cursor.FIELD_TYPE_INTEGER)
+            public static final String _VIDEO_CODEC_TYPE = "_video_codec_type";
         }
     }
 

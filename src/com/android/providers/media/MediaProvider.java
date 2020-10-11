@@ -768,6 +768,10 @@ public class MediaProvider extends ContentProvider {
             case FileColumns.MEDIA_TYPE_IMAGE:
                 consumer.accept(MediaStore.Images.Media.getContentUri(volumeName, id));
                 break;
+
+            case FileColumns.MEDIA_TYPE_PLAYLIST:
+                consumer.accept(Audio.Playlists.Members.getContentUri(volumeName, id));
+                break;
         }
 
         // Also notify through any generic views
@@ -2257,7 +2261,8 @@ public class MediaProvider extends ContentProvider {
                 // Rename not allowed on paths that can't be translated to RELATIVE_PATH.
                 Log.e(TAG, errorMessage +  "Invalid path.");
                 return OsConstants.EPERM;
-            } else if (oldRelativePath.length == 1 && TextUtils.isEmpty(oldRelativePath[0])) {
+            }
+            if (oldRelativePath.length == 1 && TextUtils.isEmpty(oldRelativePath[0])) {
                 // Allow rename of files/folders other than default directories.
                 final String displayName = extractDisplayName(oldPath);
                 for (String defaultFolder : DEFAULT_FOLDER_NAMES) {
@@ -2267,7 +2272,8 @@ public class MediaProvider extends ContentProvider {
                         return OsConstants.EPERM;
                     }
                 }
-            } else if (newRelativePath.length == 1 && TextUtils.isEmpty(newRelativePath[0])) {
+            }
+            if (newRelativePath.length == 1 && TextUtils.isEmpty(newRelativePath[0])) {
                 Log.e(TAG, errorMessage +  newPath + " is in root folder."
                         + " Renaming a file/directory to root folder is not allowed");
                 return OsConstants.EPERM;
@@ -3511,6 +3517,8 @@ public class MediaProvider extends ContentProvider {
                 // files on disk to ensure that we can reliably migrate between
                 // devices and recover from database corruption
                 final long id = addPlaylistMembers(playlistUri, initialValues);
+                final ContentResolver resolver = getContext().getContentResolver();
+                resolver.notifyChange(playlistUri, null, ContentResolver.NOTIFY_INSERT);
                 return ContentUris.withAppendedId(MediaStore.Audio.Playlists.Members
                         .getContentUri(originalVolumeName, playlistId), id);
             }
@@ -4535,7 +4543,12 @@ public class MediaProvider extends ContentProvider {
                 // Playlist contents are always persisted directly into playlist
                 // files on disk to ensure that we can reliably migrate between
                 // devices and recover from database corruption
-                return removePlaylistMembers(playlistUri, extras);
+                int numOfRemovedPlaylistMembers = removePlaylistMembers(playlistUri, extras);
+                if (numOfRemovedPlaylistMembers > 0) {
+                    final ContentResolver resolver = getContext().getContentResolver();
+                    resolver.notifyChange(playlistUri, null, ContentResolver.NOTIFY_DELETE);
+                }
+                return numOfRemovedPlaylistMembers;
             }
         }
 
@@ -5208,7 +5221,6 @@ public class MediaProvider extends ContentProvider {
                 final long playlistId = Long.parseLong(uri.getPathSegments().get(3));
                 final Uri playlistUri = ContentUris.withAppendedId(
                         MediaStore.Audio.Playlists.getContentUri(volumeName), playlistId);
-
                 if (uri.getBooleanQueryParameter("move", false)) {
                     // Convert explicit request into query; sigh, moveItem()
                     // uses zero-based indexing instead of one-based indexing
@@ -5240,6 +5252,9 @@ public class MediaProvider extends ContentProvider {
                     values.put(Playlists.Members.PLAY_ORDER, (index + 1));
                     addPlaylistMembers(playlistUri, values);
                 }
+
+                final ContentResolver resolver = getContext().getContentResolver();
+                resolver.notifyChange(playlistUri, null, ContentResolver.NOTIFY_UPDATE);
                 return 1;
             }
         }

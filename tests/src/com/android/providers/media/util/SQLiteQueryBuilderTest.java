@@ -16,6 +16,8 @@
 
 package com.android.providers.media.util;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -91,9 +93,9 @@ public class SQLiteQueryBuilderTest {
         sqliteQueryBuilder.appendWhere("age=20");
         String sql = sqliteQueryBuilder.buildQuery(new String[] { "age", "address" },
                 null, null, null, null, null);
-        assertEquals(TEST_TABLE_NAME, sqliteQueryBuilder.getTables());
+        assertThat(sqliteQueryBuilder.getTables()).isEqualTo(TEST_TABLE_NAME);
         expected = "SELECT age, address FROM " + TEST_TABLE_NAME + " WHERE (age=20)";
-        assertEquals(expected, sql);
+        assertThat(sql).isEqualTo(expected);
 
         sqliteQueryBuilder = new SQLiteQueryBuilder();
         sqliteQueryBuilder.setTables(EMPLOYEE_TABLE_NAME);
@@ -101,9 +103,9 @@ public class SQLiteQueryBuilderTest {
         sqliteQueryBuilder.appendWhere("age>32");
         sql = sqliteQueryBuilder.buildQuery(new String[] { "age", "address" },
                 null, null, null, null, null);
-        assertEquals(EMPLOYEE_TABLE_NAME, sqliteQueryBuilder.getTables());
+        assertThat(sqliteQueryBuilder.getTables()).isEqualTo(EMPLOYEE_TABLE_NAME);
         expected = "SELECT DISTINCT age, address FROM " + EMPLOYEE_TABLE_NAME + " WHERE (age>32)";
-        assertEquals(expected, sql);
+        assertThat(sql).isEqualTo(expected);
 
         sqliteQueryBuilder = new SQLiteQueryBuilder();
         sqliteQueryBuilder.setTables(EMPLOYEE_TABLE_NAME);
@@ -111,15 +113,14 @@ public class SQLiteQueryBuilderTest {
         sqliteQueryBuilder.appendWhereEscapeString("age>32");
         sql = sqliteQueryBuilder.buildQuery(new String[] { "age", "address" },
                 null, null, null, null, null);
-        assertEquals(EMPLOYEE_TABLE_NAME, sqliteQueryBuilder.getTables());
+        assertThat(sqliteQueryBuilder.getTables()).isEqualTo(EMPLOYEE_TABLE_NAME);
         expected = "SELECT DISTINCT age, address FROM " + EMPLOYEE_TABLE_NAME
                 + " WHERE ('age>32')";
-        assertEquals(expected, sql);
+        assertThat(sql).isEqualTo(expected);
     }
 
     @Test
     public void testSetProjectionMap() {
-        String expected;
         Map<String, String> projectMap = new HashMap<String, String>();
         projectMap.put("EmployeeName", "name");
         projectMap.put("EmployeeAge", "age");
@@ -130,24 +131,54 @@ public class SQLiteQueryBuilderTest {
         sqliteQueryBuilder.setProjectionMap(projectMap);
         String sql = sqliteQueryBuilder.buildQuery(new String[] { "EmployeeName", "EmployeeAge" },
                 null, null, null, null, null);
-        expected = "SELECT name, age FROM " + TEST_TABLE_NAME;
-        assertEquals(expected, sql);
+        assertThat(sql).isEqualTo("SELECT name, age FROM " + TEST_TABLE_NAME);
 
         sql = sqliteQueryBuilder.buildQuery(null, // projectionIn is null
                 null, null, null, null, null);
-        assertTrue(sql.matches("SELECT (age|name|address), (age|name|address), (age|name|address) "
-                + "FROM " + TEST_TABLE_NAME));
-        assertTrue(sql.contains("age"));
-        assertTrue(sql.contains("name"));
-        assertTrue(sql.contains("address"));
+        assertThat(sql).matches(
+                "SELECT (age|name|address), (age|name|address), (age|name|address) "
+                    + "FROM " + TEST_TABLE_NAME);
+        assertThat(sql).contains("age");
+        assertThat(sql).contains("name");
+        assertThat(sql).contains("address");
 
         sqliteQueryBuilder.setProjectionMap(null);
         sql = sqliteQueryBuilder.buildQuery(new String[] { "name", "address" },
                 null, null, null, null, null);
-        assertTrue(sql.matches("SELECT (name|address), (name|address) "
-                + "FROM " + TEST_TABLE_NAME));
-        assertTrue(sql.contains("name"));
-        assertTrue(sql.contains("address"));
+        assertThat(sql).matches("SELECT (name|address), (name|address) "
+                + "FROM " + TEST_TABLE_NAME);
+        assertThat(sql).contains("name");
+        assertThat(sql).contains("address");
+
+    }
+
+    @Test
+    public void testAllowRowid() {
+        Map<String, String> projectMap = new HashMap<String, String>();
+        projectMap.put("EmployeeName", "name");
+        projectMap.put("EmployeeAge", "age");
+        projectMap.put("EmployeeAddress", "address");
+        SQLiteQueryBuilder sqliteQueryBuilder = new SQLiteQueryBuilder();
+        sqliteQueryBuilder.setTables(TEST_TABLE_NAME);
+        sqliteQueryBuilder.setDistinct(false);
+        sqliteQueryBuilder.setProjectionMap(projectMap);
+
+        sqliteQueryBuilder.allowRowidColumn();
+
+        String sql = sqliteQueryBuilder.buildQuery(new String[] { SQLiteQueryBuilder.ROWID_COLUMN },
+                null, null, null, null, null);
+        assertThat(sql).isEqualTo("SELECT rowid FROM " + TEST_TABLE_NAME);
+
+        sql = sqliteQueryBuilder.buildQuery(null, // projectionIn is null
+                null, null, null, null, null);
+        assertThat(sql).matches(
+                "SELECT (age|name|address|rowid), (age|name|address|rowid), "
+                    + "(age|name|address|rowid), (age|name|address|rowid) "
+                    + "FROM " + TEST_TABLE_NAME);
+        assertThat(sql).contains("age");
+        assertThat(sql).contains("name");
+        assertThat(sql).contains("address");
+        assertThat(sql).contains("rowid");
     }
 
     private static class MockCursor extends SQLiteCursor {
@@ -173,7 +204,7 @@ public class SQLiteQueryBuilderTest {
                 "HAVING " + DEFAULT_HAVING + " " +
                 "ORDER BY name " +
                 "LIMIT 100";
-        assertEquals(expected, sql);
+        assertThat(sql).isEqualTo(expected);
     }
 
     @Test
@@ -190,7 +221,7 @@ public class SQLiteQueryBuilderTest {
         String expected = "SELECT name, sum(salary) FROM " + TEST_TABLE_NAME
                 + " WHERE (" + DEFAULT_TEST_WHERE + ") " +
                 "GROUP BY name HAVING " + DEFAULT_HAVING + " ORDER BY name LIMIT 2";
-        assertEquals(expected, sql);
+        assertThat(sql).isEqualTo(expected);
     }
 
     @Test
@@ -198,9 +229,9 @@ public class SQLiteQueryBuilderTest {
         StringBuilder sb = new StringBuilder();
         String[] columns = new String[] { "name", "age" };
 
-        assertEquals("", sb.toString());
+        assertThat(sb.toString()).isEmpty();
         SQLiteQueryBuilder.appendColumns(sb, columns);
-        assertEquals("name, age ", sb.toString());
+        assertThat(sb.toString()).isEqualTo("name, age ");
     }
 
     @Test
@@ -212,7 +243,7 @@ public class SQLiteQueryBuilderTest {
         qb.appendWhereStandalone("C");
 
         final String query = qb.buildQuery(null, null, null, null, null, null);
-        assertTrue(query.contains("(A) AND (B) AND (C)"));
+        assertThat(query).contains("(A) AND (B) AND (C)");
     }
 
     @Test

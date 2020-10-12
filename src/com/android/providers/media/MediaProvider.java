@@ -914,7 +914,7 @@ public class MediaProvider extends ContentProvider {
                 false, false, false, Column.class,
                 Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER, mIdGenerator);
 
-        mTranscodeHelper = new TranscodeHelper(context);
+        mTranscodeHelper = new TranscodeHelper(context, this);
 
         final IntentFilter packageFilter = new IntentFilter();
         packageFilter.setPriority(10);
@@ -1291,6 +1291,10 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public boolean transformForFuse(String src, String dst, int transforms, int uid) {
         if ((transforms & FLAG_TRANSFORM_TRANSCODING) != 0) {
+            if (mTranscodeHelper.isTranscodeFileCached(src, dst)) {
+                Log.d(TAG, "Using transcode cache for " + src);
+                return true;
+            }
             return mTranscodeHelper.transcode(src, dst, uid);
         }
         return true;
@@ -3861,6 +3865,15 @@ public class MediaProvider extends ContentProvider {
     private static final int TYPE_DELETE = 3;
 
     /**
+     * Creating a new method for Transcoding to avoid any merge conflicts.
+     * TODO(b/170465810): Remove this when getQueryBuilder code is refactored.
+     */
+    @NonNull SQLiteQueryBuilder getQueryBuilderForTranscoding(int type, int match,
+            @NonNull Uri uri, @NonNull Bundle extras, @Nullable Consumer<String> honored) {
+        return getQueryBuilder(type, match, uri, extras, honored);
+    }
+
+    /**
      * Generate a {@link SQLiteQueryBuilder} that is filtered based on the
      * runtime permissions and/or {@link Uri} grants held by the caller.
      * <ul>
@@ -6238,8 +6251,11 @@ public class MediaProvider extends ContentProvider {
         String transcodePath = mTranscodeHelper.getIoPath(filePath, uid);
         File transcodeFile = new File(transcodePath);
 
-        if (mTranscodeHelper.transcode(filePath, transcodePath, uid)) {
-            Log.w(TAG, "Using FUSE with transcode for " + filePath);
+        if (mTranscodeHelper.isTranscodeFileCached(filePath, transcodePath)) {
+            Log.d(TAG, "Using FUSE with transcode cache for " + filePath);
+            return FileUtils.openSafely(getFuseFile(transcodeFile), modeBits);
+        } else if (mTranscodeHelper.transcode(filePath, transcodePath, uid)) {
+            Log.d(TAG, "Using FUSE with transcode for " + filePath);
             return FileUtils.openSafely(getFuseFile(transcodeFile), modeBits);
         } else {
             throw new FileNotFoundException("Failed to transcode " + filePath);
@@ -7674,6 +7690,15 @@ public class MediaProvider extends ContentProvider {
             super("Requested path " + actual + " doesn't appear under " + allowed,
                     Build.VERSION_CODES.Q);
         }
+    }
+
+    /**
+     * Creating a new method for Transcoding to avoid any merge conflicts.
+     * TODO(b/170465810): Remove this when the code is refactored.
+     */
+    @NonNull DatabaseHelper getDatabaseForUriForTranscoding(Uri uri)
+            throws VolumeNotFoundException {
+        return getDatabaseForUri(uri);
     }
 
     private @NonNull DatabaseHelper getDatabaseForUri(Uri uri) throws VolumeNotFoundException {

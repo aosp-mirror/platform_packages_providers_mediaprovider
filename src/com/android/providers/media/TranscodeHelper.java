@@ -16,18 +16,32 @@
 
 package com.android.providers.media;
 
+import static android.provider.MediaStore.Files.FileColumns.TRANSCODE_COMPLETE;
+import static android.provider.MediaStore.Files.FileColumns.TRANSCODE_EMPTY;
+import static android.provider.MediaStore.MATCH_EXCLUDE;
+import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
+import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
+
+import static com.android.providers.media.MediaProvider.VolumeNotFoundException;
+
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.database.Cursor;
 import android.media.MediaFormat;
 import android.media.MediaTranscodeManager;
 import android.media.MediaTranscodeManager.TranscodingJob;
 import android.media.MediaTranscodeManager.TranscodingRequest;
 import android.media.MediaTranscodingException;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.SystemProperties;
+import android.provider.MediaStore.Files.FileColumns;
 import android.util.ArrayMap;
 import android.util.Log;
+import android.util.Pair;
 import android.util.SparseArray;
 
 import androidx.annotation.GuardedBy;
@@ -35,6 +49,7 @@ import androidx.annotation.NonNull;
 
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.ForegroundThread;
+import com.android.providers.media.util.SQLiteQueryBuilder;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -55,17 +70,31 @@ public class TranscodeHelper {
     /** Coefficient to 'guess' how large a transcoded file might be */
     private static final double TRANSCODING_SIZE_COEFFICIENT = 2;
 
+    /**
+     * Copied from MediaProvider.java
+     * TODO(b/170465810): Remove this when  getQueryBuilder code is refactored.
+     */
+    private static final int TYPE_QUERY = 0;
+    private static final int TYPE_UPDATE = 2;
+    static final String DIRECTORY_CAMERA = "Camera";
+
     private final Context mContext;
+    private final MediaProvider mMediaProvider;
     private final MediaTranscodeManager mMediaTranscodeManager;
     @GuardedBy("mTranscodingJobs")
     private final Map<String, TranscodingJob> mTranscodingJobs = new ArrayMap<>();
     @GuardedBy("mTranscodingJobs")
     private final SparseArray<CountDownLatch> mTranscodingLatches = new SparseArray<>();
 
+    private static final String[] TRANSCODE_CACHE_INFO_PROJECTION =
+            {FileColumns._ID, FileColumns._TRANSCODE_STATUS};
+    private static final String TRANSCODE_WHERE_CLAUSE =
+            FileColumns.DATA + "=?" + " and mime_type not like 'null'";
 
-    public TranscodeHelper(Context context) {
+    public TranscodeHelper(Context context, MediaProvider mediaProvider) {
         mContext = context;
         mMediaTranscodeManager = context.getSystemService(MediaTranscodeManager.class);
+        mMediaProvider = mediaProvider;
     }
 
     /**
@@ -126,7 +155,9 @@ public class TranscodeHelper {
         }
 
         boolean result = waitTranscodingResult(src, job, latch);
-        if (!result) {
+        if (result) {
+            updateTranscodeStatus(src, TRANSCODE_COMPLETE);
+        } else {
             Log.w(TAG, "Transcoding timed out for " + src + ". Job: " + job);
             // Attempt to workaround media transcoding deadlock, b/165374867
             // Cancelling a deadlocked job seems to unblock the transcoder
@@ -140,22 +171,38 @@ public class TranscodeHelper {
             return path;
         }
 
-        final File file = new File(path);
-        final File transcodeFile = new File(file.getParentFile(),
-                TRANSCODE_FILE_PREFIX + file.getName());
-        final long maxFileSize = (long) (file.length() * TRANSCODING_SIZE_COEFFICIENT);
-
-        if (transcodeFile.exists() && transcodeFile.length() >= maxFileSize) {
-            return transcodeFile.getPath();
+        Pair<Long, Integer> cacheInfo = getTranscodeCacheInfoFromDB(path);
+        final long rowId =cacheInfo.first;
+        if (rowId == -1 ) {
+            // No database row found, The file is pending/trashed or not added to database yet.
+            // Assuming that no transcoding needed.
+            return path;
         }
 
+        int transcodeStatus = cacheInfo.second;
+        final String transcodePath = getTranscodePath(rowId);
+        final File transcodeFile = new File(transcodePath);
+
+        if (transcodeFile.exists()) {
+            return transcodePath;
+        }
+
+        if (transcodeStatus == TRANSCODE_COMPLETE) {
+            // The transcode file doesn't exist but db row is marked as TRANSCODE_COMPLETE,
+            // update db row to TRANSCODE_EMPTY so that cache state remains valid.
+            updateTranscodeStatus(path, TRANSCODE_EMPTY);
+        }
+
+        final File file = new File(path);
+        long maxFileSize = (long) (file.length() * 2);
         try (RandomAccessFile raf = new RandomAccessFile(transcodeFile, "rw")) {
             raf.setLength(maxFileSize);
-            return transcodeFile.getPath();
         } catch (IOException e) {
-            Log.e(TAG, "Failed to initialise transcoding for file " + path);
-            return "";
+            Log.e(TAG, "Failed to initialise transcoding for file " + path, e);
+            return path;
         }
+
+        return transcodePath;
     }
 
     public boolean shouldTranscode(String path, int uid) {
@@ -189,8 +236,59 @@ public class TranscodeHelper {
     public boolean supportsTranscode(String path) {
         File file = new File(path);
         String name = file.getName();
+        final String cameraRelativePath =
+                String.format("%s/%s/", Environment.DIRECTORY_DCIM, DIRECTORY_CAMERA);
 
-        return !name.startsWith(TRANSCODE_FILE_PREFIX) && name.endsWith(".mp4");
+        return !isTranscodeFile(path) && name.endsWith(".mp4") &&
+                cameraRelativePath.equalsIgnoreCase(FileUtils.extractRelativePath(path));
+    }
+
+    private DatabaseHelper getDatabaseHelperForUri(Uri uri) {
+        final DatabaseHelper helper;
+        try {
+            return mMediaProvider.getDatabaseForUriForTranscoding(uri);
+        } catch (VolumeNotFoundException e) {
+            throw new IllegalStateException("Volume not found while querying transcode path", e);
+        }
+    }
+
+    private Pair<Long, Integer> getTranscodeCacheInfoFromDB(String path) {
+        final Uri uri = FileUtils.getContentUriForPath(path);
+        // TODO(b/170465810): Replace this with matchUri when the code is refactored.
+        final int match = MediaProvider.FILES;
+        final SQLiteQueryBuilder qb = mMediaProvider.getQueryBuilderForTranscoding(TYPE_QUERY,
+                match, uri, Bundle.EMPTY, null);
+        final String[] selectionArgs = new String[]{path};
+
+        Bundle extras = new Bundle();
+        extras.putInt(QUERY_ARG_MATCH_PENDING, MATCH_EXCLUDE);
+        extras.putInt(QUERY_ARG_MATCH_TRASHED, MATCH_EXCLUDE);
+        extras.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, TRANSCODE_WHERE_CLAUSE);
+        extras.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs);
+        try (Cursor c = qb.query(getDatabaseHelperForUri(uri), TRANSCODE_CACHE_INFO_PROJECTION,
+                extras, null)) {
+            if (c.moveToNext()) {
+                return Pair.create(c.getLong(0), c.getInt(1));
+            }
+        }
+        return Pair.create((long)-1, TRANSCODE_EMPTY);
+    }
+
+    public boolean isTranscodeFileCached(String path, String transcodePath) {
+        if (SystemProperties.getBoolean("fuse.sys.disable_transcode_cache", false)) {
+            // Caching is disabled. Hence, delete the cached transcode file.
+            return false;
+        }
+
+        Pair<Long, Integer> cacheInfo = getTranscodeCacheInfoFromDB(path);
+        final long rowId = cacheInfo.first;
+        if (rowId != -1) {
+            final int transcodeStatus = cacheInfo.second;
+            return transcodePath.equalsIgnoreCase(getTranscodePath(rowId)) &&
+                    transcodeStatus == TRANSCODE_COMPLETE &&
+                    new File(transcodePath).exists();
+        }
+        return false;
     }
 
     private TranscodingJob enqueueTranscodingJob(String src, String dst, int uid,
@@ -251,6 +349,20 @@ public class TranscodeHelper {
             mTranscodingLatches.remove(job.getJobId());
         }
         Log.d(TAG, "Transcoding finished" + job);
+    }
+
+    private boolean updateTranscodeStatus(String path, int transcodeStatus) {
+        final Uri uri = FileUtils.getContentUriForPath(path);
+        // TODO(b/170465810): Replace this with matchUri when the code is refactored.
+        final int match = MediaProvider.FILES;
+        final SQLiteQueryBuilder qb = mMediaProvider.getQueryBuilderForTranscoding(TYPE_UPDATE,
+                match, uri, Bundle.EMPTY, null);
+        final String[] selectionArgs = new String[] {path};
+
+        ContentValues values = new ContentValues();
+        values.put(FileColumns._TRANSCODE_STATUS, transcodeStatus);
+        return qb.update(getDatabaseHelperForUri(uri), values, TRANSCODE_WHERE_CLAUSE,
+                selectionArgs) == 1;
     }
 
     public boolean deleteCachedTranscodeFile(long rowId) {

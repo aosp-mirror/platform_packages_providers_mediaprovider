@@ -5841,23 +5841,28 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Remove an audio item from the given playlist.
+     * Removes an audio item or multiple audio items(if targetSDK<R) from the given playlist.
      */
     private int removePlaylistMembers(@NonNull Uri playlistUri, @NonNull Bundle queryArgs)
             throws FallbackException {
-        final int index = resolvePlaylistIndex(playlistUri, queryArgs);
+        final int[] indexes = resolvePlaylistIndexes(playlistUri, queryArgs);
         try {
             final File playlistFile = queryForDataFile(playlistUri, null);
 
             final Playlist playlist = new Playlist();
             playlist.read(playlistFile);
             final int count;
-            if (index == -1) {
-                count = playlist.asList().size();
-                playlist.clear();
+            if (indexes.length == 0) {
+                // This means either no playlist members match the query or VolumeNotFoundException
+                // was thrown. So we don't have anything to delete.
+                count = 0;
+            } else if (indexes.length > 1 &&
+                    getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.R) {
+                throw new FallbackException("Failed to update playlist",
+                        new IllegalStateException("Query matches more than one playlist member"),
+                        android.os.Build.VERSION_CODES.R);
             } else {
-                count = 1;
-                playlist.remove(index);
+                count = playlist.removeMultiple(indexes);
             }
             playlist.write(playlistFile);
             invalidateFuseDentry(playlistFile);
@@ -5896,10 +5901,12 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Resolve query arguments that are designed to select a specific playlist
-     * item using its {@link Playlists.Members#PLAY_ORDER}.
+     * Resolve query arguments that are designed to select specific playlist
+     * items using the playlist's {@link Playlists.Members#PLAY_ORDER}.
+     *
+     * @return an array of the indexes that match the query.
      */
-    private int resolvePlaylistIndex(@NonNull Uri playlistUri, @NonNull Bundle queryArgs) {
+    private int[] resolvePlaylistIndexes(@NonNull Uri playlistUri, @NonNull Bundle queryArgs) {
         final Uri membersUri = Playlists.Members.getContentUri(
                 getVolumeName(playlistUri), ContentUris.parseId(playlistUri));
 
@@ -5910,17 +5917,39 @@ public class MediaProvider extends ContentProvider {
             qb = getQueryBuilder(TYPE_DELETE, AUDIO_PLAYLISTS_ID_MEMBERS,
                     membersUri, queryArgs, null);
         } catch (VolumeNotFoundException ignored) {
-            return -1;
+            return new int[0];
         }
 
         try (Cursor c = qb.query(helper,
                 new String[] { Playlists.Members.PLAY_ORDER }, queryArgs, null)) {
-            if ((c.getCount() == 1) && c.moveToFirst()) {
-                return c.getInt(0) - 1;
+            if ((c.getCount() >= 1) && c.moveToFirst()) {
+                int size = c.getCount();
+                int[] res = new int[size];
+                for (int i = 0; i < size; ++i) {
+                    res[i] = c.getInt(0) - 1;
+                    c.moveToNext();
+                }
+                return res;
             } else {
-                return -1;
+                // Cursor size is 0
+                return new int[0];
             }
         }
+    }
+
+    /**
+     * Resolve query arguments that are designed to select a specific playlist
+     * item using its {@link Playlists.Members#PLAY_ORDER}.
+     *
+     * @return if there's only 1 item that matches the query, returns its index. Returns -1
+     * otherwise.
+     */
+    private int resolvePlaylistIndex(@NonNull Uri playlistUri, @NonNull Bundle queryArgs) {
+        int[] indexes = resolvePlaylistIndexes(playlistUri, queryArgs);
+        if (indexes.length == 1) {
+            return indexes[0];
+        }
+        return -1;
     }
 
     @Override

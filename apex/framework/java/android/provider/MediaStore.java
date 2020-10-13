@@ -1685,6 +1685,33 @@ public final class MediaStore {
              * Constant for the {@link #MEDIA_TYPE} column indicating that file is a document file.
              */
             public static final int MEDIA_TYPE_DOCUMENT = 6;
+
+            /**
+             * Status of the transcode file
+             *
+             * For apps that do not support modern media formats for video, we
+             * seamlessly transcode the file and return transcoded file for
+             * both file path and ContentResolver operations. This column tracks
+             * the status of the transcoded file.
+             *
+             * @hide
+             */
+            @Column(value = Cursor.FIELD_TYPE_INTEGER)
+            public static final String _TRANSCODE_STATUS = "_transcode_status";
+
+            /**
+             * Constant for the {@link #_TRANSCODE_STATUS} column indicating
+             * that the transcode file if exists is empty or never transcoded.
+             * @hide
+             */
+            public static final int TRANSCODE_EMPTY = 0;
+
+            /**
+             * Constant for the {@link #_TRANSCODE_STATUS} column indicating
+             * that the transcode file if exists contains transcoded video.
+             * @hide
+             */
+            public static final int TRANSCODE_COMPLETE = 1;
         }
     }
 

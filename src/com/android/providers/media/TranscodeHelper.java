@@ -239,10 +239,8 @@ public class TranscodeHelper {
         final String cameraRelativePath =
                 String.format("%s/%s/", Environment.DIRECTORY_DCIM, DIRECTORY_CAMERA);
 
-        // TODO(b/170597936): Don't enable transforms until bug is fixed.
-        // return !isTranscodeFile(path) && name.endsWith(".mp4") &&
-        //        cameraRelativePath.equalsIgnoreCase(FileUtils.extractRelativePath(path));
-        return false;
+        return !isTranscodeFile(path) && name.endsWith(".mp4") &&
+                cameraRelativePath.equalsIgnoreCase(FileUtils.extractRelativePath(path));
     }
 
     private DatabaseHelper getDatabaseHelperForUri(Uri uri) {

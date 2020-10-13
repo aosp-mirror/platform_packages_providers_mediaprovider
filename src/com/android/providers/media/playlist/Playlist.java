@@ -31,6 +31,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -107,6 +108,28 @@ public class Playlist {
 
         mItems.remove(index);
         return index;
+    }
+
+    /**
+     * Removes existing playlist items that correspond to the given indexes.
+     * If an index is out of bounds, then it's ignored.
+     *
+     * @return the number of deleted items
+     */
+    public int removeMultiple(int... indexes) {
+        int res = 0;
+        Arrays.sort(indexes);
+
+        for (int i = indexes.length - 1; i >= 0; --i) {
+            final int size = mItems.size();
+            // Ignore items that are out of bounds
+            if (indexes[i] >=0 && indexes[i] < size) {
+                mItems.remove(indexes[i]);
+                res++;
+            }
+        }
+
+        return res;
     }
 
     private static int constrain(int amount, int low, int high) {

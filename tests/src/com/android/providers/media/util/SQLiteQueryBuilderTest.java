@@ -19,6 +19,7 @@ package com.android.providers.media.util;
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -33,6 +34,7 @@ import android.database.sqlite.SQLiteQuery;
 import android.os.Build;
 import android.os.CancellationSignal;
 import android.os.OperationCanceledException;
+import android.provider.MediaStore;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
@@ -799,6 +801,66 @@ public class SQLiteQueryBuilderTest {
 
         final String sortOrder = "bucket_id COLLATE custom_zh ASC";
         builder.enforceStrictGrammar(null, null, null, sortOrder, null);
+    }
+
+    @Test
+    public void testShouldAppendRowId_hasIdInValues_notAppendId() {
+        final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
+        final ContentValues values = new ContentValues();
+        values.put(MediaStore.MediaColumns._ID, "1");
+        values.put(MediaStore.MediaColumns.DATA, "/storage/emulated/0/");
+
+        assertFalse(builder.shouldAppendRowId(values));
+    }
+
+    @Test
+    public void testShouldAppendRowId_noDataInValues_notAppendId() {
+        final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
+        final ContentValues values = new ContentValues();
+
+        assertFalse(builder.shouldAppendRowId(values));
+    }
+
+    @Test
+    public void testShouldAppendRowId_noIdInProjectionMap_notAppendId() {
+        final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
+        final ContentValues values = new ContentValues();
+        values.put(MediaStore.MediaColumns.DATA, "/storage/emulated/0/");
+
+        final HashMap<String, String> map = new HashMap<>();
+        map.put("_data", "_data");
+        map.put("date_added", "date_added");
+        map.put("date_modified", "date_modified");
+        map.put("media_type", "media_type");
+        builder.setProjectionMap(map);
+
+        assertFalse(builder.shouldAppendRowId(values));
+    }
+
+    @Test
+    public void testShouldAppendRowId_noProjectionMap_notAppendId() {
+        final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
+        final ContentValues values = new ContentValues();
+        values.put(MediaStore.MediaColumns.DATA, "/storage/emulated/0/");
+
+        assertFalse(builder.shouldAppendRowId(values));
+    }
+
+    @Test
+    public void testShouldAppendRowId_hasIdInProjectionMap_shouldAppendId() {
+        final SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
+        final ContentValues values = new ContentValues();
+        values.put(MediaStore.MediaColumns.DATA, "/storage/emulated/0/");
+
+        final HashMap<String, String> map = new HashMap<>();
+        map.put(MediaStore.MediaColumns._ID, MediaStore.MediaColumns._ID);
+        map.put("_data", "_data");
+        map.put("date_added", "date_added");
+        map.put("date_modified", "date_modified");
+        map.put("media_type", "media_type");
+        builder.setProjectionMap(map);
+
+        assertTrue(builder.shouldAppendRowId(values));
     }
 
     private void assertStrictInsertValid(ContentValues values) {

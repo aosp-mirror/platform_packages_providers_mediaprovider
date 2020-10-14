@@ -1133,7 +1133,13 @@ public class SQLiteQueryBuilder {
         }
     }
 
-    private static boolean shouldAppendRowId(ContentValues values) {
-        return !values.containsKey(MediaColumns._ID) && values.containsKey(MediaColumns.DATA);
+    @VisibleForTesting
+    boolean shouldAppendRowId(ContentValues values) {
+        // When no projectionMap provided, don't add the row
+        final boolean hasIdInProjectionMap = mProjectionMap != null && mProjectionMap.containsKey(
+                MediaColumns._ID) && TextUtils.equals(mProjectionMap.get(MediaColumns._ID),
+                MediaColumns._ID);
+        return !values.containsKey(MediaColumns._ID) && values.containsKey(MediaColumns.DATA)
+                && hasIdInProjectionMap;
     }
 }

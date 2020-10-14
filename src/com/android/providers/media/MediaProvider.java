@@ -314,6 +314,8 @@ public class MediaProvider extends ContentProvider {
     @GuardedBy("sCacheLock")
     private static final ArrayMap<File, String> sCachedVolumePathToId = new ArrayMap<>();
 
+    private static final int sUserId = UserHandle.myUserId();
+
     // WARNING/TODO: This will be replaced by signature APIs in S
     private static final String DOWNLOADS_PROVIDER_AUTHORITY = "downloads";
 
@@ -468,7 +470,14 @@ public class MediaProvider extends ContentProvider {
             LocalCallingIdentity ident = mCachedCallingIdentityForFuse.get(uid);
             if (ident == null) {
                ident = LocalCallingIdentity.fromExternal(getContext(), uid);
-               mCachedCallingIdentityForFuse.put(uid, ident);
+               if (uid / PER_USER_RANGE == sUserId) {
+                   mCachedCallingIdentityForFuse.put(uid, ident);
+               } else {
+                   // In some app cloning designs, MediaProvider user 0 may
+                   // serve requests for apps running as a "clone" user; in
+                   // those cases, don't keep a cache for the clone user, since
+                   // we don't get any invalidation events for these users.
+               }
             }
             return ident;
         }

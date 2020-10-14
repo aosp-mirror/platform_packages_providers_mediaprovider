@@ -1203,6 +1203,36 @@ public class MediaProvider extends ContentProvider {
         });
     }
 
+    private boolean isAppCloneUserPair(int userId1, int userId2) {
+        try {
+            Method isAppCloneUserPair = StorageManager.class.getMethod("isAppCloneUserPair",
+                    int.class, int.class);
+            return (Boolean) isAppCloneUserPair.invoke(mStorageManager, userId1, userId2);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            Log.w(TAG, "isAppCloneUserPair failed. Users: " + userId1 + " and " + userId2);
+            return false;
+        }
+    }
+
+    /**
+     * Determines whether the passed in userId forms an app clone user pair with user 0.
+     *
+     * @param userId user ID to check
+     *
+     * Called from JNI in jni/MediaProviderWrapper.cpp
+     */
+    @Keep
+    public boolean isAppCloneUserForFuse(int userId) {
+        if (!isCrossUserEnabled()) {
+            Log.d(TAG, "CrossUser not enabled.");
+            return false;
+        }
+        boolean result = isAppCloneUserPair(0, userId);
+        Log.w(TAG, "isAppCloneUserPair for user " + userId + ": " + result);
+
+        return result;
+    }
+
     /**
      * Determines if to allow FUSE_LOOKUP for uid. Might allow uids that don't belong to the
      * MediaProvider user, depending on OEM configuration.
@@ -1232,23 +1262,15 @@ public class MediaProvider extends ContentProvider {
             return false;
         }
 
-        try {
-            Method isAppCloneUserPair = StorageManager.class.getMethod("isAppCloneUserPair",
-                    int.class, int.class);
-            boolean result = (Boolean) isAppCloneUserPair.invoke(mStorageManager, pathUserId,
-                    callingUserId);
-
-            if (result) {
-                Log.i(TAG, "CrossUser allowed. Users: " + callingUserId + " and " + pathUserId);
-            } else {
-                Log.w(TAG, "CrossUser isAppCloneUserPair check failed. Users: " + callingUserId
-                        + " and " + pathUserId);
-            }
-            return result;
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-            Log.w(TAG, "isAppCloneUserPair failed. Users: " + callingUserId + " and " + pathUserId);
-            return false;
+        boolean result = isAppCloneUserPair(pathUserId, callingUserId);
+        if (result) {
+            Log.i(TAG, "CrossUser allowed. Users: " + callingUserId + " and " + pathUserId);
+        } else {
+            Log.w(TAG, "CrossUser isAppCloneUserPair check failed. Users: " + callingUserId
+                    + " and " + pathUserId);
         }
+
+        return result;
     }
 
     private boolean isWorkProfile(int userId) {

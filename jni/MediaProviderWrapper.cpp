@@ -283,6 +283,8 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
                                        /*is_static*/ false);
     mid_should_allow_lookup_ = CacheMethod(env, "shouldAllowLookup", "(II)Z",
                                            /*is_static*/ false);
+    mid_is_app_clone_user_ = CacheMethod(env, "isAppCloneUser", "(I)Z",
+                                         /*is_static*/ false);
 }
 
 MediaProviderWrapper::~MediaProviderWrapper() {
@@ -431,6 +433,17 @@ bool MediaProviderWrapper::ShouldAllowLookup(uid_t uid, int path_user_id) {
 
     bool res = env->CallBooleanMethod(media_provider_object_, mid_should_allow_lookup_, uid,
                                       path_user_id);
+
+    if (CheckForJniException(env)) {
+        return false;
+    }
+    return res;
+}
+
+bool MediaProviderWrapper::IsAppCloneUser(uid_t userId) {
+    JNIEnv* env = MaybeAttachCurrentThread();
+
+    bool res = env->CallBooleanMethod(media_provider_object_, mid_is_app_clone_user_, userId);
 
     if (CheckForJniException(env)) {
         return false;

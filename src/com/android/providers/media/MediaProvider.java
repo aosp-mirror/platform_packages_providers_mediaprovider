@@ -2074,7 +2074,8 @@ public class MediaProvider extends ContentProvider {
                 // Rename not allowed on paths that can't be translated to RELATIVE_PATH.
                 Log.e(TAG, errorMessage +  "Invalid path.");
                 return OsConstants.EPERM;
-            } else if (oldRelativePath.length == 1 && TextUtils.isEmpty(oldRelativePath[0])) {
+            }
+            if (oldRelativePath.length == 1 && TextUtils.isEmpty(oldRelativePath[0])) {
                 // Allow rename of files/folders other than default directories.
                 final String displayName = extractDisplayName(oldPath);
                 for (String defaultFolder : sDefaultFolderNames) {
@@ -2084,7 +2085,8 @@ public class MediaProvider extends ContentProvider {
                         return OsConstants.EPERM;
                     }
                 }
-            } else if (newRelativePath.length == 1 && TextUtils.isEmpty(newRelativePath[0])) {
+            }
+            if (newRelativePath.length == 1 && TextUtils.isEmpty(newRelativePath[0])) {
                 Log.e(TAG, errorMessage +  newPath + " is in root folder."
                         + " Renaming a file/directory to root folder is not allowed");
                 return OsConstants.EPERM;

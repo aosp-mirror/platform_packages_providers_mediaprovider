@@ -1072,4 +1072,21 @@ public class ModernMediaScannerTest {
             assertEquals(0, cursor.getCount());
         }
     }
+
+    @Test
+    public void testScan_largeXmpData() throws Exception {
+        final File image = new File(mDir, "large_xmp.mp4");
+        stage(R.raw.large_xmp, image);
+        assertTrue(image.exists());
+
+        mModern.scanDirectory(mDir, REASON_UNKNOWN);
+
+        try (Cursor cursor = mIsolatedResolver
+                .query(MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                 new String[] { MediaColumns.XMP }, null, null, null)) {
+             assertEquals(1, cursor.getCount());
+             cursor.moveToFirst();
+             assertEquals(0, cursor.getBlob(0).length);
+        }
+    }
 }

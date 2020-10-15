@@ -2977,13 +2977,35 @@ public class MediaProvider extends ContentProvider {
     }
 
     @Override
-    public int bulkInsert(Uri uri, ContentValues values[]) {
+    public int bulkInsert(Uri uri, ContentValues[] values) {
         final int targetSdkVersion = getCallingPackageTargetSdkVersion();
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
         if (match == VOLUMES) {
             return super.bulkInsert(uri, values);
+        }
+
+        if (match == AUDIO_PLAYLISTS_ID || match == AUDIO_PLAYLISTS_ID_MEMBERS) {
+            final String resolvedVolumeName = resolveVolumeName(uri);
+
+            final long playlistId = Long.parseLong(uri.getPathSegments().get(3));
+            final Uri playlistUri = ContentUris.withAppendedId(
+                    MediaStore.Audio.Playlists.getContentUri(resolvedVolumeName), playlistId);
+
+            final String audioVolumeName =
+                    MediaStore.VOLUME_INTERNAL.equals(resolvedVolumeName)
+                            ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL;
+
+            // Require that caller has write access to underlying media
+            enforceCallingPermission(playlistUri, Bundle.EMPTY, true);
+            for (ContentValues each : values) {
+                final long audioId = each.getAsLong(Audio.Playlists.Members.AUDIO_ID);
+                final Uri audioUri = Audio.Media.getContentUri(audioVolumeName, audioId);
+                enforceCallingPermission(audioUri, Bundle.EMPTY, false);
+            }
+
+            return bulkInsertPlaylist(playlistUri, values);
         }
 
         final DatabaseHelper helper;
@@ -3000,6 +3022,25 @@ public class MediaProvider extends ContentProvider {
             return result;
         } finally {
             helper.endTransaction();
+        }
+    }
+
+    private int bulkInsertPlaylist(@NonNull Uri uri, @NonNull ContentValues[] values) {
+        Trace.beginSection("bulkInsertPlaylist");
+        try {
+            try {
+                return addPlaylistMembers(uri, values);
+            } catch (SQLiteConstraintException e) {
+                if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.R) {
+                    throw e;
+                } else {
+                    return 0;
+                }
+            }
+        } catch (FallbackException e) {
+            return e.translateForBulkInsert(getCallingPackageTargetSdkVersion());
+        } finally {
+            Trace.endSection();
         }
     }
 
@@ -5755,6 +5796,7 @@ public class MediaProvider extends ContentProvider {
         try {
             // Refresh playlist members based on what we parse from disk
             final long playlistId = ContentUris.parseId(playlistUri);
+            final Map<String, Long> membersMap = getAllPlaylistMembers(playlistId);
             db.delete("audio_playlists_map", "playlist_id=" + playlistId, null);
 
             final Path playlistPath = queryForDataFile(playlistUri, null).toPath();
@@ -5765,7 +5807,7 @@ public class MediaProvider extends ContentProvider {
             for (int i = 0; i < members.size(); i++) {
                 try {
                     final Path audioPath = playlistPath.getParent().resolve(members.get(i));
-                    final long audioId = queryForPlaylistMember(audioPath);
+                    final long audioId = queryForPlaylistMember(audioPath, membersMap);
 
                     final ContentValues values = new ContentValues();
                     values.put(Playlists.Members.PLAY_ORDER, i + 1);
@@ -5781,17 +5823,42 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    private Map<String, Long> getAllPlaylistMembers(long playlistId) {
+        final Map<String, Long> membersMap = new ArrayMap<>();
+
+        final Uri uri = Playlists.Members.getContentUri(MediaStore.VOLUME_EXTERNAL, playlistId);
+        final String[] projection = new String[] {
+                Playlists.Members.DATA,
+                Playlists.Members.AUDIO_ID
+        };
+        try (Cursor c = query(uri, projection, null, null)) {
+            if (c == null) {
+                Log.e(TAG, "Cursor is null, failed to create cached playlist member info.");
+                return membersMap;
+            }
+            while (c.moveToNext()) {
+                membersMap.put(c.getString(0), c.getLong(1));
+            }
+        }
+        return membersMap;
+    }
+
     /**
      * Make two attempts to query this playlist member: first based on the exact
      * path, and if that fails, fall back to picking a single item matching the
      * display name. When there are multiple items with the same display name,
      * we can't resolve between them, and leave this member unresolved.
      */
-    private long queryForPlaylistMember(@NonNull Path path) throws IOException {
+    private long queryForPlaylistMember(@NonNull Path path, @NonNull Map<String, Long> membersMap)
+            throws IOException {
+        final String data = path.toFile().getCanonicalPath();
+        if (membersMap.containsKey(data)) {
+            return membersMap.get(data);
+        }
         final Uri audioUri = Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL);
         try (Cursor c = queryForSingleItem(audioUri,
                 new String[] { BaseColumns._ID }, MediaColumns.DATA + "=?",
-                new String[] { path.toFile().getCanonicalPath() }, null)) {
+                new String[] { data }, null)) {
             return c.getLong(0);
         } catch (FileNotFoundException ignored) {
         }
@@ -5844,6 +5911,39 @@ public class MediaProvider extends ContentProvider {
             throw new FallbackException("Failed to update playlist", e,
                     android.os.Build.VERSION_CODES.R);
         }
+    }
+
+    private int addPlaylistMembers(@NonNull Uri playlistUri, @NonNull ContentValues[] initialValues)
+            throws FallbackException {
+        final String volumeName = getVolumeName(playlistUri);
+        final String audioVolumeName =
+                MediaStore.VOLUME_INTERNAL.equals(volumeName)
+                        ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL;
+
+        try {
+            final File playlistFile = queryForDataFile(playlistUri, null);
+            final Playlist playlist = new Playlist();
+            playlist.read(playlistFile);
+
+            for (ContentValues values : initialValues) {
+                final long audioId = values.getAsLong(Audio.Playlists.Members.AUDIO_ID);
+                final Uri audioUri = Audio.Media.getContentUri(audioVolumeName, audioId);
+                final File audioFile = queryForDataFile(audioUri, null);
+
+                Integer playOrder = values.getAsInteger(Playlists.Members.PLAY_ORDER);
+                playOrder = (playOrder != null) ? (playOrder - 1) : Integer.MAX_VALUE;
+                playlist.add(playOrder,
+                        playlistFile.toPath().getParent().relativize(audioFile.toPath()));
+            }
+            playlist.write(playlistFile);
+
+            resolvePlaylistMembers(playlistUri);
+        } catch (IOException e) {
+            throw new FallbackException("Failed to update playlist", e,
+                    android.os.Build.VERSION_CODES.R);
+        }
+
+        return initialValues.length;
     }
 
     /**
@@ -7685,6 +7785,15 @@ public class MediaProvider extends ContentProvider {
             } else {
                 Log.w(TAG, getMessage());
                 return null;
+            }
+        }
+
+        public int translateForBulkInsert(int targetSdkVersion) {
+            if (targetSdkVersion >= mThrowSdkVersion) {
+                throw new IllegalArgumentException(getMessage());
+            } else {
+                Log.w(TAG, getMessage());
+                return 0;
             }
         }
 

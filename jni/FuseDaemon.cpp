@@ -463,7 +463,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
         }
     }
 
-    node = parent->LookupChildByName(name, true /* acquire */);
+    node = parent->LookupChildByName(name, true /* acquire */, transforms);
     if (!node) {
         node = ::node::Create(parent, name, io_path, transforms_complete, transforms, &fuse->lock,
                               &fuse->tracker);

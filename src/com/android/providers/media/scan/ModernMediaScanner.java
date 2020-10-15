@@ -157,6 +157,7 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     private static final int BATCH_SIZE = 32;
+    private static final int MAX_XMP_SIZE_BYTES = 1024 * 1024;
 
     private static final Pattern PATTERN_VISIBLE = Pattern.compile(
             "(?i)^/storage/[^/]+(?:/[0-9]+)?$");
@@ -992,7 +993,16 @@ public class ModernMediaScanner implements MediaScanner {
         op.withValue(MediaColumns.DOCUMENT_ID, xmp.getDocumentId());
         op.withValue(MediaColumns.INSTANCE_ID, xmp.getInstanceId());
         op.withValue(MediaColumns.ORIGINAL_DOCUMENT_ID, xmp.getOriginalDocumentId());
-        op.withValue(MediaColumns.XMP, xmp.getRedactedXmp());
+        op.withValue(MediaColumns.XMP, maybeTruncateXmp(xmp));
+    }
+
+    private static byte[] maybeTruncateXmp(XmpInterface xmp) {
+        byte[] redacted = xmp.getRedactedXmp();
+        if (redacted.length > MAX_XMP_SIZE_BYTES) {
+            return new byte[0];
+        }
+
+        return redacted;
     }
 
     /**

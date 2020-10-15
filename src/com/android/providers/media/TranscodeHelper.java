@@ -85,6 +85,7 @@ public class TranscodeHelper {
     private final Map<String, TranscodingJob> mTranscodingJobs = new ArrayMap<>();
     @GuardedBy("mTranscodingJobs")
     private final SparseArray<CountDownLatch> mTranscodingLatches = new SparseArray<>();
+    private final File mTranscodeDirectory;
 
     private static final String[] TRANSCODE_CACHE_INFO_PROJECTION =
             {FileColumns._ID, FileColumns._TRANSCODE_STATUS};
@@ -95,6 +96,9 @@ public class TranscodeHelper {
         mContext = context;
         mMediaTranscodeManager = context.getSystemService(MediaTranscodeManager.class);
         mMediaProvider = mediaProvider;
+        mTranscodeDirectory =
+                FileUtils.buildPath(Environment.getExternalStorageDirectory(), DIRECTORY_TRANSCODE);
+        mTranscodeDirectory.mkdirs();
     }
 
     /**
@@ -115,18 +119,15 @@ public class TranscodeHelper {
     }
 
     @NonNull
-    public static File getTranscodeDirectory() {
-        final File transcodeDirectory =
-                FileUtils.buildPath(Environment.getExternalStorageDirectory(), DIRECTORY_TRANSCODE);
-        transcodeDirectory.mkdirs();
-        return transcodeDirectory;
+    public File getTranscodeDirectory() {
+        return mTranscodeDirectory;
     }
 
     /**
      * @return transcode file's path for given {@code rowId}
      */
     @NonNull
-    public static String getTranscodePath(long rowId) {
+    public String getTranscodePath(long rowId) {
         return new File(getTranscodeDirectory(), String.valueOf(rowId)).getAbsolutePath();
     }
 
@@ -195,6 +196,7 @@ public class TranscodeHelper {
 
         final File file = new File(path);
         long maxFileSize = (long) (file.length() * 2);
+        getTranscodeDirectory().mkdirs();
         try (RandomAccessFile raf = new RandomAccessFile(transcodeFile, "rw")) {
             raf.setLength(maxFileSize);
         } catch (IOException e) {

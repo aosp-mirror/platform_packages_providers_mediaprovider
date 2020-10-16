@@ -45,6 +45,7 @@ import android.util.SparseArray;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.ForegroundThread;
@@ -102,7 +103,7 @@ public class TranscodeHelper {
      * Force transcode for these package names.
      * TODO(b/169849854): Remove this when app capabilities can be used to make this decision.
      */
-    private String[] TRANSCODE_LIST = new String[] {
+    private static String[] TRANSCODE_LIST = new String[] {
             "com.facebook.katana",
             "com.google.android.talk",
             "com.snapchat.android",
@@ -239,11 +240,24 @@ public class TranscodeHelper {
             return false;
         }
 
+        // Transcode only if file needs transcoding
+        try (Cursor cursor = queryFileForTranscode(path,
+                new String[] {FileColumns._VIDEO_CODEC_TYPE})) {
+            if (cursor == null || !cursor.moveToNext()) {
+                Log.d(TAG, "Couldn't find database row for path " + path +
+                        ", Assuming no seamless transcoding needed.");
+                return false;
+            }
+            if (!MediaFormat.MIMETYPE_VIDEO_HEVC.equalsIgnoreCase(cursor.getString(0))) {
+                return false;
+            }
+        }
+
         // TODO(b/169327180): We should also check app's targetSDK version to verify if app still
         //  qualifies to be on the allow list.
         List<String> allowList = Arrays.asList(ALLOW_LIST);
         List<String> transcodeList = Arrays.asList(TRANSCODE_LIST);
-        final String[] callingPackages = mMediaProvider.getSharedPackagesForTranscoding();
+        final String[] callingPackages = mMediaProvider.getSharedPackagesForUidForTranscoding(uid);
         for (String callingPackage: callingPackages) {
             if (allowList.contains(callingPackage)) {
                 return false;
@@ -278,32 +292,10 @@ public class TranscodeHelper {
                 cameraRelativePath.equalsIgnoreCase(FileUtils.extractRelativePath(path));
     }
 
-    private DatabaseHelper getDatabaseHelperForUri(Uri uri) {
-        final DatabaseHelper helper;
-        try {
-            return mMediaProvider.getDatabaseForUriForTranscoding(uri);
-        } catch (VolumeNotFoundException e) {
-            throw new IllegalStateException("Volume not found while querying transcode path", e);
-        }
-    }
-
     private Pair<Long, Integer> getTranscodeCacheInfoFromDB(String path) {
-        final Uri uri = FileUtils.getContentUriForPath(path);
-        // TODO(b/170465810): Replace this with matchUri when the code is refactored.
-        final int match = MediaProvider.FILES;
-        final SQLiteQueryBuilder qb = mMediaProvider.getQueryBuilderForTranscoding(TYPE_QUERY,
-                match, uri, Bundle.EMPTY, null);
-        final String[] selectionArgs = new String[]{path};
-
-        Bundle extras = new Bundle();
-        extras.putInt(QUERY_ARG_MATCH_PENDING, MATCH_EXCLUDE);
-        extras.putInt(QUERY_ARG_MATCH_TRASHED, MATCH_EXCLUDE);
-        extras.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, TRANSCODE_WHERE_CLAUSE);
-        extras.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs);
-        try (Cursor c = qb.query(getDatabaseHelperForUri(uri), TRANSCODE_CACHE_INFO_PROJECTION,
-                extras, null)) {
-            if (c.moveToNext()) {
-                return Pair.create(c.getLong(0), c.getInt(1));
+        try (Cursor cursor = queryFileForTranscode(path, TRANSCODE_CACHE_INFO_PROJECTION)) {
+            if (cursor != null && cursor.moveToNext()) {
+                return Pair.create(cursor.getLong(0), cursor.getInt(1));
             }
         }
         return Pair.create((long)-1, TRANSCODE_EMPTY);
@@ -402,5 +394,38 @@ public class TranscodeHelper {
 
     public boolean deleteCachedTranscodeFile(long rowId) {
         return new File(getTranscodeDirectory(), String.valueOf(rowId)).delete();
+    }
+
+    private DatabaseHelper getDatabaseHelperForUri(Uri uri) {
+        final DatabaseHelper helper;
+        try {
+            return mMediaProvider.getDatabaseForUriForTranscoding(uri);
+        } catch (VolumeNotFoundException e) {
+            throw new IllegalStateException("Volume not found while querying transcode path", e);
+        }
+    }
+
+    /**
+     * @return given {@code projection} columns from database for given {@code path}.
+     * Note that cursor might be empty if there is no database row or file is pending or trashed.
+     * TODO(b/170465810): Optimize these queries by bypassing getQueryBuilder(). These queries are
+     * always on Files table and doesn't have any dependency on calling package. i.e., query is
+     * always called with callingPackage=self.
+     */
+    @Nullable
+    private Cursor queryFileForTranscode(String path, String[] projection) {
+        final Uri uri = FileUtils.getContentUriForPath(path);
+        // TODO(b/170465810): Replace this with matchUri when the code is refactored.
+        final int match = MediaProvider.FILES;
+        final SQLiteQueryBuilder qb = mMediaProvider.getQueryBuilderForTranscoding(TYPE_QUERY,
+                match, uri, Bundle.EMPTY, null);
+        final String[] selectionArgs = new String[]{path};
+
+        Bundle extras = new Bundle();
+        extras.putInt(QUERY_ARG_MATCH_PENDING, MATCH_EXCLUDE);
+        extras.putInt(QUERY_ARG_MATCH_TRASHED, MATCH_EXCLUDE);
+        extras.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, TRANSCODE_WHERE_CLAUSE);
+        extras.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs);
+        return qb.query(getDatabaseHelperForUri(uri), projection, extras, null);
     }
 }

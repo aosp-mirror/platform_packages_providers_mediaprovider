@@ -3881,6 +3881,14 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    /**
+     * Gets shared package names for the calling package
+     * TODO(b/170465810) Change the method name after refactoring.
+     */
+    String[] getSharedPackagesForTranscoding() {
+        return mCallingIdentity.get().getSharedPackageNames();
+    }
+
     @Deprecated
     private String getSharedPackages() {
         final String[] sharedPackageNames = mCallingIdentity.get().getSharedPackageNames();

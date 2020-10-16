@@ -300,7 +300,7 @@ public class PerformanceTest {
      * Timer that can be started/stopped with nanosecond accuracy, and later
      * averaged based on the number of times it was cycled.
      */
-    private static class Timer {
+    static class Timer {
         private final String name;
         private int count;
         private long duration;

@@ -27,7 +27,6 @@ import android.annotation.SdkConstant;
 import android.annotation.SdkConstant.SdkConstantType;
 import android.annotation.SuppressLint;
 import android.annotation.SystemApi;
-import android.annotation.TestApi;
 import android.annotation.WorkerThread;
 import android.app.Activity;
 import android.app.PendingIntent;
@@ -1712,6 +1711,14 @@ public final class MediaStore {
              * @hide
              */
             public static final int TRANSCODE_COMPLETE = 1;
+
+            /**
+             * Indexed value of {@link MediaMetadataRetriever#METADATA_KEY_VIDEO_CODEC_TYPE}
+             * extracted from the video file. This value be null for non-video files.
+             * @hide
+             */
+            @Column(value = Cursor.FIELD_TYPE_INTEGER)
+            public static final String _VIDEO_CODEC_TYPE = "_video_codec_type";
         }
     }
 
@@ -3968,7 +3975,6 @@ public final class MediaStore {
      * @hide
      */
     @SystemApi
-    @TestApi
     @WorkerThread
     public static void waitForIdle(@NonNull ContentResolver resolver) {
         resolver.call(AUTHORITY, WAIT_FOR_IDLE_CALL, null, null);
@@ -3981,7 +3987,6 @@ public final class MediaStore {
      * @hide
      */
     @SystemApi
-    @TestApi
     @WorkerThread
     @SuppressLint("StreamFiles")
     public static @NonNull Uri scanFile(@NonNull ContentResolver resolver, @NonNull File file) {
@@ -3995,7 +4000,6 @@ public final class MediaStore {
      * @hide
      */
     @SystemApi
-    @TestApi
     @WorkerThread
     public static void scanVolume(@NonNull ContentResolver resolver, @NonNull String volumeName) {
         resolver.call(AUTHORITY, SCAN_VOLUME_CALL, volumeName, null);

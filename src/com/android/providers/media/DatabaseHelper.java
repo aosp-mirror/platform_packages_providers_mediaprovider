@@ -803,7 +803,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + "f_number TEXT DEFAULT NULL, iso INTEGER DEFAULT NULL,"
                 + "scene_capture_type INTEGER DEFAULT NULL, generation_added INTEGER DEFAULT 0,"
                 + "generation_modified INTEGER DEFAULT 0, xmp BLOB DEFAULT NULL,"
-                + "_transcode_status INTEGER DEFAULT 0)");
+                + "_transcode_status INTEGER DEFAULT 0, _video_codec_type TEXT DEFAULT NULL)");
 
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!mInternal) {
@@ -1395,6 +1395,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("ALTER TABLE files ADD COLUMN _transcode_status INTEGER DEFAULT 0;");
     }
 
+
+    private static void updateAddVideoCodecType(SQLiteDatabase db, boolean internal) {
+        db.execSQL("ALTER TABLE files ADD COLUMN _video_codec_type TEXT DEFAULT NULL;");
+    }
+
     private static void updateClearDirectories(SQLiteDatabase db, boolean internal) {
         db.execSQL("UPDATE files SET primary_directory=NULL, secondary_directory=NULL;");
     }
@@ -1532,7 +1537,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_R = 1115;
     // Leave some gaps in database version tagging to allow R schema changes
     // to go independent of S schema changes.
-    static final int VERSION_S = 1200;
+    static final int VERSION_S = 1201;
     static final int VERSION_LATEST = VERSION_S;
 
     /**
@@ -1680,6 +1685,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1200) {
                 updateAddTranscodeSatus(db, internal);
+            }
+            if (fromVersion < 1201) {
+                updateAddVideoCodecType(db, internal);
             }
 
             // If this is the legacy database, it's not worth recomputing data

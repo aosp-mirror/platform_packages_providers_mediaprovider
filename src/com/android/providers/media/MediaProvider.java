@@ -1343,9 +1343,10 @@ public class MediaProvider extends ContentProvider {
         int result = 0;
         if (mTranscodeHelper.supportsTranscode(path)) {
             result |= FLAG_TRANSFORM_SUPPORTED;
-        }
-        if (mTranscodeHelper.shouldTranscode(path, uid)) {
-            result |= FLAG_TRANSFORM_TRANSCODING;
+
+            if (mTranscodeHelper.shouldTranscode(path, uid)) {
+                result |= FLAG_TRANSFORM_TRANSCODING;
+            }
         }
         return result;
     }
@@ -3936,8 +3937,8 @@ public class MediaProvider extends ContentProvider {
      * Gets shared package names for the calling package
      * TODO(b/170465810) Change the method name after refactoring.
      */
-    String[] getSharedPackagesForTranscoding() {
-        return mCallingIdentity.get().getSharedPackageNames();
+    String[] getSharedPackagesForUidForTranscoding(int uid) {
+        return getContext().getPackageManager().getPackagesForUid(uid);
     }
 
     @Deprecated

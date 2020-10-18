@@ -326,6 +326,8 @@ public class MediaProvider extends ContentProvider {
     @GuardedBy("sCacheLock")
     private static final ArrayMap<File, String> sCachedVolumePathToId = new ArrayMap<>();
 
+    private static final int sUserId = UserHandle.myUserId();
+
     // WARNING/TODO: This will be replaced by signature APIs in S
     private static final String DOWNLOADS_PROVIDER_AUTHORITY = "downloads";
 
@@ -484,7 +486,14 @@ public class MediaProvider extends ContentProvider {
             LocalCallingIdentity ident = mCachedCallingIdentityForFuse.get(uid);
             if (ident == null) {
                ident = LocalCallingIdentity.fromExternal(getContext(), uid);
-               mCachedCallingIdentityForFuse.put(uid, ident);
+               if (uid / PER_USER_RANGE == sUserId) {
+                   mCachedCallingIdentityForFuse.put(uid, ident);
+               } else {
+                   // In some app cloning designs, MediaProvider user 0 may
+                   // serve requests for apps running as a "clone" user; in
+                   // those cases, don't keep a cache for the clone user, since
+                   // we don't get any invalidation events for these users.
+               }
             }
             return ident;
         }
@@ -2922,16 +2931,27 @@ public class MediaProvider extends ContentProvider {
                                 + "; allowed directories are " + allowedPrimary);
             }
 
+            boolean isFuseThread = isFuseThread();
+            // Check if the following are true:
+            // 1. Not a FUSE thread
+            // 2. |res| is a child of a default dir and the default dir is missing
+            // If true, we want to update the mTime of the volume root, after creating the dir
+            // on the lower filesystem. This fixes some FileManagers relying on the mTime change
+            // for UI updates
+            File defaultDirVolumePath =
+                    isFuseThread ? null : checkDefaultDirMissing(resolvedVolumeName, res);
             // Ensure all parent folders of result file exist
             res.getParentFile().mkdirs();
             if (!res.getParentFile().exists()) {
                 throw new IllegalStateException("Failed to create directory: " + res);
             }
+            touchFusePath(defaultDirVolumePath);
+
             values.put(MediaColumns.DATA, res.getAbsolutePath());
             // buildFile may have changed the file name, compute values to extract new DISPLAY_NAME.
             // Note: We can't extract displayName from res.getPath() because for pending & trashed
             // files DISPLAY_NAME will not be same as file name.
-            FileUtils.computeValuesFromData(values, isFuseThread());
+            FileUtils.computeValuesFromData(values, isFuseThread);
         } else {
             assertFileColumnsConsistent(match, uri, values);
         }
@@ -2952,6 +2972,37 @@ public class MediaProvider extends ContentProvider {
         }
 
         Trace.endSection();
+    }
+
+    /**
+     * @return the default dir if {@code file} is a child of default dir and it's missing,
+     * {@code null} otherwise. */
+    private File checkDefaultDirMissing(String volumeName, File file) {
+        String topLevelDir = FileUtils.extractTopLevelDir(file.getPath());
+        if (topLevelDir != null && FileUtils.isDefaultDirectoryName(topLevelDir)) {
+            try {
+                File volumePath = getVolumePath(volumeName);
+                if (!new File(volumePath, topLevelDir).exists()) {
+                    return volumePath;
+                }
+            } catch (FileNotFoundException e) {
+                Log.w(TAG, "Failed to checkDefaultDirMissing for " + file, e);
+            }
+        }
+        return null;
+    }
+
+    /** Updates mTime of {@code path} on the FUSE filesystem */
+    private void touchFusePath(@Nullable File path) {
+        if (path != null) {
+            // Touch root of volume to update mTime on FUSE filesystem
+            // This allows FileManagers that may be relying on mTime changes to update their UI
+            File fusePath = getFuseFile(path);
+            if (fusePath != null) {
+                Log.i(TAG, "Touching FUSE path " + fusePath);
+                fusePath.setLastModified(System.currentTimeMillis());
+            }
+        }
     }
 
     /**
@@ -3879,6 +3930,14 @@ public class MediaProvider extends ContentProvider {
             appendWhereStandalone(qb, String.join("||", columns) + " LIKE ? ESCAPE '\\'",
                     "%" + DatabaseUtils.escapeForLike(Audio.keyFor(filterWord)) + "%");
         }
+    }
+
+    /**
+     * Gets shared package names for the calling package
+     * TODO(b/170465810) Change the method name after refactoring.
+     */
+    String[] getSharedPackagesForTranscoding() {
+        return mCallingIdentity.get().getSharedPackageNames();
     }
 
     @Deprecated

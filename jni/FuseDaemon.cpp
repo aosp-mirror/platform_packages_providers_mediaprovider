@@ -1007,8 +1007,8 @@ static void pf_link(fuse_req_t req, fuse_ino_t ino, fuse_ino_t new_parent,
 }
 */
 
-static handle* create_handle_for_node(struct fuse* fuse, const string& path, int fd, node* node,
-                                      const RedactionInfo* ri, int* keep_cache) {
+static handle* create_handle_for_node(struct fuse* fuse, const string& path, int fd, uid_t uid,
+                                      node* node, const RedactionInfo* ri, int* keep_cache) {
     std::lock_guard<std::recursive_mutex> guard(fuse->lock);
     // We don't want to use the FUSE VFS cache in two cases:
     // 1. When redaction is needed because app A with EXIF access might access
@@ -1038,7 +1038,7 @@ static handle* create_handle_for_node(struct fuse* fuse, const string& path, int
     }
 
     bool direct_io = (is_cached_file_open && is_redaction_change) || is_file_locked(fd, path);
-    handle* h = new handle(fd, ri, !direct_io);
+    handle* h = new handle(fd, ri, !direct_io, uid);
     node->AddHandle(h);
     return h;
 }
@@ -1105,7 +1105,8 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     }
 
     int keep_cache = 1;
-    handle* h = create_handle_for_node(fuse, path, fd, node, ri.release(), &keep_cache);
+    handle* h =
+            create_handle_for_node(fuse, path, fd, req->ctx.uid, node, ri.release(), &keep_cache);
     fi->fh = ptr_to_id(h);
     fi->keep_cache = keep_cache;
     fi->direct_io = !h->cached;
@@ -1194,7 +1195,7 @@ static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
 
     if (!node->IsTransformsComplete()) {
         if (!fuse->mp->Transform(node->BuildPath(), node->GetIoPath(), node->GetTransforms(),
-                                 req->ctx.uid)) {
+                                 h->uid)) {
             fuse_reply_err(req, EFAULT);
             return;
         }
@@ -1642,7 +1643,8 @@ static void pf_create(fuse_req_t req,
     // to the file before all the EXIF content is written. We could special case reads before the
     // first close after a file has just been created.
     int keep_cache = 1;
-    handle* h = create_handle_for_node(fuse, child_path, fd, node, new RedactionInfo(), &keep_cache);
+    handle* h = create_handle_for_node(fuse, child_path, fd, req->ctx.uid, node,
+                                       new RedactionInfo(), &keep_cache);
     fi->fh = ptr_to_id(h);
     fi->keep_cache = keep_cache;
     fi->direct_io = !h->cached;

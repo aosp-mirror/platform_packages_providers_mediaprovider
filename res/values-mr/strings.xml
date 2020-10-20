@@ -37,9 +37,10 @@
       <item quantity="other">आणखी <xliff:g id="COUNT_1">^1</xliff:g> अतिरिक्त आयटम</item>
       <item quantity="one">आणखी <xliff:g id="COUNT_0">^1</xliff:g> अतिरिक्त आयटम</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"तात्पुरत्या अ‍ॅप फाइल काढून टाकायच्या आहेत का?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"तात्पुरत्या अ‍ॅप फाइल साफ करा"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> ला काही तात्पुरत्या फाइल साफ करायच्या आहेत. यामुळे बॅटरी किंवा सेल्युलर डेटाच्या वापरात वाढ होऊ शकते."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"तात्‍पुरत्‍या ॲप फाइल काढून टाकत आहे…"</string>
+    <string name="clear" msgid="5524638938415865915">"साफ करा"</string>
     <string name="allow" msgid="8885707816848569619">"अनुमती द्या"</string>
     <string name="deny" msgid="6040983710442068936">"नकार द्या"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

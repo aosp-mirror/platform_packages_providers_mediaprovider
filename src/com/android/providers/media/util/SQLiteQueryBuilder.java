@@ -61,6 +61,9 @@ import java.util.regex.Pattern;
  * {@link SQLiteDatabase} objects.
  */
 public class SQLiteQueryBuilder {
+
+    public static final String ROWID_COLUMN = "rowid";
+
     private static final String TAG = "SQLiteQueryBuilder";
 
     private static final Pattern sAggregationPattern = Pattern.compile(
@@ -227,6 +230,14 @@ public class SQLiteQueryBuilder {
         } else {
             mProjectionMap = null;
         }
+    }
+
+    /** Adds "rowid" to the projection map. */
+    public void allowRowidColumn() {
+        if (mProjectionMap == null) {
+            mProjectionMap = new ArrayMap<>();
+        }
+        mProjectionMap.put(ROWID_COLUMN, ROWID_COLUMN);
     }
 
     /**
@@ -1122,7 +1133,13 @@ public class SQLiteQueryBuilder {
         }
     }
 
-    private static boolean shouldAppendRowId(ContentValues values) {
-        return !values.containsKey(MediaColumns._ID) && values.containsKey(MediaColumns.DATA);
+    @VisibleForTesting
+    boolean shouldAppendRowId(ContentValues values) {
+        // When no projectionMap provided, don't add the row
+        final boolean hasIdInProjectionMap = mProjectionMap != null && mProjectionMap.containsKey(
+                MediaColumns._ID) && TextUtils.equals(mProjectionMap.get(MediaColumns._ID),
+                MediaColumns._ID);
+        return !values.containsKey(MediaColumns._ID) && values.containsKey(MediaColumns.DATA)
+                && hasIdInProjectionMap;
     }
 }

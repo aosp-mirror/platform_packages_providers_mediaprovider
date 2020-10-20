@@ -137,7 +137,8 @@ class MediaProviderWrapper final {
     int IsOpendirAllowed(const std::string& path, uid_t uid, bool forWrite);
 
     /**
-     * Determines if the given package name matches its uid.
+     * Determines if the given package name matches its uid
+     * or has special access to priv-app directories
      *
      * @param pkg the package name of the app
      * @param uid UID of the app
@@ -165,6 +166,14 @@ class MediaProviderWrapper final {
     void OnFileCreated(const std::string& path);
 
     /**
+     * Determines if to allow FUSE_LOOKUP for uid. Might allow uids that don't belong to the
+     * MediaProvider user, depending on OEM configuration.
+     *
+     * @param uid linux uid to check
+     */
+    bool ShouldAllowLookup(uid_t uid, int path_user_id);
+
+    /**
      * Initializes per-process static variables associated with the lifetime of
      * a managed runtime.
      */
@@ -188,6 +197,7 @@ class MediaProviderWrapper final {
     jmethodID mid_rename_;
     jmethodID mid_is_uid_for_package_;
     jmethodID mid_on_file_created_;
+    jmethodID mid_should_allow_lookup_;
 
     /**
      * Auxiliary for caching MediaProvider methods.

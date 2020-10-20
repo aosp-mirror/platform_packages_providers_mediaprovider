@@ -34,6 +34,9 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.getVolumeName;
 
+import static android.content.pm.PackageManager.MATCH_ANY_USER;
+import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_AWARE;
+import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_UNAWARE;
 import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_DELEGATOR;
@@ -63,6 +66,7 @@ import static com.android.providers.media.util.FileUtils.extractRelativePath;
 import static com.android.providers.media.util.FileUtils.extractRelativePathForDirectory;
 import static com.android.providers.media.util.FileUtils.extractTopLevelDir;
 import static com.android.providers.media.util.FileUtils.extractVolumeName;
+import static com.android.providers.media.util.FileUtils.extractVolumePath;
 import static com.android.providers.media.util.FileUtils.getAbsoluteSanitizedPath;
 import static com.android.providers.media.util.FileUtils.isDataOrObbPath;
 import static com.android.providers.media.util.FileUtils.isDownload;
@@ -77,6 +81,7 @@ import android.app.DownloadManager;
 import android.app.PendingIntent;
 import android.app.RecoverableSecurityException;
 import android.app.RemoteAction;
+import android.app.admin.DevicePolicyManager;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipDescription;
@@ -198,6 +203,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -290,6 +297,11 @@ public class MediaProvider extends ContentProvider {
     private static final String MATCH_PENDING_FROM_FUSE = String.format("lower(%s) NOT REGEXP '%s'",
             MediaColumns.DATA, PATTERN_PENDING_FILEPATH_FOR_SQL);
 
+    // Stolen from: UserHandle#getUserId
+    private static final int PER_USER_RANGE = 100000;
+    private static final boolean PROP_CROSS_USER_ALLOWED =
+            SystemProperties.getBoolean("external_storage.cross_user.enabled", false);
+
     /**
      * Set of {@link Cursor} columns that refer to raw filesystem paths.
      */
@@ -313,6 +325,11 @@ public class MediaProvider extends ContentProvider {
     private static final Map<String, Collection<File>> sCachedVolumeScanPaths = new ArrayMap<>();
     @GuardedBy("sCacheLock")
     private static final ArrayMap<File, String> sCachedVolumePathToId = new ArrayMap<>();
+
+    private static final int sUserId = UserHandle.myUserId();
+
+    // WARNING/TODO: This will be replaced by signature APIs in S
+    private static final String DOWNLOADS_PROVIDER_AUTHORITY = "downloads";
 
     @GuardedBy("mShouldRedactThreadIds")
     private final LongArray mShouldRedactThreadIds = new LongArray();
@@ -417,6 +434,10 @@ public class MediaProvider extends ContentProvider {
     private StorageManager mStorageManager;
     private AppOpsManager mAppOpsManager;
     private PackageManager mPackageManager;
+    private DevicePolicyManager mDevicePolicyManager;
+
+    private int mExternalStorageAuthorityAppId;
+    private int mDownloadsAuthorityAppId;
 
     private Size mThumbSize;
 
@@ -453,6 +474,9 @@ public class MediaProvider extends ContentProvider {
     private OnOpChangedListener mModeListener =
             (op, packageName) -> invalidateLocalCallingIdentityCache(packageName, "op " + op);
 
+    @GuardedBy("mNonWorkProfileUsers")
+    private final List<Integer> mNonWorkProfileUsers = new ArrayList<>();
+
     /**
      * Retrieves a cached calling identity or creates a new one. Also, always sets the app-op
      * description for the calling identity.
@@ -463,7 +487,14 @@ public class MediaProvider extends ContentProvider {
             LocalCallingIdentity ident = mCachedCallingIdentityForFuse.get(uid);
             if (ident == null) {
                ident = LocalCallingIdentity.fromExternal(getContext(), uid);
-               mCachedCallingIdentityForFuse.put(uid, ident);
+               if (uid / PER_USER_RANGE == sUserId) {
+                   mCachedCallingIdentityForFuse.put(uid, ident);
+               } else {
+                   // In some app cloning designs, MediaProvider user 0 may
+                   // serve requests for apps running as a "clone" user; in
+                   // those cases, don't keep a cache for the clone user, since
+                   // we don't get any invalidation events for these users.
+               }
             }
             return ident;
         }
@@ -744,6 +775,10 @@ public class MediaProvider extends ContentProvider {
             case FileColumns.MEDIA_TYPE_IMAGE:
                 consumer.accept(MediaStore.Images.Media.getContentUri(volumeName, id));
                 break;
+
+            case FileColumns.MEDIA_TYPE_PLAYLIST:
+                consumer.accept(Audio.Playlists.Members.getContentUri(volumeName, id));
+                break;
         }
 
         // Also notify through any generic views
@@ -763,6 +798,10 @@ public class MediaProvider extends ContentProvider {
                         id, mediaType, isDownload);
                 break;
         }
+    }
+
+    private static boolean isCrossUserEnabled() {
+        return PROP_CROSS_USER_ALLOWED && Build.VERSION.SDK_INT <= Build.VERSION_CODES.R;
     }
 
     /**
@@ -866,6 +905,7 @@ public class MediaProvider extends ContentProvider {
         mStorageManager = context.getSystemService(StorageManager.class);
         mAppOpsManager = context.getSystemService(AppOpsManager.class);
         mPackageManager = context.getPackageManager();
+        mDevicePolicyManager = context.getSystemService(DevicePolicyManager.class);
 
         // Reasonable thumbnail size is half of the smallest screen edge width
         final DisplayMetrics metrics = context.getResources().getDisplayMetrics();
@@ -935,6 +975,20 @@ public class MediaProvider extends ContentProvider {
                     null /* all packages */, mModeListener);
         } catch (IllegalArgumentException e) {
             Log.w(TAG, "Failed to start watching " + PermissionUtils.OPSTR_NO_ISOLATED_STORAGE, e);
+        }
+
+        ProviderInfo provider = mPackageManager.resolveContentProvider(
+            DOWNLOADS_PROVIDER_AUTHORITY, PackageManager.MATCH_DIRECT_BOOT_AWARE
+                | PackageManager.MATCH_DIRECT_BOOT_UNAWARE);
+        if (provider != null) {
+            mDownloadsAuthorityAppId = UserHandle.getAppId(provider.applicationInfo.uid);
+        }
+
+        provider = mPackageManager.resolveContentProvider(
+            MediaStore.EXTERNAL_STORAGE_PROVIDER_AUTHORITY, PackageManager.MATCH_DIRECT_BOOT_AWARE
+                | PackageManager.MATCH_DIRECT_BOOT_UNAWARE);
+        if (provider != null) {
+            mExternalStorageAuthorityAppId = UserHandle.getAppId(provider.applicationInfo.uid);
         }
         return true;
     }
@@ -1145,6 +1199,81 @@ public class MediaProvider extends ContentProvider {
             int mediaType = MimeUtils.resolveMediaType(MimeUtils.resolveMimeType(file));
             updateQuotaTypeForFileInternal(file, mediaType);
         });
+    }
+
+    /**
+     * Determines if to allow FUSE_LOOKUP for uid. Might allow uids that don't belong to the
+     * MediaProvider user, depending on OEM configuration.
+     *
+     * @param uid linux uid to check
+     *
+     * Called from JNI in jni/MediaProviderWrapper.cpp
+     */
+    @Keep
+    public boolean shouldAllowLookupForFuse(int uid, int pathUserId) {
+        int callingUserId = uid / PER_USER_RANGE;
+        if (!isCrossUserEnabled()) {
+            Log.d(TAG, "CrossUser not enabled. Users: " + callingUserId + " and " + pathUserId);
+            return false;
+        }
+
+        if (callingUserId != 0 && pathUserId != 0) {
+            Log.w(TAG, "CrossUser at least one user is 0 check failed. Users: " + callingUserId
+                    + " and " + pathUserId);
+            return false;
+        }
+
+        if (!isWorkProfile(callingUserId) || !isWorkProfile(pathUserId)) {
+            // Cross-user lookup not allowed if one user in the pair has a profile owner app
+            Log.w(TAG, "CrossUser work profile check failed. Users: " + callingUserId + " and "
+                    + pathUserId);
+            return false;
+        }
+
+        try {
+            Method isAppCloneUserPair = StorageManager.class.getMethod("isAppCloneUserPair",
+                    int.class, int.class);
+            boolean result = (Boolean) isAppCloneUserPair.invoke(mStorageManager, pathUserId,
+                    callingUserId);
+
+            if (result) {
+                Log.i(TAG, "CrossUser allowed. Users: " + callingUserId + " and " + pathUserId);
+            } else {
+                Log.w(TAG, "CrossUser isAppCloneUserPair check failed. Users: " + callingUserId
+                        + " and " + pathUserId);
+            }
+            return result;
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            Log.w(TAG, "isAppCloneUserPair failed. Users: " + callingUserId + " and " + pathUserId);
+            return false;
+        }
+    }
+
+    private boolean isWorkProfile(int userId) {
+        synchronized (mNonWorkProfileUsers) {
+            if (mNonWorkProfileUsers.contains(userId)) {
+                return false;
+            }
+            if (userId == 0) {
+                mNonWorkProfileUsers.add(userId);
+                // user 0 cannot have a profile owner
+                return false;
+            }
+        }
+
+        List<Integer> uids = new ArrayList<>();
+        for (ApplicationInfo ai : mPackageManager.getInstalledApplications(MATCH_DIRECT_BOOT_AWARE
+                        | MATCH_DIRECT_BOOT_UNAWARE | MATCH_ANY_USER)) {
+            if (((ai.uid / PER_USER_RANGE) == userId)
+                    && mDevicePolicyManager.isProfileOwnerApp(ai.packageName)) {
+                return true;
+            }
+        }
+
+        synchronized (mNonWorkProfileUsers) {
+            mNonWorkProfileUsers.add(userId);
+            return false;
+        }
     }
 
     /**
@@ -2071,7 +2200,8 @@ public class MediaProvider extends ContentProvider {
                 // Rename not allowed on paths that can't be translated to RELATIVE_PATH.
                 Log.e(TAG, errorMessage +  "Invalid path.");
                 return OsConstants.EPERM;
-            } else if (oldRelativePath.length == 1 && TextUtils.isEmpty(oldRelativePath[0])) {
+            }
+            if (oldRelativePath.length == 1 && TextUtils.isEmpty(oldRelativePath[0])) {
                 // Allow rename of files/folders other than default directories.
                 final String displayName = extractDisplayName(oldPath);
                 for (String defaultFolder : DEFAULT_FOLDER_NAMES) {
@@ -2081,7 +2211,8 @@ public class MediaProvider extends ContentProvider {
                         return OsConstants.EPERM;
                     }
                 }
-            } else if (newRelativePath.length == 1 && TextUtils.isEmpty(newRelativePath[0])) {
+            }
+            if (newRelativePath.length == 1 && TextUtils.isEmpty(newRelativePath[0])) {
                 Log.e(TAG, errorMessage +  newPath + " is in root folder."
                         + " Renaming a file/directory to root folder is not allowed");
                 return OsConstants.EPERM;
@@ -2726,16 +2857,27 @@ public class MediaProvider extends ContentProvider {
                                 + "; allowed directories are " + allowedPrimary);
             }
 
+            boolean isFuseThread = isFuseThread();
+            // Check if the following are true:
+            // 1. Not a FUSE thread
+            // 2. |res| is a child of a default dir and the default dir is missing
+            // If true, we want to update the mTime of the volume root, after creating the dir
+            // on the lower filesystem. This fixes some FileManagers relying on the mTime change
+            // for UI updates
+            File defaultDirVolumePath =
+                    isFuseThread ? null : checkDefaultDirMissing(resolvedVolumeName, res);
             // Ensure all parent folders of result file exist
             res.getParentFile().mkdirs();
             if (!res.getParentFile().exists()) {
                 throw new IllegalStateException("Failed to create directory: " + res);
             }
+            touchFusePath(defaultDirVolumePath);
+
             values.put(MediaColumns.DATA, res.getAbsolutePath());
             // buildFile may have changed the file name, compute values to extract new DISPLAY_NAME.
             // Note: We can't extract displayName from res.getPath() because for pending & trashed
             // files DISPLAY_NAME will not be same as file name.
-            FileUtils.computeValuesFromData(values, isFuseThread());
+            FileUtils.computeValuesFromData(values, isFuseThread);
         } else {
             assertFileColumnsSane(match, uri, values);
         }
@@ -2759,7 +2901,39 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Sanity check that any requested {@link MediaColumns#DATA} paths actually
+     * @return the default dir if {@code file} is a child of default dir and it's missing,
+     * {@code null} otherwise.
+     */
+    private File checkDefaultDirMissing(String volumeName, File file) {
+        String topLevelDir = FileUtils.extractTopLevelDir(file.getPath());
+        if (topLevelDir != null && FileUtils.isDefaultDirectoryName(topLevelDir)) {
+            try {
+                File volumePath = getVolumePath(volumeName);
+                if (!new File(volumePath, topLevelDir).exists()) {
+                    return volumePath;
+                }
+            } catch (FileNotFoundException e) {
+                Log.w(TAG, "Failed to checkDefaultDirMissing for " + file, e);
+            }
+        }
+        return null;
+    }
+
+    /** Updates mTime of {@code path} on the FUSE filesystem */
+    private void touchFusePath(@Nullable File path) {
+        if (path != null) {
+            // Touch root of volume to update mTime on FUSE filesystem
+            // This allows FileManagers that may be relying on mTime changes to update their UI
+            File fusePath = getFuseFile(path);
+            if (fusePath != null) {
+                Log.i(TAG, "Touching FUSE path " + fusePath);
+                fusePath.setLastModified(System.currentTimeMillis());
+            }
+        }
+    }
+
+    /**
+     * Check that any requested {@link MediaColumns#DATA} paths actually
      * live on the storage volume being targeted.
      */
     private void assertFileColumnsSane(int match, Uri uri, ContentValues values)
@@ -2781,13 +2955,35 @@ public class MediaProvider extends ContentProvider {
     }
 
     @Override
-    public int bulkInsert(Uri uri, ContentValues values[]) {
+    public int bulkInsert(Uri uri, ContentValues[] values) {
         final int targetSdkVersion = getCallingPackageTargetSdkVersion();
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
         if (match == VOLUMES) {
             return super.bulkInsert(uri, values);
+        }
+
+        if (match == AUDIO_PLAYLISTS_ID || match == AUDIO_PLAYLISTS_ID_MEMBERS) {
+            final String resolvedVolumeName = resolveVolumeName(uri);
+
+            final long playlistId = Long.parseLong(uri.getPathSegments().get(3));
+            final Uri playlistUri = ContentUris.withAppendedId(
+                    MediaStore.Audio.Playlists.getContentUri(resolvedVolumeName), playlistId);
+
+            final String audioVolumeName =
+                    MediaStore.VOLUME_INTERNAL.equals(resolvedVolumeName)
+                            ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL;
+
+            // Require that caller has write access to underlying media
+            enforceCallingPermission(playlistUri, Bundle.EMPTY, true);
+            for (ContentValues each : values) {
+                final long audioId = each.getAsLong(Audio.Playlists.Members.AUDIO_ID);
+                final Uri audioUri = Audio.Media.getContentUri(audioVolumeName, audioId);
+                enforceCallingPermission(audioUri, Bundle.EMPTY, false);
+            }
+
+            return bulkInsertPlaylist(playlistUri, values);
         }
 
         final DatabaseHelper helper;
@@ -2804,6 +3000,25 @@ public class MediaProvider extends ContentProvider {
             return result;
         } finally {
             helper.endTransaction();
+        }
+    }
+
+    private int bulkInsertPlaylist(@NonNull Uri uri, @NonNull ContentValues[] values) {
+        Trace.beginSection("bulkInsertPlaylist");
+        try {
+            try {
+                return addPlaylistMembers(uri, values);
+            } catch (SQLiteConstraintException e) {
+                if (getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.R) {
+                    throw e;
+                } else {
+                    return 0;
+                }
+            }
+        } catch (FallbackException e) {
+            return e.translateForBulkInsert(getCallingPackageTargetSdkVersion());
+        } finally {
+            Trace.endSection();
         }
     }
 
@@ -3325,6 +3540,8 @@ public class MediaProvider extends ContentProvider {
                 // files on disk to ensure that we can reliably migrate between
                 // devices and recover from database corruption
                 final long id = addPlaylistMembers(playlistUri, initialValues);
+                final ContentResolver resolver = getContext().getContentResolver();
+                resolver.notifyChange(playlistUri, null, ContentResolver.NOTIFY_INSERT);
                 return ContentUris.withAppendedId(MediaStore.Audio.Playlists.Members
                         .getContentUri(originalVolumeName, playlistId), id);
             }
@@ -3999,7 +4216,7 @@ public class MediaProvider extends ContentProvider {
             case AUDIO_ARTISTS_ID_ALBUMS: {
                 if (type == TYPE_QUERY) {
                     qb.setTables("audio_albums");
-                    qb.setProjectionMap(getProjectionMap(Audio.Artists.Albums.class));
+                    qb.setProjectionMap(getProjectionMap(Audio.Albums.class));
 
                     final String artistId = uri.getPathSegments().get(3);
                     appendWhereStandalone(qb, "artist_id=?", artistId);
@@ -4349,7 +4566,12 @@ public class MediaProvider extends ContentProvider {
                 // Playlist contents are always persisted directly into playlist
                 // files on disk to ensure that we can reliably migrate between
                 // devices and recover from database corruption
-                return removePlaylistMembers(playlistUri, extras);
+                int numOfRemovedPlaylistMembers = removePlaylistMembers(playlistUri, extras);
+                if (numOfRemovedPlaylistMembers > 0) {
+                    final ContentResolver resolver = getContext().getContentResolver();
+                    resolver.notifyChange(playlistUri, null, ContentResolver.NOTIFY_DELETE);
+                }
+                return numOfRemovedPlaylistMembers;
             }
         }
 
@@ -4671,8 +4893,16 @@ public class MediaProvider extends ContentProvider {
                 case IMAGES_MEDIA_ID:
                 case AUDIO_MEDIA_ID:
                 case VIDEO_MEDIA_ID:
+                case AUDIO_PLAYLISTS_ID:
                     // Caller is requesting a specific media item by its ID,
                     // which means it's valid for requests
+                    break;
+                case FILES_ID:
+                    // Allow only subtitle files
+                    if (!isSubtitleFile(uri)) {
+                        throw new IllegalArgumentException(
+                                "All requested items must be Media items");
+                    }
                     break;
                 default:
                     throw new IllegalArgumentException(
@@ -4709,6 +4939,19 @@ public class MediaProvider extends ContentProvider {
         intent.putExtras(extras);
         return PendingIntent.getActivity(context, PermissionActivity.REQUEST_CODE, intent,
                 FLAG_ONE_SHOT | FLAG_CANCEL_CURRENT | FLAG_IMMUTABLE);
+    }
+
+    /**
+     * @return true if the given Files uri has media_type=MEDIA_TYPE_SUBTITLE
+     */
+    private boolean isSubtitleFile(Uri uri) {
+        try (Cursor cursor = queryForSingleItem(uri, new String[]{FileColumns.MEDIA_TYPE}, null,
+                null, null)) {
+            return cursor.getInt(0) == FileColumns.MEDIA_TYPE_SUBTITLE;
+        } catch (FileNotFoundException e) {
+            Log.e(TAG, "Couldn't find database row for requested uri " + uri, e);
+        }
+        return false;
     }
 
     /**
@@ -5022,7 +5265,6 @@ public class MediaProvider extends ContentProvider {
                 final long playlistId = Long.parseLong(uri.getPathSegments().get(3));
                 final Uri playlistUri = ContentUris.withAppendedId(
                         MediaStore.Audio.Playlists.getContentUri(volumeName), playlistId);
-
                 if (uri.getBooleanQueryParameter("move", false)) {
                     // Convert explicit request into query; sigh, moveItem()
                     // uses zero-based indexing instead of one-based indexing
@@ -5054,6 +5296,9 @@ public class MediaProvider extends ContentProvider {
                     values.put(Playlists.Members.PLAY_ORDER, (index + 1));
                     addPlaylistMembers(playlistUri, values);
                 }
+
+                final ContentResolver resolver = getContext().getContentResolver();
+                resolver.notifyChange(playlistUri, null, ContentResolver.NOTIFY_UPDATE);
                 return 1;
             }
         }
@@ -5293,7 +5538,22 @@ public class MediaProvider extends ContentProvider {
                 initialValues.remove(MediaColumns.DATA);
                 ensureUniqueFileColumns(match, uri, extras, initialValues, beforePath);
 
-                final String afterPath = initialValues.getAsString(MediaColumns.DATA);
+                String afterPath = initialValues.getAsString(MediaColumns.DATA);
+
+                if (isCrossUserEnabled()) {
+                    String afterVolume = extractVolumeName(afterPath);
+                    String afterVolumePath =  extractVolumePath(afterPath);
+                    String beforeVolumePath = extractVolumePath(beforePath);
+
+                    if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equals(beforeVolume)
+                            && beforeVolume.equals(afterVolume)
+                            && !beforeVolumePath.equals(afterVolumePath)) {
+                        // On cross-user enabled devices, it can happen that a rename intended as
+                        // /storage/emulated/999/foo -> /storage/emulated/999/foo can end up as
+                        // /storage/emulated/999/foo -> /storage/emulated/0/foo. We now fix-up
+                        afterPath = afterPath.replaceFirst(afterVolumePath, beforeVolumePath);
+                    }
+                }
 
                 Log.d(TAG, "Moving " + beforePath + " to " + afterPath);
                 try {
@@ -5505,6 +5765,7 @@ public class MediaProvider extends ContentProvider {
         try {
             // Refresh playlist members based on what we parse from disk
             final long playlistId = ContentUris.parseId(playlistUri);
+            final Map<String, Long> membersMap = getAllPlaylistMembers(playlistId);
             db.delete("audio_playlists_map", "playlist_id=" + playlistId, null);
 
             final Path playlistPath = queryForDataFile(playlistUri, null).toPath();
@@ -5515,7 +5776,7 @@ public class MediaProvider extends ContentProvider {
             for (int i = 0; i < members.size(); i++) {
                 try {
                     final Path audioPath = playlistPath.getParent().resolve(members.get(i));
-                    final long audioId = queryForPlaylistMember(audioPath);
+                    final long audioId = queryForPlaylistMember(audioPath, membersMap);
 
                     final ContentValues values = new ContentValues();
                     values.put(Playlists.Members.PLAY_ORDER, i + 1);
@@ -5531,17 +5792,42 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    private Map<String, Long> getAllPlaylistMembers(long playlistId) {
+        final Map<String, Long> membersMap = new ArrayMap<>();
+
+        final Uri uri = Playlists.Members.getContentUri(MediaStore.VOLUME_EXTERNAL, playlistId);
+        final String[] projection = new String[] {
+                Playlists.Members.DATA,
+                Playlists.Members.AUDIO_ID
+        };
+        try (Cursor c = query(uri, projection, null, null)) {
+            if (c == null) {
+                Log.e(TAG, "Cursor is null, failed to create cached playlist member info.");
+                return membersMap;
+            }
+            while (c.moveToNext()) {
+                membersMap.put(c.getString(0), c.getLong(1));
+            }
+        }
+        return membersMap;
+    }
+
     /**
      * Make two attempts to query this playlist member: first based on the exact
      * path, and if that fails, fall back to picking a single item matching the
      * display name. When there are multiple items with the same display name,
      * we can't resolve between them, and leave this member unresolved.
      */
-    private long queryForPlaylistMember(@NonNull Path path) throws IOException {
+    private long queryForPlaylistMember(@NonNull Path path, @NonNull Map<String, Long> membersMap)
+            throws IOException {
+        final String data = path.toFile().getCanonicalPath();
+        if (membersMap.containsKey(data)) {
+            return membersMap.get(data);
+        }
         final Uri audioUri = Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL);
         try (Cursor c = queryForSingleItem(audioUri,
                 new String[] { BaseColumns._ID }, MediaColumns.DATA + "=?",
-                new String[] { path.toFile().getCanonicalPath() }, null)) {
+                new String[] { data }, null)) {
             return c.getLong(0);
         } catch (FileNotFoundException ignored) {
         }
@@ -5596,6 +5882,39 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    private int addPlaylistMembers(@NonNull Uri playlistUri, @NonNull ContentValues[] initialValues)
+            throws FallbackException {
+        final String volumeName = getVolumeName(playlistUri);
+        final String audioVolumeName =
+                MediaStore.VOLUME_INTERNAL.equals(volumeName)
+                        ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL;
+
+        try {
+            final File playlistFile = queryForDataFile(playlistUri, null);
+            final Playlist playlist = new Playlist();
+            playlist.read(playlistFile);
+
+            for (ContentValues values : initialValues) {
+                final long audioId = values.getAsLong(Audio.Playlists.Members.AUDIO_ID);
+                final Uri audioUri = Audio.Media.getContentUri(audioVolumeName, audioId);
+                final File audioFile = queryForDataFile(audioUri, null);
+
+                Integer playOrder = values.getAsInteger(Playlists.Members.PLAY_ORDER);
+                playOrder = (playOrder != null) ? (playOrder - 1) : Integer.MAX_VALUE;
+                playlist.add(playOrder,
+                        playlistFile.toPath().getParent().relativize(audioFile.toPath()));
+            }
+            playlist.write(playlistFile);
+
+            resolvePlaylistMembers(playlistUri);
+        } catch (IOException e) {
+            throw new FallbackException("Failed to update playlist", e,
+                    android.os.Build.VERSION_CODES.R);
+        }
+
+        return initialValues.length;
+    }
+
     /**
      * Move an audio item within the given playlist.
      */
@@ -5625,23 +5944,28 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Remove an audio item from the given playlist.
+     * Removes an audio item or multiple audio items(if targetSDK<R) from the given playlist.
      */
     private int removePlaylistMembers(@NonNull Uri playlistUri, @NonNull Bundle queryArgs)
             throws FallbackException {
-        final int index = resolvePlaylistIndex(playlistUri, queryArgs);
+        final int[] indexes = resolvePlaylistIndexes(playlistUri, queryArgs);
         try {
             final File playlistFile = queryForDataFile(playlistUri, null);
 
             final Playlist playlist = new Playlist();
             playlist.read(playlistFile);
             final int count;
-            if (index == -1) {
-                count = playlist.asList().size();
-                playlist.clear();
+            if (indexes.length == 0) {
+                // This means either no playlist members match the query or VolumeNotFoundException
+                // was thrown. So we don't have anything to delete.
+                count = 0;
+            } else if (indexes.length > 1 &&
+                    getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.R) {
+                throw new FallbackException("Failed to update playlist",
+                        new IllegalStateException("Query matches more than one playlist member"),
+                        android.os.Build.VERSION_CODES.R);
             } else {
-                count = 1;
-                playlist.remove(index);
+                count = playlist.removeMultiple(indexes);
             }
             playlist.write(playlistFile);
             invalidateFuseDentry(playlistFile);
@@ -5680,10 +6004,12 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Resolve query arguments that are designed to select a specific playlist
-     * item using its {@link Playlists.Members#PLAY_ORDER}.
+     * Resolve query arguments that are designed to select specific playlist
+     * items using the playlist's {@link Playlists.Members#PLAY_ORDER}.
+     *
+     * @return an array of the indexes that match the query.
      */
-    private int resolvePlaylistIndex(@NonNull Uri playlistUri, @NonNull Bundle queryArgs) {
+    private int[] resolvePlaylistIndexes(@NonNull Uri playlistUri, @NonNull Bundle queryArgs) {
         final Uri membersUri = Playlists.Members.getContentUri(
                 getVolumeName(playlistUri), ContentUris.parseId(playlistUri));
 
@@ -5694,17 +6020,39 @@ public class MediaProvider extends ContentProvider {
             qb = getQueryBuilder(TYPE_DELETE, AUDIO_PLAYLISTS_ID_MEMBERS,
                     membersUri, queryArgs, null);
         } catch (VolumeNotFoundException ignored) {
-            return -1;
+            return new int[0];
         }
 
         try (Cursor c = qb.query(helper,
                 new String[] { Playlists.Members.PLAY_ORDER }, queryArgs, null)) {
-            if ((c.getCount() == 1) && c.moveToFirst()) {
-                return c.getInt(0) - 1;
+            if ((c.getCount() >= 1) && c.moveToFirst()) {
+                int size = c.getCount();
+                int[] res = new int[size];
+                for (int i = 0; i < size; ++i) {
+                    res[i] = c.getInt(0) - 1;
+                    c.moveToNext();
+                }
+                return res;
             } else {
-                return -1;
+                // Cursor size is 0
+                return new int[0];
             }
         }
+    }
+
+    /**
+     * Resolve query arguments that are designed to select a specific playlist
+     * item using its {@link Playlists.Members#PLAY_ORDER}.
+     *
+     * @return if there's only 1 item that matches the query, returns its index. Returns -1
+     * otherwise.
+     */
+    private int resolvePlaylistIndex(@NonNull Uri playlistUri, @NonNull Bundle queryArgs) {
+        int[] indexes = resolvePlaylistIndexes(playlistUri, queryArgs);
+        if (indexes.length == 1) {
+            return indexes[0];
+        }
+        return -1;
     }
 
     @Override
@@ -7087,10 +7435,20 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
         try {
-            return isCallingIdentitySharedPackageName(packageName);
+            return isCallingIdentitySharedPackageName(packageName) ||
+                    isCallingIdentityAllowedPrivAppAccess(uid);
         } finally {
             restoreLocalCallingIdentity(token);
         }
+    }
+
+    /**
+     * External Storage Provider and Download Provider can access priv app directories.
+     *
+     * @param uid UID of the calling package
+     */
+    private boolean isCallingIdentityAllowedPrivAppAccess(int uid) {
+        return (uid == mExternalStorageAuthorityAppId) || (uid == mDownloadsAuthorityAppId);
     }
 
     private boolean checkCallingPermissionGlobal(Uri uri, boolean forWrite) {
@@ -7208,7 +7566,8 @@ public class MediaProvider extends ContentProvider {
         // First, check to see if caller has direct write access
         if (forWrite) {
             final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, table, uri, extras, null);
-            try (Cursor c = qb.query(helper, new String[0],
+            qb.allowRowidColumn();
+            try (Cursor c = qb.query(helper, new String[] { SQLiteQueryBuilder.ROWID_COLUMN },
                     null, null, null, null, null, null, null)) {
                 if (c.moveToFirst()) {
                     // Direct write access granted, yay!
@@ -7231,7 +7590,8 @@ public class MediaProvider extends ContentProvider {
 
         // Second, check to see if caller has direct read access
         final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, table, uri, extras, null);
-        try (Cursor c = qb.query(helper, new String[0],
+        qb.allowRowidColumn();
+        try (Cursor c = qb.query(helper, new String[] { SQLiteQueryBuilder.ROWID_COLUMN },
                 null, null, null, null, null, null, null)) {
             if (c.moveToFirst()) {
                 if (!forWrite) {
@@ -7381,6 +7741,15 @@ public class MediaProvider extends ContentProvider {
             } else {
                 Log.w(TAG, getMessage());
                 return null;
+            }
+        }
+
+        public int translateForBulkInsert(int targetSdkVersion) {
+            if (targetSdkVersion >= mThrowSdkVersion) {
+                throw new IllegalArgumentException(getMessage());
+            } else {
+                Log.w(TAG, getMessage());
+                return 0;
             }
         }
 

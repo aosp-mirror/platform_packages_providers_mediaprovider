@@ -41,9 +41,10 @@
       <item quantity="many">Плюс <xliff:g id="COUNT_1">^1</xliff:g> дадатковых элементаў</item>
       <item quantity="other">Плюс <xliff:g id="COUNT_1">^1</xliff:g> дадатковага элемента</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Ачысціць часовыя файлы праграм?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Ачысціць часовыя файлы праграм"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> запытвае дазвол на выдаленне некаторых часовых файлаў. У сувязі з гэтым можа павялічыцца ўзровень выкарыстання акумулятара ці памер сотавай перадачы даных."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Выдаляюцца часовыя файлы праграм…"</string>
+    <string name="clear" msgid="5524638938415865915">"Ачысціць"</string>
     <string name="allow" msgid="8885707816848569619">"Дазволіць"</string>
     <string name="deny" msgid="6040983710442068936">"Адмовіць"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

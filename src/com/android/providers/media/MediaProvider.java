@@ -1227,7 +1227,7 @@ public class MediaProvider extends ContentProvider {
             return false;
         }
 
-        if (!isWorkProfile(callingUserId) || !isWorkProfile(pathUserId)) {
+        if (isWorkProfile(callingUserId) || isWorkProfile(pathUserId)) {
             // Cross-user lookup not allowed if one user in the pair has a profile owner app
             Log.w(TAG, "CrossUser work profile check failed. Users: " + callingUserId + " and "
                     + pathUserId);

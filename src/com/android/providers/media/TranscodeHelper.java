@@ -23,6 +23,7 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 
 import static com.android.providers.media.MediaProvider.VolumeNotFoundException;
+import android.widget.Toast;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -83,11 +84,11 @@ public class TranscodeHelper {
     private final Context mContext;
     private final MediaProvider mMediaProvider;
     private final MediaTranscodeManager mMediaTranscodeManager;
+    private final File mTranscodeDirectory;
     @GuardedBy("mTranscodingJobs")
     private final Map<String, TranscodingJob> mTranscodingJobs = new ArrayMap<>();
     @GuardedBy("mTranscodingJobs")
     private final SparseArray<CountDownLatch> mTranscodingLatches = new SparseArray<>();
-    private final File mTranscodeDirectory;
 
     private static final String[] TRANSCODE_CACHE_INFO_PROJECTION =
             {FileColumns._ID, FileColumns._TRANSCODE_STATUS};
@@ -311,9 +312,12 @@ public class TranscodeHelper {
         final long rowId = cacheInfo.first;
         if (rowId != -1) {
             final int transcodeStatus = cacheInfo.second;
-            return transcodePath.equalsIgnoreCase(getTranscodePath(rowId)) &&
+            boolean result = transcodePath.equalsIgnoreCase(getTranscodePath(rowId)) &&
                     transcodeStatus == TRANSCODE_COMPLETE &&
                     new File(transcodePath).exists();
+            if (result) {
+                maybeShowToast("Transcode cache: " + path);
+            }
         }
         return false;
     }
@@ -344,7 +348,6 @@ public class TranscodeHelper {
                 .setPriority(MediaTranscodeManager.PRIORITY_REALTIME)
                 .setVideoTrackFormat(format)
                 .build();
-
         return mMediaTranscodeManager.enqueueRequest(request, ForegroundThread.getExecutor(),
                 job -> finishTranscodingResult(src, job, latch));
     }
@@ -352,10 +355,20 @@ public class TranscodeHelper {
     private boolean waitTranscodingResult(String src, TranscodingJob job, CountDownLatch latch) {
         try {
             int timeout = getTranscodeTimeoutSeconds(src);
-            Log.d(TAG, "Transcoding latch start, timeout: " + timeout + "s" + job);
-            boolean result = latch.await(timeout, TimeUnit.SECONDS);
-            Log.d(TAG, "Transcoding latch end, result: " + result + job);
-            return job.getResult() == TranscodingJob.RESULT_SUCCESS;
+
+            String logStart = "Transcoding start: " + src + ". Timeout: " + timeout + "s";
+            Log.d(TAG, logStart + job);
+            maybeShowToast(logStart);
+
+            boolean latchResult = latch.await(timeout, TimeUnit.SECONDS);
+            boolean transcodeResult = job.getResult() == TranscodingJob.RESULT_SUCCESS;
+
+            String logEnd = "Transcoding end: " + src + ". Timeout: " + !latchResult + ". Success: "
+                    + transcodeResult;
+            Log.d(TAG, logEnd + job);
+            maybeShowToast(logEnd);
+
+            return transcodeResult;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             Log.d(TAG, "Transcoding latch interrupted." + job);
@@ -427,5 +440,12 @@ public class TranscodeHelper {
         extras.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, TRANSCODE_WHERE_CLAUSE);
         extras.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs);
         return qb.query(getDatabaseHelperForUri(uri), projection, extras, null);
+    }
+
+    private void maybeShowToast(String value) {
+        if (SystemProperties.getBoolean("fuse.sys.transcode_show_toast", false)) {
+            ForegroundThread.getExecutor().execute(() ->
+                    Toast.makeText(mContext, value, Toast.LENGTH_SHORT).show());
+        }
     }
 }

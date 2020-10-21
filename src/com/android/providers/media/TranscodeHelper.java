@@ -36,6 +36,8 @@ import android.media.MediaTranscodeManager.TranscodingRequest;
 import android.media.MediaTranscodingException;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Environment;
 import android.os.SystemProperties;
 import android.provider.MediaStore.Files.FileColumns;
@@ -84,6 +86,7 @@ public class TranscodeHelper {
     private final Context mContext;
     private final MediaProvider mMediaProvider;
     private final MediaTranscodeManager mMediaTranscodeManager;
+    private final Handler mUiHandler;
     private final File mTranscodeDirectory;
     @GuardedBy("mTranscodingJobs")
     private final Map<String, TranscodingJob> mTranscodingJobs = new ArrayMap<>();
@@ -119,6 +122,7 @@ public class TranscodeHelper {
         mContext = context;
         mMediaTranscodeManager = context.getSystemService(MediaTranscodeManager.class);
         mMediaProvider = mediaProvider;
+        mUiHandler = new Handler(Looper.getMainLooper());
         mTranscodeDirectory =
                 FileUtils.buildPath(Environment.getExternalStorageDirectory(), DIRECTORY_TRANSCODE);
         mTranscodeDirectory.mkdirs();
@@ -453,7 +457,7 @@ public class TranscodeHelper {
         Log.d(TAG, event + (job == null ? "" : job));
 
         if (toast && SystemProperties.getBoolean("fuse.sys.transcode_show_toast", false)) {
-            ForegroundThread.getExecutor().execute(() ->
+            mUiHandler.post(() ->
                     Toast.makeText(mContext, event, Toast.LENGTH_SHORT).show());
         }
     }

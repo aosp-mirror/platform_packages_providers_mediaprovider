@@ -178,14 +178,14 @@ public class TranscodeHelper {
             }
         }
 
-        boolean result = waitTranscodingResult(src, job, latch);
+        boolean result = waitTranscodingResult(uid, src, job, latch);
         if (result) {
             updateTranscodeStatus(src, TRANSCODE_COMPLETE);
         } else {
-            Log.w(TAG, "Transcoding timed out for " + src + ". Job: " + job);
+            logEvent("Transcoding timed out for " + src + ". Job: ", true /* toast */, job);
             // Attempt to workaround media transcoding deadlock, b/165374867
             // Cancelling a deadlocked job seems to unblock the transcoder
-            finishTranscodingResult(src, job, latch);
+            finishTranscodingResult(uid, src, job, latch);
         }
         return result;
     }
@@ -316,8 +316,9 @@ public class TranscodeHelper {
                     transcodeStatus == TRANSCODE_COMPLETE &&
                     new File(transcodePath).exists();
             if (result) {
-                maybeShowToast("Transcode cache: " + path);
+                logEvent("Transcode cache hit: " + path, true /* toast */, null /* job */);
             }
+            return result;
         }
         return false;
     }
@@ -348,30 +349,34 @@ public class TranscodeHelper {
                 .setPriority(MediaTranscodeManager.PRIORITY_REALTIME)
                 .setVideoTrackFormat(format)
                 .build();
-        return mMediaTranscodeManager.enqueueRequest(request, ForegroundThread.getExecutor(),
-                job -> finishTranscodingResult(src, job, latch));
+        TranscodingJob job = mMediaTranscodeManager.enqueueRequest(request,
+                ForegroundThread.getExecutor(),
+                j -> finishTranscodingResult(uid, src, j, latch));
+
+        logEvent("Transcoding start: " + src + ". Uid: " + uid, true /* toast */, job);
+        return job;
     }
 
-    private boolean waitTranscodingResult(String src, TranscodingJob job, CountDownLatch latch) {
+    private boolean waitTranscodingResult(int uid, String src, TranscodingJob job,
+            CountDownLatch latch) {
         try {
             int timeout = getTranscodeTimeoutSeconds(src);
 
-            String logStart = "Transcoding start: " + src + ". Timeout: " + timeout + "s";
-            Log.d(TAG, logStart + job);
-            maybeShowToast(logStart);
+            String waitStartLog = "Transcoding wait start: " + src + ". Uid: " + uid + ". Timeout: "
+                    + timeout + "s";
+            logEvent(waitStartLog, false /* toast */, job);
 
             boolean latchResult = latch.await(timeout, TimeUnit.SECONDS);
             boolean transcodeResult = job.getResult() == TranscodingJob.RESULT_SUCCESS;
 
-            String logEnd = "Transcoding end: " + src + ". Timeout: " + !latchResult + ". Success: "
-                    + transcodeResult;
-            Log.d(TAG, logEnd + job);
-            maybeShowToast(logEnd);
+            String waitEndLog = "Transcoding wait end: " + src + ". Uid: " + uid + ". Timeout: "
+                    + !latchResult + ". Success: " + transcodeResult;
+            logEvent(waitEndLog, false /* toast */, job);
 
             return transcodeResult;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            Log.d(TAG, "Transcoding latch interrupted." + job);
+            Log.w(TAG, "Transcoding latch interrupted." + job);
             return false;
         }
     }
@@ -381,14 +386,16 @@ public class TranscodeHelper {
         return (int) (sizeMb * TRANSCODING_TIMEOUT_COEFFICIENT);
     }
 
-    private void finishTranscodingResult(String src, TranscodingJob job, CountDownLatch latch) {
+    private void finishTranscodingResult(int uid, String src, TranscodingJob job,
+            CountDownLatch latch) {
         synchronized (mTranscodingJobs) {
             latch.countDown();
             job.cancel();
             mTranscodingJobs.remove(src);
             mTranscodingLatches.remove(job.getJobId());
         }
-        Log.d(TAG, "Transcoding finished" + job);
+
+        logEvent("Transcoding end: " + src + ". Uid: " + uid, true /* toast */, job);
     }
 
     private boolean updateTranscodeStatus(String path, int transcodeStatus) {
@@ -442,10 +449,12 @@ public class TranscodeHelper {
         return qb.query(getDatabaseHelperForUri(uri), projection, extras, null);
     }
 
-    private void maybeShowToast(String value) {
-        if (SystemProperties.getBoolean("fuse.sys.transcode_show_toast", false)) {
+    private void logEvent(String event, boolean toast, @Nullable TranscodingJob job) {
+        Log.d(TAG, event + (job == null ? "" : job));
+
+        if (toast && SystemProperties.getBoolean("fuse.sys.transcode_show_toast", false)) {
             ForegroundThread.getExecutor().execute(() ->
-                    Toast.makeText(mContext, value, Toast.LENGTH_SHORT).show());
+                    Toast.makeText(mContext, event, Toast.LENGTH_SHORT).show());
         }
     }
 }

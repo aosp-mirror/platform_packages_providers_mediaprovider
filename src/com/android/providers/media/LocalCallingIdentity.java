@@ -51,17 +51,19 @@ import android.os.UserHandle;
 import android.os.UserManager;
 import android.util.ArrayMap;
 
+import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 
 import com.android.providers.media.util.LongArray;
 
 public class LocalCallingIdentity {
-    public final Context context;
     public final int pid;
     public final int uid;
-    public final String packageNameUnchecked;
+    private final Context context;
+    private final String packageNameUnchecked;
     // Info used for logging permission checks
-    public @Nullable String attributionTag;
+    private final @Nullable String attributionTag;
+    private final Object lock = new Object();
 
     private LocalCallingIdentity(Context context, int pid, int uid, String packageNameUnchecked,
             @Nullable String attributionTag) {
@@ -140,8 +142,8 @@ public class LocalCallingIdentity {
         return ident;
     }
 
-    private String packageName;
-    private boolean packageNameResolved;
+    private volatile String packageName;
+    private volatile boolean packageNameResolved;
 
     public String getPackageName() {
         if (!packageNameResolved) {
@@ -158,8 +160,8 @@ public class LocalCallingIdentity {
         return packageNameUnchecked;
     }
 
-    private String[] sharedPackageNames;
-    private boolean sharedPackageNamesResolved;
+    private volatile String[] sharedPackageNames;
+    private volatile boolean sharedPackageNamesResolved;
 
     public String[] getSharedPackageNames() {
         if (!sharedPackageNamesResolved) {
@@ -174,8 +176,8 @@ public class LocalCallingIdentity {
         return (packageNames != null) ? packageNames : new String[0];
     }
 
-    private int targetSdkVersion;
-    private boolean targetSdkVersionResolved;
+    private volatile int targetSdkVersion;
+    private volatile boolean targetSdkVersionResolved;
 
     public int getTargetSdkVersion() {
         if (!targetSdkVersionResolved) {
@@ -216,8 +218,8 @@ public class LocalCallingIdentity {
 
     public static final int PERMISSION_IS_SYSTEM_GALLERY = 1 <<22;
 
-    private int hasPermission;
-    private int hasPermissionResolved;
+    private volatile int hasPermission;
+    private volatile int hasPermissionResolved;
 
     public boolean hasPermission(int permission) {
         if ((hasPermissionResolved & permission) == 0) {
@@ -336,42 +338,54 @@ public class LocalCallingIdentity {
         return false;
     }
 
-    private LongArray ownedIds = new LongArray();
+    @GuardedBy("lock")
+    private final LongArray ownedIds = new LongArray();
 
     public boolean isOwned(long id) {
-        return ownedIds.indexOf(id) != -1;
+        synchronized (lock) {
+            return ownedIds.indexOf(id) != -1;
+        }
     }
 
     public void setOwned(long id, boolean owned) {
-        final int index = ownedIds.indexOf(id);
-        if (owned) {
-            if (index == -1) {
-                ownedIds.add(id);
-            }
-        } else {
-            if (index != -1) {
-                ownedIds.remove(index);
+        synchronized (lock) {
+            final int index = ownedIds.indexOf(id);
+            if (owned) {
+                if (index == -1) {
+                    ownedIds.add(id);
+                }
+            } else {
+                if (index != -1) {
+                    ownedIds.remove(index);
+                }
             }
         }
     }
 
-    private ArrayMap<String, Long> rowIdOfDeletedPaths = new ArrayMap<>();
+    @GuardedBy("lock")
+    private final ArrayMap<String, Long> rowIdOfDeletedPaths = new ArrayMap<>();
 
     public void addDeletedRowId(@NonNull String path, long id) {
-        rowIdOfDeletedPaths.put(path, id);
+        synchronized (lock) {
+            rowIdOfDeletedPaths.put(path, id);
+        }
     }
 
     public boolean removeDeletedRowId(long id) {
-        int index = rowIdOfDeletedPaths.indexOfValue(id);
-        final boolean isDeleted = index > -1;
-        while (index > -1) {
-            rowIdOfDeletedPaths.removeAt(index);
-            index = rowIdOfDeletedPaths.indexOfValue(id);
+        synchronized (lock) {
+            int index = rowIdOfDeletedPaths.indexOfValue(id);
+            final boolean isDeleted = index > -1;
+            while (index > -1) {
+                rowIdOfDeletedPaths.removeAt(index);
+                index = rowIdOfDeletedPaths.indexOfValue(id);
+            }
+            return isDeleted;
         }
-        return isDeleted;
     }
 
     public long getDeletedRowId(@NonNull String path) {
-        return rowIdOfDeletedPaths.getOrDefault(path, UNKNOWN_ROW_ID);
+        synchronized (lock) {
+            return rowIdOfDeletedPaths.getOrDefault(path, UNKNOWN_ROW_ID);
+        }
     }
 }

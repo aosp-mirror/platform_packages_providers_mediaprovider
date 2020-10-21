@@ -1227,7 +1227,7 @@ public class MediaProvider extends ContentProvider {
             return false;
         }
 
-        if (!isWorkProfile(callingUserId) || !isWorkProfile(pathUserId)) {
+        if (isWorkProfile(callingUserId) || isWorkProfile(pathUserId)) {
             // Cross-user lookup not allowed if one user in the pair has a profile owner app
             Log.w(TAG, "CrossUser work profile check failed. Users: " + callingUserId + " and "
                     + pathUserId);
@@ -6148,18 +6148,20 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
-        return openFileCommon(uri, mode, null);
+        return openFileCommon(uri, mode, /*signal*/ null, /*opts*/ null);
     }
 
     @Override
     public ParcelFileDescriptor openFile(Uri uri, String mode, CancellationSignal signal)
             throws FileNotFoundException {
-        return openFileCommon(uri, mode, signal);
+        return openFileCommon(uri, mode, signal, /*opts*/ null);
     }
 
-    private ParcelFileDescriptor openFileCommon(Uri uri, String mode, CancellationSignal signal)
+    private ParcelFileDescriptor openFileCommon(Uri uri, String mode, CancellationSignal signal,
+            @Nullable Bundle opts)
             throws FileNotFoundException {
         uri = safeUncanonicalize(uri);
+        opts = opts == null ? new Bundle() : opts;
 
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
@@ -6193,7 +6195,7 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        return openFileAndEnforcePathPermissionsHelper(uri, match, mode, signal);
+        return openFileAndEnforcePathPermissionsHelper(uri, match, mode, signal, opts);
     }
 
     @Override
@@ -6223,7 +6225,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Worst case, return the underlying file
-        return new AssetFileDescriptor(openFileCommon(uri, "r", signal), 0,
+        return new AssetFileDescriptor(openFileCommon(uri, "r", signal, opts), 0,
                 AssetFileDescriptor.UNKNOWN_LENGTH);
     }
 
@@ -6481,7 +6483,8 @@ public class MediaProvider extends ContentProvider {
      * a "/mnt/user" path.
      */
     private ParcelFileDescriptor openFileAndEnforcePathPermissionsHelper(Uri uri, int match,
-            String mode, CancellationSignal signal) throws FileNotFoundException {
+            String mode, CancellationSignal signal, @NonNull Bundle opts)
+            throws FileNotFoundException {
         int modeBits = ParcelFileDescriptor.parseMode(mode);
         boolean forWrite = (modeBits & ParcelFileDescriptor.MODE_WRITE_ONLY) != 0;
         if (forWrite) {
@@ -6571,7 +6574,10 @@ public class MediaProvider extends ContentProvider {
             final ParcelFileDescriptor pfd;
             final String filePath = file.getPath();
             final int uid = Binder.getCallingUid();
-            final boolean shouldTranscode = mTranscodeHelper.shouldTranscode(filePath, uid);
+            // TODO(b/158465539): Use API constant
+            final boolean shouldTranscode =
+                    !opts.containsKey("android.provider.extra.ACCEPT_ORIGINAL_MEDIA_FORMAT")
+                    && mTranscodeHelper.shouldTranscode(filePath, uid);
             if (redactionInfo.redactionRanges.length > 0) {
                 // If fuse is enabled, we can provide an fd that points to the fuse
                 // file system and handle redaction in the fuse handler when the caller reads.

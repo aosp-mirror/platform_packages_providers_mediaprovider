@@ -109,7 +109,7 @@ public class TranscodeHelper {
             "com.google.android.talk",
             "com.snapchat.android",
             "com.instagram.android",
-            "com.google.android.apps.photos",
+            // TODO: Add "com.google.android.apps.photos", to teamfood after investigating issue
             "com.linecorp.b612.android",
             "com.zhiliaoapp.musically",
             "com.tencent.mm"

@@ -21,11 +21,11 @@
     <string name="app_label" msgid="9035307001052716210">"મીડિયા સ્ટોરેજ"</string>
     <string name="artist_label" msgid="8105600993099120273">"કલાકાર"</string>
     <string name="ringtone_default" msgid="1744846699922263043">"ડિફોલ્ટ રિંગટોન"</string>
-    <string name="notification_sound_default" msgid="6541609166469990135">"નોટિફિકેશન માટે ડિફૉલ્ટ ધ્વનિ"</string>
+    <string name="notification_sound_default" msgid="6541609166469990135">"ડિફૉલ્ટ નોટિફિકેશન સાઉન્ડ"</string>
     <string name="alarm_sound_default" msgid="5488847775252870314">"ડિફૉલ્ટ એલાર્મ સાઉન્ડ"</string>
     <string name="root_images" msgid="5861633549189045666">"છબીઓ"</string>
     <string name="root_videos" msgid="8792703517064649453">"વિડિઓઝ"</string>
-    <string name="root_audio" msgid="3505830755201326018">"ઑડિઓ"</string>
+    <string name="root_audio" msgid="3505830755201326018">"ઑડિયો"</string>
     <string name="permission_required" msgid="1460820436132943754">"આ આઇટમમાં ફેરફાર કરવા માટે અથવા તેને ડિલીટ કરવા માટે પરવાનગી હોવી જરૂરી છે."</string>
     <string name="permission_required_action" msgid="706370952366113539">"આગળ વધો"</string>
     <string name="permission_audio" msgid="344061911159388398"><b>"<xliff:g id="APP_NAME">^1</xliff:g>"</b>"ને મ્યુઝિક ડિલીટ કરવાની કે તેમાં ફેરફાર કરવાની મંજૂરી આપીએ?"</string>

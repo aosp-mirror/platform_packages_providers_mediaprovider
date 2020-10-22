@@ -146,6 +146,9 @@ TEST(RedactionInfoTest, testSortedAndNonOverlappingRedactionRanges) {
     info.getReadRanges(0, 10, &out);  // read offsets [0, 10)
     EXPECT_EQ(0, out.size());
     out.clear();
+    info.getReadRanges(21, 5, &out);  // read offsets [40, 50)
+    EXPECT_EQ(0, out.size());
+    out.clear();
     info.getReadRanges(40, 10, &out);  // read offsets [40, 50)
     EXPECT_EQ(0, out.size());
 }

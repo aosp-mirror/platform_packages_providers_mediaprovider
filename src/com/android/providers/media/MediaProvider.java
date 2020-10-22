@@ -2399,9 +2399,13 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public Cursor query(Uri uri, String[] projection, Bundle queryArgs, CancellationSignal signal) {
-        Trace.beginSection("query");
+        return query(uri, projection, queryArgs, signal, /* forSelf */ false);
+    }
+
+    private Cursor query(Uri uri, String[] projection, Bundle queryArgs,
+            CancellationSignal signal, boolean forSelf) {
         try {
-            return queryInternal(uri, projection, queryArgs, signal);
+            return queryInternal(uri, projection, queryArgs, signal, forSelf);
         } catch (FallbackException e) {
             return e.translateForQuery(getCallingPackageTargetSdkVersion());
         } finally {
@@ -2410,7 +2414,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private Cursor queryInternal(Uri uri, String[] projection, Bundle queryArgs,
-            CancellationSignal signal) throws FallbackException {
+            CancellationSignal signal, boolean forSelf) throws FallbackException {
         queryArgs = (queryArgs != null) ? queryArgs : new Bundle();
 
         // INCLUDED_DEFAULT_DIRECTORIES extra should only be set inside MediaProvider.
@@ -2512,7 +2516,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         final Cursor c = qb.query(helper, projection, queryArgs, signal);
-        if (c != null) {
+        if (c != null && !forSelf) {
             // As a performance optimization, only configure notifications when
             // resulting cursor will leave our process
             final boolean callerIsRemote = mCallingIdentity.get().pid != android.os.Process.myPid();
@@ -6388,7 +6392,7 @@ public class MediaProvider extends ContentProvider {
     Cursor queryForSingleItem(Uri uri, String[] projection, String selection,
             String[] selectionArgs, CancellationSignal signal) throws FileNotFoundException {
         final Cursor c = query(uri, projection,
-                DatabaseUtils.createSqlQueryBundle(selection, selectionArgs, null), signal);
+                DatabaseUtils.createSqlQueryBundle(selection, selectionArgs, null), signal, true);
         if (c == null) {
             throw new FileNotFoundException("Missing cursor for " + uri);
         } else if (c.getCount() < 1) {

@@ -103,5 +103,17 @@ public class ExifUtilsTest {
         }
         return true;
     }
+
+    @Test
+    public void testSubSeconds() throws Exception {
+        assertEquals(0L, ExifUtils.parseSubSeconds("0"));
+        assertEquals(100L, ExifUtils.parseSubSeconds("1"));
+        assertEquals(10L, ExifUtils.parseSubSeconds("01"));
+        assertEquals(120L, ExifUtils.parseSubSeconds("12"));
+        assertEquals(123L, ExifUtils.parseSubSeconds("123"));
+        assertEquals(123L, ExifUtils.parseSubSeconds("1234"));
+        assertEquals(12L, ExifUtils.parseSubSeconds("01234"));
+    }
+
 }
 

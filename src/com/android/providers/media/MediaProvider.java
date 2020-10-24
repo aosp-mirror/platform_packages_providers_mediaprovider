@@ -6435,10 +6435,10 @@ public class MediaProvider extends ContentProvider {
         File transcodeFile = new File(transcodePath);
 
         if (mTranscodeHelper.isTranscodeFileCached(filePath, transcodePath)) {
-            Log.d(TAG, "Using FUSE with transcode cache for " + filePath + " Uid: " + uid);
+            Log.d(TAG, "Using FUSE with transcode cache for " + filePath);
             return FileUtils.openSafely(getFuseFile(transcodeFile), modeBits);
         } else if (mTranscodeHelper.transcode(filePath, transcodePath, uid)) {
-            Log.d(TAG, "Using FUSE with transcode for " + filePath + " Uid: " + uid);
+            Log.d(TAG, "Using FUSE with transcode for " + filePath);
             return FileUtils.openSafely(getFuseFile(transcodeFile), modeBits);
         } else {
             throw new FileNotFoundException("Failed to transcode " + filePath);
@@ -6617,7 +6617,7 @@ public class MediaProvider extends ContentProvider {
                     // we return an upper filesystem fd (via FUSE) to avoid file corruption
                     // resulting from cache inconsistencies between the upper and lower
                     // filesystem caches
-                    Log.w(TAG, "Using FUSE for " + filePath + ". Uid: " + uid);
+                    Log.w(TAG, "Using FUSE for " + filePath);
                     pfd = FileUtils.openSafely(getFuseFile(file), modeBits);
                     try {
                         lowerFsFd.close();
@@ -6625,7 +6625,7 @@ public class MediaProvider extends ContentProvider {
                         Log.w(TAG, "Failed to close lower filesystem fd " + file.getPath(), e);
                     }
                 } else {
-                    Log.i(TAG, "Using lower FS for " + filePath + ". Uid: " + uid);
+                    Log.i(TAG, "Using lower FS for " + filePath);
                     if (forWrite) {
                         // When opening for write on the lower filesystem, invalidate the VFS dentry
                         // so subsequent open/getattr calls will return correctly.

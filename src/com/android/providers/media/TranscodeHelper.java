@@ -31,7 +31,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.media.MediaFormat;
 import android.media.MediaTranscodeManager;
-import android.media.MediaTranscodeManager.TranscodingJob;
+import android.media.MediaTranscodeManager.TranscodingSession;
 import android.media.MediaTranscodeManager.TranscodingRequest;
 import android.media.MediaTranscodingException;
 import android.net.Uri;
@@ -68,7 +68,7 @@ public class TranscodeHelper {
     private static final String TAG = "TranscodeHelper";
     private static final String TRANSCODE_FILE_PREFIX = ".transcode_";
 
-    /** Coefficient to 'guess' how long a transcoding job might take */
+    /** Coefficient to 'guess' how long a transcoding session might take */
     private static final double TRANSCODING_TIMEOUT_COEFFICIENT = 2;
     /** Coefficient to 'guess' how large a transcoded file might be */
     private static final double TRANSCODING_SIZE_COEFFICIENT = 2;
@@ -85,9 +85,9 @@ public class TranscodeHelper {
     private final MediaProvider mMediaProvider;
     private final MediaTranscodeManager mMediaTranscodeManager;
     private final File mTranscodeDirectory;
-    @GuardedBy("mTranscodingJobs")
-    private final Map<String, TranscodingJob> mTranscodingJobs = new ArrayMap<>();
-    @GuardedBy("mTranscodingJobs")
+    @GuardedBy("mTranscodingSessions")
+    private final Map<String, TranscodingSession> mTranscodingSessions = new ArrayMap<>();
+    @GuardedBy("mTranscodingSessions")
     private final SparseArray<CountDownLatch> mTranscodingLatches = new SparseArray<>();
 
     private static final String[] TRANSCODE_CACHE_INFO_PROJECTION =
@@ -155,37 +155,37 @@ public class TranscodeHelper {
     }
 
     public boolean transcode(String src, String dst, int uid) {
-        TranscodingJob job = null;
+        TranscodingSession session = null;
         CountDownLatch latch = null;
 
-        synchronized (mTranscodingJobs) {
-            job = mTranscodingJobs.get(src);
-            if (job == null) {
+        synchronized (mTranscodingSessions) {
+            session = mTranscodingSessions.get(src);
+            if (session == null) {
                 latch = new CountDownLatch(1);
                 try {
-                    job = enqueueTranscodingJob(src, dst, uid, latch);
+                    session = enqueueTranscodingSession(src, dst, uid, latch);
                 } catch (MediaTranscodingException | FileNotFoundException e) {
                     throw new IllegalStateException(e);
                 }
 
-                mTranscodingLatches.put(job.getJobId(), latch);
-                mTranscodingJobs.put(src, job);
+                mTranscodingLatches.put(session.getSessionId(), latch);
+                mTranscodingSessions.put(src, session);
             } else {
-                latch = mTranscodingLatches.get(job.getJobId());
+                latch = mTranscodingLatches.get(session.getSessionId());
                 if (latch == null) {
-                    throw new IllegalStateException("Expected latch for" + job);
+                    throw new IllegalStateException("Expected latch for" + session);
                 }
             }
         }
 
-        boolean result = waitTranscodingResult(uid, src, job, latch);
+        boolean result = waitTranscodingResult(uid, src, session, latch);
         if (result) {
             updateTranscodeStatus(src, TRANSCODE_COMPLETE);
         } else {
-            logEvent("Transcoding timed out for " + src + ". Job: ", true /* toast */, job);
+            logEvent("Transcoding timed out for " + src + ". session: ", true /* toast */, session);
             // Attempt to workaround media transcoding deadlock, b/165374867
-            // Cancelling a deadlocked job seems to unblock the transcoder
-            finishTranscodingResult(uid, src, job, latch);
+            // Cancelling a deadlocked session seems to unblock the transcoder
+            finishTranscodingResult(uid, src, session, latch);
         }
         return result;
     }
@@ -316,14 +316,14 @@ public class TranscodeHelper {
                     transcodeStatus == TRANSCODE_COMPLETE &&
                     new File(transcodePath).exists();
             if (result) {
-                logEvent("Transcode cache hit: " + path, true /* toast */, null /* job */);
+                logEvent("Transcode cache hit: " + path, true /* toast */, null /* session */);
             }
             return result;
         }
         return false;
     }
 
-    private TranscodingJob enqueueTranscodingJob(String src, String dst, int uid,
+    private TranscodingSession enqueueTranscodingSession(String src, String dst, int uid,
             final CountDownLatch latch) throws FileNotFoundException, MediaTranscodingException {
         int bitRate = 20000000; // 20Mbps
         int width = 1920;
@@ -342,41 +342,41 @@ public class TranscodeHelper {
 
         TranscodingRequest request =
                 new TranscodingRequest.Builder()
-                .setClientUid(uid)
-                .setSourceUri(uri)
-                .setDestinationUri(transcodeUri)
-                .setType(MediaTranscodeManager.TRANSCODING_TYPE_VIDEO)
-                .setPriority(MediaTranscodeManager.PRIORITY_REALTIME)
-                .setVideoTrackFormat(format)
-                .build();
-        TranscodingJob job = mMediaTranscodeManager.enqueueRequest(request,
+                        .setClientUid(uid)
+                        .setSourceUri(uri)
+                        .setDestinationUri(transcodeUri)
+                        .setType(MediaTranscodeManager.TRANSCODING_TYPE_VIDEO)
+                        .setPriority(MediaTranscodeManager.PRIORITY_REALTIME)
+                        .setVideoTrackFormat(format)
+                        .build();
+        TranscodingSession session = mMediaTranscodeManager.enqueueRequest(request,
                 ForegroundThread.getExecutor(),
-                j -> finishTranscodingResult(uid, src, j, latch));
+                s -> finishTranscodingResult(uid, src, s, latch));
 
-        logEvent("Transcoding start: " + src + ". Uid: " + uid, true /* toast */, job);
-        return job;
+        logEvent("Transcoding start: " + src + ". Uid: " + uid, true /* toast */, session);
+        return session;
     }
 
-    private boolean waitTranscodingResult(int uid, String src, TranscodingJob job,
+    private boolean waitTranscodingResult(int uid, String src, TranscodingSession session,
             CountDownLatch latch) {
         try {
             int timeout = getTranscodeTimeoutSeconds(src);
 
             String waitStartLog = "Transcoding wait start: " + src + ". Uid: " + uid + ". Timeout: "
                     + timeout + "s";
-            logEvent(waitStartLog, false /* toast */, job);
+            logEvent(waitStartLog, false /* toast */, session);
 
             boolean latchResult = latch.await(timeout, TimeUnit.SECONDS);
-            boolean transcodeResult = job.getResult() == TranscodingJob.RESULT_SUCCESS;
+            boolean transcodeResult = session.getResult() == TranscodingSession.RESULT_SUCCESS;
 
             String waitEndLog = "Transcoding wait end: " + src + ". Uid: " + uid + ". Timeout: "
                     + !latchResult + ". Success: " + transcodeResult;
-            logEvent(waitEndLog, false /* toast */, job);
+            logEvent(waitEndLog, false /* toast */, session);
 
             return transcodeResult;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            Log.w(TAG, "Transcoding latch interrupted." + job);
+            Log.w(TAG, "Transcoding latch interrupted." + session);
             return false;
         }
     }
@@ -386,16 +386,16 @@ public class TranscodeHelper {
         return (int) (sizeMb * TRANSCODING_TIMEOUT_COEFFICIENT);
     }
 
-    private void finishTranscodingResult(int uid, String src, TranscodingJob job,
+    private void finishTranscodingResult(int uid, String src, TranscodingSession session,
             CountDownLatch latch) {
-        synchronized (mTranscodingJobs) {
+        synchronized (mTranscodingSessions) {
             latch.countDown();
-            job.cancel();
-            mTranscodingJobs.remove(src);
-            mTranscodingLatches.remove(job.getJobId());
+            session.cancel();
+            mTranscodingSessions.remove(src);
+            mTranscodingLatches.remove(session.getSessionId());
         }
 
-        logEvent("Transcoding end: " + src + ". Uid: " + uid, true /* toast */, job);
+        logEvent("Transcoding end: " + src + ". Uid: " + uid, true /* toast */, session);
     }
 
     private boolean updateTranscodeStatus(String path, int transcodeStatus) {
@@ -449,8 +449,8 @@ public class TranscodeHelper {
         return qb.query(getDatabaseHelperForUri(uri), projection, extras, null);
     }
 
-    private void logEvent(String event, boolean toast, @Nullable TranscodingJob job) {
-        Log.d(TAG, event + (job == null ? "" : job));
+    private void logEvent(String event, boolean toast, @Nullable TranscodingSession session) {
+        Log.d(TAG, event + (session == null ? "" : session));
 
         if (toast && SystemProperties.getBoolean("fuse.sys.transcode_show_toast", false)) {
             ForegroundThread.getExecutor().execute(() ->

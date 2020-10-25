@@ -109,8 +109,10 @@ unique_ptr<vector<RedactionRange>> RedactionInfo::getOverlappingRedactionRanges(
             }
         }
 
-        CHECK(first_redaction <= last_redaction);
-        return std::make_unique<vector<RedactionRange>>(first_redaction, last_redaction + 1);
+        if (first_redaction != redaction_ranges_.end()) {
+            CHECK(first_redaction <= last_redaction);
+            return std::make_unique<vector<RedactionRange>>(first_redaction, last_redaction + 1);
+        }
     }
     return std::make_unique<vector<RedactionRange>>();
 }

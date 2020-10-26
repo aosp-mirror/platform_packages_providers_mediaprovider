@@ -164,7 +164,7 @@ public class ModernMediaScanner implements MediaScanner {
             "(?i)^/storage/[^/]+(?:/[0-9]+)?$");
     private static final Pattern PATTERN_INVISIBLE = Pattern.compile(
             "(?i)^/storage/[^/]+(?:/[0-9]+)?/"
-                    + "(?:(?:Android/(?:data|obb)$)|"
+                    + "(?:(?:Android/(?:data|obb|sandbox)$)|"
                     + "(?:\\.transcode$)|"
                     + "(?:(?:Movies|Music|Pictures)/.thumbnails$))");
 

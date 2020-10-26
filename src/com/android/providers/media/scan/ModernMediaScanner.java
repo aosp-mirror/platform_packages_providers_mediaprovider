@@ -159,6 +159,10 @@ public class ModernMediaScanner implements MediaScanner {
 
     private static final int BATCH_SIZE = 32;
     private static final int MAX_XMP_SIZE_BYTES = 1024 * 1024;
+    // |excludeDirs * 2| < 1000 which is the max SQL expression size
+    // Because we add |excludeDir| and |excludeDir/| in the SQL expression to match dir and subdirs
+    // See SQLITE_MAX_EXPR_DEPTH in sqlite3.c
+    private static final int MAX_EXCLUDE_DIRS = 450;
 
     private static final Pattern PATTERN_VISIBLE = Pattern.compile(
             "(?i)^/storage/[^/]+(?:/[0-9]+)?(?:/Android/sandbox/([^/]+))?$");
@@ -616,8 +620,13 @@ public class ModernMediaScanner implements MediaScanner {
                     mPendingCleanDirectories.add(dir.toFile().getPath());
                 } else {
                     Log.d(TAG, "Skipping preVisitDirectory " + dir.toFile());
-                    mExcludeDirs.add(dir.toFile().getPath());
-                    return FileVisitResult.SKIP_SUBTREE;
+                    if (mExcludeDirs.size() <= MAX_EXCLUDE_DIRS) {
+                        mExcludeDirs.add(dir.toFile().getPath());
+                        return FileVisitResult.SKIP_SUBTREE;
+                    } else {
+                        Log.w(TAG, "ExcludeDir size exceeded, not skipping preVisitDirectory "
+                                + dir.toFile());
+                    }
                 }
             }
 

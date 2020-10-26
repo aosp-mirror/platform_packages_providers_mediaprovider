@@ -466,6 +466,7 @@ public class ModernMediaScannerTest {
 
             assertShouldntScanDirectory(new File(prefix + "/Android/data"));
             assertShouldntScanDirectory(new File(prefix + "/Android/obb"));
+            assertShouldntScanDirectory(new File(prefix + "/Android/sandbox"));
 
             assertShouldntScanDirectory(new File(prefix + "/Pictures/.thumbnails"));
             assertShouldntScanDirectory(new File(prefix + "/Movies/.thumbnails"));

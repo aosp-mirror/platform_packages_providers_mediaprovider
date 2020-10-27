@@ -45,6 +45,8 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.DatabaseHelper;
 
+import com.google.common.base.Strings;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -527,7 +529,7 @@ public class SQLiteQueryBuilder {
         if (isStrictGrammar()) {
             enforceStrictGrammar(selection, groupBy, having, sortOrder, limit);
         }
-        if (isStrict()) {
+        if (isStrict() && hasUserWhere(selection)) {
             // Validate the user-supplied selection to detect syntactic anomalies
             // in the selection string that could indicate a SQL injection attempt.
             // The idea is to ensure that the selection clause is a valid SQL expression
@@ -647,7 +649,7 @@ public class SQLiteQueryBuilder {
         if (isStrictGrammar()) {
             enforceStrictGrammar(selection, null, null, null, null);
         }
-        if (isStrict()) {
+        if (isStrict() && hasUserWhere(selection)) {
             // Validate the user-supplied selection to detect syntactic anomalies
             // in the selection string that could indicate a SQL injection attempt.
             // The idea is to ensure that the selection clause is a valid SQL expression
@@ -729,7 +731,7 @@ public class SQLiteQueryBuilder {
         if (isStrictGrammar()) {
             enforceStrictGrammar(selection, null, null, null, null);
         }
-        if (isStrict()) {
+        if (isStrict() && hasUserWhere(selection)) {
             // Validate the user-supplied selection to detect syntactic anomalies
             // in the selection string that could indicate a SQL injection attempt.
             // The idea is to ensure that the selection clause is a valid SQL expression
@@ -762,6 +764,10 @@ public class SQLiteQueryBuilder {
             }
         }
         return com.android.providers.media.util.DatabaseUtils.executeUpdateDelete(db, sql, sqlArgs);
+    }
+
+    private static boolean hasUserWhere(@Nullable String selection) {
+        return !Strings.isNullOrEmpty(selection);
     }
 
     private void enforceStrictColumns(@Nullable String[] projection) {

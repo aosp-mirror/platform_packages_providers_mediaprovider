@@ -1144,6 +1144,10 @@ public class MediaProvider extends ContentProvider {
         mMediaScanner.onIdleScanStopped();
     }
 
+    /**
+     * Orphan any content of the given package. This will delete Android/media orphaned files from
+     * the database.
+     */
     public void onPackageOrphaned(String packageName) {
         mExternalDatabase.runWithTransaction((db) -> {
             onPackageOrphaned(db, packageName);
@@ -1151,14 +1155,28 @@ public class MediaProvider extends ContentProvider {
         });
     }
 
+    /**
+     * Orphan any content of the given package from the given database. This will delete
+     * Android/media orphaned files from the database.
+     */
     public void onPackageOrphaned(@NonNull SQLiteDatabase db, @NonNull String packageName) {
+        // Delete files from Android/media.
+        String relativePath = "Android/media/" + DatabaseUtils.escapeForLike(packageName) + "/%";
+        final int countDeleted = db.delete(
+                "files",
+                "relative_path LIKE ? ESCAPE '\\' AND owner_package_name=?",
+                new String[] {relativePath, packageName});
+        Log.d(TAG, "Deleted " + countDeleted + " Android/media items belonging to "
+                + packageName + " on " + db.getPath());
+
+        // Orphan rest of files.
         final ContentValues values = new ContentValues();
         values.putNull(FileColumns.OWNER_PACKAGE_NAME);
 
-        final int count = db.update("files", values,
+        final int countOrphaned = db.update("files", values,
                 "owner_package_name=?", new String[] { packageName });
-        if (count > 0) {
-            Log.d(TAG, "Orphaned " + count + " items belonging to "
+        if (countOrphaned > 0) {
+            Log.d(TAG, "Orphaned " + countOrphaned + " items belonging to "
                     + packageName + " on " + db.getPath());
         }
     }

@@ -48,6 +48,7 @@ import android.media.ExifInterface;
 import android.media.MediaFormat;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Environment;
@@ -1596,7 +1597,7 @@ public final class MediaStore {
              * The MTP storage ID of the file
              * @hide
              */
-            @UnsupportedAppUsage
+            @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.R, trackingBug = 170729553)
             @Deprecated
             // @Column(Cursor.FIELD_TYPE_INTEGER)
             public static final String STORAGE_ID = "storage_id";

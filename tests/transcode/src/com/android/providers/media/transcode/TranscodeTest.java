@@ -16,10 +16,20 @@
 
 package com.android.providers.media.transcode;
 
+import static com.android.providers.media.transcode.TranscodeTestUtils.assertFileContent;
+import static com.android.providers.media.transcode.TranscodeTestUtils.assertTranscode;
+import static com.android.providers.media.transcode.TranscodeTestUtils.open;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
+import android.Manifest;
 import android.os.Environment;
+import android.os.ParcelFileDescriptor;
+import android.os.SystemClock;
 import android.system.Os;
+import android.util.Log;
 
 import androidx.test.runner.AndroidJUnit4;
 
@@ -46,7 +56,10 @@ public class TranscodeTest {
     @Before
     public void setUp() throws Exception {
         TranscodeTestUtils.pollForExternalStorageState();
+        TranscodeTestUtils.grantPermission(Manifest.permission.READ_EXTERNAL_STORAGE);
+        TranscodeTestUtils.pollForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, true);
         TranscodeTestUtils.enableSeamlessTranscoding();
+        TranscodeTestUtils.skipTranscodingForUid(Os.getuid());
     }
 
     @After
@@ -63,17 +76,14 @@ public class TranscodeTest {
         File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
         try {
             TranscodeTestUtils.stageHEVCVideoFile(modernFile);
-            long size = modernFile.length();
 
-            TranscodeTestUtils.skipTranscodingForUid(Os.getuid());
-            FileInputStream fisOriginal = new FileInputStream(modernFile);
+            ParcelFileDescriptor pfdOriginal = open(modernFile, false);
+
             TranscodeTestUtils.unskipTranscodingForAll();
-            FileInputStream fisTranscoded = new FileInputStream(modernFile);
 
-            assertFileContent(fisOriginal, fisTranscoded, size, false);
+            ParcelFileDescriptor pfdTranscoded = open(modernFile, false);
 
-            fisOriginal.close();
-            fisTranscoded.close();
+            assertFileContent(pfdOriginal, pfdTranscoded, false);
         } finally {
             modernFile.delete();
         }
@@ -88,39 +98,108 @@ public class TranscodeTest {
         File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
         try {
             TranscodeTestUtils.stageHEVCVideoFile(modernFile);
-            long size = modernFile.length();
 
-            FileInputStream fisTranscoded1 = new FileInputStream(modernFile);
-            FileInputStream fisTranscoded2 = new FileInputStream(modernFile);
+            TranscodeTestUtils.unskipTranscodingForAll();
 
-            assertFileContent(fisTranscoded1, fisTranscoded2, size, true);
+            ParcelFileDescriptor pfdTranscoded1 = open(modernFile, false);
+            ParcelFileDescriptor pfdTranscoded2 = open(modernFile, false);
 
-            fisTranscoded1.close();
-            fisTranscoded2.close();
+            assertFileContent(pfdTranscoded1, pfdTranscoded2, true);
         } finally {
             modernFile.delete();
         }
     }
 
-    private void assertFileContent(FileInputStream fisOriginal, FileInputStream fisTranscoded,
-            long fileSize, boolean assertSame) throws IOException {
-        final int readBytesLen = 10;
-        byte[] original = new byte[readBytesLen];
-        byte[] transcoded = new byte[readBytesLen];
-        long ind = 0;
-        final int seekLen = 1024;
-        boolean isSame = true;
+    /**
+     * Tests that deletes are visible across legacy and modern apps
+     * @throws Exception
+     */
+    @Test
+    public void testDeleteTranscodedFile() throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        try {
+            TranscodeTestUtils.stageHEVCVideoFile(modernFile);
 
-        while (isSame && ind < fileSize) {
-            assertEquals(readBytesLen, fisOriginal.read(original));
-            assertEquals(readBytesLen, fisTranscoded.read(transcoded));
+            TranscodeTestUtils.unskipTranscodingForAll();
 
-            isSame = Arrays.equals(original, transcoded);
+            assertTrue(modernFile.delete());
+            assertFalse(modernFile.exists());
 
-            ind += seekLen + readBytesLen;
-            fisOriginal.skip(seekLen);
-            fisTranscoded.skip(seekLen);
+            TranscodeTestUtils.unskipTranscodingForAll();
+
+            assertFalse(modernFile.exists());
+        } finally {
+            modernFile.delete();
         }
-        assertEquals(assertSame, isSame);
+    }
+
+    /**
+     * Tests that renames are visible across legacy and modern apps
+     * @throws Exception
+     */
+    @Test
+    public void testRenameTranscodedFile() throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        File destFile = new File(DIR_CAMERA, "renamed_" + HEVC_FILE_NAME);
+        try {
+            TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+
+            TranscodeTestUtils.unskipTranscodingForAll();
+
+            assertTrue(modernFile.renameTo(destFile));
+            assertTrue(destFile.exists());
+            assertFalse(modernFile.exists());
+
+            TranscodeTestUtils.skipTranscodingForUid(Os.getuid());
+
+            assertTrue(destFile.exists());
+            assertFalse(modernFile.exists());
+        } finally {
+            modernFile.delete();
+            destFile.delete();
+        }
+    }
+
+    /**
+     * Tests that transcode doesn't start until read(2)
+     * @throws Exception
+     */
+    @Test
+    public void testLazyTranscodedFile() throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        try {
+            TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+
+            assertTranscode(modernFile, false);
+
+            TranscodeTestUtils.unskipTranscodingForAll();
+
+            assertTranscode(modernFile, true);
+        } finally {
+            modernFile.delete();
+        }
+    }
+
+    /**
+     * Tests that transcode cache is reused after rename
+     * @throws Exception
+     */
+    @Test
+    public void testTranscodedCacheReuseAfterRename() throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        File destFile = new File(DIR_CAMERA, "renamed_" + HEVC_FILE_NAME);
+        try {
+            TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+            TranscodeTestUtils.unskipTranscodingForAll();
+
+            assertTranscode(modernFile, true);
+
+            assertTrue(modernFile.renameTo(destFile));
+
+            assertTranscode(destFile, false);
+        } finally {
+            modernFile.delete();
+            destFile.delete();
+        }
     }
 }

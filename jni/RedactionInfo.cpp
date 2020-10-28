@@ -30,12 +30,36 @@ namespace fuse {
  * Given ranges should be sorted, and they remain sorted.
  */
 static void mergeOverlappingRedactionRanges(vector<RedactionRange>& ranges) {
+    if (ranges.size() == 0) return;
     int newRangesSize = ranges.size();
     for (int i = 0; i < ranges.size() - 1; ++i) {
         if (ranges[i].second >= ranges[i + 1].first) {
             ranges[i + 1].first = ranges[i].first;
             ranges[i + 1].second = std::max(ranges[i].second, ranges[i + 1].second);
             // Invalidate the redundant range
+            ranges[i].first = LONG_MAX;
+            ranges[i].second = LONG_MAX;
+            newRangesSize--;
+        }
+    }
+    if (newRangesSize < ranges.size()) {
+        // Move invalid ranges to end of array
+        std::sort(ranges.begin(), ranges.end());
+        ranges.resize(newRangesSize);
+    }
+}
+
+/**
+ * Removes any range with zero size.
+ *
+ * If ranges are modified, it will be guaranteed to be sorted.
+ */
+static void removeZeroSizeRedactionRanges(vector<RedactionRange>& ranges) {
+    int newRangesSize = ranges.size();
+    for (int i = 0; i < ranges.size(); ++i) {
+        if (ranges[i].first == ranges[i].second) {
+            // This redaction range is of length zero, hence we don't have anything
+            // to redact in this range, so remove it from the redaction_ranges_.
             ranges[i].first = LONG_MAX;
             ranges[i].second = LONG_MAX;
             newRangesSize--;
@@ -74,6 +98,7 @@ void RedactionInfo::processRedactionRanges(int redaction_ranges_num,
         redaction_ranges_[i].second = static_cast<off64_t>(redaction_ranges[2 * i + 1]);
     }
     std::sort(redaction_ranges_.begin(), redaction_ranges_.end());
+    removeZeroSizeRedactionRanges(redaction_ranges_);
     mergeOverlappingRedactionRanges(redaction_ranges_);
 }
 
@@ -99,7 +124,7 @@ unique_ptr<vector<RedactionRange>> RedactionInfo::getOverlappingRedactionRanges(
         auto first_redaction = redaction_ranges_.end();
         auto last_redaction = redaction_ranges_.begin();
         for (auto iter = redaction_ranges_.begin(); iter != redaction_ranges_.end(); ++iter) {
-            if (iter->second >= start && iter->first < end) {
+            if (iter->second > start && iter->first < end) {
                 if (iter < first_redaction) first_redaction = iter;
                 if (iter > last_redaction) last_redaction = iter;
             }
@@ -118,44 +143,63 @@ unique_ptr<vector<RedactionRange>> RedactionInfo::getOverlappingRedactionRanges(
 }
 
 void RedactionInfo::getReadRanges(off64_t off, size_t size, std::vector<ReadRange>* out) const {
-    auto rr = getOverlappingRedactionRanges(size, off);
-    if (rr->size() == 0) {
+    const auto rr = getOverlappingRedactionRanges(size, off);
+    const size_t num_ranges = rr->size();
+    if (num_ranges == 0) {
         return;
     }
 
-    // Add a sentinel redaction range to make sure we don't go out of vector
-    // limits when computing the end of the last non-redacted range.
-    // This ranges is invalid because its starting point is larger than it's ending point.
-    rr->push_back(RedactionRange(LLONG_MAX, LLONG_MAX - 1));
+    const off64_t read_start = off;
+    const off64_t read_end = static_cast<off64_t>(read_start + size);
 
-    int rr_idx = 0;
-    off64_t start = off;
-    const off64_t read_end = static_cast<off64_t>(start + size);
+    // The algorithm for computing redaction ranges is very simple.
+    // Given a set of overlapping redaction ranges [s1, e1) [s2, e2) .. [sN, eN) for a read
+    // [s, e)
+    //
+    // We can construct a series of indices that we know will be the starts of every read range
+    // that we intend to return. Then, it's relatively simple to compute the lengths of the ranges.
+    // Also note that the read ranges we return always alternate in whether they're redacting or
+    // not. i.e, we will never return two consecutive redacting ranges or non redacting ranges.
+    std::vector<off64_t> sorted_indices;
 
-    while (true) {
-        const auto& current_redaction = rr->at(rr_idx);
-        off64_t end;
-        if (current_redaction.first <= start && start < current_redaction.second) {
-            // |start| is within a redaction range, so we must serve a redacted read.
-            end = std::min(read_end, current_redaction.second);
-            out->push_back(ReadRange(start, (end - start), true /* is_redaction */));
-            rr_idx++;
-        } else {
-            // |start| is either before the current redaction range, or beyond the end
-            // of the last redaction range, in which case redaction.first is LLONG_MAX.
-            end = std::min(read_end, current_redaction.first);
-            out->push_back(ReadRange(start, (end - start), false /* is_redaction */));
-        }
+    // Compute the list of indices -- this list will always contain { e1, s2, e2... sN }
+    // In addition, it may contain s or both (s and s1), depending on the start index.
+    // In addition, it may contain e or both (e and eN), depending on the end index.
+    //
+    // For a concrete example, consider ranges [10, 20) and [30, 40)
+    // For a read [0, 60) : sorted_indices will be { 0, 10, 20, 30, 40, 60 } is_first = false
+    // For a read [15, 60) : sorted_indices will be { 15, 20, 30, 40, 60 } is_first = true
+    // For a read [0, 35) : sorted_indices will be { 0, 10, 20, 30, 35 } is_first = false
+    // For a read [15, 35) : sorted_indices will be { 15, 20, 30, 35 } is_first = true
+    for (int i = 0; i < num_ranges; ++i) {
+        sorted_indices.push_back(rr->at(i).first);
+        sorted_indices.push_back(rr->at(i).second);
+    }
 
-        start = end;
-        // If we've done things correctly, start must point at |off + size| once we're
-        // through computing all of our redaction ranges.
-        if (start == read_end) {
-            break;
-        }
-        // If we're continuing iteration, the start of the next range must always be within
-        // the read bounds.
-        CHECK(start < read_end);
+    // Find the right position for read_start in sorted_indices
+    // Either insert at the beginning or replace s1 with read_start
+    bool is_first_range_redaction = true;
+    if (read_start < rr->at(0).first) {
+        is_first_range_redaction = false;
+        sorted_indices.insert(sorted_indices.begin(), read_start);
+    } else {
+        sorted_indices.front() = read_start;
+    }
+
+    // Find the right position for read_end in sorted_indices
+    // Either insert at the end or replace eN with read_end
+    if (read_end > rr->at(num_ranges - 1).second) {
+        sorted_indices.push_back(read_end);
+    } else {
+        sorted_indices.back() = read_end;
+    }
+
+    bool is_redaction = is_first_range_redaction;
+    for (int i = 0; i < (sorted_indices.size() - 1); ++i) {
+        const off64_t read_size = sorted_indices[i + 1] - sorted_indices[i];
+        CHECK(read_size > 0);
+        out->push_back(ReadRange(sorted_indices[i], read_size, is_redaction));
+        is_redaction = !is_redaction;
     }
 }
 

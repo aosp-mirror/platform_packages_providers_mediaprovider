@@ -182,7 +182,7 @@ public class TranscodeHelper {
         if (result) {
             updateTranscodeStatus(src, TRANSCODE_COMPLETE);
         } else {
-            logEvent("Transcoding timed out for " + src + ". session: ", true /* toast */, session);
+            logEvent("Transcoding failed for " + src + ". session: ", true /* toast */, session);
             // Attempt to workaround media transcoding deadlock, b/165374867
             // Cancelling a deadlocked session seems to unblock the transcoder
             finishTranscodingResult(uid, src, session, latch);

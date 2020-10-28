@@ -7099,7 +7099,7 @@ public class MediaProvider extends ContentProvider {
             //   couldn't return a valid db row, or,
             // * There is no db row corresponding to the requested path, which is more unlikely.
             // In both of these cases, it means that app doesn't have access permission to the file.
-            Log.e(TAG, "Couldn't find file: " + path);
+            Log.e(TAG, "Couldn't find file: " + path, e);
             return OsConstants.EACCES;
         } catch (IllegalStateException | SecurityException e) {
             Log.e(TAG, "Permission to access file: " + path + " is denied");

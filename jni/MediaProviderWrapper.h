@@ -183,6 +183,13 @@ class MediaProviderWrapper final {
     bool ShouldAllowLookup(uid_t uid, int path_user_id);
 
     /**
+     * Determines if the passed in user ID is an app clone user (paired with user 0)
+     *
+     * @param userId the user ID to check
+     */
+    bool IsAppCloneUser(uid_t userId);
+
+    /**
      * Initializes per-process static variables associated with the lifetime of
      * a managed runtime.
      */
@@ -207,6 +214,7 @@ class MediaProviderWrapper final {
     jmethodID mid_is_uid_for_package_;
     jmethodID mid_on_file_created_;
     jmethodID mid_should_allow_lookup_;
+    jmethodID mid_is_app_clone_user_;
     jmethodID mid_get_io_path_;
     jmethodID mid_get_transforms_;
     jmethodID mid_transform_;

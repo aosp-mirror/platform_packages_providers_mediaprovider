@@ -102,20 +102,9 @@ public class TranscodeHelper {
      * Never transcode for these packages.
      * TODO(b/169327180): Replace this with allow list from server.
      */
-    private static final String[] ALLOW_LIST = new String[0];
-    /**
-     * Force transcode for these package names.
-     * TODO(b/169849854): Remove this when app capabilities can be used to make this decision.
-     */
-    private static String[] TRANSCODE_LIST = new String[] {
-            "com.facebook.katana",
-            "com.google.android.talk",
-            "com.snapchat.android",
-            "com.instagram.android",
-            // TODO: Add "com.google.android.apps.photos", to teamfood after investigating issue
-            "com.linecorp.b612.android",
-            "com.zhiliaoapp.musically",
-            "com.tencent.mm"
+    private static final String[] ALLOW_LIST = new String[]{
+            // TODO: Remove "com.google.android.apps.photos", after investigating issue.
+            "com.google.android.apps.photos"
     };
 
     public TranscodeHelper(Context context, MediaProvider mediaProvider) {
@@ -200,8 +189,8 @@ public class TranscodeHelper {
         }
 
         Pair<Long, Integer> cacheInfo = getTranscodeCacheInfoFromDB(path);
-        final long rowId =cacheInfo.first;
-        if (rowId == -1 ) {
+        final long rowId = cacheInfo.first;
+        if (rowId == -1) {
             // No database row found, The file is pending/trashed or not added to database yet.
             // Assuming that no transcoding needed.
             return path;
@@ -236,7 +225,7 @@ public class TranscodeHelper {
 
     public boolean shouldTranscode(String path, int uid) {
         final boolean transcodeEnabled
-                = SystemProperties.getBoolean("persist.fuse.sys.transcode", false);
+                = SystemProperties.getBoolean("persist.sys.fuse.transcode", false);
         if (!transcodeEnabled) {
             return false;
         }
@@ -247,7 +236,7 @@ public class TranscodeHelper {
 
         // Transcode only if file needs transcoding
         try (Cursor cursor = queryFileForTranscode(path,
-                new String[] {FileColumns._VIDEO_CODEC_TYPE})) {
+                new String[]{FileColumns._VIDEO_CODEC_TYPE})) {
             if (cursor == null || !cursor.moveToNext()) {
                 Log.d(TAG, "Couldn't find database row for path " + path +
                         ", Assuming no seamless transcoding needed.");
@@ -261,30 +250,27 @@ public class TranscodeHelper {
         // TODO(b/169327180): We should also check app's targetSDK version to verify if app still
         //  qualifies to be on the allow list.
         List<String> allowList = Arrays.asList(ALLOW_LIST);
-        List<String> transcodeList = Arrays.asList(TRANSCODE_LIST);
         final String[] callingPackages = mMediaProvider.getSharedPackagesForUidForTranscoding(uid);
-        for (String callingPackage: callingPackages) {
+        for (String callingPackage : callingPackages) {
             if (allowList.contains(callingPackage)) {
                 return false;
             }
-            if (transcodeList.contains(callingPackage)) {
-                return true;
-            }
         }
 
-        int supportedUid = SystemProperties.getInt("fuse.sys.transcode_uid", -2);
-        if ((supportedUid == uid) || (supportedUid == -1)) {
-            return true;
+        List<String> uidsToSkip = Arrays.asList(
+                SystemProperties.get("persist.sys.fuse.transcode_skip_uids").split(","));
+        if (uidsToSkip.contains(String.valueOf(uid))) {
+            return false;
         }
 
-        List<String> supportedPackages =
-                Arrays.asList(SystemProperties.get("fuse.sys.transcode_package").split(","));
-        for (String callingPackage: callingPackages) {
-            if (supportedPackages.contains(callingPackage)) {
-                return true;
+        List<String> packagesToSkip = Arrays.asList(
+                SystemProperties.get("persist.sys.fuse.transcode_skip_packages").split(","));
+        for (String callingPackage : callingPackages) {
+            if (packagesToSkip.contains(callingPackage)) {
+                return false;
             }
         }
-        return false;
+        return true;
     }
 
     public boolean supportsTranscode(String path) {
@@ -303,7 +289,7 @@ public class TranscodeHelper {
                 return Pair.create(cursor.getLong(0), cursor.getInt(1));
             }
         }
-        return Pair.create((long)-1, TRANSCODE_EMPTY);
+        return Pair.create((long) -1, TRANSCODE_EMPTY);
     }
 
     public boolean isTranscodeFileCached(String path, String transcodePath) {
@@ -408,7 +394,7 @@ public class TranscodeHelper {
         final int match = MediaProvider.FILES;
         final SQLiteQueryBuilder qb = mMediaProvider.getQueryBuilderForTranscoding(TYPE_UPDATE,
                 match, uri, Bundle.EMPTY, null);
-        final String[] selectionArgs = new String[] {path};
+        final String[] selectionArgs = new String[]{path};
 
         ContentValues values = new ContentValues();
         values.put(FileColumns._TRANSCODE_STATUS, transcodeStatus);

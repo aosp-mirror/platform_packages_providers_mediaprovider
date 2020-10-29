@@ -4074,7 +4074,10 @@ public class MediaProvider extends ContentProvider {
         // Handle callers using legacy filtering
         final String filter = uri.getQueryParameter("filter");
 
-        final boolean includeAllVolumes = "1".equals(uri.getQueryParameter(ALL_VOLUMES));
+        // Only accept ALL_VOLUMES parameter up until R, because we're not convinced we want
+        // to commit to this as an API.
+        final boolean includeAllVolumes = (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) ?
+                "1".equals(uri.getQueryParameter(ALL_VOLUMES)) : false;
         final String callingPackage = getCallingPackageOrSelf();
 
         switch (match) {

@@ -241,7 +241,8 @@ struct fuse {
           tracker(mediaprovider::fuse::NodeTracker(&lock)),
           root(node::CreateRoot(_path, &lock, &tracker)),
           mp(0),
-          zero_addr(0) {}
+          zero_addr(0),
+          disable_dentry_cache(false) {}
 
     inline bool IsRoot(const node* node) const { return node == root; }
 
@@ -295,6 +296,7 @@ struct fuse {
     FAdviser fadviser;
 
     std::atomic_bool* active;
+    std::atomic_bool disable_dentry_cache;
 };
 
 static inline string get_name(node* n) {
@@ -385,7 +387,7 @@ static void fuse_inval(fuse_session* se, fuse_ino_t parent_ino, fuse_ino_t child
 
 static double get_timeout(struct fuse* fuse, const string& path, bool should_inval) {
     string media_path = fuse->GetEffectiveRootPath() + "/Android/media";
-    if (should_inval || path.find(media_path, 0) == 0 || is_package_owned_path(path, fuse->path)) {
+    if (fuse->disable_dentry_cache || should_inval || path.find(media_path, 0) == 0 || is_package_owned_path(path, fuse->path)) {
         // We set dentry timeout to 0 for the following reasons:
         // 1. Case-insensitive lookups need to invalidate other case-insensitive dentry matches
         // 2. Installd might delete Android/media/<package> dirs when app data is cleared.
@@ -1799,6 +1801,12 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path) {
     // Custom logging for libfuse
     if (android::base::GetBoolProperty("persist.sys.fuse.log", false)) {
         fuse_set_log_func(fuse_logger);
+    }
+
+    uid_t userId = getuid() / PER_USER_RANGE;
+    if (userId != 0 && mp.IsAppCloneUser(userId)) {
+        // Disable dentry caching for the app clone user
+        fuse->disable_dentry_cache = true;
     }
 
     struct fuse_session

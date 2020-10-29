@@ -1840,16 +1840,24 @@ public class MediaProvider extends ContentProvider {
      * Gets {@link ContentValues} for updating database entry to {@code path}.
      */
     private ContentValues getContentValuesForFuseRename(String path, String newMimeType,
-            boolean checkHidden) {
+            boolean wasHidden, boolean isHidden) {
         ContentValues values = new ContentValues();
         values.put(MediaColumns.MIME_TYPE, newMimeType);
         values.put(MediaColumns.DATA, path);
 
-        if (checkHidden && shouldFileBeHidden(new File(path))) {
+        if (isHidden) {
             values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_NONE);
         } else {
             int mediaType = MimeUtils.resolveMediaType(newMimeType);
             values.put(FileColumns.MEDIA_TYPE, mediaType);
+            if (wasHidden) {
+                // Set this as pending so that apps can scan the file to update the metadata.
+                // Otherwise, scan will skip scanning this file because rename() doesn't change
+                // lastModifiedTime and scan assumes there is no change in the file.
+                // This should be safe because, in Q, apps had to insert new db row or scan the file
+                // to insert this file to database.
+                values.put(FileColumns.IS_PENDING, 1);
+            }
         }
         final boolean allowHidden = isCallingPackageAllowedHidden();
         if (!newMimeType.equalsIgnoreCase("null") &&
@@ -2034,12 +2042,14 @@ public class MediaProvider extends ContentProvider {
             final Bundle qbExtras = new Bundle();
             qbExtras.putStringArrayList(INCLUDED_DEFAULT_DIRECTORIES,
                     getIncludedDefaultDirectories());
+            final boolean wasHidden = FileUtils.isDirectoryHidden(new File(oldPath));
+            final boolean isHidden = FileUtils.isDirectoryHidden(new File(newPath));
             for (String filePath : fileList) {
                 final String newFilePath = newPath + "/" + filePath;
                 final String mimeType = MimeUtils.resolveMimeType(new File(newFilePath));
                 if(!updateDatabaseForFuseRename(helper, oldPath + "/" + filePath, newFilePath,
-                        getContentValuesForFuseRename(newFilePath, mimeType,
-                                false /* checkHidden  - will be fixed up below */), qbExtras)) {
+                        getContentValuesForFuseRename(newFilePath, mimeType, wasHidden, isHidden),
+                        qbExtras)) {
                     Log.e(TAG, "Calling package doesn't have write permission to rename file.");
                     return OsConstants.EPERM;
                 }
@@ -2113,11 +2123,13 @@ public class MediaProvider extends ContentProvider {
             throw new IllegalStateException("Failed to update database row with " + oldPath, e);
         }
 
+        final boolean wasHidden = shouldFileBeHidden(new File(oldPath));
+        final boolean isHidden = shouldFileBeHidden(new File(newPath));
         helper.beginTransaction();
         try {
             final String newMimeType = MimeUtils.resolveMimeType(new File(newPath));
             if (!updateDatabaseForFuseRename(helper, oldPath, newPath,
-                    getContentValuesForFuseRename(newPath, newMimeType, true /* checkHidden */))) {
+                    getContentValuesForFuseRename(newPath, newMimeType, wasHidden, isHidden))) {
                 if (!bypassRestrictions) {
                     Log.e(TAG, "Calling package doesn't have write permission to rename file.");
                     return OsConstants.EPERM;
@@ -2153,6 +2165,7 @@ public class MediaProvider extends ContentProvider {
         if (extractDisplayName(newPath).equals(".nomedia")) {
             scanFile(new File(newPath).getParentFile(), REASON_DEMAND);
         }
+
         return 0;
     }
 

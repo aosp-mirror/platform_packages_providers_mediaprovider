@@ -548,6 +548,8 @@ public class MediaProvider extends ContentProvider {
 
     private static final String CANONICAL = "canonical";
 
+    private static final String ALL_VOLUMES = "all_volumes";
+
     private BroadcastReceiver mPackageReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -4095,7 +4097,7 @@ public class MediaProvider extends ContentProvider {
         // Handle callers using legacy filtering
         final String filter = uri.getQueryParameter("filter");
 
-        boolean includeAllVolumes = false;
+        final boolean includeAllVolumes = "1".equals(uri.getQueryParameter(ALL_VOLUMES));
         final String callingPackage = getCallingPackageOrSelf();
 
         switch (match) {

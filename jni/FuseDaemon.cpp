@@ -1056,6 +1056,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     }
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     const string& path = get_path(node);
+    const string& build_path = node->BuildPath();
     if (!is_app_accessible_path(fuse->mp, path, ctx->uid)) {
         fuse_reply_err(req, ENOENT);
         return;
@@ -1069,7 +1070,9 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     }
 
     // TODO: If transform, disallow write
-    int status = fuse->mp->IsOpenAllowed(path, ctx->uid, is_requesting_write(fi->flags));
+    // Force permission check with the build path because the MediaProvider database might not be
+    // aware of the io_path
+    int status = fuse->mp->IsOpenAllowed(build_path, ctx->uid, is_requesting_write(fi->flags));
     if (status) {
         fuse_reply_err(req, status);
         return;
@@ -1098,6 +1101,8 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     if (is_requesting_write(fi->flags)) {
         ri = std::make_unique<RedactionInfo>();
     } else {
+        // TODO(b/171953356): Pass build_path for use during query, otherwise, MediaProvider would
+        // find the transcoded path
         ri = fuse->mp->GetRedactionInfo(path, req->ctx.uid, req->ctx.pid);
     }
 

@@ -24,6 +24,7 @@ import static android.app.PendingIntent.FLAG_ONE_SHOT;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+import static android.provider.MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT;
 import static android.provider.MediaStore.MATCH_DEFAULT;
 import static android.provider.MediaStore.MATCH_EXCLUDE;
 import static android.provider.MediaStore.MATCH_INCLUDE;
@@ -547,6 +548,8 @@ public class MediaProvider extends ContentProvider {
             "_id NOT IN (SELECT parent FROM files WHERE parent IS NOT NULL)";
 
     private static final String CANONICAL = "canonical";
+
+    private static final String ALL_VOLUMES = "all_volumes";
 
     private BroadcastReceiver mPackageReceiver = new BroadcastReceiver() {
         @Override
@@ -1205,6 +1208,37 @@ public class MediaProvider extends ContentProvider {
         });
     }
 
+    private boolean isAppCloneUserPair(int userId1, int userId2) {
+        try {
+            Method isAppCloneUserPair = StorageManager.class.getMethod("isAppCloneUserPair",
+                    int.class, int.class);
+            return (Boolean) isAppCloneUserPair.invoke(mStorageManager, userId1, userId2);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            Log.w(TAG, "isAppCloneUserPair failed. Users: " + userId1 + " and " + userId2);
+            return false;
+        }
+    }
+
+    /**
+     * Determines whether the passed in userId forms an app clone user pair with user 0.
+     *
+     * @param userId user ID to check
+     *
+     * Called from JNI in jni/MediaProviderWrapper.cpp
+     */
+    @Keep
+    public boolean isAppCloneUserForFuse(int userId) {
+        if (!isCrossUserEnabled()) {
+            Log.d(TAG, "CrossUser not enabled.");
+            return false;
+        }
+        boolean result = isAppCloneUserPair(0, userId);
+
+        Log.w(TAG, "isAppCloneUserPair for user " + userId + ": " + result);
+
+        return result;
+    }
+
     /**
      * Determines if to allow FUSE_LOOKUP for uid. Might allow uids that don't belong to the
      * MediaProvider user, depending on OEM configuration.
@@ -1234,23 +1268,15 @@ public class MediaProvider extends ContentProvider {
             return false;
         }
 
-        try {
-            Method isAppCloneUserPair = StorageManager.class.getMethod("isAppCloneUserPair",
-                    int.class, int.class);
-            boolean result = (Boolean) isAppCloneUserPair.invoke(mStorageManager, pathUserId,
-                    callingUserId);
-
-            if (result) {
-                Log.i(TAG, "CrossUser allowed. Users: " + callingUserId + " and " + pathUserId);
-            } else {
-                Log.w(TAG, "CrossUser isAppCloneUserPair check failed. Users: " + callingUserId
-                        + " and " + pathUserId);
-            }
-            return result;
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-            Log.w(TAG, "isAppCloneUserPair failed. Users: " + callingUserId + " and " + pathUserId);
-            return false;
+        boolean result = isAppCloneUserPair(pathUserId, callingUserId);
+        if (result) {
+            Log.i(TAG, "CrossUser allowed. Users: " + callingUserId + " and " + pathUserId);
+        } else {
+            Log.w(TAG, "CrossUser isAppCloneUserPair check failed. Users: " + callingUserId
+                    + " and " + pathUserId);
         }
+
+        return result;
     }
 
     private boolean isWorkProfile(int userId) {
@@ -4072,7 +4098,10 @@ public class MediaProvider extends ContentProvider {
         // Handle callers using legacy filtering
         final String filter = uri.getQueryParameter("filter");
 
-        boolean includeAllVolumes = false;
+        // Only accept ALL_VOLUMES parameter up until R, because we're not convinced we want
+        // to commit to this as an API.
+        final boolean includeAllVolumes = (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) ?
+                "1".equals(uri.getQueryParameter(ALL_VOLUMES)) : false;
         final String callingPackage = getCallingPackageOrSelf();
 
         switch (match) {
@@ -6578,9 +6607,7 @@ public class MediaProvider extends ContentProvider {
             final ParcelFileDescriptor pfd;
             final String filePath = file.getPath();
             final int uid = Binder.getCallingUid();
-            // TODO(b/158465539): Use API constant
-            final boolean shouldTranscode =
-                    !opts.containsKey("android.provider.extra.ACCEPT_ORIGINAL_MEDIA_FORMAT")
+            final boolean shouldTranscode = !opts.containsKey(EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT)
                     && mTranscodeHelper.shouldTranscode(filePath, uid);
             if (redactionInfo.redactionRanges.length > 0) {
                 // If fuse is enabled, we can provide an fd that points to the fuse

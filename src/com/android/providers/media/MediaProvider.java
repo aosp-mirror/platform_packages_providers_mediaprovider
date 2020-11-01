@@ -24,6 +24,7 @@ import static android.app.PendingIntent.FLAG_ONE_SHOT;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+import static android.provider.MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT;
 import static android.provider.MediaStore.MATCH_DEFAULT;
 import static android.provider.MediaStore.MATCH_EXCLUDE;
 import static android.provider.MediaStore.MATCH_INCLUDE;
@@ -4097,7 +4098,10 @@ public class MediaProvider extends ContentProvider {
         // Handle callers using legacy filtering
         final String filter = uri.getQueryParameter("filter");
 
-        final boolean includeAllVolumes = "1".equals(uri.getQueryParameter(ALL_VOLUMES));
+        // Only accept ALL_VOLUMES parameter up until R, because we're not convinced we want
+        // to commit to this as an API.
+        final boolean includeAllVolumes = (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) ?
+                "1".equals(uri.getQueryParameter(ALL_VOLUMES)) : false;
         final String callingPackage = getCallingPackageOrSelf();
 
         switch (match) {
@@ -6603,9 +6607,7 @@ public class MediaProvider extends ContentProvider {
             final ParcelFileDescriptor pfd;
             final String filePath = file.getPath();
             final int uid = Binder.getCallingUid();
-            // TODO(b/158465539): Use API constant
-            final boolean shouldTranscode =
-                    !opts.containsKey("android.provider.extra.ACCEPT_ORIGINAL_MEDIA_FORMAT")
+            final boolean shouldTranscode = !opts.containsKey(EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT)
                     && mTranscodeHelper.shouldTranscode(filePath, uid);
             if (redactionInfo.redactionRanges.length > 0) {
                 // If fuse is enabled, we can provide an fd that points to the fuse
@@ -7128,7 +7130,7 @@ public class MediaProvider extends ContentProvider {
             //   couldn't return a valid db row, or,
             // * There is no db row corresponding to the requested path, which is more unlikely.
             // In both of these cases, it means that app doesn't have access permission to the file.
-            Log.e(TAG, "Couldn't find file: " + path);
+            Log.e(TAG, "Couldn't find file: " + path, e);
             return OsConstants.EACCES;
         } catch (IllegalStateException | SecurityException e) {
             Log.e(TAG, "Permission to access file: " + path + " is denied");

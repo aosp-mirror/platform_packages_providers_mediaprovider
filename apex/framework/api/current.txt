@@ -26,6 +26,7 @@ package android.provider {
     field public static final String ACTION_VIDEO_CAPTURE = "android.media.action.VIDEO_CAPTURE";
     field public static final String AUTHORITY = "media";
     field @NonNull public static final android.net.Uri AUTHORITY_URI;
+    field public static final String EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT = "android.provider.extra.ACCEPT_ORIGINAL_MEDIA_FORMAT";
     field public static final String EXTRA_BRIGHTNESS = "android.provider.extra.BRIGHTNESS";
     field public static final String EXTRA_DURATION_LIMIT = "android.intent.extra.durationLimit";
     field public static final String EXTRA_FINISH_ON_COMPLETION = "android.intent.extra.finishOnCompletion";

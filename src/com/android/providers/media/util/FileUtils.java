@@ -49,6 +49,7 @@ import android.net.Uri;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.os.storage.StorageManager;
+import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
 import android.system.ErrnoException;
@@ -840,10 +841,15 @@ public class FileUtils {
     /**
      * Return volume name which hosts the given path.
      */
-    public static @NonNull String getVolumeName(@NonNull Context context, @NonNull File path) {
+    public static @NonNull String getVolumeName(@NonNull Context context, @NonNull File path)
+            throws FileNotFoundException {
         if (contains(Environment.getStorageDirectory(), path)) {
-            return context.getSystemService(StorageManager.class).getStorageVolume(path)
-                    .getMediaStoreVolumeName();
+            StorageVolume volume = context.getSystemService(StorageManager.class)
+                    .getStorageVolume(path);
+            if (volume == null) {
+                throw new FileNotFoundException("Can't find volume for " + path.getPath());
+            }
+            return volume.getMediaStoreVolumeName();
         } else {
             return MediaStore.VOLUME_INTERNAL;
         }

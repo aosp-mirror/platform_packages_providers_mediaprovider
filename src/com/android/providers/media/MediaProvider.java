@@ -7161,7 +7161,12 @@ public class MediaProvider extends ContentProvider {
      */
     @NonNull
     private Uri getContentUriForFile(@NonNull String filePath, @NonNull String mimeType) {
-        final String volName = FileUtils.getVolumeName(getContext(), new File(filePath));
+        final String volName;
+        try {
+            volName = FileUtils.getVolumeName(getContext(), new File(filePath));
+        } catch (FileNotFoundException e) {
+            throw new IllegalStateException("Couldn't get volume name for " + filePath);
+        }
         Uri uri = Files.getContentUri(volName);
         final String topLevelDir = extractTopLevelDir(filePath);
         if (topLevelDir == null) {

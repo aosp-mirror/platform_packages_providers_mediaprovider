@@ -37,9 +37,10 @@
       <item quantity="other">దానితో పాటు, <xliff:g id="COUNT_1">^1</xliff:g> అదనపు అంశాలు</item>
       <item quantity="one">దానితో పాటు, <xliff:g id="COUNT_0">^1</xliff:g> అదనపు అంశం</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"తాత్కాలిక యాప్ ఫైల్‌లను తొలగించాలా?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"తాత్కాలిక యాప్ ఫైల్‌లను క్లియర్ చేయండి"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"కొన్ని తాత్కాలిక ఫైల్స్‌ను క్లియర్ చేయడానికి <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> అనుమతి కోరుతోంది. దీని వలన బ్యాటరీ లేదా సెల్యూలార్ డేటా వినియోగం పెరగవచ్చు."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"తాత్కాలిక యాప్ ఫైల్‌లను క్లియర్ చేస్తోంది…"</string>
+    <string name="clear" msgid="5524638938415865915">"క్లియర్ చేయండి"</string>
     <string name="allow" msgid="8885707816848569619">"అనుమతించు"</string>
     <string name="deny" msgid="6040983710442068936">"నిరాకరించు"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

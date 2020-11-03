@@ -37,9 +37,10 @@
       <item quantity="other">Ayrıca <xliff:g id="COUNT_1">^1</xliff:g> ek öğe</item>
       <item quantity="one">Ayrıca <xliff:g id="COUNT_0">^1</xliff:g> ek öğe</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Geçici uygulama dosyaları temizlensin mi?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Geçici uygulama dosyalarını temizleyin"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> bazı geçici dosyaları temizlemek istiyor. Bu, pil veya hücresel veri kullanımında artışa yol açabilir."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Geçici uygulama dosyaları temizleniyor…"</string>
+    <string name="clear" msgid="5524638938415865915">"Temizle"</string>
     <string name="allow" msgid="8885707816848569619">"İzin ver"</string>
     <string name="deny" msgid="6040983710442068936">"Reddet"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

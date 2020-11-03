@@ -25,7 +25,7 @@
     <string name="root_videos" msgid="8792703517064649453">"Video\'s"</string>
     <string name="root_audio" msgid="3505830755201326018">"Audio"</string>
     <string name="root_documents" msgid="3829103301363849237">"Documenten"</string>
-    <string name="permission_required" msgid="1460820436132943754">"Toestemming vereist om dit item aan te passen of te verwijderen."</string>
+    <string name="permission_required" msgid="1460820436132943754">"Rechten vereist om dit item aan te passen of te verwijderen."</string>
     <string name="permission_required_action" msgid="706370952366113539">"Doorgaan"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"Toestaan"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Weigeren"</string>
@@ -37,9 +37,10 @@
       <item quantity="other">Plus <xliff:g id="COUNT_1">^1</xliff:g> extra items</item>
       <item quantity="one">Plus <xliff:g id="COUNT_0">^1</xliff:g> extra item</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Tijdelijke app-bestanden wissen?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Tijdelijke app-bestanden wissen"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> wil een aantal tijdelijke bestanden wissen. Dit kan leiden tot een groter verbruik van de batterij of mobiele data."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Tijdelijke app-bestanden wissen…"</string>
+    <string name="clear" msgid="5524638938415865915">"Wissen"</string>
     <string name="allow" msgid="8885707816848569619">"Toestaan"</string>
     <string name="deny" msgid="6040983710442068936">"Weigeren"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

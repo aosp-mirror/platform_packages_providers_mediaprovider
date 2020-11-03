@@ -37,9 +37,10 @@
       <item quantity="one">At <xliff:g id="COUNT_1">^1</xliff:g> pang item</item>
       <item quantity="other">At <xliff:g id="COUNT_1">^1</xliff:g> pang item</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"I-clear ang mga pansamantalang file ng app?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"I-clear ang mga pansamantalang file ng app"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"Gustong mag-clear ng <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> ng ilang pansamantalang file. Baka lumakas ang paggamit ng baterya o cellular data dahil dito."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Kini-clear ang mga pansamantalang file ng app…"</string>
+    <string name="clear" msgid="5524638938415865915">"I-clear"</string>
     <string name="allow" msgid="8885707816848569619">"Payagan"</string>
     <string name="deny" msgid="6040983710442068936">"Tanggihan"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

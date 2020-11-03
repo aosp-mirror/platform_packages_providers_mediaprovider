@@ -37,9 +37,10 @@
       <item quantity="other">他 <xliff:g id="COUNT_1">^1</xliff:g> 件の項目</item>
       <item quantity="one">他 <xliff:g id="COUNT_0">^1</xliff:g> 件の項目</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"アプリの一時ファイルを削除しますか？"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"アプリの一時ファイルの削除"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>が一部の一時ファイルを削除する権限を求めています。この処理により、電池やモバイルデータの使用量が増えることがあります。"</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"アプリの一時ファイルを削除しています…"</string>
+    <string name="clear" msgid="5524638938415865915">"削除"</string>
     <string name="allow" msgid="8885707816848569619">"許可"</string>
     <string name="deny" msgid="6040983710442068936">"許可しない"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

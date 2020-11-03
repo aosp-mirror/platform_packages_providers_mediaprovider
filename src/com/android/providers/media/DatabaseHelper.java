@@ -118,15 +118,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     final @Nullable OnLegacyMigrationListener mMigrationListener;
     final @Nullable UnaryOperator<String> mIdGenerator;
     final Set<String> mFilterVolumeNames = new ArraySet<>();
+    private final String mMigrationFileName;
     long mScanStartTime;
     long mScanStopTime;
-
-    /**
-     * Flag indicating that this database should invoke
-     * {@link #migrateFromLegacy} to migrate from a legacy database, typically
-     * only set when this database is starting from scratch.
-     */
-    boolean mMigrateFromLegacy;
 
     /**
      * Lock used to guard against deadlocks in SQLite; the write lock is used to
@@ -195,6 +189,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         mFilesListener = filesListener;
         mMigrationListener = migrationListener;
         mIdGenerator = idGenerator;
+        mMigrationFileName = "." + mVolumeName;
 
         // Configure default filters until we hear differently
         if (mInternal) {
@@ -373,21 +368,25 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     @Override
     public void onOpen(final SQLiteDatabase db) {
         Log.v(TAG, "onOpen() for " + mName);
-        if (mMigrateFromLegacy) {
-            // Clear flag, since we should only attempt once
-            mMigrateFromLegacy = false;
-
-            mSchemaLock.writeLock().lock();
+        final File migration = new File(mContext.getFilesDir(), mMigrationFileName);
+        mSchemaLock.writeLock().lock();
+        try {
+            if (!migration.exists()) {
+                return;
+            }
             try {
                 // Temporarily drop indexes to improve migration performance
                 makePristineIndexes(db);
                 migrateFromLegacy(db);
                 createLatestIndexes(db, mInternal);
             } finally {
-                mSchemaLock.writeLock().unlock();
+                // Clear flag, since we should only attempt once
+                migration.delete();
             }
+        } finally {
+            mSchemaLock.writeLock().unlock();
+            Log.v(TAG, "onOpen() finished for " + mName);
         }
-        Log.v(TAG, "onOpen() finished for " + mName);
     }
 
     @GuardedBy("mProjectionMapCache")
@@ -824,7 +823,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         // Since this code is used by both the legacy and modern providers, we
         // only want to migrate when we're running as the modern provider
         if (!mLegacyProvider) {
-            mMigrateFromLegacy = true;
+            try {
+                new File(mContext.getFilesDir(), mMigrationFileName).createNewFile();
+            } catch (IOException e) {
+                Log.e(TAG, "Failed to create a migration file: ." + mVolumeName, e);
+            }
         }
     }
 

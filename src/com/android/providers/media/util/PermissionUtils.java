@@ -23,6 +23,7 @@ import static android.Manifest.permission.UPDATE_DEVICE_STATS;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.app.AppOpsManager.MODE_ALLOWED;
 import static android.app.AppOpsManager.OPSTR_LEGACY_STORAGE;
+import static android.app.AppOpsManager.OPSTR_NO_ISOLATED_STORAGE;
 import static android.app.AppOpsManager.OPSTR_READ_MEDIA_AUDIO;
 import static android.app.AppOpsManager.OPSTR_READ_MEDIA_IMAGES;
 import static android.app.AppOpsManager.OPSTR_READ_MEDIA_VIDEO;
@@ -41,8 +42,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 public class PermissionUtils {
-
-    public static final String OPSTR_NO_ISOLATED_STORAGE = "android:no_isolated_storage";
 
     // Callers must hold both the old and new permissions, so that we can
     // handle obscure cases like when an app targets Q but was installed on

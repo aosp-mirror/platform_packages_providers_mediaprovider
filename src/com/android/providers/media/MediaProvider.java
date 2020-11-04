@@ -978,10 +978,10 @@ public class MediaProvider extends ContentProvider {
             // throw an IllegalArgumentException during MediaProvider startup. In combination with
             // MediaProvider's CTS tests it should give us guarantees that OPSTR_NO_ISOLATED_STORAGE
             // is defined.
-            mAppOpsManager.startWatchingMode(PermissionUtils.OPSTR_NO_ISOLATED_STORAGE,
+            mAppOpsManager.startWatchingMode(AppOpsManager.OPSTR_NO_ISOLATED_STORAGE,
                     null /* all packages */, mModeListener);
         } catch (IllegalArgumentException e) {
-            Log.w(TAG, "Failed to start watching " + PermissionUtils.OPSTR_NO_ISOLATED_STORAGE, e);
+            Log.w(TAG, "Failed to start watching " + AppOpsManager.OPSTR_NO_ISOLATED_STORAGE, e);
         }
 
         ProviderInfo provider = mPackageManager.resolveContentProvider(

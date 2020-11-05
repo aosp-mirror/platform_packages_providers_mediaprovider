@@ -101,6 +101,7 @@ import com.android.providers.media.util.XmpInterface;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
@@ -236,6 +237,8 @@ public class ModernMediaScanner implements MediaScanner {
         try (Scan scan = new Scan(file, reason, /*ownerPackage*/ null)) {
             scan.run();
         } catch (OperationCanceledException ignored) {
+        } catch (FileNotFoundException e) {
+           Log.e(TAG, "Couldn't find directory to scan", e) ;
         }
     }
 
@@ -250,6 +253,9 @@ public class ModernMediaScanner implements MediaScanner {
             scan.run();
             return scan.getFirstResult();
         } catch (OperationCanceledException ignored) {
+            return null;
+        } catch (FileNotFoundException e) {
+            Log.e(TAG, "Couldn't find file to scan", e) ;
             return null;
         }
     }
@@ -333,7 +339,8 @@ public class ModernMediaScanner implements MediaScanner {
          */
         private int mHiddenDirCount;
 
-        public Scan(File root, int reason, @Nullable String ownerPackage) {
+        public Scan(File root, int reason, @Nullable String ownerPackage)
+                throws FileNotFoundException {
             Trace.beginSection("ctor");
 
             mClient = mContext.getContentResolver()

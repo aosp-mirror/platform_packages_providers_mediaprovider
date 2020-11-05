@@ -135,6 +135,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      */
     private final ReentrantReadWriteLock mSchemaLock = new ReentrantReadWriteLock();
 
+    private static Object sMigrationLock = new Object();
+
     public interface OnSchemaChangeListener {
         public void onSchemaChange(@NonNull String volumeName, int versionFrom, int versionTo,
                 long itemCount, long durationMillis);
@@ -369,23 +371,26 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     public void onOpen(final SQLiteDatabase db) {
         Log.v(TAG, "onOpen() for " + mName);
         final File migration = new File(mContext.getFilesDir(), mMigrationFileName);
-        mSchemaLock.writeLock().lock();
-        try {
+        // Another thread entering migration block will be blocked until the
+        // migration is complete from current thread.
+        synchronized (sMigrationLock) {
             if (!migration.exists()) {
+                Log.v(TAG, "onOpen() finished for " + mName);
                 return;
             }
+
+            mSchemaLock.writeLock().lock();
             try {
                 // Temporarily drop indexes to improve migration performance
                 makePristineIndexes(db);
                 migrateFromLegacy(db);
                 createLatestIndexes(db, mInternal);
             } finally {
+                mSchemaLock.writeLock().unlock();
                 // Clear flag, since we should only attempt once
                 migration.delete();
+                Log.v(TAG, "onOpen() finished for " + mName);
             }
-        } finally {
-            mSchemaLock.writeLock().unlock();
-            Log.v(TAG, "onOpen() finished for " + mName);
         }
     }
 

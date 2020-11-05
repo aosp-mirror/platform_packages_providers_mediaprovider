@@ -518,15 +518,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         if (state == null) {
             throw new IllegalStateException("No transaction in progress");
         }
-        if (state.successful) {
-            // Run blocking tasks inside the same transaction. This optimizes
-            // the database operations from blocking tasks to run in same
-            // transaction and sends notifications resulting from these tasks
-            // in batch.
-            for (int i = 0; i < state.blockingTasks.size(); i++) {
-                state.blockingTasks.get(i).run();
-            }
-        }
         mTransactionState.remove();
 
         final SQLiteDatabase db = super.getWritableDatabase();
@@ -534,6 +525,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         mSchemaLock.readLock().unlock();
 
         if (state.successful) {
+            for (int i = 0; i < state.blockingTasks.size(); i++) {
+                state.blockingTasks.get(i).run();
+            }
             // We carefully "phase" our two sets of work here to ensure that we
             // completely finish dispatching all change notifications before we
             // process background tasks, to ensure that the background work

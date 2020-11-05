@@ -518,15 +518,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         if (state == null) {
             throw new IllegalStateException("No transaction in progress");
         }
-        if (state.successful) {
-            // Run blocking tasks inside the same transaction. This optimizes
-            // the database operations from blocking tasks to run in same
-            // transaction and sends notifications resulting from these tasks
-            // in batch.
-            for (int i = 0; i < state.blockingTasks.size(); i++) {
-                state.blockingTasks.get(i).run();
-            }
-        }
         mTransactionState.remove();
 
         final SQLiteDatabase db = super.getWritableDatabase();
@@ -534,6 +525,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         mSchemaLock.readLock().unlock();
 
         if (state.successful) {
+            for (int i = 0; i < state.blockingTasks.size(); i++) {
+                state.blockingTasks.get(i).run();
+            }
             // We carefully "phase" our two sets of work here to ensure that we
             // completely finish dispatching all change notifications before we
             // process background tasks, to ensure that the background work
@@ -1515,25 +1509,31 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         final String selection = FileColumns.MEDIA_TYPE + "=?";
         final String[] selectionArgs = new String[]{String.valueOf(FileColumns.MEDIA_TYPE_NONE)};
 
+        ArrayMap<Long, Integer> newMediaTypes = new ArrayMap<>();
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.MIME_TYPE },
                 selection, selectionArgs, null, null, null, null)) {
             Log.d(TAG, "Recomputing " + c.getCount() + " MediaType values");
 
+            // Accumulate all the new MEDIA_TYPE updates.
             final ContentValues values = new ContentValues();
             while (c.moveToNext()) {
                 values.clear();
                 final long id = c.getLong(0);
                 final String mimeType = c.getString(1);
                 // Only update Document and Subtitle media type
-                if (MimeUtils.isDocumentMimeType(mimeType)) {
-                    values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_DOCUMENT);
-                } else if (MimeUtils.isSubtitleMimeType(mimeType)) {
-                    values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_SUBTITLE);
-                }
-                if (!values.isEmpty()) {
-                    db.update("files", values, "_id=" + id, null);
+                if (MimeUtils.isSubtitleMimeType(mimeType)) {
+                    newMediaTypes.put(id, FileColumns.MEDIA_TYPE_SUBTITLE);
+                } else if (MimeUtils.isDocumentMimeType(mimeType)) {
+                    newMediaTypes.put(id, FileColumns.MEDIA_TYPE_DOCUMENT);
                 }
             }
+        }
+        // Now, update all the new MEDIA_TYPE values.
+        final ContentValues values = new ContentValues();
+        for (long id: newMediaTypes.keySet()) {
+            values.clear();
+            values.put(FileColumns.MEDIA_TYPE, newMediaTypes.get(id));
+            db.update("files", values, "_id=" + id, null);
         }
     }
 

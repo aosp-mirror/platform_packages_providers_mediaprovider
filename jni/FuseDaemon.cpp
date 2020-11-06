@@ -105,6 +105,9 @@ constexpr size_t MAX_READ_SIZE = 128 * 1024;
 // Stolen from: UserHandle#getUserId
 constexpr int PER_USER_RANGE = 100000;
 
+// Stolen from: UserManagerService
+constexpr int MAX_USER_ID = UINT32_MAX / PER_USER_RANGE;
+
 // Regex copied from FileUtils.java in MediaProvider, but without media directory.
 const std::regex PATTERN_OWNED_PATH(
     "^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb|sandbox)/([^/]+)(/?.*)?",
@@ -548,7 +551,9 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
     // requested path
     if (match.size() == 2 && std::to_string(getuid() / PER_USER_RANGE) != match[1].str()) {
         // If user id mismatch, check cross-user lookups
-        if (!fuse->mp->ShouldAllowLookup(req->ctx.uid, std::stoi(match[1].str()))) {
+        long userId = strtol(match[1].str().c_str(), nullptr, 10);
+        if (userId < 0 || userId > MAX_USER_ID ||
+            !fuse->mp->ShouldAllowLookup(req->ctx.uid, userId)) {
             *error_code = EACCES;
             return nullptr;
         }

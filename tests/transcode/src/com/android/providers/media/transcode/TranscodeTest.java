@@ -65,10 +65,9 @@ public class TranscodeTest {
             TranscodeTestUtils.stageHEVCVideoFile(modernFile);
             long size = modernFile.length();
 
+            TranscodeTestUtils.skipTranscodingForUid(Os.getuid());
             FileInputStream fisOriginal = new FileInputStream(modernFile);
-
-            TranscodeTestUtils.setLegacy(Os.getuid());
-
+            TranscodeTestUtils.unskipTranscodingForAll();
             FileInputStream fisTranscoded = new FileInputStream(modernFile);
 
             assertFileContent(fisOriginal, fisTranscoded, size, false);
@@ -76,7 +75,6 @@ public class TranscodeTest {
             fisOriginal.close();
             fisTranscoded.close();
         } finally {
-            TranscodeTestUtils.unsetLegacy();
             modernFile.delete();
         }
     }
@@ -92,8 +90,6 @@ public class TranscodeTest {
             TranscodeTestUtils.stageHEVCVideoFile(modernFile);
             long size = modernFile.length();
 
-            TranscodeTestUtils.setLegacy(Os.getuid());
-
             FileInputStream fisTranscoded1 = new FileInputStream(modernFile);
             FileInputStream fisTranscoded2 = new FileInputStream(modernFile);
 
@@ -102,7 +98,6 @@ public class TranscodeTest {
             fisTranscoded1.close();
             fisTranscoded2.close();
         } finally {
-            TranscodeTestUtils.unsetLegacy();
             modernFile.delete();
         }
     }
@@ -122,7 +117,7 @@ public class TranscodeTest {
 
             isSame = Arrays.equals(original, transcoded);
 
-            ind += seekLen;
+            ind += seekLen + readBytesLen;
             fisOriginal.skip(seekLen);
             fisTranscoded.skip(seekLen);
         }

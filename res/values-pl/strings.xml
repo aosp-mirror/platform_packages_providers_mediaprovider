@@ -21,7 +21,7 @@
     <string name="app_label" msgid="9035307001052716210">"Przechowywanie multimediów"</string>
     <string name="artist_label" msgid="8105600993099120273">"Wykonawca"</string>
     <string name="unknown" msgid="2059049215682829375">"Nieznany"</string>
-    <string name="root_images" msgid="5861633549189045666">"Grafika"</string>
+    <string name="root_images" msgid="5861633549189045666">"Obrazy"</string>
     <string name="root_videos" msgid="8792703517064649453">"Filmy"</string>
     <string name="root_audio" msgid="3505830755201326018">"Dźwięk"</string>
     <string name="root_documents" msgid="3829103301363849237">"Dokumenty"</string>
@@ -41,8 +41,10 @@
       <item quantity="other">I <xliff:g id="COUNT_1">^1</xliff:g> dodatkowego elementu</item>
       <item quantity="one">I <xliff:g id="COUNT_0">^1</xliff:g> dodatkowy element</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Usunąć tymczasowe pliki aplikacji?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Usuwanie tymczasowych plików aplikacji"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"Aplikacja <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> chce usunąć niektóre pliki tymczasowe. Może to spowodować zwiększenie wykorzystania baterii lub komórkowej transmisji danych."</string>
+    <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Usuwam tymczasowe pliki aplikacji…"</string>
+    <string name="clear" msgid="5524638938415865915">"Wyczyść"</string>
     <string name="allow" msgid="8885707816848569619">"Zezwól"</string>
     <string name="deny" msgid="6040983710442068936">"Odmów"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

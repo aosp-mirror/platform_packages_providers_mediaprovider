@@ -23,7 +23,7 @@
     <string name="unknown" msgid="2059049215682829375">"غير معروف"</string>
     <string name="root_images" msgid="5861633549189045666">"الصور"</string>
     <string name="root_videos" msgid="8792703517064649453">"الفيديوهات"</string>
-    <string name="root_audio" msgid="3505830755201326018">"الصوت"</string>
+    <string name="root_audio" msgid="3505830755201326018">"صوتيات"</string>
     <string name="root_documents" msgid="3829103301363849237">"المستندات"</string>
     <string name="permission_required" msgid="1460820436132943754">"مطلوب الحصول على إذن لتعديل هذا العنصر أو حذفه."</string>
     <string name="permission_required_action" msgid="706370952366113539">"متابعة"</string>
@@ -45,8 +45,10 @@
       <item quantity="other">و<xliff:g id="COUNT_1">^1</xliff:g> عنصر إضافي</item>
       <item quantity="one">وعنصر إضافي واحد (<xliff:g id="COUNT_0">^1</xliff:g>)</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"هل تريد محو ملفات التطبيق المؤقتة؟"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"محو ملفات التطبيق المؤقتة"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"يريد تطبيق <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> محو بعض الملفات المؤقتة. قد يؤدي هذا إلى زيادة استهلاك شحن البطارية أو بيانات شبكة الجوّال."</string>
+    <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"جارٍ محو ملفات التطبيق المؤقتة…"</string>
+    <string name="clear" msgid="5524638938415865915">"محو"</string>
     <string name="allow" msgid="8885707816848569619">"سماح"</string>
     <string name="deny" msgid="6040983710442068936">"رفض"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

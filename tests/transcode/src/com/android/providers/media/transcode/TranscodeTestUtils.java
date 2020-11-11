@@ -66,25 +66,21 @@ public class TranscodeTestUtils {
     }
 
     public static void enableSeamlessTranscoding() throws Exception {
-        executeShellCommand("setprop persist.fuse.sys.transcode true");
+        executeShellCommand("setprop persist.sys.fuse.transcode true");
     }
 
     public static void disableSeamlessTranscoding() throws Exception {
-        executeShellCommand("setprop persist.fuse.sys.transcode false");
+        executeShellCommand("setprop persist.sys.fuse.transcode false");
     }
 
-    public static void setLegacy(int uid) throws IOException {
-        final String command = "setprop fuse.sys.transcode_uid " +  uid;
+    public static void skipTranscodingForUid(int uid) throws IOException {
+        final String command = "setprop persist.sys.fuse.transcode_skip_uids "
+                + String.valueOf(uid);
         executeShellCommand(command);
     }
 
-    public static void setLegacyAll() throws IOException {
-        final String command = "setprop fuse.sys.transcode_uid " + -1;
-        executeShellCommand(command);
-    }
-
-    public static void unsetLegacy() throws IOException {
-        final String command = "setprop fuse.sys.transcode_uid " + -2;
+    public static void unskipTranscodingForAll() throws IOException {
+        final String command = "setprop persist.sys.fuse.transcode_skip_uids -1";
         executeShellCommand(command);
     }
 

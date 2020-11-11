@@ -597,11 +597,6 @@ public class ModernMediaScanner implements MediaScanner {
 
         @Override
         public void close() {
-            // Sanity check that we drained any pending operations
-            if (!mPending.isEmpty()) {
-                throw new IllegalStateException();
-            }
-
             // Release any locks we're still holding, typically when we
             // encountered an exception; we snapshot the original list so we're
             // not confused as it's mutated by release operations

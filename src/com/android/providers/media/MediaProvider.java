@@ -782,7 +782,8 @@ public class MediaProvider extends ContentProvider {
                 break;
 
             case FileColumns.MEDIA_TYPE_PLAYLIST:
-                consumer.accept(Audio.Playlists.Members.getContentUri(volumeName, id));
+                consumer.accept(ContentUris.withAppendedId(
+                        MediaStore.Audio.Playlists.getContentUri(volumeName), id));
                 break;
         }
 
@@ -3652,6 +3653,7 @@ public class MediaProvider extends ContentProvider {
             return attachedVolume;
         }
 
+        final DatabaseHelper helper = getDatabaseForUri(uri);
         switch (match) {
             case AUDIO_PLAYLISTS_ID:
             case AUDIO_PLAYLISTS_ID_MEMBERS: {
@@ -3675,8 +3677,8 @@ public class MediaProvider extends ContentProvider {
                 // files on disk to ensure that we can reliably migrate between
                 // devices and recover from database corruption
                 final long id = addPlaylistMembers(playlistUri, initialValues);
-                final ContentResolver resolver = getContext().getContentResolver();
-                resolver.notifyChange(playlistUri, null, ContentResolver.NOTIFY_INSERT);
+                acceptWithExpansion(helper::notifyInsert, resolvedVolumeName, playlistId,
+                        FileColumns.MEDIA_TYPE_PLAYLIST, false);
                 return ContentUris.withAppendedId(MediaStore.Audio.Playlists.Members
                         .getContentUri(originalVolumeName, playlistId), id);
             }
@@ -3758,7 +3760,6 @@ public class MediaProvider extends ContentProvider {
         long rowId = -1;
         Uri newUri = null;
 
-        final DatabaseHelper helper = getDatabaseForUri(uri);
         final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_INSERT, match, uri, extras, null);
 
         switch (match) {
@@ -4708,6 +4709,7 @@ public class MediaProvider extends ContentProvider {
             count = 1;
         }
 
+        final DatabaseHelper helper = getDatabaseForUri(uri);
         switch (match) {
             case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
                 extras.putString(QUERY_ARG_SQL_SELECTION,
@@ -4723,14 +4725,13 @@ public class MediaProvider extends ContentProvider {
                 // devices and recover from database corruption
                 int numOfRemovedPlaylistMembers = removePlaylistMembers(playlistUri, extras);
                 if (numOfRemovedPlaylistMembers > 0) {
-                    final ContentResolver resolver = getContext().getContentResolver();
-                    resolver.notifyChange(playlistUri, null, ContentResolver.NOTIFY_DELETE);
+                    acceptWithExpansion(helper::notifyDelete, volumeName, playlistId,
+                            FileColumns.MEDIA_TYPE_PLAYLIST, false);
                 }
                 return numOfRemovedPlaylistMembers;
             }
         }
 
-        final DatabaseHelper helper = getDatabaseForUri(uri);
         final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_DELETE, match, uri, extras, null);
 
         {
@@ -5410,6 +5411,7 @@ public class MediaProvider extends ContentProvider {
         final int targetSdkVersion = getCallingPackageTargetSdkVersion();
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
+        final DatabaseHelper helper = getDatabaseForUri(uri);
 
         switch (match) {
             case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
@@ -5452,13 +5454,12 @@ public class MediaProvider extends ContentProvider {
                     addPlaylistMembers(playlistUri, values);
                 }
 
-                final ContentResolver resolver = getContext().getContentResolver();
-                resolver.notifyChange(playlistUri, null, ContentResolver.NOTIFY_UPDATE);
+                acceptWithExpansion(helper::notifyUpdate, volumeName, playlistId,
+                        FileColumns.MEDIA_TYPE_PLAYLIST, false);
                 return 1;
             }
         }
 
-        final DatabaseHelper helper = getDatabaseForUri(uri);
         final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, match, uri, extras, null);
 
         // Give callers interacting with a specific media item a chance to

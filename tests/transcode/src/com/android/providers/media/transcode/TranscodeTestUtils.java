@@ -19,11 +19,19 @@ package com.android.providers.media.transcode;
 import static androidx.test.InstrumentationRegistry.getContext;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
+import android.app.AppOpsManager;
 import android.app.UiAutomation;
+import android.content.Context;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Environment;
 import android.os.FileUtils;
+import android.os.ParcelFileDescriptor;
+import android.os.SystemClock;
 import android.provider.MediaStore;
+import android.system.Os;
 import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
@@ -37,6 +45,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
@@ -47,7 +56,7 @@ public class TranscodeTestUtils {
     private static final long POLLING_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(20);
     private static final long POLLING_SLEEP_MILLIS = 100;
 
-    public static void stageHEVCVideoFile(File videoFile) throws IOException {
+    public static Uri stageHEVCVideoFile(File videoFile) throws IOException {
         if (!videoFile.getParentFile().exists()) {
             assertTrue(videoFile.getParentFile().mkdirs());
         }
@@ -60,9 +69,17 @@ public class TranscodeTestUtils {
             // the fully written bytes
             out.getFD().sync();
         }
-        // MediaProvider treats this app as app with MANAGE_EXTERNAL_STORAGE,
-        // so we have to explicitly insert this file to database.
-        MediaStore.scanFile(getContext().getContentResolver(), videoFile);
+        return MediaStore.scanFile(getContext().getContentResolver(), videoFile);
+    }
+
+    public static ParcelFileDescriptor open(File file, boolean forWrite) throws Exception {
+        // TODO(b/171953356): Switch to read_only fds if forWrite==false
+        return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_WRITE);
+    }
+
+    public static ParcelFileDescriptor open(Uri uri, boolean forWrite) throws Exception {
+        // TODO(b/171953356): Switch to read_only fds if forWrite==false
+        return getContext().getContentResolver().openFileDescriptor(uri, "rw");
     }
 
     public static void enableSeamlessTranscoding() throws Exception {
@@ -130,4 +147,100 @@ public class TranscodeTestUtils {
         throw new TimeoutException(errorMessage);
     }
 
+    public static void grantPermission(String permission) {
+        UiAutomation uiAutomation = InstrumentationRegistry.getInstrumentation().getUiAutomation();
+        uiAutomation.adoptShellPermissionIdentity("android.permission.GRANT_RUNTIME_PERMISSIONS");
+        try {
+            uiAutomation.grantRuntimePermission(getContext().getPackageName(), permission);
+        } finally {
+            uiAutomation.dropShellPermissionIdentity();
+        }
+    }
+
+    /**
+     * Polls until we're granted or denied a given permission.
+     */
+    public static void pollForPermission(String perm, boolean granted) throws Exception {
+        pollForCondition(() -> granted == checkPermissionAndAppOp(perm),
+                "Timed out while waiting for permission " + perm + " to be "
+                        + (granted ? "granted" : "revoked"));
+    }
+
+
+    /**
+     * Checks if the given {@code permission} is granted and corresponding AppOp is MODE_ALLOWED.
+     */
+    private static boolean checkPermissionAndAppOp(String permission) {
+        final int pid = Os.getpid();
+        final int uid = Os.getuid();
+        final Context context = getContext();
+        final String packageName = context.getPackageName();
+        if (context.checkPermission(permission, pid, uid) != PackageManager.PERMISSION_GRANTED) {
+            return false;
+        }
+
+        final String op = AppOpsManager.permissionToOp(permission);
+        // No AppOp associated with the given permission, skip AppOp check.
+        if (op == null) {
+            return true;
+        }
+
+        final AppOpsManager appOps = context.getSystemService(AppOpsManager.class);
+        try {
+            appOps.checkPackage(uid, packageName);
+        } catch (SecurityException e) {
+            return false;
+        }
+
+        return appOps.unsafeCheckOpNoThrow(op, uid, packageName) == AppOpsManager.MODE_ALLOWED;
+    }
+
+    public static void assertFileContent(ParcelFileDescriptor pfd1, ParcelFileDescriptor pfd2,
+            boolean assertSame) throws Exception {
+        final int len = 1024;
+        byte[] bytes1;
+        byte[] bytes2;
+        int size1 = 0;
+        int size2 = 0;
+
+        boolean isSame = true;
+        do {
+            bytes1 = new byte[len];
+            bytes2 = new byte[len];
+
+            size1 = Os.read(pfd1.getFileDescriptor(), bytes1, 0, len);
+            size2 = Os.read(pfd2.getFileDescriptor(), bytes2, 0, len);
+
+            assertTrue(size1 >= 0);
+            assertTrue(size2 >= 0);
+
+            isSame = (size1 == size2) && Arrays.equals(bytes1, bytes2);
+            if (!isSame) {
+                break;
+            }
+        } while (size1 > 0 && size2 > 0);
+
+        assertEquals(isSame, assertSame);
+    }
+
+    public static void assertTranscode(File file, boolean transcode) throws Exception {
+        long start = SystemClock.elapsedRealtimeNanos();
+        ParcelFileDescriptor pfd = open(file, false);
+        long end = SystemClock.elapsedRealtimeNanos();
+        long openDuration = end - start;
+
+        start = SystemClock.elapsedRealtimeNanos();
+        assertEquals(10, Os.pread(pfd.getFileDescriptor(), new byte[10], 0, 10, 0));
+        end = SystemClock.elapsedRealtimeNanos();
+        long readDuration = end - start;
+
+        // With transcoding read(2) dominates open(2)
+        // Without transcoding open(2) dominates IO
+        String message = "readDuration=" + readDuration + "ns. openDuration=" + openDuration + "ns";
+        if (transcode) {
+            assertTrue(message, readDuration > openDuration);
+        } else {
+            assertTrue(message, openDuration > readDuration);
+        }
+    }
 }

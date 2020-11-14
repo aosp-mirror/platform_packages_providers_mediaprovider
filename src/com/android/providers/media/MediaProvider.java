@@ -6643,7 +6643,7 @@ public class MediaProvider extends ContentProvider {
             if (redactionInfo.redactionRanges.length > 0) {
                 // If fuse is enabled, we can provide an fd that points to the fuse
                 // file system and handle redaction in the fuse handler when the caller reads.
-                Log.i(TAG, "Redacting with new FUSE for " + filePath);
+                Log.i(TAG, "Redacting with new FUSE for " + filePath + ". Uid: " + uid);
                 long tid = android.os.Process.myTid();
                 synchronized (mShouldRedactThreadIds) {
                     mShouldRedactThreadIds.add(tid);

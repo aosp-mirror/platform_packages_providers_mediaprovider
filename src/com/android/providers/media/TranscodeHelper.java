@@ -40,6 +40,7 @@ import android.media.MediaTranscodingException;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.os.SystemProperties;
 import android.provider.MediaStore.Files.FileColumns;
 import android.util.ArrayMap;
@@ -94,6 +95,7 @@ public class TranscodeHelper {
     @GuardedBy("mTranscodingSessions")
     private final SparseArray<CountDownLatch> mTranscodingLatches = new SparseArray<>();
     private final TranscodeUiNotifier mTranscodingUiNotifier;
+    private final TranscodeMetrics mTranscodingMetrics;
 
     private static final String[] TRANSCODE_CACHE_INFO_PROJECTION =
             {FileColumns._ID, FileColumns._TRANSCODE_STATUS};
@@ -115,7 +117,8 @@ public class TranscodeHelper {
         mTranscodeDirectory =
                 FileUtils.buildPath(Environment.getExternalStorageDirectory(), DIRECTORY_TRANSCODE);
         mTranscodeDirectory.mkdirs();
-        mTranscodingUiNotifier = new TranscodeUiNotifier(context);
+        mTranscodingMetrics = new TranscodeMetrics();
+        mTranscodingUiNotifier = new TranscodeUiNotifier(context, mTranscodingMetrics);
     }
 
     /**
@@ -342,11 +345,16 @@ public class TranscodeHelper {
                         .build();
         TranscodingSession session = mMediaTranscodeManager.enqueueRequest(request,
                 ForegroundThread.getExecutor(),
-                s -> finishTranscodingResult(uid, src, s, latch));
+                s -> {
+                    mTranscodingUiNotifier.stop(s, src);
+                    finishTranscodingResult(uid, src, s, latch);
+                    mTranscodingMetrics.logSessionEnd(s);
+                });
         session.setOnProgressUpdateListener(ForegroundThread.getExecutor(),
-                mTranscodingUiNotifier::setProgress);
+                (s, progress) -> mTranscodingUiNotifier.setProgress(s, src, progress));
 
-        mTranscodingUiNotifier.start(session);
+        mTranscodingMetrics.logSessionStart(session);
+        mTranscodingUiNotifier.start(session, src);
         logEvent("Transcoding start: " + src + ". Uid: " + uid, session);
         return session;
     }
@@ -389,7 +397,6 @@ public class TranscodeHelper {
             mTranscodingLatches.remove(session.getSessionId());
         }
 
-        mTranscodingUiNotifier.stop(session);
         logEvent("Transcoding end: " + src + ". Uid: " + uid, session);
     }
 
@@ -450,60 +457,144 @@ public class TranscodeHelper {
 
     private static class TranscodeUiNotifier {
         private static final int PROGRESS_MAX = 100;
-        private static final String TRANSCODE_CHANNEL_ID = "native_transcode_channel";
-        private static final String TRANSCODE_CHANNEL_NAME = "Native Transcode";
+        private static final int ALERT_DISMISS_DELAY_MS = 1000;
+        private static final int SHOW_PROGRESS_THRESHOLD_TIME_MS = 1000;
+        private static final String TRANSCODE_ALERT_CHANNEL_ID = "native_transcode_alert_channel";
+        private static final String TRANSCODE_ALERT_CHANNEL_NAME = "Native Transcode Alerts";
+        private static final String TRANSCODE_PROGRESS_CHANNEL_ID =
+                "native_transcode_progress_channel";
+        private static final String TRANSCODE_PROGRESS_CHANNEL_NAME = "Native Transcode Progress";
 
         private final NotificationManagerCompat mNotificationManager;
-        private final NotificationCompat.Builder mBuilder;
+        // Builder for creating alert notifications.
+        private final NotificationCompat.Builder mAlertBuilder;
+        // Builder for creating progress notifications.
+        private final NotificationCompat.Builder mProgressBuilder;
+        private final TranscodeMetrics mTranscodingMetrics;
 
-        TranscodeUiNotifier(Context context) {
+        TranscodeUiNotifier(Context context, TranscodeMetrics metrics) {
             mNotificationManager = NotificationManagerCompat.from(context);
-            createNotificationChannel(context);
-            mBuilder = createNotificationBuilder(context);
+            createAlertNotificationChannel(context);
+            createProgressNotificationChannel(context);
+            mAlertBuilder = createAlertNotificationBuilder(context);
+            mProgressBuilder = createProgressNotificationBuilder(context);
+            mTranscodingMetrics = metrics;
         }
 
-        void start(TranscodingSession session) {
+        void start(TranscodingSession session, String filePath) {
             ForegroundThread.getHandler().post(() -> {
+                mAlertBuilder.setContentTitle("Transcoding started");
+                mAlertBuilder.setContentText(FileUtils.extractDisplayName(filePath));
                 final int notificationId = session.getSessionId();
-                mBuilder.setProgress(/* max= */ 0, /* progress= */ 0, /* indeterminate= */ false);
-                mNotificationManager.notify(notificationId, mBuilder.build());
+                mNotificationManager.notify(notificationId, mAlertBuilder.build());
             });
         }
 
-        void stop(TranscodingSession session) {
-            ForegroundThread.getHandler().post(() -> {
-                final int notificationId = session.getSessionId();
-                mBuilder.setProgress(/* max= */ 0, /* progress= */ 0, /* indeterminate= */ false);
-                mNotificationManager.notify(notificationId, mBuilder.build());
-                mNotificationManager.cancel(notificationId);
-            });
+        void stop(TranscodingSession session, String filePath) {
+            endSessionWithMessage(session, filePath, getResultMessageForSession(session));
         }
 
-        void setProgress(TranscodingSession session,
+        void setProgress(TranscodingSession session, String filePath,
                 @IntRange(from = 0, to = PROGRESS_MAX) int progress) {
-            final int notificationId = session.getSessionId();
-            mBuilder.setProgress(PROGRESS_MAX, progress, /* indeterminate= */ false);
-            mNotificationManager.notify(notificationId, mBuilder.build());
+            if (shouldShowProgress(session)) {
+                mProgressBuilder.setContentText(FileUtils.extractDisplayName(filePath));
+                mProgressBuilder.setProgress(PROGRESS_MAX, progress, /* indeterminate= */ false);
+                final int notificationId = session.getSessionId();
+                mNotificationManager.notify(notificationId, mProgressBuilder.build());
+            }
         }
 
-        private void createNotificationChannel(Context context) {
-            NotificationChannel channel = new NotificationChannel(TRANSCODE_CHANNEL_ID,
-                    TRANSCODE_CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH);
-            // Register the channel with the system; you can't change the importance
-            // or other notification behaviors after this
+        private boolean shouldShowProgress(TranscodingSession session) {
+            return (System.currentTimeMillis() - mTranscodingMetrics.getSessionStartTime(session))
+                    > SHOW_PROGRESS_THRESHOLD_TIME_MS;
+        }
+
+        private void endSessionWithMessage(TranscodingSession session, String filePath,
+                String message) {
+            final Handler handler = ForegroundThread.getHandler();
+            handler.post(() -> {
+                mAlertBuilder.setContentTitle(message);
+                mAlertBuilder.setContentText(FileUtils.extractDisplayName(filePath));
+                final int notificationId = session.getSessionId();
+                mNotificationManager.notify(notificationId, mAlertBuilder.build());
+                // Auto-dismiss after a delay.
+                handler.postDelayed(() -> mNotificationManager.cancel(notificationId),
+                        ALERT_DISMISS_DELAY_MS);
+            });
+        }
+
+        private void createAlertNotificationChannel(Context context) {
+            NotificationChannel channel = new NotificationChannel(TRANSCODE_ALERT_CHANNEL_ID,
+                    TRANSCODE_ALERT_CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH);
             NotificationManager notificationManager = context.getSystemService(
                     NotificationManager.class);
             notificationManager.createNotificationChannel(channel);
         }
 
-        private static NotificationCompat.Builder createNotificationBuilder(Context context) {
+        private void createProgressNotificationChannel(Context context) {
+            NotificationChannel channel = new NotificationChannel(TRANSCODE_PROGRESS_CHANNEL_ID,
+                    TRANSCODE_PROGRESS_CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW);
+            NotificationManager notificationManager = context.getSystemService(
+                    NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+
+        private static NotificationCompat.Builder createAlertNotificationBuilder(Context context) {
             NotificationCompat.Builder builder = new NotificationCompat.Builder(context,
-                    TRANSCODE_CHANNEL_ID);
-            builder.setContentTitle("Transcoding Media")
-                    .setAutoCancel(false)
+                    TRANSCODE_ALERT_CHANNEL_ID);
+            builder.setAutoCancel(false)
                     .setOngoing(true)
                     .setSmallIcon(R.drawable.thumb_clip);
             return builder;
+        }
+
+        private static NotificationCompat.Builder createProgressNotificationBuilder(
+                Context context) {
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context,
+                    TRANSCODE_PROGRESS_CHANNEL_ID);
+            builder.setAutoCancel(false)
+                    .setOngoing(true)
+                    .setContentTitle("Transcoding media")
+                    .setSmallIcon(R.drawable.thumb_clip);
+            return builder;
+        }
+
+        private static String getResultMessageForSession(TranscodingSession session) {
+            switch (session.getResult()) {
+                case TranscodingSession.RESULT_CANCELED:
+                    return "Transcoding cancelled";
+                case TranscodingSession.RESULT_ERROR:
+                    return "Transcoding error";
+                case TranscodingSession.RESULT_SUCCESS:
+                    return "Transcoding success";
+                default:
+                    return "Transcoding result unknown";
+            }
+        }
+    }
+
+    /**
+     * Stores metrics for transcode sessions.
+     */
+    private static final class TranscodeMetrics {
+
+        // This should be accessed only in foreground thread.
+        private final SparseArray<Long> mSessionStartTimes = new SparseArray<>();
+
+        // Call this only in foreground thread.
+        long getSessionStartTime(TranscodingSession session) {
+            return mSessionStartTimes.get(session.getSessionId());
+        }
+
+        void logSessionStart(TranscodingSession session) {
+            ForegroundThread.getHandler().post(
+                    () -> mSessionStartTimes.append(session.getSessionId(),
+                            System.currentTimeMillis()));
+        }
+
+        void logSessionEnd(TranscodingSession session) {
+            ForegroundThread.getHandler().post(
+                    () -> mSessionStartTimes.remove(session.getSessionId()));
         }
     }
 }

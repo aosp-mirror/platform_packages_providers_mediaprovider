@@ -261,20 +261,20 @@ public class TranscodeHelper {
             }
         }
 
-        List<String> uidsToSkip = Arrays.asList(
-                SystemProperties.get("persist.sys.fuse.transcode_skip_uids").split(","));
-        if (uidsToSkip.contains(String.valueOf(uid))) {
-            return false;
+        List<String> transcodeUids = Arrays.asList(
+                SystemProperties.get("persist.sys.fuse.transcode_uids").split(","));
+        if (transcodeUids.contains(String.valueOf(uid))) {
+            return true;
         }
 
-        List<String> packagesToSkip = Arrays.asList(
-                SystemProperties.get("persist.sys.fuse.transcode_skip_packages").split(","));
+        List<String> transcodePackages = Arrays.asList(
+                SystemProperties.get("persist.sys.fuse.transcode_packages").split(","));
         for (String callingPackage : callingPackages) {
-            if (packagesToSkip.contains(callingPackage)) {
-                return false;
+            if (transcodePackages.contains(callingPackage)) {
+                return true;
             }
         }
-        return true;
+        return false;
     }
 
     public boolean supportsTranscode(String path) {

@@ -90,14 +90,14 @@ public class TranscodeTestUtils {
         executeShellCommand("setprop persist.sys.fuse.transcode false");
     }
 
-    public static void skipTranscodingForUid(int uid) throws IOException {
-        final String command = "setprop persist.sys.fuse.transcode_skip_uids "
+    public static void enableTranscodingForUid(int uid) throws IOException {
+        final String command = "setprop persist.sys.fuse.transcode_uids "
                 + String.valueOf(uid);
         executeShellCommand(command);
     }
 
-    public static void unskipTranscodingForAll() throws IOException {
-        final String command = "setprop persist.sys.fuse.transcode_skip_uids -1";
+    public static void disableTranscodingForAllUids() throws IOException {
+        final String command = "setprop persist.sys.fuse.transcode_uids -1";
         executeShellCommand(command);
     }
 

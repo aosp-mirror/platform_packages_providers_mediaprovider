@@ -1198,6 +1198,15 @@ public class MediaProvider extends ContentProvider {
         return mMediaScanner.scanFile(file, reason, ownerPackage);
     }
 
+    private Uri scanFileAsMediaProvider(File file, int reason) {
+        final LocalCallingIdentity tokenInner = clearLocalCallingIdentity();
+        try {
+            return scanFile(file, REASON_DEMAND);
+        } finally {
+            restoreLocalCallingIdentity(tokenInner);
+        }
+    }
+
     /**
      * Makes MediaScanner scan the given file.
      * @param file path of the file to be scanned
@@ -5813,14 +5822,17 @@ public class MediaProvider extends ContentProvider {
                         try (Cursor c = queryForSingleItem(updatedUri,
                                 new String[] { FileColumns.DATA }, null, null, null)) {
                             final File file = new File(c.getString(0));
-                            helper.postBlocking(() -> {
-                                final LocalCallingIdentity tokenInner = clearLocalCallingIdentity();
-                                try {
-                                    mMediaScanner.scanFile(file, REASON_DEMAND);
-                                } finally {
-                                    restoreLocalCallingIdentity(tokenInner);
-                                }
-                            });
+                            boolean runScanFileInBackground =
+                                    extras.getBoolean(MediaStore.QUERY_ARG_DO_ASYNC_SCAN, false);
+                            if (runScanFileInBackground) {
+                                helper.postBackground(() -> {
+                                    scanFileAsMediaProvider(file, REASON_DEMAND);
+                                });
+                            } else {
+                                helper.postBlocking(() -> {
+                                    scanFileAsMediaProvider(file, REASON_DEMAND);
+                                });
+                            }
                         } catch (Exception e) {
                             Log.w(TAG, "Failed to update metadata for " + updatedUri, e);
                         }

@@ -640,6 +640,18 @@ public final class MediaStore {
     public static final String QUERY_ARG_ALLOW_MOVEMENT = "android:query-arg-allow-movement";
 
     /**
+     * Flag that indicates that a media scan that was triggered as part of
+     * {@link ContentResolver#update} should be asynchronous. This flag should
+     * only be used when {@link ContentResolver#update} operation needs to
+     * return early without updating metadata for the file. This may make other
+     * apps see incomplete metadata for the updated file as scan runs
+     * asynchronously here. Most apps shouldn't set this flag.
+     *
+     * @hide
+     */
+    public static final String QUERY_ARG_DO_ASYNC_SCAN = "android:query-arg-do-async-scan";
+
+    /**
      * Specify how {@link MediaColumns#IS_PENDING} items should be filtered when
      * performing a {@link MediaStore} operation.
      * <p>

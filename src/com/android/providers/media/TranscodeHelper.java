@@ -191,7 +191,7 @@ public class TranscodeHelper {
     }
 
     public String getIoPath(String path, int uid) {
-        if (!shouldTranscode(path, uid)) {
+        if (!shouldTranscode(path, uid, null /* bundle */)) {
             return path;
         }
 
@@ -230,7 +230,8 @@ public class TranscodeHelper {
         return transcodePath;
     }
 
-    public boolean shouldTranscode(String path, int uid) {
+    // TODO(b/173491972): Generalize to consider other file/app media capabilities beyond hevc
+    public boolean shouldTranscode(String path, int uid, Bundle bundle) {
         final boolean transcodeEnabled
                 = SystemProperties.getBoolean("persist.sys.fuse.transcode", false);
         if (!transcodeEnabled) {
@@ -253,6 +254,20 @@ public class TranscodeHelper {
                 return false;
             }
         }
+
+        if (bundle != null) {
+            if (bundle.getBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, false)) {
+                return false;
+            }
+
+            ApplicationMediaCapabilities capabilities =
+                    bundle.getParcelable(MediaStore.EXTRA_MEDIA_CAPABILITIES);
+            if (capabilities != null && capabilities.getSupportedVideoMimeTypes().contains(
+                            MediaFormat.MIMETYPE_VIDEO_HEVC)) {
+                return false;
+            }
+        }
+        // TODO(b/169849854): Check apps declared media_capabilities.xml
 
         // TODO(b/169327180): We should also check app's targetSDK version to verify if app still
         //  qualifies to be on the allow list.

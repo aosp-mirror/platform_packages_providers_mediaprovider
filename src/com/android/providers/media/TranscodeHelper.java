@@ -32,16 +32,19 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.media.ApplicationMediaCapabilities;
 import android.media.MediaFormat;
 import android.media.MediaTranscodeManager;
 import android.media.MediaTranscodeManager.TranscodingSession;
 import android.media.MediaTranscodeManager.TranscodingRequest;
+import android.media.MediaTranscodeManager.TranscodingRequest.MediaFormatResolver;
 import android.media.MediaTranscodingException;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.SystemProperties;
+import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.util.ArrayMap;
 import android.util.Log;
@@ -317,11 +320,40 @@ public class TranscodeHelper {
         return false;
     }
 
+    @Nullable
+    private MediaFormat getVideoTrackFormat(String path) {
+        String[] resolverInfoProjection = new String[] {
+                FileColumns._VIDEO_CODEC_TYPE,
+                MediaStore.MediaColumns.WIDTH,
+                MediaStore.MediaColumns.HEIGHT,
+                MediaStore.MediaColumns.BITRATE
+        };
+        try (Cursor c = queryFileForTranscode(path, resolverInfoProjection)) {
+            if (c != null && c.moveToNext()) {
+                String codecType = c.getString(0);
+                int width = c.getInt(1);
+                int height = c.getInt(2);
+                int bitRate = c.getInt(3);
+
+                // TODO(b/169849854): Get this info from Manifest, for now if app got here it
+                // definitely doesn't support hevc
+                ApplicationMediaCapabilities capability =
+                        new ApplicationMediaCapabilities.Builder().build();
+                MediaFormatResolver resolver = new MediaFormatResolver()
+                        .setSourceVideoFormatHint(MediaFormat.createVideoFormat(
+                                codecType, width, height))
+                        .setClientCapabilities(capability);
+                MediaFormat format = resolver.resolveVideoFormat();
+                format.setInteger(MediaFormat.KEY_BIT_RATE, bitRate);
+
+                return format;
+            }
+        }
+        throw new IllegalStateException("Couldn't get video format info from database for " + path);
+    }
+
     private TranscodingSession enqueueTranscodingSession(String src, String dst, int uid,
             final CountDownLatch latch) throws FileNotFoundException, MediaTranscodingException {
-        int bitRate = 20000000; // 20Mbps
-        int width = 1920;
-        int height = 1080;
 
         File file = new File(src);
         File transcodeFile = new File(dst);
@@ -329,10 +361,7 @@ public class TranscodeHelper {
         Uri uri = Uri.fromFile(file);
         Uri transcodeUri = Uri.fromFile(transcodeFile);
 
-        // TODO: Get MediaFormat from database
-        MediaFormat format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC,
-                width, height);
-        format.setInteger(MediaFormat.KEY_BIT_RATE, bitRate);
+        MediaFormat format = getVideoTrackFormat(src);
 
         TranscodingRequest request =
                 new TranscodingRequest.Builder()

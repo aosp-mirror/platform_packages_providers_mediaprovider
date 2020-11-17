@@ -301,7 +301,7 @@ struct fuse {
 
     std::atomic_bool* active;
     std::atomic_bool disable_dentry_cache;
-    bool passthrough;
+    std::atomic_bool passthrough;
 };
 
 static inline string get_name(node* n) {
@@ -1031,37 +1031,46 @@ static void pf_link(fuse_req_t req, fuse_ino_t ino, fuse_ino_t new_parent,
 static handle* create_handle_for_node(struct fuse* fuse, const string& path, int fd, uid_t uid,
                                       node* node, const RedactionInfo* ri, int* keep_cache) {
     std::lock_guard<std::recursive_mutex> guard(fuse->lock);
-    // We don't want to use the FUSE VFS cache in two cases:
-    // 1. When redaction is needed because app A with EXIF access might access
-    // a region that should have been redacted for app B without EXIF access, but app B on
-    // a subsequent read, will be able to see the EXIF data because the read request for
-    // that region will be served from cache and not get to the FUSE daemon
-    // 2. When the file has a read or write lock on it. This means that the MediaProvider
-    // has given an fd to the lower file system to an app. There are two cases where using
-    // the cache in this case can be a problem:
-    // a. Writing to a FUSE fd with caching enabled will use the write-back cache and a
-    // subsequent read from the lower fs fd will not see the write.
-    // b. Reading from a FUSE fd with caching enabled may not see the latest writes using
-    // the lower fs fd because those writes did not go through the FUSE layer and reads from
-    // FUSE after that write may be served from cache
-    bool has_redacted = node->HasRedactedCache();
-    bool redaction_needed = ri->isRedactionNeeded();
-    bool is_redaction_change =
-            (redaction_needed && !has_redacted) || (!redaction_needed && has_redacted);
-    bool is_cached_file_open = node->HasCachedHandle();
 
-    if (!is_cached_file_open && is_redaction_change) {
-        node->SetRedactedCache(redaction_needed);
-        // Purges stale page cache before open
-        *keep_cache = 0;
-    } else {
+    bool redaction_needed = ri->isRedactionNeeded();
+    handle* handle = nullptr;
+
+    if (fuse->passthrough) {
         *keep_cache = 1;
+        handle = new struct handle(fd, ri, true /* cached */, !redaction_needed /* passthrough */,
+                                   uid);
+    } else {
+        // Without fuse->passthrough, we don't want to use the FUSE VFS cache in two cases:
+        // 1. When redaction is needed because app A with EXIF access might access
+        // a region that should have been redacted for app B without EXIF access, but app B on
+        // a subsequent read, will be able to see the EXIF data because the read request for
+        // that region will be served from cache and not get to the FUSE daemon
+        // 2. When the file has a read or write lock on it. This means that the MediaProvider
+        // has given an fd to the lower file system to an app. There are two cases where using
+        // the cache in this case can be a problem:
+        // a. Writing to a FUSE fd with caching enabled will use the write-back cache and a
+        // subsequent read from the lower fs fd will not see the write.
+        // b. Reading from a FUSE fd with caching enabled may not see the latest writes using
+        // the lower fs fd because those writes did not go through the FUSE layer and reads from
+        // FUSE after that write may be served from cache
+        bool has_redacted = node->HasRedactedCache();
+        bool is_redaction_change =
+                (redaction_needed && !has_redacted) || (!redaction_needed && has_redacted);
+        bool is_cached_file_open = node->HasCachedHandle();
+        bool direct_io = (is_cached_file_open && is_redaction_change) || is_file_locked(fd, path);
+
+        if (!is_cached_file_open && is_redaction_change) {
+            node->SetRedactedCache(redaction_needed);
+            // Purges stale page cache before open
+            *keep_cache = 0;
+        } else {
+            *keep_cache = 1;
+        }
+        handle = new struct handle(fd, ri, !direct_io /* cached */, false /* passthrough */, uid);
     }
 
-    bool direct_io = (is_cached_file_open && is_redaction_change) || is_file_locked(fd, path);
-    handle* h = new handle(fd, ri, !direct_io, uid);
-    node->AddHandle(h);
-    return h;
+    node->AddHandle(handle);
+    return handle;
 }
 
 bool do_passthrough_enable(fuse_req_t req, struct fuse_file_info* fi, unsigned int fd) {
@@ -1151,9 +1160,12 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     // TODO(b/173190192) ensuring that h->cached must be enabled in order to
     // user FUSE passthrough is a conservative rule and might be dropped as
     // soon as demonstrated its correctness.
-    if (fuse->passthrough && h->cached) {
+    if (h->passthrough) {
         if (!do_passthrough_enable(req, fi, fd)) {
-            LOG(WARNING) << "Passthrough OPEN failed for " << path;
+            // TODO: Should we crash here so we can find errors easily?
+            PLOG(ERROR) << "Passthrough OPEN failed for " << path;
+            fuse_reply_err(req, EFAULT);
+            return;
         }
     }
 
@@ -1699,9 +1711,11 @@ static void pf_create(fuse_req_t req,
     // TODO(b/173190192) ensuring that h->cached must be enabled in order to
     // user FUSE passthrough is a conservative rule and might be dropped as
     // soon as demonstrated its correctness.
-    if (fuse->passthrough && h->cached) {
+    if (h->passthrough) {
         if (!do_passthrough_enable(req, fi, fd)) {
-            LOG(WARNING) << "Passthrough CREATE failed for " << child_path;
+            PLOG(ERROR) << "Passthrough CREATE failed for " << child_path;
+            fuse_reply_err(req, EFAULT);
+            return;
         }
     }
 
@@ -1811,6 +1825,13 @@ static void fuse_logger(enum fuse_log_level level, const char* fmt, va_list ap) 
 }
 
 bool FuseDaemon::ShouldOpenWithFuse(int fd, bool for_read, const std::string& path) {
+    if (fuse->passthrough) {
+        // Always open with FUSE if passthrough is enabled. This avoids the delicate file lock
+        // acquisition below to ensure VFS cache consistency and doesn't impact filesystem
+        // performance since read(2)/write(2) happen in the kernel
+        return true;
+    }
+
     bool use_fuse = false;
 
     if (active.load(std::memory_order_acquire)) {

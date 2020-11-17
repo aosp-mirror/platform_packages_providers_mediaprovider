@@ -25,9 +25,14 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.Manifest;
+import android.media.ApplicationMediaCapabilities;
+import android.media.MediaFormat;
+import android.net.Uri;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
+import android.provider.MediaStore;
 import android.system.Os;
 import android.util.Log;
 
@@ -72,7 +77,7 @@ public class TranscodeTest {
      * @throws Exception
      */
     @Test
-    public void testTranscoded() throws Exception {
+    public void testTranscoded_FilePath() throws Exception {
         File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
         try {
             TranscodeTestUtils.stageHEVCVideoFile(modernFile);
@@ -93,7 +98,7 @@ public class TranscodeTest {
      * @throws Exception
      */
     @Test
-    public void testSameTranscodedFile() throws Exception {
+    public void testSameTranscoded_FilePath() throws Exception {
         File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
         try {
             TranscodeTestUtils.stageHEVCVideoFile(modernFile);
@@ -109,11 +114,54 @@ public class TranscodeTest {
     }
 
     /**
+     * Tests that we return FD of transcoded file for legacy apps
+     * @throws Exception
+     */
+    @Test
+    public void testTranscoded_ContentResolver() throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        try {
+            Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+
+            ParcelFileDescriptor pfdOriginal = open(uri, false, null /* bundle */);
+
+            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+
+            ParcelFileDescriptor pfdTranscoded = open(uri, false, null /* bundle */);
+
+            assertFileContent(pfdOriginal, pfdTranscoded, false);
+        } finally {
+            modernFile.delete();
+        }
+    }
+
+    /**
+     * Tests that same transcoded file is used for multiple open() from same app
+     * @throws Exception
+     */
+    @Test
+    public void testSameTranscodedFile_ContentResolver() throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        try {
+            Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+
+            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+
+            ParcelFileDescriptor pfdTranscoded1 = open(uri, false, null /* bundle */);
+            ParcelFileDescriptor pfdTranscoded2 = open(uri, false, null /* bundle */);
+
+            assertFileContent(pfdTranscoded1, pfdTranscoded2, true);
+        } finally {
+            modernFile.delete();
+        }
+    }
+
+    /**
      * Tests that deletes are visible across legacy and modern apps
      * @throws Exception
      */
     @Test
-    public void testDeleteTranscodedFile() throws Exception {
+    public void testDeleteTranscodedFile_FilePath() throws Exception {
         File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
         try {
             TranscodeTestUtils.stageHEVCVideoFile(modernFile);
@@ -136,7 +184,7 @@ public class TranscodeTest {
      * @throws Exception
      */
     @Test
-    public void testRenameTranscodedFile() throws Exception {
+    public void testRenameTranscodedFile_FilePath() throws Exception {
         File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
         File destFile = new File(DIR_CAMERA, "renamed_" + HEVC_FILE_NAME);
         try {
@@ -163,7 +211,7 @@ public class TranscodeTest {
      * @throws Exception
      */
     @Test
-    public void testLazyTranscodedFile() throws Exception {
+    public void testLazyTranscodedFile_FilePath() throws Exception {
         File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
         try {
             TranscodeTestUtils.stageHEVCVideoFile(modernFile);
@@ -183,7 +231,7 @@ public class TranscodeTest {
      * @throws Exception
      */
     @Test
-    public void testTranscodedCacheReuseAfterRename() throws Exception {
+    public void testTranscodedCacheReuseAfterRename_FilePath() throws Exception {
         File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
         File destFile = new File(DIR_CAMERA, "renamed_" + HEVC_FILE_NAME);
         try {
@@ -198,6 +246,115 @@ public class TranscodeTest {
         } finally {
             modernFile.delete();
             destFile.delete();
+        }
+    }
+
+    @Test
+    public void testExtraAcceptOriginalFormatTrue_ContentResolver() throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        try {
+            Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+
+            ParcelFileDescriptor pfdOriginal1 = open(uri, false, null /* bundle */);
+
+            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+
+            Bundle bundle = new Bundle();
+            bundle.putBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, true);
+            ParcelFileDescriptor pfdOriginal2 = open(uri, false, bundle);
+
+            assertFileContent(pfdOriginal1, pfdOriginal2, true);
+        } finally {
+            modernFile.delete();
+        }
+    }
+
+    @Test
+    public void testExtraAcceptOriginalFormatFalse_ContentResolver() throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        try {
+            Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+
+            ParcelFileDescriptor pfdOriginal = open(uri, false, null /* bundle */);
+
+            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+
+            Bundle bundle = new Bundle();
+            bundle.putBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, false);
+            ParcelFileDescriptor pfdTranscoded = open(uri, false, bundle);
+
+            assertFileContent(pfdOriginal, pfdTranscoded, false);
+        } finally {
+            modernFile.delete();
+        }
+    }
+
+    @Test
+    public void testExtraMediaCapabilitiesHevcTrue_ContentResolver() throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        try {
+            Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+
+            ParcelFileDescriptor pfdOriginal1 = open(uri, false, null /* bundle */);
+
+            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+
+            Bundle bundle = new Bundle();
+            ApplicationMediaCapabilities capabilities =
+                    new ApplicationMediaCapabilities.Builder()
+                    .addSupportedVideoMimeType(MediaFormat.MIMETYPE_VIDEO_HEVC).build();
+            bundle.putParcelable(MediaStore.EXTRA_MEDIA_CAPABILITIES, capabilities);
+            ParcelFileDescriptor pfdOriginal2 = open(uri, false, bundle);
+
+            assertFileContent(pfdOriginal1, pfdOriginal2, true);
+        } finally {
+            modernFile.delete();
+        }
+    }
+
+    @Test
+    public void testExtraMediaCapabilitiesHevcFalse_ContentResolver() throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        try {
+            Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+
+            ParcelFileDescriptor pfdOriginal1 = open(uri, false, null /* bundle */);
+
+            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+
+            Bundle bundle = new Bundle();
+            ApplicationMediaCapabilities capabilities =
+                    new ApplicationMediaCapabilities.Builder().build();
+            bundle.putParcelable(MediaStore.EXTRA_MEDIA_CAPABILITIES, capabilities);
+            ParcelFileDescriptor pfdTranscoded = open(uri, false, bundle);
+
+            assertFileContent(pfdOriginal1, pfdTranscoded, false);
+        } finally {
+            modernFile.delete();
+        }
+    }
+
+    @Test
+    public void testExtraAcceptOriginalTrueAndMediaCapabilitiesHevcFalse_ContentResolver()
+            throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        try {
+            Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+
+            ParcelFileDescriptor pfdOriginal1 = open(uri, false, null /* bundle */);
+
+            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+
+            Bundle bundle = new Bundle();
+            ApplicationMediaCapabilities capabilities =
+                    new ApplicationMediaCapabilities.Builder().build();
+            bundle.putParcelable(MediaStore.EXTRA_MEDIA_CAPABILITIES, capabilities);
+            bundle.putBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, true);
+            ParcelFileDescriptor pfdOriginal2 = open(uri, false, bundle);
+
+            assertFileContent(pfdOriginal1, pfdOriginal2, true);
+        } finally {
+            modernFile.delete();
         }
     }
 }

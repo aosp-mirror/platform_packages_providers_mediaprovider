@@ -23,9 +23,11 @@ import static org.junit.Assert.assertEquals;
 
 import android.app.AppOpsManager;
 import android.app.UiAutomation;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.FileUtils;
 import android.os.ParcelFileDescriptor;
@@ -77,9 +79,16 @@ public class TranscodeTestUtils {
         return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_WRITE);
     }
 
-    public static ParcelFileDescriptor open(Uri uri, boolean forWrite) throws Exception {
-        // TODO(b/171953356): Switch to read_only fds if forWrite==false
-        return getContext().getContentResolver().openFileDescriptor(uri, "rw");
+    public static ParcelFileDescriptor open(Uri uri, boolean forWrite, Bundle bundle)
+            throws Exception {
+        ContentResolver resolver = getContext().getContentResolver();
+        if (bundle == null) {
+            // TODO(b/171953356): Switch to read_only fds if forWrite==false
+            return resolver.openFileDescriptor(uri, "rw");
+        } else {
+            return resolver.openTypedAssetFileDescriptor(uri, "*/*", bundle)
+                    .getParcelFileDescriptor();
+        }
     }
 
     public static void enableSeamlessTranscoding() throws Exception {

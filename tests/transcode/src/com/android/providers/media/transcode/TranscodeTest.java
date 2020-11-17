@@ -59,7 +59,7 @@ public class TranscodeTest {
         TranscodeTestUtils.grantPermission(Manifest.permission.READ_EXTERNAL_STORAGE);
         TranscodeTestUtils.pollForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, true);
         TranscodeTestUtils.enableSeamlessTranscoding();
-        TranscodeTestUtils.skipTranscodingForUid(Os.getuid());
+        TranscodeTestUtils.disableTranscodingForAllUids();
     }
 
     @After
@@ -79,8 +79,7 @@ public class TranscodeTest {
 
             ParcelFileDescriptor pfdOriginal = open(modernFile, false);
 
-            TranscodeTestUtils.unskipTranscodingForAll();
-
+            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
             ParcelFileDescriptor pfdTranscoded = open(modernFile, false);
 
             assertFileContent(pfdOriginal, pfdTranscoded, false);
@@ -99,8 +98,7 @@ public class TranscodeTest {
         try {
             TranscodeTestUtils.stageHEVCVideoFile(modernFile);
 
-            TranscodeTestUtils.unskipTranscodingForAll();
-
+            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
             ParcelFileDescriptor pfdTranscoded1 = open(modernFile, false);
             ParcelFileDescriptor pfdTranscoded2 = open(modernFile, false);
 
@@ -120,12 +118,12 @@ public class TranscodeTest {
         try {
             TranscodeTestUtils.stageHEVCVideoFile(modernFile);
 
-            TranscodeTestUtils.unskipTranscodingForAll();
+            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
 
             assertTrue(modernFile.delete());
             assertFalse(modernFile.exists());
 
-            TranscodeTestUtils.unskipTranscodingForAll();
+            TranscodeTestUtils.disableTranscodingForAllUids();
 
             assertFalse(modernFile.exists());
         } finally {
@@ -144,13 +142,13 @@ public class TranscodeTest {
         try {
             TranscodeTestUtils.stageHEVCVideoFile(modernFile);
 
-            TranscodeTestUtils.unskipTranscodingForAll();
+            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
 
             assertTrue(modernFile.renameTo(destFile));
             assertTrue(destFile.exists());
             assertFalse(modernFile.exists());
 
-            TranscodeTestUtils.skipTranscodingForUid(Os.getuid());
+            TranscodeTestUtils.disableTranscodingForAllUids();
 
             assertTrue(destFile.exists());
             assertFalse(modernFile.exists());
@@ -172,7 +170,7 @@ public class TranscodeTest {
 
             assertTranscode(modernFile, false);
 
-            TranscodeTestUtils.unskipTranscodingForAll();
+            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
 
             assertTranscode(modernFile, true);
         } finally {
@@ -190,7 +188,7 @@ public class TranscodeTest {
         File destFile = new File(DIR_CAMERA, "renamed_" + HEVC_FILE_NAME);
         try {
             TranscodeTestUtils.stageHEVCVideoFile(modernFile);
-            TranscodeTestUtils.unskipTranscodingForAll();
+            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
 
             assertTranscode(modernFile, true);
 

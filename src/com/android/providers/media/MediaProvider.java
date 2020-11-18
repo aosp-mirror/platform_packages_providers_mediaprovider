@@ -484,11 +484,11 @@ public class MediaProvider extends ContentProvider {
     private LocalCallingIdentity getCachedCallingIdentityForFuse(int uid) {
         synchronized (mCachedCallingIdentityForFuse) {
             PermissionUtils.setOpDescription("via FUSE");
-            LocalCallingIdentity ident = mCachedCallingIdentityForFuse.get(uid);
-            if (ident == null) {
-               ident = LocalCallingIdentity.fromExternal(getContext(), uid);
+            LocalCallingIdentity identity = mCachedCallingIdentityForFuse.get(uid);
+            if (identity == null) {
+               identity = LocalCallingIdentity.fromExternal(getContext(), uid);
                if (uid / PER_USER_RANGE == sUserId) {
-                   mCachedCallingIdentityForFuse.put(uid, ident);
+                   mCachedCallingIdentityForFuse.put(uid, identity);
                } else {
                    // In some app cloning designs, MediaProvider user 0 may
                    // serve requests for apps running as a "clone" user; in
@@ -496,7 +496,7 @@ public class MediaProvider extends ContentProvider {
                    // we don't get any invalidation events for these users.
                }
             }
-            return ident;
+            return identity;
         }
     }
 

@@ -191,7 +191,7 @@ public class TranscodeHelper {
     }
 
     public String getIoPath(String path, int uid) {
-        if (!shouldTranscode(path, uid)) {
+        if (!shouldTranscode(path, uid, null /* bundle */)) {
             return path;
         }
 
@@ -230,7 +230,8 @@ public class TranscodeHelper {
         return transcodePath;
     }
 
-    public boolean shouldTranscode(String path, int uid) {
+    // TODO(b/173491972): Generalize to consider other file/app media capabilities beyond hevc
+    public boolean shouldTranscode(String path, int uid, Bundle bundle) {
         final boolean transcodeEnabled
                 = SystemProperties.getBoolean("persist.sys.fuse.transcode", false);
         if (!transcodeEnabled) {
@@ -254,6 +255,20 @@ public class TranscodeHelper {
             }
         }
 
+        if (bundle != null) {
+            if (bundle.getBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, false)) {
+                return false;
+            }
+
+            ApplicationMediaCapabilities capabilities =
+                    bundle.getParcelable(MediaStore.EXTRA_MEDIA_CAPABILITIES);
+            if (capabilities != null && capabilities.getSupportedVideoMimeTypes().contains(
+                            MediaFormat.MIMETYPE_VIDEO_HEVC)) {
+                return false;
+            }
+        }
+        // TODO(b/169849854): Check apps declared media_capabilities.xml
+
         // TODO(b/169327180): We should also check app's targetSDK version to verify if app still
         //  qualifies to be on the allow list.
         List<String> allowList = Arrays.asList(ALLOW_LIST);
@@ -264,20 +279,20 @@ public class TranscodeHelper {
             }
         }
 
-        List<String> uidsToSkip = Arrays.asList(
-                SystemProperties.get("persist.sys.fuse.transcode_skip_uids").split(","));
-        if (uidsToSkip.contains(String.valueOf(uid))) {
-            return false;
+        List<String> transcodeUids = Arrays.asList(
+                SystemProperties.get("persist.sys.fuse.transcode_uids").split(","));
+        if (transcodeUids.contains(String.valueOf(uid))) {
+            return true;
         }
 
-        List<String> packagesToSkip = Arrays.asList(
-                SystemProperties.get("persist.sys.fuse.transcode_skip_packages").split(","));
+        List<String> transcodePackages = Arrays.asList(
+                SystemProperties.get("persist.sys.fuse.transcode_packages").split(","));
         for (String callingPackage : callingPackages) {
-            if (packagesToSkip.contains(callingPackage)) {
-                return false;
+            if (transcodePackages.contains(callingPackage)) {
+                return true;
             }
         }
-        return true;
+        return false;
     }
 
     public boolean supportsTranscode(String path) {

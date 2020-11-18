@@ -33,6 +33,7 @@ package android.provider {
     field public static final String EXTRA_FULL_SCREEN = "android.intent.extra.fullScreen";
     field public static final String EXTRA_MEDIA_ALBUM = "android.intent.extra.album";
     field public static final String EXTRA_MEDIA_ARTIST = "android.intent.extra.artist";
+    field public static final String EXTRA_MEDIA_CAPABILITIES = "android.provider.extra.MEDIA_CAPABILITIES";
     field public static final String EXTRA_MEDIA_FOCUS = "android.intent.extra.focus";
     field public static final String EXTRA_MEDIA_GENRE = "android.intent.extra.genre";
     field public static final String EXTRA_MEDIA_PLAYLIST = "android.intent.extra.playlist";

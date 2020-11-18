@@ -44,6 +44,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.ImageDecoder;
 import android.graphics.PostProcessor;
+import android.media.ApplicationMediaCapabilities;
 import android.media.ExifInterface;
 import android.media.MediaFormat;
 import android.media.MediaMetadataRetriever;
@@ -586,16 +587,18 @@ public final class MediaStore {
      */
     public final static String EXTRA_OUTPUT = "output";
 
-    // TODO(b/158465539): Add API to explicitly specify media capabilities via Bundle
     /**
      * Specify that the caller wants to receive the original media format without transcoding.
      *
      * This is a very dangerous flag to use because apps can suddenly fail to play media after
      * an OS upgrade. Clients should instead specify their supported media capabilities explicitly
-     * in their manifest.
+     * in their manifest or with the {@link #EXTRA_MEDIA_CAPABILITIES} open flag.
      *
-     * This is useful for apps that usually receive transcoded media, but want to have more granular
-     * control.
+     * Note that this flag overrides any explicitly declared {@code media_capabilities.xml} or
+     * {@link ApplicationMediaCapabilities} extras specified in the same {@code open} request.
+     *
+     * This is only useful for apps that are bundled with the system hence are guaranteed to
+     * always support any media capabilities released on the OS in the future.
      *
      * <p>This option can be added to the {@code opts} {@link Bundle} in various
      * {@link ContentResolver} {@code open} methods.
@@ -605,6 +608,25 @@ public final class MediaStore {
      */
     public final static String EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT =
             "android.provider.extra.ACCEPT_ORIGINAL_MEDIA_FORMAT";
+
+    /**
+     * Specify the {@link ApplicationMediaCapabilities} that should be used while opening a media.
+     *
+     * If the capabilities specified matches the format of the original file, the app will receive
+     * the original file, otherwise, it will get transcoded to a default supported format.
+     *
+     * This flag takes higher precedence over the applications declared
+     * {@code media_capabilities.xml} and is useful for apps that want to have more granular control
+     * over their supported media capabilities.
+     *
+     * <p>This option can be added to the {@code opts} {@link Bundle} in various
+     * {@link ContentResolver} {@code open} methods.
+     *
+     * @see ContentResolver#openTypedAssetFileDescriptor(Uri, String, Bundle)
+     * @see ContentResolver#openTypedAssetFile(Uri, String, Bundle, CancellationSignal)
+     */
+    public final static String EXTRA_MEDIA_CAPABILITIES =
+            "android.provider.extra.MEDIA_CAPABILITIES";
 
     /**
       * The string that is used when a media attribute is not known. For example,

@@ -1388,7 +1388,7 @@ public class MediaProvider extends ContentProvider {
         if (mTranscodeHelper.supportsTranscode(path)) {
             result |= FLAG_TRANSFORM_SUPPORTED;
 
-            if (mTranscodeHelper.shouldTranscode(path, uid)) {
+            if (mTranscodeHelper.shouldTranscode(path, uid, null /* bundle */)) {
                 result |= FLAG_TRANSFORM_TRANSCODING;
             }
         }
@@ -6638,8 +6638,7 @@ public class MediaProvider extends ContentProvider {
             final ParcelFileDescriptor pfd;
             final String filePath = file.getPath();
             final int uid = Binder.getCallingUid();
-            final boolean shouldTranscode = !opts.containsKey(EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT)
-                    && mTranscodeHelper.shouldTranscode(filePath, uid);
+            boolean shouldTranscode = mTranscodeHelper.shouldTranscode(filePath, uid, opts);
             if (redactionInfo.redactionRanges.length > 0) {
                 // If fuse is enabled, we can provide an fd that points to the fuse
                 // file system and handle redaction in the fuse handler when the caller reads.

@@ -133,12 +133,10 @@ public class ClientPlaylistTest {
         mValues.put(Playlists.Members.AUDIO_ID, mRed);
         Uri resultUri = mContentResolver.insert(membersUri, mValues);
         obs.waitForChange();
-        assertEquals(ContentUris.withAppendedId(membersUri, 1), resultUri);
 
         mValues.put(Playlists.Members.AUDIO_ID, mGreen);
         resultUri = mContentResolver.insert(membersUri, mValues);
         obs.waitForChange();
-        assertEquals(ContentUris.withAppendedId(membersUri, 2), resultUri);
         assertMembers(Arrays.asList(
                 Pair.create(mRed, 1),
                 Pair.create(mGreen, 2)), queryMembers(membersUri));
@@ -149,7 +147,6 @@ public class ClientPlaylistTest {
         mValues.put(Playlists.Members.PLAY_ORDER, 1);
         resultUri = mContentResolver.insert(membersUri, mValues);
         obs.waitForChange();
-        assertEquals(ContentUris.withAppendedId(membersUri, 1), resultUri);
         assertMembers(Arrays.asList(
                 Pair.create(mBlue, 1),
                 Pair.create(mRed, 2),

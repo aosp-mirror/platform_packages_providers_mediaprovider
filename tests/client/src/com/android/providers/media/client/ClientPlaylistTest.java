@@ -123,11 +123,15 @@ public class ClientPlaylistTest {
         mValues.put(MediaColumns.MIME_TYPE, mMimeType);
 
         final Uri playlistUri = mContentResolver.insert(mExternalPlaylists, mValues);
+        final Uri externalVolumePlaylistUri = getExternalVolumePlaylistUri(
+                ContentUris.parseId(playlistUri));
+
+        final TestContentObserverHelper obs = TestContentObserverHelper.create(
+                Arrays.asList(playlistUri, externalVolumePlaylistUri),
+                ContentResolver.NOTIFY_INSERT);
         final Uri membersUri = MediaStore.Audio.Playlists.Members
                 .getContentUri(VOLUME_EXTERNAL_PRIMARY, ContentUris.parseId(playlistUri));
 
-        final TestContentObserver obs = TestContentObserver.create(
-                playlistUri, ContentResolver.NOTIFY_INSERT);
         // Inserting without ordering will always append
         mValues.clear();
         mValues.put(Playlists.Members.AUDIO_ID, mRed);
@@ -160,10 +164,12 @@ public class ClientPlaylistTest {
         final long playlistId = createPlaylist(mRed, mGreen, mBlue);
         Uri playlistUri = ContentUris.withAppendedId(
                 MediaStore.Audio.Playlists.getContentUri(VOLUME_EXTERNAL), playlistId);
+        Uri externalVolumePlaylistUri = getExternalVolumePlaylistUri(playlistId);
         final Uri membersUri = Playlists.Members.getContentUri(VOLUME_EXTERNAL_PRIMARY, playlistId);
 
-        TestContentObserver obs = TestContentObserver.create(
-                playlistUri, ContentResolver.NOTIFY_UPDATE);
+        TestContentObserverHelper obs = TestContentObserverHelper.create(
+                Arrays.asList(playlistUri, externalVolumePlaylistUri),
+                ContentResolver.NOTIFY_UPDATE);
 
 
         // Simple move forwards
@@ -184,9 +190,6 @@ public class ClientPlaylistTest {
                 Pair.create(mGreen, 2),
                 Pair.create(mBlue, 3)), queryMembers(membersUri));
 
-        playlistUri = ContentUris.withAppendedId(
-                MediaStore.Audio.Playlists.getContentUri(VOLUME_EXTERNAL_PRIMARY), playlistId);
-        obs = TestContentObserver.create(playlistUri, ContentResolver.NOTIFY_UPDATE);
         // Advanced moves using query args
         mValues.clear();
         mValues.put(Playlists.Members.PLAY_ORDER, 1);
@@ -217,8 +220,12 @@ public class ClientPlaylistTest {
         final long playlistId = createPlaylist(mRed, mGreen, mBlue);
         final Uri membersUri = Playlists.Members.getContentUri(VOLUME_EXTERNAL_PRIMARY, playlistId);
 
-        final TestContentObserver obs = TestContentObserver.create(
-                membersUri, ContentResolver.NOTIFY_DELETE);
+        final Uri playlistUri = ContentUris.withAppendedId(
+                MediaStore.Audio.Playlists.getContentUri(VOLUME_EXTERNAL_PRIMARY), playlistId);
+        final Uri externalVolumePlaylistUri = getExternalVolumePlaylistUri(playlistId);
+        final TestContentObserverHelper obs = TestContentObserverHelper.create(
+                Arrays.asList(playlistUri, externalVolumePlaylistUri),
+                ContentResolver.NOTIFY_DELETE);
 
         // Simple delete in middle, duplicates are okay
         int count = mContentResolver.delete(membersUri, Playlists.Members.PLAY_ORDER + "=?",
@@ -288,8 +295,11 @@ public class ClientPlaylistTest {
         mValues.clear();
         mValues.put(MediaColumns.DISPLAY_NAME, "Playlist " + System.nanoTime());
         mValues.put(MediaColumns.MIME_TYPE, mMimeType);
-        final TestContentObserver obs = TestContentObserver.create(
-                mExternalPlaylists,ContentResolver.NOTIFY_INSERT);
+        final Uri externalVolumePlaylistUri = MediaStore.Audio.Playlists
+                .getContentUri(VOLUME_EXTERNAL_PRIMARY);
+        final TestContentObserverHelper obs = TestContentObserverHelper.create(
+                Arrays.asList(mExternalPlaylists, externalVolumePlaylistUri),
+                ContentResolver.NOTIFY_INSERT);
 
         final Uri playlist = mContentResolver.insert(mExternalPlaylists, mValues);
         obs.waitForChange();
@@ -308,6 +318,11 @@ public class ClientPlaylistTest {
 
         assertMembers(expected, queryMembers(members));
         return ContentUris.parseId(playlist);
+    }
+
+    private static Uri getExternalVolumePlaylistUri(long playlistId) {
+        return ContentUris.withAppendedId(
+            MediaStore.Audio.Playlists.getContentUri(VOLUME_EXTERNAL), playlistId);
     }
 
     private void assertMembers(List<Pair<Long, Integer>> expected,
@@ -329,6 +344,39 @@ public class ClientPlaylistTest {
             }
         }
         return res;
+    }
+
+    /**
+     * Observer that will wait for a specific change event to be delivered on all the given uris.
+     */
+    private static class TestContentObserverHelper {
+        private List<TestContentObserver> observers;
+
+        private TestContentObserverHelper(List<TestContentObserver> observers) {
+            this.observers = observers;
+        }
+
+        private static TestContentObserverHelper create(List<Uri> uris, int flags) {
+            List<TestContentObserver> observers = new ArrayList();
+            for (Uri uri : uris) {
+                final TestContentObserver observer = TestContentObserver.create(uri, flags);
+                observers.add(observer);
+            }
+            final TestContentObserverHelper obsWrapper = new TestContentObserverHelper(observers);
+            return obsWrapper;
+        }
+
+        private void waitForChange() {
+            for (TestContentObserver observer : observers) {
+                observer.waitForChange();
+            }
+        }
+
+        private void unregister() {
+            for (TestContentObserver observer : observers) {
+                observer.unregister();
+            }
+        }
     }
 
     /**
@@ -356,7 +404,7 @@ public class ClientPlaylistTest {
         public static TestContentObserver create(Uri uri, int flags) {
             final TestContentObserver obs = new TestContentObserver(flags);
             InstrumentationRegistry.getContext().getContentResolver()
-                .registerContentObserver(uri, true, obs);
+                    .registerContentObserver(uri, true, obs);
             return obs;
         }
 

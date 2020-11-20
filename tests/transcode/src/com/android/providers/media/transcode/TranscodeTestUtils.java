@@ -204,8 +204,8 @@ public class TranscodeTestUtils {
         return appOps.unsafeCheckOpNoThrow(op, uid, packageName) == AppOpsManager.MODE_ALLOWED;
     }
 
-    public static void assertFileContent(ParcelFileDescriptor pfd1, ParcelFileDescriptor pfd2,
-            boolean assertSame) throws Exception {
+    public static void assertFileContent(File file1, File file2, ParcelFileDescriptor pfd1,
+            ParcelFileDescriptor pfd2, boolean assertSame) throws Exception {
         final int len = 1024;
         byte[] bytes1;
         byte[] bytes2;
@@ -229,7 +229,9 @@ public class TranscodeTestUtils {
             }
         } while (size1 > 0 && size2 > 0);
 
-        assertEquals(isSame, assertSame);
+        String message = String.format("Files: %s and %s. isSame=%b. assertSame=%s",
+                file1, file2, isSame, assertSame);
+        assertEquals(message, isSame, assertSame);
     }
 
     public static void assertTranscode(File file, boolean transcode) throws Exception {

@@ -16,6 +16,8 @@
 
 package com.android.providers.media.transcode;
 
+import static androidx.test.InstrumentationRegistry.getContext;
+
 import static com.android.providers.media.transcode.TranscodeTestUtils.assertFileContent;
 import static com.android.providers.media.transcode.TranscodeTestUtils.assertTranscode;
 import static com.android.providers.media.transcode.TranscodeTestUtils.open;
@@ -46,7 +48,9 @@ import org.junit.runner.RunWith;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 @RunWith(AndroidJUnit4.class)
 public class TranscodeTest {
@@ -54,6 +58,16 @@ public class TranscodeTest {
             = Environment.getExternalStorageDirectory();
     private static final File DIR_CAMERA
             = new File(EXTERNAL_STORAGE_DIRECTORY, Environment.DIRECTORY_DCIM + "/Camera");
+    // TODO(b/169546642): Test other directories like /sdcard and /sdcard/foo
+    // These are the only transcode unsupported directories we can stage files in given our
+    // test app permissions
+    private static final File[] DIRS_NO_TRANSCODE = {
+        new File(EXTERNAL_STORAGE_DIRECTORY, Environment.DIRECTORY_PICTURES),
+        new File(EXTERNAL_STORAGE_DIRECTORY, Environment.DIRECTORY_MOVIES),
+        new File(EXTERNAL_STORAGE_DIRECTORY, Environment.DIRECTORY_DOWNLOADS),
+        new File(EXTERNAL_STORAGE_DIRECTORY, Environment.DIRECTORY_DCIM),
+        new File(EXTERNAL_STORAGE_DIRECTORY, Environment.DIRECTORY_DOCUMENTS),
+    };
 
     static final String NONCE = String.valueOf(System.nanoTime());
     private static final String HEVC_FILE_NAME = "TranscodeTestHEVC_" + NONCE + ".mp4";
@@ -87,9 +101,44 @@ public class TranscodeTest {
             TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
             ParcelFileDescriptor pfdTranscoded = open(modernFile, false);
 
-            assertFileContent(pfdOriginal, pfdTranscoded, false);
+            assertFileContent(modernFile, modernFile, pfdOriginal, pfdTranscoded, false);
         } finally {
             modernFile.delete();
+        }
+    }
+
+    /**
+     * Tests that we don't transcode files outside DCIM/Camera
+     * @throws Exception
+     */
+    @Test
+    public void testNoTranscodeOutsideCamera_FilePath() throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        List<File> noTranscodeFiles = new ArrayList<>();
+        for (File file : DIRS_NO_TRANSCODE) {
+            noTranscodeFiles.add(new File(file, HEVC_FILE_NAME));
+        }
+        noTranscodeFiles.add(new File(getContext().getExternalFilesDir(null), HEVC_FILE_NAME));
+
+        try {
+            TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+            for (File file : noTranscodeFiles) {
+                TranscodeTestUtils.stageHEVCVideoFile(file);
+            }
+            ParcelFileDescriptor pfdOriginal1 = open(modernFile, false);
+
+            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+
+            for (File file : noTranscodeFiles) {
+                pfdOriginal1.seekTo(0);
+                ParcelFileDescriptor pfdOriginal2 = open(file, false);
+                assertFileContent(modernFile, file, pfdOriginal1, pfdOriginal2, true);
+            }
+        } finally {
+            modernFile.delete();
+            for (File file : noTranscodeFiles) {
+                file.delete();
+            }
         }
     }
 
@@ -107,7 +156,7 @@ public class TranscodeTest {
             ParcelFileDescriptor pfdTranscoded1 = open(modernFile, false);
             ParcelFileDescriptor pfdTranscoded2 = open(modernFile, false);
 
-            assertFileContent(pfdTranscoded1, pfdTranscoded2, true);
+            assertFileContent(modernFile, modernFile, pfdTranscoded1, pfdTranscoded2, true);
         } finally {
             modernFile.delete();
         }
@@ -129,9 +178,47 @@ public class TranscodeTest {
 
             ParcelFileDescriptor pfdTranscoded = open(uri, false, null /* bundle */);
 
-            assertFileContent(pfdOriginal, pfdTranscoded, false);
+            assertFileContent(modernFile, modernFile, pfdOriginal, pfdTranscoded, false);
         } finally {
             modernFile.delete();
+        }
+    }
+
+    /**
+     * Tests that we don't transcode files outside DCIM/Camera
+     * @throws Exception
+     */
+    @Test
+    public void testNoTranscodeOutsideCamera_ConentResolver() throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        List<File> noTranscodeFiles = new ArrayList<>();
+        for (File file : DIRS_NO_TRANSCODE) {
+            noTranscodeFiles.add(new File(file, HEVC_FILE_NAME));
+        }
+
+        try {
+            Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+            ArrayList<Uri> noTranscodeUris = new ArrayList<>();
+            for (File file : noTranscodeFiles) {
+                noTranscodeUris.add(TranscodeTestUtils.stageHEVCVideoFile(file));
+            }
+
+            ParcelFileDescriptor pfdOriginal1 = open(uri, false, null /* bundle */);
+
+            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+
+            for (int i = 0; i < noTranscodeUris.size(); i++) {
+                pfdOriginal1.seekTo(0);
+                ParcelFileDescriptor pfdOriginal2 =
+                        open(noTranscodeUris.get(i), false, null /* bundle */);
+                assertFileContent(modernFile, noTranscodeFiles.get(1), pfdOriginal1, pfdOriginal2,
+                        true);
+            }
+        } finally {
+            modernFile.delete();
+            for (File file : noTranscodeFiles) {
+                file.delete();
+            }
         }
     }
 
@@ -150,7 +237,7 @@ public class TranscodeTest {
             ParcelFileDescriptor pfdTranscoded1 = open(uri, false, null /* bundle */);
             ParcelFileDescriptor pfdTranscoded2 = open(uri, false, null /* bundle */);
 
-            assertFileContent(pfdTranscoded1, pfdTranscoded2, true);
+            assertFileContent(modernFile, modernFile, pfdTranscoded1, pfdTranscoded2, true);
         } finally {
             modernFile.delete();
         }
@@ -263,7 +350,7 @@ public class TranscodeTest {
             bundle.putBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, true);
             ParcelFileDescriptor pfdOriginal2 = open(uri, false, bundle);
 
-            assertFileContent(pfdOriginal1, pfdOriginal2, true);
+            assertFileContent(modernFile, modernFile, pfdOriginal1, pfdOriginal2, true);
         } finally {
             modernFile.delete();
         }
@@ -283,7 +370,7 @@ public class TranscodeTest {
             bundle.putBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, false);
             ParcelFileDescriptor pfdTranscoded = open(uri, false, bundle);
 
-            assertFileContent(pfdOriginal, pfdTranscoded, false);
+            assertFileContent(modernFile, modernFile, pfdOriginal, pfdTranscoded, false);
         } finally {
             modernFile.delete();
         }
@@ -306,7 +393,7 @@ public class TranscodeTest {
             bundle.putParcelable(MediaStore.EXTRA_MEDIA_CAPABILITIES, capabilities);
             ParcelFileDescriptor pfdOriginal2 = open(uri, false, bundle);
 
-            assertFileContent(pfdOriginal1, pfdOriginal2, true);
+            assertFileContent(modernFile, modernFile, pfdOriginal1, pfdOriginal2, true);
         } finally {
             modernFile.delete();
         }
@@ -328,7 +415,7 @@ public class TranscodeTest {
             bundle.putParcelable(MediaStore.EXTRA_MEDIA_CAPABILITIES, capabilities);
             ParcelFileDescriptor pfdTranscoded = open(uri, false, bundle);
 
-            assertFileContent(pfdOriginal1, pfdTranscoded, false);
+            assertFileContent(modernFile, modernFile, pfdOriginal1, pfdTranscoded, false);
         } finally {
             modernFile.delete();
         }
@@ -352,7 +439,7 @@ public class TranscodeTest {
             bundle.putBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, true);
             ParcelFileDescriptor pfdOriginal2 = open(uri, false, bundle);
 
-            assertFileContent(pfdOriginal1, pfdOriginal2, true);
+            assertFileContent(modernFile, modernFile, pfdOriginal1, pfdOriginal2, true);
         } finally {
             modernFile.delete();
         }

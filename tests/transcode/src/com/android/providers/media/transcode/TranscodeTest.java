@@ -20,37 +20,39 @@ import static androidx.test.InstrumentationRegistry.getContext;
 
 import static com.android.providers.media.transcode.TranscodeTestUtils.assertFileContent;
 import static com.android.providers.media.transcode.TranscodeTestUtils.assertTranscode;
+import static com.android.providers.media.transcode.TranscodeTestUtils.installAppWithStoragePermissions;
 import static com.android.providers.media.transcode.TranscodeTestUtils.open;
+import static com.android.providers.media.transcode.TranscodeTestUtils.openFileAs;
+import static com.android.providers.media.transcode.TranscodeTestUtils.uninstallApp;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.Manifest;
+import android.content.ContentResolver;
 import android.media.ApplicationMediaCapabilities;
 import android.media.MediaFormat;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
-import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.system.Os;
-import android.util.Log;
 
 import androidx.test.runner.AndroidJUnit4;
+
+import com.android.cts.install.lib.TestApp;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 @RunWith(AndroidJUnit4.class)
 public class TranscodeTest {
@@ -72,10 +74,19 @@ public class TranscodeTest {
     static final String NONCE = String.valueOf(System.nanoTime());
     private static final String HEVC_FILE_NAME = "TranscodeTestHEVC_" + NONCE + ".mp4";
 
+    private static final TestApp TEST_APP_HEVC = new TestApp("TestAppHevc",
+            "com.android.providers.media.transcode.testapp", 1, false,
+            "TranscodeTestAppSupportsHevc.apk");
+
+    private static final TestApp TEST_APP_SLOW_MOTION = new TestApp("TestAppSlowMotion",
+            "com.android.providers.media.transcode.testapp", 1, false,
+            "TranscodeTestAppSupportsSlowMotion.apk");
+
     @Before
     public void setUp() throws Exception {
         TranscodeTestUtils.pollForExternalStorageState();
-        TranscodeTestUtils.grantPermission(Manifest.permission.READ_EXTERNAL_STORAGE);
+        TranscodeTestUtils.grantPermission(getContext().getPackageName(),
+                Manifest.permission.READ_EXTERNAL_STORAGE);
         TranscodeTestUtils.pollForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, true);
         TranscodeTestUtils.enableSeamlessTranscoding();
         TranscodeTestUtils.disableTranscodingForAllUids();
@@ -442,6 +453,60 @@ public class TranscodeTest {
             assertFileContent(modernFile, modernFile, pfdOriginal1, pfdOriginal2, true);
         } finally {
             modernFile.delete();
+        }
+    }
+
+    @Test
+    public void testMediaCapabilitiesManifestHevc()
+            throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        ParcelFileDescriptor pfdOriginal2 = null;
+        try {
+            installAppWithStoragePermissions(TEST_APP_HEVC);
+
+            Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+
+            ParcelFileDescriptor pfdOriginal1 = open(modernFile, false);
+
+            TranscodeTestUtils.enableTranscodingForPackage(TEST_APP_HEVC.getPackageName());
+
+            pfdOriginal2 = openFileAs(TEST_APP_HEVC, modernFile);
+
+            assertFileContent(modernFile, modernFile, pfdOriginal1, pfdOriginal2, true);
+        } finally {
+            // Explicitly close PFD otherwise instrumention might crash when test_app is uninstalled
+            if (pfdOriginal2 != null) {
+                pfdOriginal2.close();
+            }
+            modernFile.delete();
+            uninstallApp(TEST_APP_HEVC);
+        }
+    }
+
+    @Test
+    public void testMediaCapabilitiesManifestSlowMotion()
+            throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        ParcelFileDescriptor pfdOriginal2 = null;
+        try {
+            installAppWithStoragePermissions(TEST_APP_SLOW_MOTION);
+
+            Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+
+            ParcelFileDescriptor pfdOriginal1 = open(modernFile, false);
+
+            TranscodeTestUtils.enableTranscodingForPackage(TEST_APP_SLOW_MOTION.getPackageName());
+
+            pfdOriginal2 = openFileAs(TEST_APP_SLOW_MOTION, modernFile);
+
+            assertFileContent(modernFile, modernFile, pfdOriginal1, pfdOriginal2, false);
+        } finally {
+            // Explicitly close PFD otherwise instrumention might crash when test_app is uninstalled
+            if (pfdOriginal2 != null) {
+                pfdOriginal2.close();
+            }
+            modernFile.delete();
+            uninstallApp(TEST_APP_HEVC);
         }
     }
 }

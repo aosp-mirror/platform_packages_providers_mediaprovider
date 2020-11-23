@@ -18,13 +18,25 @@ package com.android.providers.media.transcode;
 
 import static androidx.test.InstrumentationRegistry.getContext;
 
+import static com.android.providers.media.transcode.TranscodeTestConstants.INTENT_EXTRA_CALLING_PKG;
+import static com.android.providers.media.transcode.TranscodeTestConstants.INTENT_EXTRA_PATH;
+import static com.android.providers.media.transcode.TranscodeTestConstants.OPEN_FILE_QUERY;
+import static com.android.providers.media.transcode.TranscodeTestConstants.INTENT_QUERY_TYPE;
+
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 
+import android.Manifest;
+import android.app.ActivityManager;
 import android.app.AppOpsManager;
 import android.app.UiAutomation;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
@@ -38,6 +50,11 @@ import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
 
+import com.android.cts.install.lib.Install;
+import com.android.cts.install.lib.InstallUtils;
+import com.android.cts.install.lib.TestApp;
+import com.android.cts.install.lib.Uninstall;
+
 import com.google.common.io.ByteStreams;
 
 import java.io.File;
@@ -46,8 +63,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
-import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
@@ -105,8 +122,15 @@ public class TranscodeTestUtils {
         executeShellCommand(command);
     }
 
+    public static void enableTranscodingForPackage(String packageName) throws IOException {
+        final String command = "setprop persist.sys.fuse.transcode_packages " + packageName;
+        executeShellCommand(command);
+    }
+
     public static void disableTranscodingForAllUids() throws IOException {
-        final String command = "setprop persist.sys.fuse.transcode_uids -1";
+        String command = "setprop persist.sys.fuse.transcode_uids -1";
+        executeShellCommand(command);
+        command = "setprop persist.sys.fuse.transcode_packages -1";
         executeShellCommand(command);
     }
 
@@ -156,11 +180,11 @@ public class TranscodeTestUtils {
         throw new TimeoutException(errorMessage);
     }
 
-    public static void grantPermission(String permission) {
+    public static void grantPermission(String packageName, String permission) {
         UiAutomation uiAutomation = InstrumentationRegistry.getInstrumentation().getUiAutomation();
         uiAutomation.adoptShellPermissionIdentity("android.permission.GRANT_RUNTIME_PERMISSIONS");
         try {
-            uiAutomation.grantRuntimePermission(getContext().getPackageName(), permission);
+            uiAutomation.grantRuntimePermission(packageName, permission);
         } finally {
             uiAutomation.dropShellPermissionIdentity();
         }
@@ -202,6 +226,124 @@ public class TranscodeTestUtils {
         }
 
         return appOps.unsafeCheckOpNoThrow(op, uid, packageName) == AppOpsManager.MODE_ALLOWED;
+    }
+
+    /**
+     * Installs a {@link TestApp} and grants it storage permissions.
+     */
+    public static void installAppWithStoragePermissions(TestApp testApp)
+            throws Exception {
+        UiAutomation uiAutomation = InstrumentationRegistry.getInstrumentation().getUiAutomation();
+        try {
+            final String packageName = testApp.getPackageName();
+            uiAutomation.adoptShellPermissionIdentity(
+                    Manifest.permission.INSTALL_PACKAGES, Manifest.permission.DELETE_PACKAGES);
+            if (InstallUtils.getInstalledVersion(packageName) != -1) {
+                Uninstall.packages(packageName);
+            }
+            Install.single(testApp).commit();
+            assertThat(InstallUtils.getInstalledVersion(packageName)).isEqualTo(1);
+
+            grantPermission(packageName, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+            grantPermission(packageName, Manifest.permission.READ_EXTERNAL_STORAGE);
+        } finally {
+            uiAutomation.dropShellPermissionIdentity();
+        }
+    }
+
+    /**
+     * Uninstalls a {@link TestApp}.
+     */
+    public static void uninstallApp(TestApp testApp) throws Exception {
+        UiAutomation uiAutomation = InstrumentationRegistry.getInstrumentation().getUiAutomation();
+        try {
+            final String packageName = testApp.getPackageName();
+            uiAutomation.adoptShellPermissionIdentity(Manifest.permission.DELETE_PACKAGES);
+
+            Uninstall.packages(packageName);
+            assertThat(InstallUtils.getInstalledVersion(packageName)).isEqualTo(-1);
+        } catch (Exception e) {
+            Log.e(TAG, "Exception occurred while uninstalling app: " + testApp, e);
+        } finally {
+            uiAutomation.dropShellPermissionIdentity();
+        }
+    }
+
+    /**
+     * Makes the given {@code testApp} open a file for read or write.
+     *
+     * <p>This method drops shell permission identity.
+     */
+    public static ParcelFileDescriptor openFileAs(TestApp testApp, File dirPath)
+            throws Exception {
+        String actionName = getContext().getPackageName() + ".open_file";
+        Bundle bundle = getFromTestApp(testApp, dirPath.getPath(), actionName);
+        return getContext().getContentResolver().openFileDescriptor(
+                bundle.getParcelable(actionName), "rw");
+    }
+
+    /**
+     * <p>This method drops shell permission identity.
+     */
+    private static Bundle getFromTestApp(TestApp testApp, String dirPath, String actionName)
+            throws Exception {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final Bundle[] bundle = new Bundle[1];
+        BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                bundle[0] = intent.getExtras();
+                latch.countDown();
+            }
+        };
+
+        sendIntentToTestApp(testApp, dirPath, actionName, broadcastReceiver, latch);
+        return bundle[0];
+    }
+
+    /**
+     * <p>This method drops shell permission identity.
+     */
+    private static void sendIntentToTestApp(TestApp testApp, String dirPath, String actionName,
+            BroadcastReceiver broadcastReceiver, CountDownLatch latch) throws Exception {
+        final String packageName = testApp.getPackageName();
+        forceStopApp(packageName);
+        // Register broadcast receiver
+        final IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(actionName);
+        intentFilter.addCategory(Intent.CATEGORY_DEFAULT);
+        getContext().registerReceiver(broadcastReceiver, intentFilter);
+
+        // Launch the test app.
+        final Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.setPackage(packageName);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.putExtra(INTENT_QUERY_TYPE, actionName);
+        intent.putExtra(INTENT_EXTRA_CALLING_PKG, getContext().getPackageName());
+        intent.putExtra(INTENT_EXTRA_PATH, dirPath);
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        getContext().startActivity(intent);
+        if (!latch.await(POLLING_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+            final String errorMessage = "Timed out while waiting to receive " + actionName
+                    + " intent from " + packageName;
+            throw new TimeoutException(errorMessage);
+        }
+        getContext().unregisterReceiver(broadcastReceiver);
+    }
+
+    /**
+     * <p>This method drops shell permission identity.
+     */
+    private static void forceStopApp(String packageName) throws Exception {
+        UiAutomation uiAutomation = InstrumentationRegistry.getInstrumentation().getUiAutomation();
+        try {
+            uiAutomation.adoptShellPermissionIdentity(Manifest.permission.FORCE_STOP_PACKAGES);
+
+            getContext().getSystemService(ActivityManager.class).forceStopPackage(packageName);
+            Thread.sleep(1000);
+        } finally {
+            uiAutomation.dropShellPermissionIdentity();
+        }
     }
 
     public static void assertFileContent(File file1, File file2, ParcelFileDescriptor pfd1,

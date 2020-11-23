@@ -4005,11 +4005,11 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Gets shared package names for the calling package
+     * Gets {@link LocalCallingIdentity} for the calling package
      * TODO(b/170465810) Change the method name after refactoring.
      */
-    String[] getSharedPackagesForUidForTranscoding(int uid) {
-        return getContext().getPackageManager().getPackagesForUid(uid);
+    LocalCallingIdentity getCachedCallingIdentityForTranscoding(int uid) {
+        return getCachedCallingIdentityForFuse(uid);
     }
 
     @Deprecated

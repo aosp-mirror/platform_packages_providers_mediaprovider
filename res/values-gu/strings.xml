@@ -22,88 +22,112 @@
     <string name="artist_label" msgid="8105600993099120273">"કલાકાર"</string>
     <string name="unknown" msgid="2059049215682829375">"અજાણ"</string>
     <string name="root_images" msgid="5861633549189045666">"છબીઓ"</string>
-    <string name="root_videos" msgid="8792703517064649453">"વીડિયો"</string>
-    <string name="root_audio" msgid="3505830755201326018">"ઑડિયો"</string>
+    <string name="root_videos" msgid="8792703517064649453">"વિડિઓઝ"</string>
+    <string name="root_audio" msgid="3505830755201326018">"ઑડિઓ"</string>
     <string name="root_documents" msgid="3829103301363849237">"દસ્તાવેજો"</string>
     <string name="permission_required" msgid="1460820436132943754">"આ આઇટમમાં ફેરફાર કરવા માટે અથવા તેને ડિલીટ કરવા માટે પરવાનગી હોવી જરૂરી છે."</string>
     <string name="permission_required_action" msgid="706370952366113539">"આગળ વધો"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"મંજૂરી આપો"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"નકારો"</string>
-    <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
-      <item quantity="one">+<xliff:g id="COUNT_1">^1</xliff:g></item>
-      <item quantity="other">+<xliff:g id="COUNT_1">^1</xliff:g></item>
-    </plurals>
+    <!-- no translation found for permission_more_thumb (3530243737498196228) -->
     <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
       <item quantity="one">ઉપરાંત <xliff:g id="COUNT_1">^1</xliff:g> વધારાની આઇટમ</item>
       <item quantity="other">ઉપરાંત <xliff:g id="COUNT_1">^1</xliff:g> વધારાની આઇટમ</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"ઍપની બધી અસ્થાયી ફાઇલોને સાફ કરીએ?"</string>
-    <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> કેટલીક અસ્થાયી ફાઇલોને સાફ કરવા માગે છે. આના પરિણામે બૅટરી અથવા સેલ્યુલર ડેટાના વપરાશમાં વધારો થઈ શકે છે."</string>
-    <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"ઍપની બધી અસ્થાયી ફાઇલો સાફ કરી રહ્યાં છીએ…"</string>
-    <string name="allow" msgid="8885707816848569619">"મંજૂરી આપો"</string>
-    <string name="deny" msgid="6040983710442068936">"નકારો"</string>
-    <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
+    <!-- no translation found for cache_clearing_dialog_title (543177167845854283) -->
+    <skip />
+    <!-- no translation found for cache_clearing_dialog_text (425995541409682360) -->
+    <skip />
+    <!-- no translation found for allow (8885707816848569619) -->
+    <skip />
+    <!-- no translation found for deny (6040983710442068936) -->
+    <skip />
+    <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
       <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલમાં ફેરફાર કરવાની મંજૂરી આપીએ?</item>
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલમાં ફેરફાર કરવાની મંજૂરી આપીએ?</item>
     </plurals>
-    <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
+    <plurals name="permission_write_video" formatted="false" msgid="8695335317588947410">
       <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> વીડિયોમાં ફેરફાર કરવાની મંજૂરી આપીએ?</item>
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> વીડિયોમાં ફેરફાર કરવાની મંજૂરી આપીએ?</item>
     </plurals>
-    <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
+    <plurals name="permission_write_image" formatted="false" msgid="9032317900030650266">
       <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ફોટામાં ફેરફાર કરવાની મંજૂરી આપીએ?</item>
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ફોટામાં ફેરફાર કરવાની મંજૂરી આપીએ?</item>
     </plurals>
-    <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
+    <plurals name="permission_write_generic" formatted="false" msgid="3099002288826692797">
       <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> આઇટમમાં ફેરફાર કરવાની મંજૂરી આપીએ?</item>
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> આઇટમમાં ફેરફાર કરવાની મંજૂરી આપીએ?</item>
     </plurals>
-    <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
-      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલને ટ્રેશમાં ખસેડવાની મંજૂરી આપીએ?</item>
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલને ટ્રેશમાં ખસેડવાની મંજૂરી આપીએ?</item>
+    <string name="permission_write_grant" msgid="3160858917750790130">"ફેરફાર કરો"</string>
+    <string name="permission_write_deny" msgid="7090074081877311071">"રદ કરો"</string>
+    <plurals name="permission_trash_audio" formatted="false" msgid="6116371056718108592">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલ ટ્રેશમાં ખસેડવાની મંજૂરી આપીએ?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલ ટ્રેશમાં ખસેડવાની મંજૂરી આપીએ?</item>
     </plurals>
-    <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
-      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> વીડિયોને ટ્રેશમાં ખસેડવાની મંજૂરી આપીએ?</item>
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> વીડિયોને ટ્રેશમાં ખસેડવાની મંજૂરી આપીએ?</item>
+    <plurals name="permission_trash_audio_info" formatted="false" msgid="5002847308948758655">
+      <item quantity="one">આ ઑડિયો ફાઇલ <xliff:g id="DURATION_1">^3</xliff:g> દિવસ પછી હંમેશ માટે ડિલીટ કરવામાં આવશે</item>
+      <item quantity="other">આ ઑડિયો ફાઇલો <xliff:g id="DURATION_1">^3</xliff:g> દિવસ પછી હંમેશ માટે ડિલીટ કરવામાં આવશે</item>
     </plurals>
-    <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
-      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ફોટાને ટ્રેશમાં ખસેડવાની મંજૂરી આપીએ?</item>
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ફોટાને ટ્રેશમાં ખસેડવાની મંજૂરી આપીએ?</item>
+    <plurals name="permission_trash_video" formatted="false" msgid="7900111984425589714">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> વીડિયો ટ્રેશમાં ખસેડવાની મંજૂરી આપીએ?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> વીડિયો ટ્રેશમાં ખસેડવાની મંજૂરી આપીએ?</item>
     </plurals>
-    <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
-      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> આઇટમને ટ્રેશમાં ખસેડવાની મંજૂરી આપીએ?</item>
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> આઇટમને ટ્રેશમાં ખસેડવાની મંજૂરી આપીએ?</item>
+    <plurals name="permission_trash_video_info" formatted="false" msgid="4604871492287117394">
+      <item quantity="one">આ વીડિયો <xliff:g id="DURATION_1">^3</xliff:g> દિવસ પછી હંમેશ માટે ડિલીટ કરવામાં આવશે</item>
+      <item quantity="other">આ વીડિયો <xliff:g id="DURATION_1">^3</xliff:g> દિવસ પછી હંમેશ માટે ડિલીટ કરવામાં આવશે</item>
     </plurals>
-    <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
-      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલને ટ્રેશમાંથી બહાર લાવવાની મંજૂરી આપીએ?</item>
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલને ટ્રેશમાંથી બહાર લાવવાની મંજૂરી આપીએ?</item>
+    <plurals name="permission_trash_image" formatted="false" msgid="9204660448046457869">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ફોટો ટ્રેશમાં ખસેડવાની મંજૂરી આપીએ?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ફોટા ટ્રેશમાં ખસેડવાની મંજૂરી આપીએ?</item>
     </plurals>
-    <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
-      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> વીડિયોને ટ્રેશમાંથી બહાર લાવવાની મંજૂરી આપીએ?</item>
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> વીડિયોને ટ્રેશમાંથી બહાર લાવવાની મંજૂરી આપીએ?</item>
+    <plurals name="permission_trash_image_info" formatted="false" msgid="4214797662365755925">
+      <item quantity="one">આ ફોટો <xliff:g id="DURATION_1">^3</xliff:g> દિવસ પછી હંમેશ માટે ડિલીટ કરવામાં આવશે</item>
+      <item quantity="other">આ ફોટા <xliff:g id="DURATION_1">^3</xliff:g> દિવસ પછી હંમેશ માટે ડિલીટ કરવામાં આવશે</item>
     </plurals>
-    <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
-      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ફોટાને ટ્રેશમાંથી બહાર લાવવાની મંજૂરી આપીએ?</item>
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ફોટાને ટ્રેશમાંથી બહાર લાવવાની મંજૂરી આપીએ?</item>
+    <plurals name="permission_trash_generic" formatted="false" msgid="427752775725644743">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> આઇટમ ટ્રેશમાં ખસેડવાની મંજૂરી આપીએ?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> આઇટમ ટ્રેશમાં ખસેડવાની મંજૂરી આપીએ?</item>
     </plurals>
-    <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
-      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> આઇટમને ટ્રેશમાંથી બહાર લાવવાની મંજૂરી આપીએ?</item>
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> આઇટમને ટ્રેશમાંથી બહાર લાવવાની મંજૂરી આપીએ?</item>
+    <plurals name="permission_trash_generic_info" formatted="false" msgid="7932965324027540546">
+      <item quantity="one">આ આઇટમ <xliff:g id="DURATION_1">^3</xliff:g> દિવસ પછી હંમેશ માટે ડિલીટ કરવામાં આવશે</item>
+      <item quantity="other">આ આઇટમ <xliff:g id="DURATION_1">^3</xliff:g> દિવસ પછી હંમેશ માટે ડિલીટ કરવામાં આવશે</item>
     </plurals>
-    <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
-      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને આ <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલ ડિલીટ કરવાની મંજૂરી આપીએ?</item>
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને આ <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલ ડિલીટ કરવાની મંજૂરી આપીએ?</item>
+    <string name="permission_trash_grant" msgid="2279489962040272178">"ટ્રેશમાં ખસેડો"</string>
+    <string name="permission_trash_deny" msgid="2447949475239137483">"રદ કરો"</string>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="5716379492864435914">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલ ટ્રેશમાંથી બહાર લાવવાની મંજૂરી આપીએ?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલ ટ્રેશમાંથી બહાર લાવવાની મંજૂરી આપીએ?</item>
     </plurals>
-    <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
-      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને આ <xliff:g id="COUNT">^2</xliff:g> વીડિયો ડિલીટ કરવાની મંજૂરી આપીએ?</item>
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને આ <xliff:g id="COUNT">^2</xliff:g> વીડિયો ડિલીટ કરવાની મંજૂરી આપીએ?</item>
+    <plurals name="permission_untrash_video" formatted="false" msgid="4554487646802678525">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> વીડિયો ટ્રેશમાંથી બહાર લાવવાની મંજૂરી આપીએ?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> વીડિયો ટ્રેશમાંથી બહાર લાવવાની મંજૂરી આપીએ?</item>
     </plurals>
-    <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
-      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને આ <xliff:g id="COUNT">^2</xliff:g> ફોટો ડિલીટ કરવાની મંજૂરી આપીએ?</item>
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને આ <xliff:g id="COUNT">^2</xliff:g> ફોટો ડિલીટ કરવાની મંજૂરી આપીએ?</item>
+    <plurals name="permission_untrash_image" formatted="false" msgid="3209306923499767662">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ફોટો ટ્રેશમાંથી બહાર લાવવાની મંજૂરી આપીએ?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ફોટા ટ્રેશમાંથી બહાર લાવવાની મંજૂરી આપીએ?</item>
     </plurals>
-    <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
-      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને આ <xliff:g id="COUNT">^2</xliff:g> આઇટમ ડિલીટ કરવાની મંજૂરી આપીએ?</item>
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને આ <xliff:g id="COUNT">^2</xliff:g> આઇટમ ડિલીટ કરવાની મંજૂરી આપીએ?</item>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="4607666277638602132">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> આઇટમ ટ્રેશમાંથી બહાર લાવવાની મંજૂરી આપીએ?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> આઇટમ ટ્રેશમાંથી બહાર લાવવાની મંજૂરી આપીએ?</item>
     </plurals>
+    <string name="permission_untrash_grant" msgid="8438940480373451790">"ટ્રેશમાંથી બહાર લાવો"</string>
+    <string name="permission_untrash_deny" msgid="8008055757469903604">"રદ કરો"</string>
+    <plurals name="permission_delete_audio" formatted="false" msgid="6390202287788379608">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલ ડિલીટ કરવાની મંજૂરી આપીએ?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ઑડિયો ફાઇલ ડિલીટ કરવાની મંજૂરી આપીએ?</item>
+    </plurals>
+    <plurals name="permission_delete_video" formatted="false" msgid="1577978206881284398">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> વીડિયો ડિલીટ કરવાની મંજૂરી આપીએ?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> વીડિયો ડિલીટ કરવાની મંજૂરી આપીએ?</item>
+    </plurals>
+    <plurals name="permission_delete_image" formatted="false" msgid="8435429587272893063">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ફોટો ડિલીટ કરવાની મંજૂરી આપીએ?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> ફોટા ડિલીટ કરવાની મંજૂરી આપીએ?</item>
+    </plurals>
+    <plurals name="permission_delete_generic" formatted="false" msgid="5949614272661654178">
+      <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> આઇટમ ડિલીટ કરવાની મંજૂરી આપીએ?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>ને <xliff:g id="COUNT">^2</xliff:g> આઇટમ ડિલીટ કરવાની મંજૂરી આપીએ?</item>
+    </plurals>
+    <string name="permission_delete_grant" msgid="8682518049167813926">"ડિલીટ કરો"</string>
+    <string name="permission_delete_deny" msgid="3742780367403897552">"રદ કરો"</string>
 </resources>

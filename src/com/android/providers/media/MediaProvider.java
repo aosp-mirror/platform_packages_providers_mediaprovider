@@ -3345,6 +3345,15 @@ public class MediaProvider extends ContentProvider {
             values.put(FileColumns.MEDIA_TYPE, mediaType);
         }
 
+        if (isCallingPackageSelf() && values.containsKey(FileColumns._MODIFIER)) {
+            // We can't identify if the call is coming from media scan, hence
+            // we let ModernMediaScanner send FileColumns._MODIFIER value.
+        } else if (isFuseThread()) {
+            values.put(FileColumns._MODIFIER, FileColumns._MODIFIER_FUSE);
+        } else {
+            values.put(FileColumns._MODIFIER, FileColumns._MODIFIER_CR);
+        }
+
         final long rowId;
         {
             if (mediaType == FileColumns.MEDIA_TYPE_PLAYLIST) {

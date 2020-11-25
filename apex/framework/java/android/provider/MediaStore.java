@@ -1696,6 +1696,44 @@ public final class MediaStore {
              * Constant for the {@link #MEDIA_TYPE} column indicating that file is a document file.
              */
             public static final int MEDIA_TYPE_DOCUMENT = 6;
+
+            /**
+             * Modifier of the database row
+             *
+             * Specifies the last modifying operation of the database row. This
+             * does not give any information on the package that modified the
+             * database row.
+             * Initially, this column will be populated by
+             * {@link ContentResolver}#insert and media scan operations. And,
+             * the column will be used to identify if the file was previously
+             * scanned.
+             * @hide
+             */
+            @Column(value = Cursor.FIELD_TYPE_INTEGER)
+            public static final String _MODIFIER = "_modifier";
+
+            /**
+             * Constant for the {@link #_MODIFIER} column indicating
+             * that the last modifier of the database row is FUSE operation.
+             * @hide
+             */
+            public static final int _MODIFIER_FUSE = 1;
+
+            /**
+             * Constant for the {@link #_MODIFIER} column indicating
+             * that the last modifier of the database row is explicit
+             * {@link ContentResolver} operation from app.
+             * @hide
+             */
+            public static final int _MODIFIER_CR = 2;
+
+            /**
+             * Constant for the {@link #_MODIFIER} column indicating
+             * that the last modifier of the database row is a media scan
+             * operation.
+             * @hide
+             */
+            public static final int _MODIFIER_MEDIA_SCAN = 3;
         }
     }
 

@@ -509,4 +509,65 @@ public class TranscodeTest {
             uninstallApp(TEST_APP_HEVC);
         }
     }
+
+    @Test
+    public void testAppCompatNoTranscodeHevc() throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        String packageName = TEST_APP_SLOW_MOTION.getPackageName();
+        ParcelFileDescriptor pfdOriginal2 = null;
+        try {
+            installAppWithStoragePermissions(TEST_APP_SLOW_MOTION);
+
+            Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+
+            ParcelFileDescriptor pfdOriginal1 = open(modernFile, false);
+
+            TranscodeTestUtils.enableTranscodingForPackage(packageName);
+            // App compat takes precedence
+            TranscodeTestUtils.forceEnableAppCompatHevc(packageName);
+
+            Thread.sleep(2000);
+
+            pfdOriginal2 = openFileAs(TEST_APP_SLOW_MOTION, modernFile);
+
+            assertFileContent(modernFile, modernFile, pfdOriginal1, pfdOriginal2, true);
+        } finally {
+            // Explicitly close PFD otherwise instrumention might crash when test_app is uninstalled
+            if (pfdOriginal2 != null) {
+                pfdOriginal2.close();
+            }
+            modernFile.delete();
+            TranscodeTestUtils.resetAppCompat(packageName);
+            uninstallApp(TEST_APP_HEVC);
+        }
+    }
+
+    @Test
+    public void testAppCompatTranscodeHevc() throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        String packageName = TEST_APP_SLOW_MOTION.getPackageName();
+        ParcelFileDescriptor pfdOriginal2 = null;
+        try {
+            installAppWithStoragePermissions(TEST_APP_SLOW_MOTION);
+
+            Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+
+            ParcelFileDescriptor pfdOriginal1 = open(modernFile, false);
+
+            // Transcoding is disabled but app compat enables it (disables hevc support)
+            TranscodeTestUtils.forceDisableAppCompatHevc(packageName);
+
+            pfdOriginal2 = openFileAs(TEST_APP_SLOW_MOTION, modernFile);
+
+            assertFileContent(modernFile, modernFile, pfdOriginal1, pfdOriginal2, false);
+        } finally {
+            // Explicitly close PFD otherwise instrumention might crash when test_app is uninstalled
+            if (pfdOriginal2 != null) {
+                pfdOriginal2.close();
+            }
+            modernFile.delete();
+            TranscodeTestUtils.resetAppCompat(packageName);
+            uninstallApp(TEST_APP_HEVC);
+        }
+    }
 }

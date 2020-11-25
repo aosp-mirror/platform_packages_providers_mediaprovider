@@ -25,14 +25,20 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 import static com.android.providers.media.MediaProvider.VolumeNotFoundException;
 
 import android.annotation.IntRange;
+import android.annotation.LongDef;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
+import android.content.pm.PackageManager.Property;
+import android.content.res.XmlResourceParser;
 import android.database.Cursor;
 import android.media.ApplicationMediaCapabilities;
+import android.media.MediaFeature;
 import android.media.MediaFormat;
 import android.media.MediaTranscodeManager;
 import android.media.MediaTranscodeManager.TranscodingSession;
@@ -65,6 +71,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -76,6 +84,28 @@ import java.util.regex.Pattern;
 public class TranscodeHelper {
     private static final String TAG = "TranscodeHelper";
     private static final String TRANSCODE_FILE_PREFIX = ".transcode_";
+
+    // TODO(b/169327180): Move to ApplicationMediaCapabilities
+    private static final String MEDIA_CAPABILITIES_PROPERTY
+            = "android.media.PROPERTY_MEDIA_CAPABILITIES";
+
+    private static final long FLAG_HEVC = 1 << 0;
+    private static final long FLAG_SLOW_MOTION = 1 << 1;
+    private static final long FLAG_HDR_10 = 1 << 2;
+    private static final long FLAG_HDR_10_PLUS = 1 << 3;
+    private static final long FLAG_HDR_HLG = 1 << 4;
+    private static final long FLAG_HDR_DOLBY_VISION = 1 << 5;
+
+    @LongDef({
+            FLAG_HEVC,
+            FLAG_SLOW_MOTION,
+            FLAG_HDR_10,
+            FLAG_HDR_10_PLUS,
+            FLAG_HDR_HLG,
+            FLAG_HDR_DOLBY_VISION
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface ApplicationMediaCapabilitiesFlags {}
 
     /** Coefficient to 'guess' how long a transcoding session might take */
     private static final double TRANSCODING_TIMEOUT_COEFFICIENT = 2;
@@ -91,6 +121,7 @@ public class TranscodeHelper {
     static final String DIRECTORY_CAMERA = "Camera";
 
     private final MediaProvider mMediaProvider;
+    private final PackageManager mPackageManager;
     private final MediaTranscodeManager mMediaTranscodeManager;
     private final File mTranscodeDirectory;
     @GuardedBy("mTranscodingSessions")
@@ -115,6 +146,7 @@ public class TranscodeHelper {
     };
 
     public TranscodeHelper(Context context, MediaProvider mediaProvider) {
+        mPackageManager = context.getPackageManager();
         mMediaTranscodeManager = context.getSystemService(MediaTranscodeManager.class);
         mMediaProvider = mediaProvider;
         mTranscodeDirectory =
@@ -267,24 +299,24 @@ public class TranscodeHelper {
                 return false;
             }
         }
-        // TODO(b/169849854): Check apps declared media_capabilities.xml
 
         // TODO(b/169327180): We should also check app's targetSDK version to verify if app still
-        //  qualifies to be on the allow list.
-        List<String> allowList = Arrays.asList(ALLOW_LIST);
-        final String[] callingPackages = mMediaProvider.getSharedPackagesForUidForTranscoding(uid);
+        // qualifies to be on these lists.
+        LocalCallingIdentity identity = mMediaProvider.getCachedCallingIdentityForTranscoding(uid);
+        final String[] callingPackages = identity.getSharedPackageNames();
+
+        // TODO(b/169327180): Check app-compat flags and return early if defined
+        // Check allowPackages and manifest supported packages
+        List<String> allowPackages = Arrays.asList(ALLOW_LIST);
         for (String callingPackage : callingPackages) {
-            if (allowList.contains(callingPackage)) {
+            if (allowPackages.contains(callingPackage)) {
+                return false;
+            } else if (checkManifestSupport(callingPackage, identity)) {
                 return false;
             }
         }
 
-        List<String> transcodeUids = Arrays.asList(
-                SystemProperties.get("persist.sys.fuse.transcode_uids").split(","));
-        if (transcodeUids.contains(String.valueOf(uid))) {
-            return true;
-        }
-
+        // Check transcodePackages
         List<String> transcodePackages = Arrays.asList(
                 SystemProperties.get("persist.sys.fuse.transcode_packages").split(","));
         for (String callingPackage : callingPackages) {
@@ -292,6 +324,15 @@ public class TranscodeHelper {
                 return true;
             }
         }
+
+        // Check transcodeUids
+        List<String> transcodeUids = Arrays.asList(
+                SystemProperties.get("persist.sys.fuse.transcode_uids").split(","));
+        if (transcodeUids.contains(String.valueOf(uid))) {
+            return true;
+        }
+
+        // TODO(b/169327180): Return default option
         return false;
     }
 
@@ -303,6 +344,62 @@ public class TranscodeHelper {
 
         return !isTranscodeFile(path) && name.endsWith(".mp4") &&
                 cameraRelativePath.equalsIgnoreCase(FileUtils.extractRelativePath(path));
+    }
+
+    /**
+     * @return {@code true} if HEVC is explicitly supported by the manifest of {@code packageName},
+     * {@code false} otherwise.
+     */
+    private boolean checkManifestSupport(String packageName, LocalCallingIdentity identity) {
+        // TODO(b/169327180):
+        // 1. Support beyond HEVC
+        // 2. Shared package names policy:
+        // If appA and appB share the same uid. And appA supports HEVC but appB doesn't.
+        // Should we assume entire uid supports or doesn't?
+        // For now, we assume uid supports, but this might change in future
+        int flags = identity.getApplicationMediaCapabilitiesFlags();
+        if (flags != -1) {
+            return (flags & FLAG_HEVC) != 0;
+        }
+
+        try {
+            Property mediaCapProperty = mPackageManager.getProperty(MEDIA_CAPABILITIES_PROPERTY,
+                    packageName);
+            XmlResourceParser parser = mPackageManager.getResourcesForApplication(packageName)
+                    .getXml(mediaCapProperty.getResourceId());
+            ApplicationMediaCapabilities capability = ApplicationMediaCapabilities.createFromXml(
+                    parser);
+
+            identity.setApplicationMediaCapabilitiesFlags(capabilitiesToFlags(capability));
+            return capability.isVideoMimeTypeSupported(MediaFormat.MIMETYPE_VIDEO_HEVC);
+        } catch (NameNotFoundException | UnsupportedOperationException e) {
+            Log.d(TAG, "No valid media capability defined for " + packageName, e);
+            return false;
+        }
+    }
+
+    @ApplicationMediaCapabilitiesFlags
+    private int capabilitiesToFlags(ApplicationMediaCapabilities capability) {
+        int flags = 0;
+        if (capability.isVideoMimeTypeSupported(MediaFormat.MIMETYPE_VIDEO_HEVC)) {
+            flags |= FLAG_HEVC;
+        }
+        if (capability.isSlowMotionSupported()) {
+            flags |= FLAG_SLOW_MOTION;
+        }
+        if (capability.isHdrTypeSupported(MediaFeature.HdrType.HDR10)) {
+            flags |= FLAG_HDR_10;
+        }
+        if (capability.isHdrTypeSupported(MediaFeature.HdrType.HDR10_PLUS)) {
+            flags |= FLAG_HDR_10_PLUS;
+        }
+        if (capability.isHdrTypeSupported(MediaFeature.HdrType.HLG)) {
+            flags |= FLAG_HDR_HLG;
+        }
+        if (capability.isHdrTypeSupported(MediaFeature.HdrType.DOLBY_VISION)) {
+            flags |= FLAG_HDR_DOLBY_VISION;
+        }
+        return flags;
     }
 
     private Pair<Long, Integer> getTranscodeCacheInfoFromDB(String path) {

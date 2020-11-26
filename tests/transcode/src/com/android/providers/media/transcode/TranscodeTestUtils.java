@@ -92,16 +92,15 @@ public class TranscodeTestUtils {
     }
 
     public static ParcelFileDescriptor open(File file, boolean forWrite) throws Exception {
-        // TODO(b/171953356): Switch to read_only fds if forWrite==false
-        return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_WRITE);
+        return ParcelFileDescriptor.open(file, forWrite ? ParcelFileDescriptor.MODE_READ_WRITE
+                : ParcelFileDescriptor.MODE_READ_ONLY);
     }
 
     public static ParcelFileDescriptor open(Uri uri, boolean forWrite, Bundle bundle)
             throws Exception {
         ContentResolver resolver = getContext().getContentResolver();
         if (bundle == null) {
-            // TODO(b/171953356): Switch to read_only fds if forWrite==false
-            return resolver.openFileDescriptor(uri, "rw");
+            return resolver.openFileDescriptor(uri, forWrite ? "rw" : "r");
         } else {
             return resolver.openTypedAssetFileDescriptor(uri, "*/*", bundle)
                     .getParcelFileDescriptor();

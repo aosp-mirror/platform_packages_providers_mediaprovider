@@ -1093,9 +1093,9 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         return;
     }
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
-    const string& path = get_path(node);
+    const string& io_path = get_path(node);
     const string& build_path = node->BuildPath();
-    if (!is_app_accessible_path(fuse->mp, path, ctx->uid)) {
+    if (!is_app_accessible_path(fuse->mp, io_path, ctx->uid)) {
         fuse_reply_err(req, ENOENT);
         return;
     }
@@ -1128,7 +1128,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         open_flags &= ~O_APPEND;
     }
 
-    const int fd = open(path.c_str(), open_flags);
+    const int fd = open(io_path.c_str(), open_flags);
     if (fd < 0) {
         fuse_reply_err(req, errno);
         return;
@@ -1139,9 +1139,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     if (is_requesting_write(fi->flags)) {
         ri = std::make_unique<RedactionInfo>();
     } else {
-        // TODO(b/171953356): Pass build_path for use during query, otherwise, MediaProvider would
-        // find the transcoded path
-        ri = fuse->mp->GetRedactionInfo(path, req->ctx.uid, req->ctx.pid);
+        ri = fuse->mp->GetRedactionInfo(build_path, io_path, req->ctx.uid, req->ctx.pid);
     }
 
     if (!ri) {
@@ -1151,8 +1149,8 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     }
 
     int keep_cache = 1;
-    handle* h =
-            create_handle_for_node(fuse, path, fd, req->ctx.uid, node, ri.release(), &keep_cache);
+    handle* h = create_handle_for_node(fuse, io_path, fd, req->ctx.uid, node, ri.release(),
+                                       &keep_cache);
     fi->fh = ptr_to_id(h);
     fi->keep_cache = keep_cache;
     fi->direct_io = !h->cached;
@@ -1163,7 +1161,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     if (h->passthrough) {
         if (!do_passthrough_enable(req, fi, fd)) {
             // TODO: Should we crash here so we can find errors easily?
-            PLOG(ERROR) << "Passthrough OPEN failed for " << path;
+            PLOG(ERROR) << "Passthrough OPEN failed for " << io_path;
             fuse_reply_err(req, EFAULT);
             return;
         }

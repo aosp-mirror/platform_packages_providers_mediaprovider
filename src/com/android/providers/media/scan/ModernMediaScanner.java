@@ -150,12 +150,17 @@ public class ModernMediaScanner implements MediaScanner {
     // TODO: deprecate playlist editing
     // TODO: deprecate PARENT column, since callers can't see directories
 
-    @GuardedBy("sDateFormat")
-    private static final SimpleDateFormat sDateFormat;
+    @GuardedBy("S_DATE_FORMAT")
+    private static final SimpleDateFormat S_DATE_FORMAT;
+    @GuardedBy("S_DATE_FORMAT_WITH_MILLIS")
+    private static final SimpleDateFormat S_DATE_FORMAT_WITH_MILLIS;
 
     static {
-        sDateFormat = new SimpleDateFormat("yyyyMMdd'T'HHmmss");
-        sDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        S_DATE_FORMAT = new SimpleDateFormat("yyyyMMdd'T'HHmmss");
+        S_DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+        S_DATE_FORMAT_WITH_MILLIS = new SimpleDateFormat("yyyyMMdd'T'HHmmss.SSS");
+        S_DATE_FORMAT_WITH_MILLIS.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
     private static final int BATCH_SIZE = 32;
@@ -1436,13 +1441,29 @@ public class ModernMediaScanner implements MediaScanner {
     static @NonNull Optional<Long> parseOptionalDate(@Nullable String date) {
         if (TextUtils.isEmpty(date)) return Optional.empty();
         try {
-            synchronized (sDateFormat) {
-                final long value = sDateFormat.parse(date).getTime();
-                return (value > 0) ? Optional.of(value) : Optional.empty();
+            synchronized (S_DATE_FORMAT_WITH_MILLIS) {
+                return parseDateWithFormat(date, S_DATE_FORMAT_WITH_MILLIS);
             }
         } catch (ParseException e) {
+            // Log and try without millis as well
+            Log.d(TAG, String.format(
+                    "Parsing date with millis failed for [%s]. We will retry without millis",
+                    date));
+        }
+        try {
+            synchronized (S_DATE_FORMAT) {
+                return parseDateWithFormat(date, S_DATE_FORMAT);
+            }
+        } catch (ParseException e) {
+            Log.d(TAG, String.format("Parsing date without millis failed for [%s]", date));
             return Optional.empty();
         }
+    }
+
+    private static Optional<Long> parseDateWithFormat(
+            @Nullable String date, SimpleDateFormat dateFormat) throws ParseException {
+        final long value = dateFormat.parse(date).getTime();
+        return (value > 0) ? Optional.of(value) : Optional.empty();
     }
 
     @VisibleForTesting

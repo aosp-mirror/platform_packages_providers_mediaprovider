@@ -1934,7 +1934,10 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path) {
         fuse->disable_dentry_cache = true;
     }
 
-    fuse->passthrough = android::base::GetBoolProperty("persist.sys.fuse.passthrough", false);
+    fuse->passthrough = android::base::GetBoolProperty("persist.sys.fuse.passthrough.enable", false);
+    if (fuse->passthrough) {
+        LOG(INFO) << "Using FUSE passthrough";
+    }
 
     struct fuse_session
             * se = fuse_session_new(&args, &ops, sizeof(ops), &fuse_default);

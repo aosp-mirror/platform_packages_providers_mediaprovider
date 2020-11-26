@@ -388,4 +388,14 @@ public class LocalCallingIdentity {
             return rowIdOfDeletedPaths.getOrDefault(path, UNKNOWN_ROW_ID);
         }
     }
+
+    private volatile int applicationMediaCapabilitiesFlags = -1;
+
+    public int getApplicationMediaCapabilitiesFlags() {
+        return applicationMediaCapabilitiesFlags;
+    }
+
+    public void setApplicationMediaCapabilitiesFlags(int flags) {
+        applicationMediaCapabilitiesFlags = flags;
+    }
 }

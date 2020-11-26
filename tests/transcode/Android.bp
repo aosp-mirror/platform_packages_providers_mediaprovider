@@ -27,4 +27,31 @@ android_test {
     ],
 
     certificate: "media",
+    java_resources: [":TranscodeTestAppSupportsHevc", ":TranscodeTestAppSupportsSlowMotion"]
+}
+
+android_test_helper_app {
+    name: "TranscodeTestAppSupportsHevc",
+    manifest: "helper/AndroidManifest.xml",
+    sdk_version: "test_current",
+    resource_dirs: ["helper/res-hevc"],
+    srcs: [
+          "helper/src/**/*.java",
+          "src/com/android/providers/media/transcode/TranscodeTestConstants.java"
+    ],
+    static_libs: ["androidx.legacy_legacy-support-v4"],
+    target_sdk_version: "28",
+}
+
+android_test_helper_app {
+    name: "TranscodeTestAppSupportsSlowMotion",
+    manifest: "helper/AndroidManifest.xml",
+    sdk_version: "test_current",
+    resource_dirs: ["helper/res-slow-motion"],
+    srcs: [
+          "helper/src/**/*.java",
+          "src/com/android/providers/media/transcode/TranscodeTestConstants.java"
+    ],
+    static_libs: ["androidx.legacy_legacy-support-v4"],
+    target_sdk_version: "28",
 }

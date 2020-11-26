@@ -78,7 +78,7 @@ using std::vector;
 // logging macros to avoid duplication.
 #define TRACE_NODE(__node, __req)                                                  \
     LOG(VERBOSE) << __FUNCTION__ << " : " << #__node << " = [" << get_name(__node) \
-                 << "] (uid=" << __req->ctx.uid << ") "
+                 << "] (uid=" << (__req)->ctx.uid << ") "
 
 #define ATRACE_NAME(name) ScopedTrace ___tracer(name)
 #define ATRACE_CALL() ATRACE_NAME(__FUNCTION__)

@@ -576,7 +576,7 @@ public class FileUtils {
                     int i = Integer.parseInt(dcfStrict.group(2));
                     @Override
                     public String next() {
-                        final String res = String.format("%s%04d", prefix, i);
+                        final String res = String.format(Locale.US, "%s%04d", prefix, i);
                         i++;
                         return res;
                     }
@@ -592,11 +592,14 @@ public class FileUtils {
                 // Generate names like "IMG_20190102_030405~2"
                 final String prefix = dcfRelaxed.group(1);
                 return new Iterator<String>() {
-                    int i = TextUtils.isEmpty(dcfRelaxed.group(2)) ? 1
+                    int i = TextUtils.isEmpty(dcfRelaxed.group(2))
+                            ? 1
                             : Integer.parseInt(dcfRelaxed.group(2));
                     @Override
                     public String next() {
-                        final String res = (i == 1) ? prefix : String.format("%s~%d", prefix, i);
+                        final String res = (i == 1)
+                            ? prefix
+                            : String.format(Locale.US, "%s~%d", prefix, i);
                         i++;
                         return res;
                     }
@@ -1161,13 +1164,13 @@ public class FileUtils {
         if (!isForFuse && getAsBoolean(values, MediaColumns.IS_PENDING, false)) {
             final long dateExpires = getAsLong(values, MediaColumns.DATE_EXPIRES,
                     (System.currentTimeMillis() + DEFAULT_DURATION_PENDING) / 1000);
-            resolvedDisplayName = String.format(".%s-%d-%s",
-                    FileUtils.PREFIX_PENDING, dateExpires, displayName);
+            resolvedDisplayName = String.format(
+                    Locale.US, ".%s-%d-%s", FileUtils.PREFIX_PENDING, dateExpires, displayName);
         } else if (getAsBoolean(values, MediaColumns.IS_TRASHED, false)) {
             final long dateExpires = getAsLong(values, MediaColumns.DATE_EXPIRES,
                     (System.currentTimeMillis() + DEFAULT_DURATION_TRASHED) / 1000);
-            resolvedDisplayName = String.format(".%s-%d-%s",
-                    FileUtils.PREFIX_TRASHED, dateExpires, displayName);
+            resolvedDisplayName = String.format(
+                    Locale.US, ".%s-%d-%s", FileUtils.PREFIX_TRASHED, dateExpires, displayName);
         } else {
             resolvedDisplayName = displayName;
         }

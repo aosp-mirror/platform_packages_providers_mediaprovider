@@ -629,6 +629,18 @@ public class MediaProviderTest {
     }
 
     @Test
+    public void testBuildData_Pending_FromValues_differentLocale() throws Exception {
+        // See b/174120008 for context.
+        Locale defaultLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(new Locale("ar", "SA"));
+            testBuildData_Pending_FromValues();
+        } finally {
+            Locale.setDefault(defaultLocale);
+        }
+    }
+
+    @Test
     public void testBuildData_Pending_FromData() throws Exception {
         final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         final ContentValues reverse = new ContentValues();
@@ -662,6 +674,18 @@ public class MediaProviderTest {
                 forward.getAsString(MediaColumns.DISPLAY_NAME));
         assertEndsWith(".trashed-1577836800-IMG1024.JPG",
                 forward.getAsString(MediaColumns.DATA));
+    }
+
+    @Test
+    public void testBuildData_Trashed_FromValues_differentLocale() throws Exception {
+        // See b/174120008 for context.
+        Locale defaultLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(new Locale("ar", "SA"));
+            testBuildData_Trashed_FromValues();
+        } finally {
+            Locale.setDefault(defaultLocale);
+        }
     }
 
     @Test

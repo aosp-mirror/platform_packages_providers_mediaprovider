@@ -6981,8 +6981,13 @@ public class MediaProvider extends ContentProvider {
      */
     @Keep
     @NonNull
-    public long[] getRedactionRangesForFuse(String path, int uid, int tid) throws IOException {
-        final File file = new File(path);
+    public long[] getRedactionRangesForFuse(String path, String ioPath, int uid, int tid)
+            throws IOException {
+        // |ioPath| might refer to a transcoded file path (which is not indexed in the db)
+        // |path| will always refer to a valid _data column
+        // We use |ioPath| for the filesystem access because in the case of transcoding,
+        // we want to get redaction ranges from the transcoded file and *not* the original file
+        final File file = new File(ioPath);
 
         // When we're calculating redaction ranges for MediaProvider, it means we're actually
         // calculating redaction ranges for another app that called to MediaProvider through Binder.

@@ -7006,12 +7006,10 @@ public class MediaProvider extends ContentProvider {
 
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
-
-        long[] res = new long[0];
         try {
             if (!isRedactionNeeded()
                     || shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
-                return res;
+                return new long[0];
             }
 
             final Uri contentUri = FileUtils.getContentUriForPath(path);
@@ -7037,17 +7035,21 @@ public class MediaProvider extends ContentProvider {
 
             final boolean callerIsOwner = Objects.equals(getCallingPackageOrSelf(),
                     ownerPackageName);
+            if (callerIsOwner) {
+                return new long[0];
+            }
+
             final boolean callerHasUriPermission = getContext().checkUriPermission(
                     item, mCallingIdentity.get().pid, mCallingIdentity.get().uid,
                     Intent.FLAG_GRANT_WRITE_URI_PERMISSION) == PERMISSION_GRANTED;
-
-            if (!callerIsOwner && !callerHasUriPermission) {
-                res = getRedactionRanges(file).redactionRanges;
+            if (callerHasUriPermission) {
+                return new long[0];
             }
+
+            return getRedactionRanges(file).redactionRanges;
         } finally {
             restoreLocalCallingIdentity(token);
         }
-        return res;
     }
 
     /**

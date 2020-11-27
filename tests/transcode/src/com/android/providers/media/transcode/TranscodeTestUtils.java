@@ -126,6 +126,21 @@ public class TranscodeTestUtils {
         executeShellCommand(command);
     }
 
+    public static void forceEnableAppCompatHevc(String packageName) throws IOException {
+        final String command = "am compat enable 174228127 " + packageName;
+        executeShellCommand(command);
+    }
+
+    public static void forceDisableAppCompatHevc(String packageName) throws IOException {
+        final String command = "am compat enable 174227820 " + packageName;
+        executeShellCommand(command);
+    }
+
+    public static void resetAppCompat(String packageName) throws IOException {
+        final String command = "am compat reset-all " + packageName;
+        executeShellCommand(command);
+    }
+
     public static void disableTranscodingForAllUids() throws IOException {
         String command = "setprop persist.sys.fuse.transcode_uids -1";
         executeShellCommand(command);

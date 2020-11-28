@@ -28,7 +28,9 @@ import android.annotation.IntRange;
 import android.annotation.LongDef;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-
+import android.app.compat.CompatChanges;
+import android.compat.annotation.ChangeId;
+import android.compat.annotation.Disabled;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
@@ -88,6 +90,40 @@ public class TranscodeHelper {
     // TODO(b/169327180): Move to ApplicationMediaCapabilities
     private static final String MEDIA_CAPABILITIES_PROPERTY
             = "android.media.PROPERTY_MEDIA_CAPABILITIES";
+
+    /**
+     * Force enable an app to support the HEVC media capability
+     *
+     * Apps should declare their supported media capabilities in their manifest but this flag can be
+     * used to force an app into supporting HEVC, hence avoiding transcoding while accessing media
+     * encoded in HEVC.
+     *
+     * Setting this flag will override any OS level defaults for apps. It is disabled by default,
+     * meaning that the OS defaults would take precedence.
+     *
+     * Setting this flag and {@code FORCE_DISABLE_HEVC_SUPPORT} is an undefined
+     * state and will result in the OS ignoring both flags.
+     */
+    @ChangeId
+    @Disabled
+    private static final long FORCE_ENABLE_HEVC_SUPPORT = 174228127L;
+
+    /**
+     * Force disable an app from supporting the HEVC media capability
+     *
+     * Apps should declare their supported media capabilities in their manifest but this flag can be
+     * used to force an app into not supporting HEVC, hence forcing transcoding while accessing
+     * media encoded in HEVC.
+     *
+     * Setting this flag will override any OS level defaults for apps. It is disabled by default,
+     * meaning that the OS defaults would take precedence.
+     *
+     * Setting this flag and {@code FORCE_ENABLE_HEVC_SUPPORT} is an undefined state
+     *  and will result in the OS ignoring both flags.
+     */
+    @ChangeId
+    @Disabled
+    private static final long FORCE_DISABLE_HEVC_SUPPORT = 174227820L;
 
     private static final long FLAG_HEVC = 1 << 0;
     private static final long FLAG_SLOW_MOTION = 1 << 1;
@@ -305,7 +341,18 @@ public class TranscodeHelper {
         LocalCallingIdentity identity = mMediaProvider.getCachedCallingIdentityForTranscoding(uid);
         final String[] callingPackages = identity.getSharedPackageNames();
 
-        // TODO(b/169327180): Check app-compat flags and return early if defined
+        // Check app-compat flags
+        boolean enableHevc = CompatChanges.isChangeEnabled(FORCE_ENABLE_HEVC_SUPPORT, uid);
+        boolean disableHevc = CompatChanges.isChangeEnabled(FORCE_DISABLE_HEVC_SUPPORT, uid);
+        if (enableHevc && disableHevc) {
+            Log.w(TAG, "Ignoring app compat flags: Set to simultaneously enable and disable "
+                    + "HEVC support for uid: " + uid);
+        } else if (enableHevc) {
+                return false;
+        } else if (disableHevc) {
+            return true;
+        }
+
         // Check allowPackages and manifest supported packages
         List<String> allowPackages = Arrays.asList(ALLOW_LIST);
         for (String callingPackage : callingPackages) {

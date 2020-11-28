@@ -6981,8 +6981,13 @@ public class MediaProvider extends ContentProvider {
      */
     @Keep
     @NonNull
-    public long[] getRedactionRangesForFuse(String path, int uid, int tid) throws IOException {
-        final File file = new File(path);
+    public long[] getRedactionRangesForFuse(String path, String ioPath, int uid, int tid)
+            throws IOException {
+        // |ioPath| might refer to a transcoded file path (which is not indexed in the db)
+        // |path| will always refer to a valid _data column
+        // We use |ioPath| for the filesystem access because in the case of transcoding,
+        // we want to get redaction ranges from the transcoded file and *not* the original file
+        final File file = new File(ioPath);
 
         // When we're calculating redaction ranges for MediaProvider, it means we're actually
         // calculating redaction ranges for another app that called to MediaProvider through Binder.
@@ -7001,12 +7006,10 @@ public class MediaProvider extends ContentProvider {
 
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
-
-        long[] res = new long[0];
         try {
             if (!isRedactionNeeded()
                     || shouldBypassFuseRestrictions(/*forWrite*/ false, path)) {
-                return res;
+                return new long[0];
             }
 
             final Uri contentUri = FileUtils.getContentUriForPath(path);
@@ -7032,17 +7035,21 @@ public class MediaProvider extends ContentProvider {
 
             final boolean callerIsOwner = Objects.equals(getCallingPackageOrSelf(),
                     ownerPackageName);
+            if (callerIsOwner) {
+                return new long[0];
+            }
+
             final boolean callerHasUriPermission = getContext().checkUriPermission(
                     item, mCallingIdentity.get().pid, mCallingIdentity.get().uid,
                     Intent.FLAG_GRANT_WRITE_URI_PERMISSION) == PERMISSION_GRANTED;
-
-            if (!callerIsOwner && !callerHasUriPermission) {
-                res = getRedactionRanges(file).redactionRanges;
+            if (callerHasUriPermission) {
+                return new long[0];
             }
+
+            return getRedactionRanges(file).redactionRanges;
         } finally {
             restoreLocalCallingIdentity(token);
         }
-        return res;
     }
 
     /**

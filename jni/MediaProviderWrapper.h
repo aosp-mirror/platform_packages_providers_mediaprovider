@@ -48,11 +48,14 @@ class MediaProviderWrapper final {
      * Computes and returns the RedactionInfo for a given file and UID.
      *
      * @param uid UID of the app requesting the read
-     * @param path path of the requested file
+     * @param path path of the requested file that will be used for database operations
+     * @param io_path path of the requested file that will be used for IO
      * @return RedactionInfo on success, nullptr on failure to calculate
      * redaction ranges (e.g. exception was thrown in Java world)
      */
-    std::unique_ptr<RedactionInfo> GetRedactionInfo(const std::string& path, uid_t uid, pid_t tid);
+    std::unique_ptr<RedactionInfo> GetRedactionInfo(const std::string& path,
+                                                    const std::string& io_path, uid_t uid,
+                                                    pid_t tid);
 
     /**
      * Inserts a new entry for the given path and UID.

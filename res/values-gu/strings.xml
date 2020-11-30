@@ -39,8 +39,7 @@
     </plurals>
     <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"ઍપની બધી અસ્થાયી ફાઇલોને સાફ કરીએ?"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> કેટલીક અસ્થાયી ફાઇલોને સાફ કરવા માગે છે. આના પરિણામે બૅટરી અથવા સેલ્યુલર ડેટાના વપરાશમાં વધારો થઈ શકે છે."</string>
-    <!-- no translation found for cache_clearing_in_progress_title (6902220064511664209) -->
-    <skip />
+    <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"ઍપની બધી અસ્થાયી ફાઇલો સાફ કરી રહ્યાં છીએ…"</string>
     <string name="allow" msgid="8885707816848569619">"મંજૂરી આપો"</string>
     <string name="deny" msgid="6040983710442068936">"નકારો"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

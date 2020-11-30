@@ -31,6 +31,9 @@
             "name": "CtsScopedStorageHostTest"
         },
         {
+            "name": "CtsScopedStorageDeviceOnlyTest"
+        },
+        {
             "name": "fuse_node_test"
         }
     ],

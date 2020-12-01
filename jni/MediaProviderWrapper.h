@@ -140,14 +140,19 @@ class MediaProviderWrapper final {
     int IsOpendirAllowed(const std::string& path, uid_t uid, bool forWrite);
 
     /**
-     * Determines if the given package name matches its uid
-     * or has special access to priv-app directories
+     * Determines if one of the follows is true:
+     * 1. The package name of the given private path matches the given uid,
+          then this uid has access to private-app directories for this package.
+     * 2. The calling uid has special access to private-app directories:
+     *    * DownloadProvider and ExternalStorageProvider has access to private
+     *      app directories.
+     *    * Installer apps have access to Android/obb directories
      *
-     * @param pkg the package name of the app
      * @param uid UID of the app
+     * @param path the private path that the UID wants to access
      * @return true if it matches, otherwise return false.
      */
-    bool IsUidForPackage(const std::string& pkg, uid_t uid);
+    bool isUidAllowedAccessToDataOrObbPath(uid_t uid, const std::string& path);
 
     /**
      * Renames a file or directory to new path.
@@ -214,7 +219,7 @@ class MediaProviderWrapper final {
     jmethodID mid_is_opendir_allowed_;
     jmethodID mid_get_files_in_dir_;
     jmethodID mid_rename_;
-    jmethodID mid_is_uid_for_package_;
+    jmethodID mid_is_uid_allowed_access_to_data_or_obb_path_;
     jmethodID mid_on_file_created_;
     jmethodID mid_should_allow_lookup_;
     jmethodID mid_is_app_clone_user_;

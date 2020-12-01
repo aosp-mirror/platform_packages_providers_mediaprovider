@@ -23,6 +23,7 @@ import static android.content.pm.PackageManager.PERMISSION_DENIED;
 
 import static com.android.providers.media.util.PermissionUtils.checkIsLegacyStorageGranted;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionDelegator;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionInstallPackages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionManager;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadAudio;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadImages;
@@ -216,7 +217,9 @@ public class LocalCallingIdentity {
     public static final int PERMISSION_WRITE_VIDEO = 1 << 20;
     public static final int PERMISSION_WRITE_IMAGES = 1 << 21;
 
-    public static final int PERMISSION_IS_SYSTEM_GALLERY = 1 <<22;
+    public static final int PERMISSION_IS_SYSTEM_GALLERY = 1 << 22;
+    public static final int PERMISSION_INSTALL_PACKAGES = 1 << 23;
+    public static final int PERMISSION_WRITE_EXTERNAL_STORAGE = 1 << 24;
 
     private volatile int hasPermission;
     private volatile int hasPermissionResolved;
@@ -258,6 +261,10 @@ public class LocalCallingIdentity {
             case PERMISSION_IS_LEGACY_WRITE:
                 return isLegacyWriteInternal();
 
+            case PERMISSION_WRITE_EXTERNAL_STORAGE:
+                return checkPermissionWriteStorage(
+                        context, pid, uid, getPackageName(), attributionTag);
+
             case PERMISSION_READ_AUDIO:
                 return checkPermissionReadAudio(
                         context, pid, uid, getPackageName(), attributionTag);
@@ -279,6 +286,9 @@ public class LocalCallingIdentity {
             case PERMISSION_IS_SYSTEM_GALLERY:
                 return checkWriteImagesOrVideoAppOps(
                         context, uid, getPackageName(), attributionTag);
+            case PERMISSION_INSTALL_PACKAGES:
+                return checkPermissionInstallPackages(
+                        context, pid, uid, getPackageName(), attributionTag);
             default:
                 return false;
         }

@@ -77,6 +77,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Optional;
 
 @RunWith(AndroidJUnit4.class)
@@ -425,7 +426,25 @@ public class FileUtilsTest {
     }
 
     /**
-     * Verify that we generate unique filenames that look sane compared to other
+     * Verify that we generate unique filenames that meet the JEITA DCF
+     * specification when writing into directories like {@code DCIM}.
+     *
+     * See b/174120008 for context.
+     */
+    @Test
+    public void testBuildUniqueFile_DCF_strict_differentLocale() throws Exception {
+        Locale defaultLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(new Locale("ar", "SA"));
+            testBuildUniqueFile_DCF_strict();
+        }
+        finally {
+            Locale.setDefault(defaultLocale);
+        }
+    }
+
+    /**
+     * Verify that we generate unique filenames that look valid compared to other
      * {@code DCIM} filenames. These technically aren't part of the official
      * JEITA DCF specification.
      */
@@ -440,6 +459,24 @@ public class FileUtilsTest {
                 buildUniqueFile(mDcimTarget, "IMG_20190102_030405.jpg"));
         assertNameEquals("IMG_20190102_030405~3.jpg",
                 buildUniqueFile(mDcimTarget, "IMG_20190102_030405~2.jpg"));
+    }
+
+    /**
+     * Verify that we generate unique filenames that look valid compared to other
+     * {@code DCIM} filenames. These technically aren't part of the official
+     * JEITA DCF specification.
+     *
+     * See b/174120008 for context.
+     */
+    @Test
+    public void testBuildUniqueFile_DCF_relaxed_differentLocale() throws Exception {
+        Locale defaultLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(new Locale("ar", "SA"));
+            testBuildUniqueFile_DCF_relaxed();
+        } finally {
+            Locale.setDefault(defaultLocale);
+        }
     }
 
     @Test

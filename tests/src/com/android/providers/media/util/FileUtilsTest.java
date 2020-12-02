@@ -75,6 +75,7 @@ import org.junit.runner.RunWith;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Locale;
@@ -90,6 +91,7 @@ public class FileUtilsTest {
     private static final String NONCE = String.valueOf(System.nanoTime());
 
     private static final String TEST_DIRECTORY_NAME = "FileUtilsTestDirectory" + NONCE;
+    private static final String TEST_FILE_NAME = "FileUtilsTestFile" + NONCE;
 
     private File mTarget;
     private File mDcimTarget;
@@ -140,6 +142,17 @@ public class FileUtilsTest {
         // Verify empty writing deletes file
         FileUtils.writeString(file, Optional.empty());
         assertFalse(FileUtils.readString(file).isPresent());
+
+        // Verify reading from a file with more than 4096 chars
+        try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
+            raf.setLength(4097);
+        }
+        assertEquals(Optional.empty(), FileUtils.readString(file));
+
+        // Verify reading from non existing file.
+        file.delete();
+        assertEquals(Optional.empty(), FileUtils.readString(file));
+
     }
 
     @Test

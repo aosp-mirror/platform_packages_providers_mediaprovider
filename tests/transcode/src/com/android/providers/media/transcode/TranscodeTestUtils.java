@@ -110,22 +110,18 @@ public class TranscodeTestUtils {
     public static void enableSeamlessTranscoding() throws Exception {
         executeShellCommand("setprop persist.sys.fuse.transcode_user_control true");
         executeShellCommand("setprop persist.sys.fuse.transcode_enabled true");
+        executeShellCommand("setprop persist.sys.fuse.transcode_default false");
     }
 
     public static void disableSeamlessTranscoding() throws Exception {
         executeShellCommand("setprop persist.sys.fuse.transcode_user_control true");
         executeShellCommand("setprop persist.sys.fuse.transcode_enabled false");
-    }
-
-    public static void enableTranscodingForUid(int uid) throws IOException {
-        final String command = "setprop persist.sys.fuse.transcode_uids "
-                + String.valueOf(uid);
-        executeShellCommand(command);
+        executeShellCommand("setprop persist.sys.fuse.transcode_default false");
     }
 
     public static void enableTranscodingForPackage(String packageName) throws IOException {
-        final String command = "setprop persist.sys.fuse.transcode_packages " + packageName;
-        executeShellCommand(command);
+        // TODO(b/169327180): Enable per package
+        executeShellCommand("setprop persist.sys.fuse.transcode_default true");
     }
 
     public static void forceEnableAppCompatHevc(String packageName) throws IOException {
@@ -143,11 +139,8 @@ public class TranscodeTestUtils {
         executeShellCommand(command);
     }
 
-    public static void disableTranscodingForAllUids() throws IOException {
-        String command = "setprop persist.sys.fuse.transcode_uids -1";
-        executeShellCommand(command);
-        command = "setprop persist.sys.fuse.transcode_packages -1";
-        executeShellCommand(command);
+    public static void disableTranscodingForAllPackages() throws IOException {
+        executeShellCommand("setprop persist.sys.fuse.transcode_default false");
     }
 
     /**

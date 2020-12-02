@@ -389,18 +389,31 @@ public class FileUtils {
         }
     }
 
+    private static final int MAX_READ_STRING_SIZE = 4096;
+
     /**
      * Read given {@link File} as a single {@link String}. Returns
-     * {@link Optional#empty()} when the file doesn't exist.
+     * {@link Optional#empty()} when
+     * <ul>
+     * <li> the file doesn't exist or
+     * <li> the size of the file exceeds {@code MAX_READ_STRING_SIZE}
+     * </ul>
      */
     public static @NonNull Optional<String> readString(@NonNull File file) throws IOException {
         try {
-            final String value = new String(Files.readAllBytes(file.toPath()),
-                    StandardCharsets.UTF_8);
-            return Optional.of(value);
-        } catch (NoSuchFileException e) {
-            return Optional.empty();
+            if (file.length() <= MAX_READ_STRING_SIZE) {
+                final String value = new String(Files.readAllBytes(file.toPath()),
+                        StandardCharsets.UTF_8);
+                return Optional.of(value);
+            }
+            // When file size exceeds MAX_READ_STRING_SIZE, file is either
+            // corrupted or doesn't the contain expected data. Hence we return
+            // Optional.empty() which will be interpreted as empty file.
+            Logging.logPersistent(String.format("Ignored reading %s, file size exceeds %d", file,
+                    MAX_READ_STRING_SIZE));
+        } catch (NoSuchFileException ignored) {
         }
+        return Optional.empty();
     }
 
     /**
@@ -910,6 +923,12 @@ public class FileUtils {
     public static final Pattern PATTERN_DATA_OR_OBB_PATH = Pattern.compile(
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb)/?$");
 
+    /**
+     * Regex that matches Android/obb paths.
+     */
+    public static final Pattern PATTERN_OBB_OR_CHILD_PATH = Pattern.compile(
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:obb)(/?.*)");
+
     @VisibleForTesting
     public static final String[] DEFAULT_FOLDER_NAMES = {
             Environment.DIRECTORY_MUSIC,
@@ -1035,6 +1054,15 @@ public class FileUtils {
     public static boolean isDataOrObbPath(String path) {
         if (path == null) return false;
         final Matcher m = PATTERN_DATA_OR_OBB_PATH.matcher(path);
+        return m.matches();
+    }
+
+    /**
+     * Returns true if relative path is Android/obb path.
+     */
+    public static boolean isObbOrChildPath(String path) {
+        if (path == null) return false;
+        final Matcher m = PATTERN_OBB_OR_CHILD_PATH.matcher(path);
         return m.matches();
     }
 

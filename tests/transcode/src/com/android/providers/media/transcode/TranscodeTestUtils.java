@@ -108,11 +108,13 @@ public class TranscodeTestUtils {
     }
 
     public static void enableSeamlessTranscoding() throws Exception {
-        executeShellCommand("setprop persist.sys.fuse.transcode true");
+        executeShellCommand("setprop persist.sys.fuse.transcode_user_control true");
+        executeShellCommand("setprop persist.sys.fuse.transcode_enabled true");
     }
 
     public static void disableSeamlessTranscoding() throws Exception {
-        executeShellCommand("setprop persist.sys.fuse.transcode false");
+        executeShellCommand("setprop persist.sys.fuse.transcode_user_control true");
+        executeShellCommand("setprop persist.sys.fuse.transcode_enabled false");
     }
 
     public static void enableTranscodingForUid(int uid) throws IOException {

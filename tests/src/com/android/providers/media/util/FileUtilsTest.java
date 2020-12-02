@@ -75,8 +75,10 @@ import org.junit.runner.RunWith;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Optional;
 
 @RunWith(AndroidJUnit4.class)
@@ -89,6 +91,7 @@ public class FileUtilsTest {
     private static final String NONCE = String.valueOf(System.nanoTime());
 
     private static final String TEST_DIRECTORY_NAME = "FileUtilsTestDirectory" + NONCE;
+    private static final String TEST_FILE_NAME = "FileUtilsTestFile" + NONCE;
 
     private File mTarget;
     private File mDcimTarget;
@@ -139,6 +142,17 @@ public class FileUtilsTest {
         // Verify empty writing deletes file
         FileUtils.writeString(file, Optional.empty());
         assertFalse(FileUtils.readString(file).isPresent());
+
+        // Verify reading from a file with more than 4096 chars
+        try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
+            raf.setLength(4097);
+        }
+        assertEquals(Optional.empty(), FileUtils.readString(file));
+
+        // Verify reading from non existing file.
+        file.delete();
+        assertEquals(Optional.empty(), FileUtils.readString(file));
+
     }
 
     @Test
@@ -425,7 +439,25 @@ public class FileUtilsTest {
     }
 
     /**
-     * Verify that we generate unique filenames that look sane compared to other
+     * Verify that we generate unique filenames that meet the JEITA DCF
+     * specification when writing into directories like {@code DCIM}.
+     *
+     * See b/174120008 for context.
+     */
+    @Test
+    public void testBuildUniqueFile_DCF_strict_differentLocale() throws Exception {
+        Locale defaultLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(new Locale("ar", "SA"));
+            testBuildUniqueFile_DCF_strict();
+        }
+        finally {
+            Locale.setDefault(defaultLocale);
+        }
+    }
+
+    /**
+     * Verify that we generate unique filenames that look valid compared to other
      * {@code DCIM} filenames. These technically aren't part of the official
      * JEITA DCF specification.
      */
@@ -440,6 +472,24 @@ public class FileUtilsTest {
                 buildUniqueFile(mDcimTarget, "IMG_20190102_030405.jpg"));
         assertNameEquals("IMG_20190102_030405~3.jpg",
                 buildUniqueFile(mDcimTarget, "IMG_20190102_030405~2.jpg"));
+    }
+
+    /**
+     * Verify that we generate unique filenames that look valid compared to other
+     * {@code DCIM} filenames. These technically aren't part of the official
+     * JEITA DCF specification.
+     *
+     * See b/174120008 for context.
+     */
+    @Test
+    public void testBuildUniqueFile_DCF_relaxed_differentLocale() throws Exception {
+        Locale defaultLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(new Locale("ar", "SA"));
+            testBuildUniqueFile_DCF_relaxed();
+        } finally {
+            Locale.setDefault(defaultLocale);
+        }
     }
 
     @Test

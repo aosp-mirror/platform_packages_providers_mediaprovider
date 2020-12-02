@@ -390,24 +390,29 @@ public class TranscodeTestUtils {
         assertEquals(message, isSame, assertSame);
     }
 
-    public static void assertTranscode(File file, boolean transcode) throws Exception {
+    public static void assertTranscode(Uri uri, boolean transcode) throws Exception {
         long start = SystemClock.elapsedRealtimeNanos();
-        ParcelFileDescriptor pfd = open(file, false);
-        long end = SystemClock.elapsedRealtimeNanos();
-        long openDuration = end - start;
+        assertTranscode(open(uri, true, null /* bundle */), transcode);
+    }
 
-        start = SystemClock.elapsedRealtimeNanos();
+    public static void assertTranscode(File file, boolean transcode) throws Exception {
+        assertTranscode(open(file, false), transcode);
+    }
+
+    public static void assertTranscode(ParcelFileDescriptor pfd, boolean transcode)
+            throws Exception {
+        long start = SystemClock.elapsedRealtimeNanos();
         assertEquals(10, Os.pread(pfd.getFileDescriptor(), new byte[10], 0, 10, 0));
-        end = SystemClock.elapsedRealtimeNanos();
+        long end = SystemClock.elapsedRealtimeNanos();
         long readDuration = end - start;
 
-        // With transcoding read(2) dominates open(2)
-        // Without transcoding open(2) dominates IO
-        String message = "readDuration=" + readDuration + "ns. openDuration=" + openDuration + "ns";
+        // With transcoding read(2) > 100ms (usually > 1s)
+        // Without transcoding read(2) < 10ms (usually < 1ms)
+        String message = "readDuration=" + readDuration + "ns";
         if (transcode) {
-            assertTrue(message, readDuration > openDuration);
+            assertTrue(message, readDuration > TimeUnit.MILLISECONDS.toNanos(100));
         } else {
-            assertTrue(message, openDuration > readDuration);
+            assertTrue(message, readDuration < TimeUnit.MILLISECONDS.toNanos(10));
         }
     }
 }

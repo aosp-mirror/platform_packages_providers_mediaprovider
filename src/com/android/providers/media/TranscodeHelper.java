@@ -598,8 +598,12 @@ public class TranscodeHelper {
 
         ContentValues values = new ContentValues();
         values.put(FileColumns._TRANSCODE_STATUS, transcodeStatus);
-        return qb.update(getDatabaseHelperForUri(uri), values, TRANSCODE_WHERE_CLAUSE,
-                selectionArgs) == 1;
+        final boolean success = qb.update(getDatabaseHelperForUri(uri), values,
+                TRANSCODE_WHERE_CLAUSE, selectionArgs) == 1;
+        if (!success) {
+            Log.w(TAG, "Transcoding status update to: " + transcodeStatus + " failed for " + path);
+        }
+        return success;
     }
 
     public boolean deleteCachedTranscodeFile(long rowId) {

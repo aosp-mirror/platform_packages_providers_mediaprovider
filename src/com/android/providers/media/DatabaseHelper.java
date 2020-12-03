@@ -857,7 +857,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
             db.beginTransaction();
             Log.d(TAG, "Starting migration from legacy provider");
-            mMigrationListener.onStarted(client, mVolumeName);
+            if (mMigrationListener != null) {
+                mMigrationListener.onStarted(client, mVolumeName);
+            }
             try (Cursor c = client.query(queryUri, sMigrateColumns.toArray(new String[0]),
                     extras, null)) {
                 final ContentValues values = new ContentValues();
@@ -941,7 +943,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         final int progress = c.getPosition();
                         final int total = c.getCount();
                         Log.v(TAG, "Migrated " + progress + " of " + total + "...");
-                        mMigrationListener.onProgress(client, mVolumeName, progress, total);
+                        if (mMigrationListener != null) {
+                            mMigrationListener.onProgress(client, mVolumeName, progress, total);
+                        }
                     }
                 }
 
@@ -956,7 +960,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             // only have one possible shot, so mark everything successful
             db.setTransactionSuccessful();
             db.endTransaction();
-            mMigrationListener.onFinished(client, mVolumeName);
+            if (mMigrationListener != null) {
+                mMigrationListener.onFinished(client, mVolumeName);
+            }
         }
 
     }

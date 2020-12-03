@@ -389,18 +389,31 @@ public class FileUtils {
         }
     }
 
+    private static final int MAX_READ_STRING_SIZE = 4096;
+
     /**
      * Read given {@link File} as a single {@link String}. Returns
-     * {@link Optional#empty()} when the file doesn't exist.
+     * {@link Optional#empty()} when
+     * <ul>
+     * <li> the file doesn't exist or
+     * <li> the size of the file exceeds {@code MAX_READ_STRING_SIZE}
+     * </ul>
      */
     public static @NonNull Optional<String> readString(@NonNull File file) throws IOException {
         try {
-            final String value = new String(Files.readAllBytes(file.toPath()),
-                    StandardCharsets.UTF_8);
-            return Optional.of(value);
-        } catch (NoSuchFileException e) {
-            return Optional.empty();
+            if (file.length() <= MAX_READ_STRING_SIZE) {
+                final String value = new String(Files.readAllBytes(file.toPath()),
+                        StandardCharsets.UTF_8);
+                return Optional.of(value);
+            }
+            // When file size exceeds MAX_READ_STRING_SIZE, file is either
+            // corrupted or doesn't the contain expected data. Hence we return
+            // Optional.empty() which will be interpreted as empty file.
+            Logging.logPersistent(String.format("Ignored reading %s, file size exceeds %d", file,
+                    MAX_READ_STRING_SIZE));
+        } catch (NoSuchFileException ignored) {
         }
+        return Optional.empty();
     }
 
     /**
@@ -576,7 +589,7 @@ public class FileUtils {
                     int i = Integer.parseInt(dcfStrict.group(2));
                     @Override
                     public String next() {
-                        final String res = String.format("%s%04d", prefix, i);
+                        final String res = String.format(Locale.US, "%s%04d", prefix, i);
                         i++;
                         return res;
                     }
@@ -592,11 +605,14 @@ public class FileUtils {
                 // Generate names like "IMG_20190102_030405~2"
                 final String prefix = dcfRelaxed.group(1);
                 return new Iterator<String>() {
-                    int i = TextUtils.isEmpty(dcfRelaxed.group(2)) ? 1
+                    int i = TextUtils.isEmpty(dcfRelaxed.group(2))
+                            ? 1
                             : Integer.parseInt(dcfRelaxed.group(2));
                     @Override
                     public String next() {
-                        final String res = (i == 1) ? prefix : String.format("%s~%d", prefix, i);
+                        final String res = (i == 1)
+                            ? prefix
+                            : String.format(Locale.US, "%s~%d", prefix, i);
                         i++;
                         return res;
                     }
@@ -1161,13 +1177,13 @@ public class FileUtils {
         if (!isForFuse && getAsBoolean(values, MediaColumns.IS_PENDING, false)) {
             final long dateExpires = getAsLong(values, MediaColumns.DATE_EXPIRES,
                     (System.currentTimeMillis() + DEFAULT_DURATION_PENDING) / 1000);
-            resolvedDisplayName = String.format(".%s-%d-%s",
-                    FileUtils.PREFIX_PENDING, dateExpires, displayName);
+            resolvedDisplayName = String.format(
+                    Locale.US, ".%s-%d-%s", FileUtils.PREFIX_PENDING, dateExpires, displayName);
         } else if (getAsBoolean(values, MediaColumns.IS_TRASHED, false)) {
             final long dateExpires = getAsLong(values, MediaColumns.DATE_EXPIRES,
                     (System.currentTimeMillis() + DEFAULT_DURATION_TRASHED) / 1000);
-            resolvedDisplayName = String.format(".%s-%d-%s",
-                    FileUtils.PREFIX_TRASHED, dateExpires, displayName);
+            resolvedDisplayName = String.format(
+                    Locale.US, ".%s-%d-%s", FileUtils.PREFIX_TRASHED, dateExpires, displayName);
         } else {
             resolvedDisplayName = displayName;
         }

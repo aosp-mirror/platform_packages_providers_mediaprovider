@@ -51,6 +51,7 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -319,6 +320,82 @@ public class TranscodeTest {
             TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
 
             assertTranscode(modernFile, true);
+        } finally {
+            modernFile.delete();
+        }
+    }
+
+    /**
+     * Tests that transcode cache is reused after file path transcode
+     * @throws Exception
+     */
+    @Test
+    public void testTranscodedCacheReuse_FilePath() throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        try {
+            TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+
+            assertTranscode(modernFile, true);
+            assertTranscode(modernFile, false);
+        } finally {
+            modernFile.delete();
+        }
+    }
+
+    /**
+     * Tests that transcode cache is reused after ContentResolver transcode
+     * @throws Exception
+     */
+    @Ignore("b/174655855")
+    @Test
+    public void testTranscodedCacheReuse_ContentResolver() throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        try {
+            Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+
+            assertTranscode(uri, true);
+            assertTranscode(uri, false);
+        } finally {
+            modernFile.delete();
+        }
+    }
+
+    /**
+     * Tests that transcode cache is reused after ContentResolver transcode
+     * and file path opens
+     * @throws Exception
+     */
+    @Ignore("b/174655855")
+    @Test
+    public void testTranscodedCacheReuse_ContentResolverFilePath() throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        try {
+            Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+
+            assertTranscode(uri, true);
+            assertTranscode(modernFile, false);
+        } finally {
+            modernFile.delete();
+        }
+    }
+
+    /**
+     * Tests that transcode cache is reused after file path transcode
+     * and ContentResolver opens
+     * @throws Exception
+     */
+    @Test
+    public void testTranscodedCacheReuse_FilePathContentResolver() throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        try {
+            Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+
+            assertTranscode(modernFile, true);
+            assertTranscode(uri, false);
         } finally {
             modernFile.delete();
         }

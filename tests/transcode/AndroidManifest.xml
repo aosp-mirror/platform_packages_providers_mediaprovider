@@ -8,8 +8,6 @@
 
     <application android:label="MediaProvider Transcode Tests">
       <uses-library android:name="android.test.runner" />
-      <receiver android:name="com.android.cts.install.lib.LocalIntentSender"
-                android:exported="true" />
     </application>
 
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"

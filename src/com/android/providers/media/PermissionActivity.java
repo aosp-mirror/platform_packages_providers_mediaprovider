@@ -101,6 +101,8 @@ public class PermissionActivity extends Activity {
     private String volumeName;
     private ApplicationInfo appInfo;
 
+    private AlertDialog actionDialog;
+    private AsyncTask<Void, Void, Void> positiveActionTask;
     private ProgressDialog progressDialog;
     private TextView titleView;
 
@@ -123,6 +125,8 @@ public class PermissionActivity extends Activity {
     private static final int ORDER_VIDEO = 2;
     private static final int ORDER_AUDIO = 3;
     private static final int ORDER_GENERIC = 4;
+
+    private static final int MAX_THUMBS = 3;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -151,6 +155,7 @@ public class PermissionActivity extends Activity {
         }
 
         progressDialog = new ProgressDialog(this);
+        progressDialog.setCancelable(false);
 
         // Favorite-related requests are automatically granted for now; we still
         // make developers go through this no-op dialog flow to preserve our
@@ -162,9 +167,9 @@ public class PermissionActivity extends Activity {
                 return;
             }
         }
-
         // Kick off async loading of description to show in dialog
         final View bodyView = getLayoutInflater().inflate(R.layout.permission_body, null, false);
+        handleImageViewVisibility(bodyView, uris);
         new DescriptionTask(bodyView).execute(uris);
 
         final CharSequence message = resolveMessageText();
@@ -181,16 +186,38 @@ public class PermissionActivity extends Activity {
         builder.setCancelable(false);
         builder.setView(bodyView);
 
-        final AlertDialog dialog = builder.show();
-        final WindowManager.LayoutParams params = dialog.getWindow().getAttributes();
+        actionDialog = builder.show();
+        final WindowManager.LayoutParams params = actionDialog.getWindow().getAttributes();
         params.width = getResources().getDimensionPixelSize(R.dimen.permission_dialog_width);
-        dialog.getWindow().setAttributes(params);
+        actionDialog.getWindow().setAttributes(params);
 
         // Hunt around to find the title of our newly created dialog so we can
         // adjust accessibility focus once descriptions have been loaded
-        titleView = (TextView) findViewByPredicate(dialog.getWindow().getDecorView(), (view) -> {
-            return (view instanceof TextView) && view.isImportantForAccessibility();
-        });
+        titleView = (TextView) findViewByPredicate(actionDialog.getWindow().getDecorView(),
+                (view) -> {
+                    return (view instanceof TextView) && view.isImportantForAccessibility();
+                });
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        // Cancel and interrupt the AsyncTask of the positive action. This avoids
+        // calling the old activity during "onPostExecute", but the AsyncTask could
+        // still finish its background task. For now we are ok with:
+        // 1. the task potentially runs again after the configuration is changed
+        // 2. the task completed successfully, but the activity doesn't return
+        // the response.
+        if (positiveActionTask != null) {
+            positiveActionTask.cancel(true /* mayInterruptIfRunning */);
+        }
+        // Dismiss the dialogs to avoid the window is leaked
+        if (actionDialog != null) {
+            actionDialog.dismiss();
+        }
+        if (progressDialog != null) {
+            progressDialog.dismiss();
+        }
     }
 
     private void onPositiveAction(@Nullable DialogInterface dialog, int which) {
@@ -202,7 +229,7 @@ public class PermissionActivity extends Activity {
 
         progressDialog.show();
         final long startTime = System.currentTimeMillis();
-        new AsyncTask<Void, Void, Void>() {
+        positiveActionTask = new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... params) {
                 Log.d(TAG, "User allowed grant for " + uris);
@@ -245,6 +272,7 @@ public class PermissionActivity extends Activity {
                 } catch (Exception e) {
                     Log.w(TAG, e);
                 }
+
                 return null;
             }
 
@@ -295,6 +323,36 @@ public class PermissionActivity extends Activity {
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         // Strategy borrowed from PermissionController
         return keyCode == KeyEvent.KEYCODE_BACK;
+    }
+
+    private void handleImageViewVisibility(View bodyView, List<Uri> uris) {
+        if (uris.isEmpty()) {
+            return;
+        }
+        if (uris.size() == 1) {
+            // Set visible to the thumb_full to avoid the size
+            // changed of the dialog in full decoding.
+            final ImageView thumbFull = bodyView.requireViewById(R.id.thumb_full);
+            thumbFull.setVisibility(View.VISIBLE);
+        } else {
+            // If the size equals 2, we will remove thumb1 later.
+            // Set visible to the thumb2 and thumb3 first to avoid
+            // the size changed of the dialog.
+            ImageView thumb = bodyView.requireViewById(R.id.thumb2);
+            thumb.setVisibility(View.VISIBLE);
+            thumb = bodyView.requireViewById(R.id.thumb3);
+            thumb.setVisibility(View.VISIBLE);
+            // If the count of thumbs equals to MAX_THUMBS, set visible to thumb1.
+            if (uris.size() == MAX_THUMBS) {
+                thumb = bodyView.requireViewById(R.id.thumb1);
+                thumb.setVisibility(View.VISIBLE);
+            } else if (uris.size() > MAX_THUMBS) {
+                // If the count is larger than MAX_THUMBS, set visible to
+                // thumb_more_container.
+                final View container = bodyView.requireViewById(R.id.thumb_more_container);
+                container.setVisibility(View.VISIBLE);
+            }
+        }
     }
 
     /**
@@ -444,8 +502,6 @@ public class PermissionActivity extends Activity {
      * displayed in the body of the dialog.
      */
     private class DescriptionTask extends AsyncTask<List<Uri>, Void, List<Description>> {
-        private static final int MAX_THUMBS = 3;
-
         private View bodyView;
         private Resources res;
 
@@ -470,29 +526,7 @@ public class PermissionActivity extends Activity {
 
             // If we're only asking for single item, load the full image
             if (uris.size() == 1) {
-                // Set visible to the thumb_full to avoid the size
-                // changed of the dialog in full decoding.
-                final ImageView thumbFull = bodyView.requireViewById(R.id.thumb_full);
-                thumbFull.setVisibility(View.VISIBLE);
                 loadFlags |= Description.LOAD_FULL;
-            } else {
-                // If the size equals 2, we will remove thumb1 later.
-                // Set visible to the thumb2 and thumb3 first to avoid
-                // the size changed of the dialog.
-                ImageView thumb = bodyView.requireViewById(R.id.thumb2);
-                thumb.setVisibility(View.VISIBLE);
-                thumb = bodyView.requireViewById(R.id.thumb3);
-                thumb.setVisibility(View.VISIBLE);
-                // If the count of thumbs equals to MAX_THUMBS, set visible to thumb1.
-                if (uris.size() == MAX_THUMBS) {
-                    thumb = bodyView.requireViewById(R.id.thumb1);
-                    thumb.setVisibility(View.VISIBLE);
-                } else if (uris.size() > MAX_THUMBS) {
-                    // If the count is larger than MAX_THUMBS, set visible to
-                    // thumb_more_container.
-                    final View container = bodyView.requireViewById(R.id.thumb_more_container);
-                    container.setVisibility(View.VISIBLE);
-                }
             }
 
             // Sort the uris in DATA_GENERIC case (Image, Video, Audio, Others)
@@ -631,6 +665,9 @@ public class PermissionActivity extends Activity {
         private void bindAsText(@NonNull List<Description> results) {
             final List<CharSequence> list = new ArrayList<>();
             for (int i = 0; i < results.size(); i++) {
+                if (TextUtils.isEmpty(results.get(i).contentDescription)) {
+                    continue;
+                }
                 list.add(results.get(i).contentDescription);
 
                 if (list.size() >= MAX_THUMBS && results.size() > list.size()) {
@@ -641,10 +678,11 @@ public class PermissionActivity extends Activity {
                     break;
                 }
             }
-
-            final TextView text = bodyView.requireViewById(R.id.list);
-            text.setText(TextUtils.join("\n", list));
-            text.setVisibility(View.VISIBLE);
+            if (!list.isEmpty()) {
+                final TextView text = bodyView.requireViewById(R.id.list);
+                text.setText(TextUtils.join("\n", list));
+                text.setVisibility(View.VISIBLE);
+            }
         }
     }
 
@@ -696,7 +734,9 @@ public class PermissionActivity extends Activity {
                 Log.w(TAG, e);
                 if (thumbnail == null && full == null) {
                     final String mimeType = resolver.getType(uri);
-                    mimeIcon = resolver.getTypeInfo(mimeType).getIcon();
+                    if (mimeType != null) {
+                        mimeIcon = resolver.getTypeInfo(mimeType).getIcon();
+                    }
                 }
             }
         }

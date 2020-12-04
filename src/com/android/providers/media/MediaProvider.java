@@ -4047,7 +4047,15 @@ public class MediaProvider extends ContentProvider {
      */
     @NonNull SQLiteQueryBuilder getQueryBuilderForTranscoding(int type, int match,
             @NonNull Uri uri, @NonNull Bundle extras, @Nullable Consumer<String> honored) {
-        return getQueryBuilder(type, match, uri, extras, honored);
+        // Force MediaProvider calling identity when accessing the db from transcoding to avoid
+        // generating 'strict' SQL e.g forcing owner_package_name matches
+        // We already handle the required permission checks for the app before we get here
+        final LocalCallingIdentity token = clearLocalCallingIdentity();
+        try {
+            return getQueryBuilder(type, match, uri, extras, honored);
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
     }
 
     /**
@@ -6520,6 +6528,7 @@ public class MediaProvider extends ContentProvider {
             Log.d(TAG, "Using FUSE with transcode cache for " + filePath + " Uid: " + uid);
             return FileUtils.openSafely(getFuseFile(transcodeFile), modeBits);
         } else if (mTranscodeHelper.transcode(filePath, transcodePath, uid)) {
+            // TODO(b/174655855): We should transcode lazily and just return the opened fd here
             Log.d(TAG, "Using FUSE with transcode for " + filePath + " Uid: " + uid);
             return FileUtils.openSafely(getFuseFile(transcodeFile), modeBits);
         } else {

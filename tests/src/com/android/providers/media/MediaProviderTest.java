@@ -21,6 +21,7 @@ import static com.android.providers.media.util.FileUtils.extractRelativePathForD
 import static com.android.providers.media.util.FileUtils.isDownload;
 import static com.android.providers.media.util.FileUtils.isDownloadDir;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -63,6 +64,7 @@ import com.android.providers.media.MediaProvider.VolumeArgumentException;
 import com.android.providers.media.MediaProvider.VolumeNotFoundException;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 import com.android.providers.media.util.FileUtils;
+import com.android.providers.media.util.FileUtilsTest;
 import com.android.providers.media.util.SQLiteQueryBuilder;
 
 import org.junit.AfterClass;
@@ -311,6 +313,59 @@ public class MediaProviderTest {
 
         assertEquals(PackageManager.PERMISSION_GRANTED, sIsolatedResolver.checkUriPermission(uri,
                 android.os.Process.myUid(), Intent.FLAG_GRANT_READ_URI_PERMISSION));
+    }
+
+    @Test
+    public void testTrashLongFileNameItemHasTrimmedFileName() throws Exception {
+        testActionLongFileNameItemHasTrimmedFileName(MediaColumns.IS_TRASHED);
+    }
+
+    @Test
+    public void testPendingLongFileNameItemHasTrimmedFileName() throws Exception {
+        testActionLongFileNameItemHasTrimmedFileName(MediaColumns.IS_PENDING);
+    }
+
+    private void testActionLongFileNameItemHasTrimmedFileName(String columnKey) throws Exception {
+        // We might have old files lurking, so force a clean slate
+        final Context context = InstrumentationRegistry.getTargetContext();
+        sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
+        sIsolatedResolver = sIsolatedContext.getContentResolver();
+        final String[] projection = new String[]{MediaColumns.DATA};
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+
+        // create extreme long file name
+        final String originalName = FileUtilsTest.createExtremeFileName("test" + System.nanoTime(),
+                ".jpg");
+
+        File file = stage(R.raw.lg_g4_iso_800_jpg, new File(dir, originalName));
+        final Uri uri = MediaStore.scanFile(sIsolatedResolver, file);
+        Log.v(TAG, "Scanned " + file + " as " + uri);
+
+        try (Cursor c = sIsolatedResolver.query(uri, projection, null, null)) {
+            assertNotNull(c);
+            assertEquals(1, c.getCount());
+            assertTrue(c.moveToFirst());
+            final String data = c.getString(0);
+            final String result = FileUtils.extractDisplayName(data);
+            assertEquals(originalName, result);
+        }
+
+        final Bundle extras = new Bundle();
+        extras.putBoolean(MediaStore.QUERY_ARG_ALLOW_MOVEMENT, true);
+        final ContentValues values = new ContentValues();
+        values.put(columnKey, 1);
+        sIsolatedResolver.update(uri, values, extras);
+
+        try (Cursor c = sIsolatedResolver.query(uri, projection, null, null)) {
+            assertNotNull(c);
+            assertEquals(1, c.getCount());
+            assertTrue(c.moveToFirst());
+            final String data = c.getString(0);
+            final String result = FileUtils.extractDisplayName(data);
+            assertThat(result.length()).isAtMost(FileUtilsTest.MAX_FILENAME_BYTES);
+            assertNotEquals(originalName, result);
+        }
     }
 
     /**

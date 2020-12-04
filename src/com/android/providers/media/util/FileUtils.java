@@ -57,7 +57,6 @@ import android.system.Os;
 import android.system.OsConstants;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
-import android.util.ArraySet;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
@@ -86,12 +85,16 @@ import java.util.Iterator;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class FileUtils {
+    // Even though vfat allows 255 UCS-2 chars, we might eventually write to
+    // ext4 through a FUSE layer, so use that limit.
+    @VisibleForTesting
+    static final int MAX_FILENAME_BYTES = 255;
+
     /**
      * Drop-in replacement for {@link ParcelFileDescriptor#open(File, int)}
      * which adds security features like {@link OsConstants#O_CLOEXEC} and
@@ -523,9 +526,8 @@ public class FileUtils {
                 res.append('_');
             }
         }
-        // Even though vfat allows 255 UCS-2 chars, we might eventually write to
-        // ext4 through a FUSE layer, so use that limit.
-        trimFilename(res, 255);
+
+        trimFilename(res, MAX_FILENAME_BYTES);
         return res.toString();
     }
 
@@ -1191,13 +1193,21 @@ public class FileUtils {
         if (!isForFuse && getAsBoolean(values, MediaColumns.IS_PENDING, false)) {
             final long dateExpires = getAsLong(values, MediaColumns.DATE_EXPIRES,
                     (System.currentTimeMillis() + DEFAULT_DURATION_PENDING) / 1000);
-            resolvedDisplayName = String.format(
+            final String combinedString = String.format(
                     Locale.US, ".%s-%d-%s", FileUtils.PREFIX_PENDING, dateExpires, displayName);
+            // trim the file name to avoid ENAMETOOLONG error
+            // after trim the file, if the user unpending the file,
+            // the file name is not the original one
+            resolvedDisplayName = trimFilename(combinedString, MAX_FILENAME_BYTES);
         } else if (getAsBoolean(values, MediaColumns.IS_TRASHED, false)) {
             final long dateExpires = getAsLong(values, MediaColumns.DATE_EXPIRES,
                     (System.currentTimeMillis() + DEFAULT_DURATION_TRASHED) / 1000);
-            resolvedDisplayName = String.format(
+            final String combinedString = String.format(
                     Locale.US, ".%s-%d-%s", FileUtils.PREFIX_TRASHED, dateExpires, displayName);
+            // trim the file name to avoid ENAMETOOLONG error
+            // after trim the file, if the user untrashes the file,
+            // the file name is not the original one
+            resolvedDisplayName = trimFilename(combinedString, MAX_FILENAME_BYTES);
         } else {
             resolvedDisplayName = displayName;
         }

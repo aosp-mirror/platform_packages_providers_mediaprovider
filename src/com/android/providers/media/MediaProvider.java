@@ -1370,7 +1370,7 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public boolean transformForFuse(String src, String dst, int transforms, int uid) {
         if ((transforms & FLAG_TRANSFORM_TRANSCODING) != 0) {
-            if (mTranscodeHelper.isTranscodeFileCached(src, dst)) {
+            if (mTranscodeHelper.isTranscodeFileCached(uid, src, dst)) {
                 Log.d(TAG, "Using transcode cache for " + src);
                 return true;
             }
@@ -5531,6 +5531,7 @@ public class MediaProvider extends ContentProvider {
 
         boolean triggerInvalidate = false;
         boolean triggerScan = false;
+        boolean isUriPublished = false;
         if (initialValues != null) {
             // IDs are forever; nobody should be editing them
             initialValues.remove(MediaColumns._ID);
@@ -5617,7 +5618,7 @@ public class MediaProvider extends ContentProvider {
                     // make sure metadata is updated
                     if (MediaColumns.IS_PENDING.equals(column)) {
                         triggerScan = true;
-
+                        isUriPublished = true;
                         // Explicitly clear columns used to ignore no-op scans,
                         // since we need to force a scan on publish
                         initialValues.putNull(MediaColumns.DATE_MODIFIED);
@@ -5879,8 +5880,12 @@ public class MediaProvider extends ContentProvider {
                                     scanFileAsMediaProvider(file, REASON_DEMAND);
                                 });
                             } else {
+                                final boolean report = isUriPublished;
                                 helper.postBlocking(() -> {
                                     scanFileAsMediaProvider(file, REASON_DEMAND);
+                                    if (report) {
+                                        mTranscodeHelper.reportIfHEVCAdded(updatedUri);
+                                    }
                                 });
                             }
                         } catch (Exception e) {
@@ -6555,7 +6560,7 @@ public class MediaProvider extends ContentProvider {
         String transcodePath = mTranscodeHelper.getIoPath(filePath, uid);
         File transcodeFile = new File(transcodePath);
 
-        if (mTranscodeHelper.isTranscodeFileCached(filePath, transcodePath)) {
+        if (mTranscodeHelper.isTranscodeFileCached(uid, filePath, transcodePath)) {
             Log.d(TAG, "Using FUSE with transcode cache for " + filePath + " Uid: " + uid);
             return FileUtils.openSafely(getFuseFile(transcodeFile), modeBits);
         } else if (mTranscodeHelper.transcode(filePath, transcodePath, uid)) {

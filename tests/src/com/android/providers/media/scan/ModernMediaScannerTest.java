@@ -71,6 +71,7 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.R;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
+import com.android.providers.media.tests.utils.Timer;
 import com.android.providers.media.util.FileUtils;
 
 import com.google.common.io.ByteStreams;
@@ -93,6 +94,11 @@ public class ModernMediaScannerTest {
     // TODO: scan directory-vs-files and confirm identical results
 
     private static final String TAG = "ModernMediaScannerTest";
+    /**
+     * Number of times we should repeat an operation to get an average/max.
+     */
+    private static final int COUNT_REPEAT = 5;
+
     private File mDir;
 
     private Context mIsolatedContext;
@@ -1081,12 +1087,56 @@ public class ModernMediaScannerTest {
 
         mModern.scanDirectory(mDir, REASON_UNKNOWN);
 
-        try (Cursor cursor = mIsolatedResolver
-                .query(MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                 new String[] { MediaColumns.XMP }, null, null, null)) {
-             assertEquals(1, cursor.getCount());
-             cursor.moveToFirst();
-             assertEquals(0, cursor.getBlob(0).length);
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                new String[] { MediaColumns.XMP }, null, null, null)) {
+            assertEquals(1, cursor.getCount());
+            cursor.moveToFirst();
+            assertEquals(0, cursor.getBlob(0).length);
         }
+    }
+
+    @Test
+    public void testNoOpScan_NoMediaDirs() throws Exception {
+        File nomedia = new File(mDir, ".nomedia");
+        assertThat(nomedia.createNewFile()).isTrue();
+        for (int i = 0; i < 100; i++) {
+            File file = new File(mDir, "file_" + System.nanoTime());
+            assertThat(file.createNewFile()).isTrue();
+        }
+        Timer firstDirScan = new Timer("firstDirScan");
+        firstDirScan.start();
+        // Time taken : preVisitDirectory + 100 visitFiles
+        mModern.scanDirectory(mDir, REASON_UNKNOWN);
+        firstDirScan.stop();
+        firstDirScan.dumpResults();
+
+        // Time taken : preVisitDirectory
+        Timer noOpDirScan = new Timer("noOpDirScan");
+        for (int i = 0 ; i < COUNT_REPEAT ; i++) {
+            noOpDirScan.start();
+            mModern.scanDirectory(mDir, REASON_UNKNOWN);
+            noOpDirScan.stop();
+        }
+        noOpDirScan.dumpResults();
+        assertThat(noOpDirScan.getMaxDurationMillis()).isLessThan(
+                firstDirScan.getMaxDurationMillis());
+
+        // renaming directory for non-M_E_S apps does a scan of the directory as well;
+        // so subsequent scans should be noOp as the directory is not dirty.
+        File renamedTestDir = new File(mIsolatedContext.getExternalMediaDirs()[0],
+                "renamed_test_" + System.nanoTime());
+        assertThat(mDir.renameTo(renamedTestDir)).isTrue();
+
+        Timer renamedDirScan = new Timer("renamedDirScan");
+        renamedDirScan.start();
+        // Time taken : preVisitDirectory
+        mModern.scanDirectory(renamedTestDir, REASON_UNKNOWN);
+        renamedDirScan.stop();
+        renamedDirScan.dumpResults();
+        assertThat(renamedDirScan.getMaxDurationMillis()).isLessThan(
+                firstDirScan.getMaxDurationMillis());
+
+        // This is essential for folder cleanup in tearDown
+        mDir = renamedTestDir;
     }
 }

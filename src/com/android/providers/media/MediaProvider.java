@@ -435,6 +435,8 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    private volatile Locale mLastLocale = Locale.getDefault();
+
     private StorageManager mStorageManager;
     private AppOpsManager mAppOpsManager;
     private PackageManager mPackageManager;
@@ -2587,6 +2589,12 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
+        // Update locale if necessary.
+        if (helper == mInternalDatabase && !Locale.getDefault().equals(mLastLocale)) {
+            Log.i(TAG, "Updating locale within queryInternal");
+            onLocaleChanged(false);
+        }
+
         final Cursor c = qb.query(helper, projection, queryArgs, signal);
         if (c != null && !forSelf) {
             // As a performance optimization, only configure notifications when
@@ -3328,8 +3336,15 @@ public class MediaProvider extends ContentProvider {
     }
 
     public void onLocaleChanged() {
+        onLocaleChanged(true);
+    }
+
+    private void onLocaleChanged(boolean forceUpdate) {
         mInternalDatabase.runWithTransaction((db) -> {
-            localizeTitles(db);
+            if (forceUpdate || !mLastLocale.equals(Locale.getDefault())) {
+                localizeTitles(db);
+                mLastLocale = Locale.getDefault();
+            }
             return null;
         });
     }

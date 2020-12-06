@@ -37,7 +37,7 @@
       <item quantity="other">थप <xliff:g id="COUNT_1">^1</xliff:g> वटा अतिरिक्त वस्तु</item>
       <item quantity="one">थप <xliff:g id="COUNT_0">^1</xliff:g> अतिरिक्त वस्तु</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"अनुप्रयोगका अस्थायी फाइलहरू मेटाउने हो?"</string>
+    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"एपका अस्थायी फाइलहरू मेटाउने हो?"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> केही अस्थायी फाइलहरू मेटाउन चाहन्छ। यो कार्य गर्ने अनुमति दिनुभएका खण्डमा ब्याट्रीको खपत वा सेलुलर डेटाको प्रयोग बढ्न सक्छ।"</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"एपका अस्थायी फाइलहरू मेटाउँदै…"</string>
     <string name="allow" msgid="8885707816848569619">"अनुमति दिनुहोस्"</string>

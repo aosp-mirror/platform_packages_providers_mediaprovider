@@ -6750,38 +6750,32 @@ public class MediaProvider extends ContentProvider {
     }
 
     private boolean shouldBypassDatabaseAndSetDirtyForFuse(int uid, String path) {
-        final LocalCallingIdentity token =
-                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
-        try {
-            boolean shouldBypass = false;
-            if (uid != android.os.Process.SHELL_UID && isCallingPackageManager()) {
-                shouldBypass = true;
-            }  else if (isCallingPackageLegacyWrite() && isCallingPackageSystemGallery()) {
-                // We bypass db operations for legacy system galleries with W_E_S (see b/167307393).
-                // Tracking a longer term solution in b/168784136.
-                shouldBypass = true;
-            }
+        boolean shouldBypass = false;
+        if (uid != android.os.Process.SHELL_UID && isCallingPackageManager()) {
+            shouldBypass = true;
+        } else if (isCallingPackageLegacyWrite() && isCallingPackageSystemGallery()) {
+            // We bypass db operations for legacy system galleries with W_E_S (see b/167307393).
+            // Tracking a longer term solution in b/168784136.
+            shouldBypass = true;
+        }
 
-            if (shouldBypass) {
-                synchronized (mNonHiddenPaths) {
-                    File file = new File(path);
-                    String key = file.getParent();
-                    boolean maybeHidden = !mNonHiddenPaths.containsKey(key);
+        if (shouldBypass) {
+            synchronized (mNonHiddenPaths) {
+                File file = new File(path);
+                String key = file.getParent();
+                boolean maybeHidden = !mNonHiddenPaths.containsKey(key);
 
-                    if (maybeHidden) {
-                        File topNoMedia = FileUtils.getTopLevelNoMedia(new File(path));
-                        if (topNoMedia == null) {
-                            mNonHiddenPaths.put(key, 0);
-                        } else {
-                            mMediaScanner.onDirectoryDirty(topNoMedia);
-                        }
+                if (maybeHidden) {
+                    File topNoMedia = FileUtils.getTopLevelNoMedia(new File(path));
+                    if (topNoMedia == null) {
+                        mNonHiddenPaths.put(key, 0);
+                    } else {
+                        mMediaScanner.onDirectoryDirty(topNoMedia);
                     }
                 }
             }
-            return shouldBypass;
-        } finally {
-            restoreLocalCallingIdentity(token);
         }
+        return shouldBypass;
     }
 
     /**

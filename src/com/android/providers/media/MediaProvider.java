@@ -6876,11 +6876,11 @@ public class MediaProvider extends ContentProvider {
                 boolean maybeHidden = !mNonHiddenPaths.containsKey(key);
 
                 if (maybeHidden) {
-                    File topNoMedia = FileUtils.getTopLevelNoMedia(new File(path));
-                    if (topNoMedia == null) {
+                    File topNoMediaDir = FileUtils.getTopLevelNoMedia(new File(path));
+                    if (topNoMediaDir == null) {
                         mNonHiddenPaths.put(key, 0);
                     } else {
-                        mMediaScanner.onDirectoryDirty(topNoMedia);
+                        mMediaScanner.onDirectoryDirty(topNoMediaDir);
                     }
                 }
             }

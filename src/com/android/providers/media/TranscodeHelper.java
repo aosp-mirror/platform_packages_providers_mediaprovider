@@ -75,8 +75,6 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -102,6 +100,7 @@ public class TranscodeHelper {
     private static final String TRANSCODE_DEFAULT_DEVICE_CONFIG_KEY = "transcode_default";
     private static final String TRANSCODE_USER_CONTROL_SYS_PROP_KEY =
             "persist.sys.fuse.transcode_user_control";
+    private static final String TRANSCODE_COMPAT_MANIFEST_KEY = "transcode_compat_manifest";
 
     /**
      * Force enable an app to support the HEVC media capability
@@ -179,6 +178,7 @@ public class TranscodeHelper {
     private final SparseArray<CountDownLatch> mTranscodingLatches = new SparseArray<>();
     private final TranscodeUiNotifier mTranscodingUiNotifier;
     private final TranscodeMetrics mTranscodingMetrics;
+    private final Map<String, Long> mAppCompatMediaCapabilities = new ArrayMap<>();
 
     private static final String[] TRANSCODE_CACHE_INFO_PROJECTION =
             {FileColumns._ID, FileColumns._TRANSCODE_STATUS};
@@ -203,6 +203,8 @@ public class TranscodeHelper {
         mTranscodeDirectory.mkdirs();
         mTranscodingMetrics = new TranscodeMetrics();
         mTranscodingUiNotifier = new TranscodeUiNotifier(context, mTranscodingMetrics);
+
+        parseTranscodeCompatManifest();
     }
 
     /**
@@ -365,30 +367,15 @@ public class TranscodeHelper {
         LocalCallingIdentity identity = mMediaProvider.getCachedCallingIdentityForTranscoding(uid);
         final String[] callingPackages = identity.getSharedPackageNames();
 
-        // Check allowPackages and manifest supported packages
-        List<String> allowPackages = Arrays.asList(ALLOW_LIST);
+        // Check mAppCompatMediaCapabilities and manifest supported packages.
+        // If we are here then the file supports HEVC, so we only check if the package is in the
+        // mAppCompatCapabilities.  If it's there, we will respect that value.
         for (String callingPackage : callingPackages) {
-            if (allowPackages.contains(callingPackage)) {
-                return false;
+            if (mAppCompatMediaCapabilities.containsKey(callingPackage)) {
+                return mAppCompatMediaCapabilities.get(callingPackage) == 0;
             } else if (checkManifestSupport(callingPackage, identity)) {
                 return false;
             }
-        }
-
-        // Check transcodePackages
-        List<String> transcodePackages = Arrays.asList(
-                SystemProperties.get("persist.sys.fuse.transcode_packages").split(","));
-        for (String callingPackage : callingPackages) {
-            if (transcodePackages.contains(callingPackage)) {
-                return true;
-            }
-        }
-
-        // Check transcodeUids
-        List<String> transcodeUids = Arrays.asList(
-                SystemProperties.get("persist.sys.fuse.transcode_uids").split(","));
-        if (transcodeUids.contains(String.valueOf(uid))) {
-            return true;
         }
 
         return getBooleanProperty(TRANSCODE_DEFAULT_SYS_PROP_KEY,
@@ -663,6 +650,24 @@ public class TranscodeHelper {
         extras.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, TRANSCODE_WHERE_CLAUSE);
         extras.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs);
         return qb.query(getDatabaseHelperForUri(uri), projection, extras, null);
+    }
+
+    private void parseTranscodeCompatManifest() {
+        final String[] manifest = mMediaProvider.getStringDeviceConfig(
+                TRANSCODE_COMPAT_MANIFEST_KEY, "").split(",");
+
+        String packageName = "";
+        Long packageCompatValue;
+        int i = 0;
+        while (i < manifest.length - 1) {
+            try {
+                packageName = manifest[i++];
+                packageCompatValue = Long.valueOf(manifest[i++]);
+                mAppCompatMediaCapabilities.put(packageName, packageCompatValue);
+            } catch (NumberFormatException e) {
+                Log.w(TAG, "The value was not parsable for the package: " + packageName);
+            }
+        }
     }
 
     private void logEvent(String event, @Nullable TranscodingSession session) {

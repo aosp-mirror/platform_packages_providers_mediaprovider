@@ -7796,6 +7796,17 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    @VisibleForTesting
+    public String getStringDeviceConfig(String key, String defaultValue) {
+        final long token = Binder.clearCallingIdentity();
+        try {
+            return DeviceConfig.getString(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
+                    defaultValue);
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
+    }
+
     @Deprecated
     private boolean checkCallingPermissionAudio(boolean forWrite, String callingPackage) {
         if (forWrite) {

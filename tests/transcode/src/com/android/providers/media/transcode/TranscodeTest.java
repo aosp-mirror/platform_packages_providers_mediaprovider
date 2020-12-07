@@ -39,7 +39,6 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
-import android.system.Os;
 
 import androidx.test.runner.AndroidJUnit4;
 
@@ -90,7 +89,7 @@ public class TranscodeTest {
                 Manifest.permission.READ_EXTERNAL_STORAGE);
         TranscodeTestUtils.pollForPermission(Manifest.permission.READ_EXTERNAL_STORAGE, true);
         TranscodeTestUtils.enableSeamlessTranscoding();
-        TranscodeTestUtils.disableTranscodingForAllUids();
+        TranscodeTestUtils.disableTranscodingForAllPackages();
     }
 
     @After
@@ -110,7 +109,7 @@ public class TranscodeTest {
 
             ParcelFileDescriptor pfdOriginal = open(modernFile, false);
 
-            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
             ParcelFileDescriptor pfdTranscoded = open(modernFile, false);
 
             assertFileContent(modernFile, modernFile, pfdOriginal, pfdTranscoded, false);
@@ -139,7 +138,7 @@ public class TranscodeTest {
             }
             ParcelFileDescriptor pfdOriginal1 = open(modernFile, false);
 
-            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
 
             for (File file : noTranscodeFiles) {
                 pfdOriginal1.seekTo(0);
@@ -164,7 +163,7 @@ public class TranscodeTest {
         try {
             TranscodeTestUtils.stageHEVCVideoFile(modernFile);
 
-            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
             ParcelFileDescriptor pfdTranscoded1 = open(modernFile, false);
             ParcelFileDescriptor pfdTranscoded2 = open(modernFile, false);
 
@@ -186,7 +185,7 @@ public class TranscodeTest {
 
             ParcelFileDescriptor pfdOriginal = open(uri, false, null /* bundle */);
 
-            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
 
             ParcelFileDescriptor pfdTranscoded = open(uri, false, null /* bundle */);
 
@@ -217,7 +216,7 @@ public class TranscodeTest {
 
             ParcelFileDescriptor pfdOriginal1 = open(uri, false, null /* bundle */);
 
-            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
 
             for (int i = 0; i < noTranscodeUris.size(); i++) {
                 pfdOriginal1.seekTo(0);
@@ -244,7 +243,7 @@ public class TranscodeTest {
         try {
             Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);
 
-            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
 
             ParcelFileDescriptor pfdTranscoded1 = open(uri, false, null /* bundle */);
             ParcelFileDescriptor pfdTranscoded2 = open(uri, false, null /* bundle */);
@@ -265,12 +264,12 @@ public class TranscodeTest {
         try {
             TranscodeTestUtils.stageHEVCVideoFile(modernFile);
 
-            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
 
             assertTrue(modernFile.delete());
             assertFalse(modernFile.exists());
 
-            TranscodeTestUtils.disableTranscodingForAllUids();
+            TranscodeTestUtils.disableTranscodingForAllPackages();
 
             assertFalse(modernFile.exists());
         } finally {
@@ -289,13 +288,13 @@ public class TranscodeTest {
         try {
             TranscodeTestUtils.stageHEVCVideoFile(modernFile);
 
-            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
 
             assertTrue(modernFile.renameTo(destFile));
             assertTrue(destFile.exists());
             assertFalse(modernFile.exists());
 
-            TranscodeTestUtils.disableTranscodingForAllUids();
+            TranscodeTestUtils.disableTranscodingForAllPackages();
 
             assertTrue(destFile.exists());
             assertFalse(modernFile.exists());
@@ -317,7 +316,7 @@ public class TranscodeTest {
 
             assertTranscode(modernFile, false);
 
-            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
 
             assertTranscode(modernFile, true);
         } finally {
@@ -334,7 +333,7 @@ public class TranscodeTest {
         File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
         try {
             TranscodeTestUtils.stageHEVCVideoFile(modernFile);
-            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
 
             assertTranscode(modernFile, true);
             assertTranscode(modernFile, false);
@@ -353,7 +352,7 @@ public class TranscodeTest {
         File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
         try {
             Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);
-            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
 
             assertTranscode(uri, true);
             assertTranscode(uri, false);
@@ -373,7 +372,7 @@ public class TranscodeTest {
         File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
         try {
             Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);
-            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
 
             assertTranscode(uri, true);
             assertTranscode(modernFile, false);
@@ -392,7 +391,7 @@ public class TranscodeTest {
         File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
         try {
             Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);
-            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
 
             assertTranscode(modernFile, true);
             assertTranscode(uri, false);
@@ -411,7 +410,7 @@ public class TranscodeTest {
         File destFile = new File(DIR_CAMERA, "renamed_" + HEVC_FILE_NAME);
         try {
             TranscodeTestUtils.stageHEVCVideoFile(modernFile);
-            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
 
             assertTranscode(modernFile, true);
 
@@ -432,7 +431,7 @@ public class TranscodeTest {
 
             ParcelFileDescriptor pfdOriginal1 = open(uri, false, null /* bundle */);
 
-            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
 
             Bundle bundle = new Bundle();
             bundle.putBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, true);
@@ -452,7 +451,7 @@ public class TranscodeTest {
 
             ParcelFileDescriptor pfdOriginal = open(uri, false, null /* bundle */);
 
-            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
 
             Bundle bundle = new Bundle();
             bundle.putBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, false);
@@ -472,7 +471,7 @@ public class TranscodeTest {
 
             ParcelFileDescriptor pfdOriginal1 = open(uri, false, null /* bundle */);
 
-            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
 
             Bundle bundle = new Bundle();
             ApplicationMediaCapabilities capabilities =
@@ -495,7 +494,7 @@ public class TranscodeTest {
 
             ParcelFileDescriptor pfdOriginal1 = open(uri, false, null /* bundle */);
 
-            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
 
             Bundle bundle = new Bundle();
             ApplicationMediaCapabilities capabilities =
@@ -518,7 +517,7 @@ public class TranscodeTest {
 
             ParcelFileDescriptor pfdOriginal1 = open(uri, false, null /* bundle */);
 
-            TranscodeTestUtils.enableTranscodingForUid(Os.getuid());
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
 
             Bundle bundle = new Bundle();
             ApplicationMediaCapabilities capabilities =

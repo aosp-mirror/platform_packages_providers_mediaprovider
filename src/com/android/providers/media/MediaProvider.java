@@ -143,6 +143,7 @@ import android.os.storage.StorageVolume;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.provider.Column;
+import android.provider.DeviceConfig;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
 import android.provider.MediaStore.Audio.AudioColumns;
@@ -7773,6 +7774,17 @@ public class MediaProvider extends ContentProvider {
     @VisibleForTesting
     public boolean isFuseThread() {
         return FuseDaemon.native_is_fuse_thread();
+    }
+
+    @VisibleForTesting
+    public boolean getBooleanDeviceConfig(String key, boolean defaultValue) {
+        final long token = Binder.clearCallingIdentity();
+        try {
+            return DeviceConfig.getBoolean(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
+                    defaultValue);
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
     }
 
     @Deprecated

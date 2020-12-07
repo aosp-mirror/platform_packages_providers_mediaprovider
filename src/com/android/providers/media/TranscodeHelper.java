@@ -464,15 +464,11 @@ public class TranscodeHelper {
     private boolean getBooleanProperty(String sysPropKey, String deviceConfigKey) {
         // If the user wants to override the default, respect that; otherwise use the DeviceConfig
         // which is filled with the values sent from server.
-        // TODO(b/169327180): Until we figure out a nice way to fix tests for using DeviceConfig,
-        // we are going to read the sysPropKey only. So, simply commenting out the code for now.
-        // if (SystemProperties.getBoolean(TRANSCODE_USER_CONTROL_SYS_PROP_KEY, false)) {
-        return SystemProperties.getBoolean(sysPropKey, false);
-        // }
+        if (SystemProperties.getBoolean(TRANSCODE_USER_CONTROL_SYS_PROP_KEY, false)) {
+            return SystemProperties.getBoolean(sysPropKey, false);
+        }
 
-        // return DeviceConfig.getBoolean(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
-        // deviceConfigKey,
-        //         false);
+        return mMediaProvider.getBooleanDeviceConfig(deviceConfigKey, false);
     }
 
     private Pair<Long, Integer> getTranscodeCacheInfoFromDB(String path) {

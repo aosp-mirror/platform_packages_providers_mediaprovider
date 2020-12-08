@@ -37,9 +37,10 @@
       <item quantity="one">Plus <xliff:g id="COUNT_1">^1</xliff:g> autre élément</item>
       <item quantity="other">Plus <xliff:g id="COUNT_1">^1</xliff:g> autres éléments</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Effacer les fichiers d\'application temporaires ?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Effacer les fichiers d\'application temporaires"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> souhaite supprimer quelques fichiers temporaires, ce qui risque de solliciter davantage la batterie et le réseau de données mobiles."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Suppression des fichiers d\'application temporaires…"</string>
+    <string name="clear" msgid="5524638938415865915">"Effacer"</string>
     <string name="allow" msgid="8885707816848569619">"Autoriser"</string>
     <string name="deny" msgid="6040983710442068936">"Refuser"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

@@ -37,9 +37,10 @@
       <item quantity="other">och <xliff:g id="COUNT_1">^1</xliff:g> objekt till</item>
       <item quantity="one">och <xliff:g id="COUNT_0">^1</xliff:g> objekt till</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Vill du ta bort tillfälliga appfiler?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Rensa tillfälliga appfiler"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> vill ta bort några tillfälliga filer. Det kan leda till ökad batteriförbrukning eller användning av mobildata."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Tillfälliga appfiler rensas …"</string>
+    <string name="clear" msgid="5524638938415865915">"Rensa"</string>
     <string name="allow" msgid="8885707816848569619">"Tillåt"</string>
     <string name="deny" msgid="6040983710442068936">"Neka"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

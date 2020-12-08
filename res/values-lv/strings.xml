@@ -39,9 +39,10 @@
       <item quantity="one">Un vēl <xliff:g id="COUNT_1">^1</xliff:g> vienums</item>
       <item quantity="other">Un vēl <xliff:g id="COUNT_1">^1</xliff:g> vienumi</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Vai notīrīt lietotņu pagaidu failus?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Lietotņu pagaidu failu notīrīšana"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"Lietotne <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> vēlas iegūt atļauju notīrīt dažus pagaidu failus. Tas var palielināt akumulatora izmantošanas ilgumu vai mobilo datu lietojumu."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Notiek lietotņu pagaidu failu notīrīšana…"</string>
+    <string name="clear" msgid="5524638938415865915">"Notīrīt"</string>
     <string name="allow" msgid="8885707816848569619">"Atļaut"</string>
     <string name="deny" msgid="6040983710442068936">"Neatļaut"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

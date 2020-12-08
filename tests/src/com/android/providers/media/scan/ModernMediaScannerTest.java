@@ -36,6 +36,8 @@ import static com.android.providers.media.scan.ModernMediaScanner.shouldScanDire
 import static com.android.providers.media.util.FileUtils.isDirectoryHidden;
 import static com.android.providers.media.util.FileUtils.isFileHidden;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -228,7 +230,12 @@ public class ModernMediaScannerTest {
 
     @Test
     public void testParseOptionalDate() throws Exception {
-        assertEquals(1577836800000L, (long) parseOptionalDate("20200101T000000").get());
+        assertThat(parseOptionalDate("20200101T000000")).isEqualTo(Optional.of(1577836800000L));
+        assertThat(parseOptionalDate("20200101T211205")).isEqualTo(Optional.of(1577913125000L));
+        assertThat(parseOptionalDate("20200101T211205.000Z"))
+                .isEqualTo(Optional.of(1577913125000L));
+        assertThat(parseOptionalDate("20200101T211205.123Z"))
+                .isEqualTo(Optional.of(1577913125123L));
     }
 
     @Test

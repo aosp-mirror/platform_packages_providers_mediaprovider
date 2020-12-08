@@ -717,7 +717,7 @@ public class FileUtilsTest {
         File nomedia = new File(dirInDownload, ".nomedia");
         assertTrue(nomedia.createNewFile());
 
-        assertEquals(nomedia, FileUtils.getTopLevelNoMedia(new File(dirInDownload, "foo")));
+        assertEquals(dirInDownload, FileUtils.getTopLevelNoMedia(new File(dirInDownload, "foo")));
     }
 
     @Test
@@ -731,7 +731,7 @@ public class FileUtilsTest {
         File nomedia = new File(dirInTopDirInDownload, ".nomedia");
         assertTrue(nomedia.createNewFile());
 
-        assertEquals(topNomedia,
+        assertEquals(topDirInDownload,
                 FileUtils.getTopLevelNoMedia(new File(dirInTopDirInDownload, "foo")));
     }
 

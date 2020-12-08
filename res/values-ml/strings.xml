@@ -37,9 +37,10 @@
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> അധിക ഇനങ്ങൾ കൂടി</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> അധിക ഇനം കൂടി</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"താൽക്കാലികമായ ആപ്പ് ഫയലുകൾ മായ്ക്കണോ?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"താൽക്കാലികമായ ആപ്പ് ഫയലുകൾ മായ്ക്കുക"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> എന്നതിന് കുറച്ച് താൽക്കാലിക ഫയലുകൾ മായ്ക്കണമെന്നുണ്ട്. ബാറ്ററിയുടെയോ സെല്ലുലാർ ഡാറ്റയുടെയോ വർദ്ധിച്ച ഉപയോഗത്തിന് ഇത് കാരണമായേക്കാം."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"താൽക്കാലികമായ ആപ്പ് ഫയലുകൾ മായ്‌ക്കുന്നു…"</string>
+    <string name="clear" msgid="5524638938415865915">"മായ്ക്കുക"</string>
     <string name="allow" msgid="8885707816848569619">"അനുവദിക്കൂ"</string>
     <string name="deny" msgid="6040983710442068936">"നിരസിക്കുക"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

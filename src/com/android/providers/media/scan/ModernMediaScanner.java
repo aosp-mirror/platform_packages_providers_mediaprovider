@@ -402,7 +402,7 @@ public class ModernMediaScanner implements MediaScanner {
                     new String[] {pathEscapedForLike + "/%", pathEscapedForLike});
             queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,
                     FileColumns._ID + " DESC");
-            queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE);
+            queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_EXCLUDE);
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_FAVORITE, MediaStore.MATCH_INCLUDE);
 

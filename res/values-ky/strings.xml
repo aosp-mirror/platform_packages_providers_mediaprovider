@@ -37,9 +37,10 @@
       <item quantity="other">Дагы <xliff:g id="COUNT_1">^1</xliff:g> нерсе</item>
       <item quantity="one">Дагы <xliff:g id="COUNT_0">^1</xliff:g> нерсе</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Колдонмодогу убактылуу файлдарды өчүрөсүзбү?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Колдонмодогу убактылуу файлдарды өчүрүү"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> айрым убактылуу файлдарды өчүргөнү жатат. Батарея же мобилдик Интернет өтө көп колдонулушу мүмкүн."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Колдонмодогу убактылуу файлдар өчүрүлүүдө…"</string>
+    <string name="clear" msgid="5524638938415865915">"Тазалоо"</string>
     <string name="allow" msgid="8885707816848569619">"Уруксат берүү"</string>
     <string name="deny" msgid="6040983710442068936">"Тыюу салуу"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

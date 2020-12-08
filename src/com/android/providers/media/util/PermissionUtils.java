@@ -185,6 +185,20 @@ public class PermissionUtils {
                 generateAppOpMessage(packageName, sOpDescription.get()));
     }
 
+    /**
+     * Returns {@code true} if the given package has write images or write video app op, which
+     * indicates the package is a system gallery.
+     */
+    public static boolean checkWriteImagesOrVideoAppOps(@NonNull Context context, int uid,
+            @NonNull String packageName, @Nullable String attributionTag) {
+        return checkAppOp(
+                context, OPSTR_WRITE_MEDIA_IMAGES, uid, packageName, attributionTag,
+                generateAppOpMessage(packageName, sOpDescription.get()))
+                || checkAppOp(
+                        context, OPSTR_WRITE_MEDIA_VIDEO, uid, packageName, attributionTag,
+                generateAppOpMessage(packageName, sOpDescription.get()));
+    }
+
     @VisibleForTesting
     static boolean checkNoIsolatedStorageGranted(@NonNull Context context, int uid,
             @NonNull String packageName, @Nullable String attributionTag) {
@@ -221,6 +235,27 @@ public class PermissionUtils {
         // Seems like it's a legacy app, so it has to pass the permission check
         return checkPermissionForPreflight(context, permission, pid, uid, packageName);
     }
+
+    /**
+     * Checks *only* App Ops.
+     */
+    private static boolean checkAppOp(@NonNull Context context,
+            @NonNull String op, int uid, @NonNull String packageName,
+            @Nullable String attributionTag, @Nullable String opMessage) {
+        final AppOpsManager appOps = context.getSystemService(AppOpsManager.class);
+        final int mode = appOps.noteOpNoThrow(op, uid, packageName, attributionTag, opMessage);
+        switch (mode) {
+            case AppOpsManager.MODE_ALLOWED:
+                return true;
+            case AppOpsManager.MODE_DEFAULT:
+            case AppOpsManager.MODE_IGNORED:
+            case AppOpsManager.MODE_ERRORED:
+                return false;
+            default:
+                throw new IllegalStateException(op + " has unknown mode " + mode);
+        }
+    }
+
 
     /**
      * Checks *only* App Ops, also returns true for legacy apps.

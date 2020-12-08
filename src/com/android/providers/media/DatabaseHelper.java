@@ -160,7 +160,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             @Nullable Class<? extends Annotation> columnAnnotation,
             @Nullable OnSchemaChangeListener schemaListener,
             @Nullable OnFilesChangeListener filesListener,
-            @Nullable OnLegacyMigrationListener migrationListener,
+            @NonNull OnLegacyMigrationListener migrationListener,
             @Nullable UnaryOperator<String> idGenerator) {
         this(context, name, getDatabaseVersion(context), internal, earlyUpgrade, legacyProvider,
                 columnAnnotation, schemaListener, filesListener, migrationListener, idGenerator);
@@ -171,7 +171,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             @Nullable Class<? extends Annotation> columnAnnotation,
             @Nullable OnSchemaChangeListener schemaListener,
             @Nullable OnFilesChangeListener filesListener,
-            @Nullable OnLegacyMigrationListener migrationListener,
+            @NonNull OnLegacyMigrationListener migrationListener,
             @Nullable UnaryOperator<String> idGenerator) {
         super(context, name, null, version);
         mContext = context;
@@ -1009,7 +1009,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + ", COUNT(DISTINCT album_id) AS " + Audio.Artists.NUMBER_OF_ALBUMS
                 + ", COUNT(DISTINCT _id) AS " + Audio.Artists.NUMBER_OF_TRACKS
                 + " FROM audio"
-                + " WHERE volume_name IN " + filterVolumeNames
+                + " WHERE is_music=1 AND volume_name IN " + filterVolumeNames
                 + " GROUP BY artist_id");
 
         db.execSQL("CREATE VIEW audio_albums AS SELECT "
@@ -1026,7 +1026,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + ", MAX(year) AS " + Audio.Albums.LAST_YEAR
                 + ", NULL AS " + Audio.Albums.ALBUM_ART
                 + " FROM audio"
-                + " WHERE volume_name IN " + filterVolumeNames
+                + " WHERE is_music=1 AND volume_name IN " + filterVolumeNames
                 + " GROUP BY album_id");
 
         db.execSQL("CREATE VIEW audio_genres AS SELECT "
@@ -1290,6 +1290,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("ALTER TABLE files ADD COLUMN xmp BLOB DEFAULT NULL;");
     }
 
+    private static void updateAudioAlbumId(SQLiteDatabase db, boolean internal) {
+        // We change the logic for generating album id, rescan all audio files
+        db.execSQL("UPDATE files SET date_modified=0 WHERE media_type=2;");
+    }
+
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
                 null, null, null, null, null, null)) {
@@ -1345,7 +1350,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_O = 800;
     static final int VERSION_P = 900;
     static final int VERSION_Q = 1023;
-    static final int VERSION_R = 1114;
+    static final int VERSION_R = 1115;
     static final int VERSION_LATEST = VERSION_R;
 
     /**
@@ -1487,6 +1492,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1114) {
                 // Empty version bump to ensure triggers are recreated
+            }
+            if (fromVersion < 1115) {
+                updateAudioAlbumId(db, internal);
             }
 
             // If this is the legacy database, it's not worth recomputing data

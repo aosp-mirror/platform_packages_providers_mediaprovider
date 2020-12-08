@@ -806,7 +806,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + "f_number TEXT DEFAULT NULL, iso INTEGER DEFAULT NULL,"
                 + "scene_capture_type INTEGER DEFAULT NULL, generation_added INTEGER DEFAULT 0,"
                 + "generation_modified INTEGER DEFAULT 0, xmp BLOB DEFAULT NULL,"
-                + "_transcode_status INTEGER DEFAULT 0, _video_codec_type TEXT DEFAULT NULL)");
+                + "_transcode_status INTEGER DEFAULT 0, _video_codec_type TEXT DEFAULT NULL,"
+                + "_modifier INTEGER DEFAULT 0)");
 
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!mInternal) {
@@ -1495,6 +1496,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("UPDATE files SET date_modified=0 WHERE media_type=2;");
     }
 
+    private static void updateAddModifier(SQLiteDatabase db, boolean internal) {
+        db.execSQL("ALTER TABLE files ADD COLUMN _modifier INTEGER DEFAULT 0;");
+    }
+
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
                 null, null, null, null, null, null)) {
@@ -1559,7 +1564,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_R = 1115;
     // Leave some gaps in database version tagging to allow R schema changes
     // to go independent of S schema changes.
-    static final int VERSION_S = 1201;
+    static final int VERSION_S = 1202;
     static final int VERSION_LATEST = VERSION_S;
 
     /**
@@ -1710,6 +1715,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1201) {
                 updateAddVideoCodecType(db, internal);
+            }
+            if (fromVersion < 1202) {
+                updateAddModifier(db, internal);
             }
 
             // If this is the legacy database, it's not worth recomputing data

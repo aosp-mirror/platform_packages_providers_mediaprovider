@@ -690,7 +690,7 @@ public class ModernMediaScanner implements MediaScanner {
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_FAVORITE, MediaStore.MATCH_INCLUDE);
             final String[] projection = new String[] {FileColumns._ID, FileColumns.DATE_MODIFIED,
                     FileColumns.SIZE, FileColumns.MIME_TYPE, FileColumns.MEDIA_TYPE,
-                    FileColumns.IS_PENDING};
+                    FileColumns.IS_PENDING, FileColumns._MODIFIER};
 
             final Matcher matcher = FileUtils.PATTERN_EXPIRES_FILE.matcher(realFile.getName());
             // If IS_PENDING is set by FUSE, we should scan the file and update IS_PENDING to zero.
@@ -705,6 +705,8 @@ public class ModernMediaScanner implements MediaScanner {
                     final String mimeType = c.getString(3);
                     final int mediaType = c.getInt(4);
                     isPendingFromFuse &= c.getInt(5) != 0;
+                    final boolean isScanned =
+                            c.getInt(6) == FileColumns._MODIFIER_MEDIA_SCAN;
 
                     // Remember visiting this existing item, even if we skipped
                     // due to it being unchanged; this is needed so we don't
@@ -722,7 +724,7 @@ public class ModernMediaScanner implements MediaScanner {
                             mimeType.equalsIgnoreCase(actualMimeType);
                     final boolean sameMediaType = (actualMediaType == mediaType);
                     final boolean isSame = sameTime && sameSize && sameMediaType && sameMimeType
-                            && !isPendingFromFuse;
+                            && !isPendingFromFuse && isScanned;
                     if (attrs.isDirectory() || isSame) {
                         if (LOGV) Log.v(TAG, "Skipping unchanged " + file);
                         return FileVisitResult.CONTINUE;
@@ -741,6 +743,7 @@ public class ModernMediaScanner implements MediaScanner {
                 Trace.endSection();
             }
             if (op != null) {
+                op.withValue(FileColumns._MODIFIER, FileColumns._MODIFIER_MEDIA_SCAN);
                 // Add owner package name to new insertions when package name is provided.
                 if (op.build().isInsert() && !attrs.isDirectory() && mOwnerPackage != null) {
                     op.withValue(MediaColumns.OWNER_PACKAGE_NAME, mOwnerPackage);

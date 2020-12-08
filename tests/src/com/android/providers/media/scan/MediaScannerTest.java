@@ -85,6 +85,16 @@ public class MediaScannerTest {
                 public boolean isFuseThread() {
                     return asFuseThread;
                 }
+
+                @Override
+                public boolean getBooleanDeviceConfig(String key, boolean defaultValue) {
+                    return defaultValue;
+                }
+
+                @Override
+                public String getStringDeviceConfig(String key, String defaultValue) {
+                    return defaultValue;
+                }
             };
             mProvider.attachInfo(this, info);
             mResolver.addProvider(MediaStore.AUTHORITY, mProvider);

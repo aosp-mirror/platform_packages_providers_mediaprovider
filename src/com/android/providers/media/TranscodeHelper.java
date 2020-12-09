@@ -397,7 +397,7 @@ public class TranscodeHelper {
         }
 
         return getBooleanProperty(TRANSCODE_DEFAULT_SYS_PROP_KEY,
-                TRANSCODE_DEFAULT_DEVICE_CONFIG_KEY);
+                TRANSCODE_DEFAULT_DEVICE_CONFIG_KEY, true /* defaultValue */);
     }
 
     public boolean supportsTranscode(String path) {
@@ -466,14 +466,15 @@ public class TranscodeHelper {
         return flags;
     }
 
-    private boolean getBooleanProperty(String sysPropKey, String deviceConfigKey) {
+    private boolean getBooleanProperty(String sysPropKey, String deviceConfigKey,
+            boolean defaultValue) {
         // If the user wants to override the default, respect that; otherwise use the DeviceConfig
         // which is filled with the values sent from server.
         if (SystemProperties.getBoolean(TRANSCODE_USER_CONTROL_SYS_PROP_KEY, false)) {
-            return SystemProperties.getBoolean(sysPropKey, false);
+            return SystemProperties.getBoolean(sysPropKey, defaultValue);
         }
 
-        return mMediaProvider.getBooleanDeviceConfig(deviceConfigKey, false);
+        return mMediaProvider.getBooleanDeviceConfig(deviceConfigKey, defaultValue);
     }
 
     private Pair<Long, Integer> getTranscodeCacheInfoFromDB(String path) {
@@ -672,7 +673,7 @@ public class TranscodeHelper {
 
     private boolean isTranscodeEnabled() {
         return getBooleanProperty(TRANSCODE_ENABLED_SYS_PROP_KEY,
-                TRANSCODE_ENABLED_DEVICE_CONFIG_KEY);
+                TRANSCODE_ENABLED_DEVICE_CONFIG_KEY, false /* defaultValue */);
     }
 
     private void updateConfigs(boolean transcodeEnabled) {

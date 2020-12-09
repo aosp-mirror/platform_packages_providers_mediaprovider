@@ -344,6 +344,12 @@ public class ModernMediaScanner implements MediaScanner {
          * indicates that one or more of the current file's parents is a hidden directory.
          */
         private int mHiddenDirCount;
+        /**
+         * Indicates if the nomedia directory tree is dirty. When a nomedia directory is dirty, we
+         * mark the top level nomedia as dirty. Hence if one of the sub directory in the nomedia
+         * directory is dirty, we consider the whole top level nomedia directory tree as dirty.
+         */
+        private boolean mIsDirectoryTreeDirty;
 
         public Scan(File root, int reason, @Nullable String ownerPackage)
                 throws FileNotFoundException {
@@ -626,7 +632,13 @@ public class ModernMediaScanner implements MediaScanner {
             }
 
             synchronized (mPendingCleanDirectories) {
-                if (FileUtils.isDirectoryDirty(dir.toFile())) {
+                if (mIsDirectoryTreeDirty) {
+                    // Directory tree is dirty, continue scanning subtree.
+                } else if (FileUtils.isDirectoryDirty(FileUtils.getTopLevelNoMedia(dir.toFile()))) {
+                    // Track the directory dirty status for directory tree in mIsDirectoryDirty.
+                    // This removes additional dirty state check for subdirectories of nomedia
+                    // directory.
+                    mIsDirectoryTreeDirty = true;
                     mPendingCleanDirectories.add(dir.toFile().getPath());
                 } else {
                     Log.d(TAG, "Skipping preVisitDirectory " + dir.toFile());
@@ -786,10 +798,14 @@ public class ModernMediaScanner implements MediaScanner {
             // Now that we're finished scanning this directory, release lock to
             // allow other parallel scans to proceed
             releaseDirectoryLock(dir);
-            synchronized (mPendingCleanDirectories) {
-                if (mPendingCleanDirectories.remove(dir.toFile().getPath())) {
-                    // If |dir| is still clean, then persist
-                    FileUtils.setDirectoryDirty(dir.toFile(), false /* isDirty */);
+
+            if (mIsDirectoryTreeDirty) {
+                synchronized (mPendingCleanDirectories) {
+                    if (mPendingCleanDirectories.remove(dir.toFile().getPath())) {
+                        // If |dir| is still clean, then persist
+                        FileUtils.setDirectoryDirty(dir.toFile(), false /* isDirty */);
+                        mIsDirectoryTreeDirty = false;
+                    }
                 }
             }
             return FileVisitResult.CONTINUE;

@@ -1410,17 +1410,17 @@ public class FileUtils {
      * Returns {@code null} if there's no .nomedia in hierarchy
      */
     public static File getTopLevelNoMedia(@NonNull File file) {
-        File topNoMedia = null;
+        File topNoMediaDir = null;
 
         File parent = file;
         while (parent != null) {
             File nomedia = new File(parent, ".nomedia");
             if (nomedia.exists()) {
-                topNoMedia = nomedia;
+                topNoMediaDir = parent;
             }
             parent = parent.getParentFile();
         }
 
-        return topNoMedia;
+        return topNoMediaDir;
     }
 }

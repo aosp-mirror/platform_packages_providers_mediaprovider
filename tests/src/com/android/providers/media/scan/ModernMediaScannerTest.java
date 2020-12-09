@@ -18,6 +18,7 @@ package com.android.providers.media.scan;
 
 import static com.android.providers.media.scan.MediaScanner.REASON_UNKNOWN;
 import static com.android.providers.media.scan.MediaScannerTest.stage;
+import static com.android.providers.media.scan.ModernMediaScanner.MAX_EXCLUDE_DIRS;
 import static com.android.providers.media.scan.ModernMediaScanner.shouldScanPathAndIsPathHidden;
 import static com.android.providers.media.scan.ModernMediaScanner.isFileAlbumArt;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptional;
@@ -743,12 +744,12 @@ public class ModernMediaScannerTest {
 
     @Test
     public void testScan_Nomedia_Dir() throws Exception {
-        final File red = new File(mDir, "red");
-        final File blue = new File(mDir, "blue");
-        red.mkdirs();
-        blue.mkdirs();
-        stage(R.raw.test_image, new File(red, "red.jpg"));
-        stage(R.raw.test_image, new File(blue, "blue.jpg"));
+        final File redDir = new File(mDir, "red");
+        final File blueDir = new File(mDir, "blue");
+        redDir.mkdirs();
+        blueDir.mkdirs();
+        stage(R.raw.test_image, new File(redDir, "red.jpg"));
+        stage(R.raw.test_image, new File(blueDir, "blue.jpg"));
 
         mModern.scanDirectory(mDir, REASON_UNKNOWN);
 
@@ -756,7 +757,7 @@ public class ModernMediaScannerTest {
         assertQueryCount(2, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
 
         // Hide one directory, rescan, and confirm hidden
-        final File redNomedia = new File(red, ".nomedia");
+        final File redNomedia = new File(redDir, ".nomedia");
         redNomedia.createNewFile();
         mModern.scanDirectory(mDir, REASON_UNKNOWN);
         assertQueryCount(1, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
@@ -765,6 +766,35 @@ public class ModernMediaScannerTest {
         redNomedia.delete();
         mModern.scanDirectory(mDir, REASON_UNKNOWN);
         assertQueryCount(2, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+    }
+
+    @Test
+    public void testScan_MaxExcludeNomediaDirs_DoesNotThrowException() throws Exception {
+        // Create MAX_EXCLUDE_DIRS + 50 nomedia dirs in mDir
+        // (Need to add 50 as MAX_EXCLUDE_DIRS is a safe limit;
+        // 499 would have been too close to the exception limit)
+        // Mark them as non-dirty so that they are excluded from scans
+        for (int i = 0 ; i < (MAX_EXCLUDE_DIRS + 50) ; i++) {
+            createCleanNomediaDir(mDir);
+        }
+
+        final File redDir = new File(mDir, "red");
+        redDir.mkdirs();
+        stage(R.raw.test_image, new File(redDir, "red.jpg"));
+
+        assertQueryCount(0, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        mModern.scanDirectory(mDir, REASON_UNKNOWN);
+        assertQueryCount(1, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+    }
+
+    private void createCleanNomediaDir(File dir) throws Exception {
+        final File nomediaDir = new File(dir, "test_" + System.nanoTime());
+        nomediaDir.mkdirs();
+        final File nomedia = new File(nomediaDir, ".nomedia");
+        nomedia.createNewFile();
+
+        FileUtils.setDirectoryDirty(nomediaDir, false);
+        assertThat(FileUtils.isDirectoryDirty(nomediaDir)).isFalse();
     }
 
     @Test

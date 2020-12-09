@@ -168,7 +168,8 @@ public class ModernMediaScanner implements MediaScanner {
     // |excludeDirs * 2| < 1000 which is the max SQL expression size
     // Because we add |excludeDir| and |excludeDir/| in the SQL expression to match dir and subdirs
     // See SQLITE_MAX_EXPR_DEPTH in sqlite3.c
-    private static final int MAX_EXCLUDE_DIRS = 450;
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    static final int MAX_EXCLUDE_DIRS = 450;
 
     private static final Pattern PATTERN_VISIBLE = Pattern.compile(
             "(?i)^/storage/[^/]+(?:/[0-9]+)?(?:/Android/sandbox/([^/]+))?$");

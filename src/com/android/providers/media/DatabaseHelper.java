@@ -912,12 +912,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     // When migrating pending or trashed files, we might need to
                     // rename them on disk to match new schema
                     if (volumePath != null) {
+                        final String oldData = values.getAsString(MediaColumns.DATA);
                         FileUtils.computeDataFromValues(values, new File(volumePath),
                                 /*isForFuse*/ false);
                         final String recomputedData = values.getAsString(MediaColumns.DATA);
-                        if (!Objects.equals(data, recomputedData)) {
+                        if (!Objects.equals(oldData, recomputedData)) {
                             try {
-                                renameWithRetry(data, recomputedData);
+                                renameWithRetry(oldData, recomputedData);
                             } catch (IOException e) {
                                 // We only have one shot to migrate data, so log and
                                 // keep marching forward
@@ -1791,7 +1792,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * to retry several times before giving up.
      * The retry logic is mainly added to avoid test flakiness.
      */
-    private static String writeToPlaylistFileWithRetry(@NonNull File playlistFile,
+    private static void writeToPlaylistFileWithRetry(@NonNull File playlistFile,
             @NonNull Playlist playlist) throws IOException {
         final long start = SystemClock.elapsedRealtime();
         while (true) {
@@ -1803,6 +1804,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 playlistFile.getParentFile().mkdirs();
                 playlistFile.createNewFile();
                 playlist.write(playlistFile);
+                return;
             } catch (IOException e) {
                 Log.i(TAG, "Failed to migrate playlist file, retrying " + e);
             }

@@ -37,9 +37,10 @@
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> elements addicionals més</item>
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> element addicional més</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Vols esborrar els fitxers temporals d\'aplicacions?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Esborra fitxers temporals d\'aplicacions"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> vol esborrar alguns fitxers temporals. Això pot suposar un augment de l\'ús de la bateria o de les dades mòbils."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"S\'estan esborrant els fitxers temporals d\'aplicacions…"</string>
+    <string name="clear" msgid="5524638938415865915">"Esborra"</string>
     <string name="allow" msgid="8885707816848569619">"Permet"</string>
     <string name="deny" msgid="6040983710442068936">"Denega"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

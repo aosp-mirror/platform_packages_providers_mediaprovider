@@ -37,9 +37,10 @@
       <item quantity="other">Più altri <xliff:g id="COUNT_1">^1</xliff:g> elementi</item>
       <item quantity="one">Più <xliff:g id="COUNT_0">^1</xliff:g> altro elemento</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Cancellare i file temporanei delle app?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Cancellare file temporanei delle app"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"L\'app <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> vorrebbe cancellare alcuni file temporanei. In tal caso potrebbe verificarsi un maggiore utilizzo della batteria o della rete dati."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Cancellazione dei file temporanei delle app…"</string>
+    <string name="clear" msgid="5524638938415865915">"Cancella"</string>
     <string name="allow" msgid="8885707816848569619">"Consenti"</string>
     <string name="deny" msgid="6040983710442068936">"Rifiuta"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

@@ -37,9 +37,10 @@
       <item quantity="one">ಜೊತೆಗೆ <xliff:g id="COUNT_1">^1</xliff:g> ಹೆಚ್ಚುವರಿ ಐಟಂಗಳು</item>
       <item quantity="other">ಜೊತೆಗೆ <xliff:g id="COUNT_1">^1</xliff:g> ಹೆಚ್ಚುವರಿ ಐಟಂಗಳು</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"ತಾತ್ಕಾಲಿಕ ಆ್ಯಪ್ ಫೈಲ್‌ಗಳನ್ನು ತೆರವುಗೊಳಿಸಬೇಕೇ?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"ತಾತ್ಕಾಲಿಕ ಆ್ಯಪ್ ಫೈಲ್‌ಗಳನ್ನು ತೆರವುಗೊಳಿಸಿ"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>, ಕೆಲವು ತಾತ್ಕಾಲಿಕ ಫೈಲ್‌ಗಳನ್ನು ತೆರವುಗೊಳಿಸಲು ಬಯಸುತ್ತಿದೆ. ಬ್ಯಾಟರಿ ಅಥವಾ ಸೆಲ್ಯುಲರ್ ಡೇಟಾ ಹೆಚ್ಚು ಬಳಕೆಯಾಗಲು ಇದು ಕಾರಣವಾಗಬಹುದು."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"ತಾತ್ಕಾಲಿಕ ಆ್ಯಪ್ ಫೈಲ್‌ಗಳನ್ನು ತೆರವುಗೊಳಿಸಲಾಗುತ್ತಿದೆ…"</string>
+    <string name="clear" msgid="5524638938415865915">"ತೆರವುಗೊಳಿಸಿ"</string>
     <string name="allow" msgid="8885707816848569619">"ಅನುಮತಿಸಿ"</string>
     <string name="deny" msgid="6040983710442068936">"ನಿರಾಕರಿಸಿ"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

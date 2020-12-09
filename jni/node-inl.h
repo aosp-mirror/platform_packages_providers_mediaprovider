@@ -19,12 +19,16 @@
 
 #include <android-base/logging.h>
 
+#include <cstdint>
+#include <limits>
 #include <list>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <sstream>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "libfuse_jni/ReaddirHelper.h"
@@ -175,14 +179,18 @@ class node {
     node* LookupChildByName(const std::string& name, bool acquire) const {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
 
-        const char* name_char = name.c_str();
-        for (node* child : children_) {
-            const std::string& child_name = child->GetName();
-            if (!strcasecmp(name_char, child_name.c_str()) && !child->deleted_) {
+        // lower_bound will give us the first child with strcasecmp(child->name, name) >=0.
+        // For more context see comment on the NodeCompare struct.
+        auto start = children_.lower_bound(std::make_pair(name, 0));
+        // upper_bound will give us the first child with strcasecmp(child->name, name) > 0
+        auto end =
+                children_.upper_bound(std::make_pair(name, std::numeric_limits<uintptr_t>::max()));
+        for (auto it = start; it != end; it++) {
+            node* child = *it;
+            if (!child->deleted_) {
                 if (acquire) {
                     child->Acquire();
                 }
-
                 return child;
             }
         }
@@ -201,10 +209,41 @@ class node {
     void Rename(const std::string& name, node* new_parent) {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
 
-        name_ = name;
         if (new_parent != parent_) {
             RemoveFromParent();
+            name_ = name;
             AddToParent(new_parent);
+            return;
+        }
+
+        // Changing name_ will change the expected position of this node in parent's set of
+        // children. Consider following scenario:
+        // 1. This node: "b"; parent's set: {"a", "b", "c"}
+        // 2. Rename("b", "d")
+        //
+        // After rename, parent's set should become: {"a", "b", "d"}, but if we simply change the
+        // name it will be {"a", "d", "b"}, which violates properties of the set.
+        //
+        // To make sure that parent's set is always valid, changing name is 3 steps procedure:
+        // 1. Remove this node from parent's set.
+        // 2  Change the name.
+        // 3. Add it back to the set.
+        // Rename of node without changing its parent. Still need to remove and re-add it to make
+        // sure lookup index is correct.
+        if (name_ != name) {
+            // If this is a root node, simply rename it.
+            if (parent_ == nullptr) {
+                name_ = name;
+                return;
+            }
+
+            auto it = parent_->children_.find(this);
+            CHECK(it != parent_->children_.end());
+            parent_->children_.erase(it);
+
+            name_ = name;
+
+            parent_->children_.insert(this);
         }
     }
 
@@ -299,7 +338,7 @@ class node {
         CHECK(parent != nullptr);
 
         parent_ = parent;
-        parent_->children_.push_back(this);
+        parent_->children_.insert(this);
 
         // TODO(narayan, zezeozue): It's unclear why we need to call Acquire on the
         // parent node when we're adding a child to it.
@@ -311,15 +350,54 @@ class node {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
 
         if (parent_ != nullptr) {
-            std::list<node*>& children = parent_->children_;
-            std::list<node*>::iterator it = std::find(children.begin(), children.end(), this);
+            auto it = parent_->children_.find(this);
+            CHECK(it != parent_->children_.end());
+            parent_->children_.erase(it);
 
-            CHECK(it != children.end());
-            children.erase(it);
             parent_->Release(1);
             parent_ = nullptr;
         }
     }
+
+    // A custom heterogeneous comparator used for set of this node's children_ to speed up child
+    // node by name lookups.
+    //
+    // This comparator treats node* as pair (node->name_, node): two nodes* are first
+    // compared by their name using case-insenstive comparison function. If their names are equal,
+    // then pointers are compared as integers.
+    //
+    // See LookupChildByName function to see how this comparator is used.
+    //
+    // Note that it's important to first compare by name_, since it will make all nodes with same
+    // name (compared using strcasecmp) together, which allows LookupChildByName function to find
+    // range of the candidate nodes by issuing two binary searches.
+    struct NodeCompare {
+        using is_transparent = void;
+
+        bool operator()(const node* lhs, const node* rhs) const {
+            int cmp = strcasecmp(lhs->name_.c_str(), rhs->name_.c_str());
+            if (cmp != 0) {
+                return cmp < 0;
+            }
+            return reinterpret_cast<uintptr_t>(lhs) < reinterpret_cast<uintptr_t>(rhs);
+        }
+
+        bool operator()(const node* lhs, const std::pair<std::string, uintptr_t>& rhs) const {
+            int cmp = strcasecmp(lhs->name_.c_str(), rhs.first.c_str());
+            if (cmp != 0) {
+                return cmp < 0;
+            }
+            return reinterpret_cast<uintptr_t>(lhs) < rhs.second;
+        }
+
+        bool operator()(const std::pair<std::string, uintptr_t>& lhs, const node* rhs) const {
+            int cmp = strcasecmp(lhs.first.c_str(), rhs->name_.c_str());
+            if (cmp != 0) {
+                return cmp < 0;
+            }
+            return lhs.second < reinterpret_cast<uintptr_t>(rhs);
+        }
+    };
 
     // A helper function to recursively construct the absolute path of a given node.
     // If |safe| is true, builds a PII safe path instead
@@ -329,9 +407,9 @@ class node {
     std::string name_;
     // The reference count for this node. Guarded by |lock_|.
     uint32_t refcount_;
-    // List of children of this node. All of them contain a back reference
+    // Set of children of this node. All of them contain a back reference
     // to their parent. Guarded by |lock_|.
-    std::list<node*> children_;
+    std::set<node*, NodeCompare> children_;
     // Containing directory for this node. Guarded by |lock_|.
     node* parent_;
     // List of file handles associated with this node. Guarded by |lock_|.

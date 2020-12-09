@@ -45,9 +45,10 @@
       <item quantity="other">و<xliff:g id="COUNT_1">^1</xliff:g> عنصر إضافي</item>
       <item quantity="one">وعنصر إضافي واحد (<xliff:g id="COUNT_0">^1</xliff:g>)</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"هل تريد محو ملفات التطبيق المؤقتة؟"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"محو ملفات التطبيق المؤقتة"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"يريد تطبيق <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> محو بعض الملفات المؤقتة. قد يؤدي هذا إلى زيادة استهلاك شحن البطارية أو بيانات شبكة الجوّال."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"جارٍ محو ملفات التطبيق المؤقتة…"</string>
+    <string name="clear" msgid="5524638938415865915">"محو"</string>
     <string name="allow" msgid="8885707816848569619">"سماح"</string>
     <string name="deny" msgid="6040983710442068936">"رفض"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

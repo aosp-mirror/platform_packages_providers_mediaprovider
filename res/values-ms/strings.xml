@@ -37,9 +37,10 @@
       <item quantity="other">Serta <xliff:g id="COUNT_1">^1</xliff:g> item tambahan</item>
       <item quantity="one">Serta <xliff:g id="COUNT_0">^1</xliff:g> item tambahan</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Kosongkan fail apl sementara?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Kosongkan fail apl sementara"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> mahu mengosongkan beberapa fail sementara. Tindakan ini mungkin menyebabkan peningkatan penggunaan bateri atau data selular."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Mengosongkan fail apl sementara…"</string>
+    <string name="clear" msgid="5524638938415865915">"Kosongkan"</string>
     <string name="allow" msgid="8885707816848569619">"Benarkan"</string>
     <string name="deny" msgid="6040983710442068936">"Tolak"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

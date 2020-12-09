@@ -20,6 +20,8 @@ import static android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY;
 
 import static com.android.providers.media.DatabaseHelper.makePristineSchema;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -42,11 +44,12 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
+import com.google.common.collect.ImmutableSet;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.Arrays;
 import java.util.Set;
 
 @RunWith(AndroidJUnit4.class)
@@ -83,6 +86,7 @@ public class DatabaseHelperTest {
                 values.put(AudioColumns.ALBUM, "A Rush of Blood");
                 values.put(AudioColumns.ARTIST, "Coldplay");
                 values.put(AudioColumns.GENRE, "Rock");
+                values.put(AudioColumns.IS_MUSIC, true);
                 MediaProvider.computeAudioKeyValues(values);
                 db.insert("files", FileColumns.DATA, values);
             }
@@ -95,6 +99,7 @@ public class DatabaseHelperTest {
                 values.put(AudioColumns.ALBUM, "X&Y");
                 values.put(AudioColumns.ARTIST, "Coldplay");
                 values.put(AudioColumns.GENRE, "Alternative rock");
+                values.put(AudioColumns.IS_MUSIC, true);
                 MediaProvider.computeAudioKeyValues(values);
                 db.insert("files", FileColumns.DATA, values);
             }
@@ -107,48 +112,108 @@ public class DatabaseHelperTest {
                 values.put(AudioColumns.ALBUM, "All That You Can't Leave Behind");
                 values.put(AudioColumns.ARTIST, "U2");
                 values.put(AudioColumns.GENRE, "Rock");
+                values.put(AudioColumns.IS_MUSIC, true);
                 MediaProvider.computeAudioKeyValues(values);
                 db.insert("files", FileColumns.DATA, values);
             }
 
             // Confirm that raw view knows everything
-            assertEquals(asSet("Clocks", "Speed of Sound", "Beautiful Day"),
-                    queryValues(helper, "audio", "title"));
+            assertThat(queryValues(helper, "audio", "title"))
+                    .containsExactly("Clocks", "Speed of Sound", "Beautiful Day");
 
             // By default, database only knows about primary storage
-            assertEquals(asSet("Coldplay"),
-                    queryValues(helper, "audio_artists", "artist"));
-            assertEquals(asSet("A Rush of Blood"),
-                    queryValues(helper, "audio_albums", "album"));
-            assertEquals(asSet("Rock"),
-                    queryValues(helper, "audio_genres", "name"));
+            assertThat(queryValues(helper, "audio_artists", "artist"))
+                    .containsExactly("Coldplay");
+            assertThat(queryValues(helper, "audio_albums", "album"))
+                    .containsExactly("A Rush of Blood");
+            assertThat(queryValues(helper, "audio_genres", "name"))
+                    .containsExactly("Rock");
 
             // Once we broaden mounted volumes, we know a lot more
-            helper.setFilterVolumeNames(asSet(VOLUME_EXTERNAL_PRIMARY, "0000-0000"));
-            assertEquals(asSet("Coldplay", "U2"),
-                    queryValues(helper, "audio_artists", "artist"));
-            assertEquals(asSet("A Rush of Blood", "X&Y", "All That You Can't Leave Behind"),
-                    queryValues(helper, "audio_albums", "album"));
-            assertEquals(asSet("Rock", "Alternative rock"),
-                    queryValues(helper, "audio_genres", "name"));
+            helper.setFilterVolumeNames(ImmutableSet.of(VOLUME_EXTERNAL_PRIMARY, "0000-0000"));
+            assertThat(queryValues(helper, "audio_artists", "artist"))
+                    .containsExactly("Coldplay", "U2");
+            assertThat(queryValues(helper, "audio_albums", "album"))
+                    .containsExactly("A Rush of Blood", "X&Y", "All That You Can't Leave Behind");
+            assertThat(queryValues(helper, "audio_genres", "name"))
+                    .containsExactly("Rock", "Alternative rock");
 
             // And unmounting primary narrows us the other way
-            helper.setFilterVolumeNames(asSet("0000-0000"));
-            assertEquals(asSet("Coldplay", "U2"),
-                    queryValues(helper, "audio_artists", "artist"));
-            assertEquals(asSet("X&Y", "All That You Can't Leave Behind"),
-                    queryValues(helper, "audio_albums", "album"));
-            assertEquals(asSet("Rock", "Alternative rock"),
-                    queryValues(helper, "audio_genres", "name"));
+            helper.setFilterVolumeNames(ImmutableSet.of("0000-0000"));
+            assertThat(queryValues(helper, "audio_artists", "artist"))
+                    .containsExactly("Coldplay", "U2");
+            assertThat(queryValues(helper, "audio_albums", "album"))
+                    .containsExactly("X&Y", "All That You Can't Leave Behind");
+            assertThat(queryValues(helper, "audio_genres", "name"))
+                    .containsExactly("Rock", "Alternative rock");
 
             // Finally fully unmounted means nothing
-            helper.setFilterVolumeNames(asSet());
-            assertEquals(asSet(),
-                    queryValues(helper, "audio_artists", "artist"));
-            assertEquals(asSet(),
-                    queryValues(helper, "audio_albums", "album"));
-            assertEquals(asSet(),
-                    queryValues(helper, "audio_genres", "name"));
+            helper.setFilterVolumeNames(ImmutableSet.of());
+            assertThat(queryValues(helper, "audio_artists", "artist")).isEmpty();
+            assertThat(queryValues(helper, "audio_albums", "album")).isEmpty();
+            assertThat(queryValues(helper, "audio_genres", "name")).isEmpty();
+        }
+    }
+
+    @Test
+    public void testArtistsAndAlbumsIncludeOnlyMusic() throws Exception {
+        try (DatabaseHelper helper = new DatabaseHelperR(sIsolatedContext, TEST_CLEAN_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            {
+                final ContentValues values = new ContentValues();
+                values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_AUDIO);
+                values.put(FileColumns.VOLUME_NAME, VOLUME_EXTERNAL_PRIMARY);
+                values.put(FileColumns.DATA, "/storage/emulated/0/Coldplay-Clocks.mp3");
+                values.put(AudioColumns.TITLE, "Clocks");
+                values.put(AudioColumns.ALBUM, "A Rush of Blood");
+                values.put(AudioColumns.ARTIST, "Coldplay");
+                values.put(AudioColumns.GENRE, "Rock");
+                values.put(AudioColumns.IS_MUSIC, true);
+                MediaProvider.computeAudioKeyValues(values);
+                db.insert("files", FileColumns.DATA, values);
+            }
+            {
+                final ContentValues values = new ContentValues();
+                values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_AUDIO);
+                values.put(FileColumns.VOLUME_NAME, VOLUME_EXTERNAL_PRIMARY);
+                values.put(FileColumns.DATA, "/storage/emulated/0/My-podcast.mp3");
+                values.put(AudioColumns.TITLE, "My podcast title with false is_music");
+                values.put(AudioColumns.ALBUM, "My podcast album");
+                values.put(AudioColumns.ARTIST, "My podcast artist");
+                values.put(AudioColumns.GENRE, "Podcast");
+                values.put(AudioColumns.IS_MUSIC, false);
+                MediaProvider.computeAudioKeyValues(values);
+                db.insert("files", FileColumns.DATA, values);
+            }
+            {
+                final ContentValues values = new ContentValues();
+                values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_AUDIO);
+                values.put(FileColumns.VOLUME_NAME, VOLUME_EXTERNAL_PRIMARY);
+                values.put(FileColumns.DATA, "/storage/emulated/0/My-podcast-2.mp3");
+                values.put(AudioColumns.TITLE, "My podcast title with not set is_music");
+                values.put(AudioColumns.ALBUM, "My podcast album");
+                values.put(AudioColumns.ARTIST, "My podcast artist");
+                values.put(AudioColumns.GENRE, "Podcast 2");
+                MediaProvider.computeAudioKeyValues(values);
+                db.insert("files", FileColumns.DATA, values);
+            }
+
+            // Raw view shows everything.
+            assertThat(queryValues(helper, "audio", "title"))
+                    .containsExactly(
+                            "Clocks",
+                            "My podcast title with false is_music",
+                            "My podcast title with not set is_music");
+
+            // Artists and albums show only music files.
+            assertThat(queryValues(helper, "audio_artists", "artist"))
+                    .containsExactly("Coldplay");
+            assertThat(queryValues(helper, "audio_albums", "album"))
+                    .containsExactly("A Rush of Blood");
+
+            // Genres should show all genres.
+            assertThat(queryValues(helper, "audio_genres", "name"))
+                    .containsExactly("Rock", "Podcast", "Podcast 2");
         }
     }
 
@@ -406,10 +471,6 @@ public class DatabaseHelperTest {
         return sql != null ? sql.replace(", ", ",") : null;
     }
 
-    private static Set<String> asSet(String... vars) {
-        return new ArraySet<>(Arrays.asList(vars));
-    }
-
     private static Set<String> queryValues(@NonNull DatabaseHelper helper, @NonNull String table,
             @NonNull String columnName) {
         try (Cursor c = helper.getWritableDatabaseForTest().query(table,
@@ -461,7 +522,8 @@ public class DatabaseHelperTest {
     private static class DatabaseHelperR extends DatabaseHelper {
         public DatabaseHelperR(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_R,
-                    false, false, false, Column.class, null, null, null, null);
+                    false, false, false, Column.class, null, null,
+                    MediaProvider.MIGRATION_LISTENER, null);
         }
     }
 

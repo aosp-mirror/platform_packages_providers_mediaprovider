@@ -52,6 +52,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.SystemProperties;
+import android.os.UserHandle;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.util.ArrayMap;
@@ -198,8 +199,8 @@ public class TranscodeHelper {
         mPackageManager = context.getPackageManager();
         mMediaTranscodeManager = context.getSystemService(MediaTranscodeManager.class);
         mMediaProvider = mediaProvider;
-        mTranscodeDirectory =
-                FileUtils.buildPath(Environment.getExternalStorageDirectory(), DIRECTORY_TRANSCODE);
+        mTranscodeDirectory = new File("/storage/emulated/" + UserHandle.myUserId(),
+                DIRECTORY_TRANSCODE);
         mTranscodeDirectory.mkdirs();
         mTranscodingMetrics = new TranscodeMetrics();
         mTranscodingUiNotifier = new TranscodeUiNotifier(context, mTranscodingMetrics);

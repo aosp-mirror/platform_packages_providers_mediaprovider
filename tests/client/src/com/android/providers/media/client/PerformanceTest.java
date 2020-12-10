@@ -16,6 +16,8 @@
 
 package com.android.providers.media.client;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -35,13 +37,16 @@ import android.util.Log;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.LargeTest;
 import androidx.test.runner.AndroidJUnit4;
+import androidx.test.uiautomator.UiDevice;
 
 import com.android.providers.media.tests.utils.Timer;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -263,7 +268,8 @@ public class PerformanceTest {
 
     private void testDirOperations_size(int size) throws Exception {
         Timer createTimer = new Timer("mkdir");
-        Timer readTimer = new Timer("readdir");
+        Timer readdirTimer = new Timer("readdir");
+        Timer isFileTimer = new Timer("isFile");
         // We have different timers for rename dir only and rename files as we want to track the
         // performance for both of the following:
         // 1. Renaming a directory is significantly faster (for file managers) as we do not update
@@ -274,18 +280,20 @@ public class PerformanceTest {
         Timer renameFilesTimer = new Timer("renamefiles");
         Timer deleteTimer = new Timer("rmdir");
         for (int i = 0; i < COUNT_REPEAT; i++ ) {
-            doDirOperations(size, createTimer, readTimer, renameDirTimer, renameFilesTimer,
-                    deleteTimer);
+            doDirOperations(size, createTimer, readdirTimer, isFileTimer,
+                    renameDirTimer, renameFilesTimer, deleteTimer);
         }
         createTimer.dumpResults();
-        readTimer.dumpResults();
+        readdirTimer.dumpResults();
+        isFileTimer.dumpResults();
         renameDirTimer.dumpResults();
         renameFilesTimer.dumpResults();
         deleteTimer.dumpResults();
     }
 
-    private void doDirOperations(int size, Timer createTimer, Timer readTimer,
-            Timer renameDirTimer, Timer renameFilesTimer, Timer deleteTimer) throws Exception {
+    private void doDirOperations(int size, Timer createTimer, Timer readdirTimer,
+            Timer isFileTimer, Timer renameDirTimer, Timer renameFilesTimer,
+            Timer deleteTimer) throws Exception {
         createTimer.start();
         File testDir = new File(new File(Environment.getExternalStorageDirectory(),
                 "Download"), "test_dir_" + System.nanoTime());
@@ -293,7 +301,7 @@ public class PerformanceTest {
         List<File> files = new ArrayList<>();
         for (int i = 0; i < size; i++) {
             File file = new File(testDir, "file_" + System.nanoTime());
-            assertTrue(file.createNewFile());
+            assertThat(file.createNewFile()).isTrue();
             files.add(file);
         }
         createTimer.stop();
@@ -301,13 +309,22 @@ public class PerformanceTest {
         File renamedTestDir = new File(new File(Environment.getExternalStorageDirectory(),
                 "Download"), "renamed_test_dir_" + System.nanoTime());
         try {
-            readTimer.start();
+            readdirTimer.start();
             File[] result = testDir.listFiles();
-            readTimer.stop();
-            assertEquals(size, result.length);
+            readdirTimer.stop();
+            assertThat(result.length).isEqualTo(size);
+
+            // Drop cache as this info is cached in the initial lookup
+            executeDropCachesImpl();
+            // This calls into lookup libfuse method
+            isFileTimer.start();
+            for (File file: files) {
+                file.isFile();
+            }
+            isFileTimer.stop();
 
             renameDirTimer.start();
-            assertTrue(testDir.renameTo(renamedTestDir));
+            assertThat(testDir.renameTo(renamedTestDir)).isTrue();
             renameDirTimer.stop();
             testDir = renamedTestDir;
 
@@ -319,7 +336,7 @@ public class PerformanceTest {
             List<File> renamedFiles = new ArrayList<>();
             for (File file : files) {
                 File newFile = new File(testDir, "file_" + System.nanoTime());
-                assertTrue(file.renameTo(newFile));
+                assertThat(file.renameTo(newFile)).isTrue();
                 renamedFiles.add(newFile);
             }
             renameFilesTimer.stop();
@@ -329,9 +346,9 @@ public class PerformanceTest {
         } finally {
             deleteTimer.start();
             for (File file : files) {
-                assertTrue(file.delete());
+                assertThat(file.delete()).isTrue();
             }
-            assertTrue(testDir.delete());
+            assertThat(testDir.delete()).isTrue();
             deleteTimer.stop();
         }
     }
@@ -411,5 +428,33 @@ public class PerformanceTest {
             InstrumentationRegistry.getContext().getContentResolver()
                     .unregisterContentObserver(this);
         }
+    }
+
+    /**
+     * Drops the disk cache.
+     */
+    private void executeDropCachesImpl() throws Exception {
+        // Create a temporary file which contains the dropCaches command.
+        // Do this because we cannot write to /proc/sys/vm/drop_caches directly,
+        // as executeShellCommand parses the '>' character as a literal.
+        File outputDir = InstrumentationRegistry.getInstrumentation().
+            getContext().getCacheDir();
+        File outputFile = File.createTempFile("drop_cache_script", ".sh", outputDir);
+        outputFile.setWritable(true);
+        outputFile.setExecutable(true, /*ownersOnly*/false);
+
+        String dropCacheScriptPath = outputFile.toString();
+
+        // If this works correctly, the next log-line will print 'Success'.
+        String dropCacheCmd = "sync; echo 3 > /proc/sys/vm/drop_caches "
+                + "&& echo Success || echo Failure";
+        BufferedWriter writer = new BufferedWriter(new FileWriter(dropCacheScriptPath));
+        writer.write(dropCacheCmd);
+        writer.close();
+
+        String result = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).
+                executeShellCommand(dropCacheScriptPath);
+        Log.v(TAG, "dropCaches output was: " + result);
+        outputFile.delete();
     }
 }

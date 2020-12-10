@@ -37,7 +37,7 @@ import androidx.annotation.NonNull;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.providers.media.client.PerformanceTest.Timer;
+import com.android.providers.media.tests.utils.Timer;
 
 import org.junit.After;
 import org.junit.Before;

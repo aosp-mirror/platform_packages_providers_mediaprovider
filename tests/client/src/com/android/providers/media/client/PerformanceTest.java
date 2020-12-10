@@ -36,6 +36,8 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.LargeTest;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.providers.media.tests.utils.Timer;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -281,6 +283,7 @@ public class PerformanceTest {
         renameFilesTimer.dumpResults();
         deleteTimer.dumpResults();
     }
+
     private void doDirOperations(int size, Timer createTimer, Timer readTimer,
             Timer renameDirTimer, Timer renameFilesTimer, Timer deleteTimer) throws Exception {
         createTimer.start();
@@ -335,52 +338,6 @@ public class PerformanceTest {
 
     private static Set<Uri> asSet(Collection<Uri> uris) {
         return new HashSet<>(uris);
-    }
-
-    /**
-     * Timer that can be started/stopped with nanosecond accuracy, and later
-     * averaged based on the number of times it was cycled.
-     */
-    static class Timer {
-        private final String name;
-        private int count;
-        private long duration;
-        private long start;
-
-        public Timer(String name) {
-            this.name = name;
-        }
-
-        public void start() {
-            if (start != 0) {
-                throw new IllegalStateException();
-            } else {
-                start = SystemClock.elapsedRealtimeNanos();
-            }
-        }
-
-        public void stop() {
-            if (start == 0) {
-                throw new IllegalStateException();
-            } else {
-                duration += (SystemClock.elapsedRealtimeNanos() - start);
-                start = 0;
-                count++;
-            }
-        }
-
-        public long getAverageDurationMillis() {
-            return TimeUnit.MILLISECONDS.convert(duration / count, TimeUnit.NANOSECONDS);
-        }
-
-        public void dumpResults() {
-            final long duration = getAverageDurationMillis();
-            Log.v(TAG, name + ": " + duration + "ms");
-
-            final Bundle results = new Bundle();
-            results.putLong(name, duration);
-            InstrumentationRegistry.getInstrumentation().sendStatus(0, results);
-        }
     }
 
     private static class Timers {

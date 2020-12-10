@@ -62,13 +62,16 @@
     </plurals>
 
     <!-- Cache clearing permission dialog warning title. [CHAR LIMIT=NONE] -->
-    <string name="cache_clearing_dialog_title">Clear temporary app files?</string>
+    <string name="cache_clearing_dialog_title">Clear temporary app files</string>
 
     <!-- Cache clearing permission dialog warning text. [CHAR LIMIT=NONE] -->
     <string name="cache_clearing_dialog_text"><xliff:g id="app_seeking_permission" example="File manager">%s</xliff:g> would like to clear some temporary files. This may result in an increased usage of battery or cellular data.</string>
 
     <!-- Cache clearing in progress title. [CHAR LIMIT=NONE] -->
     <string name="cache_clearing_in_progress_title">Clearing temporary app files\u2026</string>
+
+    <!--  Cache clearing permission dialog Clear button text. [CHAR LIMIT=30] -->
+    <string name="clear">Clear</string>
 
     <!-- Allow dialog action text. [CHAR LIMIT=30] -->
     <string name="allow">Allow</string>

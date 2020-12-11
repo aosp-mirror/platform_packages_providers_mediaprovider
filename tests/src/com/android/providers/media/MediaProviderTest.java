@@ -17,6 +17,8 @@
 package com.android.providers.media;
 
 import static com.android.providers.media.scan.MediaScannerTest.stage;
+import static com.android.providers.media.util.FileUtils.extractDisplayName;
+import static com.android.providers.media.util.FileUtils.extractRelativePath;
 import static com.android.providers.media.util.FileUtils.extractRelativePathForDirectory;
 import static com.android.providers.media.util.FileUtils.isDownload;
 import static com.android.providers.media.util.FileUtils.isDownloadDir;
@@ -1192,6 +1194,59 @@ public class MediaProviderTest {
         final long albumIdFour = valuesFour.getAsLong(AudioColumns.ALBUM_ID);
 
         assertEquals(albumIdThree, albumIdFour);
+    }
+
+    @Test
+    public void testQueryAudioViewsNoPendingItem() throws Exception {
+        // We might have old files lurking, so force a clean slate
+        final Context context = InstrumentationRegistry.getTargetContext();
+        sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
+        sIsolatedResolver = sIsolatedContext.getContentResolver();
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
+
+        final File audio = new File(dir, "test" + System.nanoTime() + ".mp3");
+        final Uri audioUri =
+                MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        final String album = "TestAlbum" + System.nanoTime();
+        final String artist = "TestArtist" + System.nanoTime();
+        final String genre = "TestGenre" + System.nanoTime();
+        final String relativePath = extractRelativePath(audio.getAbsolutePath());
+        final String displayName = extractDisplayName(audio.getAbsolutePath());
+        ContentValues values = new ContentValues();
+
+        values.put(MediaStore.Audio.Media.ALBUM, album);
+        values.put(MediaStore.Audio.Media.ARTIST, artist);
+        values.put(MediaStore.Audio.Media.GENRE, genre);
+        values.put(MediaStore.Audio.Media.DISPLAY_NAME, displayName);
+        values.put(MediaStore.Audio.Media.RELATIVE_PATH, relativePath);
+        values.put(MediaStore.Audio.Media.IS_MUSIC, 1);
+        values.put(MediaStore.Audio.Media.IS_PENDING, 1);
+
+        Uri result = sIsolatedResolver.insert(audioUri, values);
+
+        // Check the audio file is inserted correctly
+        try (Cursor c = sIsolatedResolver.query(result, new String[]{MediaColumns.DISPLAY_NAME,
+                        MediaColumns.IS_PENDING},
+                null, null)) {
+            assertNotNull(c);
+            assertEquals(1, c.getCount());
+            assertTrue(c.moveToFirst());
+            assertEquals(displayName, c.getString(0));
+            assertEquals(1, c.getInt(1));
+        }
+
+        final String volume = MediaStore.VOLUME_EXTERNAL_PRIMARY;
+        assertQueryResultNoItems(MediaStore.Audio.Albums.getContentUri(volume));
+        assertQueryResultNoItems(MediaStore.Audio.Artists.getContentUri(volume));
+        assertQueryResultNoItems(MediaStore.Audio.Genres.getContentUri(volume));
+    }
+
+    private static void assertQueryResultNoItems(Uri uri) throws Exception {
+        try (Cursor c = sIsolatedResolver.query(uri, null, null, null, null)) {
+            assertNotNull(c);
+            assertEquals(0, c.getCount());
+        }
     }
 
     private static void assertRelativePathForDirectory(String directoryPath, String relativePath) {

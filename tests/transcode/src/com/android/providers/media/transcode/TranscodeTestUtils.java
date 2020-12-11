@@ -108,20 +108,25 @@ public class TranscodeTestUtils {
     }
 
     public static void enableSeamlessTranscoding() throws Exception {
+        // This is required so that MediaProvider handles device config changes
+        executeShellCommand("setprop sys.fuse.transcode_debug true");
+        // This is required so that setprop changes take precedence over device_config changes
         executeShellCommand("setprop persist.sys.fuse.transcode_user_control true");
         executeShellCommand("setprop persist.sys.fuse.transcode_enabled true");
         executeShellCommand("setprop persist.sys.fuse.transcode_default false");
     }
 
     public static void disableSeamlessTranscoding() throws Exception {
+        executeShellCommand("setprop sys.fuse.transcode_debug false");
         executeShellCommand("setprop persist.sys.fuse.transcode_user_control true");
         executeShellCommand("setprop persist.sys.fuse.transcode_enabled false");
         executeShellCommand("setprop persist.sys.fuse.transcode_default false");
+        disableTranscodingForAllPackages();
     }
 
-    public static void enableTranscodingForPackage(String packageName) throws IOException {
-        // TODO(b/169327180): Enable per package
-        executeShellCommand("setprop persist.sys.fuse.transcode_default true");
+    public static void enableTranscodingForPackage(String packageName) throws Exception {
+        executeShellCommand("device_config put storage_native_boot transcode_compat_manifest "
+                + packageName + ",0");
     }
 
     public static void forceEnableAppCompatHevc(String packageName) throws IOException {
@@ -140,7 +145,7 @@ public class TranscodeTestUtils {
     }
 
     public static void disableTranscodingForAllPackages() throws IOException {
-        executeShellCommand("setprop persist.sys.fuse.transcode_default false");
+        executeShellCommand("device_config delete storage_native_boot transcode_compat_manifest");
     }
 
     /**

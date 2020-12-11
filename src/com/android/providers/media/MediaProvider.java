@@ -2479,6 +2479,7 @@ public class MediaProvider extends ContentProvider {
 
     private Cursor query(Uri uri, String[] projection, Bundle queryArgs,
             CancellationSignal signal, boolean forSelf) {
+        Trace.beginSection("query");
         try {
             return queryInternal(uri, projection, queryArgs, signal, forSelf);
         } catch (FallbackException e) {

@@ -437,7 +437,6 @@ public class TranscodeHelper {
             identity.setApplicationMediaCapabilitiesFlags(capabilitiesToFlags(capability));
             return capability.isVideoMimeTypeSupported(MediaFormat.MIMETYPE_VIDEO_HEVC);
         } catch (NameNotFoundException | UnsupportedOperationException e) {
-            Log.d(TAG, "No valid media capability defined for " + packageName, e);
             return false;
         }
     }
@@ -673,7 +672,7 @@ public class TranscodeHelper {
 
     private boolean isTranscodeEnabled() {
         return getBooleanProperty(TRANSCODE_ENABLED_SYS_PROP_KEY,
-                TRANSCODE_ENABLED_DEVICE_CONFIG_KEY, true /* defaultValue */);
+                TRANSCODE_ENABLED_DEVICE_CONFIG_KEY, false /* defaultValue */);
     }
 
     private void updateConfigs(boolean transcodeEnabled) {

@@ -672,7 +672,7 @@ public class TranscodeHelper {
 
     private boolean isTranscodeEnabled() {
         return getBooleanProperty(TRANSCODE_ENABLED_SYS_PROP_KEY,
-                TRANSCODE_ENABLED_DEVICE_CONFIG_KEY, false /* defaultValue */);
+                TRANSCODE_ENABLED_DEVICE_CONFIG_KEY, true /* defaultValue */);
     }
 
     private void updateConfigs(boolean transcodeEnabled) {

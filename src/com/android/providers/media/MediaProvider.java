@@ -39,6 +39,7 @@ import static android.provider.MediaStore.getVolumeName;
 
 import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
+import static com.android.providers.media.LocalCallingIdentity.APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_INSTALL_PACKAGES;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_DELEGATOR;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY_GRANTED;
@@ -7559,14 +7560,7 @@ public class MediaProvider extends ContentProvider {
         // one of the packages has the appop granted.
         // To maintain consistency of access in primary volume and secondary volumes use the same
         // logic as we do for Zygote.MOUNT_EXTERNAL_INSTALLER view.
-        // TODO (b/173600911): Improve performance by caching this info.
-        for (String uidPackageName : mCallingIdentity.get().getSharedPackageNames()) {
-            if (mAppOpsManager.unsafeCheckOpRawNoThrow(AppOpsManager.OPSTR_REQUEST_INSTALL_PACKAGES,
-                    uid, uidPackageName) == AppOpsManager.MODE_ALLOWED) {
-                return true;
-            }
-        }
-        return false;
+        return mCallingIdentity.get().hasPermission(APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID);
     }
 
     private boolean isCallingIdentityDownloadProvider(int uid) {

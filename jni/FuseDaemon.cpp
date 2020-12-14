@@ -1382,7 +1382,8 @@ static void do_readdir_common(fuse_req_t req,
                 // Ignore lookup errors on
                 // 1. non-existing files returned from MediaProvider database.
                 // 2. path that doesn't match FuseDaemon UID and calling uid.
-                if (error_code == ENOENT || error_code == EPERM || error_code == EACCES) continue;
+                if (error_code == ENOENT || error_code == EPERM || error_code == EACCES
+                    || error_code == EIO) continue;
                 fuse_reply_err(req, error_code);
                 return;
             }

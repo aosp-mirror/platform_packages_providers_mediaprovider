@@ -51,6 +51,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Process;
 import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.provider.MediaStore;
@@ -334,7 +335,13 @@ public class TranscodeHelper {
             return false;
         }
 
-        if (!supportsTranscode(path) || uid < android.os.Process.FIRST_APPLICATION_UID) {
+        if (!supportsTranscode(path) || uid < Process.FIRST_APPLICATION_UID
+                || uid == Process.myUid()) {
+            // Never transcode in any of these conditions
+            // 1. Path doesn't support transcode
+            // 2. Uid is from native process on device
+            // 3. Uid is ourselves, which can happen when we are opening a file via FUSE for
+            // redaction on behalf of another app via ContentResolver
             return false;
         }
 

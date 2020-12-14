@@ -6033,11 +6033,6 @@ public class MediaProvider extends ContentProvider {
                 // This means either no playlist members match the query or VolumeNotFoundException
                 // was thrown. So we don't have anything to delete.
                 count = 0;
-            } else if (indexes.length > 1 &&
-                    getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.R) {
-                throw new FallbackException("Failed to update playlist",
-                        new IllegalStateException("Query matches more than one playlist member"),
-                        android.os.Build.VERSION_CODES.R);
             } else {
                 count = playlist.removeMultiple(indexes);
             }

@@ -1531,9 +1531,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             Log.d(TAG, "Recomputing " + c.getCount() + " MediaType values");
 
             // Accumulate all the new MEDIA_TYPE updates.
-            final ContentValues values = new ContentValues();
             while (c.moveToNext()) {
-                values.clear();
                 final long id = c.getLong(0);
                 final String mimeType = c.getString(1);
                 // Only update Document and Subtitle media type

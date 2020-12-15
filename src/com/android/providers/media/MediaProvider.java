@@ -23,6 +23,9 @@ import static android.app.PendingIntent.FLAG_IMMUTABLE;
 import static android.app.PendingIntent.FLAG_ONE_SHOT;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS;
+import static android.content.pm.PackageManager.MATCH_ANY_USER;
+import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_AWARE;
+import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_UNAWARE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.provider.MediaStore.MATCH_DEFAULT;
 import static android.provider.MediaStore.MATCH_EXCLUDE;
@@ -34,9 +37,6 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.getVolumeName;
 
-import static android.content.pm.PackageManager.MATCH_ANY_USER;
-import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_AWARE;
-import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_UNAWARE;
 import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_DELEGATOR;
@@ -2393,6 +2393,7 @@ public class MediaProvider extends ContentProvider {
 
     private Cursor query(Uri uri, String[] projection, Bundle queryArgs,
             CancellationSignal signal, boolean forSelf) {
+        Trace.beginSection("query");
         try {
             return queryInternal(uri, projection, queryArgs, signal, forSelf);
         } catch (FallbackException e) {
@@ -3343,6 +3344,15 @@ public class MediaProvider extends ContentProvider {
             }
         } else {
             values.put(FileColumns.MEDIA_TYPE, mediaType);
+        }
+
+        if (isCallingPackageSelf() && values.containsKey(FileColumns._MODIFIER)) {
+            // We can't identify if the call is coming from media scan, hence
+            // we let ModernMediaScanner send FileColumns._MODIFIER value.
+        } else if (isFuseThread()) {
+            values.put(FileColumns._MODIFIER, FileColumns._MODIFIER_FUSE);
+        } else {
+            values.put(FileColumns._MODIFIER, FileColumns._MODIFIER_CR);
         }
 
         final long rowId;
@@ -6745,38 +6755,32 @@ public class MediaProvider extends ContentProvider {
     }
 
     private boolean shouldBypassDatabaseAndSetDirtyForFuse(int uid, String path) {
-        final LocalCallingIdentity token =
-                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
-        try {
-            boolean shouldBypass = false;
-            if (uid != android.os.Process.SHELL_UID && isCallingPackageManager()) {
-                shouldBypass = true;
-            }  else if (isCallingPackageLegacyWrite() && isCallingPackageSystemGallery()) {
-                // We bypass db operations for legacy system galleries with W_E_S (see b/167307393).
-                // Tracking a longer term solution in b/168784136.
-                shouldBypass = true;
-            }
+        boolean shouldBypass = false;
+        if (uid != android.os.Process.SHELL_UID && isCallingPackageManager()) {
+            shouldBypass = true;
+        } else if (isCallingPackageLegacyWrite() && isCallingPackageSystemGallery()) {
+            // We bypass db operations for legacy system galleries with W_E_S (see b/167307393).
+            // Tracking a longer term solution in b/168784136.
+            shouldBypass = true;
+        }
 
-            if (shouldBypass) {
-                synchronized (mNonHiddenPaths) {
-                    File file = new File(path);
-                    String key = file.getParent();
-                    boolean maybeHidden = !mNonHiddenPaths.containsKey(key);
+        if (shouldBypass) {
+            synchronized (mNonHiddenPaths) {
+                File file = new File(path);
+                String key = file.getParent();
+                boolean maybeHidden = !mNonHiddenPaths.containsKey(key);
 
-                    if (maybeHidden) {
-                        File topNoMedia = FileUtils.getTopLevelNoMedia(new File(path));
-                        if (topNoMedia == null) {
-                            mNonHiddenPaths.put(key, 0);
-                        } else {
-                            mMediaScanner.onDirectoryDirty(topNoMedia);
-                        }
+                if (maybeHidden) {
+                    File topNoMediaDir = FileUtils.getTopLevelNoMedia(new File(path));
+                    if (topNoMediaDir == null) {
+                        mNonHiddenPaths.put(key, 0);
+                    } else {
+                        mMediaScanner.onDirectoryDirty(topNoMediaDir);
                     }
                 }
             }
-            return shouldBypass;
-        } finally {
-            restoreLocalCallingIdentity(token);
         }
+        return shouldBypass;
     }
 
     /**

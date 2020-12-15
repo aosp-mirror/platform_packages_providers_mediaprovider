@@ -83,6 +83,9 @@ import java.util.Optional;
 
 @RunWith(AndroidJUnit4.class)
 public class FileUtilsTest {
+    // Exposing here since it is also used by MediaProviderTest.java
+    public static final int MAX_FILENAME_BYTES = FileUtils.MAX_FILENAME_BYTES;
+
     /**
      * To help avoid flaky tests, give ourselves a unique nonce to be used for
      * all filesystem paths, so that we don't risk conflicting with previous
@@ -712,12 +715,22 @@ public class FileUtilsTest {
     }
 
     @Test
+    public void testComputeDataFromValues_Trashed_trimFileName() throws Exception {
+        testComputeDataFromValues_withAction_trimFileName(MediaColumns.IS_TRASHED);
+    }
+
+    @Test
+    public void testComputeDataFromValues_Pending_trimFileName() throws Exception {
+        testComputeDataFromValues_withAction_trimFileName(MediaColumns.IS_PENDING);
+    }
+
+    @Test
     public void testGetTopLevelNoMedia_CurrentDir() throws Exception {
         File dirInDownload = getNewDirInDownload("testGetTopLevelNoMedia_CurrentDir");
         File nomedia = new File(dirInDownload, ".nomedia");
         assertTrue(nomedia.createNewFile());
 
-        assertEquals(nomedia, FileUtils.getTopLevelNoMedia(new File(dirInDownload, "foo")));
+        assertEquals(dirInDownload, FileUtils.getTopLevelNoMedia(new File(dirInDownload, "foo")));
     }
 
     @Test
@@ -731,7 +744,7 @@ public class FileUtilsTest {
         File nomedia = new File(dirInTopDirInDownload, ".nomedia");
         assertTrue(nomedia.createNewFile());
 
-        assertEquals(topNomedia,
+        assertEquals(topDirInDownload,
                 FileUtils.getTopLevelNoMedia(new File(dirInTopDirInDownload, "foo")));
     }
 
@@ -797,5 +810,35 @@ public class FileUtilsTest {
         for (String actualFile : actual) {
             assertTrue("Unexpected actual file " + actualFile, expectedSet.contains(actualFile));
         }
+    }
+
+    public static String createExtremeFileName(String prefix, String extension) {
+        // create extreme long file name
+        final int prefixLength = prefix.length();
+        final int extensionLength = extension.length();
+        StringBuilder str = new StringBuilder(prefix);
+        for (int i = 0; i < (MAX_FILENAME_BYTES - prefixLength - extensionLength); i++) {
+            str.append(i % 10);
+        }
+        return str.append(extension).toString();
+    }
+
+    private void testComputeDataFromValues_withAction_trimFileName(String columnKey) {
+        final String originalName = createExtremeFileName("test", ".jpg");
+        final String volumePath = "/storage/emulated/0/";
+        final ContentValues values = new ContentValues();
+        values.put(columnKey, 1);
+        values.put(MediaColumns.RELATIVE_PATH, "DCIM/My Vacation/");
+        values.put(MediaColumns.DATE_EXPIRES, 1577836800L);
+        values.put(MediaColumns.DISPLAY_NAME, originalName);
+
+        FileUtils.computeDataFromValues(values, new File(volumePath), false /* isForFuse */);
+
+        final String data = values.getAsString(MediaColumns.DATA);
+        final String result = FileUtils.extractDisplayName(data);
+        // after adding the prefix .pending-timestamp or .trashed-timestamp,
+        // the largest length of the file name is MAX_FILENAME_BYTES 255
+        Truth.assertThat(result.length()).isAtMost(MAX_FILENAME_BYTES);
+        Truth.assertThat(result).isNotEqualTo(originalName);
     }
 }

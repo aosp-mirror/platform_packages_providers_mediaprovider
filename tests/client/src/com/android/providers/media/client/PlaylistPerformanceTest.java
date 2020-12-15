@@ -118,7 +118,8 @@ public class PlaylistPerformanceTest {
         for (int i = 0; i < memberIds.length; i++) {
             whereArgs[0] = "" + memberIds[i];
             deleteMembers.start();
-            actual += mContentResolver.delete(AUDIO_URI, MediaColumns._ID + "=?", whereArgs);
+            actual += mContentResolver.delete(membersUri, Playlists.Members.AUDIO_ID + "=?",
+                    whereArgs);
             deleteMembers.stop();
         }
         deleteMembers.dumpResults();

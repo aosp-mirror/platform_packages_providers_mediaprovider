@@ -260,7 +260,8 @@ public class TranscodeHelper {
                 latch = new CountDownLatch(1);
                 try {
                     session = enqueueTranscodingSession(src, dst, uid, latch);
-                } catch (MediaTranscodingException | FileNotFoundException e) {
+                } catch (MediaTranscodingException | FileNotFoundException |
+                        UnsupportedOperationException e) {
                     throw new IllegalStateException(e);
                 }
 
@@ -546,7 +547,8 @@ public class TranscodeHelper {
     }
 
     private TranscodingSession enqueueTranscodingSession(String src, String dst, int uid,
-            final CountDownLatch latch) throws FileNotFoundException, MediaTranscodingException {
+            final CountDownLatch latch)
+            throws FileNotFoundException, MediaTranscodingException, UnsupportedOperationException {
 
         File file = new File(src);
         File transcodeFile = new File(dst);
@@ -689,7 +691,7 @@ public class TranscodeHelper {
 
             if (isTranscodeEnabledChanged || isDebug) {
                 Log.i(TAG, "Reloading transcode configs. transcodeEnabled: " + transcodeEnabled
-                        + ". lastTranscodeEnabled: " + mIsTranscodeEnabled  + ". isDebug: "
+                        + ". lastTranscodeEnabled: " + mIsTranscodeEnabled + ". isDebug: "
                         + isDebug);
 
                 mIsTranscodeEnabled = transcodeEnabled;
@@ -760,7 +762,7 @@ public class TranscodeHelper {
                 R.raw.transcode_compat_manifest);
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
         try {
-            while(reader.ready()) {
+            while (reader.ready()) {
                 String line = reader.readLine();
                 String packageName = "";
                 Long packageCompatValue;

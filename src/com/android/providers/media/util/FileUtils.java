@@ -925,6 +925,12 @@ public class FileUtils {
     public static final Pattern PATTERN_DATA_OR_OBB_PATH = Pattern.compile(
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb)/?$");
 
+    /**
+     * Regex that matches Android/obb paths.
+     */
+    public static final Pattern PATTERN_OBB_OR_CHILD_PATH = Pattern.compile(
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:obb)(/?.*)");
+
     @VisibleForTesting
     public static final String[] DEFAULT_FOLDER_NAMES = {
             Environment.DIRECTORY_MUSIC,
@@ -1051,6 +1057,15 @@ public class FileUtils {
     public static boolean isDataOrObbPath(String path) {
         if (path == null) return false;
         final Matcher m = PATTERN_DATA_OR_OBB_PATH.matcher(path);
+        return m.matches();
+    }
+
+    /**
+     * Returns true if relative path is Android/obb path.
+     */
+    public static boolean isObbOrChildPath(String path) {
+        if (path == null) return false;
+        final Matcher m = PATTERN_OBB_OR_CHILD_PATH.matcher(path);
         return m.matches();
     }
 

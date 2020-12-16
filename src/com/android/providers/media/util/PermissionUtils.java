@@ -17,6 +17,7 @@
 package com.android.providers.media.util;
 
 import static android.Manifest.permission.BACKUP;
+import static android.Manifest.permission.INSTALL_PACKAGES;
 import static android.Manifest.permission.MANAGE_EXTERNAL_STORAGE;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.UPDATE_DEVICE_STATS;
@@ -183,6 +184,12 @@ public class PermissionUtils {
         return checkAppOpAllowingLegacy(context, OPSTR_WRITE_MEDIA_IMAGES, pid,
                 uid, packageName, attributionTag,
                 generateAppOpMessage(packageName, sOpDescription.get()));
+    }
+
+    public static boolean checkPermissionInstallPackages(@NonNull Context context, int pid, int uid,
+        @NonNull String packageName, @Nullable String attributionTag) {
+        return checkPermissionForDataDelivery(context, INSTALL_PACKAGES, pid,
+            uid, packageName, attributionTag, null);
     }
 
     /**

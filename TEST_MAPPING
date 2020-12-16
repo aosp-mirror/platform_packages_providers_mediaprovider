@@ -4,7 +4,12 @@
             "name": "MediaProviderTests"
         },
         {
-            "name": "MediaProviderClientTests"
+            "name": "MediaProviderClientTests",
+            "options": [
+                {
+                  "exclude-annotation": "androidx.test.filters.LargeTest"
+                }
+            ]
         },
         {
             "name": "CtsProviderTestCases",
@@ -27,6 +32,11 @@
         },
         {
             "name": "fuse_node_test"
+        }
+    ],
+    "postsubmit": [
+        {
+            "name": "MediaProviderClientTests"
         }
     ]
 }

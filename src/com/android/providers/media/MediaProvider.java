@@ -27,7 +27,6 @@ import static android.content.pm.PackageManager.MATCH_ANY_USER;
 import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_AWARE;
 import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_UNAWARE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
-import static android.provider.MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT;
 import static android.provider.MediaStore.MATCH_DEFAULT;
 import static android.provider.MediaStore.MATCH_EXCLUDE;
 import static android.provider.MediaStore.MATCH_INCLUDE;
@@ -435,6 +434,16 @@ public class MediaProvider extends ContentProvider {
             sCachedVolumeScanPaths.put(volumeName, res);
             return res;
         }
+    }
+
+    /**
+     * Frees any cache held by MediaProvider.
+     *
+     * @param bytes number of bytes which need to be freed
+     */
+    public void freeCache(long bytes) {
+        // TODO(b/170481432): Implement cache clearing policies.
+        mTranscodeHelper.getTranscodeDirectory().delete();
     }
 
     private volatile Locale mLastLocale = Locale.getDefault();

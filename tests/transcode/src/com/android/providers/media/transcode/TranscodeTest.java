@@ -75,6 +75,7 @@ public class TranscodeTest {
 
     static final String NONCE = String.valueOf(System.nanoTime());
     private static final String HEVC_FILE_NAME = "TranscodeTestHEVC_" + NONCE + ".mp4";
+    private static final String LEGACY_FILE_NAME = "TranscodeTestLegay_" + NONCE + ".mp4";
 
     private static final TestApp TEST_APP_HEVC = new TestApp("TestAppHevc",
             "com.android.providers.media.transcode.testapp", 1, false,
@@ -649,6 +650,50 @@ public class TranscodeTest {
             modernFile.delete();
             TranscodeTestUtils.resetAppCompat(packageName);
             uninstallApp(TEST_APP_HEVC);
+        }
+    }
+
+    /**
+     * Tests that we never initiate tanscoding for legacy formats.
+     * This test compares the bytes read before and after enabling transcoding for the test app.
+     * @throws Exception
+     */
+    @Test
+    public void testTranscodedNotInitiatedForLegacy_UsingBytesRead() throws Exception {
+        File legacyFile = new File(DIR_CAMERA, LEGACY_FILE_NAME);
+        try {
+            TranscodeTestUtils.stageLegacyVideoFile(legacyFile);
+
+            ParcelFileDescriptor pfdOriginal = open(legacyFile, false);
+
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
+            ParcelFileDescriptor pfdTranscoded = open(legacyFile, false);
+
+            assertFileContent(legacyFile, legacyFile, pfdOriginal, pfdTranscoded, true);
+        } finally {
+            legacyFile.delete();
+        }
+    }
+
+    /**
+     * Tests that we never initiate tanscoding for legacy formats.
+     * This test asserts using the time it took to read after enabling transcoding for the test app.
+     * The reason for keeping this check separately (than
+     * {@link TranscodeTest#testTranscodedNotInitiatedForLegacy_UsingTiming()}) is that this
+     * provides a higher level of suret that the timing wasn't favorable because of any caching
+     * after open().
+     * @throws Exception
+     */
+    @Test
+    public void testTranscodedNotInitiatedForLegacy_UsingTiming() throws Exception {
+        File legacyFile = new File(DIR_CAMERA, LEGACY_FILE_NAME);
+        try {
+            TranscodeTestUtils.stageLegacyVideoFile(legacyFile);
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
+
+            assertTranscode(legacyFile, false);
+        } finally {
+            legacyFile.delete();
         }
     }
 }

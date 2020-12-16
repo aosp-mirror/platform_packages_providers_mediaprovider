@@ -76,11 +76,19 @@ public class TranscodeTestUtils {
     private static final long POLLING_SLEEP_MILLIS = 100;
 
     public static Uri stageHEVCVideoFile(File videoFile) throws IOException {
+        return stageVideoFile(videoFile, R.raw.testvideo_HEVC);
+    }
+
+    public static Uri stageLegacyVideoFile(File videoFile) throws IOException {
+        return stageVideoFile(videoFile, R.raw.testVideo_Legacy);
+    }
+
+    private static Uri stageVideoFile(File videoFile, int resourceId) throws IOException {
         if (!videoFile.getParentFile().exists()) {
             assertTrue(videoFile.getParentFile().mkdirs());
         }
         try (InputStream in =
-                     getContext().getResources().openRawResource(R.raw.testvideo_HEVC);
+                     getContext().getResources().openRawResource(resourceId);
              FileOutputStream out = new FileOutputStream(videoFile)) {
             FileUtils.copy(in, out);
             // Sync file to disk to ensure file is fully written to the lower fs before scanning

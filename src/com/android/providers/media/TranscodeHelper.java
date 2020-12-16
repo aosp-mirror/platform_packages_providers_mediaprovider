@@ -89,6 +89,7 @@ import java.util.regex.Pattern;
 public class TranscodeHelper {
     private static final String TAG = "TranscodeHelper";
     private static final String TRANSCODE_FILE_PREFIX = ".transcode_";
+    private static final boolean DEBUG = SystemProperties.getBoolean("persist.sys.fuse.log", false);
 
     // TODO(b/169327180): Move to ApplicationMediaCapabilities
     private static final String MEDIA_CAPABILITIES_PROPERTY
@@ -171,7 +172,7 @@ public class TranscodeHelper {
      */
     private static final int TYPE_QUERY = 0;
     private static final int TYPE_UPDATE = 2;
-    static final String DIRECTORY_CAMERA = "Camera";
+    private static final String DIRECTORY_CAMERA = "Camera";
 
     private final Object mLock = new Object();
     private final Context mContext;
@@ -826,7 +827,9 @@ public class TranscodeHelper {
     }
 
     private static void logVerbose(String message) {
-        Log.v(TAG, message);
+        if (DEBUG) {
+            Log.v(TAG, message);
+        }
     }
 
     private static class TranscodeUiNotifier {

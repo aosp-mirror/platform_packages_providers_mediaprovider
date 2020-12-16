@@ -21,6 +21,7 @@ import static android.app.AppOpsManager.MODE_ALLOWED;
 import static android.app.AppOpsManager.permissionToOp;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
 
+import static com.android.providers.media.util.PermissionUtils.checkAppOpRequestInstallPackagesForSharedUid;
 import static com.android.providers.media.util.PermissionUtils.checkIsLegacyStorageGranted;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionDelegator;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionInstallPackages;
@@ -218,8 +219,16 @@ public class LocalCallingIdentity {
     public static final int PERMISSION_WRITE_IMAGES = 1 << 21;
 
     public static final int PERMISSION_IS_SYSTEM_GALLERY = 1 << 22;
+    /**
+     * Explicitly checks **only** for INSTALL_PACKAGES runtime permission.
+     */
     public static final int PERMISSION_INSTALL_PACKAGES = 1 << 23;
     public static final int PERMISSION_WRITE_EXTERNAL_STORAGE = 1 << 24;
+
+    /**
+     * Checks if REQUEST_INSTALL_PACKAGES app-op is allowed for any package sharing this UID.
+     */
+    public static final int APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID = 1 << 25;
 
     private volatile int hasPermission;
     private volatile int hasPermissionResolved;
@@ -289,6 +298,9 @@ public class LocalCallingIdentity {
             case PERMISSION_INSTALL_PACKAGES:
                 return checkPermissionInstallPackages(
                         context, pid, uid, getPackageName(), attributionTag);
+            case APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID:
+                return checkAppOpRequestInstallPackagesForSharedUid(
+                        context, uid, getSharedPackageNames(), attributionTag);
             default:
                 return false;
         }

@@ -75,7 +75,8 @@ public class TranscodeTest {
 
     static final String NONCE = String.valueOf(System.nanoTime());
     private static final String HEVC_FILE_NAME = "TranscodeTestHEVC_" + NONCE + ".mp4";
-    private static final String LEGACY_FILE_NAME = "TranscodeTestLegay_" + NONCE + ".mp4";
+    private static final String SMALL_HEVC_FILE_NAME = "TranscodeTestHevcSmall_" + NONCE + ".mp4";
+    private static final String LEGACY_FILE_NAME = "TranscodeTestLegacy_" + NONCE + ".mp4";
 
     private static final TestApp TEST_APP_HEVC = new TestApp("TestAppHevc",
             "com.android.providers.media.transcode.testapp", 1, false,
@@ -694,6 +695,29 @@ public class TranscodeTest {
             assertTranscode(legacyFile, false);
         } finally {
             legacyFile.delete();
+        }
+    }
+
+    /**
+     * Tests that we don't timeout while transcoding small HEVC videos.
+     * For instance, due to some calculation errors we might incorrectly make timeout to be 0.
+     * We test this by making sure that a small HEVC video (< 1 sec long and < 1Mb size) gets
+     * transcoded.
+     * @throws Exception
+     */
+    @Test
+    public void testNoTranscodeTimeoutForSmallHevcVideos() throws Exception {
+        File modernFile = new File(DIR_CAMERA, SMALL_HEVC_FILE_NAME);
+        try {
+            TranscodeTestUtils.stageSmallHevcVideoFile(modernFile);
+            ParcelFileDescriptor pfdOriginal = open(modernFile, false);
+
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
+            ParcelFileDescriptor pfdTranscoded = open(modernFile, false);
+
+            assertFileContent(modernFile, modernFile, pfdOriginal, pfdTranscoded, false);
+        } finally {
+            modernFile.delete();
         }
     }
 }

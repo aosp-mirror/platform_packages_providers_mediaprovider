@@ -1941,7 +1941,7 @@ public final class MediaStore {
             public static final String PICASA_ID = "picasa_id";
 
             /**
-             * Whether the video should be published as public or private
+             * Whether the image should be published as public or private
              */
             @Column(Cursor.FIELD_TYPE_INTEGER)
             public static final String IS_PRIVATE = "isprivate";

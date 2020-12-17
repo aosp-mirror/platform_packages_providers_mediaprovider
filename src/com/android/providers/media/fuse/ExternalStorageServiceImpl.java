@@ -16,8 +16,7 @@
 
 package com.android.providers.media.fuse;
 
-import static com.android.providers.media.scan.MediaScanner.REASON_MOUNTED;
-
+import android.annotation.BytesLong;
 import android.content.ContentProviderClient;
 import android.os.Environment;
 import android.os.OperationCanceledException;
@@ -31,12 +30,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.providers.media.MediaProvider;
-import com.android.providers.media.MediaService;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Handles filesystem I/O from other apps.
@@ -106,6 +105,12 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
             // exited for sure
             daemon.waitForExit();
         }
+    }
+
+    @Override
+    public void onFreeCacheRequested(@NonNull UUID volumeUuid, @BytesLong long bytes) {
+        Log.i(TAG, "Free cache requested for " + bytes + " bytes");
+        getMediaProvider().freeCache(bytes);
     }
 
     public FuseDaemon onExitSession(String sessionId) {

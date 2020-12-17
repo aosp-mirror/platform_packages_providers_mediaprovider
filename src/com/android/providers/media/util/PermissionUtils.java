@@ -23,6 +23,7 @@ import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.UPDATE_DEVICE_STATS;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.app.AppOpsManager.MODE_ALLOWED;
+import static android.app.AppOpsManager.OPSTR_REQUEST_INSTALL_PACKAGES;
 import static android.app.AppOpsManager.OPSTR_LEGACY_STORAGE;
 import static android.app.AppOpsManager.OPSTR_NO_ISOLATED_STORAGE;
 import static android.app.AppOpsManager.OPSTR_READ_MEDIA_AUDIO;
@@ -203,6 +204,20 @@ public class PermissionUtils {
                 || checkAppOp(
                         context, OPSTR_WRITE_MEDIA_VIDEO, uid, packageName, attributionTag,
                 generateAppOpMessage(packageName, sOpDescription.get()));
+    }
+
+    /**
+     * Returns {@code true} if any package for the given uid has request_install_packages app op.
+     */
+    public static boolean checkAppOpRequestInstallPackagesForSharedUid(@NonNull Context context,
+            int uid, @NonNull String[] sharedPackageNames, @Nullable String attributionTag) {
+        for (String packageName : sharedPackageNames) {
+            if (checkAppOp(context, OPSTR_REQUEST_INSTALL_PACKAGES, uid, packageName,
+                    attributionTag, generateAppOpMessage(packageName, sOpDescription.get()))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @VisibleForTesting

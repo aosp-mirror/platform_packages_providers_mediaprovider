@@ -89,6 +89,7 @@ import java.util.regex.Pattern;
 public class TranscodeHelper {
     private static final String TAG = "TranscodeHelper";
     private static final String TRANSCODE_FILE_PREFIX = ".transcode_";
+    private static final boolean DEBUG = SystemProperties.getBoolean("persist.sys.fuse.log", false);
 
     // TODO(b/169327180): Move to ApplicationMediaCapabilities
     private static final String MEDIA_CAPABILITIES_PROPERTY
@@ -171,7 +172,7 @@ public class TranscodeHelper {
      */
     private static final int TYPE_QUERY = 0;
     private static final int TYPE_UPDATE = 2;
-    static final String DIRECTORY_CAMERA = "Camera";
+    private static final String DIRECTORY_CAMERA = "Camera";
 
     private final Object mLock = new Object();
     private final Context mContext;
@@ -260,7 +261,8 @@ public class TranscodeHelper {
                 latch = new CountDownLatch(1);
                 try {
                     session = enqueueTranscodingSession(src, dst, uid, latch);
-                } catch (MediaTranscodingException | FileNotFoundException e) {
+                } catch (MediaTranscodingException | FileNotFoundException |
+                        UnsupportedOperationException e) {
                     throw new IllegalStateException(e);
                 }
 
@@ -332,11 +334,14 @@ public class TranscodeHelper {
         updateConfigs(isTranscodeEnabled);
 
         if (!isTranscodeEnabled) {
+            logVerbose("Transcode not enabled");
             return false;
         }
+        logVerbose("Checking shouldTranscode for: " + path + ". Uid: " + uid);
 
         if (!supportsTranscode(path) || uid < Process.FIRST_APPLICATION_UID
                 || uid == Process.myUid()) {
+            logVerbose("Transcode not supported");
             // Never transcode in any of these conditions
             // 1. Path doesn't support transcode
             // 2. Uid is from native process on device
@@ -349,17 +354,18 @@ public class TranscodeHelper {
         try (Cursor cursor = queryFileForTranscode(path,
                 new String[]{FileColumns._VIDEO_CODEC_TYPE})) {
             if (cursor == null || !cursor.moveToNext()) {
-                Log.d(TAG, "Couldn't find database row for path " + path +
-                        ", Assuming no seamless transcoding needed.");
+                logVerbose("Couldn't find database row");
                 return false;
             }
             if (!MediaFormat.MIMETYPE_VIDEO_HEVC.equalsIgnoreCase(cursor.getString(0))) {
+                logVerbose("File is not HEVC");
                 return false;
             }
         }
 
         if (bundle != null) {
             if (bundle.getBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, false)) {
+                logVerbose("Original format requested");
                 return false;
             }
 
@@ -367,6 +373,7 @@ public class TranscodeHelper {
                     bundle.getParcelable(MediaStore.EXTRA_MEDIA_CAPABILITIES);
             if (capabilities != null && capabilities.getSupportedVideoMimeTypes().contains(
                     MediaFormat.MIMETYPE_VIDEO_HEVC)) {
+                logVerbose("Media capability requested matches original format");
                 return false;
             }
         }
@@ -378,8 +385,10 @@ public class TranscodeHelper {
             Log.w(TAG, "Ignoring app compat flags: Set to simultaneously enable and disable "
                     + "HEVC support for uid: " + uid);
         } else if (enableHevc) {
+            logVerbose("App compat hevc support enabled");
             return false;
         } else if (disableHevc) {
+            logVerbose("App compat hevc support disabled");
             return true;
         }
 
@@ -393,18 +402,31 @@ public class TranscodeHelper {
         // mAppCompatCapabilities.  If it's there, we will respect that value.
         for (String callingPackage : callingPackages) {
             if (checkManifestSupport(callingPackage, identity)) {
+                logVerbose("Manifest supports original format");
                 return false;
             }
 
             synchronized (mLock) {
                 if (mAppCompatMediaCapabilities.containsKey(callingPackage)) {
-                    return mAppCompatMediaCapabilities.get(callingPackage) == 0;
+                    boolean shouldTranscode = mAppCompatMediaCapabilities.get(callingPackage) == 0;
+                    if (shouldTranscode) {
+                        logVerbose("Compat manifest does not support original format");
+                    } else {
+                        logVerbose("Compat manifest supports original format");
+                    }
+                    return shouldTranscode;
                 }
             }
         }
 
-        return getBooleanProperty(TRANSCODE_DEFAULT_SYS_PROP_KEY,
+        boolean shouldTranscode = getBooleanProperty(TRANSCODE_DEFAULT_SYS_PROP_KEY,
                 TRANSCODE_DEFAULT_DEVICE_CONFIG_KEY, true /* defaultValue */);
+        if (shouldTranscode) {
+            logVerbose("Default behavior should transcode");
+        } else {
+            logVerbose("Default behavior should not transcode");
+        }
+        return shouldTranscode;
     }
 
     public boolean supportsTranscode(String path) {
@@ -546,7 +568,8 @@ public class TranscodeHelper {
     }
 
     private TranscodingSession enqueueTranscodingSession(String src, String dst, int uid,
-            final CountDownLatch latch) throws FileNotFoundException, MediaTranscodingException {
+            final CountDownLatch latch)
+            throws FileNotFoundException, MediaTranscodingException, UnsupportedOperationException {
 
         File file = new File(src);
         File transcodeFile = new File(dst);
@@ -689,7 +712,7 @@ public class TranscodeHelper {
 
             if (isTranscodeEnabledChanged || isDebug) {
                 Log.i(TAG, "Reloading transcode configs. transcodeEnabled: " + transcodeEnabled
-                        + ". lastTranscodeEnabled: " + mIsTranscodeEnabled  + ". isDebug: "
+                        + ". lastTranscodeEnabled: " + mIsTranscodeEnabled + ". isDebug: "
                         + isDebug);
 
                 mIsTranscodeEnabled = transcodeEnabled;
@@ -760,7 +783,7 @@ public class TranscodeHelper {
                 R.raw.transcode_compat_manifest);
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
         try {
-            while(reader.ready()) {
+            while (reader.ready()) {
                 String line = reader.readLine();
                 String packageName = "";
                 Long packageCompatValue;
@@ -799,8 +822,14 @@ public class TranscodeHelper {
         }
     }
 
-    private void logEvent(String event, @Nullable TranscodingSession session) {
+    private static void logEvent(String event, @Nullable TranscodingSession session) {
         Log.d(TAG, event + (session == null ? "" : session));
+    }
+
+    private static void logVerbose(String message) {
+        if (DEBUG) {
+            Log.v(TAG, message);
+        }
     }
 
     private static class TranscodeUiNotifier {

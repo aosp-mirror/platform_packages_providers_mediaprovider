@@ -629,7 +629,9 @@ public class TranscodeHelper {
     }
 
     private int getTranscodeTimeoutSeconds(String file) {
-        double sizeMb = new File(file).length() / (1024 * 1024);
+        double sizeMb = (new File(file).length() / (1024 * 1024));
+        // Ensure size is at least 1MB so transcoding timeout is at least the timeout coefficient
+        sizeMb = Math.max(sizeMb, 1);
         return (int) (sizeMb * TRANSCODING_TIMEOUT_COEFFICIENT);
     }
 

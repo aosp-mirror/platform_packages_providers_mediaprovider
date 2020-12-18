@@ -139,7 +139,7 @@ public class MediaProviderForFuseTest {
 
     @Test
     public void test_scanFileForFuse() throws Exception {
-        final File file = new File(sTestDir, "test" + System.nanoTime() + ".jpg");
+        final File file = new File(sTestDir, "test_scan" + System.nanoTime() + ".jpg");
         Truth.assertThat(file.createNewFile()).isTrue();
         sMediaProvider.scanFileForFuse(file.getPath());
     }

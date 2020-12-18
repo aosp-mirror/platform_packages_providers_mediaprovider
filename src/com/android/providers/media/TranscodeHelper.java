@@ -88,7 +88,6 @@ import java.util.regex.Pattern;
 
 public class TranscodeHelper {
     private static final String TAG = "TranscodeHelper";
-    private static final String TRANSCODE_FILE_PREFIX = ".transcode_";
     private static final boolean DEBUG = SystemProperties.getBoolean("persist.sys.fuse.log", false);
 
     // TODO(b/169327180): Move to ApplicationMediaCapabilities
@@ -629,7 +628,9 @@ public class TranscodeHelper {
     }
 
     private int getTranscodeTimeoutSeconds(String file) {
-        double sizeMb = new File(file).length() / (1024 * 1024);
+        double sizeMb = (new File(file).length() / (1024 * 1024));
+        // Ensure size is at least 1MB so transcoding timeout is at least the timeout coefficient
+        sizeMb = Math.max(sizeMb, 1);
         return (int) (sizeMb * TRANSCODING_TIMEOUT_COEFFICIENT);
     }
 
@@ -743,7 +744,7 @@ public class TranscodeHelper {
         final String[] manifest = mMediaProvider.getStringDeviceConfig(
                 TRANSCODE_COMPAT_MANIFEST_KEY, "").split(",");
 
-        if (manifest.length == 0) {
+        if (manifest.length == 0 || manifest[0].isEmpty()) {
             Log.i(TAG, "Empty device config transcode compat manifest");
             return false;
         }

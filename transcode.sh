@@ -14,4 +14,5 @@ function transcode_compat_manifest() {
         -d) cat $2 | tr -d '\r' | sed 1d | awk -F "," '{new_var=$1","$NF; print new_var}' | tr '\n' ',' | sed 's/,$//g';;
         *) "Enter '-d' for device_config, '-r' for resource";;
     esac
+    echo
 }

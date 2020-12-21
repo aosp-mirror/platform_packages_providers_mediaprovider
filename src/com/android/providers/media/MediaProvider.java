@@ -195,7 +195,6 @@ import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
 import com.android.providers.media.util.PermissionUtils;
-import com.android.providers.media.util.RedactingFileDescriptor;
 import com.android.providers.media.util.SQLiteQueryBuilder;
 import com.android.providers.media.util.XmpInterface;
 
@@ -267,6 +266,7 @@ public class MediaProvider extends ContentProvider {
 
     private static final String DIRECTORY_MEDIA = "media";
     private static final String DIRECTORY_THUMBNAILS = ".thumbnails";
+    private static final List<String> PRIVATE_SUBDIRECTORIES_ANDROID = Arrays.asList("data", "obb");
 
     /**
      * Hard-coded filename where the current value of
@@ -3054,6 +3054,8 @@ public class MediaProvider extends ContentProvider {
             assertFileColumnsConsistent(match, uri, values);
         }
 
+        assertPrivatePathNotInValues(values);
+
         // Drop columns that aren't relevant for special tables
         switch (match) {
             case AUDIO_ALBUMART:
@@ -3073,8 +3075,45 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     * Check that values don't contain any external private path.
+     */
+    private void assertPrivatePathNotInValues(ContentValues values)
+            throws IllegalArgumentException {
+        ArrayList<String> relativePaths = new ArrayList<String>();
+        relativePaths.add(extractRelativePath(values.getAsString(MediaColumns.DATA)));
+        relativePaths.add(values.getAsString(MediaColumns.RELATIVE_PATH));
+
+        final boolean isTargetSdkSOrHigher =
+                getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.S;
+        if (isTargetSdkSOrHigher) {
+            /**
+             * Don't allow apps to insert/update database row to files in Android/data or
+             * Android/obb dirs. These are app private directories and files in these private
+             * directories can't be added to public media collection.
+             */
+            for (final String relativePath : relativePaths) {
+                if (relativePath == null) continue;
+
+                final String[] relativePathSegments = relativePath.split("/", 3);
+                final String primary =
+                        (relativePathSegments.length > 0) ? relativePathSegments[0] : null;
+                final String secondary =
+                        (relativePathSegments.length > 1) ? relativePathSegments[1] : "";
+
+                if (DIRECTORY_ANDROID.equalsIgnoreCase(primary)
+                        && PRIVATE_SUBDIRECTORIES_ANDROID.contains(
+                        secondary.toLowerCase(Locale.ROOT))) {
+                    throw new IllegalArgumentException(
+                            "Inserting private file: " + relativePath + " is not allowed.");
+                }
+            }
+        }
+    }
+
+    /**
      * @return the default dir if {@code file} is a child of default dir and it's missing,
-     * {@code null} otherwise. */
+     * {@code null} otherwise.
+     */
     private File checkDefaultDirMissing(String volumeName, File file) {
         String topLevelDir = FileUtils.extractTopLevelDir(file.getPath());
         if (topLevelDir != null && FileUtils.isDefaultDirectoryName(topLevelDir)) {
@@ -5791,6 +5830,8 @@ public class MediaProvider extends ContentProvider {
 
             Trace.endSection();
         }
+
+        assertPrivatePathNotInValues(initialValues);
 
         // Make sure any updated paths look consistent
         assertFileColumnsConsistent(match, uri, initialValues);

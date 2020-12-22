@@ -61,6 +61,7 @@ import android.net.Uri;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
+import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.util.Log;
@@ -1107,7 +1108,7 @@ public class ModernMediaScannerTest {
 
         // Time taken : preVisitDirectory
         Timer noOpDirScan = new Timer("noOpDirScan");
-        for (int i = 0 ; i < COUNT_REPEAT ; i++) {
+        for (int i = 0; i < COUNT_REPEAT; i++) {
             noOpDirScan.start();
             mModern.scanDirectory(mDir, REASON_UNKNOWN);
             noOpDirScan.stop();
@@ -1133,5 +1134,34 @@ public class ModernMediaScannerTest {
 
         // This is essential for folder cleanup in tearDown
         mDir = renamedTestDir;
+    }
+
+    @Test
+    public void testScan_TrackNumber() throws Exception {
+        final File music = new File(mDir, "Music");
+        final File audio = new File(music, "audio.mp3");
+
+        music.mkdirs();
+        stage(R.raw.test_audio, audio);
+
+        mModern.scanFile(audio, REASON_UNKNOWN);
+
+        try (Cursor cursor = mIsolatedResolver
+                .query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
+            assertEquals(1, cursor.getCount());
+            cursor.moveToFirst();
+            assertEquals(2, cursor.getInt(cursor.getColumnIndex(AudioColumns.TRACK)));
+        }
+
+        stage(R.raw.test_audio_empty_track_number, audio);
+
+        mModern.scanFile(audio, REASON_UNKNOWN);
+
+        try (Cursor cursor = mIsolatedResolver
+                .query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
+            assertEquals(1, cursor.getCount());
+            cursor.moveToFirst();
+            assertThat(cursor.getString(cursor.getColumnIndex(AudioColumns.TRACK))).isNull();
+        }
     }
 }

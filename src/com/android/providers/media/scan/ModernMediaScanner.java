@@ -1146,6 +1146,7 @@ public class ModernMediaScanner implements MediaScanner {
 
         op.withValue(MediaColumns.ARTIST, UNKNOWN_STRING);
         op.withValue(MediaColumns.ALBUM, file.getParentFile().getName());
+        op.withValue(AudioColumns.TRACK, null);
 
         final String lowPath = file.getAbsolutePath().toLowerCase(Locale.ROOT);
         boolean anyMatch = false;

@@ -76,6 +76,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -1843,6 +1844,13 @@ public final class MediaStore {
     }
 
     /**
+     * Regex that matches paths under well-known storage paths.
+     * Copied from FileUtils.java
+     */
+    private static final Pattern PATTERN_VOLUME_NAME = Pattern.compile(
+            "(?i)^/storage/([^/]+)");
+
+    /**
      * @deprecated since this method doesn't have a {@link Context}, we can't
      *             find the actual {@link StorageVolume} for the given path, so
      *             only a vague guess is returned. Callers should use
@@ -1853,9 +1861,15 @@ public final class MediaStore {
     public static @NonNull String getVolumeName(@NonNull File path) {
         // Ideally we'd find the relevant StorageVolume, but we don't have a
         // Context to obtain it from, so the best we can do is assume
-        if (path.getAbsolutePath()
-                .startsWith(Environment.getStorageDirectory().getAbsolutePath())) {
-            return MediaStore.VOLUME_EXTERNAL;
+        // Borrowed the logic from FileUtils.extractVolumeName
+        final Matcher matcher = PATTERN_VOLUME_NAME.matcher(path.getAbsolutePath());
+        if (matcher.find()) {
+            final String volumeName = matcher.group(1);
+            if (volumeName.equals("emulated")) {
+                return MediaStore.VOLUME_EXTERNAL_PRIMARY;
+            } else {
+                return volumeName.toLowerCase(Locale.ROOT);
+            }
         } else {
             return MediaStore.VOLUME_INTERNAL;
         }

@@ -16,6 +16,7 @@
 
 package com.android.providers.media.util;
 
+import static android.Manifest.permission.ACCESS_MTP;
 import static android.Manifest.permission.BACKUP;
 import static android.Manifest.permission.INSTALL_PACKAGES;
 import static android.Manifest.permission.MANAGE_EXTERNAL_STORAGE;
@@ -189,7 +190,13 @@ public class PermissionUtils {
     public static boolean checkPermissionInstallPackages(@NonNull Context context, int pid, int uid,
         @NonNull String packageName, @Nullable String attributionTag) {
         return checkPermissionForDataDelivery(context, INSTALL_PACKAGES, pid,
-            uid, packageName, attributionTag, null);
+                uid, packageName, attributionTag, null);
+    }
+
+    public static boolean checkPermissionAccessMtp(@NonNull Context context, int pid, int uid,
+        @NonNull String packageName, @Nullable String attributionTag) {
+        return checkPermissionForDataDelivery(context, ACCESS_MTP, pid,
+                uid, packageName, attributionTag, null);
     }
 
     /**

@@ -313,7 +313,7 @@ public class MediaProvider extends ContentProvider {
      */
     private static final ArrayMap<String, Object> sDataColumns = new ArrayMap<>();
 
-    {
+    static {
         sDataColumns.put(MediaStore.MediaColumns.DATA, null);
         sDataColumns.put(MediaStore.Images.Thumbnails.DATA, null);
         sDataColumns.put(MediaStore.Video.Thumbnails.DATA, null);
@@ -8402,7 +8402,7 @@ public class MediaProvider extends ContentProvider {
      */
     private static final ArraySet<String> sMutableColumns = new ArraySet<>();
 
-    {
+    static {
         sMutableColumns.add(MediaStore.MediaColumns.DATA);
         sMutableColumns.add(MediaStore.MediaColumns.RELATIVE_PATH);
         sMutableColumns.add(MediaStore.MediaColumns.DISPLAY_NAME);
@@ -8433,7 +8433,7 @@ public class MediaProvider extends ContentProvider {
      */
     private static final ArraySet<String> sPlacementColumns = new ArraySet<>();
 
-    {
+    static {
         sPlacementColumns.add(MediaStore.MediaColumns.DATA);
         sPlacementColumns.add(MediaStore.MediaColumns.RELATIVE_PATH);
         sPlacementColumns.add(MediaStore.MediaColumns.DISPLAY_NAME);

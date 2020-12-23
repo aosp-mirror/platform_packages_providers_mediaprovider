@@ -28,6 +28,7 @@ java_sdk_library {
 
     libs: [
         "framework_mediaprovider_annotation",
+        "framework-media.stubs.module_lib",
         "unsupportedappusage",
     ],
 

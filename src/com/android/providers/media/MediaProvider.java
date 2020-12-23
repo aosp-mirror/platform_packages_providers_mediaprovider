@@ -40,6 +40,7 @@ import static android.provider.MediaStore.getVolumeName;
 import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
 import static com.android.providers.media.LocalCallingIdentity.APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID;
+import static com.android.providers.media.LocalCallingIdentity.PERMISSION_ACCESS_MTP;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_INSTALL_PACKAGES;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_DELEGATOR;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_LEGACY_GRANTED;
@@ -1777,7 +1778,7 @@ public class MediaProvider extends ContentProvider {
             // Do not allow apps to list Android/data or Android/obb dirs.
             // On primary volumes, apps that get special access to these directories get it via
             // mount views of lowerfs. On secondary volumes, such apps would return early from
-            // shouldBypassFuseRestrictions above (except for MTP apps b/174347304).
+            // shouldBypassFuseRestrictions above.
             if (isDataOrObbPath(path)) {
                 return new String[] {""};
             }
@@ -7628,7 +7629,7 @@ public class MediaProvider extends ContentProvider {
             // Do not allow apps to open Android/data or Android/obb dirs.
             // On primary volumes, apps that get special access to these directories get it via
             // mount views of lowerfs. On secondary volumes, such apps would return early from
-            // shouldBypassFuseRestrictions above (except for MTP apps b/174347304).
+            // shouldBypassFuseRestrictions above.
             if (isDataOrObbPath(path)) {
                 return OsConstants.EACCES;
             }
@@ -7721,19 +7722,29 @@ public class MediaProvider extends ContentProvider {
         return uid == mExternalStorageAuthorityAppId;
     }
 
+    private boolean isCallingIdentityMtp(int uid) {
+        return mCallingIdentity.get().hasPermission(PERMISSION_ACCESS_MTP);
+    }
+
     /**
-     * ExternalStorageProvider and DownloadProvider can access all private-app directories.
+     * The following apps have access to all private-app directories on secondary volumes:
+     *    * ExternalStorageProvider
+     *    * DownloadProvider
+     *    * Signature/privileged apps with ACCESS_MTP permission granted
+     *      (TODO(b/175796984): Allow *only* signature apps with ACCESS_MTP to access all
+     *      private-app directories).
+     *
      * Installer apps can only access private-app directories on Android/obb.
-     * TODO (b/174347304): Allow MTP apps special access.
      *
      * @param uid UID of the calling package
+     * @param path the path of the file to access
      */
     private boolean isUidAllowedSpecialPrivatePathAccess(int uid, String path) {
         final LocalCallingIdentity token =
             clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
         try {
             if (isCallingIdentityDownloadProvider(uid) ||
-                    isCallingIdentityExternalStorageProvider(uid)) {
+                    isCallingIdentityExternalStorageProvider(uid) || isCallingIdentityMtp(uid)) {
                 return true;
             }
             return (isObbOrChildPath(path) && isCallingIdentityAllowedInstallerAccess(uid));

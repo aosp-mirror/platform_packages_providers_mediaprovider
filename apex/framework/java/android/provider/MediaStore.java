@@ -3494,7 +3494,7 @@ public final class MediaStore {
              * @deprecated location details are no longer indexed for privacy
              *             reasons, and this value is now always {@code null}.
              *             You can still manually obtain location metadata using
-             *             {@link ExifInterface#getLatLong(float[])}.
+             *             {@link MediaMetadataRetriever#METADATA_KEY_LOCATION}.
              */
             @Deprecated
             @Column(value = Cursor.FIELD_TYPE_FLOAT, readOnly = true)
@@ -3506,7 +3506,7 @@ public final class MediaStore {
              * @deprecated location details are no longer indexed for privacy
              *             reasons, and this value is now always {@code null}.
              *             You can still manually obtain location metadata using
-             *             {@link ExifInterface#getLatLong(float[])}.
+             *             {@link MediaMetadataRetriever#METADATA_KEY_LOCATION}.
              */
             @Deprecated
             @Column(value = Cursor.FIELD_TYPE_FLOAT, readOnly = true)

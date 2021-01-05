@@ -1134,6 +1134,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         sMigrateColumns.add(MediaStore.Video.VideoColumns.CATEGORY);
         sMigrateColumns.add(MediaStore.Video.VideoColumns.BOOKMARK);
 
+        // This also migrates MediaStore.Images.ImageColumns.IS_PRIVATE
+        // as they both have the same value "isprivate".
         sMigrateColumns.add(MediaStore.Video.VideoColumns.IS_PRIVATE);
 
         sMigrateColumns.add(MediaStore.DownloadColumns.DOWNLOAD_URI);

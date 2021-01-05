@@ -23,6 +23,14 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 
 import static com.android.providers.media.MediaProvider.VolumeNotFoundException;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__HEVC_WRITE;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_CACHE;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_DIRECT;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_TRANSCODE;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__FAIL ;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__SUCCESS ;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED ;
 
 import android.annotation.IntRange;
 import android.annotation.LongDef;
@@ -52,6 +60,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Process;
+import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.provider.MediaStore;
@@ -250,39 +259,73 @@ public class TranscodeHelper {
         return new File(getTranscodeDirectory(), String.valueOf(rowId)).getAbsolutePath();
     }
 
+    /* TODO: this should probably use a cache so we don't
+     * need to ask the package manager every time
+     */
+    private String getNameForUid(int uid) {
+        String name = mPackageManager.getNameForUid(uid);
+        if (name == null) {
+            Log.w(TAG, "got null name for uid " + uid + ", using empty string instead");
+            return "";
+        }
+        return name;
+    }
+
+    private void reportTranscodingResult(int uid, boolean success, long durationMillis) {
+        if (!isTranscodeEnabled()) {
+            return;
+        }
+
+        MediaProviderStatsLog.write(
+                TRANSCODING_DATA,
+                getNameForUid(uid),
+                MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_TRANSCODE,
+                -1, // file size
+                success ? TRANSCODING_DATA__TRANSCODE_RESULT__SUCCESS :
+                        TRANSCODING_DATA__TRANSCODE_RESULT__FAIL,
+                durationMillis
+                );
+    }
+
     public boolean transcode(String src, String dst, int uid) {
         TranscodingSession session = null;
         CountDownLatch latch = null;
+        long startTime = SystemClock.elapsedRealtime();
+        boolean result = false;
 
-        synchronized (mLock) {
-            session = mTranscodingSessions.get(src);
-            if (session == null) {
-                latch = new CountDownLatch(1);
-                try {
-                    session = enqueueTranscodingSession(src, dst, uid, latch);
-                } catch (MediaTranscodingException | FileNotFoundException |
-                        UnsupportedOperationException e) {
-                    throw new IllegalStateException(e);
-                }
+        try {
+            synchronized (mLock) {
+                session = mTranscodingSessions.get(src);
+                if (session == null) {
+                    latch = new CountDownLatch(1);
+                    try {
+                        session = enqueueTranscodingSession(src, dst, uid, latch);
+                    } catch (MediaTranscodingException | FileNotFoundException |
+                            UnsupportedOperationException e) {
+                        throw new IllegalStateException(e);
+                    }
 
-                mTranscodingLatches.put(session.getSessionId(), latch);
-                mTranscodingSessions.put(src, session);
-            } else {
-                latch = mTranscodingLatches.get(session.getSessionId());
-                if (latch == null) {
-                    throw new IllegalStateException("Expected latch for" + session);
+                    mTranscodingLatches.put(session.getSessionId(), latch);
+                    mTranscodingSessions.put(src, session);
+                } else {
+                    latch = mTranscodingLatches.get(session.getSessionId());
+                    if (latch == null) {
+                        throw new IllegalStateException("Expected latch for" + session);
+                    }
                 }
             }
-        }
 
-        boolean result = waitTranscodingResult(uid, src, session, latch);
-        if (result) {
-            updateTranscodeStatus(src, TRANSCODE_COMPLETE);
-        } else {
-            logEvent("Transcoding failed for " + src + ". session: ", session);
-            // Attempt to workaround media transcoding deadlock, b/165374867
-            // Cancelling a deadlocked session seems to unblock the transcoder
-            finishTranscodingResult(uid, src, session, latch);
+            result = waitTranscodingResult(uid, src, session, latch);
+            if (result) {
+                updateTranscodeStatus(src, TRANSCODE_COMPLETE);
+            } else {
+                logEvent("Transcoding failed for " + src + ". session: ", session);
+                // Attempt to workaround media transcoding deadlock, b/165374867
+                // Cancelling a deadlocked session seems to unblock the transcoder
+                finishTranscodingResult(uid, src, session, latch);
+            }
+        } finally {
+            reportTranscodingResult(uid, result, SystemClock.elapsedRealtime() - startTime);
         }
         return result;
     }
@@ -327,6 +370,21 @@ public class TranscodeHelper {
         return transcodePath;
     }
 
+    private void reportTranscodingDirectAccess(int uid) {
+        if (!isTranscodeEnabled()) {
+            return;
+        }
+
+        MediaProviderStatsLog.write(
+                TRANSCODING_DATA,
+                getNameForUid(uid),
+                MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_DIRECT,
+                -1, // file size
+                TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED,
+                -1  // duration
+                );
+    }
+
     // TODO(b/173491972): Generalize to consider other file/app media capabilities beyond hevc
     public boolean shouldTranscode(String path, int uid, Bundle bundle) {
         boolean isTranscodeEnabled = isTranscodeEnabled();
@@ -361,7 +419,14 @@ public class TranscodeHelper {
                 return false;
             }
         }
+        boolean transcodeNeeded = doesAppNeedTranscoding(path, uid, bundle);
+        if (!transcodeNeeded) {
+            reportTranscodingDirectAccess(uid);
+        }
+        return transcodeNeeded;
+    }
 
+    private boolean doesAppNeedTranscoding(String path, int uid, Bundle bundle) {
         if (bundle != null) {
             if (bundle.getBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, false)) {
                 logVerbose("Original format requested");
@@ -513,7 +578,51 @@ public class TranscodeHelper {
         return Pair.create((long) -1, TRANSCODE_EMPTY);
     }
 
-    public boolean isTranscodeFileCached(String path, String transcodePath) {
+    // called from MediaProvider
+    void reportIfHEVCAdded(Uri uri) {
+        if (!isTranscodeEnabled()) {
+            return;
+        }
+
+        try (Cursor c = mMediaProvider.queryForSingleItem(uri,
+                new String[] {
+                    FileColumns._VIDEO_CODEC_TYPE,
+                    FileColumns.SIZE,
+                    FileColumns.OWNER_PACKAGE_NAME,
+                    FileColumns.DATA},
+                null, null, null)) {
+            if (supportsTranscode(c.getString(3)) &&
+                    MediaFormat.MIMETYPE_VIDEO_HEVC.equalsIgnoreCase(c.getString(0))) {
+                MediaProviderStatsLog.write(
+                        TRANSCODING_DATA,
+                        c.getString(2),
+                        MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__HEVC_WRITE,
+                        c.getLong(1),
+                        TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED,
+                        -1 // duration
+                        );
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Couldn't get cursor for scanned file", e);
+        }
+    }
+
+    private void reportTranscodingCachedAccess(int uid) {
+        if (!isTranscodeEnabled()) {
+            return;
+        }
+
+        MediaProviderStatsLog.write(
+                TRANSCODING_DATA,
+                getNameForUid(uid),
+                MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_CACHE,
+                -1, // file size
+                TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED,
+                -1 // duration
+                );
+    }
+
+    public boolean isTranscodeFileCached(int uid, String path, String transcodePath) {
         if (SystemProperties.getBoolean("sys.fuse.disable_transcode_cache", false)) {
             // Caching is disabled. Hence, delete the cached transcode file.
             return false;
@@ -528,6 +637,7 @@ public class TranscodeHelper {
                     new File(transcodePath).exists();
             if (result) {
                 logEvent("Transcode cache hit: " + path, null /* session */);
+                reportTranscodingCachedAccess(uid);
             }
             return result;
         }

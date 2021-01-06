@@ -23,6 +23,7 @@ import android.content.SharedPreferences;
 import android.provider.Column;
 import android.util.Log;
 
+import com.android.providers.media.util.ForegroundThread;
 import com.android.providers.media.util.Metrics;
 
 import java.io.File;
@@ -45,7 +46,14 @@ public class MediaUpgradeReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         // We are now running with the system up, but no apps started,
         // so can do whatever cleanup after an upgrade that we want.
+        ForegroundThread.getExecutor().execute(() -> {
+            // Run database migration on a separate thread so that main thread
+            // is available for handling other MediaService requests.
+            tryMigratingDatabases(context);
+        });
+    }
 
+    private void tryMigratingDatabases(Context context) {
         // Lookup the last known database version
         SharedPreferences prefs = context.getSharedPreferences(TAG, Context.MODE_PRIVATE);
         int prefVersion = prefs.getInt(PREF_DB_VERSION, 0);

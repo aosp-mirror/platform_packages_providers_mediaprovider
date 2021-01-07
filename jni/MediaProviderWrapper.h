@@ -36,6 +36,23 @@ namespace mediaprovider {
 namespace fuse {
 
 /**
+ * Represents transform info for a file, containing the transforms, the transforms completion
+ * status and the ioPath. Provided by MediaProvider.java via a JNI call.
+ */
+struct FileLookupResult {
+    FileLookupResult(int transforms, bool transforms_complete, const std::string& io_path)
+        : transforms(transforms), transforms_complete(transforms_complete), io_path(io_path) {}
+
+    /**
+     * This field is not to be interpreted, it is determined and populated from MediaProvider
+     * via a JNI call.
+     */
+    const int transforms;
+    const bool transforms_complete;
+    const std::string io_path;
+};
+
+/**
  * Class that wraps MediaProvider.java and all of the needed JNI calls to make
  * interaction with MediaProvider easier.
  */
@@ -173,11 +190,10 @@ class MediaProviderWrapper final {
      */
     void OnFileCreated(const std::string& path);
 
-    /** Get path for actual I/O */
-    std::string GetIoPath(const std::string& path, uid_t uid);
-
-    /** Get supported transformations for path and transform actions for uid on path. */
-    int GetTransforms(const std::string& path, uid_t uid);
+    /**
+     * Returns FileLookupResult to determine transform info for a path and uid.
+     */
+    std::unique_ptr<FileLookupResult> FileLookup(const std::string& path, uid_t uid);
 
     /** Transforms from src to dst file */
     bool Transform(const std::string& src, const std::string& dst, int transforms, uid_t uid);
@@ -207,6 +223,7 @@ class MediaProviderWrapper final {
     static pthread_key_t gJniEnvKey;
 
   private:
+    jclass file_lookup_result_class_;
     jclass media_provider_class_;
     jobject media_provider_object_;
     /** Cached MediaProvider method IDs **/
@@ -223,15 +240,23 @@ class MediaProviderWrapper final {
     jmethodID mid_on_file_created_;
     jmethodID mid_should_allow_lookup_;
     jmethodID mid_is_app_clone_user_;
-    jmethodID mid_get_io_path_;
-    jmethodID mid_get_transforms_;
     jmethodID mid_transform_;
+    jmethodID mid_file_lookup_;
+    /** Cached FileLookupResult field IDs **/
+    jfieldID fid_file_lookup_transforms_;
+    jfieldID fid_file_lookup_transforms_complete_;
+    jfieldID fid_file_lookup_io_path_;
 
     /**
      * Auxiliary for caching MediaProvider methods.
      */
     jmethodID CacheMethod(JNIEnv* env, const char method_name[], const char signature[],
                           bool is_static);
+
+    /**
+     * Auxiliary for caching FileLookupResult fields.
+     */
+    jfieldID CacheFileLookupField(JNIEnv* env, const char field_name[], const char type[]);
 
     // Attaches the current thread (if necessary) and returns the JNIEnv
     // associated with it.

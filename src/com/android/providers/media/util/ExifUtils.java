@@ -34,6 +34,7 @@ import android.media.ExifInterface;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
@@ -145,19 +146,26 @@ public class ExifUtils {
             long msecs = datetime.getTime();
 
             if (subSecs != null) {
-                try {
-                    long sub = Long.parseLong(subSecs);
-                    while (sub > 1000) {
-                        sub /= 10;
-                    }
-                    msecs += sub;
-                } catch (NumberFormatException e) {
-                    // Ignored
-                }
+                msecs += parseSubSeconds(subSecs);
             }
             return msecs;
         } catch (IllegalArgumentException e) {
             return -1;
         }
+    }
+
+    @VisibleForTesting
+    static @CurrentTimeMillisLong long parseSubSeconds(@NonNull String subSec) {
+        try {
+            final int len = Math.min(subSec.length(), 3);
+            long sub = Long.parseLong(subSec.substring(0, len));
+            for (int i = len; i < 3; i++) {
+                sub *= 10;
+            }
+            return sub;
+        } catch (NumberFormatException e) {
+            // Ignored
+        }
+        return 0L;
     }
 }

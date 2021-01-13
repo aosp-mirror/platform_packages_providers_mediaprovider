@@ -101,6 +101,7 @@ import com.android.providers.media.util.XmpInterface;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
@@ -112,6 +113,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -148,15 +150,26 @@ public class ModernMediaScanner implements MediaScanner {
     // TODO: deprecate playlist editing
     // TODO: deprecate PARENT column, since callers can't see directories
 
-    @GuardedBy("sDateFormat")
-    private static final SimpleDateFormat sDateFormat;
+    @GuardedBy("S_DATE_FORMAT")
+    private static final SimpleDateFormat S_DATE_FORMAT;
+    @GuardedBy("S_DATE_FORMAT_WITH_MILLIS")
+    private static final SimpleDateFormat S_DATE_FORMAT_WITH_MILLIS;
 
     static {
-        sDateFormat = new SimpleDateFormat("yyyyMMdd'T'HHmmss");
-        sDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        S_DATE_FORMAT = new SimpleDateFormat("yyyyMMdd'T'HHmmss");
+        S_DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+        S_DATE_FORMAT_WITH_MILLIS = new SimpleDateFormat("yyyyMMdd'T'HHmmss.SSS");
+        S_DATE_FORMAT_WITH_MILLIS.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
     private static final int BATCH_SIZE = 32;
+    private static final int MAX_XMP_SIZE_BYTES = 1024 * 1024;
+    // |excludeDirs * 2| < 1000 which is the max SQL expression size
+    // Because we add |excludeDir| and |excludeDir/| in the SQL expression to match dir and subdirs
+    // See SQLITE_MAX_EXPR_DEPTH in sqlite3.c
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    static final int MAX_EXCLUDE_DIRS = 450;
 
     private static final Pattern PATTERN_VISIBLE = Pattern.compile(
             "(?i)^/storage/[^/]+(?:/[0-9]+)?(?:/Android/sandbox/([^/]+))?$");
@@ -171,13 +184,15 @@ public class ModernMediaScanner implements MediaScanner {
 
     private final Context mContext;
     private final DrmManagerClient mDrmClient;
+    @GuardedBy("mPendingCleanDirectories")
+    private final Set<String> mPendingCleanDirectories = new ArraySet<>();
 
     /**
-     * Map from volume name to signals that can be used to cancel any active
-     * scan operations on those volumes.
+     * List of active scans.
      */
-    @GuardedBy("mSignals")
-    private final ArrayMap<String, CancellationSignal> mSignals = new ArrayMap<>();
+    @GuardedBy("mActiveScans")
+
+    private final List<Scan> mActiveScans = new ArrayList<>();
 
     /**
      * Holder that contains a reference count of the number of threads
@@ -226,6 +241,8 @@ public class ModernMediaScanner implements MediaScanner {
         try (Scan scan = new Scan(file, reason, /*ownerPackage*/ null)) {
             scan.run();
         } catch (OperationCanceledException ignored) {
+        } catch (FileNotFoundException e) {
+           Log.e(TAG, "Couldn't find directory to scan", e) ;
         }
     }
 
@@ -241,27 +258,51 @@ public class ModernMediaScanner implements MediaScanner {
             return scan.getFirstResult();
         } catch (OperationCanceledException ignored) {
             return null;
+        } catch (FileNotFoundException e) {
+            Log.e(TAG, "Couldn't find file to scan", e) ;
+            return null;
         }
     }
 
     @Override
     public void onDetachVolume(String volumeName) {
-        synchronized (mSignals) {
-            final CancellationSignal signal = mSignals.remove(volumeName);
-            if (signal != null) {
-                signal.cancel();
+        synchronized (mActiveScans) {
+            for (Scan scan : mActiveScans) {
+                if (volumeName.equals(scan.mVolumeName)) {
+                    scan.mSignal.cancel();
+                }
             }
         }
     }
 
-    private CancellationSignal getOrCreateSignal(String volumeName) {
-        synchronized (mSignals) {
-            CancellationSignal signal = mSignals.get(volumeName);
-            if (signal == null) {
-                signal = new CancellationSignal();
-                mSignals.put(volumeName, signal);
+    @Override
+    public void onIdleScanStopped() {
+        synchronized (mActiveScans) {
+            for (Scan scan : mActiveScans) {
+                if (scan.mReason == REASON_IDLE) {
+                    scan.mSignal.cancel();
+                }
             }
-            return signal;
+        }
+    }
+
+    @Override
+    public void onDirectoryDirty(File dir) {
+        synchronized (mPendingCleanDirectories) {
+            mPendingCleanDirectories.remove(dir.getPath());
+            FileUtils.setDirectoryDirty(dir, /*isDirty*/ true);
+        }
+    }
+
+    private void addActiveScan(Scan scan) {
+        synchronized (mActiveScans) {
+            mActiveScans.add(scan);
+        }
+    }
+
+    private void removeActiveScan(Scan scan) {
+        synchronized (mActiveScans) {
+            mActiveScans.remove(scan);
         }
     }
 
@@ -280,6 +321,7 @@ public class ModernMediaScanner implements MediaScanner {
         private final Uri mFilesUri;
         private final CancellationSignal mSignal;
         private final String mOwnerPackage;
+        private final List<String> mExcludeDirs;
 
         private final long mStartGeneration;
         private final boolean mSingleFile;
@@ -300,8 +342,15 @@ public class ModernMediaScanner implements MediaScanner {
          * indicates that one or more of the current file's parents is a hidden directory.
          */
         private int mHiddenDirCount;
+        /**
+         * Indicates if the nomedia directory tree is dirty. When a nomedia directory is dirty, we
+         * mark the top level nomedia as dirty. Hence if one of the sub directory in the nomedia
+         * directory is dirty, we consider the whole top level nomedia directory tree as dirty.
+         */
+        private boolean mIsDirectoryTreeDirty;
 
-        public Scan(File root, int reason, @Nullable String ownerPackage) {
+        public Scan(File root, int reason, @Nullable String ownerPackage)
+                throws FileNotFoundException {
             Trace.beginSection("ctor");
 
             mClient = mContext.getContentResolver()
@@ -312,17 +361,27 @@ public class ModernMediaScanner implements MediaScanner {
             mReason = reason;
             mVolumeName = FileUtils.getVolumeName(mContext, root);
             mFilesUri = MediaStore.Files.getContentUri(mVolumeName);
-            mSignal = getOrCreateSignal(mVolumeName);
+            mSignal = new CancellationSignal();
 
             mStartGeneration = MediaStore.getGeneration(mResolver, mVolumeName);
             mSingleFile = mRoot.isFile();
             mOwnerPackage = ownerPackage;
+            mExcludeDirs = new ArrayList<>();
 
             Trace.endSection();
         }
 
         @Override
         public void run() {
+            addActiveScan(this);
+            try {
+                runInternal();
+            } finally {
+                removeActiveScan(this);
+            }
+        }
+
+        private void runInternal() {
             final long startTime = SystemClock.elapsedRealtime();
 
             // First, scan everything that should be visible under requested
@@ -378,6 +437,49 @@ public class ModernMediaScanner implements MediaScanner {
             }
         }
 
+        private String buildExcludeDirClause(int count) {
+            if (count == 0) {
+                return "";
+            }
+            String notLikeClause = FileColumns.DATA + " NOT LIKE ? ESCAPE '\\'";
+            String andClause = " AND ";
+            StringBuilder sb = new StringBuilder();
+            sb.append("(");
+            for (int i = 0; i < count; i++) {
+                // Append twice because we want to match the path itself and the expanded path
+                // using the SQL % LIKE operator. For instance, to exclude /sdcard/foo and all
+                // subdirs, we need the following:
+                // "NOT LIKE '/sdcard/foo/%' AND "NOT LIKE '/sdcard/foo'"
+                // The first clause matches *just* subdirs, and the second clause matches the dir
+                // itself
+                sb.append(notLikeClause);
+                sb.append(andClause);
+                sb.append(notLikeClause);
+                if (i != count - 1) {
+                    sb.append(andClause);
+                }
+            }
+            sb.append(")");
+            return sb.toString();
+        }
+
+        private void addEscapedAndExpandedPath(String path, List<String> paths) {
+            String escapedPath = DatabaseUtils.escapeForLike(path);
+            paths.add(escapedPath + "/%");
+            paths.add(escapedPath);
+        }
+
+        private String[] buildSqlSelectionArgs() {
+            List<String> escapedPaths = new ArrayList<>();
+
+            addEscapedAndExpandedPath(mRoot.getAbsolutePath(), escapedPaths);
+            for (String dir : mExcludeDirs) {
+                addEscapedAndExpandedPath(dir, escapedPaths);
+            }
+
+            return escapedPaths.toArray(new String[0]);
+        }
+
         private void reconcileAndClean() {
             final long[] scannedIds = mScannedIds.toArray();
             Arrays.sort(scannedIds);
@@ -393,14 +495,16 @@ public class ModernMediaScanner implements MediaScanner {
                     + MtpConstants.FORMAT_ABSTRACT_AV_PLAYLIST;
             final String dataClause = "(" + FileColumns.DATA + " LIKE ? ESCAPE '\\' OR "
                     + FileColumns.DATA + " LIKE ? ESCAPE '\\')";
+            final String excludeDirClause = buildExcludeDirClause(mExcludeDirs.size());
             final String generationClause = FileColumns.GENERATION_ADDED + " <= "
                     + mStartGeneration;
+            final String sqlSelection = formatClause + " AND " + dataClause + " AND "
+                    + generationClause
+                    + (excludeDirClause.isEmpty() ? "" : " AND " + excludeDirClause);
             final Bundle queryArgs = new Bundle();
-            queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SELECTION,
-                    formatClause + " AND " + dataClause + " AND " + generationClause);
-            final String pathEscapedForLike = DatabaseUtils.escapeForLike(mRoot.getAbsolutePath());
+            queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, sqlSelection);
             queryArgs.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS,
-                    new String[] {pathEscapedForLike + "/%", pathEscapedForLike});
+                    buildSqlSelectionArgs());
             queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,
                     FileColumns._ID + " DESC");
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_EXCLUDE);
@@ -505,11 +609,6 @@ public class ModernMediaScanner implements MediaScanner {
 
         @Override
         public void close() {
-            // Sanity check that we drained any pending operations
-            if (!mPending.isEmpty()) {
-                throw new IllegalStateException();
-            }
-
             // Release any locks we're still holding, typically when we
             // encountered an exception; we snapshot the original list so we're
             // not confused as it's mutated by release operations
@@ -528,6 +627,27 @@ public class ModernMediaScanner implements MediaScanner {
 
             if (!shouldScanDirectory(dir.toFile())) {
                 return FileVisitResult.SKIP_SUBTREE;
+            }
+
+            synchronized (mPendingCleanDirectories) {
+                if (mIsDirectoryTreeDirty) {
+                    // Directory tree is dirty, continue scanning subtree.
+                } else if (FileUtils.isDirectoryDirty(FileUtils.getTopLevelNoMedia(dir.toFile()))) {
+                    // Track the directory dirty status for directory tree in mIsDirectoryDirty.
+                    // This removes additional dirty state check for subdirectories of nomedia
+                    // directory.
+                    mIsDirectoryTreeDirty = true;
+                    mPendingCleanDirectories.add(dir.toFile().getPath());
+                } else {
+                    Log.d(TAG, "Skipping preVisitDirectory " + dir.toFile());
+                    if (mExcludeDirs.size() <= MAX_EXCLUDE_DIRS) {
+                        mExcludeDirs.add(dir.toFile().getPath());
+                        return FileVisitResult.SKIP_SUBTREE;
+                    } else {
+                        Log.w(TAG, "ExcludeDir size exceeded, not skipping preVisitDirectory "
+                                + dir.toFile());
+                    }
+                }
             }
 
             // Acquire lock on this directory to ensure parallel scans don't
@@ -568,11 +688,8 @@ public class ModernMediaScanner implements MediaScanner {
                 actualMimeType = mDrmClient.getOriginalMimeType(realFile.getPath());
             }
 
-            int actualMediaType = FileColumns.MEDIA_TYPE_NONE;
-            if (actualMimeType != null) {
-                actualMediaType = resolveMediaTypeFromFilePath(realFile, actualMimeType,
-                        /*isHidden*/ mHiddenDirCount > 0);
-            }
+            int actualMediaType = mediaTypeFromMimeType(
+                    realFile, actualMimeType, FileColumns.MEDIA_TYPE_NONE);
 
             Trace.beginSection("checkChanged");
 
@@ -586,7 +703,7 @@ public class ModernMediaScanner implements MediaScanner {
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_FAVORITE, MediaStore.MATCH_INCLUDE);
             final String[] projection = new String[] {FileColumns._ID, FileColumns.DATE_MODIFIED,
                     FileColumns.SIZE, FileColumns.MIME_TYPE, FileColumns.MEDIA_TYPE,
-                    FileColumns.IS_PENDING};
+                    FileColumns.IS_PENDING, FileColumns._MODIFIER};
 
             final Matcher matcher = FileUtils.PATTERN_EXPIRES_FILE.matcher(realFile.getName());
             // If IS_PENDING is set by FUSE, we should scan the file and update IS_PENDING to zero.
@@ -596,8 +713,6 @@ public class ModernMediaScanner implements MediaScanner {
             try (Cursor c = mResolver.query(mFilesUri, projection, queryArgs, mSignal)) {
                 if (c.moveToFirst()) {
                     existingId = c.getLong(0);
-                    final long dateModified = c.getLong(1);
-                    final long size = c.getLong(2);
                     final String mimeType = c.getString(3);
                     final int mediaType = c.getInt(4);
                     isPendingFromFuse &= c.getInt(5) != 0;
@@ -612,18 +727,36 @@ public class ModernMediaScanner implements MediaScanner {
                         mFirstId = existingId;
                     }
 
-                    final boolean sameTime = (lastModifiedTime(realFile, attrs) == dateModified);
-                    final boolean sameSize = (attrs.size() == size);
-                    final boolean sameMimeType = mimeType == null ? actualMimeType == null :
-                            mimeType.equalsIgnoreCase(actualMimeType);
-                    final boolean sameMediaType = (actualMediaType == mediaType);
-                    final boolean isSame = sameTime && sameSize && sameMediaType && sameMimeType
-                            && !isPendingFromFuse;
-                    if (attrs.isDirectory() || isSame) {
+                    if (attrs.isDirectory()) {
+                        if (LOGV) Log.v(TAG, "Skipping directory " + file);
+                        return FileVisitResult.CONTINUE;
+                    }
+
+                    final boolean sameMetadata =
+                            hasSameMetadata(attrs, realFile, isPendingFromFuse, c);
+                    if (isSame(
+                            sameMetadata, actualMimeType, actualMediaType, mimeType, mediaType)) {
                         if (LOGV) Log.v(TAG, "Skipping unchanged " + file);
                         return FileVisitResult.CONTINUE;
                     }
+
+                    // For this special case we may have changed mime type from the file's metadata.
+                    // This is safe because mime_type cannot be changed outside of scanning.
+                    if (sameMetadata
+                            && "video/mp4".equalsIgnoreCase(actualMimeType)
+                            && "audio/mp4".equalsIgnoreCase(mimeType)) {
+                        if (LOGV) Log.v(TAG, "Skipping unchanged video/audio " + file);
+                        return FileVisitResult.CONTINUE;
+                    }
                 }
+
+                // Since we allow top-level mime type to be customised, we need to do this early
+                // on, so the file is later scanned as the appropriate type (otherwise, this
+                // audio filed would be scanned as video and it would be missing the correct
+                // metadata).
+                actualMimeType = updateM4aMimeType(realFile, actualMimeType);
+                actualMediaType =
+                        mediaTypeFromMimeType(realFile, actualMimeType, actualMediaType);
             } finally {
                 Trace.endSection();
             }
@@ -637,6 +770,7 @@ public class ModernMediaScanner implements MediaScanner {
                 Trace.endSection();
             }
             if (op != null) {
+                op.withValue(FileColumns._MODIFIER, FileColumns._MODIFIER_MEDIA_SCAN);
                 // Add owner package name to new insertions when package name is provided.
                 if (op.build().isInsert() && !attrs.isDirectory() && mOwnerPackage != null) {
                     op.withValue(MediaColumns.OWNER_PACKAGE_NAME, mOwnerPackage);
@@ -650,6 +784,65 @@ public class ModernMediaScanner implements MediaScanner {
                 maybeApplyPending();
             }
             return FileVisitResult.CONTINUE;
+        }
+
+        private boolean isSame(
+                boolean hasSameMetadata,
+                String actualMimeType,
+                int actualMediaType,
+                String mimeType,
+                int mediaType) {
+            boolean sameMimeType =
+                    mimeType == null
+                            ? actualMimeType == null
+                            : mimeType.equalsIgnoreCase(actualMimeType);
+            boolean sameMediaType = (actualMediaType == mediaType);
+            return hasSameMetadata && sameMediaType && sameMimeType;
+        }
+
+        private int mediaTypeFromMimeType(
+                File file, String mimeType, int defaultMediaType) {
+            if (mimeType != null) {
+                return resolveMediaTypeFromFilePath(
+                        file, mimeType, /*isHidden*/ mHiddenDirCount > 0);
+            }
+            return defaultMediaType;
+        }
+
+        private boolean hasSameMetadata(
+                BasicFileAttributes attrs, File realFile, boolean isPendingFromFuse, Cursor c) {
+            final long dateModified = c.getLong(1);
+            final boolean sameTime = (lastModifiedTime(realFile, attrs) == dateModified);
+
+            final long size = c.getLong(2);
+            final boolean sameSize = (attrs.size() == size);
+
+            final boolean isScanned =
+                    c.getInt(6) == FileColumns._MODIFIER_MEDIA_SCAN;
+
+            return sameTime && sameSize && !isPendingFromFuse && isScanned;
+        }
+
+        /**
+         * For this one very narrow case, we allow mime types to be customised when the top levels
+         * differ. This opens the given file, so avoid calling unless really necessary. This
+         * returns the defaultMimeType for non-m4a files or if opening the file throws an exception.
+         */
+        private String updateM4aMimeType(File file, String defaultMimeType) {
+            if ("video/mp4".equalsIgnoreCase(defaultMimeType)) {
+                try (
+                    FileInputStream is = new FileInputStream(file);
+                    MediaMetadataRetriever mmr = new MediaMetadataRetriever()) {
+                    mmr.setDataSource(is.getFD());
+                    String refinedMimeType = mmr.extractMetadata(METADATA_KEY_MIMETYPE);
+                    if ("audio/mp4".equalsIgnoreCase(refinedMimeType)) {
+                        return refinedMimeType;
+                    }
+                } catch (Exception e) {
+                    return defaultMimeType;
+                }
+            }
+            return defaultMimeType;
         }
 
         @Override
@@ -674,6 +867,15 @@ public class ModernMediaScanner implements MediaScanner {
             // allow other parallel scans to proceed
             releaseDirectoryLock(dir);
 
+            if (mIsDirectoryTreeDirty) {
+                synchronized (mPendingCleanDirectories) {
+                    if (mPendingCleanDirectories.remove(dir.toFile().getPath())) {
+                        // If |dir| is still clean, then persist
+                        FileUtils.setDirectoryDirty(dir.toFile(), false /* isDirty */);
+                        mIsDirectoryTreeDirty = false;
+                    }
+                }
+            }
             return FileVisitResult.CONTINUE;
         }
 
@@ -896,7 +1098,16 @@ public class ModernMediaScanner implements MediaScanner {
         op.withValue(MediaColumns.DOCUMENT_ID, xmp.getDocumentId());
         op.withValue(MediaColumns.INSTANCE_ID, xmp.getInstanceId());
         op.withValue(MediaColumns.ORIGINAL_DOCUMENT_ID, xmp.getOriginalDocumentId());
-        op.withValue(MediaColumns.XMP, xmp.getRedactedXmp());
+        op.withValue(MediaColumns.XMP, maybeTruncateXmp(xmp));
+    }
+
+    private static byte[] maybeTruncateXmp(XmpInterface xmp) {
+        byte[] redacted = xmp.getRedactedXmp();
+        if (redacted.length > MAX_XMP_SIZE_BYTES) {
+            return new byte[0];
+        }
+
+        return redacted;
     }
 
     /**
@@ -1003,6 +1214,7 @@ public class ModernMediaScanner implements MediaScanner {
 
         op.withValue(MediaColumns.ARTIST, UNKNOWN_STRING);
         op.withValue(MediaColumns.ALBUM, file.getParentFile().getName());
+        op.withValue(AudioColumns.TRACK, null);
 
         final String lowPath = file.getAbsolutePath().toLowerCase(Locale.ROOT);
         boolean anyMatch = false;
@@ -1320,13 +1532,29 @@ public class ModernMediaScanner implements MediaScanner {
     static @NonNull Optional<Long> parseOptionalDate(@Nullable String date) {
         if (TextUtils.isEmpty(date)) return Optional.empty();
         try {
-            synchronized (sDateFormat) {
-                final long value = sDateFormat.parse(date).getTime();
-                return (value > 0) ? Optional.of(value) : Optional.empty();
+            synchronized (S_DATE_FORMAT_WITH_MILLIS) {
+                return parseDateWithFormat(date, S_DATE_FORMAT_WITH_MILLIS);
             }
         } catch (ParseException e) {
+            // Log and try without millis as well
+            Log.d(TAG, String.format(
+                    "Parsing date with millis failed for [%s]. We will retry without millis",
+                    date));
+        }
+        try {
+            synchronized (S_DATE_FORMAT) {
+                return parseDateWithFormat(date, S_DATE_FORMAT);
+            }
+        } catch (ParseException e) {
+            Log.d(TAG, String.format("Parsing date without millis failed for [%s]", date));
             return Optional.empty();
         }
+    }
+
+    private static Optional<Long> parseDateWithFormat(
+            @Nullable String date, SimpleDateFormat dateFormat) throws ParseException {
+        final long value = dateFormat.parse(date).getTime();
+        return (value > 0) ? Optional.of(value) : Optional.empty();
     }
 
     @VisibleForTesting
@@ -1373,12 +1601,6 @@ public class ModernMediaScanner implements MediaScanner {
         if (refinedSplit == -1) return Optional.empty();
 
         if (fileMimeType.regionMatches(true, 0, refinedMimeType, 0, refinedSplit + 1)) {
-            return Optional.of(refinedMimeType);
-        } else if ("video/mp4".equalsIgnoreCase(fileMimeType)
-                && "audio/mp4".equalsIgnoreCase(refinedMimeType)) {
-            // We normally only allow MIME types to be customized when the
-            // top-level type agrees, but this one very narrow case is added to
-            // support a music service that was writing "m4a" files as "mp4".
             return Optional.of(refinedMimeType);
         } else {
             return Optional.empty();

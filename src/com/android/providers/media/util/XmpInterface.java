@@ -65,7 +65,7 @@ public class XmpInterface {
     private static final String NAME_INSTANCE_ID = "InstanceID";
 
     private final LongArray mRedactedRanges = new LongArray();
-    private byte[] mRedactedXmp;
+    private @NonNull byte[] mRedactedXmp;
     private String mFormat;
     private String mDocumentId;
     private String mInstanceId;
@@ -223,7 +223,7 @@ public class XmpInterface {
         return mOriginalDocumentId;
     }
 
-    public @Nullable byte[] getRedactedXmp() {
+    public @NonNull byte[] getRedactedXmp() {
         return mRedactedXmp;
     }
 

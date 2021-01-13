@@ -17,18 +17,30 @@
 #ifndef MEDIA_PROVIDER_FUSE_REDACTIONINFO_H_
 #define MEDIA_PROVIDER_FUSE_REDACTIONINFO_H_
 
+#include <ostream>
 #include <vector>
 
 namespace mediaprovider {
 namespace fuse {
 
 /**
- * Type that represents a single redaction range within a file.
- * first is the offset of the first byte in the redaction range within the file
- * second is the offset of the last byte in the redaction range within the file
- * Ranges are inclusive.
+ * Type that represents a single redaction range within a file. Contains
+ * a pair of offsets in the file, [start, end).
  */
 typedef std::pair<off64_t, off64_t> RedactionRange;
+
+class ReadRange {
+  public:
+    ReadRange(off64_t s, size_t l, bool r) : start(s), size(l), is_redaction(r) {}
+
+    const off64_t start;
+    const size_t size;
+    const bool is_redaction;
+
+    bool operator==(const ReadRange& rhs) const {
+        return start == rhs.start && size == rhs.size && is_redaction == rhs.is_redaction;
+    }
+};
 
 class RedactionInfo {
   public:
@@ -55,6 +67,23 @@ class RedactionInfo {
      * Calls d'tor for redactionRanges (vector).
      */
     ~RedactionInfo() = default;
+
+    /**
+     * Returns a set of ranges to fulfill a read request starting at |off| of size
+     * |size|.
+     */
+    void getReadRanges(off64_t off, size_t size, std::vector<ReadRange>* out) const;
+
+    /**
+     * Returns whether any ranges need to be redacted.
+     */
+    bool isRedactionNeeded() const;
+    /**
+     * Returns number of redaction ranges.
+     */
+    int size() const;
+
+  private:
     /**
      * Calculates the redaction ranges that overlap with a given read request.
      * The read request is defined by its size and the offset of its first byte.
@@ -70,16 +99,6 @@ class RedactionInfo {
      */
     std::unique_ptr<std::vector<RedactionRange>> getOverlappingRedactionRanges(size_t size,
                                                                                off64_t off) const;
-    /**
-     * Returns whether any ranges need to be redacted.
-     */
-    bool isRedactionNeeded() const;
-    /**
-     * Returns number of redaction ranges.
-     */
-    int size() const;
-
-  private:
     std::vector<RedactionRange> redaction_ranges_;
     void processRedactionRanges(int redaction_ranges_num, const off64_t* redaction_ranges);
     bool hasOverlapWithReadRequest(size_t size, off64_t off) const;

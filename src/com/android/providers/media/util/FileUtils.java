@@ -49,6 +49,7 @@ import android.net.Uri;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.os.storage.StorageManager;
+import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
 import android.system.ErrnoException;
@@ -89,6 +90,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class FileUtils {
+    // Even though vfat allows 255 UCS-2 chars, we might eventually write to
+    // ext4 through a FUSE layer, so use that limit.
+    @VisibleForTesting
+    static final int MAX_FILENAME_BYTES = 255;
+
     /**
      * Drop-in replacement for {@link ParcelFileDescriptor#open(File, int)}
      * which adds security features like {@link OsConstants#O_CLOEXEC} and
@@ -386,18 +392,31 @@ public class FileUtils {
         }
     }
 
+    private static final int MAX_READ_STRING_SIZE = 4096;
+
     /**
      * Read given {@link File} as a single {@link String}. Returns
-     * {@link Optional#empty()} when the file doesn't exist.
+     * {@link Optional#empty()} when
+     * <ul>
+     * <li> the file doesn't exist or
+     * <li> the size of the file exceeds {@code MAX_READ_STRING_SIZE}
+     * </ul>
      */
     public static @NonNull Optional<String> readString(@NonNull File file) throws IOException {
         try {
-            final String value = new String(Files.readAllBytes(file.toPath()),
-                    StandardCharsets.UTF_8);
-            return Optional.of(value);
-        } catch (NoSuchFileException e) {
-            return Optional.empty();
+            if (file.length() <= MAX_READ_STRING_SIZE) {
+                final String value = new String(Files.readAllBytes(file.toPath()),
+                        StandardCharsets.UTF_8);
+                return Optional.of(value);
+            }
+            // When file size exceeds MAX_READ_STRING_SIZE, file is either
+            // corrupted or doesn't the contain expected data. Hence we return
+            // Optional.empty() which will be interpreted as empty file.
+            Logging.logPersistent(String.format("Ignored reading %s, file size exceeds %d", file,
+                    MAX_READ_STRING_SIZE));
+        } catch (NoSuchFileException ignored) {
         }
+        return Optional.empty();
     }
 
     /**
@@ -507,9 +526,8 @@ public class FileUtils {
                 res.append('_');
             }
         }
-        // Even though vfat allows 255 UCS-2 chars, we might eventually write to
-        // ext4 through a FUSE layer, so use that limit.
-        trimFilename(res, 255);
+
+        trimFilename(res, MAX_FILENAME_BYTES);
         return res.toString();
     }
 
@@ -573,7 +591,7 @@ public class FileUtils {
                     int i = Integer.parseInt(dcfStrict.group(2));
                     @Override
                     public String next() {
-                        final String res = String.format("%s%04d", prefix, i);
+                        final String res = String.format(Locale.US, "%s%04d", prefix, i);
                         i++;
                         return res;
                     }
@@ -589,11 +607,14 @@ public class FileUtils {
                 // Generate names like "IMG_20190102_030405~2"
                 final String prefix = dcfRelaxed.group(1);
                 return new Iterator<String>() {
-                    int i = TextUtils.isEmpty(dcfRelaxed.group(2)) ? 1
+                    int i = TextUtils.isEmpty(dcfRelaxed.group(2))
+                            ? 1
                             : Integer.parseInt(dcfRelaxed.group(2));
                     @Override
                     public String next() {
-                        final String res = (i == 1) ? prefix : String.format("%s~%d", prefix, i);
+                        final String res = (i == 1)
+                            ? prefix
+                            : String.format(Locale.US, "%s~%d", prefix, i);
                         i++;
                         return res;
                     }
@@ -838,10 +859,15 @@ public class FileUtils {
     /**
      * Return volume name which hosts the given path.
      */
-    public static @NonNull String getVolumeName(@NonNull Context context, @NonNull File path) {
+    public static @NonNull String getVolumeName(@NonNull Context context, @NonNull File path)
+            throws FileNotFoundException {
         if (contains(Environment.getStorageDirectory(), path)) {
-            return context.getSystemService(StorageManager.class).getStorageVolume(path)
-                    .getMediaStoreVolumeName();
+            StorageVolume volume = context.getSystemService(StorageManager.class)
+                    .getStorageVolume(path);
+            if (volume == null) {
+                throw new FileNotFoundException("Can't find volume for " + path.getPath());
+            }
+            return volume.getMediaStoreVolumeName();
         } else {
             return MediaStore.VOLUME_INTERNAL;
         }
@@ -900,6 +926,27 @@ public class FileUtils {
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb)/?$");
 
     /**
+     * Regex that matches Android/obb paths.
+     */
+    public static final Pattern PATTERN_OBB_OR_CHILD_PATH = Pattern.compile(
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:obb)(/?.*)");
+
+    @VisibleForTesting
+    public static final String[] DEFAULT_FOLDER_NAMES = {
+            Environment.DIRECTORY_MUSIC,
+            Environment.DIRECTORY_PODCASTS,
+            Environment.DIRECTORY_RINGTONES,
+            Environment.DIRECTORY_ALARMS,
+            Environment.DIRECTORY_NOTIFICATIONS,
+            Environment.DIRECTORY_PICTURES,
+            Environment.DIRECTORY_MOVIES,
+            Environment.DIRECTORY_DOWNLOADS,
+            Environment.DIRECTORY_DCIM,
+            Environment.DIRECTORY_DOCUMENTS,
+            Environment.DIRECTORY_AUDIOBOOKS,
+    };
+
+    /**
      * Regex that matches paths for {@link MediaColumns#RELATIVE_PATH}; it
      * captures both top-level paths and sandboxed paths.
      */
@@ -911,6 +958,9 @@ public class FileUtils {
      */
     private static final Pattern PATTERN_VOLUME_NAME = Pattern.compile(
             "(?i)^/storage/([^/]+)");
+
+    private static final String CAMERA_RELATIVE_PATH =
+            String.format("%s/%s/", Environment.DIRECTORY_DCIM, "Camera");
 
     private static @Nullable String normalizeUuid(@Nullable String fsUuid) {
         return fsUuid != null ? fsUuid.toLowerCase(Locale.ROOT) : null;
@@ -1011,6 +1061,15 @@ public class FileUtils {
     }
 
     /**
+     * Returns true if relative path is Android/obb path.
+     */
+    public static boolean isObbOrChildPath(String path) {
+        if (path == null) return false;
+        final Matcher m = PATTERN_OBB_OR_CHILD_PATH.matcher(path);
+        return m.matches();
+    }
+
+    /**
      * Returns the name of the top level directory, or null if the path doesn't go through the
      * external storage directory.
      */
@@ -1022,6 +1081,15 @@ public class FileUtils {
         }
         final String[] relativePathSegments = relativePath.split("/");
         return relativePathSegments.length > 0 ? relativePathSegments[0] : null;
+    }
+
+    public static boolean isDefaultDirectoryName(@Nullable String dirName) {
+        for (String defaultDirName : DEFAULT_FOLDER_NAMES) {
+            if (defaultDirName.equalsIgnoreCase(dirName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -1126,13 +1194,21 @@ public class FileUtils {
         if (!isForFuse && getAsBoolean(values, MediaColumns.IS_PENDING, false)) {
             final long dateExpires = getAsLong(values, MediaColumns.DATE_EXPIRES,
                     (System.currentTimeMillis() + DEFAULT_DURATION_PENDING) / 1000);
-            resolvedDisplayName = String.format(".%s-%d-%s",
-                    FileUtils.PREFIX_PENDING, dateExpires, displayName);
+            final String combinedString = String.format(
+                    Locale.US, ".%s-%d-%s", FileUtils.PREFIX_PENDING, dateExpires, displayName);
+            // trim the file name to avoid ENAMETOOLONG error
+            // after trim the file, if the user unpending the file,
+            // the file name is not the original one
+            resolvedDisplayName = trimFilename(combinedString, MAX_FILENAME_BYTES);
         } else if (getAsBoolean(values, MediaColumns.IS_TRASHED, false)) {
             final long dateExpires = getAsLong(values, MediaColumns.DATE_EXPIRES,
                     (System.currentTimeMillis() + DEFAULT_DURATION_TRASHED) / 1000);
-            resolvedDisplayName = String.format(".%s-%d-%s",
-                    FileUtils.PREFIX_TRASHED, dateExpires, displayName);
+            final String combinedString = String.format(
+                    Locale.US, ".%s-%d-%s", FileUtils.PREFIX_TRASHED, dateExpires, displayName);
+            // trim the file name to avoid ENAMETOOLONG error
+            // after trim the file, if the user untrashes the file,
+            // the file name is not the original one
+            resolvedDisplayName = trimFilename(combinedString, MAX_FILENAME_BYTES);
         } else {
             resolvedDisplayName = displayName;
         }
@@ -1221,12 +1297,32 @@ public class FileUtils {
         }
 
         final File nomedia = new File(dir, ".nomedia");
+
         // check for .nomedia presence
-        if (nomedia.exists()) {
-            Logging.logPersistent("Observed non-standard " + nomedia);
-            return true;
+        if (!nomedia.exists()) {
+            return false;
         }
-        return false;
+
+        // Handle top-level default directories. These directories should always be visible,
+        // regardless of .nomedia presence.
+        final String[] relativePath = sanitizePath(extractRelativePath(dir.getAbsolutePath()));
+        final boolean isTopLevelDir =
+                relativePath.length == 1 && TextUtils.isEmpty(relativePath[0]);
+        if (isTopLevelDir && isDefaultDirectoryName(name)) {
+            nomedia.delete();
+            return false;
+        }
+
+        // DCIM/Camera should always be visible regardless of .nomedia presence.
+        if (CAMERA_RELATIVE_PATH.equalsIgnoreCase(
+                extractRelativePathForDirectory(dir.getAbsolutePath()))) {
+            nomedia.delete();
+            return false;
+        }
+
+        // .nomedia is present which makes this directory as hidden directory
+        Logging.logPersistent("Observed non-standard " + nomedia);
+        return true;
     }
 
     /**
@@ -1281,5 +1377,61 @@ public class FileUtils {
             }
         }
         return status;
+    }
+
+    /**
+     * @return {@code true} if {@code dir} is dirty and should be scanned, {@code false} otherwise.
+     */
+    public static boolean isDirectoryDirty(File dir) {
+        File nomedia = new File(dir, ".nomedia");
+        if (nomedia.exists()) {
+            try {
+                Optional<String> expectedPath = readString(nomedia);
+                // Returns true If .nomedia file is empty or content doesn't match |dir|
+                // Returns false otherwise
+                return !expectedPath.isPresent()
+                        || !expectedPath.get().equals(dir.getPath());
+            } catch (IOException e) {
+                Log.w(TAG, "Failed to read directory dirty" + dir);
+            }
+        }
+        return true;
+    }
+
+    /**
+     * {@code isDirty} == {@code true} will force {@code dir} scanning even if it's hidden
+     * {@code isDirty} == {@code false} will skip {@code dir} scanning on next scan.
+     */
+    public static void setDirectoryDirty(File dir, boolean isDirty) {
+        File nomedia = new File(dir, ".nomedia");
+        if (nomedia.exists()) {
+            try {
+                writeString(nomedia, isDirty ? Optional.of("") : Optional.of(dir.getPath()));
+            } catch (IOException e) {
+                Log.w(TAG, "Failed to change directory dirty: " + dir + ". isDirty: " + isDirty);
+            }
+        }
+    }
+
+    /**
+     * @return the folder containing the top-most .nomedia in {@code file} hierarchy.
+     * E.g input as /sdcard/foo/bar/ will return /sdcard/foo
+     * even if foo and bar contain .nomedia files.
+     *
+     * Returns {@code null} if there's no .nomedia in hierarchy
+     */
+    public static File getTopLevelNoMedia(@NonNull File file) {
+        File topNoMediaDir = null;
+
+        File parent = file;
+        while (parent != null) {
+            File nomedia = new File(parent, ".nomedia");
+            if (nomedia.exists()) {
+                topNoMediaDir = parent;
+            }
+            parent = parent.getParentFile();
+        }
+
+        return topNoMediaDir;
     }
 }

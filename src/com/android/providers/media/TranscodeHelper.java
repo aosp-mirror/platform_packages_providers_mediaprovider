@@ -419,14 +419,14 @@ public class TranscodeHelper {
                 return false;
             }
         }
-        boolean transcodeNeeded = doesAppNeedTranscoding(path, uid, bundle);
+        boolean transcodeNeeded = doesAppNeedTranscoding(uid, bundle);
         if (!transcodeNeeded) {
             reportTranscodingDirectAccess(uid);
         }
         return transcodeNeeded;
     }
 
-    private boolean doesAppNeedTranscoding(String path, int uid, Bundle bundle) {
+    private boolean doesAppNeedTranscoding(int uid, Bundle bundle) {
         if (bundle != null) {
             if (bundle.getBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, false)) {
                 logVerbose("Original format requested");

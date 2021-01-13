@@ -720,8 +720,15 @@ static void pf_setattr(fuse_req_t req,
         fd = h->fd;
     } else {
         const struct fuse_ctx* ctx = fuse_req_ctx(req);
-        int status = fuse->mp->IsOpenAllowed(path, ctx->uid, true);
-        if (status) {
+        std::unique_ptr<FileOpenResult> result = fuse->mp->OnFileOpen(
+                path, path, ctx->uid, ctx->pid, true /* for_write */, false /* redact */);
+
+        if (!result) {
+            fuse_reply_err(req, EFAULT);
+            return;
+        }
+
+        if (result->status) {
             fuse_reply_err(req, EACCES);
             return;
         }
@@ -1102,9 +1109,17 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     // TODO: If transform, disallow write
     // Force permission check with the build path because the MediaProvider database might not be
     // aware of the io_path
-    int status = fuse->mp->IsOpenAllowed(build_path, ctx->uid, is_requesting_write(fi->flags));
-    if (status) {
-        fuse_reply_err(req, status);
+    bool for_write = is_requesting_write(fi->flags);
+    // We don't redact if the caller was granted write permission for this file
+    std::unique_ptr<FileOpenResult> result = fuse->mp->OnFileOpen(
+            build_path, io_path, ctx->uid, ctx->pid, for_write, !for_write /* redact */);
+    if (!result) {
+        fuse_reply_err(req, EFAULT);
+        return;
+    }
+
+    if (result->status) {
+        fuse_reply_err(req, result->status);
         return;
     }
 
@@ -1126,23 +1141,9 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         return;
     }
 
-    // We don't redact if the caller was granted write permission for this file
-    std::unique_ptr<RedactionInfo> ri;
-    if (is_requesting_write(fi->flags)) {
-        ri = std::make_unique<RedactionInfo>();
-    } else {
-        ri = fuse->mp->GetRedactionInfo(build_path, io_path, req->ctx.uid, req->ctx.pid);
-    }
-
-    if (!ri) {
-        close(fd);
-        fuse_reply_err(req, EFAULT);
-        return;
-    }
-
     int keep_cache = 1;
-    handle* h = create_handle_for_node(fuse, io_path, fd, req->ctx.uid, node, ri.release(),
-                                       &keep_cache);
+    handle* h = create_handle_for_node(fuse, io_path, fd, req->ctx.uid, node,
+                                       result->redaction_info.release(), &keep_cache);
     fi->fh = ptr_to_id(h);
     fi->keep_cache = keep_cache;
     fi->direct_io = !h->cached;
@@ -1618,7 +1619,15 @@ static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
             return;
         }
 
-        status = fuse->mp->IsOpenAllowed(path, req->ctx.uid, for_write);
+        std::unique_ptr<FileOpenResult> result = fuse->mp->OnFileOpen(
+                path, path, req->ctx.uid, req->ctx.pid, for_write, false /* redact */);
+        if (!result) {
+            status = EFAULT;
+        }
+
+        if (result->status) {
+            status = EACCES;
+        }
     }
 
     fuse_reply_err(req, status);

@@ -7088,12 +7088,9 @@ public class MediaProvider extends ContentProvider {
      * @return Ranges that should be redacted.
      *
      * @throws IOException if an error occurs while calculating the redaction ranges
-     *
-     * Called from JNI in jni/MediaProviderWrapper.cpp
      */
-    @Keep
     @NonNull
-    public long[] getRedactionRangesForFuse(String path, String ioPath, int uid, int tid)
+    private long[] getRedactionRangesFromFuse(String path, String ioPath, int uid, int tid)
             throws IOException {
         // |ioPath| might refer to a transcoded file path (which is not indexed in the db)
         // |path| will always refer to a valid _data column
@@ -7242,23 +7239,25 @@ public class MediaProvider extends ContentProvider {
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public int isOpenAllowedForFuse(String path, int uid, boolean forWrite) {
+    public FileOpenResult onFileOpenForFuse(String path, String ioPath, int uid, int tid,
+            boolean forWrite, boolean redact) {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
 
         try {
             if (isPrivatePackagePathNotAccessibleByCaller(path)) {
                 Log.e(TAG, "Can't open a file in another app's external directory!");
-                return OsConstants.ENOENT;
+                return new FileOpenResult(OsConstants.ENOENT, uid, new long[0]);
             }
 
             if (shouldBypassFuseRestrictions(forWrite, path)) {
-                return 0;
+                return new FileOpenResult(0 /* status */, uid,
+                        redact ? getRedactionRangesFromFuse(path, ioPath, uid, tid) : new long[0]);
             }
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
-                return OsConstants.EACCES;
+                return new FileOpenResult(OsConstants.EACCES /* status */, uid, new long[0]);
             }
 
             final Uri contentUri = FileUtils.getContentUriForPath(path);
@@ -7285,18 +7284,20 @@ public class MediaProvider extends ContentProvider {
             if (isPending && !isPendingFromFuse(new File(path))) {
                 requireOwnershipForItem(ownerPackageName, fileUri);
             }
-            return 0;
-        } catch (FileNotFoundException e) {
+            return new FileOpenResult(0 /* status */, uid,
+                    redact ? getRedactionRangesFromFuse(path, ioPath, uid, tid) : new long[0]);
+        } catch (IOException e) {
             // We are here because
             // * App doesn't have read permission to the requested path, hence queryForSingleItem
             //   couldn't return a valid db row, or,
             // * There is no db row corresponding to the requested path, which is more unlikely.
-            // In both of these cases, it means that app doesn't have access permission to the file.
+            // * getRedactionRangesFromFuse couldn't fetch the redaction info correctly
+            // In all of these cases, it means that app doesn't have access permission to the file.
             Log.e(TAG, "Couldn't find file: " + path, e);
-            return OsConstants.EACCES;
+            return new FileOpenResult(OsConstants.EACCES /* status */, uid, new long[0]);
         } catch (IllegalStateException | SecurityException e) {
             Log.e(TAG, "Permission to access file: " + path + " is denied");
-            return OsConstants.EACCES;
+            return new FileOpenResult(OsConstants.EACCES /* status */, uid, new long[0]);
         } finally {
             restoreLocalCallingIdentity(token);
         }

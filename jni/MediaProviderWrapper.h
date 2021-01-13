@@ -137,13 +137,19 @@ class MediaProviderWrapper final {
     int IsOpendirAllowed(const std::string& path, uid_t uid, bool forWrite);
 
     /**
-     * Determines if the given package name matches its uid.
+     * Determines if one of the follows is true:
+     * 1. The package name of the given private path matches the given uid,
+          then this uid has access to private-app directories for this package.
+     * 2. The calling uid has special access to private-app directories:
+     *    * DownloadProvider and ExternalStorageProvider has access to private
+     *      app directories.
+     *    * Installer apps have access to Android/obb directories
      *
-     * @param pkg the package name of the app
      * @param uid UID of the app
+     * @param path the private path that the UID wants to access
      * @return true if it matches, otherwise return false.
      */
-    bool IsUidForPackage(const std::string& pkg, uid_t uid);
+    bool isUidAllowedAccessToDataOrObbPath(uid_t uid, const std::string& path);
 
     /**
      * Renames a file or directory to new path.
@@ -163,6 +169,21 @@ class MediaProviderWrapper final {
      * @param path path of the file that has been created.
      */
     void OnFileCreated(const std::string& path);
+
+    /**
+     * Determines if to allow FUSE_LOOKUP for uid. Might allow uids that don't belong to the
+     * MediaProvider user, depending on OEM configuration.
+     *
+     * @param uid linux uid to check
+     */
+    bool ShouldAllowLookup(uid_t uid, int path_user_id);
+
+    /**
+     * Determines if the passed in user ID is an app clone user (paired with user 0)
+     *
+     * @param userId the user ID to check
+     */
+    bool IsAppCloneUser(uid_t userId);
 
     /**
      * Initializes per-process static variables associated with the lifetime of
@@ -186,8 +207,10 @@ class MediaProviderWrapper final {
     jmethodID mid_is_opendir_allowed_;
     jmethodID mid_get_files_in_dir_;
     jmethodID mid_rename_;
-    jmethodID mid_is_uid_for_package_;
+    jmethodID mid_is_uid_allowed_access_to_data_or_obb_path_;
     jmethodID mid_on_file_created_;
+    jmethodID mid_should_allow_lookup_;
+    jmethodID mid_is_app_clone_user_;
 
     /**
      * Auxiliary for caching MediaProvider methods.

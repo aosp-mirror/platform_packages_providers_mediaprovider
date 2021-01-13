@@ -16,16 +16,19 @@
 
 package com.android.providers.media.client;
 
+import static android.provider.MediaStore.VOLUME_EXTERNAL;
 import static android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY;
 import static android.provider.MediaStore.VOLUME_INTERNAL;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -52,6 +55,8 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Verify typical behaviors of {@link MediaStore.Audio.Playlists} from an
@@ -117,82 +122,127 @@ public class ClientPlaylistTest {
         mValues.put(MediaColumns.DISPLAY_NAME, "Playlist " + System.nanoTime());
         mValues.put(MediaColumns.MIME_TYPE, mMimeType);
 
-        final Uri playlist = mContentResolver.insert(mExternalPlaylists, mValues);
-        final Uri members = MediaStore.Audio.Playlists.Members
-                .getContentUri(VOLUME_EXTERNAL_PRIMARY, ContentUris.parseId(playlist));
+        final Uri playlistUri = mContentResolver.insert(mExternalPlaylists, mValues);
+        final Uri externalVolumePlaylistUri = getExternalVolumePlaylistUri(
+                ContentUris.parseId(playlistUri));
+
+        final TestContentObserverHelper obs = TestContentObserverHelper.create(
+                Arrays.asList(playlistUri, externalVolumePlaylistUri),
+                ContentResolver.NOTIFY_INSERT);
+        final Uri membersUri = MediaStore.Audio.Playlists.Members
+                .getContentUri(VOLUME_EXTERNAL_PRIMARY, ContentUris.parseId(playlistUri));
 
         // Inserting without ordering will always append
         mValues.clear();
         mValues.put(Playlists.Members.AUDIO_ID, mRed);
-        mContentResolver.insert(members, mValues);
+        Uri resultUri = mContentResolver.insert(membersUri, mValues);
+        obs.waitForChange();
+
         mValues.put(Playlists.Members.AUDIO_ID, mGreen);
-        mContentResolver.insert(members, mValues);
+        resultUri = mContentResolver.insert(membersUri, mValues);
+        obs.waitForChange();
         assertMembers(Arrays.asList(
                 Pair.create(mRed, 1),
-                Pair.create(mGreen, 2)), queryMembers(members));
+                Pair.create(mGreen, 2)), queryMembers(membersUri));
 
         // Inserting with ordering should be injected
         mValues.clear();
         mValues.put(Playlists.Members.AUDIO_ID, mBlue);
         mValues.put(Playlists.Members.PLAY_ORDER, 1);
-        mContentResolver.insert(members, mValues);
+        resultUri = mContentResolver.insert(membersUri, mValues);
+        obs.waitForChange();
         assertMembers(Arrays.asList(
                 Pair.create(mBlue, 1),
                 Pair.create(mRed, 2),
-                Pair.create(mGreen, 3)), queryMembers(members));
+                Pair.create(mGreen, 3)), queryMembers(membersUri));
+
+        obs.unregister();
     }
 
     @Test
     public void testMove() throws Exception {
         final long playlistId = createPlaylist(mRed, mGreen, mBlue);
-        final Uri members = Playlists.Members.getContentUri(VOLUME_EXTERNAL_PRIMARY, playlistId);
+        Uri playlistUri = ContentUris.withAppendedId(
+                MediaStore.Audio.Playlists.getContentUri(VOLUME_EXTERNAL), playlistId);
+        Uri externalVolumePlaylistUri = getExternalVolumePlaylistUri(playlistId);
+        final Uri membersUri = Playlists.Members.getContentUri(VOLUME_EXTERNAL_PRIMARY, playlistId);
+
+        TestContentObserverHelper obs = TestContentObserverHelper.create(
+                Arrays.asList(playlistUri, externalVolumePlaylistUri),
+                ContentResolver.NOTIFY_UPDATE);
+
 
         // Simple move forwards
-        Playlists.Members.moveItem(mContentResolver, playlistId, 0, 2);
+        boolean result = Playlists.Members.moveItem(mContentResolver, playlistId, 0, 2);
+        obs.waitForChange();
+        assertTrue(result);
         assertMembers(Arrays.asList(
                 Pair.create(mGreen, 1),
                 Pair.create(mBlue, 2),
-                Pair.create(mRed, 3)), queryMembers(members));
+                Pair.create(mRed, 3)), queryMembers(membersUri));
 
         // Simple move backwards
-        Playlists.Members.moveItem(mContentResolver, playlistId, 2, 0);
+        result = Playlists.Members.moveItem(mContentResolver, playlistId, 2, 0);
+        obs.waitForChange();
+        assertTrue(result);
         assertMembers(Arrays.asList(
                 Pair.create(mRed, 1),
                 Pair.create(mGreen, 2),
-                Pair.create(mBlue, 3)), queryMembers(members));
+                Pair.create(mBlue, 3)), queryMembers(membersUri));
 
         // Advanced moves using query args
         mValues.clear();
         mValues.put(Playlists.Members.PLAY_ORDER, 1);
-        mContentResolver.update(members, mValues, Playlists.Members.PLAY_ORDER + "=?",
-                new String[] { "2" });
+        int count = mContentResolver.update(membersUri, mValues,
+                Playlists.Members.PLAY_ORDER + "=?", new String[] { "2" });
+        obs.waitForChange();
+        assertEquals(1, count);
         assertMembers(Arrays.asList(
                 Pair.create(mGreen, 1),
                 Pair.create(mRed, 2),
-                Pair.create(mBlue, 3)), queryMembers(members));
+                Pair.create(mBlue, 3)), queryMembers(membersUri));
 
-        mContentResolver.update(members, mValues, Playlists.Members.PLAY_ORDER + "=2", null);
+
+        count = mContentResolver.update(membersUri, mValues,
+                Playlists.Members.PLAY_ORDER + "=2", null);
+        obs.waitForChange();
+        assertEquals(1, count);
         assertMembers(Arrays.asList(
                 Pair.create(mRed, 1),
                 Pair.create(mGreen, 2),
-                Pair.create(mBlue, 3)), queryMembers(members));
+                Pair.create(mBlue, 3)), queryMembers(membersUri));
+
+        obs.unregister();
     }
 
     @Test
     public void testRemove() throws Exception {
         final long playlistId = createPlaylist(mRed, mGreen, mBlue);
-        final Uri members = Playlists.Members.getContentUri(VOLUME_EXTERNAL_PRIMARY, playlistId);
+        final Uri membersUri = Playlists.Members.getContentUri(VOLUME_EXTERNAL_PRIMARY, playlistId);
+
+        final Uri playlistUri = ContentUris.withAppendedId(
+                MediaStore.Audio.Playlists.getContentUri(VOLUME_EXTERNAL_PRIMARY), playlistId);
+        final Uri externalVolumePlaylistUri = getExternalVolumePlaylistUri(playlistId);
+        final TestContentObserverHelper obs = TestContentObserverHelper.create(
+                Arrays.asList(playlistUri, externalVolumePlaylistUri),
+                ContentResolver.NOTIFY_DELETE);
 
         // Simple delete in middle, duplicates are okay
-        mContentResolver.delete(members, Playlists.Members.PLAY_ORDER + "=?",
+        int count = mContentResolver.delete(membersUri, Playlists.Members.PLAY_ORDER + "=?",
                 new String[] { "2" });
+        obs.waitForChange();
+        assertEquals(count, 1);
         assertMembers(Arrays.asList(
                 Pair.create(mRed, 1),
-                Pair.create(mBlue, 2)), queryMembers(members));
+                Pair.create(mBlue, 2)), queryMembers(membersUri));
 
-        mContentResolver.delete(members, Playlists.Members.PLAY_ORDER + "=2", null);
+        count = mContentResolver.delete(membersUri, Playlists.Members.PLAY_ORDER + "=2", null);
+        obs.waitForChange();
+        assertEquals(count, 1);
         assertMembers(Arrays.asList(
-                Pair.create(mRed, 1)), queryMembers(members));
+                Pair.create(mRed, 1)), queryMembers(membersUri));
+
+        obs.unregister();
     }
 
     /**
@@ -245,8 +295,15 @@ public class ClientPlaylistTest {
         mValues.clear();
         mValues.put(MediaColumns.DISPLAY_NAME, "Playlist " + System.nanoTime());
         mValues.put(MediaColumns.MIME_TYPE, mMimeType);
+        final Uri externalVolumePlaylistUri = MediaStore.Audio.Playlists
+                .getContentUri(VOLUME_EXTERNAL_PRIMARY);
+        final TestContentObserverHelper obs = TestContentObserverHelper.create(
+                Arrays.asList(mExternalPlaylists, externalVolumePlaylistUri),
+                ContentResolver.NOTIFY_INSERT);
 
         final Uri playlist = mContentResolver.insert(mExternalPlaylists, mValues);
+        obs.waitForChange();
+        obs.unregister();
         final Uri members = MediaStore.Audio.Playlists.Members
                 .getContentUri(VOLUME_EXTERNAL_PRIMARY, ContentUris.parseId(playlist));
 
@@ -261,6 +318,11 @@ public class ClientPlaylistTest {
 
         assertMembers(expected, queryMembers(members));
         return ContentUris.parseId(playlist);
+    }
+
+    private static Uri getExternalVolumePlaylistUri(long playlistId) {
+        return ContentUris.withAppendedId(
+            MediaStore.Audio.Playlists.getContentUri(VOLUME_EXTERNAL), playlistId);
     }
 
     private void assertMembers(List<Pair<Long, Integer>> expected,
@@ -282,5 +344,82 @@ public class ClientPlaylistTest {
             }
         }
         return res;
+    }
+
+    /**
+     * Observer that will wait for a specific change event to be delivered on all the given uris.
+     */
+    private static class TestContentObserverHelper {
+        private List<TestContentObserver> observers;
+
+        private TestContentObserverHelper(List<TestContentObserver> observers) {
+            this.observers = observers;
+        }
+
+        private static TestContentObserverHelper create(List<Uri> uris, int flags) {
+            List<TestContentObserver> observers = new ArrayList();
+            for (Uri uri : uris) {
+                final TestContentObserver observer = TestContentObserver.create(uri, flags);
+                observers.add(observer);
+            }
+            final TestContentObserverHelper obsWrapper = new TestContentObserverHelper(observers);
+            return obsWrapper;
+        }
+
+        private void waitForChange() {
+            for (TestContentObserver observer : observers) {
+                observer.waitForChange();
+            }
+        }
+
+        private void unregister() {
+            for (TestContentObserver observer : observers) {
+                observer.unregister();
+            }
+        }
+    }
+
+    /**
+     * Observer that will wait for a specific change event to be delivered.
+     */
+    public static class TestContentObserver extends ContentObserver {
+        private final int flags;
+
+        private CountDownLatch latch = new CountDownLatch(1);
+
+        private TestContentObserver(int flags) {
+            super(null);
+            this.flags = flags;
+        }
+
+        @Override
+        public void onChange(boolean selfChange, Uri uri, int flags) {
+            Log.v(TAG, String.format("onChange(%b, %s, %d)", selfChange, uri.toString(), flags));
+
+            if (flags == this.flags) {
+                latch.countDown();
+            }
+        }
+
+        public static TestContentObserver create(Uri uri, int flags) {
+            final TestContentObserver obs = new TestContentObserver(flags);
+            InstrumentationRegistry.getContext().getContentResolver()
+                    .registerContentObserver(uri, true, obs);
+            return obs;
+        }
+
+        public void waitForChange() {
+            try {
+                assertTrue(latch.await(5, TimeUnit.SECONDS));
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            latch = new CountDownLatch(1);
+        }
+
+        public void unregister() {
+            InstrumentationRegistry.getContext().getContentResolver()
+                .unregisterContentObserver(this);
+        }
     }
 }

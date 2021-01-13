@@ -85,6 +85,7 @@ import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -487,8 +488,9 @@ public class TranscodeHelper {
         final String cameraRelativePath =
                 String.format("%s/%s/", Environment.DIRECTORY_DCIM, DIRECTORY_CAMERA);
 
-        return !isTranscodeFile(path) && name.endsWith(".mp4") &&
-                cameraRelativePath.equalsIgnoreCase(FileUtils.extractRelativePath(path));
+        return !isTranscodeFile(path) && name.toLowerCase(Locale.ROOT).endsWith(".mp4")
+                && path.startsWith("/storage/emulated/")
+                && cameraRelativePath.equalsIgnoreCase(FileUtils.extractRelativePath(path));
     }
 
     /**

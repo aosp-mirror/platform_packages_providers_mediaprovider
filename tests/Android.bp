@@ -17,9 +17,11 @@ android_test {
         "main_res",
         "res",
     ],
+
     srcs: [
         ":framework-mediaprovider-sources",
         ":mediaprovider-sources",
+        ":mediaprovider-testutils",
         "src/**/*.java",
     ],
 
@@ -49,4 +51,9 @@ android_test {
             "-Xep:MissingFail:ERROR",
         ],
     },
+}
+
+filegroup {
+    name: "mediaprovider-testutils",
+    srcs: ["utils/**/*.java"],
 }

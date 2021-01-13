@@ -105,6 +105,9 @@ constexpr size_t MAX_READ_SIZE = 128 * 1024;
 // Stolen from: UserHandle#getUserId
 constexpr int PER_USER_RANGE = 100000;
 
+// Stolen from: UserManagerService
+constexpr int MAX_USER_ID = UINT32_MAX / PER_USER_RANGE;
+
 // Regex copied from FileUtils.java in MediaProvider, but without media directory.
 const std::regex PATTERN_OWNED_PATH(
     "^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb|sandbox)/([^/]+)(/?.*)?",
@@ -241,7 +244,8 @@ struct fuse {
           tracker(mediaprovider::fuse::NodeTracker(&lock)),
           root(node::CreateRoot(_path, &lock, &tracker)),
           mp(0),
-          zero_addr(0) {}
+          zero_addr(0),
+          disable_dentry_cache(false) {}
 
     inline bool IsRoot(const node* node) const { return node == root; }
 
@@ -295,6 +299,7 @@ struct fuse {
     FAdviser fadviser;
 
     std::atomic_bool* active;
+    std::atomic_bool disable_dentry_cache;
 };
 
 static inline string get_name(node* n) {
@@ -385,7 +390,7 @@ static void fuse_inval(fuse_session* se, fuse_ino_t parent_ino, fuse_ino_t child
 
 static double get_timeout(struct fuse* fuse, const string& path, bool should_inval) {
     string media_path = fuse->GetEffectiveRootPath() + "/Android/media";
-    if (should_inval || path.find(media_path, 0) == 0 || is_package_owned_path(path, fuse->path)) {
+    if (fuse->disable_dentry_cache || should_inval || path.find(media_path, 0) == 0 || is_package_owned_path(path, fuse->path)) {
         // We set dentry timeout to 0 for the following reasons:
         // 1. Case-insensitive lookups need to invalidate other case-insensitive dentry matches
         // 2. Installd might delete Android/media/<package> dirs when app data is cleared.
@@ -512,8 +517,8 @@ static bool is_app_accessible_path(MediaProviderWrapper* mp, const string& path,
         if (pkg == ".nomedia") {
             return true;
         }
-        if (!mp->IsUidForPackage(pkg, uid)) {
-            PLOG(WARNING) << "Invalid other package file access from " << pkg << "(: " << path;
+        if (!mp->isUidAllowedAccessToDataOrObbPath(uid, path)) {
+            PLOG(WARNING) << "Invalid other package file access from " << uid << "(: " << path;
             return false;
         }
     }
@@ -543,10 +548,17 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
 
     std::smatch match;
     std::regex_search(child_path, match, storage_emulated_regex);
+
+    // Ensure the FuseDaemon user id matches the user id or cross-user lookups are allowed in
+    // requested path
     if (match.size() == 2 && std::to_string(getuid() / PER_USER_RANGE) != match[1].str()) {
-        // Ensure the FuseDaemon user id matches the user id in requested path
-        *error_code = EACCES;
-        return nullptr;
+        // If user id mismatch, check cross-user lookups
+        long userId = strtol(match[1].str().c_str(), nullptr, 10);
+        if (userId < 0 || userId > MAX_USER_ID ||
+            !fuse->mp->ShouldAllowLookup(req->ctx.uid, userId)) {
+            *error_code = EACCES;
+            return nullptr;
+        }
     }
     return make_node_entry(req, parent_node, name, child_path, e, error_code);
 }
@@ -1075,10 +1087,6 @@ static void do_read(fuse_req_t req, size_t size, off_t off, struct fuse_file_inf
     fuse_reply_data(req, &buf, (enum fuse_buf_copy_flags) 0);
 }
 
-static bool range_contains(const RedactionRange& rr, off_t off) {
-    return rr.first <= off && off <= rr.second;
-}
-
 /**
  * Sets the parameters for a fuse_buf that reads from memory, including flags.
  * Makes buf->mem point to an already mapped region of zeroized memory.
@@ -1105,24 +1113,17 @@ static void create_file_fuse_buf(size_t size, off_t pos, int fd, fuse_buf* buf) 
 
 static void do_read_with_redaction(fuse_req_t req, size_t size, off_t off, fuse_file_info* fi) {
     handle* h = reinterpret_cast<handle*>(fi->fh);
-    auto overlapping_rr = h->ri->getOverlappingRedactionRanges(size, off);
 
-    if (overlapping_rr->size() <= 0) {
-        // no relevant redaction ranges for this request
+    std::vector<ReadRange> ranges;
+    h->ri->getReadRanges(off, size, &ranges);
+
+    // As an optimization, return early if there are no ranges to redact.
+    if (ranges.size() == 0) {
         do_read(req, size, off, fi);
         return;
     }
-    // the number of buffers we need, if the read doesn't start or end with
-    //  a redaction range.
-    int num_bufs = overlapping_rr->size() * 2 + 1;
-    if (overlapping_rr->front().first <= off) {
-        // the beginning of the read request is redacted
-        num_bufs--;
-    }
-    if (overlapping_rr->back().second >= off + size) {
-        // the end of the read request is redacted
-        num_bufs--;
-    }
+
+    const size_t num_bufs = ranges.size();
     auto bufvec_ptr = std::unique_ptr<fuse_bufvec, decltype(free)*>{
             reinterpret_cast<fuse_bufvec*>(
                     malloc(sizeof(fuse_bufvec) + (num_bufs - 1) * sizeof(fuse_buf))),
@@ -1134,31 +1135,13 @@ static void do_read_with_redaction(fuse_req_t req, size_t size, off_t off, fuse_
     bufvec.idx = 0;
     bufvec.off = 0;
 
-    int rr_idx = 0;
-    off_t start = off;
-    // Add a dummy redaction range to make sure we don't go out of vector
-    // limits when computing the end of the last non-redacted range.
-    // This ranges is invalid because its starting point is larger than it's ending point.
-    overlapping_rr->push_back(RedactionRange(LLONG_MAX, LLONG_MAX - 1));
-
     for (int i = 0; i < num_bufs; ++i) {
-        off_t end;
-        if (range_contains(overlapping_rr->at(rr_idx), start)) {
-            // Handle a redacted range
-            // end should be the end of the redacted range, but can't be out of
-            // the read request bounds
-            end = std::min(static_cast<off_t>(off + size - 1), overlapping_rr->at(rr_idx).second);
-            create_mem_fuse_buf(/*size*/ end - start + 1, &(bufvec.buf[i]), get_fuse(req));
-            ++rr_idx;
+        const ReadRange& range = ranges[i];
+        if (range.is_redaction) {
+            create_mem_fuse_buf(range.size, &(bufvec.buf[i]), get_fuse(req));
         } else {
-            // Handle a non-redacted range
-            // end should be right before the next redaction range starts or
-            // the end of the read request
-            end = std::min(static_cast<off_t>(off + size - 1),
-                    overlapping_rr->at(rr_idx).first - 1);
-            create_file_fuse_buf(/*size*/ end - start + 1, start, h->fd, &(bufvec.buf[i]));
+            create_file_fuse_buf(range.size, range.start, h->fd, &(bufvec.buf[i]));
         }
-        start = end + 1;
     }
 
     fuse_reply_data(req, &bufvec, static_cast<fuse_buf_copy_flags>(0));
@@ -1400,7 +1383,8 @@ static void do_readdir_common(fuse_req_t req,
                 // Ignore lookup errors on
                 // 1. non-existing files returned from MediaProvider database.
                 // 2. path that doesn't match FuseDaemon UID and calling uid.
-                if (error_code == ENOENT || error_code == EPERM || error_code == EACCES) continue;
+                if (error_code == ENOENT || error_code == EPERM || error_code == EACCES
+                    || error_code == EIO) continue;
                 fuse_reply_err(req, error_code);
                 return;
             }
@@ -1823,6 +1807,12 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path) {
     // Custom logging for libfuse
     if (android::base::GetBoolProperty("persist.sys.fuse.log", false)) {
         fuse_set_log_func(fuse_logger);
+    }
+
+    uid_t userId = getuid() / PER_USER_RANGE;
+    if (userId != 0 && mp.IsAppCloneUser(userId)) {
+        // Disable dentry caching for the app clone user
+        fuse->disable_dentry_cache = true;
     }
 
     struct fuse_session

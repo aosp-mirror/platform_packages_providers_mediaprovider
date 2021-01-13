@@ -149,11 +149,12 @@ int isOpendirAllowedInternal(JNIEnv* env, jobject media_provider_object,
     return res;
 }
 
-bool isUidForPackageInternal(JNIEnv* env, jobject media_provider_object,
-                             jmethodID mid_is_uid_for_package, const string& pkg, uid_t uid) {
-    ScopedLocalRef<jstring> j_pkg(env, env->NewStringUTF(pkg.c_str()));
-    bool res = env->CallBooleanMethod(media_provider_object, mid_is_uid_for_package, j_pkg.get(),
-            uid);
+bool isUidAllowedAccessToDataOrObbPathInternal(JNIEnv* env, jobject media_provider_object,
+                                               jmethodID mid_is_uid_allowed_path_access_, uid_t uid,
+                                               const string& path) {
+    ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
+    bool res = env->CallBooleanMethod(media_provider_object, mid_is_uid_allowed_path_access_, uid,
+                                      j_path.get());
 
     if (CheckForJniException(env)) {
         return false;
@@ -277,10 +278,15 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
                         /*is_static*/ false);
     mid_rename_ = CacheMethod(env, "rename", "(Ljava/lang/String;Ljava/lang/String;I)I",
                               /*is_static*/ false);
-    mid_is_uid_for_package_ = CacheMethod(env, "isUidForPackage", "(Ljava/lang/String;I)Z",
-                              /*is_static*/ false);
+    mid_is_uid_allowed_access_to_data_or_obb_path_ =
+            CacheMethod(env, "isUidAllowedAccessToDataOrObbPath", "(ILjava/lang/String;)Z",
+                        /*is_static*/ false);
     mid_on_file_created_ = CacheMethod(env, "onFileCreated", "(Ljava/lang/String;)V",
                                        /*is_static*/ false);
+    mid_should_allow_lookup_ = CacheMethod(env, "shouldAllowLookup", "(II)Z",
+                                           /*is_static*/ false);
+    mid_is_app_clone_user_ = CacheMethod(env, "isAppCloneUser", "(I)Z",
+                                         /*is_static*/ false);
 }
 
 MediaProviderWrapper::~MediaProviderWrapper() {
@@ -396,13 +402,14 @@ int MediaProviderWrapper::IsOpendirAllowed(const string& path, uid_t uid, bool f
                                     forWrite);
 }
 
-bool MediaProviderWrapper::IsUidForPackage(const string& pkg, uid_t uid) {
+bool MediaProviderWrapper::isUidAllowedAccessToDataOrObbPath(uid_t uid, const string& path) {
     if (shouldBypassMediaProvider(uid)) {
         return true;
     }
 
     JNIEnv* env = MaybeAttachCurrentThread();
-    return isUidForPackageInternal(env, media_provider_object_, mid_is_uid_for_package_, pkg, uid);
+    return isUidAllowedAccessToDataOrObbPathInternal(
+            env, media_provider_object_, mid_is_uid_allowed_access_to_data_or_obb_path_, uid, path);
 }
 
 int MediaProviderWrapper::Rename(const string& old_path, const string& new_path, uid_t uid) {
@@ -422,6 +429,29 @@ void MediaProviderWrapper::OnFileCreated(const string& path) {
     JNIEnv* env = MaybeAttachCurrentThread();
 
     return onFileCreatedInternal(env, media_provider_object_, mid_on_file_created_, path);
+}
+
+bool MediaProviderWrapper::ShouldAllowLookup(uid_t uid, int path_user_id) {
+    JNIEnv* env = MaybeAttachCurrentThread();
+
+    bool res = env->CallBooleanMethod(media_provider_object_, mid_should_allow_lookup_, uid,
+                                      path_user_id);
+
+    if (CheckForJniException(env)) {
+        return false;
+    }
+    return res;
+}
+
+bool MediaProviderWrapper::IsAppCloneUser(uid_t userId) {
+    JNIEnv* env = MaybeAttachCurrentThread();
+
+    bool res = env->CallBooleanMethod(media_provider_object_, mid_is_app_clone_user_, userId);
+
+    if (CheckForJniException(env)) {
+        return false;
+    }
+    return res;
 }
 
 /*****************************************************************************************/

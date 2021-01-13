@@ -201,15 +201,6 @@ public class TranscodeHelper {
     private static final String TRANSCODE_WHERE_CLAUSE =
             FileColumns.DATA + "=?" + " and mime_type not like 'null'";
 
-    /**
-     * Never transcode for these packages.
-     * TODO(b/169327180): Replace this with allow list from server.
-     */
-    private static final String[] ALLOW_LIST = new String[]{
-            // TODO: Remove "com.google.android.apps.photos", after investigating issue.
-            "com.google.android.apps.photos"
-    };
-
     public TranscodeHelper(Context context, MediaProvider mediaProvider) {
         mContext = context;
         mPackageManager = context.getPackageManager();

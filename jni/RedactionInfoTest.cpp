@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 
 #include <memory>
+#include <ostream>
 #include <vector>
 
 #include "libfuse_jni/RedactionInfo.h"
@@ -28,249 +29,355 @@ using namespace mediaprovider::fuse;
 using std::unique_ptr;
 using std::vector;
 
-unique_ptr<vector<RedactionRange>> createRedactionRangeVector(int num_rr, off64_t* rr) {
-    auto res = std::make_unique<vector<RedactionRange>>();
-    for (int i = 0; i < num_rr; ++i) {
-        res->push_back(RedactionRange(rr[2 * i], rr[2 * i + 1]));
-    }
-    return res;
+std::ostream& operator<<(std::ostream& os, const ReadRange& rr) {
+    os << "{ " << rr.start << ", " << rr.size << ", " << rr.is_redaction << " }";
+    return os;
 }
 
-/**
- * Test the case where there are no redaction ranges.
- */
 TEST(RedactionInfoTest, testNoRedactionRanges) {
     RedactionInfo info(0, nullptr);
     EXPECT_EQ(0, info.size());
     EXPECT_EQ(false, info.isRedactionNeeded());
 
-    auto overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 1000, /*off*/ 1000);
-    EXPECT_EQ(0, overlapping_rr->size());
+    std::vector<ReadRange> out;
+    info.getReadRanges(0, std::numeric_limits<size_t>::max(), &out);
+    EXPECT_EQ(0, out.size());
 }
 
-/**
- * Test the case where there is 1 redaction range.
- */
+// Test the case where there is 1 redaction range.
 TEST(RedactionInfoTest, testSingleRedactionRange) {
     off64_t ranges[2] = {
             1,
             10,
     };
+
     RedactionInfo info(1, ranges);
     EXPECT_EQ(1, info.size());
     EXPECT_EQ(true, info.isRedactionNeeded());
+
     // Overlapping ranges
-    auto overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 1000, /*off*/ 0);
-    EXPECT_EQ(*(createRedactionRangeVector(1, ranges)), *overlapping_rr);
+    std::vector<ReadRange> out;
+    info.getReadRanges(0, 1000, &out);  // read offsets [0, 1000)
+    EXPECT_EQ(3, out.size());
+    EXPECT_EQ(ReadRange(0, 1, false), out[0]);
+    EXPECT_EQ(ReadRange(1, 9, true), out[1]);
+    EXPECT_EQ(ReadRange(10, 990, false), out[2]);
 
-    overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 5, /*off*/ 0);
-    EXPECT_EQ(*(createRedactionRangeVector(1, ranges)), *overlapping_rr);
+    out.clear();
+    info.getReadRanges(0, 5, &out);  // read offsets [0, 5)
+    EXPECT_EQ(2, out.size());
+    EXPECT_EQ(ReadRange(0, 1, false), out[0]);  // offsets: [0, 1) len = 1
+    EXPECT_EQ(ReadRange(1, 4, true), out[1]);   // offsets: [1, 5) len = 4
 
-    overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 5, /*off*/ 5);
-    EXPECT_EQ(*(createRedactionRangeVector(1, ranges)), *overlapping_rr);
+    out.clear();
+    info.getReadRanges(1, 10, &out);  // read offsets [1, 11)
+    EXPECT_EQ(2, out.size());
+    EXPECT_EQ(ReadRange(1, 9, true), out[0]);    // offsets: [1, 10) len = 9
+    EXPECT_EQ(ReadRange(10, 1, false), out[1]);  // offsets: [10, 11) len = 1
 
-    overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 10, /*off*/ 1);
-    EXPECT_EQ(*(createRedactionRangeVector(1, ranges)), *overlapping_rr);
+    // Read ranges that start or end with the boundary of the redacted area.
+    out.clear();
+    info.getReadRanges(5, 5, &out);  // read offsets [5, 10)
+    EXPECT_EQ(1, out.size());
+    EXPECT_EQ(ReadRange(5, 5, true), out[0]);  // offsets: [5, 10) len = 5
 
-    overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 1, /*off*/ 1);
-    EXPECT_EQ(*(createRedactionRangeVector(1, ranges)), *overlapping_rr);
+    out.clear();
+    info.getReadRanges(1, 5, &out);  // read offsets [1, 6)
+    EXPECT_EQ(1, out.size());
+    EXPECT_EQ(ReadRange(1, 5, true), out[0]);  // offsets: [1, 6) len = 5
 
-    // Non-overlapping range
-    overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 100, /*off*/ 11);
-    EXPECT_EQ(*(createRedactionRangeVector(0, nullptr)), *overlapping_rr);
+    // Read ranges adjoining the redacted area.
+    out.clear();
+    info.getReadRanges(10, 10, &out);  // read offsets [10, 20)
+    EXPECT_EQ(0, out.size());
 
-    overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 1, /*off*/ 11);
-    EXPECT_EQ(*(createRedactionRangeVector(0, nullptr)), *overlapping_rr);
+    out.clear();
+    info.getReadRanges(0, 1, &out);  // read offsets [0, 1)
+    EXPECT_EQ(0, out.size());
+
+    // Read Range outside the redacted area.
+    out.clear();
+    info.getReadRanges(200, 10, &out);  // read offsets [200, 210)
+    EXPECT_EQ(0, out.size());
 }
 
-/**
- * Test the case where the redaction ranges don't require sorting or merging
- */
+// Multiple redaction ranges within a given area.
 TEST(RedactionInfoTest, testSortedAndNonOverlappingRedactionRanges) {
-    off64_t ranges[6] = {
-            1, 10, 15, 21, 32, 40,
-    };
+    // [10, 20), [30, 40), [40, 50)
+    off64_t ranges[4] = {10, 20, 30, 40};
+
+    RedactionInfo info = RedactionInfo(2, ranges);
+    EXPECT_EQ(2, info.size());
+    EXPECT_EQ(true, info.isRedactionNeeded());
+
+    std::vector<ReadRange> out;
+    info.getReadRanges(0, 40, &out);  // read offsets [0, 40)
+    EXPECT_EQ(4, out.size());
+    EXPECT_EQ(ReadRange(0, 10, false), out[0]);   // offsets: [0, 10) len = 10
+    EXPECT_EQ(ReadRange(10, 10, true), out[1]);   // offsets: [10, 20) len = 10
+    EXPECT_EQ(ReadRange(20, 10, false), out[2]);  // offsets: [20, 30) len = 10
+    EXPECT_EQ(ReadRange(30, 10, true), out[3]);   // offsets [30, 40) len = 10
+
+    // Read request straddling two ranges.
+    out.clear();
+    info.getReadRanges(5, 30, &out);  // read offsets [5, 35)
+    EXPECT_EQ(4, out.size());
+    EXPECT_EQ(ReadRange(5, 5, false), out[0]);    // offsets: [5, 10) len = 5
+    EXPECT_EQ(ReadRange(10, 10, true), out[1]);   // offsets: [10, 20) len = 10
+    EXPECT_EQ(ReadRange(20, 10, false), out[2]);  // offsets: [20, 30) len = 10
+    EXPECT_EQ(ReadRange(30, 5, true), out[3]);    // offsets [30, 35) len = 5
+
+    // Read request overlapping first range only.
+    out.clear();
+    info.getReadRanges(5, 10, &out);  // read offsets [5, 15)
+    EXPECT_EQ(2, out.size());
+    EXPECT_EQ(ReadRange(5, 5, false), out[0]);  // offsets: [5, 10) len = 5
+    EXPECT_EQ(ReadRange(10, 5, true), out[1]);  // offsets: [10, 15) len = 5
+
+    // Read request overlapping last range only.
+    out.clear();
+    info.getReadRanges(35, 10, &out);  // read offsets [35, 45)
+    EXPECT_EQ(2, out.size());
+    EXPECT_EQ(ReadRange(35, 5, true), out[0]);   // offsets: [35, 40) len = 5
+    EXPECT_EQ(ReadRange(40, 5, false), out[1]);  // offsets: [40, 45) len = 5
+
+    // Read request overlapping no ranges.
+    out.clear();
+    info.getReadRanges(0, 10, &out);  // read offsets [0, 10)
+    EXPECT_EQ(0, out.size());
+    out.clear();
+    info.getReadRanges(21, 5, &out);  // read offsets [21, 26)
+    EXPECT_EQ(0, out.size());
+    out.clear();
+    info.getReadRanges(40, 10, &out);  // read offsets [40, 50)
+    EXPECT_EQ(0, out.size());
+}
+
+// Multiple redaction ranges overlapping with read range.
+TEST(RedactionInfoTest, testReadRangeOverlappingWithRedactionRanges) {
+    // [10, 20), [30, 40)
+    off64_t ranges[4] = {10, 20, 30, 40};
+
+    RedactionInfo info = RedactionInfo(2, ranges);
+    EXPECT_EQ(2, info.size());
+    EXPECT_EQ(true, info.isRedactionNeeded());
+
+    std::vector<ReadRange> out;
+    // Read request overlaps with end of the ranges.
+    info.getReadRanges(20, 20, &out);  // read offsets [20, 40)
+    EXPECT_EQ(2, out.size());
+    EXPECT_EQ(ReadRange(20, 10, false), out[0]);  // offsets: [20, 30) len = 10
+    EXPECT_EQ(ReadRange(30, 10, true), out[1]);   // offsets: [30, 40) len = 10
+
+    // Read request overlapping with start of the ranges
+    out.clear();
+    info.getReadRanges(10, 20, &out);  // read offsets [10, 30)
+    EXPECT_EQ(2, out.size());
+    EXPECT_EQ(ReadRange(10, 10, true), out[0]);   // offsets: [10, 20) len = 10
+    EXPECT_EQ(ReadRange(20, 10, false), out[1]);  // offsets: [20, 30) len = 10
+
+    // Read request overlaps with start of one and end of other range.
+    out.clear();
+    info.getReadRanges(10, 30, &out);  // read offsets [10, 40)
+    EXPECT_EQ(3, out.size());
+    EXPECT_EQ(ReadRange(10, 10, true), out[0]);   // offsets: [10, 20) len = 10
+    EXPECT_EQ(ReadRange(20, 10, false), out[1]);  // offsets: [20, 30) len = 10
+    EXPECT_EQ(ReadRange(30, 10, true), out[2]);   // offsets: [30, 40) len = 10
+
+    // Read request overlaps with end of one and start of other range.
+    out.clear();
+    info.getReadRanges(20, 10, &out);  // read offsets [20, 30)
+    EXPECT_EQ(0, out.size());
+}
+
+TEST(RedactionInfoTest, testRedactionRangesSorted) {
+    off64_t ranges[6] = {30, 40, 50, 60, 10, 20};
 
     RedactionInfo info = RedactionInfo(3, ranges);
     EXPECT_EQ(3, info.size());
     EXPECT_EQ(true, info.isRedactionNeeded());
 
-    // Read request strictly contains all ranges: [0, 49]
-    auto overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 50, /*off*/ 0);
-    off64_t expected1[] = {
-            1, 10, 15, 21, 32, 40,
-    };
-    EXPECT_EQ(*(createRedactionRangeVector(3, expected1)), *overlapping_rr);
+    std::vector<ReadRange> out;
+    info.getReadRanges(0, 60, &out);  // read offsets [0, 60)
+    EXPECT_EQ(6, out.size());
+    EXPECT_EQ(ReadRange(0, 10, false), out[0]);   // offsets: [0, 10) len = 10
+    EXPECT_EQ(ReadRange(10, 10, true), out[1]);   // offsets: [10, 20) len = 10
+    EXPECT_EQ(ReadRange(20, 10, false), out[2]);  // offsets: [20, 30) len = 10
+    EXPECT_EQ(ReadRange(30, 10, true), out[3]);   // offsets [30, 40) len = 10
+    EXPECT_EQ(ReadRange(40, 10, false), out[4]);  // offsets [40, 50) len = 10
+    EXPECT_EQ(ReadRange(50, 10, true), out[5]);   // offsets [50, 60) len = 10
 
-    // Read request strictly contains a subset of the ranges: [15, 40]
-    overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 26, /*off*/ 15);
-    off64_t expected2[] = {
-            15,
-            21,
-            32,
-            40,
-    };
-    EXPECT_EQ(*(createRedactionRangeVector(2, expected2)), *overlapping_rr);
+    // Read request overlapping first range only.
+    out.clear();
+    info.getReadRanges(5, 10, &out);  // read offsets [5, 15)
+    EXPECT_EQ(2, out.size());
+    EXPECT_EQ(ReadRange(5, 5, false), out[0]);  // offsets: [5, 10) len = 5
+    EXPECT_EQ(ReadRange(10, 5, true), out[1]);  // offsets: [10, 15) len = 5
 
-    // Read request intersects with a subset of the ranges" [16, 32]
-    overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 17, /*off*/ 16);
-    EXPECT_EQ(*(createRedactionRangeVector(2, expected2)), *overlapping_rr);
+    // Read request overlapping last range only.
+    out.clear();
+    info.getReadRanges(55, 10, &out);  // read offsets [55, 65)
+    EXPECT_EQ(2, out.size());
+    EXPECT_EQ(ReadRange(55, 5, true), out[0]);   // offsets: [55, 60) len = 5
+    EXPECT_EQ(ReadRange(60, 5, false), out[1]);  // offsets: [60, 65) len = 5
+
+    // Read request overlapping no ranges.
+    out.clear();
+    info.getReadRanges(0, 10, &out);  // read offsets [0, 10)
+    EXPECT_EQ(0, out.size());
+    out.clear();
+    info.getReadRanges(60, 10, &out);  // read offsets [60, 70)
+    EXPECT_EQ(0, out.size());
 }
 
-/**
- * Test the case where the redaction ranges require sorting
- */
-TEST(RedactionInfoTest, testSortRedactionRanges) {
-    off64_t ranges[6] = {
-            1, 10, 32, 40, 15, 21,
-    };
-
-    RedactionInfo info = RedactionInfo(3, ranges);
-    EXPECT_EQ(3, info.size());
-    EXPECT_EQ(true, info.isRedactionNeeded());
-
-    // Read request strictly contains all ranges: [0, 49]
-    auto overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 50, /*off*/ 0);
-    off64_t expected1[] = {
-            1, 10, 15, 21, 32, 40,
-    };
-    EXPECT_EQ(*(createRedactionRangeVector(3, expected1)), *overlapping_rr);
-
-    // Read request strictly contains a subset of the ranges: [15, 40]
-    overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 26, /*off*/ 15);
-    off64_t expected2[] = {
-            15,
-            21,
-            32,
-            40,
-    };
-    EXPECT_EQ(*(createRedactionRangeVector(2, expected2)), *overlapping_rr);
-
-    // Read request intersects with a subset of the ranges" [16, 32]
-    overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 17, /*off*/ 16);
-    EXPECT_EQ(*(createRedactionRangeVector(2, expected2)), *overlapping_rr);
-}
-
-/**
- * Test the case where the redaction ranges require sorting or merging
- */
+// Test that the ranges are both sorted and merged
 TEST(RedactionInfoTest, testSortAndMergeRedactionRanges) {
-    off64_t ranges[8] = {
-            35, 40, 1, 10, 32, 35, 15, 21,
-    };
+    // Ranges are: [10, 20), [25, 40), [50, 60)
+    off64_t ranges[8] = {30, 40, 10, 20, 25, 30, 50, 60};
 
     RedactionInfo info = RedactionInfo(4, ranges);
     EXPECT_EQ(3, info.size());
     EXPECT_EQ(true, info.isRedactionNeeded());
 
-    // Read request strictly contains all ranges: [0, 49]
-    auto overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 50, /*off*/ 0);
-    off64_t expected1[] = {
-            1, 10, 15, 21, 32, 40,
-    };
-    EXPECT_EQ(*(createRedactionRangeVector(3, expected1)), *overlapping_rr);
-
-    // Read request strictly contains a subset of the ranges: [15, 40]
-    overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 26, /*off*/ 15);
-    off64_t expected2[] = {
-            15,
-            21,
-            32,
-            40,
-    };
-    EXPECT_EQ(*(createRedactionRangeVector(2, expected2)), *overlapping_rr);
-
-    // Read request intersects with a subset of the ranges" [16, 32]
-    overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 17, /*off*/ 16);
-    EXPECT_EQ(*(createRedactionRangeVector(2, expected2)), *overlapping_rr);
+    std::vector<ReadRange> out;
+    info.getReadRanges(0, 60, &out);  // read offsets [0, 60)
+    EXPECT_EQ(6, out.size());
+    EXPECT_EQ(ReadRange(0, 10, false), out[0]);   // offsets: [0, 10) len = 10
+    EXPECT_EQ(ReadRange(10, 10, true), out[1]);   // offsets: [10, 20) len = 10
+    EXPECT_EQ(ReadRange(20, 5, false), out[2]);   // offsets: [20, 25) len = 5
+    EXPECT_EQ(ReadRange(25, 15, true), out[3]);   // offsets [25, 40) len = 15
+    EXPECT_EQ(ReadRange(40, 10, false), out[4]);  // offsets [40, 50) len = 10
+    EXPECT_EQ(ReadRange(50, 10, true), out[5]);   // offsets [50, 60) len = 10
 }
 
-/**
- * Test the case where the redaction ranges all merge into the first range
- */
-TEST(RedactionInfoTest, testMergeAllRangesIntoTheFirstRange) {
-    off64_t ranges[10] = {
-            1, 100, 2, 99, 3, 98, 4, 97, 3, 15,
-    };
+// Test that the ranges are both sorted and merged when there's an overlap.
+//
+// TODO: Can this ever happen ? Will we ever be in a state where we need to
+// redact exif attributes that have overlapping ranges ?
+TEST(RedactionInfoTest, testSortAndMergeRedactionRanges_overlap) {
+    // Ranges are: [10, 20), [25, 40), [50, 60)
+    off64_t ranges[8] = {30, 40, 10, 20, 25, 34, 50, 60};
 
-    RedactionInfo info = RedactionInfo(5, ranges);
-    EXPECT_EQ(1, info.size());
+    RedactionInfo info = RedactionInfo(4, ranges);
+    EXPECT_EQ(3, info.size());
     EXPECT_EQ(true, info.isRedactionNeeded());
 
-    // Read request equals the range: [1, 100]
-    auto overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 100, /*off*/ 1);
-    off64_t expected[] = {1, 100};
-    EXPECT_EQ(*(createRedactionRangeVector(1, expected)), *overlapping_rr);
-
-    // Read request is contained in the range: [15, 40]
-    overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 26, /*off*/ 15);
-    EXPECT_EQ(*(createRedactionRangeVector(1, expected)), *overlapping_rr);
-
-    // Read request that strictly contains all of the redaction ranges
-    overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 1000, /*off*/ 0);
-    EXPECT_EQ(*(createRedactionRangeVector(1, expected)), *overlapping_rr);
+    std::vector<ReadRange> out;
+    info.getReadRanges(0, 60, &out);  // read offsets [0, 60)
+    EXPECT_EQ(6, out.size());
+    EXPECT_EQ(ReadRange(0, 10, false), out[0]);   // offsets: [0, 10) len = 10
+    EXPECT_EQ(ReadRange(10, 10, true), out[1]);   // offsets: [10, 20) len = 10
+    EXPECT_EQ(ReadRange(20, 5, false), out[2]);   // offsets: [20, 25) len = 5
+    EXPECT_EQ(ReadRange(25, 15, true), out[3]);   // offsets [25, 40) len = 15
+    EXPECT_EQ(ReadRange(40, 10, false), out[4]);  // offsets [40, 50) len = 10
+    EXPECT_EQ(ReadRange(50, 10, true), out[5]);   // offsets [50, 60) len = 10
 }
 
-/**
- * Test the case where the redaction ranges all merge into the last range
- */
-TEST(RedactionInfoTest, testMergeAllRangesIntoTheLastRange) {
-    off64_t ranges[10] = {
-            4, 96, 3, 97, 2, 98, 1, 99, 0, 100,
-    };
+// WARNING: The tests below assume that merging of ranges happen during
+// object construction (which is asserted by the check on |info.size()|.
+// Therefore, we don't write redundant tests for boundary conditions that
+// we've covered above. If this ever changes, these tests need to be expanded.
+TEST(RedactionInfoTest, testMergeAllRangesIntoSingleRange) {
+    // Ranges are: [8, 24)
+    off64_t ranges[8] = {10, 20, 8, 14, 14, 24, 12, 16};
 
-    RedactionInfo info = RedactionInfo(5, ranges);
+    RedactionInfo info = RedactionInfo(4, ranges);
     EXPECT_EQ(1, info.size());
     EXPECT_EQ(true, info.isRedactionNeeded());
 
-    // Read request equals the range: [0, 100]
-    auto overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 100, /*off*/ 0);
-    off64_t expected[] = {0, 100};
-    EXPECT_EQ(*(createRedactionRangeVector(1, expected)), *overlapping_rr);
+    std::vector<ReadRange> out;
+    info.getReadRanges(0, 30, &out);  // read offsets [0, 30)
+    EXPECT_EQ(3, out.size());
+    EXPECT_EQ(ReadRange(0, 8, false), out[0]);   // offsets: [0, 8) len = 8
+    EXPECT_EQ(ReadRange(8, 16, true), out[1]);   // offsets: [8, 24) len = 16
+    EXPECT_EQ(ReadRange(24, 6, false), out[2]);  // offsets: [24, 30) len = 6
 
-    // Read request is contained in the range: [15, 40]
-    overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 26, /*off*/ 15);
-    EXPECT_EQ(*(createRedactionRangeVector(1, expected)), *overlapping_rr);
+    // Ranges are: [85, 100)
+    off64_t ranges2[10] = {90, 95, 95, 100, 85, 91, 92, 94, 99, 100};
+    info = RedactionInfo(5, ranges2);
+    EXPECT_EQ(1, info.size());
+    EXPECT_EQ(true, info.isRedactionNeeded());
 
-    // Read request that strictly contains all of the redaction ranges
-    overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 1000, /*off*/ 0);
-    EXPECT_EQ(*(createRedactionRangeVector(1, expected)), *overlapping_rr);
+    out.clear();
+    info.getReadRanges(80, 30, &out);  // read offsets [80, 110)
+    EXPECT_EQ(3, out.size());
+    EXPECT_EQ(ReadRange(80, 5, false), out[0]);    // offsets: [80, 85) len = 5
+    EXPECT_EQ(ReadRange(85, 15, true), out[1]);    // offsets: [85, 100) len = 15
+    EXPECT_EQ(ReadRange(100, 10, false), out[2]);  // offsets: [100, 110) len = 10
 }
 
-/**
- * Test the case where the redaction ranges progressively merge
- */
-TEST(RedactionInfoTest, testMergeAllRangesProgressively) {
-    off64_t ranges[10] = {
-            1, 11, 2, 12, 3, 13, 4, 14, 5, 15,
-    };
+TEST(RedactionInfoTest, testMergeMultipleRanges) {
+    // Ranges are: [10, 30), [60, 80)
+    off64_t ranges[8] = {20, 30, 10, 20, 70, 80, 60, 70};
 
-    RedactionInfo info = RedactionInfo(5, ranges);
-    EXPECT_EQ(1, info.size());
+    RedactionInfo info = RedactionInfo(4, ranges);
+    EXPECT_EQ(2, info.size());
     EXPECT_EQ(true, info.isRedactionNeeded());
 
-    // Read request equals the range: [1, 15]
-    auto overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 15, /*off*/ 1);
-    off64_t expected[] = {1, 15};
-    EXPECT_EQ(*(createRedactionRangeVector(1, expected)), *overlapping_rr);
+    std::vector<ReadRange> out;
+    info.getReadRanges(0, 100, &out);  // read offsets [0, 100)
+    EXPECT_EQ(5, out.size());
+    EXPECT_EQ(ReadRange(0, 10, false), out[0]);   // offsets: [0, 10) len = 10
+    EXPECT_EQ(ReadRange(10, 20, true), out[1]);   // offsets: [10, 30) len = 20
+    EXPECT_EQ(ReadRange(30, 30, false), out[2]);  // offsets: [30, 60) len = 30
+    EXPECT_EQ(ReadRange(60, 20, true), out[3]);   // offsets [60, 80) len = 20
+    EXPECT_EQ(ReadRange(80, 20, false), out[4]);  // offsets [80, 100) len = 20
+}
 
-    // Read request is contained in the range: [2, 12]
-    overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 10, /*off*/ 2);
-    EXPECT_EQ(*(createRedactionRangeVector(1, expected)), *overlapping_rr);
+// Redaction ranges of size zero.
+TEST(RedactionInfoTest, testRedactionRangesZeroSize) {
+    // [10, 20), [30, 40)
+    off64_t ranges[6] = {10, 20, 30, 40, 25, 25};
 
-    // Read request that strictly contains all of the redaction ranges
-    overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 100, /*off*/ 0);
-    EXPECT_EQ(*(createRedactionRangeVector(1, expected)), *overlapping_rr);
-
-    off64_t reverse_rr[10] = {
-            5, 15, 4, 14, 3, 13, 2, 12, 1, 11,
-    };
-
-    RedactionInfo reverse_info = RedactionInfo(5, reverse_rr);
-    EXPECT_EQ(1, info.size());
+    RedactionInfo info = RedactionInfo(3, ranges);
+    EXPECT_EQ(2, info.size());
     EXPECT_EQ(true, info.isRedactionNeeded());
 
-    // Read request equals the range: [1, 15]
-    overlapping_rr = info.getOverlappingRedactionRanges(/*size*/ 15, /*off*/ 1);
-    EXPECT_EQ(*(createRedactionRangeVector(1, expected)), *overlapping_rr);
+    // Normal read request, should skip range with zero size
+    std::vector<ReadRange> out;
+    info.getReadRanges(0, 40, &out);  // read offsets [0, 40)
+    EXPECT_EQ(4, out.size());
+    EXPECT_EQ(ReadRange(0, 10, false), out[0]);   // offsets: [0, 10) len = 10
+    EXPECT_EQ(ReadRange(10, 10, true), out[1]);   // offsets: [10, 20) len = 10
+    EXPECT_EQ(ReadRange(20, 10, false), out[2]);  // offsets: [20, 30) len = 10
+    EXPECT_EQ(ReadRange(30, 10, true), out[3]);   // offsets [30, 40) len = 10
+
+    // Read request starting at offset overlapping with zero size range.
+    out.clear();
+    info.getReadRanges(25, 10, &out);  // read offsets [25, 35)
+    EXPECT_EQ(2, out.size());
+    EXPECT_EQ(ReadRange(25, 5, false), out[0]);  // offsets: [25, 30) len = 5
+    EXPECT_EQ(ReadRange(30, 5, true), out[1]);   // offsets [30, 35) len = 5
+
+    // 1 byte read request starting at offset overlapping with zero size range.
+    out.clear();
+    info.getReadRanges(25, 1, &out);  // read offsets [25, 26)
+    EXPECT_EQ(0, out.size());
+
+    // Read request ending at offset overlapping with zero size range.
+    out.clear();
+    info.getReadRanges(0, 25, &out);  // read offsets [0, 25)
+    EXPECT_EQ(3, out.size());
+    EXPECT_EQ(ReadRange(0, 10, false), out[0]);  // offsets: [0, 10) len = 10
+    EXPECT_EQ(ReadRange(10, 10, true), out[1]);  // offsets: [10, 20) len = 10
+    EXPECT_EQ(ReadRange(20, 5, false), out[2]);  // offsets: [20, 25) len = 10
+
+    // Read request that includes only zero size range
+    out.clear();
+    info.getReadRanges(20, 10, &out);  // read offsets [20, 27)
+    EXPECT_EQ(0, out.size());
+}
+
+// Single redaction range with zero size
+TEST(RedactionInfoTest, testSingleRedactionRangesZeroSize) {
+    off64_t ranges[2] = {10, 10};
+
+    RedactionInfo info = RedactionInfo(1, ranges);
+    EXPECT_EQ(0, info.size());
+    EXPECT_EQ(false, info.isRedactionNeeded());
+
+    // Normal read request, should skip range with zero size
+    std::vector<ReadRange> out;
+    info.getReadRanges(0, 40, &out);  // read offsets [0, 40)
+    EXPECT_EQ(0, out.size());
 }

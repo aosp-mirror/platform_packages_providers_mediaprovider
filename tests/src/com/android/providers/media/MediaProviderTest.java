@@ -17,10 +17,13 @@
 package com.android.providers.media;
 
 import static com.android.providers.media.scan.MediaScannerTest.stage;
+import static com.android.providers.media.util.FileUtils.extractDisplayName;
+import static com.android.providers.media.util.FileUtils.extractRelativePath;
 import static com.android.providers.media.util.FileUtils.extractRelativePathForDirectory;
 import static com.android.providers.media.util.FileUtils.isDownload;
 import static com.android.providers.media.util.FileUtils.isDownloadDir;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -63,6 +66,7 @@ import com.android.providers.media.MediaProvider.VolumeArgumentException;
 import com.android.providers.media.MediaProvider.VolumeNotFoundException;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 import com.android.providers.media.util.FileUtils;
+import com.android.providers.media.util.FileUtilsTest;
 import com.android.providers.media.util.SQLiteQueryBuilder;
 
 import org.junit.AfterClass;
@@ -311,6 +315,59 @@ public class MediaProviderTest {
 
         assertEquals(PackageManager.PERMISSION_GRANTED, sIsolatedResolver.checkUriPermission(uri,
                 android.os.Process.myUid(), Intent.FLAG_GRANT_READ_URI_PERMISSION));
+    }
+
+    @Test
+    public void testTrashLongFileNameItemHasTrimmedFileName() throws Exception {
+        testActionLongFileNameItemHasTrimmedFileName(MediaColumns.IS_TRASHED);
+    }
+
+    @Test
+    public void testPendingLongFileNameItemHasTrimmedFileName() throws Exception {
+        testActionLongFileNameItemHasTrimmedFileName(MediaColumns.IS_PENDING);
+    }
+
+    private void testActionLongFileNameItemHasTrimmedFileName(String columnKey) throws Exception {
+        // We might have old files lurking, so force a clean slate
+        final Context context = InstrumentationRegistry.getTargetContext();
+        sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
+        sIsolatedResolver = sIsolatedContext.getContentResolver();
+        final String[] projection = new String[]{MediaColumns.DATA};
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+
+        // create extreme long file name
+        final String originalName = FileUtilsTest.createExtremeFileName("test" + System.nanoTime(),
+                ".jpg");
+
+        File file = stage(R.raw.lg_g4_iso_800_jpg, new File(dir, originalName));
+        final Uri uri = MediaStore.scanFile(sIsolatedResolver, file);
+        Log.v(TAG, "Scanned " + file + " as " + uri);
+
+        try (Cursor c = sIsolatedResolver.query(uri, projection, null, null)) {
+            assertNotNull(c);
+            assertEquals(1, c.getCount());
+            assertTrue(c.moveToFirst());
+            final String data = c.getString(0);
+            final String result = FileUtils.extractDisplayName(data);
+            assertEquals(originalName, result);
+        }
+
+        final Bundle extras = new Bundle();
+        extras.putBoolean(MediaStore.QUERY_ARG_ALLOW_MOVEMENT, true);
+        final ContentValues values = new ContentValues();
+        values.put(columnKey, 1);
+        sIsolatedResolver.update(uri, values, extras);
+
+        try (Cursor c = sIsolatedResolver.query(uri, projection, null, null)) {
+            assertNotNull(c);
+            assertEquals(1, c.getCount());
+            assertTrue(c.moveToFirst());
+            final String data = c.getString(0);
+            final String result = FileUtils.extractDisplayName(data);
+            assertThat(result.length()).isAtMost(FileUtilsTest.MAX_FILENAME_BYTES);
+            assertNotEquals(originalName, result);
+        }
     }
 
     /**
@@ -629,6 +686,18 @@ public class MediaProviderTest {
     }
 
     @Test
+    public void testBuildData_Pending_FromValues_differentLocale() throws Exception {
+        // See b/174120008 for context.
+        Locale defaultLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(new Locale("ar", "SA"));
+            testBuildData_Pending_FromValues();
+        } finally {
+            Locale.setDefault(defaultLocale);
+        }
+    }
+
+    @Test
     public void testBuildData_Pending_FromData() throws Exception {
         final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         final ContentValues reverse = new ContentValues();
@@ -662,6 +731,18 @@ public class MediaProviderTest {
                 forward.getAsString(MediaColumns.DISPLAY_NAME));
         assertEndsWith(".trashed-1577836800-IMG1024.JPG",
                 forward.getAsString(MediaColumns.DATA));
+    }
+
+    @Test
+    public void testBuildData_Trashed_FromValues_differentLocale() throws Exception {
+        // See b/174120008 for context.
+        Locale defaultLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(new Locale("ar", "SA"));
+            testBuildData_Trashed_FromValues();
+        } finally {
+            Locale.setDefault(defaultLocale);
+        }
     }
 
     @Test
@@ -1113,6 +1194,59 @@ public class MediaProviderTest {
         final long albumIdFour = valuesFour.getAsLong(AudioColumns.ALBUM_ID);
 
         assertEquals(albumIdThree, albumIdFour);
+    }
+
+    @Test
+    public void testQueryAudioViewsNoPendingItem() throws Exception {
+        // We might have old files lurking, so force a clean slate
+        final Context context = InstrumentationRegistry.getTargetContext();
+        sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
+        sIsolatedResolver = sIsolatedContext.getContentResolver();
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
+
+        final File audio = new File(dir, "test" + System.nanoTime() + ".mp3");
+        final Uri audioUri =
+                MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        final String album = "TestAlbum" + System.nanoTime();
+        final String artist = "TestArtist" + System.nanoTime();
+        final String genre = "TestGenre" + System.nanoTime();
+        final String relativePath = extractRelativePath(audio.getAbsolutePath());
+        final String displayName = extractDisplayName(audio.getAbsolutePath());
+        ContentValues values = new ContentValues();
+
+        values.put(MediaStore.Audio.Media.ALBUM, album);
+        values.put(MediaStore.Audio.Media.ARTIST, artist);
+        values.put(MediaStore.Audio.Media.GENRE, genre);
+        values.put(MediaStore.Audio.Media.DISPLAY_NAME, displayName);
+        values.put(MediaStore.Audio.Media.RELATIVE_PATH, relativePath);
+        values.put(MediaStore.Audio.Media.IS_MUSIC, 1);
+        values.put(MediaStore.Audio.Media.IS_PENDING, 1);
+
+        Uri result = sIsolatedResolver.insert(audioUri, values);
+
+        // Check the audio file is inserted correctly
+        try (Cursor c = sIsolatedResolver.query(result, new String[]{MediaColumns.DISPLAY_NAME,
+                        MediaColumns.IS_PENDING},
+                null, null)) {
+            assertNotNull(c);
+            assertEquals(1, c.getCount());
+            assertTrue(c.moveToFirst());
+            assertEquals(displayName, c.getString(0));
+            assertEquals(1, c.getInt(1));
+        }
+
+        final String volume = MediaStore.VOLUME_EXTERNAL_PRIMARY;
+        assertQueryResultNoItems(MediaStore.Audio.Albums.getContentUri(volume));
+        assertQueryResultNoItems(MediaStore.Audio.Artists.getContentUri(volume));
+        assertQueryResultNoItems(MediaStore.Audio.Genres.getContentUri(volume));
+    }
+
+    private static void assertQueryResultNoItems(Uri uri) throws Exception {
+        try (Cursor c = sIsolatedResolver.query(uri, null, null, null, null)) {
+            assertNotNull(c);
+            assertEquals(0, c.getCount());
+        }
     }
 
     private static void assertRelativePathForDirectory(String directoryPath, String relativePath) {

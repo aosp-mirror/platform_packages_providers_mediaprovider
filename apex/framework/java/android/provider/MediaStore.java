@@ -27,7 +27,6 @@ import android.annotation.SdkConstant;
 import android.annotation.SdkConstant.SdkConstantType;
 import android.annotation.SuppressLint;
 import android.annotation.SystemApi;
-import android.annotation.TestApi;
 import android.annotation.WorkerThread;
 import android.app.Activity;
 import android.app.PendingIntent;
@@ -77,6 +76,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -618,6 +618,18 @@ public final class MediaStore {
      * @hide
      */
     public static final String QUERY_ARG_ALLOW_MOVEMENT = "android:query-arg-allow-movement";
+
+    /**
+     * Flag that indicates that a media scan that was triggered as part of
+     * {@link ContentResolver#update} should be asynchronous. This flag should
+     * only be used when {@link ContentResolver#update} operation needs to
+     * return early without updating metadata for the file. This may make other
+     * apps see incomplete metadata for the updated file as scan runs
+     * asynchronously here. Most apps shouldn't set this flag.
+     *
+     * @hide
+     */
+    public static final String QUERY_ARG_DO_ASYNC_SCAN = "android:query-arg-do-async-scan";
 
     /**
      * Specify how {@link MediaColumns#IS_PENDING} items should be filtered when
@@ -1685,6 +1697,44 @@ public final class MediaStore {
              * Constant for the {@link #MEDIA_TYPE} column indicating that file is a document file.
              */
             public static final int MEDIA_TYPE_DOCUMENT = 6;
+
+            /**
+             * Modifier of the database row
+             *
+             * Specifies the last modifying operation of the database row. This
+             * does not give any information on the package that modified the
+             * database row.
+             * Initially, this column will be populated by
+             * {@link ContentResolver}#insert and media scan operations. And,
+             * the column will be used to identify if the file was previously
+             * scanned.
+             * @hide
+             */
+            @Column(value = Cursor.FIELD_TYPE_INTEGER)
+            public static final String _MODIFIER = "_modifier";
+
+            /**
+             * Constant for the {@link #_MODIFIER} column indicating
+             * that the last modifier of the database row is FUSE operation.
+             * @hide
+             */
+            public static final int _MODIFIER_FUSE = 1;
+
+            /**
+             * Constant for the {@link #_MODIFIER} column indicating
+             * that the last modifier of the database row is explicit
+             * {@link ContentResolver} operation from app.
+             * @hide
+             */
+            public static final int _MODIFIER_CR = 2;
+
+            /**
+             * Constant for the {@link #_MODIFIER} column indicating
+             * that the last modifier of the database row is a media scan
+             * operation.
+             * @hide
+             */
+            public static final int _MODIFIER_MEDIA_SCAN = 3;
         }
     }
 
@@ -1794,6 +1844,13 @@ public final class MediaStore {
     }
 
     /**
+     * Regex that matches paths under well-known storage paths.
+     * Copied from FileUtils.java
+     */
+    private static final Pattern PATTERN_VOLUME_NAME = Pattern.compile(
+            "(?i)^/storage/([^/]+)");
+
+    /**
      * @deprecated since this method doesn't have a {@link Context}, we can't
      *             find the actual {@link StorageVolume} for the given path, so
      *             only a vague guess is returned. Callers should use
@@ -1804,9 +1861,15 @@ public final class MediaStore {
     public static @NonNull String getVolumeName(@NonNull File path) {
         // Ideally we'd find the relevant StorageVolume, but we don't have a
         // Context to obtain it from, so the best we can do is assume
-        if (path.getAbsolutePath()
-                .startsWith(Environment.getStorageDirectory().getAbsolutePath())) {
-            return MediaStore.VOLUME_EXTERNAL;
+        // Borrowed the logic from FileUtils.extractVolumeName
+        final Matcher matcher = PATTERN_VOLUME_NAME.matcher(path.getAbsolutePath());
+        if (matcher.find()) {
+            final String volumeName = matcher.group(1);
+            if (volumeName.equals("emulated")) {
+                return MediaStore.VOLUME_EXTERNAL_PRIMARY;
+            } else {
+                return volumeName.toLowerCase(Locale.ROOT);
+            }
         } else {
             return MediaStore.VOLUME_INTERNAL;
         }
@@ -1892,7 +1955,7 @@ public final class MediaStore {
             public static final String PICASA_ID = "picasa_id";
 
             /**
-             * Whether the video should be published as public or private
+             * Whether the image should be published as public or private
              */
             @Column(Cursor.FIELD_TYPE_INTEGER)
             public static final String IS_PRIVATE = "isprivate";
@@ -3941,7 +4004,6 @@ public final class MediaStore {
      * @hide
      */
     @SystemApi
-    @TestApi
     @WorkerThread
     public static void waitForIdle(@NonNull ContentResolver resolver) {
         resolver.call(AUTHORITY, WAIT_FOR_IDLE_CALL, null, null);
@@ -3954,7 +4016,6 @@ public final class MediaStore {
      * @hide
      */
     @SystemApi
-    @TestApi
     @WorkerThread
     @SuppressLint("StreamFiles")
     public static @NonNull Uri scanFile(@NonNull ContentResolver resolver, @NonNull File file) {
@@ -3968,7 +4029,6 @@ public final class MediaStore {
      * @hide
      */
     @SystemApi
-    @TestApi
     @WorkerThread
     public static void scanVolume(@NonNull ContentResolver resolver, @NonNull String volumeName) {
         resolver.call(AUTHORITY, SCAN_VOLUME_CALL, volumeName, null);

@@ -39,6 +39,7 @@ java_sdk_library {
         "com.android.mediaprovider",
         "test_com.android.mediaprovider",
     ],
+    min_sdk_version: "30",
 }
 
 filegroup {

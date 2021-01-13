@@ -21,8 +21,11 @@ import static android.app.AppOpsManager.MODE_ALLOWED;
 import static android.app.AppOpsManager.permissionToOp;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
 
+import static com.android.providers.media.util.PermissionUtils.checkAppOpRequestInstallPackagesForSharedUid;
 import static com.android.providers.media.util.PermissionUtils.checkIsLegacyStorageGranted;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessMtp;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionDelegator;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionInstallPackages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionManager;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadAudio;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadImages;
@@ -51,17 +54,21 @@ import android.os.UserHandle;
 import android.os.UserManager;
 import android.util.ArrayMap;
 
+import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 
 import com.android.providers.media.util.LongArray;
 
+import java.util.Locale;
+
 public class LocalCallingIdentity {
-    public final Context context;
     public final int pid;
     public final int uid;
-    public final String packageNameUnchecked;
+    private final Context context;
+    private final String packageNameUnchecked;
     // Info used for logging permission checks
-    public @Nullable String attributionTag;
+    private final @Nullable String attributionTag;
+    private final Object lock = new Object();
 
     private LocalCallingIdentity(Context context, int pid, int uid, String packageNameUnchecked,
             @Nullable String attributionTag) {
@@ -140,8 +147,8 @@ public class LocalCallingIdentity {
         return ident;
     }
 
-    private String packageName;
-    private boolean packageNameResolved;
+    private volatile String packageName;
+    private volatile boolean packageNameResolved;
 
     public String getPackageName() {
         if (!packageNameResolved) {
@@ -158,8 +165,8 @@ public class LocalCallingIdentity {
         return packageNameUnchecked;
     }
 
-    private String[] sharedPackageNames;
-    private boolean sharedPackageNamesResolved;
+    private volatile String[] sharedPackageNames;
+    private volatile boolean sharedPackageNamesResolved;
 
     public String[] getSharedPackageNames() {
         if (!sharedPackageNamesResolved) {
@@ -174,8 +181,8 @@ public class LocalCallingIdentity {
         return (packageNames != null) ? packageNames : new String[0];
     }
 
-    private int targetSdkVersion;
-    private boolean targetSdkVersionResolved;
+    private volatile int targetSdkVersion;
+    private volatile boolean targetSdkVersionResolved;
 
     public int getTargetSdkVersion() {
         if (!targetSdkVersionResolved) {
@@ -214,10 +221,21 @@ public class LocalCallingIdentity {
     public static final int PERMISSION_WRITE_VIDEO = 1 << 20;
     public static final int PERMISSION_WRITE_IMAGES = 1 << 21;
 
-    public static final int PERMISSION_IS_SYSTEM_GALLERY = 1 <<22;
+    public static final int PERMISSION_IS_SYSTEM_GALLERY = 1 << 22;
+    /**
+     * Explicitly checks **only** for INSTALL_PACKAGES runtime permission.
+     */
+    public static final int PERMISSION_INSTALL_PACKAGES = 1 << 23;
+    public static final int PERMISSION_WRITE_EXTERNAL_STORAGE = 1 << 24;
 
-    private int hasPermission;
-    private int hasPermissionResolved;
+    /**
+     * Checks if REQUEST_INSTALL_PACKAGES app-op is allowed for any package sharing this UID.
+     */
+    public static final int APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID = 1 << 25;
+    public static final int PERMISSION_ACCESS_MTP = 1 << 26;
+
+    private volatile int hasPermission;
+    private volatile int hasPermissionResolved;
 
     public boolean hasPermission(int permission) {
         if ((hasPermissionResolved & permission) == 0) {
@@ -256,6 +274,10 @@ public class LocalCallingIdentity {
             case PERMISSION_IS_LEGACY_WRITE:
                 return isLegacyWriteInternal();
 
+            case PERMISSION_WRITE_EXTERNAL_STORAGE:
+                return checkPermissionWriteStorage(
+                        context, pid, uid, getPackageName(), attributionTag);
+
             case PERMISSION_READ_AUDIO:
                 return checkPermissionReadAudio(
                         context, pid, uid, getPackageName(), attributionTag);
@@ -277,6 +299,15 @@ public class LocalCallingIdentity {
             case PERMISSION_IS_SYSTEM_GALLERY:
                 return checkWriteImagesOrVideoAppOps(
                         context, uid, getPackageName(), attributionTag);
+            case PERMISSION_INSTALL_PACKAGES:
+                return checkPermissionInstallPackages(
+                        context, pid, uid, getPackageName(), attributionTag);
+            case APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID:
+                return checkAppOpRequestInstallPackagesForSharedUid(
+                        context, uid, getSharedPackageNames(), attributionTag);
+            case PERMISSION_ACCESS_MTP:
+                return checkPermissionAccessMtp(
+                        context, pid, uid, getPackageName(), attributionTag);
             default:
                 return false;
         }
@@ -336,42 +367,54 @@ public class LocalCallingIdentity {
         return false;
     }
 
-    private LongArray ownedIds = new LongArray();
+    @GuardedBy("lock")
+    private final LongArray ownedIds = new LongArray();
 
     public boolean isOwned(long id) {
-        return ownedIds.indexOf(id) != -1;
+        synchronized (lock) {
+            return ownedIds.indexOf(id) != -1;
+        }
     }
 
     public void setOwned(long id, boolean owned) {
-        final int index = ownedIds.indexOf(id);
-        if (owned) {
-            if (index == -1) {
-                ownedIds.add(id);
-            }
-        } else {
-            if (index != -1) {
-                ownedIds.remove(index);
+        synchronized (lock) {
+            final int index = ownedIds.indexOf(id);
+            if (owned) {
+                if (index == -1) {
+                    ownedIds.add(id);
+                }
+            } else {
+                if (index != -1) {
+                    ownedIds.remove(index);
+                }
             }
         }
     }
 
-    private ArrayMap<String, Long> rowIdOfDeletedPaths = new ArrayMap<>();
+    @GuardedBy("lock")
+    private final ArrayMap<String, Long> rowIdOfDeletedPaths = new ArrayMap<>();
 
     public void addDeletedRowId(@NonNull String path, long id) {
-        rowIdOfDeletedPaths.put(path, id);
+        synchronized (lock) {
+            rowIdOfDeletedPaths.put(path.toLowerCase(Locale.ROOT), id);
+        }
     }
 
     public boolean removeDeletedRowId(long id) {
-        int index = rowIdOfDeletedPaths.indexOfValue(id);
-        final boolean isDeleted = index > -1;
-        while (index > -1) {
-            rowIdOfDeletedPaths.removeAt(index);
-            index = rowIdOfDeletedPaths.indexOfValue(id);
+        synchronized (lock) {
+            int index = rowIdOfDeletedPaths.indexOfValue(id);
+            final boolean isDeleted = index > -1;
+            while (index > -1) {
+                rowIdOfDeletedPaths.removeAt(index);
+                index = rowIdOfDeletedPaths.indexOfValue(id);
+            }
+            return isDeleted;
         }
-        return isDeleted;
     }
 
     public long getDeletedRowId(@NonNull String path) {
-        return rowIdOfDeletedPaths.getOrDefault(path, UNKNOWN_ROW_ID);
+        synchronized (lock) {
+            return rowIdOfDeletedPaths.getOrDefault(path.toLowerCase(Locale.ROOT), UNKNOWN_ROW_ID);
+        }
     }
 }

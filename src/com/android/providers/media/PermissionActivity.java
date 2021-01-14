@@ -175,13 +175,26 @@ public class PermissionActivity extends Activity {
         }
 
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(resolveTitleText());
+        // We set the title in message so that the text doesn't get truncated
+        builder.setMessage(resolveTitleText());
         builder.setPositiveButton(R.string.allow, this::onPositiveAction);
         builder.setNegativeButton(R.string.deny, this::onNegativeAction);
         builder.setCancelable(false);
         builder.setView(bodyView);
 
         final AlertDialog dialog = builder.show();
+
+        // The title is being set as a message above.
+        // We need to style it like the default AlertDialog title
+        TextView dialogMessage = (TextView) dialog.findViewById(
+                android.R.id.message);
+        if (dialogMessage != null) {
+            dialogMessage.setTextAppearance(
+                    android.R.style.TextAppearance_DeviceDefault_DialogWindowTitle);
+        } else {
+            Log.w(TAG, "Couldn't find message element");
+        }
+
         final WindowManager.LayoutParams params = dialog.getWindow().getAttributes();
         params.width = getResources().getDimensionPixelSize(R.dimen.permission_dialog_width);
         dialog.getWindow().setAttributes(params);

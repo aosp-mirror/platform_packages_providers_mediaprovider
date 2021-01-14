@@ -4453,6 +4453,13 @@ public class MediaProvider extends ContentProvider {
                     qb.setProjectionMap(projectionMap);
 
                     appendWhereStandalone(qb, "audio._id = audio_id");
+                    // Since we use audio table along with audio_playlists_map
+                    // for querying, we should only include database rows of
+                    // the attached volumes.
+                    if (!includeAllVolumes) {
+                        appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN "
+                             + includeVolumes);
+                    }
                 } else {
                     qb.setTables("audio_playlists_map");
                     qb.setProjectionMap(getProjectionMap(Audio.Playlists.Members.class));
@@ -6131,9 +6138,9 @@ public class MediaProvider extends ContentProvider {
     private long addPlaylistMembers(@NonNull Uri playlistUri, @NonNull ContentValues values)
             throws FallbackException {
         final long audioId = values.getAsLong(Audio.Playlists.Members.AUDIO_ID);
-        final String audioVolumeName = MediaStore.VOLUME_INTERNAL.equals(getVolumeName(playlistUri))
+        final String volumeName = MediaStore.VOLUME_INTERNAL.equals(getVolumeName(playlistUri))
                 ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL;
-        final Uri audioUri = Audio.Media.getContentUri(audioVolumeName, audioId);
+        final Uri audioUri = Audio.Media.getContentUri(volumeName, audioId);
 
         Integer playOrder = values.getAsInteger(Playlists.Members.PLAY_ORDER);
         playOrder = (playOrder != null) ? (playOrder - 1) : Integer.MAX_VALUE;
@@ -6152,8 +6159,8 @@ public class MediaProvider extends ContentProvider {
             resolvePlaylistMembers(playlistUri);
 
             // Callers are interested in the actual ID we generated
-            final Uri membersUri = Playlists.Members.getContentUri(
-                    getVolumeName(playlistUri), ContentUris.parseId(playlistUri));
+            final Uri membersUri = Playlists.Members.getContentUri(volumeName,
+                    ContentUris.parseId(playlistUri));
             try (Cursor c = query(membersUri, new String[] { BaseColumns._ID },
                     Playlists.Members.PLAY_ORDER + "=" + (playOrder + 1), null, null)) {
                 c.moveToFirst();

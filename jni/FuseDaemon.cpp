@@ -440,35 +440,28 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
 
     if (S_ISREG(e->attr.st_mode)) {
         // Handle potential file transforms
-        transforms = fuse->mp->GetTransforms(path, req->ctx.uid);
+        std::unique_ptr<mediaprovider::fuse::FileLookupResult> file_lookup_result =
+                fuse->mp->FileLookup(path, req->ctx.uid);
 
-        if (transforms < 0) {
-            // Fail lookup if we can't fetch supported transforms for path
-            LOG(WARNING) << "Failed to fetch transforms for " << name;
+        if (!file_lookup_result) {
+            // Fail lookup if we can't fetch FileLookupResult for path
+            LOG(WARNING) << "Failed to fetch FileLookupResult for " << name;
             *error_code = ENOENT;
             return NULL;
         }
 
-        // TODO(b/169412244): Improve JNI interaction
+        transforms = file_lookup_result->transforms;
+        io_path = file_lookup_result->io_path;
+        transforms_complete = file_lookup_result->transforms_complete;
+
+        // Update size with io_path size if io_path is not same as path
+        if (!io_path.empty() && (io_path != path) && (lstat(io_path.c_str(), &e->attr) < 0)) {
+            *error_code = errno;
+            return NULL;
+        }
+
         // Invalidate if there are any transforms so that we always get a lookup into userspace
         should_inval = should_inval || transforms;
-        if (transforms) {
-            // If there are any transforms, fetch IO path
-            io_path = fuse->mp->GetIoPath(path, req->ctx.uid);
-            if (io_path.empty()) {
-                *error_code = EFAULT;
-                return NULL;
-            }
-
-            if (io_path != path) {
-                // Update size with io_path size
-                if (lstat(io_path.c_str(), &e->attr) < 0) {
-                    *error_code = errno;
-                    return NULL;
-                }
-                transforms_complete = false;
-            }
-        }
     }
 
     node = parent->LookupChildByName(name, true /* acquire */, transforms);

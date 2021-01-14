@@ -179,8 +179,10 @@ class node {
     // associated with its descendants.
     std::string BuildSafePath() const;
 
-    // Looks up a direct descendant of this node by name. If |acquire| is true,
+    // Looks up a direct descendant of this node by case-insensitive |name|. If |acquire| is true,
     // also Acquire the node before returning a reference to it.
+    // |transforms| is an opaque flag that is used to distinguish multiple nodes sharing the same
+    // |name| but requiring different IO transformations as determined by the MediaProvider.
     node* LookupChildByName(const std::string& name, bool acquire, const int transforms = 0) const {
         return ForChild(name, [acquire, transforms](node* child) {
             if (child->transforms_ == transforms) {

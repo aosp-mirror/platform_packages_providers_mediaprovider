@@ -33,13 +33,17 @@ import android.provider.MediaStore.MediaColumns;
 import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
+import androidx.test.filters.LargeTest;
 import androidx.test.runner.AndroidJUnit4;
+
+import com.android.providers.media.tests.utils.Timer;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -238,32 +242,50 @@ public class PerformanceTest {
 
     @Test
     public void testDirOperations_10() throws Exception {
-        Timer createTimer = new Timer("mkdir");
-        Timer readTimer = new Timer("readdir");
-        Timer deleteTimer = new Timer("rmdir");
-        for (int i = 0; i < COUNT_REPEAT; i++ ){
-            doDirOperations(10, createTimer, readTimer, deleteTimer);
-        }
-        createTimer.dumpResults();
-        readTimer.dumpResults();
-        deleteTimer.dumpResults();
+        testDirOperations_size(10);
     }
 
     @Test
     public void testDirOperations_100() throws Exception {
+        testDirOperations_size(100);
+    }
+
+    @Test
+    public void testDirOperations_500() throws Exception {
+        testDirOperations_size(500);
+    }
+
+    @LargeTest
+    @Test
+    public void testDirOperations_1000() throws Exception {
+        testDirOperations_size(1000);
+    }
+
+    private void testDirOperations_size(int size) throws Exception {
         Timer createTimer = new Timer("mkdir");
         Timer readTimer = new Timer("readdir");
+        // We have different timers for rename dir only and rename files as we want to track the
+        // performance for both of the following:
+        // 1. Renaming a directory is significantly faster (for file managers) as we do not update
+        // DB entries for all the files within it. (it takes ~10ms for a dir of 1000 files)
+        // 2. Renaming files is faster as well (for file managers), as we do not do DB operations
+        // on each rename.
+        Timer renameDirTimer = new Timer("renamedir");
+        Timer renameFilesTimer = new Timer("renamefiles");
         Timer deleteTimer = new Timer("rmdir");
-        for (int i = 0; i < COUNT_REPEAT; i++ ){
-            doDirOperations(100, createTimer, readTimer, deleteTimer);
+        for (int i = 0; i < COUNT_REPEAT; i++ ) {
+            doDirOperations(size, createTimer, readTimer, renameDirTimer, renameFilesTimer,
+                    deleteTimer);
         }
         createTimer.dumpResults();
         readTimer.dumpResults();
+        renameDirTimer.dumpResults();
+        renameFilesTimer.dumpResults();
         deleteTimer.dumpResults();
     }
 
-    private void doDirOperations(int size, Timer createTimer, Timer readTimer, Timer deleteTimer)
-            throws Exception {
+    private void doDirOperations(int size, Timer createTimer, Timer readTimer,
+            Timer renameDirTimer, Timer renameFilesTimer, Timer deleteTimer) throws Exception {
         createTimer.start();
         File testDir = new File(new File(Environment.getExternalStorageDirectory(),
                 "Download"), "test_dir_" + System.nanoTime());
@@ -276,11 +298,33 @@ public class PerformanceTest {
         }
         createTimer.stop();
 
+        File renamedTestDir = new File(new File(Environment.getExternalStorageDirectory(),
+                "Download"), "renamed_test_dir_" + System.nanoTime());
         try {
             readTimer.start();
             File[] result = testDir.listFiles();
             readTimer.stop();
             assertEquals(size, result.length);
+
+            renameDirTimer.start();
+            assertTrue(testDir.renameTo(renamedTestDir));
+            renameDirTimer.stop();
+            testDir = renamedTestDir;
+
+            // renameTo for files will fail as the old files are not valid files as the dir name
+            // is changed, update the files to be valid.
+            files = Arrays.asList(renamedTestDir.listFiles());
+
+            renameFilesTimer.start();
+            List<File> renamedFiles = new ArrayList<>();
+            for (File file : files) {
+                File newFile = new File(testDir, "file_" + System.nanoTime());
+                assertTrue(file.renameTo(newFile));
+                renamedFiles.add(newFile);
+            }
+            renameFilesTimer.stop();
+            // This is essential for the finally block to delete valid files.
+            files = renamedFiles;
 
         } finally {
             deleteTimer.start();
@@ -294,52 +338,6 @@ public class PerformanceTest {
 
     private static Set<Uri> asSet(Collection<Uri> uris) {
         return new HashSet<>(uris);
-    }
-
-    /**
-     * Timer that can be started/stopped with nanosecond accuracy, and later
-     * averaged based on the number of times it was cycled.
-     */
-    private static class Timer {
-        private final String name;
-        private int count;
-        private long duration;
-        private long start;
-
-        public Timer(String name) {
-            this.name = name;
-        }
-
-        public void start() {
-            if (start != 0) {
-                throw new IllegalStateException();
-            } else {
-                start = SystemClock.elapsedRealtimeNanos();
-            }
-        }
-
-        public void stop() {
-            if (start == 0) {
-                throw new IllegalStateException();
-            } else {
-                duration += (SystemClock.elapsedRealtimeNanos() - start);
-                start = 0;
-                count++;
-            }
-        }
-
-        public long getAverageDurationMillis() {
-            return TimeUnit.MILLISECONDS.convert(duration / count, TimeUnit.NANOSECONDS);
-        }
-
-        public void dumpResults() {
-            final long duration = getAverageDurationMillis();
-            Log.v(TAG, name + ": " + duration + "ms");
-
-            final Bundle results = new Bundle();
-            results.putLong(name, duration);
-            InstrumentationRegistry.getInstrumentation().sendStatus(0, results);
-        }
     }
 
     private static class Timers {

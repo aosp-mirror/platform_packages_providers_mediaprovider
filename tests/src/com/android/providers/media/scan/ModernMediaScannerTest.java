@@ -146,21 +146,10 @@ public class ModernMediaScannerTest {
         assertTrue(parseOptionalMimeType("image/png", "image/x-shiny").isPresent());
         assertEquals("image/x-shiny",
                 parseOptionalMimeType("image/png", "image/x-shiny").get());
-    }
 
-    @Test
-    public void testOverrideMimeType_148316354() throws Exception {
         // Radical file type shifting isn't allowed
         assertEquals(Optional.empty(),
                 parseOptionalMimeType("video/mp4", "audio/mpeg"));
-
-        // One specific narrow type of shift (mp4 -> m4a) is allowed
-        assertEquals(Optional.of("audio/mp4"),
-                parseOptionalMimeType("video/mp4", "audio/mp4"));
-
-        // The other direction isn't allowed
-        assertEquals(Optional.empty(),
-                parseOptionalMimeType("audio/mp4", "video/mp4"));
     }
 
     @Test
@@ -905,8 +894,11 @@ public class ModernMediaScannerTest {
                 .query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
             assertEquals(1, cursor.getCount());
             cursor.moveToFirst();
-            assertEquals("audio/mp4",
-                    cursor.getString(cursor.getColumnIndex(MediaColumns.MIME_TYPE)));
+            assertThat(cursor.getString(cursor.getColumnIndex(MediaColumns.MIME_TYPE)))
+                    .isEqualTo("audio/mp4");
+            assertThat(cursor.getString(cursor.getColumnIndex(AudioColumns.IS_MUSIC)))
+                    .isEqualTo("1");
+
         }
     }
 

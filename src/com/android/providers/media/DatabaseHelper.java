@@ -135,7 +135,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      */
     private final ReentrantReadWriteLock mSchemaLock = new ReentrantReadWriteLock();
 
-    private static Object sMigrationLock = new Object();
+    private static Object sMigrationLockInternal = new Object();
+    private static Object sMigrationLockExternal = new Object();
 
     public interface OnSchemaChangeListener {
         public void onSchemaChange(@NonNull String volumeName, int versionFrom, int versionTo,
@@ -370,10 +371,15 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     @Override
     public void onOpen(final SQLiteDatabase db) {
         Log.v(TAG, "onOpen() for " + mName);
+
+        tryMigrateFromLegacy(db, mInternal ? sMigrationLockInternal : sMigrationLockExternal);
+    }
+
+    private void tryMigrateFromLegacy(SQLiteDatabase db, Object migrationLock) {
         final File migration = new File(mContext.getFilesDir(), mMigrationFileName);
         // Another thread entering migration block will be blocked until the
         // migration is complete from current thread.
-        synchronized (sMigrationLock) {
+        synchronized (migrationLock) {
             if (!migration.exists()) {
                 Log.v(TAG, "onOpen() finished for " + mName);
                 return;
@@ -1122,6 +1128,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         sMigrateColumns.add(MediaStore.Video.VideoColumns.CATEGORY);
         sMigrateColumns.add(MediaStore.Video.VideoColumns.BOOKMARK);
 
+        // This also migrates MediaStore.Images.ImageColumns.IS_PRIVATE
+        // as they both have the same value "isprivate".
         sMigrateColumns.add(MediaStore.Video.VideoColumns.IS_PRIVATE);
 
         sMigrateColumns.add(MediaStore.DownloadColumns.DOWNLOAD_URI);

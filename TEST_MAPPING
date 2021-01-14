@@ -4,7 +4,12 @@
             "name": "MediaProviderTests"
         },
         {
-            "name": "MediaProviderClientTests"
+            "name": "MediaProviderClientTests",
+            "options": [
+                {
+                  "exclude-annotation": "androidx.test.filters.LargeTest"
+                }
+            ]
         },
         {
             "name": "CtsProviderTestCases",
@@ -20,10 +25,18 @@
             "name": "AdoptableHostTest"
         },
         {
+            "name": "CtsScopedStorageCoreHostTest"
+        },
+        {
             "name": "CtsScopedStorageHostTest"
         },
         {
             "name": "fuse_node_test"
+        }
+    ],
+    "postsubmit": [
+        {
+            "name": "MediaProviderClientTests"
         }
     ]
 }

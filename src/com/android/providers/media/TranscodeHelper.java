@@ -24,13 +24,9 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 
 import static com.android.providers.media.MediaProvider.VolumeNotFoundException;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__HEVC_WRITE;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_CACHE;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_DIRECT;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_TRANSCODE;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__FAIL ;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__SUCCESS ;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED ;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__FAIL;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__SUCCESS;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED;
 
 import android.annotation.IntRange;
 import android.annotation.LongDef;
@@ -51,9 +47,9 @@ import android.media.ApplicationMediaCapabilities;
 import android.media.MediaFeature;
 import android.media.MediaFormat;
 import android.media.MediaTranscodeManager;
-import android.media.MediaTranscodeManager.TranscodingSession;
 import android.media.MediaTranscodeManager.TranscodingRequest;
 import android.media.MediaTranscodeManager.TranscodingRequest.MediaFormatResolver;
+import android.media.MediaTranscodeManager.TranscodingSession;
 import android.media.MediaTranscodingException;
 import android.net.Uri;
 import android.os.Bundle;
@@ -204,15 +200,6 @@ public class TranscodeHelper {
             {FileColumns._ID, FileColumns._TRANSCODE_STATUS};
     private static final String TRANSCODE_WHERE_CLAUSE =
             FileColumns.DATA + "=?" + " and mime_type not like 'null'";
-
-    /**
-     * Never transcode for these packages.
-     * TODO(b/169327180): Replace this with allow list from server.
-     */
-    private static final String[] ALLOW_LIST = new String[]{
-            // TODO: Remove "com.google.android.apps.photos", after investigating issue.
-            "com.google.android.apps.photos"
-    };
 
     public TranscodeHelper(Context context, MediaProvider mediaProvider) {
         mContext = context;
@@ -419,14 +406,14 @@ public class TranscodeHelper {
                 return false;
             }
         }
-        boolean transcodeNeeded = doesAppNeedTranscoding(path, uid, bundle);
+        boolean transcodeNeeded = doesAppNeedTranscoding(uid, bundle);
         if (!transcodeNeeded) {
             reportTranscodingDirectAccess(uid);
         }
         return transcodeNeeded;
     }
 
-    private boolean doesAppNeedTranscoding(String path, int uid, Bundle bundle) {
+    private boolean doesAppNeedTranscoding(int uid, Bundle bundle) {
         if (bundle != null) {
             if (bundle.getBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, false)) {
                 logVerbose("Original format requested");
@@ -443,15 +430,16 @@ public class TranscodeHelper {
         }
 
         // Check app-compat flags
-        boolean enableHevc = CompatChanges.isChangeEnabled(FORCE_ENABLE_HEVC_SUPPORT, uid);
-        boolean disableHevc = CompatChanges.isChangeEnabled(FORCE_DISABLE_HEVC_SUPPORT, uid);
-        if (enableHevc && disableHevc) {
+        boolean hevcSupportEnabled = CompatChanges.isChangeEnabled(FORCE_ENABLE_HEVC_SUPPORT, uid);
+        boolean hevcSupportDisabled = CompatChanges.isChangeEnabled(FORCE_DISABLE_HEVC_SUPPORT,
+                uid);
+        if (hevcSupportEnabled && hevcSupportDisabled) {
             Log.w(TAG, "Ignoring app compat flags: Set to simultaneously enable and disable "
                     + "HEVC support for uid: " + uid);
-        } else if (enableHevc) {
+        } else if (hevcSupportEnabled) {
             logVerbose("App compat hevc support enabled");
             return false;
-        } else if (disableHevc) {
+        } else if (hevcSupportDisabled) {
             logVerbose("App compat hevc support disabled");
             return true;
         }

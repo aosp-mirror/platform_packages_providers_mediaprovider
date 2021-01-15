@@ -1381,7 +1381,30 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Called from FUSE to get IO path for {@code uid}
+     * Called from FUSE to get {@link FileLookupResult} for a {@code path} and {@code uid}
+     *
+     * {@link FileLookupResult} contains transforms, transforms completion status and ioPath
+     * for transform lookup query for a file and uid.
+     *
+     * @param path file path to get transforms for
+     * @param uid app requesting IO
+     *
+     * Called from JNI in jni/MediaProviderWrapper.cpp
+     */
+    @Keep
+    public FileLookupResult onFileLookupForFuse(String path, int uid) {
+        String ioPath = "";
+        boolean transformsComplete = true;
+        int transforms = getTransformsForFuse(path, uid);
+        if (transforms != 0) {
+            ioPath = getIoPathForFuse(path, uid);
+            transformsComplete = Objects.equals(path, ioPath);
+        }
+        return new FileLookupResult(transforms, transformsComplete, ioPath);
+    }
+
+    /**
+     * Returns IO path for a {@code path} and {@code uid}
      *
      * IO path is the actual path to be used on the lower fs for IO via FUSE. For some file
      * transforms, this path might be different from the path the app is requesting IO on.
@@ -1389,15 +1412,13 @@ public class MediaProvider extends ContentProvider {
      * @param path file path to get an IO path for
      * @param uid app requesting IO
      *
-     * Called from JNI in jni/MediaProviderWrapper.cpp
      */
-    @Keep
-    public String getIoPathForFuse(String path, int uid) {
+    private String getIoPathForFuse(String path, int uid) {
         return mTranscodeHelper.getIoPath(path, uid);
     }
 
     /**
-     * Called from FUSE to get transforms for {@code uid}
+     * Returns transforms for a {@code path} and {@code uid}
      *
      * If transforms are not supported for {@code path}, {@code 0} will be returned. Otherwise,
      * a bitwise OR of supported transforms for {@code path} and actual transforms to perform for
@@ -1406,11 +1427,9 @@ public class MediaProvider extends ContentProvider {
      * @param path file path to get transforms for
      * @param uid app requesting IO
      *
-     * Called from JNI in jni/MediaProviderWrapper.cpp
      * @see {@link transformForFuse}
      */
-    @Keep
-    public int getTransformsForFuse(String path, int uid) {
+    private int getTransformsForFuse(String path, int uid) {
         int result = 0;
         if (mTranscodeHelper.supportsTranscode(path)) {
             result |= FLAG_TRANSFORM_SUPPORTED;
@@ -4434,6 +4453,13 @@ public class MediaProvider extends ContentProvider {
                     qb.setProjectionMap(projectionMap);
 
                     appendWhereStandalone(qb, "audio._id = audio_id");
+                    // Since we use audio table along with audio_playlists_map
+                    // for querying, we should only include database rows of
+                    // the attached volumes.
+                    if (!includeAllVolumes) {
+                        appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN "
+                             + includeVolumes);
+                    }
                 } else {
                     qb.setTables("audio_playlists_map");
                     qb.setProjectionMap(getProjectionMap(Audio.Playlists.Members.class));
@@ -6112,9 +6138,9 @@ public class MediaProvider extends ContentProvider {
     private long addPlaylistMembers(@NonNull Uri playlistUri, @NonNull ContentValues values)
             throws FallbackException {
         final long audioId = values.getAsLong(Audio.Playlists.Members.AUDIO_ID);
-        final String audioVolumeName = MediaStore.VOLUME_INTERNAL.equals(getVolumeName(playlistUri))
+        final String volumeName = MediaStore.VOLUME_INTERNAL.equals(getVolumeName(playlistUri))
                 ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL;
-        final Uri audioUri = Audio.Media.getContentUri(audioVolumeName, audioId);
+        final Uri audioUri = Audio.Media.getContentUri(volumeName, audioId);
 
         Integer playOrder = values.getAsInteger(Playlists.Members.PLAY_ORDER);
         playOrder = (playOrder != null) ? (playOrder - 1) : Integer.MAX_VALUE;
@@ -6133,8 +6159,8 @@ public class MediaProvider extends ContentProvider {
             resolvePlaylistMembers(playlistUri);
 
             // Callers are interested in the actual ID we generated
-            final Uri membersUri = Playlists.Members.getContentUri(
-                    getVolumeName(playlistUri), ContentUris.parseId(playlistUri));
+            final Uri membersUri = Playlists.Members.getContentUri(volumeName,
+                    ContentUris.parseId(playlistUri));
             try (Cursor c = query(membersUri, new String[] { BaseColumns._ID },
                     Playlists.Members.PLAY_ORDER + "=" + (playOrder + 1), null, null)) {
                 c.moveToFirst();

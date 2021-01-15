@@ -1773,7 +1773,7 @@ public final class MediaStore {
              * scanned.
              * @hide
              */
-            @Column(value = Cursor.FIELD_TYPE_INTEGER)
+            // @Column(value = Cursor.FIELD_TYPE_INTEGER)
             public static final String _MODIFIER = "_modifier";
 
             /**
@@ -1809,7 +1809,7 @@ public final class MediaStore {
              *
              * @hide
              */
-            @Column(value = Cursor.FIELD_TYPE_INTEGER)
+            // @Column(value = Cursor.FIELD_TYPE_INTEGER)
             public static final String _TRANSCODE_STATUS = "_transcode_status";
 
             /**
@@ -1831,7 +1831,7 @@ public final class MediaStore {
              * extracted from the video file. This value be null for non-video files.
              * @hide
              */
-            @Column(value = Cursor.FIELD_TYPE_INTEGER)
+            // @Column(value = Cursor.FIELD_TYPE_INTEGER)
             public static final String _VIDEO_CODEC_TYPE = "_video_codec_type";
         }
     }

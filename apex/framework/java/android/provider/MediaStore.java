@@ -603,7 +603,7 @@ public final class MediaStore {
      */
     public final static String EXTRA_OUTPUT = "output";
 
-    /*
+    /**
      * Specify that the caller wants to receive the original media format without transcoding.
      *
      * <b>Caution: using this flag can cause app
@@ -648,6 +648,17 @@ public final class MediaStore {
      */
     public final static String EXTRA_MEDIA_CAPABILITIES =
             "android.provider.extra.MEDIA_CAPABILITIES";
+
+    /**
+     * Specify the UID of the app that should be used to determine supported media capabilities
+     * while opening a media.
+     *
+     * If this specified UID is found to be capable of handling the original media file format, the
+     * app will receive the original file, otherwise, the file will get transcoded to a default
+     * format supported by the specified UID.
+     */
+    public static final String EXTRA_MEDIA_CAPABILITIES_UID =
+            "android.provider.extra.MEDIA_CAPABILITIES_UID";
 
     /**
       * The string that is used when a media attribute is not known. For example,

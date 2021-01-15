@@ -43,7 +43,6 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.PackageManager.Property;
 import android.content.res.XmlResourceParser;
 import android.database.Cursor;
@@ -529,13 +528,16 @@ public class TranscodeHelper {
 
             identity.setApplicationMediaCapabilitiesFlags(capabilitiesToFlags(capability));
             return capability.isVideoMimeTypeSupported(MediaFormat.MIMETYPE_VIDEO_HEVC);
-        } catch (NameNotFoundException | UnsupportedOperationException e) {
+        } catch (PackageManager.NameNotFoundException
+                | ApplicationMediaCapabilities.FormatNotFoundException
+                | UnsupportedOperationException e) {
             return false;
         }
     }
 
     @ApplicationMediaCapabilitiesFlags
-    private int capabilitiesToFlags(ApplicationMediaCapabilities capability) {
+    private int capabilitiesToFlags(ApplicationMediaCapabilities capability)
+            throws ApplicationMediaCapabilities.FormatNotFoundException {
         int flags = 0;
         if (capability.isVideoMimeTypeSupported(MediaFormat.MIMETYPE_VIDEO_HEVC)) {
             flags |= FLAG_HEVC;

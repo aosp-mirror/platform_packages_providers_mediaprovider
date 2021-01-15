@@ -22,12 +22,17 @@ package com.android.providers.media;
  */
 public final class FileLookupResult {
     public final int transforms;
+    public final int uid;
     public final boolean transformsComplete;
+    public final boolean transformsSupported;
     public final String ioPath;
 
-    public FileLookupResult(int transforms, boolean transformsComplete, String ioPath) {
+    public FileLookupResult(int transforms, int uid, boolean transformsComplete,
+            boolean transformsSupported, String ioPath) {
         this.transforms = transforms;
+        this.uid = uid;
         this.transformsComplete = transformsComplete;
+        this.transformsSupported = transformsSupported;
         this.ioPath = ioPath;
     }
 }

@@ -17,6 +17,7 @@
 #ifndef MEDIAPROVIDER_FUSE_MEDIAPROVIDERWRAPPER_H_
 #define MEDIAPROVIDER_FUSE_MEDIAPROVIDERWRAPPER_H_
 
+#include <android-base/logging.h>
 #include <jni.h>
 #include <sys/types.h>
 
@@ -40,15 +41,26 @@ namespace fuse {
  * status and the ioPath. Provided by MediaProvider.java via a JNI call.
  */
 struct FileLookupResult {
-    FileLookupResult(int transforms, bool transforms_complete, const std::string& io_path)
-        : transforms(transforms), transforms_complete(transforms_complete), io_path(io_path) {}
+    FileLookupResult(int transforms, uid_t uid, bool transforms_complete, bool transforms_supported,
+                     const std::string& io_path)
+        : transforms(transforms),
+          uid(uid),
+          transforms_complete(transforms_complete),
+          transforms_supported(transforms_supported),
+          io_path(io_path) {
+        if (transforms != 0) {
+            CHECK(transforms_supported);
+        }
+    }
 
     /**
      * This field is not to be interpreted, it is determined and populated from MediaProvider
      * via a JNI call.
      */
     const int transforms;
+    const uid_t uid;
     const bool transforms_complete;
+    const bool transforms_supported;
     const std::string io_path;
 };
 
@@ -193,7 +205,7 @@ class MediaProviderWrapper final {
     /**
      * Returns FileLookupResult to determine transform info for a path and uid.
      */
-    std::unique_ptr<FileLookupResult> FileLookup(const std::string& path, uid_t uid);
+    std::unique_ptr<FileLookupResult> FileLookup(const std::string& path, uid_t uid, pid_t tid);
 
     /** Transforms from src to dst file */
     bool Transform(const std::string& src, const std::string& dst, int transforms, uid_t uid);
@@ -244,7 +256,9 @@ class MediaProviderWrapper final {
     jmethodID mid_file_lookup_;
     /** Cached FileLookupResult field IDs **/
     jfieldID fid_file_lookup_transforms_;
+    jfieldID fid_file_lookup_uid_;
     jfieldID fid_file_lookup_transforms_complete_;
+    jfieldID fid_file_lookup_transforms_supported_;
     jfieldID fid_file_lookup_io_path_;
 
     /**

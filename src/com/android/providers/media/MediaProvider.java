@@ -241,10 +241,8 @@ public class MediaProvider extends ContentProvider {
     static final Pattern PATTERN_SELECTION_ID = Pattern.compile(
             "(?:image_id|video_id)\\s*=\\s*(\\d+)");
 
-    /** File supports transforms and uid requires transcoding */
+    /** File access by uid requires the transcoding transform */
     private static final int FLAG_TRANSFORM_TRANSCODING = 1;
-    /** File supports transforms */
-    private static final int FLAG_TRANSFORM_SUPPORTED = 1 << 30;
 
     /**
      * These directory names aren't declared in Environment as final variables, and so we need to
@@ -1387,20 +1385,29 @@ public class MediaProvider extends ContentProvider {
      * for transform lookup query for a file and uid.
      *
      * @param path file path to get transforms for
-     * @param uid app requesting IO
+     * @param uid app requesting IO form kernel
+     * @param tid FUSE thread id handling IO request from kernel
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public FileLookupResult onFileLookupForFuse(String path, int uid) {
+    public FileLookupResult onFileLookupForFuse(String path, int uid, int tid) {
         String ioPath = "";
         boolean transformsComplete = true;
-        int transforms = getTransformsForFuse(path, uid);
-        if (transforms != 0) {
-            ioPath = getIoPathForFuse(path, uid);
-            transformsComplete = Objects.equals(path, ioPath);
+        boolean transformsSupported = mTranscodeHelper.supportsTranscode(path);
+        int transforms = 0;
+
+        if (transformsSupported) {
+            // TODO(b/170974147): Avoid duplicate shouldTranscode calls in getTransformsForFuse and
+            // getIoPathForFuse
+            transforms = getTransformsForFuse(path, uid);
+            if (transforms != 0) {
+                ioPath = getIoPathForFuse(path, uid);
+                transformsComplete = false;
+            }
         }
-        return new FileLookupResult(transforms, transformsComplete, ioPath);
+        return new FileLookupResult(transforms, uid, transformsComplete, transformsSupported,
+                ioPath);
     }
 
     /**
@@ -1430,15 +1437,10 @@ public class MediaProvider extends ContentProvider {
      * @see {@link transformForFuse}
      */
     private int getTransformsForFuse(String path, int uid) {
-        int result = 0;
-        if (mTranscodeHelper.supportsTranscode(path)) {
-            result |= FLAG_TRANSFORM_SUPPORTED;
-
-            if (mTranscodeHelper.shouldTranscode(path, uid, null /* bundle */)) {
-                result |= FLAG_TRANSFORM_TRANSCODING;
-            }
+        if (mTranscodeHelper.shouldTranscode(path, uid, null /* bundle */)) {
+            return FLAG_TRANSFORM_TRANSCODING;
         }
-        return result;
+        return 0;
     }
 
     /**

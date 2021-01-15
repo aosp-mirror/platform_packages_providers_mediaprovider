@@ -295,7 +295,7 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
                                  /*is_static*/ false);
     mid_file_lookup_ =
             CacheMethod(env, "onFileLookup",
-                        "(Ljava/lang/String;I)Lcom/android/providers/media/FileLookupResult;",
+                        "(Ljava/lang/String;II)Lcom/android/providers/media/FileLookupResult;",
                         /*is_static*/ false);
 
     file_lookup_result_class_ = env->FindClass("com/android/providers/media/FileLookupResult");
@@ -305,7 +305,9 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
     file_lookup_result_class_ =
             reinterpret_cast<jclass>(env->NewGlobalRef(file_lookup_result_class_));
     fid_file_lookup_transforms_ = CacheFileLookupField(env, "transforms", "I");
+    fid_file_lookup_uid_ = CacheFileLookupField(env, "uid", "I");
     fid_file_lookup_transforms_complete_ = CacheFileLookupField(env, "transformsComplete", "Z");
+    fid_file_lookup_transforms_supported_ = CacheFileLookupField(env, "transformsSupported", "Z");
     fid_file_lookup_io_path_ = CacheFileLookupField(env, "ioPath", "Ljava/lang/String;");
 }
 
@@ -476,7 +478,7 @@ bool MediaProviderWrapper::IsAppCloneUser(uid_t userId) {
 }
 
 std::unique_ptr<FileLookupResult> MediaProviderWrapper::FileLookup(const std::string& path,
-                                                                   uid_t uid) {
+                                                                   uid_t uid, pid_t tid) {
     JNIEnv* env = MaybeAttachCurrentThread();
 
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
@@ -489,15 +491,19 @@ std::unique_ptr<FileLookupResult> MediaProviderWrapper::FileLookup(const std::st
     }
 
     int transforms = env->GetIntField(j_res_file_lookup_object.get(), fid_file_lookup_transforms_);
+    int original_uid = env->GetIntField(j_res_file_lookup_object.get(), fid_file_lookup_uid_);
     bool transforms_complete = env->GetBooleanField(j_res_file_lookup_object.get(),
                                                     fid_file_lookup_transforms_complete_);
+    bool transforms_supported = env->GetBooleanField(j_res_file_lookup_object.get(),
+                                                     fid_file_lookup_transforms_supported_);
     ScopedLocalRef<jstring> j_io_path(
             env,
             (jstring)env->GetObjectField(j_res_file_lookup_object.get(), fid_file_lookup_io_path_));
     ScopedUtfChars j_io_path_utf(env, j_io_path.get());
 
-    std::unique_ptr<FileLookupResult> file_lookup_result = std::make_unique<FileLookupResult>(
-            transforms, transforms_complete, string(j_io_path_utf.c_str()));
+    std::unique_ptr<FileLookupResult> file_lookup_result =
+            std::make_unique<FileLookupResult>(transforms, original_uid, transforms_complete,
+                                               transforms_supported, string(j_io_path_utf.c_str()));
     return file_lookup_result;
 }
 

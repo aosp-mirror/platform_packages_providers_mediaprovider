@@ -250,19 +250,21 @@ public class MediaProvider extends ContentProvider {
      * These directory names aren't declared in Environment as final variables, and so we need to
      * have the same values in separate final variables in order to have them considered constant
      * expressions.
+     * These directory names are intentionally in lower case to ease the case insensitive path
+     * comparison.
      */
-    private static final String DIRECTORY_MUSIC = "Music";
-    private static final String DIRECTORY_PODCASTS = "Podcasts";
-    private static final String DIRECTORY_RINGTONES = "Ringtones";
-    private static final String DIRECTORY_ALARMS = "Alarms";
-    private static final String DIRECTORY_NOTIFICATIONS = "Notifications";
-    private static final String DIRECTORY_PICTURES = "Pictures";
-    private static final String DIRECTORY_MOVIES = "Movies";
-    private static final String DIRECTORY_DOWNLOADS = "Download";
-    private static final String DIRECTORY_DCIM = "DCIM";
-    private static final String DIRECTORY_DOCUMENTS = "Documents";
-    private static final String DIRECTORY_AUDIOBOOKS = "Audiobooks";
-    private static final String DIRECTORY_ANDROID = "Android";
+    private static final String DIRECTORY_MUSIC_LOWER_CASE = "music";
+    private static final String DIRECTORY_PODCASTS_LOWER_CASE = "podcasts";
+    private static final String DIRECTORY_RINGTONES_LOWER_CASE = "ringtones";
+    private static final String DIRECTORY_ALARMS_LOWER_CASE = "alarms";
+    private static final String DIRECTORY_NOTIFICATIONS_LOWER_CASE = "notifications";
+    private static final String DIRECTORY_PICTURES_LOWER_CASE = "pictures";
+    private static final String DIRECTORY_MOVIES_LOWER_CASE = "movies";
+    private static final String DIRECTORY_DOWNLOADS_LOWER_CASE = "download";
+    private static final String DIRECTORY_DCIM_LOWER_CASE = "dcim";
+    private static final String DIRECTORY_DOCUMENTS_LOWER_CASE = "documents";
+    private static final String DIRECTORY_AUDIOBOOKS_LOWER_CASE = "audiobooks";
+    private static final String DIRECTORY_ANDROID_LOWER_CASE = "android";
 
     private static final String DIRECTORY_MEDIA = "media";
     private static final String DIRECTORY_THUMBNAILS = ".thumbnails";
@@ -2015,12 +2017,12 @@ public class MediaProvider extends ContentProvider {
     private ArrayList<String> getIncludedDefaultDirectories() {
         final ArrayList<String> includedDefaultDirs = new ArrayList<>();
         if (checkCallingPermissionVideo(/*forWrite*/ true, null)) {
-            includedDefaultDirs.add(DIRECTORY_DCIM);
-            includedDefaultDirs.add(DIRECTORY_PICTURES);
-            includedDefaultDirs.add(DIRECTORY_MOVIES);
+            includedDefaultDirs.add(Environment.DIRECTORY_DCIM);
+            includedDefaultDirs.add(Environment.DIRECTORY_PICTURES);
+            includedDefaultDirs.add(Environment.DIRECTORY_MOVIES);
         } else if (checkCallingPermissionImages(/*forWrite*/ true, null)) {
-            includedDefaultDirs.add(DIRECTORY_DCIM);
-            includedDefaultDirs.add(DIRECTORY_PICTURES);
+            includedDefaultDirs.add(Environment.DIRECTORY_DCIM);
+            includedDefaultDirs.add(Environment.DIRECTORY_PICTURES);
         }
         return includedDefaultDirs;
     }
@@ -2398,10 +2400,11 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EPERM;
             }
 
+            // TODO(b/177049768): We shouldn't use getExternalStorageDirectory for these checks.
             final File directoryAndroid = new File(Environment.getExternalStorageDirectory(),
-                    DIRECTORY_ANDROID);
+                    DIRECTORY_ANDROID_LOWER_CASE);
             final File directoryAndroidMedia = new File(directoryAndroid, DIRECTORY_MEDIA);
-            if (directoryAndroidMedia.getAbsolutePath().equals(oldPath)) {
+            if (directoryAndroidMedia.getAbsolutePath().equalsIgnoreCase(oldPath)) {
                 // Don't allow renaming 'Android/media' directory.
                 // Android/[data|obb] are bind mounted and these paths don't go through FUSE.
                 Log.e(TAG, errorMessage +  oldPath + " is a default folder in app external "
@@ -2980,7 +2983,7 @@ public class MediaProvider extends ContentProvider {
             final String[] relativePath = values.getAsString(MediaColumns.RELATIVE_PATH).split("/");
             final String primary = (relativePath.length > 0) ? relativePath[0] : null;
             if (!validPath) {
-                validPath = allowedPrimary.contains(primary);
+                validPath = containsIgnoreCase(allowedPrimary, primary);
             }
 
             // Next, consider allowing paths when referencing a related item
@@ -3119,7 +3122,7 @@ public class MediaProvider extends ContentProvider {
                 final String secondary =
                         (relativePathSegments.length > 1) ? relativePathSegments[1] : "";
 
-                if (DIRECTORY_ANDROID.equalsIgnoreCase(primary)
+                if (DIRECTORY_ANDROID_LOWER_CASE.equalsIgnoreCase(primary)
                         && PRIVATE_SUBDIRECTORIES_ANDROID.contains(
                         secondary.toLowerCase(Locale.ROOT))) {
                     throw new IllegalArgumentException(
@@ -5429,9 +5432,10 @@ public class MediaProvider extends ContentProvider {
     private List<File> getThumbnailDirectories(String volumeName) throws FileNotFoundException {
         final File volumePath = getVolumePath(volumeName);
         return Arrays.asList(
-                FileUtils.buildPath(volumePath, DIRECTORY_MUSIC, DIRECTORY_THUMBNAILS),
-                FileUtils.buildPath(volumePath, DIRECTORY_MOVIES, DIRECTORY_THUMBNAILS),
-                FileUtils.buildPath(volumePath, DIRECTORY_PICTURES, DIRECTORY_THUMBNAILS));
+                FileUtils.buildPath(volumePath, Environment.DIRECTORY_MUSIC, DIRECTORY_THUMBNAILS),
+                FileUtils.buildPath(volumePath, Environment.DIRECTORY_MOVIES, DIRECTORY_THUMBNAILS),
+                FileUtils.buildPath(volumePath, Environment.DIRECTORY_PICTURES,
+                        DIRECTORY_THUMBNAILS));
     }
 
     private void invalidateThumbnails(Uri uri) {
@@ -7328,21 +7332,23 @@ public class MediaProvider extends ContentProvider {
             throw new IllegalStateException("Couldn't get volume name for " + filePath);
         }
         Uri uri = Files.getContentUri(volName);
-        final String topLevelDir = extractTopLevelDir(filePath);
+        String topLevelDir = extractTopLevelDir(filePath);
         if (topLevelDir == null) {
             // If the file path doesn't match the external storage directory, we use the files URI
             // as default and let #insert enforce the restrictions
             return uri;
         }
+        topLevelDir = topLevelDir.toLowerCase(Locale.ROOT);
+
         switch (topLevelDir) {
-            case DIRECTORY_PODCASTS:
-            case DIRECTORY_RINGTONES:
-            case DIRECTORY_ALARMS:
-            case DIRECTORY_NOTIFICATIONS:
-            case DIRECTORY_AUDIOBOOKS:
+            case DIRECTORY_PODCASTS_LOWER_CASE:
+            case DIRECTORY_RINGTONES_LOWER_CASE:
+            case DIRECTORY_ALARMS_LOWER_CASE:
+            case DIRECTORY_NOTIFICATIONS_LOWER_CASE:
+            case DIRECTORY_AUDIOBOOKS_LOWER_CASE:
                 uri = Audio.Media.getContentUri(volName);
                 break;
-            case DIRECTORY_MUSIC:
+            case DIRECTORY_MUSIC_LOWER_CASE:
                 if (MimeUtils.isPlaylistMimeType(mimeType)) {
                     uri = Audio.Playlists.getContentUri(volName);
                 } else if (!MimeUtils.isSubtitleMimeType(mimeType)) {
@@ -7350,7 +7356,7 @@ public class MediaProvider extends ContentProvider {
                     uri = Audio.Media.getContentUri(volName);
                 }
                 break;
-            case DIRECTORY_MOVIES:
+            case DIRECTORY_MOVIES_LOWER_CASE:
                 if (MimeUtils.isPlaylistMimeType(mimeType)) {
                     uri = Audio.Playlists.getContentUri(volName);
                 } else if (!MimeUtils.isSubtitleMimeType(mimeType)) {
@@ -7358,21 +7364,30 @@ public class MediaProvider extends ContentProvider {
                     uri = Video.Media.getContentUri(volName);
                 }
                 break;
-            case DIRECTORY_DCIM:
-            case DIRECTORY_PICTURES:
+            case DIRECTORY_DCIM_LOWER_CASE:
+            case DIRECTORY_PICTURES_LOWER_CASE:
                 if (MimeUtils.isImageMimeType(mimeType)) {
                     uri = Images.Media.getContentUri(volName);
                 } else {
                     uri = Video.Media.getContentUri(volName);
                 }
                 break;
-            case DIRECTORY_DOWNLOADS:
-            case DIRECTORY_DOCUMENTS:
+            case DIRECTORY_DOWNLOADS_LOWER_CASE:
+            case DIRECTORY_DOCUMENTS_LOWER_CASE:
                 break;
             default:
                 Log.w(TAG, "Forgot to handle a top level directory in getContentUriForFile?");
         }
         return uri;
+    }
+
+    private boolean containsIgnoreCase(@Nullable List<String> stringsList, @Nullable String item) {
+        if (item == null || stringsList == null) return false;
+
+        for (String current : stringsList) {
+            if (item.equalsIgnoreCase(current)) return true;
+        }
+        return false;
     }
 
     private boolean fileExists(@NonNull String absolutePath) {

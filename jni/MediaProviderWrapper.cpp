@@ -291,12 +291,22 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
                                            /*is_static*/ false);
     mid_is_app_clone_user_ = CacheMethod(env, "isAppCloneUser", "(I)Z",
                                          /*is_static*/ false);
-    mid_get_io_path_ = CacheMethod(env, "getIoPath", "(Ljava/lang/String;I)Ljava/lang/String;",
-                                   /*is_static*/ false);
-    mid_get_transforms_ = CacheMethod(env, "getTransforms", "(Ljava/lang/String;I)I",
-                                      /*is_static*/ false);
     mid_transform_ = CacheMethod(env, "transform", "(Ljava/lang/String;Ljava/lang/String;II)Z",
                                  /*is_static*/ false);
+    mid_file_lookup_ =
+            CacheMethod(env, "onFileLookup",
+                        "(Ljava/lang/String;I)Lcom/android/providers/media/FileLookupResult;",
+                        /*is_static*/ false);
+
+    file_lookup_result_class_ = env->FindClass("com/android/providers/media/FileLookupResult");
+    if (!file_lookup_result_class_) {
+        LOG(FATAL) << "Could not find class FileLookupResult";
+    }
+    file_lookup_result_class_ =
+            reinterpret_cast<jclass>(env->NewGlobalRef(file_lookup_result_class_));
+    fid_file_lookup_transforms_ = CacheFileLookupField(env, "transforms", "I");
+    fid_file_lookup_transforms_complete_ = CacheFileLookupField(env, "transformsComplete", "Z");
+    fid_file_lookup_io_path_ = CacheFileLookupField(env, "ioPath", "Ljava/lang/String;");
 }
 
 MediaProviderWrapper::~MediaProviderWrapper() {
@@ -465,32 +475,30 @@ bool MediaProviderWrapper::IsAppCloneUser(uid_t userId) {
     return res;
 }
 
-std::string MediaProviderWrapper::GetIoPath(const std::string& path, uid_t uid) {
+std::unique_ptr<FileLookupResult> MediaProviderWrapper::FileLookup(const std::string& path,
+                                                                   uid_t uid) {
     JNIEnv* env = MaybeAttachCurrentThread();
 
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
-    ScopedLocalRef<jstring> j_res_path(
-            env, static_cast<jstring>(env->CallObjectMethod(media_provider_object_,
-                                                            mid_get_io_path_, j_path.get(), uid)));
-    ScopedUtfChars j_res_utf(env, j_res_path.get());
-    if (CheckForJniException(env)) {
-        return "";
-    }
 
-    return string(j_res_utf.c_str());
-}
-
-int MediaProviderWrapper::GetTransforms(const std::string& path, uid_t uid) {
-    JNIEnv* env = MaybeAttachCurrentThread();
-
-    ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
-    int res = env->CallIntMethod(media_provider_object_, mid_get_transforms_, j_path.get(), uid);
+    ScopedLocalRef<jobject> j_res_file_lookup_object(
+            env, env->CallObjectMethod(media_provider_object_, mid_file_lookup_, j_path.get(), uid));
 
     if (CheckForJniException(env)) {
-        return -1;
+        return nullptr;
     }
 
-    return res;
+    int transforms = env->GetIntField(j_res_file_lookup_object.get(), fid_file_lookup_transforms_);
+    bool transforms_complete = env->GetBooleanField(j_res_file_lookup_object.get(),
+                                                    fid_file_lookup_transforms_complete_);
+    ScopedLocalRef<jstring> j_io_path(
+            env,
+            (jstring)env->GetObjectField(j_res_file_lookup_object.get(), fid_file_lookup_io_path_));
+    ScopedUtfChars j_io_path_utf(env, j_io_path.get());
+
+    std::unique_ptr<FileLookupResult> file_lookup_result = std::make_unique<FileLookupResult>(
+            transforms, transforms_complete, string(j_io_path_utf.c_str()));
+    return file_lookup_result;
 }
 
 bool MediaProviderWrapper::Transform(const std::string& src, const std::string& dst, int transforms,
@@ -531,6 +539,21 @@ jmethodID MediaProviderWrapper::CacheMethod(JNIEnv* env, const char method_name[
         LOG(FATAL) << "Error caching method: " << method_name << signature;
     }
     return mid;
+}
+
+/**
+ * Finds FileLookupResult field and adds it to fields map so it can be quickly accessed later.
+ */
+jfieldID MediaProviderWrapper::CacheFileLookupField(JNIEnv* env, const char field_name[],
+                                                    const char type[]) {
+    jfieldID fid;
+    string actual_field_name(field_name);
+    fid = env->GetFieldID(file_lookup_result_class_, actual_field_name.c_str(), type);
+    if (!fid) {
+        // SHOULD NOT HAPPEN!
+        LOG(FATAL) << "Error caching field: " << field_name << type;
+    }
+    return fid;
 }
 
 void MediaProviderWrapper::DetachThreadFunction(void* unused) {

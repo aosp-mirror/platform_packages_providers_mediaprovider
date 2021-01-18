@@ -603,24 +603,29 @@ public final class MediaStore {
      */
     public final static String EXTRA_OUTPUT = "output";
 
-    /**
+    /*
      * Specify that the caller wants to receive the original media format without transcoding.
      *
-     * This is a very dangerous flag to use because apps can suddenly fail to play media after
-     * an OS upgrade. Clients should instead specify their supported media capabilities explicitly
-     * in their manifest or with the {@link #EXTRA_MEDIA_CAPABILITIES} open flag.
+     * <b>Caution: using this flag can cause app
+     * compatibility issues whenever Android adds support for new media formats.</b>
+     * Clients should instead specify their supported media capabilities explicitly
+     * in their manifest or with the {@link #EXTRA_MEDIA_CAPABILITIES} {@code open} flag.
+     *
+     * This option is useful for apps that don't attempt to parse the actual byte contents of media
+     * files, such as playback using {@link MediaPlayer} or for off-device backup. Note that the
+     * {@link android.Manifest.permission#ACCESS_MEDIA_LOCATION} permission will still be required
+     * to avoid sensitive metadata redaction, similar to {@link #setRequireOriginal(Uri)}.
+     * </ul>
      *
      * Note that this flag overrides any explicitly declared {@code media_capabilities.xml} or
      * {@link ApplicationMediaCapabilities} extras specified in the same {@code open} request.
-     *
-     * This is only useful for apps that are bundled with the system hence are guaranteed to
-     * always support any media capabilities released on the OS in the future.
      *
      * <p>This option can be added to the {@code opts} {@link Bundle} in various
      * {@link ContentResolver} {@code open} methods.
      *
      * @see ContentResolver#openTypedAssetFileDescriptor(Uri, String, Bundle)
      * @see ContentResolver#openTypedAssetFile(Uri, String, Bundle, CancellationSignal)
+     * @see #setRequireOriginal(Uri)
      */
     public final static String EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT =
             "android.provider.extra.ACCEPT_ORIGINAL_MEDIA_FORMAT";

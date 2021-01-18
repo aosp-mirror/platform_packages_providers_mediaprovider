@@ -88,15 +88,15 @@ public class PerformanceTest {
 
         // Verify that core actions finished within 30ms deadline
         final long actionDeadline = 30;
-        assertTrue(timers.actionInsert.getAverageDurationMillis() < actionDeadline);
-        assertTrue(timers.actionUpdate.getAverageDurationMillis() < actionDeadline);
-        assertTrue(timers.actionDelete.getAverageDurationMillis() < actionDeadline);
+        assertThat(timers.actionInsert.getAverageDurationMillis()).isLessThan(actionDeadline);
+        assertThat(timers.actionUpdate.getAverageDurationMillis()).isLessThan(actionDeadline);
+        assertThat(timers.actionDelete.getAverageDurationMillis()).isLessThan(actionDeadline);
 
         // Verify that external notifications finished within 30ms deadline
         final long notifyDeadline = 30;
-        assertTrue(timers.notifyInsert.getAverageDurationMillis() < notifyDeadline);
-        assertTrue(timers.notifyUpdate.getAverageDurationMillis() < notifyDeadline);
-        assertTrue(timers.notifyDelete.getAverageDurationMillis() < notifyDeadline);
+        assertThat(timers.notifyInsert.getAverageDurationMillis()).isLessThan(notifyDeadline);
+        assertThat(timers.notifyUpdate.getAverageDurationMillis()).isLessThan(notifyDeadline);
+        assertThat(timers.notifyDelete.getAverageDurationMillis()).isLessThan(notifyDeadline);
     }
 
     private void doSingle(Uri collection, Timers timers) throws Exception {
@@ -167,15 +167,15 @@ public class PerformanceTest {
 
         // Verify that core actions finished within 30ms deadline
         final long actionDeadline = 30 * COUNT_BULK;
-        assertTrue(timers.actionInsert.getAverageDurationMillis() < actionDeadline);
-        assertTrue(timers.actionUpdate.getAverageDurationMillis() < actionDeadline);
-        assertTrue(timers.actionDelete.getAverageDurationMillis() < actionDeadline);
+        assertThat(timers.actionInsert.getAverageDurationMillis()).isLessThan(actionDeadline);
+        assertThat(timers.actionUpdate.getAverageDurationMillis()).isLessThan(actionDeadline);
+        assertThat(timers.actionDelete.getAverageDurationMillis()).isLessThan(actionDeadline);
 
         // Verify that external notifications finished within 100ms deadline
         final long notifyDeadline = 100;
-        assertTrue(timers.notifyInsert.getAverageDurationMillis() < notifyDeadline);
-        assertTrue(timers.notifyUpdate.getAverageDurationMillis() < notifyDeadline);
-        assertTrue(timers.notifyDelete.getAverageDurationMillis() < notifyDeadline);
+        assertThat(timers.notifyInsert.getAverageDurationMillis()).isLessThan(notifyDeadline);
+        assertThat(timers.notifyUpdate.getAverageDurationMillis()).isLessThan(notifyDeadline);
+        assertThat(timers.notifyDelete.getAverageDurationMillis()).isLessThan(notifyDeadline);
     }
 
     private void doBulk(Uri collection, Timers timers) throws Exception {

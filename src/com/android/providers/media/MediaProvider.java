@@ -195,7 +195,6 @@ import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
 import com.android.providers.media.util.PermissionUtils;
-import com.android.providers.media.util.RedactingFileDescriptor;
 import com.android.providers.media.util.SQLiteQueryBuilder;
 import com.android.providers.media.util.XmpInterface;
 
@@ -251,22 +250,25 @@ public class MediaProvider extends ContentProvider {
      * These directory names aren't declared in Environment as final variables, and so we need to
      * have the same values in separate final variables in order to have them considered constant
      * expressions.
+     * These directory names are intentionally in lower case to ease the case insensitive path
+     * comparison.
      */
-    private static final String DIRECTORY_MUSIC = "Music";
-    private static final String DIRECTORY_PODCASTS = "Podcasts";
-    private static final String DIRECTORY_RINGTONES = "Ringtones";
-    private static final String DIRECTORY_ALARMS = "Alarms";
-    private static final String DIRECTORY_NOTIFICATIONS = "Notifications";
-    private static final String DIRECTORY_PICTURES = "Pictures";
-    private static final String DIRECTORY_MOVIES = "Movies";
-    private static final String DIRECTORY_DOWNLOADS = "Download";
-    private static final String DIRECTORY_DCIM = "DCIM";
-    private static final String DIRECTORY_DOCUMENTS = "Documents";
-    private static final String DIRECTORY_AUDIOBOOKS = "Audiobooks";
-    private static final String DIRECTORY_ANDROID = "Android";
+    private static final String DIRECTORY_MUSIC_LOWER_CASE = "music";
+    private static final String DIRECTORY_PODCASTS_LOWER_CASE = "podcasts";
+    private static final String DIRECTORY_RINGTONES_LOWER_CASE = "ringtones";
+    private static final String DIRECTORY_ALARMS_LOWER_CASE = "alarms";
+    private static final String DIRECTORY_NOTIFICATIONS_LOWER_CASE = "notifications";
+    private static final String DIRECTORY_PICTURES_LOWER_CASE = "pictures";
+    private static final String DIRECTORY_MOVIES_LOWER_CASE = "movies";
+    private static final String DIRECTORY_DOWNLOADS_LOWER_CASE = "download";
+    private static final String DIRECTORY_DCIM_LOWER_CASE = "dcim";
+    private static final String DIRECTORY_DOCUMENTS_LOWER_CASE = "documents";
+    private static final String DIRECTORY_AUDIOBOOKS_LOWER_CASE = "audiobooks";
+    private static final String DIRECTORY_ANDROID_LOWER_CASE = "android";
 
     private static final String DIRECTORY_MEDIA = "media";
     private static final String DIRECTORY_THUMBNAILS = ".thumbnails";
+    private static final List<String> PRIVATE_SUBDIRECTORIES_ANDROID = Arrays.asList("data", "obb");
 
     /**
      * Hard-coded filename where the current value of
@@ -1381,7 +1383,30 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Called from FUSE to get IO path for {@code uid}
+     * Called from FUSE to get {@link FileLookupResult} for a {@code path} and {@code uid}
+     *
+     * {@link FileLookupResult} contains transforms, transforms completion status and ioPath
+     * for transform lookup query for a file and uid.
+     *
+     * @param path file path to get transforms for
+     * @param uid app requesting IO
+     *
+     * Called from JNI in jni/MediaProviderWrapper.cpp
+     */
+    @Keep
+    public FileLookupResult onFileLookupForFuse(String path, int uid) {
+        String ioPath = "";
+        boolean transformsComplete = true;
+        int transforms = getTransformsForFuse(path, uid);
+        if (transforms != 0) {
+            ioPath = getIoPathForFuse(path, uid);
+            transformsComplete = Objects.equals(path, ioPath);
+        }
+        return new FileLookupResult(transforms, transformsComplete, ioPath);
+    }
+
+    /**
+     * Returns IO path for a {@code path} and {@code uid}
      *
      * IO path is the actual path to be used on the lower fs for IO via FUSE. For some file
      * transforms, this path might be different from the path the app is requesting IO on.
@@ -1389,15 +1414,13 @@ public class MediaProvider extends ContentProvider {
      * @param path file path to get an IO path for
      * @param uid app requesting IO
      *
-     * Called from JNI in jni/MediaProviderWrapper.cpp
      */
-    @Keep
-    public String getIoPathForFuse(String path, int uid) {
+    private String getIoPathForFuse(String path, int uid) {
         return mTranscodeHelper.getIoPath(path, uid);
     }
 
     /**
-     * Called from FUSE to get transforms for {@code uid}
+     * Returns transforms for a {@code path} and {@code uid}
      *
      * If transforms are not supported for {@code path}, {@code 0} will be returned. Otherwise,
      * a bitwise OR of supported transforms for {@code path} and actual transforms to perform for
@@ -1406,11 +1429,9 @@ public class MediaProvider extends ContentProvider {
      * @param path file path to get transforms for
      * @param uid app requesting IO
      *
-     * Called from JNI in jni/MediaProviderWrapper.cpp
      * @see {@link transformForFuse}
      */
-    @Keep
-    public int getTransformsForFuse(String path, int uid) {
+    private int getTransformsForFuse(String path, int uid) {
         int result = 0;
         if (mTranscodeHelper.supportsTranscode(path)) {
             result |= FLAG_TRANSFORM_SUPPORTED;
@@ -1996,12 +2017,12 @@ public class MediaProvider extends ContentProvider {
     private ArrayList<String> getIncludedDefaultDirectories() {
         final ArrayList<String> includedDefaultDirs = new ArrayList<>();
         if (checkCallingPermissionVideo(/*forWrite*/ true, null)) {
-            includedDefaultDirs.add(DIRECTORY_DCIM);
-            includedDefaultDirs.add(DIRECTORY_PICTURES);
-            includedDefaultDirs.add(DIRECTORY_MOVIES);
+            includedDefaultDirs.add(Environment.DIRECTORY_DCIM);
+            includedDefaultDirs.add(Environment.DIRECTORY_PICTURES);
+            includedDefaultDirs.add(Environment.DIRECTORY_MOVIES);
         } else if (checkCallingPermissionImages(/*forWrite*/ true, null)) {
-            includedDefaultDirs.add(DIRECTORY_DCIM);
-            includedDefaultDirs.add(DIRECTORY_PICTURES);
+            includedDefaultDirs.add(Environment.DIRECTORY_DCIM);
+            includedDefaultDirs.add(Environment.DIRECTORY_PICTURES);
         }
         return includedDefaultDirs;
     }
@@ -2379,10 +2400,11 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EPERM;
             }
 
+            // TODO(b/177049768): We shouldn't use getExternalStorageDirectory for these checks.
             final File directoryAndroid = new File(Environment.getExternalStorageDirectory(),
-                    DIRECTORY_ANDROID);
+                    DIRECTORY_ANDROID_LOWER_CASE);
             final File directoryAndroidMedia = new File(directoryAndroid, DIRECTORY_MEDIA);
-            if (directoryAndroidMedia.getAbsolutePath().equals(oldPath)) {
+            if (directoryAndroidMedia.getAbsolutePath().equalsIgnoreCase(oldPath)) {
                 // Don't allow renaming 'Android/media' directory.
                 // Android/[data|obb] are bind mounted and these paths don't go through FUSE.
                 Log.e(TAG, errorMessage +  oldPath + " is a default folder in app external "
@@ -2961,7 +2983,7 @@ public class MediaProvider extends ContentProvider {
             final String[] relativePath = values.getAsString(MediaColumns.RELATIVE_PATH).split("/");
             final String primary = (relativePath.length > 0) ? relativePath[0] : null;
             if (!validPath) {
-                validPath = allowedPrimary.contains(primary);
+                validPath = containsIgnoreCase(allowedPrimary, primary);
             }
 
             // Next, consider allowing paths when referencing a related item
@@ -3054,6 +3076,8 @@ public class MediaProvider extends ContentProvider {
             assertFileColumnsConsistent(match, uri, values);
         }
 
+        assertPrivatePathNotInValues(values);
+
         // Drop columns that aren't relevant for special tables
         switch (match) {
             case AUDIO_ALBUMART:
@@ -3073,8 +3097,45 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     * Check that values don't contain any external private path.
+     */
+    private void assertPrivatePathNotInValues(ContentValues values)
+            throws IllegalArgumentException {
+        ArrayList<String> relativePaths = new ArrayList<String>();
+        relativePaths.add(extractRelativePath(values.getAsString(MediaColumns.DATA)));
+        relativePaths.add(values.getAsString(MediaColumns.RELATIVE_PATH));
+
+        final boolean isTargetSdkSOrHigher =
+                getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.S;
+        if (isTargetSdkSOrHigher) {
+            /**
+             * Don't allow apps to insert/update database row to files in Android/data or
+             * Android/obb dirs. These are app private directories and files in these private
+             * directories can't be added to public media collection.
+             */
+            for (final String relativePath : relativePaths) {
+                if (relativePath == null) continue;
+
+                final String[] relativePathSegments = relativePath.split("/", 3);
+                final String primary =
+                        (relativePathSegments.length > 0) ? relativePathSegments[0] : null;
+                final String secondary =
+                        (relativePathSegments.length > 1) ? relativePathSegments[1] : "";
+
+                if (DIRECTORY_ANDROID_LOWER_CASE.equalsIgnoreCase(primary)
+                        && PRIVATE_SUBDIRECTORIES_ANDROID.contains(
+                        secondary.toLowerCase(Locale.ROOT))) {
+                    throw new IllegalArgumentException(
+                            "Inserting private file: " + relativePath + " is not allowed.");
+                }
+            }
+        }
+    }
+
+    /**
      * @return the default dir if {@code file} is a child of default dir and it's missing,
-     * {@code null} otherwise. */
+     * {@code null} otherwise.
+     */
     private File checkDefaultDirMissing(String volumeName, File file) {
         String topLevelDir = FileUtils.extractTopLevelDir(file.getPath());
         if (topLevelDir != null && FileUtils.isDefaultDirectoryName(topLevelDir)) {
@@ -4395,6 +4456,13 @@ public class MediaProvider extends ContentProvider {
                     qb.setProjectionMap(projectionMap);
 
                     appendWhereStandalone(qb, "audio._id = audio_id");
+                    // Since we use audio table along with audio_playlists_map
+                    // for querying, we should only include database rows of
+                    // the attached volumes.
+                    if (!includeAllVolumes) {
+                        appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN "
+                             + includeVolumes);
+                    }
                 } else {
                     qb.setTables("audio_playlists_map");
                     qb.setProjectionMap(getProjectionMap(Audio.Playlists.Members.class));
@@ -5364,9 +5432,10 @@ public class MediaProvider extends ContentProvider {
     private List<File> getThumbnailDirectories(String volumeName) throws FileNotFoundException {
         final File volumePath = getVolumePath(volumeName);
         return Arrays.asList(
-                FileUtils.buildPath(volumePath, DIRECTORY_MUSIC, DIRECTORY_THUMBNAILS),
-                FileUtils.buildPath(volumePath, DIRECTORY_MOVIES, DIRECTORY_THUMBNAILS),
-                FileUtils.buildPath(volumePath, DIRECTORY_PICTURES, DIRECTORY_THUMBNAILS));
+                FileUtils.buildPath(volumePath, Environment.DIRECTORY_MUSIC, DIRECTORY_THUMBNAILS),
+                FileUtils.buildPath(volumePath, Environment.DIRECTORY_MOVIES, DIRECTORY_THUMBNAILS),
+                FileUtils.buildPath(volumePath, Environment.DIRECTORY_PICTURES,
+                        DIRECTORY_THUMBNAILS));
     }
 
     private void invalidateThumbnails(Uri uri) {
@@ -5793,6 +5862,8 @@ public class MediaProvider extends ContentProvider {
             Trace.endSection();
         }
 
+        assertPrivatePathNotInValues(initialValues);
+
         // Make sure any updated paths look consistent
         assertFileColumnsConsistent(match, uri, initialValues);
 
@@ -6071,9 +6142,9 @@ public class MediaProvider extends ContentProvider {
     private long addPlaylistMembers(@NonNull Uri playlistUri, @NonNull ContentValues values)
             throws FallbackException {
         final long audioId = values.getAsLong(Audio.Playlists.Members.AUDIO_ID);
-        final String audioVolumeName = MediaStore.VOLUME_INTERNAL.equals(getVolumeName(playlistUri))
+        final String volumeName = MediaStore.VOLUME_INTERNAL.equals(getVolumeName(playlistUri))
                 ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL;
-        final Uri audioUri = Audio.Media.getContentUri(audioVolumeName, audioId);
+        final Uri audioUri = Audio.Media.getContentUri(volumeName, audioId);
 
         Integer playOrder = values.getAsInteger(Playlists.Members.PLAY_ORDER);
         playOrder = (playOrder != null) ? (playOrder - 1) : Integer.MAX_VALUE;
@@ -6092,8 +6163,8 @@ public class MediaProvider extends ContentProvider {
             resolvePlaylistMembers(playlistUri);
 
             // Callers are interested in the actual ID we generated
-            final Uri membersUri = Playlists.Members.getContentUri(
-                    getVolumeName(playlistUri), ContentUris.parseId(playlistUri));
+            final Uri membersUri = Playlists.Members.getContentUri(volumeName,
+                    ContentUris.parseId(playlistUri));
             try (Cursor c = query(membersUri, new String[] { BaseColumns._ID },
                     Playlists.Members.PLAY_ORDER + "=" + (playOrder + 1), null, null)) {
                 c.moveToFirst();
@@ -7261,21 +7332,23 @@ public class MediaProvider extends ContentProvider {
             throw new IllegalStateException("Couldn't get volume name for " + filePath);
         }
         Uri uri = Files.getContentUri(volName);
-        final String topLevelDir = extractTopLevelDir(filePath);
+        String topLevelDir = extractTopLevelDir(filePath);
         if (topLevelDir == null) {
             // If the file path doesn't match the external storage directory, we use the files URI
             // as default and let #insert enforce the restrictions
             return uri;
         }
+        topLevelDir = topLevelDir.toLowerCase(Locale.ROOT);
+
         switch (topLevelDir) {
-            case DIRECTORY_PODCASTS:
-            case DIRECTORY_RINGTONES:
-            case DIRECTORY_ALARMS:
-            case DIRECTORY_NOTIFICATIONS:
-            case DIRECTORY_AUDIOBOOKS:
+            case DIRECTORY_PODCASTS_LOWER_CASE:
+            case DIRECTORY_RINGTONES_LOWER_CASE:
+            case DIRECTORY_ALARMS_LOWER_CASE:
+            case DIRECTORY_NOTIFICATIONS_LOWER_CASE:
+            case DIRECTORY_AUDIOBOOKS_LOWER_CASE:
                 uri = Audio.Media.getContentUri(volName);
                 break;
-            case DIRECTORY_MUSIC:
+            case DIRECTORY_MUSIC_LOWER_CASE:
                 if (MimeUtils.isPlaylistMimeType(mimeType)) {
                     uri = Audio.Playlists.getContentUri(volName);
                 } else if (!MimeUtils.isSubtitleMimeType(mimeType)) {
@@ -7283,7 +7356,7 @@ public class MediaProvider extends ContentProvider {
                     uri = Audio.Media.getContentUri(volName);
                 }
                 break;
-            case DIRECTORY_MOVIES:
+            case DIRECTORY_MOVIES_LOWER_CASE:
                 if (MimeUtils.isPlaylistMimeType(mimeType)) {
                     uri = Audio.Playlists.getContentUri(volName);
                 } else if (!MimeUtils.isSubtitleMimeType(mimeType)) {
@@ -7291,21 +7364,30 @@ public class MediaProvider extends ContentProvider {
                     uri = Video.Media.getContentUri(volName);
                 }
                 break;
-            case DIRECTORY_DCIM:
-            case DIRECTORY_PICTURES:
+            case DIRECTORY_DCIM_LOWER_CASE:
+            case DIRECTORY_PICTURES_LOWER_CASE:
                 if (MimeUtils.isImageMimeType(mimeType)) {
                     uri = Images.Media.getContentUri(volName);
                 } else {
                     uri = Video.Media.getContentUri(volName);
                 }
                 break;
-            case DIRECTORY_DOWNLOADS:
-            case DIRECTORY_DOCUMENTS:
+            case DIRECTORY_DOWNLOADS_LOWER_CASE:
+            case DIRECTORY_DOCUMENTS_LOWER_CASE:
                 break;
             default:
                 Log.w(TAG, "Forgot to handle a top level directory in getContentUriForFile?");
         }
         return uri;
+    }
+
+    private boolean containsIgnoreCase(@Nullable List<String> stringsList, @Nullable String item) {
+        if (item == null || stringsList == null) return false;
+
+        for (String current : stringsList) {
+            if (item.equalsIgnoreCase(current)) return true;
+        }
+        return false;
     }
 
     private boolean fileExists(@NonNull String absolutePath) {

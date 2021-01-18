@@ -24,13 +24,9 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 
 import static com.android.providers.media.MediaProvider.VolumeNotFoundException;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__HEVC_WRITE;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_CACHE;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_DIRECT;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_TRANSCODE;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__FAIL ;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__SUCCESS ;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED ;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__FAIL;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__SUCCESS;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED;
 
 import android.annotation.IntRange;
 import android.annotation.LongDef;
@@ -43,7 +39,6 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.PackageManager.Property;
 import android.content.res.XmlResourceParser;
 import android.database.Cursor;
@@ -51,9 +46,9 @@ import android.media.ApplicationMediaCapabilities;
 import android.media.MediaFeature;
 import android.media.MediaFormat;
 import android.media.MediaTranscodeManager;
-import android.media.MediaTranscodeManager.TranscodingSession;
 import android.media.MediaTranscodeManager.TranscodingRequest;
 import android.media.MediaTranscodeManager.TranscodingRequest.MediaFormatResolver;
+import android.media.MediaTranscodeManager.TranscodingSession;
 import android.media.MediaTranscodingException;
 import android.net.Uri;
 import android.os.Bundle;
@@ -89,6 +84,7 @@ import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -204,15 +200,6 @@ public class TranscodeHelper {
             {FileColumns._ID, FileColumns._TRANSCODE_STATUS};
     private static final String TRANSCODE_WHERE_CLAUSE =
             FileColumns.DATA + "=?" + " and mime_type not like 'null'";
-
-    /**
-     * Never transcode for these packages.
-     * TODO(b/169327180): Replace this with allow list from server.
-     */
-    private static final String[] ALLOW_LIST = new String[]{
-            // TODO: Remove "com.google.android.apps.photos", after investigating issue.
-            "com.google.android.apps.photos"
-    };
 
     public TranscodeHelper(Context context, MediaProvider mediaProvider) {
         mContext = context;
@@ -419,14 +406,14 @@ public class TranscodeHelper {
                 return false;
             }
         }
-        boolean transcodeNeeded = doesAppNeedTranscoding(path, uid, bundle);
+        boolean transcodeNeeded = doesAppNeedTranscoding(uid, bundle);
         if (!transcodeNeeded) {
             reportTranscodingDirectAccess(uid);
         }
         return transcodeNeeded;
     }
 
-    private boolean doesAppNeedTranscoding(String path, int uid, Bundle bundle) {
+    private boolean doesAppNeedTranscoding(int uid, Bundle bundle) {
         if (bundle != null) {
             if (bundle.getBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, false)) {
                 logVerbose("Original format requested");
@@ -443,15 +430,16 @@ public class TranscodeHelper {
         }
 
         // Check app-compat flags
-        boolean enableHevc = CompatChanges.isChangeEnabled(FORCE_ENABLE_HEVC_SUPPORT, uid);
-        boolean disableHevc = CompatChanges.isChangeEnabled(FORCE_DISABLE_HEVC_SUPPORT, uid);
-        if (enableHevc && disableHevc) {
+        boolean hevcSupportEnabled = CompatChanges.isChangeEnabled(FORCE_ENABLE_HEVC_SUPPORT, uid);
+        boolean hevcSupportDisabled = CompatChanges.isChangeEnabled(FORCE_DISABLE_HEVC_SUPPORT,
+                uid);
+        if (hevcSupportEnabled && hevcSupportDisabled) {
             Log.w(TAG, "Ignoring app compat flags: Set to simultaneously enable and disable "
                     + "HEVC support for uid: " + uid);
-        } else if (enableHevc) {
+        } else if (hevcSupportEnabled) {
             logVerbose("App compat hevc support enabled");
             return false;
-        } else if (disableHevc) {
+        } else if (hevcSupportDisabled) {
             logVerbose("App compat hevc support disabled");
             return true;
         }
@@ -499,8 +487,9 @@ public class TranscodeHelper {
         final String cameraRelativePath =
                 String.format("%s/%s/", Environment.DIRECTORY_DCIM, DIRECTORY_CAMERA);
 
-        return !isTranscodeFile(path) && name.endsWith(".mp4") &&
-                cameraRelativePath.equalsIgnoreCase(FileUtils.extractRelativePath(path));
+        return !isTranscodeFile(path) && name.toLowerCase(Locale.ROOT).endsWith(".mp4")
+                && path.startsWith("/storage/emulated/")
+                && cameraRelativePath.equalsIgnoreCase(FileUtils.extractRelativePath(path));
     }
 
     /**
@@ -529,13 +518,16 @@ public class TranscodeHelper {
 
             identity.setApplicationMediaCapabilitiesFlags(capabilitiesToFlags(capability));
             return capability.isVideoMimeTypeSupported(MediaFormat.MIMETYPE_VIDEO_HEVC);
-        } catch (NameNotFoundException | UnsupportedOperationException e) {
+        } catch (PackageManager.NameNotFoundException
+                | ApplicationMediaCapabilities.FormatNotFoundException
+                | UnsupportedOperationException e) {
             return false;
         }
     }
 
     @ApplicationMediaCapabilitiesFlags
-    private int capabilitiesToFlags(ApplicationMediaCapabilities capability) {
+    private int capabilitiesToFlags(ApplicationMediaCapabilities capability)
+            throws ApplicationMediaCapabilities.FormatNotFoundException {
         int flags = 0;
         if (capability.isVideoMimeTypeSupported(MediaFormat.MIMETYPE_VIDEO_HEVC)) {
             flags |= FLAG_HEVC;
@@ -650,7 +642,8 @@ public class TranscodeHelper {
                 FileColumns._VIDEO_CODEC_TYPE,
                 MediaStore.MediaColumns.WIDTH,
                 MediaStore.MediaColumns.HEIGHT,
-                MediaStore.MediaColumns.BITRATE
+                MediaStore.MediaColumns.BITRATE,
+                MediaStore.MediaColumns.CAPTURE_FRAMERATE
         };
         try (Cursor c = queryFileForTranscode(path, resolverInfoProjection)) {
             if (c != null && c.moveToNext()) {
@@ -658,19 +651,22 @@ public class TranscodeHelper {
                 int width = c.getInt(1);
                 int height = c.getInt(2);
                 int bitRate = c.getInt(3);
+                float framerate = c.getFloat(4);
 
                 // TODO(b/169849854): Get this info from Manifest, for now if app got here it
                 // definitely doesn't support hevc
                 ApplicationMediaCapabilities capability =
                         new ApplicationMediaCapabilities.Builder().build();
+                MediaFormat sourceFormat = MediaFormat.createVideoFormat(
+                        codecType, width, height);
+                sourceFormat.setFloat(MediaFormat.KEY_FRAME_RATE, framerate);
                 MediaFormatResolver resolver = new MediaFormatResolver()
-                        .setSourceVideoFormatHint(MediaFormat.createVideoFormat(
-                                codecType, width, height))
+                        .setSourceVideoFormatHint(sourceFormat)
                         .setClientCapabilities(capability);
-                MediaFormat format = resolver.resolveVideoFormat();
-                format.setInteger(MediaFormat.KEY_BIT_RATE, bitRate);
+                MediaFormat resolvedFormat = resolver.resolveVideoFormat();
+                resolvedFormat.setInteger(MediaFormat.KEY_BIT_RATE, bitRate);
 
-                return format;
+                return resolvedFormat;
             }
         }
         throw new IllegalStateException("Couldn't get video format info from database for " + path);

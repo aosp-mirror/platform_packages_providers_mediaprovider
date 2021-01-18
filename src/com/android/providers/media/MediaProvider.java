@@ -308,6 +308,8 @@ public class MediaProvider extends ContentProvider {
     private static final int PER_USER_RANGE = 100000;
     private static final boolean PROP_CROSS_USER_ALLOWED =
             SystemProperties.getBoolean("external_storage.cross_user.enabled", false);
+    private static final String PROP_CROSS_USER_ROOT =
+            SystemProperties.get("external_storage.cross_user.root", null);
 
     /**
      * Set of {@link Cursor} columns that refer to raw filesystem paths.
@@ -2874,6 +2876,15 @@ public class MediaProvider extends ContentProvider {
             final String primary = (relativePath.length > 0) ? relativePath[0] : null;
             if (!validPath) {
                 validPath = containsIgnoreCase(allowedPrimary, primary);
+                if (!validPath) {
+                    // Some app-clone implementations use a subdirectory of the main user's root
+                    // to store app clone files; allow these as well.
+                    if (isCrossUserEnabled() && primary.equals(PROP_CROSS_USER_ROOT) &&
+                            relativePath.length >= 2) {
+                        final String crossUserPrimary = relativePath[1];
+                        validPath = containsIgnoreCase(allowedPrimary, crossUserPrimary);
+                    }
+                }
             }
 
             // Next, consider allowing paths when referencing a related item

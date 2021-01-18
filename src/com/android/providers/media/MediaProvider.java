@@ -241,10 +241,8 @@ public class MediaProvider extends ContentProvider {
     static final Pattern PATTERN_SELECTION_ID = Pattern.compile(
             "(?:image_id|video_id)\\s*=\\s*(\\d+)");
 
-    /** File supports transforms and uid requires transcoding */
+    /** File access by uid requires the transcoding transform */
     private static final int FLAG_TRANSFORM_TRANSCODING = 1;
-    /** File supports transforms */
-    private static final int FLAG_TRANSFORM_SUPPORTED = 1 << 30;
 
     /**
      * These directory names aren't declared in Environment as final variables, and so we need to
@@ -307,6 +305,7 @@ public class MediaProvider extends ContentProvider {
 
     // Stolen from: UserHandle#getUserId
     private static final int PER_USER_RANGE = 100000;
+    private static final int MY_UID = android.os.Process.myUid();
     private static final boolean PROP_CROSS_USER_ALLOWED =
             SystemProperties.getBoolean("external_storage.cross_user.enabled", false);
 
@@ -339,8 +338,8 @@ public class MediaProvider extends ContentProvider {
     // WARNING/TODO (b/173505864): This will be replaced by signature APIs in S
     private static final String DOWNLOADS_PROVIDER_AUTHORITY = "downloads";
 
-    @GuardedBy("mShouldRedactThreadIds")
-    private final LongArray mShouldRedactThreadIds = new LongArray();
+    @GuardedBy("mPendingOpenInfo")
+    private final Map<Integer, PendingOpenInfo> mPendingOpenInfo = new ArrayMap<>();
 
     @GuardedBy("mNonHiddenPaths")
     private final LRUCache<String, Integer> mNonHiddenPaths = new LRUCache<>(NON_HIDDEN_CACHE_SIZE);
@@ -1389,20 +1388,31 @@ public class MediaProvider extends ContentProvider {
      * for transform lookup query for a file and uid.
      *
      * @param path file path to get transforms for
-     * @param uid app requesting IO
+     * @param uid app requesting IO form kernel
+     * @param tid FUSE thread id handling IO request from kernel
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public FileLookupResult onFileLookupForFuse(String path, int uid) {
+    public FileLookupResult onFileLookupForFuse(String path, int uid, int tid) {
+        uid = getBinderUidForFuse(uid, tid);
         String ioPath = "";
         boolean transformsComplete = true;
-        int transforms = getTransformsForFuse(path, uid);
-        if (transforms != 0) {
-            ioPath = getIoPathForFuse(path, uid);
-            transformsComplete = Objects.equals(path, ioPath);
+        boolean transformsSupported = mTranscodeHelper.supportsTranscode(path);
+        int transforms = 0;
+
+        if (transformsSupported) {
+            // TODO(b/170974147): Avoid duplicate shouldTranscode calls in getTransformsForFuse and
+            // getIoPathForFuse
+            transforms = getTransformsForFuse(path, uid);
+            if (transforms != 0) {
+                ioPath = getIoPathForFuse(path, uid);
+                transformsComplete = false;
+            }
         }
-        return new FileLookupResult(transforms, transformsComplete, ioPath);
+
+        return new FileLookupResult(transforms, uid, transformsComplete, transformsSupported,
+                ioPath);
     }
 
     /**
@@ -1432,15 +1442,24 @@ public class MediaProvider extends ContentProvider {
      * @see {@link transformForFuse}
      */
     private int getTransformsForFuse(String path, int uid) {
-        int result = 0;
-        if (mTranscodeHelper.supportsTranscode(path)) {
-            result |= FLAG_TRANSFORM_SUPPORTED;
-
-            if (mTranscodeHelper.shouldTranscode(path, uid, null /* bundle */)) {
-                result |= FLAG_TRANSFORM_TRANSCODING;
-            }
+        if (mTranscodeHelper.shouldTranscode(path, uid, null /* bundle */)) {
+            return FLAG_TRANSFORM_TRANSCODING;
         }
-        return result;
+        return 0;
+    }
+
+    public int getBinderUidForFuse(int uid, int tid) {
+        if (uid != MY_UID) {
+            return uid;
+        }
+
+        synchronized (mPendingOpenInfo) {
+            PendingOpenInfo info = mPendingOpenInfo.get(tid);
+            if (info == null) {
+                return uid;
+            }
+            return info.uid;
+        }
     }
 
     /**
@@ -6627,20 +6646,22 @@ public class MediaProvider extends ContentProvider {
         return new File(filePath);
     }
 
-    private ParcelFileDescriptor openWithTranscode(String filePath, int uid, int modeBits)
-            throws FileNotFoundException {
-        String transcodePath = mTranscodeHelper.getIoPath(filePath, uid);
-        File transcodeFile = new File(transcodePath);
+    private ParcelFileDescriptor openWithFuse(String filePath, int uid, int modeBits,
+            boolean shouldRedact, boolean shouldTranscode) throws FileNotFoundException {
+        Log.d(TAG, "Open with FUSE. FilePath: " + filePath + ". Uid: " + uid
+                + ". ShouldRedact: " + shouldRedact + ". ShouldTranscode: " + shouldTranscode);
 
-        if (mTranscodeHelper.isTranscodeFileCached(uid, filePath, transcodePath)) {
-            Log.d(TAG, "Using FUSE with transcode cache for " + filePath + " Uid: " + uid);
-            return FileUtils.openSafely(getFuseFile(transcodeFile), modeBits);
-        } else if (mTranscodeHelper.transcode(filePath, transcodePath, uid)) {
-            // TODO(b/174655855): We should transcode lazily and just return the opened fd here
-            Log.d(TAG, "Using FUSE with transcode for " + filePath + " Uid: " + uid);
-            return FileUtils.openSafely(getFuseFile(transcodeFile), modeBits);
-        } else {
-            throw new FileNotFoundException("Failed to transcode " + filePath);
+        int tid = android.os.Process.myTid();
+        synchronized (mPendingOpenInfo) {
+            mPendingOpenInfo.put(tid, new PendingOpenInfo(uid, shouldRedact));
+        }
+
+        try {
+            return FileUtils.openSafely(getFuseFile(new File(filePath)), modeBits);
+        } finally {
+            synchronized (mPendingOpenInfo) {
+                mPendingOpenInfo.remove(tid);
+            }
         }
     }
 
@@ -6777,25 +6798,11 @@ public class MediaProvider extends ContentProvider {
             if (redactionInfo.redactionRanges.length > 0) {
                 // If fuse is enabled, we can provide an fd that points to the fuse
                 // file system and handle redaction in the fuse handler when the caller reads.
-                Log.i(TAG, "Redacting with new FUSE for " + filePath + ". Uid: " + uid);
-                long tid = android.os.Process.myTid();
-                synchronized (mShouldRedactThreadIds) {
-                    mShouldRedactThreadIds.add(tid);
-                }
-
-                try {
-                    if (shouldTranscode) {
-                        pfd = openWithTranscode(filePath, uid, modeBits);
-                    } else {
-                        pfd = FileUtils.openSafely(getFuseFile(file), modeBits);
-                    }
-                } finally {
-                    synchronized (mShouldRedactThreadIds) {
-                        mShouldRedactThreadIds.remove(mShouldRedactThreadIds.indexOf(tid));
-                    }
-                }
+                pfd = openWithFuse(filePath, uid, modeBits, true /* shouldRedact */,
+                        shouldTranscode);
             } else if (shouldTranscode) {
-                pfd = openWithTranscode(filePath, uid, modeBits);
+                pfd = openWithFuse(filePath, uid, modeBits, false /* shouldRedact */,
+                        shouldTranscode);
             } else {
                 FuseDaemon daemon = null;
                 try {
@@ -6813,15 +6820,15 @@ public class MediaProvider extends ContentProvider {
                     // we return an upper filesystem fd (via FUSE) to avoid file corruption
                     // resulting from cache inconsistencies between the upper and lower
                     // filesystem caches
-                    Log.w(TAG, "Using FUSE for " + filePath + ". Uid: " + uid);
-                    pfd = FileUtils.openSafely(getFuseFile(file), modeBits);
+                    pfd = openWithFuse(filePath, uid, modeBits, false /* shouldRedact */,
+                            shouldTranscode);
                     try {
                         lowerFsFd.close();
                     } catch (IOException e) {
                         Log.w(TAG, "Failed to close lower filesystem fd " + file.getPath(), e);
                     }
                 } else {
-                    Log.i(TAG, "Using lower FS for " + filePath + ". Uid: " + uid);
+                    Log.i(TAG, "Open with lower FS for " + filePath + ". Uid: " + uid);
                     if (forWrite) {
                         // When opening for write on the lower filesystem, invalidate the VFS dentry
                         // so subsequent open/getattr calls will return correctly.
@@ -7080,6 +7087,15 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    private static final class PendingOpenInfo {
+        public final int uid;
+        public final boolean shouldRedact;
+        public PendingOpenInfo(int uid, boolean shouldRedact) {
+            this.uid = uid;
+            this.shouldRedact = shouldRedact;
+        }
+    }
+
     /**
      * Calculates the ranges that need to be redacted for the given file and user that wants to
      * access the file.
@@ -7090,12 +7106,9 @@ public class MediaProvider extends ContentProvider {
      * @return Ranges that should be redacted.
      *
      * @throws IOException if an error occurs while calculating the redaction ranges
-     *
-     * Called from JNI in jni/MediaProviderWrapper.cpp
      */
-    @Keep
     @NonNull
-    public long[] getRedactionRangesForFuse(String path, String ioPath, int uid, int tid)
+    private long[] getRedactionRangesFromFuse(String path, String ioPath, int uid, int tid)
             throws IOException {
         // |ioPath| might refer to a transcoded file path (which is not indexed in the db)
         // |path| will always refer to a valid _data column
@@ -7103,18 +7116,21 @@ public class MediaProvider extends ContentProvider {
         // we want to get redaction ranges from the transcoded file and *not* the original file
         final File file = new File(ioPath);
 
-        // When we're calculating redaction ranges for MediaProvider, it means we're actually
-        // calculating redaction ranges for another app that called to MediaProvider through Binder.
-        // If the tid is in mShouldRedactThreadIds, we should redact, otherwise, we don't redact
-        if (uid == android.os.Process.myUid()) {
-            boolean shouldRedact = false;
-            synchronized (mShouldRedactThreadIds) {
-                shouldRedact = mShouldRedactThreadIds.indexOf(tid) != -1;
-            }
-            if (shouldRedact) {
-                return getRedactionRanges(file).redactionRanges;
-            } else {
-                return new long[0];
+        // When calculating redaction ranges initiated from MediaProvider, the redaction policy
+        // is slightly different from the FUSE initiated opens redaction policy. targetSdk=29 from
+        // MediaProvider requires redaction, but targetSdk=29 apps from FUSE don't require redaction
+        // Hence, we check the mPendingOpenInfo object (populated when opens are initiated from
+        // MediaProvider) if there's a pending open from MediaProvider with matching tid and uid and
+        // use the shouldRedact decision there if there's one.
+        synchronized (mPendingOpenInfo) {
+            PendingOpenInfo info = mPendingOpenInfo.get(tid);
+            if (info != null && info.uid == uid) {
+                boolean shouldRedact = info.shouldRedact;
+                if (shouldRedact) {
+                    return getRedactionRanges(file).redactionRanges;
+                } else {
+                    return new long[0];
+                }
             }
         }
 
@@ -7244,23 +7260,27 @@ public class MediaProvider extends ContentProvider {
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public int isOpenAllowedForFuse(String path, int uid, boolean forWrite) {
+    public FileOpenResult onFileOpenForFuse(String path, String ioPath, int uid, int tid,
+            boolean forWrite, boolean redact) {
+        uid = getBinderUidForFuse(uid, tid);
+
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
 
         try {
             if (isPrivatePackagePathNotAccessibleByCaller(path)) {
                 Log.e(TAG, "Can't open a file in another app's external directory!");
-                return OsConstants.ENOENT;
+                return new FileOpenResult(OsConstants.ENOENT, uid, new long[0]);
             }
 
             if (shouldBypassFuseRestrictions(forWrite, path)) {
-                return 0;
+                return new FileOpenResult(0 /* status */, uid,
+                        redact ? getRedactionRangesFromFuse(path, ioPath, uid, tid) : new long[0]);
             }
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
-                return OsConstants.EACCES;
+                return new FileOpenResult(OsConstants.EACCES /* status */, uid, new long[0]);
             }
 
             final Uri contentUri = FileUtils.getContentUriForPath(path);
@@ -7287,18 +7307,20 @@ public class MediaProvider extends ContentProvider {
             if (isPending && !isPendingFromFuse(new File(path))) {
                 requireOwnershipForItem(ownerPackageName, fileUri);
             }
-            return 0;
-        } catch (FileNotFoundException e) {
+            return new FileOpenResult(0 /* status */, uid,
+                    redact ? getRedactionRangesFromFuse(path, ioPath, uid, tid) : new long[0]);
+        } catch (IOException e) {
             // We are here because
             // * App doesn't have read permission to the requested path, hence queryForSingleItem
             //   couldn't return a valid db row, or,
             // * There is no db row corresponding to the requested path, which is more unlikely.
-            // In both of these cases, it means that app doesn't have access permission to the file.
+            // * getRedactionRangesFromFuse couldn't fetch the redaction info correctly
+            // In all of these cases, it means that app doesn't have access permission to the file.
             Log.e(TAG, "Couldn't find file: " + path, e);
-            return OsConstants.EACCES;
+            return new FileOpenResult(OsConstants.EACCES /* status */, uid, new long[0]);
         } catch (IllegalStateException | SecurityException e) {
             Log.e(TAG, "Permission to access file: " + path + " is denied");
-            return OsConstants.EACCES;
+            return new FileOpenResult(OsConstants.EACCES /* status */, uid, new long[0]);
         } finally {
             restoreLocalCallingIdentity(token);
         }

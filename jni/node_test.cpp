@@ -32,8 +32,9 @@ class NodeTest : public ::testing::Test {
     typedef std::unique_ptr<node, decltype(&NodeTest::destroy)> unique_node_ptr;
 
     unique_node_ptr CreateNode(node* parent, const std::string& path, const int transforms = 0) {
-        return unique_node_ptr(node::Create(parent, path, "", true, transforms, &lock_, &tracker_),
-                               &NodeTest::destroy);
+        return unique_node_ptr(
+                node::Create(parent, path, "", true, true, transforms, &lock_, &tracker_),
+                &NodeTest::destroy);
     }
 
     static class node* ForChild(class node* node, const std::string& name,
@@ -67,7 +68,7 @@ TEST_F(NodeTest, TestCreate_withParent) {
 }
 
 TEST_F(NodeTest, TestRelease) {
-    node* node = node::Create(nullptr, "/path", "", true, 0, &lock_, &tracker_);
+    node* node = node::Create(nullptr, "/path", "", false, true, 0, &lock_, &tracker_);
     acquire(node);
     acquire(node);
     ASSERT_EQ(3, GetRefCount(node));
@@ -277,10 +278,10 @@ TEST_F(NodeTest, DeleteTree) {
     unique_node_ptr parent = CreateNode(nullptr, "/path");
 
     // This is the tree that we intend to delete.
-    node* child = node::Create(parent.get(), "subdir", "", true, 0, &lock_, &tracker_);
-    node::Create(child, "s1", "", true, 0, &lock_, &tracker_);
-    node* subchild2 = node::Create(child, "s2", "", true, 0, &lock_, &tracker_);
-    node::Create(subchild2, "sc2", "", true, 0, &lock_, &tracker_);
+    node* child = node::Create(parent.get(), "subdir", "", false, true, 0, &lock_, &tracker_);
+    node::Create(child, "s1", "", false, true, 0, &lock_, &tracker_);
+    node* subchild2 = node::Create(child, "s2", "", false, true, 0, &lock_, &tracker_);
+    node::Create(subchild2, "sc2", "", false, true, 0, &lock_, &tracker_);
 
     ASSERT_EQ(child, parent->LookupChildByName("subdir", false /* acquire */));
     node::DeleteTree(child);

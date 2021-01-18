@@ -17,6 +17,7 @@
 #ifndef MEDIAPROVIDER_FUSE_MEDIAPROVIDERWRAPPER_H_
 #define MEDIAPROVIDER_FUSE_MEDIAPROVIDERWRAPPER_H_
 
+#include <android-base/logging.h>
 #include <jni.h>
 #include <sys/types.h>
 
@@ -35,20 +36,41 @@
 namespace mediaprovider {
 namespace fuse {
 
+/** Represents file open result from MediaProvider */
+struct FileOpenResult {
+    FileOpenResult(const int status, const int uid, const RedactionInfo* redaction_info)
+        : status(status), uid(uid), redaction_info(redaction_info) {}
+
+    const int status;
+    const int uid;
+    std::unique_ptr<const RedactionInfo> redaction_info;
+};
+
 /**
  * Represents transform info for a file, containing the transforms, the transforms completion
  * status and the ioPath. Provided by MediaProvider.java via a JNI call.
  */
 struct FileLookupResult {
-    FileLookupResult(int transforms, bool transforms_complete, const std::string& io_path)
-        : transforms(transforms), transforms_complete(transforms_complete), io_path(io_path) {}
+    FileLookupResult(int transforms, uid_t uid, bool transforms_complete, bool transforms_supported,
+                     const std::string& io_path)
+        : transforms(transforms),
+          uid(uid),
+          transforms_complete(transforms_complete),
+          transforms_supported(transforms_supported),
+          io_path(io_path) {
+        if (transforms != 0) {
+            CHECK(transforms_supported);
+        }
+    }
 
     /**
      * This field is not to be interpreted, it is determined and populated from MediaProvider
      * via a JNI call.
      */
     const int transforms;
+    const uid_t uid;
     const bool transforms_complete;
+    const bool transforms_supported;
     const std::string io_path;
 };
 
@@ -113,12 +135,18 @@ class MediaProviderWrapper final {
     /**
      * Determines if the given UID is allowed to open the file denoted by the given path.
      *
-     * @param path the path of the file to be opened
+     * Also computes and returns the RedactionInfo for a given file and |uid|
+     *
+     * @param path path of the requested file that will be used for database operations
+     * @param io_path path of the requested file that will be used for IO
      * @param uid UID of the calling app
+     * @param tid UID of the calling app
      * @param for_write specifies if the file is to be opened for write
-     * @return 0 upon success or errno value upon failure.
+     * @param redact specifies whether to attempt redaction
+     * @return FileOpenResult containing status, uid and redaction_info
      */
-    int IsOpenAllowed(const std::string& path, uid_t uid, bool for_write);
+    std::unique_ptr<FileOpenResult> OnFileOpen(const std::string& path, const std::string& io_path,
+                                               uid_t uid, pid_t tid, bool for_write, bool redact);
 
     /**
      * Potentially triggers a scan of the file before closing it and reconciles it with the
@@ -193,7 +221,7 @@ class MediaProviderWrapper final {
     /**
      * Returns FileLookupResult to determine transform info for a path and uid.
      */
-    std::unique_ptr<FileLookupResult> FileLookup(const std::string& path, uid_t uid);
+    std::unique_ptr<FileLookupResult> FileLookup(const std::string& path, uid_t uid, pid_t tid);
 
     /** Transforms from src to dst file */
     bool Transform(const std::string& src, const std::string& dst, int transforms, uid_t uid);
@@ -224,13 +252,13 @@ class MediaProviderWrapper final {
 
   private:
     jclass file_lookup_result_class_;
+    jclass file_open_result_class_;
     jclass media_provider_class_;
     jobject media_provider_object_;
     /** Cached MediaProvider method IDs **/
-    jmethodID mid_get_redaction_ranges_;
     jmethodID mid_insert_file_;
     jmethodID mid_delete_file_;
-    jmethodID mid_is_open_allowed_;
+    jmethodID mid_on_file_open_;
     jmethodID mid_scan_file_;
     jmethodID mid_is_mkdir_or_rmdir_allowed_;
     jmethodID mid_is_opendir_allowed_;
@@ -244,19 +272,20 @@ class MediaProviderWrapper final {
     jmethodID mid_file_lookup_;
     /** Cached FileLookupResult field IDs **/
     jfieldID fid_file_lookup_transforms_;
+    jfieldID fid_file_lookup_uid_;
     jfieldID fid_file_lookup_transforms_complete_;
+    jfieldID fid_file_lookup_transforms_supported_;
     jfieldID fid_file_lookup_io_path_;
+    /** Cached FileOpenResult field IDs **/
+    jfieldID fid_file_open_status_;
+    jfieldID fid_file_open_uid_;
+    jfieldID fid_file_open_redaction_ranges_;
 
     /**
      * Auxiliary for caching MediaProvider methods.
      */
     jmethodID CacheMethod(JNIEnv* env, const char method_name[], const char signature[],
                           bool is_static);
-
-    /**
-     * Auxiliary for caching FileLookupResult fields.
-     */
-    jfieldID CacheFileLookupField(JNIEnv* env, const char field_name[], const char type[]);
 
     // Attaches the current thread (if necessary) and returns the JNIEnv
     // associated with it.

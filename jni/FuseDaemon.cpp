@@ -1036,7 +1036,8 @@ static handle* create_handle_for_node(struct fuse* fuse, const string& path, int
 
     if (fuse->passthrough) {
         *keep_cache = 1;
-        handle = new struct handle(fd, ri, true /* cached */, !redaction_needed /* passthrough */,
+        handle = new struct handle(fd, ri, true /* cached */,
+                                   !redaction_needed || node->GetTransforms() /* passthrough */,
                                    uid);
     } else {
         // Without fuse->passthrough, we don't want to use the FUSE VFS cache in two cases:

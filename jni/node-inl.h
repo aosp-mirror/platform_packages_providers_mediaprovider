@@ -119,13 +119,14 @@ class node {
   public:
     // Creates a new node with the specified parent, name and lock.
     static node* Create(node* parent, const std::string& name, const std::string& io_path,
-                        bool transforms_complete, const int transforms, std::recursive_mutex* lock,
-                        NodeTracker* tracker) {
+                        bool should_invalidate, bool transforms_complete, const int transforms,
+                        std::recursive_mutex* lock, NodeTracker* tracker) {
         // Place the entire constructor under a critical section to make sure
         // node creation, tracking (if enabled) and the addition to a parent are
         // atomic.
         std::lock_guard<std::recursive_mutex> guard(*lock);
-        return new node(parent, name, io_path, transforms_complete, transforms, lock, tracker);
+        return new node(parent, name, io_path, should_invalidate, transforms_complete, transforms,
+                        lock, tracker);
     }
 
     // Creates a new root node. Root nodes have no parents by definition
@@ -133,7 +134,8 @@ class node {
     static node* CreateRoot(const std::string& path, std::recursive_mutex* lock,
                             NodeTracker* tracker) {
         std::lock_guard<std::recursive_mutex> guard(*lock);
-        node* root = new node(nullptr, path, path, true, 0, lock, tracker);
+        node* root = new node(nullptr, path, path, false /* should_invalidate */,
+                              true /* transforms_complete */, 0, lock, tracker);
 
         // The root always has one extra reference to avoid it being
         // accidentally collected.
@@ -303,14 +305,14 @@ class node {
         return false;
     }
 
-    bool HasCaseInsensitiveMatch() const {
+    bool ShouldInvalidate() const {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
-        return has_case_insensitive_match_;
+        return should_invalidate_;
     }
 
-    void SetCaseInsensitiveMatch() {
+    void SetShouldInvalidate() {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
-        has_case_insensitive_match_ = true;
+        should_invalidate_ = true;
     }
 
     bool HasRedactedCache() const {
@@ -346,8 +348,9 @@ class node {
     static const node* LookupAbsolutePath(const node* root, const std::string& absolute_path);
 
   private:
-    node(node* parent, const std::string& name, const std::string& io_path, bool transforms_complete,
-         const int transforms, std::recursive_mutex* lock, NodeTracker* tracker)
+    node(node* parent, const std::string& name, const std::string& io_path,
+         const bool should_invalidate, const bool transforms_complete, const int transforms,
+         std::recursive_mutex* lock, NodeTracker* tracker)
         : name_(name),
           io_path_(io_path),
           transforms_complete_(transforms_complete),
@@ -355,7 +358,7 @@ class node {
           refcount_(0),
           parent_(nullptr),
           has_redacted_cache_(false),
-          has_case_insensitive_match_(false),
+          should_invalidate_(should_invalidate),
           deleted_(false),
           lock_(lock),
           tracker_(tracker) {
@@ -365,6 +368,10 @@ class node {
         // non-null parent.
         if (parent != nullptr) {
             AddToParent(parent);
+        }
+        // If the node requires transforms, we MUST never cache it in the VFS
+        if (transforms) {
+            CHECK(should_invalidate_);
         }
     }
 
@@ -499,7 +506,7 @@ class node {
     // List of directory handles associated with this node. Guarded by |lock_|.
     std::vector<std::unique_ptr<dirhandle>> dirhandles_;
     bool has_redacted_cache_;
-    bool has_case_insensitive_match_;
+    bool should_invalidate_;
     bool deleted_;
     std::recursive_mutex* lock_;
 

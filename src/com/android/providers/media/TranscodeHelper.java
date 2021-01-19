@@ -642,7 +642,8 @@ public class TranscodeHelper {
                 FileColumns._VIDEO_CODEC_TYPE,
                 MediaStore.MediaColumns.WIDTH,
                 MediaStore.MediaColumns.HEIGHT,
-                MediaStore.MediaColumns.BITRATE
+                MediaStore.MediaColumns.BITRATE,
+                MediaStore.MediaColumns.CAPTURE_FRAMERATE
         };
         try (Cursor c = queryFileForTranscode(path, resolverInfoProjection)) {
             if (c != null && c.moveToNext()) {
@@ -650,19 +651,22 @@ public class TranscodeHelper {
                 int width = c.getInt(1);
                 int height = c.getInt(2);
                 int bitRate = c.getInt(3);
+                float framerate = c.getFloat(4);
 
                 // TODO(b/169849854): Get this info from Manifest, for now if app got here it
                 // definitely doesn't support hevc
                 ApplicationMediaCapabilities capability =
                         new ApplicationMediaCapabilities.Builder().build();
+                MediaFormat sourceFormat = MediaFormat.createVideoFormat(
+                        codecType, width, height);
+                sourceFormat.setFloat(MediaFormat.KEY_FRAME_RATE, framerate);
                 MediaFormatResolver resolver = new MediaFormatResolver()
-                        .setSourceVideoFormatHint(MediaFormat.createVideoFormat(
-                                codecType, width, height))
+                        .setSourceVideoFormatHint(sourceFormat)
                         .setClientCapabilities(capability);
-                MediaFormat format = resolver.resolveVideoFormat();
-                format.setInteger(MediaFormat.KEY_BIT_RATE, bitRate);
+                MediaFormat resolvedFormat = resolver.resolveVideoFormat();
+                resolvedFormat.setInteger(MediaFormat.KEY_BIT_RATE, bitRate);
 
-                return format;
+                return resolvedFormat;
             }
         }
         throw new IllegalStateException("Couldn't get video format info from database for " + path);

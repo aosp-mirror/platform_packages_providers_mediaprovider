@@ -95,12 +95,11 @@ public class MediaProviderForFuseTest {
         file.createNewFile();
 
         // We can write our file
-        Truth.assertThat(sMediaProvider.isOpenAllowedForFuse(
-                file.getPath(), sTestUid, true)).isEqualTo(0);
-
-        // We should have no redaction
-        Truth.assertThat(sMediaProvider.getRedactionRangesForFuse(
-                        file.getPath(), file.getPath(), sTestUid, 0)).isEqualTo(new long[0]);
+        FileOpenResult result = sMediaProvider.onFileOpenForFuse(
+            file.getPath(), file.getPath(), sTestUid, 0 /* tid */, true /* forWrite */,
+                false /* redact */);
+        Truth.assertThat(result.status).isEqualTo(0);
+        Truth.assertThat(result.redactionRanges).isEqualTo(new long[0]);
 
         // We can rename our file
         final File renamed = new File(sTestDir, "renamed" + System.nanoTime() + ".jpg");

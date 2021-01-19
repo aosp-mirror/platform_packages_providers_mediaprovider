@@ -56,33 +56,17 @@ static bool CheckForJniException(JNIEnv* env) {
     return false;
 }
 
-std::unique_ptr<RedactionInfo> getRedactionInfoInternal(JNIEnv* env, jobject media_provider_object,
-                                                        jmethodID mid_get_redaction_ranges,
-                                                        uid_t uid, pid_t tid, const string& path,
-                                                        const string& io_path) {
-    ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
-    ScopedLocalRef<jstring> j_io_path(env, env->NewStringUTF(io_path.c_str()));
-    ScopedLocalRef<jlongArray> redaction_ranges_local_ref(
-            env, static_cast<jlongArray>(
-                         env->CallObjectMethod(media_provider_object, mid_get_redaction_ranges,
-                                               j_path.get(), j_io_path.get(), uid, tid)));
-    ScopedLongArrayRO redaction_ranges(env, redaction_ranges_local_ref.get());
-
-    if (CheckForJniException(env)) {
-        return nullptr;
+/**
+ * Auxiliary for caching class fields
+ */
+static jfieldID CacheField(JNIEnv* env, jclass clazz, const char field_name[], const char type[]) {
+    jfieldID fid;
+    string actual_field_name(field_name);
+    fid = env->GetFieldID(clazz, actual_field_name.c_str(), type);
+    if (!fid) {
+        LOG(FATAL) << "Error caching field: " << field_name << type;
     }
-
-    std::unique_ptr<RedactionInfo> ri;
-    if (redaction_ranges.size() % 2) {
-        LOG(ERROR) << "Error while calculating redaction ranges: array length is uneven";
-    } else if (redaction_ranges.size() > 0) {
-        ri = std::make_unique<RedactionInfo>(redaction_ranges.size() / 2, redaction_ranges.get());
-    } else {
-        // No ranges to redact
-        ri = std::make_unique<RedactionInfo>();
-    }
-
-    return ri;
+    return fid;
 }
 
 int insertFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_insert_file,
@@ -100,18 +84,6 @@ int deleteFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid
                        const string& path, uid_t uid) {
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
     int res = env->CallIntMethod(media_provider_object, mid_delete_file, j_path.get(), uid);
-
-    if (CheckForJniException(env)) {
-        return EFAULT;
-    }
-    return res;
-}
-
-int isOpenAllowedInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_is_open_allowed,
-                          const string& path, uid_t uid, bool for_write) {
-    ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
-    int res = env->CallIntMethod(media_provider_object, mid_is_open_allowed, j_path.get(), uid,
-                                 for_write);
 
     if (CheckForJniException(env)) {
         return EFAULT;
@@ -263,14 +235,13 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
     media_provider_class_ = reinterpret_cast<jclass>(env->NewGlobalRef(media_provider_class_));
 
     // Cache methods - Before calling a method, make sure you cache it here
-    mid_get_redaction_ranges_ =
-            CacheMethod(env, "getRedactionRanges", "(Ljava/lang/String;Ljava/lang/String;II)[J",
-                        /*is_static*/ false);
     mid_insert_file_ = CacheMethod(env, "insertFileIfNecessary", "(Ljava/lang/String;I)I",
                                    /*is_static*/ false);
     mid_delete_file_ = CacheMethod(env, "deleteFile", "(Ljava/lang/String;I)I", /*is_static*/ false);
-    mid_is_open_allowed_ = CacheMethod(env, "isOpenAllowed", "(Ljava/lang/String;IZ)I",
-                                       /*is_static*/ false);
+    mid_on_file_open_ = CacheMethod(env, "onFileOpen",
+                                    "(Ljava/lang/String;Ljava/lang/String;IIZZ)Lcom/android/"
+                                    "providers/media/FileOpenResult;",
+                                    /*is_static*/ false);
     mid_scan_file_ = CacheMethod(env, "scanFile", "(Ljava/lang/String;)V",
                                  /*is_static*/ false);
     mid_is_mkdir_or_rmdir_allowed_ = CacheMethod(env, "isDirectoryCreationOrDeletionAllowed",
@@ -295,42 +266,41 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
                                  /*is_static*/ false);
     mid_file_lookup_ =
             CacheMethod(env, "onFileLookup",
-                        "(Ljava/lang/String;I)Lcom/android/providers/media/FileLookupResult;",
+                        "(Ljava/lang/String;II)Lcom/android/providers/media/FileLookupResult;",
                         /*is_static*/ false);
 
+    // FileLookupResult
     file_lookup_result_class_ = env->FindClass("com/android/providers/media/FileLookupResult");
     if (!file_lookup_result_class_) {
         LOG(FATAL) << "Could not find class FileLookupResult";
     }
     file_lookup_result_class_ =
             reinterpret_cast<jclass>(env->NewGlobalRef(file_lookup_result_class_));
-    fid_file_lookup_transforms_ = CacheFileLookupField(env, "transforms", "I");
-    fid_file_lookup_transforms_complete_ = CacheFileLookupField(env, "transformsComplete", "Z");
-    fid_file_lookup_io_path_ = CacheFileLookupField(env, "ioPath", "Ljava/lang/String;");
+    fid_file_lookup_transforms_ = CacheField(env, file_lookup_result_class_, "transforms", "I");
+    fid_file_lookup_uid_ = CacheField(env, file_lookup_result_class_, "uid", "I");
+    fid_file_lookup_transforms_complete_ =
+            CacheField(env, file_lookup_result_class_, "transformsComplete", "Z");
+    fid_file_lookup_transforms_supported_ =
+            CacheField(env, file_lookup_result_class_, "transformsSupported", "Z");
+    fid_file_lookup_io_path_ =
+            CacheField(env, file_lookup_result_class_, "ioPath", "Ljava/lang/String;");
+
+    // FileOpenResult
+    file_open_result_class_ = env->FindClass("com/android/providers/media/FileOpenResult");
+    if (!file_open_result_class_) {
+        LOG(FATAL) << "Could not find class FileOpenResult";
+    }
+    file_open_result_class_ = reinterpret_cast<jclass>(env->NewGlobalRef(file_open_result_class_));
+    fid_file_open_status_ = CacheField(env, file_open_result_class_, "status", "I");
+    fid_file_open_uid_ = CacheField(env, file_open_result_class_, "uid", "I");
+    fid_file_open_redaction_ranges_ =
+            CacheField(env, file_open_result_class_, "redactionRanges", "[J");
 }
 
 MediaProviderWrapper::~MediaProviderWrapper() {
     JNIEnv* env = MaybeAttachCurrentThread();
     env->DeleteGlobalRef(media_provider_object_);
     env->DeleteGlobalRef(media_provider_class_);
-}
-
-std::unique_ptr<RedactionInfo> MediaProviderWrapper::GetRedactionInfo(const string& path,
-                                                                      const string& io_path,
-                                                                      uid_t uid, pid_t tid) {
-    if (shouldBypassMediaProvider(uid) || !GetBoolProperty(kPropRedactionEnabled, true)) {
-        return std::make_unique<RedactionInfo>();
-    }
-
-    // Default value in case JNI thread was being terminated, causes the read to fail.
-    std::unique_ptr<RedactionInfo> res = nullptr;
-
-    JNIEnv* env = MaybeAttachCurrentThread();
-    auto ri = getRedactionInfoInternal(env, media_provider_object_, mid_get_redaction_ranges_, uid,
-                                       tid, path, io_path);
-    res = std::move(ri);
-
-    return res;
 }
 
 int MediaProviderWrapper::InsertFile(const string& path, uid_t uid) {
@@ -352,14 +322,48 @@ int MediaProviderWrapper::DeleteFile(const string& path, uid_t uid) {
     return deleteFileInternal(env, media_provider_object_, mid_delete_file_, path, uid);
 }
 
-int MediaProviderWrapper::IsOpenAllowed(const string& path, uid_t uid, bool for_write) {
+std::unique_ptr<FileOpenResult> MediaProviderWrapper::OnFileOpen(const string& path,
+                                                                 const string& io_path, uid_t uid,
+                                                                 pid_t tid, bool for_write,
+                                                                 bool redact) {
+    JNIEnv* env = MaybeAttachCurrentThread();
     if (shouldBypassMediaProvider(uid)) {
-        return 0;
+        return std::make_unique<FileOpenResult>(0, uid, new RedactionInfo());
     }
 
-    JNIEnv* env = MaybeAttachCurrentThread();
-    return isOpenAllowedInternal(env, media_provider_object_, mid_is_open_allowed_, path, uid,
-                                 for_write);
+    ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
+    ScopedLocalRef<jstring> j_io_path(env, env->NewStringUTF(io_path.c_str()));
+    ScopedLocalRef<jobject> j_res_file_open_object(
+            env, env->CallObjectMethod(media_provider_object_, mid_on_file_open_, j_path.get(),
+                                       j_io_path.get(), uid, tid, for_write, redact));
+
+    if (CheckForJniException(env)) {
+        return nullptr;
+    }
+
+    int status = env->GetIntField(j_res_file_open_object.get(), fid_file_open_status_);
+    int original_uid = env->GetIntField(j_res_file_open_object.get(), fid_file_open_uid_);
+
+    if (redact) {
+        ScopedLocalRef<jlongArray> redaction_ranges_local_ref(
+                env, static_cast<jlongArray>(env->GetObjectField(j_res_file_open_object.get(),
+                                                                 fid_file_open_redaction_ranges_)));
+        ScopedLongArrayRO redaction_ranges(env, redaction_ranges_local_ref.get());
+
+        std::unique_ptr<RedactionInfo> ri;
+        if (redaction_ranges.size() % 2) {
+            LOG(ERROR) << "Error while calculating redaction ranges: array length is uneven";
+        } else if (redaction_ranges.size() > 0) {
+            ri = std::make_unique<RedactionInfo>(redaction_ranges.size() / 2,
+                                                 redaction_ranges.get());
+        } else {
+            // No ranges to redact
+            ri = std::make_unique<RedactionInfo>();
+        }
+        return std::make_unique<FileOpenResult>(status, original_uid, ri.release());
+    } else {
+        return std::make_unique<FileOpenResult>(status, original_uid, new RedactionInfo());
+    }
 }
 
 void MediaProviderWrapper::ScanFile(const string& path) {
@@ -476,7 +480,7 @@ bool MediaProviderWrapper::IsAppCloneUser(uid_t userId) {
 }
 
 std::unique_ptr<FileLookupResult> MediaProviderWrapper::FileLookup(const std::string& path,
-                                                                   uid_t uid) {
+                                                                   uid_t uid, pid_t tid) {
     JNIEnv* env = MaybeAttachCurrentThread();
 
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
@@ -489,15 +493,19 @@ std::unique_ptr<FileLookupResult> MediaProviderWrapper::FileLookup(const std::st
     }
 
     int transforms = env->GetIntField(j_res_file_lookup_object.get(), fid_file_lookup_transforms_);
+    int original_uid = env->GetIntField(j_res_file_lookup_object.get(), fid_file_lookup_uid_);
     bool transforms_complete = env->GetBooleanField(j_res_file_lookup_object.get(),
                                                     fid_file_lookup_transforms_complete_);
+    bool transforms_supported = env->GetBooleanField(j_res_file_lookup_object.get(),
+                                                     fid_file_lookup_transforms_supported_);
     ScopedLocalRef<jstring> j_io_path(
             env,
             (jstring)env->GetObjectField(j_res_file_lookup_object.get(), fid_file_lookup_io_path_));
     ScopedUtfChars j_io_path_utf(env, j_io_path.get());
 
-    std::unique_ptr<FileLookupResult> file_lookup_result = std::make_unique<FileLookupResult>(
-            transforms, transforms_complete, string(j_io_path_utf.c_str()));
+    std::unique_ptr<FileLookupResult> file_lookup_result =
+            std::make_unique<FileLookupResult>(transforms, original_uid, transforms_complete,
+                                               transforms_supported, string(j_io_path_utf.c_str()));
     return file_lookup_result;
 }
 
@@ -535,25 +543,9 @@ jmethodID MediaProviderWrapper::CacheMethod(JNIEnv* env, const char method_name[
         mid = env->GetMethodID(media_provider_class_, actual_method_name.c_str(), signature);
     }
     if (!mid) {
-        // SHOULD NOT HAPPEN!
         LOG(FATAL) << "Error caching method: " << method_name << signature;
     }
     return mid;
-}
-
-/**
- * Finds FileLookupResult field and adds it to fields map so it can be quickly accessed later.
- */
-jfieldID MediaProviderWrapper::CacheFileLookupField(JNIEnv* env, const char field_name[],
-                                                    const char type[]) {
-    jfieldID fid;
-    string actual_field_name(field_name);
-    fid = env->GetFieldID(file_lookup_result_class_, actual_field_name.c_str(), type);
-    if (!fid) {
-        // SHOULD NOT HAPPEN!
-        LOG(FATAL) << "Error caching field: " << field_name << type;
-    }
-    return fid;
 }
 
 void MediaProviderWrapper::DetachThreadFunction(void* unused) {

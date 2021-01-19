@@ -390,12 +390,14 @@ static void fuse_inval(fuse_session* se, fuse_ino_t parent_ino, fuse_ino_t child
     }
 }
 
-static double get_attr_timeout(const string& path, bool should_inval, node* node,
-                               struct fuse* fuse) {
-    if (fuse->disable_dentry_cache || should_inval || is_package_owned_path(path, fuse->path)) {
+static double get_attr_timeout(const string& path, node* node, struct fuse* fuse) {
+    if (fuse->disable_dentry_cache || node->ShouldInvalidate() ||
+        is_package_owned_path(path, fuse->path)) {
         // We set dentry timeout to 0 for the following reasons:
         // 1. The dentry cache was completely disabled
-        // 2. Case-insensitive lookups need to invalidate other case-insensitive dentry matches
+        // 2.1 Case-insensitive lookups need to invalidate other case-insensitive dentry matches
+        // 2.2 Nodes supporting transforms need to be invalidated, so that subsequent lookups by a
+        // uid requiring a transform is guaranteed to come to the FUSE daemon.
         // 3. With app data isolation enabled, app A should not guess existence of app B from the
         // Android/{data,obb}/<package> paths, hence we prevent the kernel from caching that
         // information.
@@ -404,8 +406,7 @@ static double get_attr_timeout(const string& path, bool should_inval, node* node
     return std::numeric_limits<double>::max();
 }
 
-static double get_entry_timeout(const string& path, bool should_inval, node* node,
-                                struct fuse* fuse) {
+static double get_entry_timeout(const string& path, node* node, struct fuse* fuse) {
     string media_path = fuse->GetEffectiveRootPath() + "/Android/media";
     if (path.find(media_path, 0) == 0) {
         // Installd might delete Android/media/<package> dirs when app data is cleared.
@@ -413,7 +414,7 @@ static double get_entry_timeout(const string& path, bool should_inval, node* nod
         // dir via FUSE.
         return 0;
     }
-    return get_attr_timeout(path, should_inval, node, fuse);
+    return get_attr_timeout(path, node, fuse);
 }
 
 static std::string get_path(node* node) {
@@ -433,7 +434,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
         return NULL;
     }
 
-    bool should_inval = false;
+    bool should_invalidate = false;
     bool transforms_complete = true;
     int transforms = 0;
     string io_path;
@@ -441,7 +442,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     if (S_ISREG(e->attr.st_mode)) {
         // Handle potential file transforms
         std::unique_ptr<mediaprovider::fuse::FileLookupResult> file_lookup_result =
-                fuse->mp->FileLookup(path, req->ctx.uid);
+                fuse->mp->FileLookup(path, req->ctx.uid, req->ctx.pid);
 
         if (!file_lookup_result) {
             // Fail lookup if we can't fetch FileLookupResult for path
@@ -453,37 +454,34 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
         transforms = file_lookup_result->transforms;
         io_path = file_lookup_result->io_path;
         transforms_complete = file_lookup_result->transforms_complete;
+        // Invalidate if the inode supports transforms so that we always get a lookup into userspace
+        should_invalidate = file_lookup_result->transforms_supported;
 
         // Update size with io_path size if io_path is not same as path
         if (!io_path.empty() && (io_path != path) && (lstat(io_path.c_str(), &e->attr) < 0)) {
             *error_code = errno;
             return NULL;
         }
-
-        // Invalidate if there are any transforms so that we always get a lookup into userspace
-        should_inval = should_inval || transforms;
     }
 
     node = parent->LookupChildByName(name, true /* acquire */, transforms);
     if (!node) {
-        node = ::node::Create(parent, name, io_path, transforms_complete, transforms, &fuse->lock,
-                              &fuse->tracker);
+        node = ::node::Create(parent, name, io_path, should_invalidate, transforms_complete,
+                              transforms, &fuse->lock, &fuse->tracker);
     } else if (!mediaprovider::fuse::containsMount(path, std::to_string(getuid() / PER_USER_RANGE))) {
-        should_inval = should_inval || node->HasCaseInsensitiveMatch();
         // Only invalidate a path if it does not contain mount.
         // Invalidate both names to ensure there's no dentry left in the kernel after the following
         // operations:
         // 1) touch foo, touch FOO, unlink *foo*
         // 2) touch foo, touch FOO, unlink *FOO*
         // Invalidating lookup_name fixes (1) and invalidating node_name fixes (2)
-        // |should_inval| invalidates lookup_name by using 0 timeout below and we explicitly
+        // SetShouldInvalidate invalidates lookup_name by using 0 timeout below and we explicitly
         // invalidate node_name if different case
         // Note that we invalidate async otherwise we will deadlock the kernel
         if (name != node->GetName()) {
-            should_inval = true;
             // Record that we have made a case insensitive lookup, this allows us invalidate nodes
             // correctly on subsequent lookups for the case of |node|
-            node->SetCaseInsensitiveMatch();
+            node->SetShouldInvalidate();
 
             // Make copies of the node name and path so we're not attempting to acquire
             // any node locks from the invalidation thread. Depending on timing, we may end
@@ -503,8 +501,8 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     // reuse inode numbers.
     e->generation = 0;
     e->ino = fuse->ToInode(node);
-    e->entry_timeout = get_entry_timeout(path, should_inval, node, fuse);
-    e->attr_timeout = get_attr_timeout(path, should_inval, node, fuse);
+    e->entry_timeout = get_entry_timeout(path, node, fuse);
+    e->attr_timeout = get_attr_timeout(path, node, fuse);
     return node;
 }
 
@@ -693,10 +691,7 @@ static void pf_getattr(fuse_req_t req,
     if (lstat(path.c_str(), &s) < 0) {
         fuse_reply_err(req, errno);
     } else {
-        fuse_reply_attr(
-                req, &s,
-                get_attr_timeout(path, node->GetTransforms() || node->HasCaseInsensitiveMatch(),
-                                 node, fuse));
+        fuse_reply_attr(req, &s, get_attr_timeout(path, node, fuse));
     }
 }
 
@@ -725,8 +720,15 @@ static void pf_setattr(fuse_req_t req,
         fd = h->fd;
     } else {
         const struct fuse_ctx* ctx = fuse_req_ctx(req);
-        int status = fuse->mp->IsOpenAllowed(path, ctx->uid, true);
-        if (status) {
+        std::unique_ptr<FileOpenResult> result = fuse->mp->OnFileOpen(
+                path, path, ctx->uid, ctx->pid, true /* for_write */, false /* redact */);
+
+        if (!result) {
+            fuse_reply_err(req, EFAULT);
+            return;
+        }
+
+        if (result->status) {
             fuse_reply_err(req, EACCES);
             return;
         }
@@ -791,9 +793,7 @@ static void pf_setattr(fuse_req_t req,
     }
 
     lstat(path.c_str(), attr);
-    fuse_reply_attr(req, attr,
-                    get_attr_timeout(path, node->GetTransforms() || node->HasCaseInsensitiveMatch(),
-                                     node, fuse));
+    fuse_reply_attr(req, attr, get_attr_timeout(path, node, fuse));
 }
 
 static void pf_canonical_path(fuse_req_t req, fuse_ino_t ino)
@@ -1036,7 +1036,8 @@ static handle* create_handle_for_node(struct fuse* fuse, const string& path, int
 
     if (fuse->passthrough) {
         *keep_cache = 1;
-        handle = new struct handle(fd, ri, true /* cached */, !redaction_needed /* passthrough */,
+        handle = new struct handle(fd, ri, true /* cached */,
+                                   !redaction_needed || node->GetTransforms() /* passthrough */,
                                    uid);
     } else {
         // Without fuse->passthrough, we don't want to use the FUSE VFS cache in two cases:
@@ -1109,9 +1110,17 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     // TODO: If transform, disallow write
     // Force permission check with the build path because the MediaProvider database might not be
     // aware of the io_path
-    int status = fuse->mp->IsOpenAllowed(build_path, ctx->uid, is_requesting_write(fi->flags));
-    if (status) {
-        fuse_reply_err(req, status);
+    bool for_write = is_requesting_write(fi->flags);
+    // We don't redact if the caller was granted write permission for this file
+    std::unique_ptr<FileOpenResult> result = fuse->mp->OnFileOpen(
+            build_path, io_path, ctx->uid, ctx->pid, for_write, !for_write /* redact */);
+    if (!result) {
+        fuse_reply_err(req, EFAULT);
+        return;
+    }
+
+    if (result->status) {
+        fuse_reply_err(req, result->status);
         return;
     }
 
@@ -1133,23 +1142,9 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         return;
     }
 
-    // We don't redact if the caller was granted write permission for this file
-    std::unique_ptr<RedactionInfo> ri;
-    if (is_requesting_write(fi->flags)) {
-        ri = std::make_unique<RedactionInfo>();
-    } else {
-        ri = fuse->mp->GetRedactionInfo(build_path, io_path, req->ctx.uid, req->ctx.pid);
-    }
-
-    if (!ri) {
-        close(fd);
-        fuse_reply_err(req, EFAULT);
-        return;
-    }
-
     int keep_cache = 1;
-    handle* h = create_handle_for_node(fuse, io_path, fd, req->ctx.uid, node, ri.release(),
-                                       &keep_cache);
+    handle* h = create_handle_for_node(fuse, io_path, fd, req->ctx.uid, node,
+                                       result->redaction_info.release(), &keep_cache);
     fi->fh = ptr_to_id(h);
     fi->keep_cache = keep_cache;
     fi->direct_io = !h->cached;
@@ -1625,7 +1620,15 @@ static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
             return;
         }
 
-        status = fuse->mp->IsOpenAllowed(path, req->ctx.uid, for_write);
+        std::unique_ptr<FileOpenResult> result = fuse->mp->OnFileOpen(
+                path, path, req->ctx.uid, req->ctx.pid, for_write, false /* redact */);
+        if (!result) {
+            status = EFAULT;
+        }
+
+        if (result->status) {
+            status = EACCES;
+        }
     }
 
     fuse_reply_err(req, status);

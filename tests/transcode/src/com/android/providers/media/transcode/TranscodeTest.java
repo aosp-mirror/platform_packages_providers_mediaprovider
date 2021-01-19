@@ -52,7 +52,6 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -353,7 +352,6 @@ public class TranscodeTest {
      * Tests that transcode cache is reused after ContentResolver transcode
      * @throws Exception
      */
-    @Ignore("b/174655855")
     @Test
     public void testTranscodedCacheReuse_ContentResolver() throws Exception {
         File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
@@ -373,7 +371,6 @@ public class TranscodeTest {
      * and file path opens
      * @throws Exception
      */
-    @Ignore("b/174655855")
     @Test
     public void testTranscodedCacheReuse_ContentResolverFilePath() throws Exception {
         File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);

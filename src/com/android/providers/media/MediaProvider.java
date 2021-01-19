@@ -7108,8 +7108,8 @@ public class MediaProvider extends ContentProvider {
      * @throws IOException if an error occurs while calculating the redaction ranges
      */
     @NonNull
-    private long[] getRedactionRangesFromFuse(String path, String ioPath, int uid, int tid)
-            throws IOException {
+    private long[] getRedactionRangesForFuse(String path, String ioPath, int original_uid, int uid,
+            int tid) throws IOException {
         // |ioPath| might refer to a transcoded file path (which is not indexed in the db)
         // |path| will always refer to a valid _data column
         // We use |ioPath| for the filesystem access because in the case of transcoding,
@@ -7124,7 +7124,7 @@ public class MediaProvider extends ContentProvider {
         // use the shouldRedact decision there if there's one.
         synchronized (mPendingOpenInfo) {
             PendingOpenInfo info = mPendingOpenInfo.get(tid);
-            if (info != null && info.uid == uid) {
+            if (info != null && info.uid == original_uid) {
                 boolean shouldRedact = info.shouldRedact;
                 if (shouldRedact) {
                     return getRedactionRanges(file).redactionRanges;
@@ -7262,7 +7262,7 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public FileOpenResult onFileOpenForFuse(String path, String ioPath, int uid, int tid,
             boolean forWrite, boolean redact) {
-        uid = getBinderUidForFuse(uid, tid);
+        int original_uid = getBinderUidForFuse(uid, tid);
 
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
@@ -7275,7 +7275,8 @@ public class MediaProvider extends ContentProvider {
 
             if (shouldBypassFuseRestrictions(forWrite, path)) {
                 return new FileOpenResult(0 /* status */, uid,
-                        redact ? getRedactionRangesFromFuse(path, ioPath, uid, tid) : new long[0]);
+                        redact ? getRedactionRangesForFuse(path, ioPath, original_uid, uid, tid) :
+                        new long[0]);
             }
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
@@ -7308,13 +7309,14 @@ public class MediaProvider extends ContentProvider {
                 requireOwnershipForItem(ownerPackageName, fileUri);
             }
             return new FileOpenResult(0 /* status */, uid,
-                    redact ? getRedactionRangesFromFuse(path, ioPath, uid, tid) : new long[0]);
+                    redact ? getRedactionRangesForFuse(path, ioPath, original_uid, uid, tid) :
+                    new long[0]);
         } catch (IOException e) {
             // We are here because
             // * App doesn't have read permission to the requested path, hence queryForSingleItem
             //   couldn't return a valid db row, or,
             // * There is no db row corresponding to the requested path, which is more unlikely.
-            // * getRedactionRangesFromFuse couldn't fetch the redaction info correctly
+            // * getRedactionRangesForFuse couldn't fetch the redaction info correctly
             // In all of these cases, it means that app doesn't have access permission to the file.
             Log.e(TAG, "Couldn't find file: " + path, e);
             return new FileOpenResult(OsConstants.EACCES /* status */, uid, new long[0]);

@@ -431,6 +431,10 @@ public class TranscodeHelper {
                     MediaFormat.MIMETYPE_VIDEO_HEVC)) {
                 logVerbose("Media capability requested matches original format");
                 return false;
+            } else if (capabilities != null && capabilities.getUnsupportedVideoMimeTypes().contains(
+                    MediaFormat.MIMETYPE_VIDEO_HEVC)) {
+                logVerbose("Media capability is explicitly not supported");
+                return true;
             }
         }
 

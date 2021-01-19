@@ -481,7 +481,7 @@ public class TranscodeHelper {
         }
 
         boolean shouldTranscode = getBooleanProperty(TRANSCODE_DEFAULT_SYS_PROP_KEY,
-                TRANSCODE_DEFAULT_DEVICE_CONFIG_KEY, true /* defaultValue */);
+                TRANSCODE_DEFAULT_DEVICE_CONFIG_KEY, false /* defaultValue */);
         if (shouldTranscode) {
             logVerbose("Default behavior should transcode");
         } else {

@@ -91,13 +91,6 @@ int deleteFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid
     return res;
 }
 
-void scanFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_scan_file,
-                      const string& path) {
-    ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
-    env->CallVoidMethod(media_provider_object, mid_scan_file, j_path.get());
-    CheckForJniException(env);
-}
-
 int isMkdirOrRmdirAllowedInternal(JNIEnv* env, jobject media_provider_object,
                                   jmethodID mid_is_mkdir_or_rmdir_allowed, const string& path,
                                   uid_t uid, bool forCreate) {
@@ -242,8 +235,6 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
                                     "(Ljava/lang/String;Ljava/lang/String;IIZZ)Lcom/android/"
                                     "providers/media/FileOpenResult;",
                                     /*is_static*/ false);
-    mid_scan_file_ = CacheMethod(env, "scanFile", "(Ljava/lang/String;)V",
-                                 /*is_static*/ false);
     mid_is_mkdir_or_rmdir_allowed_ = CacheMethod(env, "isDirectoryCreationOrDeletionAllowed",
                                                  "(Ljava/lang/String;IZ)I", /*is_static*/ false);
     mid_is_opendir_allowed_ = CacheMethod(env, "isOpendirAllowed", "(Ljava/lang/String;IZ)I",
@@ -364,11 +355,6 @@ std::unique_ptr<FileOpenResult> MediaProviderWrapper::OnFileOpen(const string& p
     } else {
         return std::make_unique<FileOpenResult>(status, original_uid, new RedactionInfo());
     }
-}
-
-void MediaProviderWrapper::ScanFile(const string& path) {
-    JNIEnv* env = MaybeAttachCurrentThread();
-    scanFileInternal(env, media_provider_object_, mid_scan_file_, path);
 }
 
 int MediaProviderWrapper::IsCreatingDirAllowed(const string& path, uid_t uid) {

@@ -642,6 +642,37 @@ public class ModernMediaScannerTest {
     }
 
     @Test
+    public void testBrokenPlaylistM3u() throws Exception {
+        final File music = new File(mDir, "Music");
+        music.mkdirs();
+        stage(R.raw.test_audio, new File(music, "001.mp3"));
+        stage(R.raw.test_audio, new File(music, "002.mp3"));
+        stage(R.raw.test_audio, new File(music, "003.mp3"));
+        stage(R.raw.test_audio, new File(music, "004.mp3"));
+        stage(R.raw.test_audio, new File(music, "005.mp3"));
+        stage(R.raw.test_broken_m3u, new File(music, "test_broken.m3u"));
+
+        mModern.scanDirectory(mDir, REASON_UNKNOWN);
+
+        final long playlistId;
+        try (Cursor cursor = mIsolatedContext.getContentResolver().query(
+                MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL),
+                new String[] { FileColumns._ID },
+                FileColumns.MEDIA_TYPE + "=" + FileColumns.MEDIA_TYPE_PLAYLIST, null, null)) {
+            assertTrue(cursor.moveToFirst());
+            playlistId = cursor.getLong(0);
+        }
+
+        final Uri membersUri = MediaStore.Audio.Playlists.Members
+                .getContentUri(MediaStore.VOLUME_EXTERNAL, playlistId);
+        try (Cursor cursor = mIsolatedResolver.query(membersUri, new String[] {
+                MediaColumns.DISPLAY_NAME
+        }, null, null, null)) {
+            assertEquals(0, cursor.getCount());
+        }
+    }
+
+    @Test
     public void testFilter() throws Exception {
         final File music = new File(mDir, "Music");
         music.mkdirs();

@@ -137,13 +137,6 @@ public class MediaProviderForFuseTest {
     }
 
     @Test
-    public void test_scanFileForFuse() throws Exception {
-        final File file = new File(sTestDir, "test_scan" + System.nanoTime() + ".jpg");
-        Truth.assertThat(file.createNewFile()).isTrue();
-        sMediaProvider.scanFileForFuse(file.getPath());
-    }
-
-    @Test
     public void test_isOpendirAllowedForFuse() throws Exception {
         Truth.assertThat(sMediaProvider.isOpendirAllowedForFuse(
                 sTestDir.getPath(), sTestUid, /* forWrite */ false)).isEqualTo(0);

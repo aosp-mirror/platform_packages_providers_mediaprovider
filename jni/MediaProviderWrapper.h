@@ -149,14 +149,6 @@ class MediaProviderWrapper final {
                                                uid_t uid, pid_t tid, bool for_write, bool redact);
 
     /**
-     * Potentially triggers a scan of the file before closing it and reconciles it with the
-     * MediaProvider database.
-     *
-     * @param path the path of the file to be scanned
-     */
-    void ScanFile(const std::string& path);
-
-    /**
      * Determines if the given UID is allowed to create a directory with the given path.
      *
      * @param path the path of the directory to be created

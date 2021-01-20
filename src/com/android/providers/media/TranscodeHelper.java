@@ -222,9 +222,8 @@ public class TranscodeHelper {
      * seamlessly transcode.
      */
     private static final Pattern PATTERN_TRANSCODE_PATH = Pattern.compile(
-            "(?i)^/storage/emulated/(?:[0-9]+)/\\.transcode/(?:\\d+)$");
-    private static final String DIRECTORY_TRANSCODE = ".transcode";
-
+            "(?i)^/storage/emulated/(?:[0-9]+)/\\.transforms/transcode/(?:\\d+)$");
+    private static final String DIRECTORY_TRANSCODE = ".transforms/transcode";
     /**
      * @return true if the file path matches transcode file path.
      */

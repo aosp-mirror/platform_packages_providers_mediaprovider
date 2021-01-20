@@ -317,11 +317,17 @@ public class TranscodeHelper {
         return result;
     }
 
+    /**
+     * Returns IO path for a {@code path} and {@code uid}
+     *
+     * IO path is the actual path to be used on the lower fs for IO via FUSE. For some file
+     * transforms, this path might be different from the path the app is requesting IO on.
+     *
+     * @param path file path to get an IO path for
+     * @param uid app requesting IO
+     *
+     */
     public String getIoPath(String path, int uid) {
-        if (!shouldTranscode(path, uid, null /* bundle */)) {
-            return path;
-        }
-
         Pair<Long, Integer> cacheInfo = getTranscodeCacheInfoFromDB(path);
         final long rowId = cacheInfo.first;
         if (rowId == -1) {

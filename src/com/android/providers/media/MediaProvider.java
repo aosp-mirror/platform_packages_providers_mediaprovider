@@ -1402,50 +1402,28 @@ public class MediaProvider extends ContentProvider {
         int transforms = 0;
 
         if (transformsSupported) {
-            // TODO(b/170974147): Avoid duplicate shouldTranscode calls in getTransformsForFuse and
-            // getIoPathForFuse
-            transforms = getTransformsForFuse(path, uid);
-            if (transforms != 0) {
-                ioPath = getIoPathForFuse(path, uid);
+            boolean shouldTranscode = false;
+            PendingOpenInfo info = null;
+            synchronized (mPendingOpenInfo) {
+                info = mPendingOpenInfo.get(tid);
+            }
+
+            if (info != null && info.uid == uid) {
+                shouldTranscode = info.shouldTranscode;
+            } else {
+                shouldTranscode = mTranscodeHelper.shouldTranscode(path, uid,
+                        null /* bundle */);
+            }
+
+            if (shouldTranscode) {
+                ioPath = mTranscodeHelper.getIoPath(path, uid);
                 transformsComplete = false;
+                transforms = FLAG_TRANSFORM_TRANSCODING;
             }
         }
 
         return new FileLookupResult(transforms, uid, transformsComplete, transformsSupported,
                 ioPath);
-    }
-
-    /**
-     * Returns IO path for a {@code path} and {@code uid}
-     *
-     * IO path is the actual path to be used on the lower fs for IO via FUSE. For some file
-     * transforms, this path might be different from the path the app is requesting IO on.
-     *
-     * @param path file path to get an IO path for
-     * @param uid app requesting IO
-     *
-     */
-    private String getIoPathForFuse(String path, int uid) {
-        return mTranscodeHelper.getIoPath(path, uid);
-    }
-
-    /**
-     * Returns transforms for a {@code path} and {@code uid}
-     *
-     * If transforms are not supported for {@code path}, {@code 0} will be returned. Otherwise,
-     * a bitwise OR of supported transforms for {@code path} and actual transforms to perform for
-     * {@code uid} will be returned.
-     *
-     * @param path file path to get transforms for
-     * @param uid app requesting IO
-     *
-     * @see {@link transformForFuse}
-     */
-    private int getTransformsForFuse(String path, int uid) {
-        if (mTranscodeHelper.shouldTranscode(path, uid, null /* bundle */)) {
-            return FLAG_TRANSFORM_TRANSCODING;
-        }
-        return 0;
     }
 
     public int getBinderUidForFuse(int uid, int tid) {
@@ -6653,7 +6631,7 @@ public class MediaProvider extends ContentProvider {
 
         int tid = android.os.Process.myTid();
         synchronized (mPendingOpenInfo) {
-            mPendingOpenInfo.put(tid, new PendingOpenInfo(uid, shouldRedact));
+            mPendingOpenInfo.put(tid, new PendingOpenInfo(uid, shouldRedact, shouldTranscode));
         }
 
         try {
@@ -7090,9 +7068,11 @@ public class MediaProvider extends ContentProvider {
     private static final class PendingOpenInfo {
         public final int uid;
         public final boolean shouldRedact;
-        public PendingOpenInfo(int uid, boolean shouldRedact) {
+        public final boolean shouldTranscode;
+        public PendingOpenInfo(int uid, boolean shouldRedact, boolean shouldTranscode) {
             this.uid = uid;
             this.shouldRedact = shouldRedact;
+            this.shouldTranscode = shouldTranscode;
         }
     }
 

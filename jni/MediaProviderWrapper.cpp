@@ -486,7 +486,8 @@ std::unique_ptr<FileLookupResult> MediaProviderWrapper::FileLookup(const std::st
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
 
     ScopedLocalRef<jobject> j_res_file_lookup_object(
-            env, env->CallObjectMethod(media_provider_object_, mid_file_lookup_, j_path.get(), uid));
+            env, env->CallObjectMethod(media_provider_object_, mid_file_lookup_, j_path.get(), uid,
+                                       tid));
 
     if (CheckForJniException(env)) {
         return nullptr;

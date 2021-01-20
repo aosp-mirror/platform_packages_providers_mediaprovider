@@ -1143,7 +1143,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     }
 
     int keep_cache = 1;
-    handle* h = create_handle_for_node(fuse, io_path, fd, req->ctx.uid, node,
+    handle* h = create_handle_for_node(fuse, io_path, fd, result->uid, node,
                                        result->redaction_info.release(), &keep_cache);
     fi->fh = ptr_to_id(h);
     fi->keep_cache = keep_cache;

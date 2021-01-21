@@ -25,13 +25,10 @@ import static com.android.providers.media.transcode.TranscodeTestUtils.open;
 import static com.android.providers.media.transcode.TranscodeTestUtils.openFileAs;
 import static com.android.providers.media.transcode.TranscodeTestUtils.uninstallApp;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.Manifest;
-import android.content.ContentResolver;
 import android.media.ApplicationMediaCapabilities;
 import android.media.MediaFormat;
 import android.net.Uri;
@@ -52,7 +49,6 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -353,7 +349,6 @@ public class TranscodeTest {
      * Tests that transcode cache is reused after ContentResolver transcode
      * @throws Exception
      */
-    @Ignore("b/174655855")
     @Test
     public void testTranscodedCacheReuse_ContentResolver() throws Exception {
         File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
@@ -373,7 +368,6 @@ public class TranscodeTest {
      * and file path opens
      * @throws Exception
      */
-    @Ignore("b/174655855")
     @Test
     public void testTranscodedCacheReuse_ContentResolverFilePath() throws Exception {
         File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
@@ -471,7 +465,7 @@ public class TranscodeTest {
     }
 
     @Test
-    public void testExtraMediaCapabilitiesHevcTrue_ContentResolver() throws Exception {
+    public void testExtraMediaCapabilitiesHevcSupportedTrue_ContentResolver() throws Exception {
         File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
         try {
             Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);
@@ -494,7 +488,30 @@ public class TranscodeTest {
     }
 
     @Test
-    public void testExtraMediaCapabilitiesHevcFalse_ContentResolver() throws Exception {
+    public void testExtraMediaCapabilitiesHevcUnsupportedFalse_ContentResolver() throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        try {
+            Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+
+            ParcelFileDescriptor pfdOriginal1 = open(uri, false, null /* bundle */);
+
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
+
+            Bundle bundle = new Bundle();
+            ApplicationMediaCapabilities capabilities =
+                    new ApplicationMediaCapabilities.Builder()
+                            .addUnsupportedVideoMimeType(MediaFormat.MIMETYPE_VIDEO_HEVC).build();
+            bundle.putParcelable(MediaStore.EXTRA_MEDIA_CAPABILITIES, capabilities);
+            ParcelFileDescriptor pfdOriginal2 = open(uri, false, bundle);
+
+            assertFileContent(modernFile, modernFile, pfdOriginal1, pfdOriginal2, false);
+        } finally {
+            modernFile.delete();
+        }
+    }
+
+    @Test
+    public void testExtraMediaCapabilitiesHevcUnspecifiedFalse_ContentResolver() throws Exception {
         File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
         try {
             Uri uri = TranscodeTestUtils.stageHEVCVideoFile(modernFile);

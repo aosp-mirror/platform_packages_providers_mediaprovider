@@ -17,22 +17,16 @@
 package com.android.providers.media;
 
 /**
- * Wrapper class which contains transforms, transforms completion status and ioPath for transform
- * lookup query for a file and uid pair.
+ * Wrapper class which contains the result of an open.
  */
-public final class FileLookupResult {
-    public final int transforms;
+public final class FileOpenResult {
+    public final int status;
     public final int uid;
-    public final boolean transformsComplete;
-    public final boolean transformsSupported;
-    public final String ioPath;
+    public final long[] redactionRanges;
 
-    public FileLookupResult(int transforms, int uid, boolean transformsComplete,
-            boolean transformsSupported, String ioPath) {
-        this.transforms = transforms;
+    public FileOpenResult(int status, int uid, long[] redactionRanges) {
+        this.status = status;
         this.uid = uid;
-        this.transformsComplete = transformsComplete;
-        this.transformsSupported = transformsSupported;
-        this.ioPath = ioPath;
+        this.redactionRanges = redactionRanges;
     }
 }

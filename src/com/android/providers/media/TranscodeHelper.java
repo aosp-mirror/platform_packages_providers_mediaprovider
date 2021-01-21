@@ -541,9 +541,6 @@ public class TranscodeHelper {
         if (capability.isVideoMimeTypeSupported(MediaFormat.MIMETYPE_VIDEO_HEVC)) {
             flags |= FLAG_HEVC;
         }
-        if (capability.isSlowMotionSupported()) {
-            flags |= FLAG_SLOW_MOTION;
-        }
         if (capability.isHdrTypeSupported(MediaFeature.HdrType.HDR10)) {
             flags |= FLAG_HDR_10;
         }

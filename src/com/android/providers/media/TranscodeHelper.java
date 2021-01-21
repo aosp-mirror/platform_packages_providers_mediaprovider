@@ -580,7 +580,7 @@ public class TranscodeHelper {
     }
 
     // called from MediaProvider
-    void reportIfHEVCAdded(Uri uri) {
+    void onUriPublished(Uri uri) {
         if (!isTranscodeEnabled()) {
             return;
         }

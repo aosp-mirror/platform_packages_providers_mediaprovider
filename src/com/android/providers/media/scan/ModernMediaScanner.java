@@ -176,7 +176,7 @@ public class ModernMediaScanner implements MediaScanner {
     private static final Pattern PATTERN_INVISIBLE = Pattern.compile(
             "(?i)^/storage/[^/]+(?:/[0-9]+)?/"
                     + "(?:(?:Android/(?:data|obb|sandbox)$)|"
-                    + "(?:\\.transcode$)|"
+                    + "(?:\\.transforms$)|"
                     + "(?:(?:Movies|Music|Pictures)/.thumbnails$))");
 
     private static final Pattern PATTERN_YEAR = Pattern.compile("([1-9][0-9][0-9][0-9])");

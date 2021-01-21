@@ -409,7 +409,7 @@ public class ModernMediaScannerTest {
                     new File(prefix + "/Music/.thumbnails/meow"));
 
             assertShouldScanPathAndIsPathHidden(false, false,
-                    new File(prefix + "/.transcode/meow"));
+                    new File(prefix + "/.transforms/transcode"));
         }
     }
 
@@ -477,7 +477,7 @@ public class ModernMediaScannerTest {
             assertShouldntScanDirectory(new File(prefix + "/Music/.thumbnails"));
 
             assertShouldScanDirectory(new File(prefix + "/DCIM/.thumbnails"));
-            assertShouldntScanDirectory(new File(prefix + "/.transcode"));
+            assertShouldntScanDirectory(new File(prefix + "/.transforms"));
         }
     }
 

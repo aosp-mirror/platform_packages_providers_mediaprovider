@@ -1227,17 +1227,6 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Makes MediaScanner scan the given file.
-     * @param file path of the file to be scanned
-     *
-     * Called from JNI in jni/MediaProviderWrapper.cpp
-     */
-    @Keep
-    public void scanFileForFuse(String file) {
-        scanFile(new File(file), REASON_DEMAND);
-    }
-
-    /**
      * Called when a new file is created through FUSE
      *
      * @param file path of the file that was created
@@ -1402,50 +1391,28 @@ public class MediaProvider extends ContentProvider {
         int transforms = 0;
 
         if (transformsSupported) {
-            // TODO(b/170974147): Avoid duplicate shouldTranscode calls in getTransformsForFuse and
-            // getIoPathForFuse
-            transforms = getTransformsForFuse(path, uid);
-            if (transforms != 0) {
-                ioPath = getIoPathForFuse(path, uid);
+            boolean shouldTranscode = false;
+            PendingOpenInfo info = null;
+            synchronized (mPendingOpenInfo) {
+                info = mPendingOpenInfo.get(tid);
+            }
+
+            if (info != null && info.uid == uid) {
+                shouldTranscode = info.shouldTranscode;
+            } else {
+                shouldTranscode = mTranscodeHelper.shouldTranscode(path, uid,
+                        null /* bundle */);
+            }
+
+            if (shouldTranscode) {
+                ioPath = mTranscodeHelper.getIoPath(path, uid);
                 transformsComplete = false;
+                transforms = FLAG_TRANSFORM_TRANSCODING;
             }
         }
 
         return new FileLookupResult(transforms, uid, transformsComplete, transformsSupported,
                 ioPath);
-    }
-
-    /**
-     * Returns IO path for a {@code path} and {@code uid}
-     *
-     * IO path is the actual path to be used on the lower fs for IO via FUSE. For some file
-     * transforms, this path might be different from the path the app is requesting IO on.
-     *
-     * @param path file path to get an IO path for
-     * @param uid app requesting IO
-     *
-     */
-    private String getIoPathForFuse(String path, int uid) {
-        return mTranscodeHelper.getIoPath(path, uid);
-    }
-
-    /**
-     * Returns transforms for a {@code path} and {@code uid}
-     *
-     * If transforms are not supported for {@code path}, {@code 0} will be returned. Otherwise,
-     * a bitwise OR of supported transforms for {@code path} and actual transforms to perform for
-     * {@code uid} will be returned.
-     *
-     * @param path file path to get transforms for
-     * @param uid app requesting IO
-     *
-     * @see {@link transformForFuse}
-     */
-    private int getTransformsForFuse(String path, int uid) {
-        if (mTranscodeHelper.shouldTranscode(path, uid, null /* bundle */)) {
-            return FLAG_TRANSFORM_TRANSCODING;
-        }
-        return 0;
     }
 
     public int getBinderUidForFuse(int uid, int tid) {
@@ -1874,13 +1841,8 @@ public class MediaProvider extends ContentProvider {
      * </ul>
      */
     private void scanRenamedDirectoryForFuse(@NonNull String oldPath, @NonNull String newPath) {
-        final LocalCallingIdentity token = clearLocalCallingIdentity();
-        try {
-            scanFile(new File(oldPath), REASON_DEMAND);
-            scanFile(new File(newPath), REASON_DEMAND);
-        } finally {
-            restoreLocalCallingIdentity(token);
-        }
+        scanFileAsMediaProvider(new File(oldPath), REASON_DEMAND);
+        scanFileAsMediaProvider(new File(newPath), REASON_DEMAND);
     }
 
     /**
@@ -2324,10 +2286,10 @@ public class MediaProvider extends ContentProvider {
         // 3) /sdcard/foo/bar.mp3 => /sdcard/foo/.nomedia
         //    in this case, we need to scan all of /sdcard/foo
         if (extractDisplayName(oldPath).equals(".nomedia")) {
-            scanFile(new File(oldPath).getParentFile(), REASON_DEMAND);
+            scanFileAsMediaProvider(new File(oldPath).getParentFile(), REASON_DEMAND);
         }
         if (extractDisplayName(newPath).equals(".nomedia")) {
-            scanFile(new File(newPath).getParentFile(), REASON_DEMAND);
+            scanFileAsMediaProvider(new File(newPath).getParentFile(), REASON_DEMAND);
         }
 
         return 0;
@@ -4043,7 +4005,7 @@ public class MediaProvider extends ContentProvider {
         mCallingIdentity.get().setOwned(rowId, true);
 
         if (path != null && path.toLowerCase(Locale.ROOT).endsWith("/.nomedia")) {
-            mMediaScanner.scanFile(new File(path).getParentFile(), REASON_DEMAND);
+            scanFileAsMediaProvider(new File(path).getParentFile(), REASON_DEMAND);
         }
 
         return newUri;
@@ -6653,7 +6615,7 @@ public class MediaProvider extends ContentProvider {
 
         int tid = android.os.Process.myTid();
         synchronized (mPendingOpenInfo) {
-            mPendingOpenInfo.put(tid, new PendingOpenInfo(uid, shouldRedact));
+            mPendingOpenInfo.put(tid, new PendingOpenInfo(uid, shouldRedact, shouldTranscode));
         }
 
         try {
@@ -6781,7 +6743,7 @@ public class MediaProvider extends ContentProvider {
                         update(uri, values, null, null);
                         break;
                     default:
-                        mMediaScanner.scanFile(file, REASON_DEMAND);
+                        scanFileAsMediaProvider(file, REASON_DEMAND);
                         break;
                 }
             } catch (Exception e2) {
@@ -7090,9 +7052,11 @@ public class MediaProvider extends ContentProvider {
     private static final class PendingOpenInfo {
         public final int uid;
         public final boolean shouldRedact;
-        public PendingOpenInfo(int uid, boolean shouldRedact) {
+        public final boolean shouldTranscode;
+        public PendingOpenInfo(int uid, boolean shouldRedact, boolean shouldTranscode) {
             this.uid = uid;
             this.shouldRedact = shouldRedact;
+            this.shouldTranscode = shouldTranscode;
         }
     }
 

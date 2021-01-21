@@ -17,6 +17,7 @@
 #define LIBFUSE_LOG_TAG "libfuse"
 
 #include "FuseDaemon.h"
+#include "android-base/strings.h"
 
 #include <android-base/logging.h>
 #include <android-base/properties.h>
@@ -603,6 +604,12 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
     }
 
     string child_path = parent_path + "/" + name;
+
+    if (android::base::EqualsIgnoreCase(fuse->GetEffectiveRootPath() + "/.transforms", child_path)) {
+        // Hide .transforms directory from direct FUSE access
+        *error_code = ENOENT;
+        return nullptr;
+    }
 
     TRACE_NODE(parent_node, req);
 

@@ -1095,20 +1095,24 @@ public class MediaProvider extends ContentProvider {
         });
         Log.d(TAG, "Pruned " + stalePackages + " unknown packages");
 
-        // Delete any expired content; we're paranoid about wildly changing
-        // clocks, so only delete items within the last week
+        // Delete any expired content on mounted volumes. The expired content on unmounted
+        // volumes will be deleted when we forget any stale volumes; we're cautious about
+        // wildly changing clocks, so only delete items within the last week
         final long from = ((System.currentTimeMillis() - DateUtils.WEEK_IN_MILLIS) / 1000);
         final long to = (System.currentTimeMillis() / 1000);
         final int expiredMedia = mExternalDatabase.runWithTransaction((db) -> {
+            String selection = FileColumns.DATE_EXPIRES + " BETWEEN " + from + " AND " + to;
+            selection += " AND volume_name in " + bindList(MediaStore.getExternalVolumeNames(
+                    getContext()).toArray());
             try (Cursor c = db.query(true, "files", new String[] { "volume_name", "_id" },
-                    FileColumns.DATE_EXPIRES + " BETWEEN " + from + " AND " + to, null,
-                    null, null, null, null, signal)) {
+                    selection, null, null, null, null, null, signal)) {
+                int totalCount = 0;
                 while (c.moveToNext()) {
                     final String volumeName = c.getString(0);
                     final long id = c.getLong(1);
-                    delete(Files.getContentUri(volumeName, id), null, null);
+                    totalCount += delete(Files.getContentUri(volumeName, id), null, null);
                 }
-                return c.getCount();
+                return totalCount;
             }
         });
         Log.d(TAG, "Deleted " + expiredMedia + " expired items");

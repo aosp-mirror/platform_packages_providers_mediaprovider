@@ -884,6 +884,7 @@ public class MediaProviderTest {
         map.put("external", "internal");
         builder.setProjectionMap(map);
         builder.setStrict(true);
+        builder.setStrictColumns(true);
 
         assertArrayEquals(
                 new String[] { "internal" },

@@ -431,6 +431,10 @@ public class TranscodeHelper {
                     MediaFormat.MIMETYPE_VIDEO_HEVC)) {
                 logVerbose("Media capability requested matches original format");
                 return false;
+            } else if (capabilities != null && capabilities.getUnsupportedVideoMimeTypes().contains(
+                    MediaFormat.MIMETYPE_VIDEO_HEVC)) {
+                logVerbose("Media capability is explicitly not supported");
+                return true;
             }
         }
 
@@ -477,7 +481,7 @@ public class TranscodeHelper {
         }
 
         boolean shouldTranscode = getBooleanProperty(TRANSCODE_DEFAULT_SYS_PROP_KEY,
-                TRANSCODE_DEFAULT_DEVICE_CONFIG_KEY, true /* defaultValue */);
+                TRANSCODE_DEFAULT_DEVICE_CONFIG_KEY, false /* defaultValue */);
         if (shouldTranscode) {
             logVerbose("Default behavior should transcode");
         } else {
@@ -536,9 +540,6 @@ public class TranscodeHelper {
         int flags = 0;
         if (capability.isVideoMimeTypeSupported(MediaFormat.MIMETYPE_VIDEO_HEVC)) {
             flags |= FLAG_HEVC;
-        }
-        if (capability.isSlowMotionSupported()) {
-            flags |= FLAG_SLOW_MOTION;
         }
         if (capability.isHdrTypeSupported(MediaFeature.HdrType.HDR10)) {
             flags |= FLAG_HDR_10;

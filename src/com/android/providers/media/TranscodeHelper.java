@@ -82,6 +82,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -483,8 +484,7 @@ public class TranscodeHelper {
             }
         }
 
-        boolean shouldTranscode = getBooleanProperty(TRANSCODE_DEFAULT_SYS_PROP_KEY,
-                TRANSCODE_DEFAULT_DEVICE_CONFIG_KEY, false /* defaultValue */);
+        boolean shouldTranscode = shouldTranscodeDefault();
         if (shouldTranscode) {
             logVerbose("Default behavior should transcode");
         } else {
@@ -821,6 +821,11 @@ public class TranscodeHelper {
                 TRANSCODE_ENABLED_DEVICE_CONFIG_KEY, true /* defaultValue */);
     }
 
+    private boolean shouldTranscodeDefault() {
+        return getBooleanProperty(TRANSCODE_DEFAULT_SYS_PROP_KEY,
+                TRANSCODE_DEFAULT_DEVICE_CONFIG_KEY, false /* defaultValue */);
+    }
+
     private void updateConfigs(boolean transcodeEnabled) {
         synchronized (mLock) {
             boolean isTranscodeEnabledChanged = transcodeEnabled != mIsTranscodeEnabled;
@@ -959,6 +964,14 @@ public class TranscodeHelper {
         int size = stalePackages.size();
         Log.i(TAG, "Parsed " + size + " stale packages from device config");
         return stalePackages;
+    }
+
+    public void dump(PrintWriter writer) {
+        writer.println("isTranscodeEnabled=" + isTranscodeEnabled());
+        writer.println("shouldTranscodeDefault=" + shouldTranscodeDefault());
+        synchronized (mLock) {
+            writer.println("mAppCompatMediaCapabilities=" + mAppCompatMediaCapabilities);
+        }
     }
 
     private static void logEvent(String event, @Nullable TranscodingSession session) {

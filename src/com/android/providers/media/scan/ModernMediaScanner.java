@@ -176,7 +176,7 @@ public class ModernMediaScanner implements MediaScanner {
     private static final Pattern PATTERN_INVISIBLE = Pattern.compile(
             "(?i)^/storage/[^/]+(?:/[0-9]+)?/"
                     + "(?:(?:Android/(?:data|obb|sandbox)$)|"
-                    + "(?:\\.transcode$)|"
+                    + "(?:\\.transforms$)|"
                     + "(?:(?:Movies|Music|Pictures)/.thumbnails$))");
 
     private static final Pattern PATTERN_YEAR = Pattern.compile("([1-9][0-9][0-9][0-9])");
@@ -690,11 +690,8 @@ public class ModernMediaScanner implements MediaScanner {
                 actualMimeType = mDrmClient.getOriginalMimeType(realFile.getPath());
             }
 
-            int actualMediaType = FileColumns.MEDIA_TYPE_NONE;
-            if (actualMimeType != null) {
-                actualMediaType = resolveMediaTypeFromFilePath(realFile, actualMimeType,
-                        /*isHidden*/ mHiddenDirCount > 0);
-            }
+            int actualMediaType = mediaTypeFromMimeType(
+                    realFile, actualMimeType, FileColumns.MEDIA_TYPE_NONE);
 
             Trace.beginSection("checkChanged");
 
@@ -718,13 +715,9 @@ public class ModernMediaScanner implements MediaScanner {
             try (Cursor c = mResolver.query(mFilesUri, projection, queryArgs, mSignal)) {
                 if (c.moveToFirst()) {
                     existingId = c.getLong(0);
-                    final long dateModified = c.getLong(1);
-                    final long size = c.getLong(2);
                     final String mimeType = c.getString(3);
                     final int mediaType = c.getInt(4);
                     isPendingFromFuse &= c.getInt(5) != 0;
-                    final boolean isScanned =
-                            c.getInt(6) == FileColumns._MODIFIER_MEDIA_SCAN;
 
                     // Remember visiting this existing item, even if we skipped
                     // due to it being unchanged; this is needed so we don't
@@ -736,18 +729,36 @@ public class ModernMediaScanner implements MediaScanner {
                         mFirstId = existingId;
                     }
 
-                    final boolean sameTime = (lastModifiedTime(realFile, attrs) == dateModified);
-                    final boolean sameSize = (attrs.size() == size);
-                    final boolean sameMimeType = mimeType == null ? actualMimeType == null :
-                            mimeType.equalsIgnoreCase(actualMimeType);
-                    final boolean sameMediaType = (actualMediaType == mediaType);
-                    final boolean isSame = sameTime && sameSize && sameMediaType && sameMimeType
-                            && !isPendingFromFuse && isScanned;
-                    if (attrs.isDirectory() || isSame) {
+                    if (attrs.isDirectory()) {
+                        if (LOGV) Log.v(TAG, "Skipping directory " + file);
+                        return FileVisitResult.CONTINUE;
+                    }
+
+                    final boolean sameMetadata =
+                            hasSameMetadata(attrs, realFile, isPendingFromFuse, c);
+                    if (isSame(
+                            sameMetadata, actualMimeType, actualMediaType, mimeType, mediaType)) {
                         if (LOGV) Log.v(TAG, "Skipping unchanged " + file);
                         return FileVisitResult.CONTINUE;
                     }
+
+                    // For this special case we may have changed mime type from the file's metadata.
+                    // This is safe because mime_type cannot be changed outside of scanning.
+                    if (sameMetadata
+                            && "video/mp4".equalsIgnoreCase(actualMimeType)
+                            && "audio/mp4".equalsIgnoreCase(mimeType)) {
+                        if (LOGV) Log.v(TAG, "Skipping unchanged video/audio " + file);
+                        return FileVisitResult.CONTINUE;
+                    }
                 }
+
+                // Since we allow top-level mime type to be customised, we need to do this early
+                // on, so the file is later scanned as the appropriate type (otherwise, this
+                // audio filed would be scanned as video and it would be missing the correct
+                // metadata).
+                actualMimeType = updateM4aMimeType(realFile, actualMimeType);
+                actualMediaType =
+                        mediaTypeFromMimeType(realFile, actualMimeType, actualMediaType);
             } finally {
                 Trace.endSection();
             }
@@ -775,6 +786,65 @@ public class ModernMediaScanner implements MediaScanner {
                 maybeApplyPending();
             }
             return FileVisitResult.CONTINUE;
+        }
+
+        private boolean isSame(
+                boolean hasSameMetadata,
+                String actualMimeType,
+                int actualMediaType,
+                String mimeType,
+                int mediaType) {
+            boolean sameMimeType =
+                    mimeType == null
+                            ? actualMimeType == null
+                            : mimeType.equalsIgnoreCase(actualMimeType);
+            boolean sameMediaType = (actualMediaType == mediaType);
+            return hasSameMetadata && sameMediaType && sameMimeType;
+        }
+
+        private int mediaTypeFromMimeType(
+                File file, String mimeType, int defaultMediaType) {
+            if (mimeType != null) {
+                return resolveMediaTypeFromFilePath(
+                        file, mimeType, /*isHidden*/ mHiddenDirCount > 0);
+            }
+            return defaultMediaType;
+        }
+
+        private boolean hasSameMetadata(
+                BasicFileAttributes attrs, File realFile, boolean isPendingFromFuse, Cursor c) {
+            final long dateModified = c.getLong(1);
+            final boolean sameTime = (lastModifiedTime(realFile, attrs) == dateModified);
+
+            final long size = c.getLong(2);
+            final boolean sameSize = (attrs.size() == size);
+
+            final boolean isScanned =
+                    c.getInt(6) == FileColumns._MODIFIER_MEDIA_SCAN;
+
+            return sameTime && sameSize && !isPendingFromFuse && isScanned;
+        }
+
+        /**
+         * For this one very narrow case, we allow mime types to be customised when the top levels
+         * differ. This opens the given file, so avoid calling unless really necessary. This
+         * returns the defaultMimeType for non-m4a files or if opening the file throws an exception.
+         */
+        private String updateM4aMimeType(File file, String defaultMimeType) {
+            if ("video/mp4".equalsIgnoreCase(defaultMimeType)) {
+                try (
+                    FileInputStream is = new FileInputStream(file);
+                    MediaMetadataRetriever mmr = new MediaMetadataRetriever()) {
+                    mmr.setDataSource(is.getFD());
+                    String refinedMimeType = mmr.extractMetadata(METADATA_KEY_MIMETYPE);
+                    if ("audio/mp4".equalsIgnoreCase(refinedMimeType)) {
+                        return refinedMimeType;
+                    }
+                } catch (Exception e) {
+                    return defaultMimeType;
+                }
+            }
+            return defaultMimeType;
         }
 
         @Override
@@ -1536,12 +1606,6 @@ public class ModernMediaScanner implements MediaScanner {
         if (refinedSplit == -1) return Optional.empty();
 
         if (fileMimeType.regionMatches(true, 0, refinedMimeType, 0, refinedSplit + 1)) {
-            return Optional.of(refinedMimeType);
-        } else if ("video/mp4".equalsIgnoreCase(fileMimeType)
-                && "audio/mp4".equalsIgnoreCase(refinedMimeType)) {
-            // We normally only allow MIME types to be customized when the
-            // top-level type agrees, but this one very narrow case is added to
-            // support a music service that was writing "m4a" files as "mp4".
             return Optional.of(refinedMimeType);
         } else {
             return Optional.empty();

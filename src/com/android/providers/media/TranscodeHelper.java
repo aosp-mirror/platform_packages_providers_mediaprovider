@@ -24,13 +24,9 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 
 import static com.android.providers.media.MediaProvider.VolumeNotFoundException;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__HEVC_WRITE;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_CACHE;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_DIRECT;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_TRANSCODE;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__FAIL ;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__SUCCESS ;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED ;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__FAIL;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__SUCCESS;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED;
 
 import android.annotation.IntRange;
 import android.annotation.LongDef;
@@ -43,7 +39,6 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.PackageManager.Property;
 import android.content.res.XmlResourceParser;
 import android.database.Cursor;
@@ -51,9 +46,9 @@ import android.media.ApplicationMediaCapabilities;
 import android.media.MediaFeature;
 import android.media.MediaFormat;
 import android.media.MediaTranscodeManager;
-import android.media.MediaTranscodeManager.TranscodingSession;
 import android.media.MediaTranscodeManager.TranscodingRequest;
 import android.media.MediaTranscodeManager.TranscodingRequest.MediaFormatResolver;
+import android.media.MediaTranscodeManager.TranscodingSession;
 import android.media.MediaTranscodingException;
 import android.net.Uri;
 import android.os.Bundle;
@@ -66,6 +61,7 @@ import android.os.UserHandle;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.util.ArrayMap;
+import android.util.ArraySet;
 import android.util.Log;
 import android.util.Pair;
 import android.util.SparseArray;
@@ -89,7 +85,9 @@ import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -115,6 +113,7 @@ public class TranscodeHelper {
     private static final String TRANSCODE_USER_CONTROL_SYS_PROP_KEY =
             "persist.sys.fuse.transcode_user_control";
     private static final String TRANSCODE_COMPAT_MANIFEST_KEY = "transcode_compat_manifest";
+    private static final String TRANSCODE_COMPAT_STALE_KEY = "transcode_compat_stale";
 
     /**
      * Force enable an app to support the HEVC media capability
@@ -205,15 +204,6 @@ public class TranscodeHelper {
     private static final String TRANSCODE_WHERE_CLAUSE =
             FileColumns.DATA + "=?" + " and mime_type not like 'null'";
 
-    /**
-     * Never transcode for these packages.
-     * TODO(b/169327180): Replace this with allow list from server.
-     */
-    private static final String[] ALLOW_LIST = new String[]{
-            // TODO: Remove "com.google.android.apps.photos", after investigating issue.
-            "com.google.android.apps.photos"
-    };
-
     public TranscodeHelper(Context context, MediaProvider mediaProvider) {
         mContext = context;
         mPackageManager = context.getPackageManager();
@@ -235,9 +225,8 @@ public class TranscodeHelper {
      * seamlessly transcode.
      */
     private static final Pattern PATTERN_TRANSCODE_PATH = Pattern.compile(
-            "(?i)^/storage/emulated/(?:[0-9]+)/\\.transcode/(?:\\d+)$");
-    private static final String DIRECTORY_TRANSCODE = ".transcode";
-
+            "(?i)^/storage/emulated/(?:[0-9]+)/\\.transforms/transcode/(?:\\d+)$");
+    private static final String DIRECTORY_TRANSCODE = ".transforms/transcode";
     /**
      * @return true if the file path matches transcode file path.
      */
@@ -330,11 +319,17 @@ public class TranscodeHelper {
         return result;
     }
 
+    /**
+     * Returns IO path for a {@code path} and {@code uid}
+     *
+     * IO path is the actual path to be used on the lower fs for IO via FUSE. For some file
+     * transforms, this path might be different from the path the app is requesting IO on.
+     *
+     * @param path file path to get an IO path for
+     * @param uid app requesting IO
+     *
+     */
     public String getIoPath(String path, int uid) {
-        if (!shouldTranscode(path, uid, null /* bundle */)) {
-            return path;
-        }
-
         Pair<Long, Integer> cacheInfo = getTranscodeCacheInfoFromDB(path);
         final long rowId = cacheInfo.first;
         if (rowId == -1) {
@@ -419,14 +414,14 @@ public class TranscodeHelper {
                 return false;
             }
         }
-        boolean transcodeNeeded = doesAppNeedTranscoding(path, uid, bundle);
+        boolean transcodeNeeded = doesAppNeedTranscoding(uid, bundle);
         if (!transcodeNeeded) {
             reportTranscodingDirectAccess(uid);
         }
         return transcodeNeeded;
     }
 
-    private boolean doesAppNeedTranscoding(String path, int uid, Bundle bundle) {
+    private boolean doesAppNeedTranscoding(int uid, Bundle bundle) {
         if (bundle != null) {
             if (bundle.getBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, false)) {
                 logVerbose("Original format requested");
@@ -439,19 +434,24 @@ public class TranscodeHelper {
                     MediaFormat.MIMETYPE_VIDEO_HEVC)) {
                 logVerbose("Media capability requested matches original format");
                 return false;
+            } else if (capabilities != null && capabilities.getUnsupportedVideoMimeTypes().contains(
+                    MediaFormat.MIMETYPE_VIDEO_HEVC)) {
+                logVerbose("Media capability is explicitly not supported");
+                return true;
             }
         }
 
         // Check app-compat flags
-        boolean enableHevc = CompatChanges.isChangeEnabled(FORCE_ENABLE_HEVC_SUPPORT, uid);
-        boolean disableHevc = CompatChanges.isChangeEnabled(FORCE_DISABLE_HEVC_SUPPORT, uid);
-        if (enableHevc && disableHevc) {
+        boolean hevcSupportEnabled = CompatChanges.isChangeEnabled(FORCE_ENABLE_HEVC_SUPPORT, uid);
+        boolean hevcSupportDisabled = CompatChanges.isChangeEnabled(FORCE_DISABLE_HEVC_SUPPORT,
+                uid);
+        if (hevcSupportEnabled && hevcSupportDisabled) {
             Log.w(TAG, "Ignoring app compat flags: Set to simultaneously enable and disable "
                     + "HEVC support for uid: " + uid);
-        } else if (enableHevc) {
+        } else if (hevcSupportEnabled) {
             logVerbose("App compat hevc support enabled");
             return false;
-        } else if (disableHevc) {
+        } else if (hevcSupportDisabled) {
             logVerbose("App compat hevc support disabled");
             return true;
         }
@@ -484,7 +484,7 @@ public class TranscodeHelper {
         }
 
         boolean shouldTranscode = getBooleanProperty(TRANSCODE_DEFAULT_SYS_PROP_KEY,
-                TRANSCODE_DEFAULT_DEVICE_CONFIG_KEY, true /* defaultValue */);
+                TRANSCODE_DEFAULT_DEVICE_CONFIG_KEY, false /* defaultValue */);
         if (shouldTranscode) {
             logVerbose("Default behavior should transcode");
         } else {
@@ -499,8 +499,9 @@ public class TranscodeHelper {
         final String cameraRelativePath =
                 String.format("%s/%s/", Environment.DIRECTORY_DCIM, DIRECTORY_CAMERA);
 
-        return !isTranscodeFile(path) && name.endsWith(".mp4") &&
-                cameraRelativePath.equalsIgnoreCase(FileUtils.extractRelativePath(path));
+        return !isTranscodeFile(path) && name.toLowerCase(Locale.ROOT).endsWith(".mp4")
+                && path.startsWith("/storage/emulated/")
+                && cameraRelativePath.equalsIgnoreCase(FileUtils.extractRelativePath(path));
     }
 
     /**
@@ -529,19 +530,19 @@ public class TranscodeHelper {
 
             identity.setApplicationMediaCapabilitiesFlags(capabilitiesToFlags(capability));
             return capability.isVideoMimeTypeSupported(MediaFormat.MIMETYPE_VIDEO_HEVC);
-        } catch (NameNotFoundException | UnsupportedOperationException e) {
+        } catch (PackageManager.NameNotFoundException
+                | ApplicationMediaCapabilities.FormatNotFoundException
+                | UnsupportedOperationException e) {
             return false;
         }
     }
 
     @ApplicationMediaCapabilitiesFlags
-    private int capabilitiesToFlags(ApplicationMediaCapabilities capability) {
+    private int capabilitiesToFlags(ApplicationMediaCapabilities capability)
+            throws ApplicationMediaCapabilities.FormatNotFoundException {
         int flags = 0;
         if (capability.isVideoMimeTypeSupported(MediaFormat.MIMETYPE_VIDEO_HEVC)) {
             flags |= FLAG_HEVC;
-        }
-        if (capability.isSlowMotionSupported()) {
-            flags |= FLAG_SLOW_MOTION;
         }
         if (capability.isHdrTypeSupported(MediaFeature.HdrType.HDR10)) {
             flags |= FLAG_HDR_10;
@@ -650,7 +651,8 @@ public class TranscodeHelper {
                 FileColumns._VIDEO_CODEC_TYPE,
                 MediaStore.MediaColumns.WIDTH,
                 MediaStore.MediaColumns.HEIGHT,
-                MediaStore.MediaColumns.BITRATE
+                MediaStore.MediaColumns.BITRATE,
+                MediaStore.MediaColumns.CAPTURE_FRAMERATE
         };
         try (Cursor c = queryFileForTranscode(path, resolverInfoProjection)) {
             if (c != null && c.moveToNext()) {
@@ -658,19 +660,22 @@ public class TranscodeHelper {
                 int width = c.getInt(1);
                 int height = c.getInt(2);
                 int bitRate = c.getInt(3);
+                float framerate = c.getFloat(4);
 
                 // TODO(b/169849854): Get this info from Manifest, for now if app got here it
                 // definitely doesn't support hevc
                 ApplicationMediaCapabilities capability =
                         new ApplicationMediaCapabilities.Builder().build();
+                MediaFormat sourceFormat = MediaFormat.createVideoFormat(
+                        codecType, width, height);
+                sourceFormat.setFloat(MediaFormat.KEY_FRAME_RATE, framerate);
                 MediaFormatResolver resolver = new MediaFormatResolver()
-                        .setSourceVideoFormatHint(MediaFormat.createVideoFormat(
-                                codecType, width, height))
+                        .setSourceVideoFormatHint(sourceFormat)
                         .setClientCapabilities(capability);
-                MediaFormat format = resolver.resolveVideoFormat();
-                format.setInteger(MediaFormat.KEY_BIT_RATE, bitRate);
+                MediaFormat resolvedFormat = resolver.resolveVideoFormat();
+                resolvedFormat.setInteger(MediaFormat.KEY_BIT_RATE, bitRate);
 
-                return format;
+                return resolvedFormat;
             }
         }
         throw new IllegalStateException("Couldn't get video format info from database for " + path);
@@ -841,11 +846,9 @@ public class TranscodeHelper {
                 return;
             }
 
-            if (!parseTranscodeCompatManifestFromDeviceConfigLocked()) {
-                Log.i(TAG, "Failed parsing transcode compat manifest from device config "
-                        + "attempting resource...");
-                parseTranscodeCompatManifestFromResourceLocked();
-            }
+            Set<String> stalePackages = getTranscodeCompatStale();
+            parseTranscodeCompatManifestFromResourceLocked(stalePackages);
+            parseTranscodeCompatManifestFromDeviceConfigLocked();
         }
     }
 
@@ -889,7 +892,7 @@ public class TranscodeHelper {
     }
 
     /** @return {@code true} if the manifest was parsed successfully, {@code false} otherwise */
-    private boolean parseTranscodeCompatManifestFromResourceLocked() {
+    private boolean parseTranscodeCompatManifestFromResourceLocked(Set<String> stalePackages) {
         InputStream inputStream = mContext.getResources().openRawResource(
                 R.raw.transcode_compat_manifest);
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
@@ -912,6 +915,12 @@ public class TranscodeHelper {
                 try {
                     packageName = lineValues[0];
                     packageCompatValue = Long.valueOf(lineValues[1]);
+
+                    if (stalePackages.contains(packageName)) {
+                        Log.i(TAG, "Skipping stale package in transcode compat manifest: "
+                                + packageName);
+                        continue;
+                    }
                     synchronized (mLock) {
                         // Lock is already held, explicitly hold again to make error prone happy
                         mAppCompatMediaCapabilities.put(packageName, packageCompatValue);
@@ -931,6 +940,25 @@ public class TranscodeHelper {
             Log.i(TAG, "Parsed " + size + " packages from resource");
             return size != 0;
         }
+    }
+
+    private Set<String> getTranscodeCompatStale() {
+        Set<String> stalePackages = new ArraySet<>();
+        final String[] staleConfig = mMediaProvider.getStringDeviceConfig(
+                TRANSCODE_COMPAT_STALE_KEY, "").split(",");
+
+        if (staleConfig.length == 0 || staleConfig[0].isEmpty()) {
+            Log.i(TAG, "Empty transcode compat stale");
+            return stalePackages;
+        }
+
+        for (String stalePackage : staleConfig) {
+            stalePackages.add(stalePackage);
+        }
+
+        int size = stalePackages.size();
+        Log.i(TAG, "Parsed " + size + " stale packages from device config");
+        return stalePackages;
     }
 
     private static void logEvent(String event, @Nullable TranscodingSession session) {

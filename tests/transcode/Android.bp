@@ -2,7 +2,7 @@ android_test {
     name: "MediaProviderTranscodeTests",
     test_suites: [
         "device-tests",
-        "mts",
+        "mts-mediaprovider",
     ],
     compile_multilib: "both",
 

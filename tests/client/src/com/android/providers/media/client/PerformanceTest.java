@@ -84,19 +84,9 @@ public class PerformanceTest {
             doSingle(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, timers);
         }
 
+        // The numbers dumped by the timers are monitored using crystalball and regressions are
+        // reported from there.
         timers.dumpResults();
-
-        // Verify that core actions finished within 30ms deadline
-        final long actionDeadline = 30;
-        assertTrue(timers.actionInsert.getAverageDurationMillis() < actionDeadline);
-        assertTrue(timers.actionUpdate.getAverageDurationMillis() < actionDeadline);
-        assertTrue(timers.actionDelete.getAverageDurationMillis() < actionDeadline);
-
-        // Verify that external notifications finished within 30ms deadline
-        final long notifyDeadline = 30;
-        assertTrue(timers.notifyInsert.getAverageDurationMillis() < notifyDeadline);
-        assertTrue(timers.notifyUpdate.getAverageDurationMillis() < notifyDeadline);
-        assertTrue(timers.notifyDelete.getAverageDurationMillis() < notifyDeadline);
     }
 
     private void doSingle(Uri collection, Timers timers) throws Exception {
@@ -163,19 +153,9 @@ public class PerformanceTest {
             doBulk(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, timers);
         }
 
+        // The numbers dumped by the timers are monitored using crystalball and regressions are
+        // reported from there.
         timers.dumpResults();
-
-        // Verify that core actions finished within 30ms deadline
-        final long actionDeadline = 30 * COUNT_BULK;
-        assertTrue(timers.actionInsert.getAverageDurationMillis() < actionDeadline);
-        assertTrue(timers.actionUpdate.getAverageDurationMillis() < actionDeadline);
-        assertTrue(timers.actionDelete.getAverageDurationMillis() < actionDeadline);
-
-        // Verify that external notifications finished within 100ms deadline
-        final long notifyDeadline = 100;
-        assertTrue(timers.notifyInsert.getAverageDurationMillis() < notifyDeadline);
-        assertTrue(timers.notifyUpdate.getAverageDurationMillis() < notifyDeadline);
-        assertTrue(timers.notifyDelete.getAverageDurationMillis() < notifyDeadline);
     }
 
     private void doBulk(Uri collection, Timers timers) throws Exception {
@@ -283,6 +263,9 @@ public class PerformanceTest {
             doDirOperations(size, createTimer, readdirTimer, isFileTimer,
                     renameDirTimer, renameFilesTimer, deleteTimer);
         }
+
+        // The numbers dumped by the timers are monitored using crystalball and regressions are
+        // reported from there.
         createTimer.dumpResults();
         readdirTimer.dumpResults();
         isFileTimer.dumpResults();

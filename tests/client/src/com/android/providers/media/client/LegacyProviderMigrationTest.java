@@ -53,6 +53,7 @@ import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import androidx.annotation.NonNull;
+import androidx.test.filters.FlakyTest;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
@@ -82,6 +83,7 @@ import java.util.concurrent.TimeUnit;
  * {@link MediaColumns#IS_FAVORITE} should be retained.
  */
 @RunWith(AndroidJUnit4.class)
+@FlakyTest(bugId = 176977253)
 public class LegacyProviderMigrationTest {
     private static final String TAG = "LegacyTest";
 

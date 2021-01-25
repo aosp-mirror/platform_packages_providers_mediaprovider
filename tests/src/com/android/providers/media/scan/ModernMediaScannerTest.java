@@ -146,21 +146,10 @@ public class ModernMediaScannerTest {
         assertTrue(parseOptionalMimeType("image/png", "image/x-shiny").isPresent());
         assertEquals("image/x-shiny",
                 parseOptionalMimeType("image/png", "image/x-shiny").get());
-    }
 
-    @Test
-    public void testOverrideMimeType_148316354() throws Exception {
         // Radical file type shifting isn't allowed
         assertEquals(Optional.empty(),
                 parseOptionalMimeType("video/mp4", "audio/mpeg"));
-
-        // One specific narrow type of shift (mp4 -> m4a) is allowed
-        assertEquals(Optional.of("audio/mp4"),
-                parseOptionalMimeType("video/mp4", "audio/mp4"));
-
-        // The other direction isn't allowed
-        assertEquals(Optional.empty(),
-                parseOptionalMimeType("audio/mp4", "video/mp4"));
     }
 
     @Test
@@ -420,7 +409,7 @@ public class ModernMediaScannerTest {
                     new File(prefix + "/Music/.thumbnails/meow"));
 
             assertShouldScanPathAndIsPathHidden(false, false,
-                    new File(prefix + "/.transcode/meow"));
+                    new File(prefix + "/.transforms/transcode"));
         }
     }
 
@@ -488,7 +477,7 @@ public class ModernMediaScannerTest {
             assertShouldntScanDirectory(new File(prefix + "/Music/.thumbnails"));
 
             assertShouldScanDirectory(new File(prefix + "/DCIM/.thumbnails"));
-            assertShouldntScanDirectory(new File(prefix + "/.transcode"));
+            assertShouldntScanDirectory(new File(prefix + "/.transforms"));
         }
     }
 
@@ -552,104 +541,6 @@ public class ModernMediaScannerTest {
         assertTrue(ModernMediaScanner.isZero("0"));
         assertTrue(ModernMediaScanner.isZero("00"));
         assertTrue(ModernMediaScanner.isZero("000"));
-    }
-
-    @Test
-    public void testPlaylistM3u() throws Exception {
-        doPlaylist(R.raw.test_m3u, "test.m3u");
-    }
-
-    @Test
-    public void testPlaylistPls() throws Exception {
-        doPlaylist(R.raw.test_pls, "test.pls");
-    }
-
-    @Test
-    public void testPlaylistWpl() throws Exception {
-        doPlaylist(R.raw.test_wpl, "test.wpl");
-    }
-
-    @Test
-    public void testPlaylistXspf() throws Exception {
-        doPlaylist(R.raw.test_xspf, "test.xspf");
-    }
-
-    private void doPlaylist(int res, String name) throws Exception {
-        final File music = new File(mDir, "Music");
-        music.mkdirs();
-        stage(R.raw.test_audio, new File(music, "001.mp3"));
-        stage(R.raw.test_audio, new File(music, "002.mp3"));
-        stage(R.raw.test_audio, new File(music, "003.mp3"));
-        stage(R.raw.test_audio, new File(music, "004.mp3"));
-        stage(R.raw.test_audio, new File(music, "005.mp3"));
-        stage(res, new File(music, name));
-
-        mModern.scanDirectory(mDir, REASON_UNKNOWN);
-
-        // We should see a new playlist with all three items as members
-        final long playlistId;
-        try (Cursor cursor = mIsolatedContext.getContentResolver().query(
-                MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL),
-                new String[] { FileColumns._ID },
-                FileColumns.MEDIA_TYPE + "=" + FileColumns.MEDIA_TYPE_PLAYLIST, null, null)) {
-            assertTrue(cursor.moveToFirst());
-            playlistId = cursor.getLong(0);
-        }
-
-        final Uri membersUri = MediaStore.Audio.Playlists.Members
-                .getContentUri(MediaStore.VOLUME_EXTERNAL, playlistId);
-        try (Cursor cursor = mIsolatedResolver.query(membersUri, new String[] {
-                MediaColumns.DISPLAY_NAME
-        }, null, null, MediaStore.Audio.Playlists.Members.PLAY_ORDER + " ASC")) {
-            assertEquals(5, cursor.getCount());
-            cursor.moveToNext();
-            assertEquals("001.mp3", cursor.getString(0));
-            cursor.moveToNext();
-            assertEquals("002.mp3", cursor.getString(0));
-            cursor.moveToNext();
-            assertEquals("003.mp3", cursor.getString(0));
-            cursor.moveToNext();
-            assertEquals("004.mp3", cursor.getString(0));
-            cursor.moveToNext();
-            assertEquals("005.mp3", cursor.getString(0));
-        }
-
-        // Delete one of the media files and rescan
-        new File(music, "002.mp3").delete();
-        new File(music, name).setLastModified(10L);
-        mModern.scanDirectory(mDir, REASON_UNKNOWN);
-
-        try (Cursor cursor = mIsolatedResolver.query(membersUri, new String[] {
-                MediaColumns.DISPLAY_NAME
-        }, null, null, MediaStore.Audio.Playlists.Members.PLAY_ORDER + " ASC")) {
-            assertEquals(4, cursor.getCount());
-            cursor.moveToNext();
-            assertEquals("001.mp3", cursor.getString(0));
-            cursor.moveToNext();
-            assertEquals("003.mp3", cursor.getString(0));
-        }
-
-        // Replace media file in a completely different location, which normally
-        // wouldn't match the exact playlist path, but we're willing to perform
-        // a relaxed search
-        final File soundtracks = new File(mDir, "Soundtracks");
-        soundtracks.mkdirs();
-        stage(R.raw.test_audio, new File(soundtracks, "002.mp3"));
-        stage(res, new File(music, name));
-
-        mModern.scanDirectory(mDir, REASON_UNKNOWN);
-
-        try (Cursor cursor = mIsolatedResolver.query(membersUri, new String[] {
-                MediaColumns.DISPLAY_NAME
-        }, null, null, MediaStore.Audio.Playlists.Members.PLAY_ORDER + " ASC")) {
-            assertEquals(5, cursor.getCount());
-            cursor.moveToNext();
-            assertEquals("001.mp3", cursor.getString(0));
-            cursor.moveToNext();
-            assertEquals("002.mp3", cursor.getString(0));
-            cursor.moveToNext();
-            assertEquals("003.mp3", cursor.getString(0));
-        }
     }
 
     @Test
@@ -900,8 +791,11 @@ public class ModernMediaScannerTest {
                 .query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
             assertEquals(1, cursor.getCount());
             cursor.moveToFirst();
-            assertEquals("audio/mp4",
-                    cursor.getString(cursor.getColumnIndex(MediaColumns.MIME_TYPE)));
+            assertThat(cursor.getString(cursor.getColumnIndex(MediaColumns.MIME_TYPE)))
+                    .isEqualTo("audio/mp4");
+            assertThat(cursor.getString(cursor.getColumnIndex(AudioColumns.IS_MUSIC)))
+                    .isEqualTo("1");
+
         }
     }
 
@@ -1004,74 +898,6 @@ public class ModernMediaScannerTest {
         try (FileInputStream output = new FileInputStream(
                 uiAutomation.executeShellCommand(cmd).getFileDescriptor())) {
             return new String(ByteStreams.toByteArray(output));
-        }
-    }
-
-    @Test
-    public void testPlaylistDeletion() throws Exception {
-        final File music = new File(mDir, "Music");
-        music.mkdirs();
-        stage(R.raw.test_audio, new File(music, "001.mp3"));
-        stage(R.raw.test_audio, new File(music, "002.mp3"));
-        stage(R.raw.test_audio, new File(music, "003.mp3"));
-        stage(R.raw.test_audio, new File(music, "004.mp3"));
-        stage(R.raw.test_audio, new File(music, "005.mp3"));
-        stage(R.raw.test_m3u, new File(music, "test.m3u"));
-
-        mModern.scanDirectory(mDir, REASON_UNKNOWN);
-
-        final Uri playlistUri = MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI;
-        final long playlistId;
-        try (Cursor cursor = mIsolatedContext.getContentResolver().query(playlistUri,
-                new String[] { FileColumns._ID }, null, null)) {
-            assertTrue(cursor.moveToFirst());
-            playlistId = cursor.getLong(0);
-        }
-
-        final int count = mIsolatedContext.getContentResolver().delete(
-                ContentUris.withAppendedId(playlistUri, playlistId), null);
-        assertEquals(1, count);
-
-        MediaStore.waitForIdle(mIsolatedResolver);
-
-        final Uri membersUri = MediaStore.Audio.Playlists.Members
-                .getContentUri(MediaStore.VOLUME_EXTERNAL, playlistId);
-        try (Cursor cursor = mIsolatedResolver.query(membersUri, null, null, null)) {
-            assertEquals(0, cursor.getCount());
-        }
-    }
-
-    @Test
-    public void testPlaylistMembersDeletion() throws Exception {
-        final File music = new File(mDir, "Music");
-        music.mkdirs();
-        stage(R.raw.test_audio, new File(music, "001.mp3"));
-        stage(R.raw.test_audio, new File(music, "002.mp3"));
-        stage(R.raw.test_audio, new File(music, "003.mp3"));
-        stage(R.raw.test_audio, new File(music, "004.mp3"));
-        stage(R.raw.test_audio, new File(music, "005.mp3"));
-        stage(R.raw.test_m3u, new File(music, "test.m3u"));
-
-        mModern.scanDirectory(mDir, REASON_UNKNOWN);
-
-        final Uri playlistUri = MediaStore.Audio.Playlists.EXTERNAL_CONTENT_URI;
-        final long playlistId;
-        try (Cursor cursor = mIsolatedContext.getContentResolver().query(playlistUri,
-                new String[] { FileColumns._ID }, null, null)) {
-            assertTrue(cursor.moveToFirst());
-            playlistId = cursor.getLong(0);
-        }
-
-        final int count = mIsolatedContext.getContentResolver().delete(
-                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null);
-        assertEquals(5, count);
-
-        MediaStore.waitForIdle(mIsolatedResolver);
-
-        final Uri membersUri = MediaStore.Audio.Playlists.Members
-                .getContentUri(MediaStore.VOLUME_EXTERNAL, playlistId);
-        try (Cursor cursor = mIsolatedResolver.query(membersUri, null, null, null)) {
-            assertEquals(0, cursor.getCount());
         }
     }
 

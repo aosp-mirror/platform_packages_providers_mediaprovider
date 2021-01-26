@@ -277,7 +277,10 @@ public class TranscodeHelper {
                 -1, // file size
                 success ? TRANSCODING_DATA__TRANSCODE_RESULT__SUCCESS :
                         TRANSCODING_DATA__TRANSCODE_RESULT__FAIL,
-                durationMillis
+                durationMillis,
+                -1, // file_duration_millis
+                -1, // file_framerate_fps
+                -1 // access_reason
                 );
     }
 
@@ -381,7 +384,10 @@ public class TranscodeHelper {
                 MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_DIRECT,
                 -1, // file size
                 TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED,
-                -1  // duration
+                -1,  // transcoding duration
+                -1, // file_duration_millis
+                -1, // file_framerate_fps
+                -1 // access_reason
                 );
     }
 
@@ -708,7 +714,10 @@ public class TranscodeHelper {
                         MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__HEVC_WRITE,
                         c.getLong(1),
                         TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED,
-                        -1 // duration
+                        -1,  // transcoding duration
+                        -1, // file_duration_millis
+                        -1, // file_framerate_fps
+                        -1 // access_reason
                         );
             }
         } catch (Exception e) {
@@ -727,7 +736,10 @@ public class TranscodeHelper {
                 MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_CACHE,
                 -1, // file size
                 TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED,
-                -1 // duration
+                -1,  // transcoding duration
+                -1, // file_duration_millis
+                -1, // file_framerate_fps
+                -1 // access_reason
                 );
     }
 

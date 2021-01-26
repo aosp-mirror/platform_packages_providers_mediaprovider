@@ -5933,16 +5933,19 @@ public class MediaProvider extends ContentProvider {
                             final File file = new File(c.getString(0));
                             boolean runScanFileInBackground =
                                     extras.getBoolean(MediaStore.QUERY_ARG_DO_ASYNC_SCAN, false);
+                            final boolean notifyTranscodeHelper = isUriPublished;
                             if (runScanFileInBackground) {
                                 helper.postBackground(() -> {
                                     scanFileAsMediaProvider(file, REASON_DEMAND);
+                                    if (notifyTranscodeHelper) {
+                                        notifyTranscodeHelperOnUriPublished(updatedUri);
+                                    }
                                 });
                             } else {
-                                final boolean report = isUriPublished;
                                 helper.postBlocking(() -> {
                                     scanFileAsMediaProvider(file, REASON_DEMAND);
-                                    if (report) {
-                                        mTranscodeHelper.reportIfHEVCAdded(updatedUri);
+                                    if (notifyTranscodeHelper) {
+                                        notifyTranscodeHelperOnUriPublished(updatedUri);
                                     }
                                 });
                             }
@@ -5958,6 +5961,17 @@ public class MediaProvider extends ContentProvider {
         }
 
         return count;
+    }
+
+    private void notifyTranscodeHelperOnUriPublished(Uri uri) {
+        BackgroundThread.getExecutor().execute(() -> {
+            final LocalCallingIdentity token = clearLocalCallingIdentity();
+            try {
+                mTranscodeHelper.onUriPublished(uri);
+            } finally {
+                restoreLocalCallingIdentity(token);
+            }
+        });
     }
 
     /**

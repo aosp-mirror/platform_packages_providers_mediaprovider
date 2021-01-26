@@ -61,6 +61,7 @@ import android.os.UserHandle;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.util.ArrayMap;
+import android.util.ArraySet;
 import android.util.Log;
 import android.util.Pair;
 import android.util.SparseArray;
@@ -81,11 +82,13 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -111,6 +114,7 @@ public class TranscodeHelper {
     private static final String TRANSCODE_USER_CONTROL_SYS_PROP_KEY =
             "persist.sys.fuse.transcode_user_control";
     private static final String TRANSCODE_COMPAT_MANIFEST_KEY = "transcode_compat_manifest";
+    private static final String TRANSCODE_COMPAT_STALE_KEY = "transcode_compat_stale";
 
     /**
      * Force enable an app to support the HEVC media capability
@@ -480,8 +484,7 @@ public class TranscodeHelper {
             }
         }
 
-        boolean shouldTranscode = getBooleanProperty(TRANSCODE_DEFAULT_SYS_PROP_KEY,
-                TRANSCODE_DEFAULT_DEVICE_CONFIG_KEY, false /* defaultValue */);
+        boolean shouldTranscode = shouldTranscodeDefault();
         if (shouldTranscode) {
             logVerbose("Default behavior should transcode");
         } else {
@@ -818,6 +821,11 @@ public class TranscodeHelper {
                 TRANSCODE_ENABLED_DEVICE_CONFIG_KEY, true /* defaultValue */);
     }
 
+    private boolean shouldTranscodeDefault() {
+        return getBooleanProperty(TRANSCODE_DEFAULT_SYS_PROP_KEY,
+                TRANSCODE_DEFAULT_DEVICE_CONFIG_KEY, false /* defaultValue */);
+    }
+
     private void updateConfigs(boolean transcodeEnabled) {
         synchronized (mLock) {
             boolean isTranscodeEnabledChanged = transcodeEnabled != mIsTranscodeEnabled;
@@ -843,11 +851,9 @@ public class TranscodeHelper {
                 return;
             }
 
-            if (!parseTranscodeCompatManifestFromDeviceConfigLocked()) {
-                Log.i(TAG, "Failed parsing transcode compat manifest from device config "
-                        + "attempting resource...");
-                parseTranscodeCompatManifestFromResourceLocked();
-            }
+            Set<String> stalePackages = getTranscodeCompatStale();
+            parseTranscodeCompatManifestFromResourceLocked(stalePackages);
+            parseTranscodeCompatManifestFromDeviceConfigLocked();
         }
     }
 
@@ -891,7 +897,7 @@ public class TranscodeHelper {
     }
 
     /** @return {@code true} if the manifest was parsed successfully, {@code false} otherwise */
-    private boolean parseTranscodeCompatManifestFromResourceLocked() {
+    private boolean parseTranscodeCompatManifestFromResourceLocked(Set<String> stalePackages) {
         InputStream inputStream = mContext.getResources().openRawResource(
                 R.raw.transcode_compat_manifest);
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
@@ -914,6 +920,12 @@ public class TranscodeHelper {
                 try {
                     packageName = lineValues[0];
                     packageCompatValue = Long.valueOf(lineValues[1]);
+
+                    if (stalePackages.contains(packageName)) {
+                        Log.i(TAG, "Skipping stale package in transcode compat manifest: "
+                                + packageName);
+                        continue;
+                    }
                     synchronized (mLock) {
                         // Lock is already held, explicitly hold again to make error prone happy
                         mAppCompatMediaCapabilities.put(packageName, packageCompatValue);
@@ -932,6 +944,33 @@ public class TranscodeHelper {
             int size = mAppCompatMediaCapabilities.size();
             Log.i(TAG, "Parsed " + size + " packages from resource");
             return size != 0;
+        }
+    }
+
+    private Set<String> getTranscodeCompatStale() {
+        Set<String> stalePackages = new ArraySet<>();
+        final String[] staleConfig = mMediaProvider.getStringDeviceConfig(
+                TRANSCODE_COMPAT_STALE_KEY, "").split(",");
+
+        if (staleConfig.length == 0 || staleConfig[0].isEmpty()) {
+            Log.i(TAG, "Empty transcode compat stale");
+            return stalePackages;
+        }
+
+        for (String stalePackage : staleConfig) {
+            stalePackages.add(stalePackage);
+        }
+
+        int size = stalePackages.size();
+        Log.i(TAG, "Parsed " + size + " stale packages from device config");
+        return stalePackages;
+    }
+
+    public void dump(PrintWriter writer) {
+        writer.println("isTranscodeEnabled=" + isTranscodeEnabled());
+        writer.println("shouldTranscodeDefault=" + shouldTranscodeDefault());
+        synchronized (mLock) {
+            writer.println("mAppCompatMediaCapabilities=" + mAppCompatMediaCapabilities);
         }
     }
 

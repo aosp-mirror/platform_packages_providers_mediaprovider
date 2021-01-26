@@ -8645,6 +8645,9 @@ public class MediaProvider extends ContentProvider {
         }
         writer.println();
 
+        mTranscodeHelper.dump(writer);
+        writer.println();
+
         Logging.dumpPersistent(writer);
     }
 }

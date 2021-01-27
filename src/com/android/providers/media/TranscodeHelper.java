@@ -193,9 +193,7 @@ public class TranscodeHelper {
     private final MediaTranscodeManager mMediaTranscodeManager;
     private final File mTranscodeDirectory;
     @GuardedBy("mLock")
-    private final Map<String, TranscodingSession> mTranscodingSessions = new ArrayMap<>();
-    @GuardedBy("mLock")
-    private final SparseArray<CountDownLatch> mTranscodingLatches = new SparseArray<>();
+    private final Map<String, StorageTranscodingSession> mStorageTranscodingSessions = new ArrayMap<>();
     private final TranscodeUiNotifier mTranscodingUiNotifier;
     private final TranscodeMetrics mTranscodingMetrics;
     @GuardedBy("mLock")
@@ -285,41 +283,45 @@ public class TranscodeHelper {
     }
 
     public boolean transcode(String src, String dst, int uid) {
-        TranscodingSession session = null;
+        StorageTranscodingSession storageSession = null;
+        TranscodingSession transcodingSession = null;
         CountDownLatch latch = null;
         long startTime = SystemClock.elapsedRealtime();
         boolean result = false;
 
         try {
             synchronized (mLock) {
-                session = mTranscodingSessions.get(src);
-                if (session == null) {
+                storageSession = mStorageTranscodingSessions.get(src);
+                if (storageSession == null) {
                     latch = new CountDownLatch(1);
                     try {
-                        session = enqueueTranscodingSession(src, dst, uid, latch);
+                        transcodingSession = enqueueTranscodingSession(src, dst, uid, latch);
                     } catch (MediaTranscodingException | FileNotFoundException |
                             UnsupportedOperationException e) {
                         throw new IllegalStateException(e);
                     }
 
-                    mTranscodingLatches.put(session.getSessionId(), latch);
-                    mTranscodingSessions.put(src, session);
+                    mStorageTranscodingSessions.put(src, new StorageTranscodingSession(transcodingSession,
+                                    latch));
                 } else {
-                    latch = mTranscodingLatches.get(session.getSessionId());
-                    if (latch == null) {
-                        throw new IllegalStateException("Expected latch for" + session);
+                    latch = storageSession.latch;
+                    transcodingSession = storageSession.session;
+                    if (latch == null || transcodingSession == null) {
+                        throw new IllegalStateException("Uninitialised TranscodingSession for uid: "
+                                + uid + ". Path: " + src);
                     }
                 }
+                storageSession.addBlockedUid(uid);
             }
 
-            result = waitTranscodingResult(uid, src, session, latch);
+            result = waitTranscodingResult(uid, src, transcodingSession, latch);
             if (result) {
                 updateTranscodeStatus(src, TRANSCODE_COMPLETE);
             } else {
-                logEvent("Transcoding failed for " + src + ". session: ", session);
+                logEvent("Transcoding failed for " + src + ". session: ", transcodingSession);
                 // Attempt to workaround media transcoding deadlock, b/165374867
                 // Cancelling a deadlocked session seems to unblock the transcoder
-                finishTranscodingResult(uid, src, session, latch);
+                finishTranscodingResult(uid, src, transcodingSession, latch);
             }
         } finally {
             reportTranscodingResult(uid, result, SystemClock.elapsedRealtime() - startTime);
@@ -874,8 +876,7 @@ public class TranscodeHelper {
         synchronized (mLock) {
             latch.countDown();
             session.cancel();
-            mTranscodingSessions.remove(src);
-            mTranscodingLatches.remove(session.getSessionId());
+            mStorageTranscodingSessions.remove(src);
         }
 
         logEvent("Transcoding end: " + src + ". Uid: " + uid, session);
@@ -1102,6 +1103,34 @@ public class TranscodeHelper {
     private static void logVerbose(String message) {
         if (DEBUG) {
             Log.v(TAG, message);
+        }
+    }
+
+    private static class StorageTranscodingSession {
+        public final TranscodingSession session;
+        public final CountDownLatch latch;
+        private final Set<Integer> mBlockedUids = new ArraySet<>();
+
+        public StorageTranscodingSession(TranscodingSession session, CountDownLatch latch) {
+            this.session = session;
+            this.latch = latch;
+        }
+
+        public void addBlockedUid(int uid) {
+            synchronized (latch) {
+                mBlockedUids.add(uid);
+            }
+        }
+
+        public boolean isUidBlocked(int uid) {
+            synchronized (latch) {
+                return mBlockedUids.contains(uid);
+            }
+        }
+
+        @Override
+        public String toString() {
+            return session.toString() + ". BlockedUids: " + mBlockedUids;
         }
     }
 

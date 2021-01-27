@@ -16,11 +16,14 @@
 
 package com.android.providers.media.metrics;
 
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA;
+
 import android.app.StatsManager;
 import android.content.Context;
-import android.os.Build;
 import android.util.Log;
 import android.util.StatsEvent;
+
+import com.android.providers.media.util.BackgroundThread;
 
 import java.util.List;
 
@@ -45,8 +48,17 @@ public class StatsdPuller {
         if (statsManager == null) {
             Log.e(TAG, "Error retrieving StatsManager. Cannot initialize StatsdPuller.");
         } else {
-            // use the same callback handler for registering for all the tags.
-            isInitialized = true;
+            Log.i(TAG, "Registering callback with StatsManager");
+
+            try {
+                // use the same callback handler for registering for all the tags.
+                statsManager.setPullAtomCallback(TRANSCODING_DATA, null /* metadata */,
+                        BackgroundThread.getExecutor(),
+                        STATS_PULL_CALLBACK_HANDLER);
+                isInitialized = true;
+            } catch (NullPointerException e) {
+                Log.w(TAG, "Pulled metrics not supported. Could not register.", e);
+            }
         }
     }
 
@@ -58,7 +70,13 @@ public class StatsdPuller {
         @Override
         public int onPullAtom(int atomTag, List<StatsEvent> data) {
             // handle the tags appropriately.
-            return StatsManager.PULL_SUCCESS;
+            switch (atomTag) {
+                case TRANSCODING_DATA:
+                    return TranscodeMetrics.handleStatsEventDataRequest(atomTag,
+                            data);
+                default:
+                    throw new UnsupportedOperationException("Unknown atomTag = " + atomTag);
+            }
         }
     }
 }

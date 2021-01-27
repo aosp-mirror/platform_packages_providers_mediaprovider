@@ -1111,20 +1111,24 @@ public class MediaProvider extends ContentProvider {
         });
         Log.d(TAG, "Pruned " + stalePackages + " unknown packages");
 
-        // Delete any expired content; we're cautious about wildly changing
-        // clocks, so only delete items within the last week
+        // Delete any expired content on mounted volumes. The expired content on unmounted
+        // volumes will be deleted when we forget any stale volumes; we're cautious about
+        // wildly changing clocks, so only delete items within the last week
         final long from = ((System.currentTimeMillis() - DateUtils.WEEK_IN_MILLIS) / 1000);
         final long to = (System.currentTimeMillis() / 1000);
         final int expiredMedia = mExternalDatabase.runWithTransaction((db) -> {
+            String selection = FileColumns.DATE_EXPIRES + " BETWEEN " + from + " AND " + to;
+            selection += " AND volume_name in " + bindList(MediaStore.getExternalVolumeNames(
+                    getContext()).toArray());
             try (Cursor c = db.query(true, "files", new String[] { "volume_name", "_id" },
-                    FileColumns.DATE_EXPIRES + " BETWEEN " + from + " AND " + to, null,
-                    null, null, null, null, signal)) {
+                    selection, null, null, null, null, null, signal)) {
+                int totalCount = 0;
                 while (c.moveToNext()) {
                     final String volumeName = c.getString(0);
                     final long id = c.getLong(1);
-                    delete(Files.getContentUri(volumeName, id), null, null);
+                    totalCount += delete(Files.getContentUri(volumeName, id), null, null);
                 }
-                return c.getCount();
+                return totalCount;
             }
         });
         Log.d(TAG, "Deleted " + expiredMedia + " expired items");
@@ -5210,11 +5214,14 @@ public class MediaProvider extends ContentProvider {
      * @return true if the given Files uri has media_type=MEDIA_TYPE_SUBTITLE
      */
     private boolean isSubtitleFile(Uri uri) {
+        final LocalCallingIdentity tokenInner = clearLocalCallingIdentity();
         try (Cursor cursor = queryForSingleItem(uri, new String[]{FileColumns.MEDIA_TYPE}, null,
                 null, null)) {
             return cursor.getInt(0) == FileColumns.MEDIA_TYPE_SUBTITLE;
         } catch (FileNotFoundException e) {
             Log.e(TAG, "Couldn't find database row for requested uri " + uri, e);
+        } finally {
+            restoreLocalCallingIdentity(tokenInner);
         }
         return false;
     }
@@ -5929,16 +5936,19 @@ public class MediaProvider extends ContentProvider {
                             final File file = new File(c.getString(0));
                             boolean runScanFileInBackground =
                                     extras.getBoolean(MediaStore.QUERY_ARG_DO_ASYNC_SCAN, false);
+                            final boolean notifyTranscodeHelper = isUriPublished;
                             if (runScanFileInBackground) {
                                 helper.postBackground(() -> {
                                     scanFileAsMediaProvider(file, REASON_DEMAND);
+                                    if (notifyTranscodeHelper) {
+                                        notifyTranscodeHelperOnUriPublished(updatedUri);
+                                    }
                                 });
                             } else {
-                                final boolean report = isUriPublished;
                                 helper.postBlocking(() -> {
                                     scanFileAsMediaProvider(file, REASON_DEMAND);
-                                    if (report) {
-                                        mTranscodeHelper.reportIfHEVCAdded(updatedUri);
+                                    if (notifyTranscodeHelper) {
+                                        notifyTranscodeHelperOnUriPublished(updatedUri);
                                     }
                                 });
                             }
@@ -5954,6 +5964,17 @@ public class MediaProvider extends ContentProvider {
         }
 
         return count;
+    }
+
+    private void notifyTranscodeHelperOnUriPublished(Uri uri) {
+        BackgroundThread.getExecutor().execute(() -> {
+            final LocalCallingIdentity token = clearLocalCallingIdentity();
+            try {
+                mTranscodeHelper.onUriPublished(uri);
+            } finally {
+                restoreLocalCallingIdentity(token);
+            }
+        });
     }
 
     /**
@@ -6558,6 +6579,23 @@ public class MediaProvider extends ContentProvider {
         try (Cursor cursor = queryForSingleItem(uri, new String[] { MediaColumns._ID },
                 MediaColumns.DATA + "=?", new String[] { file.getAbsolutePath() }, signal)) {
             return ContentUris.withAppendedId(uri, cursor.getLong(0));
+        }
+    }
+
+    /**
+     * Query the given {@link Uri} as MediaProvider, expecting only a single item to be found.
+     *
+     * @throws FileNotFoundException if no items were found, or multiple items
+     *             were found, or there was trouble reading the data.
+     */
+    Cursor queryForSingleItemAsMediaProvider(Uri uri, String[] projection, String selection,
+            String[] selectionArgs, CancellationSignal signal)
+            throws FileNotFoundException {
+        final LocalCallingIdentity tokenInner = clearLocalCallingIdentity();
+        try {
+            return queryForSingleItem(uri, projection, selection, selectionArgs, signal);
+        } finally {
+            restoreLocalCallingIdentity(tokenInner);
         }
     }
 
@@ -7253,33 +7291,51 @@ public class MediaProvider extends ContentProvider {
             final String[] projection = new String[]{
                     MediaColumns._ID,
                     MediaColumns.OWNER_PACKAGE_NAME,
-                    MediaColumns.IS_PENDING};
+                    MediaColumns.IS_PENDING,
+                    FileColumns.MEDIA_TYPE};
             final String selection = MediaColumns.DATA + "=?";
-            final String[] selectionArgs = new String[] { path };
-            final Uri fileUri;
+            final String[] selectionArgs = new String[]{ path };
+            final long id;
+            final int mediaType;
             final boolean isPending;
             String ownerPackageName = null;
-            try (final Cursor c = queryForSingleItem(contentUri, projection, selection,
+            try (final Cursor c = queryForSingleItemAsMediaProvider(contentUri, projection,
+                    selection,
                     selectionArgs, null)) {
-                fileUri = ContentUris.withAppendedId(contentUri, c.getInt(0));
+                id = c.getLong(0);
                 ownerPackageName = c.getString(1);
                 isPending = c.getInt(2) != 0;
+                mediaType = c.getInt(3);
             }
-
             final File file = new File(path);
-            checkAccess(fileUri, Bundle.EMPTY, file, forWrite);
-
+            final Uri fileUri = MediaStore.Files.getContentUri(extractVolumeName(path), id);
             // We don't check ownership for files with IS_PENDING set by FUSE
             if (isPending && !isPendingFromFuse(new File(path))) {
                 requireOwnershipForItem(ownerPackageName, fileUri);
+            }
+
+            // Check that path looks consistent before uri checks
+            if (!FileUtils.contains(Environment.getStorageDirectory(), file)) {
+                checkWorldReadAccess(file.getAbsolutePath());
+            }
+
+            try {
+                // checkAccess throws FileNotFoundException only from checkWorldReadAccess(),
+                // which we already check above. Hence, handling only SecurityException.
+                checkAccess(fileUri, Bundle.EMPTY, file, forWrite);
+            } catch (SecurityException e) {
+                // Check for other Uri formats only when the single uri check flow fails.
+                // Throw the previous exception if the multi-uri checks failed.
+                if (!(isFilePathSupportForMediaUris() &&
+                        hasOtherUriGrants(path, mediaType, id, forWrite))) {
+                    throw e;
+                }
             }
             return new FileOpenResult(0 /* status */, uid,
                     redact ? getRedactionRangesForFuse(path, ioPath, original_uid, uid, tid) :
                     new long[0]);
         } catch (IOException e) {
             // We are here because
-            // * App doesn't have read permission to the requested path, hence queryForSingleItem
-            //   couldn't return a valid db row, or,
             // * There is no db row corresponding to the requested path, which is more unlikely.
             // * getRedactionRangesForFuse couldn't fetch the redaction info correctly
             // In all of these cases, it means that app doesn't have access permission to the file.
@@ -7291,6 +7347,43 @@ public class MediaProvider extends ContentProvider {
         } finally {
             restoreLocalCallingIdentity(token);
         }
+    }
+
+    private boolean hasOtherUriGrants(String path, int mediaType, long id, boolean forWrite) {
+        Set<Uri> otherUris = new ArraySet<Uri>();
+        final Uri mediaUri = getMediaUriForFuse(extractVolumeName(path), mediaType, id);
+        otherUris.add(mediaUri);
+        final Uri externalMediaUri = getMediaUriForFuse(MediaStore.VOLUME_EXTERNAL, mediaType, id);
+        otherUris.add(externalMediaUri);
+        return bulkCheckUriPermissions(otherUris, forWrite);
+    }
+
+    private @NonNull Uri getMediaUriForFuse(@NonNull String volumeName, int mediaType, long id) {
+        switch (mediaType) {
+            case FileColumns.MEDIA_TYPE_IMAGE:
+                return MediaStore.Images.Media.getContentUri(volumeName, id);
+            case FileColumns.MEDIA_TYPE_VIDEO:
+                return MediaStore.Video.Media.getContentUri(volumeName, id);
+            case FileColumns.MEDIA_TYPE_AUDIO:
+                return MediaStore.Audio.Media.getContentUri(volumeName, id);
+            case FileColumns.MEDIA_TYPE_PLAYLIST:
+                return ContentUris.withAppendedId(
+                        MediaStore.Audio.Playlists.getContentUri(volumeName), id);
+            default:
+                // return files URIs
+                return MediaStore.Files.getContentUri(volumeName, id);
+        }
+    }
+
+    /**
+     * Feature flag to support File APIs for different formats of media-store URI grants like:
+     *   * content://media/external_primary/images/media/123
+     *   * content://media/external/images/media/123
+     *
+     *   Default value: false
+     */
+    private boolean isFilePathSupportForMediaUris() {
+        return SystemProperties.getBoolean("sys.filepathsupport.mediauri", false);
     }
 
     /**
@@ -7856,14 +7949,24 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Outstanding grant means they get access
-        if (getContext().checkUriPermission(uri, mCallingIdentity.get().pid,
+        return isUriPermissionGranted(uri, forWrite);
+    }
+
+    private boolean bulkCheckUriPermissions(Set<Uri> uris, boolean forWrite) {
+        for (Uri uri : uris) {
+            if (isUriPermissionGranted(uri, forWrite)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isUriPermissionGranted(Uri uri, boolean forWrite) {
+        int uriPermission = getContext().checkUriPermission(uri, mCallingIdentity.get().pid,
                 mCallingIdentity.get().uid, forWrite
                         ? Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                        : Intent.FLAG_GRANT_READ_URI_PERMISSION) == PERMISSION_GRANTED) {
-            return true;
-        }
-
-        return false;
+                        : Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        return uriPermission == PERMISSION_GRANTED;
     }
 
     @VisibleForTesting

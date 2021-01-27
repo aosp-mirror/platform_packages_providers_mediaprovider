@@ -4886,8 +4886,6 @@ public class MediaProvider extends ContentProvider {
                             deleteIfAllowed(uri, extras, data);
                             count += qb.delete(helper, BaseColumns._ID + "=" + id, null);
 
-                            // Only need to inform DownloadProvider about the downloads deleted on
-                            // external volume.
                             if (isDownload == 1) {
                                 deletedDownloadIds.put(id, mimeType);
                             }
@@ -4930,12 +4928,14 @@ public class MediaProvider extends ContentProvider {
             }
 
             if (deletedDownloadIds.size() > 0) {
-                // Do this on a background thread, since we don't want to make binder
-                // calls as part of a FUSE call.
-                helper.postBackground(() -> {
-                    getContext().getSystemService(DownloadManager.class)
-                            .onMediaStoreDownloadsDeleted(deletedDownloadIds);
-                });
+                notifyDownloadManagerOnDelete(helper, deletedDownloadIds);
+            }
+
+            // Check for other URI format grants for File API call only. Check right before
+            // returning count = 0, to leave positive cases performance unaffected.
+            if (count == 0 && isFuseThread() && isFilePathSupportForMediaUris()) {
+                count += deleteWithOtherUriGrants(uri, helper, projection, userWhere, userWhereArgs,
+                        extras);
             }
 
             if (isFilesTable && !isCallingPackageSelf()) {
@@ -4945,6 +4945,52 @@ public class MediaProvider extends ContentProvider {
         }
 
         return count;
+    }
+
+    private int deleteWithOtherUriGrants(@NonNull Uri uri, DatabaseHelper helper,
+            String[] projection, String userWhere, String[] userWhereArgs,
+            @Nullable Bundle extras) {
+        try {
+            Cursor c = queryForSingleItemAsMediaProvider(uri, projection, userWhere, userWhereArgs,
+                    null);
+            final int mediaType = c.getInt(0);
+            final String data = c.getString(1);
+            final long id = c.getLong(2);
+            final int isDownload = c.getInt(3);
+            final String mimeType = c.getString(4);
+
+            final Uri uriGranted = getOtherUriGrantsForPath(data, mediaType, id,
+                    /* forWrite */ true);
+            if (uriGranted != null) {
+                // 1. delete file
+                deleteIfAllowed(uriGranted, extras, data);
+                // 2. delete file row from the db
+                final boolean allowHidden = isCallingPackageAllowedHidden();
+                final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_DELETE,
+                        matchUri(uriGranted, allowHidden), uriGranted, extras, null);
+                int count = qb.delete(helper, BaseColumns._ID + "=" + id, null);
+
+                if (isDownload == 1) {
+                    final LongSparseArray<String> deletedDownloadIds = new LongSparseArray<>();
+                    deletedDownloadIds.put(id, mimeType);
+                    notifyDownloadManagerOnDelete(helper, deletedDownloadIds);
+                }
+                return count;
+            }
+        } catch (FileNotFoundException ignored) {
+            // Do nothing. Returns 0 files deleted.
+        }
+        return 0;
+    }
+
+    private void notifyDownloadManagerOnDelete(DatabaseHelper helper,
+            LongSparseArray<String> deletedDownloadIds) {
+        // Do this on a background thread, since we don't want to make binder
+        // calls as part of a FUSE call.
+        helper.postBackground(() -> {
+            getContext().getSystemService(DownloadManager.class)
+                    .onMediaStoreDownloadsDeleted(deletedDownloadIds);
+        });
     }
 
     /**
@@ -7344,7 +7390,7 @@ public class MediaProvider extends ContentProvider {
                 // Check for other Uri formats only when the single uri check flow fails.
                 // Throw the previous exception if the multi-uri checks failed.
                 if (!(isFilePathSupportForMediaUris() &&
-                        hasOtherUriGrants(path, mediaType, id, forWrite))) {
+                        getOtherUriGrantsForPath(path, mediaType, id, forWrite) != null)) {
                     throw e;
                 }
             }
@@ -7370,13 +7416,14 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private boolean hasOtherUriGrants(String path, int mediaType, long id, boolean forWrite) {
+    private @Nullable Uri getOtherUriGrantsForPath(String path, int mediaType, long id,
+            boolean forWrite) {
         Set<Uri> otherUris = new ArraySet<Uri>();
         final Uri mediaUri = getMediaUriForFuse(extractVolumeName(path), mediaType, id);
         otherUris.add(mediaUri);
         final Uri externalMediaUri = getMediaUriForFuse(MediaStore.VOLUME_EXTERNAL, mediaType, id);
         otherUris.add(externalMediaUri);
-        return bulkCheckUriPermissions(otherUris, forWrite);
+        return getPermissionGrantedUri(otherUris, forWrite);
     }
 
     private @NonNull Uri getMediaUriForFuse(@NonNull String volumeName, int mediaType, long id) {
@@ -7973,13 +8020,16 @@ public class MediaProvider extends ContentProvider {
         return isUriPermissionGranted(uri, forWrite);
     }
 
-    private boolean bulkCheckUriPermissions(Set<Uri> uris, boolean forWrite) {
+    /**
+     * Returns any uri that is granted from the set of Uris passed.
+     */
+    private @Nullable Uri getPermissionGrantedUri(Set<Uri> uris, boolean forWrite) {
         for (Uri uri : uris) {
             if (isUriPermissionGranted(uri, forWrite)) {
-                return true;
+                return uri;
             }
         }
-        return false;
+        return null;
     }
 
     private boolean isUriPermissionGranted(Uri uri, boolean forWrite) {

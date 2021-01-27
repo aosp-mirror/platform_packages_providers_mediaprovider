@@ -418,13 +418,19 @@ public class LocalCallingIdentity {
         }
     }
 
-    private volatile int applicationMediaCapabilitiesFlags = -1;
+    private volatile int applicationMediaCapabilitiesSupportedFlags = -1;
+    private volatile int applicationMediaCapabilitiesUnsupportedFlags = -1;
 
-    public int getApplicationMediaCapabilitiesFlags() {
-        return applicationMediaCapabilitiesFlags;
+    public int getApplicationMediaCapabilitiesSupportedFlags() {
+        return applicationMediaCapabilitiesSupportedFlags;
     }
 
-    public void setApplicationMediaCapabilitiesFlags(int flags) {
-        applicationMediaCapabilitiesFlags = flags;
+    public int getApplicationMediaCapabilitiesUnsupportedFlags() {
+        return applicationMediaCapabilitiesUnsupportedFlags;
+    }
+
+    public void setApplicationMediaCapabilitiesFlags(int supportedFlags, int unsupportedFlags) {
+        applicationMediaCapabilitiesSupportedFlags = supportedFlags;
+        applicationMediaCapabilitiesUnsupportedFlags = unsupportedFlags;
     }
 }

@@ -1012,6 +1012,11 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
     const string old_child_path = old_parent_path + "/" + name;
     const string new_child_path = new_parent_path + "/" + new_name;
 
+    if (android::base::EqualsIgnoreCase(fuse->GetEffectiveRootPath() + "/android", old_child_path)) {
+        // Prevent renaming Android/ dir since it contains bind-mounts on the primary volume
+        return EACCES;
+    }
+
     // TODO(b/147408834): Check ENOTEMPTY & EEXIST error conditions before JNI call.
     const int res = fuse->mp->Rename(old_child_path, new_child_path, req->ctx.uid);
     // TODO(b/145663158): Lookups can go out of sync if file/directory is actually moved but

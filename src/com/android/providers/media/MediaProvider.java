@@ -1363,14 +1363,13 @@ public class MediaProvider extends ContentProvider {
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public boolean transformForFuse(String src, String dst, int transforms, int transformsReason,
-            int uid) {
+    public boolean transformForFuse(String src, String dst, int transforms, int uid) {
         if ((transforms & FLAG_TRANSFORM_TRANSCODING) != 0) {
             if (mTranscodeHelper.isTranscodeFileCached(uid, src, dst)) {
                 Log.d(TAG, "Using transcode cache for " + src);
                 return true;
             }
-            return mTranscodeHelper.transcode(src, dst, uid, transformsReason);
+            return mTranscodeHelper.transcode(src, dst, uid);
         }
         return true;
     }
@@ -1394,30 +1393,30 @@ public class MediaProvider extends ContentProvider {
         boolean transformsComplete = true;
         boolean transformsSupported = mTranscodeHelper.supportsTranscode(path);
         int transforms = 0;
-        int transformsReason = 0;
 
         if (transformsSupported) {
+            boolean shouldTranscode = false;
             PendingOpenInfo info = null;
             synchronized (mPendingOpenInfo) {
                 info = mPendingOpenInfo.get(tid);
             }
 
             if (info != null && info.uid == uid) {
-                transformsReason = info.transcodeReason;
+                shouldTranscode = info.shouldTranscode;
             } else {
-                transformsReason = mTranscodeHelper.shouldTranscode(path, uid,
+                shouldTranscode = mTranscodeHelper.shouldTranscode(path, uid,
                         null /* bundle */);
             }
 
-            if (transformsReason > 0) {
+            if (shouldTranscode) {
                 ioPath = mTranscodeHelper.getIoPath(path, uid);
                 transformsComplete = false;
                 transforms = FLAG_TRANSFORM_TRANSCODING;
             }
         }
 
-        return new FileLookupResult(transforms, transformsReason, uid, transformsComplete,
-                transformsSupported, ioPath);
+        return new FileLookupResult(transforms, uid, transformsComplete, transformsSupported,
+                ioPath);
     }
 
     public int getBinderUidForFuse(int uid, int tid) {
@@ -5978,18 +5977,6 @@ public class MediaProvider extends ContentProvider {
         });
     }
 
-    private void notifyTranscodeHelperOnFileOpen(String path, String ioPath, int uid,
-            int transformsReason) {
-        BackgroundThread.getExecutor().execute(() -> {
-            final LocalCallingIdentity token = clearLocalCallingIdentity();
-            try {
-                mTranscodeHelper.onFileOpen(path, ioPath, uid, transformsReason);
-            } finally {
-                restoreLocalCallingIdentity(token);
-            }
-        });
-    }
-
     /**
      * Update row(s) that match {@code userWhere} in MediaProvider database with {@code values}.
      * Treats update as replace for updates with conflicts.
@@ -6661,14 +6648,13 @@ public class MediaProvider extends ContentProvider {
     }
 
     private ParcelFileDescriptor openWithFuse(String filePath, int uid, int modeBits,
-            boolean shouldRedact, boolean shouldTranscode, int transcodeReason)
-            throws FileNotFoundException {
+            boolean shouldRedact, boolean shouldTranscode) throws FileNotFoundException {
         Log.d(TAG, "Open with FUSE. FilePath: " + filePath + ". Uid: " + uid
                 + ". ShouldRedact: " + shouldRedact + ". ShouldTranscode: " + shouldTranscode);
 
         int tid = android.os.Process.myTid();
         synchronized (mPendingOpenInfo) {
-            mPendingOpenInfo.put(tid, new PendingOpenInfo(uid, shouldRedact, transcodeReason));
+            mPendingOpenInfo.put(tid, new PendingOpenInfo(uid, shouldRedact, shouldTranscode));
         }
 
         try {
@@ -6809,16 +6795,15 @@ public class MediaProvider extends ContentProvider {
             final ParcelFileDescriptor pfd;
             final String filePath = file.getPath();
             final int uid = Binder.getCallingUid();
-            int transcodeReason = mTranscodeHelper.shouldTranscode(filePath, uid, opts);
-            boolean shouldTranscode = transcodeReason > 0;
+            boolean shouldTranscode = mTranscodeHelper.shouldTranscode(filePath, uid, opts);
             if (redactionInfo.redactionRanges.length > 0) {
                 // If fuse is enabled, we can provide an fd that points to the fuse
                 // file system and handle redaction in the fuse handler when the caller reads.
                 pfd = openWithFuse(filePath, uid, modeBits, true /* shouldRedact */,
-                        shouldTranscode, transcodeReason);
+                        shouldTranscode);
             } else if (shouldTranscode) {
                 pfd = openWithFuse(filePath, uid, modeBits, false /* shouldRedact */,
-                        shouldTranscode, transcodeReason);
+                        shouldTranscode);
             } else {
                 FuseDaemon daemon = null;
                 try {
@@ -6837,7 +6822,7 @@ public class MediaProvider extends ContentProvider {
                     // resulting from cache inconsistencies between the upper and lower
                     // filesystem caches
                     pfd = openWithFuse(filePath, uid, modeBits, false /* shouldRedact */,
-                            shouldTranscode, transcodeReason);
+                            shouldTranscode);
                     try {
                         lowerFsFd.close();
                     } catch (IOException e) {
@@ -7106,11 +7091,11 @@ public class MediaProvider extends ContentProvider {
     private static final class PendingOpenInfo {
         public final int uid;
         public final boolean shouldRedact;
-        public final int transcodeReason;
-        public PendingOpenInfo(int uid, boolean shouldRedact, int transcodeReason) {
+        public final boolean shouldTranscode;
+        public PendingOpenInfo(int uid, boolean shouldRedact, boolean shouldTranscode) {
             this.uid = uid;
             this.shouldRedact = shouldRedact;
-            this.transcodeReason = transcodeReason;
+            this.shouldTranscode = shouldTranscode;
         }
     }
 
@@ -7271,21 +7256,20 @@ public class MediaProvider extends ContentProvider {
      * @param path the path of the file to be opened
      * @param uid UID of the app requesting to open the file
      * @param forWrite specifies if the file is to be opened for write
-     * @return {@link FileOpenResult} with {@code status} {@code 0} upon success and
-     * {@link FileOpenResult} with {@code status} {@link OsConstants#EACCES} if the operation is
-     * illegal or not permitted for the given {@code uid} or if the calling package is a legacy app
-     * that doesn't have right storage permission.
+     * @return 0 upon success. {@link OsConstants#EACCES} if the operation is illegal or not
+     * permitted for the given {@code uid} or if the calling package is a legacy app that doesn't
+     * have right storage permission.
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
     public FileOpenResult onFileOpenForFuse(String path, String ioPath, int uid, int tid,
-            int transformsReason, boolean forWrite, boolean redact, boolean logTransformsMetrics) {
+            boolean forWrite, boolean redact) {
         int original_uid = getBinderUidForFuse(uid, tid);
 
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
-        boolean isSuccess = false;
+
         try {
             if (isPrivatePackagePathNotAccessibleByCaller(path)) {
                 Log.e(TAG, "Can't open a file in another app's external directory!");
@@ -7293,7 +7277,6 @@ public class MediaProvider extends ContentProvider {
             }
 
             if (shouldBypassFuseRestrictions(forWrite, path)) {
-                isSuccess = true;
                 return new FileOpenResult(0 /* status */, uid,
                         redact ? getRedactionRangesForFuse(path, ioPath, original_uid, uid, tid) :
                         new long[0]);
@@ -7348,7 +7331,6 @@ public class MediaProvider extends ContentProvider {
                     throw e;
                 }
             }
-            isSuccess = true;
             return new FileOpenResult(0 /* status */, uid,
                     redact ? getRedactionRangesForFuse(path, ioPath, original_uid, uid, tid) :
                     new long[0]);
@@ -7363,9 +7345,6 @@ public class MediaProvider extends ContentProvider {
             Log.e(TAG, "Permission to access file: " + path + " is denied");
             return new FileOpenResult(OsConstants.EACCES /* status */, uid, new long[0]);
         } finally {
-            if (isSuccess && logTransformsMetrics) {
-                notifyTranscodeHelperOnFileOpen(path, ioPath, original_uid, transformsReason);
-            }
             restoreLocalCallingIdentity(token);
         }
     }

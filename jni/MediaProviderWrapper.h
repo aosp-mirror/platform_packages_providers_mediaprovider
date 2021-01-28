@@ -51,10 +51,9 @@ struct FileOpenResult {
  * status and the ioPath. Provided by MediaProvider.java via a JNI call.
  */
 struct FileLookupResult {
-    FileLookupResult(int transforms, int transforms_reason, uid_t uid, bool transforms_complete,
-                     bool transforms_supported, const std::string& io_path)
+    FileLookupResult(int transforms, uid_t uid, bool transforms_complete, bool transforms_supported,
+                     const std::string& io_path)
         : transforms(transforms),
-          transforms_reason(transforms_reason),
           uid(uid),
           transforms_complete(transforms_complete),
           transforms_supported(transforms_supported),
@@ -69,7 +68,6 @@ struct FileLookupResult {
      * via a JNI call.
      */
     const int transforms;
-    const int transforms_reason;
     const uid_t uid;
     const bool transforms_complete;
     const bool transforms_supported;
@@ -148,9 +146,7 @@ class MediaProviderWrapper final {
      * @return FileOpenResult containing status, uid and redaction_info
      */
     std::unique_ptr<FileOpenResult> OnFileOpen(const std::string& path, const std::string& io_path,
-                                               uid_t uid, pid_t tid, int transforms_reason,
-                                               bool for_write, bool redact,
-                                               bool log_transforms_metrics);
+                                               uid_t uid, pid_t tid, bool for_write, bool redact);
 
     /**
      * Determines if the given UID is allowed to create a directory with the given path.
@@ -220,8 +216,7 @@ class MediaProviderWrapper final {
     std::unique_ptr<FileLookupResult> FileLookup(const std::string& path, uid_t uid, pid_t tid);
 
     /** Transforms from src to dst file */
-    bool Transform(const std::string& src, const std::string& dst, int transforms,
-                   int transforms_reason, uid_t uid);
+    bool Transform(const std::string& src, const std::string& dst, int transforms, uid_t uid);
 
     /**
      * Determines if to allow FUSE_LOOKUP for uid. Might allow uids that don't belong to the
@@ -269,7 +264,6 @@ class MediaProviderWrapper final {
     jmethodID mid_file_lookup_;
     /** Cached FileLookupResult field IDs **/
     jfieldID fid_file_lookup_transforms_;
-    jfieldID fid_file_lookup_transforms_reason_;
     jfieldID fid_file_lookup_uid_;
     jfieldID fid_file_lookup_transforms_complete_;
     jfieldID fid_file_lookup_transforms_supported_;

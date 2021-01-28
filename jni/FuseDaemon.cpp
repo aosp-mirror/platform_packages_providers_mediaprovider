@@ -438,7 +438,6 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     bool should_invalidate = false;
     bool transforms_complete = true;
     int transforms = 0;
-    int transforms_reason = 0;
     string io_path;
 
     if (S_ISREG(e->attr.st_mode)) {
@@ -456,7 +455,6 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
         transforms = file_lookup_result->transforms;
         io_path = file_lookup_result->io_path;
         transforms_complete = file_lookup_result->transforms_complete;
-        transforms_reason = file_lookup_result->transforms_reason;
         // Invalidate if the inode supports transforms so that we always get a lookup into userspace
         should_invalidate = file_lookup_result->transforms_supported;
 
@@ -470,7 +468,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     node = parent->LookupChildByName(name, true /* acquire */, transforms);
     if (!node) {
         node = ::node::Create(parent, name, io_path, should_invalidate, transforms_complete,
-                              transforms, transforms_reason, &fuse->lock, &fuse->tracker);
+                              transforms, &fuse->lock, &fuse->tracker);
     } else if (!mediaprovider::fuse::containsMount(path, std::to_string(getuid() / PER_USER_RANGE))) {
         // Only invalidate a path if it does not contain mount.
         // Invalidate both names to ensure there's no dentry left in the kernel after the following
@@ -730,8 +728,7 @@ static void pf_setattr(fuse_req_t req,
     } else {
         const struct fuse_ctx* ctx = fuse_req_ctx(req);
         std::unique_ptr<FileOpenResult> result = fuse->mp->OnFileOpen(
-                path, path, ctx->uid, ctx->pid, node->GetTransformsReason(), true /* for_write */,
-                false /* redact */, false /* log_transforms_metrics */);
+                path, path, ctx->uid, ctx->pid, true /* for_write */, false /* redact */);
 
         if (!result) {
             fuse_reply_err(req, EFAULT);
@@ -1128,8 +1125,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     bool for_write = is_requesting_write(fi->flags);
     // We don't redact if the caller was granted write permission for this file
     std::unique_ptr<FileOpenResult> result = fuse->mp->OnFileOpen(
-            build_path, io_path, ctx->uid, ctx->pid, node->GetTransformsReason(), for_write,
-            !for_write /* redact */, true /* log_transforms_metrics */);
+            build_path, io_path, ctx->uid, ctx->pid, for_write, !for_write /* redact */);
     if (!result) {
         fuse_reply_err(req, EFAULT);
         return;
@@ -1262,7 +1258,7 @@ static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
 
     if (!node->IsTransformsComplete()) {
         if (!fuse->mp->Transform(node->BuildPath(), node->GetIoPath(), node->GetTransforms(),
-                                 node->GetTransformsReason(), h->uid)) {
+                                 h->uid)) {
             fuse_reply_err(req, EFAULT);
             return;
         }
@@ -1637,8 +1633,7 @@ static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
         }
 
         std::unique_ptr<FileOpenResult> result = fuse->mp->OnFileOpen(
-                path, path, req->ctx.uid, req->ctx.pid, node->GetTransformsReason(), for_write,
-                false /* redact */, false /* log_transforms_metrics */);
+                path, path, req->ctx.uid, req->ctx.pid, for_write, false /* redact */);
         if (!result) {
             status = EFAULT;
         }

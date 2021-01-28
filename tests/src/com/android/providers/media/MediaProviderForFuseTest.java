@@ -96,8 +96,8 @@ public class MediaProviderForFuseTest {
 
         // We can write our file
         FileOpenResult result = sMediaProvider.onFileOpenForFuse(
-                file.getPath(), file.getPath(), sTestUid, 0 /* tid */, 0 /* transforms_reason */,
-                true /* forWrite */, false /* redact */, false /* transcode_metrics */);
+            file.getPath(), file.getPath(), sTestUid, 0 /* tid */, true /* forWrite */,
+                false /* redact */);
         Truth.assertThat(result.status).isEqualTo(0);
         Truth.assertThat(result.redactionRanges).isEqualTo(new long[0]);
 

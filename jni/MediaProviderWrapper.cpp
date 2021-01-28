@@ -232,7 +232,7 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
                                    /*is_static*/ false);
     mid_delete_file_ = CacheMethod(env, "deleteFile", "(Ljava/lang/String;I)I", /*is_static*/ false);
     mid_on_file_open_ = CacheMethod(env, "onFileOpen",
-                                    "(Ljava/lang/String;Ljava/lang/String;IIZZ)Lcom/android/"
+                                    "(Ljava/lang/String;Ljava/lang/String;IIIZZZ)Lcom/android/"
                                     "providers/media/FileOpenResult;",
                                     /*is_static*/ false);
     mid_is_mkdir_or_rmdir_allowed_ = CacheMethod(env, "isDirectoryCreationOrDeletionAllowed",
@@ -253,7 +253,7 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
                                            /*is_static*/ false);
     mid_is_app_clone_user_ = CacheMethod(env, "isAppCloneUser", "(I)Z",
                                          /*is_static*/ false);
-    mid_transform_ = CacheMethod(env, "transform", "(Ljava/lang/String;Ljava/lang/String;II)Z",
+    mid_transform_ = CacheMethod(env, "transform", "(Ljava/lang/String;Ljava/lang/String;III)Z",
                                  /*is_static*/ false);
     mid_file_lookup_ =
             CacheMethod(env, "onFileLookup",
@@ -268,6 +268,8 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
     file_lookup_result_class_ =
             reinterpret_cast<jclass>(env->NewGlobalRef(file_lookup_result_class_));
     fid_file_lookup_transforms_ = CacheField(env, file_lookup_result_class_, "transforms", "I");
+    fid_file_lookup_transforms_reason_ =
+            CacheField(env, file_lookup_result_class_, "transformsReason", "I");
     fid_file_lookup_uid_ = CacheField(env, file_lookup_result_class_, "uid", "I");
     fid_file_lookup_transforms_complete_ =
             CacheField(env, file_lookup_result_class_, "transformsComplete", "Z");
@@ -315,8 +317,9 @@ int MediaProviderWrapper::DeleteFile(const string& path, uid_t uid) {
 
 std::unique_ptr<FileOpenResult> MediaProviderWrapper::OnFileOpen(const string& path,
                                                                  const string& io_path, uid_t uid,
-                                                                 pid_t tid, bool for_write,
-                                                                 bool redact) {
+                                                                 pid_t tid, int transforms_reason,
+                                                                 bool for_write, bool redact,
+                                                                 bool log_transforms_metrics) {
     JNIEnv* env = MaybeAttachCurrentThread();
     if (shouldBypassMediaProvider(uid)) {
         return std::make_unique<FileOpenResult>(0, uid, new RedactionInfo());
@@ -326,7 +329,8 @@ std::unique_ptr<FileOpenResult> MediaProviderWrapper::OnFileOpen(const string& p
     ScopedLocalRef<jstring> j_io_path(env, env->NewStringUTF(io_path.c_str()));
     ScopedLocalRef<jobject> j_res_file_open_object(
             env, env->CallObjectMethod(media_provider_object_, mid_on_file_open_, j_path.get(),
-                                       j_io_path.get(), uid, tid, for_write, redact));
+                                       j_io_path.get(), uid, tid, transforms_reason, for_write,
+                                       redact, log_transforms_metrics));
 
     if (CheckForJniException(env)) {
         return nullptr;
@@ -480,6 +484,8 @@ std::unique_ptr<FileLookupResult> MediaProviderWrapper::FileLookup(const std::st
     }
 
     int transforms = env->GetIntField(j_res_file_lookup_object.get(), fid_file_lookup_transforms_);
+    int transforms_reason =
+            env->GetIntField(j_res_file_lookup_object.get(), fid_file_lookup_transforms_reason_);
     int original_uid = env->GetIntField(j_res_file_lookup_object.get(), fid_file_lookup_uid_);
     bool transforms_complete = env->GetBooleanField(j_res_file_lookup_object.get(),
                                                     fid_file_lookup_transforms_complete_);
@@ -490,20 +496,20 @@ std::unique_ptr<FileLookupResult> MediaProviderWrapper::FileLookup(const std::st
             (jstring)env->GetObjectField(j_res_file_lookup_object.get(), fid_file_lookup_io_path_));
     ScopedUtfChars j_io_path_utf(env, j_io_path.get());
 
-    std::unique_ptr<FileLookupResult> file_lookup_result =
-            std::make_unique<FileLookupResult>(transforms, original_uid, transforms_complete,
-                                               transforms_supported, string(j_io_path_utf.c_str()));
+    std::unique_ptr<FileLookupResult> file_lookup_result = std::make_unique<FileLookupResult>(
+            transforms, transforms_reason, original_uid, transforms_complete, transforms_supported,
+            string(j_io_path_utf.c_str()));
     return file_lookup_result;
 }
 
 bool MediaProviderWrapper::Transform(const std::string& src, const std::string& dst, int transforms,
-                                     uid_t uid) {
+                                     int transforms_reason, uid_t uid) {
     JNIEnv* env = MaybeAttachCurrentThread();
 
     ScopedLocalRef<jstring> j_src(env, env->NewStringUTF(src.c_str()));
     ScopedLocalRef<jstring> j_dst(env, env->NewStringUTF(dst.c_str()));
     bool res = env->CallBooleanMethod(media_provider_object_, mid_transform_, j_src.get(),
-                                      j_dst.get(), transforms, uid);
+                                      j_dst.get(), transforms, transforms_reason, uid);
 
     if (CheckForJniException(env)) {
         return false;

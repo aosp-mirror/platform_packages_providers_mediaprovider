@@ -25,6 +25,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Typeface;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.text.BidiFormatter;
 import android.text.SpannableString;
 import android.text.TextPaint;
@@ -43,6 +44,7 @@ public class CacheClearingActivity extends Activity implements DialogInterface.O
     private static final String TAG = "CacheClearingActivity";
     private static final float MAX_APP_NAME_SIZE_PX = 500f;
     private static final float TEXT_SIZE = 42f;
+    private static final Long LEAST_SHOW_PROGRESS_TIME_MS = 300L;
 
     private AlertDialog mActionDialog;
     private Dialog mLoadingDialog;
@@ -102,11 +104,14 @@ public class CacheClearingActivity extends Activity implements DialogInterface.O
     }
 
     private class CacheClearingTask extends AsyncTask<Void, Void, Integer> {
+        private long mStartTime;
+
         @Override
         protected void onPreExecute() {
             dismissDialogs(mActionDialog);
             createLoadingDialog();
             mLoadingDialog.show();
+            mStartTime = System.currentTimeMillis();
         }
 
         @Override
@@ -118,13 +123,25 @@ public class CacheClearingActivity extends Activity implements DialogInterface.O
         protected void onPostExecute(Integer result) {
             // We take the convention of not using primitive wrapper pretty seriously
             int status = result.intValue();
-            dismissDialogs(mLoadingDialog);
+
             if (result == 0) {
                 setResult(RESULT_OK);
             } else {
                 setResult(status);
             }
-            finish();
+
+            // Don't dismiss the progress dialog too quick, it will cause bad UX.
+            final long duration = System.currentTimeMillis() - mStartTime;
+            if (duration > LEAST_SHOW_PROGRESS_TIME_MS) {
+                dismissDialogs(mLoadingDialog);
+                finish();
+            } else {
+                Handler handler = new Handler(getMainLooper());
+                handler.postDelayed(() -> {
+                    dismissDialogs(mLoadingDialog);
+                    finish();
+                }, LEAST_SHOW_PROGRESS_TIME_MS - duration);
+            }
         }
     }
 
@@ -132,12 +149,19 @@ public class CacheClearingActivity extends Activity implements DialogInterface.O
         final CharSequence dialogTitle = getString(R.string.cache_clearing_in_progress_title);
         final View dialogTitleView = View.inflate(this, R.layout.cache_clearing_dialog, null);
         final TextView titleText = dialogTitleView.findViewById(R.id.dialog_title);
+        final ProgressBar progressBar = new ProgressBar(CacheClearingActivity.this);
+        final int padding = getResources().getDimensionPixelOffset(R.dimen.dialog_space);
+
+        progressBar.setIndeterminate(true);
+        progressBar.setPadding(0, padding / 2, 0, padding);
         titleText.setText(dialogTitle);
         mLoadingDialog = new AlertDialog.Builder(this)
                 .setCustomTitle(dialogTitleView)
-                .setView(new ProgressBar(CacheClearingActivity.this))
+                .setView(progressBar)
                 .setCancelable(false)
                 .create();
+
+        dialogTitleView.findViewById(R.id.dialog_icon).setVisibility(View.GONE);
         mLoadingDialog.create();
         setDialogOverlaySettings(mActionDialog);
     }
@@ -149,16 +173,7 @@ public class CacheClearingActivity extends Activity implements DialogInterface.O
         final String unsanitizedAppName = TextUtils.ellipsize(appLabel,
                 paint, MAX_APP_NAME_SIZE_PX, TextUtils.TruncateAt.END).toString();
         final String appName = BidiFormatter.getInstance().unicodeWrap(unsanitizedAppName);
-
         final String actionText = getString(R.string.cache_clearing_dialog_text, appName);
-        final SpannableString message = new SpannableString(actionText);
-
-        int appNameIndex = actionText.indexOf(appName);
-        if (appNameIndex >= 0) {
-            message.setSpan(new StyleSpan(Typeface.BOLD),
-                    appNameIndex, appNameIndex + appName.length(), 0);
-        }
-
         final CharSequence dialogTitle = getString(R.string.cache_clearing_dialog_title);
 
         final View dialogTitleView = View.inflate(this, R.layout.cache_clearing_dialog, null);
@@ -166,9 +181,9 @@ public class CacheClearingActivity extends Activity implements DialogInterface.O
         titleText.setText(dialogTitle);
         mActionDialog = new AlertDialog.Builder(this)
                 .setCustomTitle(dialogTitleView)
-                .setMessage(message)
-                .setPositiveButton(R.string.allow, this)
-                .setNegativeButton(R.string.deny, this)
+                .setMessage(actionText)
+                .setPositiveButton(R.string.clear, this)
+                .setNegativeButton(android.R.string.cancel, this)
                 .setCancelable(false)
                 .create();
 

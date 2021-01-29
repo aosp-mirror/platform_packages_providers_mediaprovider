@@ -37,9 +37,10 @@
       <item quantity="other">Plus <xliff:g id="COUNT_1">^1</xliff:g> bykomende items</item>
       <item quantity="one">Plus <xliff:g id="COUNT_0">^1</xliff:g> bykomende item</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Vee tydelike programlêers uit?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Vee tydelike programlêers uit"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> wil \'n paar tydelike lêers uitvee. Dit kan verhoogde batterygebruik of sellulêre data tot gevolg hê."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Vee tans tydelike programlêers uit …"</string>
+    <string name="clear" msgid="5524638938415865915">"Vee uit"</string>
     <string name="allow" msgid="8885707816848569619">"Laat toe"</string>
     <string name="deny" msgid="6040983710442068936">"Weier"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

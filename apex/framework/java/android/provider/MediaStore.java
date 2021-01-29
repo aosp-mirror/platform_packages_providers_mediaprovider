@@ -27,7 +27,6 @@ import android.annotation.SdkConstant;
 import android.annotation.SdkConstant.SdkConstantType;
 import android.annotation.SuppressLint;
 import android.annotation.SystemApi;
-import android.annotation.TestApi;
 import android.annotation.WorkerThread;
 import android.app.Activity;
 import android.app.PendingIntent;
@@ -49,6 +48,7 @@ import android.media.ExifInterface;
 import android.media.MediaFormat;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Environment;
@@ -1597,7 +1597,7 @@ public final class MediaStore {
              * The MTP storage ID of the file
              * @hide
              */
-            @UnsupportedAppUsage
+            @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.R, trackingBug = 170729553)
             @Deprecated
             // @Column(Cursor.FIELD_TYPE_INTEGER)
             public static final String STORAGE_ID = "storage_id";
@@ -3941,7 +3941,6 @@ public final class MediaStore {
      * @hide
      */
     @SystemApi
-    @TestApi
     @WorkerThread
     public static void waitForIdle(@NonNull ContentResolver resolver) {
         resolver.call(AUTHORITY, WAIT_FOR_IDLE_CALL, null, null);
@@ -3954,7 +3953,6 @@ public final class MediaStore {
      * @hide
      */
     @SystemApi
-    @TestApi
     @WorkerThread
     @SuppressLint("StreamFiles")
     public static @NonNull Uri scanFile(@NonNull ContentResolver resolver, @NonNull File file) {
@@ -3968,7 +3966,6 @@ public final class MediaStore {
      * @hide
      */
     @SystemApi
-    @TestApi
     @WorkerThread
     public static void scanVolume(@NonNull ContentResolver resolver, @NonNull String volumeName) {
         resolver.call(AUTHORITY, SCAN_VOLUME_CALL, volumeName, null);

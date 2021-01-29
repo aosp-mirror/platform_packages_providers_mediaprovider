@@ -939,7 +939,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
                 if (mimeTypes == null || !shouldFilterMimeType || matchedMimeTypes.size() > 0) {
                     final Pair<String, String[]> selectionPair = buildSearchSelection(displayName,
                             matchedMimeTypes.toArray(new String[0]), lastModifiedAfter,
-                            fileSizeOver, AudioColumns.TITLE, AudioColumns.MIME_TYPE,
+                            fileSizeOver, AudioColumns.DISPLAY_NAME, AudioColumns.MIME_TYPE,
                             AudioColumns.DATE_MODIFIED, AudioColumns.SIZE);
 
                     cursor = resolver.query(Audio.Media.EXTERNAL_CONTENT_URI, SongQuery.PROJECTION,

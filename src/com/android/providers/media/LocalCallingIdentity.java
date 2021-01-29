@@ -34,6 +34,7 @@ import static com.android.providers.media.util.PermissionUtils.checkPermissionWr
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteImages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteStorage;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteVideo;
+import static com.android.providers.media.util.PermissionUtils.checkWriteImagesOrVideoAppOps;
 
 import android.annotation.Nullable;
 import android.app.AppOpsManager;
@@ -213,6 +214,8 @@ public class LocalCallingIdentity {
     public static final int PERMISSION_WRITE_VIDEO = 1 << 20;
     public static final int PERMISSION_WRITE_IMAGES = 1 << 21;
 
+    public static final int PERMISSION_IS_SYSTEM_GALLERY = 1 <<22;
+
     private int hasPermission;
     private int hasPermissionResolved;
 
@@ -271,6 +274,9 @@ public class LocalCallingIdentity {
             case PERMISSION_WRITE_IMAGES:
                 return checkPermissionWriteImages(
                         context, pid, uid, getPackageName(), attributionTag);
+            case PERMISSION_IS_SYSTEM_GALLERY:
+                return checkWriteImagesOrVideoAppOps(
+                        context, uid, getPackageName(), attributionTag);
             default:
                 return false;
         }

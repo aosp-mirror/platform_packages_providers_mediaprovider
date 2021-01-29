@@ -37,9 +37,10 @@
       <item quantity="other">Нэмээд нэмэлт <xliff:g id="COUNT_1">^1</xliff:g> зүйл</item>
       <item quantity="one">Нэмээд нэмэлт <xliff:g id="COUNT_0">^1</xliff:g> зүйл</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Аппын түр зуурын файлуудыг арилгах уу?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Аппын түр зуурын файлуудыг арилгах"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> нь түр зуурын зарим файлыг арилгах хүсэлтэй байна. Энэ нь батарей эсвэл мобайл дата ашиглалтыг нэмэгдүүлэхэд хүргэж болзошгүй."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Аппын түр зуурын файлуудыг арилгаж байна…"</string>
+    <string name="clear" msgid="5524638938415865915">"Арилгах"</string>
     <string name="allow" msgid="8885707816848569619">"Зөвшөөрөх"</string>
     <string name="deny" msgid="6040983710442068936">"Татгалзах"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

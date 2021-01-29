@@ -21,7 +21,7 @@
     <string name="app_label" msgid="9035307001052716210">"মিডিয়া সঞ্চয়াগাৰ"</string>
     <string name="artist_label" msgid="8105600993099120273">"শিল্পী"</string>
     <string name="unknown" msgid="2059049215682829375">"অজ্ঞাত"</string>
-    <string name="root_images" msgid="5861633549189045666">"প্ৰতিচ্ছবিসমূহ"</string>
+    <string name="root_images" msgid="5861633549189045666">"Images"</string>
     <string name="root_videos" msgid="8792703517064649453">"ভিডিঅ\'সমূহ"</string>
     <string name="root_audio" msgid="3505830755201326018">"অডিঅ’"</string>
     <string name="root_documents" msgid="3829103301363849237">"নথিপত্র"</string>
@@ -37,9 +37,10 @@
       <item quantity="one">আৰু <xliff:g id="COUNT_1">^1</xliff:g> টা অতিৰিক্ত বস্তু</item>
       <item quantity="other">আৰু <xliff:g id="COUNT_1">^1</xliff:g> টা অতিৰিক্ত বস্তু</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"অস্থায়ী এপ্‌ ফাইলসমূহ মচিবনে?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"অস্থায়ী এপ্‌ ফাইলসমূহ মচক"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g>এ কিছুমান অস্থায়ী ফাইল মচিব বিচাৰিছে। ইয়াৰ ফলত বেটাৰী অথবা চেলুলাৰ ডেটাৰ ব্যৱহাৰ বৃদ্ধি হ’ব পাৰে।"</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"অস্থায়ী এপ্‌ ফাইলসমূহ মচি থকা হৈছে…"</string>
+    <string name="clear" msgid="5524638938415865915">"মচক"</string>
     <string name="allow" msgid="8885707816848569619">"অনুমতি দিয়ক"</string>
     <string name="deny" msgid="6040983710442068936">"অস্বীকাৰ কৰক"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

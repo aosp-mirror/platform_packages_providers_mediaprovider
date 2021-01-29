@@ -41,6 +41,7 @@ android_app {
 
     sdk_version: "module_current",
     min_sdk_version: "30",
+    target_sdk_version: "30",
 
     certificate: "media",
     privileged: true,

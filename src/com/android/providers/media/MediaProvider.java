@@ -1922,13 +1922,19 @@ public class MediaProvider extends ContentProvider {
         return updateDatabaseForFuseRename(helper, oldPath, newPath, values, Bundle.EMPTY);
     }
 
+    private boolean updateDatabaseForFuseRename(@NonNull DatabaseHelper helper,
+            @NonNull String oldPath, @NonNull String newPath, @NonNull ContentValues values,
+            @NonNull Bundle qbExtras) {
+        return updateDatabaseForFuseRename(helper, oldPath, newPath, values, qbExtras,
+                FileUtils.getContentUriForPath(oldPath));
+    }
+
     /**
      * Updates database entry for given {@code path} with {@code values}
      */
     private boolean updateDatabaseForFuseRename(@NonNull DatabaseHelper helper,
             @NonNull String oldPath, @NonNull String newPath, @NonNull ContentValues values,
-            @NonNull Bundle qbExtras) {
-        final Uri uriOldPath = FileUtils.getContentUriForPath(oldPath);
+            @NonNull Bundle qbExtras, Uri uriOldPath) {
         boolean allowHidden = isCallingPackageAllowedHidden();
         final SQLiteQueryBuilder qbForUpdate = getQueryBuilder(TYPE_UPDATE,
                 matchUri(uriOldPath, allowHidden), uriOldPath, qbExtras, null);
@@ -2254,11 +2260,17 @@ public class MediaProvider extends ContentProvider {
         helper.beginTransaction();
         try {
             final String newMimeType = MimeUtils.resolveMimeType(new File(newPath));
-            if (!updateDatabaseForFuseRename(helper, oldPath, newPath,
-                    getContentValuesForFuseRename(newPath, newMimeType, wasHidden, isHidden))) {
+            ContentValues contentValues = getContentValuesForFuseRename(newPath, newMimeType,
+                    wasHidden, isHidden);
+            if (!updateDatabaseForFuseRename(helper, oldPath, newPath, contentValues)) {
                 if (!bypassRestrictions) {
-                    Log.e(TAG, "Calling package doesn't have write permission to rename file.");
-                    return OsConstants.EPERM;
+                    // Check for other URI format grants for oldPath only. Check right before
+                    // returning EPERM, to leave positive case performance unaffected.
+                    if (!(isFilePathSupportForMediaUris() && renameWithOtherUriGrants(helper,
+                            oldPath, newPath, contentValues))) {
+                        Log.e(TAG, "Calling package doesn't have write permission to rename file.");
+                        return OsConstants.EPERM;
+                    }
                 } else if (!maybeRemoveOwnerPackageForFuseRename(helper, newPath)) {
                     Log.wtf(TAG, "Couldn't clear owner package name for " + newPath);
                     return OsConstants.EPERM;
@@ -2293,6 +2305,21 @@ public class MediaProvider extends ContentProvider {
         }
 
         return 0;
+    }
+
+    /**
+     * Rename file by checking for other URI grants on oldPath
+     *
+     * We don't support replace scenario by checking for other URI grants on newPath (if it exists).
+     */
+    private boolean renameWithOtherUriGrants(DatabaseHelper helper, String oldPath, String newPath,
+            ContentValues contentValues) {
+        final Uri oldPathGrantedUri = getOtherUriGrantsForPath(oldPath, /* forWrite */ true);
+        if (oldPathGrantedUri == null) {
+            return false;
+        }
+        return updateDatabaseForFuseRename(helper, oldPath, newPath, contentValues, Bundle.EMPTY,
+                oldPathGrantedUri);
     }
 
     /**
@@ -7375,6 +7402,25 @@ public class MediaProvider extends ContentProvider {
         } finally {
             restoreLocalCallingIdentity(token);
         }
+    }
+
+    private @Nullable Uri getOtherUriGrantsForPath(String path, boolean forWrite) {
+        final Uri contentUri = FileUtils.getContentUriForPath(path);
+        final String[] projection = new String[]{
+                MediaColumns._ID,
+                FileColumns.MEDIA_TYPE};
+        final String selection = MediaColumns.DATA + "=?";
+        final String[] selectionArgs = new String[]{ path };
+        final long id;
+        final int mediaType;
+        try (final Cursor c = queryForSingleItemAsMediaProvider(contentUri, projection, selection,
+                selectionArgs, null)) {
+            id = c.getLong(0);
+            mediaType = c.getInt(1);
+            return getOtherUriGrantsForPath(path, mediaType, id, forWrite);
+        } catch (FileNotFoundException ignored) {
+        }
+        return null;
     }
 
     private @Nullable Uri getOtherUriGrantsForPath(String path, int mediaType, long id,

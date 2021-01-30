@@ -120,13 +120,14 @@ class node {
     // Creates a new node with the specified parent, name and lock.
     static node* Create(node* parent, const std::string& name, const std::string& io_path,
                         bool should_invalidate, bool transforms_complete, const int transforms,
-                        std::recursive_mutex* lock, NodeTracker* tracker) {
+                        const int transforms_reason, std::recursive_mutex* lock,
+                        NodeTracker* tracker) {
         // Place the entire constructor under a critical section to make sure
         // node creation, tracking (if enabled) and the addition to a parent are
         // atomic.
         std::lock_guard<std::recursive_mutex> guard(*lock);
         return new node(parent, name, io_path, should_invalidate, transforms_complete, transforms,
-                        lock, tracker);
+                        transforms_reason, lock, tracker);
     }
 
     // Creates a new root node. Root nodes have no parents by definition
@@ -135,7 +136,8 @@ class node {
                             NodeTracker* tracker) {
         std::lock_guard<std::recursive_mutex> guard(*lock);
         node* root = new node(nullptr, path, path, false /* should_invalidate */,
-                              true /* transforms_complete */, 0, lock, tracker);
+                              true /* transforms_complete */, 0 /* transforms */,
+                              0 /* transforms_reason */, lock, tracker);
 
         // The root always has one extra reference to avoid it being
         // accidentally collected.
@@ -269,6 +271,8 @@ class node {
 
     int GetTransforms() const { return transforms_; }
 
+    int GetTransformsReason() const { return transforms_reason_; }
+
     bool IsTransformsComplete() const {
         return transforms_complete_.load(std::memory_order_acquire);
     }
@@ -350,11 +354,12 @@ class node {
   private:
     node(node* parent, const std::string& name, const std::string& io_path,
          const bool should_invalidate, const bool transforms_complete, const int transforms,
-         std::recursive_mutex* lock, NodeTracker* tracker)
+         const int transforms_reason, std::recursive_mutex* lock, NodeTracker* tracker)
         : name_(name),
           io_path_(io_path),
           transforms_complete_(transforms_complete),
           transforms_(transforms),
+          transforms_reason_(transforms_reason),
           refcount_(0),
           parent_(nullptr),
           has_redacted_cache_(false),
@@ -490,10 +495,15 @@ class node {
     // Whether any transforms required on |io_path_| are complete.
     // If false, might need to call a node transform function with |transforms| below
     std::atomic_bool transforms_complete_;
-    // Opaque flags that determine the 'supported' and 'required' transforms to perform on node
-    // before IO. These flags should not be interpreted in native but should be passed as part
-    // of a transform function and if successful, |transforms_complete_| should be set to true
+    // Opaque flags that determines the 'required' transforms to perform on node
+    // before IO. These flags should not be interpreted in native but should be passed to the
+    // MediaProvider as part of a transform function and if successful, |transforms_complete_|
+    // should be set to true
     const int transforms_;
+    // Opaque value indicating the reason why transforms are required.
+    // This value should not be interpreted in native but should be passed to the MediaProvider
+    // as part of a transform function
+    const int transforms_reason_;
     // The reference count for this node. Guarded by |lock_|.
     uint32_t refcount_;
     // Set of children of this node. All of them contain a back reference

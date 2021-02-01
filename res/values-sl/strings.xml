@@ -41,9 +41,10 @@
       <item quantity="few">In še <xliff:g id="COUNT_1">^1</xliff:g> dodatni elementi</item>
       <item quantity="other">In še <xliff:g id="COUNT_1">^1</xliff:g> dodatnih elementov</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Želite izbrisati začasne datoteke aplikacij?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Brisanje začasnih datotek aplikacij"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"Aplikacija <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> želi izbrisati nekaj začasnih datotek. To lahko povzroči povečano porabo energije baterije ali povečan prenos podatkov v mobilnem omrežju."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Brisanje začasnih datotek aplikacij …"</string>
+    <string name="clear" msgid="5524638938415865915">"Počisti"</string>
     <string name="allow" msgid="8885707816848569619">"Dovoli"</string>
     <string name="deny" msgid="6040983710442068936">"Zavrni"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

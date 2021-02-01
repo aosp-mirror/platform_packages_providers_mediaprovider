@@ -41,9 +41,10 @@
       <item quantity="many">Ще <xliff:g id="COUNT_1">^1</xliff:g> додаткових елементів</item>
       <item quantity="other">Ще <xliff:g id="COUNT_1">^1</xliff:g> додаткового елемента</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"Видалити тимчасові файли додатків?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Видалити тимчасові файли додатків"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"Додаток <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> хоче видалити деякі тимчасові файли. Це може збільшити використання акумулятора або мобільного трафіку."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Видалення тимчасових файлів додатків…"</string>
+    <string name="clear" msgid="5524638938415865915">"Очистити"</string>
     <string name="allow" msgid="8885707816848569619">"Дозволити"</string>
     <string name="deny" msgid="6040983710442068936">"Заборонити"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

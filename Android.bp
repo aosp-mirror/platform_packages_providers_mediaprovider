@@ -41,6 +41,7 @@ android_app {
 
     sdk_version: "module_current",
     min_sdk_version: "30",
+    target_sdk_version: "30",
 
     certificate: "media",
     privileged: true,
@@ -97,6 +98,8 @@ platform_compat_config {
 genrule {
     name: "statslog-mediaprovider-java-gen",
     tools: ["stats-log-api-gen"],
-    cmd: "$(location stats-log-api-gen) --java $(out) --module mediaprovider --javaPackage com.android.providers.media --javaClass MediaProviderStatsLog",
+    cmd: "$(location stats-log-api-gen) --java $(out) --module mediaprovider" +
+         " --javaPackage com.android.providers.media --javaClass MediaProviderStatsLog" +
+         " --minApiLevel 30",
     out: ["com/android/providers/media/MediaProviderStatsLog.java"],
 }

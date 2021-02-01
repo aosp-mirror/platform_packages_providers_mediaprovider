@@ -1111,20 +1111,24 @@ public class MediaProvider extends ContentProvider {
         });
         Log.d(TAG, "Pruned " + stalePackages + " unknown packages");
 
-        // Delete any expired content; we're cautious about wildly changing
-        // clocks, so only delete items within the last week
+        // Delete any expired content on mounted volumes. The expired content on unmounted
+        // volumes will be deleted when we forget any stale volumes; we're cautious about
+        // wildly changing clocks, so only delete items within the last week
         final long from = ((System.currentTimeMillis() - DateUtils.WEEK_IN_MILLIS) / 1000);
         final long to = (System.currentTimeMillis() / 1000);
         final int expiredMedia = mExternalDatabase.runWithTransaction((db) -> {
+            String selection = FileColumns.DATE_EXPIRES + " BETWEEN " + from + " AND " + to;
+            selection += " AND volume_name in " + bindList(MediaStore.getExternalVolumeNames(
+                    getContext()).toArray());
             try (Cursor c = db.query(true, "files", new String[] { "volume_name", "_id" },
-                    FileColumns.DATE_EXPIRES + " BETWEEN " + from + " AND " + to, null,
-                    null, null, null, null, signal)) {
+                    selection, null, null, null, null, null, signal)) {
+                int totalCount = 0;
                 while (c.moveToNext()) {
                     final String volumeName = c.getString(0);
                     final long id = c.getLong(1);
-                    delete(Files.getContentUri(volumeName, id), null, null);
+                    totalCount += delete(Files.getContentUri(volumeName, id), null, null);
                 }
-                return c.getCount();
+                return totalCount;
             }
         });
         Log.d(TAG, "Deleted " + expiredMedia + " expired items");
@@ -1359,13 +1363,14 @@ public class MediaProvider extends ContentProvider {
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public boolean transformForFuse(String src, String dst, int transforms, int uid) {
+    public boolean transformForFuse(String src, String dst, int transforms, int transformsReason,
+            int uid) {
         if ((transforms & FLAG_TRANSFORM_TRANSCODING) != 0) {
             if (mTranscodeHelper.isTranscodeFileCached(uid, src, dst)) {
                 Log.d(TAG, "Using transcode cache for " + src);
                 return true;
             }
-            return mTranscodeHelper.transcode(src, dst, uid);
+            return mTranscodeHelper.transcode(src, dst, uid, transformsReason);
         }
         return true;
     }
@@ -1389,30 +1394,30 @@ public class MediaProvider extends ContentProvider {
         boolean transformsComplete = true;
         boolean transformsSupported = mTranscodeHelper.supportsTranscode(path);
         int transforms = 0;
+        int transformsReason = 0;
 
         if (transformsSupported) {
-            boolean shouldTranscode = false;
             PendingOpenInfo info = null;
             synchronized (mPendingOpenInfo) {
                 info = mPendingOpenInfo.get(tid);
             }
 
             if (info != null && info.uid == uid) {
-                shouldTranscode = info.shouldTranscode;
+                transformsReason = info.transcodeReason;
             } else {
-                shouldTranscode = mTranscodeHelper.shouldTranscode(path, uid,
+                transformsReason = mTranscodeHelper.shouldTranscode(path, uid,
                         null /* bundle */);
             }
 
-            if (shouldTranscode) {
+            if (transformsReason > 0) {
                 ioPath = mTranscodeHelper.getIoPath(path, uid);
                 transformsComplete = false;
                 transforms = FLAG_TRANSFORM_TRANSCODING;
             }
         }
 
-        return new FileLookupResult(transforms, uid, transformsComplete, transformsSupported,
-                ioPath);
+        return new FileLookupResult(transforms, transformsReason, uid, transformsComplete,
+                transformsSupported, ioPath);
     }
 
     public int getBinderUidForFuse(int uid, int tid) {
@@ -5210,11 +5215,14 @@ public class MediaProvider extends ContentProvider {
      * @return true if the given Files uri has media_type=MEDIA_TYPE_SUBTITLE
      */
     private boolean isSubtitleFile(Uri uri) {
+        final LocalCallingIdentity tokenInner = clearLocalCallingIdentity();
         try (Cursor cursor = queryForSingleItem(uri, new String[]{FileColumns.MEDIA_TYPE}, null,
                 null, null)) {
             return cursor.getInt(0) == FileColumns.MEDIA_TYPE_SUBTITLE;
         } catch (FileNotFoundException e) {
             Log.e(TAG, "Couldn't find database row for requested uri " + uri, e);
+        } finally {
+            restoreLocalCallingIdentity(tokenInner);
         }
         return false;
     }
@@ -5929,16 +5937,19 @@ public class MediaProvider extends ContentProvider {
                             final File file = new File(c.getString(0));
                             boolean runScanFileInBackground =
                                     extras.getBoolean(MediaStore.QUERY_ARG_DO_ASYNC_SCAN, false);
+                            final boolean notifyTranscodeHelper = isUriPublished;
                             if (runScanFileInBackground) {
                                 helper.postBackground(() -> {
                                     scanFileAsMediaProvider(file, REASON_DEMAND);
+                                    if (notifyTranscodeHelper) {
+                                        notifyTranscodeHelperOnUriPublished(updatedUri);
+                                    }
                                 });
                             } else {
-                                final boolean report = isUriPublished;
                                 helper.postBlocking(() -> {
                                     scanFileAsMediaProvider(file, REASON_DEMAND);
-                                    if (report) {
-                                        mTranscodeHelper.reportIfHEVCAdded(updatedUri);
+                                    if (notifyTranscodeHelper) {
+                                        notifyTranscodeHelperOnUriPublished(updatedUri);
                                     }
                                 });
                             }
@@ -5954,6 +5965,29 @@ public class MediaProvider extends ContentProvider {
         }
 
         return count;
+    }
+
+    private void notifyTranscodeHelperOnUriPublished(Uri uri) {
+        BackgroundThread.getExecutor().execute(() -> {
+            final LocalCallingIdentity token = clearLocalCallingIdentity();
+            try {
+                mTranscodeHelper.onUriPublished(uri);
+            } finally {
+                restoreLocalCallingIdentity(token);
+            }
+        });
+    }
+
+    private void notifyTranscodeHelperOnFileOpen(String path, String ioPath, int uid,
+            int transformsReason) {
+        BackgroundThread.getExecutor().execute(() -> {
+            final LocalCallingIdentity token = clearLocalCallingIdentity();
+            try {
+                mTranscodeHelper.onFileOpen(path, ioPath, uid, transformsReason);
+            } finally {
+                restoreLocalCallingIdentity(token);
+            }
+        });
     }
 
     /**
@@ -6562,6 +6596,23 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
+     * Query the given {@link Uri} as MediaProvider, expecting only a single item to be found.
+     *
+     * @throws FileNotFoundException if no items were found, or multiple items
+     *             were found, or there was trouble reading the data.
+     */
+    Cursor queryForSingleItemAsMediaProvider(Uri uri, String[] projection, String selection,
+            String[] selectionArgs, CancellationSignal signal)
+            throws FileNotFoundException {
+        final LocalCallingIdentity tokenInner = clearLocalCallingIdentity();
+        try {
+            return queryForSingleItem(uri, projection, selection, selectionArgs, signal);
+        } finally {
+            restoreLocalCallingIdentity(tokenInner);
+        }
+    }
+
+    /**
      * Query the given {@link Uri}, expecting only a single item to be found.
      *
      * @throws FileNotFoundException if no items were found, or multiple items
@@ -6610,13 +6661,14 @@ public class MediaProvider extends ContentProvider {
     }
 
     private ParcelFileDescriptor openWithFuse(String filePath, int uid, int modeBits,
-            boolean shouldRedact, boolean shouldTranscode) throws FileNotFoundException {
+            boolean shouldRedact, boolean shouldTranscode, int transcodeReason)
+            throws FileNotFoundException {
         Log.d(TAG, "Open with FUSE. FilePath: " + filePath + ". Uid: " + uid
                 + ". ShouldRedact: " + shouldRedact + ". ShouldTranscode: " + shouldTranscode);
 
         int tid = android.os.Process.myTid();
         synchronized (mPendingOpenInfo) {
-            mPendingOpenInfo.put(tid, new PendingOpenInfo(uid, shouldRedact, shouldTranscode));
+            mPendingOpenInfo.put(tid, new PendingOpenInfo(uid, shouldRedact, transcodeReason));
         }
 
         try {
@@ -6757,15 +6809,16 @@ public class MediaProvider extends ContentProvider {
             final ParcelFileDescriptor pfd;
             final String filePath = file.getPath();
             final int uid = Binder.getCallingUid();
-            boolean shouldTranscode = mTranscodeHelper.shouldTranscode(filePath, uid, opts);
+            int transcodeReason = mTranscodeHelper.shouldTranscode(filePath, uid, opts);
+            boolean shouldTranscode = transcodeReason > 0;
             if (redactionInfo.redactionRanges.length > 0) {
                 // If fuse is enabled, we can provide an fd that points to the fuse
                 // file system and handle redaction in the fuse handler when the caller reads.
                 pfd = openWithFuse(filePath, uid, modeBits, true /* shouldRedact */,
-                        shouldTranscode);
+                        shouldTranscode, transcodeReason);
             } else if (shouldTranscode) {
                 pfd = openWithFuse(filePath, uid, modeBits, false /* shouldRedact */,
-                        shouldTranscode);
+                        shouldTranscode, transcodeReason);
             } else {
                 FuseDaemon daemon = null;
                 try {
@@ -6784,7 +6837,7 @@ public class MediaProvider extends ContentProvider {
                     // resulting from cache inconsistencies between the upper and lower
                     // filesystem caches
                     pfd = openWithFuse(filePath, uid, modeBits, false /* shouldRedact */,
-                            shouldTranscode);
+                            shouldTranscode, transcodeReason);
                     try {
                         lowerFsFd.close();
                     } catch (IOException e) {
@@ -7053,11 +7106,11 @@ public class MediaProvider extends ContentProvider {
     private static final class PendingOpenInfo {
         public final int uid;
         public final boolean shouldRedact;
-        public final boolean shouldTranscode;
-        public PendingOpenInfo(int uid, boolean shouldRedact, boolean shouldTranscode) {
+        public final int transcodeReason;
+        public PendingOpenInfo(int uid, boolean shouldRedact, int transcodeReason) {
             this.uid = uid;
             this.shouldRedact = shouldRedact;
-            this.shouldTranscode = shouldTranscode;
+            this.transcodeReason = transcodeReason;
         }
     }
 
@@ -7218,20 +7271,21 @@ public class MediaProvider extends ContentProvider {
      * @param path the path of the file to be opened
      * @param uid UID of the app requesting to open the file
      * @param forWrite specifies if the file is to be opened for write
-     * @return 0 upon success. {@link OsConstants#EACCES} if the operation is illegal or not
-     * permitted for the given {@code uid} or if the calling package is a legacy app that doesn't
-     * have right storage permission.
+     * @return {@link FileOpenResult} with {@code status} {@code 0} upon success and
+     * {@link FileOpenResult} with {@code status} {@link OsConstants#EACCES} if the operation is
+     * illegal or not permitted for the given {@code uid} or if the calling package is a legacy app
+     * that doesn't have right storage permission.
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
     public FileOpenResult onFileOpenForFuse(String path, String ioPath, int uid, int tid,
-            boolean forWrite, boolean redact) {
+            int transformsReason, boolean forWrite, boolean redact, boolean logTransformsMetrics) {
         int original_uid = getBinderUidForFuse(uid, tid);
 
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
-
+        boolean isSuccess = false;
         try {
             if (isPrivatePackagePathNotAccessibleByCaller(path)) {
                 Log.e(TAG, "Can't open a file in another app's external directory!");
@@ -7239,6 +7293,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             if (shouldBypassFuseRestrictions(forWrite, path)) {
+                isSuccess = true;
                 return new FileOpenResult(0 /* status */, uid,
                         redact ? getRedactionRangesForFuse(path, ioPath, original_uid, uid, tid) :
                         new long[0]);
@@ -7253,33 +7308,52 @@ public class MediaProvider extends ContentProvider {
             final String[] projection = new String[]{
                     MediaColumns._ID,
                     MediaColumns.OWNER_PACKAGE_NAME,
-                    MediaColumns.IS_PENDING};
+                    MediaColumns.IS_PENDING,
+                    FileColumns.MEDIA_TYPE};
             final String selection = MediaColumns.DATA + "=?";
-            final String[] selectionArgs = new String[] { path };
-            final Uri fileUri;
+            final String[] selectionArgs = new String[]{ path };
+            final long id;
+            final int mediaType;
             final boolean isPending;
             String ownerPackageName = null;
-            try (final Cursor c = queryForSingleItem(contentUri, projection, selection,
+            try (final Cursor c = queryForSingleItemAsMediaProvider(contentUri, projection,
+                    selection,
                     selectionArgs, null)) {
-                fileUri = ContentUris.withAppendedId(contentUri, c.getInt(0));
+                id = c.getLong(0);
                 ownerPackageName = c.getString(1);
                 isPending = c.getInt(2) != 0;
+                mediaType = c.getInt(3);
             }
-
             final File file = new File(path);
-            checkAccess(fileUri, Bundle.EMPTY, file, forWrite);
-
+            final Uri fileUri = MediaStore.Files.getContentUri(extractVolumeName(path), id);
             // We don't check ownership for files with IS_PENDING set by FUSE
             if (isPending && !isPendingFromFuse(new File(path))) {
                 requireOwnershipForItem(ownerPackageName, fileUri);
             }
+
+            // Check that path looks consistent before uri checks
+            if (!FileUtils.contains(Environment.getStorageDirectory(), file)) {
+                checkWorldReadAccess(file.getAbsolutePath());
+            }
+
+            try {
+                // checkAccess throws FileNotFoundException only from checkWorldReadAccess(),
+                // which we already check above. Hence, handling only SecurityException.
+                checkAccess(fileUri, Bundle.EMPTY, file, forWrite);
+            } catch (SecurityException e) {
+                // Check for other Uri formats only when the single uri check flow fails.
+                // Throw the previous exception if the multi-uri checks failed.
+                if (!(isFilePathSupportForMediaUris() &&
+                        hasOtherUriGrants(path, mediaType, id, forWrite))) {
+                    throw e;
+                }
+            }
+            isSuccess = true;
             return new FileOpenResult(0 /* status */, uid,
                     redact ? getRedactionRangesForFuse(path, ioPath, original_uid, uid, tid) :
                     new long[0]);
         } catch (IOException e) {
             // We are here because
-            // * App doesn't have read permission to the requested path, hence queryForSingleItem
-            //   couldn't return a valid db row, or,
             // * There is no db row corresponding to the requested path, which is more unlikely.
             // * getRedactionRangesForFuse couldn't fetch the redaction info correctly
             // In all of these cases, it means that app doesn't have access permission to the file.
@@ -7289,8 +7363,48 @@ public class MediaProvider extends ContentProvider {
             Log.e(TAG, "Permission to access file: " + path + " is denied");
             return new FileOpenResult(OsConstants.EACCES /* status */, uid, new long[0]);
         } finally {
+            if (isSuccess && logTransformsMetrics) {
+                notifyTranscodeHelperOnFileOpen(path, ioPath, original_uid, transformsReason);
+            }
             restoreLocalCallingIdentity(token);
         }
+    }
+
+    private boolean hasOtherUriGrants(String path, int mediaType, long id, boolean forWrite) {
+        Set<Uri> otherUris = new ArraySet<Uri>();
+        final Uri mediaUri = getMediaUriForFuse(extractVolumeName(path), mediaType, id);
+        otherUris.add(mediaUri);
+        final Uri externalMediaUri = getMediaUriForFuse(MediaStore.VOLUME_EXTERNAL, mediaType, id);
+        otherUris.add(externalMediaUri);
+        return bulkCheckUriPermissions(otherUris, forWrite);
+    }
+
+    private @NonNull Uri getMediaUriForFuse(@NonNull String volumeName, int mediaType, long id) {
+        switch (mediaType) {
+            case FileColumns.MEDIA_TYPE_IMAGE:
+                return MediaStore.Images.Media.getContentUri(volumeName, id);
+            case FileColumns.MEDIA_TYPE_VIDEO:
+                return MediaStore.Video.Media.getContentUri(volumeName, id);
+            case FileColumns.MEDIA_TYPE_AUDIO:
+                return MediaStore.Audio.Media.getContentUri(volumeName, id);
+            case FileColumns.MEDIA_TYPE_PLAYLIST:
+                return ContentUris.withAppendedId(
+                        MediaStore.Audio.Playlists.getContentUri(volumeName), id);
+            default:
+                // return files URIs
+                return MediaStore.Files.getContentUri(volumeName, id);
+        }
+    }
+
+    /**
+     * Feature flag to support File APIs for different formats of media-store URI grants like:
+     *   * content://media/external_primary/images/media/123
+     *   * content://media/external/images/media/123
+     *
+     *   Default value: false
+     */
+    private boolean isFilePathSupportForMediaUris() {
+        return SystemProperties.getBoolean("sys.filepathsupport.mediauri", false);
     }
 
     /**
@@ -7856,14 +7970,24 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Outstanding grant means they get access
-        if (getContext().checkUriPermission(uri, mCallingIdentity.get().pid,
+        return isUriPermissionGranted(uri, forWrite);
+    }
+
+    private boolean bulkCheckUriPermissions(Set<Uri> uris, boolean forWrite) {
+        for (Uri uri : uris) {
+            if (isUriPermissionGranted(uri, forWrite)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isUriPermissionGranted(Uri uri, boolean forWrite) {
+        int uriPermission = getContext().checkUriPermission(uri, mCallingIdentity.get().pid,
                 mCallingIdentity.get().uid, forWrite
                         ? Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                        : Intent.FLAG_GRANT_READ_URI_PERMISSION) == PERMISSION_GRANTED) {
-            return true;
-        }
-
-        return false;
+                        : Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        return uriPermission == PERMISSION_GRANTED;
     }
 
     @VisibleForTesting
@@ -8643,6 +8767,9 @@ public class MediaProvider extends ContentProvider {
         synchronized (mAttachedVolumeNames) {
             writer.println("mAttachedVolumeNames=" + mAttachedVolumeNames);
         }
+        writer.println();
+
+        mTranscodeHelper.dump(writer);
         writer.println();
 
         Logging.dumpPersistent(writer);

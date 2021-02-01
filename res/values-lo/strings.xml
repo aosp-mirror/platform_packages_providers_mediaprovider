@@ -37,9 +37,10 @@
       <item quantity="other">ຮວມ <xliff:g id="COUNT_1">^1</xliff:g> ລາຍການເພີ່ມເຕີມ</item>
       <item quantity="one">ຮວມ <xliff:g id="COUNT_0">^1</xliff:g> ລາຍການເພີ່ມເຕີມ</item>
     </plurals>
-    <string name="cache_clearing_dialog_title" msgid="4672878017407595782">"ລຶບລ້າງໄຟລ໌ແອັບຊົ່ວຄາວບໍ?"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"ລຶບລ້າງໄຟລ໌ແອັບຊົ່ວຄາວ"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> ຕ້ອງການລ້າງໄຟລ໌ຊົ່ວຄາວບາງຢ່າງອອກ. ນີ້ອາດເຮັດໃຫ້ມີການໃຊ້ແບັດເຕີຣີ ຫຼື ອິນເຕີເນັດມືຖືຫຼາຍຂຶ້ນ."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"ກຳລັງລຶບລ້າງໄຟລ໌ແອັບຊົ່ວຄາວ…"</string>
+    <string name="clear" msgid="5524638938415865915">"ລຶບລ້າງ"</string>
     <string name="allow" msgid="8885707816848569619">"ອະນຸຍາດ"</string>
     <string name="deny" msgid="6040983710442068936">"ປະຕິເສດ"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">

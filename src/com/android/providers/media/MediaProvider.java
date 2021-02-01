@@ -44,6 +44,7 @@ import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_MAN
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_SELF;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_SHELL;
+import static com.android.providers.media.LocalCallingIdentity.PERMISSION_IS_SYSTEM_GALLERY;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_READ_AUDIO;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_READ_IMAGES;
 import static com.android.providers.media.LocalCallingIdentity.PERMISSION_READ_VIDEO;
@@ -679,7 +680,9 @@ public class MediaProvider extends ContentProvider {
         return null;
     };
 
-    private final OnLegacyMigrationListener mMigrationListener = new OnLegacyMigrationListener() {
+    /** {@hide} */
+    public static final OnLegacyMigrationListener MIGRATION_LISTENER =
+            new OnLegacyMigrationListener() {
         @Override
         public void onStarted(ContentProviderClient client, String volumeName) {
             MediaStore.startLegacyMigration(ContentResolver.wrap(client), volumeName);
@@ -880,10 +883,10 @@ public class MediaProvider extends ContentProvider {
 
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME,
                 true, false, false, Column.class,
-                Metrics::logSchemaChange, mFilesListener, mMigrationListener, mIdGenerator);
+                Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER, mIdGenerator);
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME,
                 false, false, false, Column.class,
-                Metrics::logSchemaChange, mFilesListener, mMigrationListener, mIdGenerator);
+                Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER, mIdGenerator);
 
         final IntentFilter packageFilter = new IntentFilter();
         packageFilter.setPriority(10);
@@ -1186,18 +1189,39 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     static void computeAudioKeyValues(ContentValues values) {
-        computeAudioKeyValue(values,
-                AudioColumns.TITLE, AudioColumns.TITLE_KEY, null);
-        computeAudioKeyValue(values,
-                AudioColumns.ALBUM, AudioColumns.ALBUM_KEY, AudioColumns.ALBUM_ID);
-        computeAudioKeyValue(values,
-                AudioColumns.ARTIST, AudioColumns.ARTIST_KEY, AudioColumns.ARTIST_ID);
-        computeAudioKeyValue(values,
-                AudioColumns.GENRE, AudioColumns.GENRE_KEY, AudioColumns.GENRE_ID);
+        computeAudioKeyValue(values, AudioColumns.TITLE, AudioColumns.TITLE_KEY, /* focusId */
+                null, /* hashValue */ 0);
+        computeAudioKeyValue(values, AudioColumns.ARTIST, AudioColumns.ARTIST_KEY,
+                AudioColumns.ARTIST_ID, /* hashValue */ 0);
+        computeAudioKeyValue(values, AudioColumns.GENRE, AudioColumns.GENRE_KEY,
+                AudioColumns.GENRE_ID, /* hashValue */ 0);
+        computeAudioAlbumKeyValue(values);
+    }
+
+    /**
+     * To distinguish same-named albums, we append a hash. The hash is
+     * based on the "album artist" tag if present, otherwise on the path of
+     * the parent directory of the audio file.
+     */
+    private static void computeAudioAlbumKeyValue(ContentValues values) {
+        int hashCode = 0;
+
+        final String albumArtist = values.getAsString(MediaColumns.ALBUM_ARTIST);
+        if (!TextUtils.isEmpty(albumArtist)) {
+            hashCode = albumArtist.hashCode();
+        } else {
+            final String path = values.getAsString(MediaColumns.DATA);
+            if (!TextUtils.isEmpty(path)) {
+                hashCode = path.substring(0, path.lastIndexOf('/')).hashCode();
+            }
+        }
+
+        computeAudioKeyValue(values, AudioColumns.ALBUM, AudioColumns.ALBUM_KEY,
+                AudioColumns.ALBUM_ID, hashCode);
     }
 
     private static void computeAudioKeyValue(@NonNull ContentValues values, @NonNull String focus,
-            @Nullable String focusKey, @Nullable String focusId) {
+            @Nullable String focusKey, @Nullable String focusId, int hashValue) {
         if (focusKey != null) values.remove(focusKey);
         if (focusId != null) values.remove(focusId);
 
@@ -1213,8 +1237,8 @@ public class MediaProvider extends ContentProvider {
         if (focusId != null) {
             // Many apps break if we generate negative IDs, so trim off the
             // highest bit to ensure we're always unsigned
-            final long id = Hashing.farmHashFingerprint64()
-                    .hashString(key, StandardCharsets.UTF_8).asLong() & ~(1L << 63);
+            final long id = Hashing.farmHashFingerprint64().hashString(key + hashValue,
+                    StandardCharsets.UTF_8).asLong() & ~(1L << 63);
             values.put(focusId, id);
         }
     }
@@ -1704,15 +1728,17 @@ public class MediaProvider extends ContentProvider {
      * Gets all files in the given {@code path} and subdirectories of the given {@code path}.
      */
     private ArrayList<String> getAllFilesForRenameDirectory(String oldPath) {
-        final String selection = MediaColumns.RELATIVE_PATH + " REGEXP '^" +
-                extractRelativePathForDirectory(oldPath) + "/?.*' and mime_type not like 'null'";
+        final String selection = FileColumns.DATA + " LIKE ? ESCAPE '\\'"
+                + " and mime_type not like 'null'";
+        final String[] selectionArgs = new String[] {DatabaseUtils.escapeForLike(oldPath) + "/%"};
         ArrayList<String> fileList = new ArrayList<>();
 
         final LocalCallingIdentity token = clearLocalCallingIdentity();
         try (final Cursor c = query(FileUtils.getContentUriForPath(oldPath),
-                new String[] {MediaColumns.DATA}, selection, null, null)) {
+                new String[] {MediaColumns.DATA}, selection, selectionArgs, null)) {
             while (c.moveToNext()) {
-                final String filePath = c.getString(0).replaceFirst("^" + oldPath + "/(.*)", "$1");
+                String filePath = c.getString(0);
+                filePath = filePath.replaceFirst(Pattern.quote(oldPath + "/"), "");
                 fileList.add(filePath);
             }
         } finally {
@@ -1746,13 +1772,15 @@ public class MediaProvider extends ContentProvider {
         }
 
         final int countAllFilesInDirectory;
-        final String selection = MediaColumns.RELATIVE_PATH + " REGEXP '^" +
-                extractRelativePathForDirectory(oldPath) + "/?.*' and mime_type not like 'null'";
+        final String selection = FileColumns.DATA + " LIKE ? ESCAPE '\\'"
+                + " and mime_type not like 'null'";
+        final String[] selectionArgs = new String[] {DatabaseUtils.escapeForLike(oldPath) + "/%"};
+
         final Uri uriOldPath = FileUtils.getContentUriForPath(oldPath);
 
         final LocalCallingIdentity token = clearLocalCallingIdentity();
-        try (final Cursor c = query(uriOldPath, new String[] {MediaColumns._ID}, selection, null,
-                null)) {
+        try (final Cursor c = query(uriOldPath, new String[] {MediaColumns._ID}, selection,
+                selectionArgs, null)) {
             // get actual number of files in the given directory.
             countAllFilesInDirectory = c.getCount();
         } finally {
@@ -1772,8 +1800,8 @@ public class MediaProvider extends ContentProvider {
 
         ArrayList<String> fileList = new ArrayList<>();
         final String[] projection = {MediaColumns.DATA, MediaColumns.MIME_TYPE};
-        try (Cursor c = qb.query(helper, projection, selection, null,
-                null, null, null, null, null)) {
+        try (Cursor c = qb.query(helper, projection, selection, selectionArgs, null, null, null,
+                null, null)) {
             // Check if the calling package has write permission to all files in the given
             // directory. If calling package has write permission to all files in the directory, the
             // query with update uri should return same number of files as previous query.
@@ -1782,7 +1810,9 @@ public class MediaProvider extends ContentProvider {
                         + " to rename one or more files in " + oldPath);
             }
             while(c.moveToNext()) {
-                final String filePath = c.getString(0).replaceFirst("^" + oldPath + "/(.*)", "$1");
+                String filePath = c.getString(0);
+                filePath = filePath.replaceFirst(Pattern.quote(oldPath + "/"), "");
+
                 final String mimeType = c.getString(1);
                 if (!isMimeTypeSupportedInPath(newPath + "/" + filePath, mimeType)) {
                     throw new IllegalArgumentException("Can't rename " + oldPath + "/" + filePath
@@ -2022,6 +2052,10 @@ public class MediaProvider extends ContentProvider {
             if (!newPath.equals(getAbsoluteSanitizedPath(newPath))) {
                 Log.e(TAG, "New path name contains invalid characters.");
                 return OsConstants.EPERM;
+            }
+
+            if (shouldBypassDatabaseForFuse(uid)) {
+                return renameInLowerFs(oldPath, newPath);
             }
 
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, oldPath)
@@ -2535,17 +2569,17 @@ public class MediaProvider extends ContentProvider {
                         defaultMimeType = "audio/mpegurl";
                         defaultMediaType = FileColumns.MEDIA_TYPE_PLAYLIST;
                         defaultPrimary = Environment.DIRECTORY_MUSIC;
-                        allowedPrimary = Arrays.asList(
-                                Environment.DIRECTORY_MUSIC,
-                                Environment.DIRECTORY_MOVIES);
+                        allowedPrimary = new ArrayList<>(allowedPrimary);
+                        allowedPrimary.add(Environment.DIRECTORY_MUSIC);
+                        allowedPrimary.add(Environment.DIRECTORY_MOVIES);
                         break;
                     case FileColumns.MEDIA_TYPE_SUBTITLE:
                         defaultMimeType = "application/x-subrip";
                         defaultMediaType = FileColumns.MEDIA_TYPE_SUBTITLE;
                         defaultPrimary = Environment.DIRECTORY_MOVIES;
-                        allowedPrimary = Arrays.asList(
-                                Environment.DIRECTORY_MUSIC,
-                                Environment.DIRECTORY_MOVIES);
+                        allowedPrimary = new ArrayList<>(allowedPrimary);
+                        allowedPrimary.add(Environment.DIRECTORY_MUSIC);
+                        allowedPrimary.add(Environment.DIRECTORY_MOVIES);
                         break;
                 }
             } else if (defaultMediaType != actualMediaType) {
@@ -3286,6 +3320,9 @@ public class MediaProvider extends ContentProvider {
 
                 if (isCallingPackageSelf() || isCallingPackageLegacyWrite()) {
                     // Mutation allowed
+                } else if (isCallingPackageManager()) {
+                    // Apps with MANAGE_EXTERNAL_STORAGE have all files access, hence they are
+                    // allowed to insert files anywhere.
                 } else {
                     Log.w(TAG, "Ignoring mutation of  " + column + " from "
                             + getCallingPackageOrSelf());
@@ -3305,6 +3342,15 @@ public class MediaProvider extends ContentProvider {
             }
             if (initialValues.containsKey(ImageColumns.LONGITUDE)) {
                 initialValues.putNull(ImageColumns.LONGITUDE);
+            }
+            if (getCallingPackageTargetSdkVersion() <= Build.VERSION_CODES.Q) {
+                // These columns are removed in R.
+                if (initialValues.containsKey("primary_directory")) {
+                    initialValues.remove("primary_directory");
+                }
+                if (initialValues.containsKey("secondary_directory")) {
+                    initialValues.remove("secondary_directory");
+                }
             }
 
             if (isCallingPackageSelf() || isCallingPackageShell()) {
@@ -5127,6 +5173,15 @@ public class MediaProvider extends ContentProvider {
             if (initialValues.containsKey(ImageColumns.LONGITUDE)) {
                 initialValues.putNull(ImageColumns.LONGITUDE);
             }
+            if (getCallingPackageTargetSdkVersion() <= Build.VERSION_CODES.Q) {
+                // These columns are removed in R.
+                if (initialValues.containsKey("primary_directory")) {
+                    initialValues.remove("primary_directory");
+                }
+                if (initialValues.containsKey("secondary_directory")) {
+                    initialValues.remove("secondary_directory");
+                }
+            }
         }
 
         // If we're not updating anything, then we can skip
@@ -6002,6 +6057,8 @@ public class MediaProvider extends ContentProvider {
             // the remote writer tried claiming an exception
             invalidateThumbnails(uri);
 
+            // Invalidate so subsequent stat(2) on the upper fs is eventually consistent
+            invalidateFuseDentry(file);
             try {
                 switch (match) {
                     case IMAGES_THUMBNAILS_ID:
@@ -6233,6 +6290,24 @@ public class MediaProvider extends ContentProvider {
 
         // This is a private-package path; return true if not owned by the caller
         return !isCallingIdentitySharedPackageName(appSpecificDir);
+    }
+
+    private boolean shouldBypassDatabaseForFuse(int uid) {
+        final LocalCallingIdentity token =
+                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+        try {
+            if (uid != android.os.Process.SHELL_UID && isCallingPackageManager()) {
+                return true;
+            }
+            // We bypass db operations for legacy system galleries with W_E_S (see b/167307393).
+            // Tracking a longer term solution in b/168784136.
+            if (isCallingPackageLegacyWrite() && isCallingPackageSystemGallery()) {
+                return true;
+            }
+            return false;
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
     }
 
     /**
@@ -6663,6 +6738,10 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EPERM;
             }
 
+            if (shouldBypassDatabaseForFuse(uid)) {
+                return 0;
+            }
+
             final String mimeType = MimeUtils.resolveMimeType(new File(path));
 
             if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
@@ -6769,6 +6848,10 @@ public class MediaProvider extends ContentProvider {
             if (isPrivatePackagePathNotOwnedByCaller(path)) {
                 Log.e(TAG, "Can't delete a file in another app's external directory!");
                 return OsConstants.ENOENT;
+            }
+
+            if (shouldBypassDatabaseForFuse(uid)) {
+                return deleteFileUnchecked(path);
             }
 
             final boolean shouldBypass = shouldBypassFuseRestrictions(/*forWrite*/ true, path);
@@ -7651,6 +7734,10 @@ public class MediaProvider extends ContentProvider {
             builder.appendPath(basePath.get(i));
         }
         return builder.build();
+    }
+
+    private boolean isCallingPackageSystemGallery() {
+        return mCallingIdentity.get().hasPermission(PERMISSION_IS_SYSTEM_GALLERY);
     }
 
     @Deprecated

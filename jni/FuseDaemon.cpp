@@ -534,13 +534,7 @@ static void pf_init(void* userdata, struct fuse_conn_info* conn) {
 
     if (fuse->passthrough) {
         if (conn->capable & FUSE_CAP_PASSTHROUGH) {
-#ifdef NO_FUSE_PASSTHROUGH_32BIT
-            // TODO(b/175151591) Linux compatibility layer for FUSE_DEV_IOC_PASSTHROUGH_OPEN
-            LOG(WARNING) << "Passthrough feature not supported on 32-bit userspace";
-            fuse->passthrough = false;
-#else
             mask |= FUSE_CAP_PASSTHROUGH;
-#endif
         } else {
             LOG(WARNING) << "Passthrough feature not supported by the kernel";
             fuse->passthrough = false;

@@ -60,12 +60,6 @@ cc_library_shared {
         "-google-runtime-int",
     ],
 
-    target: {
-        android32: {
-            cflags: ["-DNO_FUSE_PASSTHROUGH_32BIT"],
-        },
-    },
-
     sdk_version: "current",
     stl: "c++_static",
     min_sdk_version: "30",

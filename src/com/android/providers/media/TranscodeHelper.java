@@ -259,8 +259,13 @@ public class TranscodeHelper {
     private String getNameForUid(int uid) {
         String name = mPackageManager.getNameForUid(uid);
         if (name == null) {
-            Log.w(TAG, "got null name for uid " + uid + ", using empty string instead");
-            return "";
+            Log.w(TAG, "null package name received from getNameForUid for uid " + uid
+                    + ", logging uid instead.");
+            name = Integer.toString(uid);
+        } else if (name.isEmpty()) {
+            Log.w(TAG, "empty package name received from getNameForUid for uid " + uid
+                    + ", logging uid instead");
+            name = ":" + uid;
         }
         return name;
     }

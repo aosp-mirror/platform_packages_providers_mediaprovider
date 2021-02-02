@@ -180,6 +180,7 @@ import com.android.providers.media.DatabaseHelper.OnFilesChangeListener;
 import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
 import com.android.providers.media.fuse.FuseDaemon;
+import com.android.providers.media.metrics.StatsdPuller;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
@@ -1002,6 +1003,8 @@ public class MediaProvider extends ContentProvider {
         if (provider != null) {
             mExternalStorageAuthorityAppId = UserHandle.getAppId(provider.applicationInfo.uid);
         }
+
+        StatsdPuller.initialize(context);
         return true;
     }
 

@@ -102,10 +102,6 @@ public class TranscodeHelper {
     private static final String TAG = "TranscodeHelper";
     private static final boolean DEBUG = SystemProperties.getBoolean("persist.sys.fuse.log", false);
 
-    // TODO(b/169327180): Move to ApplicationMediaCapabilities
-    private static final String MEDIA_CAPABILITIES_PROPERTY
-            = "android.media.PROPERTY_MEDIA_CAPABILITIES";
-
     // Notice the pairing of the keys.When you change a DEVICE_CONFIG key, then please also change
     // the corresponding SYS_PROP key too; and vice-versa.
     // Keeping the whole strings separate for the ease of text search.
@@ -639,8 +635,8 @@ public class TranscodeHelper {
         }
 
         try {
-            Property mediaCapProperty = mPackageManager.getProperty(MEDIA_CAPABILITIES_PROPERTY,
-                    packageName);
+            Property mediaCapProperty = mPackageManager.getProperty(
+                    PackageManager.PROPERTY_MEDIA_CAPABILITIES, packageName);
             XmlResourceParser parser = mPackageManager.getResourcesForApplication(packageName)
                     .getXml(mediaCapProperty.getResourceId());
             ApplicationMediaCapabilities capability = ApplicationMediaCapabilities.createFromXml(

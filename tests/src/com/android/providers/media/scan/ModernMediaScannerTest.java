@@ -804,6 +804,29 @@ public class ModernMediaScannerTest {
         }
     }
 
+    @Test
+    public void testScan_audioMp4_notRescanIfUnchanged() throws Exception {
+        final File file = new File(mDir, "176522651.m4a");
+        stage(R.raw.test_m4a, file);
+
+        // We trigger a scan twice, but we expect the second scan to be skipped since there were
+        // no changes.
+        mModern.scanFile(file, REASON_UNKNOWN);
+        mModern.scanFile(file, REASON_UNKNOWN);
+
+        try (Cursor cursor =
+                     mIsolatedResolver.query(
+                             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                             null, null, null, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+            cursor.moveToFirst();
+            String added = cursor.getString(cursor.getColumnIndex(MediaColumns.GENERATION_ADDED));
+            String modified =
+                    cursor.getString(cursor.getColumnIndex(MediaColumns.GENERATION_MODIFIED));
+            assertThat(modified).isEqualTo(added);
+        }
+    }
+
     /**
      * If there is a scan action between invoking {@link ContentResolver#insert} and
      * {@link ContentResolver#openFileDescriptor}, it should not raise

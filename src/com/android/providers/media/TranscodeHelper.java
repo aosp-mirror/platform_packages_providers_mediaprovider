@@ -102,10 +102,6 @@ public class TranscodeHelper {
     private static final String TAG = "TranscodeHelper";
     private static final boolean DEBUG = SystemProperties.getBoolean("persist.sys.fuse.log", false);
 
-    // TODO(b/169327180): Move to ApplicationMediaCapabilities
-    private static final String MEDIA_CAPABILITIES_PROPERTY
-            = "android.media.PROPERTY_MEDIA_CAPABILITIES";
-
     // Notice the pairing of the keys.When you change a DEVICE_CONFIG key, then please also change
     // the corresponding SYS_PROP key too; and vice-versa.
     // Keeping the whole strings separate for the ease of text search.
@@ -197,7 +193,7 @@ public class TranscodeHelper {
     @GuardedBy("mLock")
     private final Map<String, StorageTranscodingSession> mStorageTranscodingSessions = new ArrayMap<>();
     private final TranscodeUiNotifier mTranscodingUiNotifier;
-    private final TranscodeMetrics mTranscodingMetrics;
+    private final SessionTiming mSessionTiming;
     @GuardedBy("mLock")
     private final Map<String, Integer> mAppCompatMediaCapabilities = new ArrayMap<>();
 
@@ -217,8 +213,8 @@ public class TranscodeHelper {
         mTranscodeDirectory = new File("/storage/emulated/" + UserHandle.myUserId(),
                 DIRECTORY_TRANSCODE);
         mTranscodeDirectory.mkdirs();
-        mTranscodingMetrics = new TranscodeMetrics();
-        mTranscodingUiNotifier = new TranscodeUiNotifier(context, mTranscodingMetrics);
+        mSessionTiming = new SessionTiming();
+        mTranscodingUiNotifier = new TranscodeUiNotifier(context, mSessionTiming);
         mIsTranscodeEnabled = isTranscodeEnabled();
 
         parseTranscodeCompatManifest();
@@ -639,8 +635,8 @@ public class TranscodeHelper {
         }
 
         try {
-            Property mediaCapProperty = mPackageManager.getProperty(MEDIA_CAPABILITIES_PROPERTY,
-                    packageName);
+            Property mediaCapProperty = mPackageManager.getProperty(
+                    PackageManager.PROPERTY_MEDIA_CAPABILITIES, packageName);
             XmlResourceParser parser = mPackageManager.getResourcesForApplication(packageName)
                     .getXml(mediaCapProperty.getResourceId());
             ApplicationMediaCapabilities capability = ApplicationMediaCapabilities.createFromXml(
@@ -888,12 +884,12 @@ public class TranscodeHelper {
                 s -> {
                     mTranscodingUiNotifier.stop(s, src);
                     finishTranscodingResult(uid, src, s, latch);
-                    mTranscodingMetrics.logSessionEnd(s);
+                    mSessionTiming.logSessionEnd(s);
                 });
         session.setOnProgressUpdateListener(ForegroundThread.getExecutor(),
                 (s, progress) -> mTranscodingUiNotifier.setProgress(s, src, progress));
 
-        mTranscodingMetrics.logSessionStart(session);
+        mSessionTiming.logSessionStart(session);
         mTranscodingUiNotifier.start(session, src);
         logEvent("Transcoding start: " + src + ". Uid: " + uid, session);
         return session;
@@ -1208,15 +1204,15 @@ public class TranscodeHelper {
         private final NotificationCompat.Builder mAlertBuilder;
         // Builder for creating progress notifications.
         private final NotificationCompat.Builder mProgressBuilder;
-        private final TranscodeMetrics mTranscodingMetrics;
+        private final SessionTiming mSessionTiming;
 
-        TranscodeUiNotifier(Context context, TranscodeMetrics metrics) {
+        TranscodeUiNotifier(Context context, SessionTiming sessionTiming) {
             mNotificationManager = NotificationManagerCompat.from(context);
             createAlertNotificationChannel(context);
             createProgressNotificationChannel(context);
             mAlertBuilder = createAlertNotificationBuilder(context);
             mProgressBuilder = createProgressNotificationBuilder(context);
-            mTranscodingMetrics = metrics;
+            mSessionTiming = sessionTiming;
         }
 
         void start(TranscodingSession session, String filePath) {
@@ -1243,7 +1239,7 @@ public class TranscodeHelper {
         }
 
         private boolean shouldShowProgress(TranscodingSession session) {
-            return (System.currentTimeMillis() - mTranscodingMetrics.getSessionStartTime(session))
+            return (System.currentTimeMillis() - mSessionTiming.getSessionStartTime(session))
                     > SHOW_PROGRESS_THRESHOLD_TIME_MS;
         }
 
@@ -1311,26 +1307,22 @@ public class TranscodeHelper {
         }
     }
 
-    /**
-     * Stores metrics for transcode sessions.
-     */
-    private static final class TranscodeMetrics {
-
+    private static final class SessionTiming {
         // This should be accessed only in foreground thread.
         private final SparseArray<Long> mSessionStartTimes = new SparseArray<>();
 
         // Call this only in foreground thread.
-        long getSessionStartTime(TranscodingSession session) {
+        private long getSessionStartTime(MediaTranscodeManager.TranscodingSession session) {
             return mSessionStartTimes.get(session.getSessionId());
         }
 
-        void logSessionStart(TranscodingSession session) {
+        private void logSessionStart(MediaTranscodeManager.TranscodingSession session) {
             ForegroundThread.getHandler().post(
                     () -> mSessionStartTimes.append(session.getSessionId(),
                             System.currentTimeMillis()));
         }
 
-        void logSessionEnd(TranscodingSession session) {
+        private void logSessionEnd(MediaTranscodeManager.TranscodingSession session) {
             ForegroundThread.getHandler().post(
                     () -> mSessionStartTimes.remove(session.getSessionId()));
         }

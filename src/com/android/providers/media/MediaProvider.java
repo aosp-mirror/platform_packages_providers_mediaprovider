@@ -73,8 +73,8 @@ import static com.android.providers.media.util.FileUtils.extractVolumeName;
 import static com.android.providers.media.util.FileUtils.extractVolumePath;
 import static com.android.providers.media.util.FileUtils.getAbsoluteSanitizedPath;
 import static com.android.providers.media.util.FileUtils.isDataOrObbPath;
-import static com.android.providers.media.util.FileUtils.isObbOrChildPath;
 import static com.android.providers.media.util.FileUtils.isDownload;
+import static com.android.providers.media.util.FileUtils.isObbOrChildPath;
 import static com.android.providers.media.util.FileUtils.sanitizePath;
 import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
@@ -87,6 +87,9 @@ import android.app.PendingIntent;
 import android.app.RecoverableSecurityException;
 import android.app.RemoteAction;
 import android.app.admin.DevicePolicyManager;
+import android.app.compat.CompatChanges;
+import android.compat.annotation.ChangeId;
+import android.compat.annotation.EnabledAfter;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipDescription;
@@ -181,6 +184,7 @@ import com.android.providers.media.DatabaseHelper.OnFilesChangeListener;
 import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
 import com.android.providers.media.fuse.FuseDaemon;
+import com.android.providers.media.metrics.StatsdPuller;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
@@ -235,6 +239,13 @@ import java.util.regex.Pattern;
  * changes with the card.
  */
 public class MediaProvider extends ContentProvider {
+    /**
+     * Enables checks to stop apps from inserting and updating to private files via media provider.
+     */
+    @ChangeId
+    @EnabledAfter(targetSdkVersion = android.os.Build.VERSION_CODES.R)
+    static final long ENABLE_CHECKS_FOR_PRIVATE_FILES = 172100307L;
+
     /**
      * Regex of a selection string that matches a specific ID.
      */
@@ -1018,6 +1029,8 @@ public class MediaProvider extends ContentProvider {
         if (provider != null) {
             mExternalStorageAuthorityAppId = UserHandle.getAppId(provider.applicationInfo.uid);
         }
+
+        StatsdPuller.initialize(context);
         return true;
     }
 
@@ -3095,36 +3108,38 @@ public class MediaProvider extends ContentProvider {
 
     /**
      * Check that values don't contain any external private path.
+     * NOTE: The checks are gated on targetSDK S.
      */
     private void assertPrivatePathNotInValues(ContentValues values)
             throws IllegalArgumentException {
+        if (!CompatChanges.isChangeEnabled(ENABLE_CHECKS_FOR_PRIVATE_FILES,
+                Binder.getCallingUid())) {
+            // For legacy apps, let the behaviour be as it is.
+            return;
+        }
+
         ArrayList<String> relativePaths = new ArrayList<String>();
         relativePaths.add(extractRelativePath(values.getAsString(MediaColumns.DATA)));
         relativePaths.add(values.getAsString(MediaColumns.RELATIVE_PATH));
+        /**
+         * Don't allow apps to insert/update database row to files in Android/data or
+         * Android/obb dirs. These are app private directories and files in these private
+         * directories can't be added to public media collection.
+         */
+        for (final String relativePath : relativePaths) {
+            if (relativePath == null) continue;
 
-        final boolean isTargetSdkSOrHigher =
-                getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.S;
-        if (isTargetSdkSOrHigher) {
-            /**
-             * Don't allow apps to insert/update database row to files in Android/data or
-             * Android/obb dirs. These are app private directories and files in these private
-             * directories can't be added to public media collection.
-             */
-            for (final String relativePath : relativePaths) {
-                if (relativePath == null) continue;
+            final String[] relativePathSegments = relativePath.split("/", 3);
+            final String primary =
+                    (relativePathSegments.length > 0) ? relativePathSegments[0] : null;
+            final String secondary =
+                    (relativePathSegments.length > 1) ? relativePathSegments[1] : "";
 
-                final String[] relativePathSegments = relativePath.split("/", 3);
-                final String primary =
-                        (relativePathSegments.length > 0) ? relativePathSegments[0] : null;
-                final String secondary =
-                        (relativePathSegments.length > 1) ? relativePathSegments[1] : "";
-
-                if (DIRECTORY_ANDROID_LOWER_CASE.equalsIgnoreCase(primary)
-                        && PRIVATE_SUBDIRECTORIES_ANDROID.contains(
-                        secondary.toLowerCase(Locale.ROOT))) {
-                    throw new IllegalArgumentException(
-                            "Inserting private file: " + relativePath + " is not allowed.");
-                }
+            if (DIRECTORY_ANDROID_LOWER_CASE.equalsIgnoreCase(primary)
+                    && PRIVATE_SUBDIRECTORIES_ANDROID.contains(
+                    secondary.toLowerCase(Locale.ROOT))) {
+                throw new IllegalArgumentException(
+                        "Inserting private file: " + relativePath + " is not allowed.");
             }
         }
     }

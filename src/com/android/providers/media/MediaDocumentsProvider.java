@@ -17,6 +17,7 @@
 package com.android.providers.media;
 
 import static android.content.ContentResolver.EXTRA_SIZE;
+import static android.content.ContentResolver.QUERY_ARG_SQL_LIMIT;
 import static android.provider.DocumentsContract.QUERY_ARG_DISPLAY_NAME;
 import static android.provider.DocumentsContract.QUERY_ARG_EXCLUDE_MEDIA;
 import static android.provider.DocumentsContract.QUERY_ARG_FILE_SIZE_OVER;
@@ -1060,8 +1061,9 @@ public class MediaDocumentsProvider extends DocumentsProvider {
     private boolean isEmpty(Uri uri) {
         final ContentResolver resolver = getContext().getContentResolver();
         final long token = Binder.clearCallingIdentity();
-        try (Cursor cursor = resolver.query(uri,
-                new String[] { "COUNT(_id)" }, null, null, null)) {
+        Bundle extras = new Bundle();
+        extras.putString(QUERY_ARG_SQL_LIMIT, "1");
+        try (Cursor cursor = resolver.query(uri, new String[]{FileColumns._ID}, extras, null)) {
             if (cursor.moveToFirst()) {
                 return cursor.getInt(0) == 0;
             } else {

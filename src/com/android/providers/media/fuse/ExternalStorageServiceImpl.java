@@ -108,7 +108,7 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
     }
 
     @Override
-    public void onFreeCacheRequested(@NonNull UUID volumeUuid, @BytesLong long bytes) {
+    public void onFreeCache(@NonNull UUID volumeUuid, @BytesLong long bytes) throws IOException {
         Log.i(TAG, "Free cache requested for " + bytes + " bytes");
         getMediaProvider().freeCache(bytes);
     }

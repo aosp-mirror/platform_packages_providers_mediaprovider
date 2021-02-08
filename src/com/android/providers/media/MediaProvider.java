@@ -7424,19 +7424,20 @@ public class MediaProvider extends ContentProvider {
         try {
             if (isPrivatePackagePathNotAccessibleByCaller(path)) {
                 Log.e(TAG, "Can't open a file in another app's external directory!");
-                return new FileOpenResult(OsConstants.ENOENT, uid, new long[0]);
+                return new FileOpenResult(OsConstants.ENOENT, original_uid, new long[0]);
             }
 
             if (shouldBypassFuseRestrictions(forWrite, path)) {
                 isSuccess = true;
-                return new FileOpenResult(0 /* status */, uid,
+                return new FileOpenResult(0 /* status */, original_uid,
                         redact ? getRedactionRangesForFuse(path, ioPath, original_uid, uid, tid) :
                         new long[0]);
             }
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
             if (isCallingPackageRequestingLegacy()) {
-                return new FileOpenResult(OsConstants.EACCES /* status */, uid, new long[0]);
+                return new FileOpenResult(OsConstants.EACCES /* status */, original_uid,
+                        new long[0]);
             }
 
             final Uri contentUri = FileUtils.getContentUriForPath(path);
@@ -7484,7 +7485,7 @@ public class MediaProvider extends ContentProvider {
                 }
             }
             isSuccess = true;
-            return new FileOpenResult(0 /* status */, uid,
+            return new FileOpenResult(0 /* status */, original_uid,
                     redact ? getRedactionRangesForFuse(path, ioPath, original_uid, uid, tid) :
                     new long[0]);
         } catch (IOException e) {
@@ -7493,10 +7494,10 @@ public class MediaProvider extends ContentProvider {
             // * getRedactionRangesForFuse couldn't fetch the redaction info correctly
             // In all of these cases, it means that app doesn't have access permission to the file.
             Log.e(TAG, "Couldn't find file: " + path, e);
-            return new FileOpenResult(OsConstants.EACCES /* status */, uid, new long[0]);
+            return new FileOpenResult(OsConstants.EACCES /* status */, original_uid, new long[0]);
         } catch (IllegalStateException | SecurityException e) {
             Log.e(TAG, "Permission to access file: " + path + " is denied");
-            return new FileOpenResult(OsConstants.EACCES /* status */, uid, new long[0]);
+            return new FileOpenResult(OsConstants.EACCES /* status */, original_uid, new long[0]);
         } finally {
             if (isSuccess && logTransformsMetrics) {
                 notifyTranscodeHelperOnFileOpen(path, ioPath, original_uid, transformsReason);

@@ -67,7 +67,7 @@ cc_library_shared {
 
 cc_test {
     name: "fuse_node_test",
-    test_suites: ["device-tests", "mts"],
+    test_suites: ["device-tests", "mts-mediaprovider"],
     test_config: "fuse_node_test.xml",
 
     compile_multilib: "both",
@@ -101,7 +101,7 @@ cc_test {
 
 cc_test {
     name: "RedactionInfoTest",
-    test_suites: ["device-tests", "mts"],
+    test_suites: ["device-tests", "mts-mediaprovider"],
     test_config: "RedactionInfoTest.xml",
 
     compile_multilib: "both",
@@ -133,7 +133,7 @@ cc_test {
 
 cc_test {
     name: "FuseUtilsTest",
-    test_suites: ["device-tests", "mts"],
+    test_suites: ["device-tests", "mts-mediaprovider"],
     test_config: "FuseUtilsTest.xml",
 
     compile_multilib: "both",

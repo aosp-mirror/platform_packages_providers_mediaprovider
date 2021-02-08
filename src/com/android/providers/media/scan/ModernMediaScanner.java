@@ -736,8 +736,8 @@ public class ModernMediaScanner implements MediaScanner {
 
                     final boolean sameMetadata =
                             hasSameMetadata(attrs, realFile, isPendingFromFuse, c);
-                    if (isSame(
-                            sameMetadata, actualMimeType, actualMediaType, mimeType, mediaType)) {
+                    final boolean sameMediaType = actualMediaType == mediaType;
+                    if (sameMetadata && sameMediaType) {
                         if (LOGV) Log.v(TAG, "Skipping unchanged " + file);
                         return FileVisitResult.CONTINUE;
                     }
@@ -749,21 +749,6 @@ public class ModernMediaScanner implements MediaScanner {
                             && "audio/mp4".equalsIgnoreCase(mimeType)) {
                         if (LOGV) Log.v(TAG, "Skipping unchanged video/audio " + file);
                         return FileVisitResult.CONTINUE;
-                    }
-
-                    // "audio/mp4" mime types can come from various extensions (e.g. 3ga, m4a). We
-                    // want to avoid unnecessary scans of these files (it takes a long time for
-                    // many files, e.g. on phone reboot), so we check the mime type from the file's
-                    // metadata. We avoid always checking the file's metadata (and only do it for
-                    // this narrow case) since it involves expensive file operations.
-                    if (sameMetadata
-                            && (actualMediaType == mediaType)
-                            && "audio/mp4".equalsIgnoreCase(mimeType)) {
-                        actualMimeType = getAudioMimeTypeFromMetadata(realFile, actualMimeType);
-                        if (mimeType.equalsIgnoreCase(actualMimeType)) {
-                            if (LOGV) Log.v(TAG, "Skipping unchanged audio/mp4 " + file);
-                            return FileVisitResult.CONTINUE;
-                        }
                     }
                 }
 
@@ -801,20 +786,6 @@ public class ModernMediaScanner implements MediaScanner {
                 maybeApplyPending();
             }
             return FileVisitResult.CONTINUE;
-        }
-
-        private boolean isSame(
-                boolean hasSameMetadata,
-                String actualMimeType,
-                int actualMediaType,
-                String mimeType,
-                int mediaType) {
-            boolean sameMimeType =
-                    mimeType == null
-                            ? actualMimeType == null
-                            : mimeType.equalsIgnoreCase(actualMimeType);
-            boolean sameMediaType = (actualMediaType == mediaType);
-            return hasSameMetadata && sameMediaType && sameMimeType;
         }
 
         private int mediaTypeFromMimeType(
@@ -860,25 +831,6 @@ public class ModernMediaScanner implements MediaScanner {
                 }
             }
             return defaultMimeType;
-        }
-
-        /**
-         * Returns the mime type as read from the metadata of the given file or the given default
-         * value if we cannot read the metadata. We want to avoid calling this during sanning,
-         * since it involves expensive file operations.
-         */
-        private String getAudioMimeTypeFromMetadata(File file, String defaultMimeType) {
-            try (
-                    FileInputStream is = new FileInputStream(file);
-                    MediaMetadataRetriever mmr = new MediaMetadataRetriever()) {
-                mmr.setDataSource(is.getFD());
-                Optional<String> optionalMimeType =
-                        parseOptionalMimeType(
-                                defaultMimeType, mmr.extractMetadata(METADATA_KEY_MIMETYPE));
-                return optionalMimeType.orElse(defaultMimeType);
-            } catch (Exception e) {
-                return defaultMimeType;
-            }
         }
 
         @Override

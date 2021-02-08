@@ -151,6 +151,12 @@ public final class FuseDaemon extends Thread {
         }
     }
 
+    public ParcelFileDescriptor getOriginalMediaFormatFileDescriptor(
+            ParcelFileDescriptor fileDescriptor) {
+        // TODO (b/170488060): Implement get original media file fd via native fuse.
+        throw new UnsupportedOperationException();
+    }
+
     private native long native_new(MediaProvider mediaProvider);
 
     // Takes ownership of the passed in file descriptor!

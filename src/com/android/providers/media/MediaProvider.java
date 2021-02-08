@@ -5202,6 +5202,22 @@ public class MediaProvider extends ContentProvider {
                 res.putParcelable(MediaStore.EXTRA_RESULT, pi);
                 return res;
             }
+            case MediaStore.GET_ORIGINAL_MEDIA_FORMAT_FILE_DESCRIPTOR_CALL: {
+                ParcelFileDescriptor inputPfd =
+                        extras.getParcelable(MediaStore.EXTRA_FILE_DESCRIPTOR);
+                try {
+                    File file = getFileFromFileDescriptor(inputPfd);
+                    FuseDaemon fuseDaemon = getFuseDaemonForFile(file);
+
+                    ParcelFileDescriptor outputPfd =
+                            fuseDaemon.getOriginalMediaFormatFileDescriptor(inputPfd);
+                    Bundle res = new Bundle();
+                    res.putParcelable(MediaStore.EXTRA_FILE_DESCRIPTOR, outputPfd);
+                    return res;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }
@@ -5213,6 +5229,26 @@ public class MediaProvider extends ContentProvider {
             res.add(clipData.getItemAt(i).getUri());
         }
         return res;
+    }
+
+    /**
+     * Return the filesystem path of the real file on disk that is represented
+     * by the given {@link ParcelFileDescriptor}.
+     *
+     * Copied from {@link ParcelFileDescriptor#getFile}
+     */
+    private static File getFileFromFileDescriptor(ParcelFileDescriptor fileDescriptor)
+            throws IOException {
+        try {
+            final String path = Os.readlink("/proc/self/fd/" + fileDescriptor.getFd());
+            if (OsConstants.S_ISREG(Os.stat(path).st_mode)) {
+                return new File(path);
+            } else {
+                throw new IOException("Not a regular file: " + path);
+            }
+        } catch (ErrnoException e) {
+            throw e.rethrowAsIOException();
+        }
     }
 
     /**

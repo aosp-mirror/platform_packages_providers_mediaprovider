@@ -29,6 +29,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,6 +63,9 @@ public class Playlist {
             PlaylistPersister.resolvePersister(file).read(in, mItems);
         } catch (FileNotFoundException e) {
             Log.w(TAG, "Treating missing file as empty playlist");
+        } catch (InvalidPathException e) {
+            Log.w(TAG, "Broken playlist file", e);
+            clear();
         }
     }
 

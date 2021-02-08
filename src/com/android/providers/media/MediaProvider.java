@@ -180,6 +180,7 @@ import com.android.providers.media.DatabaseHelper.OnFilesChangeListener;
 import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
 import com.android.providers.media.fuse.FuseDaemon;
+import com.android.providers.media.metrics.StatsdPuller;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
@@ -250,19 +251,21 @@ public class MediaProvider extends ContentProvider {
      * These directory names aren't declared in Environment as final variables, and so we need to
      * have the same values in separate final variables in order to have them considered constant
      * expressions.
+     * These directory names are intentionally in lower case to ease the case insensitive path
+     * comparison.
      */
-    private static final String DIRECTORY_MUSIC = "Music";
-    private static final String DIRECTORY_PODCASTS = "Podcasts";
-    private static final String DIRECTORY_RINGTONES = "Ringtones";
-    private static final String DIRECTORY_ALARMS = "Alarms";
-    private static final String DIRECTORY_NOTIFICATIONS = "Notifications";
-    private static final String DIRECTORY_PICTURES = "Pictures";
-    private static final String DIRECTORY_MOVIES = "Movies";
-    private static final String DIRECTORY_DOWNLOADS = "Download";
-    private static final String DIRECTORY_DCIM = "DCIM";
-    private static final String DIRECTORY_DOCUMENTS = "Documents";
-    private static final String DIRECTORY_AUDIOBOOKS = "Audiobooks";
-    private static final String DIRECTORY_ANDROID = "Android";
+    private static final String DIRECTORY_MUSIC_LOWER_CASE = "music";
+    private static final String DIRECTORY_PODCASTS_LOWER_CASE = "podcasts";
+    private static final String DIRECTORY_RINGTONES_LOWER_CASE = "ringtones";
+    private static final String DIRECTORY_ALARMS_LOWER_CASE = "alarms";
+    private static final String DIRECTORY_NOTIFICATIONS_LOWER_CASE = "notifications";
+    private static final String DIRECTORY_PICTURES_LOWER_CASE = "pictures";
+    private static final String DIRECTORY_MOVIES_LOWER_CASE = "movies";
+    private static final String DIRECTORY_DOWNLOADS_LOWER_CASE = "download";
+    private static final String DIRECTORY_DCIM_LOWER_CASE = "dcim";
+    private static final String DIRECTORY_DOCUMENTS_LOWER_CASE = "documents";
+    private static final String DIRECTORY_AUDIOBOOKS_LOWER_CASE = "audiobooks";
+    private static final String DIRECTORY_ANDROID_LOWER_CASE = "android";
 
     private static final String DIRECTORY_MEDIA = "media";
     private static final String DIRECTORY_THUMBNAILS = ".thumbnails";
@@ -306,6 +309,8 @@ public class MediaProvider extends ContentProvider {
     private static final int PER_USER_RANGE = 100000;
     private static final boolean PROP_CROSS_USER_ALLOWED =
             SystemProperties.getBoolean("external_storage.cross_user.enabled", false);
+    private static final String PROP_CROSS_USER_ROOT =
+            SystemProperties.get("external_storage.cross_user.root", null);
 
     /**
      * Set of {@link Cursor} columns that refer to raw filesystem paths.
@@ -998,6 +1003,8 @@ public class MediaProvider extends ContentProvider {
         if (provider != null) {
             mExternalStorageAuthorityAppId = UserHandle.getAppId(provider.applicationInfo.uid);
         }
+
+        StatsdPuller.initialize(context);
         return true;
     }
 
@@ -1093,20 +1100,24 @@ public class MediaProvider extends ContentProvider {
         });
         Log.d(TAG, "Pruned " + stalePackages + " unknown packages");
 
-        // Delete any expired content; we're paranoid about wildly changing
-        // clocks, so only delete items within the last week
+        // Delete any expired content on mounted volumes. The expired content on unmounted
+        // volumes will be deleted when we forget any stale volumes; we're cautious about
+        // wildly changing clocks, so only delete items within the last week
         final long from = ((System.currentTimeMillis() - DateUtils.WEEK_IN_MILLIS) / 1000);
         final long to = (System.currentTimeMillis() / 1000);
         final int expiredMedia = mExternalDatabase.runWithTransaction((db) -> {
+            String selection = FileColumns.DATE_EXPIRES + " BETWEEN " + from + " AND " + to;
+            selection += " AND volume_name in " + bindList(MediaStore.getExternalVolumeNames(
+                    getContext()).toArray());
             try (Cursor c = db.query(true, "files", new String[] { "volume_name", "_id" },
-                    FileColumns.DATE_EXPIRES + " BETWEEN " + from + " AND " + to, null,
-                    null, null, null, null, signal)) {
+                    selection, null, null, null, null, null, signal)) {
+                int totalCount = 0;
                 while (c.moveToNext()) {
                     final String volumeName = c.getString(0);
                     final long id = c.getLong(1);
-                    delete(Files.getContentUri(volumeName, id), null, null);
+                    totalCount += delete(Files.getContentUri(volumeName, id), null, null);
                 }
-                return c.getCount();
+                return totalCount;
             }
         });
         Log.d(TAG, "Deleted " + expiredMedia + " expired items");
@@ -1907,12 +1918,12 @@ public class MediaProvider extends ContentProvider {
     private ArrayList<String> getIncludedDefaultDirectories() {
         final ArrayList<String> includedDefaultDirs = new ArrayList<>();
         if (checkCallingPermissionVideo(/*forWrite*/ true, null)) {
-            includedDefaultDirs.add(DIRECTORY_DCIM);
-            includedDefaultDirs.add(DIRECTORY_PICTURES);
-            includedDefaultDirs.add(DIRECTORY_MOVIES);
+            includedDefaultDirs.add(Environment.DIRECTORY_DCIM);
+            includedDefaultDirs.add(Environment.DIRECTORY_PICTURES);
+            includedDefaultDirs.add(Environment.DIRECTORY_MOVIES);
         } else if (checkCallingPermissionImages(/*forWrite*/ true, null)) {
-            includedDefaultDirs.add(DIRECTORY_DCIM);
-            includedDefaultDirs.add(DIRECTORY_PICTURES);
+            includedDefaultDirs.add(Environment.DIRECTORY_DCIM);
+            includedDefaultDirs.add(Environment.DIRECTORY_PICTURES);
         }
         return includedDefaultDirs;
     }
@@ -2290,10 +2301,11 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.EPERM;
             }
 
+            // TODO(b/177049768): We shouldn't use getExternalStorageDirectory for these checks.
             final File directoryAndroid = new File(Environment.getExternalStorageDirectory(),
-                    DIRECTORY_ANDROID);
+                    DIRECTORY_ANDROID_LOWER_CASE);
             final File directoryAndroidMedia = new File(directoryAndroid, DIRECTORY_MEDIA);
-            if (directoryAndroidMedia.getAbsolutePath().equals(oldPath)) {
+            if (directoryAndroidMedia.getAbsolutePath().equalsIgnoreCase(oldPath)) {
                 // Don't allow renaming 'Android/media' directory.
                 // Android/[data|obb] are bind mounted and these paths don't go through FUSE.
                 Log.e(TAG, errorMessage +  oldPath + " is a default folder in app external "
@@ -2866,7 +2878,16 @@ public class MediaProvider extends ContentProvider {
             final String[] relativePath = values.getAsString(MediaColumns.RELATIVE_PATH).split("/");
             final String primary = (relativePath.length > 0) ? relativePath[0] : null;
             if (!validPath) {
-                validPath = allowedPrimary.contains(primary);
+                validPath = containsIgnoreCase(allowedPrimary, primary);
+                if (!validPath) {
+                    // Some app-clone implementations use a subdirectory of the main user's root
+                    // to store app clone files; allow these as well.
+                    if (isCrossUserEnabled() && primary.equals(PROP_CROSS_USER_ROOT) &&
+                            relativePath.length >= 2) {
+                        final String crossUserPrimary = relativePath[1];
+                        validPath = containsIgnoreCase(allowedPrimary, crossUserPrimary);
+                    }
+                }
             }
 
             // Next, consider allowing paths when referencing a related item
@@ -4269,6 +4290,13 @@ public class MediaProvider extends ContentProvider {
                     qb.setProjectionMap(projectionMap);
 
                     appendWhereStandalone(qb, "audio._id = audio_id");
+                    // Since we use audio table along with audio_playlists_map
+                    // for querying, we should only include database rows of
+                    // the attached volumes.
+                    if (!includeAllVolumes) {
+                        appendWhereStandalone(qb, FileColumns.VOLUME_NAME + " IN "
+                             + includeVolumes);
+                    }
                 } else {
                     qb.setTables("audio_playlists_map");
                     qb.setProjectionMap(getProjectionMap(Audio.Playlists.Members.class));
@@ -5034,11 +5062,14 @@ public class MediaProvider extends ContentProvider {
      * @return true if the given Files uri has media_type=MEDIA_TYPE_SUBTITLE
      */
     private boolean isSubtitleFile(Uri uri) {
+        final LocalCallingIdentity tokenInner = clearLocalCallingIdentity();
         try (Cursor cursor = queryForSingleItem(uri, new String[]{FileColumns.MEDIA_TYPE}, null,
                 null, null)) {
             return cursor.getInt(0) == FileColumns.MEDIA_TYPE_SUBTITLE;
         } catch (FileNotFoundException e) {
             Log.e(TAG, "Couldn't find database row for requested uri " + uri, e);
+        } finally {
+            restoreLocalCallingIdentity(tokenInner);
         }
         return false;
     }
@@ -5238,9 +5269,10 @@ public class MediaProvider extends ContentProvider {
     private List<File> getThumbnailDirectories(String volumeName) throws FileNotFoundException {
         final File volumePath = getVolumePath(volumeName);
         return Arrays.asList(
-                FileUtils.buildPath(volumePath, DIRECTORY_MUSIC, DIRECTORY_THUMBNAILS),
-                FileUtils.buildPath(volumePath, DIRECTORY_MOVIES, DIRECTORY_THUMBNAILS),
-                FileUtils.buildPath(volumePath, DIRECTORY_PICTURES, DIRECTORY_THUMBNAILS));
+                FileUtils.buildPath(volumePath, Environment.DIRECTORY_MUSIC, DIRECTORY_THUMBNAILS),
+                FileUtils.buildPath(volumePath, Environment.DIRECTORY_MOVIES, DIRECTORY_THUMBNAILS),
+                FileUtils.buildPath(volumePath, Environment.DIRECTORY_PICTURES,
+                        DIRECTORY_THUMBNAILS));
     }
 
     private void invalidateThumbnails(Uri uri) {
@@ -5940,9 +5972,9 @@ public class MediaProvider extends ContentProvider {
     private long addPlaylistMembers(@NonNull Uri playlistUri, @NonNull ContentValues values)
             throws FallbackException {
         final long audioId = values.getAsLong(Audio.Playlists.Members.AUDIO_ID);
-        final String audioVolumeName = MediaStore.VOLUME_INTERNAL.equals(getVolumeName(playlistUri))
+        final String volumeName = MediaStore.VOLUME_INTERNAL.equals(getVolumeName(playlistUri))
                 ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL;
-        final Uri audioUri = Audio.Media.getContentUri(audioVolumeName, audioId);
+        final Uri audioUri = Audio.Media.getContentUri(volumeName, audioId);
 
         Integer playOrder = values.getAsInteger(Playlists.Members.PLAY_ORDER);
         playOrder = (playOrder != null) ? (playOrder - 1) : Integer.MAX_VALUE;
@@ -5961,8 +5993,8 @@ public class MediaProvider extends ContentProvider {
             resolvePlaylistMembers(playlistUri);
 
             // Callers are interested in the actual ID we generated
-            final Uri membersUri = Playlists.Members.getContentUri(
-                    getVolumeName(playlistUri), ContentUris.parseId(playlistUri));
+            final Uri membersUri = Playlists.Members.getContentUri(volumeName,
+                    ContentUris.parseId(playlistUri));
             try (Cursor c = query(membersUri, new String[] { BaseColumns._ID },
                     Playlists.Members.PLAY_ORDER + "=" + (playOrder + 1), null, null)) {
                 c.moveToFirst();
@@ -6372,6 +6404,23 @@ public class MediaProvider extends ContentProvider {
         try (Cursor cursor = queryForSingleItem(uri, new String[] { MediaColumns._ID },
                 MediaColumns.DATA + "=?", new String[] { file.getAbsolutePath() }, signal)) {
             return ContentUris.withAppendedId(uri, cursor.getLong(0));
+        }
+    }
+
+    /**
+     * Query the given {@link Uri} as MediaProvider, expecting only a single item to be found.
+     *
+     * @throws FileNotFoundException if no items were found, or multiple items
+     *             were found, or there was trouble reading the data.
+     */
+    Cursor queryForSingleItemAsMediaProvider(Uri uri, String[] projection, String selection,
+            String[] selectionArgs, CancellationSignal signal)
+            throws FileNotFoundException {
+        final LocalCallingIdentity tokenInner = clearLocalCallingIdentity();
+        try {
+            return queryForSingleItem(uri, projection, selection, selectionArgs, signal);
+        } finally {
+            restoreLocalCallingIdentity(tokenInner);
         }
     }
 
@@ -7041,33 +7090,49 @@ public class MediaProvider extends ContentProvider {
             final String[] projection = new String[]{
                     MediaColumns._ID,
                     MediaColumns.OWNER_PACKAGE_NAME,
-                    MediaColumns.IS_PENDING};
+                    MediaColumns.IS_PENDING,
+                    FileColumns.MEDIA_TYPE};
             final String selection = MediaColumns.DATA + "=?";
-            final String[] selectionArgs = new String[] { path };
-            final Uri fileUri;
+            final String[] selectionArgs = new String[]{ path };
+            final long id;
+            final int mediaType;
             final boolean isPending;
             String ownerPackageName = null;
-            try (final Cursor c = queryForSingleItem(contentUri, projection, selection,
+            try (final Cursor c = queryForSingleItemAsMediaProvider(contentUri, projection,
+                    selection,
                     selectionArgs, null)) {
-                fileUri = ContentUris.withAppendedId(contentUri, c.getInt(0));
+                id = c.getLong(0);
                 ownerPackageName = c.getString(1);
                 isPending = c.getInt(2) != 0;
+                mediaType = c.getInt(3);
             }
-
             final File file = new File(path);
-            checkAccess(fileUri, Bundle.EMPTY, file, forWrite);
-
+            final Uri fileUri = MediaStore.Files.getContentUri(extractVolumeName(path), id);
             // We don't check ownership for files with IS_PENDING set by FUSE
             if (isPending && !isPendingFromFuse(new File(path))) {
                 requireOwnershipForItem(ownerPackageName, fileUri);
             }
+
+            // Check that path looks consistent before uri checks
+            if (!FileUtils.contains(Environment.getStorageDirectory(), file)) {
+                checkWorldReadAccess(file.getAbsolutePath());
+            }
+
+            try {
+                // checkAccess throws FileNotFoundException only from checkWorldReadAccess(),
+                // which we already check above. Hence, handling only SecurityException.
+                checkAccess(fileUri, Bundle.EMPTY, file, forWrite);
+            } catch (SecurityException e) {
+                // Check for other Uri formats only when the single uri check flow fails.
+                // Throw the previous exception if the multi-uri checks failed.
+                if (!(isFilePathSupportForMediaUris() &&
+                        hasOtherUriGrants(path, mediaType, id, forWrite))) {
+                    throw e;
+                }
+            }
             return 0;
         } catch (FileNotFoundException e) {
-            // We are here because
-            // * App doesn't have read permission to the requested path, hence queryForSingleItem
-            //   couldn't return a valid db row, or,
-            // * There is no db row corresponding to the requested path, which is more unlikely.
-            // In both of these cases, it means that app doesn't have access permission to the file.
+            // We are here because there is no db row corresponding to the requested path.
             Log.e(TAG, "Couldn't find file: " + path);
             return OsConstants.EACCES;
         } catch (IllegalStateException | SecurityException e) {
@@ -7076,6 +7141,43 @@ public class MediaProvider extends ContentProvider {
         } finally {
             restoreLocalCallingIdentity(token);
         }
+    }
+
+    private boolean hasOtherUriGrants(String path, int mediaType, long id, boolean forWrite) {
+        Set<Uri> otherUris = new ArraySet<Uri>();
+        final Uri mediaUri = getMediaUriForFuse(extractVolumeName(path), mediaType, id);
+        otherUris.add(mediaUri);
+        final Uri externalMediaUri = getMediaUriForFuse(MediaStore.VOLUME_EXTERNAL, mediaType, id);
+        otherUris.add(externalMediaUri);
+        return bulkCheckUriPermissions(otherUris, forWrite);
+    }
+
+    private @NonNull Uri getMediaUriForFuse(@NonNull String volumeName, int mediaType, long id) {
+        switch (mediaType) {
+            case FileColumns.MEDIA_TYPE_IMAGE:
+                return MediaStore.Images.Media.getContentUri(volumeName, id);
+            case FileColumns.MEDIA_TYPE_VIDEO:
+                return MediaStore.Video.Media.getContentUri(volumeName, id);
+            case FileColumns.MEDIA_TYPE_AUDIO:
+                return MediaStore.Audio.Media.getContentUri(volumeName, id);
+            case FileColumns.MEDIA_TYPE_PLAYLIST:
+                return ContentUris.withAppendedId(
+                        MediaStore.Audio.Playlists.getContentUri(volumeName), id);
+            default:
+                // return files URIs
+                return MediaStore.Files.getContentUri(volumeName, id);
+        }
+    }
+
+    /**
+     * Feature flag to support File APIs for different formats of media-store URI grants like:
+     *   * content://media/external_primary/images/media/123
+     *   * content://media/external/images/media/123
+     *
+     *   Default value: false
+     */
+    private boolean isFilePathSupportForMediaUris() {
+        return SystemProperties.getBoolean("sys.filepathsupport.mediauri", false);
     }
 
     /**
@@ -7106,21 +7208,23 @@ public class MediaProvider extends ContentProvider {
             throw new IllegalStateException("Couldn't get volume name for " + filePath);
         }
         Uri uri = Files.getContentUri(volName);
-        final String topLevelDir = extractTopLevelDir(filePath);
+        String topLevelDir = extractTopLevelDir(filePath);
         if (topLevelDir == null) {
             // If the file path doesn't match the external storage directory, we use the files URI
             // as default and let #insert enforce the restrictions
             return uri;
         }
+        topLevelDir = topLevelDir.toLowerCase(Locale.ROOT);
+
         switch (topLevelDir) {
-            case DIRECTORY_PODCASTS:
-            case DIRECTORY_RINGTONES:
-            case DIRECTORY_ALARMS:
-            case DIRECTORY_NOTIFICATIONS:
-            case DIRECTORY_AUDIOBOOKS:
+            case DIRECTORY_PODCASTS_LOWER_CASE:
+            case DIRECTORY_RINGTONES_LOWER_CASE:
+            case DIRECTORY_ALARMS_LOWER_CASE:
+            case DIRECTORY_NOTIFICATIONS_LOWER_CASE:
+            case DIRECTORY_AUDIOBOOKS_LOWER_CASE:
                 uri = Audio.Media.getContentUri(volName);
                 break;
-            case DIRECTORY_MUSIC:
+            case DIRECTORY_MUSIC_LOWER_CASE:
                 if (MimeUtils.isPlaylistMimeType(mimeType)) {
                     uri = Audio.Playlists.getContentUri(volName);
                 } else if (!MimeUtils.isSubtitleMimeType(mimeType)) {
@@ -7128,7 +7232,7 @@ public class MediaProvider extends ContentProvider {
                     uri = Audio.Media.getContentUri(volName);
                 }
                 break;
-            case DIRECTORY_MOVIES:
+            case DIRECTORY_MOVIES_LOWER_CASE:
                 if (MimeUtils.isPlaylistMimeType(mimeType)) {
                     uri = Audio.Playlists.getContentUri(volName);
                 } else if (!MimeUtils.isSubtitleMimeType(mimeType)) {
@@ -7136,21 +7240,30 @@ public class MediaProvider extends ContentProvider {
                     uri = Video.Media.getContentUri(volName);
                 }
                 break;
-            case DIRECTORY_DCIM:
-            case DIRECTORY_PICTURES:
+            case DIRECTORY_DCIM_LOWER_CASE:
+            case DIRECTORY_PICTURES_LOWER_CASE:
                 if (MimeUtils.isImageMimeType(mimeType)) {
                     uri = Images.Media.getContentUri(volName);
                 } else {
                     uri = Video.Media.getContentUri(volName);
                 }
                 break;
-            case DIRECTORY_DOWNLOADS:
-            case DIRECTORY_DOCUMENTS:
+            case DIRECTORY_DOWNLOADS_LOWER_CASE:
+            case DIRECTORY_DOCUMENTS_LOWER_CASE:
                 break;
             default:
                 Log.w(TAG, "Forgot to handle a top level directory in getContentUriForFile?");
         }
         return uri;
+    }
+
+    private boolean containsIgnoreCase(@Nullable List<String> stringsList, @Nullable String item) {
+        if (item == null || stringsList == null) return false;
+
+        for (String current : stringsList) {
+            if (item.equalsIgnoreCase(current)) return true;
+        }
+        return false;
     }
 
     private boolean fileExists(@NonNull String absolutePath) {
@@ -7630,14 +7743,24 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Outstanding grant means they get access
-        if (getContext().checkUriPermission(uri, mCallingIdentity.get().pid,
+        return isUriPermissionGranted(uri, forWrite);
+    }
+
+    private boolean bulkCheckUriPermissions(Set<Uri> uris, boolean forWrite) {
+        for (Uri uri : uris) {
+            if (isUriPermissionGranted(uri, forWrite)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isUriPermissionGranted(Uri uri, boolean forWrite) {
+        int uriPermission = getContext().checkUriPermission(uri, mCallingIdentity.get().pid,
                 mCallingIdentity.get().uid, forWrite
                         ? Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                        : Intent.FLAG_GRANT_READ_URI_PERMISSION) == PERMISSION_GRANTED) {
-            return true;
-        }
-
-        return false;
+                        : Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        return uriPermission == PERMISSION_GRANTED;
     }
 
     @VisibleForTesting

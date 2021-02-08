@@ -32,10 +32,10 @@ import android.Manifest;
 import android.media.ApplicationMediaCapabilities;
 import android.media.MediaFormat;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
+import android.os.SystemProperties;
 import android.provider.MediaStore;
 
 import androidx.test.runner.AndroidJUnit4;
@@ -85,7 +85,7 @@ public class TranscodeTest {
     @Before
     public void setUp() throws Exception {
         // TODO(b/171789917): Cuttlefish doesn't support transcoding yet
-        Assume.assumeFalse(Build.MODEL.contains("Cuttlefish"));
+        Assume.assumeFalse(SystemProperties.get("ro.product.vendor.model").contains("Cuttlefish"));
 
         TranscodeTestUtils.pollForExternalStorageState();
         TranscodeTestUtils.grantPermission(getContext().getPackageName(),

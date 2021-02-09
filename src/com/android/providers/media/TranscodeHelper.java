@@ -782,7 +782,7 @@ public class TranscodeHelper {
                                 c.getLong(2) /* video_duration */,
                                 c.getLong(3) /* capture_framerate */,
                                 -1 /* transcode_reason */);
-                    } else if (isTranscodeFileCached(uid, path, ioPath)) {
+                    } else if (isTranscodeFileCached(path, ioPath)) {
                             MediaProviderStatsLog.write(
                                     TRANSCODING_DATA,
                                     getNameForUid(uid) /* owner_package_name */,
@@ -801,7 +801,7 @@ public class TranscodeHelper {
         }
     }
 
-    public boolean isTranscodeFileCached(int uid, String path, String transcodePath) {
+    public boolean isTranscodeFileCached(String path, String transcodePath) {
         if (SystemProperties.getBoolean("sys.fuse.disable_transcode_cache", false)) {
             // Caching is disabled. Hence, delete the cached transcode file.
             return false;

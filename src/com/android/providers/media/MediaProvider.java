@@ -1381,7 +1381,7 @@ public class MediaProvider extends ContentProvider {
     public boolean transformForFuse(String src, String dst, int transforms, int transformsReason,
             int uid) {
         if ((transforms & FLAG_TRANSFORM_TRANSCODING) != 0) {
-            if (mTranscodeHelper.isTranscodeFileCached(uid, src, dst)) {
+            if (mTranscodeHelper.isTranscodeFileCached(src, dst)) {
                 Log.d(TAG, "Using transcode cache for " + src);
                 return true;
             }

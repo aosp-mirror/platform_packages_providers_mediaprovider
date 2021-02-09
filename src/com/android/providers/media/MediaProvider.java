@@ -2283,8 +2283,7 @@ public class MediaProvider extends ContentProvider {
                 if (!bypassRestrictions) {
                     // Check for other URI format grants for oldPath only. Check right before
                     // returning EPERM, to leave positive case performance unaffected.
-                    if (!(isFilePathSupportForMediaUris() && renameWithOtherUriGrants(helper,
-                            oldPath, newPath, contentValues))) {
+                    if (!renameWithOtherUriGrants(helper, oldPath, newPath, contentValues)) {
                         Log.e(TAG, "Calling package doesn't have write permission to rename file.");
                         return OsConstants.EPERM;
                     }
@@ -4981,7 +4980,7 @@ public class MediaProvider extends ContentProvider {
 
             // Check for other URI format grants for File API call only. Check right before
             // returning count = 0, to leave positive cases performance unaffected.
-            if (count == 0 && isFuseThread() && isFilePathSupportForMediaUris()) {
+            if (count == 0 && isFuseThread()) {
                 count += deleteWithOtherUriGrants(uri, helper, projection, userWhere, userWhereArgs,
                         extras);
             }
@@ -7474,8 +7473,7 @@ public class MediaProvider extends ContentProvider {
             } catch (SecurityException e) {
                 // Check for other Uri formats only when the single uri check flow fails.
                 // Throw the previous exception if the multi-uri checks failed.
-                if (!(isFilePathSupportForMediaUris() &&
-                        getOtherUriGrantsForPath(path, mediaType, id, forWrite) != null)) {
+                if (getOtherUriGrantsForPath(path, mediaType, id, forWrite) == null) {
                     throw e;
                 }
             }
@@ -7545,17 +7543,6 @@ public class MediaProvider extends ContentProvider {
                 // return files URIs
                 return MediaStore.Files.getContentUri(volumeName, id);
         }
-    }
-
-    /**
-     * Feature flag to support File APIs for different formats of media-store URI grants like:
-     *   * content://media/external_primary/images/media/123
-     *   * content://media/external/images/media/123
-     *
-     *   Default value: false
-     */
-    private boolean isFilePathSupportForMediaUris() {
-        return SystemProperties.getBoolean("sys.filepathsupport.mediauri", false);
     }
 
     /**

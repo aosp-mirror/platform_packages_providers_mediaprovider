@@ -1197,7 +1197,16 @@ public class MediaProviderTest {
     }
 
     @Test
+    public void testQueryAudioViewsNoTrashedItem() throws Exception {
+        testQueryAudioViewsNoItemWithColumn(MediaStore.Audio.Media.IS_TRASHED);
+    }
+
+    @Test
     public void testQueryAudioViewsNoPendingItem() throws Exception {
+        testQueryAudioViewsNoItemWithColumn(MediaStore.Audio.Media.IS_PENDING);
+    }
+
+    private void testQueryAudioViewsNoItemWithColumn(String columnKey) throws Exception {
         // We might have old files lurking, so force a clean slate
         final Context context = InstrumentationRegistry.getTargetContext();
         sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
@@ -1221,14 +1230,13 @@ public class MediaProviderTest {
         values.put(MediaStore.Audio.Media.DISPLAY_NAME, displayName);
         values.put(MediaStore.Audio.Media.RELATIVE_PATH, relativePath);
         values.put(MediaStore.Audio.Media.IS_MUSIC, 1);
-        values.put(MediaStore.Audio.Media.IS_PENDING, 1);
+        values.put(columnKey, 1);
 
         Uri result = sIsolatedResolver.insert(audioUri, values);
 
         // Check the audio file is inserted correctly
-        try (Cursor c = sIsolatedResolver.query(result, new String[]{MediaColumns.DISPLAY_NAME,
-                        MediaColumns.IS_PENDING},
-                null, null)) {
+        try (Cursor c = sIsolatedResolver.query(result,
+                new String[]{MediaColumns.DISPLAY_NAME, columnKey}, null, null)) {
             assertNotNull(c);
             assertEquals(1, c.getCount());
             assertTrue(c.moveToFirst());

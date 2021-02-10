@@ -180,6 +180,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.DatabaseHelper.OnFilesChangeListener;
 import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
@@ -273,6 +274,7 @@ public class MediaProvider extends ContentProvider {
     private static final String DIRECTORY_DCIM_LOWER_CASE = "dcim";
     private static final String DIRECTORY_DOCUMENTS_LOWER_CASE = "documents";
     private static final String DIRECTORY_AUDIOBOOKS_LOWER_CASE = "audiobooks";
+    private static final String DIRECTORY_RECORDINGS_LOWER_CASE = "recordings";
     private static final String DIRECTORY_ANDROID_LOWER_CASE = "android";
 
     private static final String DIRECTORY_MEDIA = "media";
@@ -2784,13 +2786,24 @@ public class MediaProvider extends ContentProvider {
                 defaultMimeType = "audio/mpeg";
                 defaultMediaType = FileColumns.MEDIA_TYPE_AUDIO;
                 defaultPrimary = Environment.DIRECTORY_MUSIC;
-                allowedPrimary = Arrays.asList(
-                        Environment.DIRECTORY_ALARMS,
-                        Environment.DIRECTORY_AUDIOBOOKS,
-                        Environment.DIRECTORY_MUSIC,
-                        Environment.DIRECTORY_NOTIFICATIONS,
-                        Environment.DIRECTORY_PODCASTS,
-                        Environment.DIRECTORY_RINGTONES);
+                if (SdkLevel.isAtLeastS()) {
+                    allowedPrimary = Arrays.asList(
+                            Environment.DIRECTORY_ALARMS,
+                            Environment.DIRECTORY_AUDIOBOOKS,
+                            Environment.DIRECTORY_MUSIC,
+                            Environment.DIRECTORY_NOTIFICATIONS,
+                            Environment.DIRECTORY_PODCASTS,
+                            Environment.DIRECTORY_RECORDINGS,
+                            Environment.DIRECTORY_RINGTONES);
+                } else {
+                    allowedPrimary = Arrays.asList(
+                            Environment.DIRECTORY_ALARMS,
+                            Environment.DIRECTORY_AUDIOBOOKS,
+                            Environment.DIRECTORY_MUSIC,
+                            Environment.DIRECTORY_NOTIFICATIONS,
+                            Environment.DIRECTORY_PODCASTS,
+                            Environment.DIRECTORY_RINGTONES);
+                }
                 break;
             case VIDEO_MEDIA:
             case VIDEO_MEDIA_ID:
@@ -7611,6 +7624,7 @@ public class MediaProvider extends ContentProvider {
             case DIRECTORY_ALARMS_LOWER_CASE:
             case DIRECTORY_NOTIFICATIONS_LOWER_CASE:
             case DIRECTORY_AUDIOBOOKS_LOWER_CASE:
+            case DIRECTORY_RECORDINGS_LOWER_CASE:
                 uri = Audio.Media.getContentUri(volName);
                 break;
             case DIRECTORY_MUSIC_LOWER_CASE:

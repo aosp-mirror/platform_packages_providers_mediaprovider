@@ -60,6 +60,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.DatabaseUtils;
@@ -813,7 +814,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + "scene_capture_type INTEGER DEFAULT NULL, generation_added INTEGER DEFAULT 0,"
                 + "generation_modified INTEGER DEFAULT 0, xmp BLOB DEFAULT NULL,"
                 + "_transcode_status INTEGER DEFAULT 0, _video_codec_type TEXT DEFAULT NULL,"
-                + "_modifier INTEGER DEFAULT 0)");
+                + "_modifier INTEGER DEFAULT 0, is_recording INTEGER DEFAULT 0)");
 
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         if (!mInternal) {
@@ -1370,6 +1371,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("ALTER TABLE files ADD COLUMN is_audiobook INTEGER DEFAULT 0;");
     }
 
+    private static void updateAddRecording(SQLiteDatabase db, boolean internal) {
+        db.execSQL("ALTER TABLE files ADD COLUMN is_recording INTEGER DEFAULT 0;");
+        if (SdkLevel.isAtLeastS()) {
+            // We add the column is_recording, rescan all music files
+            db.execSQL("UPDATE files SET date_modified=0 WHERE is_music=1;");
+        }
+    }
+
     private static void updateClearLocation(SQLiteDatabase db, boolean internal) {
         db.execSQL("UPDATE files SET latitude=NULL, longitude=NULL;");
     }
@@ -1575,7 +1584,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_R = 1115;
     // Leave some gaps in database version tagging to allow R schema changes
     // to go independent of S schema changes.
-    static final int VERSION_S = 1204;
+    static final int VERSION_S = 1205;
     static final int VERSION_LATEST = VERSION_S;
 
     /**
@@ -1735,6 +1744,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1204) {
                 // Empty version bump to ensure views are recreated
+            }
+            if (fromVersion < 1205) {
+                updateAddRecording(db, internal);
             }
 
             // If this is the legacy database, it's not worth recomputing data

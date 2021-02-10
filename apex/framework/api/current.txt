@@ -136,6 +136,7 @@ package android.provider {
     field public static final String IS_MUSIC = "is_music";
     field public static final String IS_NOTIFICATION = "is_notification";
     field public static final String IS_PODCAST = "is_podcast";
+    field public static final String IS_RECORDING = "is_recording";
     field public static final String IS_RINGTONE = "is_ringtone";
     field @Deprecated public static final String TITLE_KEY = "title_key";
     field public static final String TITLE_RESOURCE_URI = "title_resource_uri";

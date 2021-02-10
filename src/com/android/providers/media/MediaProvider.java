@@ -1381,7 +1381,7 @@ public class MediaProvider extends ContentProvider {
     public boolean transformForFuse(String src, String dst, int transforms, int transformsReason,
             int uid) {
         if ((transforms & FLAG_TRANSFORM_TRANSCODING) != 0) {
-            if (mTranscodeHelper.isTranscodeFileCached(uid, src, dst)) {
+            if (mTranscodeHelper.isTranscodeFileCached(src, dst)) {
                 Log.d(TAG, "Using transcode cache for " + src);
                 return true;
             }
@@ -1958,6 +1958,9 @@ public class MediaProvider extends ContentProvider {
         boolean allowHidden = isCallingPackageAllowedHidden();
         final SQLiteQueryBuilder qbForUpdate = getQueryBuilder(TYPE_UPDATE,
                 matchUri(uriOldPath, allowHidden), uriOldPath, qbExtras, null);
+        if (values.containsKey(FileColumns._MODIFIER)) {
+            qbForUpdate.allowColumn(FileColumns._MODIFIER);
+        }
         final String selection = MediaColumns.DATA + " =? ";
         int count = 0;
         boolean retryUpdateWithReplace = false;
@@ -1992,7 +1995,7 @@ public class MediaProvider extends ContentProvider {
      * Gets {@link ContentValues} for updating database entry to {@code path}.
      */
     private ContentValues getContentValuesForFuseRename(String path, String newMimeType,
-            boolean wasHidden, boolean isHidden) {
+            boolean wasHidden, boolean isHidden, boolean isSameMimeType) {
         ContentValues values = new ContentValues();
         values.put(MediaColumns.MIME_TYPE, newMimeType);
         values.put(MediaColumns.DATA, path);
@@ -2002,15 +2005,15 @@ public class MediaProvider extends ContentProvider {
         } else {
             int mediaType = MimeUtils.resolveMediaType(newMimeType);
             values.put(FileColumns.MEDIA_TYPE, mediaType);
-            if (wasHidden) {
-                // Set this as pending so that apps can scan the file to update the metadata.
-                // Otherwise, scan will skip scanning this file because rename() doesn't change
-                // lastModifiedTime and scan assumes there is no change in the file.
-                // This should be safe because, in Q, apps had to insert new db row or scan the file
-                // to insert this file to database.
-                values.put(FileColumns.IS_PENDING, 1);
-            }
         }
+
+        if ((!isHidden && wasHidden) || !isSameMimeType) {
+            // Set the modifier as MODIFIER_FUSE so that apps can scan the file to update the
+            // metadata. Otherwise, scan will skip scanning this file because rename() doesn't
+            // change lastModifiedTime and scan assumes there is no change in the file.
+            values.put(FileColumns._MODIFIER, FileColumns._MODIFIER_FUSE);
+        }
+
         final boolean allowHidden = isCallingPackageAllowedHidden();
         if (!newMimeType.equalsIgnoreCase("null") &&
                 matchUri(getContentUriForFile(path, newMimeType), allowHidden) == AUDIO_MEDIA) {
@@ -2200,7 +2203,8 @@ public class MediaProvider extends ContentProvider {
                 final String newFilePath = newPath + "/" + filePath;
                 final String mimeType = MimeUtils.resolveMimeType(new File(newFilePath));
                 if(!updateDatabaseForFuseRename(helper, oldPath + "/" + filePath, newFilePath,
-                        getContentValuesForFuseRename(newFilePath, mimeType, wasHidden, isHidden),
+                        getContentValuesForFuseRename(newFilePath, mimeType, wasHidden, isHidden,
+                                /* isSameMimeType */ true),
                         qbExtras)) {
                     Log.e(TAG, "Calling package doesn't have write permission to rename file.");
                     return OsConstants.EPERM;
@@ -2280,8 +2284,10 @@ public class MediaProvider extends ContentProvider {
         helper.beginTransaction();
         try {
             final String newMimeType = MimeUtils.resolveMimeType(new File(newPath));
+            final String oldMimeType = MimeUtils.resolveMimeType(new File(oldPath));
+            final boolean isSameMimeType = newMimeType.equalsIgnoreCase(oldMimeType);
             ContentValues contentValues = getContentValuesForFuseRename(newPath, newMimeType,
-                    wasHidden, isHidden);
+                    wasHidden, isHidden, isSameMimeType);
             if (!updateDatabaseForFuseRename(helper, oldPath, newPath, contentValues)) {
                 if (!bypassRestrictions) {
                     // Check for other URI format grants for oldPath only. Check right before

@@ -78,13 +78,9 @@ public class PermissionUtils {
      */
     public static boolean checkPermissionManager(@NonNull Context context, int pid,
             int uid, @NonNull String packageName, @Nullable String attributionTag) {
-        if (checkPermissionForDataDelivery(context, MANAGE_EXTERNAL_STORAGE, pid, uid,
+        return checkPermissionForDataDelivery(context, MANAGE_EXTERNAL_STORAGE, pid, uid,
                 packageName, attributionTag,
-                generateAppOpMessage(packageName,sOpDescription.get()))) {
-            return true;
-        }
-        // Fallback to OPSTR_NO_ISOLATED_STORAGE app op.
-        return checkNoIsolatedStorageGranted(context, uid, packageName, attributionTag);
+                generateAppOpMessage(packageName,sOpDescription.get()));
     }
 
     /**
@@ -118,10 +114,14 @@ public class PermissionUtils {
                 generateAppOpMessage(packageName,sOpDescription.get()));
     }
 
-    public static boolean checkIsLegacyStorageGranted(
-            @NonNull Context context, int uid, String packageName) {
-        return context.getSystemService(AppOpsManager.class)
-                .unsafeCheckOp(OPSTR_LEGACY_STORAGE, uid, packageName) == MODE_ALLOWED;
+    public static boolean checkIsLegacyStorageGranted(@NonNull Context context, int uid,
+            String packageName, @Nullable String attributionTag) {
+        if (context.getSystemService(AppOpsManager.class)
+                .unsafeCheckOp(OPSTR_LEGACY_STORAGE, uid, packageName) == MODE_ALLOWED) {
+            return true;
+        }
+        // Check OPSTR_NO_ISOLATED_STORAGE app op.
+        return checkNoIsolatedStorageGranted(context, uid, packageName, attributionTag);
     }
 
     public static boolean checkPermissionReadAudio(@NonNull Context context, int pid, int uid,

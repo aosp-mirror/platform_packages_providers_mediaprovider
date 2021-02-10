@@ -90,6 +90,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.ExifUtils;
 import com.android.providers.media.util.FileUtils;
@@ -1192,6 +1193,9 @@ public class ModernMediaScanner implements MediaScanner {
         sAudioTypes.put(Environment.DIRECTORY_PODCASTS, AudioColumns.IS_PODCAST);
         sAudioTypes.put(Environment.DIRECTORY_AUDIOBOOKS, AudioColumns.IS_AUDIOBOOK);
         sAudioTypes.put(Environment.DIRECTORY_MUSIC, AudioColumns.IS_MUSIC);
+        if (SdkLevel.isAtLeastS()) {
+            sAudioTypes.put(Environment.DIRECTORY_RECORDINGS, AudioColumns.IS_RECORDING);
+        }
     }
 
     private static @NonNull ContentProviderOperation.Builder scanItemAudio(long existingId,

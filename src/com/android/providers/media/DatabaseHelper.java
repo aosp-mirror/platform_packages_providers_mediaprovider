@@ -1509,6 +1509,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     private static void updateAddModifier(SQLiteDatabase db, boolean internal) {
         db.execSQL("ALTER TABLE files ADD COLUMN _modifier INTEGER DEFAULT 0;");
+        // For existing files, set default value as _MODIFIER_MEDIA_SCAN
+        db.execSQL("UPDATE files SET _modifier=3;");
     }
 
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {

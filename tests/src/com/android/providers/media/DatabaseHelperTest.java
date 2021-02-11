@@ -477,6 +477,42 @@ public class DatabaseHelperTest {
         }
     }
 
+    /**
+     * Test that existing database rows will default to _modifier=MODIFIER_MEDIA_SCAN
+     * after database upgrade.
+     */
+    @Test
+    public void testUpgradeAndAddModifier() throws Exception {
+        Class<? extends DatabaseHelper> beforeModifier = DatabaseHelperR.class;
+        Class<? extends DatabaseHelper> afterModifier = DatabaseHelperS.class;
+
+        try (DatabaseHelper helper = beforeModifier.getConstructor(Context.class, String.class)
+                .newInstance(sIsolatedContext, TEST_UPGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            {
+                // Insert a row before database upgrade.
+                final ContentValues values = new ContentValues();
+                values.put(FileColumns.DATA, "/storage/emulated/0/DCIM/test.jpg");
+                assertThat(db.insert("files", FileColumns.DATA, values)).isNotEqualTo(-1);
+            }
+        }
+
+        try (DatabaseHelper helper = afterModifier.getConstructor(Context.class, String.class)
+                .newInstance(sIsolatedContext, TEST_UPGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+
+            try (Cursor cr = db.query("files", new String[]{FileColumns._MODIFIER}, null, null,
+                    null, null, null)) {
+                assertEquals(cr.getCount(), 1);
+                while (cr.moveToNext()) {
+                    // Verify that after db upgrade, for existing database rows, we set value of
+                    // _modifier=MODIFIER_MEDIA_SCAN
+                    assertThat(cr.getInt(0)).isEqualTo(FileColumns._MODIFIER_MEDIA_SCAN);
+                }
+            }
+        }
+    }
+
     private static String normalize(String sql) {
         return sql != null ? sql.replace(", ", ",") : null;
     }

@@ -112,7 +112,7 @@ public final class TranscodeMetrics {
             return;
         }
 
-        saveStatsData(transcodingStatsData);
+        forceSaveStatsData(transcodingStatsData);
     }
 
     /**

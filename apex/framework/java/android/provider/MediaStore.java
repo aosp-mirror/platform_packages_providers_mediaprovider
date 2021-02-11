@@ -2742,6 +2742,12 @@ public final class MediaStore {
             public static final String IS_AUDIOBOOK = "is_audiobook";
 
             /**
+             * Non-zero if the audio file is a recording
+             */
+            @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+            public static final String IS_RECORDING = "is_recording";
+
+            /**
              * The id of the genre the audio file is from, if any
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)

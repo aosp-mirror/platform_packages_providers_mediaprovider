@@ -177,6 +177,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.DatabaseHelper.OnFilesChangeListener;
 import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
@@ -263,6 +264,7 @@ public class MediaProvider extends ContentProvider {
     private static final String DIRECTORY_DCIM_LOWER_CASE = "dcim";
     private static final String DIRECTORY_DOCUMENTS_LOWER_CASE = "documents";
     private static final String DIRECTORY_AUDIOBOOKS_LOWER_CASE = "audiobooks";
+    private static final String DIRECTORY_RECORDINGS_LOWER_CASE = "recordings";
     private static final String DIRECTORY_ANDROID_LOWER_CASE = "android";
 
     private static final String DIRECTORY_MEDIA = "media";
@@ -2283,8 +2285,7 @@ public class MediaProvider extends ContentProvider {
                 if (!bypassRestrictions) {
                     // Check for other URI format grants for oldPath only. Check right before
                     // returning EPERM, to leave positive case performance unaffected.
-                    if (!(isFilePathSupportForMediaUris() && renameWithOtherUriGrants(helper,
-                            oldPath, newPath, contentValues))) {
+                    if (!renameWithOtherUriGrants(helper, oldPath, newPath, contentValues)) {
                         Log.e(TAG, "Calling package doesn't have write permission to rename file.");
                         return OsConstants.EPERM;
                     }
@@ -2775,13 +2776,24 @@ public class MediaProvider extends ContentProvider {
                 defaultMimeType = "audio/mpeg";
                 defaultMediaType = FileColumns.MEDIA_TYPE_AUDIO;
                 defaultPrimary = Environment.DIRECTORY_MUSIC;
-                allowedPrimary = Arrays.asList(
-                        Environment.DIRECTORY_ALARMS,
-                        Environment.DIRECTORY_AUDIOBOOKS,
-                        Environment.DIRECTORY_MUSIC,
-                        Environment.DIRECTORY_NOTIFICATIONS,
-                        Environment.DIRECTORY_PODCASTS,
-                        Environment.DIRECTORY_RINGTONES);
+                if (SdkLevel.isAtLeastS()) {
+                    allowedPrimary = Arrays.asList(
+                            Environment.DIRECTORY_ALARMS,
+                            Environment.DIRECTORY_AUDIOBOOKS,
+                            Environment.DIRECTORY_MUSIC,
+                            Environment.DIRECTORY_NOTIFICATIONS,
+                            Environment.DIRECTORY_PODCASTS,
+                            Environment.DIRECTORY_RECORDINGS,
+                            Environment.DIRECTORY_RINGTONES);
+                } else {
+                    allowedPrimary = Arrays.asList(
+                            Environment.DIRECTORY_ALARMS,
+                            Environment.DIRECTORY_AUDIOBOOKS,
+                            Environment.DIRECTORY_MUSIC,
+                            Environment.DIRECTORY_NOTIFICATIONS,
+                            Environment.DIRECTORY_PODCASTS,
+                            Environment.DIRECTORY_RINGTONES);
+                }
                 break;
             case VIDEO_MEDIA:
             case VIDEO_MEDIA_ID:
@@ -4981,7 +4993,7 @@ public class MediaProvider extends ContentProvider {
 
             // Check for other URI format grants for File API call only. Check right before
             // returning count = 0, to leave positive cases performance unaffected.
-            if (count == 0 && isFuseThread() && isFilePathSupportForMediaUris()) {
+            if (count == 0 && isFuseThread()) {
                 count += deleteWithOtherUriGrants(uri, helper, projection, userWhere, userWhereArgs,
                         extras);
             }
@@ -7474,8 +7486,7 @@ public class MediaProvider extends ContentProvider {
             } catch (SecurityException e) {
                 // Check for other Uri formats only when the single uri check flow fails.
                 // Throw the previous exception if the multi-uri checks failed.
-                if (!(isFilePathSupportForMediaUris() &&
-                        getOtherUriGrantsForPath(path, mediaType, id, forWrite) != null)) {
+                if (getOtherUriGrantsForPath(path, mediaType, id, forWrite) == null) {
                     throw e;
                 }
             }
@@ -7548,17 +7559,6 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Feature flag to support File APIs for different formats of media-store URI grants like:
-     *   * content://media/external_primary/images/media/123
-     *   * content://media/external/images/media/123
-     *
-     *   Default value: false
-     */
-    private boolean isFilePathSupportForMediaUris() {
-        return SystemProperties.getBoolean("sys.filepathsupport.mediauri", false);
-    }
-
-    /**
      * Returns {@code true} if {@link #mCallingIdentity#getSharedPackages(String)} contains the
      * given package name, {@code false} otherwise.
      * <p> Assumes that {@code mCallingIdentity} has been properly set to reflect the calling
@@ -7600,6 +7600,7 @@ public class MediaProvider extends ContentProvider {
             case DIRECTORY_ALARMS_LOWER_CASE:
             case DIRECTORY_NOTIFICATIONS_LOWER_CASE:
             case DIRECTORY_AUDIOBOOKS_LOWER_CASE:
+            case DIRECTORY_RECORDINGS_LOWER_CASE:
                 uri = Audio.Media.getContentUri(volName);
                 break;
             case DIRECTORY_MUSIC_LOWER_CASE:

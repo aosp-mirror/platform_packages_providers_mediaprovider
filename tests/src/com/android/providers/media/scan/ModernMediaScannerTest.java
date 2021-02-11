@@ -777,6 +777,25 @@ public class ModernMediaScannerTest {
         }
     }
 
+    @Test
+    public void testScan_audio_recording() throws Exception {
+        final File music = new File(mDir, "Recordings");
+        final File audio = new File(music, "audio.mp3");
+
+        music.mkdirs();
+        stage(R.raw.test_audio, audio);
+
+        mModern.scanFile(audio, REASON_UNKNOWN);
+
+        try (Cursor cursor = mIsolatedResolver
+                .query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
+            assertEquals(1, cursor.getCount());
+            cursor.moveToFirst();
+            assertEquals(1, cursor.getInt(cursor.getColumnIndex(AudioColumns.IS_RECORDING)));
+            assertEquals(0, cursor.getInt(cursor.getColumnIndex(AudioColumns.IS_MUSIC)));
+        }
+    }
+
     /**
      * Verify a narrow exception where we allow an {@code mp4} video file on
      * disk to be indexed as an {@code m4a} audio file.

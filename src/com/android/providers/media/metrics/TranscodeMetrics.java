@@ -33,8 +33,11 @@ import java.util.Random;
  */
 public final class TranscodeMetrics {
     private static final List<TranscodingStatsData> TRANSCODING_STATS_DATA = new ArrayList<>();
-    private static final int STATS_DATA_SAMPLE_LIMIT = 100;
-    private static final int STATS_DATA_COUNT_HARD_LIMIT = 400;  // for safety
+
+    // PLEASE update these if there's a change in the proto message, per the limit set in
+    // StatsEvent#MAX_PULL_PAYLOAD_SIZE
+    private static final int STATS_DATA_SAMPLE_LIMIT = 300;
+    private static final int STATS_DATA_COUNT_HARD_LIMIT = 500;  // for safety
 
     // Total data save requests we've received for one statsd pull cycle.
     // This can be greater than TRANSCODING_STATS_DATA.size() since we might not add all the

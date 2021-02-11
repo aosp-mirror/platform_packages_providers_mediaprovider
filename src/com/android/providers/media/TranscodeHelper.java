@@ -1199,6 +1199,11 @@ public class TranscodeHelper {
                 "native_transcode_progress_channel";
         private static final String TRANSCODE_PROGRESS_CHANNEL_NAME = "Native Transcode Progress";
 
+        // Related to notification settings
+        private static final String TRANSCODE_NOTIFICATION_SYS_PROP_KEY =
+                "persist.sys.fuse.transcode_notification";
+        private static final boolean NOTIFICATION_ALLOWED_DEFAULT_VALUE = true;
+
         private final NotificationManagerCompat mNotificationManager;
         // Builder for creating alert notifications.
         private final NotificationCompat.Builder mAlertBuilder;
@@ -1216,6 +1221,9 @@ public class TranscodeHelper {
         }
 
         void start(TranscodingSession session, String filePath) {
+            if (!notificationEnabled()) {
+                return;
+            }
             ForegroundThread.getHandler().post(() -> {
                 mAlertBuilder.setContentTitle("Transcoding started");
                 mAlertBuilder.setContentText(FileUtils.extractDisplayName(filePath));
@@ -1225,11 +1233,17 @@ public class TranscodeHelper {
         }
 
         void stop(TranscodingSession session, String filePath) {
+            if (!notificationEnabled()) {
+                return;
+            }
             endSessionWithMessage(session, filePath, getResultMessageForSession(session));
         }
 
         void setProgress(TranscodingSession session, String filePath,
                 @IntRange(from = 0, to = PROGRESS_MAX) int progress) {
+            if (!notificationEnabled()) {
+                return;
+            }
             if (shouldShowProgress(session)) {
                 mProgressBuilder.setContentText(FileUtils.extractDisplayName(filePath));
                 mProgressBuilder.setProgress(PROGRESS_MAX, progress, /* indeterminate= */ false);
@@ -1304,6 +1318,11 @@ public class TranscodeHelper {
                 default:
                     return "Transcoding result unknown";
             }
+        }
+
+        private static boolean notificationEnabled() {
+            return SystemProperties.getBoolean(TRANSCODE_NOTIFICATION_SYS_PROP_KEY,
+                    NOTIFICATION_ALLOWED_DEFAULT_VALUE);
         }
     }
 

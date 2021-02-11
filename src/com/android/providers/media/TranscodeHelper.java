@@ -383,6 +383,21 @@ public class TranscodeHelper {
         return transcodePath;
     }
 
+    private static int getMediaCapabilitiesUid(int uid, Bundle bundle) {
+        if (bundle == null) {
+            return uid;
+        }
+        int mediaCapabilitiesUid = bundle.getInt(MediaStore.EXTRA_MEDIA_CAPABILITIES_UID);
+        if (mediaCapabilitiesUid >= Process.FIRST_APPLICATION_UID) {
+            logVerbose(
+                    "Media capabilities uid " + mediaCapabilitiesUid + ", passed for uid " + uid);
+            uid = mediaCapabilitiesUid;
+        } else {
+            logVerbose("Ignoring invalid Media capabilities uid " + mediaCapabilitiesUid);
+        }
+        return uid;
+    }
+
     // TODO(b/173491972): Generalize to consider other file/app media capabilities beyond hevc
     /**
      * @return 0 or >0 representing whether we should transcode or not.
@@ -405,6 +420,8 @@ public class TranscodeHelper {
             logVerbose("Transcode not enabled");
             return 0;
         }
+
+        uid = getMediaCapabilitiesUid(uid, bundle);
         logVerbose("Checking shouldTranscode for: " + path + ". Uid: " + uid);
 
         if (!supportsTranscode(path) || uid < Process.FIRST_APPLICATION_UID

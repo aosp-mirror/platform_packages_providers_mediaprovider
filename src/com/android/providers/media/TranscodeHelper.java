@@ -61,6 +61,7 @@ import android.os.UserHandle;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
+import android.provider.MediaStore.Video.VideoColumns;
 import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.Log;
@@ -422,6 +423,7 @@ public class TranscodeHelper {
 
         if (fileFlags == 0) {
             // Nothing to transcode
+            logVerbose("File is not HEVC");
             return 0;
         }
 
@@ -566,24 +568,37 @@ public class TranscodeHelper {
     }
 
     private int getFileFlags(String path) {
-        try (Cursor cursor = queryFileForTranscode(path,
-                        new String[]{FileColumns._VIDEO_CODEC_TYPE})) {
+        final String[] projection = new String[] {
+            FileColumns._VIDEO_CODEC_TYPE,
+            VideoColumns.COLOR_STANDARD,
+            VideoColumns.COLOR_TRANSFER
+        };
+
+        try (Cursor cursor = queryFileForTranscode(path, projection)) {
             if (cursor == null || !cursor.moveToNext()) {
                 logVerbose("Couldn't find database row");
                 return 0;
             }
 
+            int result = 0;
             if (isHevc(cursor.getString(0))) {
-                return FLAG_HEVC;
-            } else {
-                logVerbose("File is not HEVC");
-                return 0;
+                result |= FLAG_HEVC;
             }
+            if (isHdr10Plus(cursor.getInt(1), cursor.getInt(2))) {
+                result |= FLAG_HDR_10_PLUS;
+            }
+            return result;
         }
     }
 
-    private boolean isHevc(String mimeType) {
+    private static boolean isHevc(String mimeType) {
         return MediaFormat.MIMETYPE_VIDEO_HEVC.equalsIgnoreCase(mimeType);
+    }
+
+    private static boolean isHdr10Plus(int colorStandard, int colorTransfer) {
+        return (colorStandard == MediaFormat.COLOR_STANDARD_BT2020) &&
+                (colorTransfer == MediaFormat.COLOR_TRANSFER_ST2084
+                        || colorTransfer == MediaFormat.COLOR_TRANSFER_HLG);
     }
 
     public boolean supportsTranscode(String path) {

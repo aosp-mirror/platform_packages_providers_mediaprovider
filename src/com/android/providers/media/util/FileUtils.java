@@ -64,6 +64,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.modules.utils.build.SdkLevel;
+
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileNotFoundException;
@@ -932,19 +934,39 @@ public class FileUtils {
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:obb)(/?.*)");
 
     @VisibleForTesting
-    public static final String[] DEFAULT_FOLDER_NAMES = {
-            Environment.DIRECTORY_MUSIC,
-            Environment.DIRECTORY_PODCASTS,
-            Environment.DIRECTORY_RINGTONES,
-            Environment.DIRECTORY_ALARMS,
-            Environment.DIRECTORY_NOTIFICATIONS,
-            Environment.DIRECTORY_PICTURES,
-            Environment.DIRECTORY_MOVIES,
-            Environment.DIRECTORY_DOWNLOADS,
-            Environment.DIRECTORY_DCIM,
-            Environment.DIRECTORY_DOCUMENTS,
-            Environment.DIRECTORY_AUDIOBOOKS,
-    };
+    public static final String[] DEFAULT_FOLDER_NAMES;
+    static {
+        if (SdkLevel.isAtLeastS()) {
+            DEFAULT_FOLDER_NAMES = new String[]{
+                    Environment.DIRECTORY_MUSIC,
+                    Environment.DIRECTORY_PODCASTS,
+                    Environment.DIRECTORY_RINGTONES,
+                    Environment.DIRECTORY_ALARMS,
+                    Environment.DIRECTORY_NOTIFICATIONS,
+                    Environment.DIRECTORY_PICTURES,
+                    Environment.DIRECTORY_MOVIES,
+                    Environment.DIRECTORY_DOWNLOADS,
+                    Environment.DIRECTORY_DCIM,
+                    Environment.DIRECTORY_DOCUMENTS,
+                    Environment.DIRECTORY_AUDIOBOOKS,
+                    Environment.DIRECTORY_RECORDINGS,
+            };
+        } else {
+            DEFAULT_FOLDER_NAMES = new String[]{
+                    Environment.DIRECTORY_MUSIC,
+                    Environment.DIRECTORY_PODCASTS,
+                    Environment.DIRECTORY_RINGTONES,
+                    Environment.DIRECTORY_ALARMS,
+                    Environment.DIRECTORY_NOTIFICATIONS,
+                    Environment.DIRECTORY_PICTURES,
+                    Environment.DIRECTORY_MOVIES,
+                    Environment.DIRECTORY_DOWNLOADS,
+                    Environment.DIRECTORY_DCIM,
+                    Environment.DIRECTORY_DOCUMENTS,
+                    Environment.DIRECTORY_AUDIOBOOKS,
+            };
+        }
+    }
 
     /**
      * Regex that matches paths for {@link MediaColumns#RELATIVE_PATH}

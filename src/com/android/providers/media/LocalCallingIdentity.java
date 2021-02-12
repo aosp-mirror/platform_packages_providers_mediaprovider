@@ -328,7 +328,7 @@ public class LocalCallingIdentity {
             return true;
         }
 
-        return checkIsLegacyStorageGranted(context, uid, getPackageName());
+        return checkIsLegacyStorageGranted(context, uid, getPackageName(), attributionTag);
     }
 
     private boolean isScopedStorageEnforced(boolean defaultScopedStorage,

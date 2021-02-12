@@ -71,6 +71,7 @@ import androidx.core.content.MimeTypeFilter;
 import com.android.providers.media.util.FileUtils;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -1018,6 +1019,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             throws FileNotFoundException {
         enforceShellRestrictions();
         final Uri target = getUriForDocumentId(docId);
+        final int callingUid = Binder.getCallingUid();
 
         if (!"r".equals(mode)) {
             throw new IllegalArgumentException("Media is read-only");
@@ -1026,10 +1028,25 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         // Delegate to real provider
         final long token = Binder.clearCallingIdentity();
         try {
-            return getContext().getContentResolver().openFileDescriptor(target, mode);
+            return openFileForRead(target, callingUid);
         } finally {
             Binder.restoreCallingIdentity(token);
         }
+    }
+
+    public ParcelFileDescriptor openFileForRead(final Uri target, final int callingUid)
+            throws FileNotFoundException {
+        final Bundle opts = new Bundle();
+        opts.putInt(MediaStore.EXTRA_MEDIA_CAPABILITIES_UID, callingUid);
+
+        AssetFileDescriptor afd =
+                getContext().getContentResolver().openTypedAssetFileDescriptor(target, "*/*",
+                        opts);
+        if (afd == null) {
+            return null;
+        }
+
+        return afd.getParcelFileDescriptor();
     }
 
     @Override

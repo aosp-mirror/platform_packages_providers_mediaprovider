@@ -253,7 +253,7 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
                                            /*is_static*/ false);
     mid_is_app_clone_user_ = CacheMethod(env, "isAppCloneUser", "(I)Z",
                                          /*is_static*/ false);
-    mid_transform_ = CacheMethod(env, "transform", "(Ljava/lang/String;Ljava/lang/String;IIIII)Z",
+    mid_transform_ = CacheMethod(env, "transform", "(Ljava/lang/String;Ljava/lang/String;III)Z",
                                  /*is_static*/ false);
     mid_file_lookup_ =
             CacheMethod(env, "onFileLookup",
@@ -286,7 +286,6 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
     file_open_result_class_ = reinterpret_cast<jclass>(env->NewGlobalRef(file_open_result_class_));
     fid_file_open_status_ = CacheField(env, file_open_result_class_, "status", "I");
     fid_file_open_uid_ = CacheField(env, file_open_result_class_, "uid", "I");
-    fid_file_open_transforms_uid_ = CacheField(env, file_open_result_class_, "transformsUid", "I");
     fid_file_open_redaction_ranges_ =
             CacheField(env, file_open_result_class_, "redactionRanges", "[J");
 }
@@ -323,8 +322,7 @@ std::unique_ptr<FileOpenResult> MediaProviderWrapper::OnFileOpen(const string& p
                                                                  bool log_transforms_metrics) {
     JNIEnv* env = MaybeAttachCurrentThread();
     if (shouldBypassMediaProvider(uid)) {
-        return std::make_unique<FileOpenResult>(0, uid, -1 /* transforms_uid */,
-                                                new RedactionInfo());
+        return std::make_unique<FileOpenResult>(0, uid, new RedactionInfo());
     }
 
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
@@ -340,8 +338,6 @@ std::unique_ptr<FileOpenResult> MediaProviderWrapper::OnFileOpen(const string& p
 
     int status = env->GetIntField(j_res_file_open_object.get(), fid_file_open_status_);
     int original_uid = env->GetIntField(j_res_file_open_object.get(), fid_file_open_uid_);
-    int transforms_uid =
-            env->GetIntField(j_res_file_open_object.get(), fid_file_open_transforms_uid_);
 
     if (redact) {
         ScopedLocalRef<jlongArray> redaction_ranges_local_ref(
@@ -359,10 +355,9 @@ std::unique_ptr<FileOpenResult> MediaProviderWrapper::OnFileOpen(const string& p
             // No ranges to redact
             ri = std::make_unique<RedactionInfo>();
         }
-        return std::make_unique<FileOpenResult>(status, original_uid, transforms_uid, ri.release());
+        return std::make_unique<FileOpenResult>(status, original_uid, ri.release());
     } else {
-        return std::make_unique<FileOpenResult>(status, original_uid, transforms_uid,
-                                                new RedactionInfo());
+        return std::make_unique<FileOpenResult>(status, original_uid, new RedactionInfo());
     }
 }
 
@@ -508,15 +503,13 @@ std::unique_ptr<FileLookupResult> MediaProviderWrapper::FileLookup(const std::st
 }
 
 bool MediaProviderWrapper::Transform(const std::string& src, const std::string& dst, int transforms,
-                                     int transforms_reason, uid_t read_uid, uid_t open_uid,
-                                     uid_t transforms_uid) {
+                                     int transforms_reason, uid_t uid) {
     JNIEnv* env = MaybeAttachCurrentThread();
 
     ScopedLocalRef<jstring> j_src(env, env->NewStringUTF(src.c_str()));
     ScopedLocalRef<jstring> j_dst(env, env->NewStringUTF(dst.c_str()));
     bool res = env->CallBooleanMethod(media_provider_object_, mid_transform_, j_src.get(),
-                                      j_dst.get(), transforms, transforms_reason, read_uid,
-                                      open_uid, transforms_uid);
+                                      j_dst.get(), transforms, transforms_reason, uid);
 
     if (CheckForJniException(env)) {
         return false;

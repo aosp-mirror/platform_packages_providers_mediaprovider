@@ -22,11 +22,13 @@ package com.android.providers.media;
 public final class FileOpenResult {
     public final int status;
     public final int uid;
+    public final int transformsUid;
     public final long[] redactionRanges;
 
-    public FileOpenResult(int status, int uid, long[] redactionRanges) {
+    public FileOpenResult(int status, int uid, int transformsUid, long[] redactionRanges) {
         this.status = status;
         this.uid = uid;
+        this.transformsUid = transformsUid;
         this.redactionRanges = redactionRanges;
     }
 }

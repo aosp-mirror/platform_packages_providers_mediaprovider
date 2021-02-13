@@ -41,14 +41,8 @@ namespace mediaprovider {
 namespace fuse {
 
 struct handle {
-    explicit handle(int fd, const RedactionInfo* ri, bool cached, bool passthrough, uid_t uid,
-                    uid_t transforms_uid)
-        : fd(fd),
-          ri(ri),
-          cached(cached),
-          passthrough(passthrough),
-          uid(uid),
-          transforms_uid(transforms_uid) {
+    explicit handle(int fd, const RedactionInfo* ri, bool cached, bool passthrough, uid_t uid)
+        : fd(fd), ri(ri), cached(cached), passthrough(passthrough), uid(uid) {
         CHECK(ri != nullptr);
     }
 
@@ -57,7 +51,6 @@ struct handle {
     const bool cached;
     const bool passthrough;
     const uid_t uid;
-    const uid_t transforms_uid;
 
     ~handle() { close(fd); }
 };

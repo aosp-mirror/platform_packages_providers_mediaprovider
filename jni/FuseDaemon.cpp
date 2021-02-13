@@ -1037,22 +1037,17 @@ static void pf_link(fuse_req_t req, fuse_ino_t ino, fuse_ino_t new_parent,
 */
 
 static handle* create_handle_for_node(struct fuse* fuse, const string& path, int fd, uid_t uid,
-                                      uid_t transforms_uid, node* node, const RedactionInfo* ri,
-                                      int* keep_cache) {
+                                      node* node, const RedactionInfo* ri, int* keep_cache) {
     std::lock_guard<std::recursive_mutex> guard(fuse->lock);
 
     bool redaction_needed = ri->isRedactionNeeded();
     handle* handle = nullptr;
-    int transforms = node->GetTransforms();
-    if (transforms_uid > 0) {
-        CHECK(transforms);
-    }
 
     if (fuse->passthrough) {
         *keep_cache = 1;
         handle = new struct handle(fd, ri, true /* cached */,
-                                   !redaction_needed || transforms /* passthrough */, uid,
-                                   transforms_uid);
+                                   !redaction_needed || node->GetTransforms() /* passthrough */,
+                                   uid);
     } else {
         // Without fuse->passthrough, we don't want to use the FUSE VFS cache in two cases:
         // 1. When redaction is needed because app A with EXIF access might access
@@ -1080,8 +1075,7 @@ static handle* create_handle_for_node(struct fuse* fuse, const string& path, int
         } else {
             *keep_cache = 1;
         }
-        handle = new struct handle(fd, ri, !direct_io /* cached */, false /* passthrough */, uid,
-                                   transforms_uid);
+        handle = new struct handle(fd, ri, !direct_io /* cached */, false /* passthrough */, uid);
     }
 
     node->AddHandle(handle);
@@ -1159,7 +1153,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     }
 
     int keep_cache = 1;
-    handle* h = create_handle_for_node(fuse, io_path, fd, result->uid, result->transforms_uid, node,
+    handle* h = create_handle_for_node(fuse, io_path, fd, result->uid, node,
                                        result->redaction_info.release(), &keep_cache);
     fi->fh = ptr_to_id(h);
     fi->keep_cache = keep_cache;
@@ -1262,8 +1256,7 @@ static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
 
     if (!node->IsTransformsComplete()) {
         if (!fuse->mp->Transform(node->BuildPath(), node->GetIoPath(), node->GetTransforms(),
-                                 node->GetTransformsReason(), req->ctx.uid, h->uid,
-                                 h->transforms_uid)) {
+                                 node->GetTransformsReason(), h->uid)) {
             fuse_reply_err(req, EFAULT);
             return;
         }
@@ -1721,8 +1714,8 @@ static void pf_create(fuse_req_t req,
     // to the file before all the EXIF content is written. We could special case reads before the
     // first close after a file has just been created.
     int keep_cache = 1;
-    handle* h = create_handle_for_node(fuse, child_path, fd, req->ctx.uid, -1 /* transforms_uid */,
-                                       node, new RedactionInfo(), &keep_cache);
+    handle* h = create_handle_for_node(fuse, child_path, fd, req->ctx.uid, node,
+                                       new RedactionInfo(), &keep_cache);
     fi->fh = ptr_to_id(h);
     fi->keep_cache = keep_cache;
     fi->direct_io = !h->cached;

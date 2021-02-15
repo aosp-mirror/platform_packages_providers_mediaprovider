@@ -240,10 +240,10 @@ class FAdviser {
 
 /* Single FUSE mount */
 struct fuse {
-    explicit fuse(const std::string& _path)
+    explicit fuse(const std::string& _path, ino_t _ino)
         : path(_path),
           tracker(mediaprovider::fuse::NodeTracker(&lock)),
-          root(node::CreateRoot(_path, &lock, &tracker)),
+          root(node::CreateRoot(_path, &lock, _ino, &tracker)),
           mp(0),
           zero_addr(0),
           disable_dentry_cache(false),
@@ -303,6 +303,8 @@ struct fuse {
     std::atomic_bool* active;
     std::atomic_bool disable_dentry_cache;
     std::atomic_bool passthrough;
+    // FUSE device id.
+    std::atomic_uint dev;
 };
 
 static inline string get_name(node* n) {
@@ -469,8 +471,9 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
 
     node = parent->LookupChildByName(name, true /* acquire */, transforms);
     if (!node) {
+        ino_t ino = e->attr.st_ino;
         node = ::node::Create(parent, name, io_path, should_invalidate, transforms_complete,
-                              transforms, transforms_reason, &fuse->lock, &fuse->tracker);
+                              transforms, transforms_reason, &fuse->lock, ino, &fuse->tracker);
     } else if (!mediaprovider::fuse::containsMount(path, std::to_string(getuid() / PER_USER_RANGE))) {
         // Only invalidate a path if it does not contain mount.
         // Invalidate both names to ensure there's no dentry left in the kernel after the following
@@ -1927,7 +1930,7 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path) {
         return;
     }
 
-    struct fuse fuse_default(path);
+    struct fuse fuse_default(path, stat.st_ino);
     fuse_default.mp = &mp;
     // fuse_default is stack allocated, but it's safe to save it as an instance variable because
     // this method blocks and FuseDaemon#active tells if we are currently blocking
@@ -1985,6 +1988,43 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path) {
     fuse_session_destroy(se);
     LOG(INFO) << "Ended fuse";
     return;
+}
+
+const string FuseDaemon::GetOriginalMediaFormatFilePath(int fd) const {
+    struct stat s;
+    memset(&s, 0, sizeof(s));
+    if (fstat(fd, &s) < 0) {
+        PLOG(DEBUG) << "GetOriginalMediaFormatFilePath fstat failed.";
+        return string();
+    }
+
+    ino_t ino = s.st_ino;
+    dev_t dev = s.st_dev;
+
+    dev_t fuse_dev = fuse->dev.load(std::memory_order_acquire);
+    if (dev != fuse_dev) {
+        PLOG(DEBUG) << "GetOriginalMediaFormatFilePath FUSE device id does not match.";
+        return string();
+    }
+
+    const node* node = node::LookupInode(fuse->root, ino);
+    if (!node) {
+        PLOG(DEBUG) << "GetOriginalMediaFormatFilePath no node found with given ino";
+        return string();
+    }
+
+    return node->BuildPath();
+}
+
+void FuseDaemon::InitializeDeviceId(const std::string& path) {
+    struct stat stat;
+
+    if (lstat(path.c_str(), &stat)) {
+        PLOG(ERROR) << "InitializeDeviceId failed to stat given path " << path;
+        return;
+    }
+
+    fuse->dev.store(stat.st_dev, std::memory_order_release);
 }
 } //namespace fuse
 }  // namespace mediaprovider

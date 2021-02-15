@@ -116,6 +116,9 @@ public class TranscodeHelper {
             "persist.sys.fuse.transcode_user_control";
     private static final String TRANSCODE_COMPAT_MANIFEST_KEY = "transcode_compat_manifest";
     private static final String TRANSCODE_COMPAT_STALE_KEY = "transcode_compat_stale";
+    private static final String TRANSCODE_ANR_DELAY_MS_KEY = "transcode_anr_delay_ms";
+
+    private static final int MY_UID = android.os.Process.myUid();
 
     /**
      * Force enable an app to support the HEVC media capability
@@ -248,6 +251,31 @@ public class TranscodeHelper {
     @NonNull
     public String getTranscodePath(long rowId) {
         return new File(getTranscodeDirectory(), String.valueOf(rowId)).getAbsolutePath();
+    }
+
+    public long getAnrDelayMillis(String packageName, int uid) {
+        if (uid == MY_UID) {
+            Log.w(TAG, "Skipping ANR delay for MediaProvider");
+            return 0;
+        }
+
+        logVerbose("Checking transcode status during ANR of " + packageName);
+
+        Set<StorageTranscodingSession> sessions = new ArraySet<>();
+        synchronized (mLock) {
+            sessions.addAll(mStorageTranscodingSessions.values());
+        }
+
+        for (StorageTranscodingSession session: sessions) {
+            if (session.isUidBlocked(uid)) {
+                int delayMs = mMediaProvider.getIntDeviceConfig(TRANSCODE_ANR_DELAY_MS_KEY, 0);
+                Log.i(TAG, "Package: " + packageName + " is blocked on transcoding: " + session
+                        + ". Delay ANR by " + delayMs + "ms");
+                return delayMs;
+            }
+        }
+
+        return 0;
     }
 
     /* TODO: this should probably use a cache so we don't

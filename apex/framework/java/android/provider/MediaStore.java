@@ -1849,6 +1849,15 @@ public final class MediaStore {
             public static final int _MODIFIER_MEDIA_SCAN = 3;
 
             /**
+             * Constant for the {@link #_MODIFIER} column indicating
+             * that the last modifier of the database row is explicit
+             * {@link ContentResolver} operation and is waiting for metadata
+             * update.
+             * @hide
+             */
+            public static final int _MODIFIER_CR_PENDING_METADATA = 4;
+
+            /**
              * Status of the transcode file
              *
              * For apps that do not support modern media formats for video, we

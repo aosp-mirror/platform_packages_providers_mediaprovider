@@ -463,6 +463,10 @@ public class MediaProvider extends ContentProvider {
         mTranscodeHelper.getTranscodeDirectory().delete();
     }
 
+    public long getAnrDelayMillis(@NonNull String packageName, int uid) {
+        return mTranscodeHelper.getAnrDelayMillis(packageName, uid);
+    }
+
     private volatile Locale mLastLocale = Locale.getDefault();
 
     private StorageManager mStorageManager;
@@ -8166,6 +8170,17 @@ public class MediaProvider extends ContentProvider {
         final long token = Binder.clearCallingIdentity();
         try {
             return DeviceConfig.getBoolean(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
+                    defaultValue);
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
+    }
+
+    @VisibleForTesting
+    public int getIntDeviceConfig(String key, int defaultValue) {
+        final long token = Binder.clearCallingIdentity();
+        try {
+            return DeviceConfig.getInt(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
                     defaultValue);
         } finally {
             Binder.restoreCallingIdentity(token);

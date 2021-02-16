@@ -350,7 +350,7 @@ TEST_F(NodeTest, AddDestroyHandle) {
     unique_node_ptr node = CreateNode(nullptr, "/path");
 
     handle* h = new handle(-1, new mediaprovider::fuse::RedactionInfo, true /* cached */,
-                           false /* passthrough */, 0 /* uid */);
+                           false /* passthrough */, 0 /* uid */, 0 /* transforms_uid */);
     node->AddHandle(h);
     ASSERT_TRUE(node->HasCachedHandle());
 
@@ -362,7 +362,8 @@ TEST_F(NodeTest, AddDestroyHandle) {
     EXPECT_DEATH(node->DestroyHandle(h), "");
     EXPECT_DEATH(node->DestroyHandle(nullptr), "");
     std::unique_ptr<handle> h2(new handle(-1, new mediaprovider::fuse::RedactionInfo,
-                                          true /* cached */, false /* passthrough */, 0 /* uid */));
+                                          true /* cached */, false /* passthrough */, 0 /* uid */,
+                                          0 /* transforms_uid */));
     EXPECT_DEATH(node->DestroyHandle(h2.get()), "");
 }
 

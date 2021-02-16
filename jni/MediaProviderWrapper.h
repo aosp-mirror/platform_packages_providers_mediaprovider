@@ -38,11 +38,13 @@ namespace fuse {
 
 /** Represents file open result from MediaProvider */
 struct FileOpenResult {
-    FileOpenResult(const int status, const int uid, const RedactionInfo* redaction_info)
-        : status(status), uid(uid), redaction_info(redaction_info) {}
+    FileOpenResult(const int status, const int uid, uid_t transforms_uid,
+                   const RedactionInfo* redaction_info)
+        : status(status), uid(uid), transforms_uid(transforms_uid), redaction_info(redaction_info) {}
 
     const int status;
     const int uid;
+    const uid_t transforms_uid;
     std::unique_ptr<const RedactionInfo> redaction_info;
 };
 
@@ -65,7 +67,7 @@ struct FileLookupResult {
     }
 
     /**
-     * This field is not to be interpreted, it is determined and populated from MediaProvider
+     * These fields are not to be interpreted, they are determined and populated from MediaProvider
      * via a JNI call.
      */
     const int transforms;
@@ -221,7 +223,7 @@ class MediaProviderWrapper final {
 
     /** Transforms from src to dst file */
     bool Transform(const std::string& src, const std::string& dst, int transforms,
-                   int transforms_reason, uid_t uid);
+                   int transforms_reason, uid_t read_uid, uid_t open_uid, uid_t transforms_uid);
 
     /**
      * Determines if to allow FUSE_LOOKUP for uid. Might allow uids that don't belong to the
@@ -277,6 +279,7 @@ class MediaProviderWrapper final {
     /** Cached FileOpenResult field IDs **/
     jfieldID fid_file_open_status_;
     jfieldID fid_file_open_uid_;
+    jfieldID fid_file_open_transforms_uid_;
     jfieldID fid_file_open_redaction_ranges_;
 
     /**

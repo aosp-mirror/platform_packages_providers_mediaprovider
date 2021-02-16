@@ -116,6 +116,9 @@ public class TranscodeHelper {
             "persist.sys.fuse.transcode_user_control";
     private static final String TRANSCODE_COMPAT_MANIFEST_KEY = "transcode_compat_manifest";
     private static final String TRANSCODE_COMPAT_STALE_KEY = "transcode_compat_stale";
+    private static final String TRANSCODE_ANR_DELAY_MS_KEY = "transcode_anr_delay_ms";
+
+    private static final int MY_UID = android.os.Process.myUid();
 
     /**
      * Force enable an app to support the HEVC media capability
@@ -248,6 +251,31 @@ public class TranscodeHelper {
     @NonNull
     public String getTranscodePath(long rowId) {
         return new File(getTranscodeDirectory(), String.valueOf(rowId)).getAbsolutePath();
+    }
+
+    public long getAnrDelayMillis(String packageName, int uid) {
+        if (uid == MY_UID) {
+            Log.w(TAG, "Skipping ANR delay for MediaProvider");
+            return 0;
+        }
+
+        logVerbose("Checking transcode status during ANR of " + packageName);
+
+        Set<StorageTranscodingSession> sessions = new ArraySet<>();
+        synchronized (mLock) {
+            sessions.addAll(mStorageTranscodingSessions.values());
+        }
+
+        for (StorageTranscodingSession session: sessions) {
+            if (session.isUidBlocked(uid)) {
+                int delayMs = mMediaProvider.getIntDeviceConfig(TRANSCODE_ANR_DELAY_MS_KEY, 0);
+                Log.i(TAG, "Package: " + packageName + " is blocked on transcoding: " + session
+                        + ". Delay ANR by " + delayMs + "ms");
+                return delayMs;
+            }
+        }
+
+        return 0;
     }
 
     /* TODO: this should probably use a cache so we don't
@@ -458,10 +486,9 @@ public class TranscodeHelper {
             ApplicationMediaCapabilities capabilities =
                     bundle.getParcelable(MediaStore.EXTRA_MEDIA_CAPABILITIES);
             if (capabilities != null) {
-                Optional<Boolean> appExtraResult = checkAppMediaSupport(
-                        capabilitiesToSupportedFlags(capabilities),
-                        capabilitiesToUnsupportedFlags(capabilities), fileFlags,
-                        "app_extra");
+                Pair<Integer, Integer> flags = capabilitiesToMediaFormatFlags(capabilities);
+                Optional<Boolean> appExtraResult = checkAppMediaSupport(flags.first, flags.second,
+                        fileFlags, "app_extra");
                 if (appExtraResult.isPresent()) {
                     if (appExtraResult.get()) {
                         return MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_REASON__APP_EXTRA;
@@ -673,8 +700,9 @@ public class TranscodeHelper {
                     .getXml(mediaCapProperty.getResourceId());
             ApplicationMediaCapabilities capability = ApplicationMediaCapabilities.createFromXml(
                     parser);
-            supportedFlags = capabilitiesToSupportedFlags(capability);
-            unsupportedFlags = capabilitiesToUnsupportedFlags(capability);
+            Pair<Integer, Integer> flags = capabilitiesToMediaFormatFlags(capability);
+            supportedFlags = flags.first;
+            unsupportedFlags = flags.second;
             identity.setApplicationMediaCapabilitiesFlags(supportedFlags, unsupportedFlags);
 
             return checkAppMediaSupport(supportedFlags, unsupportedFlags, fileFlags,
@@ -685,40 +713,54 @@ public class TranscodeHelper {
     }
 
     @ApplicationMediaCapabilitiesFlags
-    private int capabilitiesToSupportedFlags(ApplicationMediaCapabilities capability) {
-        return capabilitiesToFlags(capability.getSupportedVideoMimeTypes(),
-                capability.getSupportedHdrTypes());
-    }
-
-    @ApplicationMediaCapabilitiesFlags
-    private int capabilitiesToUnsupportedFlags(ApplicationMediaCapabilities capability) {
-        return capabilitiesToFlags(capability.getUnsupportedVideoMimeTypes(),
-                capability.getUnsupportedHdrTypes());
-    }
-
-    @ApplicationMediaCapabilitiesFlags
-    private int capabilitiesToFlags(List<String> videoMimeTypes, List<String> hdrTypes) {
-        int flags = 0;
+    private Pair<Integer, Integer> capabilitiesToMediaFormatFlags(
+            ApplicationMediaCapabilities capability) {
+        int supportedFlags = 0;
+        int unsupportedFlags = 0;
 
         // MimeType
-        if (videoMimeTypes.contains(MediaFormat.MIMETYPE_VIDEO_HEVC)) {
-            flags |= FLAG_HEVC;
+        if (capability.isFormatSpecified(MediaFormat.MIMETYPE_VIDEO_HEVC)) {
+            if (capability.isVideoMimeTypeSupported(MediaFormat.MIMETYPE_VIDEO_HEVC)) {
+                supportedFlags |= FLAG_HEVC;
+            } else {
+                unsupportedFlags |= FLAG_HEVC;
+            }
         }
 
         // HdrType
-        if (hdrTypes.contains(MediaFeature.HdrType.HDR10)) {
-            flags |= FLAG_HDR_10;
+        if (capability.isFormatSpecified(MediaFeature.HdrType.HDR10)) {
+            if (capability.isHdrTypeSupported(MediaFeature.HdrType.HDR10)) {
+                supportedFlags |= FLAG_HDR_10;
+            } else {
+                unsupportedFlags |= FLAG_HDR_10;
+            }
         }
-        if (hdrTypes.contains(MediaFeature.HdrType.HDR10_PLUS)) {
-            flags |= FLAG_HDR_10_PLUS;
+
+        if (capability.isFormatSpecified(MediaFeature.HdrType.HDR10_PLUS)) {
+            if (capability.isHdrTypeSupported(MediaFeature.HdrType.HDR10_PLUS)) {
+                supportedFlags |= FLAG_HDR_10_PLUS;
+            } else {
+                unsupportedFlags |= FLAG_HDR_10_PLUS;
+            }
         }
-        if (hdrTypes.contains(MediaFeature.HdrType.HLG)) {
-            flags |= FLAG_HDR_HLG;
+
+        if (capability.isFormatSpecified(MediaFeature.HdrType.HLG)) {
+            if (capability.isHdrTypeSupported(MediaFeature.HdrType.HLG)) {
+                supportedFlags |= FLAG_HDR_HLG;
+            } else {
+                unsupportedFlags |= FLAG_HDR_HLG;
+            }
         }
-        if (hdrTypes.contains(MediaFeature.HdrType.DOLBY_VISION)) {
-            flags |= FLAG_HDR_DOLBY_VISION;
+
+        if (capability.isFormatSpecified(MediaFeature.HdrType.DOLBY_VISION)) {
+            if (capability.isHdrTypeSupported(MediaFeature.HdrType.DOLBY_VISION)) {
+                supportedFlags |= FLAG_HDR_DOLBY_VISION;
+            } else {
+                unsupportedFlags |= FLAG_HDR_DOLBY_VISION;
+            }
         }
-        return flags;
+
+        return Pair.create(supportedFlags, unsupportedFlags);
     }
 
     private boolean getBooleanProperty(String sysPropKey, String deviceConfigKey,

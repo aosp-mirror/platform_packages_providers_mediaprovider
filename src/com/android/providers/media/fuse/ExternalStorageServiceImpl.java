@@ -113,6 +113,11 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
         getMediaProvider().freeCache(bytes);
     }
 
+    @Override
+    public long onGetAnrDelayMillis(@NonNull String packageName, int uid) {
+        return getMediaProvider().getAnrDelayMillis(packageName, uid);
+    }
+
     public FuseDaemon onExitSession(String sessionId) {
         Log.i(TAG, "Exiting session for id: " + sessionId);
         synchronized (sLock) {

@@ -419,10 +419,9 @@ public class TranscodeHelper {
         if (mediaCapabilitiesUid >= Process.FIRST_APPLICATION_UID) {
             logVerbose(
                     "Media capabilities uid " + mediaCapabilitiesUid + ", passed for uid " + uid);
-            uid = mediaCapabilitiesUid;
-        } else {
-            logVerbose("Ignoring invalid Media capabilities uid " + mediaCapabilitiesUid);
+            return mediaCapabilitiesUid;
         }
+        Log.d(TAG, "Ignoring invalid Media capabilities uid " + mediaCapabilitiesUid);
         return uid;
     }
 

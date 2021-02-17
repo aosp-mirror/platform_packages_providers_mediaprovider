@@ -1126,7 +1126,7 @@ public class TranscodeHelper {
         while (i < manifest.length - 1) {
             try {
                 packageName = manifest[i++];
-                packageCompatValue = Integer.valueOf(manifest[i++]);
+                packageCompatValue = Integer.parseInt(manifest[i++]);
                 synchronized (mLock) {
                     // Lock is already held, explicitly hold again to make error prone happy
                     mAppCompatMediaCapabilities.put(packageName, packageCompatValue);
@@ -1168,7 +1168,7 @@ public class TranscodeHelper {
                 }
                 try {
                     packageName = lineValues[0];
-                    packageCompatValue = Integer.valueOf(lineValues[1]);
+                    packageCompatValue = Integer.parseInt(lineValues[1]);
 
                     if (stalePackages.contains(packageName)) {
                         Log.i(TAG, "Skipping stale package in transcode compat manifest: "

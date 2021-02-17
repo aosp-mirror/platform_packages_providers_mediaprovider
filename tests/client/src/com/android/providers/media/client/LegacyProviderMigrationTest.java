@@ -18,6 +18,8 @@ package com.android.providers.media.client;
 
 import static android.provider.MediaStore.rewriteToLegacy;
 
+import static com.google.common.truth.Truth.assertWithMessage;
+
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -176,6 +178,7 @@ public class LegacyProviderMigrationTest {
         final ContentValues values = generateValues(FileColumns.MEDIA_TYPE_AUDIO,
                 "audio/mpeg", Environment.DIRECTORY_MUSIC);
         values.put(AudioColumns.BOOKMARK, String.valueOf(42));
+        values.put(MediaColumns.ORIENTATION, String.valueOf(90));
         doLegacy(mExternalAudio, values);
     }
 
@@ -187,6 +190,7 @@ public class LegacyProviderMigrationTest {
         values.put(VideoColumns.TAGS, "My Tags");
         values.put(VideoColumns.CATEGORY, "My Category");
         values.put(VideoColumns.IS_PRIVATE, String.valueOf(1));
+        values.put(MediaColumns.ORIENTATION, String.valueOf(90));
         doLegacy(mExternalVideo, values);
     }
 
@@ -195,6 +199,7 @@ public class LegacyProviderMigrationTest {
         final ContentValues values = generateValues(FileColumns.MEDIA_TYPE_IMAGE,
                 "image/png", Environment.DIRECTORY_PICTURES);
         values.put(ImageColumns.IS_PRIVATE, String.valueOf(1));
+        values.put(MediaColumns.ORIENTATION, String.valueOf(90));
         doLegacy(mExternalImages, values);
     }
 
@@ -204,6 +209,7 @@ public class LegacyProviderMigrationTest {
                 "application/x-iso9660-image", Environment.DIRECTORY_DOWNLOADS);
         values.put(DownloadColumns.DOWNLOAD_URI, "http://example.com/download");
         values.put(DownloadColumns.REFERER_URI, "http://example.com/referer");
+        values.put(MediaColumns.ORIENTATION, String.valueOf(90));
         doLegacy(mExternalDownloads, values);
     }
 
@@ -443,12 +449,32 @@ public class LegacyProviderMigrationTest {
             values.remove(FileColumns.DATA);
         }
 
+        // This will delete MediaProvider data and restarts MediaProvider, and mounts storage.
         clearProviders(context, ui);
+
+        // Check for Orientation column before Scan gets the values from metadata of the file.
+        if (values.getAsString(MediaColumns.ORIENTATION) != null) {
+            assertOrientationColumn(collectionUri, values, context, legacyFile);
+            values.remove(MediaColumns.ORIENTATION);
+        }
 
         // And force a scan to confirm upgraded data survives
         MediaStore.scanVolume(context.getContentResolver(),
                 MediaStore.getVolumeName(collectionUri));
+        assertColumnsHaveExpectedValues(collectionUri, values, context, legacyFile);
 
+    }
+
+    private void assertOrientationColumn(Uri collectionUri, ContentValues originalValues,
+            Context context, File legacyFile) throws Exception {
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.ORIENTATION, (String) originalValues.get(MediaColumns.ORIENTATION));
+        // Checking orientation can be flaky due to scan race condition
+        assertColumnsHaveExpectedValues(collectionUri, values, context, legacyFile);
+    }
+
+    private void assertColumnsHaveExpectedValues(Uri collectionUri, ContentValues values,
+            Context context, File legacyFile) throws Exception {
         // Confirm that details from legacy provider have migrated
         try (ContentProviderClient modern = context.getContentResolver()
                 .acquireContentProviderClient(MediaStore.AUTHORITY)) {
@@ -461,13 +487,14 @@ public class LegacyProviderMigrationTest {
             extras.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
             extras.putInt(MediaStore.QUERY_ARG_MATCH_FAVORITE, MediaStore.MATCH_INCLUDE);
 
-            try (Cursor cursor = modern.query(collectionUri, null, extras, null)) {
+            try (Cursor cursor = pollForCursor(modern, collectionUri, extras)) {
+                assertNotNull(cursor);
                 assertTrue(cursor.moveToFirst());
-                final ContentValues actualValues = new ContentValues();
                 for (String key : values.keySet()) {
-                    actualValues.put(key, cursor.getString(cursor.getColumnIndexOrThrow(key)));
+                    assertWithMessage("Checking key %s", key)
+                            .that(cursor.getString(cursor.getColumnIndexOrThrow(key)))
+                            .isEqualTo(values.get(key));
                 }
-                assertEquals(values, actualValues);
             }
         }
     }
@@ -481,6 +508,23 @@ public class LegacyProviderMigrationTest {
         MediaStore.waitForIdle(resolver);
         pollForExternalStorageState();
         MediaStore.waitForIdle(resolver);
+    }
+
+    private static Cursor pollForCursor(ContentProviderClient modern, Uri collectionUri,
+            Bundle extras) throws Exception {
+        Cursor cursor = null;
+        for (int i = 0; i < POLLING_TIMEOUT_MILLIS / POLLING_SLEEP_MILLIS; i++) {
+           try {
+               cursor = modern.query(collectionUri, null, extras, null);
+               return cursor;
+           } catch (IllegalArgumentException e) {
+               // try again
+           }
+            Log.v(TAG, "Waiting for..." + collectionUri);
+            SystemClock.sleep(POLLING_SLEEP_MILLIS);
+        }
+        fail("Timed out while waiting for uri " + collectionUri);
+        return cursor;
     }
 
     private static void pollForFile(File file) {

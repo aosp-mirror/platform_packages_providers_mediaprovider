@@ -25,6 +25,7 @@ java_sdk_library {
     ],
 
     installable: true,
+    min_sdk_version: "30",
 
     libs: [
         "framework_mediaprovider_annotation",

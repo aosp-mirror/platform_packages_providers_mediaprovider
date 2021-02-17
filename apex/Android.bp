@@ -8,6 +8,8 @@ apex {
 
 apex_defaults {
     name: "com.android.mediaprovider-defaults",
+    updatable: true,
+    min_sdk_version: "30",
     java_libs: ["framework-mediaprovider"],
     key: "com.android.mediaprovider.key",
     certificate: ":com.android.mediaprovider.certificate",

@@ -269,8 +269,9 @@ public class TranscodeHelper {
         for (StorageTranscodingSession session: sessions) {
             if (session.isUidBlocked(uid)) {
                 int delayMs = mMediaProvider.getIntDeviceConfig(TRANSCODE_ANR_DELAY_MS_KEY, 0);
-                Log.i(TAG, "Package: " + packageName + " is blocked on transcoding: " + session
-                        + ". Delay ANR by " + delayMs + "ms");
+                Log.i(TAG, "Package: " + packageName + " with uid: " + uid
+                        + " is blocked on transcoding: " + session + ". Delaying ANR by " + delayMs
+                        + "ms");
                 return delayMs;
             }
         }
@@ -451,8 +452,7 @@ public class TranscodeHelper {
         uid = getMediaCapabilitiesUid(uid, bundle);
         logVerbose("Checking shouldTranscode for: " + path + ". Uid: " + uid);
 
-        if (!supportsTranscode(path) || uid < Process.FIRST_APPLICATION_UID
-                || uid == Process.myUid()) {
+        if (!supportsTranscode(path) || uid < Process.FIRST_APPLICATION_UID || uid == MY_UID) {
             logVerbose("Transcode not supported");
             // Never transcode in any of these conditions
             // 1. Path doesn't support transcode

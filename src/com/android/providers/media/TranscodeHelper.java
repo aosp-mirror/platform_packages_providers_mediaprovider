@@ -1219,8 +1219,10 @@ public class TranscodeHelper {
     public void dump(PrintWriter writer) {
         writer.println("isTranscodeEnabled=" + isTranscodeEnabled());
         writer.println("shouldTranscodeDefault=" + shouldTranscodeDefault());
+
         synchronized (mLock) {
             writer.println("mAppCompatMediaCapabilities=" + mAppCompatMediaCapabilities);
+            writer.println("mStorageTranscodingSessions=" + mStorageTranscodingSessions);
         }
     }
 

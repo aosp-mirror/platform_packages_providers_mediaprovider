@@ -7604,7 +7604,7 @@ public class MediaProvider extends ContentProvider {
 
     private @Nullable Uri getOtherUriGrantsForPath(String path, int mediaType, long id,
             boolean forWrite) {
-        Set<Uri> otherUris = new ArraySet<Uri>();
+        List<Uri> otherUris = new ArrayList<Uri>();
         final Uri mediaUri = getMediaUriForFuse(extractVolumeName(path), mediaType, id);
         otherUris.add(mediaUri);
         final Uri externalMediaUri = getMediaUriForFuse(MediaStore.VOLUME_EXTERNAL, mediaType, id);
@@ -8199,20 +8199,37 @@ public class MediaProvider extends ContentProvider {
     /**
      * Returns any uri that is granted from the set of Uris passed.
      */
-    private @Nullable Uri getPermissionGrantedUri(Set<Uri> uris, boolean forWrite) {
-        for (Uri uri : uris) {
-            if (isUriPermissionGranted(uri, forWrite)) {
-                return uri;
+    private @Nullable Uri getPermissionGrantedUri(@NonNull List<Uri> uris, boolean forWrite) {
+        if (SdkLevel.isAtLeastS()) {
+            final int modeFlags = forWrite
+                    ? Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    : Intent.FLAG_GRANT_READ_URI_PERMISSION;
+            int[] res = getContext().checkUriPermissions(uris, mCallingIdentity.get().pid,
+                    mCallingIdentity.get().uid, modeFlags);
+            if (res.length != uris.size()) {
+                return null;
+            }
+            for (int i = 0; i < uris.size(); i++) {
+                if (res[i] == PERMISSION_GRANTED) {
+                    return uris.get(i);
+                }
+            }
+        } else {
+            for (Uri uri : uris) {
+                if (isUriPermissionGranted(uri, forWrite)) {
+                    return uri;
+                }
             }
         }
         return null;
     }
 
     private boolean isUriPermissionGranted(Uri uri, boolean forWrite) {
+        final int modeFlags = forWrite
+                ? Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                : Intent.FLAG_GRANT_READ_URI_PERMISSION;
         int uriPermission = getContext().checkUriPermission(uri, mCallingIdentity.get().pid,
-                mCallingIdentity.get().uid, forWrite
-                        ? Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                        : Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                mCallingIdentity.get().uid, modeFlags);
         return uriPermission == PERMISSION_GRANTED;
     }
 

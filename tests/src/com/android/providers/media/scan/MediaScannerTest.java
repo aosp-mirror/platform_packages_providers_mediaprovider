@@ -95,6 +95,11 @@ public class MediaScannerTest {
                 public String getStringDeviceConfig(String key, String defaultValue) {
                     return defaultValue;
                 }
+
+                @Override
+                public int getIntDeviceConfig(String key, int defaultValue) {
+                    return defaultValue;
+                }
             };
             mProvider.attachInfo(this, info);
             mResolver.addProvider(MediaStore.AUTHORITY, mProvider);

@@ -35,6 +35,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -47,9 +48,14 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
     private static final Map<String, FuseDaemon> sFuseDaemons = new HashMap<>();
 
     @Override
-    public void onStartSession(String sessionId, /* @SessionFlag */ int flag,
+    public void onStartSession(@NonNull String sessionId, /* @SessionFlag */ int flag,
             @NonNull ParcelFileDescriptor deviceFd, @NonNull File upperFileSystemPath,
             @NonNull File lowerFileSystemPath) {
+        Objects.requireNonNull(sessionId);
+        Objects.requireNonNull(deviceFd);
+        Objects.requireNonNull(upperFileSystemPath);
+        Objects.requireNonNull(lowerFileSystemPath);
+
         MediaProvider mediaProvider = getMediaProvider();
 
         synchronized (sLock) {
@@ -69,7 +75,9 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
     }
 
     @Override
-    public void onVolumeStateChanged(StorageVolume vol) throws IOException {
+    public void onVolumeStateChanged(@NonNull StorageVolume vol) throws IOException {
+        Objects.requireNonNull(vol);
+
         MediaProvider mediaProvider = getMediaProvider();
         String volumeName = vol.getMediaStoreVolumeName();
 
@@ -92,7 +100,9 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
     }
 
     @Override
-    public void onEndSession(String sessionId) {
+    public void onEndSession(@NonNull String sessionId) {
+        Objects.requireNonNull(sessionId);
+
         FuseDaemon daemon = onExitSession(sessionId);
 
         if (daemon == null) {
@@ -109,16 +119,22 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
 
     @Override
     public void onFreeCache(@NonNull UUID volumeUuid, @BytesLong long bytes) throws IOException {
+        Objects.requireNonNull(volumeUuid);
+
         Log.i(TAG, "Free cache requested for " + bytes + " bytes");
         getMediaProvider().freeCache(bytes);
     }
 
     @Override
     public long onGetAnrDelayMillis(@NonNull String packageName, int uid) {
+        Objects.requireNonNull(packageName);
+
         return getMediaProvider().getAnrDelayMillis(packageName, uid);
     }
 
-    public FuseDaemon onExitSession(String sessionId) {
+    public FuseDaemon onExitSession(@NonNull String sessionId) {
+        Objects.requireNonNull(sessionId);
+
         Log.i(TAG, "Exiting session for id: " + sessionId);
         synchronized (sLock) {
             return sFuseDaemons.remove(sessionId);

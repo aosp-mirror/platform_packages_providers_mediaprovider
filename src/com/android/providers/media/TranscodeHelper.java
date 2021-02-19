@@ -256,7 +256,7 @@ public class TranscodeHelper {
     /**
      * @return true if the file path matches transcode file path.
      */
-    public static boolean isTranscodeFile(@NonNull String path) {
+    private static boolean isTranscodeFile(@NonNull String path) {
         final Matcher matcher = PATTERN_TRANSCODE_PATH.matcher(path);
         return matcher.matches();
     }
@@ -270,7 +270,7 @@ public class TranscodeHelper {
      * @return transcode file's path for given {@code rowId}
      */
     @NonNull
-    public String getTranscodePath(long rowId) {
+    private String getTranscodePath(long rowId) {
         return new File(getTranscodeDirectory(), String.valueOf(rowId)).getAbsolutePath();
     }
 

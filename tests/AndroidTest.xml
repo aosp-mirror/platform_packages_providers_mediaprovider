@@ -19,6 +19,14 @@
         <option name="install-arg" value="-g" />
     </target_preparer>
 
+    <target_preparer class="com.android.tradefed.targetprep.suite.SuiteApkInstaller">
+        <option name="cleanup-apks" value="true" />
+            <option name="test-file-name" value="MediaProviderTestAppWithStoragePerms.apk" />
+            <option name="test-file-name" value="MediaProviderTestAppWithoutPerms.apk" />
+            <option name="test-file-name" value="LegacyMediaProviderTestApp.apk" />
+        <option name="install-arg" value="-g" />
+    </target_preparer>
+
     <option name="test-suite-tag" value="apct" />
     <option name="test-suite-tag" value="framework-base-presubmit" />
     <option name="test-tag" value="MediaProviderTests" />

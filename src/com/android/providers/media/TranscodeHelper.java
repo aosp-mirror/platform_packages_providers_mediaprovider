@@ -91,7 +91,7 @@ import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -188,6 +188,8 @@ public class TranscodeHelper {
      */
     private static final int TYPE_QUERY = 0;
     private static final int TYPE_UPDATE = 2;
+
+    private static final int MAX_FINISHED_TRANSCODING_SESSION_STORE_COUNT = 16;
     private static final String DIRECTORY_CAMERA = "Camera";
 
     private final Object mLock = new Object();
@@ -196,8 +198,25 @@ public class TranscodeHelper {
     private final PackageManager mPackageManager;
     private final MediaTranscodeManager mMediaTranscodeManager;
     private final File mTranscodeDirectory;
+
     @GuardedBy("mLock")
-    private final Map<String, StorageTranscodingSession> mStorageTranscodingSessions = new ArrayMap<>();
+    private final Map<String, StorageTranscodingSession> mStorageTranscodingSessions =
+            new ArrayMap<>();
+
+    // These are for dumping purpose only.
+    // We keep these separately because the probability of getting cancelled and error'ed sessions
+    // is pretty low, and we are limiting the count of what we keep.  So, we don't wanna miss out
+    // on dumping the cancelled and error'ed sessions.
+    @GuardedBy("mLock")
+    private final Map<String, StorageTranscodingSession> mSuccessfulTranscodeSessions =
+            createFinishedTranscodingSessionMap();
+    @GuardedBy("mLock")
+    private final Map<String, StorageTranscodingSession> mCancelledTranscodeSessions =
+            createFinishedTranscodingSessionMap();
+    @GuardedBy("mLock")
+    private final Map<String, StorageTranscodingSession> mErroredTranscodeSessions =
+            createFinishedTranscodingSessionMap();
+
     private final TranscodeUiNotifier mTranscodingUiNotifier;
     private final SessionTiming mSessionTiming;
     @GuardedBy("mLock")
@@ -1016,10 +1035,26 @@ public class TranscodeHelper {
 
     private void finishTranscodingResult(int uid, String src, TranscodingSession session,
             CountDownLatch latch) {
+        final StorageTranscodingSession finishedSession;
+
         synchronized (mLock) {
             latch.countDown();
             session.cancel();
-            mStorageTranscodingSessions.remove(src);
+            finishedSession = mStorageTranscodingSessions.remove(src);
+
+            switch (session.getResult()) {
+                case TranscodingSession.RESULT_SUCCESS:
+                    mSuccessfulTranscodeSessions.put(src, finishedSession);
+                    break;
+                case TranscodingSession.RESULT_CANCELED:
+                    mCancelledTranscodeSessions.put(src, finishedSession);
+                    break;
+                case TranscodingSession.RESULT_ERROR:
+                    mErroredTranscodeSessions.put(src, finishedSession);
+                    break;
+                default:
+                    Log.w(TAG, "TranscodingSession.RESULT_NONE received for a finished session");
+            }
         }
 
         logEvent("Transcoding end: " + src + ". Uid: " + uid, session);
@@ -1238,6 +1273,21 @@ public class TranscodeHelper {
         synchronized (mLock) {
             writer.println("mAppCompatMediaCapabilities=" + mAppCompatMediaCapabilities);
             writer.println("mStorageTranscodingSessions=" + mStorageTranscodingSessions);
+
+            dumpFinishedSessions(writer);
+        }
+    }
+
+    private void dumpFinishedSessions(PrintWriter writer) {
+        synchronized (mLock) {
+            writer.println("mSuccessfulTranscodeSessions=" + mSuccessfulTranscodeSessions);
+            mSuccessfulTranscodeSessions.clear();
+
+            writer.println("mCancelledTranscodeSessions=" + mCancelledTranscodeSessions);
+            mCancelledTranscodeSessions.clear();
+
+            writer.println("mErroredTranscodeSessions=" + mErroredTranscodeSessions);
+            mErroredTranscodeSessions.clear();
         }
     }
 
@@ -1249,6 +1299,17 @@ public class TranscodeHelper {
         if (DEBUG) {
             Log.v(TAG, message);
         }
+    }
+
+    // We want to keep track of only the most recent [MAX_FINISHED_TRANSCODING_SESSION_STORE_COUNT]
+    // finished transcoding sessions.
+    private static LinkedHashMap createFinishedTranscodingSessionMap() {
+        return new LinkedHashMap<String, StorageTranscodingSession>() {
+            @Override
+            protected boolean removeEldestEntry(Entry eldest) {
+                return size() > MAX_FINISHED_TRANSCODING_SESSION_STORE_COUNT;
+            }
+        };
     }
 
     private static class StorageTranscodingSession {

@@ -38,6 +38,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.FileUtils;
 import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
 import android.os.storage.StorageManager;
@@ -69,10 +70,12 @@ import org.junit.runner.RunWith;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
@@ -119,14 +122,24 @@ public class LegacyProviderMigrationTest {
                 .appendQueryParameter("silent", "true").build();
     }
 
-    private ContentValues generateValues(int mediaType, String mimeType, String dirName) {
+    private ContentValues generateValues(int mediaType, String mimeType, String dirName)
+            throws Exception {
+        return generateValues(mediaType, mimeType, dirName, 0);
+    }
+
+    private ContentValues generateValues(int mediaType, String mimeType, String dirName, int resId)
+            throws Exception {
         final Context context = InstrumentationRegistry.getContext();
 
         final File dir = context.getSystemService(StorageManager.class)
                 .getStorageVolume(MediaStore.Files.getContentUri(mVolumeName)).getDirectory();
         final File subDir = new File(dir, dirName);
-        final File file = new File(subDir, "legacy" + System.nanoTime() + "."
+        File file = new File(subDir, "legacy" + System.nanoTime() + "."
                 + MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType));
+
+        if (resId != 0) {
+            file = stageFile(resId, file.getAbsolutePath());
+        }
 
         final ContentValues values = new ContentValues();
         values.put(FileColumns.MEDIA_TYPE, mediaType);
@@ -138,6 +151,25 @@ public class LegacyProviderMigrationTest {
         values.put(MediaColumns.OWNER_PACKAGE_NAME,
                 InstrumentationRegistry.getContext().getPackageName());
         return values;
+    }
+
+    private static File stageFile(int resId, String path) throws Exception {
+        final Context context = InstrumentationRegistry.getContext();
+        final File file = new File(path);
+        try (InputStream in = context.getResources().openRawResource(resId);
+             OutputStream out = new FileOutputStream(file)) {
+            FileUtils.copy(in, out);
+        }
+        return file;
+    }
+
+    @Test
+    public void testLegacy_Orientation() throws Exception {
+        // Use an image file with orientation of 90 degrees
+        final ContentValues values = generateValues(FileColumns.MEDIA_TYPE_IMAGE,
+                "image/jpeg", Environment.DIRECTORY_PICTURES, R.raw.orientation_90);
+        values.put(MediaColumns.ORIENTATION, String.valueOf(90));
+        doLegacy(mExternalImages, values);
     }
 
     @Test
@@ -178,7 +210,6 @@ public class LegacyProviderMigrationTest {
         final ContentValues values = generateValues(FileColumns.MEDIA_TYPE_AUDIO,
                 "audio/mpeg", Environment.DIRECTORY_MUSIC);
         values.put(AudioColumns.BOOKMARK, String.valueOf(42));
-        values.put(MediaColumns.ORIENTATION, String.valueOf(90));
         doLegacy(mExternalAudio, values);
     }
 
@@ -190,7 +221,6 @@ public class LegacyProviderMigrationTest {
         values.put(VideoColumns.TAGS, "My Tags");
         values.put(VideoColumns.CATEGORY, "My Category");
         values.put(VideoColumns.IS_PRIVATE, String.valueOf(1));
-        values.put(MediaColumns.ORIENTATION, String.valueOf(90));
         doLegacy(mExternalVideo, values);
     }
 
@@ -199,7 +229,6 @@ public class LegacyProviderMigrationTest {
         final ContentValues values = generateValues(FileColumns.MEDIA_TYPE_IMAGE,
                 "image/png", Environment.DIRECTORY_PICTURES);
         values.put(ImageColumns.IS_PRIVATE, String.valueOf(1));
-        values.put(MediaColumns.ORIENTATION, String.valueOf(90));
         doLegacy(mExternalImages, values);
     }
 
@@ -209,7 +238,6 @@ public class LegacyProviderMigrationTest {
                 "application/x-iso9660-image", Environment.DIRECTORY_DOWNLOADS);
         values.put(DownloadColumns.DOWNLOAD_URI, "http://example.com/download");
         values.put(DownloadColumns.REFERER_URI, "http://example.com/referer");
-        values.put(MediaColumns.ORIENTATION, String.valueOf(90));
         doLegacy(mExternalDownloads, values);
     }
 
@@ -452,10 +480,10 @@ public class LegacyProviderMigrationTest {
         // This will delete MediaProvider data and restarts MediaProvider, and mounts storage.
         clearProviders(context, ui);
 
-        // Check for Orientation column before Scan gets the values from metadata of the file.
+        // Make sure we do not lose the ORIENTATION column after database migration
+        // We check this column again after the scan
         if (values.getAsString(MediaColumns.ORIENTATION) != null) {
             assertOrientationColumn(collectionUri, values, context, legacyFile);
-            values.remove(MediaColumns.ORIENTATION);
         }
 
         // And force a scan to confirm upgraded data survives
@@ -469,7 +497,6 @@ public class LegacyProviderMigrationTest {
             Context context, File legacyFile) throws Exception {
         final ContentValues values = new ContentValues();
         values.put(MediaColumns.ORIENTATION, (String) originalValues.get(MediaColumns.ORIENTATION));
-        // Checking orientation can be flaky due to scan race condition
         assertColumnsHaveExpectedValues(collectionUri, values, context, legacyFile);
     }
 

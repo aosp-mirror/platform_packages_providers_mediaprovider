@@ -38,6 +38,8 @@ import android.compat.annotation.Disabled;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.InstallSourceInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.Property;
 import android.content.res.XmlResourceParser;
@@ -89,7 +91,7 @@ import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -186,6 +188,8 @@ public class TranscodeHelper {
      */
     private static final int TYPE_QUERY = 0;
     private static final int TYPE_UPDATE = 2;
+
+    private static final int MAX_FINISHED_TRANSCODING_SESSION_STORE_COUNT = 16;
     private static final String DIRECTORY_CAMERA = "Camera";
 
     private final Object mLock = new Object();
@@ -194,8 +198,25 @@ public class TranscodeHelper {
     private final PackageManager mPackageManager;
     private final MediaTranscodeManager mMediaTranscodeManager;
     private final File mTranscodeDirectory;
+
     @GuardedBy("mLock")
-    private final Map<String, StorageTranscodingSession> mStorageTranscodingSessions = new ArrayMap<>();
+    private final Map<String, StorageTranscodingSession> mStorageTranscodingSessions =
+            new ArrayMap<>();
+
+    // These are for dumping purpose only.
+    // We keep these separately because the probability of getting cancelled and error'ed sessions
+    // is pretty low, and we are limiting the count of what we keep.  So, we don't wanna miss out
+    // on dumping the cancelled and error'ed sessions.
+    @GuardedBy("mLock")
+    private final Map<String, StorageTranscodingSession> mSuccessfulTranscodeSessions =
+            createFinishedTranscodingSessionMap();
+    @GuardedBy("mLock")
+    private final Map<String, StorageTranscodingSession> mCancelledTranscodeSessions =
+            createFinishedTranscodingSessionMap();
+    @GuardedBy("mLock")
+    private final Map<String, StorageTranscodingSession> mErroredTranscodeSessions =
+            createFinishedTranscodingSessionMap();
+
     private final TranscodeUiNotifier mTranscodingUiNotifier;
     private final SessionTiming mSessionTiming;
     @GuardedBy("mLock")
@@ -279,21 +300,34 @@ public class TranscodeHelper {
         return 0;
     }
 
-    /* TODO: this should probably use a cache so we don't
-     * need to ask the package manager every time
-     */
-    private String getNameForUid(int uid) {
+    // TODO(b/170974147): This should probably use a cache so we don't need to ask the
+    // package manager every time for the package name or installer name
+    private String getMetricsSafeNameForUid(int uid) {
         String name = mPackageManager.getNameForUid(uid);
         if (name == null) {
             Log.w(TAG, "null package name received from getNameForUid for uid " + uid
                     + ", logging uid instead.");
-            name = Integer.toString(uid);
+            return Integer.toString(uid);
         } else if (name.isEmpty()) {
             Log.w(TAG, "empty package name received from getNameForUid for uid " + uid
                     + ", logging uid instead");
-            name = ":" + uid;
+            return ":empty_package_name:" + uid;
+        } else {
+            try {
+                InstallSourceInfo installInfo = mPackageManager.getInstallSourceInfo(name);
+                ApplicationInfo applicationInfo = mPackageManager.getApplicationInfo(name, 0);
+                if (installInfo.getInstallingPackageName() == null
+                        && ((applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0)) {
+                    // For privacy reasons, we don't log metrics for side-loaded packages that
+                    // are not system packages
+                    return ":installer_adb:" + uid;
+                }
+                return name;
+            } catch (PackageManager.NameNotFoundException e) {
+                Log.w(TAG, "Unable to check installer for uid: " + uid, e);
+                return ":name_not_found:" + uid;
+            }
         }
-        return name;
     }
 
     private void reportTranscodingResult(int uid, boolean success, long transcodingDurationMs,
@@ -304,7 +338,7 @@ public class TranscodeHelper {
                 if (c != null && c.moveToNext()) {
                     MediaProviderStatsLog.write(
                             TRANSCODING_DATA,
-                            getNameForUid(uid),
+                            getMetricsSafeNameForUid(uid),
                             MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_TRANSCODE,
                             success ? new File(dst).length() : -1,
                             success ? TRANSCODING_DATA__TRANSCODE_RESULT__SUCCESS :
@@ -847,7 +881,7 @@ public class TranscodeHelper {
                     if (transformsReason == 0) {
                         MediaProviderStatsLog.write(
                                 TRANSCODING_DATA,
-                                getNameForUid(uid) /* owner_package_name */,
+                                getMetricsSafeNameForUid(uid) /* owner_package_name */,
                                 MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_DIRECT,
                                 c.getLong(1) /* file size */,
                                 TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED,
@@ -858,7 +892,7 @@ public class TranscodeHelper {
                     } else if (isTranscodeFileCached(path, ioPath)) {
                             MediaProviderStatsLog.write(
                                     TRANSCODING_DATA,
-                                    getNameForUid(uid) /* owner_package_name */,
+                                    getMetricsSafeNameForUid(uid) /* owner_package_name */,
                                     MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_CACHE,
                                     c.getLong(1) /* file size */,
                                     TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED,
@@ -1001,10 +1035,26 @@ public class TranscodeHelper {
 
     private void finishTranscodingResult(int uid, String src, TranscodingSession session,
             CountDownLatch latch) {
+        final StorageTranscodingSession finishedSession;
+
         synchronized (mLock) {
             latch.countDown();
             session.cancel();
-            mStorageTranscodingSessions.remove(src);
+            finishedSession = mStorageTranscodingSessions.remove(src);
+
+            switch (session.getResult()) {
+                case TranscodingSession.RESULT_SUCCESS:
+                    mSuccessfulTranscodeSessions.put(src, finishedSession);
+                    break;
+                case TranscodingSession.RESULT_CANCELED:
+                    mCancelledTranscodeSessions.put(src, finishedSession);
+                    break;
+                case TranscodingSession.RESULT_ERROR:
+                    mErroredTranscodeSessions.put(src, finishedSession);
+                    break;
+                default:
+                    Log.w(TAG, "TranscodingSession.RESULT_NONE received for a finished session");
+            }
         }
 
         logEvent("Transcoding end: " + src + ". Uid: " + uid, session);
@@ -1223,6 +1273,21 @@ public class TranscodeHelper {
         synchronized (mLock) {
             writer.println("mAppCompatMediaCapabilities=" + mAppCompatMediaCapabilities);
             writer.println("mStorageTranscodingSessions=" + mStorageTranscodingSessions);
+
+            dumpFinishedSessions(writer);
+        }
+    }
+
+    private void dumpFinishedSessions(PrintWriter writer) {
+        synchronized (mLock) {
+            writer.println("mSuccessfulTranscodeSessions=" + mSuccessfulTranscodeSessions);
+            mSuccessfulTranscodeSessions.clear();
+
+            writer.println("mCancelledTranscodeSessions=" + mCancelledTranscodeSessions);
+            mCancelledTranscodeSessions.clear();
+
+            writer.println("mErroredTranscodeSessions=" + mErroredTranscodeSessions);
+            mErroredTranscodeSessions.clear();
         }
     }
 
@@ -1234,6 +1299,17 @@ public class TranscodeHelper {
         if (DEBUG) {
             Log.v(TAG, message);
         }
+    }
+
+    // We want to keep track of only the most recent [MAX_FINISHED_TRANSCODING_SESSION_STORE_COUNT]
+    // finished transcoding sessions.
+    private static LinkedHashMap createFinishedTranscodingSessionMap() {
+        return new LinkedHashMap<String, StorageTranscodingSession>() {
+            @Override
+            protected boolean removeEldestEntry(Entry eldest) {
+                return size() > MAX_FINISHED_TRANSCODING_SESSION_STORE_COUNT;
+            }
+        };
     }
 
     private static class StorageTranscodingSession {

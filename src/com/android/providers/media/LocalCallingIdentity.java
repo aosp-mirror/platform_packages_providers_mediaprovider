@@ -93,14 +93,21 @@ public class LocalCallingIdentity {
 
     public static LocalCallingIdentity fromBinder(Context context, ContentProvider provider) {
         String callingPackage = provider.getCallingPackageUnchecked();
+        int binderUid = Binder.getCallingUid();
         if (callingPackage == null) {
+            if (binderUid == Process.SYSTEM_UID) {
+                // If UID is system assume we are running as ourself and not handling IPC
+                // Otherwise, we'd crash when we attempt AppOpsManager#checkPackage
+                // in LocalCallingIdentity#getPackageName
+                return fromSelf(context);
+            }
             callingPackage = context.getOpPackageName();
         }
         String callingAttributionTag = provider.getCallingAttributionTag();
         if (callingAttributionTag == null) {
             callingAttributionTag = context.getAttributionTag();
         }
-        return new LocalCallingIdentity(context, Binder.getCallingPid(), Binder.getCallingUid(),
+        return new LocalCallingIdentity(context, Binder.getCallingPid(), binderUid,
                 callingPackage, callingAttributionTag);
     }
 

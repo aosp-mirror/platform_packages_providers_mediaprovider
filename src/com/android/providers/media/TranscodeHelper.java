@@ -447,16 +447,18 @@ public class TranscodeHelper {
     }
 
     private static int getMediaCapabilitiesUid(int uid, Bundle bundle) {
-        if (bundle == null) {
+        if (bundle == null || !bundle.containsKey(MediaStore.EXTRA_MEDIA_CAPABILITIES_UID)) {
             return uid;
         }
+
         int mediaCapabilitiesUid = bundle.getInt(MediaStore.EXTRA_MEDIA_CAPABILITIES_UID);
         if (mediaCapabilitiesUid >= Process.FIRST_APPLICATION_UID) {
             logVerbose(
                     "Media capabilities uid " + mediaCapabilitiesUid + ", passed for uid " + uid);
             return mediaCapabilitiesUid;
         }
-        Log.d(TAG, "Ignoring invalid Media capabilities uid " + mediaCapabilitiesUid);
+        Log.w(TAG, "Ignoring invalid media capabilities uid " + mediaCapabilitiesUid
+                + " for uid: " + uid);
         return uid;
     }
 

@@ -256,7 +256,7 @@ public class TranscodeHelper {
     /**
      * @return true if the file path matches transcode file path.
      */
-    public static boolean isTranscodeFile(@NonNull String path) {
+    private static boolean isTranscodeFile(@NonNull String path) {
         final Matcher matcher = PATTERN_TRANSCODE_PATH.matcher(path);
         return matcher.matches();
     }
@@ -270,7 +270,7 @@ public class TranscodeHelper {
      * @return transcode file's path for given {@code rowId}
      */
     @NonNull
-    public String getTranscodePath(long rowId) {
+    private String getTranscodePath(long rowId) {
         return new File(getTranscodeDirectory(), String.valueOf(rowId)).getAbsolutePath();
     }
 
@@ -447,16 +447,18 @@ public class TranscodeHelper {
     }
 
     private static int getMediaCapabilitiesUid(int uid, Bundle bundle) {
-        if (bundle == null) {
+        if (bundle == null || !bundle.containsKey(MediaStore.EXTRA_MEDIA_CAPABILITIES_UID)) {
             return uid;
         }
+
         int mediaCapabilitiesUid = bundle.getInt(MediaStore.EXTRA_MEDIA_CAPABILITIES_UID);
         if (mediaCapabilitiesUid >= Process.FIRST_APPLICATION_UID) {
             logVerbose(
                     "Media capabilities uid " + mediaCapabilitiesUid + ", passed for uid " + uid);
             return mediaCapabilitiesUid;
         }
-        Log.d(TAG, "Ignoring invalid Media capabilities uid " + mediaCapabilitiesUid);
+        Log.w(TAG, "Ignoring invalid media capabilities uid " + mediaCapabilitiesUid
+                + " for uid: " + uid);
         return uid;
     }
 
@@ -1350,6 +1352,11 @@ public class TranscodeHelper {
                 "native_transcode_progress_channel";
         private static final String TRANSCODE_PROGRESS_CHANNEL_NAME = "Native Transcode Progress";
 
+        // Related to notification settings
+        private static final String TRANSCODE_NOTIFICATION_SYS_PROP_KEY =
+                "persist.sys.fuse.transcode_notification";
+        private static final boolean NOTIFICATION_ALLOWED_DEFAULT_VALUE = true;
+
         private final NotificationManagerCompat mNotificationManager;
         // Builder for creating alert notifications.
         private final NotificationCompat.Builder mAlertBuilder;
@@ -1367,6 +1374,9 @@ public class TranscodeHelper {
         }
 
         void start(TranscodingSession session, String filePath) {
+            if (!notificationEnabled()) {
+                return;
+            }
             ForegroundThread.getHandler().post(() -> {
                 mAlertBuilder.setContentTitle("Transcoding started");
                 mAlertBuilder.setContentText(FileUtils.extractDisplayName(filePath));
@@ -1376,11 +1386,17 @@ public class TranscodeHelper {
         }
 
         void stop(TranscodingSession session, String filePath) {
+            if (!notificationEnabled()) {
+                return;
+            }
             endSessionWithMessage(session, filePath, getResultMessageForSession(session));
         }
 
         void setProgress(TranscodingSession session, String filePath,
                 @IntRange(from = 0, to = PROGRESS_MAX) int progress) {
+            if (!notificationEnabled()) {
+                return;
+            }
             if (shouldShowProgress(session)) {
                 mProgressBuilder.setContentText(FileUtils.extractDisplayName(filePath));
                 mProgressBuilder.setProgress(PROGRESS_MAX, progress, /* indeterminate= */ false);
@@ -1455,6 +1471,11 @@ public class TranscodeHelper {
                 default:
                     return "Transcoding result unknown";
             }
+        }
+
+        private static boolean notificationEnabled() {
+            return SystemProperties.getBoolean(TRANSCODE_NOTIFICATION_SYS_PROP_KEY,
+                    NOTIFICATION_ALLOWED_DEFAULT_VALUE);
         }
     }
 

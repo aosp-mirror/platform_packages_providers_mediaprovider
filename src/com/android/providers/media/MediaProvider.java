@@ -3382,6 +3382,7 @@ public class MediaProvider extends ContentProvider {
             values.put(FileColumns.MEDIA_TYPE, mediaType);
         }
 
+        qb.allowColumn(FileColumns._MODIFIER);
         if (isCallingPackageSelf() && values.containsKey(FileColumns._MODIFIER)) {
             // We can't identify if the call is coming from media scan, hence
             // we let ModernMediaScanner send FileColumns._MODIFIER value.
@@ -7848,7 +7849,7 @@ public class MediaProvider extends ContentProvider {
         // First, check to see if caller has direct write access
         if (forWrite) {
             final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, table, uri, extras, null);
-            qb.allowRowidColumn();
+            qb.allowColumn(SQLiteQueryBuilder.ROWID_COLUMN);
             try (Cursor c = qb.query(helper, new String[] { SQLiteQueryBuilder.ROWID_COLUMN },
                     null, null, null, null, null, null, null)) {
                 if (c.moveToFirst()) {
@@ -7872,7 +7873,7 @@ public class MediaProvider extends ContentProvider {
 
         // Second, check to see if caller has direct read access
         final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, table, uri, extras, null);
-        qb.allowRowidColumn();
+        qb.allowColumn(SQLiteQueryBuilder.ROWID_COLUMN);
         try (Cursor c = qb.query(helper, new String[] { SQLiteQueryBuilder.ROWID_COLUMN },
                 null, null, null, null, null, null, null)) {
             if (c.moveToFirst()) {

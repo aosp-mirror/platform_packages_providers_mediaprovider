@@ -1710,7 +1710,7 @@ public final class MediaStore {
              * scanned.
              * @hide
              */
-            @Column(value = Cursor.FIELD_TYPE_INTEGER)
+            // @Column(value = Cursor.FIELD_TYPE_INTEGER)
             public static final String _MODIFIER = "_modifier";
 
             /**

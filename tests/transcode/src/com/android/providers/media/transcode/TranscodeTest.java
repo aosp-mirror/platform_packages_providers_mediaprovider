@@ -827,4 +827,31 @@ public class TranscodeTest {
             uninstallApp(TEST_APP_HEVC);
         }
     }
+
+    /**
+     * Tests that we return FD of original file from
+     * MediaStore#getOriginalMediaFormatFileDescriptor.
+     * @throws Exception
+     */
+    @Test
+    public void testGetOriginalMediaFormatFileDescriptor_returnsOriginalFileDescriptor()
+            throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        try {
+            TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+
+            ParcelFileDescriptor pfdOriginal = open(modernFile, false);
+
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
+            ParcelFileDescriptor pfdTranscoded = open(modernFile, false);
+
+            ParcelFileDescriptor pfdOriginalMediaFormat =
+                    MediaStore.getOriginalMediaFormatFileDescriptor(getContext(), pfdTranscoded);
+
+            assertFileContent(modernFile, modernFile, pfdOriginal, pfdOriginalMediaFormat, true);
+            assertFileContent(modernFile, modernFile, pfdTranscoded, pfdOriginalMediaFormat, false);
+        } finally {
+            modernFile.delete();
+        }
+    }
 }

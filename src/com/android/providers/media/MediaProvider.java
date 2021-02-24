@@ -36,6 +36,7 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.getVolumeName;
+import static android.system.OsConstants.F_GETFL;
 
 import static com.android.providers.media.DatabaseHelper.EXTERNAL_DATABASE_NAME;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DATABASE_NAME;
@@ -5292,13 +5293,27 @@ public class MediaProvider extends ContentProvider {
                     File file = getFileFromFileDescriptor(inputPfd);
                     FuseDaemon fuseDaemon = getFuseDaemonForFile(file);
 
-                    ParcelFileDescriptor outputPfd =
-                            fuseDaemon.getOriginalMediaFormatFileDescriptor(inputPfd);
+                    String outputPath = fuseDaemon.getOriginalMediaFormatFilePath(inputPfd);
+                    if (TextUtils.isEmpty(outputPath)) {
+                        throw new IOException("Invalid path for original media format file");
+                    }
+
+                    int posixMode = Os.fcntlInt(inputPfd.getFileDescriptor(), F_GETFL,
+                            0 /* args */);
+                    int modeBits = FileUtils.translateModePosixToPfd(posixMode);
+                    int uid = Binder.getCallingUid();
+
+                    ParcelFileDescriptor outputPfd = openWithFuse(outputPath, uid,
+                            0 /* mediaCapabilitiesUid */, modeBits, true /* shouldRedact */,
+                            false /* shouldTranscode */, 0 /* transcodeReason */);
                     Bundle res = new Bundle();
                     res.putParcelable(MediaStore.EXTRA_FILE_DESCRIPTOR, outputPfd);
                     return res;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
+                } catch (ErrnoException e) {
+                    throw new RuntimeException(
+                            "Failed to fetch access mode for file descriptor", e);
                 }
             }
             default:
@@ -6840,7 +6855,7 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private File getFuseFile(File file) {
+    public File getFuseFile(File file) {
         String filePath = file.getPath().replaceFirst(
                 "/storage/", "/mnt/user/" + UserHandle.myUserId() + "/");
         return new File(filePath);

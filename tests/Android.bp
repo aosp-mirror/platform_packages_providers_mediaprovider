@@ -3,11 +3,20 @@
 // on the device being tested, so we can't sign our tests with a key that
 // will allow instrumentation.  Thus we pull all the sources we need to
 // run tests against into the test itself.
+package {
+    // See: http://go/android-license-faq
+    // A large-scale-change added 'default_applicable_licenses' to import
+    // all of the 'license_kinds' from "packages_providers_MediaProvider_license"
+    // to get the below license kinds:
+    //   SPDX-license-identifier-Apache-2.0
+    default_applicable_licenses: ["packages_providers_MediaProvider_license"],
+}
+
 android_test {
     name: "MediaProviderTests",
     test_suites: [
         "device-tests",
-        "mts",
+        "mts-mediaprovider",
     ],
     compile_multilib: "both",
 

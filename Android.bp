@@ -1,4 +1,21 @@
 
+package {
+    default_applicable_licenses: ["packages_providers_MediaProvider_license"],
+}
+
+// Added automatically by a large-scale-change
+// See: http://go/android-license-faq
+license {
+    name: "packages_providers_MediaProvider_license",
+    visibility: [":__subpackages__"],
+    license_kinds: [
+        "SPDX-license-identifier-Apache-2.0",
+    ],
+    license_text: [
+        "NOTICE",
+    ],
+}
+
 android_app {
     name: "MediaProvider",
     manifest: "AndroidManifest.xml",
@@ -38,6 +55,7 @@ android_app {
         "error_prone_mediaprovider",
     ],
 
+    min_sdk_version: "30",
     sdk_version: "module_current",
 
     certificate: "media",

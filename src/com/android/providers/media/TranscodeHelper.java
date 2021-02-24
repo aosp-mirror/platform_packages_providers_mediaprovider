@@ -24,6 +24,7 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 
 import static com.android.providers.media.MediaProvider.VolumeNotFoundException;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__FAIL;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__SUCCESS;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED;
@@ -334,7 +335,8 @@ public class TranscodeHelper {
             int transcodingReason, String src, String dst) {
         BackgroundThread.getExecutor().execute(() -> {
             try (Cursor c = queryFileForTranscode(src,
-                            new String[] {MediaColumns.DURATION, MediaColumns.CAPTURE_FRAMERATE})) {
+                    new String[]{MediaColumns.DURATION, MediaColumns.CAPTURE_FRAMERATE,
+                            MediaColumns.WIDTH, MediaColumns.HEIGHT})) {
                 if (c != null && c.moveToNext()) {
                     MediaProviderStatsLog.write(
                             TRANSCODING_DATA,
@@ -342,11 +344,15 @@ public class TranscodeHelper {
                             MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_TYPE__READ_TRANSCODE,
                             success ? new File(dst).length() : -1,
                             success ? TRANSCODING_DATA__TRANSCODE_RESULT__SUCCESS :
-                            TRANSCODING_DATA__TRANSCODE_RESULT__FAIL,
+                                    TRANSCODING_DATA__TRANSCODE_RESULT__FAIL,
                             transcodingDurationMs,
                             c.getLong(0) /* video_duration */,
                             c.getLong(1) /* capture_framerate */,
-                            transcodingReason);
+                            transcodingReason,
+                            c.getLong(2) /* width */,
+                            c.getLong(3) /* height */,
+                            false /*hit_anr*/,
+                            TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN);
                 }
             }
         });
@@ -825,13 +831,15 @@ public class TranscodeHelper {
         }
 
         try (Cursor c = mMediaProvider.queryForSingleItem(uri,
-                new String[] {
-                    FileColumns._VIDEO_CODEC_TYPE,
-                    FileColumns.SIZE,
-                    FileColumns.OWNER_PACKAGE_NAME,
-                    FileColumns.DATA,
-                    MediaColumns.DURATION,
-                    MediaColumns.CAPTURE_FRAMERATE
+                new String[]{
+                        FileColumns._VIDEO_CODEC_TYPE,
+                        FileColumns.SIZE,
+                        FileColumns.OWNER_PACKAGE_NAME,
+                        FileColumns.DATA,
+                        MediaColumns.DURATION,
+                        MediaColumns.CAPTURE_FRAMERATE,
+                        MediaColumns.WIDTH,
+                        MediaColumns.HEIGHT
                 },
                 null, null, null)) {
             if (supportsTranscode(c.getString(3))) {
@@ -845,7 +853,11 @@ public class TranscodeHelper {
                             -1 /* transcoding_duration */,
                             c.getLong(4) /* video_duration */,
                             c.getLong(5) /* capture_framerate */,
-                            -1 /* transcode_reason */);
+                            -1 /* transcode_reason */,
+                            c.getLong(6) /* width */,
+                            c.getLong(7) /* height */,
+                            false /* hit_anr */,
+                            TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN);
 
                 } else {
                     MediaProviderStatsLog.write(
@@ -857,7 +869,11 @@ public class TranscodeHelper {
                             -1 /* transcoding_duration */,
                             c.getLong(4) /* video_duration */,
                             c.getLong(5) /* capture_framerate */,
-                            -1 /* transcode_reason */);
+                            -1 /* transcode_reason */,
+                            c.getLong(6) /* width */,
+                            c.getLong(7) /* height */,
+                            false /* hit_anr */,
+                            TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN);
                 }
             }
         } catch (Exception e) {
@@ -874,7 +890,9 @@ public class TranscodeHelper {
                     FileColumns._VIDEO_CODEC_TYPE,
                     FileColumns.SIZE,
                     MediaColumns.DURATION,
-                    MediaColumns.CAPTURE_FRAMERATE
+                    MediaColumns.CAPTURE_FRAMERATE,
+                    MediaColumns.WIDTH,
+                    MediaColumns.HEIGHT
         };
 
         try (Cursor c = queryFileForTranscode(path, resolverInfoProjection)) {
@@ -890,7 +908,11 @@ public class TranscodeHelper {
                                 -1 /* transcoding_duration */,
                                 c.getLong(2) /* video_duration */,
                                 c.getLong(3) /* capture_framerate */,
-                                -1 /* transcode_reason */);
+                                -1 /* transcode_reason */,
+                                c.getLong(4) /* width */,
+                                c.getLong(5) /* height */,
+                                false /*hit_anr*/,
+                                TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN);
                     } else if (isTranscodeFileCached(path, ioPath)) {
                             MediaProviderStatsLog.write(
                                     TRANSCODING_DATA,
@@ -901,7 +923,11 @@ public class TranscodeHelper {
                                     -1 /* transcoding_duration */,
                                     c.getLong(2) /* video_duration */,
                                     c.getLong(3) /* capture_framerate */,
-                                    transformsReason /* transcode_reason */);
+                                    transformsReason /* transcode_reason */,
+                                    c.getLong(4) /* width */,
+                                    c.getLong(5) /* height */,
+                                    false /*hit_anr*/,
+                                    TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN);
                     } // else if file is not in cache, we'll log at read(2) when we transcode
                 }
             }

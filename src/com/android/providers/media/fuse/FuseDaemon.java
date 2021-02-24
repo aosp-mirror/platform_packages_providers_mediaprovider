@@ -24,6 +24,8 @@ import androidx.annotation.NonNull;
 import com.android.internal.annotations.GuardedBy;
 import com.android.providers.media.MediaProvider;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Objects;
 
 /**
@@ -82,6 +84,20 @@ public final class FuseDaemon extends Thread {
 
         // Wait for native_start
         waitForStart();
+
+        // Initialize device id
+        initializeDeviceId();
+    }
+
+    private void initializeDeviceId() {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                Log.e(TAG, "initializeDeviceId failed, FUSE daemon unavailable");
+                return;
+            }
+            String path = mMediaProvider.getFuseFile(new File(mPath)).getAbsolutePath();
+            native_initialize_device_id(mPtr, path);
+        }
     }
 
     private void waitForStart() {
@@ -151,10 +167,14 @@ public final class FuseDaemon extends Thread {
         }
     }
 
-    public ParcelFileDescriptor getOriginalMediaFormatFileDescriptor(
-            ParcelFileDescriptor fileDescriptor) {
-        // TODO (b/170488060): Implement get original media file fd via native fuse.
-        throw new UnsupportedOperationException();
+    public String getOriginalMediaFormatFilePath(ParcelFileDescriptor fileDescriptor)
+            throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            return native_get_original_media_format_file_path(mPtr, fileDescriptor.getFd());
+        }
     }
 
     private native long native_new(MediaProvider mediaProvider);
@@ -167,5 +187,7 @@ public final class FuseDaemon extends Thread {
             int fd);
     private native void native_invalidate_fuse_dentry_cache(long daemon, String path);
     private native boolean native_is_started(long daemon);
+    private native String native_get_original_media_format_file_path(long daemon, int fd);
+    private native void native_initialize_device_id(long daemon, String path);
     public static native boolean native_is_fuse_thread();
 }

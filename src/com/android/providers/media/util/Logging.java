@@ -52,16 +52,15 @@ public class Logging {
     private static final int PERSISTENT_SIZE = 32 * 1024;
     private static final int PERSISTENT_COUNT = 4;
     private static final long PERSISTENT_AGE = DateUtils.WEEK_IN_MILLIS;
-
-    private static final SimpleDateFormat sDateFormat =
+    private static final SimpleDateFormat DATE_FORMAT =
             new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-    private static final Object sLock = new Object();
+    private static final Object LOCK = new Object();
 
-    @GuardedBy("sLock")
+    @GuardedBy("LOCK")
     private static Path sPersistentDir;
-    @GuardedBy("sLock")
+    @GuardedBy("LOCK")
     private static Path sPersistentFile;
-    @GuardedBy("sLock")
+    @GuardedBy("LOCK")
     private static Writer sWriter;
 
     /**
@@ -69,7 +68,7 @@ public class Logging {
      * {@link #logPersistent(String)} and {@link #dumpPersistent(PrintWriter)}.
      */
     public static void initPersistent(@NonNull File persistentDir) {
-        synchronized (sLock) {
+        synchronized (LOCK) {
             sPersistentDir = persistentDir.toPath();
             closeWriterAndUpdatePathLocked(null);
         }
@@ -81,7 +80,7 @@ public class Logging {
     public static void logPersistent(@NonNull String msg) {
         Log.i(TAG, msg);
 
-        synchronized (sLock) {
+        synchronized (LOCK) {
             if (sPersistentDir == null) return;
 
             try {
@@ -94,7 +93,7 @@ public class Logging {
                     sWriter = Files.newBufferedWriter(path, CREATE, APPEND);
                 }
 
-                sWriter.write(sDateFormat.format(new Date()) + " " + msg + "\n");
+                sWriter.write(DATE_FORMAT.format(new Date()) + " " + msg + "\n");
                 // Flush to guarantee that all our writes have been sent to the filesystem
                 sWriter.flush();
             } catch (IOException e) {
@@ -104,7 +103,7 @@ public class Logging {
         }
     }
 
-    @GuardedBy("sLock")
+    @GuardedBy("LOCK")
     private static void closeWriterAndUpdatePathLocked(@Nullable Path newPath) {
         if (sWriter != null) {
             try {
@@ -122,7 +121,7 @@ public class Logging {
      */
     public static void trimPersistent() {
         File persistentDir = null;
-        synchronized (sLock) {
+        synchronized (LOCK) {
             if (sPersistentDir == null) return;
             persistentDir = sPersistentDir.toFile();
 
@@ -137,7 +136,7 @@ public class Logging {
      */
     public static void dumpPersistent(@NonNull PrintWriter pw) {
         Path persistentDir = null;
-        synchronized (sLock) {
+        synchronized (LOCK) {
             if (sPersistentDir == null) return;
             persistentDir = sPersistentDir;
         }
@@ -170,7 +169,7 @@ public class Logging {
      * starts new files when the current file is larger than
      * {@link #PERSISTENT_SIZE}.
      */
-    @GuardedBy("sLock")
+    @GuardedBy("LOCK")
     private static @NonNull Path resolveCurrentPersistentFileLocked() throws IOException {
         if (sPersistentFile != null && sPersistentFile.toFile().length() < PERSISTENT_SIZE) {
             return sPersistentFile;

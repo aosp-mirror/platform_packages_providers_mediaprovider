@@ -16,14 +16,9 @@
 <configuration description="Runs Tests for MediaProvder.">
     <target_preparer class="com.android.tradefed.targetprep.TestAppInstallSetup">
         <option name="test-file-name" value="MediaProviderTests.apk" />
-        <option name="install-arg" value="-g" />
-    </target_preparer>
-
-    <target_preparer class="com.android.tradefed.targetprep.suite.SuiteApkInstaller">
-        <option name="cleanup-apks" value="true" />
-            <option name="test-file-name" value="MediaProviderTestAppWithStoragePerms.apk" />
-            <option name="test-file-name" value="MediaProviderTestAppWithoutPerms.apk" />
-            <option name="test-file-name" value="LegacyMediaProviderTestApp.apk" />
+        <option name="test-file-name" value="MediaProviderTestAppWithStoragePerms.apk" />
+        <option name="test-file-name" value="MediaProviderTestAppWithoutPerms.apk" />
+        <option name="test-file-name" value="LegacyMediaProviderTestApp.apk" />
         <option name="install-arg" value="-g" />
     </target_preparer>
 

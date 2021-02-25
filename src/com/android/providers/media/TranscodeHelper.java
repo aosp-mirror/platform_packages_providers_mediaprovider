@@ -54,6 +54,7 @@ import android.media.MediaTranscodeManager.TranscodingRequest.MediaFormatResolve
 import android.media.MediaTranscodeManager.TranscodingSession;
 import android.media.MediaTranscodingException;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -77,6 +78,7 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.ForegroundThread;
@@ -193,6 +195,8 @@ public class TranscodeHelper {
     private static final int MAX_FINISHED_TRANSCODING_SESSION_STORE_COUNT = 16;
     private static final String DIRECTORY_CAMERA = "Camera";
 
+    private static final boolean IS_TRANSCODING_SUPPORTED = SdkLevel.isAtLeastS();
+
     private final Object mLock = new Object();
     private final Context mContext;
     private final MediaProvider mMediaProvider;
@@ -276,6 +280,12 @@ public class TranscodeHelper {
     }
 
     public long getAnrDelayMillis(String packageName, int uid) {
+        if (!IS_TRANSCODING_SUPPORTED) {
+            Log.d(TAG, "Skipping ANR delay for older SDK version " + Build.VERSION.SDK_INT
+                    + ", code name " + Build.VERSION.CODENAME);
+            return 0;
+        }
+
         if (uid == MY_UID) {
             Log.w(TAG, "Skipping ANR delay for MediaProvider");
             return 0;
@@ -359,6 +369,9 @@ public class TranscodeHelper {
     }
 
     public boolean transcode(String src, String dst, int uid, int reason) {
+        // This can only happen when we are in a version that supports transcoding.
+        // So, no need to check for the SDK version here.
+
         StorageTranscodingSession storageSession = null;
         TranscodingSession transcodingSession = null;
         CountDownLatch latch = null;
@@ -417,6 +430,9 @@ public class TranscodeHelper {
      *
      */
     public String getIoPath(String path, int uid) {
+        // This can only happen when we are in a version that supports transcoding.
+        // So, no need to check for the SDK version here.
+
         Pair<Long, Integer> cacheInfo = getTranscodeCacheInfoFromDB(path);
         final long rowId = cacheInfo.first;
         if (rowId == -1) {
@@ -937,6 +953,9 @@ public class TranscodeHelper {
     }
 
     public boolean isTranscodeFileCached(String path, String transcodePath) {
+        // This can only happen when we are in a version that supports transcoding.
+        // So, no need to check for the SDK version here.
+
         if (SystemProperties.getBoolean("sys.fuse.disable_transcode_cache", false)) {
             // Caching is disabled. Hence, delete the cached transcode file.
             return false;
@@ -1144,7 +1163,7 @@ public class TranscodeHelper {
     }
 
     private boolean isTranscodeEnabled() {
-        return getBooleanProperty(TRANSCODE_ENABLED_SYS_PROP_KEY,
+        return IS_TRANSCODING_SUPPORTED && getBooleanProperty(TRANSCODE_ENABLED_SYS_PROP_KEY,
                 TRANSCODE_ENABLED_DEVICE_CONFIG_KEY, true /* defaultValue */);
     }
 

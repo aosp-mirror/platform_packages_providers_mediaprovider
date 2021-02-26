@@ -44,7 +44,9 @@ import com.android.cts.install.lib.TestApp;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 
 import org.junit.After;
 import org.junit.Assume;
@@ -851,6 +853,46 @@ public class TranscodeTest {
             assertFileContent(modernFile, modernFile, pfdOriginal, pfdOriginalMediaFormat, true);
             assertFileContent(modernFile, modernFile, pfdTranscoded, pfdOriginalMediaFormat, false);
         } finally {
+            modernFile.delete();
+        }
+    }
+
+    /**
+     * Tests that we can successfully write to a transcoded file.
+     * We check this by writing something to tanscoded content and then read it back.
+     */
+    @Test
+    public void testWriteSuccessfulToTranscodedContent() throws Exception {
+        File modernFile = new File(DIR_CAMERA, HEVC_FILE_NAME);
+        ParcelFileDescriptor pfdTranscodedContent = null;
+        try {
+            TranscodeTestUtils.stageHEVCVideoFile(modernFile);
+            TranscodeTestUtils.enableTranscodingForPackage(getContext().getPackageName());
+            pfdTranscodedContent = open(modernFile, false);
+
+            // read some bytes from some random offset
+            Random random = new Random(System.currentTimeMillis());
+            int byteCount = 512;
+            int fileOffset = random.nextInt((int) pfdTranscodedContent.getStatSize() - byteCount);
+            byte[] readBytes = TranscodeTestUtils.read(pfdTranscodedContent, byteCount, fileOffset);
+
+            // write the bytes at the same offset after some modification
+            pfdTranscodedContent = open(modernFile, true);
+            byte[] writeBytes = new byte[byteCount];
+            for (int i = 0; i < byteCount; ++i) {
+                writeBytes[i] = (byte) ~readBytes[i];
+            }
+            TranscodeTestUtils.write(pfdTranscodedContent, writeBytes, byteCount, fileOffset);
+
+            // read back the same number of bytes from the same offset
+            readBytes = TranscodeTestUtils.read(pfdTranscodedContent, byteCount, fileOffset);
+
+            // assert that read is same as written
+            assertTrue(Arrays.equals(readBytes, writeBytes));
+        } finally {
+            if (pfdTranscodedContent != null) {
+                pfdTranscodedContent.close();
+            }
             modernFile.delete();
         }
     }

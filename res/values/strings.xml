@@ -88,20 +88,40 @@
         <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to modify this audio file?</item>
         <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to modify <xliff:g id="count" example="42">^2</xliff:g> audio files?</item>
     </plurals>
+    <!-- Progress dialog message after user allows write permission to the audio item [CHAR LIMIT=128] -->
+    <plurals name="permission_progress_write_audio">
+        <item quantity="one">Modifying audio file&#8230;</item>
+        <item quantity="other">Modifying <xliff:g id="count" example="42">^1</xliff:g> audio files&#8230;</item>
+    </plurals>
     <!-- Dialog title asking if user will allow write permission to the video item displayed below this string. [CHAR LIMIT=128] -->
     <plurals name="permission_write_video">
         <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to modify this video?</item>
         <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to modify <xliff:g id="count" example="42">^2</xliff:g> videos?</item>
+    </plurals>
+    <!-- Progress dialog message after user allows write permission to the video item [CHAR LIMIT=128] -->
+    <plurals name="permission_progress_write_video">
+        <item quantity="one">Modifying video&#8230;</item>
+        <item quantity="other">Modifying <xliff:g id="count" example="42">^1</xliff:g> videos&#8230;</item>
     </plurals>
     <!-- Dialog title asking if user will allow write permission to the image item displayed below this string. [CHAR LIMIT=128] -->
     <plurals name="permission_write_image">
         <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to modify this photo?</item>
         <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to modify <xliff:g id="count" example="42">^2</xliff:g> photos?</item>
     </plurals>
+    <!-- Progress dialog message after user allows write permission to the image item [CHAR LIMIT=128] -->
+    <plurals name="permission_progress_write_image">
+        <item quantity="one">Modifying photo&#8230;</item>
+        <item quantity="other">Modifying <xliff:g id="count" example="42">^1</xliff:g> photos&#8230;</item>
+    </plurals>
     <!-- Dialog title asking if user will allow write permission to the generic item displayed below this string. [CHAR LIMIT=128] -->
     <plurals name="permission_write_generic">
         <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to modify this item?</item>
         <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to modify <xliff:g id="count" example="42">^2</xliff:g> items?</item>
+    </plurals>
+    <!-- Progress dialog message after user allows write permission to the generic item [CHAR LIMIT=128] -->
+    <plurals name="permission_progress_write_generic">
+        <item quantity="one">Modifying item&#8230;</item>
+        <item quantity="other">Modifying <xliff:g id="count" example="42">^1</xliff:g> items&#8230;</item>
     </plurals>
 
     <!-- ========================= TRASH STRINGS ========================= -->
@@ -111,20 +131,40 @@
         <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move this audio file to trash?</item>
         <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move <xliff:g id="count" example="42">^2</xliff:g> audio files to trash?</item>
     </plurals>
+    <!-- Progress dialog message after user allows trash permission to the audio item [CHAR LIMIT=128] -->
+    <plurals name="permission_progress_trash_audio">
+        <item quantity="one">Moving audio file to trash&#8230;</item>
+        <item quantity="other">Moving <xliff:g id="count" example="42">^1</xliff:g> audio files to trash&#8230;</item>
+    </plurals>
     <!-- Dialog title asking if user will allow trash permission to the video item displayed below this string. [CHAR LIMIT=128] -->
     <plurals name="permission_trash_video">
         <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move this video to trash?</item>
         <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move <xliff:g id="count" example="42">^2</xliff:g> videos to trash?</item>
+    </plurals>
+    <!-- Progress dialog message after user allows trash permission to the video item [CHAR LIMIT=128] -->
+    <plurals name="permission_progress_trash_video">
+        <item quantity="one">Moving video to trash&#8230;</item>
+        <item quantity="other">Moving <xliff:g id="count" example="42">^1</xliff:g> videos to trash&#8230;</item>
     </plurals>
     <!-- Dialog title asking if user will allow trash permission to the image item displayed below this string. [CHAR LIMIT=128] -->
     <plurals name="permission_trash_image">
         <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move this photo to trash?</item>
         <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move <xliff:g id="count" example="42">^2</xliff:g> photos to trash?</item>
     </plurals>
+    <!-- Progress dialog message after user allows trash permission to the image item [CHAR LIMIT=128] -->
+    <plurals name="permission_progress_trash_image">
+        <item quantity="one">Moving photo to trash&#8230;</item>
+        <item quantity="other">Moving <xliff:g id="count" example="42">^1</xliff:g> photos to trash&#8230;</item>
+    </plurals>
     <!-- Dialog title asking if user will allow trash permission to the generic item displayed below this string. [CHAR LIMIT=128] -->
     <plurals name="permission_trash_generic">
         <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move this item to trash?</item>
         <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move <xliff:g id="count" example="42">^2</xliff:g> items to trash?</item>
+    </plurals>
+    <!-- Progress dialog message after user allows trash permission to the generic item [CHAR LIMIT=128] -->
+    <plurals name="permission_progress_trash_generic">
+        <item quantity="one">Moving item to trash&#8230;</item>
+        <item quantity="other">Moving <xliff:g id="count" example="42">^1</xliff:g> items to trash&#8230;</item>
     </plurals>
 
     <!-- ========================= UNTRASH STRINGS ========================= -->
@@ -134,20 +174,40 @@
         <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move this audio file out of trash?</item>
         <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move <xliff:g id="count" example="42">^2</xliff:g> audio files out of trash?</item>
     </plurals>
+    <!-- Progress dialog message after user allows untrash permission to the audio item [CHAR LIMIT=128] -->
+    <plurals name="permission_progress_untrash_audio">
+        <item quantity="one">Moving audio file out of trash&#8230;</item>
+        <item quantity="other">Moving <xliff:g id="count" example="42">^1</xliff:g> audio files out of trash&#8230;</item>
+    </plurals>
     <!-- Dialog title asking if user will allow untrash permission to the video item displayed below this string. [CHAR LIMIT=128] -->
     <plurals name="permission_untrash_video">
         <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move this video out of trash?</item>
         <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move <xliff:g id="count" example="42">^2</xliff:g> videos out of trash?</item>
+    </plurals>
+    <!-- Progress dialog message after user allows untrash permission to the video item [CHAR LIMIT=128] -->
+    <plurals name="permission_progress_untrash_video">
+        <item quantity="one">Moving video out of trash&#8230;</item>
+        <item quantity="other">Moving <xliff:g id="count" example="42">^1</xliff:g> videos out of trash&#8230;</item>
     </plurals>
     <!-- Dialog title asking if user will allow untrash permission to the image item displayed below this string. [CHAR LIMIT=128] -->
     <plurals name="permission_untrash_image">
         <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move this photo out of trash?</item>
         <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move <xliff:g id="count" example="42">^2</xliff:g> photos out of trash?</item>
     </plurals>
+    <!-- Progress dialog message after user allows untrash permission to the image item [CHAR LIMIT=128] -->
+    <plurals name="permission_progress_untrash_image">
+        <item quantity="one">Moving photo out of trash&#8230;</item>
+        <item quantity="other">Moving <xliff:g id="count" example="42">^1</xliff:g> photos out of trash&#8230;</item>
+    </plurals>
     <!-- Dialog title asking if user will allow untrash permission to the generic item displayed below this string. [CHAR LIMIT=128] -->
     <plurals name="permission_untrash_generic">
         <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move this item out of trash?</item>
         <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move <xliff:g id="count" example="42">^2</xliff:g> items out of trash?</item>
+    </plurals>
+    <!-- Progress dialog message after user allows untrash permission to the generic item [CHAR LIMIT=128] -->
+    <plurals name="permission_progress_untrash_generic">
+        <item quantity="one">Moving item out of trash&#8230;</item>
+        <item quantity="other">Moving <xliff:g id="count" example="42">^1</xliff:g> items out of trash&#8230;</item>
     </plurals>
 
     <!-- ========================= DELETE STRINGS ========================= -->
@@ -157,20 +217,40 @@
         <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to delete this audio file?</item>
         <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to delete <xliff:g id="count" example="42">^2</xliff:g> audio files?</item>
     </plurals>
+    <!-- Progress dialog message after user allows delete permission to the audio item [CHAR LIMIT=128] -->
+    <plurals name="permission_progress_delete_audio">
+        <item quantity="one">Deleting audio file&#8230;</item>
+        <item quantity="other">Deleting <xliff:g id="count" example="42">^1</xliff:g> audio files&#8230;</item>
+    </plurals>
     <!-- Dialog title asking if user will allow delete permission to the video item displayed below this string. [CHAR LIMIT=128] -->
     <plurals name="permission_delete_video">
         <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to delete this video?</item>
         <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to delete <xliff:g id="count" example="42">^2</xliff:g> videos?</item>
+    </plurals>
+    <!-- Progress dialog message after user allows delete permission to the video item [CHAR LIMIT=128] -->
+    <plurals name="permission_progress_delete_video">
+        <item quantity="one">Deleting video&#8230;</item>
+        <item quantity="other">Deleting <xliff:g id="count" example="42">^1</xliff:g> videos&#8230;</item>
     </plurals>
     <!-- Dialog title asking if user will allow delete permission to the image item displayed below this string. [CHAR LIMIT=128] -->
     <plurals name="permission_delete_image">
         <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to delete this photo?</item>
         <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to delete <xliff:g id="count" example="42">^2</xliff:g> photos?</item>
     </plurals>
+    <!-- Progress dialog message after user allows delete permission to the image item [CHAR LIMIT=128] -->
+    <plurals name="permission_progress_delete_image">
+        <item quantity="one">Deleting photo&#8230;</item>
+        <item quantity="other">Deleting <xliff:g id="count" example="42">^1</xliff:g> photos&#8230;</item>
+    </plurals>
     <!-- Dialog title asking if user will allow delete permission to the generic item displayed below this string. [CHAR LIMIT=128] -->
     <plurals name="permission_delete_generic">
         <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to delete this item?</item>
         <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to delete <xliff:g id="count" example="42">^2</xliff:g> items?</item>
+    </plurals>
+    <!-- Progress dialog message after user allows delete permission to the generic item [CHAR LIMIT=128] -->
+    <plurals name="permission_progress_delete_generic">
+        <item quantity="one">Deleting item&#8230;</item>
+        <item quantity="other">Deleting <xliff:g id="count" example="42">^1</xliff:g> items&#8230;</item>
     </plurals>
 
     <!-- ========================= END AUTO-GENERATED BY gen_strings.py ========================= -->

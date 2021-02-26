@@ -5315,6 +5315,19 @@ public class MediaProvider extends ContentProvider {
                             "Failed to fetch access mode for file descriptor", e);
                 }
             }
+            case MediaStore.IS_SYSTEM_GALLERY_CALL:
+                final LocalCallingIdentity token = clearLocalCallingIdentity();
+                try {
+                    String packageName = arg;
+                    int uid = extras.getInt(MediaStore.EXTRA_IS_SYSTEM_GALLERY_UID);
+                    boolean isSystemGallery = PermissionUtils.checkWriteImagesOrVideoAppOps(
+                            getContext(), uid, packageName, getContext().getAttributionTag());
+                    Bundle res = new Bundle();
+                    res.putBoolean(MediaStore.EXTRA_IS_SYSTEM_GALLERY_RESPONSE, isSystemGallery);
+                    return res;
+                } finally {
+                    restoreLocalCallingIdentity(token);
+                }
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }

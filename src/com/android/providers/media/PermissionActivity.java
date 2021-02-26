@@ -25,7 +25,7 @@ import static com.android.providers.media.util.Logging.TAG;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.ProgressDialog;
+import android.app.Dialog;
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -50,7 +50,6 @@ import android.os.Handler;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
 import android.text.TextUtils;
-import android.text.format.DateUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.Size;
@@ -60,6 +59,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -103,7 +103,7 @@ public class PermissionActivity extends Activity {
 
     private AlertDialog actionDialog;
     private AsyncTask<Void, Void, Void> positiveActionTask;
-    private ProgressDialog progressDialog;
+    private Dialog progressDialog;
     private TextView titleView;
 
     private static final Long LEAST_SHOW_PROGRESS_TIME_MS = 300L;
@@ -154,8 +154,8 @@ public class PermissionActivity extends Activity {
             return;
         }
 
-        progressDialog = new ProgressDialog(this);
-        progressDialog.setCancelable(false);
+        // Create Progress dialog
+        createProgressDialog();
 
         // Favorite-related requests are automatically granted for now; we still
         // make developers go through this no-op dialog flow to preserve our
@@ -171,13 +171,6 @@ public class PermissionActivity extends Activity {
         final View bodyView = getLayoutInflater().inflate(R.layout.permission_body, null, false);
         handleImageViewVisibility(bodyView, uris);
         new DescriptionTask(bodyView).execute(uris);
-
-        final CharSequence message = resolveMessageText();
-        if (!TextUtils.isEmpty(message)) {
-            final TextView messageView = bodyView.requireViewById(R.id.message);
-            messageView.setVisibility(View.VISIBLE);
-            messageView.setText(message);
-        }
 
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         // We set the title in message so that the text doesn't get truncated
@@ -210,6 +203,19 @@ public class PermissionActivity extends Activity {
                 (view) -> {
                     return (view instanceof TextView) && view.isImportantForAccessibility();
                 });
+    }
+
+    private void createProgressDialog() {
+        final ProgressBar progressBar = new ProgressBar(this);
+        final int padding = getResources().getDimensionPixelOffset(R.dimen.dialog_space);
+
+        progressBar.setIndeterminate(true);
+        progressBar.setPadding(0, padding / 2, 0, padding);
+        progressDialog = new AlertDialog.Builder(this)
+                .setTitle(resolveProgressMessageText())
+                .setView(progressBar)
+                .setCancelable(false)
+                .create();
     }
 
     @Override
@@ -452,41 +458,21 @@ public class PermissionActivity extends Activity {
     }
 
     /**
-     * Resolve the dialog message string to be displayed to the user, if any.
-     * All arguments have been bound and this string is ready to be displayed.
+     * Resolve the progress message string to be displayed to the user. All
+     * arguments have been bound and this string is ready to be displayed.
      */
-    private @Nullable CharSequence resolveMessageText() {
-        final String resName = "permission_" + verb + "_" + data + "_info";
+    private @Nullable CharSequence resolveProgressMessageText() {
+        final String resName = "permission_progress_" + verb + "_" + data;
         final int resId = getResources().getIdentifier(resName, "plurals",
                 getResources().getResourcePackageName(R.string.app_label));
         if (resId != 0) {
             final int count = uris.size();
-            final long durationMillis = (values.getAsLong(MediaColumns.DATE_EXPIRES) * 1000)
-                    - System.currentTimeMillis();
-            final long durationDays = (durationMillis + DateUtils.DAY_IN_MILLIS)
-                    / DateUtils.DAY_IN_MILLIS;
             final CharSequence text = getResources().getQuantityText(resId, count);
-            return TextUtils.expandTemplate(text, label, String.valueOf(count),
-                    String.valueOf(durationDays));
+            return TextUtils.expandTemplate(text, String.valueOf(count));
         } else {
-            // Only some actions have a secondary message string; it's okay if
-            // there isn't one defined
-            return null;
+            // We always need a string to prompt the user with
+            throw new IllegalStateException("Invalid resource: " + resName);
         }
-    }
-
-    private @NonNull CharSequence resolvePositiveText() {
-        final String resName = "permission_" + verb + "_grant";
-        final int resId = getResources().getIdentifier(resName, "string",
-                getResources().getResourcePackageName(R.string.app_label));
-        return getResources().getText(resId);
-    }
-
-    private @NonNull CharSequence resolveNegativeText() {
-        final String resName = "permission_" + verb + "_deny";
-        final int resId = getResources().getIdentifier(resName, "string",
-                getResources().getResourcePackageName(R.string.app_label));
-        return getResources().getText(resId);
     }
 
     /**

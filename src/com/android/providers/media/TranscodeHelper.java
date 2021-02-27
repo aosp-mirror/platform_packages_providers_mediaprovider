@@ -389,9 +389,8 @@ public class TranscodeHelper {
                             UnsupportedOperationException e) {
                         throw new IllegalStateException(e);
                     }
-
-                    mStorageTranscodingSessions.put(src, new StorageTranscodingSession(transcodingSession,
-                                    latch));
+                    storageSession = new StorageTranscodingSession(transcodingSession, latch);
+                    mStorageTranscodingSessions.put(src, storageSession);
                 } else {
                     latch = storageSession.latch;
                     transcodingSession = storageSession.session;

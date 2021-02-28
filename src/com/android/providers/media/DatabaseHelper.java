@@ -908,7 +908,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                             } catch (Exception e) {
                                 // We only have one shot to migrate data, so log and
                                 // keep marching forward.
-                                Log.wtf(TAG, "Couldn't migrate playlist file " + data);
+                                Log.w(TAG, "Couldn't migrate playlist file " + data);
                             }
 
                             values.put(FileColumns.DATA, playlistFilePath);
@@ -929,7 +929,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                             } catch (IOException e) {
                                 // We only have one shot to migrate data, so log and
                                 // keep marching forward
-                                Log.wtf(TAG, "Failed to rename " + values + "; continuing", e);
+                                Log.w(TAG, "Failed to rename " + values + "; continuing", e);
                                 FileUtils.computeValuesFromData(values, /*isForFuse*/ false);
                             }
                         }
@@ -962,7 +962,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             } catch (Exception e) {
                 // We have to guard ourselves against any weird behavior of the
                 // legacy provider by trying to catch everything
-                Log.wtf(TAG, "Failed migration from legacy provider", e);
+                Log.w(TAG, "Failed migration from legacy provider", e);
             }
 
             // We tried our best above to migrate everything we could, and we
@@ -1083,7 +1083,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             } catch (IOException e) {
                 // We only have one shot to migrate data, so log and
                 // keep marching forward.
-                Log.wtf(TAG, "Couldn't migrate playlist file " + playlistFile);
+                Log.w(TAG, "Couldn't migrate playlist file " + playlistFile);
             }
         } catch (RemoteException e) {
             throw new IllegalStateException(e);
@@ -1099,7 +1099,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 return c.getString(0);
             }
         } catch (Exception e) {
-            Log.wtf(TAG, "Exception occurred while querying for data file for " + uri, e);
+            Log.w(TAG, "Exception occurred while querying for data file for " + uri, e);
         }
         return null;
     }

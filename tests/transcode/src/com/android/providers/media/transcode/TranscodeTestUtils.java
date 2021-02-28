@@ -46,6 +46,7 @@ import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.system.Os;
+import android.system.OsConstants;
 import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
@@ -117,6 +118,33 @@ public class TranscodeTestUtils {
             return resolver.openTypedAssetFileDescriptor(uri, "*/*", bundle)
                     .getParcelFileDescriptor();
         }
+    }
+
+    static byte[] read(ParcelFileDescriptor parcelFileDescriptor, int byteCount, int fileOffset)
+            throws Exception {
+        assertThat(byteCount).isGreaterThan(-1);
+        assertThat(fileOffset).isGreaterThan(-1);
+
+        Os.lseek(parcelFileDescriptor.getFileDescriptor(), fileOffset, OsConstants.SEEK_SET);
+
+        byte[] bytes = new byte[byteCount];
+        int numBytesRead = Os.read(parcelFileDescriptor.getFileDescriptor(), bytes,
+                0 /* byteOffset */, byteCount);
+        assertThat(numBytesRead).isGreaterThan(-1);
+        return bytes;
+    }
+
+    static void write(ParcelFileDescriptor parcelFileDescriptor, byte[] bytes, int byteCount,
+            int fileOffset) throws Exception {
+        assertThat(byteCount).isGreaterThan(-1);
+        assertThat(fileOffset).isGreaterThan(-1);
+
+        Os.lseek(parcelFileDescriptor.getFileDescriptor(), fileOffset, OsConstants.SEEK_SET);
+
+        int numBytesWritten = Os.write(parcelFileDescriptor.getFileDescriptor(), bytes,
+                0 /* byteOffset */, byteCount);
+        assertThat(numBytesWritten).isNotEqualTo(-1);
+        assertThat(numBytesWritten).isEqualTo(byteCount);
     }
 
     public static void enableSeamlessTranscoding() throws Exception {

@@ -47,64 +47,128 @@
       <item quantity="one">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að breyta <xliff:g id="COUNT">^2</xliff:g> hljóðskrá?</item>
       <item quantity="other">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að breyta <xliff:g id="COUNT">^2</xliff:g> hljóðskrám?</item>
     </plurals>
+    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
+      <item quantity="one">Breytir <xliff:g id="COUNT">^1</xliff:g> hljóðskrá…</item>
+      <item quantity="other">Breytir <xliff:g id="COUNT">^1</xliff:g> hljóðskrám…</item>
+    </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
       <item quantity="one">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að breyta <xliff:g id="COUNT">^2</xliff:g> myndskeiði?</item>
       <item quantity="other">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að breyta <xliff:g id="COUNT">^2</xliff:g> myndskeiðum?</item>
+    </plurals>
+    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
+      <item quantity="one">Breytir <xliff:g id="COUNT">^1</xliff:g> myndskeiði…</item>
+      <item quantity="other">Breytir <xliff:g id="COUNT">^1</xliff:g> myndskeiðum…</item>
     </plurals>
     <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
       <item quantity="one">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að breyta <xliff:g id="COUNT">^2</xliff:g> mynd?</item>
       <item quantity="other">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að breyta <xliff:g id="COUNT">^2</xliff:g> myndum?</item>
     </plurals>
+    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
+      <item quantity="one">Breytir <xliff:g id="COUNT">^1</xliff:g> mynd…</item>
+      <item quantity="other">Breytir <xliff:g id="COUNT">^1</xliff:g> myndum…</item>
+    </plurals>
     <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
       <item quantity="one">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að breyta <xliff:g id="COUNT">^2</xliff:g> atriði?</item>
       <item quantity="other">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að breyta <xliff:g id="COUNT">^2</xliff:g> atriðum?</item>
+    </plurals>
+    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
+      <item quantity="one">Breytir <xliff:g id="COUNT">^1</xliff:g> atriði…</item>
+      <item quantity="other">Breytir <xliff:g id="COUNT">^1</xliff:g> atriðum…</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
       <item quantity="one">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að færa <xliff:g id="COUNT">^2</xliff:g> hljóðskrá í ruslið?</item>
       <item quantity="other">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að færa <xliff:g id="COUNT">^2</xliff:g> hljóðskrár í ruslið?</item>
     </plurals>
+    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
+      <item quantity="one">Færir <xliff:g id="COUNT">^1</xliff:g> hljóðskrá í ruslið…</item>
+      <item quantity="other">Færir <xliff:g id="COUNT">^1</xliff:g> hljóðskrár í ruslið…</item>
+    </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
       <item quantity="one">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að færa <xliff:g id="COUNT">^2</xliff:g> myndskeið í ruslið?</item>
       <item quantity="other">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að færa <xliff:g id="COUNT">^2</xliff:g> myndskeið í ruslið?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
+      <item quantity="one">Færir <xliff:g id="COUNT">^1</xliff:g> myndskeið í ruslið…</item>
+      <item quantity="other">Færir <xliff:g id="COUNT">^1</xliff:g> myndskeið í ruslið…</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
       <item quantity="one">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að færa <xliff:g id="COUNT">^2</xliff:g> mynd í ruslið?</item>
       <item quantity="other">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að færa <xliff:g id="COUNT">^2</xliff:g> myndir í ruslið?</item>
     </plurals>
+    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
+      <item quantity="one">Færir <xliff:g id="COUNT">^1</xliff:g> mynd í ruslið…</item>
+      <item quantity="other">Færir <xliff:g id="COUNT">^1</xliff:g> myndir í ruslið…</item>
+    </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
       <item quantity="one">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að færa <xliff:g id="COUNT">^2</xliff:g> atriði í ruslið?</item>
       <item quantity="other">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að færa <xliff:g id="COUNT">^2</xliff:g> atriði í ruslið?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
+      <item quantity="one">Færir <xliff:g id="COUNT">^1</xliff:g> atriði í ruslið…</item>
+      <item quantity="other">Færir <xliff:g id="COUNT">^1</xliff:g> atriði í ruslið…</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
       <item quantity="one">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að færa <xliff:g id="COUNT">^2</xliff:g> hljóðskrá úr ruslinu?</item>
       <item quantity="other">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að færa <xliff:g id="COUNT">^2</xliff:g> hljóðskrár úr ruslinu?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
+      <item quantity="one">Færir <xliff:g id="COUNT">^1</xliff:g> hljóðskrá úr ruslinu…</item>
+      <item quantity="other">Færir <xliff:g id="COUNT">^1</xliff:g> hljóðskrár úr ruslinu…</item>
+    </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
       <item quantity="one">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að færa <xliff:g id="COUNT">^2</xliff:g> myndskeið úr ruslinu?</item>
       <item quantity="other">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að færa <xliff:g id="COUNT">^2</xliff:g> myndskeið úr ruslinu?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
+      <item quantity="one">Færir <xliff:g id="COUNT">^1</xliff:g> myndskeið úr ruslinu…</item>
+      <item quantity="other">Færir <xliff:g id="COUNT">^1</xliff:g> myndskeið úr ruslinu…</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
       <item quantity="one">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að færa <xliff:g id="COUNT">^2</xliff:g> mynd úr ruslinu?</item>
       <item quantity="other">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að færa <xliff:g id="COUNT">^2</xliff:g> myndir úr ruslinu?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
+      <item quantity="one">Færir <xliff:g id="COUNT">^1</xliff:g> mynd úr ruslinu…</item>
+      <item quantity="other">Færir <xliff:g id="COUNT">^1</xliff:g> myndir úr ruslinu…</item>
+    </plurals>
     <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
       <item quantity="one">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að færa <xliff:g id="COUNT">^2</xliff:g> atriði úr ruslinu?</item>
       <item quantity="other">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að færa <xliff:g id="COUNT">^2</xliff:g> atriði úr ruslinu?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
+      <item quantity="one">Færir <xliff:g id="COUNT">^1</xliff:g> atriði úr ruslinu…</item>
+      <item quantity="other">Færir <xliff:g id="COUNT">^1</xliff:g> atriði úr ruslinu…</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
       <item quantity="one">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að eyða <xliff:g id="COUNT">^2</xliff:g> hljóðskrá?</item>
       <item quantity="other">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að eyða <xliff:g id="COUNT">^2</xliff:g> hljóðskrám?</item>
     </plurals>
+    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
+      <item quantity="one">Eyðir <xliff:g id="COUNT">^1</xliff:g> hljóðskrá…</item>
+      <item quantity="other">Eyðir <xliff:g id="COUNT">^1</xliff:g> hljóðskrám…</item>
+    </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
       <item quantity="one">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að eyða <xliff:g id="COUNT">^2</xliff:g> myndskeiði?</item>
       <item quantity="other">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að eyða <xliff:g id="COUNT">^2</xliff:g> myndskeiðum?</item>
+    </plurals>
+    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
+      <item quantity="one">Eyðir <xliff:g id="COUNT">^1</xliff:g> myndskeiði…</item>
+      <item quantity="other">Eyðir <xliff:g id="COUNT">^1</xliff:g> myndskeiðum…</item>
     </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
       <item quantity="one">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að eyða <xliff:g id="COUNT">^2</xliff:g> mynd?</item>
       <item quantity="other">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að eyða <xliff:g id="COUNT">^2</xliff:g> myndum?</item>
     </plurals>
+    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
+      <item quantity="one">Eyðir <xliff:g id="COUNT">^1</xliff:g> mynd…</item>
+      <item quantity="other">Eyðir <xliff:g id="COUNT">^1</xliff:g> myndum…</item>
+    </plurals>
     <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
       <item quantity="one">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að eyða <xliff:g id="COUNT">^2</xliff:g> atriði?</item>
       <item quantity="other">Leyfa <xliff:g id="APP_NAME_1">^1</xliff:g> að eyða <xliff:g id="COUNT">^2</xliff:g> atriðum?</item>
+    </plurals>
+    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
+      <item quantity="one">Eyðir <xliff:g id="COUNT">^1</xliff:g> atriði…</item>
+      <item quantity="other">Eyðir <xliff:g id="COUNT">^1</xliff:g> atriðum…</item>
     </plurals>
 </resources>

@@ -126,10 +126,10 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
     }
 
     @Override
-    public long onGetAnrDelayMillis(@NonNull String packageName, int uid) {
+    public void onAnrDelayStarted(@NonNull String packageName, int uid, int tid, int reason) {
         Objects.requireNonNull(packageName);
 
-        return getMediaProvider().getAnrDelayMillis(packageName, uid);
+        getMediaProvider().onAnrDelayStarted(packageName, uid, tid, reason);
     }
 
     public FuseDaemon onExitSession(@NonNull String sessionId) {

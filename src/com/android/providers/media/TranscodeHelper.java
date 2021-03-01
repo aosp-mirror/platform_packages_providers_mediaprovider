@@ -701,6 +701,10 @@ public class TranscodeHelper {
                         || colorTransfer == MediaFormat.COLOR_TRANSFER_HLG);
     }
 
+    private static boolean isModernFormat(String mimeType, int colorStandard, int colorTransfer) {
+        return isHevc(mimeType) || isHdr10Plus(colorStandard, colorTransfer);
+    }
+
     public boolean supportsTranscode(String path) {
         File file = new File(path);
         String name = file.getName();
@@ -907,12 +911,15 @@ public class TranscodeHelper {
                     MediaColumns.DURATION,
                     MediaColumns.CAPTURE_FRAMERATE,
                     MediaColumns.WIDTH,
-                    MediaColumns.HEIGHT
+                    MediaColumns.HEIGHT,
+                    VideoColumns.COLOR_STANDARD,
+                    VideoColumns.COLOR_TRANSFER
         };
 
         try (Cursor c = queryFileForTranscode(path, resolverInfoProjection)) {
             if (c != null && c.moveToNext()) {
-                if (isHevc(c.getString(0)) && supportsTranscode(path)) {
+                if (supportsTranscode(path)
+                        && isModernFormat(c.getString(0), c.getInt(6), c.getInt(7))) {
                     if (transformsReason == 0) {
                         MediaProviderStatsLog.write(
                                 TRANSCODING_DATA,

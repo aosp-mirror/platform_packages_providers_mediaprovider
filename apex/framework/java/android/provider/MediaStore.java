@@ -1902,10 +1902,20 @@ public final class MediaStore {
             /**
              * Indexed value of {@link MediaMetadataRetriever#METADATA_KEY_VIDEO_CODEC_TYPE}
              * extracted from the video file. This value be null for non-video files.
+             *
              * @hide
              */
             // @Column(value = Cursor.FIELD_TYPE_INTEGER)
             public static final String _VIDEO_CODEC_TYPE = "_video_codec_type";
+
+            /**
+             * Redacted Uri-ID corresponding to this DB entry. The value will be null if no
+             * redacted uri has ever been created for this uri.
+             *
+             * @hide
+             */
+            // @Column(value = Cursor.FIELD_TYPE_STRING, readOnly = true)
+            public static final String REDACTED_URI_ID = "redacted_uri_id";
         }
     }
 

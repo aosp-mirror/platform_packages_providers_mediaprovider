@@ -465,8 +465,8 @@ public class MediaProvider extends ContentProvider {
         mTranscodeHelper.getTranscodeDirectory().delete();
     }
 
-    public long getAnrDelayMillis(@NonNull String packageName, int uid) {
-        return mTranscodeHelper.getAnrDelayMillis(packageName, uid);
+    public void onAnrDelayStarted(@NonNull String packageName, int uid, int tid, int reason) {
+        mTranscodeHelper.onAnrDelayStarted(packageName, uid, tid, reason);
     }
 
     private volatile Locale mLastLocale = Locale.getDefault();

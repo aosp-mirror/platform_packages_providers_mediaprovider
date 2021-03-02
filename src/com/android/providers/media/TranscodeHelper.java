@@ -121,7 +121,6 @@ public class TranscodeHelper {
             "persist.sys.fuse.transcode_user_control";
     private static final String TRANSCODE_COMPAT_MANIFEST_KEY = "transcode_compat_manifest";
     private static final String TRANSCODE_COMPAT_STALE_KEY = "transcode_compat_stale";
-    private static final String TRANSCODE_ANR_DELAY_MS_KEY = "transcode_anr_delay_ms";
 
     private static final int MY_UID = android.os.Process.myUid();
 
@@ -279,16 +278,14 @@ public class TranscodeHelper {
         return new File(getTranscodeDirectory(), String.valueOf(rowId)).getAbsolutePath();
     }
 
-    public long getAnrDelayMillis(String packageName, int uid) {
-        if (!IS_TRANSCODING_SUPPORTED) {
-            Log.d(TAG, "Skipping ANR delay for older SDK version " + Build.VERSION.SDK_INT
-                    + ", code name " + Build.VERSION.CODENAME);
-            return 0;
+    public void onAnrDelayStarted(String packageName, int uid, int tid, int reason) {
+        if (!isTranscodeEnabled()) {
+            return;
         }
 
         if (uid == MY_UID) {
-            Log.w(TAG, "Skipping ANR delay for MediaProvider");
-            return 0;
+            Log.w(TAG, "Skipping ANR delay handling for MediaProvider");
+            return;
         }
 
         logVerbose("Checking transcode status during ANR of " + packageName);
@@ -300,15 +297,11 @@ public class TranscodeHelper {
 
         for (StorageTranscodingSession session: sessions) {
             if (session.isUidBlocked(uid)) {
-                int delayMs = mMediaProvider.getIntDeviceConfig(TRANSCODE_ANR_DELAY_MS_KEY, 0);
                 Log.i(TAG, "Package: " + packageName + " with uid: " + uid
-                        + " is blocked on transcoding: " + session + ". Delaying ANR by " + delayMs
-                        + "ms");
-                return delayMs;
+                        + " and tid: " + tid + " is blocked on transcoding: " + session);
+                // TODO(b/170973510): Log metrics and show UI
             }
         }
-
-        return 0;
     }
 
     // TODO(b/170974147): This should probably use a cache so we don't need to ask the
@@ -701,6 +694,10 @@ public class TranscodeHelper {
                         || colorTransfer == MediaFormat.COLOR_TRANSFER_HLG);
     }
 
+    private static boolean isModernFormat(String mimeType, int colorStandard, int colorTransfer) {
+        return isHevc(mimeType) || isHdr10Plus(colorStandard, colorTransfer);
+    }
+
     public boolean supportsTranscode(String path) {
         File file = new File(path);
         String name = file.getName();
@@ -907,12 +904,15 @@ public class TranscodeHelper {
                     MediaColumns.DURATION,
                     MediaColumns.CAPTURE_FRAMERATE,
                     MediaColumns.WIDTH,
-                    MediaColumns.HEIGHT
+                    MediaColumns.HEIGHT,
+                    VideoColumns.COLOR_STANDARD,
+                    VideoColumns.COLOR_TRANSFER
         };
 
         try (Cursor c = queryFileForTranscode(path, resolverInfoProjection)) {
             if (c != null && c.moveToNext()) {
-                if (isHevc(c.getString(0)) && supportsTranscode(path)) {
+                if (supportsTranscode(path)
+                        && isModernFormat(c.getString(0), c.getInt(6), c.getInt(7))) {
                     if (transformsReason == 0) {
                         MediaProviderStatsLog.write(
                                 TRANSCODING_DATA,

@@ -47,64 +47,128 @@
       <item quantity="other">Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to modify <xliff:g id="COUNT">^2</xliff:g> audio files?</item>
       <item quantity="one">Allow <xliff:g id="APP_NAME_0">^1</xliff:g> to modify this audio file?</item>
     </plurals>
+    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
+      <item quantity="other">Modifying <xliff:g id="COUNT">^1</xliff:g> audio files…</item>
+      <item quantity="one">Modifying audio file…</item>
+    </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
       <item quantity="other">Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to modify <xliff:g id="COUNT">^2</xliff:g> videos?</item>
       <item quantity="one">Allow <xliff:g id="APP_NAME_0">^1</xliff:g> to modify this video?</item>
+    </plurals>
+    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
+      <item quantity="other">Modifying <xliff:g id="COUNT">^1</xliff:g> videos…</item>
+      <item quantity="one">Modifying video…</item>
     </plurals>
     <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
       <item quantity="other">Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to modify <xliff:g id="COUNT">^2</xliff:g> photos?</item>
       <item quantity="one">Allow <xliff:g id="APP_NAME_0">^1</xliff:g> to modify this photo?</item>
     </plurals>
+    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
+      <item quantity="other">Modifying <xliff:g id="COUNT">^1</xliff:g> photos…</item>
+      <item quantity="one">Modifying photo…</item>
+    </plurals>
     <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
       <item quantity="other">Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to modify <xliff:g id="COUNT">^2</xliff:g> items?</item>
       <item quantity="one">Allow <xliff:g id="APP_NAME_0">^1</xliff:g> to modify this item?</item>
+    </plurals>
+    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
+      <item quantity="other">Modifying <xliff:g id="COUNT">^1</xliff:g> items…</item>
+      <item quantity="one">Modifying item…</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
       <item quantity="other">Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to move <xliff:g id="COUNT">^2</xliff:g> audio files to bin?</item>
       <item quantity="one">Allow <xliff:g id="APP_NAME_0">^1</xliff:g> to move this audio file to bin?</item>
     </plurals>
+    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
+      <item quantity="other">Moving <xliff:g id="COUNT">^1</xliff:g> audio files to bin…</item>
+      <item quantity="one">Moving audio file to bin…</item>
+    </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
       <item quantity="other">Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to move <xliff:g id="COUNT">^2</xliff:g> videos to bin?</item>
       <item quantity="one">Allow <xliff:g id="APP_NAME_0">^1</xliff:g> to move this video to bin?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
+      <item quantity="other">Moving <xliff:g id="COUNT">^1</xliff:g> videos to bin…</item>
+      <item quantity="one">Moving video to bin…</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
       <item quantity="other">Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to move <xliff:g id="COUNT">^2</xliff:g> photos to bin?</item>
       <item quantity="one">Allow <xliff:g id="APP_NAME_0">^1</xliff:g> to move this photo to bin?</item>
     </plurals>
+    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
+      <item quantity="other">Moving <xliff:g id="COUNT">^1</xliff:g> photos to bin…</item>
+      <item quantity="one">Moving photo to bin…</item>
+    </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
       <item quantity="other">Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to move <xliff:g id="COUNT">^2</xliff:g> items to bin?</item>
       <item quantity="one">Allow <xliff:g id="APP_NAME_0">^1</xliff:g> to move this item to bin?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
+      <item quantity="other">Moving <xliff:g id="COUNT">^1</xliff:g> items to bin…</item>
+      <item quantity="one">Moving item to bin…</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
       <item quantity="other">Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to move <xliff:g id="COUNT">^2</xliff:g> audio files out of bin?</item>
       <item quantity="one">Allow <xliff:g id="APP_NAME_0">^1</xliff:g> to move this audio file out of bin?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
+      <item quantity="other">Moving <xliff:g id="COUNT">^1</xliff:g> audio files out of bin…</item>
+      <item quantity="one">Moving audio file out of bin…</item>
+    </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
       <item quantity="other">Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to move <xliff:g id="COUNT">^2</xliff:g> videos out of bin?</item>
       <item quantity="one">Allow <xliff:g id="APP_NAME_0">^1</xliff:g> to move this video out of bin?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
+      <item quantity="other">Moving <xliff:g id="COUNT">^1</xliff:g> videos out of bin…</item>
+      <item quantity="one">Moving video out of bin…</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
       <item quantity="other">Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to move <xliff:g id="COUNT">^2</xliff:g> photos out of bin?</item>
       <item quantity="one">Allow <xliff:g id="APP_NAME_0">^1</xliff:g> to move this photo out of bin?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
+      <item quantity="other">Moving <xliff:g id="COUNT">^1</xliff:g> photos out of bin…</item>
+      <item quantity="one">Moving photo out of bin…</item>
+    </plurals>
     <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
       <item quantity="other">Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to move <xliff:g id="COUNT">^2</xliff:g> items out of bin?</item>
       <item quantity="one">Allow <xliff:g id="APP_NAME_0">^1</xliff:g> to move this item out of bin?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
+      <item quantity="other">Moving <xliff:g id="COUNT">^1</xliff:g> items out of bin…</item>
+      <item quantity="one">Moving item out of bin…</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
       <item quantity="other">Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to delete <xliff:g id="COUNT">^2</xliff:g> audio files?</item>
       <item quantity="one">Allow <xliff:g id="APP_NAME_0">^1</xliff:g> to delete this audio file?</item>
     </plurals>
+    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
+      <item quantity="other">Deleting <xliff:g id="COUNT">^1</xliff:g> audio files…</item>
+      <item quantity="one">Deleting audio file…</item>
+    </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
       <item quantity="other">Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to delete <xliff:g id="COUNT">^2</xliff:g> videos?</item>
       <item quantity="one">Allow <xliff:g id="APP_NAME_0">^1</xliff:g> to delete this video?</item>
+    </plurals>
+    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
+      <item quantity="other">Deleting <xliff:g id="COUNT">^1</xliff:g> videos…</item>
+      <item quantity="one">Deleting video…</item>
     </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
       <item quantity="other">Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to delete <xliff:g id="COUNT">^2</xliff:g> photos?</item>
       <item quantity="one">Allow <xliff:g id="APP_NAME_0">^1</xliff:g> to delete this photo?</item>
     </plurals>
+    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
+      <item quantity="other">Deleting <xliff:g id="COUNT">^1</xliff:g> photos…</item>
+      <item quantity="one">Deleting photo…</item>
+    </plurals>
     <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
       <item quantity="other">Allow <xliff:g id="APP_NAME_1">^1</xliff:g> to delete <xliff:g id="COUNT">^2</xliff:g> items?</item>
       <item quantity="one">Allow <xliff:g id="APP_NAME_0">^1</xliff:g> to delete this item?</item>
+    </plurals>
+    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
+      <item quantity="other">Deleting <xliff:g id="COUNT">^1</xliff:g> items…</item>
+      <item quantity="one">Deleting item…</item>
     </plurals>
 </resources>

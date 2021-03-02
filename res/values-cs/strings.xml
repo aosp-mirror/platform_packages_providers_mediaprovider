@@ -53,11 +53,23 @@
       <item quantity="other">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> zvukových souborů?</item>
       <item quantity="one">Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> upravit tento zvukový soubor?</item>
     </plurals>
+    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
+      <item quantity="few">Úprava <xliff:g id="COUNT">^1</xliff:g> zvukových souborů…</item>
+      <item quantity="many">Úprava <xliff:g id="COUNT">^1</xliff:g> zvukového souboru…</item>
+      <item quantity="other">Úprava <xliff:g id="COUNT">^1</xliff:g> zvukových souborů…</item>
+      <item quantity="one">Úprava zvukového souboru…</item>
+    </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
       <item quantity="few">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> videa?</item>
       <item quantity="many">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> videa?</item>
       <item quantity="other">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> videí?</item>
       <item quantity="one">Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> upravit toto video?</item>
+    </plurals>
+    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
+      <item quantity="few">Úprava <xliff:g id="COUNT">^1</xliff:g> videí…</item>
+      <item quantity="many">Úprava <xliff:g id="COUNT">^1</xliff:g> videa…</item>
+      <item quantity="other">Úprava <xliff:g id="COUNT">^1</xliff:g> videí…</item>
+      <item quantity="one">Úprava videa…</item>
     </plurals>
     <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
       <item quantity="few">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> fotky?</item>
@@ -65,11 +77,23 @@
       <item quantity="other">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> fotek?</item>
       <item quantity="one">Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> upravit tuto fotku?</item>
     </plurals>
+    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
+      <item quantity="few">Úprava <xliff:g id="COUNT">^1</xliff:g> fotek…</item>
+      <item quantity="many">Úprava <xliff:g id="COUNT">^1</xliff:g> fotky…</item>
+      <item quantity="other">Úprava <xliff:g id="COUNT">^1</xliff:g> fotek…</item>
+      <item quantity="one">Úprava fotky…</item>
+    </plurals>
     <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
       <item quantity="few">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> položky?</item>
       <item quantity="many">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> položky?</item>
       <item quantity="other">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> upravit <xliff:g id="COUNT">^2</xliff:g> položek?</item>
       <item quantity="one">Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> upravit tuto položku?</item>
+    </plurals>
+    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
+      <item quantity="few">Úprava <xliff:g id="COUNT">^1</xliff:g> položek…</item>
+      <item quantity="many">Úprava <xliff:g id="COUNT">^1</xliff:g> položky…</item>
+      <item quantity="other">Úprava <xliff:g id="COUNT">^1</xliff:g> položek…</item>
+      <item quantity="one">Úprava položky…</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
       <item quantity="few">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> přesunout <xliff:g id="COUNT">^2</xliff:g> zvukové soubory do koše?</item>
@@ -77,11 +101,23 @@
       <item quantity="other">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> přesunout <xliff:g id="COUNT">^2</xliff:g> zvukových souborů do koše?</item>
       <item quantity="one">Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> přesunout tento zvukový soubor do koše?</item>
     </plurals>
+    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
+      <item quantity="few">Přesouvání <xliff:g id="COUNT">^1</xliff:g> zvukových souborů do koše…</item>
+      <item quantity="many">Přesouvání <xliff:g id="COUNT">^1</xliff:g> zvukového souboru do koše…</item>
+      <item quantity="other">Přesouvání <xliff:g id="COUNT">^1</xliff:g> zvukových souborů do koše…</item>
+      <item quantity="one">Přesouvání zvukového souboru do koše…</item>
+    </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
       <item quantity="few">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> přesunout <xliff:g id="COUNT">^2</xliff:g> videa do koše?</item>
       <item quantity="many">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> přesunout <xliff:g id="COUNT">^2</xliff:g> videa do koše?</item>
       <item quantity="other">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> přesunout <xliff:g id="COUNT">^2</xliff:g> videí do koše?</item>
       <item quantity="one">Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> přesunout toto video do koše?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
+      <item quantity="few">Přesouvání <xliff:g id="COUNT">^1</xliff:g> videí do koše…</item>
+      <item quantity="many">Přesouvání <xliff:g id="COUNT">^1</xliff:g> videa do koše…</item>
+      <item quantity="other">Přesouvání <xliff:g id="COUNT">^1</xliff:g> videí do koše…</item>
+      <item quantity="one">Přesouvání videa do koše…</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
       <item quantity="few">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> přesunout <xliff:g id="COUNT">^2</xliff:g> fotky do koše?</item>
@@ -89,11 +125,23 @@
       <item quantity="other">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> přesunout <xliff:g id="COUNT">^2</xliff:g> fotek do koše?</item>
       <item quantity="one">Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> přesunout tuto fotku do koše?</item>
     </plurals>
+    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
+      <item quantity="few">Přesouvání <xliff:g id="COUNT">^1</xliff:g> fotek do koše…</item>
+      <item quantity="many">Přesouvání <xliff:g id="COUNT">^1</xliff:g> fotky do koše…</item>
+      <item quantity="other">Přesouvání <xliff:g id="COUNT">^1</xliff:g> fotek do koše…</item>
+      <item quantity="one">Přesouvání fotky do koše…</item>
+    </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
       <item quantity="few">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> přesunout <xliff:g id="COUNT">^2</xliff:g> položky do koše?</item>
       <item quantity="many">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> přesunout <xliff:g id="COUNT">^2</xliff:g> položky do koše?</item>
       <item quantity="other">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> přesunout <xliff:g id="COUNT">^2</xliff:g> položek do koše?</item>
       <item quantity="one">Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> přesunout tuto položku do koše?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
+      <item quantity="few">Přesouvání <xliff:g id="COUNT">^1</xliff:g> položek do koše…</item>
+      <item quantity="many">Přesouvání <xliff:g id="COUNT">^1</xliff:g> položky do koše…</item>
+      <item quantity="other">Přesouvání <xliff:g id="COUNT">^1</xliff:g> položek do koše…</item>
+      <item quantity="one">Přesouvání položky do koše…</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
       <item quantity="few">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> vyjmout <xliff:g id="COUNT">^2</xliff:g> zvukové soubory z koše?</item>
@@ -101,11 +149,23 @@
       <item quantity="other">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> vyjmout <xliff:g id="COUNT">^2</xliff:g> zvukových souborů z koše?</item>
       <item quantity="one">Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> vyjmout tento zvukový soubor z koše?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
+      <item quantity="few">Přesouvání <xliff:g id="COUNT">^1</xliff:g> zvukových souborů z koše…</item>
+      <item quantity="many">Přesouvání <xliff:g id="COUNT">^1</xliff:g> zvukového souboru z koše…</item>
+      <item quantity="other">Přesouvání <xliff:g id="COUNT">^1</xliff:g> zvukových souborů z koše…</item>
+      <item quantity="one">Přesouvání zvukového souboru z koše…</item>
+    </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
       <item quantity="few">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> vyjmout <xliff:g id="COUNT">^2</xliff:g> videa z koše?</item>
       <item quantity="many">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> vyjmout <xliff:g id="COUNT">^2</xliff:g> videa z koše?</item>
       <item quantity="other">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> vyjmout <xliff:g id="COUNT">^2</xliff:g> videí z koše?</item>
       <item quantity="one">Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> vyjmout toto video z koše?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
+      <item quantity="few">Přesouvání <xliff:g id="COUNT">^1</xliff:g> videí z koše…</item>
+      <item quantity="many">Přesouvání <xliff:g id="COUNT">^1</xliff:g> videa z koše…</item>
+      <item quantity="other">Přesouvání <xliff:g id="COUNT">^1</xliff:g> videí z koše…</item>
+      <item quantity="one">Přesouvání videa z koše…</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
       <item quantity="few">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> vyjmout <xliff:g id="COUNT">^2</xliff:g> fotky z koše?</item>
@@ -113,11 +173,23 @@
       <item quantity="other">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> vyjmout <xliff:g id="COUNT">^2</xliff:g> fotek z koše?</item>
       <item quantity="one">Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> vyjmout tuto fotku z koše?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
+      <item quantity="few">Přesouvání <xliff:g id="COUNT">^1</xliff:g> fotek z koše…</item>
+      <item quantity="many">Přesouvání <xliff:g id="COUNT">^1</xliff:g> fotky z koše…</item>
+      <item quantity="other">Přesouvání <xliff:g id="COUNT">^1</xliff:g> fotek z koše…</item>
+      <item quantity="one">Přesouvání fotky z koše…</item>
+    </plurals>
     <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
       <item quantity="few">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> vyjmout <xliff:g id="COUNT">^2</xliff:g> položky z koše?</item>
       <item quantity="many">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> vyjmout <xliff:g id="COUNT">^2</xliff:g> položky z koše?</item>
       <item quantity="other">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> vyjmout <xliff:g id="COUNT">^2</xliff:g> položek z koše?</item>
       <item quantity="one">Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> vyjmout tuto položku z koše?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
+      <item quantity="few">Přesouvání <xliff:g id="COUNT">^1</xliff:g> položek z koše…</item>
+      <item quantity="many">Přesouvání <xliff:g id="COUNT">^1</xliff:g> položky z koše…</item>
+      <item quantity="other">Přesouvání <xliff:g id="COUNT">^1</xliff:g> položek z koše…</item>
+      <item quantity="one">Přesouvání položky z koše…</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
       <item quantity="few">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> smazat <xliff:g id="COUNT">^2</xliff:g> zvukové soubory?</item>
@@ -125,11 +197,23 @@
       <item quantity="other">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> smazat <xliff:g id="COUNT">^2</xliff:g> zvukových souborů?</item>
       <item quantity="one">Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> smazat tento zvukový soubor?</item>
     </plurals>
+    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
+      <item quantity="few">Mazání <xliff:g id="COUNT">^1</xliff:g> zvukových souborů…</item>
+      <item quantity="many">Mazání <xliff:g id="COUNT">^1</xliff:g> zvukového souboru…</item>
+      <item quantity="other">Mazání <xliff:g id="COUNT">^1</xliff:g> zvukových souborů…</item>
+      <item quantity="one">Mazání zvukového souboru…</item>
+    </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
       <item quantity="few">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> smazat <xliff:g id="COUNT">^2</xliff:g> videa?</item>
       <item quantity="many">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> smazat <xliff:g id="COUNT">^2</xliff:g> videa?</item>
       <item quantity="other">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> smazat <xliff:g id="COUNT">^2</xliff:g> videí?</item>
       <item quantity="one">Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> smazat toto video?</item>
+    </plurals>
+    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
+      <item quantity="few">Mazání <xliff:g id="COUNT">^1</xliff:g> videí…</item>
+      <item quantity="many">Mazání <xliff:g id="COUNT">^1</xliff:g> videa…</item>
+      <item quantity="other">Mazání <xliff:g id="COUNT">^1</xliff:g> videí…</item>
+      <item quantity="one">Mazání videa…</item>
     </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
       <item quantity="few">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> smazat <xliff:g id="COUNT">^2</xliff:g> fotky?</item>
@@ -137,10 +221,22 @@
       <item quantity="other">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> smazat <xliff:g id="COUNT">^2</xliff:g> fotek?</item>
       <item quantity="one">Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> smazat tuto fotku?</item>
     </plurals>
+    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
+      <item quantity="few">Mazání <xliff:g id="COUNT">^1</xliff:g> fotek…</item>
+      <item quantity="many">Mazání <xliff:g id="COUNT">^1</xliff:g> fotky…</item>
+      <item quantity="other">Mazání <xliff:g id="COUNT">^1</xliff:g> fotek…</item>
+      <item quantity="one">Mazání fotky…</item>
+    </plurals>
     <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
       <item quantity="few">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> smazat <xliff:g id="COUNT">^2</xliff:g> položky?</item>
       <item quantity="many">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> smazat <xliff:g id="COUNT">^2</xliff:g> položky?</item>
       <item quantity="other">Povolit aplikaci <xliff:g id="APP_NAME_1">^1</xliff:g> smazat <xliff:g id="COUNT">^2</xliff:g> položek?</item>
       <item quantity="one">Povolit aplikaci <xliff:g id="APP_NAME_0">^1</xliff:g> smazat tuto položku?</item>
+    </plurals>
+    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
+      <item quantity="few">Mazání <xliff:g id="COUNT">^1</xliff:g> položek…</item>
+      <item quantity="many">Mazání <xliff:g id="COUNT">^1</xliff:g> položky…</item>
+      <item quantity="other">Mazání <xliff:g id="COUNT">^1</xliff:g> položek…</item>
+      <item quantity="one">Mazání položky…</item>
     </plurals>
 </resources>

@@ -1220,17 +1220,6 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Makes MediaScanner scan the given file.
-     * @param file path of the file to be scanned
-     *
-     * Called from JNI in jni/MediaProviderWrapper.cpp
-     */
-    @Keep
-    public void scanFileForFuse(String file) {
-        scanFile(new File(file), REASON_DEMAND);
-    }
-
-    /**
      * Called when a new file is created through FUSE
      *
      * @param file path of the file that was created
@@ -1756,13 +1745,8 @@ public class MediaProvider extends ContentProvider {
      * </ul>
      */
     private void scanRenamedDirectoryForFuse(@NonNull String oldPath, @NonNull String newPath) {
-        final LocalCallingIdentity token = clearLocalCallingIdentity();
-        try {
-            scanFile(new File(oldPath), REASON_DEMAND);
-            scanFile(new File(newPath), REASON_DEMAND);
-        } finally {
-            restoreLocalCallingIdentity(token);
-        }
+        scanFileAsMediaProvider(new File(oldPath), REASON_DEMAND);
+        scanFileAsMediaProvider(new File(newPath), REASON_DEMAND);
     }
 
     /**
@@ -2213,10 +2197,10 @@ public class MediaProvider extends ContentProvider {
         // 3) /sdcard/foo/bar.mp3 => /sdcard/foo/.nomedia
         //    in this case, we need to scan all of /sdcard/foo
         if (extractDisplayName(oldPath).equals(".nomedia")) {
-            scanFile(new File(oldPath).getParentFile(), REASON_DEMAND);
+            scanFileAsMediaProvider(new File(oldPath).getParentFile(), REASON_DEMAND);
         }
         if (extractDisplayName(newPath).equals(".nomedia")) {
-            scanFile(new File(newPath).getParentFile(), REASON_DEMAND);
+            scanFileAsMediaProvider(new File(newPath).getParentFile(), REASON_DEMAND);
         }
 
         return 0;
@@ -3891,7 +3875,7 @@ public class MediaProvider extends ContentProvider {
         mCallingIdentity.get().setOwned(rowId, true);
 
         if (path != null && path.toLowerCase(Locale.ROOT).endsWith("/.nomedia")) {
-            mMediaScanner.scanFile(new File(path).getParentFile(), REASON_DEMAND);
+            scanFileAsMediaProvider(new File(path).getParentFile(), REASON_DEMAND);
         }
 
         return newUri;
@@ -6595,7 +6579,7 @@ public class MediaProvider extends ContentProvider {
                         update(uri, values, null, null);
                         break;
                     default:
-                        mMediaScanner.scanFile(file, REASON_DEMAND);
+                        scanFileAsMediaProvider(file, REASON_DEMAND);
                         break;
                 }
             } catch (Exception e2) {

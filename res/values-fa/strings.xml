@@ -47,64 +47,128 @@
       <item quantity="one">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> فایل صوتی را تغییر دهد؟</item>
       <item quantity="other">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> فایل صوتی را تغییر دهد؟</item>
     </plurals>
+    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
+      <item quantity="one">درحال اصلاح <xliff:g id="COUNT">^1</xliff:g> فایل صوتی…</item>
+      <item quantity="other">درحال اصلاح <xliff:g id="COUNT">^1</xliff:g> فایل صوتی…</item>
+    </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
       <item quantity="one">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> ویدیو را تغییر دهد؟</item>
       <item quantity="other">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> ویدیو را تغییر دهد؟</item>
+    </plurals>
+    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
+      <item quantity="one">درحال اصلاح <xliff:g id="COUNT">^1</xliff:g> ویدیو…</item>
+      <item quantity="other">درحال اصلاح <xliff:g id="COUNT">^1</xliff:g> ویدیو…</item>
     </plurals>
     <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
       <item quantity="one">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> عکس را تغییر دهد؟</item>
       <item quantity="other">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> عکس را تغییر دهد؟</item>
     </plurals>
+    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
+      <item quantity="one">درحال اصلاح <xliff:g id="COUNT">^1</xliff:g> عکس…</item>
+      <item quantity="other">درحال اصلاح <xliff:g id="COUNT">^1</xliff:g> عکس…</item>
+    </plurals>
     <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
       <item quantity="one">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> مورد را تغییر دهد؟</item>
       <item quantity="other">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> مورد را تغییر دهد؟</item>
+    </plurals>
+    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
+      <item quantity="one">درحال اصلاح <xliff:g id="COUNT">^1</xliff:g> مورد…</item>
+      <item quantity="other">درحال اصلاح <xliff:g id="COUNT">^1</xliff:g> مورد…</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
       <item quantity="one">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> فایل صوتی را به «حذف‌شده‌ها» منتقل کند؟</item>
       <item quantity="other">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> فایل صوتی را به «حذف‌شده‌ها» منتقل کند؟</item>
     </plurals>
+    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
+      <item quantity="one">درحال انتقال <xliff:g id="COUNT">^1</xliff:g> فایل صوتی به حذف‌شده‌ها…</item>
+      <item quantity="other">درحال انتقال <xliff:g id="COUNT">^1</xliff:g> فایل صوتی به حذف‌شده‌ها…</item>
+    </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
       <item quantity="one">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> ویدیو را به «حذف‌شده‌ها» منتقل کند؟</item>
       <item quantity="other">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> ویدیو را به «حذف‌شده‌ها» منتقل کند؟</item>
+    </plurals>
+    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
+      <item quantity="one">درحال انتقال <xliff:g id="COUNT">^1</xliff:g> ویدیو به حذف‌شده‌ها…</item>
+      <item quantity="other">درحال انتقال <xliff:g id="COUNT">^1</xliff:g> ویدیو به حذف‌شده‌ها…</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
       <item quantity="one">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> عکس را به «حذف‌شده‌ها» منتقل کند؟</item>
       <item quantity="other">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> عکس را به «حذف‌شده‌ها» منتقل کند؟</item>
     </plurals>
+    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
+      <item quantity="one">درحال انتقال <xliff:g id="COUNT">^1</xliff:g> عکس به حذف‌شده‌ها…</item>
+      <item quantity="other">درحال انتقال <xliff:g id="COUNT">^1</xliff:g> عکس به حذف‌شده‌ها…</item>
+    </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
       <item quantity="one">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> مورد را به «حذف‌شده‌ها» منتقل کند؟</item>
       <item quantity="other">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> مورد را به «حذف‌شده‌ها» منتقل کند؟</item>
+    </plurals>
+    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
+      <item quantity="one">درحال انتقال <xliff:g id="COUNT">^1</xliff:g> مورد به حذف‌شده‌ها…</item>
+      <item quantity="other">درحال انتقال <xliff:g id="COUNT">^1</xliff:g> مورد به حذف‌شده‌ها…</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
       <item quantity="one">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> فایل صوتی را از «حذف‌شده‌ها» خارج کند؟</item>
       <item quantity="other">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> فایل صوتی را از «حذف‌شده‌ها» خارج کند؟</item>
     </plurals>
+    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
+      <item quantity="one">درحال خارج کردن <xliff:g id="COUNT">^1</xliff:g> فایل صوتی از حذف‌شده‌ها…</item>
+      <item quantity="other">درحال خارج کردن <xliff:g id="COUNT">^1</xliff:g> فایل صوتی از حذف‌شده‌ها…</item>
+    </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
       <item quantity="one">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> ویدیو را از «حذف‌شده‌ها» خارج کند؟</item>
       <item quantity="other">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> ویدیو را از «حذف‌شده‌ها» خارج کند؟</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
+      <item quantity="one">درحال خارج کردن <xliff:g id="COUNT">^1</xliff:g> ویدیو از حذف‌شده‌ها…</item>
+      <item quantity="other">درحال خارج کردن <xliff:g id="COUNT">^1</xliff:g> ویدیو از حذف‌شده‌ها…</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
       <item quantity="one">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> عکس را از «حذف‌شده‌ها» خارج کند؟</item>
       <item quantity="other">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> عکس را از «حذف‌شده‌ها» خارج کند؟</item>
     </plurals>
+    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
+      <item quantity="one">درحال خارج کردن <xliff:g id="COUNT">^1</xliff:g> عکس از حذف‌شده‌ها…</item>
+      <item quantity="other">درحال خارج کردن <xliff:g id="COUNT">^1</xliff:g> عکس از حذف‌شده‌ها…</item>
+    </plurals>
     <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
       <item quantity="one">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> مورد را از «حذف‌شده‌ها» خارج کند؟</item>
       <item quantity="other">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> مورد را از «حذف‌شده‌ها» خارج کند؟</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
+      <item quantity="one">درحال خارج کردن <xliff:g id="COUNT">^1</xliff:g> مورد از حذف‌شده‌ها…</item>
+      <item quantity="other">درحال خارج کردن <xliff:g id="COUNT">^1</xliff:g> مورد از حذف‌شده‌ها…</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
       <item quantity="one">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> فایل صوتی را حذف کند؟</item>
       <item quantity="other">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> فایل صوتی را حذف کند؟</item>
     </plurals>
+    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
+      <item quantity="one">درحال حذف <xliff:g id="COUNT">^1</xliff:g> فایل صوتی…</item>
+      <item quantity="other">درحال حذف <xliff:g id="COUNT">^1</xliff:g> فایل صوتی…</item>
+    </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
       <item quantity="one">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> ویدیو را حذف کند؟</item>
       <item quantity="other">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> ویدیو را حذف کند؟</item>
+    </plurals>
+    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
+      <item quantity="one">درحال حذف <xliff:g id="COUNT">^1</xliff:g> ویدیو…</item>
+      <item quantity="other">درحال حذف <xliff:g id="COUNT">^1</xliff:g> ویدیو…</item>
     </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
       <item quantity="one">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> عکس را حذف کند؟</item>
       <item quantity="other">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> عکس را حذف کند؟</item>
     </plurals>
+    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
+      <item quantity="one">درحال حذف <xliff:g id="COUNT">^1</xliff:g> عکس…</item>
+      <item quantity="other">درحال حذف <xliff:g id="COUNT">^1</xliff:g> عکس…</item>
+    </plurals>
     <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
       <item quantity="one">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> مورد را حذف کند؟</item>
       <item quantity="other">به <xliff:g id="APP_NAME_1">^1</xliff:g> اجازه می‌دهید <xliff:g id="COUNT">^2</xliff:g> مورد را حذف کند؟</item>
+    </plurals>
+    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
+      <item quantity="one">درحال حذف <xliff:g id="COUNT">^1</xliff:g> مورد…</item>
+      <item quantity="other">درحال حذف <xliff:g id="COUNT">^1</xliff:g> مورد…</item>
     </plurals>
 </resources>

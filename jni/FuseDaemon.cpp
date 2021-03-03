@@ -256,7 +256,7 @@ struct fuse {
     inline bool IsRoot(const node* node) const { return node == root; }
 
     inline string GetEffectiveRootPath() {
-        if (path.find("/storage/emulated", 0) == 0) {
+        if (android::base::StartsWith(path, "/storage/emulated")) {
             return path + "/" + MY_USER_ID_STRING;
         }
         return path;
@@ -397,9 +397,10 @@ static void fuse_inval(fuse_session* se, fuse_ino_t parent_ino, fuse_ino_t child
     }
 }
 
-static double get_attr_timeout(const string& path, node* node, struct fuse* fuse) {
+static double get_entry_timeout(const string& path, node* node, struct fuse* fuse) {
+    string media_path = fuse->GetEffectiveRootPath() + "/Android/media";
     if (fuse->disable_dentry_cache || node->ShouldInvalidate() ||
-        is_package_owned_path(path, fuse->path)) {
+        is_package_owned_path(path, fuse->path) || android::base::StartsWith(path, media_path)) {
         // We set dentry timeout to 0 for the following reasons:
         // 1. The dentry cache was completely disabled
         // 2.1 Case-insensitive lookups need to invalidate other case-insensitive dentry matches
@@ -408,20 +409,12 @@ static double get_attr_timeout(const string& path, node* node, struct fuse* fuse
         // 3. With app data isolation enabled, app A should not guess existence of app B from the
         // Android/{data,obb}/<package> paths, hence we prevent the kernel from caching that
         // information.
-        return 0;
-    }
-    return std::numeric_limits<double>::max();
-}
-
-static double get_entry_timeout(const string& path, node* node, struct fuse* fuse) {
-    string media_path = fuse->GetEffectiveRootPath() + "/Android/media";
-    if (path.find(media_path, 0) == 0) {
-        // Installd might delete Android/media/<package> dirs when app data is cleared.
+        // 4. Installd might delete Android/media/<package> dirs when app data is cleared.
         // This can leave a stale entry in the kernel dcache, and break subsequent creation of the
         // dir via FUSE.
         return 0;
     }
-    return get_attr_timeout(path, node, fuse);
+    return std::numeric_limits<double>::max();
 }
 
 static std::string get_path(node* node) {
@@ -512,7 +505,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     e->generation = 0;
     e->ino = fuse->ToInode(node);
     e->entry_timeout = get_entry_timeout(path, node, fuse);
-    e->attr_timeout = get_attr_timeout(path, node, fuse);
+    e->attr_timeout = std::numeric_limits<double>::max();
     return node;
 }
 
@@ -701,7 +694,7 @@ static void pf_getattr(fuse_req_t req,
     if (lstat(path.c_str(), &s) < 0) {
         fuse_reply_err(req, errno);
     } else {
-        fuse_reply_attr(req, &s, get_attr_timeout(path, node, fuse));
+        fuse_reply_attr(req, &s, std::numeric_limits<double>::max());
     }
 }
 
@@ -804,7 +797,7 @@ static void pf_setattr(fuse_req_t req,
     }
 
     lstat(path.c_str(), attr);
-    fuse_reply_attr(req, attr, get_attr_timeout(path, node, fuse));
+    fuse_reply_attr(req, attr, std::numeric_limits<double>::max());
 }
 
 static void pf_canonical_path(fuse_req_t req, fuse_ino_t ino)

@@ -47,64 +47,128 @@
       <item quantity="other">Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> oudiolêers te wysig?</item>
       <item quantity="one">Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie oudiolêer te wysig?</item>
     </plurals>
+    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
+      <item quantity="other">Wysig tans <xliff:g id="COUNT">^1</xliff:g> oudiolêers …</item>
+      <item quantity="one">Wysig tans oudiolêer …</item>
+    </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
       <item quantity="other">Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> video\'s te wysig?</item>
       <item quantity="one">Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie video te wysig?</item>
+    </plurals>
+    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
+      <item quantity="other">Wysig tans <xliff:g id="COUNT">^1</xliff:g> video\'s …</item>
+      <item quantity="one">Wysig tans video …</item>
     </plurals>
     <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
       <item quantity="other">Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> foto\'s te wysig?</item>
       <item quantity="one">Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie foto te wysig?</item>
     </plurals>
+    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
+      <item quantity="other">Wysig tans <xliff:g id="COUNT">^1</xliff:g> foto\'s …</item>
+      <item quantity="one">Wysig tans foto …</item>
+    </plurals>
     <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
       <item quantity="other">Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> items te wysig?</item>
       <item quantity="one">Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie item te wysig?</item>
+    </plurals>
+    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
+      <item quantity="other">Wysig tans <xliff:g id="COUNT">^1</xliff:g> items …</item>
+      <item quantity="one">Wysig tans item …</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
       <item quantity="other">Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> oudiolêers na die asblik toe te skuif?</item>
       <item quantity="one">Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie oudiolêer na die asblik toe te skuif?</item>
     </plurals>
+    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
+      <item quantity="other">Skuif tans <xliff:g id="COUNT">^1</xliff:g> oudiolêers na asblik …</item>
+      <item quantity="one">Skuif tans oudiolêer na asblik …</item>
+    </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
       <item quantity="other">Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> video\'s na die asblik toe te skuif?</item>
       <item quantity="one">Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie video na die asblik toe skuif?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
+      <item quantity="other">Skuif tans <xliff:g id="COUNT">^1</xliff:g> video\'s na asblik …</item>
+      <item quantity="one">Skuif tans video na asblik …</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
       <item quantity="other">Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> foto\'s na die asblik toe te skuif?</item>
       <item quantity="one">Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie foto na die asblik toe skuif?</item>
     </plurals>
+    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
+      <item quantity="other">Skuif tans <xliff:g id="COUNT">^1</xliff:g> foto\'s na asblik …</item>
+      <item quantity="one">Skuif tans foto na asblik …</item>
+    </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
       <item quantity="other">Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> items na die asblik toe te skuif?</item>
       <item quantity="one">Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie item na die asblik toe skuif?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
+      <item quantity="other">Skuif tans <xliff:g id="COUNT">^1</xliff:g> items na asblik …</item>
+      <item quantity="one">Skuif tans item na asblik …</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
       <item quantity="other">Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> oudiolêers uit die asblik uit te skuif?</item>
       <item quantity="one">Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie oudiolêer uit die asblik uit te skuif?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
+      <item quantity="other">Skuif tans <xliff:g id="COUNT">^1</xliff:g> oudiolêers uit die asblik uit …</item>
+      <item quantity="one">Skuif tans oudiolêer uit die asblik uit …</item>
+    </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
       <item quantity="other">Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> video\'s uit die asblik uit te skuif?</item>
       <item quantity="one">Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie video uit die asblik uit te skuif?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
+      <item quantity="other">Skuif tans <xliff:g id="COUNT">^1</xliff:g> video\'s uit die asblik uit …</item>
+      <item quantity="one">Skuif tans video uit die asblik uit …</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
       <item quantity="other">Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> foto\'s uit die asblik uit te skuif?</item>
       <item quantity="one">Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie foto uit die asblik uit te skuif?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
+      <item quantity="other">Skuif tans <xliff:g id="COUNT">^1</xliff:g> foto\'s uit die asblik uit …</item>
+      <item quantity="one">Skuif tans foto uit die asblik uit …</item>
+    </plurals>
     <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
       <item quantity="other">Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> items uit die asblik uit te skuif?</item>
       <item quantity="one">Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie item uit die asblik uit te skuif?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
+      <item quantity="other">Skuif tans <xliff:g id="COUNT">^1</xliff:g> items uit die asblik uit …</item>
+      <item quantity="one">Skuif tans item uit die asblik uit …</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
       <item quantity="other">Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> oudiolêers uit te vee?</item>
       <item quantity="one">Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie oudiolêer uit te vee?</item>
     </plurals>
+    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
+      <item quantity="other">Vee tans <xliff:g id="COUNT">^1</xliff:g> oudiolêers uit …</item>
+      <item quantity="one">Vee tans oudiolêer uit</item>
+    </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
       <item quantity="other">Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> video\'s uit te vee?</item>
       <item quantity="one">Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie video uit te vee?</item>
+    </plurals>
+    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
+      <item quantity="other">Vee tans <xliff:g id="COUNT">^1</xliff:g> video\'s uit …</item>
+      <item quantity="one">Vee tans video uit …</item>
     </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
       <item quantity="other">Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> foto\'s uit te vee?</item>
       <item quantity="one">Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie foto uit te vee?</item>
     </plurals>
+    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
+      <item quantity="other">Vee tans <xliff:g id="COUNT">^1</xliff:g> foto\'s uit …</item>
+      <item quantity="one">Vee tans foto uit …</item>
+    </plurals>
     <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
       <item quantity="other">Laat <xliff:g id="APP_NAME_1">^1</xliff:g> toe om <xliff:g id="COUNT">^2</xliff:g> items uit te vee?</item>
       <item quantity="one">Laat <xliff:g id="APP_NAME_0">^1</xliff:g> toe om hierdie item uit te vee?</item>
+    </plurals>
+    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
+      <item quantity="other">Vee tans <xliff:g id="COUNT">^1</xliff:g> items uit …</item>
+      <item quantity="one">Vee tans item uit …</item>
     </plurals>
 </resources>

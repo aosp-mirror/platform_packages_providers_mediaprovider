@@ -53,11 +53,23 @@
       <item quantity="many">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" змяніць <xliff:g id="COUNT">^2</xliff:g> аўдыяфайлаў?</item>
       <item quantity="other">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" змяніць <xliff:g id="COUNT">^2</xliff:g> аўдыяфайла?</item>
     </plurals>
+    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
+      <item quantity="one">Змяняецца <xliff:g id="COUNT">^1</xliff:g> аўдыяфайл…</item>
+      <item quantity="few">Змяняюцца <xliff:g id="COUNT">^1</xliff:g> аўдыяфайлы…</item>
+      <item quantity="many">Змяняюцца <xliff:g id="COUNT">^1</xliff:g> аўдыяфайлаў…</item>
+      <item quantity="other">Змяняюцца <xliff:g id="COUNT">^1</xliff:g> аўдыяфайла…</item>
+    </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
       <item quantity="one">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" змяніць <xliff:g id="COUNT">^2</xliff:g> відэа?</item>
       <item quantity="few">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" змяніць <xliff:g id="COUNT">^2</xliff:g> відэа?</item>
       <item quantity="many">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" змяніць <xliff:g id="COUNT">^2</xliff:g> відэа?</item>
       <item quantity="other">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" змяніць <xliff:g id="COUNT">^2</xliff:g> відэа?</item>
+    </plurals>
+    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
+      <item quantity="one">Змяняецца <xliff:g id="COUNT">^1</xliff:g> відэа…</item>
+      <item quantity="few">Змяняюцца <xliff:g id="COUNT">^1</xliff:g> відэа…</item>
+      <item quantity="many">Змяняюцца <xliff:g id="COUNT">^1</xliff:g> відэа…</item>
+      <item quantity="other">Змяняюцца <xliff:g id="COUNT">^1</xliff:g> відэа…</item>
     </plurals>
     <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
       <item quantity="one">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" змяніць <xliff:g id="COUNT">^2</xliff:g> фота?</item>
@@ -65,11 +77,23 @@
       <item quantity="many">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" змяніць <xliff:g id="COUNT">^2</xliff:g> фота?</item>
       <item quantity="other">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" змяніць <xliff:g id="COUNT">^2</xliff:g> фота?</item>
     </plurals>
+    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
+      <item quantity="one">Змяняецца <xliff:g id="COUNT">^1</xliff:g> фота…</item>
+      <item quantity="few">Змяняюцца <xliff:g id="COUNT">^1</xliff:g> фота…</item>
+      <item quantity="many">Змяняюцца <xliff:g id="COUNT">^1</xliff:g> фота…</item>
+      <item quantity="other">Змяняюцца <xliff:g id="COUNT">^1</xliff:g> фота…</item>
+    </plurals>
     <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
       <item quantity="one">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" змяніць <xliff:g id="COUNT">^2</xliff:g> элемент?</item>
       <item quantity="few">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" змяніць <xliff:g id="COUNT">^2</xliff:g> элементы?</item>
       <item quantity="many">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" змяніць <xliff:g id="COUNT">^2</xliff:g> элементаў?</item>
       <item quantity="other">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" змяніць <xliff:g id="COUNT">^2</xliff:g> элемента?</item>
+    </plurals>
+    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
+      <item quantity="one">Змяняецца <xliff:g id="COUNT">^1</xliff:g> элемент…</item>
+      <item quantity="few">Змяняюцца <xliff:g id="COUNT">^1</xliff:g> элементы…</item>
+      <item quantity="many">Змяняюцца <xliff:g id="COUNT">^1</xliff:g> элементаў…</item>
+      <item quantity="other">Змяняюцца <xliff:g id="COUNT">^1</xliff:g> элемента…</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
       <item quantity="one">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> аўдыяфайл у сметніцу?</item>
@@ -77,11 +101,23 @@
       <item quantity="many">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> аўдыяфайлаў у сметніцу?</item>
       <item quantity="other">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> аўдыяфайла ў сметніцу?</item>
     </plurals>
+    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
+      <item quantity="one"><xliff:g id="COUNT">^1</xliff:g> аўдыяфайл перамяшчаецца ў сметніцу…</item>
+      <item quantity="few"><xliff:g id="COUNT">^1</xliff:g> аўдыяфайлы перамяшчаюцца ў сметніцу…</item>
+      <item quantity="many"><xliff:g id="COUNT">^1</xliff:g> аўдыяфайлаў перамяшчаюцца ў сметніцу…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> аўдыяфайла перамяшчаюцца ў сметніцу…</item>
+    </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
       <item quantity="one">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> відэа ў сметніцу?</item>
       <item quantity="few">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> відэа ў сметніцу?</item>
       <item quantity="many">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> відэа ў сметніцу?</item>
       <item quantity="other">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> відэа ў сметніцу?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
+      <item quantity="one"><xliff:g id="COUNT">^1</xliff:g> відэа перамяшчаецца ў сметніцу…</item>
+      <item quantity="few"><xliff:g id="COUNT">^1</xliff:g> відэа перамяшчаюцца ў сметніцу…</item>
+      <item quantity="many"><xliff:g id="COUNT">^1</xliff:g> відэа перамяшчаюцца ў сметніцу…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> відэа перамяшчаюцца ў сметніцу…</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
       <item quantity="one">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> фота ў сметніцу?</item>
@@ -89,11 +125,23 @@
       <item quantity="many">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> фота ў сметніцу?</item>
       <item quantity="other">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> фота ў сметніцу?</item>
     </plurals>
+    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
+      <item quantity="one"><xliff:g id="COUNT">^1</xliff:g> фота перамяшчаецца ў сметніцу…</item>
+      <item quantity="few"><xliff:g id="COUNT">^1</xliff:g> фота перамяшчаюцца ў сметніцу…</item>
+      <item quantity="many"><xliff:g id="COUNT">^1</xliff:g> фота перамяшчаюцца ў сметніцу…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> фота перамяшчаюцца ў сметніцу…</item>
+    </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
       <item quantity="one">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> элемент у сметніцу?</item>
       <item quantity="few">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> элементы ў сметніцу?</item>
       <item quantity="many">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> элементаў у сметніцу?</item>
       <item quantity="other">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> элемента ў сметніцу?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
+      <item quantity="one"><xliff:g id="COUNT">^1</xliff:g> элемент перамяшчаецца ў сметніцу…</item>
+      <item quantity="few"><xliff:g id="COUNT">^1</xliff:g> элементы перамяшчаюцца ў сметніцу…</item>
+      <item quantity="many"><xliff:g id="COUNT">^1</xliff:g> элементаў перамяшчаюцца ў сметніцу…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> элемента перамяшчаюцца ў сметніцу…</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
       <item quantity="one">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> аўдыяфайл са сметніцы?</item>
@@ -101,11 +149,23 @@
       <item quantity="many">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> аўдыяфайлаў са сметніцы?</item>
       <item quantity="other">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> аўдыяфайла са сметніцы?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
+      <item quantity="one"><xliff:g id="COUNT">^1</xliff:g> аўдыяфайл перамяшчаецца са сметніцы…</item>
+      <item quantity="few"><xliff:g id="COUNT">^1</xliff:g> аўдыяфайлы перамяшчаюцца са сметніцы…</item>
+      <item quantity="many"><xliff:g id="COUNT">^1</xliff:g> аўдыяфайлаў перамяшчаюцца са сметніцы…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> аўдыяфайла перамяшчаюцца са сметніцы…</item>
+    </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
       <item quantity="one">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> відэа са сметніцы?</item>
       <item quantity="few">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> відэа са сметніцы?</item>
       <item quantity="many">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> відэа са сметніцы?</item>
       <item quantity="other">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> відэа са сметніцы?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
+      <item quantity="one"><xliff:g id="COUNT">^1</xliff:g> відэа перамяшчаецца са сметніцы…</item>
+      <item quantity="few"><xliff:g id="COUNT">^1</xliff:g> відэа перамяшчаюцца са сметніцы…</item>
+      <item quantity="many"><xliff:g id="COUNT">^1</xliff:g> відэа перамяшчаюцца са сметніцы…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> відэа перамяшчаюцца са сметніцы…</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
       <item quantity="one">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> фота са сметніцы?</item>
@@ -113,11 +173,23 @@
       <item quantity="many">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> фота са сметніцы?</item>
       <item quantity="other">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> фота са сметніцы?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
+      <item quantity="one"><xliff:g id="COUNT">^1</xliff:g> фота перамяшчаецца са сметніцы…</item>
+      <item quantity="few"><xliff:g id="COUNT">^1</xliff:g> фота перамяшчаюцца са сметніцы…</item>
+      <item quantity="many"><xliff:g id="COUNT">^1</xliff:g> фота перамяшчаюцца са сметніцы…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> фота перамяшчаюцца са сметніцы…</item>
+    </plurals>
     <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
       <item quantity="one">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> элемент са сметніцы?</item>
       <item quantity="few">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> элементы са сметніцы?</item>
       <item quantity="many">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> элементаў са сметніцы?</item>
       <item quantity="other">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" перамясціць <xliff:g id="COUNT">^2</xliff:g> элемента са сметніцы?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
+      <item quantity="one"><xliff:g id="COUNT">^1</xliff:g> элемент перамяшчаецца са сметніцы…</item>
+      <item quantity="few"><xliff:g id="COUNT">^1</xliff:g> элементы перамяшчаюцца са сметніцы…</item>
+      <item quantity="many"><xliff:g id="COUNT">^1</xliff:g> элементаў перамяшчаюцца са сметніцы…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> элемента перамяшчаюцца са сметніцы…</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
       <item quantity="one">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" выдаліць <xliff:g id="COUNT">^2</xliff:g> аўдыяфайл?</item>
@@ -125,11 +197,23 @@
       <item quantity="many">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" выдаліць <xliff:g id="COUNT">^2</xliff:g> аўдыяфайлаў?</item>
       <item quantity="other">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" выдаліць <xliff:g id="COUNT">^2</xliff:g> аўдыяфайла?</item>
     </plurals>
+    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
+      <item quantity="one">Выдаляецца <xliff:g id="COUNT">^1</xliff:g> аўдыяфайл…</item>
+      <item quantity="few">Выдаляюцца <xliff:g id="COUNT">^1</xliff:g> аўдыяфайлы…</item>
+      <item quantity="many">Выдаляюцца <xliff:g id="COUNT">^1</xliff:g> аўдыяфайлаў…</item>
+      <item quantity="other">Выдаляюцца <xliff:g id="COUNT">^1</xliff:g> аўдыяфайла…</item>
+    </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
       <item quantity="one">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" выдаліць <xliff:g id="COUNT">^2</xliff:g> відэа?</item>
       <item quantity="few">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" выдаліць <xliff:g id="COUNT">^2</xliff:g> відэа?</item>
       <item quantity="many">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" выдаліць <xliff:g id="COUNT">^2</xliff:g> відэа?</item>
       <item quantity="other">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" выдаліць <xliff:g id="COUNT">^2</xliff:g> відэа?</item>
+    </plurals>
+    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
+      <item quantity="one">Выдаляецца <xliff:g id="COUNT">^1</xliff:g> відэа…</item>
+      <item quantity="few">Выдаляюцца <xliff:g id="COUNT">^1</xliff:g> відэа…</item>
+      <item quantity="many">Выдаляюцца <xliff:g id="COUNT">^1</xliff:g> відэа…</item>
+      <item quantity="other">Выдаляюцца <xliff:g id="COUNT">^1</xliff:g> відэа…</item>
     </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
       <item quantity="one">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" выдаліць <xliff:g id="COUNT">^2</xliff:g> фота?</item>
@@ -137,10 +221,22 @@
       <item quantity="many">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" выдаліць <xliff:g id="COUNT">^2</xliff:g> фота?</item>
       <item quantity="other">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" выдаліць <xliff:g id="COUNT">^2</xliff:g> фота?</item>
     </plurals>
+    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
+      <item quantity="one">Выдаляецца <xliff:g id="COUNT">^1</xliff:g> фота…</item>
+      <item quantity="few">Выдаляюцца <xliff:g id="COUNT">^1</xliff:g> фота…</item>
+      <item quantity="many">Выдаляюцца <xliff:g id="COUNT">^1</xliff:g> фота…</item>
+      <item quantity="other">Выдаляюцца <xliff:g id="COUNT">^1</xliff:g> фота…</item>
+    </plurals>
     <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
       <item quantity="one">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" выдаліць <xliff:g id="COUNT">^2</xliff:g> элемент?</item>
       <item quantity="few">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" выдаліць <xliff:g id="COUNT">^2</xliff:g> элементы?</item>
       <item quantity="many">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" выдаліць <xliff:g id="COUNT">^2</xliff:g> элементаў?</item>
       <item quantity="other">Дазволіць праграме \"<xliff:g id="APP_NAME_1">^1</xliff:g>\" выдаліць <xliff:g id="COUNT">^2</xliff:g> элемента?</item>
+    </plurals>
+    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
+      <item quantity="one">Выдаляецца <xliff:g id="COUNT">^1</xliff:g> элемент…</item>
+      <item quantity="few">Выдаляюцца <xliff:g id="COUNT">^1</xliff:g> элементы…</item>
+      <item quantity="many">Выдаляюцца <xliff:g id="COUNT">^1</xliff:g> элементаў…</item>
+      <item quantity="other">Выдаляюцца <xliff:g id="COUNT">^1</xliff:g> элемента…</item>
     </plurals>
 </resources>

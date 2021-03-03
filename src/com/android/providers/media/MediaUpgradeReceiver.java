@@ -24,6 +24,7 @@ import android.provider.Column;
 import android.util.Log;
 
 import com.android.providers.media.util.ForegroundThread;
+import com.android.providers.media.util.Logging;
 import com.android.providers.media.util.Metrics;
 
 import java.io.File;
@@ -41,6 +42,8 @@ import java.io.File;
 public class MediaUpgradeReceiver extends BroadcastReceiver {
     static final String TAG = "MediaUpgradeReceiver";
     static final String PREF_DB_VERSION = "db_version";
+
+    private static final int UPDATE_RECORDING_VERSION = 1205;
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -64,6 +67,10 @@ public class MediaUpgradeReceiver extends BroadcastReceiver {
         prefs.edit().putInt(PREF_DB_VERSION, dbVersion).commit();
 
         try {
+            // Lookup the last from_version when upgrade database
+            prefs = context.getSharedPreferences(Logging.TAG, Context.MODE_PRIVATE);
+            final int fromVersion = prefs.getInt(DatabaseHelper.PREF_DB_FROM_VERSION, 0);
+
             File dbDir = context.getDatabasePath("foo").getParentFile();
             String[] files = dbDir.list();
             if (files == null) return;
@@ -79,7 +86,13 @@ public class MediaUpgradeReceiver extends BroadcastReceiver {
                                 MediaProvider.MIGRATION_LISTENER, null);
                         helper.runWithTransaction((db) -> {
                             // Perform just enough to force database upgrade
-                            return db.getVersion();
+                            final int version = db.getVersion();
+                            // update the is_recording column for R OS upgraded to S OS
+                            if (fromVersion >= UPDATE_RECORDING_VERSION
+                                    && prefVersion < DatabaseHelper.VERSION_S) {
+                                helper.updateRecordingForSUpdate(db, helper.mInternal);
+                            }
+                            return version;
                         });
                         helper.close();
                     } catch (Throwable t) {

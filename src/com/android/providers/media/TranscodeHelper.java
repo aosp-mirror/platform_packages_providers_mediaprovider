@@ -265,9 +265,9 @@ public class TranscodeHelper {
         return matcher.matches();
     }
 
-    @NonNull
-    public File getTranscodeDirectory() {
-        return mTranscodeDirectory;
+    public void freeCache(long bytes) {
+        // TODO(b/181846007): Implement cache clearing policies.
+        mTranscodeDirectory.delete();
     }
 
     /**
@@ -275,7 +275,7 @@ public class TranscodeHelper {
      */
     @NonNull
     private String getTranscodePath(long rowId) {
-        return new File(getTranscodeDirectory(), String.valueOf(rowId)).getAbsolutePath();
+        return new File(mTranscodeDirectory, String.valueOf(rowId)).getAbsolutePath();
     }
 
     public void onAnrDelayStarted(String packageName, int uid, int tid, int reason) {
@@ -449,7 +449,7 @@ public class TranscodeHelper {
 
         final File file = new File(path);
         long maxFileSize = (long) (file.length() * 2);
-        getTranscodeDirectory().mkdirs();
+        mTranscodeDirectory.mkdirs();
         try (RandomAccessFile raf = new RandomAccessFile(transcodeFile, "rw")) {
             raf.setLength(maxFileSize);
         } catch (IOException e) {
@@ -1125,7 +1125,7 @@ public class TranscodeHelper {
     }
 
     public boolean deleteCachedTranscodeFile(long rowId) {
-        return new File(getTranscodeDirectory(), String.valueOf(rowId)).delete();
+        return new File(mTranscodeDirectory, String.valueOf(rowId)).delete();
     }
 
     private DatabaseHelper getDatabaseHelperForUri(Uri uri) {

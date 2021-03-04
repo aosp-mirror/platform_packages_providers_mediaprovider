@@ -1050,9 +1050,18 @@ static handle* create_handle_for_node(struct fuse* fuse, const string& path, int
 
     if (fuse->passthrough) {
         *keep_cache = 1;
-        handle = new struct handle(fd, ri, true /* cached */,
-                                   !redaction_needed || transforms /* passthrough */, uid,
-                                   transforms_uid);
+        // We only enabled passthrough iff these 2 conditions hold
+        // 1. Redaction is not needed
+        // 2. Node transforms are completed, e.g transcoding.
+        // (2) is important because we transcode lazily (on the first read) and with passthrough,
+        // we will never get a read into the FUSE daemon, so passthrough would have returned
+        // arbitrary bytes the first time around. However, if we ensure that transforms are
+        // completed, then it's safe to use passthrough. Additionally, transcoded nodes never
+        // require redaction so (2) implies (1)
+        handle = new struct handle(
+                fd, ri, true /* cached */,
+                !redaction_needed && node->IsTransformsComplete() /* passthrough */, uid,
+                transforms_uid);
     } else {
         // Without fuse->passthrough, we don't want to use the FUSE VFS cache in two cases:
         // 1. When redaction is needed because app A with EXIF access might access

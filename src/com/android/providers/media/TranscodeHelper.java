@@ -297,9 +297,10 @@ public class TranscodeHelper {
 
         for (StorageTranscodingSession session: sessions) {
             if (session.isUidBlocked(uid)) {
+                session.setAnr();
                 Log.i(TAG, "Package: " + packageName + " with uid: " + uid
                         + " and tid: " + tid + " is blocked on transcoding: " + session);
-                // TODO(b/170973510): Log metrics and show UI
+                // TODO(b/170973510): Show UI
             }
         }
     }
@@ -335,7 +336,7 @@ public class TranscodeHelper {
     }
 
     private void reportTranscodingResult(int uid, boolean success, long transcodingDurationMs,
-            int transcodingReason, String src, String dst) {
+            int transcodingReason, String src, String dst, boolean hasAnr) {
         BackgroundThread.getExecutor().execute(() -> {
             try (Cursor c = queryFileForTranscode(src,
                     new String[]{MediaColumns.DURATION, MediaColumns.CAPTURE_FRAMERATE,
@@ -354,7 +355,7 @@ public class TranscodeHelper {
                             transcodingReason,
                             c.getLong(2) /* width */,
                             c.getLong(3) /* height */,
-                            false /*hit_anr*/,
+                            hasAnr,
                             TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN);
                 }
             }
@@ -370,6 +371,7 @@ public class TranscodeHelper {
         CountDownLatch latch = null;
         long startTime = SystemClock.elapsedRealtime();
         boolean result = false;
+        boolean hasAnr = false;
 
         try {
             synchronized (mLock) {
@@ -404,9 +406,10 @@ public class TranscodeHelper {
                 // Cancelling a deadlocked session seems to unblock the transcoder
                 finishTranscodingResult(uid, src, transcodingSession, latch);
             }
+            hasAnr = storageSession.hasAnr();
         } finally {
             reportTranscodingResult(uid, result, SystemClock.elapsedRealtime() - startTime, reason,
-                    src, dst);
+                    src, dst, hasAnr);
         }
         return result;
     }
@@ -1362,6 +1365,7 @@ public class TranscodeHelper {
         public final TranscodingSession session;
         public final CountDownLatch latch;
         private final Set<Integer> mBlockedUids = new ArraySet<>();
+        private boolean hasAnr;
 
         public StorageTranscodingSession(TranscodingSession session, CountDownLatch latch) {
             this.session = session;
@@ -1377,6 +1381,18 @@ public class TranscodeHelper {
         public boolean isUidBlocked(int uid) {
             synchronized (latch) {
                 return mBlockedUids.contains(uid);
+            }
+        }
+
+        public void setAnr() {
+            synchronized (latch) {
+                hasAnr = true;
+            }
+        }
+
+        public boolean hasAnr() {
+            synchronized (latch) {
+                return hasAnr;
             }
         }
 

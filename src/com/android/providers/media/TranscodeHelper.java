@@ -78,6 +78,7 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.FileUtils;
@@ -158,8 +159,10 @@ public class TranscodeHelper {
     @Disabled
     private static final long FORCE_DISABLE_HEVC_SUPPORT = 174227820L;
 
-    private static final int FLAG_HEVC = 1 << 0;
-    private static final int FLAG_SLOW_MOTION = 1 << 1;
+    @VisibleForTesting
+    static final int FLAG_HEVC = 1 << 0;
+    @VisibleForTesting
+    static final int FLAG_SLOW_MOTION = 1 << 1;
     private static final int FLAG_HDR_10 = 1 << 2;
     private static final int FLAG_HDR_10_PLUS = 1 << 3;
     private static final int FLAG_HDR_HLG = 1 << 4;
@@ -527,7 +530,8 @@ public class TranscodeHelper {
         return doesAppNeedTranscoding(uid, bundle, fileFlags);
     }
 
-    private int doesAppNeedTranscoding(int uid, Bundle bundle, int fileFlags) {
+    @VisibleForTesting
+    int doesAppNeedTranscoding(int uid, Bundle bundle, int fileFlags) {
         // Check explicit Bundle provided
         if (bundle != null) {
             if (bundle.getBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, false)) {
@@ -1359,6 +1363,11 @@ public class TranscodeHelper {
                 return size() > MAX_FINISHED_TRANSCODING_SESSION_STORE_COUNT;
             }
         };
+    }
+
+    @VisibleForTesting
+    static int getMyUid() {
+        return MY_UID;
     }
 
     private static class StorageTranscodingSession {

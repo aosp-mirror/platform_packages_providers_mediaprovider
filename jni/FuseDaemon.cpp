@@ -1124,17 +1124,21 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         return;
     }
 
-    TRACE_NODE(node, req) << (is_requesting_write(fi->flags) ? "write" : "read");
+    bool for_write = is_requesting_write(fi->flags);
+
+    if (for_write && node->GetTransforms()) {
+        TRACE_NODE(node, req) << "write with transforms";
+    } else {
+        TRACE_NODE(node, req) << (for_write ? "write" : "read");
+    }
 
     if (fi->flags & O_DIRECT) {
         fi->flags &= ~O_DIRECT;
         fi->direct_io = true;
     }
 
-    // TODO: If transform, disallow write
     // Force permission check with the build path because the MediaProvider database might not be
     // aware of the io_path
-    bool for_write = is_requesting_write(fi->flags);
     // We don't redact if the caller was granted write permission for this file
     std::unique_ptr<FileOpenResult> result = fuse->mp->OnFileOpen(
             build_path, io_path, ctx->uid, ctx->pid, node->GetTransformsReason(), for_write,

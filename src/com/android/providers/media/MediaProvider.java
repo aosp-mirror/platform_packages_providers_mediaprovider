@@ -461,8 +461,7 @@ public class MediaProvider extends ContentProvider {
      * @param bytes number of bytes which need to be freed
      */
     public void freeCache(long bytes) {
-        // TODO(b/170481432): Implement cache clearing policies.
-        mTranscodeHelper.getTranscodeDirectory().delete();
+        mTranscodeHelper.freeCache(bytes);
     }
 
     public void onAnrDelayStarted(@NonNull String packageName, int uid, int tid, int reason) {

@@ -78,6 +78,7 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.FileUtils;
@@ -158,8 +159,10 @@ public class TranscodeHelper {
     @Disabled
     private static final long FORCE_DISABLE_HEVC_SUPPORT = 174227820L;
 
-    private static final int FLAG_HEVC = 1 << 0;
-    private static final int FLAG_SLOW_MOTION = 1 << 1;
+    @VisibleForTesting
+    static final int FLAG_HEVC = 1 << 0;
+    @VisibleForTesting
+    static final int FLAG_SLOW_MOTION = 1 << 1;
     private static final int FLAG_HDR_10 = 1 << 2;
     private static final int FLAG_HDR_10_PLUS = 1 << 3;
     private static final int FLAG_HDR_HLG = 1 << 4;
@@ -265,9 +268,9 @@ public class TranscodeHelper {
         return matcher.matches();
     }
 
-    @NonNull
-    public File getTranscodeDirectory() {
-        return mTranscodeDirectory;
+    public void freeCache(long bytes) {
+        // TODO(b/181846007): Implement cache clearing policies.
+        mTranscodeDirectory.delete();
     }
 
     /**
@@ -275,7 +278,7 @@ public class TranscodeHelper {
      */
     @NonNull
     private String getTranscodePath(long rowId) {
-        return new File(getTranscodeDirectory(), String.valueOf(rowId)).getAbsolutePath();
+        return new File(mTranscodeDirectory, String.valueOf(rowId)).getAbsolutePath();
     }
 
     public void onAnrDelayStarted(String packageName, int uid, int tid, int reason) {
@@ -297,9 +300,10 @@ public class TranscodeHelper {
 
         for (StorageTranscodingSession session: sessions) {
             if (session.isUidBlocked(uid)) {
+                session.setAnr();
                 Log.i(TAG, "Package: " + packageName + " with uid: " + uid
                         + " and tid: " + tid + " is blocked on transcoding: " + session);
-                // TODO(b/170973510): Log metrics and show UI
+                // TODO(b/170973510): Show UI
             }
         }
     }
@@ -335,7 +339,7 @@ public class TranscodeHelper {
     }
 
     private void reportTranscodingResult(int uid, boolean success, long transcodingDurationMs,
-            int transcodingReason, String src, String dst) {
+            int transcodingReason, String src, String dst, boolean hasAnr) {
         BackgroundThread.getExecutor().execute(() -> {
             try (Cursor c = queryFileForTranscode(src,
                     new String[]{MediaColumns.DURATION, MediaColumns.CAPTURE_FRAMERATE,
@@ -354,7 +358,7 @@ public class TranscodeHelper {
                             transcodingReason,
                             c.getLong(2) /* width */,
                             c.getLong(3) /* height */,
-                            false /*hit_anr*/,
+                            hasAnr,
                             TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN);
                 }
             }
@@ -370,6 +374,7 @@ public class TranscodeHelper {
         CountDownLatch latch = null;
         long startTime = SystemClock.elapsedRealtime();
         boolean result = false;
+        boolean hasAnr = false;
 
         try {
             synchronized (mLock) {
@@ -404,9 +409,10 @@ public class TranscodeHelper {
                 // Cancelling a deadlocked session seems to unblock the transcoder
                 finishTranscodingResult(uid, src, transcodingSession, latch);
             }
+            hasAnr = storageSession.hasAnr();
         } finally {
             reportTranscodingResult(uid, result, SystemClock.elapsedRealtime() - startTime, reason,
-                    src, dst);
+                    src, dst, hasAnr);
         }
         return result;
     }
@@ -449,7 +455,7 @@ public class TranscodeHelper {
 
         final File file = new File(path);
         long maxFileSize = (long) (file.length() * 2);
-        getTranscodeDirectory().mkdirs();
+        mTranscodeDirectory.mkdirs();
         try (RandomAccessFile raf = new RandomAccessFile(transcodeFile, "rw")) {
             raf.setLength(maxFileSize);
         } catch (IOException e) {
@@ -524,7 +530,8 @@ public class TranscodeHelper {
         return doesAppNeedTranscoding(uid, bundle, fileFlags);
     }
 
-    private int doesAppNeedTranscoding(int uid, Bundle bundle, int fileFlags) {
+    @VisibleForTesting
+    int doesAppNeedTranscoding(int uid, Bundle bundle, int fileFlags) {
         // Check explicit Bundle provided
         if (bundle != null) {
             if (bundle.getBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, false)) {
@@ -1125,7 +1132,7 @@ public class TranscodeHelper {
     }
 
     public boolean deleteCachedTranscodeFile(long rowId) {
-        return new File(getTranscodeDirectory(), String.valueOf(rowId)).delete();
+        return new File(mTranscodeDirectory, String.valueOf(rowId)).delete();
     }
 
     private DatabaseHelper getDatabaseHelperForUri(Uri uri) {
@@ -1358,10 +1365,16 @@ public class TranscodeHelper {
         };
     }
 
+    @VisibleForTesting
+    static int getMyUid() {
+        return MY_UID;
+    }
+
     private static class StorageTranscodingSession {
         public final TranscodingSession session;
         public final CountDownLatch latch;
         private final Set<Integer> mBlockedUids = new ArraySet<>();
+        private boolean hasAnr;
 
         public StorageTranscodingSession(TranscodingSession session, CountDownLatch latch) {
             this.session = session;
@@ -1377,6 +1390,18 @@ public class TranscodeHelper {
         public boolean isUidBlocked(int uid) {
             synchronized (latch) {
                 return mBlockedUids.contains(uid);
+            }
+        }
+
+        public void setAnr() {
+            synchronized (latch) {
+                hasAnr = true;
+            }
+        }
+
+        public boolean hasAnr() {
+            synchronized (latch) {
+                return hasAnr;
             }
         }
 

@@ -1050,9 +1050,18 @@ static handle* create_handle_for_node(struct fuse* fuse, const string& path, int
 
     if (fuse->passthrough) {
         *keep_cache = 1;
-        handle = new struct handle(fd, ri, true /* cached */,
-                                   !redaction_needed || transforms /* passthrough */, uid,
-                                   transforms_uid);
+        // We only enabled passthrough iff these 2 conditions hold
+        // 1. Redaction is not needed
+        // 2. Node transforms are completed, e.g transcoding.
+        // (2) is important because we transcode lazily (on the first read) and with passthrough,
+        // we will never get a read into the FUSE daemon, so passthrough would have returned
+        // arbitrary bytes the first time around. However, if we ensure that transforms are
+        // completed, then it's safe to use passthrough. Additionally, transcoded nodes never
+        // require redaction so (2) implies (1)
+        handle = new struct handle(
+                fd, ri, true /* cached */,
+                !redaction_needed && node->IsTransformsComplete() /* passthrough */, uid,
+                transforms_uid);
     } else {
         // Without fuse->passthrough, we don't want to use the FUSE VFS cache in two cases:
         // 1. When redaction is needed because app A with EXIF access might access
@@ -1115,17 +1124,21 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
         return;
     }
 
-    TRACE_NODE(node, req) << (is_requesting_write(fi->flags) ? "write" : "read");
+    bool for_write = is_requesting_write(fi->flags);
+
+    if (for_write && node->GetTransforms()) {
+        TRACE_NODE(node, req) << "write with transforms";
+    } else {
+        TRACE_NODE(node, req) << (for_write ? "write" : "read");
+    }
 
     if (fi->flags & O_DIRECT) {
         fi->flags &= ~O_DIRECT;
         fi->direct_io = true;
     }
 
-    // TODO: If transform, disallow write
     // Force permission check with the build path because the MediaProvider database might not be
     // aware of the io_path
-    bool for_write = is_requesting_write(fi->flags);
     // We don't redact if the caller was granted write permission for this file
     std::unique_ptr<FileOpenResult> result = fuse->mp->OnFileOpen(
             build_path, io_path, ctx->uid, ctx->pid, node->GetTransformsReason(), for_write,

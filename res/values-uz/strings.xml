@@ -72,8 +72,8 @@
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ilovasiga bu elementni oʻzgartirishi uchun ruxsat berilsinmi?</item>
     </plurals>
     <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ta obyekt oʻzgartirilmoqda…</item>
-      <item quantity="one">Obyekt oʻzgartirilmoqda…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ta element oʻzgartirilmoqda…</item>
+      <item quantity="one">Element oʻzgartirilmoqda…</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ilovasiga <xliff:g id="COUNT">^2</xliff:g> ta audio faylni chiqitdonga tashlashi uchun ruxsat berilsinmi?</item>
@@ -104,8 +104,8 @@
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ilovasiga bu elementni chiqitdonga tashlashi uchun ruxsat berilsinmi?</item>
     </plurals>
     <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ta obyekt chiqitdonga tashlanmoqda…</item>
-      <item quantity="one">Obyekt chiqitdonga tashlanmoqda…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ta element chiqitdonga tashlanmoqda…</item>
+      <item quantity="one">Element chiqitdonga tashlanmoqda…</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ilovasiga <xliff:g id="COUNT">^2</xliff:g> ta audio faylni chiqitdondan chiqarib olishi uchun ruxsat berilsinmi?</item>
@@ -136,8 +136,8 @@
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ilovasiga bu elementni chiqitdondan chiqarib olishi uchun ruxsat berilsinmi?</item>
     </plurals>
     <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ta obyekt chiqitdondan chiqarilmoqda…</item>
-      <item quantity="one">Obyektlar chiqitdondan chiqarilmoqda…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ta element chiqitdondan chiqarilmoqda…</item>
+      <item quantity="one">Element chiqitdondan chiqarilmoqda…</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ilovasiga <xliff:g id="COUNT">^2</xliff:g> ta audio faylni oʻchirib tashlashi uchun ruxsat berilsinmi?</item>
@@ -168,7 +168,7 @@
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ilovasiga bu elementni oʻchirib tashlashi uchun ruxsat berilsinmi?</item>
     </plurals>
     <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ta obyekt oʻchirilmoqda…</item>
-      <item quantity="one">Obyekt oʻchirilmoqda…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ta element oʻchirilmoqda…</item>
+      <item quantity="one">Element oʻchirilmoqda…</item>
     </plurals>
 </resources>

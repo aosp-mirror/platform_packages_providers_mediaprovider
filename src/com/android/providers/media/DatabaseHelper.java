@@ -1173,7 +1173,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
         if (!internal) {
             db.execSQL("CREATE VIEW audio_playlists AS SELECT "
-                    + String.join(",", getProjectionMap(Audio.Playlists.class).keySet())
+                    + getColumnsForCollection(Audio.Playlists.class)
                     + " FROM files WHERE media_type=4");
         }
 
@@ -1197,16 +1197,16 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + "3 AS grouporder FROM searchhelpertitle WHERE (title != '')");
 
         db.execSQL("CREATE VIEW audio AS SELECT "
-                + String.join(",", getProjectionMap(Audio.Media.class).keySet())
+                + getColumnsForCollection(Audio.Media.class)
                 + " FROM files WHERE media_type=2");
         db.execSQL("CREATE VIEW video AS SELECT "
-                + String.join(",", getProjectionMap(Video.Media.class).keySet())
+                + getColumnsForCollection(Video.Media.class)
                 + " FROM files WHERE media_type=3");
         db.execSQL("CREATE VIEW images AS SELECT "
-                + String.join(",", getProjectionMap(Images.Media.class).keySet())
+                + getColumnsForCollection(Images.Media.class)
                 + " FROM files WHERE media_type=1");
         db.execSQL("CREATE VIEW downloads AS SELECT "
-                + String.join(",", getProjectionMap(Downloads.class).keySet())
+                + getColumnsForCollection(Downloads.class)
                 + " FROM files WHERE is_download=1");
 
         db.execSQL("CREATE VIEW audio_artists AS SELECT "
@@ -1244,6 +1244,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + " FROM audio"
                 + " WHERE is_pending=0 AND is_trashed=0 AND volume_name IN " + filterVolumeNames
                 + " GROUP BY genre_id");
+    }
+
+    private String getColumnsForCollection(Class<?> collection) {
+        return String.join(",", getProjectionMap(collection).keySet()) + ",_modifier";
     }
 
     private static void makePristineTriggers(SQLiteDatabase db) {
@@ -1593,7 +1597,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_R = 1115;
     // Leave some gaps in database version tagging to allow R schema changes
     // to go independent of S schema changes.
-    static final int VERSION_S = 1205;
+    static final int VERSION_S = 1206;
     static final int VERSION_LATEST = VERSION_S;
 
     /**
@@ -1756,6 +1760,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1205) {
                 updateAddRecording(db, internal);
+            }
+            if (fromVersion < 1206) {
+                // Empty version bump to ensure views are recreated
             }
 
             // If this is the legacy database, it's not worth recomputing data

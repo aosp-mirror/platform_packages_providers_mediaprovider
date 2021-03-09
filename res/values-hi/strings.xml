@@ -81,7 +81,7 @@
     </plurals>
     <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
       <item quantity="one"><xliff:g id="COUNT">^1</xliff:g> ऑडियो फ़ाइल को ट्रैश में भेजा जा रहा है…</item>
-      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ऑडयो फ़ाइलों को ट्रैश में भेजा जा रहा है…</item>
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ऑडियो फ़ाइलों को ट्रैश में भेजा जा रहा है…</item>
     </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
       <item quantity="one">क्या आप <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> वीडियो, ट्रैश में मूव करने की अनुमति देना चाहते हैं?</item>

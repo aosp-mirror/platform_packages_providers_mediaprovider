@@ -153,6 +153,7 @@ import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.provider.Column;
 import android.provider.DeviceConfig;
+import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
 import android.provider.MediaStore.Audio.AudioColumns;
@@ -379,7 +380,9 @@ public class MediaProvider extends ContentProvider {
 
     private static final int sUserId = UserHandle.myUserId();
 
-    // WARNING/TODO (b/173505864): This will be replaced by signature APIs in S
+    /**
+     * Please use {@link getDownloadsProviderAuthority()} instead of using this directly.
+     */
     private static final String DOWNLOADS_PROVIDER_AUTHORITY = "downloads";
 
     @GuardedBy("mPendingOpenInfo")
@@ -1054,15 +1057,14 @@ public class MediaProvider extends ContentProvider {
         }
 
         ProviderInfo provider = mPackageManager.resolveContentProvider(
-            DOWNLOADS_PROVIDER_AUTHORITY, PackageManager.MATCH_DIRECT_BOOT_AWARE
+                getDownloadsProviderAuthority(), PackageManager.MATCH_DIRECT_BOOT_AWARE
                 | PackageManager.MATCH_DIRECT_BOOT_UNAWARE);
         if (provider != null) {
             mDownloadsAuthorityAppId = UserHandle.getAppId(provider.applicationInfo.uid);
         }
 
-        provider = mPackageManager.resolveContentProvider(
-            MediaStore.EXTERNAL_STORAGE_PROVIDER_AUTHORITY, PackageManager.MATCH_DIRECT_BOOT_AWARE
-                | PackageManager.MATCH_DIRECT_BOOT_UNAWARE);
+        provider = mPackageManager.resolveContentProvider(getExternalStorageProviderAuthority(),
+                PackageManager.MATCH_DIRECT_BOOT_AWARE | PackageManager.MATCH_DIRECT_BOOT_UNAWARE);
         if (provider != null) {
             mExternalStorageAuthorityAppId = UserHandle.getAppId(provider.applicationInfo.uid);
         }
@@ -5393,7 +5395,7 @@ public class MediaProvider extends ContentProvider {
 
                 try (ContentProviderClient client = getContext().getContentResolver()
                         .acquireUnstableContentProviderClient(
-                                MediaStore.EXTERNAL_STORAGE_PROVIDER_AUTHORITY)) {
+                                getExternalStorageProviderAuthority())) {
                     extras.putParcelable(MediaStore.EXTRA_URI, fileUri);
                     return client.call(method, null, extras);
                 } catch (RemoteException e) {
@@ -5408,7 +5410,7 @@ public class MediaProvider extends ContentProvider {
                 final Uri fileUri;
                 try (ContentProviderClient client = getContext().getContentResolver()
                         .acquireUnstableContentProviderClient(
-                                MediaStore.EXTERNAL_STORAGE_PROVIDER_AUTHORITY)) {
+                                getExternalStorageProviderAuthority())) {
                     final Bundle res = client.call(method, null, extras);
                     fileUri = res.getParcelable(MediaStore.EXTRA_URI);
                 } catch (RemoteException e) {
@@ -8369,6 +8371,30 @@ public class MediaProvider extends ContentProvider {
         // To maintain consistency of access in primary volume and secondary volumes use the same
         // logic as we do for Zygote.MOUNT_EXTERNAL_INSTALLER view.
         return mCallingIdentity.get().hasPermission(APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID);
+    }
+
+    private String getExternalStorageProviderAuthority() {
+        if (SdkLevel.isAtLeastS()) {
+            return getExternalStorageProviderAuthorityFromDocumentsContract();
+        }
+        return MediaStore.EXTERNAL_STORAGE_PROVIDER_AUTHORITY;
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    private String getExternalStorageProviderAuthorityFromDocumentsContract() {
+        return DocumentsContract.EXTERNAL_STORAGE_PROVIDER_AUTHORITY;
+    }
+
+    private String getDownloadsProviderAuthority() {
+        if (SdkLevel.isAtLeastS()) {
+            return getDownloadsProviderAuthorityFromDocumentsContract();
+        }
+        return DOWNLOADS_PROVIDER_AUTHORITY;
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    private String getDownloadsProviderAuthorityFromDocumentsContract() {
+        return DocumentsContract.EXTERNAL_STORAGE_PROVIDER_AUTHORITY;
     }
 
     private boolean isCallingIdentityDownloadProvider(int uid) {

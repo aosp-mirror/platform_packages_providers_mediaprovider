@@ -62,6 +62,8 @@ import android.os.Process;
 import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.UserHandle;
+import android.os.storage.StorageManager;
+import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
@@ -100,6 +102,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -203,8 +206,11 @@ public class TranscodeHelper {
     private final Context mContext;
     private final MediaProvider mMediaProvider;
     private final PackageManager mPackageManager;
+    private final StorageManager mStorageManager;
     private final MediaTranscodeManager mMediaTranscodeManager;
     private final File mTranscodeDirectory;
+    @GuardedBy("mLock")
+    private UUID mTranscodeVolumeUuid;
 
     @GuardedBy("mLock")
     private final Map<String, StorageTranscodingSession> mStorageTranscodingSessions =
@@ -240,6 +246,7 @@ public class TranscodeHelper {
     public TranscodeHelper(Context context, MediaProvider mediaProvider) {
         mContext = context;
         mPackageManager = context.getPackageManager();
+        mStorageManager = context.getSystemService(StorageManager.class);
         mMediaTranscodeManager = context.getSystemService(MediaTranscodeManager.class);
         mMediaProvider = mediaProvider;
         mTranscodeDirectory = new File("/storage/emulated/" + UserHandle.myUserId(),
@@ -271,6 +278,25 @@ public class TranscodeHelper {
     public void freeCache(long bytes) {
         // TODO(b/181846007): Implement cache clearing policies.
         mTranscodeDirectory.delete();
+    }
+
+    private UUID getTranscodeVolumeUuid() {
+        synchronized (mLock) {
+            if (mTranscodeVolumeUuid != null) {
+                return mTranscodeVolumeUuid;
+            }
+        }
+
+        StorageVolume vol = mStorageManager.getStorageVolume(mTranscodeDirectory);
+        if (vol != null) {
+            synchronized (mLock) {
+                mTranscodeVolumeUuid = vol.getStorageUuid();
+                return mTranscodeVolumeUuid;
+            }
+        } else {
+            Log.w(TAG, "Failed to get storage volume UUID for: " + mTranscodeDirectory);
+            return null;
+        }
     }
 
     /**
@@ -1057,7 +1083,14 @@ public class TranscodeHelper {
 
     private boolean waitTranscodingResult(int uid, String src, TranscodingSession session,
             CountDownLatch latch) {
+        UUID uuid = getTranscodeVolumeUuid();
         try {
+            if (uuid != null) {
+                // tid is 0 since we can't really get the apps tid over binder
+                mStorageManager.notifyAppIoBlocked(uuid, uid, 0 /* tid */,
+                        StorageManager.APP_IO_BLOCKED_REASON_TRANSCODING);
+            }
+
             int timeout = getTranscodeTimeoutSeconds(src);
 
             String waitStartLog = "Transcoding wait start: " + src + ". Uid: " + uid + ". Timeout: "
@@ -1076,6 +1109,12 @@ public class TranscodeHelper {
             Thread.currentThread().interrupt();
             Log.w(TAG, "Transcoding latch interrupted." + session);
             return false;
+        } finally {
+            if (uuid != null) {
+                // tid is 0 since we can't really get the apps tid over binder
+                mStorageManager.notifyAppIoResumed(uuid, uid, 0 /* tid */,
+                        StorageManager.APP_IO_BLOCKED_REASON_TRANSCODING);
+            }
         }
     }
 

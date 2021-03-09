@@ -2718,42 +2718,78 @@ public final class MediaStore {
 
             /**
              * Non-zero if the audio file is music
+             *
+             * This is mutually exclusive with {@link #IS_ALARM},
+             * {@link #IS_AUDIOBOOK}, {@link #IS_NOTIFICATION},
+             * {@link #IS_PODCAST}, {@link #IS_RECORDING},
+             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_MUSIC = "is_music";
 
             /**
              * Non-zero if the audio file is a podcast
+             *
+             * This is mutually exclusive with {@link #IS_ALARM},
+             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
+             * {@link #IS_NOTIFICATION}, {@link #IS_RECORDING},
+             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_PODCAST = "is_podcast";
 
             /**
              * Non-zero if the audio file may be a ringtone
+             *
+             * This is mutually exclusive with {@link #IS_ALARM},
+             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
+             * {@link #IS_NOTIFICATION}, {@link #IS_PODCAST},
+             * and {@link #IS_RECORDING}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_RINGTONE = "is_ringtone";
 
             /**
              * Non-zero if the audio file may be an alarm
+             *
+             * This is mutually exclusive with {@link #IS_AUDIOBOOK},
+             * {@link #IS_MUSIC}, {@link #IS_NOTIFICATION},
+             * {@link #IS_PODCAST}, {@link #IS_RECORDING},
+             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_ALARM = "is_alarm";
 
             /**
              * Non-zero if the audio file may be a notification sound
+             *
+             * This is mutually exclusive with {@link #IS_ALARM},
+             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
+             * {@link #IS_PODCAST}, {@link #IS_RECORDING},
+             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_NOTIFICATION = "is_notification";
 
             /**
              * Non-zero if the audio file is an audiobook
+             *
+             * This is mutually exclusive with {@link #IS_ALARM},
+             * {@link #IS_MUSIC}, {@link #IS_NOTIFICATION},
+             * {@link #IS_PODCAST}, {@link #IS_RECORDING}, and
+             * {@link #IS_RINGTONE}
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_AUDIOBOOK = "is_audiobook";
 
             /**
-             * Non-zero if the audio file is a recording
+             * Non-zero if the audio file is a voice recording recorded
+             * by voice recorder apps
+             *
+             * This is mutually exclusive with {@link #IS_ALARM},
+             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
+             * {@link #IS_NOTIFICATION}, {@link #IS_PODCAST},
+             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_RECORDING = "is_recording";

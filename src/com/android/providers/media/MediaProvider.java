@@ -31,6 +31,7 @@ import static android.provider.MediaStore.MATCH_DEFAULT;
 import static android.provider.MediaStore.MATCH_EXCLUDE;
 import static android.provider.MediaStore.MATCH_INCLUDE;
 import static android.provider.MediaStore.MATCH_ONLY;
+import static android.provider.MediaStore.QUERY_ARG_DEFER_SCAN;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_FAVORITE;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
@@ -323,6 +324,13 @@ public class MediaProvider extends ContentProvider {
      * kept around for app compatibility in R.
      */
     private static final String QUERY_ARG_DO_ASYNC_SCAN = "android:query-arg-do-async-scan";
+    /**
+     * Enable option to defer the scan triggered as part of MediaProvider#update()
+     */
+    @ChangeId
+    @EnabledAfter(targetSdkVersion = android.os.Build.VERSION_CODES.R)
+    static final long ENABLE_DEFERRED_SCAN = 180326732L;
+
 
     // Stolen from: UserHandle#getUserId
     private static final int PER_USER_RANGE = 100000;
@@ -1701,16 +1709,23 @@ public class MediaProvider extends ContentProvider {
      * <li> {@code column} is set or
      * <li> {@code column} is {@link MediaColumns#IS_PENDING} and is set by FUSE and not owned by
      * calling package.
+     * <li> {@code column} is {@link MediaColumns#IS_PENDING}, is unset and is waiting for
+     * metadata update from a deferred scan.
      * </ul>
      */
     private String getWhereClauseForMatchExclude(@NonNull String column) {
         if (column.equalsIgnoreCase(MediaColumns.IS_PENDING)) {
-            final String callingPackage = getCallingPackageOrSelf();
+            // Don't include rows that are pending for metadata
+            final String pendingForMetadata = FileColumns._MODIFIER + "="
+                    + FileColumns._MODIFIER_CR_PENDING_METADATA;
+            final String notPending = String.format("(%s=0 AND NOT %s)", column,
+                    pendingForMetadata);
             final String matchSharedPackagesClause = FileColumns.OWNER_PACKAGE_NAME + " IN "
                     + getSharedPackages();
             // Include owned pending files from Fuse
-            return String.format("%s=0 OR (%s=1 AND %s AND %s)", column, column,
+            final String pendingFromFuse = String.format("(%s=1 AND %s AND %s)", column,
                     MATCH_PENDING_FROM_FUSE, matchSharedPackagesClause);
+            return "(" + notPending + " OR " + pendingFromFuse + ")";
         }
         return column + "=0";
     }
@@ -6122,6 +6137,31 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
+        boolean deferScan = false;
+        if (triggerScan) {
+            if (SdkLevel.isAtLeastS() &&
+                    CompatChanges.isChangeEnabled(ENABLE_DEFERRED_SCAN, Binder.getCallingUid())) {
+                if (extras.containsKey(QUERY_ARG_DO_ASYNC_SCAN)) {
+                    throw new IllegalArgumentException("Unsupported argument " +
+                            QUERY_ARG_DO_ASYNC_SCAN + " used in extras");
+                }
+                deferScan = extras.getBoolean(QUERY_ARG_DEFER_SCAN, false);
+                if (deferScan && initialValues.containsKey(MediaColumns.IS_PENDING) &&
+                        (initialValues.getAsInteger(MediaColumns.IS_PENDING) == 1)) {
+                    // if the scan runs in async, ensure that the database row is excluded in
+                    // default query until the metadata is updated by deferred scan.
+                    // Apps will still be able to see this database row when queried with
+                    // QUERY_ARG_MATCH_PENDING=MATCH_INCLUDE
+                    values.put(FileColumns._MODIFIER, FileColumns._MODIFIER_CR_PENDING_METADATA);
+                    qb.allowColumn(FileColumns._MODIFIER);
+                }
+            } else {
+                // Allow apps to use QUERY_ARG_DO_ASYNC_SCAN if the device is R or app is targeting
+                // targetSDK<=R.
+                deferScan = extras.getBoolean(QUERY_ARG_DO_ASYNC_SCAN, false);
+            }
+        }
+
         count = updateAllowingReplace(qb, helper, values, userWhere, userWhereArgs);
 
         // If the caller tried (and failed) to update metadata, the file on disk
@@ -6141,10 +6181,8 @@ public class MediaProvider extends ContentProvider {
                         try (Cursor c = queryForSingleItem(updatedUri,
                                 new String[] { FileColumns.DATA }, null, null, null)) {
                             final File file = new File(c.getString(0));
-                            boolean runScanFileInBackground =
-                                    extras.getBoolean(QUERY_ARG_DO_ASYNC_SCAN, false);
                             final boolean notifyTranscodeHelper = isUriPublished;
-                            if (runScanFileInBackground) {
+                            if (deferScan) {
                                 helper.postBackground(() -> {
                                     scanFileAsMediaProvider(file, REASON_DEMAND);
                                     if (notifyTranscodeHelper) {

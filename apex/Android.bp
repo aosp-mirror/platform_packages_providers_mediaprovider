@@ -13,6 +13,7 @@ apex_defaults {
     certificate: ":com.android.mediaprovider.certificate",
     file_contexts: ":com.android.mediaprovider-file_contexts",
     min_sdk_version: "30",
+    updatable: true,
 }
 
 apex_key {

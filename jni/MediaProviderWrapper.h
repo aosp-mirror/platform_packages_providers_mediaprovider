@@ -101,18 +101,6 @@ class MediaProviderWrapper final {
     int IsOpenAllowed(const std::string& path, uid_t uid, bool for_write);
 
     /**
-     * Potentially triggers a scan of the file before closing it and reconciles it with the
-     * MediaProvider database.
-     *
-     * @param path the path of the file to be scanned
-     */
-    void ScanFile(const std::string& path);
-
-    /**
-     * Determines if the given UID is allowed to create a directory with the given path.
-     *
-     * @param path the path of the directory to be created
-     * @param uid UID of the calling app
      * @return 0 if it's allowed, or errno error code if operation isn't allowed.
      */
     int IsCreatingDirAllowed(const std::string& path, uid_t uid);
@@ -202,7 +190,6 @@ class MediaProviderWrapper final {
     jmethodID mid_insert_file_;
     jmethodID mid_delete_file_;
     jmethodID mid_is_open_allowed_;
-    jmethodID mid_scan_file_;
     jmethodID mid_is_mkdir_or_rmdir_allowed_;
     jmethodID mid_is_opendir_allowed_;
     jmethodID mid_get_files_in_dir_;

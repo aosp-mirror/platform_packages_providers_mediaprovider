@@ -709,11 +709,15 @@ public final class MediaStore {
      * only be used when {@link ContentResolver#update} operation needs to
      * return early without updating metadata for the file. This may make other
      * apps see incomplete metadata for the updated file as scan runs
-     * asynchronously here. Most apps shouldn't set this flag.
+     * asynchronously here.
+     * Note that when this flag is set, the published file will not appear in
+     * default query until the deferred scan is complete.
+     * Most apps shouldn't set this flag.
      *
      * @hide
      */
-    public static final String QUERY_ARG_DO_ASYNC_SCAN = "android:query-arg-do-async-scan";
+    @SystemApi
+    public static final String QUERY_ARG_DEFER_SCAN = "android:query-arg-defer-scan";
 
     /**
      * Specify how {@link MediaColumns#IS_PENDING} items should be filtered when
@@ -1843,6 +1847,15 @@ public final class MediaStore {
              * @hide
              */
             public static final int _MODIFIER_MEDIA_SCAN = 3;
+
+            /**
+             * Constant for the {@link #_MODIFIER} column indicating
+             * that the last modifier of the database row is explicit
+             * {@link ContentResolver} operation and is waiting for metadata
+             * update.
+             * @hide
+             */
+            public static final int _MODIFIER_CR_PENDING_METADATA = 4;
 
             /**
              * Status of the transcode file

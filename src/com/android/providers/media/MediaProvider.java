@@ -318,6 +318,12 @@ public class MediaProvider extends ContentProvider {
     private static final String MATCH_PENDING_FROM_FUSE = String.format("lower(%s) NOT REGEXP '%s'",
             MediaColumns.DATA, PATTERN_PENDING_FILEPATH_FOR_SQL);
 
+    /**
+     * This flag is replaced with {@link MediaStore#QUERY_ARG_DEFER_SCAN} from S onwards and only
+     * kept around for app compatibility in R.
+     */
+    private static final String QUERY_ARG_DO_ASYNC_SCAN = "android:query-arg-do-async-scan";
+
     // Stolen from: UserHandle#getUserId
     private static final int PER_USER_RANGE = 100000;
     private static final int MY_UID = android.os.Process.myUid();
@@ -6136,7 +6142,7 @@ public class MediaProvider extends ContentProvider {
                                 new String[] { FileColumns.DATA }, null, null, null)) {
                             final File file = new File(c.getString(0));
                             boolean runScanFileInBackground =
-                                    extras.getBoolean(MediaStore.QUERY_ARG_DO_ASYNC_SCAN, false);
+                                    extras.getBoolean(QUERY_ARG_DO_ASYNC_SCAN, false);
                             final boolean notifyTranscodeHelper = isUriPublished;
                             if (runScanFileInBackground) {
                                 helper.postBackground(() -> {

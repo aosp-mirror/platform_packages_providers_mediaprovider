@@ -1220,17 +1220,6 @@ public class MediaProvider extends ContentProvider {
     }
 
     /**
-     * Makes MediaScanner scan the given file.
-     * @param file path of the file to be scanned
-     *
-     * Called from JNI in jni/MediaProviderWrapper.cpp
-     */
-    @Keep
-    public void scanFileForFuse(String file) {
-        scanFile(new File(file), REASON_DEMAND);
-    }
-
-    /**
      * Called when a new file is created through FUSE
      *
      * @param file path of the file that was created
@@ -1756,13 +1745,8 @@ public class MediaProvider extends ContentProvider {
      * </ul>
      */
     private void scanRenamedDirectoryForFuse(@NonNull String oldPath, @NonNull String newPath) {
-        final LocalCallingIdentity token = clearLocalCallingIdentity();
-        try {
-            scanFile(new File(oldPath), REASON_DEMAND);
-            scanFile(new File(newPath), REASON_DEMAND);
-        } finally {
-            restoreLocalCallingIdentity(token);
-        }
+        scanFileAsMediaProvider(new File(oldPath), REASON_DEMAND);
+        scanFileAsMediaProvider(new File(newPath), REASON_DEMAND);
     }
 
     /**
@@ -1852,6 +1836,9 @@ public class MediaProvider extends ContentProvider {
         boolean allowHidden = isCallingPackageAllowedHidden();
         final SQLiteQueryBuilder qbForUpdate = getQueryBuilder(TYPE_UPDATE,
                 matchUri(uriOldPath, allowHidden), uriOldPath, qbExtras, null);
+        if (values.containsKey(FileColumns._MODIFIER)) {
+            qbForUpdate.allowColumn(FileColumns._MODIFIER);
+        }
         final String selection = MediaColumns.DATA + " =? ";
         int count = 0;
         boolean retryUpdateWithReplace = false;
@@ -1886,7 +1873,7 @@ public class MediaProvider extends ContentProvider {
      * Gets {@link ContentValues} for updating database entry to {@code path}.
      */
     private ContentValues getContentValuesForFuseRename(String path, String newMimeType,
-            boolean wasHidden, boolean isHidden) {
+            boolean wasHidden, boolean isHidden, boolean isSameMimeType) {
         ContentValues values = new ContentValues();
         values.put(MediaColumns.MIME_TYPE, newMimeType);
         values.put(MediaColumns.DATA, path);
@@ -1896,15 +1883,15 @@ public class MediaProvider extends ContentProvider {
         } else {
             int mediaType = MimeUtils.resolveMediaType(newMimeType);
             values.put(FileColumns.MEDIA_TYPE, mediaType);
-            if (wasHidden) {
-                // Set this as pending so that apps can scan the file to update the metadata.
-                // Otherwise, scan will skip scanning this file because rename() doesn't change
-                // lastModifiedTime and scan assumes there is no change in the file.
-                // This should be safe because, in Q, apps had to insert new db row or scan the file
-                // to insert this file to database.
-                values.put(FileColumns.IS_PENDING, 1);
-            }
         }
+
+        if ((!isHidden && wasHidden) || !isSameMimeType) {
+            // Set the modifier as MODIFIER_FUSE so that apps can scan the file to update the
+            // metadata. Otherwise, scan will skip scanning this file because rename() doesn't
+            // change lastModifiedTime and scan assumes there is no change in the file.
+            values.put(FileColumns._MODIFIER, FileColumns._MODIFIER_FUSE);
+        }
+
         final boolean allowHidden = isCallingPackageAllowedHidden();
         if (!newMimeType.equalsIgnoreCase("null") &&
                 matchUri(getContentUriForFile(path, newMimeType), allowHidden) == AUDIO_MEDIA) {
@@ -2094,7 +2081,8 @@ public class MediaProvider extends ContentProvider {
                 final String newFilePath = newPath + "/" + filePath;
                 final String mimeType = MimeUtils.resolveMimeType(new File(newFilePath));
                 if(!updateDatabaseForFuseRename(helper, oldPath + "/" + filePath, newFilePath,
-                        getContentValuesForFuseRename(newFilePath, mimeType, wasHidden, isHidden),
+                        getContentValuesForFuseRename(newFilePath, mimeType, wasHidden, isHidden,
+                                /* isSameMimeType */ true),
                         qbExtras)) {
                     Log.e(TAG, "Calling package doesn't have write permission to rename file.");
                     return OsConstants.EPERM;
@@ -2174,8 +2162,11 @@ public class MediaProvider extends ContentProvider {
         helper.beginTransaction();
         try {
             final String newMimeType = MimeUtils.resolveMimeType(new File(newPath));
+            final String oldMimeType = MimeUtils.resolveMimeType(new File(oldPath));
+            final boolean isSameMimeType = newMimeType.equalsIgnoreCase(oldMimeType);
             if (!updateDatabaseForFuseRename(helper, oldPath, newPath,
-                    getContentValuesForFuseRename(newPath, newMimeType, wasHidden, isHidden))) {
+                    getContentValuesForFuseRename(newPath, newMimeType, wasHidden, isHidden,
+                            isSameMimeType))) {
                 if (!bypassRestrictions) {
                     Log.e(TAG, "Calling package doesn't have write permission to rename file.");
                     return OsConstants.EPERM;
@@ -2206,10 +2197,10 @@ public class MediaProvider extends ContentProvider {
         // 3) /sdcard/foo/bar.mp3 => /sdcard/foo/.nomedia
         //    in this case, we need to scan all of /sdcard/foo
         if (extractDisplayName(oldPath).equals(".nomedia")) {
-            scanFile(new File(oldPath).getParentFile(), REASON_DEMAND);
+            scanFileAsMediaProvider(new File(oldPath).getParentFile(), REASON_DEMAND);
         }
         if (extractDisplayName(newPath).equals(".nomedia")) {
-            scanFile(new File(newPath).getParentFile(), REASON_DEMAND);
+            scanFileAsMediaProvider(new File(newPath).getParentFile(), REASON_DEMAND);
         }
 
         return 0;
@@ -3375,6 +3366,7 @@ public class MediaProvider extends ContentProvider {
             values.put(FileColumns.MEDIA_TYPE, mediaType);
         }
 
+        qb.allowColumn(FileColumns._MODIFIER);
         if (isCallingPackageSelf() && values.containsKey(FileColumns._MODIFIER)) {
             // We can't identify if the call is coming from media scan, hence
             // we let ModernMediaScanner send FileColumns._MODIFIER value.
@@ -3883,7 +3875,7 @@ public class MediaProvider extends ContentProvider {
         mCallingIdentity.get().setOwned(rowId, true);
 
         if (path != null && path.toLowerCase(Locale.ROOT).endsWith("/.nomedia")) {
-            mMediaScanner.scanFile(new File(path).getParentFile(), REASON_DEMAND);
+            scanFileAsMediaProvider(new File(path).getParentFile(), REASON_DEMAND);
         }
 
         return newUri;
@@ -6587,7 +6579,7 @@ public class MediaProvider extends ContentProvider {
                         update(uri, values, null, null);
                         break;
                     default:
-                        mMediaScanner.scanFile(file, REASON_DEMAND);
+                        scanFileAsMediaProvider(file, REASON_DEMAND);
                         break;
                 }
             } catch (Exception e2) {
@@ -7841,7 +7833,7 @@ public class MediaProvider extends ContentProvider {
         // First, check to see if caller has direct write access
         if (forWrite) {
             final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_UPDATE, table, uri, extras, null);
-            qb.allowRowidColumn();
+            qb.allowColumn(SQLiteQueryBuilder.ROWID_COLUMN);
             try (Cursor c = qb.query(helper, new String[] { SQLiteQueryBuilder.ROWID_COLUMN },
                     null, null, null, null, null, null, null)) {
                 if (c.moveToFirst()) {
@@ -7865,7 +7857,7 @@ public class MediaProvider extends ContentProvider {
 
         // Second, check to see if caller has direct read access
         final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, table, uri, extras, null);
-        qb.allowRowidColumn();
+        qb.allowColumn(SQLiteQueryBuilder.ROWID_COLUMN);
         try (Cursor c = qb.query(helper, new String[] { SQLiteQueryBuilder.ROWID_COLUMN },
                 null, null, null, null, null, null, null)) {
             if (c.moveToFirst()) {

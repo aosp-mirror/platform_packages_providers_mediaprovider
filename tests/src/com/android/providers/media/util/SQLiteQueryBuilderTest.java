@@ -165,7 +165,7 @@ public class SQLiteQueryBuilderTest {
         sqliteQueryBuilder.setDistinct(false);
         sqliteQueryBuilder.setProjectionMap(projectMap);
 
-        sqliteQueryBuilder.allowRowidColumn();
+        sqliteQueryBuilder.allowColumn("rowid");
 
         String sql = sqliteQueryBuilder.buildQuery(new String[] { SQLiteQueryBuilder.ROWID_COLUMN },
                 null, null, null, null, null);

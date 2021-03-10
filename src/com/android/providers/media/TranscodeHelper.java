@@ -52,7 +52,6 @@ import android.media.MediaTranscodeManager;
 import android.media.MediaTranscodeManager.TranscodingRequest;
 import android.media.MediaTranscodeManager.TranscodingRequest.MediaFormatResolver;
 import android.media.MediaTranscodeManager.TranscodingSession;
-import android.media.MediaTranscodingException;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -409,8 +408,11 @@ public class TranscodeHelper {
                     latch = new CountDownLatch(1);
                     try {
                         transcodingSession = enqueueTranscodingSession(src, dst, uid, latch);
-                    } catch (MediaTranscodingException | FileNotFoundException |
-                            UnsupportedOperationException e) {
+                        if (transcodingSession == null) {
+                            Log.e(TAG, "Failed to enqueue request due to Service unavailable");
+                            throw new IllegalStateException("Failed to enqueue request");
+                        }
+                    } catch (UnsupportedOperationException e) {
                         throw new IllegalStateException(e);
                     }
                     storageSession = new StorageTranscodingSession(transcodingSession, latch);
@@ -1045,9 +1047,7 @@ public class TranscodeHelper {
     }
 
     private TranscodingSession enqueueTranscodingSession(String src, String dst, int uid,
-            final CountDownLatch latch)
-            throws FileNotFoundException, MediaTranscodingException, UnsupportedOperationException {
-
+            final CountDownLatch latch) throws UnsupportedOperationException {
         File file = new File(src);
         File transcodeFile = new File(dst);
 

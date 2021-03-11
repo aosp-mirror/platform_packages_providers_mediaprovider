@@ -25,6 +25,9 @@
     <uses-permission android:name="android.permission.LOG_COMPAT_CHANGE"/>
     <uses-permission android:name="android.permission.READ_COMPAT_CHANGE_CONFIG"/>
 
+    <!-- Permissions required for statsd pull metrics -->
+    <uses-permission android:name="android.permission.REGISTER_STATS_PULL_ATOM"/>
+
     <application
             android:name="com.android.providers.media.MediaApplication"
             android:label="@string/app_label"

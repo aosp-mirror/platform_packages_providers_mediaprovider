@@ -81,6 +81,7 @@ import static com.android.providers.media.util.FileUtils.sanitizePath;
 import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
 
+import android.annotation.IntDef;
 import android.app.AppOpsManager;
 import android.app.AppOpsManager.OnOpActiveChangedListener;
 import android.app.AppOpsManager.OnOpChangedListener;
@@ -203,6 +204,7 @@ import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
 import com.android.providers.media.util.PermissionUtils;
+import com.android.providers.media.util.Preconditions;
 import com.android.providers.media.util.SQLiteQueryBuilder;
 import com.android.providers.media.util.XmpInterface;
 
@@ -216,6 +218,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
@@ -8009,79 +8013,52 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    /**
-     * Checks if the app with the given UID is allowed to create or delete the directory with the
-     * given path.
-     *
-     * @param path File path of the directory that the app wants to create/delete
-     * @param uid UID of the app that wants to create/delete the directory
-     * @param forCreate denotes whether the operation is directory creation or deletion
-     * @return 0 if the operation is allowed, or the following {@code errno} values:
-     * <ul>
-     * <li>{@link OsConstants#EACCES} if the app tries to create/delete a dir in another app's
-     * external directory, or if the calling package is a legacy app that doesn't have
-     * WRITE_EXTERNAL_STORAGE permission.
-     * <li>{@link OsConstants#EPERM} if the app tries to create/delete a top-level directory.
-     * </ul>
-     *
-     * Called from JNI in jni/MediaProviderWrapper.cpp
-     */
-    @Keep
-    public int isDirectoryCreationOrDeletionAllowedForFuse(
-            @NonNull String path, int uid, boolean forCreate) {
-        final LocalCallingIdentity token =
-                clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+    // These need to stay in sync with MediaProviderWrapper.cpp's DirectoryAccessRequestType enum
+    @IntDef(flag = true, prefix = { "DIRECTORY_ACCESS_FOR_" }, value = {
+            DIRECTORY_ACCESS_FOR_READ,
+            DIRECTORY_ACCESS_FOR_WRITE,
+            DIRECTORY_ACCESS_FOR_CREATE,
+            DIRECTORY_ACCESS_FOR_DELETE,
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    @VisibleForTesting
+    @interface DirectoryAccessType {}
 
-        try {
-            // App dirs are not indexed, so we don't create an entry for the file.
-            if (isPrivatePackagePathNotAccessibleByCaller(path)) {
-                Log.e(TAG, "Can't modify another app's external directory!");
-                return OsConstants.EACCES;
-            }
+    @VisibleForTesting
+    static final int DIRECTORY_ACCESS_FOR_READ = 1;
 
-            if (shouldBypassFuseRestrictions(/*forWrite*/ true, path)) {
-                return 0;
-            }
-            // Legacy apps that made is this far don't have the right storage permission and hence
-            // are not allowed to access anything other than their external app directory
-            if (isCallingPackageRequestingLegacy()) {
-                return OsConstants.EACCES;
-            }
+    @VisibleForTesting
+    static final int DIRECTORY_ACCESS_FOR_WRITE = 2;
 
-            final String[] relativePath = sanitizePath(extractRelativePath(path));
-            final boolean isTopLevelDir =
-                    relativePath.length == 1 && TextUtils.isEmpty(relativePath[0]);
-            if (isTopLevelDir) {
-                // We allow creating the default top level directories only, all other operations on
-                // top level directories are not allowed.
-                if (forCreate && FileUtils.isDefaultDirectoryName(extractDisplayName(path))) {
-                    return 0;
-                }
-                Log.e(TAG,
-                        "Creating a non-default top level directory or deleting an existing"
-                                + " one is not allowed!");
-                return OsConstants.EPERM;
-            }
-            return 0;
-        } finally {
-            restoreLocalCallingIdentity(token);
-        }
-    }
+    @VisibleForTesting
+    static final int DIRECTORY_ACCESS_FOR_CREATE = 3;
+
+    @VisibleForTesting
+    static final int DIRECTORY_ACCESS_FOR_DELETE = 4;
 
     /**
-     * Checks whether the app with the given UID is allowed to open the directory denoted by the
+     * Checks whether the app with the given UID is allowed to access the directory denoted by the
      * given path.
      *
      * @param path directory's path
      * @param uid UID of the requesting app
-     * @return 0 if it's allowed to open the diretory, {@link OsConstants#EACCES} if the calling
-     * package is a legacy app that doesn't have READ_EXTERNAL_STORAGE permission,
-     * {@link OsConstants#ENOENT}  otherwise.
+     * @param accessType type of access being requested - eg {@link
+     * MediaProvider#DIRECTORY_ACCESS_FOR_READ}
+     * @return 0 if it's allowed to access the directory, {@link OsConstants#ENOENT} for attempts
+     * to access a private package path in Android/data or Android/obb the caller doesn't have
+     * access to, and otherwise {@link OsConstants#EACCES} if the calling package is a legacy app
+     * that doesn't have READ_EXTERNAL_STORAGE permission or for other invalid attempts to access
+     * Android/data or Android/obb dirs.
      *
      * Called from JNI in jni/MediaProviderWrapper.cpp
      */
     @Keep
-    public int isOpendirAllowedForFuse(@NonNull String path, int uid, boolean forWrite) {
+    public int isDirAccessAllowedForFuse(@NonNull String path, int uid,
+            @DirectoryAccessType int accessType) {
+        Preconditions.checkArgumentInRange(accessType, 1, DIRECTORY_ACCESS_FOR_DELETE,
+                "accessType");
+
+        final boolean forRead = accessType == DIRECTORY_ACCESS_FOR_READ;
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
         try {
@@ -8093,14 +8070,16 @@ public class MediaProvider extends ContentProvider {
                 return OsConstants.ENOENT;
             }
 
-            if (shouldBypassFuseRestrictions(forWrite, path)) {
+            if (shouldBypassFuseRestrictions(/* forWrite= */ !forRead, path)) {
                 return 0;
             }
 
-            // Do not allow apps to open Android/data or Android/obb dirs.
-            // On primary volumes, apps that get special access to these directories get it via
-            // mount views of lowerfs. On secondary volumes, such apps would return early from
-            // shouldBypassFuseRestrictions above.
+            // Do not allow apps that reach this point to access Android/data or Android/obb dirs.
+            // Creation should be via getContext().getExternalFilesDir() etc methods.
+            // Reads and writes on primary volumes should be via mount views of lowerfs for apps
+            // that get special access to these directories.
+            // Reads and writes on secondary volumes would be provided via an early return from
+            // shouldBypassFuseRestrictions above (again just for apps with special access).
             if (isDataOrObbPath(path)) {
                 return OsConstants.EACCES;
             }
@@ -8112,22 +8091,34 @@ public class MediaProvider extends ContentProvider {
             }
             // This is a non-legacy app. Rest of the directories are generally writable
             // except for non-default top-level directories.
-            if (forWrite) {
+            if (!forRead) {
                 final String[] relativePath = sanitizePath(extractRelativePath(path));
                 if (relativePath.length == 0) {
-                    Log.e(TAG, "Directoy write not allowed on invalid relative path for " + path);
+                    Log.e(TAG,
+                            "Directory update not allowed on invalid relative path for " + path);
                     return OsConstants.EPERM;
                 }
                 final boolean isTopLevelDir =
                         relativePath.length == 1 && TextUtils.isEmpty(relativePath[0]);
                 if (isTopLevelDir) {
-                    if (FileUtils.isDefaultDirectoryName(extractDisplayName(path))) {
-                        return 0;
-                    } else {
-                        Log.e(TAG,
-                                "Writing to a non-default top level directory is not allowed!");
+                    // We don't allow deletion of any top-level folders
+                    if (accessType == DIRECTORY_ACCESS_FOR_DELETE) {
+                        Log.e(TAG, "Deleting top level directories are not allowed!");
                         return OsConstants.EACCES;
                     }
+
+                    // We allow creating or writing to default top-level folders, but we don't
+                    // allow creation or writing to non-default top-level folders.
+                    if ((accessType == DIRECTORY_ACCESS_FOR_CREATE
+                            || accessType == DIRECTORY_ACCESS_FOR_WRITE)
+                            && FileUtils.isDefaultDirectoryName(extractDisplayName(path))) {
+                        return 0;
+                    }
+
+                    Log.e(TAG,
+                            "Creating or writing to a non-default top level directory is not "
+                                    + "allowed!");
+                    return OsConstants.EACCES;
                 }
             }
 

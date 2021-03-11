@@ -72,8 +72,8 @@
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ကို ဤအရာ ပြင်ဆင်ခွင့်ပြုမလား။</item>
     </plurals>
     <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
-      <item quantity="other">အကြောင်းအရာ <xliff:g id="COUNT">^1</xliff:g> ခုကို ပြင်ဆင်နေသည်…</item>
-      <item quantity="one">အကြောင်းအရာကို ပြင်ဆင်နေသည်…</item>
+      <item quantity="other">ဖိုင် <xliff:g id="COUNT">^1</xliff:g> ခုကို ပြင်ဆင်နေသည်…</item>
+      <item quantity="one">ဖိုင်ကို ပြင်ဆင်နေသည်…</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား အသံဖိုင် <xliff:g id="COUNT">^2</xliff:g> ဖိုင်ကို အမှိုက်ပုံးသို့ ရွှေ့ခွင့်ပြုမလား။</item>
@@ -104,8 +104,8 @@
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤအရာကို အမှိုက်ပုံးသို့ ရွှေ့ခွင့်ပြုမလား။</item>
     </plurals>
     <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
-      <item quantity="other">အကြောင်းအရာ <xliff:g id="COUNT">^1</xliff:g> ခုကို အမှိုက်ပုံးထဲသို့ ရွှေ့နေသည်…</item>
-      <item quantity="one">အကြောင်းအရာကို အမှိုက်ပုံးထဲသို့ ရွှေ့နေသည်…</item>
+      <item quantity="other">ဖိုင် <xliff:g id="COUNT">^1</xliff:g> ခုကို အမှိုက်ပုံးထဲသို့ ရွှေ့နေသည်…</item>
+      <item quantity="one">ဖိုင်ကို အမှိုက်ပုံးထဲသို့ ရွှေ့နေသည်…</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား အသံဖိုင် <xliff:g id="COUNT">^2</xliff:g> ဖိုင်ကို အမှိုက်ပုံးထဲမှ ရွှေ့ခွင့်ပြုမလား။</item>
@@ -136,8 +136,8 @@
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤအရာကို အမှိုက်ပုံးထဲမှ ရွှေ့ခွင့်ပြုမလား။</item>
     </plurals>
     <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
-      <item quantity="other">အကြောင်းအရာ <xliff:g id="COUNT">^1</xliff:g> ခုကို အမှိုက်ပုံးထဲမှ ရွှေ့နေသည်…</item>
-      <item quantity="one">အကြောင်းအရာကို အမှိုက်ပုံးထဲမှ ရွှေ့နေသည်…</item>
+      <item quantity="other">ဖိုင် <xliff:g id="COUNT">^1</xliff:g> ခုကို အမှိုက်ပုံးထဲမှ ရွှေ့နေသည်…</item>
+      <item quantity="one">ဖိုင်ကို အမှိုက်ပုံးထဲမှ ရွှေ့နေသည်…</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား အသံဖိုင် <xliff:g id="COUNT">^2</xliff:g> ဖိုင်ကို ဖျက်ခွင့်ပြုမလား။</item>
@@ -168,7 +168,7 @@
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤအရာကို ဖျက်ခွင့်ပြုမလား။</item>
     </plurals>
     <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
-      <item quantity="other">အကြောင်းအရာ <xliff:g id="COUNT">^1</xliff:g> ခုကို ဖျက်နေသည်…</item>
-      <item quantity="one">အကြောင်းအရာကို ဖျက်နေသည်…</item>
+      <item quantity="other">ဖိုင် <xliff:g id="COUNT">^1</xliff:g> ခုကို ဖျက်နေသည်…</item>
+      <item quantity="one">ဖိုင်ကို ဖျက်နေသည်…</item>
     </plurals>
 </resources>

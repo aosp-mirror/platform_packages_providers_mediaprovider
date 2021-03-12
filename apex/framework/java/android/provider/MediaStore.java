@@ -224,6 +224,13 @@ public final class MediaStore {
     /** {@hide} */
     public static final String EXTRA_FILE_DESCRIPTOR = "file_descriptor";
 
+    /** {@hide} */
+    public static final String IS_SYSTEM_GALLERY_CALL = "is_system_gallery";
+    /** {@hide} */
+    public static final String EXTRA_IS_SYSTEM_GALLERY_UID = "is_system_gallery_uid";
+    /** {@hide} */
+    public static final String EXTRA_IS_SYSTEM_GALLERY_RESPONSE = "is_system_gallery_response";
+
     /**
      * This is for internal use by the media scanner only.
      * Name of the (optional) Uri parameter that determines whether to skip deleting
@@ -4180,6 +4187,24 @@ public final class MediaStore {
         } catch (RemoteException e) {
             throw e.rethrowAsRuntimeException();
         }
+    }
+
+    /**
+     * Returns true if the given application is the current system gallery of the device.
+     *
+     * @param resolver The {@link ContentResolver} used to connect with
+     * {@link MediaStore#AUTHORITY}. Typically this value is {@link Context#getContentResolver()}.
+     * @param uid The uid to be checked if it is the current system gallery.
+     * @param packageName The package name to be checked if it is the current system gallery.
+     */
+    public static boolean isCurrentSystemGallery(
+            @NonNull ContentResolver resolver,
+            int uid,
+            @NonNull String packageName) {
+        Bundle in = new Bundle();
+        in.putInt(EXTRA_IS_SYSTEM_GALLERY_UID, uid);
+        final Bundle out = resolver.call(AUTHORITY, IS_SYSTEM_GALLERY_CALL, packageName, in);
+        return out.getBoolean(EXTRA_IS_SYSTEM_GALLERY_RESPONSE);
     }
 
     /** {@hide} */

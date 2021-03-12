@@ -41,6 +41,14 @@ constexpr const char* kPropRedactionEnabled = "persist.sys.fuse.redaction-enable
 constexpr uid_t ROOT_UID = 0;
 constexpr uid_t SHELL_UID = 2000;
 
+// These need to stay in sync with MediaProvider.java's DIRECTORY_ACCESS_FOR_* constants.
+enum DirectoryAccessRequestType {
+    kReadDirectoryRequest = 1,
+    kWriteDirectoryRequest = 2,
+    kCreateDirectoryRequest = 3,
+    kDeleteDirectoryRequest = 4,
+};
+
 /** Private helper functions **/
 
 inline bool shouldBypassMediaProvider(uid_t uid) {
@@ -91,25 +99,12 @@ int deleteFileInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid
     return res;
 }
 
-int isMkdirOrRmdirAllowedInternal(JNIEnv* env, jobject media_provider_object,
-                                  jmethodID mid_is_mkdir_or_rmdir_allowed, const string& path,
-                                  uid_t uid, bool forCreate) {
+int isDirAccessAllowedInternal(JNIEnv* env, jobject media_provider_object,
+                               jmethodID mid_is_diraccess_allowed, const string& path, uid_t uid,
+                               int accessType) {
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
-    int res = env->CallIntMethod(media_provider_object, mid_is_mkdir_or_rmdir_allowed, j_path.get(),
-                                 uid, forCreate);
-
-    if (CheckForJniException(env)) {
-        return EFAULT;
-    }
-    return res;
-}
-
-int isOpendirAllowedInternal(JNIEnv* env, jobject media_provider_object,
-                             jmethodID mid_is_opendir_allowed, const string& path, uid_t uid,
-                             bool forWrite) {
-    ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
-    int res = env->CallIntMethod(media_provider_object, mid_is_opendir_allowed, j_path.get(), uid,
-                                 forWrite);
+    int res = env->CallIntMethod(media_provider_object, mid_is_diraccess_allowed, j_path.get(), uid,
+                                 accessType);
 
     if (CheckForJniException(env)) {
         return EFAULT;
@@ -235,10 +230,8 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
                                     "(Ljava/lang/String;Ljava/lang/String;IIIZZZ)Lcom/android/"
                                     "providers/media/FileOpenResult;",
                                     /*is_static*/ false);
-    mid_is_mkdir_or_rmdir_allowed_ = CacheMethod(env, "isDirectoryCreationOrDeletionAllowed",
-                                                 "(Ljava/lang/String;IZ)I", /*is_static*/ false);
-    mid_is_opendir_allowed_ = CacheMethod(env, "isOpendirAllowed", "(Ljava/lang/String;IZ)I",
-                                          /*is_static*/ false);
+    mid_is_diraccess_allowed_ = CacheMethod(env, "isDirAccessAllowed", "(Ljava/lang/String;II)I",
+                                            /*is_static*/ false);
     mid_get_files_in_dir_ =
             CacheMethod(env, "getFilesInDirectory", "(Ljava/lang/String;I)[Ljava/lang/String;",
                         /*is_static*/ false);
@@ -371,9 +364,8 @@ int MediaProviderWrapper::IsCreatingDirAllowed(const string& path, uid_t uid) {
     }
 
     JNIEnv* env = MaybeAttachCurrentThread();
-    return isMkdirOrRmdirAllowedInternal(env, media_provider_object_,
-                                         mid_is_mkdir_or_rmdir_allowed_, path, uid,
-                                         /*forCreate*/ true);
+    return isDirAccessAllowedInternal(env, media_provider_object_, mid_is_diraccess_allowed_, path,
+                                      uid, kCreateDirectoryRequest);
 }
 
 int MediaProviderWrapper::IsDeletingDirAllowed(const string& path, uid_t uid) {
@@ -382,9 +374,8 @@ int MediaProviderWrapper::IsDeletingDirAllowed(const string& path, uid_t uid) {
     }
 
     JNIEnv* env = MaybeAttachCurrentThread();
-    return isMkdirOrRmdirAllowedInternal(env, media_provider_object_,
-                                         mid_is_mkdir_or_rmdir_allowed_, path, uid,
-                                         /*forCreate*/ false);
+    return isDirAccessAllowedInternal(env, media_provider_object_, mid_is_diraccess_allowed_, path,
+                                      uid, kDeleteDirectoryRequest);
 }
 
 std::vector<std::shared_ptr<DirectoryEntry>> MediaProviderWrapper::GetDirectoryEntries(
@@ -417,8 +408,9 @@ int MediaProviderWrapper::IsOpendirAllowed(const string& path, uid_t uid, bool f
     }
 
     JNIEnv* env = MaybeAttachCurrentThread();
-    return isOpendirAllowedInternal(env, media_provider_object_, mid_is_opendir_allowed_, path, uid,
-                                    forWrite);
+    return isDirAccessAllowedInternal(env, media_provider_object_, mid_is_diraccess_allowed_, path,
+                                      uid,
+                                      forWrite ? kWriteDirectoryRequest : kReadDirectoryRequest);
 }
 
 bool MediaProviderWrapper::isUidAllowedAccessToDataOrObbPath(uid_t uid, const string& path) {

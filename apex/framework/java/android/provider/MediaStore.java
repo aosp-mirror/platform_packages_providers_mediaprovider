@@ -29,6 +29,7 @@ import android.annotation.SuppressLint;
 import android.annotation.SystemApi;
 import android.annotation.WorkerThread;
 import android.app.Activity;
+import android.app.AppOpsManager;
 import android.app.PendingIntent;
 import android.compat.annotation.UnsupportedAppUsage;
 import android.content.ClipData;
@@ -39,6 +40,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.UriPermission;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -4255,5 +4257,46 @@ public final class MediaStore {
     @WorkerThread
     public static void scanVolume(@NonNull ContentResolver resolver, @NonNull String volumeName) {
         resolver.call(AUTHORITY, SCAN_VOLUME_CALL, volumeName, null);
+    }
+
+    /**
+     * Returns whether the calling app is granted {@link android.Manifest.permission#MANAGE_MEDIA}
+     * or not.
+     * <p>Declaring the permission {@link android.Manifest.permission#MANAGE_MEDIA} isn't
+     * enough to gain the access.
+     * <p>To request access, use {@link android.provider.Settings#ACTION_REQUEST_MANAGE_MEDIA}.
+     *
+     * @param context the request context
+     * @return true, the calling app is granted the permission. Otherwise, false
+     *
+     * @see android.Manifest.permission#MANAGE_MEDIA
+     * @see android.provider.Settings#ACTION_REQUEST_MANAGE_MEDIA
+     * @see #createDeleteRequest(ContentResolver, Collection)
+     * @see #createTrashRequest(ContentResolver, Collection, boolean)
+     * @see #createWriteRequest(ContentResolver, Collection)
+     */
+    public static boolean canManageMedia(@NonNull Context context) {
+        Objects.requireNonNull(context);
+        final String packageName = context.getOpPackageName();
+        final int uid = context.getApplicationInfo().uid;
+        final String permission = android.Manifest.permission.MANAGE_MEDIA;
+
+        final AppOpsManager appOps = context.getSystemService(AppOpsManager.class);
+        final int opMode = appOps.unsafeCheckOpNoThrow(AppOpsManager.permissionToOp(permission),
+                uid, packageName);
+
+        switch (opMode) {
+            case AppOpsManager.MODE_DEFAULT:
+                return PackageManager.PERMISSION_GRANTED == context.checkPermission(
+                        permission, android.os.Process.myPid(), uid);
+            case AppOpsManager.MODE_ALLOWED:
+                return true;
+            case AppOpsManager.MODE_ERRORED:
+            case AppOpsManager.MODE_IGNORED:
+                return false;
+            default:
+                Log.w(TAG, "Unknown AppOpsManager mode " + opMode);
+                return false;
+        }
     }
 }

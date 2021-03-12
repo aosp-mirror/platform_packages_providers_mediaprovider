@@ -3,6 +3,7 @@ package android.provider {
 
   public final class MediaStore {
     ctor public MediaStore();
+    method public static boolean canManageMedia(@NonNull android.content.Context);
     method @NonNull public static android.app.PendingIntent createDeleteRequest(@NonNull android.content.ContentResolver, @NonNull java.util.Collection<android.net.Uri>);
     method @NonNull public static android.app.PendingIntent createFavoriteRequest(@NonNull android.content.ContentResolver, @NonNull java.util.Collection<android.net.Uri>, boolean);
     method @NonNull public static android.app.PendingIntent createTrashRequest(@NonNull android.content.ContentResolver, @NonNull java.util.Collection<android.net.Uri>, boolean);

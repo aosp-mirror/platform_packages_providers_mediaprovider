@@ -363,7 +363,8 @@ public class TranscodeHelper {
         }
     }
 
-    private void reportTranscodingResult(int uid, boolean success, long transcodingDurationMs,
+    private void reportTranscodingResult(int uid, boolean success, int errorCode,
+            long transcodingDurationMs,
             int transcodingReason, String src, String dst, boolean hasAnr) {
         BackgroundThread.getExecutor().execute(() -> {
             try (Cursor c = queryFileForTranscode(src,
@@ -384,7 +385,8 @@ public class TranscodeHelper {
                             c.getLong(2) /* width */,
                             c.getLong(3) /* height */,
                             hasAnr,
-                            TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN);
+                            TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN,
+                            errorCode);
                 }
             }
         });
@@ -400,6 +402,7 @@ public class TranscodeHelper {
         long startTime = SystemClock.elapsedRealtime();
         boolean result = false;
         boolean hasAnr = false;
+        int errorCode = TranscodingSession.ERROR_NONE;
 
         try {
             synchronized (mLock) {
@@ -429,6 +432,7 @@ public class TranscodeHelper {
             }
 
             result = waitTranscodingResult(uid, src, transcodingSession, latch);
+            errorCode = transcodingSession.getErrorCode();
             if (result) {
                 updateTranscodeStatus(src, TRANSCODE_COMPLETE);
             } else {
@@ -439,7 +443,8 @@ public class TranscodeHelper {
             }
             hasAnr = storageSession.hasAnr();
         } finally {
-            reportTranscodingResult(uid, result, SystemClock.elapsedRealtime() - startTime, reason,
+            reportTranscodingResult(uid, result, errorCode,
+                    SystemClock.elapsedRealtime() - startTime, reason,
                     src, dst, hasAnr);
         }
         return result;
@@ -904,7 +909,8 @@ public class TranscodeHelper {
                             c.getLong(6) /* width */,
                             c.getLong(7) /* height */,
                             false /* hit_anr */,
-                            TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN);
+                            TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN,
+                            TranscodingSession.ERROR_NONE);
 
                 } else {
                     MediaProviderStatsLog.write(
@@ -920,7 +926,8 @@ public class TranscodeHelper {
                             c.getLong(6) /* width */,
                             c.getLong(7) /* height */,
                             false /* hit_anr */,
-                            TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN);
+                            TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN,
+                            TranscodingSession.ERROR_NONE);
                 }
             }
         } catch (Exception e) {
@@ -962,7 +969,8 @@ public class TranscodeHelper {
                                 c.getLong(4) /* width */,
                                 c.getLong(5) /* height */,
                                 false /*hit_anr*/,
-                                TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN);
+                                TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN,
+                                TranscodingSession.ERROR_NONE);
                     } else if (isTranscodeFileCached(path, ioPath)) {
                             MediaProviderStatsLog.write(
                                     TRANSCODING_DATA,
@@ -977,7 +985,8 @@ public class TranscodeHelper {
                                     c.getLong(4) /* width */,
                                     c.getLong(5) /* height */,
                                     false /*hit_anr*/,
-                                    TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN);
+                                    TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN,
+                                    TranscodingSession.ERROR_NONE);
                     } // else if file is not in cache, we'll log at read(2) when we transcode
                 }
             }

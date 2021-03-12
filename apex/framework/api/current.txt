@@ -18,6 +18,7 @@ package android.provider {
     method @NonNull public static String getVersion(@NonNull android.content.Context);
     method @NonNull public static String getVersion(@NonNull android.content.Context, @NonNull String);
     method @NonNull public static String getVolumeName(@NonNull android.net.Uri);
+    method public static boolean isCurrentSystemGallery(@NonNull android.content.ContentResolver, int, @NonNull String);
     method @Deprecated @NonNull public static android.net.Uri setIncludePending(@NonNull android.net.Uri);
     method @NonNull public static android.net.Uri setRequireOriginal(@NonNull android.net.Uri);
     field public static final String ACTION_IMAGE_CAPTURE = "android.media.action.IMAGE_CAPTURE";

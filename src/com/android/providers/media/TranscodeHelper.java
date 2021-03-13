@@ -25,6 +25,9 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 import static com.android.providers.media.MediaProvider.VolumeNotFoundException;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_CLIENT_TIMEOUT;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_SERVICE_ERROR;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_SESSOION_CANCELED;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__FAIL;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__SUCCESS;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED;
@@ -233,7 +236,8 @@ public class TranscodeHelper {
     private final SessionTiming mSessionTiming;
     @GuardedBy("mLock")
     private final Map<String, Integer> mAppCompatMediaCapabilities = new ArrayMap<>();
-
+    @GuardedBy("mLock")
+    private final Set<Integer> mTranscodingThrottledUids = new ArraySet<>();
     @GuardedBy("mLock")
     private boolean mIsTranscodeEnabled;
 
@@ -363,7 +367,7 @@ public class TranscodeHelper {
         }
     }
 
-    private void reportTranscodingResult(int uid, boolean success, int errorCode,
+    private void reportTranscodingResult(int uid, boolean success, int errorCode, int failureReason,
             long transcodingDurationMs,
             int transcodingReason, String src, String dst, boolean hasAnr) {
         BackgroundThread.getExecutor().execute(() -> {
@@ -385,7 +389,7 @@ public class TranscodeHelper {
                             c.getLong(2) /* width */,
                             c.getLong(3) /* height */,
                             hasAnr,
-                            TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN,
+                            failureReason,
                             errorCode);
                 }
             }
@@ -403,6 +407,7 @@ public class TranscodeHelper {
         boolean result = false;
         boolean hasAnr = false;
         int errorCode = TranscodingSession.ERROR_NONE;
+        int failureReason = TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN;
 
         try {
             synchronized (mLock) {
@@ -431,9 +436,11 @@ public class TranscodeHelper {
                 storageSession.addBlockedUid(uid);
             }
 
-            result = waitTranscodingResult(uid, src, transcodingSession, latch);
+            failureReason = waitTranscodingResult(uid, src, transcodingSession, latch);
             errorCode = transcodingSession.getErrorCode();
-            if (result) {
+            boolean success = failureReason == TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN;
+
+            if (success) {
                 updateTranscodeStatus(src, TRANSCODE_COMPLETE);
             } else {
                 logEvent("Transcoding failed for " + src + ". session: ", transcodingSession);
@@ -443,7 +450,14 @@ public class TranscodeHelper {
             }
             hasAnr = storageSession.hasAnr();
         } finally {
-            reportTranscodingResult(uid, result, errorCode,
+            if (errorCode == TranscodingSession.ERROR_DROPPED_BY_SERVICE) {
+                // If the transcoding service drops a request for a uid the uid will be denied
+                // transcoding access until the next boot
+                synchronized (mLock) {
+                    mTranscodingThrottledUids.add(uid);
+                }
+            }
+            reportTranscodingResult(uid, result, errorCode, failureReason,
                     SystemClock.elapsedRealtime() - startTime, reason,
                     src, dst, hasAnr);
         }
@@ -565,6 +579,13 @@ public class TranscodeHelper {
 
     @VisibleForTesting
     int doesAppNeedTranscoding(int uid, Bundle bundle, int fileFlags) {
+        synchronized (mLock) {
+            if (mTranscodingThrottledUids.contains(uid)) {
+                logVerbose("Transcoding throttled");
+                return 0;
+            }
+        }
+
         // Check explicit Bundle provided
         if (bundle != null) {
             if (bundle.getBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, false)) {
@@ -1090,7 +1111,14 @@ public class TranscodeHelper {
         return session;
     }
 
-    private boolean waitTranscodingResult(int uid, String src, TranscodingSession session,
+    /**
+     * Returns an {@link Integer} indicating whether the transcoding {@code session} was successful
+     * or not.
+     *
+     * @return {@link TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN} on success,
+     * otherwise indicates failure.
+     */
+    private int waitTranscodingResult(int uid, String src, TranscodingSession session,
             CountDownLatch latch) {
         UUID uuid = getTranscodeVolumeUuid();
         try {
@@ -1107,17 +1135,26 @@ public class TranscodeHelper {
             logEvent(waitStartLog, session);
 
             boolean latchResult = latch.await(timeout, TimeUnit.SECONDS);
-            boolean transcodeResult = session.getResult() == TranscodingSession.RESULT_SUCCESS;
+            int sessionResult = session.getResult();
+            boolean transcodeResult = sessionResult == TranscodingSession.RESULT_SUCCESS;
 
             String waitEndLog = "Transcoding wait end: " + src + ". Uid: " + uid + ". Timeout: "
                     + !latchResult + ". Success: " + transcodeResult;
             logEvent(waitEndLog, session);
 
-            return transcodeResult;
+            if (sessionResult == TranscodingSession.RESULT_SUCCESS) {
+                return TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN;
+            } else if (sessionResult == TranscodingSession.RESULT_CANCELED) {
+                return TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_SESSOION_CANCELED;
+            } else if (!latchResult) {
+                return TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_CLIENT_TIMEOUT;
+            } else {
+                return TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_SERVICE_ERROR;
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             Log.w(TAG, "Transcoding latch interrupted." + session);
-            return false;
+            return TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_CLIENT_TIMEOUT;
         } finally {
             if (uuid != null) {
                 // tid is 0 since we can't really get the apps tid over binder

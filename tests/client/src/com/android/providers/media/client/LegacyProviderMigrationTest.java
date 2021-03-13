@@ -241,6 +241,18 @@ public class LegacyProviderMigrationTest {
         doLegacy(mExternalDownloads, values);
     }
 
+    /**
+     * Test that migrating from legacy database with volume_name=NULL doesn't
+     * result in empty cursor when queried.
+     */
+    @Test
+    public void testMigrateNullVolumeName() throws Exception {
+        final ContentValues values = generateValues(FileColumns.MEDIA_TYPE_IMAGE,
+                "image/png", Environment.DIRECTORY_PICTURES);
+        values.remove(MediaColumns.VOLUME_NAME);
+        doLegacy(mExternalImages, values);
+    }
+
     @Test
     public void testLegacy_PlaylistMap() throws Exception {
         final Context context = InstrumentationRegistry.getTargetContext();

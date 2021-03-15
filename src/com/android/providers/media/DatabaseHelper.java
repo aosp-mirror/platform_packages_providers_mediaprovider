@@ -876,8 +876,16 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     final String data = c.getString(c.getColumnIndex(MediaColumns.DATA));
                     values.put(MediaColumns.DATA, data);
                     FileUtils.computeValuesFromData(values, /*isForFuse*/ false);
+                    final String volumeNameFromPath = values.getAsString(MediaColumns.VOLUME_NAME);
                     for (String column : sMigrateColumns) {
                         DatabaseUtils.copyFromCursorToContentValues(column, c, values);
+                    }
+                    final String volumeNameMigrated = values.getAsString(MediaColumns.VOLUME_NAME);
+                    // While upgrading from P OS or below, VOLUME_NAME can be NULL in legacy
+                    // database. When VOLUME_NAME is NULL, extract VOLUME_NAME from
+                    // MediaColumns.DATA
+                    if (volumeNameMigrated == null || volumeNameMigrated.isEmpty()) {
+                        values.put(MediaColumns.VOLUME_NAME, volumeNameFromPath);
                     }
 
                     final String volumePath = FileUtils.extractVolumePath(data);

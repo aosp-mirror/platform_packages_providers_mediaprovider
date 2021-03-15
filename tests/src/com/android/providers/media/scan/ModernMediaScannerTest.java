@@ -45,6 +45,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import android.Manifest;
+import android.app.UiAutomation;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -59,6 +60,7 @@ import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
+import android.util.Log;
 import android.util.Pair;
 
 import androidx.test.InstrumentationRegistry;
@@ -68,20 +70,26 @@ import com.android.providers.media.R;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 import com.android.providers.media.util.FileUtils;
 
+import com.google.common.io.ByteStreams;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.util.Optional;
 
 @RunWith(AndroidJUnit4.class)
 public class ModernMediaScannerTest {
     // TODO: scan directory-vs-files and confirm identical results
 
+    private static final String TAG = "ModernMediaScannerTest";
     private File mDir;
 
     private Context mIsolatedContext;
@@ -400,6 +408,41 @@ public class ModernMediaScannerTest {
             assertShouldScanPathAndIsPathHidden(false, false,
                     new File(prefix + "/Music/.thumbnails/meow"));
         }
+    }
+
+    private void assertVisibleFolder(File dir) throws Exception {
+        final File nomediaFile = new File(dir, ".nomedia");
+
+        if (!nomediaFile.getParentFile().exists()) {
+            assertTrue(nomediaFile.getParentFile().mkdirs());
+        }
+        try {
+            if (!nomediaFile.exists()) {
+                executeShellCommand("touch " + nomediaFile.getAbsolutePath());
+                assertTrue(nomediaFile.exists());
+            }
+            assertShouldScanPathAndIsPathHidden(true, false, dir);
+        } finally {
+            executeShellCommand("rm " + nomediaFile.getAbsolutePath());
+        }
+    }
+
+    /**
+     * b/168830497: Test that default folders and Camera folder are always visible
+     */
+    @Test
+    public void testVisibleDefaultFolders() throws Exception {
+        final File root = new File("storage/emulated/0");
+
+        // Top level directories should always be visible
+        for (String dirName : FileUtils.DEFAULT_FOLDER_NAMES) {
+            final File defaultFolder = new File(root, dirName);
+            assertVisibleFolder(defaultFolder);
+        }
+
+        // DCIM/Camera should always be visible
+        final File cameraDir = new File(root, Environment.DIRECTORY_DCIM + "/" + "Camera");
+        assertVisibleFolder(cameraDir);
     }
 
     private static void assertShouldScanDirectory(File file) {
@@ -879,6 +922,31 @@ public class ModernMediaScannerTest {
         }) {
             final File file = new File(path);
             assertTrue(isFileAlbumArt(file));
+        }
+    }
+
+    /**
+     * Executes a shell command.
+     */
+    public static String executeShellCommand(String command) throws IOException {
+        int attempt = 0;
+        while (attempt++ < 5) {
+            try {
+                return executeShellCommandInternal(command);
+            } catch (InterruptedIOException e) {
+                // Hmm, we had trouble executing the shell command; the best we
+                // can do is try again a few more times
+                Log.v(TAG, "Trouble executing " + command + "; trying again", e);
+            }
+        }
+        throw new IOException("Failed to execute " + command);
+    }
+
+    private static String executeShellCommandInternal(String cmd) throws IOException {
+        UiAutomation uiAutomation = InstrumentationRegistry.getInstrumentation().getUiAutomation();
+        try (FileInputStream output = new FileInputStream(
+                uiAutomation.executeShellCommand(cmd).getFileDescriptor())) {
+            return new String(ByteStreams.toByteArray(output));
         }
     }
 }

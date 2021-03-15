@@ -331,6 +331,13 @@ public class MediaProvider extends ContentProvider {
     @EnabledAfter(targetSdkVersion = android.os.Build.VERSION_CODES.R)
     static final long ENABLE_DEFERRED_SCAN = 180326732L;
 
+    /**
+     * Enable option to include database rows of files from recently unmounted
+     * volume in MediaProvider#query
+     */
+    @ChangeId
+    @EnabledAfter(targetSdkVersion = Build.VERSION_CODES.R)
+    static final long ENABLE_INCLUDE_ALL_VOLUMES = 182734110L;
 
     // Stolen from: UserHandle#getUserId
     private static final int PER_USER_RANGE = 100000;
@@ -4364,8 +4371,7 @@ public class MediaProvider extends ContentProvider {
 
         // Only accept ALL_VOLUMES parameter up until R, because we're not convinced we want
         // to commit to this as an API.
-        final boolean includeAllVolumes = (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) ?
-                "1".equals(uri.getQueryParameter(ALL_VOLUMES)) : false;
+        final boolean includeAllVolumes = shouldIncludeRecentlyUnmountedVolumes(uri, extras);
         final String callingPackage = getCallingPackageOrSelf();
 
         switch (match) {
@@ -4840,6 +4846,36 @@ public class MediaProvider extends ContentProvider {
         }
 
         return qb;
+    }
+
+    /**
+     * @return {@code true} if app requests to include database rows from
+     * recently unmounted volume.
+     * {@code false} otherwise.
+     */
+    private boolean shouldIncludeRecentlyUnmountedVolumes(Uri uri, Bundle extras) {
+        if (isFuseThread()) {
+            // File path requests don't require to query from unmounted volumes.
+            return false;
+        }
+
+        boolean isIncludeVolumesChangeEnabled = SdkLevel.isAtLeastS() &&
+                CompatChanges.isChangeEnabled(ENABLE_INCLUDE_ALL_VOLUMES, Binder.getCallingUid());
+        if ("1".equals(uri.getQueryParameter(ALL_VOLUMES))) {
+            // Support uri parameter only in R OS and below. Apps should use
+            // MediaStore#QUERY_ARG_RECENTLY_UNMOUNTED_VOLUMES on S OS onwards.
+            if (!isIncludeVolumesChangeEnabled) {
+                return true;
+            }
+            throw new IllegalArgumentException("Unsupported uri parameter \"all_volumes\"");
+        }
+        if (isIncludeVolumesChangeEnabled) {
+            // MediaStore#QUERY_ARG_INCLUDE_RECENTLY_UNMOUNTED_VOLUMES is only supported on S OS and
+            // for app targeting targetSdk>=S.
+            return extras.getBoolean(MediaStore.QUERY_ARG_INCLUDE_RECENTLY_UNMOUNTED_VOLUMES,
+                    false);
+        }
+        return false;
     }
 
     /**

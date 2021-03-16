@@ -876,8 +876,16 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     final String data = c.getString(c.getColumnIndex(MediaColumns.DATA));
                     values.put(MediaColumns.DATA, data);
                     FileUtils.computeValuesFromData(values, /*isForFuse*/ false);
+                    final String volumeNameFromPath = values.getAsString(MediaColumns.VOLUME_NAME);
                     for (String column : sMigrateColumns) {
                         DatabaseUtils.copyFromCursorToContentValues(column, c, values);
+                    }
+                    final String volumeNameMigrated = values.getAsString(MediaColumns.VOLUME_NAME);
+                    // While upgrading from P OS or below, VOLUME_NAME can be NULL in legacy
+                    // database. When VOLUME_NAME is NULL, extract VOLUME_NAME from
+                    // MediaColumns.DATA
+                    if (volumeNameMigrated == null || volumeNameMigrated.isEmpty()) {
+                        values.put(MediaColumns.VOLUME_NAME, volumeNameFromPath);
                     }
 
                     final String volumePath = FileUtils.extractVolumePath(data);
@@ -905,7 +913,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                             } catch (Exception e) {
                                 // We only have one shot to migrate data, so log and
                                 // keep marching forward.
-                                Log.wtf(TAG, "Couldn't migrate playlist file " + data);
+                                Log.w(TAG, "Couldn't migrate playlist file " + data);
                             }
 
                             values.put(FileColumns.DATA, playlistFilePath);
@@ -926,7 +934,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                             } catch (IOException e) {
                                 // We only have one shot to migrate data, so log and
                                 // keep marching forward
-                                Log.wtf(TAG, "Failed to rename " + values + "; continuing", e);
+                                Log.w(TAG, "Failed to rename " + values + "; continuing", e);
                                 FileUtils.computeValuesFromData(values, /*isForFuse*/ false);
                             }
                         }
@@ -957,7 +965,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             } catch (Exception e) {
                 // We have to guard ourselves against any weird behavior of the
                 // legacy provider by trying to catch everything
-                Log.wtf(TAG, "Failed migration from legacy provider", e);
+                Log.w(TAG, "Failed migration from legacy provider", e);
             }
 
             // We tried our best above to migrate everything we could, and we
@@ -1076,7 +1084,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             } catch (IOException e) {
                 // We only have one shot to migrate data, so log and
                 // keep marching forward.
-                Log.wtf(TAG, "Couldn't migrate playlist file " + playlistFile);
+                Log.w(TAG, "Couldn't migrate playlist file " + playlistFile);
             }
         } catch (RemoteException e) {
             throw new IllegalStateException(e);
@@ -1092,7 +1100,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 return c.getString(0);
             }
         } catch (Exception e) {
-            Log.wtf(TAG, "Exception occurred while querying for data file for " + uri, e);
+            Log.w(TAG, "Exception occurred while querying for data file for " + uri, e);
         }
         return null;
     }
@@ -1502,6 +1510,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     private static void updateAddModifier(SQLiteDatabase db, boolean internal) {
         db.execSQL("ALTER TABLE files ADD COLUMN _modifier INTEGER DEFAULT 0;");
+        // For existing files, set default value as _MODIFIER_MEDIA_SCAN
+        db.execSQL("UPDATE files SET _modifier=3;");
     }
 
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {

@@ -52,7 +52,7 @@ import android.media.ApplicationMediaCapabilities;
 import android.media.MediaFeature;
 import android.media.MediaFormat;
 import android.media.MediaTranscodeManager;
-import android.media.MediaTranscodeManager.TranscodingRequest;
+import android.media.MediaTranscodeManager.VideoTranscodingRequest;
 import android.media.MediaTranscodeManager.TranscodingRequest.MediaFormatResolver;
 import android.media.MediaTranscodeManager.TranscodingSession;
 import android.net.Uri;
@@ -1086,14 +1086,9 @@ public class TranscodeHelper {
 
         MediaFormat format = getVideoTrackFormat(src);
 
-        TranscodingRequest request =
-                new TranscodingRequest.Builder()
+        VideoTranscodingRequest request =
+                new VideoTranscodingRequest.Builder(uri, transcodeUri, format)
                         .setClientUid(uid)
-                        .setSourceUri(uri)
-                        .setDestinationUri(transcodeUri)
-                        .setType(MediaTranscodeManager.TRANSCODING_TYPE_VIDEO)
-                        .setPriority(MediaTranscodeManager.PRIORITY_REALTIME)
-                        .setVideoTrackFormat(format)
                         .build();
         TranscodingSession session = mMediaTranscodeManager.enqueueRequest(request,
                 ForegroundThread.getExecutor(),

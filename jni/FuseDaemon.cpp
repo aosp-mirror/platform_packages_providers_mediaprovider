@@ -495,6 +495,12 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
             std::thread t([=]() { fuse_inval(fuse->se, parent_ino, child_ino, node_name, path); });
             t.detach();
         }
+
+        // This updated value allows us correctly decide if to keep_cache and use direct_io during
+        // FUSE_OPEN. Between the last lookup and this lookup, we might have deleted a cached
+        // transcoded file on the lower fs. A subsequent transcode at FUSE_READ should ensure we
+        // don't reuse any stale transcode page cache content.
+        node->SetTransformsComplete(transforms_complete);
     }
     TRACE_NODE(node, req);
 
@@ -1044,12 +1050,13 @@ static handle* create_handle_for_node(struct fuse* fuse, const string& path, int
     bool redaction_needed = ri->isRedactionNeeded();
     handle* handle = nullptr;
     int transforms = node->GetTransforms();
+    bool transforms_complete = node->IsTransformsComplete();
     if (transforms_uid > 0) {
         CHECK(transforms);
     }
 
     if (fuse->passthrough) {
-        *keep_cache = 1;
+        *keep_cache = transforms_complete;
         // We only enabled passthrough iff these 2 conditions hold
         // 1. Redaction is not needed
         // 2. Node transforms are completed, e.g transcoding.
@@ -1058,10 +1065,9 @@ static handle* create_handle_for_node(struct fuse* fuse, const string& path, int
         // arbitrary bytes the first time around. However, if we ensure that transforms are
         // completed, then it's safe to use passthrough. Additionally, transcoded nodes never
         // require redaction so (2) implies (1)
-        handle = new struct handle(
-                fd, ri, true /* cached */,
-                !redaction_needed && node->IsTransformsComplete() /* passthrough */, uid,
-                transforms_uid);
+        handle = new struct handle(fd, ri, true /* cached */,
+                                   !redaction_needed && transforms_complete /* passthrough */, uid,
+                                   transforms_uid);
     } else {
         // Without fuse->passthrough, we don't want to use the FUSE VFS cache in two cases:
         // 1. When redaction is needed because app A with EXIF access might access
@@ -1087,7 +1093,7 @@ static handle* create_handle_for_node(struct fuse* fuse, const string& path, int
             // Purges stale page cache before open
             *keep_cache = 0;
         } else {
-            *keep_cache = 1;
+            *keep_cache = transforms_complete;
         }
         handle = new struct handle(fd, ri, !direct_io /* cached */, false /* passthrough */, uid,
                                    transforms_uid);
@@ -1280,7 +1286,7 @@ static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
             fuse_reply_err(req, EFAULT);
             return;
         }
-        node->SetTransformsComplete();
+        node->SetTransformsComplete(true);
     }
 
     fuse->fadviser.Record(h->fd, size);

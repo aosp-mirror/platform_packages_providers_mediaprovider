@@ -1478,7 +1478,7 @@ public class MediaProvider extends ContentProvider {
 
             if (transformsReason > 0) {
                 ioPath = mTranscodeHelper.getIoPath(path, uid);
-                transformsComplete = false;
+                transformsComplete = mTranscodeHelper.isTranscodeFileCached(path, ioPath);
                 transforms = FLAG_TRANSFORM_TRANSCODING;
             }
         }

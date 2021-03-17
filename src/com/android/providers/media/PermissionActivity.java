@@ -459,8 +459,9 @@ public class PermissionActivity extends Activity {
             final CharSequence text = getResources().getQuantityText(resId, count);
             return TextUtils.expandTemplate(text, String.valueOf(count));
         } else {
-            // We always need a string to prompt the user with
-            throw new IllegalStateException("Invalid resource: " + resName);
+            // Only some actions have a progress message string; it's okay if
+            // there isn't one defined
+            return null;
         }
     }
 

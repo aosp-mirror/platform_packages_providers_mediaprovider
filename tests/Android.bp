@@ -9,6 +9,7 @@ android_test_helper_app {
         "cts-install-lib",
     ],
     sdk_version: "test_current",
+    min_sdk_version: "30",
     test_suites: [
         "device-tests",
         "mts-mediaprovider",
@@ -26,6 +27,7 @@ android_test_helper_app {
         "cts-install-lib",
     ],
     sdk_version: "test_current",
+    min_sdk_version: "30",
     test_suites: [
         "device-tests",
         "mts-mediaprovider",
@@ -44,6 +46,7 @@ android_test_helper_app {
     ],
     sdk_version: "test_current",
     target_sdk_version: "28",
+    min_sdk_version: "30",
     test_suites: [
         "device-tests",
         "mts-mediaprovider",
@@ -120,6 +123,8 @@ android_test {
         ":MediaProviderTestAppWithoutPerms",
         ":LegacyMediaProviderTestApp",
     ],
+
+    min_sdk_version: "30",
 }
 
 filegroup {

@@ -285,7 +285,9 @@ class node {
         return transforms_complete_.load(std::memory_order_acquire);
     }
 
-    void SetTransformsComplete() { transforms_complete_.store(true, std::memory_order_release); }
+    void SetTransformsComplete(bool complete) {
+        transforms_complete_.store(complete, std::memory_order_release);
+    }
 
     node* GetParent() const {
         std::lock_guard<std::recursive_mutex> guard(*lock_);

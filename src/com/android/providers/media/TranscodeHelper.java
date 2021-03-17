@@ -27,7 +27,7 @@ import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_CLIENT_TIMEOUT;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_SERVICE_ERROR;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_SESSOION_CANCELED;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_SESSION_CANCELED;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__FAIL;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__SUCCESS;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED;
@@ -1140,7 +1140,7 @@ public class TranscodeHelper {
             if (sessionResult == TranscodingSession.RESULT_SUCCESS) {
                 return TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN;
             } else if (sessionResult == TranscodingSession.RESULT_CANCELED) {
-                return TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_SESSOION_CANCELED;
+                return TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_SESSION_CANCELED;
             } else if (!latchResult) {
                 return TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_CLIENT_TIMEOUT;
             } else {

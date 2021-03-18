@@ -234,12 +234,12 @@ public class SQLiteQueryBuilder {
         }
     }
 
-    /** Adds "rowid" to the projection map. */
-    public void allowRowidColumn() {
+    /** Adds {@code column} to the projection map. */
+    public void allowColumn(String column) {
         if (mProjectionMap == null) {
             mProjectionMap = new ArrayMap<>();
         }
-        mProjectionMap.put(ROWID_COLUMN, ROWID_COLUMN);
+        mProjectionMap.put(column, column);
     }
 
     /**
@@ -772,12 +772,18 @@ public class SQLiteQueryBuilder {
 
     private void enforceStrictColumns(@Nullable String[] projection) {
         Objects.requireNonNull(mProjectionMap, "No projection map defined");
+        if (!isStrictColumns()) {
+            return;
+        }
 
         computeProjection(projection);
     }
 
     private void enforceStrictColumns(@NonNull ContentValues values) {
         Objects.requireNonNull(mProjectionMap, "No projection map defined");
+        if (!isStrictColumns()) {
+            return;
+        }
 
         final ArrayMap<String, Object> rawValues = com.android.providers.media.util.DatabaseUtils
                 .getValues(values);
@@ -1043,7 +1049,10 @@ public class SQLiteQueryBuilder {
         if (column != null) {
             return column;
         } else {
-            throw new IllegalArgumentException("Invalid column " + userColumn);
+            if (isStrictColumns()) {
+                throw new IllegalArgumentException("Invalid column " + userColumn);
+            }
+            return userColumn;
         }
     }
 

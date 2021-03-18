@@ -5113,8 +5113,10 @@ public class MediaProvider extends ContentProvider {
         // Do this on a background thread, since we don't want to make binder
         // calls as part of a FUSE call.
         helper.postBackground(() -> {
-            getContext().getSystemService(DownloadManager.class)
-                    .onMediaStoreDownloadsDeleted(deletedDownloadIds);
+            DownloadManager dm = getContext().getSystemService(DownloadManager.class);
+            if (dm != null) {
+                dm.onMediaStoreDownloadsDeleted(deletedDownloadIds);
+            }
         });
     }
 

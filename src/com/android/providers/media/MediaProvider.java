@@ -138,6 +138,7 @@ import android.os.Environment;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.ParcelFileDescriptor.OnCloseListener;
+import android.os.Parcelable;
 import android.os.Process;
 import android.os.RemoteException;
 import android.os.SystemClock;
@@ -223,6 +224,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -230,6 +232,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -283,6 +286,7 @@ public class MediaProvider extends ContentProvider {
     private static final String DIRECTORY_MEDIA = "media";
     private static final String DIRECTORY_THUMBNAILS = ".thumbnails";
     private static final List<String> PRIVATE_SUBDIRECTORIES_ANDROID = Arrays.asList("data", "obb");
+    private static final String REDACTED_URI_ID_PREFIX = "RUID";
 
     /**
      * Hard-coded filename where the current value of
@@ -2736,6 +2740,11 @@ public class MediaProvider extends ContentProvider {
         return c;
     }
 
+    private boolean isUriSupportedForRedaction(Uri uri) {
+        final int match = matchUri(uri, true);
+        return REDACTED_URI_SUPPORTED_TYPES.contains(match);
+    }
+
     @Override
     public String getType(Uri url) {
         final int match = matchUri(url, true);
@@ -5143,6 +5152,63 @@ public class MediaProvider extends ContentProvider {
         });
     }
 
+    @Nullable
+    private Uri getRedactedUri(@NonNull Uri uri) {
+        if (!isUriSupportedForRedaction(uri)) {
+            return null;
+        }
+
+        DatabaseHelper helper;
+        try {
+            helper = getDatabaseForUri(uri);
+        } catch (VolumeNotFoundException e) {
+            throw e.rethrowAsIllegalArgumentException();
+        }
+
+        try (final Cursor c = helper.runWithoutTransaction(
+                (db) -> db.query("files",
+                        new String[]{FileColumns.REDACTED_URI_ID}, FileColumns._ID + "=?",
+                        new String[]{uri.getLastPathSegment()}, null, null, null))) {
+            // Database entry for uri not found.
+            if (!c.moveToFirst()) return null;
+
+            String redactedUriID = c.getString(c.getColumnIndex(FileColumns.REDACTED_URI_ID));
+            if (redactedUriID == null) {
+                // No redacted has even been created for this uri. Create a new redacted URI ID for
+                // the uri and store it in the DB.
+                redactedUriID = REDACTED_URI_ID_PREFIX + UUID.randomUUID().toString().replace("-",
+                        "");
+
+                ContentValues cv = new ContentValues();
+                cv.put(FileColumns.REDACTED_URI_ID, redactedUriID);
+                int rowsAffected = helper.runWithTransaction(
+                        (db) -> db.update("files", cv, FileColumns._ID + "=?",
+                                new String[]{uri.getLastPathSegment()}));
+                if (rowsAffected == 0) {
+                    // this shouldn't happen ideally, only reason this might happen is if the db
+                    // entry got deleted in b/w in which case we should return null.
+                    return null;
+                }
+            }
+
+            // Create and return a uri with ID = redactedUriID.
+            final Uri.Builder builder = ContentUris.removeId(uri).buildUpon();
+            builder.appendPath(redactedUriID);
+
+            return builder.build();
+        }
+    }
+
+    @NonNull
+    private List<Uri> getRedactedUri(@NonNull List<Uri> uris) {
+        ArrayList<Uri> redactedUris = new ArrayList<>();
+        for (Uri uri : uris) {
+            redactedUris.add(getRedactedUri(uri));
+        }
+
+        return redactedUris;
+    }
+
     @Override
     public Bundle call(String method, String arg, Bundle extras) {
         Trace.beginSection("call");
@@ -5295,6 +5361,35 @@ public class MediaProvider extends ContentProvider {
                     return res;
                 } catch (FileNotFoundException e) {
                     throw new IllegalArgumentException(e);
+                } finally {
+                    restoreLocalCallingIdentity(token);
+                }
+            }
+            case MediaStore.GET_REDACTED_MEDIA_URI_CALL: {
+                final Uri uri = extras.getParcelable(MediaStore.EXTRA_URI);
+                // NOTE: It is ok to update the DB and return a redacted URI for the cases when
+                // the user code only has read access, hence we don't check for write permission.
+                enforceCallingPermission(uri, Bundle.EMPTY, false);
+                final LocalCallingIdentity token = clearLocalCallingIdentity();
+                try {
+                    final Bundle res = new Bundle();
+                    res.putParcelable(MediaStore.EXTRA_URI, getRedactedUri(uri));
+                    return res;
+                } finally {
+                    restoreLocalCallingIdentity(token);
+                }
+            }
+            case MediaStore.GET_REDACTED_MEDIA_URI_LIST_CALL: {
+                final List<Uri> uris = extras.getParcelableArrayList(MediaStore.EXTRA_URI_LIST);
+                // NOTE: It is ok to update the DB and return a redacted URI for the cases when
+                // the user code only has read access, hence we don't check for write permission.
+                enforceCallingPermission(uris, false);
+                final LocalCallingIdentity token = clearLocalCallingIdentity();
+                try {
+                    final Bundle res = new Bundle();
+                    res.putParcelableArrayList(MediaStore.EXTRA_URI_LIST,
+                            (ArrayList<? extends Parcelable>) getRedactedUri(uris));
+                    return res;
                 } finally {
                     restoreLocalCallingIdentity(token);
                 }
@@ -8393,6 +8488,12 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    private void enforceCallingPermission(@NonNull Collection<Uri> uris, boolean forWrite) {
+        for (Uri uri : uris) {
+            enforceCallingPermission(uri, Bundle.EMPTY, forWrite);
+        }
+    }
+
     private void enforceCallingPermissionInternal(@NonNull Uri uri, @NonNull Bundle extras,
             boolean forWrite) {
         Objects.requireNonNull(uri);
@@ -8830,6 +8931,9 @@ public class MediaProvider extends ContentProvider {
 
     static final int DOWNLOADS = 800;
     static final int DOWNLOADS_ID = 801;
+
+    private static final HashSet<Integer> REDACTED_URI_SUPPORTED_TYPES = new HashSet<>(
+            Arrays.asList(AUDIO_MEDIA_ID, IMAGES_MEDIA_ID, VIDEO_MEDIA_ID, FILES_ID, DOWNLOADS_ID));
 
     private LocalUriMatcher mUriMatcher;
 

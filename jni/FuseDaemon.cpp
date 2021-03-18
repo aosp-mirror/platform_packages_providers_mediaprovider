@@ -118,6 +118,9 @@ const std::regex PATTERN_OWNED_PATH(
         "^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb)/([^/]+)(/?.*)?",
         std::regex_constants::icase);
 
+static constexpr char TRANSFORM_SYNTHETIC_DIR[] = "synthetic";
+static constexpr char TRANSFORM_TRANSCODE_DIR[] = "transcode";
+
 /*
  * In order to avoid double caching with fuse, call fadvise on the file handles
  * in the underlying file system. However, if this is done on every read/write,
@@ -262,6 +265,8 @@ struct fuse {
         return path;
     }
 
+    inline string GetTransformsDir() { return GetEffectiveRootPath() + "/.transforms"; }
+
     // Note that these two (FromInode / ToInode) conversion wrappers are required
     // because fuse_lowlevel_ops documents that the root inode is always one
     // (see FUSE_ROOT_ID in fuse_lowlevel.h). There are no particular requirements
@@ -310,6 +315,8 @@ struct fuse {
     // FUSE device id.
     std::atomic_uint dev;
 };
+
+enum class FuseOp { lookup, readdir, mknod, mkdir, create };
 
 static inline string get_name(node* n) {
     if (n) {
@@ -422,49 +429,95 @@ static std::string get_path(node* node) {
     return io_path.empty() ? node->BuildPath() : io_path;
 }
 
+// Returns true if the path resides under .transforms/synthetic.
+// NOTE: currently only file paths corresponding to redacted URIs reside under this folder. The path
+// itself never exists and just a link for transformation.
+static inline bool is_synthetic_path(const string& path, struct fuse* fuse) {
+    return android::base::StartsWithIgnoreCase(
+            path, fuse->GetTransformsDir() + "/" + TRANSFORM_SYNTHETIC_DIR);
+}
+
+static inline bool is_transforms_dir_path(const string& path, struct fuse* fuse) {
+    return android::base::StartsWithIgnoreCase(path, fuse->GetTransformsDir());
+}
+
+static std::unique_ptr<mediaprovider::fuse::FileLookupResult> validate_node_path(
+        const std::string& path, const std::string& name, fuse_req_t req, int* error_code,
+        struct fuse_entry_param* e, const FuseOp op) {
+    struct fuse* fuse = get_fuse(req);
+    const struct fuse_ctx* ctx = fuse_req_ctx(req);
+    memset(e, 0, sizeof(*e));
+
+    const bool synthetic_path = is_synthetic_path(path, fuse);
+    if (lstat(path.c_str(), &e->attr) < 0 && !(op == FuseOp::lookup && synthetic_path)) {
+        *error_code = errno;
+        return nullptr;
+    }
+
+    if (is_transforms_dir_path(path, fuse)) {
+        if (op == FuseOp::lookup) {
+            // Lookups are only allowed under .transforms/synthetic dir
+            if (!(android::base::EqualsIgnoreCase(path, fuse->GetTransformsDir()) ||
+                  android::base::StartsWithIgnoreCase(
+                          path, fuse->GetTransformsDir() + "/" + TRANSFORM_SYNTHETIC_DIR))) {
+                *error_code = ENONET;
+                return nullptr;
+            }
+        } else {
+            // user-code is only allowed to make lookups under .transforms dir, and that too only
+            // under .transforms/synthetic dir
+            *error_code = ENOENT;
+            return nullptr;
+        }
+    }
+
+    if (S_ISDIR(e->attr.st_mode)) {
+        // now that we have reached this point, ops on directories are safe and require no
+        // transformation.
+        return std::make_unique<mediaprovider::fuse::FileLookupResult>(0, 0, 0, true, false, "");
+    }
+
+    // Handle potential file transforms
+    std::unique_ptr<mediaprovider::fuse::FileLookupResult> file_lookup_result =
+            fuse->mp->FileLookup(path, req->ctx.uid, req->ctx.pid);
+
+    if (!file_lookup_result) {
+        // Fail lookup if we can't fetch FileLookupResult for path
+        LOG(WARNING) << "Failed to fetch FileLookupResult for " << path;
+        *error_code = ENOENT;
+        return nullptr;
+    }
+
+    const string& io_path = file_lookup_result->io_path;
+    // Update size with io_path size if io_path is not same as path
+    if (!io_path.empty() && (io_path != path) && (lstat(io_path.c_str(), &e->attr) < 0)) {
+        *error_code = errno;
+        return nullptr;
+    }
+
+    return file_lookup_result;
+}
+
 static node* make_node_entry(fuse_req_t req, node* parent, const string& name, const string& path,
-                             struct fuse_entry_param* e, int* error_code) {
+                             struct fuse_entry_param* e, int* error_code, const FuseOp op) {
     struct fuse* fuse = get_fuse(req);
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     node* node;
 
     memset(e, 0, sizeof(*e));
-    if (lstat(path.c_str(), &e->attr) < 0) {
-        *error_code = errno;
-        return NULL;
+
+    std::unique_ptr<mediaprovider::fuse::FileLookupResult> file_lookup_result =
+            validate_node_path(path, name, req, error_code, e, op);
+    if (!file_lookup_result) {
+        // Fail lookup if we can't validate |path, |errno| would have already been set
+        return nullptr;
     }
 
-    bool should_invalidate = false;
-    bool transforms_complete = true;
-    int transforms = 0;
-    int transforms_reason = 0;
-    string io_path;
-
-    if (S_ISREG(e->attr.st_mode)) {
-        // Handle potential file transforms
-        std::unique_ptr<mediaprovider::fuse::FileLookupResult> file_lookup_result =
-                fuse->mp->FileLookup(path, req->ctx.uid, req->ctx.pid);
-
-        if (!file_lookup_result) {
-            // Fail lookup if we can't fetch FileLookupResult for path
-            LOG(WARNING) << "Failed to fetch FileLookupResult for " << name;
-            *error_code = ENOENT;
-            return NULL;
-        }
-
-        transforms = file_lookup_result->transforms;
-        io_path = file_lookup_result->io_path;
-        transforms_complete = file_lookup_result->transforms_complete;
-        transforms_reason = file_lookup_result->transforms_reason;
-        // Invalidate if the inode supports transforms so that we always get a lookup into userspace
-        should_invalidate = file_lookup_result->transforms_supported;
-
-        // Update size with io_path size if io_path is not same as path
-        if (!io_path.empty() && (io_path != path) && (lstat(io_path.c_str(), &e->attr) < 0)) {
-            *error_code = errno;
-            return NULL;
-        }
-    }
+    const bool should_invalidate = file_lookup_result->transforms_supported;
+    const bool transforms_complete = file_lookup_result->transforms_complete;
+    const int transforms = file_lookup_result->transforms;
+    const int transforms_reason = file_lookup_result->transforms_reason;
+    const string& io_path = file_lookup_result->io_path;
 
     node = parent->LookupChildByName(name, true /* acquire */, transforms);
     if (!node) {
@@ -590,7 +643,7 @@ static bool is_app_accessible_path(MediaProviderWrapper* mp, const string& path,
 
 static std::regex storage_emulated_regex("^\\/storage\\/emulated\\/([0-9]+)");
 static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
-                       struct fuse_entry_param* e, int* error_code) {
+                       struct fuse_entry_param* e, int* error_code, const FuseOp op) {
     struct fuse* fuse = get_fuse(req);
     node* parent_node = fuse->FromInode(parent);
     if (!parent_node) {
@@ -605,16 +658,9 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
         return nullptr;
     }
 
-    string child_path = parent_path + "/" + name;
-
-    if (android::base::EqualsIgnoreCase(fuse->GetEffectiveRootPath() + "/.transforms", child_path)) {
-        // Hide .transforms directory from direct FUSE access
-        *error_code = ENOENT;
-        return nullptr;
-    }
-
     TRACE_NODE(parent_node, req);
 
+    const string child_path = parent_path + "/" + name;
     std::smatch match;
     std::regex_search(child_path, match, storage_emulated_regex);
 
@@ -629,7 +675,8 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
             return nullptr;
         }
     }
-    return make_node_entry(req, parent_node, name, child_path, e, error_code);
+
+    return make_node_entry(req, parent_node, name, child_path, e, error_code, op);
 }
 
 static void pf_lookup(fuse_req_t req, fuse_ino_t parent, const char* name) {
@@ -637,7 +684,7 @@ static void pf_lookup(fuse_req_t req, fuse_ino_t parent, const char* name) {
     struct fuse_entry_param e;
 
     int error_code = 0;
-    if (do_lookup(req, parent, name, &e, &error_code)) {
+    if (do_lookup(req, parent, name, &e, &error_code, FuseOp::lookup)) {
         fuse_reply_entry(req, &e);
     } else {
         CHECK(error_code != 0);
@@ -850,7 +897,7 @@ static void pf_mknod(fuse_req_t req,
 
     int error_code = 0;
     struct fuse_entry_param e;
-    if (make_node_entry(req, parent_node, name, child_path, &e, &error_code)) {
+    if (make_node_entry(req, parent_node, name, child_path, &e, &error_code, FuseOp::mknod)) {
         fuse_reply_entry(req, &e);
     } else {
         CHECK(error_code != 0);
@@ -894,7 +941,7 @@ static void pf_mkdir(fuse_req_t req,
 
     int error_code = 0;
     struct fuse_entry_param e;
-    if (make_node_entry(req, parent_node, name, child_path, &e, &error_code)) {
+    if (make_node_entry(req, parent_node, name, child_path, &e, &error_code, FuseOp::mkdir)) {
         fuse_reply_entry(req, &e);
     } else {
         CHECK(error_code != 0);
@@ -945,6 +992,14 @@ static void pf_rmdir(fuse_req_t req, fuse_ino_t parent, const char* name) {
         fuse_reply_err(req, ENOENT);
         return;
     }
+
+    if (is_transforms_dir_path(parent_path, fuse)) {
+        // .transforms is a special daemon controlled dir so apps shouldn't be able to see it via
+        // readdir, and any dir operations attempted on it should fail
+        fuse_reply_err(req, ENOENT);
+        return;
+    }
+
     TRACE_NODE(parent_node, req);
 
     const string child_path = parent_path + "/" + name;
@@ -989,6 +1044,12 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
     const struct fuse_ctx* ctx = fuse_req_ctx(req);
     const string old_parent_path = old_parent_node->BuildPath();
     if (!is_app_accessible_path(fuse->mp, old_parent_path, ctx->uid)) {
+        return ENOENT;
+    }
+
+    if (is_transforms_dir_path(old_parent_path, fuse)) {
+        // .transforms is a special daemon controlled dir so apps shouldn't be able to see it via
+        // readdir, and any dir operations attempted on it should fail
         return ENOENT;
     }
 
@@ -1504,7 +1565,7 @@ static void do_readdir_common(fuse_req_t req,
         h->next_off++;
         if (plus) {
             int error_code = 0;
-            if (do_lookup(req, ino, de->d_name.c_str(), &e, &error_code)) {
+            if (do_lookup(req, ino, de->d_name.c_str(), &e, &error_code, FuseOp::readdir)) {
                 entry_size = fuse_add_direntry_plus(req, buf + used, len - used, de->d_name.c_str(),
                                                     &e, h->next_off);
             } else {
@@ -1724,7 +1785,8 @@ static void pf_create(fuse_req_t req,
 
     int error_code = 0;
     struct fuse_entry_param e;
-    node* node = make_node_entry(req, parent_node, name, child_path, &e, &error_code);
+    node* node =
+            make_node_entry(req, parent_node, name, child_path, &e, &error_code, FuseOp::create);
     TRACE_NODE(node, req);
     if (!node) {
         CHECK(error_code != 0);

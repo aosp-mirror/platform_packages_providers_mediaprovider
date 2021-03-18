@@ -27,7 +27,7 @@ import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_CLIENT_TIMEOUT;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_SERVICE_ERROR;
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_SESSION_CANCELED;
+import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_SESSOION_CANCELED;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__FAIL;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__SUCCESS;
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA__TRANSCODE_RESULT__UNDEFINED;
@@ -52,7 +52,7 @@ import android.media.ApplicationMediaCapabilities;
 import android.media.MediaFeature;
 import android.media.MediaFormat;
 import android.media.MediaTranscodeManager;
-import android.media.MediaTranscodeManager.VideoTranscodingRequest;
+import android.media.MediaTranscodeManager.TranscodingRequest;
 import android.media.MediaTranscodeManager.TranscodingRequest.MediaFormatResolver;
 import android.media.MediaTranscodeManager.TranscodingSession;
 import android.net.Uri;
@@ -1086,9 +1086,14 @@ public class TranscodeHelper {
 
         MediaFormat format = getVideoTrackFormat(src);
 
-        VideoTranscodingRequest request =
-                new VideoTranscodingRequest.Builder(uri, transcodeUri, format)
+        TranscodingRequest request =
+                new TranscodingRequest.Builder()
                         .setClientUid(uid)
+                        .setSourceUri(uri)
+                        .setDestinationUri(transcodeUri)
+                        .setType(MediaTranscodeManager.TRANSCODING_TYPE_VIDEO)
+                        .setPriority(MediaTranscodeManager.PRIORITY_REALTIME)
+                        .setVideoTrackFormat(format)
                         .build();
         TranscodingSession session = mMediaTranscodeManager.enqueueRequest(request,
                 ForegroundThread.getExecutor(),
@@ -1140,7 +1145,7 @@ public class TranscodeHelper {
             if (sessionResult == TranscodingSession.RESULT_SUCCESS) {
                 return TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN;
             } else if (sessionResult == TranscodingSession.RESULT_CANCELED) {
-                return TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_SESSION_CANCELED;
+                return TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_SESSOION_CANCELED;
             } else if (!latchResult) {
                 return TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_CLIENT_TIMEOUT;
             } else {

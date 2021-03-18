@@ -39,7 +39,7 @@ package android.provider {
     field public static final String EXTRA_MEDIA_CAPABILITIES_UID = "android.provider.extra.MEDIA_CAPABILITIES_UID";
     field public static final String EXTRA_MEDIA_FOCUS = "android.intent.extra.focus";
     field public static final String EXTRA_MEDIA_GENRE = "android.intent.extra.genre";
-    field public static final String EXTRA_MEDIA_PLAYLIST = "android.intent.extra.playlist";
+    field @Deprecated public static final String EXTRA_MEDIA_PLAYLIST = "android.intent.extra.playlist";
     field public static final String EXTRA_MEDIA_RADIO_CHANNEL = "android.intent.extra.radio_channel";
     field public static final String EXTRA_MEDIA_TITLE = "android.intent.extra.title";
     field public static final String EXTRA_OUTPUT = "output";
@@ -184,33 +184,33 @@ package android.provider {
     field public static final String RECORD_SOUND_ACTION = "android.provider.MediaStore.RECORD_SOUND";
   }
 
-  public static final class MediaStore.Audio.Playlists implements android.provider.BaseColumns android.provider.MediaStore.Audio.PlaylistsColumns {
-    ctor public MediaStore.Audio.Playlists();
-    method public static android.net.Uri getContentUri(String);
-    field public static final String CONTENT_TYPE = "vnd.android.cursor.dir/playlist";
-    field public static final String DEFAULT_SORT_ORDER = "name";
-    field public static final String ENTRY_CONTENT_TYPE = "vnd.android.cursor.item/playlist";
-    field public static final android.net.Uri EXTERNAL_CONTENT_URI;
-    field public static final android.net.Uri INTERNAL_CONTENT_URI;
+  @Deprecated public static final class MediaStore.Audio.Playlists implements android.provider.BaseColumns android.provider.MediaStore.Audio.PlaylistsColumns {
+    ctor @Deprecated public MediaStore.Audio.Playlists();
+    method @Deprecated public static android.net.Uri getContentUri(String);
+    field @Deprecated public static final String CONTENT_TYPE = "vnd.android.cursor.dir/playlist";
+    field @Deprecated public static final String DEFAULT_SORT_ORDER = "name";
+    field @Deprecated public static final String ENTRY_CONTENT_TYPE = "vnd.android.cursor.item/playlist";
+    field @Deprecated public static final android.net.Uri EXTERNAL_CONTENT_URI;
+    field @Deprecated public static final android.net.Uri INTERNAL_CONTENT_URI;
   }
 
-  public static final class MediaStore.Audio.Playlists.Members implements android.provider.MediaStore.Audio.AudioColumns {
-    ctor public MediaStore.Audio.Playlists.Members();
-    method public static android.net.Uri getContentUri(String, long);
-    method public static boolean moveItem(android.content.ContentResolver, long, int, int);
-    field public static final String AUDIO_ID = "audio_id";
-    field public static final String CONTENT_DIRECTORY = "members";
-    field public static final String DEFAULT_SORT_ORDER = "play_order";
-    field public static final String PLAYLIST_ID = "playlist_id";
-    field public static final String PLAY_ORDER = "play_order";
-    field public static final String _ID = "_id";
+  @Deprecated public static final class MediaStore.Audio.Playlists.Members implements android.provider.MediaStore.Audio.AudioColumns {
+    ctor @Deprecated public MediaStore.Audio.Playlists.Members();
+    method @Deprecated public static android.net.Uri getContentUri(String, long);
+    method @Deprecated public static boolean moveItem(android.content.ContentResolver, long, int, int);
+    field @Deprecated public static final String AUDIO_ID = "audio_id";
+    field @Deprecated public static final String CONTENT_DIRECTORY = "members";
+    field @Deprecated public static final String DEFAULT_SORT_ORDER = "play_order";
+    field @Deprecated public static final String PLAYLIST_ID = "playlist_id";
+    field @Deprecated public static final String PLAY_ORDER = "play_order";
+    field @Deprecated public static final String _ID = "_id";
   }
 
-  public static interface MediaStore.Audio.PlaylistsColumns extends android.provider.MediaStore.MediaColumns {
+  @Deprecated public static interface MediaStore.Audio.PlaylistsColumns extends android.provider.MediaStore.MediaColumns {
     field @Deprecated public static final String DATA = "_data";
-    field public static final String DATE_ADDED = "date_added";
-    field public static final String DATE_MODIFIED = "date_modified";
-    field public static final String NAME = "name";
+    field @Deprecated public static final String DATE_ADDED = "date_added";
+    field @Deprecated public static final String DATE_MODIFIED = "date_modified";
+    field @Deprecated public static final String NAME = "name";
   }
 
   public static final class MediaStore.Audio.Radio {
@@ -242,7 +242,7 @@ package android.provider {
     field public static final int MEDIA_TYPE_DOCUMENT = 6; // 0x6
     field public static final int MEDIA_TYPE_IMAGE = 1; // 0x1
     field public static final int MEDIA_TYPE_NONE = 0; // 0x0
-    field public static final int MEDIA_TYPE_PLAYLIST = 4; // 0x4
+    field @Deprecated public static final int MEDIA_TYPE_PLAYLIST = 4; // 0x4
     field public static final int MEDIA_TYPE_SUBTITLE = 5; // 0x5
     field public static final int MEDIA_TYPE_VIDEO = 3; // 0x3
     field public static final String MIME_TYPE = "mime_type";

@@ -349,7 +349,13 @@ public final class MediaStore {
     public static final String EXTRA_MEDIA_GENRE = "android.intent.extra.genre";
     /**
      * The name of the Intent-extra used to define the playlist.
+     *
+     * @deprecated Android playlists are now deprecated. We will keep the current
+     *             functionality for compatibility resons, but we will no longer take feature
+     *             request. We do not advise adding new usages of Android Playlists. M3U files can
+     *             be used as an alternative.
      */
+    @Deprecated
     public static final String EXTRA_MEDIA_PLAYLIST = "android.intent.extra.playlist";
     /**
      * The name of the Intent-extra used to define the radio channel.
@@ -1803,7 +1809,13 @@ public final class MediaStore {
             /**
              * Constant for the {@link #MEDIA_TYPE} column indicating that file
              * is a playlist file.
+             *
+             * @deprecated Android playlists are now deprecated. We will keep the current
+             *             functionality for compatibility resons, but we will no longer take
+             *             feature request. We do not advise adding new usages of Android Playlists.
+             *             M3U files can be used as an alternative.
              */
+            @Deprecated
             public static final int MEDIA_TYPE_PLAYLIST = 4;
 
             /**
@@ -3099,7 +3111,13 @@ public final class MediaStore {
 
         /**
          * Audio playlist metadata columns.
+         *
+         * @deprecated Android playlists are now deprecated. We will keep the current
+         *             functionality for compatibility resons, but we will no longer take
+         *             feature request. We do not advise adding new usages of Android Playlists.
+         *             M3U files can be used as an alternative.
          */
+        @Deprecated
         public interface PlaylistsColumns extends MediaColumns {
             /**
              * The name of the playlist
@@ -3143,7 +3161,13 @@ public final class MediaStore {
 
         /**
          * Contains playlists for audio files
+         *
+         * @deprecated Android playlists are now deprecated. We will keep the current
+         *             functionality for compatibility resons, but we will no longer take
+         *             feature request. We do not advise adding new usages of Android Playlists.
+         *             M3U files can be used as an alternative.
          */
+        @Deprecated
         public static final class Playlists implements BaseColumns,
                 PlaylistsColumns {
             /**

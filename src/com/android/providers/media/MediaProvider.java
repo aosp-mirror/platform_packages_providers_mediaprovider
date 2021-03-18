@@ -138,6 +138,7 @@ import android.os.Environment;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.ParcelFileDescriptor.OnCloseListener;
+import android.os.Parcelable;
 import android.os.Process;
 import android.os.RemoteException;
 import android.os.SystemClock;
@@ -5143,6 +5144,16 @@ public class MediaProvider extends ContentProvider {
         });
     }
 
+    @Nullable
+    private Uri getRedactedUri(@NonNull Uri uri) {
+        return uri;
+    }
+
+    @NonNull
+    private List<Uri> getRedactedUri(@NonNull List<Uri> uris) {
+        return uris;
+    }
+
     @Override
     public Bundle call(String method, String arg, Bundle extras) {
         Trace.beginSection("call");
@@ -5295,6 +5306,35 @@ public class MediaProvider extends ContentProvider {
                     return res;
                 } catch (FileNotFoundException e) {
                     throw new IllegalArgumentException(e);
+                } finally {
+                    restoreLocalCallingIdentity(token);
+                }
+            }
+            case MediaStore.GET_REDACTED_MEDIA_URI_CALL: {
+                final Uri uri = extras.getParcelable(MediaStore.EXTRA_URI);
+                // NOTE: It is ok to update the DB and return a redacted URI for the cases when
+                // the user code only has read access, hence we don't check for write permission.
+                enforceCallingPermission(uri, Bundle.EMPTY, false);
+                final LocalCallingIdentity token = clearLocalCallingIdentity();
+                try {
+                    final Bundle res = new Bundle();
+                    res.putParcelable(MediaStore.EXTRA_URI, getRedactedUri(uri));
+                    return res;
+                } finally {
+                    restoreLocalCallingIdentity(token);
+                }
+            }
+            case MediaStore.GET_REDACTED_MEDIA_URI_LIST_CALL: {
+                final List<Uri> uris = extras.getParcelableArrayList(MediaStore.EXTRA_URI_LIST);
+                // NOTE: It is ok to update the DB and return a redacted URI for the cases when
+                // the user code only has read access, hence we don't check for write permission.
+                enforceCallingPermission(uris, false);
+                final LocalCallingIdentity token = clearLocalCallingIdentity();
+                try {
+                    final Bundle res = new Bundle();
+                    res.putParcelableArrayList(MediaStore.EXTRA_URI_LIST,
+                            (ArrayList<? extends Parcelable>) getRedactedUri(uris));
+                    return res;
                 } finally {
                     restoreLocalCallingIdentity(token);
                 }
@@ -8390,6 +8430,12 @@ public class MediaProvider extends ContentProvider {
             enforceCallingPermissionInternal(uri, extras, forWrite);
         } finally {
             Trace.endSection();
+        }
+    }
+
+    private void enforceCallingPermission(@NonNull Collection<Uri> uris, boolean forWrite) {
+        for (Uri uri : uris) {
+            enforceCallingPermission(uri, Bundle.EMPTY, forWrite);
         }
     }
 

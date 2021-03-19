@@ -56,6 +56,7 @@ import android.os.CancellationSignal;
 import android.os.Environment;
 import android.os.OperationCanceledException;
 import android.os.ParcelFileDescriptor;
+import android.os.Parcelable;
 import android.os.RemoteException;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
@@ -208,6 +209,13 @@ public final class MediaStore {
     public static final String GET_DOCUMENT_URI_CALL = "get_document_uri";
     /** {@hide} */
     public static final String GET_MEDIA_URI_CALL = "get_media_uri";
+
+    /** {@hide} */
+    public static final String GET_REDACTED_MEDIA_URI_CALL = "get_redacted_media_uri";
+    /** {@hide} */
+    public static final String GET_REDACTED_MEDIA_URI_LIST_CALL = "get_redacted_media_uri_list";
+    /** {@hide} */
+    public static final String EXTRA_URI_LIST = "uri_list";
 
     /** {@hide} */
     public static final String EXTRA_URI = "uri";
@@ -1894,10 +1902,20 @@ public final class MediaStore {
             /**
              * Indexed value of {@link MediaMetadataRetriever#METADATA_KEY_VIDEO_CODEC_TYPE}
              * extracted from the video file. This value be null for non-video files.
+             *
              * @hide
              */
             // @Column(value = Cursor.FIELD_TYPE_INTEGER)
             public static final String _VIDEO_CODEC_TYPE = "_video_codec_type";
+
+            /**
+             * Redacted Uri-ID corresponding to this DB entry. The value will be null if no
+             * redacted uri has ever been created for this uri.
+             *
+             * @hide
+             */
+            // @Column(value = Cursor.FIELD_TYPE_STRING, readOnly = true)
+            public static final String REDACTED_URI_ID = "redacted_uri_id";
         }
     }
 
@@ -4205,6 +4223,73 @@ public final class MediaStore {
         in.putInt(EXTRA_IS_SYSTEM_GALLERY_UID, uid);
         final Bundle out = resolver.call(AUTHORITY, IS_SYSTEM_GALLERY_CALL, packageName, in);
         return out.getBoolean(EXTRA_IS_SYSTEM_GALLERY_RESPONSE);
+    }
+
+    /**
+     * Returns an EXIF redacted version of {@code uri} i.e. a {@link Uri} with metadata such as
+     * location, GPS datestamp etc. redacted from the EXIF headers.
+     * <p>
+     * A redacted Uri can be used to share a file with another application wherein exposing
+     * sensitive information in EXIF headers is not desirable.
+     * Note:
+     * 1. Redacted uris cannot be granted write access and can neither be used to perform any kind
+     * of write operations.
+     * 2. To get a redacted uri the caller must hold read permission to {@code uri}.
+     *
+     * @param resolver The {@link ContentResolver} used to connect with
+     * {@link MediaStore#AUTHORITY}. Typically this value is gotten from
+     * {@link Context#getContentResolver()}
+     * @param uri the {@link Uri} Uri to convert
+     * @return redacted version of the {@code uri}. Returns {@code null} when the given
+     * {@link Uri} could not be found or is unsupported
+     * @throws SecurityException if the caller doesn't have the read access to {@code uri}
+     * @see #getRedactedUri(ContentResolver, List)
+     */
+    @Nullable
+    public static Uri getRedactedUri(@NonNull ContentResolver resolver, @NonNull Uri uri) {
+        try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+            final Bundle in = new Bundle();
+            in.putParcelable(EXTRA_URI, uri);
+            final Bundle out = client.call(GET_REDACTED_MEDIA_URI_CALL, null, in);
+            return out.getParcelable(EXTRA_URI);
+        } catch (RemoteException e) {
+            throw e.rethrowAsRuntimeException();
+        }
+    }
+
+    /**
+     * Returns a list of EXIF redacted version of {@code uris} i.e. a {@link Uri} with metadata
+     * such as location, GPS datestamp etc. redacted from the EXIF headers.
+     * <p>
+     * A redacted Uri can be used to share a file with another application wherein exposing
+     * sensitive information in EXIF headers is not desirable.
+     * Note:
+     * 1. Order of the returned uris follow the order of the {@code uris}.
+     * 2. Redacted uris cannot be granted write access and can neither be used to perform any kind
+     * of write operations.
+     * 3. To get a redacted uri the caller must hold read permission to its corresponding uri.
+     *
+     * @param resolver The {@link ContentResolver} used to connect with
+     * {@link MediaStore#AUTHORITY}. Typically this value is gotten from
+     * {@link Context#getContentResolver()}
+     * @param uris the list of {@link Uri} Uri to convert
+     * @return a list with redacted version of {@code uris}, in the same order. Returns {@code null}
+     * when the corresponding {@link Uri} could not be found or is unsupported
+     * @throws SecurityException if the caller doesn't have the read access to all the elements
+     * in {@code uris}
+     * @see #getRedactedUri(ContentResolver, Uri)
+     */
+    @NonNull
+    public static List<Uri> getRedactedUri(@NonNull ContentResolver resolver,
+            @NonNull List<Uri> uris) {
+        try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+            final Bundle in = new Bundle();
+            in.putParcelableArrayList(EXTRA_URI_LIST, (ArrayList<? extends Parcelable>) uris);
+            final Bundle out = client.call(GET_REDACTED_MEDIA_URI_LIST_CALL, null, in);
+            return out.getParcelableArrayList(EXTRA_URI_LIST);
+        } catch (RemoteException e) {
+            throw e.rethrowAsRuntimeException();
+        }
     }
 
     /** {@hide} */

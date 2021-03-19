@@ -14,6 +14,8 @@ package android.provider {
     method @Nullable public static android.net.Uri getMediaUri(@NonNull android.content.Context, @NonNull android.net.Uri);
     method @NonNull public static android.os.ParcelFileDescriptor getOriginalMediaFormatFileDescriptor(@NonNull android.content.Context, @NonNull android.os.ParcelFileDescriptor) throws java.io.IOException;
     method @NonNull public static java.util.Set<java.lang.String> getRecentExternalVolumeNames(@NonNull android.content.Context);
+    method @Nullable public static android.net.Uri getRedactedUri(@NonNull android.content.ContentResolver, @NonNull android.net.Uri);
+    method @NonNull public static java.util.List<android.net.Uri> getRedactedUri(@NonNull android.content.ContentResolver, @NonNull java.util.List<android.net.Uri>);
     method public static boolean getRequireOriginal(@NonNull android.net.Uri);
     method @NonNull public static String getVersion(@NonNull android.content.Context);
     method @NonNull public static String getVersion(@NonNull android.content.Context, @NonNull String);

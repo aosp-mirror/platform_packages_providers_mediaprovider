@@ -743,6 +743,26 @@ public final class MediaStore {
     public static final String QUERY_ARG_DEFER_SCAN = "android:query-arg-defer-scan";
 
     /**
+     * Flag that requests {@link ContentResolver#query} to include content from
+     * recently unmounted volumes.
+     * <p>
+     * When the flag is set, {@link ContentResolver#query} will return content
+     * from all volumes(i.e., both mounted and recently unmounted volume whose
+     * content is still held by MediaProvider).
+     * <p>
+     * Note that the query result doesn't provide any hint for content from
+     * unmounted volume. It's strongly recommended to use default query to
+     * avoid accessing/operating on the content that are not available on the
+     * device.
+     * <p>
+     * The flag is useful for apps which manage their own database and
+     * query MediaStore in order to synchronize between MediaStore database
+     * and their own database.
+     */
+    public static final String QUERY_ARG_INCLUDE_RECENTLY_UNMOUNTED_VOLUMES =
+            "android:query-arg-recently-unmounted-volumes";
+
+    /**
      * Specify how {@link MediaColumns#IS_PENDING} items should be filtered when
      * performing a {@link MediaStore} operation.
      * <p>

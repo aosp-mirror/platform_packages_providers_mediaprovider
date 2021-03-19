@@ -2632,6 +2632,15 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token = clearLocalCallingIdentity(
                 LocalCallingIdentity.fromExternal(getContext(), uid));
 
+        if(isRedactedUri(uri)) {
+            if((modeFlags & Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != 0) {
+                // we don't allow write grants on redacted uris.
+                return PackageManager.PERMISSION_DENIED;
+            }
+
+            uri = getUriForRedactedUri(uri);
+        }
+
         try {
             final boolean allowHidden = isCallingPackageAllowedHidden();
             final int table = matchUri(uri, allowHidden);
@@ -5126,6 +5135,11 @@ public class MediaProvider extends ContentProvider {
             throws FallbackException {
         extras = (extras != null) ? extras : new Bundle();
 
+        if (isRedactedUri(uri)) {
+            // we don't support deletion on redacted uris.
+            return 0;
+        }
+
         // INCLUDED_DEFAULT_DIRECTORIES extra should only be set inside MediaProvider.
         extras.remove(INCLUDED_DEFAULT_DIRECTORIES);
 
@@ -5133,7 +5147,7 @@ public class MediaProvider extends ContentProvider {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
-        switch(match) {
+        switch (match) {
             case AUDIO_MEDIA_ID:
             case AUDIO_PLAYLISTS_ID:
             case VIDEO_MEDIA_ID:
@@ -6056,6 +6070,11 @@ public class MediaProvider extends ContentProvider {
     private int updateInternal(@NonNull Uri uri, @Nullable ContentValues initialValues,
             @Nullable Bundle extras) throws FallbackException {
         extras = (extras != null) ? extras : new Bundle();
+
+        if (isRedactedUri(uri)) {
+            // we don't support update on redacted uris.
+            return 0;
+        }
 
         // Related items are only considered for new media creation, and they
         // can't be leveraged to move existing content into blocked locations

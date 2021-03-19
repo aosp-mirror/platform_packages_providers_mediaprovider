@@ -5425,7 +5425,8 @@ public class MediaProvider extends ContentProvider {
     }
 
     @Nullable
-    private Uri getRedactedUri(@NonNull Uri uri) {
+    @VisibleForTesting
+    Uri getRedactedUri(@NonNull Uri uri) {
         if (!isUriSupportedForRedaction(uri)) {
             return null;
         }
@@ -5472,7 +5473,8 @@ public class MediaProvider extends ContentProvider {
     }
 
     @NonNull
-    private List<Uri> getRedactedUri(@NonNull List<Uri> uris) {
+    @VisibleForTesting
+    List<Uri> getRedactedUri(@NonNull List<Uri> uris) {
         ArrayList<Uri> redactedUris = new ArrayList<>();
         for (Uri uri : uris) {
             redactedUris.add(getRedactedUri(uri));

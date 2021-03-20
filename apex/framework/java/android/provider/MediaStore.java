@@ -29,6 +29,7 @@ import android.annotation.SuppressLint;
 import android.annotation.SystemApi;
 import android.annotation.WorkerThread;
 import android.app.Activity;
+import android.app.AppOpsManager;
 import android.app.PendingIntent;
 import android.compat.annotation.UnsupportedAppUsage;
 import android.content.ClipData;
@@ -39,6 +40,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.UriPermission;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -357,7 +359,13 @@ public final class MediaStore {
     public static final String EXTRA_MEDIA_GENRE = "android.intent.extra.genre";
     /**
      * The name of the Intent-extra used to define the playlist.
+     *
+     * @deprecated Android playlists are now deprecated. We will keep the current
+     *             functionality for compatibility resons, but we will no longer take feature
+     *             request. We do not advise adding new usages of Android Playlists. M3U files can
+     *             be used as an alternative.
      */
+    @Deprecated
     public static final String EXTRA_MEDIA_PLAYLIST = "android.intent.extra.playlist";
     /**
      * The name of the Intent-extra used to define the radio channel.
@@ -733,6 +741,26 @@ public final class MediaStore {
      */
     @SystemApi
     public static final String QUERY_ARG_DEFER_SCAN = "android:query-arg-defer-scan";
+
+    /**
+     * Flag that requests {@link ContentResolver#query} to include content from
+     * recently unmounted volumes.
+     * <p>
+     * When the flag is set, {@link ContentResolver#query} will return content
+     * from all volumes(i.e., both mounted and recently unmounted volume whose
+     * content is still held by MediaProvider).
+     * <p>
+     * Note that the query result doesn't provide any hint for content from
+     * unmounted volume. It's strongly recommended to use default query to
+     * avoid accessing/operating on the content that are not available on the
+     * device.
+     * <p>
+     * The flag is useful for apps which manage their own database and
+     * query MediaStore in order to synchronize between MediaStore database
+     * and their own database.
+     */
+    public static final String QUERY_ARG_INCLUDE_RECENTLY_UNMOUNTED_VOLUMES =
+            "android:query-arg-recently-unmounted-volumes";
 
     /**
      * Specify how {@link MediaColumns#IS_PENDING} items should be filtered when
@@ -1811,7 +1839,13 @@ public final class MediaStore {
             /**
              * Constant for the {@link #MEDIA_TYPE} column indicating that file
              * is a playlist file.
+             *
+             * @deprecated Android playlists are now deprecated. We will keep the current
+             *             functionality for compatibility resons, but we will no longer take
+             *             feature request. We do not advise adding new usages of Android Playlists.
+             *             M3U files can be used as an alternative.
              */
+            @Deprecated
             public static final int MEDIA_TYPE_PLAYLIST = 4;
 
             /**
@@ -3117,7 +3151,13 @@ public final class MediaStore {
 
         /**
          * Audio playlist metadata columns.
+         *
+         * @deprecated Android playlists are now deprecated. We will keep the current
+         *             functionality for compatibility resons, but we will no longer take
+         *             feature request. We do not advise adding new usages of Android Playlists.
+         *             M3U files can be used as an alternative.
          */
+        @Deprecated
         public interface PlaylistsColumns extends MediaColumns {
             /**
              * The name of the playlist
@@ -3161,7 +3201,13 @@ public final class MediaStore {
 
         /**
          * Contains playlists for audio files
+         *
+         * @deprecated Android playlists are now deprecated. We will keep the current
+         *             functionality for compatibility resons, but we will no longer take
+         *             feature request. We do not advise adding new usages of Android Playlists.
+         *             M3U files can be used as an alternative.
          */
+        @Deprecated
         public static final class Playlists implements BaseColumns,
                 PlaylistsColumns {
             /**
@@ -4340,5 +4386,46 @@ public final class MediaStore {
     @WorkerThread
     public static void scanVolume(@NonNull ContentResolver resolver, @NonNull String volumeName) {
         resolver.call(AUTHORITY, SCAN_VOLUME_CALL, volumeName, null);
+    }
+
+    /**
+     * Returns whether the calling app is granted {@link android.Manifest.permission#MANAGE_MEDIA}
+     * or not.
+     * <p>Declaring the permission {@link android.Manifest.permission#MANAGE_MEDIA} isn't
+     * enough to gain the access.
+     * <p>To request access, use {@link android.provider.Settings#ACTION_REQUEST_MANAGE_MEDIA}.
+     *
+     * @param context the request context
+     * @return true, the calling app is granted the permission. Otherwise, false
+     *
+     * @see android.Manifest.permission#MANAGE_MEDIA
+     * @see android.provider.Settings#ACTION_REQUEST_MANAGE_MEDIA
+     * @see #createDeleteRequest(ContentResolver, Collection)
+     * @see #createTrashRequest(ContentResolver, Collection, boolean)
+     * @see #createWriteRequest(ContentResolver, Collection)
+     */
+    public static boolean canManageMedia(@NonNull Context context) {
+        Objects.requireNonNull(context);
+        final String packageName = context.getOpPackageName();
+        final int uid = context.getApplicationInfo().uid;
+        final String permission = android.Manifest.permission.MANAGE_MEDIA;
+
+        final AppOpsManager appOps = context.getSystemService(AppOpsManager.class);
+        final int opMode = appOps.unsafeCheckOpNoThrow(AppOpsManager.permissionToOp(permission),
+                uid, packageName);
+
+        switch (opMode) {
+            case AppOpsManager.MODE_DEFAULT:
+                return PackageManager.PERMISSION_GRANTED == context.checkPermission(
+                        permission, android.os.Process.myPid(), uid);
+            case AppOpsManager.MODE_ALLOWED:
+                return true;
+            case AppOpsManager.MODE_ERRORED:
+            case AppOpsManager.MODE_IGNORED:
+                return false;
+            default:
+                Log.w(TAG, "Unknown AppOpsManager mode " + opMode);
+                return false;
+        }
     }
 }

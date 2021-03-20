@@ -53,7 +53,7 @@ import android.media.MediaFeature;
 import android.media.MediaFormat;
 import android.media.MediaTranscodeManager;
 import android.media.MediaTranscodeManager.VideoTranscodingRequest;
-import android.media.MediaTranscodeManager.TranscodingRequest.MediaFormatResolver;
+import android.media.MediaTranscodeManager.TranscodingRequest.VideoFormatResolver;
 import android.media.MediaTranscodeManager.TranscodingSession;
 import android.net.Uri;
 import android.os.Build;
@@ -1064,9 +1064,7 @@ public class TranscodeHelper {
                 MediaFormat sourceFormat = MediaFormat.createVideoFormat(
                         codecType, width, height);
                 sourceFormat.setFloat(MediaFormat.KEY_FRAME_RATE, framerate);
-                MediaFormatResolver resolver = new MediaFormatResolver()
-                        .setSourceVideoFormatHint(sourceFormat)
-                        .setClientCapabilities(capability);
+                VideoFormatResolver resolver = new VideoFormatResolver(capability, sourceFormat);
                 MediaFormat resolvedFormat = resolver.resolveVideoFormat();
                 resolvedFormat.setInteger(MediaFormat.KEY_BIT_RATE, bitRate);
 

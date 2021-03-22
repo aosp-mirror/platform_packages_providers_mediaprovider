@@ -376,17 +376,6 @@ public class MediaProvider extends ContentProvider {
         sDataColumns.put(MediaStore.Audio.AlbumColumns.ALBUM_ART, null);
     }
 
-    private static final Object sCacheLock = new Object();
-
-    @GuardedBy("sCacheLock")
-    private static final Set<String> sCachedExternalVolumeNames = new ArraySet<>();
-    @GuardedBy("sCacheLock")
-    private static final Map<String, File> sCachedVolumePaths = new ArrayMap<>();
-    @GuardedBy("sCacheLock")
-    private static final Map<String, Collection<File>> sCachedVolumeScanPaths = new ArrayMap<>();
-    @GuardedBy("sCacheLock")
-    private static final ArrayMap<File, String> sCachedVolumePathToId = new ArrayMap<>();
-
     private static final int sUserId = UserHandle.myUserId();
 
     /**
@@ -401,39 +390,11 @@ public class MediaProvider extends ContentProvider {
     private final LRUCache<String, Integer> mNonHiddenPaths = new LRUCache<>(NON_HIDDEN_CACHE_SIZE);
 
     public void updateVolumes() {
-        synchronized (sCacheLock) {
-            sCachedExternalVolumeNames.clear();
-            sCachedExternalVolumeNames.addAll(MediaStore.getExternalVolumeNames(getContext()));
-            Log.v(TAG, "Updated external volumes to: " + sCachedExternalVolumeNames.toString());
-
-            sCachedVolumePaths.clear();
-            sCachedVolumeScanPaths.clear();
-            sCachedVolumePathToId.clear();
-            try {
-                sCachedVolumeScanPaths.put(MediaStore.VOLUME_INTERNAL,
-                        FileUtils.getVolumeScanPaths(getContext(), MediaStore.VOLUME_INTERNAL));
-            } catch (FileNotFoundException e) {
-                Log.wtf(TAG, "Failed to update volume " + MediaStore.VOLUME_INTERNAL, e);
-            }
-
-            for (String volumeName : sCachedExternalVolumeNames) {
-                try {
-                    final Uri uri = MediaStore.Files.getContentUri(volumeName);
-                    final StorageVolume volume = mStorageManager.getStorageVolume(uri);
-                    sCachedVolumePaths.put(volumeName, volume.getDirectory());
-                    sCachedVolumeScanPaths.put(volumeName,
-                            FileUtils.getVolumeScanPaths(getContext(), volumeName));
-                    sCachedVolumePathToId.put(volume.getDirectory(), volume.getId());
-                } catch (IllegalStateException | FileNotFoundException e) {
-                    Log.wtf(TAG, "Failed to update volume " + volumeName, e);
-                }
-            }
-        }
-
+        mVolumeCache.update();
         // Update filters to reflect mounted volumes so users don't get
         // confused by metadata from ejected volumes
         ForegroundThread.getExecutor().execute(() -> {
-            mExternalDatabase.setFilterVolumeNames(getExternalVolumeNames());
+            mExternalDatabase.setFilterVolumeNames(mVolumeCache.getExternalVolumeNames());
         });
     }
 
@@ -444,54 +405,16 @@ public class MediaProvider extends ContentProvider {
             return Environment.getExternalStorageDirectory();
         }
 
-        synchronized (sCacheLock) {
-            if (sCachedVolumePaths.containsKey(volumeName)) {
-                return sCachedVolumePaths.get(volumeName);
-            }
-
-            // Nothing found above; let's ask directly and cache the answer
-            final File res = FileUtils.getVolumePath(getContext(), volumeName);
-            sCachedVolumePaths.put(volumeName, res);
-            return res;
-        }
+        return mVolumeCache.getVolumePath(volumeName);
     }
 
     public @NonNull String getVolumeId(@NonNull File file) throws FileNotFoundException {
-        synchronized (sCacheLock) {
-            for (int i = 0; i < sCachedVolumePathToId.size(); i++) {
-                if (FileUtils.contains(sCachedVolumePathToId.keyAt(i), file)) {
-                    return sCachedVolumePathToId.valueAt(i);
-                }
-            }
-
-            // Nothing found above; let's ask directly and cache the answer
-            final StorageVolume volume = mStorageManager.getStorageVolume(file);
-            if (volume == null) {
-                throw new FileNotFoundException("Missing volume for " + file);
-            }
-            sCachedVolumePathToId.put(volume.getDirectory(), volume.getId());
-            return volume.getId();
-        }
-    }
-
-    public @NonNull Set<String> getExternalVolumeNames() {
-        synchronized (sCacheLock) {
-            return new ArraySet<>(sCachedExternalVolumeNames);
-        }
+        return mVolumeCache.getVolumeId(file);
     }
 
     public @NonNull Collection<File> getVolumeScanPaths(String volumeName)
             throws FileNotFoundException {
-        synchronized (sCacheLock) {
-            if (sCachedVolumeScanPaths.containsKey(volumeName)) {
-                return new ArrayList<>(sCachedVolumeScanPaths.get(volumeName));
-            }
-
-            // Nothing found above; let's ask directly and cache the answer
-            final Collection<File> res = FileUtils.getVolumeScanPaths(getContext(), volumeName);
-            sCachedVolumeScanPaths.put(volumeName, res);
-            return res;
-        }
+        return mVolumeCache.getVolumeScanPaths(volumeName);
     }
 
     /**
@@ -514,6 +437,8 @@ public class MediaProvider extends ContentProvider {
     private PackageManager mPackageManager;
     private DevicePolicyManager mDevicePolicyManager;
     private UserManager mUserManager;
+
+    private VolumeCache mVolumeCache;
 
     private int mExternalStorageAuthorityAppId;
     private int mDownloadsAuthorityAppId;
@@ -992,6 +917,7 @@ public class MediaProvider extends ContentProvider {
         mPackageManager = context.getPackageManager();
         mDevicePolicyManager = context.getSystemService(DevicePolicyManager.class);
         mUserManager = context.getSystemService(UserManager.class);
+        mVolumeCache = new VolumeCache(context);
 
         // Reasonable thumbnail size is half of the smallest screen edge width
         final DisplayMetrics metrics = context.getResources().getDisplayMetrics();
@@ -1030,7 +956,7 @@ public class MediaProvider extends ContentProvider {
 
         updateVolumes();
         attachVolume(MediaStore.VOLUME_INTERNAL, /* validate */ false);
-        for (String volumeName : getExternalVolumeNames()) {
+        for (String volumeName : mVolumeCache.getExternalVolumeNames()) {
             attachVolume(volumeName, /* validate */ false);
         }
 
@@ -1133,7 +1059,7 @@ public class MediaProvider extends ContentProvider {
         Logging.trimPersistent();
 
         // Scan all volumes to resolve any staleness
-        for (String volumeName : getExternalVolumeNames()) {
+        for (String volumeName : mVolumeCache.getExternalVolumeNames()) {
             // Possibly bail before digging into each volume
             signal.throwIfCanceled();
 
@@ -4625,7 +4551,7 @@ public class MediaProvider extends ContentProvider {
         final String volumeName = MediaStore.getVolumeName(uri);
         final String includeVolumes;
         if (MediaStore.VOLUME_EXTERNAL.equals(volumeName)) {
-            includeVolumes = bindList(getExternalVolumeNames().toArray());
+            includeVolumes = bindList(mVolumeCache.getExternalVolumeNames().toArray());
         } else {
             includeVolumes = bindList(volumeName);
         }
@@ -5992,7 +5918,7 @@ public class MediaProvider extends ContentProvider {
         final long[] knownIdsRaw = knownIds.toArray();
         Arrays.sort(knownIdsRaw);
 
-        for (String volumeName : getExternalVolumeNames()) {
+        for (String volumeName : mVolumeCache.getExternalVolumeNames()) {
             final List<File> thumbDirs;
             try {
                 thumbDirs = getThumbnailDirectories(volumeName);

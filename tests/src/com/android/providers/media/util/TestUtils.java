@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-class TestUtils {
+public class TestUtils {
     public static final String QUERY_TYPE = "com.android.providers.media.util.QUERY_TYPE";
     public static final String RUN_INFINITE_ACTIVITY =
             "com.android.providers.media.util.RUN_INFINITE_ACTIVITY";

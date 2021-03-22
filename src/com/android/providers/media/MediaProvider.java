@@ -3104,8 +3104,8 @@ public class MediaProvider extends ContentProvider {
                 if (!validPath) {
                     // Some app-clone implementations use a subdirectory of the main user's root
                     // to store app clone files; allow these as well.
-                    if (isCrossUserEnabled() && primary.equals(PROP_CROSS_USER_ROOT) &&
-                            relativePath.length >= 2) {
+                    if (isCrossUserEnabled() && primary != null &&
+                        primary.equals(PROP_CROSS_USER_ROOT) && relativePath.length >= 2) {
                         final String crossUserPrimary = relativePath[1];
                         validPath = containsIgnoreCase(allowedPrimary, crossUserPrimary);
                     }

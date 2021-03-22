@@ -19,16 +19,21 @@ package com.android.providers.media;
 import static com.android.providers.media.util.Logging.TAG;
 
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.UserHandle;
+import android.os.UserManager;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
 import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.Log;
+import android.util.LongSparseArray;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.android.providers.media.util.FileUtils;
 
@@ -48,6 +53,8 @@ public class VolumeCache {
 
     private final Object mLock = new Object();
 
+    private final UserManager mUserManager;
+
     @GuardedBy("mLock")
     private final ArrayList<MediaVolume> mExternalVolumes = new ArrayList<>();
 
@@ -57,8 +64,12 @@ public class VolumeCache {
     @GuardedBy("mLock")
     private Collection<File> mCachedInternalScanPaths;
 
+    @GuardedBy("mLock")
+    private final LongSparseArray<Context> mUserContexts = new LongSparseArray<>();
+
     public VolumeCache(Context context) {
         mContext = context;
+        mUserManager = context.getSystemService(UserManager.class);
     }
 
     public @NonNull Set<String> getExternalVolumeNames() {
@@ -71,11 +82,11 @@ public class VolumeCache {
         }
     }
 
-    public @NonNull MediaVolume findVolume(@NonNull String volumeName)
+    public @NonNull MediaVolume findVolume(@NonNull String volumeName, @NonNull UserHandle user)
             throws FileNotFoundException {
         synchronized (mLock) {
             for (MediaVolume vol : mExternalVolumes) {
-                if (vol.getName().equals(volumeName)) {
+                if (vol.getName().equals(volumeName) && vol.getUser().equals(user)) {
                     return vol;
                 }
             }
@@ -84,28 +95,31 @@ public class VolumeCache {
         throw new FileNotFoundException("Couldn't find volume with name " + volumeName);
     }
 
-    public @NonNull File getVolumePath(@NonNull String volumeName) throws FileNotFoundException {
+    public @NonNull File getVolumePath(@NonNull String volumeName, @NonNull UserHandle user)
+            throws FileNotFoundException {
         synchronized (mLock) {
             try {
-                MediaVolume volume = findVolume(volumeName);
+                MediaVolume volume = findVolume(volumeName, user);
                 return volume.getPath();
             } catch (FileNotFoundException e) {
                 Log.w(TAG, "getVolumePath for unknown volume: " + volumeName);
                 // Try again by using FileUtils below
             }
 
-            return FileUtils.getVolumePath(mContext, volumeName);
+            final Context userContext = getContextForUser(user);
+            return FileUtils.getVolumePath(userContext, volumeName);
         }
     }
 
-    public @NonNull Collection<File> getVolumeScanPaths(@NonNull String volumeName)
-            throws FileNotFoundException {
+    public @NonNull Collection<File> getVolumeScanPaths(@NonNull String volumeName,
+            @NonNull UserHandle user) throws FileNotFoundException {
         synchronized (mLock) {
             if (MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
+                // Internal is shared by all users
                 return mCachedInternalScanPaths;
             }
             try {
-                MediaVolume volume = findVolume(volumeName);
+                MediaVolume volume = findVolume(volumeName, user);
                 if (mCachedVolumeScanPaths.containsKey(volume)) {
                     return mCachedVolumeScanPaths.get(volume);
                 }
@@ -114,7 +128,8 @@ public class VolumeCache {
             }
 
             // Nothing found above; let's ask directly
-            final Collection<File> res = FileUtils.getVolumeScanPaths(mContext, volumeName);
+            final Context userContext = getContextForUser(user);
+            final Collection<File> res = FileUtils.getVolumeScanPaths(userContext, volumeName);
 
             return res;
         }
@@ -140,8 +155,40 @@ public class VolumeCache {
         return volume.getId();
     }
 
+    private @NonNull Context getContextForUser(UserHandle user) {
+        synchronized (mLock) {
+            Context userContext = mUserContexts.get(user.getIdentifier());
+            if (userContext != null) {
+                return userContext;
+            }
+            try {
+                userContext = mContext.createPackageContextAsUser("system", 0, user);
+                mUserContexts.put(user.getIdentifier(), userContext);
+                return userContext;
+            } catch (PackageManager.NameNotFoundException e) {
+                throw new RuntimeException("Failed to create context for user " + user, e);
+            }
+        }
+    }
+
+    @GuardedBy("mLock")
+    private void updateExternalVolumesForUserLocked(Context userContext) {
+        final StorageManager sm = userContext.getSystemService(StorageManager.class);
+        for (String volumeName : MediaStore.getExternalVolumeNames(userContext)) {
+            try {
+                final Uri uri = MediaStore.Files.getContentUri(volumeName);
+                final StorageVolume storageVolume = sm.getStorageVolume(uri);
+                MediaVolume volume = MediaVolume.fromStorageVolume(storageVolume);
+                mExternalVolumes.add(volume);
+                mCachedVolumeScanPaths.put(volume, FileUtils.getVolumeScanPaths(userContext,
+                            volume.getName()));
+            } catch (IllegalStateException | FileNotFoundException e) {
+                Log.wtf(TAG, "Failed to update volume " + volumeName, e);
+            }
+        }
+    }
+
     public void update() {
-        final StorageManager sm = mContext.getSystemService(StorageManager.class);
         synchronized (mLock) {
             mCachedVolumeScanPaths.clear();
             try {
@@ -151,16 +198,16 @@ public class VolumeCache {
                 Log.wtf(TAG, "Failed to update volume " + MediaStore.VOLUME_INTERNAL,e );
             }
             mExternalVolumes.clear();
-            for (String volumeName : MediaStore.getExternalVolumeNames(mContext)) {
-                try {
-                    final Uri uri = MediaStore.Files.getContentUri(volumeName);
-                    final StorageVolume storageVolume = sm.getStorageVolume(uri);
-                    MediaVolume volume = MediaVolume.fromStorageVolume(storageVolume);
-                    mExternalVolumes.add(volume);
-                    mCachedVolumeScanPaths.put(volume, FileUtils.getVolumeScanPaths(mContext,
-                            volume.getName()));
-                } catch (IllegalStateException | FileNotFoundException e) {
-                    Log.wtf(TAG, "Failed to update volume " + volumeName, e);
+            for (UserHandle profile : mUserManager.getEnabledProfiles()) {
+                if (profile.equals(mContext.getUser())) {
+                    // Volumes of the user id that MediaProvider runs as
+                    updateExternalVolumesForUserLocked(mContext);
+                } else {
+                    Context userContext = getContextForUser(profile);
+                    if (userContext.getSystemService(UserManager.class).isMediaSharedWithParent()) {
+                        // This profile shares media with its parent - add its volumes, too
+                        updateExternalVolumesForUserLocked(userContext);
+                    }
                 }
             }
         }

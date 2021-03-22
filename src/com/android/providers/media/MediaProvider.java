@@ -398,6 +398,10 @@ public class MediaProvider extends ContentProvider {
         });
     }
 
+    public @NonNull MediaVolume getVolume(@NonNull String volumeName) throws FileNotFoundException {
+        return mVolumeCache.findVolume(volumeName, mCallingIdentity.get().getUser());
+    }
+
     public @NonNull File getVolumePath(@NonNull String volumeName) throws FileNotFoundException {
         // Ugly hack to keep unit tests passing, where we don't always have a
         // Context to discover volumes with
@@ -405,7 +409,7 @@ public class MediaProvider extends ContentProvider {
             return Environment.getExternalStorageDirectory();
         }
 
-        return mVolumeCache.getVolumePath(volumeName);
+        return mVolumeCache.getVolumePath(volumeName, mCallingIdentity.get().getUser());
     }
 
     public @NonNull String getVolumeId(@NonNull File file) throws FileNotFoundException {
@@ -414,7 +418,7 @@ public class MediaProvider extends ContentProvider {
 
     public @NonNull Collection<File> getVolumeScanPaths(String volumeName)
             throws FileNotFoundException {
-        return mVolumeCache.getVolumeScanPaths(volumeName);
+        return mVolumeCache.getVolumeScanPaths(volumeName, mCallingIdentity.get().getUser());
     }
 
     /**

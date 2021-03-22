@@ -437,6 +437,13 @@ static inline bool is_synthetic_path(const string& path, struct fuse* fuse) {
             path, fuse->GetTransformsDir() + "/" + TRANSFORM_SYNTHETIC_DIR);
 }
 
+static inline bool is_transcode_supported_path(const string& path, struct fuse* fuse) {
+    // Keep in sync with MediaProvider#supportsTranscode
+    return android::base::EndsWithIgnoreCase(path, ".mp4") &&
+           android::base::StartsWithIgnoreCase(path,
+                                               fuse->GetEffectiveRootPath() + "/dcim/camera/");
+}
+
 static inline bool is_transforms_dir_path(const string& path, struct fuse* fuse) {
     return android::base::StartsWithIgnoreCase(path, fuse->GetTransformsDir());
 }
@@ -474,6 +481,11 @@ static std::unique_ptr<mediaprovider::fuse::FileLookupResult> validate_node_path
     if (S_ISDIR(e->attr.st_mode)) {
         // now that we have reached this point, ops on directories are safe and require no
         // transformation.
+        return std::make_unique<mediaprovider::fuse::FileLookupResult>(0, 0, 0, true, false, "");
+    }
+
+    if (!synthetic_path && !is_transcode_supported_path(path, fuse)) {
+        // Transforms are only supported for synthetic or transcode-supported paths
         return std::make_unique<mediaprovider::fuse::FileLookupResult>(0, 0, 0, true, false, "");
     }
 

@@ -183,6 +183,7 @@ import androidx.annotation.GuardedBy;
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.build.SdkLevel;
@@ -8396,11 +8397,8 @@ public class MediaProvider extends ContentProvider {
      */
     private @Nullable Uri getPermissionGrantedUri(@NonNull List<Uri> uris, boolean forWrite) {
         if (SdkLevel.isAtLeastS()) {
-            final int modeFlags = forWrite
-                    ? Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                    : Intent.FLAG_GRANT_READ_URI_PERMISSION;
-            int[] res = getContext().checkUriPermissions(uris, mCallingIdentity.get().pid,
-                    mCallingIdentity.get().uid, modeFlags);
+            int[] res = checkUriPermissions(uris, mCallingIdentity.get().pid,
+                    mCallingIdentity.get().uid, forWrite);
             if (res.length != uris.size()) {
                 return null;
             }
@@ -8417,6 +8415,14 @@ public class MediaProvider extends ContentProvider {
             }
         }
         return null;
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    private int[] checkUriPermissions(@NonNull List<Uri> uris, int pid, int uid, boolean forWrite) {
+        final int modeFlags = forWrite
+                ? Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                : Intent.FLAG_GRANT_READ_URI_PERMISSION;
+        return getContext().checkUriPermissions(uris, pid, uid, modeFlags);
     }
 
     private boolean isUriPermissionGranted(Uri uri, boolean forWrite) {

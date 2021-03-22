@@ -2561,13 +2561,10 @@ public class MediaProvider extends ContentProvider {
             }
 
             final int type;
-            final boolean forWrite;
             if ((modeFlags & Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != 0) {
                 type = TYPE_UPDATE;
-                forWrite = true;
             } else {
                 type = TYPE_QUERY;
-                forWrite = false;
             }
 
             final SQLiteQueryBuilder qb = getQueryBuilder(type, table, uri, Bundle.EMPTY, null);

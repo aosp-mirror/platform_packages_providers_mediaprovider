@@ -18,6 +18,7 @@ package com.android.providers.media;
 
 import android.os.UserHandle;
 import android.os.storage.StorageVolume;
+import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -96,6 +97,10 @@ public final class MediaVolume {
         return Objects.hash(mName, mUser, mPath, mId);
     }
 
+    public boolean isVisibleToUser(UserHandle user) {
+        return mUser == null || user.equals(mUser);
+    }
+
     @NonNull
     public static MediaVolume fromStorageVolume(StorageVolume storageVolume) {
         String name = storageVolume.getMediaStoreVolumeName();
@@ -103,5 +108,11 @@ public final class MediaVolume {
         File path = storageVolume.getDirectory();
         String id = storageVolume.getId();
         return new MediaVolume(name, user, path, id);
+    }
+
+    public static MediaVolume fromInternal() {
+        String name = MediaStore.VOLUME_INTERNAL;
+
+        return new MediaVolume(name, null, null, null);
     }
 }

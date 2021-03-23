@@ -33,7 +33,6 @@ import android.util.LongSparseArray;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import com.android.providers.media.util.FileUtils;
 
@@ -41,6 +40,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -72,6 +72,12 @@ public class VolumeCache {
         mUserManager = context.getSystemService(UserManager.class);
     }
 
+    public @NonNull List<MediaVolume> getExternalVolumes() {
+        synchronized(mLock) {
+            return new ArrayList<>(mExternalVolumes);
+        }
+    }
+
     public @NonNull Set<String> getExternalVolumeNames() {
         synchronized (mLock) {
             ArraySet<String> volNames = new ArraySet<String>();
@@ -86,7 +92,7 @@ public class VolumeCache {
             throws FileNotFoundException {
         synchronized (mLock) {
             for (MediaVolume vol : mExternalVolumes) {
-                if (vol.getName().equals(volumeName) && vol.getUser().equals(user)) {
+                if (vol.getName().equals(volumeName) && vol.isVisibleToUser(user)) {
                     return vol;
                 }
             }

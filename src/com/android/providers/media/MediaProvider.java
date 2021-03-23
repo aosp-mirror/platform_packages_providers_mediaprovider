@@ -823,39 +823,22 @@ public class MediaProvider extends ContentProvider {
      * devices. We only do this once per volume so we don't annoy the user if
      * deleted manually.
      */
-    private void ensureDefaultFolders(@NonNull String volumeName, @NonNull SQLiteDatabase db) {
-        try {
-            final File path = getVolumePath(volumeName);
-            final StorageVolume vol = mStorageManager.getStorageVolume(path);
-            final String key;
-            if (vol == null) {
-                Log.w(TAG, "Failed to ensure default folders for " + volumeName);
-                return;
-            }
+    private void ensureDefaultFolders(@NonNull MediaVolume volume, @NonNull SQLiteDatabase db) {
+        final String key = "created_default_folders_" + volume.getId();
 
-            if (vol.isPrimary()) {
-                key = "created_default_folders";
-            } else {
-                key = "created_default_folders_" + vol.getMediaStoreVolumeName();
-            }
-
-            final SharedPreferences prefs = PreferenceManager
-                    .getDefaultSharedPreferences(getContext());
-            if (prefs.getInt(key, 0) == 0) {
-                for (String folderName : DEFAULT_FOLDER_NAMES) {
-                    final File folder = new File(vol.getDirectory(), folderName);
-                    if (!folder.exists()) {
-                        folder.mkdirs();
-                        insertDirectory(db, folder.getAbsolutePath());
-                    }
+        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
+        if (prefs.getInt(key, 0) == 0) {
+            for (String folderName : DEFAULT_FOLDER_NAMES) {
+                final File folder = new File(volume.getPath(), folderName);
+                if (!folder.exists()) {
+                    folder.mkdirs();
+                    insertDirectory(db, folder.getAbsolutePath());
                 }
-
-                SharedPreferences.Editor editor = prefs.edit();
-                editor.putInt(key, 1);
-                editor.commit();
             }
-        } catch (IOException e) {
-            Log.w(TAG, "Failed to ensure default folders for " + volumeName, e);
+
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putInt(key, 1);
+            editor.commit();
         }
     }
 
@@ -865,10 +848,10 @@ public class MediaProvider extends ContentProvider {
      * {@link DatabaseHelper#getOrCreateUuid} doesn't match the UUID found on
      * disk, then all thumbnails will be considered stable and will be deleted.
      */
-    private void ensureThumbnailsValid(@NonNull String volumeName, @NonNull SQLiteDatabase db) {
+    private void ensureThumbnailsValid(@NonNull MediaVolume volume, @NonNull SQLiteDatabase db) {
         final String uuidFromDatabase = DatabaseHelper.getOrCreateUuid(db);
         try {
-            for (File dir : getThumbnailDirectories(volumeName)) {
+            for (File dir : getThumbnailDirectories(volume)) {
                 if (!dir.exists()) {
                     dir.mkdirs();
                 }
@@ -896,7 +879,7 @@ public class MediaProvider extends ContentProvider {
                 }
             }
         } catch (IOException e) {
-            Log.w(TAG, "Failed to ensure thumbnails valid for " + volumeName, e);
+            Log.w(TAG, "Failed to ensure thumbnails valid for " + volume.getName(), e);
         }
     }
 
@@ -959,9 +942,9 @@ public class MediaProvider extends ContentProvider {
                 });
 
         updateVolumes();
-        attachVolume(MediaStore.VOLUME_INTERNAL, /* validate */ false);
-        for (String volumeName : mVolumeCache.getExternalVolumeNames()) {
-            attachVolume(volumeName, /* validate */ false);
+        attachVolume(MediaVolume.fromInternal(), /* validate */ false);
+        for (MediaVolume volume : mVolumeCache.getExternalVolumes()) {
+            attachVolume(volume, /* validate */ false);
         }
 
         // Watch for performance-sensitive activity
@@ -1067,19 +1050,19 @@ public class MediaProvider extends ContentProvider {
         Logging.trimPersistent();
 
         // Scan all volumes to resolve any staleness
-        for (String volumeName : mVolumeCache.getExternalVolumeNames()) {
+        for (MediaVolume volume : mVolumeCache.getExternalVolumes()) {
             // Possibly bail before digging into each volume
             signal.throwIfCanceled();
 
             try {
-                MediaService.onScanVolume(getContext(), volumeName, REASON_IDLE);
+                MediaService.onScanVolume(getContext(), volume, REASON_IDLE);
             } catch (IOException e) {
                 Log.w(TAG, e);
             }
 
             // Ensure that our thumbnails are valid
             mExternalDatabase.runWithTransaction((db) -> {
-                ensureThumbnailsValid(volumeName, db);
+                ensureThumbnailsValid(volume, db);
                 return null;
             });
         }
@@ -4105,13 +4088,20 @@ public class MediaProvider extends ContentProvider {
 
         if (match == VOLUMES) {
             String name = initialValues.getAsString("name");
-            Uri attachedVolume = attachVolume(name, /* validate */ true);
-            if (mMediaScannerVolume != null && mMediaScannerVolume.equals(name)) {
-                final DatabaseHelper helper = getDatabaseForUri(
-                        MediaStore.Files.getContentUri(mMediaScannerVolume));
-                helper.mScanStartTime = SystemClock.elapsedRealtime();
+            MediaVolume volume = null;
+            try {
+                volume = getVolume(name);
+                Uri attachedVolume = attachVolume(volume, /* validate */ true);
+                if (mMediaScannerVolume != null && mMediaScannerVolume.equals(name)) {
+                    final DatabaseHelper helper = getDatabaseForUri(
+                            MediaStore.Files.getContentUri(mMediaScannerVolume));
+                    helper.mScanStartTime = SystemClock.elapsedRealtime();
+                }
+                return attachedVolume;
+            } catch (FileNotFoundException e) {
+                Log.w(TAG, "Couldn't find volume with name " + volume.getName());
+                return null;
             }
-            return attachedVolume;
         }
 
         final DatabaseHelper helper = getDatabaseForUri(uri);
@@ -5539,6 +5529,7 @@ public class MediaProvider extends ContentProvider {
             }
             case MediaStore.SCAN_FILE_CALL:
             case MediaStore.SCAN_VOLUME_CALL: {
+                final int userId = Binder.getCallingUid() / PER_USER_RANGE;
                 final LocalCallingIdentity token = clearLocalCallingIdentity();
                 final CallingIdentity providerToken = clearCallingIdentity();
                 try {
@@ -5551,7 +5542,13 @@ public class MediaProvider extends ContentProvider {
                         }
                         case MediaStore.SCAN_VOLUME_CALL: {
                             final String volumeName = arg;
-                            MediaService.onScanVolume(getContext(), volumeName, REASON_DEMAND);
+                            try {
+                                MediaVolume volume = mVolumeCache.findVolume(volumeName,
+                                        UserHandle.of(userId));
+                                MediaService.onScanVolume(getContext(), volume, REASON_DEMAND);
+                            } catch (FileNotFoundException e) {
+                                Log.w(TAG, "Failed to find volume " + volumeName, e);
+                            }
                             break;
                         }
                     }
@@ -5926,12 +5923,12 @@ public class MediaProvider extends ContentProvider {
         final long[] knownIdsRaw = knownIds.toArray();
         Arrays.sort(knownIdsRaw);
 
-        for (String volumeName : mVolumeCache.getExternalVolumeNames()) {
+        for (MediaVolume volume : mVolumeCache.getExternalVolumes()) {
             final List<File> thumbDirs;
             try {
-                thumbDirs = getThumbnailDirectories(volumeName);
+                thumbDirs = getThumbnailDirectories(volume);
             } catch (FileNotFoundException e) {
-                Log.w(TAG, "Failed to resolve volume " + volumeName, e);
+                Log.w(TAG, "Failed to resolve volume " + volume.getName(), e);
                 continue;
             }
 
@@ -6073,8 +6070,8 @@ public class MediaProvider extends ContentProvider {
         }
     };
 
-    private List<File> getThumbnailDirectories(String volumeName) throws FileNotFoundException {
-        final File volumePath = getVolumePath(volumeName);
+    private List<File> getThumbnailDirectories(MediaVolume volume) throws FileNotFoundException {
+        final File volumePath = volume.getPath();
         return Arrays.asList(
                 FileUtils.buildPath(volumePath, Environment.DIRECTORY_MUSIC, DIRECTORY_THUMBNAILS),
                 FileUtils.buildPath(volumePath, Environment.DIRECTORY_MOVIES, DIRECTORY_THUMBNAILS),
@@ -9212,8 +9209,16 @@ public class MediaProvider extends ContentProvider {
 
     private @NonNull DatabaseHelper getDatabaseForUri(Uri uri) throws VolumeNotFoundException {
         final String volumeName = resolveVolumeName(uri);
-        synchronized (mAttachedVolumeNames) {
-            if (!mAttachedVolumeNames.contains(volumeName)) {
+        synchronized (mAttachedVolumes) {
+            boolean volumeAttached = false;
+            for (MediaVolume vol : mAttachedVolumes) {
+                UserHandle user = mCallingIdentity.get().getUser();
+                if (vol.getName().equals(volumeName) && vol.isVisibleToUser(user)) {
+                    volumeAttached = true;
+                    break;
+                }
+            }
+            if (!volumeAttached) {
                 throw new VolumeNotFoundException(volumeName);
             }
         }
@@ -9248,42 +9253,43 @@ public class MediaProvider extends ContentProvider {
         return MediaStore.AUTHORITY_URI.buildUpon().appendPath(volumeName).build();
     }
 
-    public Uri attachVolume(String volume, boolean validate) {
+    public Uri attachVolume(MediaVolume volume, boolean validate) {
         if (mCallingIdentity.get().pid != android.os.Process.myPid()) {
             throw new SecurityException(
                     "Opening and closing databases not allowed.");
         }
 
+        final String volumeName = volume.getName();
+
         // Quick check for shady volume names
-        MediaStore.checkArgumentVolumeName(volume);
+        MediaStore.checkArgumentVolumeName(volumeName);
 
         // Quick check that volume actually exists
-        if (!MediaStore.VOLUME_INTERNAL.equals(volume) && validate) {
+        if (!MediaStore.VOLUME_INTERNAL.equals(volumeName) && validate) {
             try {
-                getVolumePath(volume);
+                getVolumePath(volumeName);
             } catch (IOException e) {
                 throw new IllegalArgumentException(
                         "Volume " + volume + " currently unavailable", e);
             }
         }
 
-        synchronized (mAttachedVolumeNames) {
-            mAttachedVolumeNames.add(volume);
+        synchronized (mAttachedVolumes) {
+            mAttachedVolumes.add(volume);
         }
 
         final ContentResolver resolver = getContext().getContentResolver();
-        final Uri uri = getBaseContentUri(volume);
-        resolver.notifyChange(getBaseContentUri(volume), null);
+        final Uri uri = getBaseContentUri(volumeName);
+        // TODO(b/182396009) we probably also want to notify clone profile (and vice versa)
+        resolver.notifyChange(getBaseContentUri(volumeName), null);
 
         if (LOGV) Log.v(TAG, "Attached volume: " + volume);
-        if (!MediaStore.VOLUME_INTERNAL.equals(volume)) {
+        if (!MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
             // Also notify on synthetic view of all devices
             resolver.notifyChange(getBaseContentUri(MediaStore.VOLUME_EXTERNAL), null);
 
             ForegroundThread.getExecutor().execute(() -> {
-                final DatabaseHelper helper = MediaStore.VOLUME_INTERNAL.equals(volume)
-                        ? mInternalDatabase : mExternalDatabase;
-                helper.runWithTransaction((db) -> {
+                mExternalDatabase.runWithTransaction((db) -> {
                     ensureDefaultFolders(volume, db);
                     ensureThumbnailsValid(volume, db);
                     return null;
@@ -9292,51 +9298,58 @@ public class MediaProvider extends ContentProvider {
                 // We just finished the database operation above, we know that
                 // it's ready to answer queries, so notify our DocumentProvider
                 // so it can answer queries without risking ANR
-                MediaDocumentsProvider.onMediaStoreReady(getContext(), volume);
+                MediaDocumentsProvider.onMediaStoreReady(getContext(), volumeName);
             });
         }
         return uri;
     }
 
     private void detachVolume(Uri uri) {
-        detachVolume(MediaStore.getVolumeName(uri));
+        final String volumeName = MediaStore.getVolumeName(uri);
+        try {
+            detachVolume(getVolume(volumeName));
+        } catch (FileNotFoundException e) {
+            Log.e(TAG, "Couldn't find volume for URI " + uri, e) ;
+        }
     }
 
-    public void detachVolume(String volume) {
+    public void detachVolume(MediaVolume volume) {
         if (mCallingIdentity.get().pid != android.os.Process.myPid()) {
             throw new SecurityException(
                     "Opening and closing databases not allowed.");
         }
 
-        // Quick check for shady volume names
-        MediaStore.checkArgumentVolumeName(volume);
+        final String volumeName = volume.getName();
 
-        if (MediaStore.VOLUME_INTERNAL.equals(volume)) {
+        // Quick check for shady volume names
+        MediaStore.checkArgumentVolumeName(volumeName);
+
+        if (MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
             throw new UnsupportedOperationException(
                     "Deleting the internal volume is not allowed");
         }
 
         // Signal any scanning to shut down
-        mMediaScanner.onDetachVolume(volume);
+        mMediaScanner.onDetachVolume(volumeName);
 
-        synchronized (mAttachedVolumeNames) {
-            mAttachedVolumeNames.remove(volume);
+        synchronized (mAttachedVolumes) {
+            mAttachedVolumes.remove(volume);
         }
 
         final ContentResolver resolver = getContext().getContentResolver();
-        final Uri uri = getBaseContentUri(volume);
-        resolver.notifyChange(getBaseContentUri(volume), null);
+        final Uri uri = getBaseContentUri(volumeName);
+        resolver.notifyChange(getBaseContentUri(volumeName), null);
 
-        if (!MediaStore.VOLUME_INTERNAL.equals(volume)) {
+        if (!MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
             // Also notify on synthetic view of all devices
             resolver.notifyChange(getBaseContentUri(MediaStore.VOLUME_EXTERNAL), null);
         }
 
-        if (LOGV) Log.v(TAG, "Detached volume: " + volume);
+        if (LOGV) Log.v(TAG, "Detached volume: " + volumeName);
     }
 
-    @GuardedBy("mAttachedVolumeNames")
-    private final ArraySet<String> mAttachedVolumeNames = new ArraySet<>();
+    @GuardedBy("mAttachedVolumes")
+    private final ArraySet<MediaVolume> mAttachedVolumes = new ArraySet<>();
     @GuardedBy("mCustomCollators")
     private final ArraySet<String> mCustomCollators = new ArraySet<>();
 
@@ -9666,8 +9679,8 @@ public class MediaProvider extends ContentProvider {
     @Override
     public void dump(FileDescriptor fd, PrintWriter writer, String[] args) {
         writer.println("mThumbSize=" + mThumbSize);
-        synchronized (mAttachedVolumeNames) {
-            writer.println("mAttachedVolumeNames=" + mAttachedVolumeNames);
+        synchronized (mAttachedVolumes) {
+            writer.println("mAttachedVolumes=" + mAttachedVolumes);
         }
         writer.println();
 

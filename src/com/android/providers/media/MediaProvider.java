@@ -146,6 +146,7 @@ import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.Trace;
 import android.os.UserHandle;
+import android.os.UserManager;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageManager.StorageVolumeCallback;
 import android.os.storage.StorageVolume;
@@ -504,6 +505,7 @@ public class MediaProvider extends ContentProvider {
     private AppOpsManager mAppOpsManager;
     private PackageManager mPackageManager;
     private DevicePolicyManager mDevicePolicyManager;
+    private UserManager mUserManager;
 
     private int mExternalStorageAuthorityAppId;
     private int mDownloadsAuthorityAppId;
@@ -875,7 +877,8 @@ public class MediaProvider extends ContentProvider {
     }
 
     private static boolean isCrossUserEnabled() {
-        return PROP_CROSS_USER_ALLOWED && Build.VERSION.SDK_INT <= Build.VERSION_CODES.R;
+        return ((PROP_CROSS_USER_ALLOWED && Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) ||
+                SdkLevel.isAtLeastS());
     }
 
     /**
@@ -980,6 +983,7 @@ public class MediaProvider extends ContentProvider {
         mAppOpsManager = context.getSystemService(AppOpsManager.class);
         mPackageManager = context.getPackageManager();
         mDevicePolicyManager = context.getSystemService(DevicePolicyManager.class);
+        mUserManager = context.getSystemService(UserManager.class);
 
         // Reasonable thumbnail size is half of the smallest screen edge width
         final DisplayMetrics metrics = context.getResources().getDisplayMetrics();
@@ -1301,10 +1305,31 @@ public class MediaProvider extends ContentProvider {
 
     private boolean isAppCloneUserPair(int userId1, int userId2) {
         try {
+            UserHandle user1 = UserHandle.of(userId1);
+            UserHandle user2 = UserHandle.of(userId2);
+
+            // Need to create system package context here as the clone profile user doesn't run
+            // a MediaProvider instance of its own, and hence we can't use
+            // createContextAsUser which uses the current MediaProvider module package.
+            final Context userContext1 = getContext().createPackageContextAsUser("system", 0,
+                    user1);
+            boolean sharesMediaWithParentUser1 = userContext1.getSystemService(
+                    UserManager.class).sharesMediaWithParent();
+            final Context userContext2 = getContext().createPackageContextAsUser("system", 0,
+                    user2);
+            boolean sharesMediaWithParentUser2 = userContext2.getSystemService(
+                    UserManager.class).sharesMediaWithParent();
+
+            // Clone profiles share media with the parent user
+            if (SdkLevel.isAtLeastS() && (sharesMediaWithParentUser1
+                    || sharesMediaWithParentUser2)) {
+                return mUserManager.isSameProfileGroup(user1, user2);
+            }
             Method isAppCloneUserPair = StorageManager.class.getMethod("isAppCloneUserPair",
                     int.class, int.class);
             return (Boolean) isAppCloneUserPair.invoke(mStorageManager, userId1, userId2);
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException |
+                NameNotFoundException e) {
             Log.w(TAG, "isAppCloneUserPair failed. Users: " + userId1 + " and " + userId2);
             return false;
         }
@@ -1346,7 +1371,7 @@ public class MediaProvider extends ContentProvider {
             return false;
         }
 
-        if (callingUserId != 0 && pathUserId != 0) {
+        if (callingUserId != pathUserId && callingUserId != 0 && pathUserId != 0) {
             Log.w(TAG, "CrossUser at least one user is 0 check failed. Users: " + callingUserId
                     + " and " + pathUserId);
             return false;

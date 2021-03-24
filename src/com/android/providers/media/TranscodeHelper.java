@@ -60,6 +60,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.ParcelFileDescriptor;
 import android.os.Process;
 import android.os.SystemClock;
 import android.os.SystemProperties;
@@ -431,7 +432,7 @@ public class TranscodeHelper {
                             Log.e(TAG, "Failed to enqueue request due to Service unavailable");
                             throw new IllegalStateException("Failed to enqueue request");
                         }
-                    } catch (UnsupportedOperationException e) {
+                    } catch (UnsupportedOperationException | IOException e) {
                         throw new IllegalStateException(e);
                     }
                     storageSession = new StorageTranscodingSession(transcodingSession, latch);
@@ -1087,18 +1088,29 @@ public class TranscodeHelper {
     }
 
     private TranscodingSession enqueueTranscodingSession(String src, String dst, int uid,
-            final CountDownLatch latch) throws UnsupportedOperationException {
+            final CountDownLatch latch) throws UnsupportedOperationException, IOException {
         File file = new File(src);
         File transcodeFile = new File(dst);
 
+        // These are file URIs (effectively file paths) and even if the |transcodeFile| is
+        // inaccesible via FUSE, it works because the transcoding service calls into the
+        // MediaProvider to open them and within the MediaProvider, it is opened directly on
+        // the lower fs.
         Uri uri = Uri.fromFile(file);
         Uri transcodeUri = Uri.fromFile(transcodeFile);
+
+        ParcelFileDescriptor srcPfd = ParcelFileDescriptor.open(file,
+                ParcelFileDescriptor.MODE_READ_ONLY);
+        ParcelFileDescriptor dstPfd = ParcelFileDescriptor.open(transcodeFile,
+                ParcelFileDescriptor.MODE_READ_WRITE);
 
         MediaFormat format = getVideoTrackFormat(src);
 
         VideoTranscodingRequest request =
                 new VideoTranscodingRequest.Builder(uri, transcodeUri, format)
                         .setClientUid(uid)
+                        .setSourceFileDescriptor(srcPfd)
+                        .setDestinationFileDescriptor(dstPfd)
                         .build();
         TranscodingSession session = mMediaTranscodeManager.enqueueRequest(request,
                 ForegroundThread.getExecutor(),

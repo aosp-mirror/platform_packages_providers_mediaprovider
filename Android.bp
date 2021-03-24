@@ -76,6 +76,8 @@ android_app {
             "-Xep:MediaProviderMimeType:ERROR",
         ],
     },
+
+    required: ["preinstalled-packages-com.android.providers.media.module.xml"],
 }
 
 // Used by MediaProvider and MediaProviderTests
@@ -120,3 +122,10 @@ genrule {
          " --minApiLevel 30",
     out: ["com/android/providers/media/MediaProviderStatsLog.java"],
 }
+
+prebuilt_etc {
+      name: "preinstalled-packages-com.android.providers.media.module.xml",
+      src: "preinstalled-packages-com.android.providers.media.module.xml",
+      sub_dir: "sysconfig",
+}
+

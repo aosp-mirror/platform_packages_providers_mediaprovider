@@ -8374,9 +8374,9 @@ public class MediaProvider extends ContentProvider {
      * The following apps have access to all private-app directories on secondary volumes:
      *    * ExternalStorageProvider
      *    * DownloadProvider
-     *    * Signature/privileged apps with ACCESS_MTP permission granted
-     *      (TODO(b/175796984): Allow *only* signature apps with ACCESS_MTP to access all
-     *      private-app directories).
+     *    * Signature apps with ACCESS_MTP permission granted
+     *      (Note: For Android R we also allow privileged apps with ACCESS_MTP to access all
+     *      private-app directories, this additional access is removed for Android S+).
      *
      * Installer apps can only access private-app directories on Android/obb.
      *
@@ -8387,14 +8387,41 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
             clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
         try {
-            if (isCallingIdentityDownloadProvider(uid) ||
-                    isCallingIdentityExternalStorageProvider(uid) || isCallingIdentityMtp(uid)) {
-                return true;
+            if (SdkLevel.isAtLeastS()) {
+                return isMountModeAllowedPrivatePathAccess(uid, getCallingPackage(), path);
+            } else {
+                if (isCallingIdentityDownloadProvider(uid) ||
+                        isCallingIdentityExternalStorageProvider(uid) || isCallingIdentityMtp(
+                        uid)) {
+                    return true;
+                }
+                return (isObbOrChildPath(path) && isCallingIdentityAllowedInstallerAccess(uid));
             }
-            return (isObbOrChildPath(path) && isCallingIdentityAllowedInstallerAccess(uid));
         } finally {
             restoreLocalCallingIdentity(token);
         }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    private boolean isMountModeAllowedPrivatePathAccess(int uid, String packageName, String path) {
+        // This is required as only MediaProvider (package with WRITE_MEDIA_STORAGE) can access
+        // mount modes.
+        final CallingIdentity token = clearCallingIdentity();
+        try {
+            final int mountMode = mStorageManager.getExternalStorageMountMode(uid, packageName);
+            switch (mountMode) {
+                case StorageManager.MOUNT_MODE_EXTERNAL_ANDROID_WRITABLE:
+                case StorageManager.MOUNT_MODE_EXTERNAL_PASS_THROUGH:
+                    return true;
+                case StorageManager.MOUNT_MODE_EXTERNAL_INSTALLER:
+                    return isObbOrChildPath(path);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Caller does not have the permissions to access mount modes: ", e);
+        } finally {
+            restoreCallingIdentity(token);
+        }
+        return false;
     }
 
     private boolean checkCallingPermissionGlobal(Uri uri, boolean forWrite) {

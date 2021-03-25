@@ -17,6 +17,7 @@
 package com.android.providers.media;
 
 import static android.Manifest.permission.ACCESS_MEDIA_LOCATION;
+import static android.Manifest.permission.MANAGE_EXTERNAL_STORAGE;
 import static android.app.AppOpsManager.MODE_ALLOWED;
 import static android.app.AppOpsManager.permissionToOp;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
@@ -42,6 +43,9 @@ import static com.android.providers.media.util.PermissionUtils.checkWriteImagesO
 import android.annotation.Nullable;
 import android.app.AppOpsManager;
 import android.app.compat.CompatChanges;
+import android.compat.annotation.ChangeId;
+import android.compat.annotation.EnabledAfter;
+import android.compat.annotation.EnabledSince;
 import android.content.ContentProvider;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
@@ -57,6 +61,7 @@ import android.util.ArrayMap;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.util.LongArray;
 
 import java.util.Locale;
@@ -147,6 +152,8 @@ public class LocalCallingIdentity {
         // Use ident.attributionTag from context, hence no change
         ident.targetSdkVersion = Build.VERSION_CODES.CUR_DEVELOPMENT;
         ident.targetSdkVersionResolved = true;
+        ident.shouldBypass = false;
+        ident.shouldBypassResolved = true;
         ident.hasPermission = ~(PERMISSION_IS_LEGACY_GRANTED | PERMISSION_IS_LEGACY_WRITE
                 | PERMISSION_IS_LEGACY_READ | PERMISSION_IS_REDACTION_NEEDED
                 | PERMISSION_IS_SHELL | PERMISSION_IS_DELEGATOR);
@@ -336,6 +343,81 @@ public class LocalCallingIdentity {
         }
 
         return checkIsLegacyStorageGranted(context, uid, getPackageName(), attributionTag);
+    }
+
+    private volatile boolean shouldBypass;
+    private volatile boolean shouldBypassResolved;
+
+    /**
+     * Allow apps holding {@link android.Manifest.permission#MANAGE_EXTERNAL_STORAGE}
+     * permission to request optimized external storage access.
+     */
+    @ChangeId
+    @EnabledAfter(targetSdkVersion = Build.VERSION_CODES.R)
+    static final long ENABLE_OPTIMIZED_MANAGE_EXTERNAL_STORAGE_ACCESS = 178209446L;
+
+    /**
+     * Allow apps holding {@link android.app.role}#SYSTEM_GALLERY role to request optimized
+     * external storage access.
+     */
+    @ChangeId
+    @EnabledSince(targetSdkVersion = Build.VERSION_CODES.R)
+    static final long ENABLE_OPTIMIZED_SYSTEM_GALLERY_ACCESS = 183372781L;
+
+    /**
+     * Checks if app chooses to bypass database operations.
+     *
+     * <p>
+     * Note that this method doesn't check if app qualifies to bypass database operations.
+     *
+     * @return {@code true} if AndroidManifest.xml of this app has
+     * android:requestOptimizedManageExternalStorageAccess or
+     * android:requestOptimizedSystemGalleryAccess set
+     * {@code false} otherwise.
+     */
+    public boolean shouldBypassDatabase(boolean isSystemGallery) {
+        if (!shouldBypassResolved) {
+            shouldBypass = shouldBypassDatabaseInternal(isSystemGallery);
+            shouldBypassResolved = true;
+        }
+        return shouldBypass;
+    }
+
+    private boolean shouldBypassDatabaseInternal(boolean isSystemGallery) {
+        if (!SdkLevel.isAtLeastS()) {
+            // We need to parse the manifest flag ourselves here.
+            // TODO(b/178209446): Parse app manifest to get new flag values
+            return true;
+        }
+
+        final ApplicationInfo ai;
+        try {
+            ai = context.getPackageManager()
+                    .getApplicationInfo(getPackageName(), 0);
+            if (ai != null) {
+                Boolean shouldBypass = ai.hasRequestOptimizedExternalStorageAccess();
+                if (shouldBypass != null) {
+                    return shouldBypass;
+                }
+                // Manifest flag is not set, hence return default value based on the category of the
+                // app and targetSDK.
+                if (isSystemGallery) {
+                    if (CompatChanges.isChangeEnabled(
+                            ENABLE_OPTIMIZED_SYSTEM_GALLERY_ACCESS, uid)) {
+                        // If systemGallery, then the flag will default to false when they are
+                        // targeting targetSDK>=30.
+                        return false;
+                    }
+                } else if (CompatChanges.isChangeEnabled(
+                        ENABLE_OPTIMIZED_MANAGE_EXTERNAL_STORAGE_ACCESS, uid)) {
+                    // If app has MANAGE_EXTERNAL_STORAGE, the flag will default to false when they
+                    // are targeting targetSDK>=31.
+                    return false;
+                }
+            }
+        } catch (NameNotFoundException e) {
+        }
+        return true;
     }
 
     private boolean isScopedStorageEnforced(boolean defaultScopedStorage,

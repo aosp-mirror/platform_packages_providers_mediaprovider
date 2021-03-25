@@ -182,6 +182,16 @@ public class PermissionActivity extends Activity {
 
         actionDialog = builder.show();
 
+        // The title is being set as a message above.
+        // We need to style it like the default AlertDialog title
+        TextView dialogMessage = (TextView) actionDialog.findViewById(
+                android.R.id.message);
+        if (dialogMessage != null) {
+            dialogMessage.setTextAppearance(R.style.PermissionAlertDialogTitle);
+        } else {
+            Log.w(TAG, "Couldn't find message element");
+        }
+
         final WindowManager.LayoutParams params = actionDialog.getWindow().getAttributes();
         params.width = getResources().getDimensionPixelSize(R.dimen.permission_dialog_width);
         actionDialog.getWindow().setAttributes(params);

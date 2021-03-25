@@ -7351,6 +7351,27 @@ public class MediaProvider extends ContentProvider {
         return mCallingIdentity.get().hasPermission(PERMISSION_IS_LEGACY_GRANTED);
     }
 
+    private boolean shouldBypassDatabase(int uid) {
+        if (uid != android.os.Process.SHELL_UID && isCallingPackageManager()) {
+            return mCallingIdentity.get().shouldBypassDatabase(false /*isSystemGallery*/);
+        } else if (isCallingPackageSystemGallery()) {
+            if (isCallingPackageLegacyWrite()) {
+                // We bypass db operations for legacy system galleries with W_E_S (see b/167307393).
+                // Tracking a longer term solution in b/168784136.
+                return true;
+            } else if (isCallingPackageRequestingLegacy()) {
+                // If requesting legacy, app should have W_E_S along with SystemGallery appops.
+                return false;
+            } else if (!SdkLevel.isAtLeastS()) {
+                // We don't parse manifest flags for SdkLevel<=R yet. Hence, we don't bypass
+                // database updates for SystemGallery targeting R or above on R OS.
+                return false;
+            }
+            return mCallingIdentity.get().shouldBypassDatabase(true /*isSystemGallery*/);
+        }
+        return false;
+    }
+
     private static int getFileMediaType(String path) {
         final File file = new File(path);
         final String mimeType = MimeUtils.resolveMimeType(file);
@@ -7430,16 +7451,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     private boolean shouldBypassDatabaseAndSetDirtyForFuse(int uid, String path) {
-        boolean shouldBypass = false;
-        if (uid != android.os.Process.SHELL_UID && isCallingPackageManager()) {
-            shouldBypass = true;
-        } else if (isCallingPackageLegacyWrite() && isCallingPackageSystemGallery()) {
-            // We bypass db operations for legacy system galleries with W_E_S (see b/167307393).
-            // Tracking a longer term solution in b/168784136.
-            shouldBypass = true;
-        }
-
-        if (shouldBypass) {
+        if (shouldBypassDatabase(uid)) {
             synchronized (mNonHiddenPaths) {
                 File file = new File(path);
                 String key = file.getParent();
@@ -7454,8 +7466,9 @@ public class MediaProvider extends ContentProvider {
                     }
                 }
             }
+            return true;
         }
-        return shouldBypass;
+        return false;
     }
 
     /**

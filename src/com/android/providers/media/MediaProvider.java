@@ -154,6 +154,7 @@ import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.provider.Column;
 import android.provider.DeviceConfig;
+import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
 import android.provider.MediaStore.Audio.AudioColumns;
@@ -383,7 +384,9 @@ public class MediaProvider extends ContentProvider {
 
     private static final int sUserId = UserHandle.myUserId();
 
-    // WARNING/TODO (b/173505864): This will be replaced by signature APIs in S
+    /**
+     * Please use {@link getDownloadsProviderAuthority()} instead of using this directly.
+     */
     private static final String DOWNLOADS_PROVIDER_AUTHORITY = "downloads";
 
     @GuardedBy("mPendingOpenInfo")
@@ -1058,15 +1061,14 @@ public class MediaProvider extends ContentProvider {
         }
 
         ProviderInfo provider = mPackageManager.resolveContentProvider(
-            DOWNLOADS_PROVIDER_AUTHORITY, PackageManager.MATCH_DIRECT_BOOT_AWARE
+                getDownloadsProviderAuthority(), PackageManager.MATCH_DIRECT_BOOT_AWARE
                 | PackageManager.MATCH_DIRECT_BOOT_UNAWARE);
         if (provider != null) {
             mDownloadsAuthorityAppId = UserHandle.getAppId(provider.applicationInfo.uid);
         }
 
-        provider = mPackageManager.resolveContentProvider(
-            MediaStore.EXTERNAL_STORAGE_PROVIDER_AUTHORITY, PackageManager.MATCH_DIRECT_BOOT_AWARE
-                | PackageManager.MATCH_DIRECT_BOOT_UNAWARE);
+        provider = mPackageManager.resolveContentProvider(getExternalStorageProviderAuthority(),
+                PackageManager.MATCH_DIRECT_BOOT_AWARE | PackageManager.MATCH_DIRECT_BOOT_UNAWARE);
         if (provider != null) {
             mExternalStorageAuthorityAppId = UserHandle.getAppId(provider.applicationInfo.uid);
         }
@@ -5393,7 +5395,7 @@ public class MediaProvider extends ContentProvider {
 
                 try (ContentProviderClient client = getContext().getContentResolver()
                         .acquireUnstableContentProviderClient(
-                                MediaStore.EXTERNAL_STORAGE_PROVIDER_AUTHORITY)) {
+                                getExternalStorageProviderAuthority())) {
                     extras.putParcelable(MediaStore.EXTRA_URI, fileUri);
                     return client.call(method, null, extras);
                 } catch (RemoteException e) {
@@ -5408,7 +5410,7 @@ public class MediaProvider extends ContentProvider {
                 final Uri fileUri;
                 try (ContentProviderClient client = getContext().getContentResolver()
                         .acquireUnstableContentProviderClient(
-                                MediaStore.EXTERNAL_STORAGE_PROVIDER_AUTHORITY)) {
+                                getExternalStorageProviderAuthority())) {
                     final Bundle res = client.call(method, null, extras);
                     fileUri = res.getParcelable(MediaStore.EXTRA_URI);
                 } catch (RemoteException e) {
@@ -8358,6 +8360,30 @@ public class MediaProvider extends ContentProvider {
         return mCallingIdentity.get().hasPermission(APPOP_REQUEST_INSTALL_PACKAGES_FOR_SHARED_UID);
     }
 
+    private String getExternalStorageProviderAuthority() {
+        if (SdkLevel.isAtLeastS()) {
+            return getExternalStorageProviderAuthorityFromDocumentsContract();
+        }
+        return MediaStore.EXTERNAL_STORAGE_PROVIDER_AUTHORITY;
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    private String getExternalStorageProviderAuthorityFromDocumentsContract() {
+        return DocumentsContract.EXTERNAL_STORAGE_PROVIDER_AUTHORITY;
+    }
+
+    private String getDownloadsProviderAuthority() {
+        if (SdkLevel.isAtLeastS()) {
+            return getDownloadsProviderAuthorityFromDocumentsContract();
+        }
+        return DOWNLOADS_PROVIDER_AUTHORITY;
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    private String getDownloadsProviderAuthorityFromDocumentsContract() {
+        return DocumentsContract.EXTERNAL_STORAGE_PROVIDER_AUTHORITY;
+    }
+
     private boolean isCallingIdentityDownloadProvider(int uid) {
         return uid == mDownloadsAuthorityAppId;
     }
@@ -8374,9 +8400,9 @@ public class MediaProvider extends ContentProvider {
      * The following apps have access to all private-app directories on secondary volumes:
      *    * ExternalStorageProvider
      *    * DownloadProvider
-     *    * Signature/privileged apps with ACCESS_MTP permission granted
-     *      (TODO(b/175796984): Allow *only* signature apps with ACCESS_MTP to access all
-     *      private-app directories).
+     *    * Signature apps with ACCESS_MTP permission granted
+     *      (Note: For Android R we also allow privileged apps with ACCESS_MTP to access all
+     *      private-app directories, this additional access is removed for Android S+).
      *
      * Installer apps can only access private-app directories on Android/obb.
      *
@@ -8387,14 +8413,41 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token =
             clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
         try {
-            if (isCallingIdentityDownloadProvider(uid) ||
-                    isCallingIdentityExternalStorageProvider(uid) || isCallingIdentityMtp(uid)) {
-                return true;
+            if (SdkLevel.isAtLeastS()) {
+                return isMountModeAllowedPrivatePathAccess(uid, getCallingPackage(), path);
+            } else {
+                if (isCallingIdentityDownloadProvider(uid) ||
+                        isCallingIdentityExternalStorageProvider(uid) || isCallingIdentityMtp(
+                        uid)) {
+                    return true;
+                }
+                return (isObbOrChildPath(path) && isCallingIdentityAllowedInstallerAccess(uid));
             }
-            return (isObbOrChildPath(path) && isCallingIdentityAllowedInstallerAccess(uid));
         } finally {
             restoreLocalCallingIdentity(token);
         }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    private boolean isMountModeAllowedPrivatePathAccess(int uid, String packageName, String path) {
+        // This is required as only MediaProvider (package with WRITE_MEDIA_STORAGE) can access
+        // mount modes.
+        final CallingIdentity token = clearCallingIdentity();
+        try {
+            final int mountMode = mStorageManager.getExternalStorageMountMode(uid, packageName);
+            switch (mountMode) {
+                case StorageManager.MOUNT_MODE_EXTERNAL_ANDROID_WRITABLE:
+                case StorageManager.MOUNT_MODE_EXTERNAL_PASS_THROUGH:
+                    return true;
+                case StorageManager.MOUNT_MODE_EXTERNAL_INSTALLER:
+                    return isObbOrChildPath(path);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Caller does not have the permissions to access mount modes: ", e);
+        } finally {
+            restoreCallingIdentity(token);
+        }
+        return false;
     }
 
     private boolean checkCallingPermissionGlobal(Uri uri, boolean forWrite) {

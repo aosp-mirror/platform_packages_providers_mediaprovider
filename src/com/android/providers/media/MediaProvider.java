@@ -268,7 +268,10 @@ public class MediaProvider extends ContentProvider {
             "(?:image_id|video_id)\\s*=\\s*(\\d+)");
 
     /** File access by uid requires the transcoding transform */
-    private static final int FLAG_TRANSFORM_TRANSCODING = 1;
+    private static final int FLAG_TRANSFORM_TRANSCODING = 1 << 0;
+
+    /** File access by uid is a synthetic path corresponding to a redacted URI */
+    private static final int FLAG_TRANSFORM_REDACTION = 1 << 1;
 
     /**
      * These directory names aren't declared in Environment as final variables, and so we need to
@@ -295,7 +298,8 @@ public class MediaProvider extends ContentProvider {
     private static final String DIRECTORY_THUMBNAILS = ".thumbnails";
     private static final List<String> PRIVATE_SUBDIRECTORIES_ANDROID = Arrays.asList("data", "obb");
     private static final String REDACTED_URI_ID_PREFIX = "RUID";
-    private static final String REDACTED_URI_DIR = ".transforms/synthetic";
+    private static final String TRANSFORMS_SYNTHETIC_DIR = ".transforms/synthetic";
+    private static final String REDACTED_URI_DIR = TRANSFORMS_SYNTHETIC_DIR + "/redacted";
     public static final int REDACTED_URI_ID_SIZE = 36;
 
     /**
@@ -1007,6 +1011,9 @@ public class MediaProvider extends ContentProvider {
 
         mTranscodeHelper = new TranscodeHelper(context, this);
 
+        // Create dir for redacted URI's path.
+        new File(getStorageRootPathForUid(UserHandle.myUserId()), REDACTED_URI_DIR).mkdirs();
+
         final IntentFilter packageFilter = new IntentFilter();
         packageFilter.setPriority(10);
         packageFilter.addDataScheme("package");
@@ -1500,6 +1507,10 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public FileLookupResult onFileLookupForFuse(String path, int uid, int tid) {
         uid = getBinderUidForFuse(uid, tid);
+        if (isSyntheticFilePathForRedactedUri(path, uid)) {
+            return getFileLookupResultsForRedactedUriPath(uid, path);
+        }
+
         String ioPath = "";
         boolean transformsComplete = true;
         boolean transformsSupported = mTranscodeHelper.supportsTranscode(path);
@@ -1527,6 +1538,50 @@ public class MediaProvider extends ContentProvider {
 
         return new FileLookupResult(transforms, transformsReason, uid, transformsComplete,
                 transformsSupported, ioPath);
+    }
+
+    private boolean isSyntheticFilePathForRedactedUri(String path, int uid) {
+        if (path == null) return false;
+
+        final String transformsSyntheticDir = getStorageRootPathForUid(uid) + "/"
+                + REDACTED_URI_DIR;
+        final String fileName = extractDisplayName(path);
+        return fileName != null && path.toLowerCase(Locale.ROOT).startsWith(
+                transformsSyntheticDir.toLowerCase(Locale.ROOT)) && fileName.startsWith(
+                REDACTED_URI_ID_PREFIX) && fileName.length() == REDACTED_URI_ID_SIZE;
+    }
+
+    private boolean isSyntheticDirPath(String path, int uid) {
+        final String transformsSyntheticDir = getStorageRootPathForUid(uid) + "/"
+                + TRANSFORMS_SYNTHETIC_DIR;
+        return path != null && path.toLowerCase(Locale.ROOT).startsWith(
+                transformsSyntheticDir.toLowerCase(Locale.ROOT));
+    }
+
+    private FileLookupResult getFileLookupResultsForRedactedUriPath(int uid, @NonNull String path) {
+        final LocalCallingIdentity token = clearLocalCallingIdentity();
+        final String fileName = extractDisplayName(path);
+
+        final DatabaseHelper helper;
+        try {
+            helper = getDatabaseForUri(FileUtils.getContentUriForPath(path));
+        } catch (VolumeNotFoundException e) {
+            throw new IllegalStateException("Volume not found for file: " + path);
+        }
+
+        try (final Cursor c = helper.runWithoutTransaction(
+                (db) -> db.query("files", new String[]{MediaColumns.DATA},
+                        FileColumns.REDACTED_URI_ID + "=?", new String[]{fileName}, null, null,
+                        null))) {
+            if (!c.moveToFirst()) {
+                return new FileLookupResult(FLAG_TRANSFORM_REDACTION, 0, uid, false, true, null);
+            }
+
+            return new FileLookupResult(FLAG_TRANSFORM_REDACTION, 0, uid, true, true,
+                    c.getString(0));
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
     }
 
     public int getBinderUidForFuse(int uid, int tid) {
@@ -6900,6 +6955,11 @@ public class MediaProvider extends ContentProvider {
     private ParcelFileDescriptor openFileCommon(Uri uri, String mode, CancellationSignal signal,
             @Nullable Bundle opts)
             throws FileNotFoundException {
+        boolean isRedactedUri = false;
+        if (isRedactedUri(uri)) {
+            uri = getUriForRedactedUri(uri);
+            isRedactedUri = true;
+        }
         uri = safeUncanonicalize(uri);
         opts = opts == null ? new Bundle() : opts;
 
@@ -6935,7 +6995,8 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        return openFileAndEnforcePathPermissionsHelper(uri, match, mode, signal, opts);
+        return openFileAndEnforcePathPermissionsHelper(uri, match, mode, signal, opts,
+                isRedactedUri);
     }
 
     @Override
@@ -7248,11 +7309,14 @@ public class MediaProvider extends ContentProvider {
      * a "/mnt/user" path.
      */
     private ParcelFileDescriptor openFileAndEnforcePathPermissionsHelper(Uri uri, int match,
-            String mode, CancellationSignal signal, @NonNull Bundle opts)
+            String mode, CancellationSignal signal, @NonNull Bundle opts, boolean isRedactedUri)
             throws FileNotFoundException {
         int modeBits = ParcelFileDescriptor.parseMode(mode);
         boolean forWrite = (modeBits & ParcelFileDescriptor.MODE_WRITE_ONLY) != 0;
         if (forWrite) {
+            if (isRedactedUri) {
+                throw new UnsupportedOperationException("Write is not supported on redacted URIs");
+            }
             // Upgrade 'w' only to 'rw'. This allows us acquire a WR_LOCK when calling
             // #shouldOpenWithFuse
             modeBits |= ParcelFileDescriptor.MODE_READ_WRITE;
@@ -7293,7 +7357,7 @@ public class MediaProvider extends ContentProvider {
 
         final boolean callerIsOwner = Objects.equals(getCallingPackageOrSelf(), ownerPackageName);
         // Figure out if we need to redact contents
-        final boolean redactionNeeded = callerIsOwner ? false : isRedactionNeeded(uri);
+        final boolean redactionNeeded = isRedactedUri || (!callerIsOwner && isRedactionNeeded(uri));
         final RedactionInfo redactionInfo;
         try {
             redactionInfo = redactionNeeded ? getRedactionRanges(file)
@@ -7681,12 +7745,16 @@ public class MediaProvider extends ContentProvider {
      */
     @NonNull
     private long[] getRedactionRangesForFuse(String path, String ioPath, int original_uid, int uid,
-            int tid) throws IOException {
+            int tid, boolean forceRedaction) throws IOException {
         // |ioPath| might refer to a transcoded file path (which is not indexed in the db)
         // |path| will always refer to a valid _data column
         // We use |ioPath| for the filesystem access because in the case of transcoding,
         // we want to get redaction ranges from the transcoded file and *not* the original file
         final File file = new File(ioPath);
+
+        if (forceRedaction) {
+            return getRedactionRanges(file).redactionRanges;
+        }
 
         // When calculating redaction ranges initiated from MediaProvider, the redaction policy
         // is slightly different from the FUSE initiated opens redaction policy. targetSdk=29 from
@@ -7718,7 +7786,7 @@ public class MediaProvider extends ContentProvider {
             final String[] projection = new String[]{
                     MediaColumns.OWNER_PACKAGE_NAME, MediaColumns._ID };
             final String selection = MediaColumns.DATA + "=?";
-            final String[] selectionArgs = new String[] { path };
+            final String[] selectionArgs = new String[]{path};
             final String ownerPackageName;
             final Uri item;
             try (final Cursor c = queryForSingleItem(contentUri, projection, selection,
@@ -7737,6 +7805,7 @@ public class MediaProvider extends ContentProvider {
 
             final boolean callerIsOwner = Objects.equals(getCallingPackageOrSelf(),
                     ownerPackageName);
+
             if (callerIsOwner) {
                 return new long[0];
             }
@@ -7851,6 +7920,27 @@ public class MediaProvider extends ContentProvider {
         }
 
         try {
+            boolean forceRedaction = false;
+            if (isSyntheticFilePathForRedactedUri(path, uid)) {
+                if (forWrite) {
+                    // Redacted URIs are not allowed to update EXIF headers.
+                    return new FileOpenResult(OsConstants.EACCES /* status */, originalUid,
+                            mediaCapabilitiesUid, new long[0]);
+                }
+
+                // If path is redacted Uris' path, ioPath must be the real path, ioPath must
+                // haven been updated to the real path during onFileLookupForFuse.
+                path = ioPath;
+
+                // Irrespective of the permissions we want to redact in this case.
+                redact = true;
+                forceRedaction = true;
+            } else if (isSyntheticDirPath(path, uid)) {
+                // we don't support any other transformations under .transforms/synthetic dir
+                return new FileOpenResult(OsConstants.ENOENT /* status */, originalUid,
+                        mediaCapabilitiesUid, new long[0]);
+            }
+
             if (isPrivatePackagePathNotAccessibleByCaller(path)) {
                 Log.e(TAG, "Can't open a file in another app's external directory!");
                 return new FileOpenResult(OsConstants.ENOENT, originalUid, mediaCapabilitiesUid,
@@ -7860,8 +7950,8 @@ public class MediaProvider extends ContentProvider {
             if (shouldBypassFuseRestrictions(forWrite, path)) {
                 isSuccess = true;
                 return new FileOpenResult(0 /* status */, originalUid, mediaCapabilitiesUid,
-                        redact ? getRedactionRangesForFuse(path, ioPath, originalUid, uid, tid) :
-                                new long[0]);
+                        redact ? getRedactionRangesForFuse(path, ioPath, originalUid, uid, tid,
+                                forceRedaction) : new long[0]);
             }
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
@@ -7915,8 +8005,8 @@ public class MediaProvider extends ContentProvider {
             }
             isSuccess = true;
             return new FileOpenResult(0 /* status */, originalUid, mediaCapabilitiesUid,
-                    redact ? getRedactionRangesForFuse(path, ioPath, originalUid, uid, tid) :
-                            new long[0]);
+                    redact ? getRedactionRangesForFuse(path, ioPath, originalUid, uid, tid,
+                            forceRedaction) : new long[0]);
         } catch (IOException e) {
             // We are here because
             // * There is no db row corresponding to the requested path, which is more unlikely.

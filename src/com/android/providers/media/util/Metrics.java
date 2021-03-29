@@ -60,12 +60,30 @@ public class Metrics {
                 normalizedInsertCount, normalizedUpdateCount, normalizedDeleteCount);
     }
 
-    public static void logDeletion(@NonNull String volumeName, int uid, String packageName,
-            int itemCount) {
-        Logging.logPersistent(String.format(
-                "Deleted %3$d items on %1$s due to %2$s",
-                volumeName, packageName, itemCount));
+    /**
+     * Logs persistent deletion logs on-device.
+     */
+    public static void logDeletionPersistent(@NonNull String volumeName, String reason,
+            int[] countPerMediaType) {
+        final StringBuilder builder = new StringBuilder("Deleted ");
+        for (int count: countPerMediaType) {
+            builder.append(count).append(' ');
+        }
+        builder.append("items on ")
+                .append(volumeName)
+                .append(" due to ")
+                .append(reason);
 
+        Logging.logPersistent(builder.toString());
+    }
+
+    /**
+     * Logs persistent deletion logs on-device and stats metrics. Count of items per-media-type
+     * are not uploaded to MediaProviderStats logs.
+     */
+    public static void logDeletion(@NonNull String volumeName, int uid, String packageName,
+            int itemCount, int[] countPerMediaType) {
+        logDeletionPersistent(volumeName, packageName, countPerMediaType);
         MediaProviderStatsLog.write(MEDIA_CONTENT_DELETED,
                 translateVolumeName(volumeName), uid, itemCount);
     }

@@ -27,6 +27,7 @@ import static android.content.pm.PackageManager.MATCH_ANY_USER;
 import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_AWARE;
 import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_UNAWARE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+import static android.database.Cursor.FIELD_TYPE_BLOB;
 import static android.provider.MediaStore.MATCH_DEFAULT;
 import static android.provider.MediaStore.MATCH_EXCLUDE;
 import static android.provider.MediaStore.MATCH_INCLUDE;
@@ -294,6 +295,8 @@ public class MediaProvider extends ContentProvider {
     private static final String DIRECTORY_THUMBNAILS = ".thumbnails";
     private static final List<String> PRIVATE_SUBDIRECTORIES_ANDROID = Arrays.asList("data", "obb");
     private static final String REDACTED_URI_ID_PREFIX = "RUID";
+    private static final String REDACTED_URI_DIR = ".transforms/synthetic";
+    public static final int REDACTED_URI_ID_SIZE = 36;
 
     /**
      * Hard-coded filename where the current value of
@@ -2660,6 +2663,12 @@ public class MediaProvider extends ContentProvider {
         final ArraySet<String> honoredArgs = new ArraySet<>();
         DatabaseUtils.resolveQueryArgs(queryArgs, honoredArgs::add, this::ensureCustomCollator);
 
+        Uri redactedUri = null;
+        if (isRedactedUri(uri)) {
+            redactedUri = uri;
+            uri = getUriForRedactedUri(uri);
+        }
+
         uri = safeUncanonicalize(uri);
 
         final String volumeName = getVolumeName(uri);
@@ -2772,12 +2781,111 @@ public class MediaProvider extends ContentProvider {
                     honoredArgs.toArray(new String[honoredArgs.size()]));
             c.setExtras(extras);
         }
+
+        // Query was on a redacted URI, update the sensitive information such as the _ID, DATA etc.
+        if (redactedUri != null && c != null) {
+            try {
+                return getRedactedUriCursor(redactedUri, c);
+            } finally {
+                c.close();
+            }
+        }
+
         return c;
     }
 
     private boolean isUriSupportedForRedaction(Uri uri) {
         final int match = matchUri(uri, true);
         return REDACTED_URI_SUPPORTED_TYPES.contains(match);
+    }
+
+    private Cursor getRedactedUriCursor(Uri redactedUri, @NonNull Cursor c) {
+        final HashSet<String> columnNames = new HashSet<>(Arrays.asList(c.getColumnNames()));
+        final MatrixCursor redactedUriCursor = new MatrixCursor(c.getColumnNames());
+        final String redactedUriId = redactedUri.getLastPathSegment();
+
+        if (!c.moveToFirst()) {
+            return redactedUriCursor;
+        }
+
+        // NOTE: It is safe to assume that there will only be one entry corresponding to a
+        // redacted URI as it corresponds to a unique DB entry.
+        if (c.getCount() != 1) {
+            throw new AssertionError("Two rows corresponding to " + redactedUri.toString()
+                    + " found, when only one expected");
+        }
+
+        final MatrixCursor.RowBuilder row = redactedUriCursor.newRow();
+        for (String columnName : c.getColumnNames()) {
+            final int colIndex = c.getColumnIndex(columnName);
+            if (c.getType(colIndex) == FIELD_TYPE_BLOB) {
+                row.add(c.getBlob(colIndex));
+            } else {
+                row.add(c.getString(colIndex));
+            }
+        }
+
+        updateRow(columnNames, MediaColumns._ID, row, redactedUriId);
+        updateRow(columnNames, MediaColumns.DISPLAY_NAME, row, redactedUriId);
+        updateRow(columnNames, MediaColumns.RELATIVE_PATH, row, REDACTED_URI_DIR);
+        updateRow(columnNames, MediaColumns.BUCKET_DISPLAY_NAME, row, REDACTED_URI_DIR);
+        updateRow(columnNames, MediaColumns.DATA, row, getPathForRedactedUriId(redactedUriId));
+        updateRow(columnNames, MediaColumns.DOCUMENT_ID, row, null);
+        updateRow(columnNames, MediaColumns.INSTANCE_ID, row, null);
+        updateRow(columnNames, MediaColumns.BUCKET_ID, row, null);
+
+        return redactedUriCursor;
+    }
+
+    static private String getPathForRedactedUriId(String redactedUriId) {
+        return getStorageRootPathForUid(Binder.getCallingUid()) + "/" + REDACTED_URI_DIR + "/"
+                + redactedUriId;
+    }
+
+    static private String getStorageRootPathForUid(int uid) {
+        return "/storage/emulated/" + (uid / PER_USER_RANGE);
+    }
+
+    private void updateRow(HashSet<String> columnNames, String columnName,
+            MatrixCursor.RowBuilder row, Object val) {
+        if (columnNames.contains(columnName)) {
+            row.add(columnName, val);
+        }
+    }
+
+    private Uri getUriForRedactedUri(Uri redactedUri) {
+        final Uri.Builder builder = redactedUri.buildUpon();
+        builder.path(null);
+        final List<String> segments = redactedUri.getPathSegments();
+        for (int i = 0; i < segments.size() - 1; i++) {
+            builder.appendPath(segments.get(i));
+        }
+
+        DatabaseHelper helper;
+        try {
+            helper = getDatabaseForUri(redactedUri);
+        } catch (VolumeNotFoundException e) {
+            throw e.rethrowAsIllegalArgumentException();
+        }
+
+        try (final Cursor c = helper.runWithoutTransaction(
+                (db) -> db.query("files", new String[]{MediaColumns._ID},
+                        FileColumns.REDACTED_URI_ID + "=?",
+                        new String[]{redactedUri.getLastPathSegment()}, null, null, null))) {
+            if (!c.moveToFirst()) {
+                throw new IllegalArgumentException(
+                        "Uri: " + redactedUri.toString() + " not found.");
+            }
+
+            builder.appendPath(c.getString(0));
+            return builder.build();
+        }
+    }
+
+    private boolean isRedactedUri(Uri uri) {
+        String id = uri.getLastPathSegment();
+        return id != null && id.startsWith(REDACTED_URI_ID_PREFIX)
+                && id.length() == REDACTED_URI_ID_SIZE;
     }
 
     @Override

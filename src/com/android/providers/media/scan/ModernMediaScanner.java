@@ -48,6 +48,8 @@ import static android.provider.MediaStore.UNKNOWN_STRING;
 import static android.text.format.DateUtils.HOUR_IN_MILLIS;
 import static android.text.format.DateUtils.MINUTE_IN_MILLIS;
 
+import static com.android.providers.media.util.Metrics.translateReason;
+
 import android.content.ContentProviderClient;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
@@ -514,12 +516,20 @@ public class ModernMediaScanner implements MediaScanner {
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_FAVORITE, MediaStore.MATCH_INCLUDE);
 
-            try (Cursor c = mResolver.query(mFilesUri, new String[] { FileColumns._ID },
+            final int[] countPerMediaType = new int[FileColumns.MEDIA_TYPE_COUNT];
+            try (Cursor c = mResolver.query(mFilesUri,
+                    new String[] { FileColumns._ID, FileColumns.MEDIA_TYPE },
                     queryArgs, mSignal)) {
                 while (c.moveToNext()) {
                     final long id = c.getLong(0);
                     if (Arrays.binarySearch(scannedIds, id) < 0) {
                         mUnknownIds.add(id);
+                        final int mediaType = c.getInt(1);
+                        // Avoid ArrayIndexOutOfBounds if more mediaTypes are added,
+                        // but mediaTypeSize is not updated
+                        if (mediaType < countPerMediaType.length) {
+                            countPerMediaType[mediaType]++;
+                        }
                     }
                 }
             } finally {
@@ -541,6 +551,10 @@ public class ModernMediaScanner implements MediaScanner {
                 }
                 applyPending();
             } finally {
+                if (mUnknownIds.size() > 0) {
+                    String scanReason = "scan triggered by reason: " + translateReason(mReason);
+                    Metrics.logDeletionPersistent(mVolumeName, scanReason, countPerMediaType);
+                }
                 Trace.endSection();
             }
         }

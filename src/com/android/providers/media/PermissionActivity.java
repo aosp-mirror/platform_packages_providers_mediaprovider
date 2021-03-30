@@ -22,6 +22,10 @@ import static com.android.providers.media.MediaProvider.VIDEO_MEDIA_ID;
 import static com.android.providers.media.MediaProvider.collectUris;
 import static com.android.providers.media.util.DatabaseUtils.getAsBoolean;
 import static com.android.providers.media.util.Logging.TAG;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessMediaLocation;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionManageMedia;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionManager;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionReadStorage;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -64,6 +68,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.MediaProvider.LocalUriMatcher;
 import com.android.providers.media.util.Metrics;
@@ -108,11 +113,16 @@ public class PermissionActivity extends Activity {
 
     private static final Long LEAST_SHOW_PROGRESS_TIME_MS = 300L;
 
-    private static final String VERB_WRITE = "write";
-    private static final String VERB_TRASH = "trash";
+    @VisibleForTesting
+    static final String VERB_WRITE = "write";
+    @VisibleForTesting
+    static final String VERB_TRASH = "trash";
+    @VisibleForTesting
+    static final String VERB_FAVORITE = "favorite";
+    @VisibleForTesting
+    static final String VERB_UNFAVORITE = "unfavorite";
+
     private static final String VERB_UNTRASH = "untrash";
-    private static final String VERB_FAVORITE = "favorite";
-    private static final String VERB_UNFAVORITE = "unfavorite";
     private static final String VERB_DELETE = "delete";
 
     private static final String DATA_AUDIO = "audio";
@@ -157,16 +167,12 @@ public class PermissionActivity extends Activity {
         // Create Progress dialog
         createProgressDialog();
 
-        // Favorite-related requests are automatically granted for now; we still
-        // make developers go through this no-op dialog flow to preserve our
-        // ability to start prompting in the future
-        switch (verb) {
-            case VERB_FAVORITE:
-            case VERB_UNFAVORITE: {
-                onPositiveAction(null, 0);
-                return;
-            }
+        if (!shouldShowActionDialog(this, -1 /* pid */, appInfo.uid, getCallingPackage(),
+                null /* attributionTag */, verb)) {
+            onPositiveAction(null, 0);
+            return;
         }
+
         // Kick off async loading of description to show in dialog
         final View bodyView = getLayoutInflater().inflate(R.layout.permission_body, null, false);
         handleImageViewVisibility(bodyView, uris);
@@ -181,6 +187,16 @@ public class PermissionActivity extends Activity {
         builder.setView(bodyView);
 
         actionDialog = builder.show();
+
+        // The title is being set as a message above.
+        // We need to style it like the default AlertDialog title
+        TextView dialogMessage = (TextView) actionDialog.findViewById(
+                android.R.id.message);
+        if (dialogMessage != null) {
+            dialogMessage.setTextAppearance(R.style.PermissionAlertDialogTitle);
+        } else {
+            Log.w(TAG, "Couldn't find message element");
+        }
 
         final WindowManager.LayoutParams params = actionDialog.getWindow().getAttributes();
         params.width = getResources().getDimensionPixelSize(R.dimen.permission_dialog_width);
@@ -331,6 +347,37 @@ public class PermissionActivity extends Activity {
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         // Strategy borrowed from PermissionController
         return keyCode == KeyEvent.KEYCODE_BACK;
+    }
+
+    @VisibleForTesting
+    static boolean shouldShowActionDialog(@NonNull Context context, int pid, int uid,
+            @NonNull String packageName, @Nullable String attributionTag, @NonNull String verb) {
+        // Favorite-related requests are automatically granted for now; we still
+        // make developers go through this no-op dialog flow to preserve our
+        // ability to start prompting in the future
+        if (TextUtils.equals(VERB_FAVORITE, verb) || TextUtils.equals(VERB_UNFAVORITE, verb)) {
+            return false;
+        }
+
+        // check READ_EXTERNAL_STORAGE and MANAGE_EXTERNAL_STORAGE permissions
+        if (!checkPermissionReadStorage(context, pid, uid, packageName, attributionTag)
+                && !checkPermissionManager(context, pid, uid, packageName, attributionTag)) {
+            Log.d(TAG, "No permission READ_EXTERNAL_STORAGE or MANAGE_EXTERNAL_STORAGE");
+            return true;
+        }
+        // check MANAGE_MEDIA permission
+        if (!checkPermissionManageMedia(context, pid, uid, packageName, attributionTag)) {
+            Log.d(TAG, "No permission MANAGE_MEDIA");
+            return true;
+        }
+
+        // if verb is write, check ACCESS_MEDIA_LOCATION permission
+        if (TextUtils.equals(verb, VERB_WRITE) && !checkPermissionAccessMediaLocation(context, pid,
+                uid, packageName, attributionTag)) {
+            Log.d(TAG, "No permission ACCESS_MEDIA_LOCATION");
+            return true;
+        }
+        return false;
     }
 
     private void handleImageViewVisibility(View bodyView, List<Uri> uris) {

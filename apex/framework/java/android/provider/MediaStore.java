@@ -1860,6 +1860,12 @@ public final class MediaStore {
             public static final int MEDIA_TYPE_DOCUMENT = 6;
 
             /**
+             * Constant indicating the count of {@link #MEDIA_TYPE} columns.
+             * @hide
+             */
+            public static final int MEDIA_TYPE_COUNT = 7;
+
+            /**
              * Modifier of the database row
              *
              * Specifies the last modifying operation of the database row. This

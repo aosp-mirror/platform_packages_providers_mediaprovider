@@ -36,7 +36,6 @@ java_sdk_library {
     installable: true,
 
     libs: [
-        "framework_mediaprovider_annotation",
         "framework-media.stubs.module_lib",
         "unsupportedappusage",
     ],
@@ -58,11 +57,4 @@ filegroup {
         "java/**/*.java",
     ],
     path: "java",
-}
-
-java_library {
-    name: "framework_mediaprovider_annotation",
-    srcs: [":framework-mediaprovider-annotation-sources"],
-    installable: false,
-    sdk_version: "core_current",
 }

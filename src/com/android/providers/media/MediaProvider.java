@@ -27,6 +27,7 @@ import static android.content.pm.PackageManager.MATCH_ANY_USER;
 import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_AWARE;
 import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_UNAWARE;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+import static android.database.Cursor.FIELD_TYPE_BLOB;
 import static android.provider.MediaStore.MATCH_DEFAULT;
 import static android.provider.MediaStore.MATCH_EXCLUDE;
 import static android.provider.MediaStore.MATCH_INCLUDE;
@@ -263,7 +264,10 @@ public class MediaProvider extends ContentProvider {
             "(?:image_id|video_id)\\s*=\\s*(\\d+)");
 
     /** File access by uid requires the transcoding transform */
-    private static final int FLAG_TRANSFORM_TRANSCODING = 1;
+    private static final int FLAG_TRANSFORM_TRANSCODING = 1 << 0;
+
+    /** File access by uid is a synthetic path corresponding to a redacted URI */
+    private static final int FLAG_TRANSFORM_REDACTION = 1 << 1;
 
     /**
      * These directory names aren't declared in Environment as final variables, and so we need to
@@ -290,6 +294,9 @@ public class MediaProvider extends ContentProvider {
     private static final String DIRECTORY_THUMBNAILS = ".thumbnails";
     private static final List<String> PRIVATE_SUBDIRECTORIES_ANDROID = Arrays.asList("data", "obb");
     private static final String REDACTED_URI_ID_PREFIX = "RUID";
+    private static final String TRANSFORMS_SYNTHETIC_DIR = ".transforms/synthetic";
+    private static final String REDACTED_URI_DIR = TRANSFORMS_SYNTHETIC_DIR + "/redacted";
+    public static final int REDACTED_URI_ID_SIZE = 36;
 
     /**
      * Hard-coded filename where the current value of
@@ -1000,6 +1007,9 @@ public class MediaProvider extends ContentProvider {
 
         mTranscodeHelper = new TranscodeHelper(context, this);
 
+        // Create dir for redacted URI's path.
+        new File(getStorageRootPathForUid(UserHandle.myUserId()), REDACTED_URI_DIR).mkdirs();
+
         final IntentFilter packageFilter = new IntentFilter();
         packageFilter.setPriority(10);
         packageFilter.addDataScheme("package");
@@ -1493,6 +1503,10 @@ public class MediaProvider extends ContentProvider {
     @Keep
     public FileLookupResult onFileLookupForFuse(String path, int uid, int tid) {
         uid = getBinderUidForFuse(uid, tid);
+        if (isSyntheticFilePathForRedactedUri(path, uid)) {
+            return getFileLookupResultsForRedactedUriPath(uid, path);
+        }
+
         String ioPath = "";
         boolean transformsComplete = true;
         boolean transformsSupported = mTranscodeHelper.supportsTranscode(path);
@@ -1520,6 +1534,50 @@ public class MediaProvider extends ContentProvider {
 
         return new FileLookupResult(transforms, transformsReason, uid, transformsComplete,
                 transformsSupported, ioPath);
+    }
+
+    private boolean isSyntheticFilePathForRedactedUri(String path, int uid) {
+        if (path == null) return false;
+
+        final String transformsSyntheticDir = getStorageRootPathForUid(uid) + "/"
+                + REDACTED_URI_DIR;
+        final String fileName = extractDisplayName(path);
+        return fileName != null && path.toLowerCase(Locale.ROOT).startsWith(
+                transformsSyntheticDir.toLowerCase(Locale.ROOT)) && fileName.startsWith(
+                REDACTED_URI_ID_PREFIX) && fileName.length() == REDACTED_URI_ID_SIZE;
+    }
+
+    private boolean isSyntheticDirPath(String path, int uid) {
+        final String transformsSyntheticDir = getStorageRootPathForUid(uid) + "/"
+                + TRANSFORMS_SYNTHETIC_DIR;
+        return path != null && path.toLowerCase(Locale.ROOT).startsWith(
+                transformsSyntheticDir.toLowerCase(Locale.ROOT));
+    }
+
+    private FileLookupResult getFileLookupResultsForRedactedUriPath(int uid, @NonNull String path) {
+        final LocalCallingIdentity token = clearLocalCallingIdentity();
+        final String fileName = extractDisplayName(path);
+
+        final DatabaseHelper helper;
+        try {
+            helper = getDatabaseForUri(FileUtils.getContentUriForPath(path));
+        } catch (VolumeNotFoundException e) {
+            throw new IllegalStateException("Volume not found for file: " + path);
+        }
+
+        try (final Cursor c = helper.runWithoutTransaction(
+                (db) -> db.query("files", new String[]{MediaColumns.DATA},
+                        FileColumns.REDACTED_URI_ID + "=?", new String[]{fileName}, null, null,
+                        null))) {
+            if (!c.moveToFirst()) {
+                return new FileLookupResult(FLAG_TRANSFORM_REDACTION, 0, uid, false, true, null);
+            }
+
+            return new FileLookupResult(FLAG_TRANSFORM_REDACTION, 0, uid, true, true,
+                    c.getString(0));
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
     }
 
     public int getBinderUidForFuse(int uid, int tid) {
@@ -2574,6 +2632,15 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token = clearLocalCallingIdentity(
                 LocalCallingIdentity.fromExternal(getContext(), uid));
 
+        if(isRedactedUri(uri)) {
+            if((modeFlags & Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != 0) {
+                // we don't allow write grants on redacted uris.
+                return PackageManager.PERMISSION_DENIED;
+            }
+
+            uri = getUriForRedactedUri(uri);
+        }
+
         try {
             final boolean allowHidden = isCallingPackageAllowedHidden();
             final int table = matchUri(uri, allowHidden);
@@ -2659,6 +2726,12 @@ public class MediaProvider extends ContentProvider {
 
         final ArraySet<String> honoredArgs = new ArraySet<>();
         DatabaseUtils.resolveQueryArgs(queryArgs, honoredArgs::add, this::ensureCustomCollator);
+
+        Uri redactedUri = null;
+        if (isRedactedUri(uri)) {
+            redactedUri = uri;
+            uri = getUriForRedactedUri(uri);
+        }
 
         uri = safeUncanonicalize(uri);
 
@@ -2772,12 +2845,111 @@ public class MediaProvider extends ContentProvider {
                     honoredArgs.toArray(new String[honoredArgs.size()]));
             c.setExtras(extras);
         }
+
+        // Query was on a redacted URI, update the sensitive information such as the _ID, DATA etc.
+        if (redactedUri != null && c != null) {
+            try {
+                return getRedactedUriCursor(redactedUri, c);
+            } finally {
+                c.close();
+            }
+        }
+
         return c;
     }
 
     private boolean isUriSupportedForRedaction(Uri uri) {
         final int match = matchUri(uri, true);
         return REDACTED_URI_SUPPORTED_TYPES.contains(match);
+    }
+
+    private Cursor getRedactedUriCursor(Uri redactedUri, @NonNull Cursor c) {
+        final HashSet<String> columnNames = new HashSet<>(Arrays.asList(c.getColumnNames()));
+        final MatrixCursor redactedUriCursor = new MatrixCursor(c.getColumnNames());
+        final String redactedUriId = redactedUri.getLastPathSegment();
+
+        if (!c.moveToFirst()) {
+            return redactedUriCursor;
+        }
+
+        // NOTE: It is safe to assume that there will only be one entry corresponding to a
+        // redacted URI as it corresponds to a unique DB entry.
+        if (c.getCount() != 1) {
+            throw new AssertionError("Two rows corresponding to " + redactedUri.toString()
+                    + " found, when only one expected");
+        }
+
+        final MatrixCursor.RowBuilder row = redactedUriCursor.newRow();
+        for (String columnName : c.getColumnNames()) {
+            final int colIndex = c.getColumnIndex(columnName);
+            if (c.getType(colIndex) == FIELD_TYPE_BLOB) {
+                row.add(c.getBlob(colIndex));
+            } else {
+                row.add(c.getString(colIndex));
+            }
+        }
+
+        updateRow(columnNames, MediaColumns._ID, row, redactedUriId);
+        updateRow(columnNames, MediaColumns.DISPLAY_NAME, row, redactedUriId);
+        updateRow(columnNames, MediaColumns.RELATIVE_PATH, row, REDACTED_URI_DIR);
+        updateRow(columnNames, MediaColumns.BUCKET_DISPLAY_NAME, row, REDACTED_URI_DIR);
+        updateRow(columnNames, MediaColumns.DATA, row, getPathForRedactedUriId(redactedUriId));
+        updateRow(columnNames, MediaColumns.DOCUMENT_ID, row, null);
+        updateRow(columnNames, MediaColumns.INSTANCE_ID, row, null);
+        updateRow(columnNames, MediaColumns.BUCKET_ID, row, null);
+
+        return redactedUriCursor;
+    }
+
+    static private String getPathForRedactedUriId(String redactedUriId) {
+        return getStorageRootPathForUid(Binder.getCallingUid()) + "/" + REDACTED_URI_DIR + "/"
+                + redactedUriId;
+    }
+
+    static private String getStorageRootPathForUid(int uid) {
+        return "/storage/emulated/" + (uid / PER_USER_RANGE);
+    }
+
+    private void updateRow(HashSet<String> columnNames, String columnName,
+            MatrixCursor.RowBuilder row, Object val) {
+        if (columnNames.contains(columnName)) {
+            row.add(columnName, val);
+        }
+    }
+
+    private Uri getUriForRedactedUri(Uri redactedUri) {
+        final Uri.Builder builder = redactedUri.buildUpon();
+        builder.path(null);
+        final List<String> segments = redactedUri.getPathSegments();
+        for (int i = 0; i < segments.size() - 1; i++) {
+            builder.appendPath(segments.get(i));
+        }
+
+        DatabaseHelper helper;
+        try {
+            helper = getDatabaseForUri(redactedUri);
+        } catch (VolumeNotFoundException e) {
+            throw e.rethrowAsIllegalArgumentException();
+        }
+
+        try (final Cursor c = helper.runWithoutTransaction(
+                (db) -> db.query("files", new String[]{MediaColumns._ID},
+                        FileColumns.REDACTED_URI_ID + "=?",
+                        new String[]{redactedUri.getLastPathSegment()}, null, null, null))) {
+            if (!c.moveToFirst()) {
+                throw new IllegalArgumentException(
+                        "Uri: " + redactedUri.toString() + " not found.");
+            }
+
+            builder.appendPath(c.getString(0));
+            return builder.build();
+        }
+    }
+
+    private boolean isRedactedUri(Uri uri) {
+        String id = uri.getLastPathSegment();
+        return id != null && id.startsWith(REDACTED_URI_ID_PREFIX)
+                && id.length() == REDACTED_URI_ID_SIZE;
     }
 
     @Override
@@ -4963,6 +5135,11 @@ public class MediaProvider extends ContentProvider {
             throws FallbackException {
         extras = (extras != null) ? extras : new Bundle();
 
+        if (isRedactedUri(uri)) {
+            // we don't support deletion on redacted uris.
+            return 0;
+        }
+
         // INCLUDED_DEFAULT_DIRECTORIES extra should only be set inside MediaProvider.
         extras.remove(INCLUDED_DEFAULT_DIRECTORIES);
 
@@ -4970,7 +5147,7 @@ public class MediaProvider extends ContentProvider {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
-        switch(match) {
+        switch (match) {
             case AUDIO_MEDIA_ID:
             case AUDIO_PLAYLISTS_ID:
             case VIDEO_MEDIA_ID:
@@ -5065,6 +5242,7 @@ public class MediaProvider extends ContentProvider {
             };
             final boolean isFilesTable = qb.getTables().equals("files");
             final LongSparseArray<String> deletedDownloadIds = new LongSparseArray<>();
+            final int[] countPerMediaType = new int[FileColumns.MEDIA_TYPE_COUNT];
             if (isFilesTable) {
                 String deleteparam = uri.getQueryParameter(MediaStore.PARAM_DELETE_DATA);
                 if (deleteparam == null || ! deleteparam.equals("false")) {
@@ -5082,7 +5260,13 @@ public class MediaProvider extends ContentProvider {
                             mCallingIdentity.get().setOwned(id, false);
 
                             deleteIfAllowed(uri, extras, data);
-                            count += qb.delete(helper, BaseColumns._ID + "=" + id, null);
+                            int res = qb.delete(helper, BaseColumns._ID + "=" + id, null);
+                            count += res;
+                            // Avoid ArrayIndexOutOfBounds if more mediaTypes are added,
+                            // but mediaTypeSize is not updated
+                            if (res > 0 && mediaType < countPerMediaType.length) {
+                                countPerMediaType[mediaType] += res;
+                            }
 
                             if (isDownload == 1) {
                                 deletedDownloadIds.put(id, mimeType);
@@ -5138,7 +5322,7 @@ public class MediaProvider extends ContentProvider {
 
             if (isFilesTable && !isCallingPackageSelf()) {
                 Metrics.logDeletion(volumeName, mCallingIdentity.get().uid,
-                        getCallingPackageOrSelf(), count);
+                        getCallingPackageOrSelf(), count, countPerMediaType);
             }
         }
 
@@ -5893,6 +6077,11 @@ public class MediaProvider extends ContentProvider {
     private int updateInternal(@NonNull Uri uri, @Nullable ContentValues initialValues,
             @Nullable Bundle extras) throws FallbackException {
         extras = (extras != null) ? extras : new Bundle();
+
+        if (isRedactedUri(uri)) {
+            // we don't support update on redacted uris.
+            return 0;
+        }
 
         // Related items are only considered for new media creation, and they
         // can't be leveraged to move existing content into blocked locations
@@ -6792,6 +6981,11 @@ public class MediaProvider extends ContentProvider {
     private ParcelFileDescriptor openFileCommon(Uri uri, String mode, CancellationSignal signal,
             @Nullable Bundle opts)
             throws FileNotFoundException {
+        boolean isRedactedUri = false;
+        if (isRedactedUri(uri)) {
+            uri = getUriForRedactedUri(uri);
+            isRedactedUri = true;
+        }
         uri = safeUncanonicalize(uri);
         opts = opts == null ? new Bundle() : opts;
 
@@ -6827,7 +7021,8 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        return openFileAndEnforcePathPermissionsHelper(uri, match, mode, signal, opts);
+        return openFileAndEnforcePathPermissionsHelper(uri, match, mode, signal, opts,
+                isRedactedUri);
     }
 
     @Override
@@ -7140,11 +7335,14 @@ public class MediaProvider extends ContentProvider {
      * a "/mnt/user" path.
      */
     private ParcelFileDescriptor openFileAndEnforcePathPermissionsHelper(Uri uri, int match,
-            String mode, CancellationSignal signal, @NonNull Bundle opts)
+            String mode, CancellationSignal signal, @NonNull Bundle opts, boolean isRedactedUri)
             throws FileNotFoundException {
         int modeBits = ParcelFileDescriptor.parseMode(mode);
         boolean forWrite = (modeBits & ParcelFileDescriptor.MODE_WRITE_ONLY) != 0;
         if (forWrite) {
+            if (isRedactedUri) {
+                throw new UnsupportedOperationException("Write is not supported on redacted URIs");
+            }
             // Upgrade 'w' only to 'rw'. This allows us acquire a WR_LOCK when calling
             // #shouldOpenWithFuse
             modeBits |= ParcelFileDescriptor.MODE_READ_WRITE;
@@ -7185,7 +7383,7 @@ public class MediaProvider extends ContentProvider {
 
         final boolean callerIsOwner = Objects.equals(getCallingPackageOrSelf(), ownerPackageName);
         // Figure out if we need to redact contents
-        final boolean redactionNeeded = callerIsOwner ? false : isRedactionNeeded(uri);
+        final boolean redactionNeeded = isRedactedUri || (!callerIsOwner && isRedactionNeeded(uri));
         final RedactionInfo redactionInfo;
         try {
             redactionInfo = redactionNeeded ? getRedactionRanges(file)
@@ -7573,12 +7771,16 @@ public class MediaProvider extends ContentProvider {
      */
     @NonNull
     private long[] getRedactionRangesForFuse(String path, String ioPath, int original_uid, int uid,
-            int tid) throws IOException {
+            int tid, boolean forceRedaction) throws IOException {
         // |ioPath| might refer to a transcoded file path (which is not indexed in the db)
         // |path| will always refer to a valid _data column
         // We use |ioPath| for the filesystem access because in the case of transcoding,
         // we want to get redaction ranges from the transcoded file and *not* the original file
         final File file = new File(ioPath);
+
+        if (forceRedaction) {
+            return getRedactionRanges(file).redactionRanges;
+        }
 
         // When calculating redaction ranges initiated from MediaProvider, the redaction policy
         // is slightly different from the FUSE initiated opens redaction policy. targetSdk=29 from
@@ -7610,7 +7812,7 @@ public class MediaProvider extends ContentProvider {
             final String[] projection = new String[]{
                     MediaColumns.OWNER_PACKAGE_NAME, MediaColumns._ID };
             final String selection = MediaColumns.DATA + "=?";
-            final String[] selectionArgs = new String[] { path };
+            final String[] selectionArgs = new String[]{path};
             final String ownerPackageName;
             final Uri item;
             try (final Cursor c = queryForSingleItem(contentUri, projection, selection,
@@ -7629,6 +7831,7 @@ public class MediaProvider extends ContentProvider {
 
             final boolean callerIsOwner = Objects.equals(getCallingPackageOrSelf(),
                     ownerPackageName);
+
             if (callerIsOwner) {
                 return new long[0];
             }
@@ -7743,6 +7946,27 @@ public class MediaProvider extends ContentProvider {
         }
 
         try {
+            boolean forceRedaction = false;
+            if (isSyntheticFilePathForRedactedUri(path, uid)) {
+                if (forWrite) {
+                    // Redacted URIs are not allowed to update EXIF headers.
+                    return new FileOpenResult(OsConstants.EACCES /* status */, originalUid,
+                            mediaCapabilitiesUid, new long[0]);
+                }
+
+                // If path is redacted Uris' path, ioPath must be the real path, ioPath must
+                // haven been updated to the real path during onFileLookupForFuse.
+                path = ioPath;
+
+                // Irrespective of the permissions we want to redact in this case.
+                redact = true;
+                forceRedaction = true;
+            } else if (isSyntheticDirPath(path, uid)) {
+                // we don't support any other transformations under .transforms/synthetic dir
+                return new FileOpenResult(OsConstants.ENOENT /* status */, originalUid,
+                        mediaCapabilitiesUid, new long[0]);
+            }
+
             if (isPrivatePackagePathNotAccessibleByCaller(path)) {
                 Log.e(TAG, "Can't open a file in another app's external directory!");
                 return new FileOpenResult(OsConstants.ENOENT, originalUid, mediaCapabilitiesUid,
@@ -7752,8 +7976,8 @@ public class MediaProvider extends ContentProvider {
             if (shouldBypassFuseRestrictions(forWrite, path)) {
                 isSuccess = true;
                 return new FileOpenResult(0 /* status */, originalUid, mediaCapabilitiesUid,
-                        redact ? getRedactionRangesForFuse(path, ioPath, originalUid, uid, tid) :
-                                new long[0]);
+                        redact ? getRedactionRangesForFuse(path, ioPath, originalUid, uid, tid,
+                                forceRedaction) : new long[0]);
             }
             // Legacy apps that made is this far don't have the right storage permission and hence
             // are not allowed to access anything other than their external app directory
@@ -7807,8 +8031,8 @@ public class MediaProvider extends ContentProvider {
             }
             isSuccess = true;
             return new FileOpenResult(0 /* status */, originalUid, mediaCapabilitiesUid,
-                    redact ? getRedactionRangesForFuse(path, ioPath, originalUid, uid, tid) :
-                            new long[0]);
+                    redact ? getRedactionRangesForFuse(path, ioPath, originalUid, uid, tid,
+                            forceRedaction) : new long[0]);
         } catch (IOException e) {
             // We are here because
             // * There is no db row corresponding to the requested path, which is more unlikely.

@@ -3854,6 +3854,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         final long rowId;
+        Uri newUri = uri;
         {
             if (mediaType == FileColumns.MEDIA_TYPE_PLAYLIST) {
                 String name = values.getAsString(Audio.Playlists.NAME);
@@ -3880,6 +3881,9 @@ public class MediaProvider extends ContentProvider {
                         values.put(FileColumns.SIZE, file.length());
                     }
                 }
+                if (!isFuseThread() && shouldFileBeHidden(file)) {
+                    newUri = MediaStore.Files.getContentUri(MediaStore.getVolumeName(uri));
+                }
             }
 
             rowId = insertAllowingUpsert(qb, helper, values, path);
@@ -3890,7 +3894,7 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        return ContentUris.withAppendedId(uri, rowId);
+        return ContentUris.withAppendedId(newUri, rowId);
     }
 
     /**

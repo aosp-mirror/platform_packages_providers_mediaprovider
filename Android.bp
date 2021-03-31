@@ -29,8 +29,8 @@ android_app {
     libs: [
         "unsupportedappusage",
         "app-compat-annotations",
+        "framework-annotations-lib",
         "framework-mediaprovider.impl",
-        "framework_mediaprovider_annotation",
         "framework-statsd",
     ],
 

@@ -180,8 +180,7 @@ public class PermissionActivity extends Activity {
         }
 
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        // We set the title in message so that the text doesn't get truncated
-        builder.setMessage(resolveTitleText());
+        builder.setTitle(resolveTitleText());
         builder.setPositiveButton(R.string.allow, this::onPositiveAction);
         builder.setNegativeButton(R.string.deny, this::onNegativeAction);
         builder.setCancelable(false);

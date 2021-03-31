@@ -1451,7 +1451,6 @@ public class TranscodeHelper {
     private static class StorageTranscodingSession {
         public final TranscodingSession session;
         public final CountDownLatch latch;
-        private final Set<Integer> mBlockedUids = new ArraySet<>();
         private boolean hasAnr;
 
         public StorageTranscodingSession(TranscodingSession session, CountDownLatch latch) {
@@ -1460,15 +1459,11 @@ public class TranscodeHelper {
         }
 
         public void addBlockedUid(int uid) {
-            synchronized (latch) {
-                mBlockedUids.add(uid);
-            }
+            session.addClientUid(uid);
         }
 
         public boolean isUidBlocked(int uid) {
-            synchronized (latch) {
-                return mBlockedUids.contains(uid);
-            }
+            return session.getClientUids().contains(uid);
         }
 
         public void setAnr() {
@@ -1485,7 +1480,7 @@ public class TranscodeHelper {
 
         @Override
         public String toString() {
-            return session.toString() + ". BlockedUids: " + mBlockedUids;
+            return session.toString() + ". BlockedUids: " + session.getClientUids();
         }
     }
 

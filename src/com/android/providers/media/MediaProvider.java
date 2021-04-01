@@ -154,6 +154,7 @@ import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.provider.Column;
 import android.provider.DeviceConfig;
+import android.provider.DeviceConfig.OnPropertiesChangedListener;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
@@ -8843,6 +8844,12 @@ public class MediaProvider extends ContentProvider {
         } finally {
             Binder.restoreCallingIdentity(token);
         }
+    }
+
+    @VisibleForTesting
+    public void addOnPropertiesChangedListener(OnPropertiesChangedListener listener) {
+        DeviceConfig.addOnPropertiesChangedListener(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
+                BackgroundThread.getExecutor(), listener);
     }
 
     @Deprecated

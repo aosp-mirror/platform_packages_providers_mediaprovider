@@ -5660,8 +5660,12 @@ public class MediaProvider extends ContentProvider {
                         extras.getParcelable(MediaStore.EXTRA_FILE_DESCRIPTOR);
                 try {
                     File file = getFileFromFileDescriptor(inputPfd);
-                    FuseDaemon fuseDaemon = getFuseDaemonForFile(file);
+                    boolean supportsTranscode = mTranscodeHelper.supportsTranscode(file.getPath());
+                    if (!supportsTranscode) {
+                        throw new IOException("Input file descriptor is already original");
+                    }
 
+                    FuseDaemon fuseDaemon = getFuseDaemonForFile(file);
                     String outputPath = fuseDaemon.getOriginalMediaFormatFilePath(inputPfd);
                     if (TextUtils.isEmpty(outputPath)) {
                         throw new IOException("Invalid path for original media format file");

@@ -110,8 +110,15 @@ public class PermissionActivity extends Activity {
     private AsyncTask<Void, Void, Void> positiveActionTask;
     private Dialog progressDialog;
     private TextView titleView;
+    private Handler mHandler;
+    private Runnable mShowProgressDialogRunnable = () -> {
+        // We will show the progress dialog, add the dim effect back.
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+        progressDialog.show();
+    };
 
     private static final Long LEAST_SHOW_PROGRESS_TIME_MS = 300L;
+    private static final Long BEFORE_SHOW_PROGRESS_TIME_MS = 300L;
 
     @VisibleForTesting
     static final String VERB_WRITE = "write";
@@ -146,6 +153,12 @@ public class PermissionActivity extends Activity {
         getWindow().addSystemFlags(
                 WindowManager.LayoutParams.SYSTEM_FLAG_HIDE_NON_SYSTEM_OVERLAY_WINDOWS);
         setFinishOnTouchOutside(false);
+        // remove the dim effect
+        // We may not show the progress dialog, if we don't remove the dim effect,
+        // it may have flicker.
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+        getWindow().setDimAmount(0.0f);
+
 
         // All untrusted input values here were validated when generating the
         // original PendingIntent
@@ -164,6 +177,7 @@ public class PermissionActivity extends Activity {
             return;
         }
 
+        mHandler = new Handler(getMainLooper());
         // Create Progress dialog
         createProgressDialog();
 
@@ -226,6 +240,7 @@ public class PermissionActivity extends Activity {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        mHandler.removeCallbacks(mShowProgressDialogRunnable);
         // Cancel and interrupt the AsyncTask of the positive action. This avoids
         // calling the old activity during "onPostExecute", but the AsyncTask could
         // still finish its background task. For now we are ok with:
@@ -251,8 +266,10 @@ public class PermissionActivity extends Activity {
             ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(false);
         }
 
-        progressDialog.show();
         final long startTime = System.currentTimeMillis();
+
+        mHandler.postDelayed(mShowProgressDialogRunnable, BEFORE_SHOW_PROGRESS_TIME_MS);
+
         positiveActionTask = new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... params) {
@@ -303,17 +320,23 @@ public class PermissionActivity extends Activity {
             @Override
             protected void onPostExecute(Void result) {
                 setResult(Activity.RESULT_OK);
-                // Don't dismiss the progress dialog too quick, it will cause bad UX.
-                final long duration = System.currentTimeMillis() - startTime;
-                if (duration > LEAST_SHOW_PROGRESS_TIME_MS) {
-                    progressDialog.dismiss();
+                mHandler.removeCallbacks(mShowProgressDialogRunnable);
+
+                if (!progressDialog.isShowing()) {
                     finish();
                 } else {
-                    Handler handler = new Handler(getMainLooper());
-                    handler.postDelayed(() -> {
+                    // Don't dismiss the progress dialog too quick, it will cause bad UX.
+                    final long duration =
+                            System.currentTimeMillis() - startTime - BEFORE_SHOW_PROGRESS_TIME_MS;
+                    if (duration > LEAST_SHOW_PROGRESS_TIME_MS) {
                         progressDialog.dismiss();
                         finish();
-                    }, LEAST_SHOW_PROGRESS_TIME_MS - duration);
+                    } else {
+                        mHandler.postDelayed(() -> {
+                            progressDialog.dismiss();
+                            finish();
+                        }, LEAST_SHOW_PROGRESS_TIME_MS - duration);
+                    }
                 }
             }
         }.execute();

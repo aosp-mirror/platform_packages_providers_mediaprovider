@@ -4261,6 +4261,9 @@ public final class MediaStore {
 
     /**
      * Returns true if the given application is the current system gallery of the device.
+     * <p>
+     * The system gallery is one app chosen by the OEM that has read & write access to all photos
+     * and videos on the device and control over folders in media collections.
      *
      * @param resolver The {@link ContentResolver} used to connect with
      * {@link MediaStore#AUTHORITY}. Typically this value is {@link Context#getContentResolver()}.

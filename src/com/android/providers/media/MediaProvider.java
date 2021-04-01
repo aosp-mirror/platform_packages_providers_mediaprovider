@@ -1258,7 +1258,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     public Uri scanFile(File file, int reason) {
-        return mMediaScanner.scanFile(file, reason);
+        return scanFile(file, reason, null);
     }
 
     public Uri scanFile(File file, int reason, String ownerPackage) {
@@ -9330,7 +9330,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Signal any scanning to shut down
-        mMediaScanner.onDetachVolume(volumeName);
+        mMediaScanner.onDetachVolume(volume);
 
         synchronized (mAttachedVolumes) {
             mAttachedVolumes.remove(volume);

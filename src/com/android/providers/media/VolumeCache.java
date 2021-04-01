@@ -141,22 +141,28 @@ public class VolumeCache {
         }
     }
 
-    public @NonNull String getVolumeId(@NonNull File file) throws FileNotFoundException {
+    public @NonNull MediaVolume findVolumeForFile(@NonNull File file) throws FileNotFoundException {
         synchronized (mLock) {
             for (MediaVolume volume : mExternalVolumes) {
                 if (FileUtils.contains(volume.getPath(), file)) {
-                    return volume.getId();
+                    return volume;
                 }
             }
         }
 
-        Log.w(TAG, "Didn't find any volume for getVolumeId(" + file.getPath() + ")");
+        Log.w(TAG, "Didn't find any volume for getVolume(" + file.getPath() + ")");
         // Nothing found above; let's ask directly
         final StorageManager sm = mContext.getSystemService(StorageManager.class);
         final StorageVolume volume = sm.getStorageVolume(file);
         if (volume == null) {
-           throw new FileNotFoundException("Missing volume for " + file);
+            throw new FileNotFoundException("Missing volume for " + file);
         }
+
+        return MediaVolume.fromStorageVolume(volume);
+    }
+
+    public @NonNull String getVolumeId(@NonNull File file) throws FileNotFoundException {
+        MediaVolume volume = findVolumeForFile(file);
 
         return volume.getId();
     }

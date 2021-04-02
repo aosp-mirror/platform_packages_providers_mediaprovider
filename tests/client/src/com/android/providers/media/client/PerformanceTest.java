@@ -41,6 +41,7 @@ import androidx.test.uiautomator.UiDevice;
 
 import com.android.providers.media.tests.utils.Timer;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -236,6 +237,7 @@ public class PerformanceTest {
     }
 
     @Test
+    @Ignore("b/184048881")
     public void testDirOperations_500() throws Exception {
         testDirOperations_size(500);
     }

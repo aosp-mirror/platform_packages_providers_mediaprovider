@@ -279,8 +279,19 @@ public class TranscodeHelper {
     }
 
     public void freeCache(long bytes) {
-        // TODO(b/181846007): Implement cache clearing policies.
-        mTranscodeDirectory.delete();
+        File[] files = mTranscodeDirectory.listFiles();
+        for (File file : files) {
+            if (bytes <= 0) {
+                return;
+            }
+            if (file.exists() && file.isFile()) {
+                long size = file.length();
+                boolean deleted = file.delete();
+                if (deleted) {
+                    bytes -= size;
+                }
+            }
+        }
     }
 
     private UUID getTranscodeVolumeUuid() {
@@ -438,9 +449,9 @@ public class TranscodeHelper {
 
             failureReason = waitTranscodingResult(uid, src, transcodingSession, latch);
             errorCode = transcodingSession.getErrorCode();
-            boolean success = failureReason == TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN;
+            result = failureReason == TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN;
 
-            if (success) {
+            if (result) {
                 updateTranscodeStatus(src, TRANSCODE_COMPLETE);
             } else {
                 logEvent("Transcoding failed for " + src + ". session: ", transcodingSession);

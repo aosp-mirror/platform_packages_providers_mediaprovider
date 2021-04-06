@@ -35,6 +35,9 @@
     <!-- Permissions required for statsd pull metrics -->
     <uses-permission android:name="android.permission.REGISTER_STATS_PULL_ATOM"/>
 
+    <!-- Permissions required to check if an app is in the foreground or not during IO -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
+
     <application
             android:name="com.android.providers.media.MediaApplication"
             android:label="@string/app_label"

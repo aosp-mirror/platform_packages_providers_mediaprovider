@@ -518,7 +518,8 @@ public class TranscodeHelper {
             raf.setLength(maxFileSize);
         } catch (IOException e) {
             Log.e(TAG, "Failed to initialise transcoding for file " + path, e);
-            return path;
+            transcodeFile.delete();
+            return transcodePath;
         }
 
         return transcodePath;

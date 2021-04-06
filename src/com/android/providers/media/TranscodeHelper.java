@@ -100,6 +100,9 @@ import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -224,13 +227,13 @@ public class TranscodeHelper {
     // is pretty low, and we are limiting the count of what we keep.  So, we don't wanna miss out
     // on dumping the cancelled and error'ed sessions.
     @GuardedBy("mLock")
-    private final Map<String, StorageTranscodingSession> mSuccessfulTranscodeSessions =
+    private final Map<StorageTranscodingSession, Boolean> mSuccessfulTranscodeSessions =
             createFinishedTranscodingSessionMap();
     @GuardedBy("mLock")
-    private final Map<String, StorageTranscodingSession> mCancelledTranscodeSessions =
+    private final Map<StorageTranscodingSession, Boolean> mCancelledTranscodeSessions =
             createFinishedTranscodingSessionMap();
     @GuardedBy("mLock")
-    private final Map<String, StorageTranscodingSession> mErroredTranscodeSessions =
+    private final Map<StorageTranscodingSession, Boolean> mErroredTranscodeSessions =
             createFinishedTranscodingSessionMap();
 
     private final TranscodeUiNotifier mTranscodingUiNotifier;
@@ -417,7 +420,6 @@ public class TranscodeHelper {
         CountDownLatch latch = null;
         long startTime = SystemClock.elapsedRealtime();
         boolean result = false;
-        boolean hasAnr = false;
         int errorCode = TranscodingSession.ERROR_NONE;
         int failureReason = TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN;
 
@@ -435,7 +437,8 @@ public class TranscodeHelper {
                     } catch (UnsupportedOperationException | IOException e) {
                         throw new IllegalStateException(e);
                     }
-                    storageSession = new StorageTranscodingSession(transcodingSession, latch);
+                    storageSession = new StorageTranscodingSession(transcodingSession, latch,
+                            src, dst);
                     mStorageTranscodingSessions.put(src, storageSession);
                 } else {
                     latch = storageSession.latch;
@@ -456,12 +459,12 @@ public class TranscodeHelper {
                 updateTranscodeStatus(src, TRANSCODE_COMPLETE);
             } else {
                 logEvent("Transcoding failed for " + src + ". session: ", transcodingSession);
-                // Attempt to workaround media transcoding deadlock, b/165374867
+                // Attempt to workaround potential media transcoding deadlock
                 // Cancelling a deadlocked session seems to unblock the transcoder
-                finishTranscodingResult(uid, src, transcodingSession, latch);
+                transcodingSession.cancel();
             }
-            hasAnr = storageSession.hasAnr();
         } finally {
+            storageSession.notifyFinished(failureReason, errorCode);
             if (errorCode == TranscodingSession.ERROR_DROPPED_BY_SERVICE) {
                 // If the transcoding service drops a request for a uid the uid will be denied
                 // transcoding access until the next boot
@@ -471,7 +474,7 @@ public class TranscodeHelper {
             }
             reportTranscodingResult(uid, result, errorCode, failureReason,
                     SystemClock.elapsedRealtime() - startTime, reason,
-                    src, dst, hasAnr);
+                    src, dst, storageSession.hasAnr());
         }
         return result;
     }
@@ -1195,17 +1198,18 @@ public class TranscodeHelper {
         synchronized (mLock) {
             latch.countDown();
             session.cancel();
+
             finishedSession = mStorageTranscodingSessions.remove(src);
 
             switch (session.getResult()) {
                 case TranscodingSession.RESULT_SUCCESS:
-                    mSuccessfulTranscodeSessions.put(src, finishedSession);
+                    mSuccessfulTranscodeSessions.put(finishedSession, false /* placeholder */);
                     break;
                 case TranscodingSession.RESULT_CANCELED:
-                    mCancelledTranscodeSessions.put(src, finishedSession);
+                    mCancelledTranscodeSessions.put(finishedSession, false /* placeholder */);
                     break;
                 case TranscodingSession.RESULT_ERROR:
-                    mErroredTranscodeSessions.put(src, finishedSession);
+                    mErroredTranscodeSessions.put(finishedSession, false /* placeholder */);
                     break;
                 default:
                     Log.w(TAG, "TranscodingSession.RESULT_NONE received for a finished session");
@@ -1435,14 +1439,11 @@ public class TranscodeHelper {
 
     private void dumpFinishedSessions(PrintWriter writer) {
         synchronized (mLock) {
-            writer.println("mSuccessfulTranscodeSessions=" + mSuccessfulTranscodeSessions);
-            mSuccessfulTranscodeSessions.clear();
+            writer.println("mSuccessfulTranscodeSessions=" + mSuccessfulTranscodeSessions.keySet());
 
-            writer.println("mCancelledTranscodeSessions=" + mCancelledTranscodeSessions);
-            mCancelledTranscodeSessions.clear();
+            writer.println("mCancelledTranscodeSessions=" + mCancelledTranscodeSessions.keySet());
 
-            writer.println("mErroredTranscodeSessions=" + mErroredTranscodeSessions);
-            mErroredTranscodeSessions.clear();
+            writer.println("mErroredTranscodeSessions=" + mErroredTranscodeSessions.keySet());
         }
     }
 
@@ -1459,7 +1460,7 @@ public class TranscodeHelper {
     // We want to keep track of only the most recent [MAX_FINISHED_TRANSCODING_SESSION_STORE_COUNT]
     // finished transcoding sessions.
     private static LinkedHashMap createFinishedTranscodingSessionMap() {
-        return new LinkedHashMap<String, StorageTranscodingSession>() {
+        return new LinkedHashMap<StorageTranscodingSession, Boolean>() {
             @Override
             protected boolean removeEldestEntry(Entry eldest) {
                 return size() > MAX_FINISHED_TRANSCODING_SESSION_STORE_COUNT;
@@ -1473,13 +1474,34 @@ public class TranscodeHelper {
     }
 
     private static class StorageTranscodingSession {
+        private static final DateTimeFormatter DATE_FORMAT =
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+
         public final TranscodingSession session;
         public final CountDownLatch latch;
-        private boolean hasAnr;
+        private final String mSrcPath;
+        private final String mDstPath;
+        @GuardedBy("latch")
+        private final Set<Integer> mBlockedUids = new ArraySet<>();
+        private final LocalDateTime mStartTime;
+        @GuardedBy("latch")
+        private LocalDateTime mFinishTime;
+        @GuardedBy("latch")
+        private boolean mHasAnr;
+        @GuardedBy("latch")
+        private int mFailureReason;
+        @GuardedBy("latch")
+        private int mErrorCode;
 
-        public StorageTranscodingSession(TranscodingSession session, CountDownLatch latch) {
+        public StorageTranscodingSession(TranscodingSession session, CountDownLatch latch,
+                String srcPath, String dstPath) {
             this.session = session;
             this.latch = latch;
+            this.mSrcPath = srcPath;
+            this.mDstPath = dstPath;
+            this.mStartTime = LocalDateTime.now();
+            mErrorCode = TranscodingSession.ERROR_NONE;
+            mFailureReason = TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN;
         }
 
         public void addBlockedUid(int uid) {
@@ -1492,19 +1514,47 @@ public class TranscodeHelper {
 
         public void setAnr() {
             synchronized (latch) {
-                hasAnr = true;
+                mHasAnr = true;
             }
         }
 
         public boolean hasAnr() {
             synchronized (latch) {
-                return hasAnr;
+                return mHasAnr;
+            }
+        }
+
+        public void notifyFinished(int failureReason, int errorCode) {
+            synchronized (latch) {
+                mFinishTime = LocalDateTime.now();
+                mFailureReason = failureReason;
+                mErrorCode = errorCode;
             }
         }
 
         @Override
         public String toString() {
-            return session.toString() + ". BlockedUids: " + session.getClientUids();
+            String startTime = mStartTime.format(DATE_FORMAT);
+            String finishTime = "NONE";
+            String durationMs = "NONE";
+            boolean hasAnr;
+            int failureReason;
+            int errorCode;
+
+            synchronized (latch) {
+                if (mFinishTime != null) {
+                    finishTime = mFinishTime.format(DATE_FORMAT);
+                    durationMs = String.valueOf(mStartTime.until(mFinishTime, ChronoUnit.MILLIS));
+                }
+                hasAnr = mHasAnr;
+                failureReason = mFailureReason;
+                errorCode = mErrorCode;
+            }
+
+            return String.format("<%s. Src: %s. Dst: %s. BlockedUids: %s. DurationMs: %sms"
+                    + ". Start: %s. Finish: %sms. HasAnr: %b. FailureReason: %d. ErrorCode: %d>",
+                    session.toString(), mSrcPath, mDstPath, session.getClientUids(), durationMs,
+                    startTime, finishTime, hasAnr, failureReason, errorCode);
         }
     }
 

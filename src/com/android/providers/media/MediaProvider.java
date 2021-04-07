@@ -8140,7 +8140,7 @@ public class MediaProvider extends ContentProvider {
                 uri = MediaStore.Audio.Media.getContentUri(volumeName);
                 break;
             case FileColumns.MEDIA_TYPE_PLAYLIST:
-                MediaStore.Audio.Playlists.getContentUri(volumeName);
+                uri = MediaStore.Audio.Playlists.getContentUri(volumeName);
                 break;
         }
 

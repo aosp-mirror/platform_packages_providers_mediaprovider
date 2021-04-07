@@ -914,6 +914,11 @@ public final class MediaStore {
      * doesn't attempt to parse the actual byte contents of media files, such as playback using
      * {@link MediaPlayer} or for off-device backup, this method can be useful.
      *
+     * <p>This method is applicable only for media files managed by {@link MediaStore}.
+     *
+     * <p>The method returns the original file descriptor with the same permission that the caller
+     * has for the input file descriptor.
+     *
      * @throws IOException if the given {@link ParcelFileDescriptor} could not be converted
      *
      * @see MediaStore#EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT

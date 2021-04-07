@@ -4706,6 +4706,7 @@ public class MediaProvider extends ContentProvider {
             };
             final boolean isFilesTable = qb.getTables().equals("files");
             final LongSparseArray<String> deletedDownloadIds = new LongSparseArray<>();
+            final int[] countPerMediaType = new int[FileColumns.MEDIA_TYPE_COUNT];
             if (isFilesTable) {
                 String deleteparam = uri.getQueryParameter(MediaStore.PARAM_DELETE_DATA);
                 if (deleteparam == null || ! deleteparam.equals("false")) {
@@ -4723,7 +4724,13 @@ public class MediaProvider extends ContentProvider {
                             mCallingIdentity.get().setOwned(id, false);
 
                             deleteIfAllowed(uri, extras, data);
-                            count += qb.delete(helper, BaseColumns._ID + "=" + id, null);
+                            int res = qb.delete(helper, BaseColumns._ID + "=" + id, null);
+                            count += res;
+                            // Avoid ArrayIndexOutOfBounds if more mediaTypes are added,
+                            // but mediaTypeSize is not updated
+                            if (res > 0 && mediaType < countPerMediaType.length) {
+                                countPerMediaType[mediaType] += res;
+                            }
 
                             // Only need to inform DownloadProvider about the downloads deleted on
                             // external volume.
@@ -4781,7 +4788,7 @@ public class MediaProvider extends ContentProvider {
 
             if (isFilesTable && !isCallingPackageSelf()) {
                 Metrics.logDeletion(volumeName, mCallingIdentity.get().uid,
-                        getCallingPackageOrSelf(), count);
+                        getCallingPackageOrSelf(), count, countPerMediaType);
             }
         }
 

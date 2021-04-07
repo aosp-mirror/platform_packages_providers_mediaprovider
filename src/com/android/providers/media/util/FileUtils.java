@@ -892,6 +892,21 @@ public class FileUtils {
     public static final Pattern PATTERN_DATA_OR_OBB_PATH = Pattern.compile(
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb)/?$");
 
+    @VisibleForTesting
+    public static final String[] DEFAULT_FOLDER_NAMES = {
+            Environment.DIRECTORY_MUSIC,
+            Environment.DIRECTORY_PODCASTS,
+            Environment.DIRECTORY_RINGTONES,
+            Environment.DIRECTORY_ALARMS,
+            Environment.DIRECTORY_NOTIFICATIONS,
+            Environment.DIRECTORY_PICTURES,
+            Environment.DIRECTORY_MOVIES,
+            Environment.DIRECTORY_DOWNLOADS,
+            Environment.DIRECTORY_DCIM,
+            Environment.DIRECTORY_DOCUMENTS,
+            Environment.DIRECTORY_AUDIOBOOKS,
+    };
+
     /**
      * Regex that matches paths for {@link MediaColumns#RELATIVE_PATH}; it
      * captures both top-level paths and sandboxed paths.
@@ -904,6 +919,9 @@ public class FileUtils {
      */
     private static final Pattern PATTERN_VOLUME_NAME = Pattern.compile(
             "(?i)^/storage/([^/]+)");
+
+    private static final String CAMERA_RELATIVE_PATH =
+            String.format("%s/%s/", Environment.DIRECTORY_DCIM, "Camera");
 
     private static @Nullable String normalizeUuid(@Nullable String fsUuid) {
         return fsUuid != null ? fsUuid.toLowerCase(Locale.ROOT) : null;
@@ -1015,6 +1033,15 @@ public class FileUtils {
         }
         final String[] relativePathSegments = relativePath.split("/");
         return relativePathSegments.length > 0 ? relativePathSegments[0] : null;
+    }
+
+    public static boolean isDefaultDirectoryName(@Nullable String dirName) {
+        for (String defaultDirName : DEFAULT_FOLDER_NAMES) {
+            if (defaultDirName.equalsIgnoreCase(dirName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -1214,12 +1241,32 @@ public class FileUtils {
         }
 
         final File nomedia = new File(dir, ".nomedia");
+
         // check for .nomedia presence
-        if (nomedia.exists()) {
-            Logging.logPersistent("Observed non-standard " + nomedia);
-            return true;
+        if (!nomedia.exists()) {
+            return false;
         }
-        return false;
+
+        // Handle top-level default directories. These directories should always be visible,
+        // regardless of .nomedia presence.
+        final String[] relativePath = sanitizePath(extractRelativePath(dir.getAbsolutePath()));
+        final boolean isTopLevelDir =
+                relativePath.length == 1 && TextUtils.isEmpty(relativePath[0]);
+        if (isTopLevelDir && isDefaultDirectoryName(name)) {
+            nomedia.delete();
+            return false;
+        }
+
+        // DCIM/Camera should always be visible regardless of .nomedia presence.
+        if (CAMERA_RELATIVE_PATH.equalsIgnoreCase(
+                extractRelativePathForDirectory(dir.getAbsolutePath()))) {
+            nomedia.delete();
+            return false;
+        }
+
+        // .nomedia is present which makes this directory as hidden directory
+        Logging.logPersistent("Observed non-standard " + nomedia);
+        return true;
     }
 
     /**

@@ -131,8 +131,10 @@ public class TranscodeHelper {
             "persist.sys.fuse.transcode_user_control";
     private static final String TRANSCODE_COMPAT_MANIFEST_KEY = "transcode_compat_manifest";
     private static final String TRANSCODE_COMPAT_STALE_KEY = "transcode_compat_stale";
+    private static final String TRANSCODE_MAX_DURATION_MS_KEY = "transcode_max_duration_ms";
 
     private static final int MY_UID = android.os.Process.myUid();
+    private static final int MAX_TRANSCODE_DURATION_MS = (int) TimeUnit.SECONDS.toMillis(1);
 
     /**
      * Force enable an app to support the HEVC media capability
@@ -215,6 +217,7 @@ public class TranscodeHelper {
     private final StorageManager mStorageManager;
     private final MediaTranscodeManager mMediaTranscodeManager;
     private final File mTranscodeDirectory;
+    private final int mMaxTranscodeDurationMs;
     @GuardedBy("mLock")
     private UUID mTranscodeVolumeUuid;
 
@@ -262,6 +265,8 @@ public class TranscodeHelper {
         mSessionTiming = new SessionTiming();
         mTranscodingUiNotifier = new TranscodeUiNotifier(context, mSessionTiming);
         mIsTranscodeEnabled = isTranscodeEnabled();
+        mMaxTranscodeDurationMs = mMediaProvider.getIntDeviceConfig(TRANSCODE_MAX_DURATION_MS_KEY,
+                MAX_TRANSCODE_DURATION_MS);
 
         parseTranscodeCompatManifest();
         // The storage namespace is a boot namespace so we actually don't expect this to be changed
@@ -585,7 +590,9 @@ public class TranscodeHelper {
         }
 
         // Transcode only if file needs transcoding
-        int fileFlags = getFileFlags(path);
+        Pair<Integer, Long> result = getFileFlagsAndDurationMs(path);
+        int fileFlags = result.first;
+        long durationMs = result.second;
 
         if (fileFlags == 0) {
             // Nothing to transcode
@@ -593,14 +600,14 @@ public class TranscodeHelper {
             return 0;
         }
 
-        return doesAppNeedTranscoding(uid, bundle, fileFlags);
+        return doesAppNeedTranscoding(uid, bundle, fileFlags, durationMs);
     }
 
     @VisibleForTesting
-    int doesAppNeedTranscoding(int uid, Bundle bundle, int fileFlags) {
+    int doesAppNeedTranscoding(int uid, Bundle bundle, int fileFlags, long durationMs) {
         synchronized (mLock) {
-            if (mTranscodingThrottledUids.contains(uid)) {
-                logVerbose("Transcoding throttled");
+            if (mTranscodingThrottledUids.contains(uid) || durationMs > mMaxTranscodeDurationMs) {
+                logVerbose("Transcoding denied");
                 return 0;
             }
         }
@@ -740,17 +747,18 @@ public class TranscodeHelper {
         return Optional.empty();
     }
 
-    private int getFileFlags(String path) {
+    private Pair<Integer, Long> getFileFlagsAndDurationMs(String path) {
         final String[] projection = new String[] {
             FileColumns._VIDEO_CODEC_TYPE,
             VideoColumns.COLOR_STANDARD,
-            VideoColumns.COLOR_TRANSFER
+            VideoColumns.COLOR_TRANSFER,
+            MediaColumns.DURATION
         };
 
         try (Cursor cursor = queryFileForTranscode(path, projection)) {
             if (cursor == null || !cursor.moveToNext()) {
                 logVerbose("Couldn't find database row");
-                return 0;
+                return Pair.create(0, 0L);
             }
 
             int result = 0;
@@ -760,7 +768,7 @@ public class TranscodeHelper {
             if (isHdr10Plus(cursor.getInt(1), cursor.getInt(2))) {
                 result |= FLAG_HDR_10_PLUS;
             }
-            return result;
+            return Pair.create(result, cursor.getLong(3));
         }
     }
 

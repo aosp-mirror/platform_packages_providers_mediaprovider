@@ -350,19 +350,19 @@ public class LocalCallingIdentity {
 
     /**
      * Allow apps holding {@link android.Manifest.permission#MANAGE_EXTERNAL_STORAGE}
-     * permission to request optimized external storage access.
+     * permission to request raw external storage access.
      */
     @ChangeId
     @EnabledAfter(targetSdkVersion = Build.VERSION_CODES.R)
-    static final long ENABLE_OPTIMIZED_MANAGE_EXTERNAL_STORAGE_ACCESS = 178209446L;
+    static final long ENABLE_RAW_MANAGE_EXTERNAL_STORAGE_ACCESS = 178209446L;
 
     /**
-     * Allow apps holding {@link android.app.role}#SYSTEM_GALLERY role to request optimized
-     * external storage access.
+     * Allow apps holding {@link android.app.role}#SYSTEM_GALLERY role to request raw external
+     * storage access.
      */
     @ChangeId
     @EnabledSince(targetSdkVersion = Build.VERSION_CODES.R)
-    static final long ENABLE_OPTIMIZED_SYSTEM_GALLERY_ACCESS = 183372781L;
+    static final long ENABLE_RAW_SYSTEM_GALLERY_ACCESS = 183372781L;
 
     /**
      * Checks if app chooses to bypass database operations.
@@ -371,8 +371,7 @@ public class LocalCallingIdentity {
      * Note that this method doesn't check if app qualifies to bypass database operations.
      *
      * @return {@code true} if AndroidManifest.xml of this app has
-     * android:requestOptimizedManageExternalStorageAccess or
-     * android:requestOptimizedSystemGalleryAccess set
+     * android:requestRawExternalStorageAccess=true
      * {@code false} otherwise.
      */
     public boolean shouldBypassDatabase(boolean isSystemGallery) {
@@ -395,7 +394,7 @@ public class LocalCallingIdentity {
             ai = context.getPackageManager()
                     .getApplicationInfo(getPackageName(), 0);
             if (ai != null) {
-                Boolean shouldBypass = ai.hasRequestOptimizedExternalStorageAccess();
+                Boolean shouldBypass = ai.hasRequestRawExternalStorageAccess();
                 if (shouldBypass != null) {
                     return shouldBypass;
                 }
@@ -403,13 +402,13 @@ public class LocalCallingIdentity {
                 // app and targetSDK.
                 if (isSystemGallery) {
                     if (CompatChanges.isChangeEnabled(
-                            ENABLE_OPTIMIZED_SYSTEM_GALLERY_ACCESS, uid)) {
+                            ENABLE_RAW_SYSTEM_GALLERY_ACCESS, uid)) {
                         // If systemGallery, then the flag will default to false when they are
                         // targeting targetSDK>=30.
                         return false;
                     }
                 } else if (CompatChanges.isChangeEnabled(
-                        ENABLE_OPTIMIZED_MANAGE_EXTERNAL_STORAGE_ACCESS, uid)) {
+                        ENABLE_RAW_MANAGE_EXTERNAL_STORAGE_ACCESS, uid)) {
                     // If app has MANAGE_EXTERNAL_STORAGE, the flag will default to false when they
                     // are targeting targetSDK>=31.
                     return false;

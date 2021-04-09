@@ -737,6 +737,21 @@ static void pf_forget_multi(fuse_req_t req,
     fuse_reply_none(req);
 }
 
+static void pf_fallocate(fuse_req_t req, fuse_ino_t ino, int mode, off_t offset, off_t length,
+                         fuse_file_info* fi) {
+    ATRACE_CALL();
+    struct fuse* fuse = get_fuse(req);
+
+    if (mode) {
+        fuse_reply_err(req, EOPNOTSUPP);
+        return;
+    }
+
+    handle* h = reinterpret_cast<handle*>(fi->fh);
+    auto err = posix_fallocate(h->fd, offset, length);
+    fuse_reply_err(req, err);
+}
+
 static void pf_getattr(fuse_req_t req,
                        fuse_ino_t ino,
                        struct fuse_file_info* fi) {
@@ -1910,8 +1925,8 @@ static struct fuse_lowlevel_ops ops{
     .write_buf = pf_write_buf,
     /*.retrieve_reply = pf_retrieve_reply,*/
     .forget_multi = pf_forget_multi,
-    /*.flock = pf_flock,
-    .fallocate = pf_fallocate,*/
+    /*.flock = pf_flock,*/
+    .fallocate = pf_fallocate,
     .readdirplus = pf_readdirplus,
     /*.copy_file_range = pf_copy_file_range,*/
 };

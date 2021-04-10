@@ -23,6 +23,7 @@ import android.media.MediaFormat;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Process;
+import android.provider.DeviceConfig.OnPropertiesChangedListener;
 import android.provider.MediaStore;
 
 import androidx.test.InstrumentationRegistry;
@@ -54,6 +55,11 @@ public class TranscodeHelperTest {
         @Override
         public int getIntDeviceConfig(String key, int defaultValue) {
             return defaultValue;
+        }
+
+        @Override
+        public void addOnPropertiesChangedListener(OnPropertiesChangedListener listener) {
+            // Ignore
         }
     };
 

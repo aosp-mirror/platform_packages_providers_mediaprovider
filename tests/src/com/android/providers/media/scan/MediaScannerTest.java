@@ -33,6 +33,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.SystemClock;
 import android.provider.BaseColumns;
+import android.provider.DeviceConfig.OnPropertiesChangedListener;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.Settings;
@@ -99,6 +100,11 @@ public class MediaScannerTest {
                 @Override
                 public int getIntDeviceConfig(String key, int defaultValue) {
                     return defaultValue;
+                }
+
+                @Override
+                public void addOnPropertiesChangedListener(OnPropertiesChangedListener listener) {
+                    // Ignore
                 }
             };
             mProvider.attachInfo(this, info);

@@ -155,6 +155,7 @@ import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.provider.Column;
 import android.provider.DeviceConfig;
+import android.provider.DeviceConfig.OnPropertiesChangedListener;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
@@ -5424,7 +5425,8 @@ public class MediaProvider extends ContentProvider {
     }
 
     @Nullable
-    private Uri getRedactedUri(@NonNull Uri uri) {
+    @VisibleForTesting
+    Uri getRedactedUri(@NonNull Uri uri) {
         if (!isUriSupportedForRedaction(uri)) {
             return null;
         }
@@ -5471,7 +5473,8 @@ public class MediaProvider extends ContentProvider {
     }
 
     @NonNull
-    private List<Uri> getRedactedUri(@NonNull List<Uri> uris) {
+    @VisibleForTesting
+    List<Uri> getRedactedUri(@NonNull List<Uri> uris) {
         ArrayList<Uri> redactedUris = new ArrayList<>();
         for (Uri uri : uris) {
             redactedUris.add(getRedactedUri(uri));
@@ -8830,6 +8833,12 @@ public class MediaProvider extends ContentProvider {
         } finally {
             Binder.restoreCallingIdentity(token);
         }
+    }
+
+    @VisibleForTesting
+    public void addOnPropertiesChangedListener(OnPropertiesChangedListener listener) {
+        DeviceConfig.addOnPropertiesChangedListener(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
+                BackgroundThread.getExecutor(), listener);
     }
 
     @Deprecated

@@ -264,6 +264,9 @@ public class TranscodeHelper {
         mIsTranscodeEnabled = isTranscodeEnabled();
 
         parseTranscodeCompatManifest();
+        // The storage namespace is a boot namespace so we actually don't expect this to be changed
+        // after boot, but it is useful for tests
+        mMediaProvider.addOnPropertiesChangedListener(properties -> parseTranscodeCompatManifest());
     }
 
     /**
@@ -1287,12 +1290,10 @@ public class TranscodeHelper {
     private void updateConfigs(boolean transcodeEnabled) {
         synchronized (mLock) {
             boolean isTranscodeEnabledChanged = transcodeEnabled != mIsTranscodeEnabled;
-            boolean isDebug = SystemProperties.getBoolean("sys.fuse.transcode_debug", false);
 
-            if (isTranscodeEnabledChanged || isDebug) {
+            if (isTranscodeEnabledChanged) {
                 Log.i(TAG, "Reloading transcode configs. transcodeEnabled: " + transcodeEnabled
-                        + ". lastTranscodeEnabled: " + mIsTranscodeEnabled + ". isDebug: "
-                        + isDebug);
+                        + ". lastTranscodeEnabled: " + mIsTranscodeEnabled);
 
                 mIsTranscodeEnabled = transcodeEnabled;
                 parseTranscodeCompatManifest();
@@ -1332,6 +1333,7 @@ public class TranscodeHelper {
         String packageName = "";
         int packageCompatValue;
         int i = 0;
+        int count = 0;
         while (i < manifest.length - 1) {
             try {
                 packageName = manifest[i++];
@@ -1339,6 +1341,7 @@ public class TranscodeHelper {
                 synchronized (mLock) {
                     // Lock is already held, explicitly hold again to make error prone happy
                     mAppCompatMediaCapabilities.put(packageName, packageCompatValue);
+                    count++;
                 }
             } catch (NumberFormatException e) {
                 Log.w(TAG, "Failed to parse media capability from device config for package: "
@@ -1346,12 +1349,8 @@ public class TranscodeHelper {
             }
         }
 
-        synchronized (mLock) {
-            // Lock is already held, explicitly hold again to make error prone happy
-            int size = mAppCompatMediaCapabilities.size();
-            Log.i(TAG, "Parsed " + size + " packages from device config");
-            return size != 0;
-        }
+        Log.i(TAG, "Parsed " + count + " packages from device config");
+        return count != 0;
     }
 
     /** @return {@code true} if the manifest was parsed successfully, {@code false} otherwise */
@@ -1359,6 +1358,7 @@ public class TranscodeHelper {
         InputStream inputStream = mContext.getResources().openRawResource(
                 R.raw.transcode_compat_manifest);
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+        int count = 0;
         try {
             while (reader.ready()) {
                 String line = reader.readLine();
@@ -1388,6 +1388,7 @@ public class TranscodeHelper {
                     synchronized (mLock) {
                         // Lock is already held, explicitly hold again to make error prone happy
                         mAppCompatMediaCapabilities.put(packageName, packageCompatValue);
+                        count++;
                     }
                 } catch (NumberFormatException e) {
                     Log.w(TAG, "Failed to parse media capability from resource for package: "
@@ -1398,12 +1399,8 @@ public class TranscodeHelper {
             Log.w(TAG, "Failed to read transcode compat manifest", e);
         }
 
-        synchronized (mLock) {
-            // Lock is already held, explicitly hold again to make error prone happy
-            int size = mAppCompatMediaCapabilities.size();
-            Log.i(TAG, "Parsed " + size + " packages from resource");
-            return size != 0;
-        }
+        Log.i(TAG, "Parsed " + count + " packages from resource");
+        return count != 0;
     }
 
     private Set<String> getTranscodeCompatStale() {

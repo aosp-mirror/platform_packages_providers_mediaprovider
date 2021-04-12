@@ -1018,7 +1018,11 @@ public class MediaProvider extends ContentProvider {
     }
 
     public LocalCallingIdentity clearLocalCallingIdentity() {
-        return clearLocalCallingIdentity(LocalCallingIdentity.fromSelf(getContext()));
+        // We retain the user part of the calling identity, since we are executing
+        // the call on behalf of that user, and we need to maintain the user context
+        // to correctly resolve things like volumes
+        UserHandle user = mCallingIdentity.get().getUser();
+        return clearLocalCallingIdentity(LocalCallingIdentity.fromSelfAsUser(getContext(), user));
     }
 
     public LocalCallingIdentity clearLocalCallingIdentity(LocalCallingIdentity replacement) {

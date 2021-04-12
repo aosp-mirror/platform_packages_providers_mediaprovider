@@ -3858,6 +3858,18 @@ public class MediaProvider extends ContentProvider {
             values.put(FileColumns._MODIFIER, FileColumns._MODIFIER_CR);
         }
 
+        // There is no meaning of an owner in the internal storage. It is shared by all users.
+        // So we only set the user_id field in the database for external storage.
+        qb.allowColumn(FileColumns._USER_ID);
+        int ownerUserId = FileUtils.extractUserId(path);
+        if (!helper.mInternal) {
+            if (isAppCloneUserForFuse(ownerUserId)) {
+                values.put(FileColumns._USER_ID, ownerUserId);
+            } else {
+                values.put(FileColumns._USER_ID, sUserId);
+            }
+        }
+
         final long rowId;
         Uri newUri = uri;
         {

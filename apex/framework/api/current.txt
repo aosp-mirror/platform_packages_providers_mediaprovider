@@ -26,6 +26,7 @@ package android.provider {
     method @NonNull public static android.net.Uri setRequireOriginal(@NonNull android.net.Uri);
     field public static final String ACTION_IMAGE_CAPTURE = "android.media.action.IMAGE_CAPTURE";
     field public static final String ACTION_IMAGE_CAPTURE_SECURE = "android.media.action.IMAGE_CAPTURE_SECURE";
+    field public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
     field public static final String ACTION_REVIEW = "android.provider.action.REVIEW";
     field public static final String ACTION_REVIEW_SECURE = "android.provider.action.REVIEW_SECURE";
     field public static final String ACTION_VIDEO_CAPTURE = "android.media.action.VIDEO_CAPTURE";
@@ -46,6 +47,8 @@ package android.provider {
     field public static final String EXTRA_MEDIA_RADIO_CHANNEL = "android.intent.extra.radio_channel";
     field public static final String EXTRA_MEDIA_TITLE = "android.intent.extra.title";
     field public static final String EXTRA_OUTPUT = "output";
+    field public static final String EXTRA_PICK_IMAGES_MAX = "android.provider.extra.PICK_IMAGES_MAX";
+    field public static final String EXTRA_PICK_IMAGES_MIN = "android.provider.extra.PICK_IMAGES_MIN";
     field public static final String EXTRA_SCREEN_ORIENTATION = "android.intent.extra.screenOrientation";
     field public static final String EXTRA_SHOW_ACTION_ICONS = "android.intent.extra.showActionIcons";
     field public static final String EXTRA_SIZE_LIMIT = "android.intent.extra.sizeLimit";

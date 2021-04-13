@@ -127,7 +127,7 @@ public class TranscodeHelperTest {
                 Process.LAST_APPLICATION_UID - Process.FIRST_APPLICATION_UID + 1)
                 + Process.FIRST_APPLICATION_UID;
         int transcodeReason = mUnderTest.doesAppNeedTranscoding(randomAppUid, bundle,
-                TranscodeHelper.FLAG_HEVC);
+                TranscodeHelper.FLAG_HEVC, 0);
         assertThat(transcodeReason).isEqualTo(0);
     }
 
@@ -143,7 +143,7 @@ public class TranscodeHelperTest {
                 Process.LAST_APPLICATION_UID - Process.FIRST_APPLICATION_UID + 1)
                 + Process.FIRST_APPLICATION_UID;
         int transcodeReason = mUnderTest.doesAppNeedTranscoding(randomAppUid, bundle,
-                TranscodeHelper.FLAG_HEVC);
+                TranscodeHelper.FLAG_HEVC, 0);
         assertThat(transcodeReason).isEqualTo(0);
     }
 
@@ -159,7 +159,7 @@ public class TranscodeHelperTest {
                 Process.LAST_APPLICATION_UID - Process.FIRST_APPLICATION_UID + 1)
                 + Process.FIRST_APPLICATION_UID;
         int transcodeReason = mUnderTest.doesAppNeedTranscoding(randomAppUid, bundle,
-                TranscodeHelper.FLAG_HEVC);
+                TranscodeHelper.FLAG_HEVC, 0);
         assertThat(transcodeReason).isEqualTo(
                 MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_REASON__APP_EXTRA);
     }

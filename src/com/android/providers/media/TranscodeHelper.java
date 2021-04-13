@@ -140,7 +140,7 @@ public class TranscodeHelper {
     private static final String TRANSCODE_MAX_DURATION_MS_KEY = "transcode_max_duration_ms";
 
     private static final int MY_UID = android.os.Process.myUid();
-    private static final int MAX_TRANSCODE_DURATION_MS = (int) TimeUnit.SECONDS.toMillis(1);
+    private static final int MAX_TRANSCODE_DURATION_MS = (int) TimeUnit.MINUTES.toMillis(1);
 
     /**
      * Force enable an app to support the HEVC media capability
@@ -608,16 +608,16 @@ public class TranscodeHelper {
             return 0;
         }
 
-        return doesAppNeedTranscoding(uid, bundle, fileFlags, durationMs);
+        int accessReason = doesAppNeedTranscoding(uid, bundle, fileFlags, durationMs);
+        if (accessReason != 0 && mTranscodeDenialController.checkFileAccess(uid, durationMs)) {
+            logVerbose("Transcoding denied");
+            return 0;
+        }
+        return accessReason;
     }
 
     @VisibleForTesting
     int doesAppNeedTranscoding(int uid, Bundle bundle, int fileFlags, long durationMs) {
-        if (mTranscodeDenialController.checkFileAccess(uid, durationMs)) {
-            logVerbose("Transcoding denied");
-            return 0;
-        }
-
         // Check explicit Bundle provided
         if (bundle != null) {
             if (bundle.getBoolean(MediaStore.EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT, false)) {
@@ -1096,7 +1096,9 @@ public class TranscodeHelper {
                         new ApplicationMediaCapabilities.Builder().build();
                 MediaFormat sourceFormat = MediaFormat.createVideoFormat(
                         codecType, width, height);
-                sourceFormat.setFloat(MediaFormat.KEY_FRAME_RATE, framerate);
+                if (framerate > 0) {
+                    sourceFormat.setFloat(MediaFormat.KEY_FRAME_RATE, framerate);
+                }
                 VideoFormatResolver resolver = new VideoFormatResolver(capability, sourceFormat);
                 MediaFormat resolvedFormat = resolver.resolveVideoFormat();
                 resolvedFormat.setInteger(MediaFormat.KEY_BIT_RATE, bitRate);

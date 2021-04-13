@@ -636,6 +636,57 @@ public final class MediaStore {
     public final static String EXTRA_OUTPUT = "output";
 
     /**
+     * Activity Action: Allow the user to select images or videos provided by
+     * system and return it. This is different than {@link Intent#ACTION_PICK}
+     * and {@link Intent#ACTION_GET_CONTENT} in that
+     * <ul>
+     * <li> the data for this action is provided by system
+     * <li> this action is only used for picking images and videos
+     * <li> caller gets read access to user picked items even without storage
+     * permissions
+     * </ul>
+     * <p>
+     * Callers can optionally specify MIME type (such as {@code image/*} or
+     * {@literal *}/*), resulting in a range of content selection that the
+     * caller is interested in. The optional MIME type can be requested with
+     * {@link Intent#setType(String)}.
+     * <p>
+     * If the caller needs multiple returned items (or caller wants to allow
+     * multiple selection), then it can specify
+     * {@link Intent#EXTRA_ALLOW_MULTIPLE} to indicate this. When multiple
+     * selection is enabled, callers can also constrain number of selection
+     * using {@link MediaStore#EXTRA_PICK_IMAGES_MIN} and
+     * {@link MediaStore#EXTRA_PICK_IMAGES_MAX}.
+     * When there is no constraint on number of items, all of the user selected
+     * items are returned. TODO(b/185782624): Add constraint on maximum items
+     * picker can return.
+     * <p>
+     * Output: MediaStore content URI(s) of the item(s) that was picked.
+     */
+    @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
+    public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
+
+    /**
+     * The name of an optional intent-extra used to constrain minimum number of
+     * items that should be returned by {@link MediaStore#ACTION_PICK_IMAGES},
+     * action may still return nothing (0 items) if the user chooses to cancel.
+     * The value of this intext-extra should be a non-negative integer less than
+     * or equal to {@link MediaStore#EXTRA_PICK_IMAGES_MAX}, the value is
+     * ignored otherwise.
+     */
+    public final static String EXTRA_PICK_IMAGES_MIN = "android.provider.extra.PICK_IMAGES_MIN";
+
+    /**
+     * The name of an optional intent-extra used to constrain maximum number of
+     * items that can be returned by {@link MediaStore#ACTION_PICK_IMAGES},
+     * action may still return nothing (0 items) if the user chooses to cancel.
+     * The value of this intext-extra should be a non-negative integer greater
+     * than or equal to {@link MediaStore#EXTRA_PICK_IMAGES_MAX}, the value
+     * is ignored otherwise.
+     */
+    public final static String EXTRA_PICK_IMAGES_MAX = "android.provider.extra.PICK_IMAGES_MAX";
+
+    /**
      * Specify that the caller wants to receive the original media format without transcoding.
      *
      * <b>Caution: using this flag can cause app

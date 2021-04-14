@@ -3886,7 +3886,10 @@ public class MediaProvider extends ContentProvider {
                         values.put(FileColumns.SIZE, file.length());
                     }
                 }
-                if (!isFuseThread() && shouldFileBeHidden(file)) {
+                // Checking if the file/directory is hidden can be expensive based on the depth of
+                // the directory tree. Call shouldFileBeHidden() only when the caller of insert()
+                // cares about returned uri.
+                if (!isCallingPackageSelf() && !isFuseThread() && shouldFileBeHidden(file)) {
                     newUri = MediaStore.Files.getContentUri(MediaStore.getVolumeName(uri));
                 }
             }

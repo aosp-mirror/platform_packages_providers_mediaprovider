@@ -171,4 +171,6 @@
       <item quantity="one"><xliff:g id="COUNT">^1</xliff:g> आइटम मिटाया जा रहा है…</item>
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> आइटम मिटाए जा रहे हैं…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

@@ -171,4 +171,6 @@
       <item quantity="one">Suppression de <xliff:g id="COUNT">^1</xliff:g> élément en cours…</item>
       <item quantity="other">Suppression de <xliff:g id="COUNT">^1</xliff:g> éléments en cours…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

@@ -171,4 +171,6 @@
       <item quantity="other">Đang xóa <xliff:g id="COUNT">^1</xliff:g> mục…</item>
       <item quantity="one">Đang xóa mục…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

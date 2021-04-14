@@ -171,4 +171,6 @@
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> elementu ezabatzen…</item>
       <item quantity="one">Elementua ezabatzen…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

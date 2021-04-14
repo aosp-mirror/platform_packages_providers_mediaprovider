@@ -1751,9 +1751,11 @@ public class TranscodeHelper {
         private final int mMaxDurationMs;
         private final ActivityManager mActivityManager;
         private final TranscodeUiNotifier mUiNotifier;
-        private final Set<Integer> mActiveDeniedUids = new ArraySet<>();
-        private final Set<Integer> mDroppedUids = new ArraySet<>();
         private final Object mLock = new Object();
+        @GuardedBy("mLock")
+        private final Set<Integer> mActiveDeniedUids = new ArraySet<>();
+        @GuardedBy("mLock")
+        private final Set<Integer> mDroppedUids = new ArraySet<>();
 
         TranscodeDenialController(ActivityManager activityManager, TranscodeUiNotifier uiNotifier,
                 int maxDurationMs) {

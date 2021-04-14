@@ -171,4 +171,6 @@
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ഇനങ്ങൾ ഇല്ലാതാക്കുന്നു…</item>
       <item quantity="one">ഇനം ഇല്ലാതാക്കുന്നു…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

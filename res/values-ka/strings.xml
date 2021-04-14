@@ -171,4 +171,6 @@
       <item quantity="other">მიმდინარეობს <xliff:g id="COUNT">^1</xliff:g> ერთეულის წაშლა…</item>
       <item quantity="one">მიმდინარეობს  ერთეულის წაშლა…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

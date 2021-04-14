@@ -171,4 +171,6 @@
       <item quantity="one"><xliff:g id="COUNT">^1</xliff:g> ਆਈਟਮ ਮਿਟਾਈ ਜਾ ਰਹੀ ਹੈ…</item>
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ਆਈਟਮਾਂ ਮਿਟਾਈਆਂ ਜਾ ਰਹੀਆਂ ਹਨ…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

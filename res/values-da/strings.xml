@@ -171,4 +171,6 @@
       <item quantity="one">Sletter <xliff:g id="COUNT">^1</xliff:g> element…</item>
       <item quantity="other">Sletter <xliff:g id="COUNT">^1</xliff:g> elementer…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

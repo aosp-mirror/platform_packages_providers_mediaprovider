@@ -171,4 +171,6 @@
       <item quantity="other">Eliminando <xliff:g id="COUNT">^1</xliff:g> elementos…</item>
       <item quantity="one">Eliminando elemento…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

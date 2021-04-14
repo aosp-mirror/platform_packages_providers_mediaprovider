@@ -239,4 +239,6 @@
       <item quantity="many">Выдаляюцца <xliff:g id="COUNT">^1</xliff:g> элементаў…</item>
       <item quantity="other">Выдаляюцца <xliff:g id="COUNT">^1</xliff:g> элемента…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

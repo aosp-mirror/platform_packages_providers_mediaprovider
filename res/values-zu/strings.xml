@@ -171,4 +171,6 @@
       <item quantity="one">Isusa izinto ezingu-<xliff:g id="COUNT">^1</xliff:g>…</item>
       <item quantity="other">Isusa izinto ezingu-<xliff:g id="COUNT">^1</xliff:g>…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

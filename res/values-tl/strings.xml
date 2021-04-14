@@ -171,4 +171,6 @@
       <item quantity="one">Nagde-delete ng <xliff:g id="COUNT">^1</xliff:g> item…</item>
       <item quantity="other">Nagde-delete ng <xliff:g id="COUNT">^1</xliff:g> na item…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

@@ -205,4 +205,6 @@
       <item quantity="few">Бришу се <xliff:g id="COUNT">^1</xliff:g> ставке…</item>
       <item quantity="other">Брише се <xliff:g id="COUNT">^1</xliff:g> ставки…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

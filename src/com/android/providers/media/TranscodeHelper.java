@@ -1053,7 +1053,7 @@ public class TranscodeHelper {
         // This can only happen when we are in a version that supports transcoding.
         // So, no need to check for the SDK version here.
 
-        if (SystemProperties.getBoolean("sys.fuse.disable_transcode_cache", false)) {
+        if (SystemProperties.getBoolean("persist.sys.fuse.disable_transcode_cache", false)) {
             // Caching is disabled. Hence, delete the cached transcode file.
             return false;
         }

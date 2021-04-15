@@ -239,4 +239,6 @@
       <item quantity="other">מתבצעת מחיקה של <xliff:g id="COUNT">^1</xliff:g> פריטים…</item>
       <item quantity="one">מתבצעת מחיקה של פריט אחד…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

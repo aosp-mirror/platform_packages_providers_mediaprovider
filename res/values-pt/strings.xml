@@ -171,4 +171,5 @@
       <item quantity="one">Excluindo <xliff:g id="COUNT">^1</xliff:g> item…</item>
       <item quantity="other">Excluindo <xliff:g id="COUNT">^1</xliff:g> itens…</item>
     </plurals>
+    <string name="transcode_denied" msgid="6760546817138288976">"Não é possível processar arquivos de mídia no app <xliff:g id="APP_NAME">%s</xliff:g>"</string>
 </resources>

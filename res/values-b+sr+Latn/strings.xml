@@ -205,4 +205,6 @@
       <item quantity="few">Brišu se <xliff:g id="COUNT">^1</xliff:g> stavke…</item>
       <item quantity="other">Briše se <xliff:g id="COUNT">^1</xliff:g> stavki…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

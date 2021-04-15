@@ -171,4 +171,6 @@
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ఐటెమ్‌లను తొలగిస్తోంది…</item>
       <item quantity="one">ఐటెమ్‌ను తొలగిస్తోంది…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

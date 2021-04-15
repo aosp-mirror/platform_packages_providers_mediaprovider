@@ -239,4 +239,6 @@
       <item quantity="other">Odstraňuje sa <xliff:g id="COUNT">^1</xliff:g> položiek…</item>
       <item quantity="one">Odstraňuje sa položka…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

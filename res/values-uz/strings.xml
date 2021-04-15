@@ -171,4 +171,5 @@
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ta element oʻchirilmoqda…</item>
       <item quantity="one">Element oʻchirilmoqda…</item>
     </plurals>
+    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> media fayllarni ijro qila olmaydi"</string>
 </resources>

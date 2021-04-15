@@ -171,4 +171,6 @@
       <item quantity="other">항목 <xliff:g id="COUNT">^1</xliff:g>개 삭제 중…</item>
       <item quantity="one">항목 삭제 중…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

@@ -4236,13 +4236,16 @@ public final class MediaStore {
 
     /**
      * Return a {@link MediaStore} Uri that is an equivalent to the given
-     * {@link DocumentsProvider} Uri.
+     * {@link DocumentsProvider} Uri. This only supports {@code ExternalStorageProvider}
+     * and {@code MediaDocumentsProvider} Uris.
      * <p>
      * This allows apps with Storage Access Framework permissions to convert
      * between {@link MediaStore} and {@link DocumentsProvider} Uris that refer
-     * to the same underlying item. Note that this method doesn't grant any new
-     * permissions; callers must already hold permissions obtained with
-     * {@link Intent#ACTION_OPEN_DOCUMENT} or related APIs.
+     * to the same underlying item.
+     * Note that this method doesn't grant any new permissions, but it grants the same access to
+     * the Media Store Uri as the caller has to the given DocumentsProvider Uri; callers must
+     * already hold permissions for documentUri obtained with {@link Intent#ACTION_OPEN_DOCUMENT}
+     * or related APIs.
      *
      * @param documentUri The {@link DocumentsProvider} Uri to convert.
      * @return An equivalent {@link MediaStore} Uri. Returns {@code null} if no

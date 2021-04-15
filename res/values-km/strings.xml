@@ -171,4 +171,6 @@
       <item quantity="other">កំពុងលុបធាតុ <xliff:g id="COUNT">^1</xliff:g>…</item>
       <item quantity="one">កំពុងលុប​ធាតុ…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

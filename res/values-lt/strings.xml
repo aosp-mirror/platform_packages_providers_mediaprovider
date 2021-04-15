@@ -239,4 +239,6 @@
       <item quantity="many">Ištrinama <xliff:g id="COUNT">^1</xliff:g> elemento…</item>
       <item quantity="other">Ištrinama <xliff:g id="COUNT">^1</xliff:g> elementų…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

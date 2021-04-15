@@ -23,6 +23,7 @@ import static android.provider.DocumentsContract.QUERY_ARG_EXCLUDE_MEDIA;
 import static android.provider.DocumentsContract.QUERY_ARG_FILE_SIZE_OVER;
 import static android.provider.DocumentsContract.QUERY_ARG_LAST_MODIFIED_AFTER;
 import static android.provider.DocumentsContract.QUERY_ARG_MIME_TYPES;
+import static android.provider.MediaStore.GET_MEDIA_URI_CALL;
 
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -428,6 +429,28 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         } else {
             throw new UnsupportedOperationException("Unsupported document " + docId);
         }
+    }
+
+    @Override
+    public Bundle call(String method, String arg, Bundle extras) {
+        Bundle bundle = super.call(method, arg, extras);
+        if (bundle == null && !TextUtils.isEmpty(method)) {
+            switch (method) {
+                case GET_MEDIA_URI_CALL: {
+                    getContext().enforceCallingOrSelfPermission(
+                            android.Manifest.permission.WRITE_MEDIA_STORAGE, TAG);
+                    final Uri documentUri = extras.getParcelable(MediaStore.EXTRA_URI);
+                    final String docId = DocumentsContract.getDocumentId(documentUri);
+                    final Bundle out = new Bundle();
+                    final Uri uri = getUriForDocumentId(docId);
+                    out.putParcelable(MediaStore.EXTRA_URI, uri);
+                    return out;
+                }
+                default:
+                    Log.w(TAG, "unknown method passed to call(): " + method);
+            }
+        }
+        return bundle;
     }
 
     @Override

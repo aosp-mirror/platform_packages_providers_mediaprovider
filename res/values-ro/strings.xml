@@ -205,4 +205,6 @@
       <item quantity="other">Se șterg <xliff:g id="COUNT">^1</xliff:g> de elemente…</item>
       <item quantity="one">Se șterge elementul…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

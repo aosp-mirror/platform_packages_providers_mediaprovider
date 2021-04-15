@@ -171,4 +171,6 @@
       <item quantity="other">Poistetaan <xliff:g id="COUNT">^1</xliff:g> kohdetta…</item>
       <item quantity="one">Poistetaan kohdetta…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

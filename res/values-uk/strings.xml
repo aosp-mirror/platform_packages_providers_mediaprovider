@@ -239,4 +239,6 @@
       <item quantity="many">Видалення <xliff:g id="COUNT">^1</xliff:g> об\'єктів…</item>
       <item quantity="other">Видалення <xliff:g id="COUNT">^1</xliff:g> об\'єкта…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

@@ -171,4 +171,6 @@
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> element silinir…</item>
       <item quantity="one">Element silinir…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
 </resources>

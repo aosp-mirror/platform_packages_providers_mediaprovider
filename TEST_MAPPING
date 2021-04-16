@@ -40,7 +40,7 @@
             "name": "fuse_node_test"
         },
         {
-            "name": "MediaProviderTranscodeTests"
+            "name": "CtsMediaProviderTranscodeTests"
         }
     ],
     "postsubmit": [

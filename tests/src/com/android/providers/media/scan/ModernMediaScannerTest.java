@@ -641,6 +641,17 @@ public class ModernMediaScannerTest {
     }
 
     @Test
+    public void testScan_missingDir() throws Exception {
+        File newDir = new File(mDir, "new-dir");
+        // Below shouldn't crash
+        mModern.scanDirectory(newDir, REASON_UNKNOWN);
+
+        newDir = new File(Environment.getStorageDirectory(), "new-dir");
+        // Below shouldn't crash
+        mModern.scanDirectory(newDir, REASON_UNKNOWN);
+    }
+
+    @Test
     public void testScan_Nomedia_Dir() throws Exception {
         final File redDir = new File(mDir, "red");
         final File blueDir = new File(mDir, "blue");
@@ -715,6 +726,15 @@ public class ModernMediaScannerTest {
         nomedia.createNewFile();
         assertNotNull(mModern.scanFile(image, REASON_UNKNOWN));
         assertQueryCount(0, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+    }
+
+    @Test
+    public void testScan_missingFile() throws Exception {
+        File image = new File(mDir, "image.jpg");
+        assertThat(mModern.scanFile(image, REASON_UNKNOWN)).isNull();
+
+        image = new File(Environment.getStorageDirectory(), "image.jpg");
+        assertThat(mModern.scanFile(image, REASON_UNKNOWN)).isNull();
     }
 
     @Test

@@ -205,6 +205,5 @@
       <item quantity="few">Бришу се <xliff:g id="COUNT">^1</xliff:g> ставке…</item>
       <item quantity="other">Брише се <xliff:g id="COUNT">^1</xliff:g> ставки…</item>
     </plurals>
-    <!-- no translation found for transcode_denied (6760546817138288976) -->
-    <skip />
+    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> не може да обради медијске фајлове"</string>
 </resources>

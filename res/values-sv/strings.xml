@@ -171,6 +171,5 @@
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> objekt raderas …</item>
       <item quantity="one">Objektet raderas …</item>
     </plurals>
-    <!-- no translation found for transcode_denied (6760546817138288976) -->
-    <skip />
+    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> kan inte behandla mediefiler"</string>
 </resources>

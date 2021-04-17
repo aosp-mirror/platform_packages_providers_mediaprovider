@@ -239,6 +239,5 @@
       <item quantity="other">Mazání <xliff:g id="COUNT">^1</xliff:g> položek…</item>
       <item quantity="one">Mazání položky…</item>
     </plurals>
-    <!-- no translation found for transcode_denied (6760546817138288976) -->
-    <skip />
+    <string name="transcode_denied" msgid="6760546817138288976">"Aplikace <xliff:g id="APP_NAME">%s</xliff:g> nedokáže zpracovat mediální soubory"</string>
 </resources>

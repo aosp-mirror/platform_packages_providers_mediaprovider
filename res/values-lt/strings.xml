@@ -239,6 +239,5 @@
       <item quantity="many">Ištrinama <xliff:g id="COUNT">^1</xliff:g> elemento…</item>
       <item quantity="other">Ištrinama <xliff:g id="COUNT">^1</xliff:g> elementų…</item>
     </plurals>
-    <!-- no translation found for transcode_denied (6760546817138288976) -->
-    <skip />
+    <string name="transcode_denied" msgid="6760546817138288976">"Programa „<xliff:g id="APP_NAME">%s</xliff:g>“ negali apdoroti medijos failų"</string>
 </resources>

@@ -171,6 +171,5 @@
       <item quantity="other">ဖိုင် <xliff:g id="COUNT">^1</xliff:g> ခုကို ဖျက်နေသည်…</item>
       <item quantity="one">ဖိုင်ကို ဖျက်နေသည်…</item>
     </plurals>
-    <!-- no translation found for transcode_denied (6760546817138288976) -->
-    <skip />
+    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> က မီဒီယာဖိုင်များကို မလုပ်ဆောင်နိုင်ပါ"</string>
 </resources>

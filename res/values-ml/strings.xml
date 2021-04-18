@@ -171,6 +171,5 @@
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ഇനങ്ങൾ ഇല്ലാതാക്കുന്നു…</item>
       <item quantity="one">ഇനം ഇല്ലാതാക്കുന്നു…</item>
     </plurals>
-    <!-- no translation found for transcode_denied (6760546817138288976) -->
-    <skip />
+    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> എന്നതിന് മീഡിയ ഫയലുകൾ പ്രോസസ് ചെയ്യാനാകില്ല"</string>
 </resources>

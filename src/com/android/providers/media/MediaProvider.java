@@ -5707,13 +5707,15 @@ public class MediaProvider extends ContentProvider {
                     File file = getFileFromFileDescriptor(inputPfd);
                     boolean supportsTranscode = mTranscodeHelper.supportsTranscode(file.getPath());
                     if (!supportsTranscode) {
-                        throw new IOException("Input file descriptor is already original");
+                        throw new IllegalArgumentException(
+                                "Input file descriptor is already original");
                     }
 
                     FuseDaemon fuseDaemon = getFuseDaemonForFile(file);
                     String outputPath = fuseDaemon.getOriginalMediaFormatFilePath(inputPfd);
                     if (TextUtils.isEmpty(outputPath)) {
-                        throw new IOException("Invalid path for original media format file");
+                        throw new IllegalArgumentException(
+                                "Invalid path for original media format file");
                     }
 
                     int posixMode = Os.fcntlInt(inputPfd.getFileDescriptor(), F_GETFL,
@@ -5728,9 +5730,9 @@ public class MediaProvider extends ContentProvider {
                     res.putParcelable(MediaStore.EXTRA_FILE_DESCRIPTOR, outputPfd);
                     return res;
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    throw new IllegalStateException(e);
                 } catch (ErrnoException e) {
-                    throw new RuntimeException(
+                    throw new IllegalStateException(
                             "Failed to fetch access mode for file descriptor", e);
                 }
             }

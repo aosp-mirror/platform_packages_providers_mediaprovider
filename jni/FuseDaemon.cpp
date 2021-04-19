@@ -404,10 +404,10 @@ static void fuse_inval(fuse_session* se, fuse_ino_t parent_ino, fuse_ino_t child
     }
 }
 
-static double get_entry_timeout(const string& path, node* node, struct fuse* fuse) {
+static double get_entry_timeout(const string& path, bool should_inval, struct fuse* fuse) {
     string media_path = fuse->GetEffectiveRootPath() + "/Android/media";
-    if (fuse->disable_dentry_cache || node->ShouldInvalidate() ||
-        is_package_owned_path(path, fuse->path) || android::base::StartsWith(path, media_path)) {
+    if (fuse->disable_dentry_cache || should_inval || is_package_owned_path(path, fuse->path) ||
+        android::base::StartsWith(path, media_path)) {
         // We set dentry timeout to 0 for the following reasons:
         // 1. The dentry cache was completely disabled
         // 2.1 Case-insensitive lookups need to invalidate other case-insensitive dentry matches
@@ -525,7 +525,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
         return nullptr;
     }
 
-    const bool should_invalidate = file_lookup_result->transforms_supported;
+    bool should_invalidate = file_lookup_result->transforms_supported;
     const bool transforms_complete = file_lookup_result->transforms_complete;
     const int transforms = file_lookup_result->transforms;
     const int transforms_reason = file_lookup_result->transforms_reason;
@@ -537,20 +537,18 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
         node = ::node::Create(parent, name, io_path, should_invalidate, transforms_complete,
                               transforms, transforms_reason, &fuse->lock, ino, &fuse->tracker);
     } else if (!mediaprovider::fuse::containsMount(path, std::to_string(getuid() / PER_USER_RANGE))) {
-        // Only invalidate a path if it does not contain mount.
+        // Only invalidate a path if it does not contain mount and |name| != node->GetName.
         // Invalidate both names to ensure there's no dentry left in the kernel after the following
         // operations:
         // 1) touch foo, touch FOO, unlink *foo*
         // 2) touch foo, touch FOO, unlink *FOO*
         // Invalidating lookup_name fixes (1) and invalidating node_name fixes (2)
-        // SetShouldInvalidate invalidates lookup_name by using 0 timeout below and we explicitly
-        // invalidate node_name if different case
-        // Note that we invalidate async otherwise we will deadlock the kernel
+        // -Set |should_invalidate| to true to invalidate lookup_name by using 0 timeout below
+        // -Explicitly invalidate node_name. Note that we invalidate async otherwise we will
+        // deadlock the kernel
         if (name != node->GetName()) {
-            // Record that we have made a case insensitive lookup, this allows us invalidate nodes
-            // correctly on subsequent lookups for the case of |node|
-            node->SetShouldInvalidate();
-
+            // Force node invalidation to fix the kernel dentry cache for case (1) above
+            should_invalidate = true;
             // Make copies of the node name and path so we're not attempting to acquire
             // any node locks from the invalidation thread. Depending on timing, we may end
             // up invalidating the wrong inode but that shouldn't result in correctness issues.
@@ -559,6 +557,9 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
             const std::string& node_name = node->GetName();
             std::thread t([=]() { fuse_inval(fuse->se, parent_ino, child_ino, node_name, path); });
             t.detach();
+            // Update the name after |node_name| reference above has been captured in lambda
+            // This avoids invalidating the node again on subsequent accesses with |name|
+            node->SetName(name);
         }
 
         // This updated value allows us correctly decide if to keep_cache and use direct_io during
@@ -575,7 +576,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name, c
     // reuse inode numbers.
     e->generation = 0;
     e->ino = fuse->ToInode(node);
-    e->entry_timeout = get_entry_timeout(path, node, fuse);
+    e->entry_timeout = get_entry_timeout(path, should_invalidate, fuse);
     e->attr_timeout = std::numeric_limits<double>::max();
     return node;
 }

@@ -171,6 +171,5 @@
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> Elemente werden gelöscht…</item>
       <item quantity="one">Element wird gelöscht…</item>
     </plurals>
-    <!-- no translation found for transcode_denied (6760546817138288976) -->
-    <skip />
+    <string name="transcode_denied" msgid="6760546817138288976">"Die App „<xliff:g id="APP_NAME">%s</xliff:g>“ kann Mediendateien nicht verarbeiten"</string>
 </resources>

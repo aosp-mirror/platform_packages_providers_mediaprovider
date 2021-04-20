@@ -92,8 +92,8 @@
       <item quantity="one">Видео таштандыга ыргытылууда…</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> колдонмосу <xliff:g id="COUNT">^2</xliff:g> сүрөттү таштандыга салсынбы?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> колдонмосу бул сүрөттү таштандыга салсынбы?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> сүрөттү таштандыга салсынбы?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> бул сүрөттү таштандыга салсынбы?</item>
     </plurals>
     <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> сүрөт таштандыга ыргытылууда…</item>

@@ -1611,7 +1611,8 @@ public class TranscodeHelper {
                 return;
             }
             ForegroundThread.getHandler().post(() -> {
-                mAlertBuilder.setContentTitle("Transcoding started");
+                mAlertBuilder.setContentTitle(getString(mContext,
+                                R.string.transcode_processing_started));
                 mAlertBuilder.setContentText(FileUtils.extractDisplayName(filePath));
                 final int notificationId = session.getSessionId();
                 mNotificationManager.notify(notificationId, mAlertBuilder.build());
@@ -1622,7 +1623,7 @@ public class TranscodeHelper {
             if (!notificationEnabled()) {
                 return;
             }
-            endSessionWithMessage(session, filePath, getResultMessageForSession(session));
+            endSessionWithMessage(session, filePath, getResultMessageForSession(mContext, session));
         }
 
         void denied(int uid) {
@@ -1694,7 +1695,11 @@ public class TranscodeHelper {
                     TextUtils.SAFE_STRING_FLAG_SINGLE_LINE).toString();
         }
 
-        private void createAlertNotificationChannel(Context context) {
+        private static String getString(Context context, int resourceId) {
+            return context.getResources().getString(resourceId);
+        }
+
+        private static void createAlertNotificationChannel(Context context) {
             NotificationChannel channel = new NotificationChannel(TRANSCODE_ALERT_CHANNEL_ID,
                     TRANSCODE_ALERT_CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH);
             NotificationManager notificationManager = context.getSystemService(
@@ -1702,7 +1707,7 @@ public class TranscodeHelper {
             notificationManager.createNotificationChannel(channel);
         }
 
-        private void createProgressNotificationChannel(Context context) {
+        private static void createProgressNotificationChannel(Context context) {
             NotificationChannel channel = new NotificationChannel(TRANSCODE_PROGRESS_CHANNEL_ID,
                     TRANSCODE_PROGRESS_CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW);
             NotificationManager notificationManager = context.getSystemService(
@@ -1725,21 +1730,22 @@ public class TranscodeHelper {
                     TRANSCODE_PROGRESS_CHANNEL_ID);
             builder.setAutoCancel(false)
                     .setOngoing(true)
-                    .setContentTitle("Transcoding media")
+                    .setContentTitle(getString(context, R.string.transcode_processing))
                     .setSmallIcon(R.drawable.thumb_clip);
             return builder;
         }
 
-        private static String getResultMessageForSession(TranscodingSession session) {
+        private static String getResultMessageForSession(Context context,
+                TranscodingSession session) {
             switch (session.getResult()) {
                 case TranscodingSession.RESULT_CANCELED:
-                    return "Transcoding cancelled";
+                    return getString(context, R.string.transcode_processing_cancelled);
                 case TranscodingSession.RESULT_ERROR:
-                    return "Transcoding error";
+                    return getString(context, R.string.transcode_processing_error);
                 case TranscodingSession.RESULT_SUCCESS:
-                    return "Transcoding success";
+                    return getString(context, R.string.transcode_processing_success);
                 default:
-                    return "Transcoding result unknown";
+                    return getString(context, R.string.transcode_processing_error);
             }
         }
 

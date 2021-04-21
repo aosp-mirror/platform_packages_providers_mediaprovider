@@ -259,4 +259,25 @@
 
     <!-- Transcode denied toast text. [CHAR LIMIT=NONE] -->
     <string name="transcode_denied"><xliff:g id="app_name" example="File manager">%s</xliff:g> can\'t process media files</string>
+
+    <!-- Transcode cancelled notification. -->
+    <string name="transcode_processing_cancelled">Media processing cancelled</string>
+
+    <!-- Transcode error notification. -->
+    <string name="transcode_processing_error">Media processing error</string>
+
+    <!-- Transcode success notification. -->
+    <string name="transcode_processing_success">Media processing success</string>
+
+    <!-- Transcode started notification. -->
+    <string name="transcode_processing_started">Media processing started</string>
+
+    <!-- Transcode processing notification. -->
+    <string name="transcode_processing">Processing media&#8230;</string>
+
+    <!-- Transcode intermediate ANR dialog cancel button. -->
+    <string name="transcode_cancel">Cancel</string>
+
+    <!-- Transcode intermediate ANR dialog wait button. -->
+    <string name="transcode_wait">Wait</string>
 </resources>

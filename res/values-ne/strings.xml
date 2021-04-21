@@ -171,4 +171,20 @@
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> वटा वस्तु मेटाइँदै छन्…</item>
       <item quantity="one">वस्तु मेटाइँदै छ…</item>
     </plurals>
+    <!-- no translation found for transcode_denied (6760546817138288976) -->
+    <skip />
+    <!-- no translation found for transcode_processing_cancelled (5340383917746945590) -->
+    <skip />
+    <!-- no translation found for transcode_processing_error (8921643164508407874) -->
+    <skip />
+    <!-- no translation found for transcode_processing_success (447288876429730122) -->
+    <skip />
+    <!-- no translation found for transcode_processing_started (7789086308155361523) -->
+    <skip />
+    <!-- no translation found for transcode_processing (6753136468864077258) -->
+    <skip />
+    <!-- no translation found for transcode_cancel (8555752601907598192) -->
+    <skip />
+    <!-- no translation found for transcode_wait (8909773149560697501) -->
+    <skip />
 </resources>

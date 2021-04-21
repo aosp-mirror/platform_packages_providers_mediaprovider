@@ -3886,7 +3886,10 @@ public class MediaProvider extends ContentProvider {
                         values.put(FileColumns.SIZE, file.length());
                     }
                 }
-                if (!isFuseThread() && shouldFileBeHidden(file)) {
+                // Checking if the file/directory is hidden can be expensive based on the depth of
+                // the directory tree. Call shouldFileBeHidden() only when the caller of insert()
+                // cares about returned uri.
+                if (!isCallingPackageSelf() && !isFuseThread() && shouldFileBeHidden(file)) {
                     newUri = MediaStore.Files.getContentUri(MediaStore.getVolumeName(uri));
                 }
             }
@@ -5617,26 +5620,34 @@ public class MediaProvider extends ContentProvider {
                 getContext().enforceCallingUriPermission(documentUri,
                         Intent.FLAG_GRANT_READ_URI_PERMISSION, TAG);
 
-                final Uri fileUri;
-                try (ContentProviderClient client = getContext().getContentResolver()
-                        .acquireUnstableContentProviderClient(
-                                getExternalStorageProviderAuthority())) {
-                    final Bundle res = client.call(method, null, extras);
-                    fileUri = res.getParcelable(MediaStore.EXTRA_URI);
-                } catch (RemoteException e) {
-                    throw new IllegalStateException(e);
+                final int callingPid = mCallingIdentity.get().pid;
+                final int callingUid = mCallingIdentity.get().uid;
+                final String callingPackage = getCallingPackage();
+                final CallingIdentity token = clearCallingIdentity();
+                final String authority = documentUri.getAuthority();
+
+                if (!authority.equals(MediaDocumentsProvider.AUTHORITY) &&
+                        !authority.equals(DocumentsContract.EXTERNAL_STORAGE_PROVIDER_AUTHORITY)) {
+                    throw new IllegalArgumentException("Provider for this Uri is not supported.");
                 }
 
-                final LocalCallingIdentity token = clearLocalCallingIdentity();
-                try {
+                try (ContentProviderClient client = getContext().getContentResolver()
+                        .acquireUnstableContentProviderClient(authority)) {
+                    final Bundle clientRes = client.call(method, null, extras);
+                    final Uri fileUri = clientRes.getParcelable(MediaStore.EXTRA_URI);
                     final Bundle res = new Bundle();
-                    res.putParcelable(MediaStore.EXTRA_URI,
-                            queryForMediaUri(new File(fileUri.getPath()), null));
+                    final Uri mediaStoreUri = fileUri.getAuthority().equals(MediaStore.AUTHORITY) ?
+                            fileUri : queryForMediaUri(new File(fileUri.getPath()), null);
+                    copyUriPermissionGrants(documentUri, mediaStoreUri, callingPid,
+                            callingUid, callingPackage);
+                    res.putParcelable(MediaStore.EXTRA_URI, mediaStoreUri);
                     return res;
                 } catch (FileNotFoundException e) {
                     throw new IllegalArgumentException(e);
+                } catch (RemoteException e) {
+                    throw new IllegalStateException(e);
                 } finally {
-                    restoreLocalCallingIdentity(token);
+                    restoreCallingIdentity(token);
                 }
             }
             case MediaStore.GET_REDACTED_MEDIA_URI_CALL: {
@@ -5727,6 +5738,31 @@ public class MediaProvider extends ContentProvider {
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }
+    }
+
+    /**
+     * Grant similar read/write access for mediaStoreUri as the caller has for documentsUri.
+     *
+     * Note: This function assumes that read permission check for documentsUri is already enforced.
+     * Note: This function currently does not check/grant for persisted Uris. Support for this can
+     * be added eventually, but the calling application will have to call
+     * ContentResolver#takePersistableUriPermission(Uri, int) for the mediaStoreUri to persist.
+     *
+     * @param documentsUri DocumentsProvider format content Uri
+     * @param mediaStoreUri MediaStore format content Uri
+     * @param callingPid pid of the caller
+     * @param callingUid uid of the caller
+     * @param callingPackage package name of the caller
+     */
+    private void copyUriPermissionGrants(Uri documentsUri, Uri mediaStoreUri,
+            int callingPid, int callingUid, String callingPackage) {
+        // No need to check for read permission, as we enforce it already.
+        int modeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION;
+        if (getContext().checkUriPermission(documentsUri, callingPid, callingUid,
+                Intent.FLAG_GRANT_WRITE_URI_PERMISSION) == PERMISSION_GRANTED) {
+            modeFlags |= Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
+        }
+        getContext().grantUriPermission(callingPackage, mediaStoreUri, modeFlags);
     }
 
     static List<Uri> collectUris(ClipData clipData) {

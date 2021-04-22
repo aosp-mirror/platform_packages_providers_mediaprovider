@@ -980,11 +980,27 @@ public class FileUtils {
     private static final Pattern PATTERN_VOLUME_NAME = Pattern.compile(
             "(?i)^/storage/([^/]+)");
 
+    /**
+     * Regex that matches user-ids under well-known storage paths.
+     */
+    private static final Pattern PATTERN_USER_ID = Pattern.compile(
+            "(?i)^/storage/emulated/([0-9]+)/");
+
     private static final String CAMERA_RELATIVE_PATH =
             String.format("%s/%s/", Environment.DIRECTORY_DCIM, "Camera");
 
     private static @Nullable String normalizeUuid(@Nullable String fsUuid) {
         return fsUuid != null ? fsUuid.toLowerCase(Locale.ROOT) : null;
+    }
+
+    public static int extractUserId(@Nullable String data) {
+        if (data == null) return -1;
+        final Matcher matcher = PATTERN_USER_ID.matcher(data);
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group(1));
+        }
+
+        return -1;
     }
 
     public static @Nullable String extractVolumePath(@Nullable String data) {

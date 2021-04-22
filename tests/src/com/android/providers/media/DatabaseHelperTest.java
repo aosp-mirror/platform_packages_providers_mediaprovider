@@ -32,6 +32,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.UserHandle;
 import android.provider.Column;
 import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.Files.FileColumns;
@@ -485,6 +486,37 @@ public class DatabaseHelperTest {
                     // Verify that after db upgrade, for existing database rows, we set value of
                     // _modifier=MODIFIER_MEDIA_SCAN
                     assertThat(cr.getInt(0)).isEqualTo(FileColumns._MODIFIER_MEDIA_SCAN);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testAddUserId() throws Exception {
+        try (DatabaseHelper helper = new DatabaseHelperR(sIsolatedContext, TEST_UPGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            {
+                // Insert a row before database upgrade.
+                final ContentValues values = new ContentValues();
+                values.put(FileColumns.DATA, "/storage/emulated/0/DCIM/test.jpg");
+                assertThat(db.insert("files", FileColumns.DATA, values)).isNotEqualTo(-1);
+            }
+        }
+
+        try (DatabaseHelper helper = new DatabaseHelperS(sIsolatedContext, TEST_UPGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            // Insert a row in the new version as well
+            final ContentValues values = new ContentValues();
+            values.put(FileColumns.DATA, "/storage/emulated/0/DCIM/test2.jpg");
+            assertThat(db.insert("files", FileColumns.DATA, values)).isNotEqualTo(-1);
+
+            try (Cursor cr = db.query("files", new String[]{FileColumns._USER_ID}, null, null,
+                    null, null, null)) {
+                assertEquals(2, cr.getCount());
+                while (cr.moveToNext()) {
+                    // Verify that after db upgrade, for all database rows (new inserts and
+                    // upgrades), we set the _user_id
+                    assertThat(cr.getInt(0)).isEqualTo(UserHandle.myUserId());
                 }
             }
         }

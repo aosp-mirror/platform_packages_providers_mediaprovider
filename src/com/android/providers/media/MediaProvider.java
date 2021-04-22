@@ -1327,16 +1327,16 @@ public class MediaProvider extends ContentProvider {
             // createContextAsUser which uses the current MediaProvider module package.
             final Context userContext1 = getContext().createPackageContextAsUser("system", 0,
                     user1);
-            boolean sharesMediaWithParentUser1 = userContext1.getSystemService(
-                    UserManager.class).sharesMediaWithParent();
+            boolean isMediaSharedWithParent1 = userContext1.getSystemService(
+                    UserManager.class).isMediaSharedWithParent();
             final Context userContext2 = getContext().createPackageContextAsUser("system", 0,
                     user2);
-            boolean sharesMediaWithParentUser2 = userContext2.getSystemService(
-                    UserManager.class).sharesMediaWithParent();
+            boolean isMediaSharedWithParent2 = userContext2.getSystemService(
+                    UserManager.class).isMediaSharedWithParent();
 
             // Clone profiles share media with the parent user
-            if (SdkLevel.isAtLeastS() && (sharesMediaWithParentUser1
-                    || sharesMediaWithParentUser2)) {
+            if (SdkLevel.isAtLeastS() && (isMediaSharedWithParent1
+                    || isMediaSharedWithParent2)) {
                 return mUserManager.isSameProfileGroup(user1, user2);
             }
             Method isAppCloneUserPair = StorageManager.class.getMethod("isAppCloneUserPair",

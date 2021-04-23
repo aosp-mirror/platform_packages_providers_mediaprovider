@@ -1327,16 +1327,16 @@ public class MediaProvider extends ContentProvider {
             // createContextAsUser which uses the current MediaProvider module package.
             final Context userContext1 = getContext().createPackageContextAsUser("system", 0,
                     user1);
-            boolean sharesMediaWithParentUser1 = userContext1.getSystemService(
-                    UserManager.class).sharesMediaWithParent();
+            boolean isMediaSharedWithParent1 = userContext1.getSystemService(
+                    UserManager.class).isMediaSharedWithParent();
             final Context userContext2 = getContext().createPackageContextAsUser("system", 0,
                     user2);
-            boolean sharesMediaWithParentUser2 = userContext2.getSystemService(
-                    UserManager.class).sharesMediaWithParent();
+            boolean isMediaSharedWithParent2 = userContext2.getSystemService(
+                    UserManager.class).isMediaSharedWithParent();
 
             // Clone profiles share media with the parent user
-            if (SdkLevel.isAtLeastS() && (sharesMediaWithParentUser1
-                    || sharesMediaWithParentUser2)) {
+            if (SdkLevel.isAtLeastS() && (isMediaSharedWithParent1
+                    || isMediaSharedWithParent2)) {
                 return mUserManager.isSameProfileGroup(user1, user2);
             }
             Method isAppCloneUserPair = StorageManager.class.getMethod("isAppCloneUserPair",
@@ -3856,6 +3856,18 @@ public class MediaProvider extends ContentProvider {
             values.put(FileColumns._MODIFIER, FileColumns._MODIFIER_FUSE);
         } else {
             values.put(FileColumns._MODIFIER, FileColumns._MODIFIER_CR);
+        }
+
+        // There is no meaning of an owner in the internal storage. It is shared by all users.
+        // So we only set the user_id field in the database for external storage.
+        qb.allowColumn(FileColumns._USER_ID);
+        int ownerUserId = FileUtils.extractUserId(path);
+        if (!helper.mInternal) {
+            if (isAppCloneUserForFuse(ownerUserId)) {
+                values.put(FileColumns._USER_ID, ownerUserId);
+            } else {
+                values.put(FileColumns._USER_ID, sUserId);
+            }
         }
 
         final long rowId;

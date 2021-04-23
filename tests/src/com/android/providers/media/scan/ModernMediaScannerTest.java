@@ -19,7 +19,6 @@ package com.android.providers.media.scan;
 import static com.android.providers.media.scan.MediaScanner.REASON_UNKNOWN;
 import static com.android.providers.media.scan.MediaScannerTest.stage;
 import static com.android.providers.media.scan.ModernMediaScanner.MAX_EXCLUDE_DIRS;
-import static com.android.providers.media.scan.ModernMediaScanner.shouldScanPathAndIsPathHidden;
 import static com.android.providers.media.scan.ModernMediaScanner.isFileAlbumArt;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptional;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalDate;
@@ -34,6 +33,7 @@ import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalT
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalVideoResolution;
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalYear;
 import static com.android.providers.media.scan.ModernMediaScanner.shouldScanDirectory;
+import static com.android.providers.media.scan.ModernMediaScanner.shouldScanPathAndIsPathHidden;
 import static com.android.providers.media.util.FileUtils.isDirectoryHidden;
 import static com.android.providers.media.util.FileUtils.isFileHidden;
 
@@ -58,12 +58,13 @@ import android.graphics.Bitmap;
 import android.media.ExifInterface;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio.AudioColumns;
-import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
+import android.text.format.DateUtils;
 import android.util.Log;
 import android.util.Pair;
 
@@ -88,6 +89,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.util.Locale;
 import java.util.Optional;
 
 @RunWith(AndroidJUnit4.class)
@@ -937,6 +939,209 @@ public class ModernMediaScannerTest {
         }
     }
 
+    @Test
+    public void testScan_deleteStaleRowWithExpiredPendingFile() throws Exception {
+        final String displayName = "audio.mp3";
+        final long dateExpires = (System.currentTimeMillis() - 5 * DateUtils.DAY_IN_MILLIS) / 1000;
+        final String expiredName = String.format(
+                Locale.US, ".%s-%d-%s", FileUtils.PREFIX_PENDING, dateExpires, displayName);
+        final File audio = new File(mDir, expiredName);
+        stage(R.raw.test_audio, audio);
+
+        // files should exist
+        assertThat(audio.exists()).isTrue();
+
+        // scan file, row is added
+        mModern.scanFile(audio, REASON_UNKNOWN);
+        final Bundle queryArgs = new Bundle();
+        queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE);
+
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+
+        // Delete the pending file to make the row is stale
+        executeShellCommand("rm " + audio.getAbsolutePath());
+        assertThat(audio.exists()).isFalse();
+
+        // the row still exists
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+
+        mModern.scanFile(audio, REASON_UNKNOWN);
+
+        // ScanFile above deleted stale expired pending row, hence we shouldn't see
+        // the pending row in query result
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(0);
+        }
+    }
+
+    @Test
+    public void testScan_keepStaleRowWithNonExpiredPendingFile() throws Exception {
+        final String displayName = "audio.mp3";
+        final long dateExpires = (System.currentTimeMillis() + 2 * DateUtils.DAY_IN_MILLIS) / 1000;
+        final String expiredName = String.format(
+                Locale.US, ".%s-%d-%s", FileUtils.PREFIX_PENDING, dateExpires, displayName);
+        final File audio = new File(mDir, expiredName);
+        stage(R.raw.test_audio, audio);
+
+        // file should exist
+        assertThat(audio.exists()).isTrue();
+
+        // scan file, row is added
+        mModern.scanFile(audio, REASON_UNKNOWN);
+        final Bundle queryArgs = new Bundle();
+        queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE);
+
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+
+        // Delete the pending file to make the row is stale
+        executeShellCommand("rm " + audio.getAbsolutePath());
+        assertThat(audio.exists()).isFalse();
+
+        // the row still exists
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+
+        mModern.scanFile(audio, REASON_UNKNOWN);
+
+        // ScanFile above didn't delete stale pending row which is not expired, hence
+        // we still see the pending row in query result
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+    }
+
+    @Test
+    public void testScan_deleteStaleRowWithExpiredTrashedFile() throws Exception {
+        final String displayName = "audio.mp3";
+        final long dateExpires = (System.currentTimeMillis() - 5 * DateUtils.DAY_IN_MILLIS) / 1000;
+        final String expiredName = String.format(
+                Locale.US, ".%s-%d-%s", FileUtils.PREFIX_TRASHED, dateExpires, displayName);
+        final File audio = new File(mDir, expiredName);
+        stage(R.raw.test_audio, audio);
+
+        // file should exist
+        assertThat(audio.exists()).isTrue();
+
+        // scan file, row is added
+        mModern.scanFile(audio, REASON_UNKNOWN);
+        final Bundle queryArgs = new Bundle();
+        queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
+
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+
+        // Delete the trashed file to make the row is stale
+        executeShellCommand("rm " + audio.getAbsolutePath());
+        assertThat(audio.exists()).isFalse();
+
+        // the row still exists
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+
+        mModern.scanFile(audio, REASON_UNKNOWN);
+
+        // ScanFile above deleted stale expired trashed row, hence we shouldn't see
+        // the trashed row in query result
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(0);
+        }
+    }
+
+    @Test
+    public void testScan_deleteStaleRowWithNonExpiredTrashedFile() throws Exception {
+        final String displayName = "audio.mp3";
+        final long dateExpires = (System.currentTimeMillis() + 2 * DateUtils.DAY_IN_MILLIS) / 1000;
+        final String expiredName = String.format(
+                Locale.US, ".%s-%d-%s", FileUtils.PREFIX_TRASHED, dateExpires, displayName);
+        final File audio = new File(mDir, expiredName);
+        stage(R.raw.test_audio, audio);
+
+        // file should exist
+        assertThat(audio.exists()).isTrue();
+
+        // scan file, row is added
+        mModern.scanFile(audio, REASON_UNKNOWN);
+        final Bundle queryArgs = new Bundle();
+        queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
+
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+
+        // Delete the trashed file to make the row is stale
+        executeShellCommand("rm " + audio.getAbsolutePath());
+        assertThat(audio.exists()).isFalse();
+
+        // the row still exists
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+
+        mModern.scanFile(audio, REASON_UNKNOWN);
+
+        // ScanFile above deleted stale trashed row that is not expired, hence we
+        // shouldn't see the trashed row in query result
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, queryArgs, null)) {
+            assertThat(cursor.getCount()).isEqualTo(0);
+        }
+    }
+
+    @Test
+    public void testScan_deleteStaleRow() throws Exception {
+        final String displayName = "audio.mp3";
+        final File audio = new File(mDir, displayName);
+        stage(R.raw.test_audio, audio);
+
+        // file should exist
+        assertThat(audio.exists()).isTrue();
+
+        // scan file, row is added
+        mModern.scanFile(audio, REASON_UNKNOWN);
+
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, null, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+
+        // Delete the file to make the row is stale
+        executeShellCommand("rm " + audio.getAbsolutePath());
+        assertThat(audio.exists()).isFalse();
+
+        // the row still exists
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, null, null)) {
+            assertThat(cursor.getCount()).isEqualTo(1);
+        }
+
+        mModern.scanFile(audio, REASON_UNKNOWN);
+
+        // ScanFile above deleted stale row, hence we shouldn't see the row in query result
+        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                null, null, null)) {
+            assertThat(cursor.getCount()).isEqualTo(0);
+        }
+    }
 
     /**
      * Executes a shell command.

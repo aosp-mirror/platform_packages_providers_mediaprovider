@@ -206,18 +206,11 @@
       <item quantity="other">Brisanje <xliff:g id="COUNT">^1</xliff:g> stavki…</item>
     </plurals>
     <string name="transcode_denied" msgid="6760546817138288976">"Aplikacija <xliff:g id="APP_NAME">%s</xliff:g> ne može obraditi medijske datoteke"</string>
-    <!-- no translation found for transcode_processing_cancelled (5340383917746945590) -->
-    <skip />
-    <!-- no translation found for transcode_processing_error (8921643164508407874) -->
-    <skip />
-    <!-- no translation found for transcode_processing_success (447288876429730122) -->
-    <skip />
-    <!-- no translation found for transcode_processing_started (7789086308155361523) -->
-    <skip />
-    <!-- no translation found for transcode_processing (6753136468864077258) -->
-    <skip />
-    <!-- no translation found for transcode_cancel (8555752601907598192) -->
-    <skip />
-    <!-- no translation found for transcode_wait (8909773149560697501) -->
-    <skip />
+    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Obrada medijskih sadržaja otkazana"</string>
+    <string name="transcode_processing_error" msgid="8921643164508407874">"Pogreška prilikom obrade medijskih sadržaja"</string>
+    <string name="transcode_processing_success" msgid="447288876429730122">"Obrada medijskih sadržaja uspješno je dovršena"</string>
+    <string name="transcode_processing_started" msgid="7789086308155361523">"Započela je obrada medijskih sadržaja"</string>
+    <string name="transcode_processing" msgid="6753136468864077258">"Obrada medijskih sadržaja…"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"Odustani"</string>
+    <string name="transcode_wait" msgid="8909773149560697501">"Pričekaj"</string>
 </resources>

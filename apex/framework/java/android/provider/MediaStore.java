@@ -1961,6 +1961,14 @@ public final class MediaStore {
              */
             // @Column(value = Cursor.FIELD_TYPE_STRING, readOnly = true)
             public static final String REDACTED_URI_ID = "redacted_uri_id";
+
+            /**
+             * Indexed value of {@link UserIdInt} to which the file belongs.
+             *
+             * @hide
+             */
+            // @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+            public static final String _USER_ID = "_user_id";
         }
     }
 

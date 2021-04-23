@@ -50,6 +50,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Environment;
+import android.os.UserHandle;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.Files.FileColumns;
@@ -105,7 +106,8 @@ public class MediaProviderTest {
     public static void setUp() {
         InstrumentationRegistry.getInstrumentation().getUiAutomation()
                 .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
-                        Manifest.permission.READ_COMPAT_CHANGE_CONFIG);
+                        Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
+                        Manifest.permission.INTERACT_ACROSS_USERS);
 
         final Context context = InstrumentationRegistry.getTargetContext();
         sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
@@ -512,6 +514,24 @@ public class MediaProviderTest {
                 buildFile(uri, null, "file.png", "image/png"));
         assertEndsWith("/Pictures/file.jpg.png",
                 buildFile(uri, null, "file.jpg", "image/png"));
+    }
+
+    @Test
+    public void testBuildData_withUserId() throws Exception {
+        final Uri uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DISPLAY_NAME, "test_userid");
+        values.put(MediaColumns.MIME_TYPE, "image/png");
+        Uri result = sIsolatedResolver.insert(uri, values);
+        try (Cursor c = sIsolatedResolver.query(result,
+                new String[]{MediaColumns.DISPLAY_NAME, FileColumns._USER_ID},
+                null, null)) {
+            assertNotNull(c);
+            assertEquals(1, c.getCount());
+            assertTrue(c.moveToFirst());
+            assertEquals("test_userid.png", c.getString(0));
+            assertEquals(UserHandle.myUserId(), c.getInt(1));
+        }
     }
 
     @Test

@@ -8394,7 +8394,7 @@ public class MediaProvider extends ContentProvider {
 
     /**
      * Enforces file creation restrictions (see return values) for the given file on behalf of the
-     * app with the given {@code uid}. If the file is is added to the shared storage, creates a
+     * app with the given {@code uid}. If the file is added to the shared storage, creates a
      * database entry for it.
      * <p> Does NOT create file.
      *

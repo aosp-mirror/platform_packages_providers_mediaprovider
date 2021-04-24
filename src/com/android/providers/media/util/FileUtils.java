@@ -906,6 +906,12 @@ public class FileUtils {
      */
     public static final long DEFAULT_DURATION_TRASHED = 30 * DateUtils.DAY_IN_MILLIS;
 
+    /**
+     * Default duration that expired items should be extended in
+     * {@link #runIdleMaintenance}.
+     */
+    public static final long DEFAULT_DURATION_EXTENDED = 7 * DateUtils.DAY_IN_MILLIS;
+
     public static boolean isDownload(@NonNull String path) {
         return PATTERN_DOWNLOADS_FILE.matcher(path).matches();
     }
@@ -1470,5 +1476,30 @@ public class FileUtils {
         }
 
         return topNoMediaDir;
+    }
+
+    /**
+     * Generate the extended absolute path from the expired file path
+     * E.g. the input expiredFilePath is /storage/emulated/0/DCIM/.trashed-1621147340-test.jpg
+     * The returned result is /storage/emulated/0/DCIM/.trashed-1888888888-test.jpg
+     *
+     * @hide
+     */
+    @Nullable
+    public static String getAbsoluteExtendedPath(@NonNull String expiredFilePath,
+            long extendedTime) {
+        final String displayName = extractDisplayName(expiredFilePath);
+
+        final Matcher matcher = PATTERN_EXPIRES_FILE.matcher(displayName);
+        if (matcher.matches()) {
+            final String newDisplayName = String.format(Locale.US, ".%s-%d-%s", matcher.group(1),
+                    extendedTime, matcher.group(3));
+            final int lastSlash = expiredFilePath.lastIndexOf('/');
+            final String newPath = expiredFilePath.substring(0, lastSlash + 1).concat(
+                    newDisplayName);
+            return newPath;
+        }
+
+        return null;
     }
 }

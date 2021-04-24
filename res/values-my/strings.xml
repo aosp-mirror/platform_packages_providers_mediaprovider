@@ -172,18 +172,11 @@
       <item quantity="one">ဖိုင်ကို ဖျက်နေသည်…</item>
     </plurals>
     <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> က မီဒီယာဖိုင်များကို မလုပ်ဆောင်နိုင်ပါ"</string>
-    <!-- no translation found for transcode_processing_cancelled (5340383917746945590) -->
-    <skip />
-    <!-- no translation found for transcode_processing_error (8921643164508407874) -->
-    <skip />
-    <!-- no translation found for transcode_processing_success (447288876429730122) -->
-    <skip />
-    <!-- no translation found for transcode_processing_started (7789086308155361523) -->
-    <skip />
-    <!-- no translation found for transcode_processing (6753136468864077258) -->
-    <skip />
-    <!-- no translation found for transcode_cancel (8555752601907598192) -->
-    <skip />
-    <!-- no translation found for transcode_wait (8909773149560697501) -->
-    <skip />
+    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"မီဒီယာ လုပ်ဆောင်ခြင်းကို ရပ်လိုက်သည်"</string>
+    <string name="transcode_processing_error" msgid="8921643164508407874">"မီဒီယာ လုပ်ဆောင်ခြင်း အမှားရှိသည်"</string>
+    <string name="transcode_processing_success" msgid="447288876429730122">"မီဒီယာ လုပ်ဆောင်ခြင်း အောင်မြင်ပါသည်"</string>
+    <string name="transcode_processing_started" msgid="7789086308155361523">"မီဒီယာ လုပ်ဆောင်ခြင်း စတင်လိုက်သည်"</string>
+    <string name="transcode_processing" msgid="6753136468864077258">"မီဒီယာကို လုပ်ဆောင်နေသည်…"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"မလုပ်တော့"</string>
+    <string name="transcode_wait" msgid="8909773149560697501">"စောင့်ရန်"</string>
 </resources>

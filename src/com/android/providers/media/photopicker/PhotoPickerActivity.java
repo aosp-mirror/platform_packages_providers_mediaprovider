@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 The Android Open Source Project
+ * Copyright (C) 2021 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,11 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
+
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.viewmodel.GridViewModel;
 
 import com.google.common.collect.ImmutableList;
 
@@ -37,7 +41,7 @@ import com.google.common.collect.ImmutableList;
  * Photo Picker allows users to choose one or more photos and/or videos to share with an app. The
  * app does not get access to all photos/videos.
  */
-public class PhotoPickerActivity extends Activity {
+public class PhotoPickerActivity extends AppCompatActivity {
 
     public static final String TAG = "PhotoPickerActivity";
 
@@ -66,14 +70,9 @@ public class PhotoPickerActivity extends Activity {
 
         // Show the list of photo names for now.
         ImmutableList.Builder<PhotoEntry> imageRowsBuilder = ImmutableList.builder();
-        String[] projection = new String[] {
-                MediaStore.MediaColumns._ID,
-                MediaStore.MediaColumns.DISPLAY_NAME
-        };
-        // TODO(b/168001592) call query() from worker thread.
-        Cursor cursor = getApplicationContext().getContentResolver().query(
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                projection, null, null);
+        final GridViewModel gridViewModel =
+                new ViewModelProvider(this).get(GridViewModel.class);
+        Cursor cursor = gridViewModel.getItems();
         int idColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID);
         int nameColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME);
         // TODO(b/168001592) Use better image loading (e.g. use paging, glide).

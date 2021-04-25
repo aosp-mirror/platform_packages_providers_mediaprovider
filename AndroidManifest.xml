@@ -40,6 +40,7 @@
 
     <application
             android:name="com.android.providers.media.MediaApplication"
+            android:theme="@style/AppTheme"
             android:label="@string/app_label"
             android:allowBackup="false"
             android:supportsRtl="true"
@@ -141,7 +142,7 @@
 
         <activity
                 android:name="com.android.providers.media.photopicker.PhotoPickerActivity"
-                android:configChanges="orientation|keyboardHidden|screenSize"
+                android:theme="@style/AppTheme"
                 android:exported="true"
                 android:excludeFromRecents="true"
                 android:priority="100" >

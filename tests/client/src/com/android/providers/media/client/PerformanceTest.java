@@ -41,7 +41,6 @@ import androidx.test.uiautomator.UiDevice;
 
 import com.android.providers.media.tests.utils.Timer;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -60,8 +59,12 @@ import java.util.concurrent.TimeUnit;
 /**
  * Since we're right in the critical path between camera and gallery apps, we
  * need to meet some pretty strict performance deadlines.
+ *
+ * This test is marked as {@code LargeTest} for it to not run in presubmit as it does not make any
+ * assertions, and any performance regressions are caught separately by Crystallball.
  */
 @RunWith(AndroidJUnit4.class)
+@LargeTest
 public class PerformanceTest {
     private static final String TAG = "PerformanceTest";
 
@@ -237,12 +240,10 @@ public class PerformanceTest {
     }
 
     @Test
-    @Ignore("b/184048881")
     public void testDirOperations_500() throws Exception {
         testDirOperations_size(500);
     }
 
-    @LargeTest
     @Test
     public void testDirOperations_1000() throws Exception {
         testDirOperations_size(1000);

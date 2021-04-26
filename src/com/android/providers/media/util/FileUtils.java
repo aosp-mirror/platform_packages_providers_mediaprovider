@@ -906,6 +906,12 @@ public class FileUtils {
      */
     public static final long DEFAULT_DURATION_TRASHED = 30 * DateUtils.DAY_IN_MILLIS;
 
+    /**
+     * Default duration that expired items should be extended in
+     * {@link #runIdleMaintenance}.
+     */
+    public static final long DEFAULT_DURATION_EXTENDED = 7 * DateUtils.DAY_IN_MILLIS;
+
     public static boolean isDownload(@NonNull String path) {
         return PATTERN_DOWNLOADS_FILE.matcher(path).matches();
     }
@@ -980,11 +986,27 @@ public class FileUtils {
     private static final Pattern PATTERN_VOLUME_NAME = Pattern.compile(
             "(?i)^/storage/([^/]+)");
 
+    /**
+     * Regex that matches user-ids under well-known storage paths.
+     */
+    private static final Pattern PATTERN_USER_ID = Pattern.compile(
+            "(?i)^/storage/emulated/([0-9]+)/");
+
     private static final String CAMERA_RELATIVE_PATH =
             String.format("%s/%s/", Environment.DIRECTORY_DCIM, "Camera");
 
     private static @Nullable String normalizeUuid(@Nullable String fsUuid) {
         return fsUuid != null ? fsUuid.toLowerCase(Locale.ROOT) : null;
+    }
+
+    public static int extractUserId(@Nullable String data) {
+        if (data == null) return -1;
+        final Matcher matcher = PATTERN_USER_ID.matcher(data);
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group(1));
+        }
+
+        return -1;
     }
 
     public static @Nullable String extractVolumePath(@Nullable String data) {
@@ -1454,5 +1476,30 @@ public class FileUtils {
         }
 
         return topNoMediaDir;
+    }
+
+    /**
+     * Generate the extended absolute path from the expired file path
+     * E.g. the input expiredFilePath is /storage/emulated/0/DCIM/.trashed-1621147340-test.jpg
+     * The returned result is /storage/emulated/0/DCIM/.trashed-1888888888-test.jpg
+     *
+     * @hide
+     */
+    @Nullable
+    public static String getAbsoluteExtendedPath(@NonNull String expiredFilePath,
+            long extendedTime) {
+        final String displayName = extractDisplayName(expiredFilePath);
+
+        final Matcher matcher = PATTERN_EXPIRES_FILE.matcher(displayName);
+        if (matcher.matches()) {
+            final String newDisplayName = String.format(Locale.US, ".%s-%d-%s", matcher.group(1),
+                    extendedTime, matcher.group(3));
+            final int lastSlash = expiredFilePath.lastIndexOf('/');
+            final String newPath = expiredFilePath.substring(0, lastSlash + 1).concat(
+                    newDisplayName);
+            return newPath;
+        }
+
+        return null;
     }
 }

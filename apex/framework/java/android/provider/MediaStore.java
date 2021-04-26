@@ -928,10 +928,13 @@ public final class MediaStore {
             @NonNull ParcelFileDescriptor fileDescriptor) throws IOException {
         Bundle input = new Bundle();
         input.putParcelable(EXTRA_FILE_DESCRIPTOR, fileDescriptor);
-
-        Bundle output = context.getContentResolver().call(AUTHORITY,
-                GET_ORIGINAL_MEDIA_FORMAT_FILE_DESCRIPTOR_CALL, null, input);
-        return output.getParcelable(EXTRA_FILE_DESCRIPTOR);
+        try {
+            Bundle output = context.getContentResolver().call(AUTHORITY,
+                    GET_ORIGINAL_MEDIA_FORMAT_FILE_DESCRIPTOR_CALL, null, input);
+            return output.getParcelable(EXTRA_FILE_DESCRIPTOR);
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
     }
 
     /**
@@ -1961,6 +1964,14 @@ public final class MediaStore {
              */
             // @Column(value = Cursor.FIELD_TYPE_STRING, readOnly = true)
             public static final String REDACTED_URI_ID = "redacted_uri_id";
+
+            /**
+             * Indexed value of {@link UserIdInt} to which the file belongs.
+             *
+             * @hide
+             */
+            // @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+            public static final String _USER_ID = "_user_id";
         }
     }
 

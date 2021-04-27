@@ -37,7 +37,6 @@ import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Category.CategoryColumns;
 import com.android.providers.media.photopicker.data.model.Item.ItemColumns;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**

@@ -17,4 +17,9 @@
 <resources>
     <color name="thumb_gray_color">#1F000000</color>
     <color name="clear_cache_icon_color">#5F6368</color>
+
+    <!-- photo picker -->
+    <color name="picker_background_color">@android:color/white</color>
+    <color name="picker_hairline_color">#DADCE0</color>
+    <color name="picker_highlight_color">#E8F0FE</color>
 </resources>

@@ -23,7 +23,10 @@ android_app {
     static_libs: [
         "androidx.appcompat_appcompat",
         "androidx.core_core",
+        "androidx.legacy_legacy-support-core-ui",
         "androidx.lifecycle_lifecycle-extensions",
+        "androidx.recyclerview_recyclerview",
+        "com.google.android.material_material",
         "guava",
         "modules-utils-build",
     ],

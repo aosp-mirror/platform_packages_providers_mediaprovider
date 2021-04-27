@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ~ Copyright (C) 2020 The Android Open Source Project
+  ~ Copyright (C) 2021 The Android Open Source Project
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -15,12 +15,11 @@
   ~ limitations under the License.
   -->
 
-<resources>
-    <color name="thumb_gray_color">#3C4043</color>
-    <color name="clear_cache_icon_color">#DADCE0</color>
-
-    <!-- photo picker -->
-    <color name="picker_background_color">#202124</color>
-    <color name="picker_hairline_color">#5F6368</color>
-    <color name="picker_highlight_color">#3D8AB4F8</color>
-</resources>
+<androidx.recyclerview.widget.RecyclerView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/photo_list"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipToPadding="false"
+    android:drawSelectorOnTop="true"
+    android:overScrollMode="never"/>

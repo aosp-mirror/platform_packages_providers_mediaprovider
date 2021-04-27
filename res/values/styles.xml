@@ -16,9 +16,6 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <style name="AppTheme" parent="Theme.AppCompat">
-    </style>
-
     <style name="PickerDialogTheme"
            parent="@android:style/Theme.DeviceDefault.Light.Dialog.Alert">
         <item name="android:windowNoTitle">true</item>
@@ -52,4 +49,18 @@
            parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle">
         <item name="android:textColor">?android:attr/textColorPrimary</item>
     </style>
+
+    <style name="PickerDefaultTheme" parent="@style/Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Color section -->
+        <item name="android:colorBackground">@color/picker_background_color</item>
+        <item name="android:strokeColor">@color/picker_hairline_color</item>
+
+        <!-- System | Widget section -->
+        <item name="android:statusBarColor">?android:colorBackground</item>
+        <item name="android:navigationBarColor">?android:colorBackground</item>
+        <item name="android:windowBackground">?android:colorBackground</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+
 </resources>

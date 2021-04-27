@@ -22,7 +22,6 @@ import android.database.Cursor;
 import android.provider.MediaStore;
 
 import com.android.providers.media.photopicker.data.model.Category;
-import com.android.providers.media.photopicker.data.model.Item;
 
 /**
  * The base class that is responsible for obtaining data from all providers and
@@ -31,6 +30,7 @@ import com.android.providers.media.photopicker.data.model.Item;
 public class ItemsProvider {
     private Context mContext;
     private LocalItemsProvider mLocalItemsProvider;
+
     public ItemsProvider(Context context) {
         mContext = context;
         mLocalItemsProvider = new LocalItemsProvider(mContext);

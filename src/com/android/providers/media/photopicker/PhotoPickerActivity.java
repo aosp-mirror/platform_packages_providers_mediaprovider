@@ -16,26 +16,25 @@
 
 package com.android.providers.media.photopicker;
 
+import static com.android.providers.media.photopicker.viewmodel.PickerViewModel.TAG;
+
 import android.app.Activity;
-import android.content.ClipData;
-import android.content.ClipDescription;
-import android.content.ContentUris;
 import android.content.Intent;
-import android.database.Cursor;
-import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.ListView;
+import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.android.providers.media.R;
-import com.android.providers.media.photopicker.viewmodel.GridViewModel;
 
-import com.google.common.collect.ImmutableList;
+import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.ui.PhotosTabFragment;
+import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
+
+import java.util.List;
+
 
 /**
  * Photo Picker allows users to choose one or more photos and/or videos to share with an app. The
@@ -43,88 +42,40 @@ import com.google.common.collect.ImmutableList;
  */
 public class PhotoPickerActivity extends AppCompatActivity {
 
-    public static final String TAG = "PhotoPickerActivity";
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_photo_picker);
 
-        // TODO(b/168001592) Change layout to show photos & options.
-        setContentView(R.layout.photo_picker);
-        Button button = findViewById(R.id.button);
-        button.setOnClickListener(v -> respondEmpty());
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        // TODO (b/185801192): remove this and add tabs Photos and Albums
+        getSupportActionBar().setTitle("Photos & Videos");
 
-        // TODO(b/168001592) Handle multiple selection option.
+        PickerViewModel model = new ViewModelProvider(this).get(PickerViewModel.class);
 
-        // TODO(b/168001592) Filter using given mime type.
+        // TODO (b/185801129): Remove this when the preview is ready, return the
+        // uri when the user clicks the add button.
+        model.getSelectedItems().observe(this, this::onSelectedItemChanged);
 
-        // TODO(b/168001592) Show a photo grid instead of  ListView.
-        ListView photosList = findViewById(R.id.names_list);
-        ArrayAdapter<PhotoEntry> photosAdapter = new ArrayAdapter<>(
-                this, android.R.layout.simple_list_item_1);
-        photosList.setAdapter(photosAdapter);
-        // Clicking an item in the list returns its URI for now.
-        photosList.setOnItemClickListener((parent, view, position, id) -> {
-            respondPhoto(photosAdapter.getItem(position));
-        });
-
-        // Show the list of photo names for now.
-        final GridViewModel gridViewModel =
-                new ViewModelProvider(this).get(GridViewModel.class);
-        Cursor cursor = gridViewModel.getItems();
-        int idColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID);
-        int nameColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME);
-        // TODO(b/168001592) Use better image loading (e.g. use paging, glide).
-        ImmutableList.Builder<PhotoEntry> imageRowsBuilder = ImmutableList.builder();
-        while (cursor.moveToNext()) {
-            imageRowsBuilder.add(
-                    new PhotoEntry(cursor.getLong(idColumn), cursor.getString(nameColumn)));
+        // only add the fragment when the activity is created at first time
+        if (savedInstanceState == null) {
+            getSupportFragmentManager().beginTransaction()
+                    .setReorderingAllowed(true)
+                    .add(R.id.fragment_container, PhotosTabFragment.class, null)
+                    .commitNow();
         }
-        photosAdapter.addAll(imageRowsBuilder.build());
     }
 
-    private void respondPhoto(PhotoEntry photoEntry) {
-        Uri contentUri = ContentUris.withAppendedId(
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                photoEntry.id);
-
-        Intent response = new Intent();
-        // TODO(b/168001592) Confirm if this flag is enough to grant the access we want.
-        response.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-
-        // TODO(b/168001592) Use a better label and accurate mime types.
-        if (getIntent().getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false)) {
-            ClipDescription clipDescription = new ClipDescription(
-                    "Photo Picker ClipData",
-                    new String[]{"image/*", "video/*"});
-            ClipData clipData = new ClipData(clipDescription, new ClipData.Item(contentUri));
-            response.setClipData(clipData);
-        } else {
-            response.setData(contentUri);
-        }
-
-        setResult(Activity.RESULT_OK, response);
-        finish();
-    }
-
-
-    private void respondEmpty() {
-        setResult(Activity.RESULT_OK);
-        finish();
-    }
-
-    private static class PhotoEntry {
-        private long id;
-        private String name;
-
-        PhotoEntry(long id, String name) {
-            this.id = id;
-            this.name = name;
-        }
-
-        @Override
-        public String toString() {
-            return name;
+    private void onSelectedItemChanged(List<Item> selectedItemList) {
+        Log.d(TAG, "Selected Item Size = " + selectedItemList.size());
+        // TODO (b/169737798): Support Multi-select
+        if (selectedItemList.size() > 0) {
+            final Intent intent = new Intent();
+            intent.setData(selectedItemList.get(0).getContentUri());
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            setResult(Activity.RESULT_OK, intent);
+            finish();
         }
     }
 }

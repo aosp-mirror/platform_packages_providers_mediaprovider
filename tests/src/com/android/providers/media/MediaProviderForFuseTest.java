@@ -64,7 +64,8 @@ public class MediaProviderForFuseTest {
         InstrumentationRegistry.getInstrumentation().getUiAutomation().adoptShellPermissionIdentity(
                 Manifest.permission.LOG_COMPAT_CHANGE,
                 Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
-                Manifest.permission.UPDATE_APP_OPS_STATS);
+                Manifest.permission.UPDATE_APP_OPS_STATS,
+                Manifest.permission.INTERACT_ACROSS_USERS);
 
         final Context context = InstrumentationRegistry.getTargetContext();
         sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ true);

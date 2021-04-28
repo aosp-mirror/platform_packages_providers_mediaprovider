@@ -27,7 +27,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Trace;
+import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
 import android.util.Log;
 
@@ -68,7 +70,7 @@ public class MediaService extends JobIntentService {
                     break;
                 }
                 case Intent.ACTION_MEDIA_MOUNTED: {
-                    onScanVolume(this, intent.getData(), REASON_MOUNTED);
+                    onScanVolume(this, intent, REASON_MOUNTED);
                     break;
                 }
                 default: {
@@ -100,21 +102,25 @@ public class MediaService extends JobIntentService {
         }
     }
 
-    private static void onScanVolume(Context context, Uri uri, int reason)
+    private static void onScanVolume(Context context, Intent intent, int reason)
             throws IOException {
-        final File file = new File(uri.getPath()).getCanonicalFile();
-        final String volumeName = FileUtils.getVolumeName(context, file);
 
-        onScanVolume(context, volumeName, reason);
+        final StorageVolume volume = intent.getParcelableExtra(StorageVolume.EXTRA_STORAGE_VOLUME);
+        if (volume != null) {
+            onScanVolume(context, MediaVolume.fromStorageVolume(volume), reason);
+        } else {
+            Log.e(TAG, "Couldn't retrieve StorageVolume from intent");
+        }
     }
 
-    public static void onScanVolume(Context context, String volumeName, int reason)
+    public static void onScanVolume(Context context, MediaVolume volume, int reason)
             throws IOException {
+        final String volumeName = volume.getName();
         // If we're about to scan any external storage, scan internal first
         // to ensure that we have ringtones ready to roll before a possibly very
         // long external storage scan
         if (!MediaStore.VOLUME_INTERNAL.equals(volumeName)) {
-            onScanVolume(context, MediaStore.VOLUME_INTERNAL, reason);
+            onScanVolume(context, MediaVolume.fromInternal(), reason);
             RingtoneManager.ensureDefaultRingtones(context);
         }
 
@@ -131,7 +137,7 @@ public class MediaService extends JobIntentService {
         try (ContentProviderClient cpc = context.getContentResolver()
                 .acquireContentProviderClient(MediaStore.AUTHORITY)) {
             final MediaProvider provider = ((MediaProvider) cpc.getLocalContentProvider());
-            provider.attachVolume(volumeName, /* validate */ true);
+            provider.attachVolume(volume, /* validate */ true);
 
             final ContentResolver resolver = ContentResolver.wrap(cpc.getLocalContentProvider());
 

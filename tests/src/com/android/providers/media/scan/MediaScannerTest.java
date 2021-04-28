@@ -22,6 +22,7 @@ import static com.android.providers.media.scan.MediaScanner.REASON_UNKNOWN;
 
 import static org.junit.Assert.assertEquals;
 
+import android.Manifest;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.ContextWrapper;
@@ -143,6 +144,8 @@ public class MediaScannerTest {
     @Before
     public void setUp() {
         final Context context = InstrumentationRegistry.getTargetContext();
+        InstrumentationRegistry.getInstrumentation().getUiAutomation().adoptShellPermissionIdentity(
+                Manifest.permission.INTERACT_ACROSS_USERS);
 
         mLegacy = new LegacyMediaScanner(
                 new IsolatedContext(context, "legacy", /*asFuseThread*/ false));

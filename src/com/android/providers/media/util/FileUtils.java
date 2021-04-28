@@ -45,9 +45,11 @@ import static com.android.providers.media.util.Logging.TAG;
 import android.content.ClipDescription;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
+import android.os.UserHandle;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
@@ -859,16 +861,39 @@ public class FileUtils {
     }
 
     /**
+     * Return StorageVolume corresponding to the file on Path
+     */
+    public static @NonNull StorageVolume getStorageVolume(@NonNull Context context,
+            @NonNull File path) throws FileNotFoundException {
+        int userId = extractUserId(path.getPath());
+        Context userContext = context;
+        if (userId >= 0 && (context.getUser().getIdentifier() != userId)) {
+            // This volume is for a different user than our context, create a context
+            // for that user to retrieve the correct volume.
+            try {
+                userContext = context.createPackageContextAsUser("system", 0,
+                        UserHandle.of(userId));
+            } catch (PackageManager.NameNotFoundException e) {
+                throw new FileNotFoundException("Can't get package context for user " + userId);
+            }
+        }
+
+        StorageVolume volume = userContext.getSystemService(StorageManager.class)
+                .getStorageVolume(path);
+        if (volume == null) {
+            throw new FileNotFoundException("Can't find volume for " + path.getPath());
+        }
+
+        return volume;
+    }
+
+    /**
      * Return volume name which hosts the given path.
      */
     public static @NonNull String getVolumeName(@NonNull Context context, @NonNull File path)
             throws FileNotFoundException {
         if (contains(Environment.getStorageDirectory(), path)) {
-            StorageVolume volume = context.getSystemService(StorageManager.class)
-                    .getStorageVolume(path);
-            if (volume == null) {
-                throw new FileNotFoundException("Can't find volume for " + path.getPath());
-            }
+            StorageVolume volume = getStorageVolume(context, path);
             return volume.getMediaStoreVolumeName();
         } else {
             return MediaStore.VOLUME_INTERNAL;

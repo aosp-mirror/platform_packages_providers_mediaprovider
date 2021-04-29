@@ -645,6 +645,13 @@ static bool is_app_accessible_path(MediaProviderWrapper* mp, const string& path,
         if (pkg == ".nomedia") {
             return true;
         }
+        if (android::base::StartsWith(path, "/storage/emulated")) {
+            // Emulated storage bind-mounts app-private data directories, and so these
+            // should not be accessible through FUSE anyway.
+            LOG(WARNING) << "Rejected access to app-private dir on FUSE: " << path
+                         << " from uid: " << uid;
+            return false;
+        }
         if (!mp->isUidAllowedAccessToDataOrObbPath(uid, path)) {
             PLOG(WARNING) << "Invalid other package file access from " << uid << "(: " << path;
             return false;

@@ -30,6 +30,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.providers.media.MediaProvider;
+import com.android.providers.media.MediaVolume;
 
 import java.io.File;
 import java.io.IOException;
@@ -79,20 +80,20 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
         Objects.requireNonNull(vol);
 
         MediaProvider mediaProvider = getMediaProvider();
-        String volumeName = vol.getMediaStoreVolumeName();
 
         switch(vol.getState()) {
             case Environment.MEDIA_MOUNTED:
-                mediaProvider.attachVolume(volumeName, /* validate */ false);
+                mediaProvider.attachVolume(MediaVolume.fromStorageVolume(vol),
+                        /* validate */ false);
                 break;
             case Environment.MEDIA_UNMOUNTED:
             case Environment.MEDIA_EJECTING:
             case Environment.MEDIA_REMOVED:
             case Environment.MEDIA_BAD_REMOVAL:
-                mediaProvider.detachVolume(volumeName);
+                mediaProvider.detachVolume(MediaVolume.fromStorageVolume(vol));
                 break;
             default:
-                Log.i(TAG, "Ignoring volume state for vol:" + volumeName
+                Log.i(TAG, "Ignoring volume state for vol:" + vol.getMediaStoreVolumeName()
                         + ". State: " + vol.getState());
         }
         // Check for invalidation of cached volumes

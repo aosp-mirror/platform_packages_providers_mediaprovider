@@ -41,6 +41,6 @@ public class NullMediaScannerTest {
         scanner.scanFile(new File("/dev/null"), MediaScanner.REASON_UNKNOWN,
                     InstrumentationRegistry.getContext().getPackageName());
 
-        scanner.onDetachVolume(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        scanner.onDetachVolume(null);
     }
 }

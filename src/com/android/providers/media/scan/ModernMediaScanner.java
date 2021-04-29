@@ -93,6 +93,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.providers.media.MediaVolume;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.ExifUtils;
 import com.android.providers.media.util.FileUtils;
@@ -270,10 +271,10 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @Override
-    public void onDetachVolume(String volumeName) {
+    public void onDetachVolume(MediaVolume volume) {
         synchronized (mActiveScans) {
             for (Scan scan : mActiveScans) {
-                if (volumeName.equals(scan.mVolumeName)) {
+                if (volume.equals(scan.mVolume)) {
                     scan.mSignal.cancel();
                 }
             }
@@ -322,6 +323,7 @@ public class ModernMediaScanner implements MediaScanner {
 
         private final File mRoot;
         private final int mReason;
+        private final MediaVolume mVolume;
         private final String mVolumeName;
         private final Uri mFilesUri;
         private final CancellationSignal mSignal;
@@ -364,7 +366,9 @@ public class ModernMediaScanner implements MediaScanner {
 
             mRoot = root;
             mReason = reason;
-            mVolumeName = FileUtils.getVolumeName(mContext, root);
+
+            mVolume = MediaVolume.fromStorageVolume(FileUtils.getStorageVolume(mContext, root));
+            mVolumeName = mVolume.getName();
             mFilesUri = MediaStore.Files.getContentUri(mVolumeName);
             mSignal = new CancellationSignal();
 

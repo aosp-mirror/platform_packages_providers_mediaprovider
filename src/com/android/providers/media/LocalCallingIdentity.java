@@ -69,6 +69,7 @@ import java.util.Locale;
 public class LocalCallingIdentity {
     public final int pid;
     public final int uid;
+    private final UserHandle user;
     private final Context context;
     private final String packageNameUnchecked;
     // Info used for logging permission checks
@@ -77,9 +78,16 @@ public class LocalCallingIdentity {
 
     private LocalCallingIdentity(Context context, int pid, int uid, String packageNameUnchecked,
             @Nullable String attributionTag) {
+        this(context, pid, uid, UserHandle.getUserHandleForUid(uid), packageNameUnchecked,
+                attributionTag);
+    }
+
+    private LocalCallingIdentity(Context context, int pid, int uid, UserHandle user,
+            String packageNameUnchecked, @Nullable String attributionTag) {
         this.context = context;
         this.pid = pid;
         this.uid = uid;
+        this.user = user;
         this.packageNameUnchecked = packageNameUnchecked;
         this.attributionTag = attributionTag;
     }
@@ -112,8 +120,16 @@ public class LocalCallingIdentity {
         if (callingAttributionTag == null) {
             callingAttributionTag = context.getAttributionTag();
         }
+        UserHandle user;
+        if (binderUid == Process.SHELL_UID || binderUid == Process.ROOT_UID) {
+            // For requests coming from the shell (eg `content query`), assume they are
+            // for the user we are running as.
+            user = Process.myUserHandle();
+        } else {
+            user = UserHandle.getUserHandleForUid(binderUid);
+        }
         return new LocalCallingIdentity(context, Binder.getCallingPid(), binderUid,
-                callingPackage, callingAttributionTag);
+                user, callingPackage, callingAttributionTag);
     }
 
     public static LocalCallingIdentity fromExternal(Context context, int uid) {
@@ -131,6 +147,7 @@ public class LocalCallingIdentity {
                 ident.hasPermissionResolved = PERMISSION_IS_REDACTION_NEEDED;
             }
         }
+
         return ident;
     }
 
@@ -140,10 +157,15 @@ public class LocalCallingIdentity {
     }
 
     public static LocalCallingIdentity fromSelf(Context context) {
+        return fromSelfAsUser(context, Process.myUserHandle());
+    }
+
+    public static LocalCallingIdentity fromSelfAsUser(Context context, UserHandle user) {
         final LocalCallingIdentity ident = new LocalCallingIdentity(
                 context,
                 android.os.Process.myPid(),
                 android.os.Process.myUid(),
+                user,
                 context.getOpPackageName(),
                 context.getAttributionTag());
 
@@ -216,6 +238,10 @@ public class LocalCallingIdentity {
         } catch (NameNotFoundException ignored) {
         }
         return Build.VERSION_CODES.CUR_DEVELOPMENT;
+    }
+
+    public UserHandle getUser() {
+        return user;
     }
 
     public static final int PERMISSION_IS_SELF = 1 << 0;

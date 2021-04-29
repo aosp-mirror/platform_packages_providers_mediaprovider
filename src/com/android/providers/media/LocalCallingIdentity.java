@@ -394,9 +394,12 @@ public class LocalCallingIdentity {
             ai = context.getPackageManager()
                     .getApplicationInfo(getPackageName(), 0);
             if (ai != null) {
-                Boolean shouldBypass = ai.hasRequestRawExternalStorageAccess();
-                if (shouldBypass != null) {
-                    return shouldBypass;
+                final int requestRawExternalStorageValue
+                        = ai.getRequestRawExternalStorageAccess();
+                if (requestRawExternalStorageValue
+                        != ApplicationInfo.RAW_EXTERNAL_STORAGE_ACCESS_DEFAULT) {
+                    return requestRawExternalStorageValue
+                            == ApplicationInfo.RAW_EXTERNAL_STORAGE_ACCESS_REQUESTED;
                 }
                 // Manifest flag is not set, hence return default value based on the category of the
                 // app and targetSDK.

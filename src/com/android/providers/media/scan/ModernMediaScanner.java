@@ -367,7 +367,11 @@ public class ModernMediaScanner implements MediaScanner {
             mRoot = root;
             mReason = reason;
 
-            mVolume = MediaVolume.fromStorageVolume(FileUtils.getStorageVolume(mContext, root));
+            if (FileUtils.contains(Environment.getStorageDirectory(), root)) {
+                mVolume = MediaVolume.fromStorageVolume(FileUtils.getStorageVolume(mContext, root));
+            } else {
+                mVolume = MediaVolume.fromInternal();
+            }
             mVolumeName = mVolume.getName();
             mFilesUri = MediaStore.Files.getContentUri(mVolumeName);
             mSignal = new CancellationSignal();

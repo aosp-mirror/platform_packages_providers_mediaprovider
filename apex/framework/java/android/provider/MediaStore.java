@@ -979,13 +979,19 @@ public final class MediaStore {
             @NonNull ParcelFileDescriptor fileDescriptor) throws IOException {
         Bundle input = new Bundle();
         input.putParcelable(EXTRA_FILE_DESCRIPTOR, fileDescriptor);
+        ParcelFileDescriptor pfd;
         try {
             Bundle output = context.getContentResolver().call(AUTHORITY,
                     GET_ORIGINAL_MEDIA_FORMAT_FILE_DESCRIPTOR_CALL, null, input);
-            return output.getParcelable(EXTRA_FILE_DESCRIPTOR);
+            pfd = output.getParcelable(EXTRA_FILE_DESCRIPTOR);
         } catch (Exception e) {
             throw new IOException(e);
         }
+
+        if (pfd == null) {
+            throw new IOException("Input file descriptor already original");
+        }
+        return pfd;
     }
 
     /**

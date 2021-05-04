@@ -792,7 +792,19 @@ public class TranscodeHelper {
         return isHevc(mimeType) || isHdr10Plus(colorStandard, colorTransfer);
     }
 
-    public boolean supportsTranscode(String path) {
+    public boolean isModernFormat(String filePath) {
+        if (supportsTranscode(filePath)) {
+            Pair<Integer, Long> result = getFileFlagsAndDurationMs(filePath);
+            int fileFlags = result.first;
+            if (fileFlags != 0) {
+                // File is HEVC or HDR
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean supportsTranscode(String path) {
         File file = new File(path);
         String name = file.getName();
         final String cameraRelativePath =

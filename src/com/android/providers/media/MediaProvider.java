@@ -7339,7 +7339,7 @@ public class MediaProvider extends ContentProvider {
         final boolean callerIsOwner = Objects.equals(getCallingPackageOrSelf(), itemOwner);
         if (hasOwner && !callerIsOwner) {
             throw new IllegalStateException(
-                    "Only owner is able to interact with pending item " + item);
+                    "Only owner is able to interact with pending/trashed item " + item);
         }
     }
 
@@ -7844,6 +7844,8 @@ public class MediaProvider extends ContentProvider {
     /**
      * Calculates the ranges that need to be redacted for the given file and user that wants to
      * access the file.
+     * Note: This method assumes that the caller of this function has already done permission checks
+     * for the uid to access this path.
      *
      * @param uid UID of the package wanting to access the file
      * @param path File path
@@ -7893,16 +7895,20 @@ public class MediaProvider extends ContentProvider {
 
             final Uri contentUri = FileUtils.getContentUriForPath(path);
             final String[] projection = new String[]{
-                    MediaColumns.OWNER_PACKAGE_NAME, MediaColumns._ID };
+                    MediaColumns.OWNER_PACKAGE_NAME, MediaColumns._ID , FileColumns.MEDIA_TYPE};
             final String selection = MediaColumns.DATA + "=?";
             final String[] selectionArgs = new String[]{path};
             final String ownerPackageName;
-            final Uri item;
-            try (final Cursor c = queryForSingleItem(contentUri, projection, selection,
-                    selectionArgs, null)) {
+            final int id;
+            final int mediaType;
+            // Query as MediaProvider as non-RES apps will result in FileNotFoundException.
+            // Note: The caller uid already has passed permission checks to access this file.
+            try (final Cursor c = queryForSingleItemAsMediaProvider(contentUri, projection,
+                    selection, selectionArgs, null)) {
                 c.moveToFirst();
                 ownerPackageName = c.getString(0);
-                item = ContentUris.withAppendedId(contentUri, /*item id*/ c.getInt(1));
+                id = c.getInt(1);
+                mediaType = c.getInt(2);
             } catch (FileNotFoundException e) {
                 // Ideally, this shouldn't happen unless the file was deleted after we checked its
                 // existence and before we get to the redaction logic here. In this case we throw
@@ -7915,14 +7921,23 @@ public class MediaProvider extends ContentProvider {
             final boolean callerIsOwner = Objects.equals(getCallingPackageOrSelf(),
                     ownerPackageName);
 
+            // Do not redact if the caller is the owner
             if (callerIsOwner) {
                 return new long[0];
             }
 
-            final boolean callerHasUriPermission = getContext().checkUriPermission(
-                    item, mCallingIdentity.get().pid, mCallingIdentity.get().uid,
+            // Do not redact if the caller has write uri permission granted on the file.
+            final Uri fileUri = ContentUris.withAppendedId(contentUri, id);
+            boolean callerHasWriteUriPermission = getContext().checkUriPermission(
+                    fileUri, mCallingIdentity.get().pid, mCallingIdentity.get().uid,
                     Intent.FLAG_GRANT_WRITE_URI_PERMISSION) == PERMISSION_GRANTED;
-            if (callerHasUriPermission) {
+            if (callerHasWriteUriPermission) {
+                return new long[0];
+            }
+            // Check if the caller has write access to other uri formats for the same file.
+            callerHasWriteUriPermission = getOtherUriGrantsForPath(path, mediaType,
+                    Long.toString(id), /* forWrite */ true) != null;
+            if (callerHasWriteUriPermission) {
                 return new long[0];
             }
 
@@ -8077,12 +8092,15 @@ public class MediaProvider extends ContentProvider {
                     MediaColumns._ID,
                     MediaColumns.OWNER_PACKAGE_NAME,
                     MediaColumns.IS_PENDING,
-                    FileColumns.MEDIA_TYPE};
+                    FileColumns.MEDIA_TYPE,
+                    MediaColumns.IS_TRASHED
+            };
             final String selection = MediaColumns.DATA + "=?";
             final String[] selectionArgs = new String[]{path};
             final long id;
             final int mediaType;
             final boolean isPending;
+            final boolean isTrashed;
             String ownerPackageName = null;
             try (final Cursor c = queryForSingleItemAsMediaProvider(contentUri, projection,
                     selection,
@@ -8091,11 +8109,12 @@ public class MediaProvider extends ContentProvider {
                 ownerPackageName = c.getString(1);
                 isPending = c.getInt(2) != 0;
                 mediaType = c.getInt(3);
+                isTrashed = c.getInt(4) != 0;
             }
             final File file = new File(path);
             Uri fileUri = MediaStore.Files.getContentUri(extractVolumeName(path), id);
             // We don't check ownership for files with IS_PENDING set by FUSE
-            if (isPending && !isPendingFromFuse(new File(path))) {
+            if (isTrashed || (isPending && !isPendingFromFuse(new File(path)))) {
                 requireOwnershipForItem(ownerPackageName, fileUri);
             }
 

@@ -5766,10 +5766,12 @@ public class MediaProvider extends ContentProvider {
                         extras.getParcelable(MediaStore.EXTRA_FILE_DESCRIPTOR);
                 try {
                     File file = getFileFromFileDescriptor(inputPfd);
-                    boolean supportsTranscode = mTranscodeHelper.supportsTranscode(file.getPath());
-                    if (!supportsTranscode) {
-                        throw new IllegalArgumentException(
-                                "Input file descriptor is already original");
+                    boolean isModernFormat = mTranscodeHelper.isModernFormat(file.getPath());
+                    if (!isModernFormat) {
+                        // Return an empty bundle instead of throwing an exception in the special
+                        // case where the file is not a modern format. This avoids a misleading
+                        // warning in android.database.DatabaseUtils#writeExceptionToParcel
+                        return new Bundle();
                     }
 
                     FuseDaemon fuseDaemon = getFuseDaemonForFile(file);

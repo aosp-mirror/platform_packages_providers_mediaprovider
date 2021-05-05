@@ -336,21 +336,24 @@ public class LocalItemsProviderTest {
 
     private void assertThatOnlyImagesVideos(Cursor c) throws Exception {
         while (c.moveToNext()) {
-            String mimeType = c.getString(2);
+            int mimeTypeColumn = c.getColumnIndexOrThrow(MediaStore.MediaColumns.MIME_TYPE);
+            String mimeType = c.getString(mimeTypeColumn);
             assertThat(isImageMimeType(mimeType) || isVideoMimeType(mimeType)).isTrue();
         }
     }
 
     private void assertThatOnlyImages(Cursor c) throws Exception {
         while (c.moveToNext()) {
-            String mimeType = c.getString(2);
+            int mimeTypeColumn = c.getColumnIndexOrThrow(MediaStore.MediaColumns.MIME_TYPE);
+            String mimeType = c.getString(mimeTypeColumn);
             assertThat(isImageMimeType(mimeType)).isTrue();
         }
     }
 
     private void assertThatOnlyVideos(Cursor c) throws Exception {
         while (c.moveToNext()) {
-            String mimeType = c.getString(2);
+            int mimeTypeColumn = c.getColumnIndexOrThrow(MediaStore.MediaColumns.MIME_TYPE);
+            String mimeType = c.getString(mimeTypeColumn);
             assertThat(isVideoMimeType(mimeType)).isTrue();
         }
     }

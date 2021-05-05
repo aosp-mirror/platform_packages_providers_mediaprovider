@@ -69,13 +69,13 @@ public class PhotoPickerActivity extends AppCompatActivity {
         });
 
         // Show the list of photo names for now.
-        ImmutableList.Builder<PhotoEntry> imageRowsBuilder = ImmutableList.builder();
         final GridViewModel gridViewModel =
                 new ViewModelProvider(this).get(GridViewModel.class);
         Cursor cursor = gridViewModel.getItems();
         int idColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID);
         int nameColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME);
         // TODO(b/168001592) Use better image loading (e.g. use paging, glide).
+        ImmutableList.Builder<PhotoEntry> imageRowsBuilder = ImmutableList.builder();
         while (cursor.moveToNext()) {
             imageRowsBuilder.add(
                     new PhotoEntry(cursor.getLong(idColumn), cursor.getString(nameColumn)));

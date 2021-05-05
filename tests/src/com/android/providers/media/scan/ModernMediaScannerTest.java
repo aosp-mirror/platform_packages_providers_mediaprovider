@@ -69,6 +69,7 @@ import android.util.Log;
 import android.util.Pair;
 
 import androidx.test.InstrumentationRegistry;
+import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.R;
@@ -801,6 +802,7 @@ public class ModernMediaScannerTest {
     }
 
     @Test
+    @SdkSuppress(minSdkVersion = 31, codeName = "S")
     public void testScan_audio_recording() throws Exception {
         final File music = new File(mDir, "Recordings");
         final File audio = new File(music, "audio.mp3");

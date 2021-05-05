@@ -27,6 +27,7 @@ import android.provider.DeviceConfig.OnPropertiesChangedListener;
 import android.provider.MediaStore;
 
 import androidx.test.InstrumentationRegistry;
+import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
 import org.junit.Test;
@@ -37,6 +38,7 @@ import java.util.List;
 import java.util.Random;
 
 @RunWith(AndroidJUnit4.class)
+@SdkSuppress(minSdkVersion = 31, codeName = "S")
 public class TranscodeHelperTest {
     private static final String SOME_VALID_FILE_PATH =
             "/storage/emulated/0/" + Environment.DIRECTORY_DCIM + "/Camera/some_filename.mp4";

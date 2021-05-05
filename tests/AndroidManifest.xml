@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.android.providers.media.tests">
 
+    <uses-sdk android:minSdkVersion="30" android:targetSdkVersion="30" />
+
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.UPDATE_APP_OPS_STATS" />

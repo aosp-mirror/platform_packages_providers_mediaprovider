@@ -26,21 +26,16 @@ import android.provider.MediaStore;
  */
 public class ItemsProvider {
     private Context mContext;
+    private LocalItemsProvider mLocalItemsProvider;
     public ItemsProvider(Context context) {
         mContext = context;
+        mLocalItemsProvider = new LocalItemsProvider(mContext);
     }
 
     /**
      * @return {@link Cursor} with all photos and videos on the device.
      */
     public Cursor getItems() {
-        // TODO(b/168001592) call LocalItemsProvider
-        String[] projection = new String[] {
-                MediaStore.MediaColumns._ID,
-                MediaStore.MediaColumns.DISPLAY_NAME
-        };
-        final Cursor cursor = mContext.getContentResolver().query(
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, null, null);
-        return cursor;
+        return mLocalItemsProvider.getItems(/* mimeType */ null);
     }
 }

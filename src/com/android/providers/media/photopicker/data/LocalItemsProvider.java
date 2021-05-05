@@ -99,9 +99,8 @@ public class LocalItemsProvider {
         // TODO: This can be extracted to another class/interface as the consumer of this getItems
         // needs to be aware of what the Cursor has returned and how to access it. Instead of
         // hardcoding projection values in both the layers.
-        final String[] projection = new String[] {
-                MediaColumns._ID, MediaColumns.DATA, MediaColumns.MIME_TYPE,
-                MediaColumns.IS_FAVORITE };
+        final String[] projection = new String[] {MediaColumns._ID, MediaColumns.DATA,
+                MediaColumns.DISPLAY_NAME, MediaColumns.MIME_TYPE, MediaColumns.IS_FAVORITE };
 
         String selection = IMAGES_VIDEOS_WHERE_CLAUSE;
         String[] selectionArgs = null;

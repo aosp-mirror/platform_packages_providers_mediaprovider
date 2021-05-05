@@ -9,6 +9,7 @@ android_test_helper_app {
         "cts-install-lib",
     ],
     sdk_version: "test_current",
+    target_sdk_version: "30",
     min_sdk_version: "30",
     test_suites: [
         "device-tests",
@@ -27,6 +28,7 @@ android_test_helper_app {
         "cts-install-lib",
     ],
     sdk_version: "test_current",
+    target_sdk_version: "30",
     min_sdk_version: "30",
     test_suites: [
         "device-tests",

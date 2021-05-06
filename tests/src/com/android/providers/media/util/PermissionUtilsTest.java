@@ -65,6 +65,7 @@ import android.app.AppOpsManager;
 import android.content.Context;
 import android.content.Intent;
 
+import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.cts.install.lib.TestApp;
@@ -273,6 +274,7 @@ public class PermissionUtilsTest {
     }
 
     @Test
+    @SdkSuppress(minSdkVersion = 31, codeName = "S")
     public void testManageMediaPermissionsOnTestApp() throws Exception {
         final String packageName = TEST_APP_WITH_STORAGE_PERMS.getPackageName();
         final int testAppUid = getContext().getPackageManager().getPackageUid(packageName, 0);

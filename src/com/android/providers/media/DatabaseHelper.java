@@ -1231,6 +1231,25 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + " AND volume_name IN " + filterVolumeNames
                 + " GROUP BY artist_id");
 
+        db.execSQL("CREATE VIEW audio_artists_albums AS SELECT "
+                + "  album_id AS " + Audio.Albums._ID
+                + ", album_id AS " + Audio.Albums.ALBUM_ID
+                + ", MIN(album) AS " + Audio.Albums.ALBUM
+                + ", album_key AS " + Audio.Albums.ALBUM_KEY
+                + ", artist_id AS " + Audio.Albums.ARTIST_ID
+                + ", artist AS " + Audio.Albums.ARTIST
+                + ", artist_key AS " + Audio.Albums.ARTIST_KEY
+                + ", (SELECT COUNT(*) FROM audio WHERE " + Audio.Albums.ALBUM_ID
+                + " = TEMP.album_id) AS " + Audio.Albums.NUMBER_OF_SONGS
+                + ", COUNT(DISTINCT _id) AS " + Audio.Albums.NUMBER_OF_SONGS_FOR_ARTIST
+                + ", MIN(year) AS " + Audio.Albums.FIRST_YEAR
+                + ", MAX(year) AS " + Audio.Albums.LAST_YEAR
+                + ", NULL AS " + Audio.Albums.ALBUM_ART
+                + " FROM audio TEMP"
+                + " WHERE is_music=1 AND is_pending=0 AND is_trashed=0"
+                + " AND volume_name IN " + filterVolumeNames
+                + " GROUP BY album_id, artist_id");
+
         db.execSQL("CREATE VIEW audio_albums AS SELECT "
                 + "  album_id AS " + Audio.Albums._ID
                 + ", album_id AS " + Audio.Albums.ALBUM_ID
@@ -1618,7 +1637,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_R = 1115;
     // Leave some gaps in database version tagging to allow R schema changes
     // to go independent of S schema changes.
-    static final int VERSION_S = 1208;
+    static final int VERSION_S = 1209;
     static final int VERSION_LATEST = VERSION_S;
 
     /**
@@ -1790,6 +1809,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1208) {
                 updateUserId(db);
+            }
+            if (fromVersion < 1209) {
+                // Empty version bump to ensure views are recreated
             }
 
             // If this is the legacy database, it's not worth recomputing data

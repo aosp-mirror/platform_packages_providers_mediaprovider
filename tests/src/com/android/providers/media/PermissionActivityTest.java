@@ -46,6 +46,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 
 import androidx.test.InstrumentationRegistry;
+import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.scan.MediaScannerTest;
@@ -97,6 +98,7 @@ public class PermissionActivityTest {
     }
 
     @Test
+    @SdkSuppress(minSdkVersion = 31, codeName = "S")
     public void testShouldShowActionDialog_noRESAndMES_true() throws Exception {
         final String[] enableAppOpsList = {AppOpsManager.permissionToOp(MANAGE_MEDIA)};
         final String[] disableAppOpsList = {
@@ -121,6 +123,7 @@ public class PermissionActivityTest {
     }
 
     @Test
+    @SdkSuppress(minSdkVersion = 31, codeName = "S")
     public void testShouldShowActionDialog_noMANAGE_MEDIA_true() throws Exception {
         final String[] enableAppOpsList = {
                 AppOpsManager.permissionToOp(MANAGE_EXTERNAL_STORAGE),
@@ -145,6 +148,7 @@ public class PermissionActivityTest {
     }
 
     @Test
+    @SdkSuppress(minSdkVersion = 31, codeName = "S")
     public void testShouldShowActionDialog_hasPermissionWithRES_false() throws Exception {
         final String[] enableAppOpsList = {
                 AppOpsManager.permissionToOp(MANAGE_MEDIA),
@@ -169,6 +173,7 @@ public class PermissionActivityTest {
     }
 
     @Test
+    @SdkSuppress(minSdkVersion = 31, codeName = "S")
     public void testShouldShowActionDialog_hasPermissionWithMES_false() throws Exception {
         final String[] enableAppOpsList = {
                 AppOpsManager.permissionToOp(MANAGE_EXTERNAL_STORAGE),
@@ -193,6 +198,7 @@ public class PermissionActivityTest {
     }
 
     @Test
+    @SdkSuppress(minSdkVersion = 31, codeName = "S")
     public void testShouldShowActionDialog_writeNoACCESS_MEDIA_LOCATION_true() throws Exception {
         final String[] enableAppOpsList = {
                 AppOpsManager.permissionToOp(MANAGE_EXTERNAL_STORAGE),
@@ -218,6 +224,7 @@ public class PermissionActivityTest {
     }
 
     @Test
+    @SdkSuppress(minSdkVersion = 31, codeName = "S")
     public void testShouldShowActionDialog_writeHasACCESS_MEDIA_LOCATION_false() throws Exception {
         final String[] enableAppOpsList = {
                 AppOpsManager.permissionToOp(ACCESS_MEDIA_LOCATION),

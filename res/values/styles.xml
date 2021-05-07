@@ -16,6 +16,9 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <style name="AppTheme" parent="Theme.AppCompat">
+    </style>
+
     <style name="PickerDialogTheme"
            parent="@android:style/Theme.DeviceDefault.Light.Dialog.Alert">
         <item name="android:windowNoTitle">true</item>

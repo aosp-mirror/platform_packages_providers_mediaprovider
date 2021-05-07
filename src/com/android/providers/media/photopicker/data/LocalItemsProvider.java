@@ -35,6 +35,7 @@ import android.provider.MediaStore.MediaColumns;
 
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Category.CategoryColumns;
+import com.android.providers.media.photopicker.data.model.Item.ItemColumns;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -64,44 +65,65 @@ public class LocalItemsProvider {
 
     /**
      * Returns a {@link Cursor} to all images/videos that are scanned by {@link MediaStore}
-     * based on the param passed for {@code mimeType}.
+     * based on the param passed for {@code categoryType}, {@code offset}, {@code limit}
+     * and {@code mimeType}.
      *
      * <p>
-     * By default the returned {@link Cursor} sorts by lastModified.
+     * By default the returned {@link Cursor} sorts by latest {@link MediaColumns#DATE_TAKEN}.
      *
+     * @param category the category of items to return, {@link Category.CategoryType} are supported.
+     *                 {@code null} defaults to {@link Category#CATEGORY_DEFAULT} which returns
+     *                 items from all categories.
+     * @param offset the offset after which to return items. Does not respect non-positive
+     *               values.
+     * @param limit the limit of items to return. Does not respect non-positive values.
      * @param mimeType the mime type of item, only {@code image/*} or {@code video/*} is an
      *                 acceptable mimeType here. Any other mimeType than image/video throws error.
      *                 {@code null} returns all images/videos that are scanned by
      *                 {@link MediaStore}.
      *
      * @return {@link Cursor} to all images/videos on external storage that are scanned by
-     * {@link MediaStore} based on {@code mimeType}, or {@code null} if there are no such
-     * images/videos.
-     * The Cursor for each item would contain the following columns in their relative order:
-     * id: {@link MediaColumns#_ID} id for the image/video item,
-     * path: {@link MediaColumns#DATA} path of the image/video item,
-     * mime_type: {@link MediaColumns#MIME_TYPE} Mime type of the image/video item,
-     * is_favorite {@link MediaColumns#IS_FAVORITE} column value of the image/video item.
+     * {@link MediaStore} based on params passed, or {@code null} if there are no such
+     * images/videos. The Cursor for each item would contain {@link ItemColumns}
      *
-     * @throws IllegalArgumentException thrown if any mimeType other than {@code image/*} or
-     * {@code video/*} is passed.
+     * @throws IllegalArgumentException thrown if unsupported mimeType or category is passed.
      *
      */
     @Nullable
-    public Cursor getItems(@Nullable String mimeType) throws IllegalArgumentException {
-        final String[] projection = new String[] {
-                MediaColumns._ID, MediaColumns.DISPLAY_NAME, MediaColumns.MIME_TYPE,
-                MediaColumns.IS_FAVORITE };
-        if (mimeType == null) {
-            return queryMediaStore(projection, null, null, 0, 0);
+    public Cursor getItems(@Nullable @Category.CategoryType String category, int offset, int limit,
+            @Nullable String mimeType) throws IllegalArgumentException {
+        // 1. Validate incoming params
+        if (category != null && Category.isValidCategory(category)) {
+            throw new IllegalArgumentException("LocalItemsProvider does not support the given"
+                    + " category: " + category);
         }
-        if (isMimeTypeImageVideo(mimeType)) {
-            final String selection = MediaColumns.MIME_TYPE + " LIKE ? ";
-            final String[] selectionArgs = new String[] {replaceMatchAnyChar(mimeType)};
-            return queryMediaStore(projection, selection, selectionArgs, 0, 0);
+
+        if (mimeType != null && !isMimeTypeImageVideo(mimeType)) {
+            throw new IllegalArgumentException("LocalItemsProvider does not support the given"
+                    + " mimeType: " + mimeType);
         }
-        throw new IllegalArgumentException("LocalItemsProvider does not support the given"
-                + " mimeType: " + mimeType);
+
+        // 2. Create args to query MediaStore
+        String selection = null;
+        String[] selectionArgs = null;
+
+        if (category != null && Category.getWhereClauseForCategory(category) != null) {
+            selection = Category.getWhereClauseForCategory(category);
+        }
+
+        if (mimeType != null && isMimeTypeImageVideo(mimeType)) {
+            if (selection != null) {
+                selection += " AND ";
+            } else {
+                selection = "";
+            }
+            selection += MediaColumns.MIME_TYPE + " LIKE ? ";
+            selectionArgs = new String[] {replaceMatchAnyChar(mimeType)};
+        }
+
+        final String[] projection = ItemColumns.ALL_COLUMNS_LIST.toArray(new String[0]);
+        // 3. Query MediaStore and return
+        return queryMediaStore(projection, selection, selectionArgs, offset, limit);
     }
 
     /**

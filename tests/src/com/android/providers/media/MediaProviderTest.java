@@ -44,6 +44,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.pm.ProviderInfo;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
@@ -107,6 +108,7 @@ public class MediaProviderTest {
         InstrumentationRegistry.getInstrumentation().getUiAutomation()
                 .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
+                        Manifest.permission.READ_DEVICE_CONFIG,
                         Manifest.permission.INTERACT_ACROSS_USERS);
 
         final Context context = InstrumentationRegistry.getTargetContext();
@@ -625,6 +627,10 @@ public class MediaProviderTest {
             }
         };
 
+        final ProviderInfo info = sIsolatedContext.getPackageManager()
+                .resolveContentProvider(MediaStore.AUTHORITY, PackageManager.GET_META_DATA);
+        // Attach providerInfo, to make sure mCallingIdentity can be populated
+        provider.attachInfo(sIsolatedContext, info);
         final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         final ContentValues values = new ContentValues();
 
@@ -1047,6 +1053,10 @@ public class MediaProviderTest {
                 return Build.VERSION_CODES.CUR_DEVELOPMENT;
             }
         };
+        final ProviderInfo info = sIsolatedContext.getPackageManager()
+                .resolveContentProvider(MediaStore.AUTHORITY, PackageManager.GET_META_DATA);
+        // Attach providerInfo, to make sure mCallingIdentity can be populated
+        provider.attachInfo(sIsolatedContext, info);
         provider.ensureFileColumns(uri, values);
 
         assertMimetype(values, "image/png");

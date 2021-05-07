@@ -27,6 +27,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import android.Manifest;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
@@ -69,6 +70,8 @@ public class DatabaseHelperTest {
 
     @Before
     public void setUp() {
+        InstrumentationRegistry.getInstrumentation().getUiAutomation()
+                .adoptShellPermissionIdentity(Manifest.permission.INTERACT_ACROSS_USERS);
         final Context context = InstrumentationRegistry.getTargetContext();
         sIsolatedContext = new IsolatedContext(context, TAG, /*asFuseThread*/ false);
         sIsolatedResolver = sIsolatedContext.getContentResolver();

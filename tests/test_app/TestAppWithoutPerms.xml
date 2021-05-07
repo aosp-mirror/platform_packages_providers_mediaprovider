@@ -20,6 +20,8 @@
           android:versionCode="1"
           android:versionName="1.0">
 
+    <uses-sdk android:minSdkVersion="30" android:targetSdkVersion="30" />
+
     <application android:label="TestAppWithoutPerms">
         <activity android:name="com.android.providers.media.util.TestAppActivity"
                   android:exported="true">

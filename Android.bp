@@ -23,6 +23,7 @@ android_app {
     static_libs: [
         "androidx.appcompat_appcompat",
         "androidx.core_core",
+        "androidx.lifecycle_lifecycle-extensions",
         "guava",
         "modules-utils-build",
     ],

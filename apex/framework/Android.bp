@@ -36,6 +36,7 @@ java_sdk_library {
     installable: true,
 
     libs: [
+        "androidx.annotation_annotation",
         "framework-media.stubs.module_lib",
         "unsupportedappusage",
     ],

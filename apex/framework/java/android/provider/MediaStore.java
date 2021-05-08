@@ -68,6 +68,8 @@ import android.util.ArraySet;
 import android.util.Log;
 import android.util.Size;
 
+import androidx.annotation.RequiresApi;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -4438,6 +4440,7 @@ public final class MediaStore {
      * @see #createTrashRequest(ContentResolver, Collection, boolean)
      * @see #createWriteRequest(ContentResolver, Collection)
      */
+    @RequiresApi(Build.VERSION_CODES.S)
     public static boolean canManageMedia(@NonNull Context context) {
         Objects.requireNonNull(context);
         final String packageName = context.getOpPackageName();

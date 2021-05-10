@@ -202,7 +202,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
      * When underlying provider is ready, we kick off a notification of roots
      * changed so they can be refreshed.
      */
-    static void onMediaStoreReady(Context context, String volumeName) {
+    static void onMediaStoreReady(Context context) {
         sMediaStoreReady = true;
         notifyRootsChanged(context);
     }

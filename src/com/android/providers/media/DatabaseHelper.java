@@ -26,7 +26,6 @@ import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ProviderInfo;
@@ -62,7 +61,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
-import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.util.BackgroundThread;
 import com.android.providers.media.util.DatabaseUtils;
@@ -105,8 +103,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * {@link MediaColumns#GENERATION_MODIFIED}.
      */
     public static final String CURRENT_GENERATION_CLAUSE = "SELECT generation FROM local_metadata";
-
-    static final String PREF_DB_FROM_VERSION = "db_from_version";
 
     private static final int NOTIFY_BATCH_SIZE = 256;
 
@@ -359,8 +355,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             updateDatabase(db, oldV, newV);
         } finally {
             mSchemaLock.writeLock().unlock();
-            SharedPreferences prefs = mContext.getSharedPreferences(TAG, Context.MODE_PRIVATE);
-            prefs.edit().putInt(PREF_DB_FROM_VERSION, oldV).commit();
         }
     }
 
@@ -1412,7 +1406,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     private static void updateAddRecording(SQLiteDatabase db, boolean internal) {
         db.execSQL("ALTER TABLE files ADD COLUMN is_recording INTEGER DEFAULT 0;");
-        updateRecordingForSUpdate(db, internal);
+        // We add the column is_recording, rescan all music files
+        db.execSQL("UPDATE files SET date_modified=0 WHERE is_music=1;");
     }
 
     private static void updateAddRedactedUriId(SQLiteDatabase db) {
@@ -1567,7 +1562,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 UserHandle.myUserId()));
     }
 
-
     private static void recomputeDataValues(SQLiteDatabase db, boolean internal) {
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
                 null, null, null, null, null, null)) {
@@ -1616,13 +1610,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             values.clear();
             values.put(FileColumns.MEDIA_TYPE, newMediaTypes.get(id));
             db.update("files", values, "_id=" + id, null);
-        }
-    }
-
-    static void updateRecordingForSUpdate(SQLiteDatabase db, boolean internal) {
-        if (SdkLevel.isAtLeastS()) {
-            // Rescan all music files to update is_recording type
-            db.execSQL("UPDATE files SET date_modified=0 WHERE is_music=1;");
         }
     }
 

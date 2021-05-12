@@ -9306,7 +9306,7 @@ public class MediaProvider extends ContentProvider {
                 // We just finished the database operation above, we know that
                 // it's ready to answer queries, so notify our DocumentProvider
                 // so it can answer queries without risking ANR
-                MediaDocumentsProvider.onMediaStoreReady(getContext(), volumeName);
+                MediaDocumentsProvider.onMediaStoreReady(getContext());
             });
         }
         return uri;

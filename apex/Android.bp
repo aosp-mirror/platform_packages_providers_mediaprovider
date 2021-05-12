@@ -38,3 +38,10 @@ android_app_certificate {
     name: "com.android.mediaprovider.certificate",
     certificate: "com.android.mediaprovider",
 }
+
+sdk {
+    name: "mediaprovider-module-sdk",
+    java_sdk_libs: [
+        "framework-mediaprovider",
+    ],
+}

@@ -16,9 +16,11 @@
 
 package com.android.providers.media.photopicker.data;
 
+import android.annotation.Nullable;
 import android.content.Context;
 import android.database.Cursor;
-import android.provider.MediaStore;
+
+import com.android.providers.media.photopicker.data.model.Category;
 
 /**
  * The base class that is responsible for obtaining data from all providers and
@@ -37,5 +39,27 @@ public class ItemsProvider {
      */
     public Cursor getItems() {
         return mLocalItemsProvider.getItems(/* mimeType */ null);
+    }
+
+    /**
+     * Returns a {@link Cursor} containing basic information (as columns:
+     * {@link Category.CategoryColumns}) for non-empty categories.
+     * A {@link Category} is a collection of items (images/videos) that are put into different
+     * buckets based on various criteria as defined in {@link Category.CategoryType}.
+     * This includes a list of constant categories for LocalItemsProvider: {@link Category} contains
+     * a constant list of local categories supported in v0.
+     *
+     * The Cursor for each category would contain the following columns in their relative order:
+     * categoryName: {@link Category.CategoryColumns#NAME} The name of the category,
+     * categoryCoverUri: {@link Category.CategoryColumns#COVER_URI} The Uri for the cover of
+     *                   the category. By default this will be the most recent image/video in that
+     *                   category,
+     * categoryNumberOfItems: {@link Category.CategoryColumns#NUMBER_OF_ITEMS} number of image/video
+     *                        items in the category,
+     *
+     */
+    @Nullable
+    public Cursor getCategories() {
+        return mLocalItemsProvider.getCategories();
     }
 }

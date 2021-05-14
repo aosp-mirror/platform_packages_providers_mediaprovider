@@ -48,6 +48,6 @@ public class GridViewModel extends AndroidViewModel {
 
     private void loadItems() {
         // TODO(b/168001592) call getItems() from worker thread.
-        mCursor = mItemsProvider.getItems();
+        mCursor = mItemsProvider.getItems(null, 0, 0, null);
     }
 }

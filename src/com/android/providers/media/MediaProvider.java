@@ -1100,27 +1100,11 @@ public class MediaProvider extends ContentProvider {
         });
         Log.d(TAG, "Pruned " + stalePackages + " unknown packages");
 
-        // Delete any expired content on mounted volumes. The expired content on unmounted
-        // volumes will be deleted when we forget any stale volumes; we're cautious about
-        // wildly changing clocks, so only delete items within the last week
-        final long from = ((System.currentTimeMillis() - DateUtils.WEEK_IN_MILLIS) / 1000);
-        final long to = (System.currentTimeMillis() / 1000);
-        final int expiredMedia = mExternalDatabase.runWithTransaction((db) -> {
-            String selection = FileColumns.DATE_EXPIRES + " BETWEEN " + from + " AND " + to;
-            selection += " AND volume_name in " + bindList(MediaStore.getExternalVolumeNames(
-                    getContext()).toArray());
-            try (Cursor c = db.query(true, "files", new String[] { "volume_name", "_id" },
-                    selection, null, null, null, null, null, signal)) {
-                int totalCount = 0;
-                while (c.moveToNext()) {
-                    final String volumeName = c.getString(0);
-                    final long id = c.getLong(1);
-                    totalCount += delete(Files.getContentUri(volumeName, id), null, null);
-                }
-                return totalCount;
-            }
-        });
-        Log.d(TAG, "Deleted " + expiredMedia + " expired items");
+        // Delete the expired items or extend them on mounted volumes
+        final int[] result = deleteOrExtendExpiredItems(signal);
+        final int deletedExpiredMedia = result[0];
+        Log.d(TAG, "Deleted " + deletedExpiredMedia + " expired items");
+        Log.d(TAG, "Extended " + result[1] + " expired items");
 
         // Forget any stale volumes
         mExternalDatabase.runWithTransaction((db) -> {
@@ -1154,7 +1138,84 @@ public class MediaProvider extends ContentProvider {
 
         final long durationMillis = (SystemClock.elapsedRealtime() - startTime);
         Metrics.logIdleMaintenance(MediaStore.VOLUME_EXTERNAL, itemCount,
-                durationMillis, staleThumbnails, expiredMedia);
+                durationMillis, staleThumbnails, deletedExpiredMedia);
+    }
+
+    /**
+     * Delete any expired content on mounted volumes. The expired content on unmounted
+     * volumes will be deleted when we forget any stale volumes; we're cautious about
+     * wildly changing clocks, so only delete items within the last week.
+     * If the items are expired more than one week, extend the expired time of them
+     * another one week to avoid data loss with incorrect time zone data. We will
+     * delete it when it is expired next time.
+     *
+     * @param signal the cancellation signal
+     * @return the integer array includes total deleted count and total extended count
+     */
+    @NonNull
+    private int[] deleteOrExtendExpiredItems(@NonNull CancellationSignal signal) {
+        final long expiredOneWeek =
+                ((System.currentTimeMillis() - DateUtils.WEEK_IN_MILLIS) / 1000);
+        final long now = (System.currentTimeMillis() / 1000);
+        final Long extendedTime = now + (FileUtils.DEFAULT_DURATION_EXTENDED / 1000);
+        final int result[] = mExternalDatabase.runWithTransaction((db) -> {
+            String selection = FileColumns.DATE_EXPIRES + " < " + now;
+            selection += " AND volume_name in " + bindList(MediaStore.getExternalVolumeNames(
+                    getContext()).toArray());
+            String[] projection = new String[]{"volume_name", "_id",
+                    FileColumns.DATE_EXPIRES, FileColumns.DATA};
+            try (Cursor c = db.query(true, "files", projection, selection, null, null, null, null,
+                    null, signal)) {
+                int totalDeleteCount = 0;
+                int totalExtendedCount = 0;
+                while (c.moveToNext()) {
+                    final String volumeName = c.getString(0);
+                    final long id = c.getLong(1);
+                    final long dateExpires = c.getLong(2);
+                    // we only delete the items that expire in one week
+                    if (dateExpires > expiredOneWeek) {
+                        totalDeleteCount += delete(Files.getContentUri(volumeName, id), null, null);
+                    } else {
+                        final String oriPath = c.getString(3);
+                        final boolean success = extendExpiredItem(db, oriPath, id, extendedTime);
+                        if (success) {
+                            totalExtendedCount++;
+                        }
+                    }
+                }
+                return new int[]{totalDeleteCount, totalExtendedCount};
+            }
+        });
+        return result;
+    }
+
+    /**
+     * Extend the expired items by renaming the file to new path with new
+     * timestamp and updating the database for {@link FileColumns#DATA} and
+     * {@link FileColumns#DATE_EXPIRES}
+     */
+    private boolean extendExpiredItem(@NonNull SQLiteDatabase db, @NonNull String originalPath,
+            Long id, Long extendedTime) {
+        final String newPath = FileUtils.getAbsoluteExtendedPath(originalPath, extendedTime);
+        if (newPath == null) {
+            return false;
+        }
+
+        try {
+            Os.rename(originalPath, newPath);
+            invalidateFuseDentry(originalPath);
+            invalidateFuseDentry(newPath);
+        } catch (ErrnoException e) {
+            final String errorMessage = "Rename " + originalPath + " to " + newPath + " failed.";
+            Log.e(TAG, errorMessage, e);
+            return false;
+        }
+
+        final ContentValues values = new ContentValues();
+        values.put(FileColumns.DATA, newPath);
+        values.put(FileColumns.DATE_EXPIRES, extendedTime);
+        final int count = db.update("files", values, "_id=?", new String[]{String.valueOf(id)});
+        return count == 1;
     }
 
     public void onIdleMaintenanceStopped() {

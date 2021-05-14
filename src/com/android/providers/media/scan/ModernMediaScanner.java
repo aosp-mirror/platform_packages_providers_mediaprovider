@@ -1226,6 +1226,8 @@ public class ModernMediaScanner implements MediaScanner {
         sAudioTypes.put(Environment.DIRECTORY_MUSIC, AudioColumns.IS_MUSIC);
         if (SdkLevel.isAtLeastS()) {
             sAudioTypes.put(Environment.DIRECTORY_RECORDINGS, AudioColumns.IS_RECORDING);
+        } else {
+            sAudioTypes.put(FileUtils.DIRECTORY_RECORDINGS, AudioColumns.IS_RECORDING);
         }
     }
 

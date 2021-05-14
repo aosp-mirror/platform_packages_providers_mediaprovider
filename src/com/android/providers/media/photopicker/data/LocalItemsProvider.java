@@ -25,12 +25,19 @@ import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
+
+import com.android.providers.media.photopicker.data.model.Category;
+import com.android.providers.media.photopicker.data.model.Category.CategoryColumns;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Provides local image and video items from {@link MediaStore} collection to the Photo Picker.
@@ -82,32 +89,89 @@ public class LocalItemsProvider {
      */
     @Nullable
     public Cursor getItems(@Nullable String mimeType) throws IllegalArgumentException {
+        final String[] projection = new String[] {
+                MediaColumns._ID, MediaColumns.DISPLAY_NAME, MediaColumns.MIME_TYPE,
+                MediaColumns.IS_FAVORITE };
         if (mimeType == null) {
-            return queryMediaStore(null);
+            return queryMediaStore(projection, null, null, 0, 0);
         }
         if (isMimeTypeImageVideo(mimeType)) {
-            return queryMediaStore(replaceMatchAnyChar(mimeType));
+            final String selection = MediaColumns.MIME_TYPE + " LIKE ? ";
+            final String[] selectionArgs = new String[] {replaceMatchAnyChar(mimeType)};
+            return queryMediaStore(projection, selection, selectionArgs, 0, 0);
         }
         throw new IllegalArgumentException("LocalItemsProvider does not support the given"
                 + " mimeType: " + mimeType);
     }
 
+    /**
+     * Returns a {@link Cursor} to all non-empty categories in which images/videos (that are
+     * scanned by {@link MediaStore}) are put in buckets based on certain criteria.
+     * This includes a list of constant categories for LocalItemsProvider: {@link Category} contains
+     * a constant list of local categories we have on-device and want to support for v0.
+     *
+     * The Cursor for each category would contain the following columns in their relative order:
+     * categoryName: {@link CategoryColumns#NAME} The name of the category,
+     * categoryCoverUri: {@link CategoryColumns#COVER_URI} The Uri for the cover of
+     *                   the category. By default this will be the most recent image/video in that
+     *                   category,
+     * categoryNumberOfItems: {@link CategoryColumns#NUMBER_OF_ITEMS} number of image/video items
+     *                        in the category,
+     *
+     */
     @Nullable
-    private Cursor queryMediaStore(@Nullable String mimeType) {
-        final Uri contentUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL);
+    public Cursor getCategories() {
+        return buildCategoriesCursor(Category.CATEGORIES_LIST);
+    }
 
-        // TODO: This can be extracted to another class/interface as the consumer of this getItems
-        // needs to be aware of what the Cursor has returned and how to access it. Instead of
-        // hardcoding projection values in both the layers.
-        final String[] projection = new String[] {MediaColumns._ID, MediaColumns.DATA,
-                MediaColumns.DISPLAY_NAME, MediaColumns.MIME_TYPE, MediaColumns.IS_FAVORITE };
+    private Cursor buildCategoriesCursor(List<String> categories) {
+        MatrixCursor c = new MatrixCursor(CategoryColumns.getAllColumns());
+
+        for (String category: categories) {
+            String[] categoryRow = getCategoryColumns(category);
+            if (categoryRow != null) {
+                c.addRow(categoryRow);
+            }
+        }
+
+        return c;
+    }
+
+    private String[] getCategoryColumns(@Category.CategoryType String category)
+            throws IllegalArgumentException {
+        if (!Category.isValidCategory(category)) {
+            throw new IllegalArgumentException("Category type not supported");
+        }
+        final String whereClause = Category.getWhereClauseForCategory(category);
+        final String[] projection = new String[] {
+                MediaColumns._ID
+        };
+        Cursor c = queryMediaStore(projection, whereClause, null, 0, 0);
+        // Send null if the cursor is null or cursor size is empty
+        if (c == null || !c.moveToFirst()) {
+            return null;
+        }
+
+        return new String[] {
+                category,
+                String.valueOf(getMediaStoreUriForItem(c.getLong(0))),
+                String.valueOf(c.getCount())
+        };
+    }
+
+    @Nullable
+    private Cursor queryMediaStore(@NonNull String[] projection, @Nullable String extraSelection,
+            @Nullable String[] extraSelectionArgs, int offset, int limit) {
+        final Uri contentUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL);
 
         String selection = IMAGES_VIDEOS_WHERE_CLAUSE;
         String[] selectionArgs = null;
 
-        if (mimeType != null) {
-            selection += " AND " + MediaColumns.MIME_TYPE + " LIKE ? ";
-            selectionArgs = new String[] {mimeType};
+        if (extraSelection != null) {
+            selection += " AND " + extraSelection;
+        }
+        if (extraSelectionArgs != null) {
+            selectionArgs = extraSelectionArgs;
         }
 
         try (ContentProviderClient client = mContext.getContentResolver()
@@ -115,11 +179,23 @@ public class LocalItemsProvider {
             Bundle extras = new Bundle();
             extras.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, selection);
             extras.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs);
+            extras.putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,
+                    MediaColumns.DATE_MODIFIED + " DESC");
+            if (offset > 0) {
+                extras.putInt(ContentResolver.QUERY_ARG_OFFSET, offset);
+            }
+            if (limit > 0) {
+                extras.putString(ContentResolver.QUERY_ARG_LIMIT, String.valueOf(limit));
+            }
             return client.query(contentUri, projection, extras, null);
         } catch (RemoteException ignored) {
             // Do nothing, return null.
         }
         return null;
+    }
+
+    private Uri getMediaStoreUriForItem(long id) {
+        return MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL, id);
     }
 
     private boolean isMimeTypeImageVideo(@NonNull String mimeType) {

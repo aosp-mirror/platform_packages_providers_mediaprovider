@@ -3054,6 +3054,7 @@ public class MediaProvider extends ContentProvider {
                             Environment.DIRECTORY_MUSIC,
                             Environment.DIRECTORY_NOTIFICATIONS,
                             Environment.DIRECTORY_PODCASTS,
+                            FileUtils.DIRECTORY_RECORDINGS,
                             Environment.DIRECTORY_RINGTONES);
                 }
                 break;

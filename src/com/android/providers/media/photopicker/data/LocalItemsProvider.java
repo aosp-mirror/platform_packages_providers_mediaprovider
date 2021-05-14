@@ -73,9 +73,8 @@ public class LocalItemsProvider {
      * @param category the category of items to return, {@link Category.CategoryType} are supported.
      *                 {@code null} defaults to {@link Category#CATEGORY_DEFAULT} which returns
      *                 items from all categories.
-     * @param offset the offset after which to return items. Does not respect non-positive
-     *               values.
-     * @param limit the limit of items to return. Does not respect non-positive values.
+     * @param offset the offset after which to return items.
+     * @param limit the limit of number of items to return.
      * @param mimeType the mime type of item, only {@code image/*} or {@code video/*} is an
      *                 acceptable mimeType here. Any other mimeType than image/video throws error.
      *                 {@code null} returns all images/videos that are scanned by
@@ -202,12 +201,9 @@ public class LocalItemsProvider {
             extras.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs);
             extras.putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,
                     MediaColumns.DATE_TAKEN + " DESC");
-            if (offset > 0) {
-                extras.putInt(ContentResolver.QUERY_ARG_OFFSET, offset);
-            }
-            if (limit > 0) {
-                extras.putString(ContentResolver.QUERY_ARG_LIMIT, String.valueOf(limit));
-            }
+            extras.putInt(ContentResolver.QUERY_ARG_OFFSET, offset);
+            extras.putString(ContentResolver.QUERY_ARG_LIMIT, String.valueOf(limit));
+
             return client.query(contentUri, projection, extras, null);
         } catch (RemoteException ignored) {
             // Do nothing, return null.

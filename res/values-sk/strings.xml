@@ -239,12 +239,4 @@
       <item quantity="other">Odstraňuje sa <xliff:g id="COUNT">^1</xliff:g> položiek…</item>
       <item quantity="one">Odstraňuje sa položka…</item>
     </plurals>
-    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> nemôže spracúvať súbory médií"</string>
-    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Spracúvanie médií bolo zrušené"</string>
-    <string name="transcode_processing_error" msgid="8921643164508407874">"Pri spracúvaní médií sa vyskytla chyba"</string>
-    <string name="transcode_processing_success" msgid="447288876429730122">"Médiá boli úspešne spracované"</string>
-    <string name="transcode_processing_started" msgid="7789086308155361523">"Spracúvanie médií sa začalo"</string>
-    <string name="transcode_processing" msgid="6753136468864077258">"Spracúvajú sa médiá…"</string>
-    <string name="transcode_cancel" msgid="8555752601907598192">"Zrušiť"</string>
-    <string name="transcode_wait" msgid="8909773149560697501">"Počkať"</string>
 </resources>

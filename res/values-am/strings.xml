@@ -171,12 +171,4 @@
       <item quantity="one"><xliff:g id="COUNT">^1</xliff:g> ንጥሎችን በመሰረዝ ላይ…</item>
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ንጥሎችን በመሰረዝ ላይ…</item>
     </plurals>
-    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> የሚዲያ ፋይሎችን ማሄድ አይችልም"</string>
-    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"ሚዲያን ማሰናዳት ተሰርዟል"</string>
-    <string name="transcode_processing_error" msgid="8921643164508407874">"ሚዲያን የማሰናዳት ስህተት"</string>
-    <string name="transcode_processing_success" msgid="447288876429730122">"ሚዲያን የማሰናዳት ስኬት"</string>
-    <string name="transcode_processing_started" msgid="7789086308155361523">"ሚዲያን ማሰናዳት ተጀምሯል"</string>
-    <string name="transcode_processing" msgid="6753136468864077258">"ሚዲያን በማሰናዳት ላይ…"</string>
-    <string name="transcode_cancel" msgid="8555752601907598192">"ይቅር"</string>
-    <string name="transcode_wait" msgid="8909773149560697501">"ጠብቅ"</string>
 </resources>

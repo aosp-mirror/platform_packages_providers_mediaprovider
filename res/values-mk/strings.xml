@@ -171,12 +171,4 @@
       <item quantity="one">Се брише <xliff:g id="COUNT">^1</xliff:g> ставка…</item>
       <item quantity="other">Се бришат <xliff:g id="COUNT">^1</xliff:g> ставки…</item>
     </plurals>
-    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> не може да обработува датотеки со аудиовизуелни содржини"</string>
-    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Транскодирањето е откажано"</string>
-    <string name="transcode_processing_error" msgid="8921643164508407874">"Грешка при транскодирање"</string>
-    <string name="transcode_processing_success" msgid="447288876429730122">"Транскодирањето е успешно"</string>
-    <string name="transcode_processing_started" msgid="7789086308155361523">"Транскодирањето започна"</string>
-    <string name="transcode_processing" msgid="6753136468864077258">"Се транскодира…"</string>
-    <string name="transcode_cancel" msgid="8555752601907598192">"Откажи"</string>
-    <string name="transcode_wait" msgid="8909773149560697501">"Почекајте"</string>
 </resources>

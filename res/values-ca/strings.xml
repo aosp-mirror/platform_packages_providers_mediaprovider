@@ -171,12 +171,4 @@
       <item quantity="other">S\'estan suprimint <xliff:g id="COUNT">^1</xliff:g> elements…</item>
       <item quantity="one">S\'està suprimint l\'element…</item>
     </plurals>
-    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> no pot processar els fitxers multimèdia"</string>
-    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"El processament del contingut multimèdia s\'ha cancel·lat"</string>
-    <string name="transcode_processing_error" msgid="8921643164508407874">"S\'ha produït un error en processar el contingut multimèdia"</string>
-    <string name="transcode_processing_success" msgid="447288876429730122">"El contingut multimèdia s\'ha processat correctament"</string>
-    <string name="transcode_processing_started" msgid="7789086308155361523">"El processament del contingut multimèdia s\'ha iniciat"</string>
-    <string name="transcode_processing" msgid="6753136468864077258">"S\'està processant el contingut multimèdia…"</string>
-    <string name="transcode_cancel" msgid="8555752601907598192">"Cancel·la"</string>
-    <string name="transcode_wait" msgid="8909773149560697501">"Espera"</string>
 </resources>

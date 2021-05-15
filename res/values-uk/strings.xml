@@ -239,12 +239,4 @@
       <item quantity="many">Видалення <xliff:g id="COUNT">^1</xliff:g> об\'єктів…</item>
       <item quantity="other">Видалення <xliff:g id="COUNT">^1</xliff:g> об\'єкта…</item>
     </plurals>
-    <string name="transcode_denied" msgid="6760546817138288976">"Додаток <xliff:g id="APP_NAME">%s</xliff:g> не може обробляти медіафайли"</string>
-    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Обробку медіафайлів скасовано"</string>
-    <string name="transcode_processing_error" msgid="8921643164508407874">"Не вдалось обробити медіафайли"</string>
-    <string name="transcode_processing_success" msgid="447288876429730122">"Обробку медіафайлів завершено"</string>
-    <string name="transcode_processing_started" msgid="7789086308155361523">"Почалась обробка медіафайлів"</string>
-    <string name="transcode_processing" msgid="6753136468864077258">"Обробка медіафайлів…"</string>
-    <string name="transcode_cancel" msgid="8555752601907598192">"Скасувати"</string>
-    <string name="transcode_wait" msgid="8909773149560697501">"Зачекати"</string>
 </resources>

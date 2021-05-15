@@ -171,12 +171,4 @@
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> elementu ezabatzen…</item>
       <item quantity="one">Elementua ezabatzen…</item>
     </plurals>
-    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> aplikazioak ezin ditu prozesatu multimedia-fitxategiak"</string>
-    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Bertan behera utzi da multimedia-edukiaren prozesamendua"</string>
-    <string name="transcode_processing_error" msgid="8921643164508407874">"Errore bat gertatu da multimedia-edukia prozesatzean"</string>
-    <string name="transcode_processing_success" msgid="447288876429730122">"Prozesatu da multimedia-edukia"</string>
-    <string name="transcode_processing_started" msgid="7789086308155361523">"Hasi da multimedia-edukiaren prozesamendua"</string>
-    <string name="transcode_processing" msgid="6753136468864077258">"Multimedia-edukia prozesatzen…"</string>
-    <string name="transcode_cancel" msgid="8555752601907598192">"Utzi"</string>
-    <string name="transcode_wait" msgid="8909773149560697501">"Itxaron"</string>
 </resources>

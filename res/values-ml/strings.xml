@@ -171,12 +171,4 @@
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ഇനങ്ങൾ ഇല്ലാതാക്കുന്നു…</item>
       <item quantity="one">ഇനം ഇല്ലാതാക്കുന്നു…</item>
     </plurals>
-    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> എന്നതിന് മീഡിയ ഫയലുകൾ പ്രോസസ് ചെയ്യാനാകില്ല"</string>
-    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"മീഡിയ പ്രോസസ് ചെയ്യൽ റദ്ദാക്കി"</string>
-    <string name="transcode_processing_error" msgid="8921643164508407874">"മീഡിയ പ്രോസസ് ചെയ്യുന്നതിൽ പിശക്"</string>
-    <string name="transcode_processing_success" msgid="447288876429730122">"മീഡിയ പ്രോസസ് ചെയ്യൽ പൂർത്തിയായി"</string>
-    <string name="transcode_processing_started" msgid="7789086308155361523">"മീഡിയ പ്രോസസ് ചെയ്യൽ ആരംഭിച്ചു"</string>
-    <string name="transcode_processing" msgid="6753136468864077258">"മീഡിയ പ്രോസസ് ചെയ്യുന്നു…"</string>
-    <string name="transcode_cancel" msgid="8555752601907598192">"റദ്ദാക്കുക"</string>
-    <string name="transcode_wait" msgid="8909773149560697501">"കാത്തിരിക്കുക"</string>
 </resources>

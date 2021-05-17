@@ -84,6 +84,12 @@ public class UserCache {
         }
     }
 
+    public @NonNull List<UserHandle> getUsersCached() {
+        synchronized (mLock) {
+            return (List<UserHandle>) mUsers.clone();
+        }
+    }
+
     public @NonNull Context getContextForUser(@NonNull UserHandle user) {
         Context userContext;
         synchronized (mLock) {

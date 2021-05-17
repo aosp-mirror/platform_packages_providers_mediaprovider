@@ -417,9 +417,21 @@ public class MediaProvider extends ContentProvider {
         return mVolumeCache.getVolumeId(file);
     }
 
-    public @NonNull Collection<File> getVolumeScanPaths(String volumeName)
+    private @NonNull Collection<File> getAllowedVolumePaths(String volumeName)
             throws FileNotFoundException {
-        return mVolumeCache.getVolumeScanPaths(volumeName, mCallingIdentity.get().getUser());
+        // This method is used to verify whether a path belongs to a certain volume name;
+        // we can't always use the calling user's identity here to determine exactly which
+        // volume is meant, because the MediaScanner may scan paths belonging to another user,
+        // eg a clone user.
+        // So, for volumes like external_primary, just return allowed paths for all users.
+        List<UserHandle> users = mUserCache.getUsersCached();
+        ArrayList<File> allowedPaths = new ArrayList<>();
+        for (UserHandle user : users) {
+            Collection<File> volumeScanPaths = mVolumeCache.getVolumeScanPaths(volumeName, user);
+            allowedPaths.addAll(volumeScanPaths);
+        }
+
+        return allowedPaths;
     }
 
     /**
@@ -3489,7 +3501,7 @@ public class MediaProvider extends ContentProvider {
         final String volumeName = resolveVolumeName(uri);
         try {
             // Quick check that the requested path actually lives on volume
-            final Collection<File> allowed = getVolumeScanPaths(volumeName);
+            final Collection<File> allowed = getAllowedVolumePaths(volumeName);
             final File actual = new File(values.getAsString(MediaColumns.DATA))
                     .getCanonicalFile();
             if (!FileUtils.contains(allowed, actual)) {

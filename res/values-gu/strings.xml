@@ -171,4 +171,12 @@
       <item quantity="one"><xliff:g id="COUNT">^1</xliff:g> આઇટમ ડિલીટ કરી રહ્યાં છીએ…</item>
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> આઇટમ ડિલીટ કરી રહ્યાં છીએ…</item>
     </plurals>
+    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> મીડિયા ફાઇલો પર પ્રક્રિયા કરી શકતું નથી"</string>
+    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"મીડિયા પર થતી પ્રક્રિયા રદ કરવામાં આવી"</string>
+    <string name="transcode_processing_error" msgid="8921643164508407874">"મીડિયા પર થતી પ્રક્રિયામાં ભૂલ આવી"</string>
+    <string name="transcode_processing_success" msgid="447288876429730122">"મીડિયા પર પ્રક્રિયા કરવાનું સફળ થયું"</string>
+    <string name="transcode_processing_started" msgid="7789086308155361523">"મીડિયા પર પ્રક્રિયા શરૂ કરવામાં આવી"</string>
+    <string name="transcode_processing" msgid="6753136468864077258">"મીડિયા પર પ્રક્રિયા થઈ રહી છે…"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"રદ કરો"</string>
+    <string name="transcode_wait" msgid="8909773149560697501">"રાહ જુઓ"</string>
 </resources>

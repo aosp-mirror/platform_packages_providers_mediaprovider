@@ -171,4 +171,12 @@
       <item quantity="other">Borrando <xliff:g id="COUNT">^1</xliff:g> elementos…</item>
       <item quantity="one">Borrando el elemento…</item>
     </plurals>
+    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> no puede procesar archivos multimedia"</string>
+    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Se canceló el procesamiento de contenido multimedia"</string>
+    <string name="transcode_processing_error" msgid="8921643164508407874">"Error al procesar el contenido multimedia"</string>
+    <string name="transcode_processing_success" msgid="447288876429730122">"Se procesó correctamente el contenido multimedia"</string>
+    <string name="transcode_processing_started" msgid="7789086308155361523">"Comenzó el procesamiento de contenido multimedia"</string>
+    <string name="transcode_processing" msgid="6753136468864077258">"Procesando contenido multimedia…"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"Cancelar"</string>
+    <string name="transcode_wait" msgid="8909773149560697501">"Esperar"</string>
 </resources>

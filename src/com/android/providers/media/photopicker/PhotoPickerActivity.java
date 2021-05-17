@@ -29,12 +29,12 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.android.providers.media.R;
 
+import com.android.providers.media.photopicker.data.PickerResult;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.ui.PhotosTabFragment;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import java.util.List;
-
 
 /**
  * Photo Picker allows users to choose one or more photos and/or videos to share with an app. The
@@ -71,9 +71,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
         Log.d(TAG, "Selected Item Size = " + selectedItemList.size());
         // TODO (b/169737798): Support Multi-select
         if (selectedItemList.size() > 0) {
-            final Intent intent = new Intent();
-            intent.setData(selectedItemList.get(0).getContentUri());
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            final Intent intent = PickerResult.getResponseIntentForItems(getApplicationContext(),
+                    selectedItemList);
             setResult(Activity.RESULT_OK, intent);
             finish();
         }

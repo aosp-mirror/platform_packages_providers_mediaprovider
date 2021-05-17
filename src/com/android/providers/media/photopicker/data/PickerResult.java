@@ -44,7 +44,7 @@ public class PickerResult {
      */
     @NonNull
     public static Intent getResponseIntentForItems(@NonNull Context context,
-            @NonNull ArrayList<Item> selectedItems) {
+            @NonNull List<Item> selectedItems) {
         // 1. Get mediaStore Uris corresponding to the selected items
         ArrayList<Uri> selectedUris = getUrisFromItems(selectedItems);
 
@@ -87,7 +87,7 @@ public class PickerResult {
      * @param ItemList list of Item for which we return uri list.
      */
     @NonNull
-    private static ArrayList<Uri> getUrisFromItems(@NonNull ArrayList<Item> ItemList) {
+    private static ArrayList<Uri> getUrisFromItems(@NonNull List<Item> ItemList) {
         ArrayList<Uri> uris = new ArrayList<>();
         for (Item item : ItemList) {
             uris.add(item.getContentUri());

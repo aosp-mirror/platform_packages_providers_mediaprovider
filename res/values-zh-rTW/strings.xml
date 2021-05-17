@@ -171,4 +171,12 @@
       <item quantity="other">正在刪除 <xliff:g id="COUNT">^1</xliff:g> 個項目…</item>
       <item quantity="one">正在刪除項目…</item>
     </plurals>
+    <string name="transcode_denied" msgid="6760546817138288976">"「<xliff:g id="APP_NAME">%s</xliff:g>」無法處理媒體檔案"</string>
+    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"已取消處理媒體"</string>
+    <string name="transcode_processing_error" msgid="8921643164508407874">"處理媒體時發生錯誤"</string>
+    <string name="transcode_processing_success" msgid="447288876429730122">"媒體處理成功"</string>
+    <string name="transcode_processing_started" msgid="7789086308155361523">"已開始處理媒體"</string>
+    <string name="transcode_processing" msgid="6753136468864077258">"正在處理媒體…"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"取消"</string>
+    <string name="transcode_wait" msgid="8909773149560697501">"等待"</string>
 </resources>

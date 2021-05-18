@@ -19,7 +19,6 @@ package com.android.providers.media;
 import static com.android.providers.media.util.Logging.TAG;
 
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -35,6 +34,7 @@ import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 
 import com.android.providers.media.util.FileUtils;
+import com.android.providers.media.util.UserCache;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -54,6 +54,7 @@ public class VolumeCache {
     private final Object mLock = new Object();
 
     private final UserManager mUserManager;
+    private final UserCache mUserCache;
 
     @GuardedBy("mLock")
     private final ArrayList<MediaVolume> mExternalVolumes = new ArrayList<>();
@@ -64,12 +65,10 @@ public class VolumeCache {
     @GuardedBy("mLock")
     private Collection<File> mCachedInternalScanPaths;
 
-    @GuardedBy("mLock")
-    private final LongSparseArray<Context> mUserContexts = new LongSparseArray<>();
-
-    public VolumeCache(Context context) {
+    public VolumeCache(Context context, UserCache userCache) {
         mContext = context;
         mUserManager = context.getSystemService(UserManager.class);
+        mUserCache = userCache;
     }
 
     public @NonNull List<MediaVolume> getExternalVolumes() {
@@ -112,7 +111,7 @@ public class VolumeCache {
                 // Try again by using FileUtils below
             }
 
-            final Context userContext = getContextForUser(user);
+            final Context userContext = mUserCache.getContextForUser(user);
             return FileUtils.getVolumePath(userContext, volumeName);
         }
     }
@@ -134,7 +133,7 @@ public class VolumeCache {
             }
 
             // Nothing found above; let's ask directly
-            final Context userContext = getContextForUser(user);
+            final Context userContext = mUserCache.getContextForUser(user);
             final Collection<File> res = FileUtils.getVolumeScanPaths(userContext, volumeName);
 
             return res;
@@ -167,22 +166,6 @@ public class VolumeCache {
         return volume.getId();
     }
 
-    private @NonNull Context getContextForUser(UserHandle user) {
-        synchronized (mLock) {
-            Context userContext = mUserContexts.get(user.getIdentifier());
-            if (userContext != null) {
-                return userContext;
-            }
-            try {
-                userContext = mContext.createPackageContextAsUser("system", 0, user);
-                mUserContexts.put(user.getIdentifier(), userContext);
-                return userContext;
-            } catch (PackageManager.NameNotFoundException e) {
-                throw new RuntimeException("Failed to create context for user " + user, e);
-            }
-        }
-    }
-
     @GuardedBy("mLock")
     private void updateExternalVolumesForUserLocked(Context userContext) {
         final StorageManager sm = userContext.getSystemService(StorageManager.class);
@@ -210,17 +193,10 @@ public class VolumeCache {
                 Log.wtf(TAG, "Failed to update volume " + MediaStore.VOLUME_INTERNAL,e );
             }
             mExternalVolumes.clear();
-            for (UserHandle profile : mUserManager.getEnabledProfiles()) {
-                if (profile.equals(mContext.getUser())) {
-                    // Volumes of the user id that MediaProvider runs as
-                    updateExternalVolumesForUserLocked(mContext);
-                } else {
-                    Context userContext = getContextForUser(profile);
-                    if (userContext.getSystemService(UserManager.class).isMediaSharedWithParent()) {
-                        // This profile shares media with its parent - add its volumes, too
-                        updateExternalVolumesForUserLocked(userContext);
-                    }
-                }
+            List<UserHandle> users = mUserCache.updateAndGetUsers();
+            for (UserHandle user : users) {
+                Context userContext = mUserCache.getContextForUser(user);
+                updateExternalVolumesForUserLocked(userContext);
             }
         }
     }

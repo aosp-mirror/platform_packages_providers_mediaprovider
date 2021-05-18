@@ -63,6 +63,7 @@ import androidx.annotation.NonNull;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.util.LongArray;
+import com.android.providers.media.util.UserCache;
 
 import java.util.Locale;
 
@@ -104,7 +105,8 @@ public class LocalCallingIdentity {
 
     private static final long UNKNOWN_ROW_ID = -1;
 
-    public static LocalCallingIdentity fromBinder(Context context, ContentProvider provider) {
+    public static LocalCallingIdentity fromBinder(Context context, ContentProvider provider,
+            UserCache userCache) {
         String callingPackage = provider.getCallingPackageUnchecked();
         int binderUid = Binder.getCallingUid();
         if (callingPackage == null) {
@@ -127,6 +129,12 @@ public class LocalCallingIdentity {
             user = Process.myUserHandle();
         } else {
             user = UserHandle.getUserHandleForUid(binderUid);
+        }
+        if (!userCache.userSharesMediaWithParent(user)) {
+            // It's possible that we got a cross-profile intent from a regular work profile; in
+            // that case, the request was explicitly targeted at the media database of the owner
+            // user; reflect that here.
+            user = Process.myUserHandle();
         }
         return new LocalCallingIdentity(context, Binder.getCallingPid(), binderUid,
                 user, callingPackage, callingAttributionTag);

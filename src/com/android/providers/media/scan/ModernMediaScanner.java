@@ -47,6 +47,8 @@ import static android.provider.MediaStore.UNKNOWN_STRING;
 import static android.text.format.DateUtils.HOUR_IN_MILLIS;
 import static android.text.format.DateUtils.MINUTE_IN_MILLIS;
 
+import static com.android.providers.media.util.Metrics.translateReason;
+
 import android.content.ContentProviderClient;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
@@ -507,16 +509,33 @@ public class ModernMediaScanner implements MediaScanner {
                     buildSqlSelectionArgs());
             queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,
                     FileColumns._ID + " DESC");
-            queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_EXCLUDE);
+            queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE);
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_FAVORITE, MediaStore.MATCH_INCLUDE);
 
-            try (Cursor c = mResolver.query(mFilesUri, new String[] { FileColumns._ID },
-                    queryArgs, mSignal)) {
+            final int[] countPerMediaType = new int[FileColumns.MEDIA_TYPE_COUNT];
+            try (Cursor c = mResolver.query(mFilesUri,
+                    new String[]{FileColumns._ID, FileColumns.MEDIA_TYPE, FileColumns.DATE_EXPIRES,
+                            FileColumns.IS_PENDING}, queryArgs, mSignal)) {
                 while (c.moveToNext()) {
                     final long id = c.getLong(0);
                     if (Arrays.binarySearch(scannedIds, id) < 0) {
+                        final long dateExpire = c.getLong(2);
+                        final boolean isPending = c.getInt(3) == 1;
+                        // Don't delete the pending item which is not expired.
+                        // If the scan is triggered between invoking
+                        // ContentResolver#insert() and ContentResolver#openFileDescriptor(),
+                        // it raises the FileNotFoundException b/166063754.
+                        if (isPending && dateExpire > System.currentTimeMillis() / 1000) {
+                            continue;
+                        }
                         mUnknownIds.add(id);
+                        final int mediaType = c.getInt(1);
+                        // Avoid ArrayIndexOutOfBounds if more mediaTypes are added,
+                        // but mediaTypeSize is not updated
+                        if (mediaType < countPerMediaType.length) {
+                            countPerMediaType[mediaType]++;
+                        }
                     }
                 }
             } finally {
@@ -538,6 +557,10 @@ public class ModernMediaScanner implements MediaScanner {
                 }
                 applyPending();
             } finally {
+                if (mUnknownIds.size() > 0) {
+                    String scanReason = "scan triggered by reason: " + translateReason(mReason);
+                    Metrics.logDeletionPersistent(mVolumeName, scanReason, countPerMediaType);
+                }
                 Trace.endSection();
             }
         }

@@ -1015,7 +1015,7 @@ public class FileUtils {
      * Regex that matches user-ids under well-known storage paths.
      */
     private static final Pattern PATTERN_USER_ID = Pattern.compile(
-            "(?i)^/storage/emulated/([0-9]+)/");
+            "(?i)^/storage/emulated/([0-9]+)");
 
     private static final String CAMERA_RELATIVE_PATH =
             String.format("%s/%s/", Environment.DIRECTORY_DCIM, "Camera");

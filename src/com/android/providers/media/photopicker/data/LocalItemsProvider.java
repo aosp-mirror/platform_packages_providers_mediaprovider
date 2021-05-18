@@ -202,7 +202,7 @@ public class LocalItemsProvider {
             extras.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, selection);
             extras.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs);
             extras.putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,
-                    MediaColumns.DATE_MODIFIED + " DESC");
+                    MediaColumns.DATE_TAKEN + " DESC");
             if (offset > 0) {
                 extras.putInt(ContentResolver.QUERY_ARG_OFFSET, offset);
             }

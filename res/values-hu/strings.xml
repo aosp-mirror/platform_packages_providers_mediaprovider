@@ -171,4 +171,12 @@
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> elem törlése folyamatban van…</item>
       <item quantity="one">Az elem törlése folyamatban van…</item>
     </plurals>
+    <string name="transcode_denied" msgid="6760546817138288976">"A(z) <xliff:g id="APP_NAME">%s</xliff:g> nem tudja feldolgozni a médiafájlokat"</string>
+    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Mediatartalom feldolgozása megszakítva"</string>
+    <string name="transcode_processing_error" msgid="8921643164508407874">"Médiatartalom-feldolgozási hiba"</string>
+    <string name="transcode_processing_success" msgid="447288876429730122">"Médiatartalom feldolgozása sikeres"</string>
+    <string name="transcode_processing_started" msgid="7789086308155361523">"Médiatartalom feldolgozása megkezdődött"</string>
+    <string name="transcode_processing" msgid="6753136468864077258">"Médiatartalom feldolgozása…"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"Mégse"</string>
+    <string name="transcode_wait" msgid="8909773149560697501">"Várakozás"</string>
 </resources>

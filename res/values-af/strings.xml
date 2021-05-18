@@ -171,4 +171,12 @@
       <item quantity="other">Vee tans <xliff:g id="COUNT">^1</xliff:g> items uit …</item>
       <item quantity="one">Vee tans item uit …</item>
     </plurals>
+    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> kan nie medialêers verwerk nie"</string>
+    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Mediaverwerking is gekanselleer"</string>
+    <string name="transcode_processing_error" msgid="8921643164508407874">"Mediaverwerkingfout"</string>
+    <string name="transcode_processing_success" msgid="447288876429730122">"Mediaverwerkingsukses"</string>
+    <string name="transcode_processing_started" msgid="7789086308155361523">"Mediaverwerking het begin"</string>
+    <string name="transcode_processing" msgid="6753136468864077258">"Verwerk media …"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"Kanselleer"</string>
+    <string name="transcode_wait" msgid="8909773149560697501">"Wag"</string>
 </resources>

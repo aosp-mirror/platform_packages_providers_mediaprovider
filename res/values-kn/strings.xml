@@ -171,4 +171,12 @@
       <item quantity="one"><xliff:g id="COUNT">^1</xliff:g> ಐಟಂಗಳನ್ನು ಅಳಿಸಲಾಗುತ್ತಿದೆ…</item>
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> ಐಟಂಗಳನ್ನು ಅಳಿಸಲಾಗುತ್ತಿದೆ…</item>
     </plurals>
+    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> ಮಾಧ್ಯಮ ಫೈಲ್‌ಗಳನ್ನು ಪ್ರಕ್ರಿಯೆಗೊಳಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ"</string>
+    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"ಮಾಧ್ಯಮ ಪ್ರಕ್ರಿಯೆಗೊಳಿಸುವಿಕೆ ರದ್ದುಗೊಂಡಿದೆ"</string>
+    <string name="transcode_processing_error" msgid="8921643164508407874">"ಮಾಧ್ಯಮ ಪ್ರಕ್ರಿಯೆಗೊಳಿಸುವಿಕೆ ದೋಷ"</string>
+    <string name="transcode_processing_success" msgid="447288876429730122">"ಮಾಧ್ಯಮ ಪ್ರಕ್ರಿಯೆಗೊಳಿಸುವಿಕೆ ಯಶಸ್ವಿಯಾಗಿದೆ"</string>
+    <string name="transcode_processing_started" msgid="7789086308155361523">"ಮಾಧ್ಯಮ ಪ್ರಕ್ರಿಯೆಗೊಳಿಸುವಿಕೆ ಪ್ರಾರಂಭವಾಗಿದೆ"</string>
+    <string name="transcode_processing" msgid="6753136468864077258">"ಪ್ರಕ್ರಿಯೆಯಲ್ಲಿರುವ ಮಾಧ್ಯಮ…"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"ರದ್ದುಮಾಡಿ"</string>
+    <string name="transcode_wait" msgid="8909773149560697501">"ನಿರೀಕ್ಷಿಸಿ"</string>
 </resources>

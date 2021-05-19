@@ -41,7 +41,6 @@ public class Item {
         public static String VOLUME_NAME = MediaStore.MediaColumns.VOLUME_NAME;
         public static String DATE_TAKEN = MediaStore.MediaColumns.DATE_TAKEN;
         public static String DURATION = MediaStore.MediaColumns.DURATION;
-        public static String USER_ID = MediaStore.Files.FileColumns._USER_ID;
 
         private static final String[] ALL_COLUMNS = {
                 ID,
@@ -50,8 +49,6 @@ public class Item {
                 VOLUME_NAME,
                 DATE_TAKEN,
                 DURATION,
-                // TODO: Unable to query USER_ID
-                // ItemColumns.USER_ID,
         };
         public static List<String> ALL_COLUMNS_LIST = Collections.unmodifiableList(
                 Arrays.asList(ALL_COLUMNS));

@@ -212,6 +212,7 @@ import com.android.providers.media.util.MimeUtils;
 import com.android.providers.media.util.PermissionUtils;
 import com.android.providers.media.util.Preconditions;
 import com.android.providers.media.util.SQLiteQueryBuilder;
+import com.android.providers.media.util.UserCache;
 import com.android.providers.media.util.XmpInterface;
 
 import com.google.common.hash.Hashing;
@@ -446,6 +447,7 @@ public class MediaProvider extends ContentProvider {
     private DevicePolicyManager mDevicePolicyManager;
     private UserManager mUserManager;
 
+    private UserCache mUserCache;
     private VolumeCache mVolumeCache;
 
     private int mExternalStorageAuthorityAppId;
@@ -523,7 +525,7 @@ public class MediaProvider extends ContentProvider {
                     final LocalCallingIdentity cached = mCachedCallingIdentity
                             .get(Binder.getCallingUid());
                     return (cached != null) ? cached
-                            : LocalCallingIdentity.fromBinder(getContext(), this);
+                            : LocalCallingIdentity.fromBinder(getContext(), this, mUserCache);
                 }
             });
 
@@ -900,6 +902,8 @@ public class MediaProvider extends ContentProvider {
     public boolean onCreate() {
         final Context context = getContext();
 
+        mUserCache = new UserCache(context);
+
         // Shift call statistics back to the original caller
         Binder.setProxyTransactListener(mTransactListener);
 
@@ -908,7 +912,7 @@ public class MediaProvider extends ContentProvider {
         mPackageManager = context.getPackageManager();
         mDevicePolicyManager = context.getSystemService(DevicePolicyManager.class);
         mUserManager = context.getSystemService(UserManager.class);
-        mVolumeCache = new VolumeCache(context);
+        mVolumeCache = new VolumeCache(context, mUserCache);
 
         // Reasonable thumbnail size is half of the smallest screen edge width
         final DisplayMetrics metrics = context.getResources().getDisplayMetrics();
@@ -9220,8 +9224,8 @@ public class MediaProvider extends ContentProvider {
         final String volumeName = resolveVolumeName(uri);
         synchronized (mAttachedVolumes) {
             boolean volumeAttached = false;
+            UserHandle user = mCallingIdentity.get().getUser();
             for (MediaVolume vol : mAttachedVolumes) {
-                UserHandle user = mCallingIdentity.get().getUser();
                 if (vol.getName().equals(volumeName) && vol.isVisibleToUser(user)) {
                     volumeAttached = true;
                     break;

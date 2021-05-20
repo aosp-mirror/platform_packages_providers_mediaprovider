@@ -147,25 +147,31 @@ public class LocalItemsProvider {
      * This includes a list of constant categories for LocalItemsProvider: {@link Category} contains
      * a constant list of local categories we have on-device and want to support for v0.
      *
-     * The Cursor for each category would contain the following columns in their relative order:
+     * @param userId the {@link UserId} of the user to get categories as.
+     *               {@code null} defaults to {@link UserId#CURRENT_USER}.
+     *
+     * @return {@link Cursor} for each category would contain the following columns in
+     * their relative order:
      * categoryName: {@link CategoryColumns#NAME} The name of the category,
      * categoryCoverUri: {@link CategoryColumns#COVER_URI} The Uri for the cover of
      *                   the category. By default this will be the most recent image/video in that
      *                   category,
      * categoryNumberOfItems: {@link CategoryColumns#NUMBER_OF_ITEMS} number of image/video items
      *                        in the category,
-     *
      */
     @Nullable
-    public Cursor getCategories() {
-        return buildCategoriesCursor(Category.CATEGORIES_LIST);
+    public Cursor getCategories(@Nullable UserId userId) {
+        if (userId == null) {
+            userId = UserId.CURRENT_USER;
+        }
+        return buildCategoriesCursor(Category.CATEGORIES_LIST, userId);
     }
 
-    private Cursor buildCategoriesCursor(List<String> categories) {
+    private Cursor buildCategoriesCursor(List<String> categories, @NonNull UserId userId) {
         MatrixCursor c = new MatrixCursor(CategoryColumns.getAllColumns());
 
         for (String category: categories) {
-            String[] categoryRow = getCategoryColumns(category);
+            String[] categoryRow = getCategoryColumns(category, userId);
             if (categoryRow != null) {
                 c.addRow(categoryRow);
             }
@@ -174,8 +180,8 @@ public class LocalItemsProvider {
         return c;
     }
 
-    private String[] getCategoryColumns(@Category.CategoryType String category)
-            throws IllegalArgumentException {
+    private String[] getCategoryColumns(@Category.CategoryType String category,
+            @NonNull UserId userId) throws IllegalArgumentException, IllegalStateException {
         if (!Category.isValidCategory(category)) {
             throw new IllegalArgumentException("Category type not supported");
         }
@@ -183,7 +189,7 @@ public class LocalItemsProvider {
         final String[] projection = new String[] {
                 MediaColumns._ID
         };
-        Cursor c = queryMediaStore(projection, whereClause, null, 0, 0, UserId.CURRENT_USER);
+        Cursor c = queryMediaStore(projection, whereClause, null, 0, 0, userId);
         // Send null if the cursor is null or cursor size is empty
         if (c == null || !c.moveToFirst()) {
             return null;
@@ -229,7 +235,7 @@ public class LocalItemsProvider {
         return null;
     }
 
-    private Uri getMediaStoreUriForItem(long id) {
+    private static Uri getMediaStoreUriForItem(long id) {
         return MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL, id);
     }
 

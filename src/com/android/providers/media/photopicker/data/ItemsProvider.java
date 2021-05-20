@@ -80,7 +80,11 @@ public class ItemsProvider {
      * This includes a list of constant categories for LocalItemsProvider: {@link Category} contains
      * a constant list of local categories supported in v0.
      *
-     * The Cursor for each category would contain the following columns in their relative order:
+     * @param userId the {@link UserId} of the user to get categories as.
+     *               {@code null} defaults to {@link UserId#CURRENT_USER}.
+     *
+     * @return {@link Cursor} for each category would contain the following columns in
+     * their relative order:
      * categoryName: {@link Category.CategoryColumns#NAME} The name of the category,
      * categoryCoverUri: {@link Category.CategoryColumns#COVER_URI} The Uri for the cover of
      *                   the category. By default this will be the most recent image/video in that
@@ -88,9 +92,10 @@ public class ItemsProvider {
      * categoryNumberOfItems: {@link Category.CategoryColumns#NUMBER_OF_ITEMS} number of image/video
      *                        items in the category,
      *
+     * @throws IllegalStateException thrown if unsupported value for {@code userId} is passed.
      */
     @Nullable
-    public Cursor getCategories() {
-        return mLocalItemsProvider.getCategories();
+    public Cursor getCategories(@Nullable UserId userId) {
+        return mLocalItemsProvider.getCategories(userId);
     }
 }

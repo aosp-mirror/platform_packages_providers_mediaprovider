@@ -20,8 +20,11 @@ import android.annotation.Nullable;
 import android.content.Context;
 import android.database.Cursor;
 import android.provider.MediaStore;
+import android.provider.MediaStore.MediaColumns;
 
 import com.android.providers.media.photopicker.data.model.Category;
+import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.data.model.UserId;
 
 /**
  * The base class that is responsible for obtaining data from all providers and
@@ -40,30 +43,33 @@ public class ItemsProvider {
      * Returns a {@link Cursor} to all images/videos that are provided by {@link LocalItemsProvider}
      *
      * <p>
-     * By default the returned {@link Cursor} sorts by {@link MediaStore.MediaColumns#DATE_TAKEN}.
+     * Note: By default the returned {@link Cursor} sorts by {@link MediaColumns#DATE_TAKEN}.
      *
      * @param category the category of items to return, {@link Category.CategoryType} are supported.
      *                 {@code null} defaults to {@link Category#CATEGORY_DEFAULT} which returns
      *                 items from all categories.
-     * @param offset the offset after which to return items. Does not respect non-positive
-     *               values.
-     * @param limit the limit of items to return. Does not respect non-positive values.
+     * @param offset the offset after which to return items.
+     * @param limit the limit of number of items to return.
      * @param mimeType the mime type of item, only {@code image/*} or {@code video/*} is an
      *                 acceptable mimeType here. Any other mimeType than image/video throws error.
      *                 {@code null} returns all images/videos that are scanned by
      *                 {@link MediaStore}.
+     * @param userId the {@link UserId} of the user to get items as.
+     *               {@code null} defaults to {@link UserId#CURRENT_USER}.
      *
      * @return {@link Cursor} to all images/videos on external storage that are scanned by
      * {@link MediaStore} based on params passed, or {@code null} if there are no such
      * images/videos. The Cursor for each item would contain {@link Item.ItemColumns}
      *
-     * @throws IllegalArgumentException thrown if unsupported mimeType or category is passed.
-     *
+     * @throws IllegalArgumentException thrown if unsupported values for {@code mimeType},
+     * {@code category} is passed.
+     * @throws IllegalStateException thrown if unsupported value for {@code userId} is passed.
      */
     @Nullable
     public Cursor getItems(@Nullable String category, int offset, int limit,
-            @Nullable String mimeType) throws IllegalArgumentException {
-        return mLocalItemsProvider.getItems(category, offset, limit, mimeType);
+            @Nullable String mimeType, @Nullable UserId userId) throws IllegalArgumentException,
+            IllegalStateException {
+        return mLocalItemsProvider.getItems(category, offset, limit, mimeType, userId);
     }
 
     /**

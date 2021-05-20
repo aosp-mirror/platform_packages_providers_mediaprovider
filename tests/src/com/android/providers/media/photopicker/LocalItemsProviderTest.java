@@ -81,17 +81,18 @@ public class LocalItemsProviderTest {
     }
 
     /**
-     * Tests {@link LocalItemsProvider#getCategories()} to return correct info about
+     * Tests {@link LocalItemsProvider#getCategories(UserId)} to return correct info about
      * {@link Category#CATEGORY_CAMERA}.
      *
      * @throws Exception
      */
     @Test
     public void testGetCategories_camera() throws Exception {
-        Cursor c = sLocalItemsProvider.getCategories();
+        Cursor c = sLocalItemsProvider.getCategories(/* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
-        // Create 1 image file in Camera dir to test {@link LocalItemsProvider#getCategories()}.
+        // Create 1 image file in Camera dir to test
+        // {@link LocalItemsProvider#getCategories(UserId)}.
         final File cameraDir = getCameraDir();
         File imageFile = assertCreateNewImage(cameraDir);
         try {
@@ -102,14 +103,14 @@ public class LocalItemsProviderTest {
     }
 
     /**
-     * Tests {@link LocalItemsProvider#getCategories()} to return correct info about
+     * Tests {@link LocalItemsProvider#getCategories(UserId)} to return correct info about
      * {@link Category#CATEGORY_CAMERA}.
      *
      * @throws Exception
      */
     @Test
     public void testGetCategories_not_camera() throws Exception {
-        Cursor c = sLocalItemsProvider.getCategories();
+        Cursor c = sLocalItemsProvider.getCategories(/* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
         // negative test case: image file which should not be returned in Camera category
@@ -123,17 +124,18 @@ public class LocalItemsProviderTest {
     }
 
     /**
-     * Tests {@link LocalItemsProvider#getCategories()} to return correct info about
+     * Tests {@link LocalItemsProvider#getCategories(UserId)} to return correct info about
      * {@link Category#CATEGORY_VIDEOS}.
      *
      * @throws Exception
      */
     @Test
     public void testGetCategories_videos() throws Exception {
-        Cursor c = sLocalItemsProvider.getCategories();
+        Cursor c = sLocalItemsProvider.getCategories(/* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
-        // Create 1 video file in Movies dir to test {@link LocalItemsProvider#getCategories()}.
+        // Create 1 video file in Movies dir to test
+        // {@link LocalItemsProvider#getCategories(UserId)}.
         final File moviesDir = getMoviesDir();
         File videoFile = assertCreateNewVideo(moviesDir);
         try {
@@ -144,14 +146,14 @@ public class LocalItemsProviderTest {
     }
 
     /**
-     * Tests {@link LocalItemsProvider#getCategories()} to return correct info about
+     * Tests {@link LocalItemsProvider#getCategories(UserId)} to return correct info about
      * {@link Category#CATEGORY_VIDEOS}.
      *
      * @throws Exception
      */
     @Test
     public void testGetCategories_not_videos() throws Exception {
-        Cursor c = sLocalItemsProvider.getCategories();
+        Cursor c = sLocalItemsProvider.getCategories(/* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
         // negative test case: image file which should not be returned in Videos category
@@ -165,17 +167,18 @@ public class LocalItemsProviderTest {
     }
 
     /**
-     * Tests {@link LocalItemsProvider#getCategories()} to return correct info about
+     * Tests {@link LocalItemsProvider#getCategories(UserId)} to return correct info about
      * {@link Category#CATEGORY_SCREENSHOTS}.
      *
      * @throws Exception
      */
     @Test
     public void testGetCategories_screenshots() throws Exception {
-        Cursor c = sLocalItemsProvider.getCategories();
+        Cursor c = sLocalItemsProvider.getCategories(/* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
-        // Create 1 image file in Screenshots dir to test {@link LocalItemsProvider#getCategories()}
+        // Create 1 image file in Screenshots dir to test
+        // {@link LocalItemsProvider#getCategories(UserId)}
         final File screenshotsDir = getScreenshotsDir();
         File imageFile = assertCreateNewImage(screenshotsDir);
         try {
@@ -186,14 +189,14 @@ public class LocalItemsProviderTest {
     }
 
     /**
-     * Tests {@link LocalItemsProvider#getCategories()} to return correct info about
+     * Tests {@link LocalItemsProvider#getCategories(UserId)} to return correct info about
      * {@link Category#CATEGORY_SCREENSHOTS}.
      *
      * @throws Exception
      */
     @Test
     public void testGetCategories_not_screenshots() throws Exception {
-        Cursor c = sLocalItemsProvider.getCategories();
+        Cursor c = sLocalItemsProvider.getCategories(/* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
         // negative test case: image file which should not be returned in Screenshots category
@@ -207,14 +210,14 @@ public class LocalItemsProviderTest {
     }
 
     /**
-     * Tests {@link LocalItemsProvider#getCategories()} to return correct info about
+     * Tests {@link LocalItemsProvider#getCategories(UserId)} to return correct info about
      * {@link Category#CATEGORY_FAVORITES}.
      *
      * @throws Exception
      */
     @Test
     public void testGetCategories_favorites() throws Exception {
-        Cursor c = sLocalItemsProvider.getCategories();
+        Cursor c = sLocalItemsProvider.getCategories(/* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
         // positive test case: image file which should be returned in favorites category
@@ -229,14 +232,14 @@ public class LocalItemsProviderTest {
     }
 
     /**
-     * Tests {@link LocalItemsProvider#getCategories()} to return correct info about
+     * Tests {@link LocalItemsProvider#getCategories(UserId)} to return correct info about
      * {@link Category#CATEGORY_FAVORITES}.
      *
      * @throws Exception
      */
     @Test
     public void testGetCategories_not_favorites() throws Exception {
-        Cursor c = sLocalItemsProvider.getCategories();
+        Cursor c = sLocalItemsProvider.getCategories(/* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
         // negative test case: image file which should not be returned in favorites category
@@ -250,17 +253,18 @@ public class LocalItemsProviderTest {
     }
 
     /**
-     * Tests {@link LocalItemsProvider#getCategories()} to return correct info about
+     * Tests {@link LocalItemsProvider#getCategories(UserId)} to return correct info about
      * {@link Category#CATEGORY_CAMERA} and {@link Category#CATEGORY_VIDEOS}.
      *
      * @throws Exception
      */
     @Test
     public void testGetCategories_camera_and_videos() throws Exception {
-        Cursor c = sLocalItemsProvider.getCategories();
+        Cursor c = sLocalItemsProvider.getCategories(/* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
-        // Create 1 video file in Camera dir to test {@link LocalItemsProvider#getCategories()}.
+        // Create 1 video file in Camera dir to test
+        // {@link LocalItemsProvider#getCategories(UserId)}.
         final File cameraDir = getCameraDir();
         File videoFile = assertCreateNewVideo(cameraDir);
         try {
@@ -273,17 +277,18 @@ public class LocalItemsProviderTest {
     }
 
     /**
-     * Tests {@link LocalItemsProvider#getCategories()} to return correct info about
+     * Tests {@link LocalItemsProvider#getCategories(UserId)} to return correct info about
      * {@link Category#CATEGORY_CAMERA} and {@link Category#CATEGORY_VIDEOS}.
      *
      * @throws Exception
      */
     @Test
     public void testGetCategories_screenshots_and_favorites() throws Exception {
-        Cursor c = sLocalItemsProvider.getCategories();
+        Cursor c = sLocalItemsProvider.getCategories(/* userId */ null);
         assertThat(c.getCount()).isEqualTo(0);
 
-        // Create 1 image file in Screenshots dir to test {@link LocalItemsProvider#getCategories()}
+        // Create 1 image file in Screenshots dir to test
+        // {@link LocalItemsProvider#getCategories(UserId)}
         final File screenshotsDir = getScreenshotsDir();
         File imageFile = assertCreateNewImage(screenshotsDir);
         setIsFavorite(imageFile);
@@ -592,7 +597,7 @@ public class LocalItemsProviderTest {
             return;
         }
 
-        Cursor c = sLocalItemsProvider.getCategories();
+        Cursor c = sLocalItemsProvider.getCategories(/* userId */ null);
         assertThat(c).isNotNull();
         assertThat(c.getCount()).isEqualTo(1);
 
@@ -610,7 +615,7 @@ public class LocalItemsProviderTest {
     }
 
     private void assertCategoriesNoMatch(String expectedCategoryName) {
-        Cursor c = sLocalItemsProvider.getCategories();
+        Cursor c = sLocalItemsProvider.getCategories(/* userId */ null);
         while (c != null && c.moveToNext()) {
             final int nameColumnIndex = c.getColumnIndexOrThrow(Category.CategoryColumns.NAME);
             final String categoryName = c.getString(nameColumnIndex);
@@ -620,7 +625,7 @@ public class LocalItemsProviderTest {
 
     private void assertGetCategoriesMatchMultiple(String category1, String category2,
             int numberOfItems1, int numberOfItems2) {
-        Cursor c = sLocalItemsProvider.getCategories();
+        Cursor c = sLocalItemsProvider.getCategories(/* userId */ null);
         assertThat(c).isNotNull();
         assertThat(c.getCount()).isEqualTo(2);
 

@@ -38,6 +38,7 @@ import androidx.test.InstrumentationRegistry;
 
 import com.android.providers.media.photopicker.data.LocalItemsProvider;
 import com.android.providers.media.photopicker.data.model.Category;
+import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 
 import org.junit.Before;
@@ -297,26 +298,26 @@ public class LocalItemsProviderTest {
     }
 
     /**
-     * Tests {@link LocalItemsProvider#getItems(String, int, int, String)} to return all images
-     * and videos.
+     * Tests {@link LocalItemsProvider#getItems(String, int, int, String, UserId)} to return all
+     * images and videos.
      *
      * @throws Exception
      */
     @Test
     public void testGetItems() throws Exception {
         Cursor res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0,
-                /* limit */ -1, /* mimeType */ null);
+                /* limit */ -1, /* mimeType */ null, /* userId */ null);
         assertThat(res).isNotNull();
         final int initialCountOfItems = res.getCount();
 
         // Create 1 image and 1 video file to test
-        // {@link LocalItemsProvider#getItems(String, int, int, String)}.
+        // {@link LocalItemsProvider#getItems(String, int, int, String, UserId)}.
         // Both files should be returned.
         File imageFile = assertCreateNewImage();
         File videoFile = assertCreateNewVideo();
         try {
             res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
-                    /* mimeType */ null);
+                    /* mimeType */ null, /* userId */ null);
             assertThat(res).isNotNull();
             final int laterCountOfItems = res.getCount();
 
@@ -331,7 +332,7 @@ public class LocalItemsProviderTest {
     }
 
     /**
-     * Tests {@link {@link LocalItemsProvider#getItems(String, int, int, String)}} does not
+     * Tests {@link {@link LocalItemsProvider#getItems(String, int, int, String, UserId)}} does not
      * return hidden images/videos.
      *
      * @throws Exception
@@ -339,19 +340,19 @@ public class LocalItemsProviderTest {
     @Test
     public void testGetItems_nonMedia() throws Exception {
         Cursor res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0,
-                /* limit */ -1, /* mimeType */ null);
+                /* limit */ -1, /* mimeType */ null, /* userId */ null);
         assertThat(res).isNotNull();
         final int initialCountOfItems = res.getCount();
 
         // Create 1 image and 1 video file in a hidden dir to test
-        // {@link LocalItemsProvider#getItems(String, int, int, String)}.
+        // {@link LocalItemsProvider#getItems(String, int, int, String, UserId)}.
         // Both should not be returned.
         File hiddenDir = createHiddenDir();
         File imageFileHidden = assertCreateNewImage(hiddenDir);
         File videoFileHidden = assertCreateNewVideo(hiddenDir);
         try {
             res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
-                    /* mimeType */ null);
+                    /* mimeType */ null, /* userId */ null);
             assertThat(res).isNotNull();
             final int laterCountOfItems = res.getCount();
 
@@ -364,26 +365,26 @@ public class LocalItemsProviderTest {
     }
 
     /**
-     * Tests {@link LocalItemsProvider#getItems(String, int, int, String)} to return all images and
-     * videos based on the mimeType. Image mimeType should only return images.
+     * Tests {@link LocalItemsProvider#getItems(String, int, int, String, UserId)} to return all
+     * images and videos based on the mimeType. Image mimeType should only return images.
      *
      * @throws Exception
      */
     @Test
     public void testGetItemsImages() throws Exception {
         Cursor res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0,
-                /* limit */ -1, /* mimeType */ "image/*");
+                /* limit */ -1, /* mimeType */ "image/*", /* userId */ null);
         assertThat(res).isNotNull();
         final int initialCountOfItems = res.getCount();
 
         // Create 1 image and 1 video file to test
-        // {@link LocalItemsProvider#getItems(String, int, int, String)}.
+        // {@link LocalItemsProvider#getItems(String, int, int, String, UserId)}.
         // Only 1 should be returned.
         File imageFile = assertCreateNewImage();
         File videoFile = assertCreateNewVideo();
         try {
             res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
-                    /* mimeType */ "image/*");
+                    /* mimeType */ "image/*", /* userId */ null);
             assertThat(res).isNotNull();
             final int laterCountOfItems = res.getCount();
 
@@ -398,15 +399,15 @@ public class LocalItemsProviderTest {
     }
 
     /**
-     * Tests {@link LocalItemsProvider#getItems(String, int, int, String)} to return all images and
-     * videos based on the mimeType. Image mimeType should only return images.
+     * Tests {@link LocalItemsProvider#getItems(String, int, int, String, UserId)} to return all
+     * images and videos based on the mimeType. Image mimeType should only return images.
      *
      * @throws Exception
      */
     @Test
     public void testGetItemsImages_png() throws Exception {
         Cursor res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0,
-                /* limit */ -1, /* mimeType */ "image/png");
+                /* limit */ -1, /* mimeType */ "image/png", /* userId */ null);
         assertThat(res).isNotNull();
         final int initialCountOfItems = res.getCount();
 
@@ -414,7 +415,7 @@ public class LocalItemsProviderTest {
         File imageFile = assertCreateNewImage();
         try {
             res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
-                    /* mimeType */ "image/png");
+                    /* mimeType */ "image/png", /* userId */ null);
             assertThat(res).isNotNull();
             final int laterCountOfItems = res.getCount();
 
@@ -425,15 +426,15 @@ public class LocalItemsProviderTest {
     }
 
     /**
-     * Tests {@link LocalItemsProvider#getItems(String, int, int, String)} does not return hidden
-     * images/videos.
+     * Tests {@link LocalItemsProvider#getItems(String, int, int, String, UserId)} does not return
+     * hidden images/videos.
      *
      * @throws Exception
      */
     @Test
     public void testGetItemsImages_nonMedia() throws Exception {
         Cursor res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0,
-                /* limit */ -1, /* mimeType */ "image/*");
+                /* limit */ -1, /* mimeType */ "image/*", /* userId */ null);
         assertThat(res).isNotNull();
         final int initialCountOfItems = res.getCount();
 
@@ -445,7 +446,7 @@ public class LocalItemsProviderTest {
         File videoFileHidden = assertCreateNewVideo(hiddenDir);
         try {
             res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
-                    /* mimeType */ "image/*");
+                    /* mimeType */ "image/*", /* userId */ null);
             assertThat(res).isNotNull();
             final int laterCountOfItems = res.getCount();
 
@@ -458,15 +459,15 @@ public class LocalItemsProviderTest {
     }
 
     /**
-     * Tests {@link LocalItemsProvider#getItems(String, int, int, String)} to return all images
-     * and videos based on the mimeType. Video mimeType should only return videos.
+     * Tests {@link LocalItemsProvider#getItems(String, int, int, String, UserId)} to return all
+     * images and videos based on the mimeType. Video mimeType should only return videos.
      *
      * @throws Exception
      */
     @Test
     public void testGetItemsVideos() throws Exception {
         Cursor res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0,
-                /* limit */ -1,  /* mimeType */ "video/*");
+                /* limit */ -1,  /* mimeType */ "video/*", /* userId */ null);
         assertThat(res).isNotNull();
         final int initialCountOfItems = res.getCount();
 
@@ -477,7 +478,7 @@ public class LocalItemsProviderTest {
         File videoFile = assertCreateNewVideo();
         try {
             res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
-                    /* mimeType */ "video/*");
+                    /* mimeType */ "video/*", /* userId */ null);
             assertThat(res).isNotNull();
             final int laterCountOfItems = res.getCount();
 
@@ -492,15 +493,15 @@ public class LocalItemsProviderTest {
     }
 
     /**
-     * Tests {@link LocalItemsProvider#getItems(String, int, int, String)} to return all images and
-     * videos based on the mimeType. Image mimeType should only return images.
+     * Tests {@link LocalItemsProvider#getItems(String, int, int, String, UserId)} to return all
+     * images and videos based on the mimeType. Image mimeType should only return images.
      *
      * @throws Exception
      */
     @Test
     public void testGetItemsVideos_mp4() throws Exception {
         Cursor res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0,
-                /* limit */ -1, /* mimeType */ "video/mp4");
+                /* limit */ -1, /* mimeType */ "video/mp4", /* userId */ null);
         assertThat(res).isNotNull();
         final int initialCountOfItems = res.getCount();
 
@@ -508,7 +509,7 @@ public class LocalItemsProviderTest {
         File videoFile = assertCreateNewVideo();
         try {
             res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
-                    /* mimeType */ "video/mp4");
+                    /* mimeType */ "video/mp4", /* userId */ null);
             assertThat(res).isNotNull();
             final int laterCountOfItems = res.getCount();
 
@@ -519,7 +520,7 @@ public class LocalItemsProviderTest {
     }
 
     /**
-     * Tests {@link LocalItemsProvider#getItems(String, int, int, String)} does not return
+     * Tests {@link LocalItemsProvider#getItems(String, int, int, String, UserId)} does not return
      * hidden images/videos.
      *
      * @throws Exception
@@ -527,7 +528,7 @@ public class LocalItemsProviderTest {
     @Test
     public void testGetItemsVideos_nonMedia() throws Exception {
         Cursor res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0,
-                /* limit */ -1, /* mimeType */ "video/*");
+                /* limit */ -1, /* mimeType */ "video/*", /* userId */ null);
         assertThat(res).isNotNull();
         final int initialCountOfItems = res.getCount();
 
@@ -538,7 +539,7 @@ public class LocalItemsProviderTest {
         File videoFileHidden = assertCreateNewVideo(hiddenDir);
         try {
             res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
-                    /* mimeType */ "video/*");
+                    /* mimeType */ "video/*", /* userId */ null);
             assertThat(res).isNotNull();
             final int laterCountOfItems = res.getCount();
 
@@ -551,7 +552,7 @@ public class LocalItemsProviderTest {
     }
 
     /**
-     * Tests {@link LocalItemsProvider#getItems(String, int, int, String)} throws error for
+     * Tests {@link LocalItemsProvider#getItems(String, int, int, String, UserId)} throws error for
      * invalid param for mimeType.
      *
      * @throws Exception
@@ -560,7 +561,7 @@ public class LocalItemsProviderTest {
     public void testGetItemsInvalidParam() throws Exception {
         try {
             sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
-                    /* mimeType */ "audio/*");
+                    /* mimeType */ "audio/*", /* userId */ null);
             fail("Expected IllegalArgumentException for audio mimeType");
         } catch (IllegalArgumentException expected) {
             // Expected flow
@@ -568,7 +569,7 @@ public class LocalItemsProviderTest {
     }
 
     /**
-     * Tests {@link LocalItemsProvider#getItems(String, int, int, String)} throws error for
+     * Tests {@link LocalItemsProvider#getItems(String, int, int, String, UserId)} throws error for
      * invalid param for mimeType.
      *
      * @throws Exception
@@ -577,7 +578,7 @@ public class LocalItemsProviderTest {
     public void testGetItemsAllMimeType() throws Exception {
         try {
             sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
-                    /* mimeType */ "*/*");
+                    /* mimeType */ "*/*", /* userId */ null);
             fail("Expected IllegalArgumentException for audio mimeType");
         } catch (IllegalArgumentException expected) {
             // Expected flow

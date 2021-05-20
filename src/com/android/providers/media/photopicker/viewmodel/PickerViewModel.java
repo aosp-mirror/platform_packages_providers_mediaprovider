@@ -27,6 +27,7 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.data.model.UserId;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -78,7 +79,7 @@ public class PickerViewModel extends AndroidViewModel {
     private List<Item> loadItems() {
         List<Item> items = new ArrayList<>();
         // TODO(b/168001592) call getItems() from worker thread.
-        Cursor cursor = mItemsProvider.getItems(null, 0, 0, null);
+        Cursor cursor = mItemsProvider.getItems(null, 0, 0, null, UserId.CURRENT_USER);
         if (cursor == null) {
             return items;
         }

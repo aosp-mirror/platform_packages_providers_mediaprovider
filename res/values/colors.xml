@@ -18,8 +18,11 @@
     <color name="thumb_gray_color">#1F000000</color>
     <color name="clear_cache_icon_color">#5F6368</color>
 
-    <!-- photo picker -->
+    <!-- PhotoPicker -->
     <color name="picker_background_color">@android:color/white</color>
     <color name="picker_hairline_color">#DADCE0</color>
     <color name="picker_highlight_color">#E8F0FE</color>
+    <!-- PhotoPicker Preview -->
+    <color name="preview_add_button_background_color">#8AB4F8</color>
+    <color name="preview_buttons_text_color">#202124</color>
 </resources>

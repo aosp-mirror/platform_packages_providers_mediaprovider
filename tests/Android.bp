@@ -106,6 +106,7 @@ android_test {
         "mockito-target",
         "modules-utils-build",
         "truth-prebuilt",
+        "com.google.android.material_material",
         "cts-install-lib",
     ],
 

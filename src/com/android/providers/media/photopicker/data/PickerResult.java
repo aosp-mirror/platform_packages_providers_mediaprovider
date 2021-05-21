@@ -16,7 +16,6 @@
 
 package com.android.providers.media.photopicker.data;
 
-import android.annotation.Nullable;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -31,6 +30,7 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.photopicker.data.model.Item;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -40,10 +40,19 @@ public class PickerResult {
 
     /**
      * @return {@code Intent} which contains Uri that has been granted access on.
+     */
+    @NonNull
+    public static Intent getPickerResponseIntent(@NonNull Context context,
+            @NonNull Item selectedItem) {
+        return getPickerResponseIntent(context, Collections.singletonList(selectedItem));
+    }
+
+    /**
+     * @return {@code Intent} which contains Uri that has been granted access on.
      * (TODO (b/169737798): Support Multi-select)
      */
     @NonNull
-    public static Intent getResponseIntentForItems(@NonNull Context context,
+    public static Intent getPickerResponseIntent(@NonNull Context context,
             @NonNull List<Item> selectedItems) {
         // 1. Get mediaStore Uris corresponding to the selected items
         ArrayList<Uri> selectedUris = getUrisFromItems(selectedItems);

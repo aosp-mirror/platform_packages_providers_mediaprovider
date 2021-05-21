@@ -18,7 +18,6 @@ package com.android.providers.media.photopicker;
 
 import static com.android.providers.media.photopicker.viewmodel.PickerViewModel.TAG;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -33,8 +32,6 @@ import com.android.providers.media.photopicker.data.PickerResult;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.ui.PhotosTabFragment;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
-
-import java.util.List;
 
 /**
  * Photo Picker allows users to choose one or more photos and/or videos to share with an app. The
@@ -54,27 +51,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         PickerViewModel model = new ViewModelProvider(this).get(PickerViewModel.class);
 
-        // TODO (b/185801129): Remove this when the preview is ready, return the
-        // uri when the user clicks the add button.
-        model.getSelectedItems().observe(this, this::onSelectedItemChanged);
-
         // only add the fragment when the activity is created at first time
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
                     .setReorderingAllowed(true)
                     .add(R.id.fragment_container, PhotosTabFragment.class, null)
                     .commitNow();
-        }
-    }
-
-    private void onSelectedItemChanged(List<Item> selectedItemList) {
-        Log.d(TAG, "Selected Item Size = " + selectedItemList.size());
-        // TODO (b/169737798): Support Multi-select
-        if (selectedItemList.size() > 0) {
-            final Intent intent = PickerResult.getResponseIntentForItems(getApplicationContext(),
-                    selectedItemList);
-            setResult(Activity.RESULT_OK, intent);
-            finish();
         }
     }
 }

@@ -31,6 +31,7 @@ import android.net.Uri;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
+import android.util.Log;
 
 import com.android.providers.media.photopicker.data.PickerResult;
 import com.android.providers.media.photopicker.data.model.Item;
@@ -43,16 +44,11 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 public class PickerResultTest {
-    /**
-     * To help avoid flaky tests, give ourselves a unique nonce to be used for
-     * all filesystem paths, so that we don't risk conflicting with previous
-     * test runs.
-     */
-    private static final String NONCE = String.valueOf(System.nanoTime());
     private static final String TAG = "PickerResultTest";
-    private static final String IMAGE_FILE_NAME = TAG + "_file_" + NONCE + ".jpg";
+    private static final String IMAGE_FILE_NAME = TAG + "_file_" + "%d" + ".jpg";
 
     private Context mContext;
 
@@ -62,21 +58,49 @@ public class PickerResultTest {
     }
 
     /**
-     * Tests {@link PickerResult#getResponseIntentForItems(Context, ArrayList)})}} to get Picker
-     * result to callingPackage.
+     * Tests {@link PickerResult#getPickerResponseIntent(Context, Item)} to get PickerResult to
+     * callingPackage.
      *
      * @throws Exception
      */
     @Test
-    public void testGetResult() throws Exception {
-        final Intent intent = PickerResult.getResponseIntentForItems(mContext,
-                createItemSelection());
+    public void testGetResultSingle() throws Exception {
+        Item item = null;
+        try {
+            item = createImageItem();
+            final Intent intent = PickerResult.getPickerResponseIntent(mContext, item);
 
-        final Uri result = intent.getData();
-        assertRedactedUri(result);
-        // TODO (b/189086247): Test with non-RES app
-        assertReadAccess(result);
-        assertNoWriteAccess(result);
+            final Uri result = intent.getData();
+            assertRedactedUri(result);
+            // TODO (b/189086247): Test with non-RES app
+            assertReadAccess(result);
+            assertNoWriteAccess(result);
+        } finally {
+            deleteFile(item);
+        }
+    }
+
+    /**
+     * Tests {@link PickerResult#getPickerResponseIntent(Context, List)} to get PickerResult to
+     * callingPackage.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testGetResultMultiple() throws Exception {
+        ArrayList<Item> items = null;
+        try {
+            items = createItemSelection();
+            final Intent intent = PickerResult.getPickerResponseIntent(mContext, items);
+
+            final Uri result = intent.getData();
+            assertRedactedUri(result);
+            // TODO (b/189086247): Test with non-RES app
+            assertReadAccess(result);
+            assertNoWriteAccess(result);
+        } finally {
+            deleteFiles(items);
+        }
     }
 
     private void assertRedactedUri(Uri uri) {
@@ -105,6 +129,17 @@ public class PickerResultTest {
     private ArrayList<Item> createItemSelection() throws Exception {
         ArrayList<Item> selectedItemList = new ArrayList<>();
 
+        // TODO(b/189086247): Adding 1 image for now. Add multiple uris when multi select is
+        // supported.
+        selectedItemList.add(createImageItem());
+
+        return selectedItemList;
+    }
+
+    /**
+     * Returns a PhotoSelection item on which the test app does not have access to.
+     */
+    private Item createImageItem() throws Exception {
         // Create an image and revoke test app's access on it
         final Uri imageUri = assertCreateNewImage();
         clearMediaOwner(imageUri, mContext.getUserId());
@@ -114,20 +149,24 @@ public class PickerResultTest {
         final Item imageItem = mock(Item.class);
         when(imageItem.getContentUri()).thenReturn(imageUri);
 
-        // Add 1 image to the Selection
-        selectedItemList.add(imageItem);
-
-        return selectedItemList;
+        return imageItem;
     }
 
     private Uri assertCreateNewImage() throws Exception {
-        return assertCreateNewFile(getDownloadsDir(), IMAGE_FILE_NAME);
+        return assertCreateNewFile(getDownloadsDir(), getImageFileName());
     }
 
     private Uri assertCreateNewFile(File dir, String fileName) throws Exception {
         final File file = new File(dir, fileName);
         assertThat(file.createNewFile()).isTrue();
         return MediaStore.scanFile(mContext.getContentResolver(), file);
+    }
+
+    private String getImageFileName() {
+        // To help avoid flaky tests, give ourselves a unique nonce to be used for
+        // all filesystem paths, so that we don't risk conflicting with previous
+        // test runs.
+        return String.format(IMAGE_FILE_NAME, System.nanoTime());
     }
 
     private File getDownloadsDir() {
@@ -139,5 +178,26 @@ public class PickerResultTest {
                 "content update --uri %s --user %d --bind owner_package_name:n:",
                 uri, userId);
         runShellCommand(InstrumentationRegistry.getInstrumentation(), cmd);
+    }
+
+    private void deleteFiles(ArrayList<Item> items) {
+        if (items == null) return;
+
+        for (Item item : items) {
+            deleteFile(item);
+        }
+    }
+
+    private void deleteFile(Item item) {
+        if (item == null) return;
+
+        final String cmd = String.format("content delete --uri %s --user %d ",
+                item.getContentUri(), mContext.getUserId());
+        try {
+            runShellCommand(InstrumentationRegistry.getInstrumentation(), cmd);
+        } catch (Exception e) {
+            // Ignore the exception but log it to help debug test failures
+            Log.d(TAG, "Couldn't delete file " + item.getContentUri(), e);
+        }
     }
 }

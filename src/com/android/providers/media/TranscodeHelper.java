@@ -437,8 +437,8 @@ public class TranscodeHelper {
         CountDownLatch latch = null;
         long startTime = SystemClock.elapsedRealtime();
         boolean result = false;
-        int errorCode = TranscodingSession.ERROR_NONE;
-        int failureReason = TRANSCODING_DATA__FAILURE_CAUSE__CAUSE_UNKNOWN;
+        int errorCode = TranscodingSession.ERROR_SERVICE_DIED;
+        int failureReason = TRANSCODING_DATA__FAILURE_CAUSE__TRANSCODING_SERVICE_ERROR;
 
         try {
             synchronized (mLock) {
@@ -481,6 +481,16 @@ public class TranscodeHelper {
                 transcodingSession.cancel();
             }
         } finally {
+            if (storageSession == null) {
+                Log.w(TAG, "Failed to create a StorageTranscodingSession");
+                // We were unable to even queue the request. Which means the media service is
+                // in a very bad state
+                reportTranscodingResult(uid, result, errorCode, failureReason,
+                        SystemClock.elapsedRealtime() - startTime, reason,
+                        src, dst, false /* hasAnr */);
+                return false;
+            }
+
             storageSession.notifyFinished(failureReason, errorCode);
             if (errorCode == TranscodingSession.ERROR_DROPPED_BY_SERVICE) {
                 // If the transcoding service drops a request for a uid the uid will be denied

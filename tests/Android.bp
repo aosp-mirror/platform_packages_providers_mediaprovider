@@ -107,8 +107,6 @@ android_test {
         "modules-utils-build",
         "truth-prebuilt",
         "cts-install-lib",
-        "androidx.test.espresso.core",
-        "androidx.test.core",
     ],
 
     certificate: "media",

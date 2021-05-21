@@ -108,6 +108,8 @@ android_test {
         "truth-prebuilt",
         "com.google.android.material_material",
         "cts-install-lib",
+        "androidx.test.espresso.core",
+        "androidx.test.core",
     ],
 
     certificate: "media",

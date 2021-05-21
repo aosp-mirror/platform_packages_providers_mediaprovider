@@ -304,7 +304,8 @@ public class LocalItemsProviderTest {
      */
     @Test
     public void testGetItems() throws Exception {
-        Cursor res = sLocalItemsProvider.getItems(null, 0, 0, null);
+        Cursor res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0,
+                /* limit */ -1, /* mimeType */ null);
         assertThat(res).isNotNull();
         final int initialCountOfItems = res.getCount();
 
@@ -314,7 +315,8 @@ public class LocalItemsProviderTest {
         File imageFile = assertCreateNewImage();
         File videoFile = assertCreateNewVideo();
         try {
-            res = sLocalItemsProvider.getItems(null, 0, 0, null);
+            res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
+                    /* mimeType */ null);
             assertThat(res).isNotNull();
             final int laterCountOfItems = res.getCount();
 
@@ -336,7 +338,8 @@ public class LocalItemsProviderTest {
      */
     @Test
     public void testGetItems_nonMedia() throws Exception {
-        Cursor res = sLocalItemsProvider.getItems(null, 0, 0, null);
+        Cursor res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0,
+                /* limit */ -1, /* mimeType */ null);
         assertThat(res).isNotNull();
         final int initialCountOfItems = res.getCount();
 
@@ -347,7 +350,8 @@ public class LocalItemsProviderTest {
         File imageFileHidden = assertCreateNewImage(hiddenDir);
         File videoFileHidden = assertCreateNewVideo(hiddenDir);
         try {
-            res = sLocalItemsProvider.getItems(null, 0, 0, null);
+            res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
+                    /* mimeType */ null);
             assertThat(res).isNotNull();
             final int laterCountOfItems = res.getCount();
 
@@ -367,7 +371,8 @@ public class LocalItemsProviderTest {
      */
     @Test
     public void testGetItemsImages() throws Exception {
-        Cursor res = sLocalItemsProvider.getItems(null, 0, 0, "image/*");
+        Cursor res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0,
+                /* limit */ -1, /* mimeType */ "image/*");
         assertThat(res).isNotNull();
         final int initialCountOfItems = res.getCount();
 
@@ -377,7 +382,8 @@ public class LocalItemsProviderTest {
         File imageFile = assertCreateNewImage();
         File videoFile = assertCreateNewVideo();
         try {
-            res = sLocalItemsProvider.getItems(null, 0, 0, "image/*");
+            res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
+                    /* mimeType */ "image/*");
             assertThat(res).isNotNull();
             final int laterCountOfItems = res.getCount();
 
@@ -399,14 +405,16 @@ public class LocalItemsProviderTest {
      */
     @Test
     public void testGetItemsImages_png() throws Exception {
-        Cursor res = sLocalItemsProvider.getItems(null, 0, 0, "image/png");
+        Cursor res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0,
+                /* limit */ -1, /* mimeType */ "image/png");
         assertThat(res).isNotNull();
         final int initialCountOfItems = res.getCount();
 
         // Create a jpg file image. Tests negative use case, this should not be returned below.
         File imageFile = assertCreateNewImage();
         try {
-            res = sLocalItemsProvider.getItems(null, 0, 0, "image/png");
+            res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
+                    /* mimeType */ "image/png");
             assertThat(res).isNotNull();
             final int laterCountOfItems = res.getCount();
 
@@ -424,7 +432,8 @@ public class LocalItemsProviderTest {
      */
     @Test
     public void testGetItemsImages_nonMedia() throws Exception {
-        Cursor res = sLocalItemsProvider.getItems(null, 0, 0, "image/*");
+        Cursor res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0,
+                /* limit */ -1, /* mimeType */ "image/*");
         assertThat(res).isNotNull();
         final int initialCountOfItems = res.getCount();
 
@@ -435,7 +444,8 @@ public class LocalItemsProviderTest {
         File imageFileHidden = assertCreateNewImage(hiddenDir);
         File videoFileHidden = assertCreateNewVideo(hiddenDir);
         try {
-            res = sLocalItemsProvider.getItems(null, 0, 0, "image/*");
+            res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
+                    /* mimeType */ "image/*");
             assertThat(res).isNotNull();
             final int laterCountOfItems = res.getCount();
 
@@ -455,7 +465,8 @@ public class LocalItemsProviderTest {
      */
     @Test
     public void testGetItemsVideos() throws Exception {
-        Cursor res = sLocalItemsProvider.getItems(null, 0, 0, "video/*");
+        Cursor res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0,
+                /* limit */ -1,  /* mimeType */ "video/*");
         assertThat(res).isNotNull();
         final int initialCountOfItems = res.getCount();
 
@@ -465,7 +476,8 @@ public class LocalItemsProviderTest {
         File imageFile = assertCreateNewImage();
         File videoFile = assertCreateNewVideo();
         try {
-            res = sLocalItemsProvider.getItems(null, 0, 0, "video/*");
+            res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
+                    /* mimeType */ "video/*");
             assertThat(res).isNotNull();
             final int laterCountOfItems = res.getCount();
 
@@ -487,14 +499,16 @@ public class LocalItemsProviderTest {
      */
     @Test
     public void testGetItemsVideos_mp4() throws Exception {
-        Cursor res = sLocalItemsProvider.getItems(null, 0, 0, "video/mp4");
+        Cursor res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0,
+                /* limit */ -1, /* mimeType */ "video/mp4");
         assertThat(res).isNotNull();
         final int initialCountOfItems = res.getCount();
 
         // Create a mp4 video file. Tests positive use case, this should be returned below.
         File videoFile = assertCreateNewVideo();
         try {
-            res = sLocalItemsProvider.getItems(null, 0, 0, "video/mp4");
+            res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
+                    /* mimeType */ "video/mp4");
             assertThat(res).isNotNull();
             final int laterCountOfItems = res.getCount();
 
@@ -512,7 +526,8 @@ public class LocalItemsProviderTest {
      */
     @Test
     public void testGetItemsVideos_nonMedia() throws Exception {
-        Cursor res = sLocalItemsProvider.getItems(null, 0, 0, "video/*");
+        Cursor res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0,
+                /* limit */ -1, /* mimeType */ "video/*");
         assertThat(res).isNotNull();
         final int initialCountOfItems = res.getCount();
 
@@ -522,7 +537,8 @@ public class LocalItemsProviderTest {
         File imageFileHidden = assertCreateNewImage(hiddenDir);
         File videoFileHidden = assertCreateNewVideo(hiddenDir);
         try {
-            res = sLocalItemsProvider.getItems(null, 0, 0, "video/*");
+            res = sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
+                    /* mimeType */ "video/*");
             assertThat(res).isNotNull();
             final int laterCountOfItems = res.getCount();
 
@@ -543,7 +559,8 @@ public class LocalItemsProviderTest {
     @Test
     public void testGetItemsInvalidParam() throws Exception {
         try {
-            sLocalItemsProvider.getItems(null, 0, 0, "audio/*");
+            sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
+                    /* mimeType */ "audio/*");
             fail("Expected IllegalArgumentException for audio mimeType");
         } catch (IllegalArgumentException expected) {
             // Expected flow
@@ -559,7 +576,8 @@ public class LocalItemsProviderTest {
     @Test
     public void testGetItemsAllMimeType() throws Exception {
         try {
-            sLocalItemsProvider.getItems(null, 0, 0, "*/*");
+            sLocalItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
+                    /* mimeType */ "*/*");
             fail("Expected IllegalArgumentException for audio mimeType");
         } catch (IllegalArgumentException expected) {
             // Expected flow

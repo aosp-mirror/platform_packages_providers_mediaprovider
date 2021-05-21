@@ -1304,28 +1304,14 @@ public class MediaProvider extends ContentProvider {
             UserHandle user1 = UserHandle.of(userId1);
             UserHandle user2 = UserHandle.of(userId2);
 
-            // Need to create system package context here as the clone profile user doesn't run
-            // a MediaProvider instance of its own, and hence we can't use
-            // createContextAsUser which uses the current MediaProvider module package.
-            final Context userContext1 = getContext().createPackageContextAsUser("system", 0,
-                    user1);
-            boolean isMediaSharedWithParent1 = userContext1.getSystemService(
-                    UserManager.class).isMediaSharedWithParent();
-            final Context userContext2 = getContext().createPackageContextAsUser("system", 0,
-                    user2);
-            boolean isMediaSharedWithParent2 = userContext2.getSystemService(
-                    UserManager.class).isMediaSharedWithParent();
-
-            // Clone profiles share media with the parent user
-            if (SdkLevel.isAtLeastS() && (isMediaSharedWithParent1
-                    || isMediaSharedWithParent2)) {
-                return mUserManager.isSameProfileGroup(user1, user2);
+            if (SdkLevel.isAtLeastS() && (mUserCache.userSharesMediaWithParent(user1)
+                    || mUserCache.userSharesMediaWithParent(user2))) {
+                return true;
             }
             Method isAppCloneUserPair = StorageManager.class.getMethod("isAppCloneUserPair",
                     int.class, int.class);
             return (Boolean) isAppCloneUserPair.invoke(mStorageManager, userId1, userId2);
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException |
-                NameNotFoundException e) {
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             Log.w(TAG, "isAppCloneUserPair failed. Users: " + userId1 + " and " + userId2);
             return false;
         }

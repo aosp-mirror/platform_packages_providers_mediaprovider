@@ -89,14 +89,9 @@ public class PermissionUtilsTest {
     private static final TestApp LEGACY_TEST_APP = new TestApp("LegacyTestApp",
             "com.android.providers.media.testapp.legacy", 1, false,
             "LegacyMediaProviderTestApp.apk");
-    private static final Map<String, Integer> pidMap = new HashMap<>();
 
-    @BeforeClass
-    public static void startTestApps() throws Exception {
-        startTestApp(TEST_APP_WITH_STORAGE_PERMS);
-        startTestApp(TEST_APP_WITHOUT_PERMS);
-        startTestApp(LEGACY_TEST_APP);
-    }
+    // Permission checks are based on uid, so we can pass -1 pid and avoid starting the test apps.
+    private static final int TEST_APP_PID = -1;
 
     @Test
     public void testConstructor() {
@@ -149,25 +144,24 @@ public class PermissionUtilsTest {
     public void testDefaultPermissionsOnTestAppWithStoragePerms() throws Exception {
         String packageName = TEST_APP_WITH_STORAGE_PERMS.getPackageName();
         int testAppUid = getContext().getPackageManager().getPackageUid(packageName, 0);
-        int testAppPid = pidMap.get(packageName);
         adoptShellPermission(UPDATE_APP_OPS_STATS);
 
         try {
-            assertThat(checkPermissionSelf(getContext(), testAppPid, testAppUid)).isFalse();
-            assertThat(checkPermissionShell(getContext(), testAppPid, testAppUid)).isFalse();
+            assertThat(checkPermissionSelf(getContext(), TEST_APP_PID, testAppUid)).isFalse();
+            assertThat(checkPermissionShell(getContext(), TEST_APP_PID, testAppUid)).isFalse();
             assertThat(
                     checkIsLegacyStorageGranted(getContext(), testAppUid, packageName,
                             null)).isFalse();
             assertThat(
-                    checkPermissionInstallPackages(getContext(), testAppPid, testAppUid,
+                    checkPermissionInstallPackages(getContext(), TEST_APP_PID, testAppUid,
                             packageName, null)).isFalse();
             assertThat(
-                    checkPermissionAccessMtp(getContext(), testAppPid, testAppUid, packageName,
+                    checkPermissionAccessMtp(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isFalse();
             assertThat(
-                    checkPermissionWriteStorage(getContext(), testAppPid, testAppUid, packageName,
+                    checkPermissionWriteStorage(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isTrue();
-            checkReadPermissions(testAppPid, testAppUid, packageName, true);
+            checkReadPermissions(TEST_APP_PID, testAppUid, packageName, true);
         } finally {
             dropShellPermission();
         }
@@ -177,36 +171,37 @@ public class PermissionUtilsTest {
     public void testDefaultPermissionsOnTestAppWithoutPerms() throws Exception {
         String packageName = TEST_APP_WITHOUT_PERMS.getPackageName();
         int testAppUid = getContext().getPackageManager().getPackageUid(packageName, 0);
-        int testAppPid = pidMap.get(packageName);
         adoptShellPermission(UPDATE_APP_OPS_STATS);
 
         try {
-            assertThat(checkPermissionSelf(getContext(), testAppPid, testAppUid)).isFalse();
-            assertThat(checkPermissionShell(getContext(), testAppPid, testAppUid)).isFalse();
+            assertThat(checkPermissionSelf(getContext(), TEST_APP_PID, testAppUid)).isFalse();
+            assertThat(checkPermissionShell(getContext(), TEST_APP_PID, testAppUid)).isFalse();
             assertThat(
-                    checkPermissionManager(getContext(), testAppPid, testAppUid, packageName,
+                    checkPermissionManager(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isFalse();
 
-            assertThat(checkPermissionManageMedia(getContext(), testAppPid, testAppUid, packageName,
-                    null)).isFalse();
+            assertThat(
+                    checkPermissionManageMedia(
+                            getContext(), TEST_APP_PID, testAppUid, packageName, null))
+                    .isFalse();
 
-            assertThat(checkPermissionAccessMediaLocation(getContext(), testAppPid, testAppUid,
+            assertThat(checkPermissionAccessMediaLocation(getContext(), TEST_APP_PID, testAppUid,
                     packageName, null)).isFalse();
 
             assertThat(
                     checkIsLegacyStorageGranted(getContext(), testAppUid, packageName,
                             null)).isFalse();
             assertThat(
-                    checkPermissionInstallPackages(getContext(), testAppPid, testAppUid,
+                    checkPermissionInstallPackages(getContext(), TEST_APP_PID, testAppUid,
                             packageName,
                             null)).isFalse();
             assertThat(
-                    checkPermissionAccessMtp(getContext(), testAppPid, testAppUid, packageName,
+                    checkPermissionAccessMtp(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isFalse();
             assertThat(
-                    checkPermissionWriteStorage(getContext(), testAppPid, testAppUid, packageName,
+                    checkPermissionWriteStorage(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isFalse();
-            checkReadPermissions(testAppPid, testAppUid, packageName, false);
+            checkReadPermissions(TEST_APP_PID, testAppUid, packageName, false);
         } finally {
             dropShellPermission();
         }
@@ -216,35 +211,36 @@ public class PermissionUtilsTest {
     public void testDefaultPermissionsOnLegacyTestApp() throws Exception {
         String packageName = LEGACY_TEST_APP.getPackageName();
         int testAppUid = getContext().getPackageManager().getPackageUid(packageName, 0);
-        int testAppPid = pidMap.get(packageName);
         adoptShellPermission(UPDATE_APP_OPS_STATS);
 
         try {
-            assertThat(checkPermissionSelf(getContext(), testAppPid, testAppUid)).isFalse();
-            assertThat(checkPermissionShell(getContext(), testAppPid, testAppUid)).isFalse();
+            assertThat(checkPermissionSelf(getContext(), TEST_APP_PID, testAppUid)).isFalse();
+            assertThat(checkPermissionShell(getContext(), TEST_APP_PID, testAppUid)).isFalse();
             assertThat(
-                    checkPermissionManager(getContext(), testAppPid, testAppUid, packageName,
+                    checkPermissionManager(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isFalse();
 
-            assertThat(checkPermissionManageMedia(getContext(), testAppPid, testAppUid, packageName,
-                    null)).isFalse();
+            assertThat(
+                    checkPermissionManageMedia(
+                            getContext(), TEST_APP_PID, testAppUid, packageName, null))
+                    .isFalse();
 
-            assertThat(checkPermissionAccessMediaLocation(getContext(), testAppPid, testAppUid,
+            assertThat(checkPermissionAccessMediaLocation(getContext(), TEST_APP_PID, testAppUid,
                     packageName, null)).isTrue();
 
             assertThat(
                     checkIsLegacyStorageGranted(getContext(), testAppUid, packageName,
                             null)).isTrue();
             assertThat(
-                    checkPermissionInstallPackages(getContext(), testAppPid, testAppUid,
+                    checkPermissionInstallPackages(getContext(), TEST_APP_PID, testAppUid,
                             packageName, null)).isFalse();
             assertThat(
-                    checkPermissionAccessMtp(getContext(), testAppPid, testAppUid, packageName,
+                    checkPermissionAccessMtp(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isFalse();
             assertThat(
-                    checkPermissionWriteStorage(getContext(), testAppPid, testAppUid, packageName,
+                    checkPermissionWriteStorage(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isFalse();
-            checkReadPermissions(testAppPid, testAppUid, packageName, true);
+            checkReadPermissions(TEST_APP_PID, testAppUid, packageName, true);
         } finally {
             dropShellPermission();
         }
@@ -254,19 +250,18 @@ public class PermissionUtilsTest {
     public void testManageExternalStoragePermissionsOnTestApp() throws Exception {
         final String packageName = TEST_APP_WITH_STORAGE_PERMS.getPackageName();
         final int testAppUid = getContext().getPackageManager().getPackageUid(packageName, 0);
-        final int testAppPid = pidMap.get(packageName);
         final String op = AppOpsManager.permissionToOp(MANAGE_EXTERNAL_STORAGE);
         adoptShellPermission(UPDATE_APP_OPS_STATS, MANAGE_APP_OPS_MODES);
 
         try {
             modifyAppOp(testAppUid, op, AppOpsManager.MODE_ERRORED);
 
-            assertThat(checkPermissionManager(getContext(), testAppPid, testAppUid, packageName,
+            assertThat(checkPermissionManager(getContext(), TEST_APP_PID, testAppUid, packageName,
                     null)).isFalse();
 
             modifyAppOp(testAppUid, op, AppOpsManager.MODE_ALLOWED);
 
-            assertThat(checkPermissionManager(getContext(), testAppPid, testAppUid, packageName,
+            assertThat(checkPermissionManager(getContext(), TEST_APP_PID, testAppUid, packageName,
                     null)).isTrue();
         } finally {
             dropShellPermission();
@@ -278,20 +273,23 @@ public class PermissionUtilsTest {
     public void testManageMediaPermissionsOnTestApp() throws Exception {
         final String packageName = TEST_APP_WITH_STORAGE_PERMS.getPackageName();
         final int testAppUid = getContext().getPackageManager().getPackageUid(packageName, 0);
-        final int testAppPid = pidMap.get(packageName);
         final String op = AppOpsManager.permissionToOp(MANAGE_MEDIA);
         adoptShellPermission(UPDATE_APP_OPS_STATS, MANAGE_APP_OPS_MODES);
 
         try {
             modifyAppOp(testAppUid, op, AppOpsManager.MODE_ERRORED);
 
-            assertThat(checkPermissionManageMedia(getContext(), testAppPid, testAppUid, packageName,
-                    null)).isFalse();
+            assertThat(
+                    checkPermissionManageMedia(
+                            getContext(), TEST_APP_PID, testAppUid, packageName, null))
+                    .isFalse();
 
             modifyAppOp(testAppUid, op, AppOpsManager.MODE_ALLOWED);
 
-            assertThat(checkPermissionManageMedia(getContext(), testAppPid, testAppUid, packageName,
-                    null)).isTrue();
+            assertThat(
+                    checkPermissionManageMedia(
+                            getContext(), TEST_APP_PID, testAppUid, packageName, null))
+                    .isTrue();
         } finally {
             dropShellPermission();
         }
@@ -301,23 +299,22 @@ public class PermissionUtilsTest {
     public void testSystemGalleryPermissionsOnTestApp() throws Exception {
         String packageName = TEST_APP_WITH_STORAGE_PERMS.getPackageName();
         int testAppUid = getContext().getPackageManager().getPackageUid(packageName, 0);
-        int testAppPid = pidMap.get(packageName);
         adoptShellPermission(UPDATE_APP_OPS_STATS, MANAGE_APP_OPS_MODES);
 
         try {
-            checkPermissionsForGallery(testAppUid, testAppPid, packageName, false);
+            checkPermissionsForGallery(testAppUid, TEST_APP_PID, packageName, false);
 
             final String[] SYSTEM_GALERY_APPOPS =
                     {OPSTR_WRITE_MEDIA_IMAGES, OPSTR_WRITE_MEDIA_VIDEO};
             for (String op : SYSTEM_GALERY_APPOPS) {
                 modifyAppOp(testAppUid, op, AppOpsManager.MODE_ALLOWED);
             }
-            checkPermissionsForGallery(testAppUid, testAppPid, packageName, true);
+            checkPermissionsForGallery(testAppUid, TEST_APP_PID, packageName, true);
 
             for (String op : SYSTEM_GALERY_APPOPS) {
                 modifyAppOp(testAppUid, op, AppOpsManager.MODE_ERRORED);
             }
-            checkPermissionsForGallery(testAppUid, testAppPid, packageName, false);
+            checkPermissionsForGallery(testAppUid, TEST_APP_PID, packageName, false);
         } finally {
             dropShellPermission();
         }
@@ -353,22 +350,21 @@ public class PermissionUtilsTest {
         final String packageName = TEST_APP_WITH_STORAGE_PERMS.getPackageName();
         int testAppUid = getContext().getPackageManager().getPackageUid(
                 packageName, 0);
-        int testAppPid = pidMap.get(packageName);
         adoptShellPermission(UPDATE_APP_OPS_STATS, MANAGE_APP_OPS_MODES);
 
         try {
             assertThat(
-                    checkPermissionReadVideo(getContext(), testAppPid, testAppUid, packageName,
+                    checkPermissionReadVideo(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isTrue();
 
             modifyAppOp(testAppUid, OPSTR_READ_MEDIA_VIDEO, AppOpsManager.MODE_ERRORED);
             assertThat(
-                    checkPermissionReadVideo(getContext(), testAppPid, testAppUid, packageName,
+                    checkPermissionReadVideo(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isFalse();
 
             modifyAppOp(testAppUid, OPSTR_READ_MEDIA_VIDEO, AppOpsManager.MODE_ALLOWED);
             assertThat(
-                    checkPermissionReadVideo(getContext(), testAppPid, testAppUid, packageName,
+                    checkPermissionReadVideo(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isTrue();
         } finally {
             dropShellPermission();
@@ -380,22 +376,21 @@ public class PermissionUtilsTest {
         final String packageName = TEST_APP_WITH_STORAGE_PERMS.getPackageName();
         int testAppUid = getContext().getPackageManager().getPackageUid(
                 packageName, 0);
-        int testAppPid = pidMap.get(packageName);
         adoptShellPermission(UPDATE_APP_OPS_STATS, MANAGE_APP_OPS_MODES);
 
         try {
             assertThat(
-                    checkPermissionWriteAudio(getContext(), testAppPid, testAppUid, packageName,
+                    checkPermissionWriteAudio(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isFalse();
 
             modifyAppOp(testAppUid, OPSTR_WRITE_MEDIA_AUDIO, AppOpsManager.MODE_ALLOWED);
             assertThat(
-                    checkPermissionWriteAudio(getContext(), testAppPid, testAppUid, packageName,
+                    checkPermissionWriteAudio(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isTrue();
 
             modifyAppOp(testAppUid, OPSTR_WRITE_MEDIA_AUDIO, AppOpsManager.MODE_ERRORED);
             assertThat(
-                    checkPermissionWriteAudio(getContext(), testAppPid, testAppUid, packageName,
+                    checkPermissionWriteAudio(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isFalse();
         } finally {
             dropShellPermission();
@@ -407,22 +402,21 @@ public class PermissionUtilsTest {
         final String packageName = TEST_APP_WITH_STORAGE_PERMS.getPackageName();
         int testAppUid = getContext().getPackageManager().getPackageUid(
                 packageName, 0);
-        int testAppPid = pidMap.get(packageName);
         adoptShellPermission(UPDATE_APP_OPS_STATS, MANAGE_APP_OPS_MODES);
 
         try {
             assertThat(
-                    checkPermissionReadAudio(getContext(), testAppPid, testAppUid, packageName,
+                    checkPermissionReadAudio(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isTrue();
 
             modifyAppOp(testAppUid, OPSTR_READ_MEDIA_AUDIO, AppOpsManager.MODE_ERRORED);
             assertThat(
-                    checkPermissionReadAudio(getContext(), testAppPid, testAppUid, packageName,
+                    checkPermissionReadAudio(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isFalse();
 
             modifyAppOp(testAppUid, OPSTR_READ_MEDIA_AUDIO, AppOpsManager.MODE_ALLOWED);
             assertThat(
-                    checkPermissionReadAudio(getContext(), testAppPid, testAppUid, packageName,
+                    checkPermissionReadAudio(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isTrue();
         } finally {
             dropShellPermission();
@@ -433,22 +427,21 @@ public class PermissionUtilsTest {
     public void testReadImagesOnTestApp() throws Exception {
         final String packageName = TEST_APP_WITH_STORAGE_PERMS.getPackageName();
         int testAppUid = getContext().getPackageManager().getPackageUid(packageName, 0);
-        int testAppPid = pidMap.get(packageName);
         adoptShellPermission(UPDATE_APP_OPS_STATS, MANAGE_APP_OPS_MODES);
 
         try {
             assertThat(
-                    checkPermissionReadImages(getContext(), testAppPid, testAppUid, packageName,
+                    checkPermissionReadImages(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isTrue();
 
             modifyAppOp(testAppUid, OPSTR_READ_MEDIA_IMAGES, AppOpsManager.MODE_ERRORED);
             assertThat(
-                    checkPermissionReadImages(getContext(), testAppPid, testAppUid, packageName,
+                    checkPermissionReadImages(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isFalse();
 
             modifyAppOp(testAppUid, OPSTR_READ_MEDIA_IMAGES, AppOpsManager.MODE_ALLOWED);
             assertThat(
-                    checkPermissionReadImages(getContext(), testAppPid, testAppUid, packageName,
+                    checkPermissionReadImages(getContext(), TEST_APP_PID, testAppUid, packageName,
                             null)).isTrue();
         } finally {
             dropShellPermission();
@@ -477,21 +470,8 @@ public class PermissionUtilsTest {
                     checkAppOpRequestInstallPackagesForSharedUid(getContext(), testAppUid,
                             packageName, null)).isFalse();
         } finally {
-            // App gets killed when we try to give it OPSTR_REQUEST_INSTALL_PACKAGES. Restart the
-            // app so it doesn't affect other tests.
-            startTestApp(TEST_APP_WITH_STORAGE_PERMS);
             dropShellPermission();
         }
-    }
-
-    static private void startTestApp(TestApp testApp) throws Exception {
-        Intent intent = new Intent(Intent.ACTION_MAIN);
-        intent.setPackage(testApp.getPackageName());
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        intent.addCategory(Intent.CATEGORY_LAUNCHER);
-        intent.putExtra(QUERY_TYPE, RUN_INFINITE_ACTIVITY);
-        getContext().startActivity(intent);
-        pidMap.put(testApp.getPackageName(), getPid(testApp.getPackageName()));
     }
 
     static private void modifyAppOp(int uid, String op, int mode) {
@@ -506,7 +486,9 @@ public class PermissionUtilsTest {
                 checkPermissionWriteImages(getContext(), pid, uid, packageName, null));
         assertEquals(expected,
                 checkPermissionWriteVideo(getContext(), pid, uid, packageName, null));
-        assertThat(checkPermissionWriteAudio(getContext(), pid, uid, packageName, null)).isFalse();
+        assertThat(
+                checkPermissionWriteAudio(getContext(), pid, uid, packageName, null))
+                .isFalse();
     }
 
     static private void checkReadPermissions(int pid, int uid, String packageName,

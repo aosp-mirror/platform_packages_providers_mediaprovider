@@ -19,4 +19,7 @@
     <dimen name="permission_thumb_size">64dp</dimen>
     <dimen name="permission_thumb_margin">6dp</dimen>
     <dimen name="dialog_space">20dp</dimen>
+
+    <!-- photo picker -->
+    <dimen name="picker_photo_size">118dp</dimen>
 </resources>

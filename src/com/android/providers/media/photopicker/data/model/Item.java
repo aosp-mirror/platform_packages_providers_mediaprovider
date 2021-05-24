@@ -19,7 +19,6 @@ package com.android.providers.media.photopicker.data.model;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;
-import android.provider.MediaStore.Files.FileColumns;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -41,14 +40,16 @@ public class Item {
         public static String DISPLAY_NAME = MediaStore.MediaColumns.DISPLAY_NAME;
         public static String VOLUME_NAME = MediaStore.MediaColumns.VOLUME_NAME;
         public static String DATE_TAKEN = MediaStore.MediaColumns.DATE_TAKEN;
+        public static String DURATION = MediaStore.MediaColumns.DURATION;
         public static String USER_ID = MediaStore.Files.FileColumns._USER_ID;
 
         private static final String[] ALL_COLUMNS = {
-                ItemColumns.ID,
-                ItemColumns.MIME_TYPE,
-                ItemColumns.DISPLAY_NAME,
-                ItemColumns.VOLUME_NAME,
-                ItemColumns.DATE_TAKEN,
+                ID,
+                MIME_TYPE,
+                DISPLAY_NAME,
+                VOLUME_NAME,
+                DATE_TAKEN,
+                DURATION,
                 // TODO: Unable to query USER_ID
                 // ItemColumns.USER_ID,
         };
@@ -57,8 +58,9 @@ public class Item {
     }
 
     private long mId;
-    private long mDataTaken;
+    private long mDateTaken;
     private String mDisplayName;
+    private int mDuration;
     private String mMimeType;
     private String mVolumeName;
     private Uri mUri;
@@ -85,12 +87,16 @@ public class Item {
         return mDisplayName;
     }
 
+    public int getDuration() {
+        return mDuration;
+    }
+
     public String getMimeType() {
         return mMimeType;
     }
 
-    public long getDataTaken() {
-        return mDataTaken;
+    public long getDateTaken() {
+        return mDateTaken;
     }
 
     public String getVolumeName() {
@@ -111,8 +117,9 @@ public class Item {
         mId = getCursorLong(cursor, ItemColumns.ID);
         mMimeType = getCursorString(cursor, ItemColumns.MIME_TYPE);
         mDisplayName = getCursorString(cursor, ItemColumns.DISPLAY_NAME);
-        mDataTaken = getCursorLong(cursor, ItemColumns.DATE_TAKEN);
+        mDateTaken = getCursorLong(cursor, ItemColumns.DATE_TAKEN);
         mVolumeName = getCursorString(cursor, ItemColumns.VOLUME_NAME);
+        mDuration = getCursorInt(cursor, ItemColumns.DURATION);
 
         // TODO (b/188867567): Currently, we only has local data source,
         //  get the uri from provider

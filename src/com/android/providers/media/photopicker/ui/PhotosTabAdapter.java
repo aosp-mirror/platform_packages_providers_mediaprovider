@@ -23,6 +23,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,22 +40,31 @@ public class PhotosTabAdapter extends RecyclerView.Adapter<BaseItemHolder> {
     private List<Item> mItemList = new ArrayList<>();
     private IconHelper mIconHelper;
     private View.OnClickListener mOnClickListener;
+    private PickerViewModel mPickerViewModel;
 
-    public PhotosTabAdapter(IconHelper iconHelper, View.OnClickListener listener) {
+    public PhotosTabAdapter(PickerViewModel pickerViewModel, IconHelper iconHelper,
+            View.OnClickListener listener) {
         mIconHelper = iconHelper;
+        mPickerViewModel = pickerViewModel;
         mOnClickListener = listener;
     }
 
     @NonNull
     @Override
     public BaseItemHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
-        return new PhotoGridHolder(viewGroup.getContext(), viewGroup, mIconHelper);
+        return new PhotoGridHolder(viewGroup.getContext(), viewGroup, mIconHelper,
+                mPickerViewModel.canSelectMultiple());
     }
 
     @Override
     public void onBindViewHolder(@NonNull BaseItemHolder photoHolder, int position) {
-        photoHolder.itemView.setTag(getItem(position));
+        final Item item = getItem(position);
+        photoHolder.itemView.setTag(item);
         photoHolder.itemView.setOnClickListener(mOnClickListener);
+        final boolean isItemSelected =
+                mPickerViewModel.getSelectedItems().getValue().containsKey(
+                        item.getContentUri());
+        photoHolder.itemView.setSelected(isItemSelected);
         photoHolder.bind();
     }
 

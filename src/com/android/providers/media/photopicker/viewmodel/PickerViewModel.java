@@ -19,6 +19,7 @@ package com.android.providers.media.photopicker.viewmodel;
 import android.annotation.NonNull;
 import android.app.Application;
 import android.database.Cursor;
+import android.net.Uri;
 import android.util.Log;
 
 import androidx.lifecycle.AndroidViewModel;
@@ -30,7 +31,9 @@ import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * PickerViewModel to store and handle data for PhotoPickerActivity.
@@ -39,8 +42,9 @@ public class PickerViewModel extends AndroidViewModel {
     public static final String TAG = "PhotoPicker";
 
     private MutableLiveData<List<Item>> mItemList;
-    private MutableLiveData<List<Item>> mSelectedItemList = new MutableLiveData<>();
+    private MutableLiveData<Map<Uri, Item>> mSelectedItemList = new MutableLiveData<>();
     private ItemsProvider mItemsProvider;
+    private boolean mSelectMultiple = false;
 
     public PickerViewModel(@NonNull Application application) {
         super(application);
@@ -48,9 +52,13 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
-     * @return list of selected Item.
+     * @return the Map of selected Item.
      */
-    public LiveData<List<Item>> getSelectedItems() {
+    public LiveData<Map<Uri, Item>> getSelectedItems() {
+        if (mSelectedItemList.getValue() == null) {
+            Map<Uri, Item> itemList = new HashMap<>();
+            mSelectedItemList.setValue(itemList);
+        }
         return mSelectedItemList;
     }
 
@@ -59,10 +67,21 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public void addSelectedItem(Item item) {
         if (mSelectedItemList.getValue() == null) {
-            List<Item> itemList = new ArrayList<>();
+            Map<Uri, Item> itemList = new HashMap<>();
             mSelectedItemList.setValue(itemList);
         }
-        mSelectedItemList.getValue().add(item);
+        mSelectedItemList.getValue().put(item.getContentUri(), item);
+        mSelectedItemList.postValue(mSelectedItemList.getValue());
+    }
+
+    /**
+     * Delete the selected ItemInfo.
+     */
+    public void deleteSelectedItem(Item item) {
+        if (mSelectedItemList.getValue() == null) {
+            return;
+        }
+        mSelectedItemList.getValue().remove(item.getContentUri());
         mSelectedItemList.postValue(mSelectedItemList.getValue());
     }
 
@@ -79,7 +98,8 @@ public class PickerViewModel extends AndroidViewModel {
     private List<Item> loadItems() {
         List<Item> items = new ArrayList<>();
         // TODO(b/168001592) call getItems() from worker thread.
-        Cursor cursor = mItemsProvider.getItems(null, 0, 0, null, UserId.CURRENT_USER);
+        Cursor cursor = mItemsProvider.getItems(null, 0, -1, null, UserId.CURRENT_USER);
+
         if (cursor == null) {
             return items;
         }
@@ -100,5 +120,19 @@ public class PickerViewModel extends AndroidViewModel {
             mItemList = new MutableLiveData<>();
         }
         mItemList.postValue(loadItems());
+    }
+
+    /**
+     * Return whether supports multiple select or not
+     */
+    public boolean canSelectMultiple() {
+        return mSelectMultiple;
+    }
+
+    /**
+     * Set the value for whether supports multiple select or not
+     */
+    public void setSelectMultiple(boolean allowMultiple) {
+        mSelectMultiple = allowMultiple;
     }
 }

@@ -189,7 +189,7 @@ public class LocalItemsProvider {
         final String[] projection = new String[] {
                 MediaColumns._ID
         };
-        Cursor c = queryMediaStore(projection, whereClause, null, 0, 0, userId);
+        Cursor c = queryMediaStore(projection, whereClause, null, 0, -1, userId);
         // Send null if the cursor is null or cursor size is empty
         if (c == null || !c.moveToFirst()) {
             return null;
@@ -226,7 +226,9 @@ public class LocalItemsProvider {
             extras.putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,
                     MediaColumns.DATE_TAKEN + " DESC");
             extras.putInt(ContentResolver.QUERY_ARG_OFFSET, offset);
-            extras.putString(ContentResolver.QUERY_ARG_LIMIT, String.valueOf(limit));
+            if (limit != -1) {
+                extras.putInt(ContentResolver.QUERY_ARG_LIMIT, limit);
+            }
 
             return client.query(contentUri, projection, extras, null);
         } catch (RemoteException ignored) {

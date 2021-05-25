@@ -21,6 +21,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -30,6 +31,7 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
@@ -54,25 +56,63 @@ public class PhotosTabFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         mIconHelper = new IconHelper(getContext());
         RecyclerView photosList = view.findViewById(R.id.photo_list);
-        PhotosTabAdapter adapter = new PhotosTabAdapter(mIconHelper, this::onItemClick);
+        photosList.setHasFixedSize(true);
         mPickerViewModel = new ViewModelProvider(requireActivity()).get(PickerViewModel.class);
+        final boolean canSelectMultiple = mPickerViewModel.canSelectMultiple();
+        if (canSelectMultiple) {
+            final Button addButton = view.findViewById(R.id.button_add);
+            addButton.setOnClickListener(v -> {
+                ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
+            });
 
+            final Button viewSelectedButton = view.findViewById(R.id.button_view_selected);
+            viewSelectedButton.setOnClickListener(v -> {
+                // TODO (185801129): After click viewSelected button, show preview
+            });
+            final int bottomBarSize = (int) getResources().getDimension(
+                    R.dimen.picker_bottom_bar_size);
+            mPickerViewModel.getSelectedItems().observe(this, selectedItemList -> {
+                final View bottomBar = view.findViewById(R.id.picker_bottom_bar);
+                final int size = selectedItemList.size();
+                int dimen = 0;
+                if (size == 0) {
+                    bottomBar.setVisibility(View.GONE);
+                } else {
+                    bottomBar.setVisibility(View.VISIBLE);
+                    addButton.setText(getString(R.string.add) + " (" + size + ")" );
+                    dimen = bottomBarSize;
+                }
+                photosList.setPadding(0, 0, 0, dimen);
+            });
+        }
+
+        final PhotosTabAdapter adapter = new PhotosTabAdapter(mPickerViewModel, mIconHelper,
+                this::onItemClick);
         mPickerViewModel.getItems().observe(this, itemList -> {
             adapter.updateItemList(itemList);
         });
-
-        GridLayoutManager layoutManager = new GridLayoutManager(getContext(), COLUMN_COUNT);
+        final GridLayoutManager layoutManager = new GridLayoutManager(getContext(), COLUMN_COUNT);
         photosList.setLayoutManager(layoutManager);
         photosList.setAdapter(adapter);
     }
 
     private void onItemClick(@NonNull View view) {
-        mPickerViewModel.addSelectedItem((Item) view.getTag());
-        // TODO: Support Multi-select
-        // Transition to PreviewFragment.
-        getActivity().getSupportFragmentManager().beginTransaction()
-                .setReorderingAllowed(true)
-                .replace(R.id.fragment_container, PreviewFragment.class, null)
-                .commitNow();
+        final boolean isSelectedBefore = view.isSelected();
+
+        if (isSelectedBefore) {
+            mPickerViewModel.deleteSelectedItem((Item) view.getTag());
+        } else {
+            mPickerViewModel.addSelectedItem((Item) view.getTag());
+        }
+
+        if (mPickerViewModel.canSelectMultiple()) {
+            view.setSelected(!isSelectedBefore);
+        } else {
+            // Transition to PreviewFragment.
+            getActivity().getSupportFragmentManager().beginTransaction()
+                    .setReorderingAllowed(true)
+                    .replace(R.id.fragment_container, PreviewFragment.class, null)
+                    .commitNow();
+        }
     }
 }

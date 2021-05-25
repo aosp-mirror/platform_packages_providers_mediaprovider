@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.providers.media.photopicker;
+package com.android.providers.media.photopicker.data;
 
 import static com.android.compatibility.common.util.SystemUtil.runShellCommand;
 import static com.android.providers.media.MediaProvider.REDACTED_URI_ID_SIZE;
@@ -25,6 +25,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import android.content.ClipData;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -33,10 +34,9 @@ import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.util.Log;
 
-import com.android.providers.media.photopicker.data.PickerResult;
-import com.android.providers.media.photopicker.data.model.Item;
-
 import androidx.test.InstrumentationRegistry;
+
+import com.android.providers.media.photopicker.data.model.Item;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -58,49 +58,51 @@ public class PickerResultTest {
     }
 
     /**
-     * Tests {@link PickerResult#getPickerResponseIntent(Context, Item)} to get PickerResult to
-     * callingPackage.
-     *
+     * Tests {@link PickerResult#getPickerResponseIntent(Context, List)} with single item
      * @throws Exception
      */
     @Test
     public void testGetResultSingle() throws Exception {
-        Item item = null;
+        List<Item> items = null;
         try {
-            item = createImageItem();
-            final Intent intent = PickerResult.getPickerResponseIntent(mContext, item);
+            items = createItemSelection(1);
+            final Intent intent = PickerResult.getPickerResponseIntent(mContext, items);
 
             final Uri result = intent.getData();
-            assertRedactedUri(result);
-            // TODO (b/189086247): Test with non-RES app
-            assertReadAccess(result);
-            assertNoWriteAccess(result);
+            assertUriPermission(result);
         } finally {
-            deleteFile(item);
+            deleteFiles(items);
         }
     }
 
     /**
-     * Tests {@link PickerResult#getPickerResponseIntent(Context, List)} to get PickerResult to
-     * callingPackage.
-     *
+     * Tests {@link PickerResult#getPickerResponseIntent(Context, List)} with multiple items
      * @throws Exception
      */
     @Test
     public void testGetResultMultiple() throws Exception {
         ArrayList<Item> items = null;
         try {
-            items = createItemSelection();
+            final int itemCount = 3;
+            items = createItemSelection(itemCount);
             final Intent intent = PickerResult.getPickerResponseIntent(mContext, items);
 
-            final Uri result = intent.getData();
-            assertRedactedUri(result);
-            // TODO (b/189086247): Test with non-RES app
-            assertReadAccess(result);
-            assertNoWriteAccess(result);
+            final ClipData clipData = intent.getClipData();
+            final int count = clipData.getItemCount();
+            assertThat(count).isEqualTo(itemCount);
+            for (int i = 0; i < count; i++) {
+                assertUriPermission(clipData.getItemAt(i).getUri());
+            }
         } finally {
             deleteFiles(items);
         }
+    }
+
+    private void assertUriPermission(Uri uri) throws Exception {
+        assertRedactedUri(uri);
+        // TODO (b/189086247): Test with non-RES app
+        assertReadAccess(uri);
+        assertNoWriteAccess(uri);
     }
 
     private void assertRedactedUri(Uri uri) {
@@ -126,13 +128,12 @@ public class PickerResultTest {
     /**
      * Returns a PhotoSelection on which the test app does not have access to.
      */
-    private ArrayList<Item> createItemSelection() throws Exception {
+    private ArrayList<Item> createItemSelection(int count) throws Exception {
         ArrayList<Item> selectedItemList = new ArrayList<>();
 
-        // TODO(b/189086247): Adding 1 image for now. Add multiple uris when multi select is
-        // supported.
-        selectedItemList.add(createImageItem());
-
+        for (int i = 0; i < count; i++) {
+            selectedItemList.add(createImageItem());
+        }
         return selectedItemList;
     }
 
@@ -180,7 +181,7 @@ public class PickerResultTest {
         runShellCommand(InstrumentationRegistry.getInstrumentation(), cmd);
     }
 
-    private void deleteFiles(ArrayList<Item> items) {
+    private void deleteFiles(List<Item> items) {
         if (items == null) return;
 
         for (Item item : items) {

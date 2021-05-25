@@ -16,28 +16,31 @@
 
 package com.android.providers.media.photopicker;
 
-import static com.android.providers.media.photopicker.viewmodel.PickerViewModel.TAG;
+import static com.android.providers.media.photopicker.data.PickerResult.getPickerResponseIntent;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.android.providers.media.R;
-
-import com.android.providers.media.photopicker.data.PickerResult;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.ui.PhotosTabFragment;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Photo Picker allows users to choose one or more photos and/or videos to share with an app. The
  * app does not get access to all photos/videos.
  */
 public class PhotoPickerActivity extends AppCompatActivity {
+
+    private PickerViewModel mPickerViewModel;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -49,7 +52,11 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // TODO (b/185801192): remove this and add tabs Photos and Albums
         getSupportActionBar().setTitle("Photos & Videos");
 
-        PickerViewModel model = new ViewModelProvider(this).get(PickerViewModel.class);
+        final boolean canSelectMultiple = getIntent().getBooleanExtra(
+                Intent.EXTRA_ALLOW_MULTIPLE, false);
+
+        mPickerViewModel = new ViewModelProvider(this).get(PickerViewModel.class);
+        mPickerViewModel.setSelectMultiple(canSelectMultiple);
 
         // only add the fragment when the activity is created at first time
         if (savedInstanceState == null) {
@@ -58,5 +65,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
                     .add(R.id.fragment_container, PhotosTabFragment.class, null)
                     .commitNow();
         }
+    }
+
+    public void setResultAndFinishSelf() {
+        final List<Item> selectedItemList = new ArrayList<>(
+                mPickerViewModel.getSelectedItems().getValue().values());
+        setResult(Activity.RESULT_OK, getPickerResponseIntent(this, selectedItemList));
+        finish();
     }
 }

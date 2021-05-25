@@ -19,8 +19,8 @@
     <color name="thumb_gray_color">#3C4043</color>
     <color name="clear_cache_icon_color">#DADCE0</color>
 
-    <!-- photo picker -->
+    <!-- PhotoPicker -->
+    <color name="picker_primary_color">#8AB4F8</color>
     <color name="picker_background_color">#202124</color>
-    <color name="picker_hairline_color">#5F6368</color>
     <color name="picker_highlight_color">#3D8AB4F8</color>
 </resources>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2020 The Android Open Source Project
+<!-- Copyright (C) 2021 The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -14,16 +14,12 @@
      limitations under the License.
 -->
 
-<resources>
-    <color name="thumb_gray_color">#1F000000</color>
-    <color name="clear_cache_icon_color">#5F6368</color>
-
-    <!-- PhotoPicker -->
-    <color name="picker_primary_color">#1A73E8</color>
-    <color name="picker_background_color">@android:color/white</color>
-    <color name="picker_highlight_color">#E8F0FE</color>
-
-    <!-- PhotoPicker Preview -->
-    <color name="preview_add_button_background_color">#8AB4F8</color>
-    <color name="preview_buttons_text_color">#202124</color>
-</resources>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+        android:width="24dp"
+        android:height="24dp"
+        android:viewportWidth="24"
+        android:viewportHeight="24">
+    <path
+        android:fillColor="?android:attr/colorAccent"
+        android:pathData="M12,2C6.48,2 2,6.48 2,12c0,5.52 4.48,10 10,10s10,-4.48 10,-10C22,6.48 17.52,2 12,2zM10,17l-4,-4l1.4,-1.4l2.6,2.6l6.6,-6.6L18,9L10,17z"/>
+</vector>

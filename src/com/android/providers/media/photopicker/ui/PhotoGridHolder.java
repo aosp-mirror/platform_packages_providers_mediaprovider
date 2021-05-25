@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
@@ -32,12 +33,19 @@ public class PhotoGridHolder extends BaseItemHolder {
     private final IconHelper mIconHelper;
     private final ImageView mIconThumb;
 
-    public PhotoGridHolder(Context context, ViewGroup parent, IconHelper iconHelper) {
+    public PhotoGridHolder(Context context, ViewGroup parent, IconHelper iconHelper,
+            boolean canSelectMultiple) {
         super(context, parent, R.layout.item_photo_grid);
 
         mIconThumb = itemView.findViewById(R.id.icon_thumbnail);
         mContext = context;
         mIconHelper = iconHelper;
+        final ImageView iconCheck = itemView.findViewById(R.id.icon_check);
+        if (canSelectMultiple) {
+            iconCheck.setVisibility(View.VISIBLE);
+        } else {
+            iconCheck.setVisibility(View.GONE);
+        }
     }
 
     @Override

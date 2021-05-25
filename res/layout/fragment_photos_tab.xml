@@ -14,12 +14,53 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-
-<androidx.recyclerview.widget.RecyclerView
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/photo_list"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:clipToPadding="false"
-    android:drawSelectorOnTop="true"
-    android:overScrollMode="never"/>
+    android:layout_height="match_parent">
+
+    <androidx.recyclerview.widget.RecyclerView
+
+        android:id="@+id/photo_list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:drawSelectorOnTop="true"
+        android:overScrollMode="never"/>
+
+    <FrameLayout
+        android:id="@+id/picker_bottom_bar"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/picker_bottom_bar_size"
+        android:layout_gravity="bottom"
+        android:background="@color/picker_background_color"
+        android:elevation="@dimen/picker_bottom_bar_elevation"
+        android:visibility="gone">
+
+        <Button
+            android:id="@+id/button_view_selected"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginHorizontal="@dimen/picker_bottom_bar_horizontal_gap"
+            android:layout_gravity="left"
+            android:paddingVertical="@dimen/picker_bottom_bar_vertical_gap"
+            android:drawableLeft="@drawable/ic_view_selected"
+            android:text="@string/picker_view_selected"
+            android:textAllCaps="false"
+            app:iconPadding="@dimen/picker_bottom_bar_vertical_gap"
+            style="?attr/borderlessButtonStyle"/>
+
+        <Button
+            android:id="@+id/button_add"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginHorizontal="@dimen/picker_bottom_bar_horizontal_gap"
+            android:layout_gravity="right"
+            android:paddingVertical="@dimen/picker_bottom_bar_vertical_gap"
+            android:text="@string/add"
+            android:textAllCaps="false"
+            style="?attr/materialButtonStyle"/>
+
+    </FrameLayout>
+</FrameLayout>

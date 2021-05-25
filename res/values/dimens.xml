@@ -22,9 +22,16 @@
 
     <!-- PhotoPicker -->
     <dimen name="picker_photo_size">118dp</dimen>
+    <dimen name="picker_bottom_bar_size">56dp</dimen>
+    <dimen name="picker_bottom_bar_horizontal_gap">16dp</dimen>
+    <dimen name="picker_bottom_bar_vertical_gap">10dp</dimen>
+    <dimen name="picker_bottom_bar_elevation">8dp</dimen>
+    <dimen name="picker_item_check_size">24dp</dimen>
+    <dimen name="picker_item_check_margin">6dp</dimen>
 
     <!-- PhotoPicker Preview -->
     <dimen name="preview_buttons_margin_horizontal">16dp</dimen>
     <dimen name="preview_buttons_margin_bottom">10dp</dimen>
     <dimen name="preview_buttons_text_size">14sp</dimen>
+
 </resources>

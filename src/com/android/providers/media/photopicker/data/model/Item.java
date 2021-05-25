@@ -54,13 +54,18 @@ public class Item {
                 Arrays.asList(ALL_COLUMNS));
     }
 
+    private static final String MIME_TYPE_GIF = "image/gif";
+
     private long mId;
     private long mDateTaken;
+    private long mDuration;
     private String mDisplayName;
-    private int mDuration;
     private String mMimeType;
     private String mVolumeName;
     private Uri mUri;
+    private boolean mIsImage;
+    private boolean mIsVideo;
+    private boolean mIsGif;
 
     private Item() {}
 
@@ -72,8 +77,16 @@ public class Item {
         return mId;
     }
 
-    public boolean isPhoto() {
-        return MimeUtils.isImageMimeType(mMimeType);
+    public boolean isImage() {
+        return mIsImage;
+    }
+
+    public boolean isVideo() {
+        return mIsVideo;
+    }
+
+    public boolean isGif() {
+        return mIsGif;
     }
 
     public Uri getContentUri() {
@@ -84,7 +97,7 @@ public class Item {
         return mDisplayName;
     }
 
-    public int getDuration() {
+    public long getDuration() {
         return mDuration;
     }
 
@@ -116,11 +129,23 @@ public class Item {
         mDisplayName = getCursorString(cursor, ItemColumns.DISPLAY_NAME);
         mDateTaken = getCursorLong(cursor, ItemColumns.DATE_TAKEN);
         mVolumeName = getCursorString(cursor, ItemColumns.VOLUME_NAME);
-        mDuration = getCursorInt(cursor, ItemColumns.DURATION);
+        mDuration = getCursorLong(cursor, ItemColumns.DURATION);
 
         // TODO (b/188867567): Currently, we only has local data source,
         //  get the uri from provider
         mUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL, mId);
+
+        parseMimeType();
+    }
+
+    private void parseMimeType() {
+        if (MIME_TYPE_GIF.equalsIgnoreCase(mMimeType)) {
+            mIsGif = true;
+        } else if (MimeUtils.isImageMimeType(mMimeType)) {
+            mIsImage = true;
+        } else if (MimeUtils.isVideoMimeType(mMimeType)) {
+            mIsVideo = true;
+        }
     }
 
     @Nullable

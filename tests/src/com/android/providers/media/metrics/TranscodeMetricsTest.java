@@ -16,11 +16,6 @@
 
 package com.android.providers.media.metrics;
 
-import static android.app.StatsManager.PULL_SKIP;
-import static android.app.StatsManager.PULL_SUCCESS;
-
-import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA;
-
 import static com.google.common.truth.Truth.assertThat;
 
 import android.util.StatsEvent;
@@ -31,7 +26,6 @@ import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RunWith(AndroidJUnit4.class)
@@ -52,27 +46,13 @@ public class TranscodeMetricsTest {
     @After
     public void tearDown() {
         // this is to reset the saved data in TranscodeMetrics.
-        TranscodeMetrics.handleStatsEventDataRequest(TRANSCODING_DATA, new ArrayList<>());
-    }
-
-    @Test
-    public void testHandleStatsEventDataRequest_skipsUnknownTag() {
-        List<StatsEvent> statsEvents = new ArrayList<>();
-        int retValue = TranscodeMetrics.handleStatsEventDataRequest(UNKNOWN_ATOM_TAG, statsEvents);
-        assertThat(retValue).isEqualTo(PULL_SKIP);
-    }
-
-    @Test
-    public void testHandleStatsEventDataRequest_handlesKnownTag() {
-        List<StatsEvent> statsEvents = new ArrayList<>();
-        int retValue = TranscodeMetrics.handleStatsEventDataRequest(TRANSCODING_DATA, statsEvents);
-        assertThat(retValue).isEqualTo(PULL_SUCCESS);
+        TranscodeMetrics.pullStatsEvents();
     }
 
     @Test
     public void testSaveStatsData_doesNotGoBeyondHardLimit() {
         for (int i = 0; i < TranscodeMetrics.getStatsDataCountHardLimit() + 5; ++i) {
-            TranscodeMetrics.forceSaveStatsData(EMPTY_STATS_DATA);
+            TranscodeMetrics.saveStatsData(EMPTY_STATS_DATA);
         }
         assertThat(TranscodeMetrics.getSavedStatsDataCount()).isEqualTo(
                 TranscodeMetrics.getStatsDataCountHardLimit());
@@ -82,7 +62,7 @@ public class TranscodeMetricsTest {
     public void testSaveStatsData_totalStatsDataCountEqualsPassedData() {
         int totalRequestsToPass = TranscodeMetrics.getStatsDataCountHardLimit() + 5;
         for (int i = 0; i < totalRequestsToPass; ++i) {
-            TranscodeMetrics.forceSaveStatsData(EMPTY_STATS_DATA);
+            TranscodeMetrics.saveStatsData(EMPTY_STATS_DATA);
         }
         assertThat(TranscodeMetrics.getTotalStatsDataCount()).isEqualTo(totalRequestsToPass);
     }
@@ -91,7 +71,7 @@ public class TranscodeMetricsTest {
     public void testSaveStatsData_savedStatsDataCountEqualsPassedData_withinHardLimit() {
         int totalRequestsToPass = TranscodeMetrics.getStatsDataCountHardLimit() - 5;
         for (int i = 0; i < totalRequestsToPass; ++i) {
-            TranscodeMetrics.forceSaveStatsData(EMPTY_STATS_DATA);
+            TranscodeMetrics.saveStatsData(EMPTY_STATS_DATA);
         }
         assertThat(TranscodeMetrics.getSavedStatsDataCount()).isEqualTo(totalRequestsToPass);
     }
@@ -99,11 +79,10 @@ public class TranscodeMetricsTest {
     @Test
     public void testHandleStatsEventDataRequest_resetsData() {
         for (int i = 0; i < TranscodeMetrics.getStatsDataCountHardLimit(); ++i) {
-            TranscodeMetrics.forceSaveStatsData(EMPTY_STATS_DATA);
+            TranscodeMetrics.saveStatsData(EMPTY_STATS_DATA);
         }
 
-        List<StatsEvent> statsEvents = new ArrayList<>();
-        TranscodeMetrics.handleStatsEventDataRequest(TRANSCODING_DATA, statsEvents);
+        List<StatsEvent> statsEvents = TranscodeMetrics.pullStatsEvents();
 
         assertThat(TranscodeMetrics.getSavedStatsDataCount()).isEqualTo(0);
         assertThat(TranscodeMetrics.getTotalStatsDataCount()).isEqualTo(0);
@@ -112,11 +91,10 @@ public class TranscodeMetricsTest {
     @Test
     public void testHandleStatsEventDataRequest_fillsExactlySampleLimit_excessData() {
         for (int i = 0; i < TranscodeMetrics.getStatsDataCountHardLimit(); ++i) {
-            TranscodeMetrics.forceSaveStatsData(EMPTY_STATS_DATA);
+            TranscodeMetrics.saveStatsData(EMPTY_STATS_DATA);
         }
 
-        List<StatsEvent> statsEvents = new ArrayList<>();
-        TranscodeMetrics.handleStatsEventDataRequest(TRANSCODING_DATA, statsEvents);
+        List<StatsEvent> statsEvents = TranscodeMetrics.pullStatsEvents();
 
         assertThat(statsEvents.size()).isEqualTo(TranscodeMetrics.getStatsDataSampleLimit());
     }
@@ -125,11 +103,10 @@ public class TranscodeMetricsTest {
     public void testHandleStatsEventDataRequest_fillsExactlyAsSaved_dataWithinSampleLimit() {
         int totalRequestsToPass = TranscodeMetrics.getStatsDataSampleLimit() - 5;
         for (int i = 0; i < totalRequestsToPass; ++i) {
-            TranscodeMetrics.forceSaveStatsData(EMPTY_STATS_DATA);
+            TranscodeMetrics.saveStatsData(EMPTY_STATS_DATA);
         }
 
-        List<StatsEvent> statsEvents = new ArrayList<>();
-        TranscodeMetrics.handleStatsEventDataRequest(TRANSCODING_DATA, statsEvents);
+        List<StatsEvent> statsEvents = TranscodeMetrics.pullStatsEvents();
 
         assertThat(statsEvents.size()).isEqualTo(totalRequestsToPass);
     }

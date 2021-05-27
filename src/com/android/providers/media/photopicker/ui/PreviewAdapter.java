@@ -16,55 +16,40 @@
 
 package com.android.providers.media.photopicker.ui;
 
-import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.photopicker.data.model.Item;
-import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Adapts from model to something RecyclerView understands.
+ * Adapter for Preview RecyclerView to preview all images and videos.
  */
-public class PhotosTabAdapter extends RecyclerView.Adapter<BaseItemHolder> {
+public class PreviewAdapter extends RecyclerView.Adapter<BaseItemHolder> {
 
     private static final int ITEM_TYPE_PHOTO = 1;
 
-    public static final int COLUMN_COUNT = 3;
-
     private List<Item> mItemList = new ArrayList<>();
     private ImageLoader mImageLoader;
-    private View.OnClickListener mOnClickListener;
-    private PickerViewModel mPickerViewModel;
 
-    public PhotosTabAdapter(PickerViewModel pickerViewModel, ImageLoader imageLoader,
-            View.OnClickListener listener) {
+    public PreviewAdapter(ImageLoader imageLoader) {
         mImageLoader = imageLoader;
-        mPickerViewModel = pickerViewModel;
-        mOnClickListener = listener;
     }
 
     @NonNull
     @Override
     public BaseItemHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
-        return new PhotoGridHolder(viewGroup.getContext(), viewGroup, mImageLoader,
-                mPickerViewModel.canSelectMultiple());
+        return new PreviewImageHolder(viewGroup.getContext(), viewGroup, mImageLoader);
     }
 
     @Override
     public void onBindViewHolder(@NonNull BaseItemHolder photoHolder, int position) {
         final Item item = getItem(position);
         photoHolder.itemView.setTag(item);
-        photoHolder.itemView.setOnClickListener(mOnClickListener);
-        final boolean isItemSelected =
-                mPickerViewModel.getSelectedItems().getValue().containsKey(
-                        item.getContentUri());
-        photoHolder.itemView.setSelected(isItemSelected);
         photoHolder.bind();
     }
 

@@ -18,6 +18,7 @@ apex {
 apex_defaults {
     name: "com.android.mediaprovider-defaults",
     bootclasspath_fragments: ["com.android.mediaprovider-bootclasspath-fragment"],
+    prebuilts: ["current_sdkinfo"],
     key: "com.android.mediaprovider.key",
     certificate: ":com.android.mediaprovider.certificate",
     file_contexts: ":com.android.mediaprovider-file_contexts",

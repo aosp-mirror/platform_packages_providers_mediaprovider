@@ -21,12 +21,12 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.PhotoPickerActivity;
@@ -40,44 +40,48 @@ import java.util.List;
  * Displays a selected items in one up view. Supports deselecting items.
  */
 public class PreviewFragment extends Fragment {
-    private PickerViewModel mPickerModel;
+    private PickerViewModel mPickerViewModel;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup parent,
             Bundle savedInstanceState) {
-        mPickerModel = new ViewModelProvider(requireActivity()).get(PickerViewModel.class);
+        mPickerViewModel = new ViewModelProvider(requireActivity()).get(PickerViewModel.class);
         // TODO(b/185801129): Add handler for back button to go back to previous fragment/activity
         // instead of exiting the activity.
-        return inflater.inflate(R.layout.fragment_preview_single_select, parent,
-                /* attachToRoot */ false);
+        return inflater.inflate(R.layout.fragment_preview, parent, /* attachToRoot */ false);
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        // TODO(b/185801129): This should never happen. Add appropriate log messages and
-        // handle UI transitions correctly on this error condition.
-        if (mPickerModel.getSelectedItems().getValue() == null) return;
-
+        // Warning: The below code assumes that getSelectedItems will never return null.
         final List<Item> selectedItemList = new ArrayList<>(
-                mPickerModel.getSelectedItems().getValue().values());
-        // TODO(b/169737802): Support Videos
-        // TODO(b/185801129): Support preview of multiple items
-        previewImage(view, selectedItemList.get(0));
+                mPickerViewModel.getSelectedItems().getValue().values());
+
+        if (selectedItemList.size() > 1 && !mPickerViewModel.canSelectMultiple() ||
+                selectedItemList.size() <= 0) {
+            // TODO(b/185801129): This should never happen. Add appropriate log messages and
+            // handle UI transitions correctly on this error condition.
+            // We should also handle this situation in ViewModel
+            return;
+        }
+
+        // TODO(b/185801129): Support Deselect and Add button to show the size
+
+        // On clicking add button we return the picker result to calling app.
+        // This destroys PickerActivity and all fragments.
         Button addButton = view.findViewById(R.id.preview_add_button);
         addButton.setOnClickListener(v -> {
-            ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
+                    ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
         });
-    }
 
-    private static void previewImage(View view, Item item) {
-        // TODO(b/185801129): Use a ViewHolder
-        // TODO(b/185801129): Use Glide for image loading
-        // TODO(b/185801129): Load image in background thread. Loading the image blocks loading the
-        //  layout now.
-        final ImageView imageView = view.findViewById(R.id.preview_imageView);
-        if (imageView != null) {
-            imageView.setContentDescription(item.getDisplayName());
-            imageView.setImageURI(item.getContentUri());
-        }
+        // TODO(b/169737802): Support Videos
+        ImageLoader mImageLoader = new ImageLoader(getContext());
+        PreviewAdapter adapter = new PreviewAdapter(mImageLoader);
+        adapter.updateItemList(selectedItemList);
+
+        ViewPager2 viewPager = view.findViewById(R.id.preview_viewPager);
+        viewPager.setAdapter(adapter);
+        // TODO(b/185801129) We should set the last saved position instead of zero
+        viewPager.setCurrentItem(0);
     }
 }

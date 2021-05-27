@@ -33,14 +33,14 @@ import com.android.providers.media.photopicker.data.model.Item;
 public class PhotoGridHolder extends BaseItemHolder {
 
     private final Context mContext;
-    private final IconHelper mIconHelper;
+    private final ImageLoader mImageLoader;
     private final ImageView mIconThumb;
     private final ImageView mIconGif;
     private final ImageView mIconVideo;
     private final View mVideoBadgeContainer;
     private final TextView mVideoDuration;
 
-    public PhotoGridHolder(Context context, ViewGroup parent, IconHelper iconHelper,
+    public PhotoGridHolder(Context context, ViewGroup parent, ImageLoader imageLoader,
             boolean canSelectMultiple) {
         super(context, parent, R.layout.item_photo_grid);
 
@@ -50,7 +50,7 @@ public class PhotoGridHolder extends BaseItemHolder {
         mIconVideo = mVideoBadgeContainer.findViewById(R.id.icon_video);
         mVideoDuration = mVideoBadgeContainer.findViewById(R.id.video_duration);
         mContext = context;
-        mIconHelper = iconHelper;
+        mImageLoader = imageLoader;
         final ImageView iconCheck = itemView.findViewById(R.id.icon_check);
         if (canSelectMultiple) {
             iconCheck.setVisibility(View.VISIBLE);
@@ -62,7 +62,7 @@ public class PhotoGridHolder extends BaseItemHolder {
     @Override
     public void bind() {
         final Item item = (Item) itemView.getTag();
-        mIconHelper.load(item, mIconThumb);
+        mImageLoader.loadThumbanial(item, mIconThumb);
 
         if (item.isGif()) {
             mIconGif.setVisibility(View.VISIBLE);

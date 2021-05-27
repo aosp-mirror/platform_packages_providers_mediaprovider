@@ -19,6 +19,7 @@ package com.android.providers.media.photopicker.ui;
 import android.content.Context;
 
 import android.graphics.Bitmap;
+import android.graphics.ImageDecoder;
 import android.graphics.drawable.BitmapDrawable;
 import android.util.Log;
 import android.util.Size;
@@ -31,28 +32,41 @@ import java.io.IOException;
 
 
 /**
- * A class to assist with loading and managing the Images (i.e. thumbnails and icons) associated
+ * A class to assist with loading and managing the Images (i.e. thumbnails and preview) associated
  * with item.
  */
-public class IconHelper {
+public class ImageLoader {
 
-    private static final String TAG = "IconHelper";
+    private static final String TAG = "ImageLoader";
     private final Context mContext;
 
-    public IconHelper(Context context) {
+    public ImageLoader(Context context) {
         mContext = context;
     }
 
-    public void load(Item item, ImageView thumbView) {
+    public void loadThumbanial(Item item, ImageView imageView) {
         int thumbSize = getThumbSize();
         final Size size = new Size(thumbSize, thumbSize);
         try {
             Bitmap bitmap = mContext.getContentResolver().loadThumbnail(item.getContentUri(),
                     size, null);
-            thumbView.setImageDrawable(new BitmapDrawable(mContext.getResources(), bitmap));
+            imageView.setImageDrawable(new BitmapDrawable(mContext.getResources(), bitmap));
         } catch (IOException ex) {
             Log.d(TAG, "Loading icon failed", ex);
-            thumbView.setImageDrawable(null);
+            imageView.setImageDrawable(null);
+        }
+    }
+
+    public void loadImagePreview(Item item, ImageView imageView) {
+       // TODO(b/185801129): Use Glide for image loading
+       // TODO(b/185801129): Load image in background thread. Loading the image blocks loading the
+       // layout now.
+        try {
+            imageView.setImageBitmap(ImageDecoder.decodeBitmap(ImageDecoder.createSource(
+                    mContext.getContentResolver(), item.getContentUri())));
+        } catch (IOException e) {
+            Log.d(TAG, "Failed loading image for uri " + item.getContentUri(), e);
+            imageView.setImageBitmap(null);
         }
     }
 

@@ -46,7 +46,9 @@ public class StorageAccessMetricsTest {
         storageAccessMetrics.logMimeType(3, "my-mime-type");
         storageAccessMetrics.logMimeType(3, null);
         storageAccessMetrics.logMimeType(3, "my-mime-type-2");
+        storageAccessMetrics.logMimeType(3, "my-mime-type-2");
         storageAccessMetrics.logMimeType(3, "my-mime-type-3");
+        storageAccessMetrics.logMimeType(3, "my-mime-type-2");
         List<PackageStorageAccessStats> statsList =
                 storageAccessMetrics.getSampleStats();
 
@@ -57,10 +59,9 @@ public class StorageAccessMetricsTest {
         assertThat(stats.mTotalAccesses).isEqualTo(0);
         assertThat(stats.mFilePathAccesses).isEqualTo(0);
         assertThat(stats.mSecondaryStorageAccesses).isEqualTo(0);
-        assertThat(stats.mMimeTypes.size()).isEqualTo(3);
-        assertThat(stats.mMimeTypes.valueAt(0)).isEqualTo("my-mime-type");
-        assertThat(stats.mMimeTypes.valueAt(1)).isEqualTo("my-mime-type-2");
-        assertThat(stats.mMimeTypes.valueAt(2)).isEqualTo("my-mime-type-3");
+        assertThat(stats.mMimeTypes.stream().toArray())
+                .asList()
+                .containsExactly("my-mime-type", "my-mime-type-2", "my-mime-type-3");
     }
 
     @Test
@@ -76,8 +77,9 @@ public class StorageAccessMetricsTest {
         assertThat(stats.mTotalAccesses).isEqualTo(0);
         assertThat(stats.mFilePathAccesses).isEqualTo(1);
         assertThat(stats.mSecondaryStorageAccesses).isEqualTo(0);
-        assertThat(stats.mMimeTypes.size()).isEqualTo(1);
-        assertThat(stats.mMimeTypes.valueAt(0)).isEqualTo("text/plain");
+        assertThat(stats.mMimeTypes.stream().toArray())
+                .asList()
+                .containsExactly("text/plain");
     }
 
     @Test

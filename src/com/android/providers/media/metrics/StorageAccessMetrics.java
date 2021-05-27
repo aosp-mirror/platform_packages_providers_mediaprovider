@@ -23,6 +23,7 @@ import static java.util.stream.Collectors.toList;
 import android.os.Process;
 import android.os.SystemClock;
 import android.provider.MediaStore;
+import android.util.ArraySet;
 import android.util.Log;
 import android.util.SparseArray;
 import android.util.StatsEvent;
@@ -41,9 +42,7 @@ import com.google.common.annotations.VisibleForTesting;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -78,8 +77,7 @@ class StorageAccessMetrics {
         }
 
         synchronized (mLock) {
-            SparseArray<String> mimeTypes = getOrGeneratePackageStatsObjectLocked(uid).mMimeTypes;
-            mimeTypes.put(mimeTypes.size(), mimeType);
+            getOrGeneratePackageStatsObjectLocked(uid).mMimeTypes.add(mimeType);
         }
     }
 
@@ -226,7 +224,7 @@ class StorageAccessMetrics {
         int mFilePathAccesses = 0;
         int mSecondaryStorageAccesses = 0;
 
-        final SparseArray<String> mMimeTypes = new SparseArray<>();
+        final ArraySet<String> mMimeTypes = new ArraySet<>();
 
         PackageStorageAccessStats(int uid) {
             this.mUid = uid;
@@ -254,7 +252,7 @@ class StorageAccessMetrics {
         private ProtoOutputStream getMimeTypesAsProto() {
             ProtoOutputStream proto = new ProtoOutputStream();
             for (int i = 0; i < mMimeTypes.size(); i++) {
-                String mime = mMimeTypes.valueAt(0);
+                String mime = mMimeTypes.valueAt(i);
                 proto.write(/*fieldId*/ProtoOutputStream.FIELD_TYPE_STRING
                                 | ProtoOutputStream.FIELD_COUNT_REPEATED
                                 | 1,

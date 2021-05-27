@@ -20,6 +20,11 @@
     <dimen name="permission_thumb_margin">6dp</dimen>
     <dimen name="dialog_space">20dp</dimen>
 
-    <!-- photo picker -->
+    <!-- PhotoPicker -->
     <dimen name="picker_photo_size">118dp</dimen>
+
+    <!-- PhotoPicker Preview -->
+    <dimen name="preview_buttons_margin_horizontal">16dp</dimen>
+    <dimen name="preview_buttons_margin_bottom">10dp</dimen>
+    <dimen name="preview_buttons_text_size">14sp</dimen>
 </resources>

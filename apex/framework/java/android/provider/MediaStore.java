@@ -1226,26 +1226,23 @@ public final class MediaStore {
         /**
          * Absolute filesystem path to the media item on disk.
          * <p>
-         * On Android 11, you can use this value when you access an existing
-         * file using direct file paths. That's because this value has a valid
-         * file path. However, don't assume that the file is always available.
-         * Be prepared to handle any file-based I/O errors that could occur.
+         * Apps may use this path to do file operations. However, they should not assume that the
+         * file is always available. Apps must be prepared to handle any file-based I/O errors that
+         * could occur.
          * <p>
-         * Don't use this value when you create or update a media file, even
-         * if you're on Android 11 and are using direct file paths. Instead,
-         * use the values of the {@link #DISPLAY_NAME} and
+         * From Android 11 onwards, this column is read-only for apps that target
+         * {@link android.os.Build.VERSION_CODES#R R} and higher. On those devices, when creating or
+         * updating a uri, this column's value is not accepted. Instead, to update the
+         * filesystem location of a file, use the values of the {@link #DISPLAY_NAME} and
          * {@link #RELATIVE_PATH} columns.
          * <p>
-         * Note that apps may not have filesystem permissions to directly access
-         * this path. Instead of trying to open this path directly, apps should
-         * use {@link ContentResolver#openFileDescriptor(Uri, String)} to gain
-         * access.
+         * Though direct file operations are supported,
+         * {@link ContentResolver#openFileDescriptor(Uri, String)} API is recommended for better
+         * performance.
          *
-         * @deprecated Apps may not have filesystem permissions to directly
-         *             access this path. Instead of trying to open this path
-         *             directly, apps should use
-         *             {@link ContentResolver#openFileDescriptor(Uri, String)}
-         *             to gain access.
+         * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
+         *             may not update the value of this column. However they may read the file path
+         *             value from this column and use in file operations.
          */
         @Deprecated
         @Column(Cursor.FIELD_TYPE_STRING)
@@ -1908,7 +1905,7 @@ public final class MediaStore {
              * is a playlist file.
              *
              * @deprecated Android playlists are now deprecated. We will keep the current
-             *             functionality for compatibility resons, but we will no longer take
+             *             functionality for compatibility reasons, but we will no longer take
              *             feature request. We do not advise adding new usages of Android Playlists.
              *             M3U files can be used as an alternative.
              */
@@ -2680,21 +2677,13 @@ public final class MediaStore {
 
             /**
              * Path to the thumbnail file on disk.
-             * <p>
-             * Note that apps may not have filesystem permissions to directly
-             * access this path. Instead of trying to open this path directly,
-             * apps should use
-             * {@link ContentResolver#openFileDescriptor(Uri, String)} to gain
-             * access.
              *
              * As of {@link android.os.Build.VERSION_CODES#Q}, this thumbnail
              * has correct rotation, don't need to rotate it again.
              *
-             * @deprecated Apps may not have filesystem permissions to directly
-             *             access this path. Instead of trying to open this path
-             *             directly, apps should use
-             *             {@link ContentResolver#loadThumbnail}
-             *             to gain access.
+             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
+             *             may not update the value of this column. However they may read the file
+             *             path value from this column and use in file operations.
              */
             @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
@@ -3234,7 +3223,7 @@ public final class MediaStore {
          * Audio playlist metadata columns.
          *
          * @deprecated Android playlists are now deprecated. We will keep the current
-         *             functionality for compatibility resons, but we will no longer take
+         *             functionality for compatibility reasons, but we will no longer take
          *             feature request. We do not advise adding new usages of Android Playlists.
          *             M3U files can be used as an alternative.
          */
@@ -3248,18 +3237,10 @@ public final class MediaStore {
 
             /**
              * Path to the playlist file on disk.
-             * <p>
-             * Note that apps may not have filesystem permissions to directly
-             * access this path. Instead of trying to open this path directly,
-             * apps should use
-             * {@link ContentResolver#openFileDescriptor(Uri, String)} to gain
-             * access.
              *
-             * @deprecated Apps may not have filesystem permissions to directly
-             *             access this path. Instead of trying to open this path
-             *             directly, apps should use
-             *             {@link ContentResolver#openFileDescriptor(Uri, String)}
-             *             to gain access.
+             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
+             *             may not update the value of this column. However they may read the file
+             *             path value from this column and use in file operations.
              */
             @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
@@ -3674,18 +3655,10 @@ public final class MediaStore {
         public static class Thumbnails implements BaseColumns {
             /**
              * Path to the thumbnail file on disk.
-             * <p>
-             * Note that apps may not have filesystem permissions to directly
-             * access this path. Instead of trying to open this path directly,
-             * apps should use
-             * {@link ContentResolver#openFileDescriptor(Uri, String)} to gain
-             * access.
              *
-             * @deprecated Apps may not have filesystem permissions to directly
-             *             access this path. Instead of trying to open this path
-             *             directly, apps should use
-             *             {@link ContentResolver#loadThumbnail}
-             *             to gain access.
+             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
+             *             may not update the value of this column. However they may read the file
+             *             path value from this column and use in file operations.
              */
             @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
@@ -4020,11 +3993,9 @@ public final class MediaStore {
             /**
              * Path to the thumbnail file on disk.
              *
-             * @deprecated Apps may not have filesystem permissions to directly
-             *             access this path. Instead of trying to open this path
-             *             directly, apps should use
-             *             {@link ContentResolver#openFileDescriptor(Uri, String)}
-             *             to gain access.
+             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
+             *             may not update the value of this column. However they may read the file
+             *             path value from this column and use in file operations.
              */
             @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)

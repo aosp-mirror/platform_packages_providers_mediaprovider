@@ -16,6 +16,8 @@
 
 package com.android.providers.media.fuse;
 
+import static com.android.providers.media.scan.MediaScanner.REASON_MOUNTED;
+
 import android.annotation.BytesLong;
 import android.content.ContentProviderClient;
 import android.os.Environment;
@@ -30,6 +32,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.providers.media.MediaProvider;
+import com.android.providers.media.MediaService;
 import com.android.providers.media.MediaVolume;
 
 import java.io.File;
@@ -83,8 +86,9 @@ public final class ExternalStorageServiceImpl extends ExternalStorageService {
 
         switch(vol.getState()) {
             case Environment.MEDIA_MOUNTED:
-                mediaProvider.attachVolume(MediaVolume.fromStorageVolume(vol),
-                        /* validate */ false);
+                MediaVolume volume = MediaVolume.fromStorageVolume(vol);
+                mediaProvider.attachVolume(volume, /* validate */ false);
+                MediaService.queueVolumeScan(mediaProvider.getContext(), volume, REASON_MOUNTED);
                 break;
             case Environment.MEDIA_UNMOUNTED:
             case Environment.MEDIA_EJECTING:

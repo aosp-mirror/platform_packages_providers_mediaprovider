@@ -66,7 +66,13 @@ public class PhotosTabFragment extends Fragment {
         photosList.setAdapter(adapter);
     }
 
-    private void onItemClick(View view) {
+    private void onItemClick(@NonNull View view) {
         mPickerViewModel.addSelectedItem((Item) view.getTag());
+        // TODO: Support Multi-select
+        // Transition to PreviewFragment.
+        getActivity().getSupportFragmentManager().beginTransaction()
+                .setReorderingAllowed(true)
+                .replace(R.id.fragment_container, PreviewFragment.class, null)
+                .commitNow();
     }
 }

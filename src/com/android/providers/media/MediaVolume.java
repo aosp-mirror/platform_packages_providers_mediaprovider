@@ -16,6 +16,8 @@
 
 package com.android.providers.media;
 
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.os.UserHandle;
 import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
@@ -37,7 +39,7 @@ import java.util.Objects;
  * In addition to that, we keep the path and ID of the volume cached in here as well
  * for easy access.
  */
-public final class MediaVolume {
+public final class MediaVolume implements Parcelable {
     /**
      * Name of the volume.
      */
@@ -81,6 +83,13 @@ public final class MediaVolume {
         this.mId = id;
     }
 
+    private MediaVolume (Parcel in) {
+        this.mName = in.readString();
+        this.mUser = in.readParcelable(null);
+        this.mPath  = new File(in.readString());
+        this.mId = in.readString();
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
@@ -115,4 +124,30 @@ public final class MediaVolume {
 
         return new MediaVolume(name, null, null, null);
     }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(mName);
+        dest.writeParcelable(mUser, flags);
+        dest.writeString(mPath.toString());
+        dest.writeString(mId);
+    }
+
+    public static final @android.annotation.NonNull Creator<MediaVolume> CREATOR
+            = new Creator<MediaVolume>() {
+        @Override
+        public MediaVolume createFromParcel(Parcel in) {
+            return new MediaVolume(in);
+        }
+
+        @Override
+        public MediaVolume[] newArray(int size) {
+            return new MediaVolume[size];
+        }
+    };
 }

@@ -43,6 +43,8 @@
     <string name="clear" msgid="5524638938415865915">"ਕਲੀਅਰ ਕਰੋ"</string>
     <string name="allow" msgid="8885707816848569619">"ਆਗਿਆ ਦਿਓ"</string>
     <string name="deny" msgid="6040983710442068936">"ਮਨ੍ਹਾ ਕਰੋ"</string>
+    <!-- no translation found for add (2894574044585549298) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="one">ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲ ਨੂੰ ਸੋਧਣ ਦੇਣਾ ਹੈ?</item>
       <item quantity="other">ਕੀ <xliff:g id="APP_NAME_1">^1</xliff:g> ਨੂੰ <xliff:g id="COUNT">^2</xliff:g> ਆਡੀਓ ਫ਼ਾਈਲਾਂ ਨੂੰ ਸੋਧਣ ਦੇਣਾ ਹੈ?</item>

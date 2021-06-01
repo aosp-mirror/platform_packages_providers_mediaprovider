@@ -43,6 +43,7 @@
     <string name="clear" msgid="5524638938415865915">"清除"</string>
     <string name="allow" msgid="8885707816848569619">"允許"</string>
     <string name="deny" msgid="6040983710442068936">"拒絕"</string>
+    <string name="add" msgid="2894574044585549298">"新增"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other">要允許「<xliff:g id="APP_NAME_1">^1</xliff:g>」修改這 <xliff:g id="COUNT">^2</xliff:g> 個音訊檔案嗎？</item>
       <item quantity="one">要允許「<xliff:g id="APP_NAME_0">^1</xliff:g>」修改這個音訊檔案嗎？</item>

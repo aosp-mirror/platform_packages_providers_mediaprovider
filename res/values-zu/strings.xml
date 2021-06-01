@@ -43,6 +43,7 @@
     <string name="clear" msgid="5524638938415865915">"Sula"</string>
     <string name="allow" msgid="8885707816848569619">"Vumela"</string>
     <string name="deny" msgid="6040983710442068936">"Nqaba"</string>
+    <string name="add" msgid="2894574044585549298">"Engeza"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="one">Vumela i-<xliff:g id="APP_NAME_1">^1</xliff:g> ukuguqula amafayela omsindo angu-<xliff:g id="COUNT">^2</xliff:g>?</item>
       <item quantity="other">Vumela i-<xliff:g id="APP_NAME_1">^1</xliff:g> ukuguqula amafayela omsindo angu-<xliff:g id="COUNT">^2</xliff:g>?</item>

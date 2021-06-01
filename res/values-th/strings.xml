@@ -43,6 +43,7 @@
     <string name="clear" msgid="5524638938415865915">"ล้าง"</string>
     <string name="allow" msgid="8885707816848569619">"อนุญาต"</string>
     <string name="deny" msgid="6040983710442068936">"ปฏิเสธ"</string>
+    <string name="add" msgid="2894574044585549298">"เพิ่ม"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other">อนุญาตให้ <xliff:g id="APP_NAME_1">^1</xliff:g> แก้ไขไฟล์เสียง <xliff:g id="COUNT">^2</xliff:g> ไฟล์ไหม</item>
       <item quantity="one">อนุญาตให้ <xliff:g id="APP_NAME_0">^1</xliff:g> แก้ไขไฟล์เสียงนี้ไหม</item>

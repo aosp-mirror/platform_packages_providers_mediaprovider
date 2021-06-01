@@ -43,6 +43,7 @@
     <string name="clear" msgid="5524638938415865915">"Pastro"</string>
     <string name="allow" msgid="8885707816848569619">"Lejo"</string>
     <string name="deny" msgid="6040983710442068936">"Refuzo"</string>
+    <string name="add" msgid="2894574044585549298">"Shto"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other">Të lejohet <xliff:g id="APP_NAME_1">^1</xliff:g> që të modifikojë <xliff:g id="COUNT">^2</xliff:g> skedarë audio?</item>
       <item quantity="one">Të lejohet <xliff:g id="APP_NAME_0">^1</xliff:g> që ta modifikojë këtë skedar audio?</item>

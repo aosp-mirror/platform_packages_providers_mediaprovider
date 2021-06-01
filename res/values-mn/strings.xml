@@ -43,6 +43,7 @@
     <string name="clear" msgid="5524638938415865915">"Арилгах"</string>
     <string name="allow" msgid="8885707816848569619">"Зөвшөөрөх"</string>
     <string name="deny" msgid="6040983710442068936">"Татгалзах"</string>
+    <string name="add" msgid="2894574044585549298">"Нэмэх"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>-д <xliff:g id="COUNT">^2</xliff:g> аудио файл өөрчлөхийг зөвшөөрөх үү?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g>-д энэ аудио файлыг өөрчлөхийг зөвшөөрөх үү?</item>

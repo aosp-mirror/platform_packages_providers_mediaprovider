@@ -20,6 +20,7 @@ import android.content.Context;
 
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
+import android.util.Log;
 import android.util.Size;
 import android.widget.ImageView;
 
@@ -34,6 +35,8 @@ import java.io.IOException;
  * with item.
  */
 public class IconHelper {
+
+    private static final String TAG = "IconHelper";
     private final Context mContext;
 
     public IconHelper(Context context) {
@@ -48,7 +51,8 @@ public class IconHelper {
                     size, null);
             thumbView.setImageDrawable(new BitmapDrawable(mContext.getResources(), bitmap));
         } catch (IOException ex) {
-
+            Log.d(TAG, "Loading icon failed", ex);
+            thumbView.setImageDrawable(null);
         }
     }
 

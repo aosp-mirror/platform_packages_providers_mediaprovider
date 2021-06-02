@@ -31,6 +31,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
         android:text="@string/add"
+        android:textAllCaps="false"
         android:layout_marginHorizontal="@dimen/preview_buttons_margin_horizontal"
         android:layout_marginBottom="@dimen/preview_buttons_margin_bottom"
         android:backgroundTint="@color/preview_add_button_background_color"

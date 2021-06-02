@@ -43,6 +43,7 @@
     <string name="clear" msgid="5524638938415865915">"Limpar"</string>
     <string name="allow" msgid="8885707816848569619">"Permitir"</string>
     <string name="deny" msgid="6040983710442068936">"Recusar"</string>
+    <string name="add" msgid="2894574044585549298">"Adicionar"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other">Permitir que a app <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> ficheiros de áudio?</item>
       <item quantity="one">Permitir que a app <xliff:g id="APP_NAME_0">^1</xliff:g> modifique este ficheiro de áudio?</item>

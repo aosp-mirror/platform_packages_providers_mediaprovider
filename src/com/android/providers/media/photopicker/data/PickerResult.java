@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker.data;
 
+import android.content.ClipData;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -30,7 +31,6 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.photopicker.data.model.Item;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -40,16 +40,6 @@ public class PickerResult {
 
     /**
      * @return {@code Intent} which contains Uri that has been granted access on.
-     */
-    @NonNull
-    public static Intent getPickerResponseIntent(@NonNull Context context,
-            @NonNull Item selectedItem) {
-        return getPickerResponseIntent(context, Collections.singletonList(selectedItem));
-    }
-
-    /**
-     * @return {@code Intent} which contains Uri that has been granted access on.
-     * (TODO (b/169737798): Support Multi-select)
      */
     @NonNull
     public static Intent getPickerResponseIntent(@NonNull Context context,
@@ -64,17 +54,25 @@ public class PickerResult {
 
         // 3. Grant read access to redacted Uris and return
         Intent intent = new Intent();
-        if (selectedItems.size() == 1) {
+        final int size = redactedUris.size();
+        if (size == 1) {
             intent.setData(redactedUris.get(0));
-        } else {
-            // TODO (b/169737798): Support Multi-select
+        } else if (size > 1) {
+            // TODO (b/169737761): use correct mime types
+            String[] mimeTypes = new String[]{"image/*", "video/*"};
+            final ClipData clipData = new ClipData(null /* label */, mimeTypes,
+                    new ClipData.Item(redactedUris.get(0)));
+            for (int i = 1; i < size; i++) {
+                clipData.addItem(new ClipData.Item(redactedUris.get(i)));
+            }
+            intent.setClipData(clipData);
         }
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
         return intent;
     }
 
-    private static List<Uri> getRedactedUri(ContentResolver contentResolver, ArrayList<Uri> uris) {
+    private static List<Uri> getRedactedUri(ContentResolver contentResolver, List<Uri> uris) {
         if (SdkLevel.isAtLeastS()) {
             return getRedactedUriFromMediaStoreAPI(contentResolver, uris);
         } else {
@@ -86,7 +84,7 @@ public class PickerResult {
 
     @RequiresApi(Build.VERSION_CODES.S)
     private static List<Uri> getRedactedUriFromMediaStoreAPI(ContentResolver contentResolver,
-            ArrayList<Uri> uris) {
+            List<Uri> uris) {
         return MediaStore.getRedactedUri(contentResolver, uris);
     }
 

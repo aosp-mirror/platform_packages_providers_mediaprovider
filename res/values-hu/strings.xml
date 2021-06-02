@@ -43,6 +43,7 @@
     <string name="clear" msgid="5524638938415865915">"Törlés"</string>
     <string name="allow" msgid="8885707816848569619">"Engedélyezés"</string>
     <string name="deny" msgid="6040983710442068936">"Tiltás"</string>
+    <string name="add" msgid="2894574044585549298">"Hozzáadás"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other">Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> hangfájl módosítását?</item>
       <item quantity="one">Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek a hangfájlnak a módosítását?</item>

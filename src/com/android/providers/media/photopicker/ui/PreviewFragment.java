@@ -16,7 +16,6 @@
 
 package com.android.providers.media.photopicker.ui;
 
-import android.app.Activity;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -30,9 +29,12 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.android.providers.media.R;
-import com.android.providers.media.photopicker.data.PickerResult;
+import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Displays a selected items in one up view. Supports deselecting items.
@@ -56,17 +58,14 @@ public class PreviewFragment extends Fragment {
         // handle UI transitions correctly on this error condition.
         if (mPickerModel.getSelectedItems().getValue() == null) return;
 
-        final Item selectedItem = mPickerModel.getSelectedItems().getValue().get(0);
+        final List<Item> selectedItemList = new ArrayList<>(
+                mPickerModel.getSelectedItems().getValue().values());
         // TODO(b/169737802): Support Videos
         // TODO(b/185801129): Support preview of multiple items
-        previewImage(view, selectedItem);
+        previewImage(view, selectedItemList.get(0));
         Button addButton = view.findViewById(R.id.preview_add_button);
         addButton.setOnClickListener(v -> {
-            // TODO(b/185801129): Support Multi-select
-            getActivity().setResult(Activity.RESULT_OK,
-                    PickerResult.getPickerResponseIntent(getActivity().getApplicationContext(),
-                            selectedItem));
-            getActivity().finish();
+            ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
         });
     }
 

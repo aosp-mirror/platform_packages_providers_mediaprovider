@@ -31,12 +31,56 @@
         app:cardElevation="0dp"
         app:cardCornerRadius="0dp">
 
-        <com.android.providers.media.photopicker.ui.SquareImageView
-            android:id="@+id/icon_thumbnail"
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:scaleType="centerCrop"
-            android:contentDescription="@null"/>
+            android:layout_height="wrap_content">
+
+            <com.android.providers.media.photopicker.ui.SquareImageView
+                android:id="@+id/icon_thumbnail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scaleType="centerCrop"
+                android:contentDescription="@null"/>
+
+            <ImageView
+                android:id="@+id/icon_gif"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="right|top"
+                android:layout_marginEnd="@dimen/picker_item_badge_margin"
+                android:layout_marginTop="@dimen/picker_item_badge_margin"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_gif"
+                android:contentDescription="@null"/>
+
+            <LinearLayout
+                android:id="@+id/video_container"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="right|top"
+                android:layout_marginEnd="@dimen/picker_item_badge_margin"
+                android:layout_marginTop="@dimen/picker_item_badge_margin"
+                android:orientation="horizontal"
+                android:contentDescription="@null">
+
+                <TextView
+                    android:id="@+id/video_duration"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="@dimen/picker_item_badge_text_margin"
+                    android:layout_gravity="center_vertical"
+                    android:textColor="@android:color/white"
+                    android:textSize="@dimen/picker_item_badge_text_size"/>
+
+                <ImageView
+                    android:id="@+id/icon_video"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_play_circle_filled"
+                    android:contentDescription="@null"/>
+            </LinearLayout>
+        </FrameLayout>
 
     </com.google.android.material.card.MaterialCardView>
 

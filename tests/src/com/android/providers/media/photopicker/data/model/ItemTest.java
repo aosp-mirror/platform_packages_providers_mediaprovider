@@ -38,7 +38,7 @@ public class ItemTest {
         final String mimeType = "image/png";
         final String displayName = "123.png";
         final String volumeName = "primary";
-        final int duration = 1000;
+        final long duration = 1000;
 
         final Cursor cursor = generateCursorForItem(id, mimeType, displayName, volumeName,
                 dateTaken, duration);
@@ -55,7 +55,7 @@ public class ItemTest {
     }
 
     private static Cursor generateCursorForItem(long id, String mimeType,
-            String displayName, String volumeName, long dateTaken, int duration) {
+            String displayName, String volumeName, long dateTaken, long duration) {
         final MatrixCursor cursor = new MatrixCursor(
                 ItemColumns.ALL_COLUMNS_LIST.toArray(new String[0]));
         cursor.addRow(new Object[] {id, mimeType, displayName, volumeName, dateTaken, duration});

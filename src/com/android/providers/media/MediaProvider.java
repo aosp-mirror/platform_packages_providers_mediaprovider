@@ -5710,11 +5710,16 @@ public class MediaProvider extends ContentProvider {
                         extras.getParcelable(MediaStore.EXTRA_FILE_DESCRIPTOR);
                 try {
                     File file = getFileFromFileDescriptor(inputPfd);
-                    boolean isModernFormat = mTranscodeHelper.isModernFormat(file.getPath());
-                    if (!isModernFormat) {
+                    if (!mTranscodeHelper.supportsTranscode(file.getPath())) {
                         // Return an empty bundle instead of throwing an exception in the special
-                        // case where the file is not a modern format. This avoids a misleading
+                        // case where the file does not support transcode. This avoids a misleading
                         // warning in android.database.DatabaseUtils#writeExceptionToParcel
+                        //
+                        // Note that we should be checking if a file is a modern format and not just
+                        // that it supports transcoding, unfortunately, checking modern format
+                        // requires either a db query or media scan which can lead to ANRs if apps
+                        // or the system implicitly call this method as part of a
+                        // MediaPlayer#setDataSource.
                         return new Bundle();
                     }
 

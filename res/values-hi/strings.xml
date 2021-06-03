@@ -44,6 +44,8 @@
     <string name="allow" msgid="8885707816848569619">"अनुमति दें"</string>
     <string name="deny" msgid="6040983710442068936">"अनुमति न दें"</string>
     <string name="add" msgid="2894574044585549298">"जोड़ें"</string>
+    <!-- no translation found for picker_view_selected (2266031384396143883) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="one">क्या आप <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> ऑडियो फ़ाइल में बदलाव करने की अनुमति देना चाहते हैं?</item>
       <item quantity="other">क्या आप <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> ऑडियो फ़ाइलों में बदलाव करने की अनुमति देना चाहते हैं?</item>

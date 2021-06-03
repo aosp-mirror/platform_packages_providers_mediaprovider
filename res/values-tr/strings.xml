@@ -44,6 +44,7 @@
     <string name="allow" msgid="8885707816848569619">"İzin ver"</string>
     <string name="deny" msgid="6040983710442068936">"Reddet"</string>
     <string name="add" msgid="2894574044585549298">"Ekle"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"Seçilenleri görüntüle"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> uygulamasının <xliff:g id="COUNT">^2</xliff:g> ses dosyasını değiştirmesine izin verilsin mi?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> uygulamasının bu ses dosyasını değiştirmesine izin verilsin mi?</item>

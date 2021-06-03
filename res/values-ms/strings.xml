@@ -44,6 +44,7 @@
     <string name="allow" msgid="8885707816848569619">"Benarkan"</string>
     <string name="deny" msgid="6040983710442068936">"Tolak"</string>
     <string name="add" msgid="2894574044585549298">"Tambah"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"Lihat terpilih"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other">Benarkan <xliff:g id="APP_NAME_1">^1</xliff:g> mengubah suai <xliff:g id="COUNT">^2</xliff:g> fail audio?</item>
       <item quantity="one">Benarkan <xliff:g id="APP_NAME_0">^1</xliff:g> mengubah suai fail audio ini?</item>

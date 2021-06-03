@@ -44,6 +44,7 @@
     <string name="allow" msgid="8885707816848569619">"Payagan"</string>
     <string name="deny" msgid="6040983710442068936">"Tanggihan"</string>
     <string name="add" msgid="2894574044585549298">"Magdagdag"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"Tingnan ang napili"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="one">Payagan ang <xliff:g id="APP_NAME_1">^1</xliff:g> na i-modify ang <xliff:g id="COUNT">^2</xliff:g> audio file?</item>
       <item quantity="other">Payagan ang <xliff:g id="APP_NAME_1">^1</xliff:g> na i-modify ang <xliff:g id="COUNT">^2</xliff:g> na audio file?</item>

@@ -41,7 +41,7 @@ import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 public class PhotosTabFragment extends Fragment {
 
     private PickerViewModel mPickerViewModel;
-    private IconHelper mIconHelper;
+    private ImageLoader mImageLoader;
 
     @Override
     @NonNull
@@ -54,7 +54,7 @@ public class PhotosTabFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        mIconHelper = new IconHelper(getContext());
+        mImageLoader = new ImageLoader(getContext());
         RecyclerView photosList = view.findViewById(R.id.photo_list);
         photosList.setHasFixedSize(true);
         mPickerViewModel = new ViewModelProvider(requireActivity()).get(PickerViewModel.class);
@@ -66,11 +66,11 @@ public class PhotosTabFragment extends Fragment {
             });
 
             final Button viewSelectedButton = view.findViewById(R.id.button_view_selected);
-            viewSelectedButton.setOnClickListener(v -> {
-                // TODO (185801129): After click viewSelected button, show preview
-            });
+            // Transition to PreviewFragment on clicking "View Selected".
+            viewSelectedButton.setOnClickListener(this::launchPreview);
             final int bottomBarSize = (int) getResources().getDimension(
                     R.dimen.picker_bottom_bar_size);
+
             mPickerViewModel.getSelectedItems().observe(this, selectedItemList -> {
                 final View bottomBar = view.findViewById(R.id.picker_bottom_bar);
                 final int size = selectedItemList.size();
@@ -86,7 +86,7 @@ public class PhotosTabFragment extends Fragment {
             });
         }
 
-        final PhotosTabAdapter adapter = new PhotosTabAdapter(mPickerViewModel, mIconHelper,
+        final PhotosTabAdapter adapter = new PhotosTabAdapter(mPickerViewModel, mImageLoader,
                 this::onItemClick);
         mPickerViewModel.getItems().observe(this, itemList -> {
             adapter.updateItemList(itemList);
@@ -109,10 +109,14 @@ public class PhotosTabFragment extends Fragment {
             view.setSelected(!isSelectedBefore);
         } else {
             // Transition to PreviewFragment.
-            getActivity().getSupportFragmentManager().beginTransaction()
-                    .setReorderingAllowed(true)
-                    .replace(R.id.fragment_container, PreviewFragment.class, null)
-                    .commitNow();
+            launchPreview(view);
         }
+    }
+
+    private void launchPreview(View view) {
+        getActivity().getSupportFragmentManager().beginTransaction()
+                .setReorderingAllowed(true)
+                .replace(R.id.fragment_container, PreviewFragment.class, null)
+                .commitNow();
     }
 }

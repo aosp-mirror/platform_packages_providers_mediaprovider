@@ -43,7 +43,8 @@
     <string name="clear" msgid="5524638938415865915">"Löschen"</string>
     <string name="allow" msgid="8885707816848569619">"Zulassen"</string>
     <string name="deny" msgid="6040983710442068936">"Ablehnen"</string>
-    <!-- no translation found for add (2894574044585549298) -->
+    <string name="add" msgid="2894574044585549298">"Hinzufügen"</string>
+    <!-- no translation found for picker_view_selected (2266031384396143883) -->
     <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other">Darf <xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> Audiodateien ändern?</item>

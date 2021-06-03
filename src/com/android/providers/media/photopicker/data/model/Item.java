@@ -23,6 +23,7 @@ import android.provider.MediaStore;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.util.MimeUtils;
 
 import java.util.Arrays;
@@ -69,8 +70,8 @@ public class Item {
 
     private Item() {}
 
-    public Item(@NonNull Cursor cursor) {
-        updateFromCursor(cursor);
+    public Item(@NonNull Cursor cursor, @NonNull UserId userId) {
+        updateFromCursor(cursor, userId);
     }
 
     public long getId() {
@@ -113,9 +114,9 @@ public class Item {
         return mVolumeName;
     }
 
-    public static Item fromCursor(Cursor cursor) {
+    public static Item fromCursor(Cursor cursor, UserId userId) {
         assert(cursor != null);
-        final Item info = new Item(cursor);
+        final Item info = new Item(cursor, userId);
         return info;
     }
 
@@ -123,7 +124,7 @@ public class Item {
      * Update the item based on the cursor
      * @param cursor the cursor to update the data
      */
-    public void updateFromCursor(@NonNull Cursor cursor) {
+    public void updateFromCursor(@NonNull Cursor cursor, @NonNull UserId userId) {
         mId = getCursorLong(cursor, ItemColumns.ID);
         mMimeType = getCursorString(cursor, ItemColumns.MIME_TYPE);
         mDisplayName = getCursorString(cursor, ItemColumns.DISPLAY_NAME);
@@ -133,7 +134,7 @@ public class Item {
 
         // TODO (b/188867567): Currently, we only has local data source,
         //  get the uri from provider
-        mUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL, mId);
+        mUri = ItemsProvider.getItemsUri(mId, userId);
 
         parseMimeType();
     }

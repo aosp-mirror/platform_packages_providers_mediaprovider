@@ -104,4 +104,9 @@ public final class UserId {
         }
         return false;
     }
+
+    @Override
+    public String toString() {
+        return String.valueOf(this.mUserHandle.getIdentifier());
+    }
 }

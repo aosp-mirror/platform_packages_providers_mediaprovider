@@ -17,8 +17,10 @@
 package com.android.providers.media.photopicker.data;
 
 import android.annotation.Nullable;
+import android.content.ContentProvider;
 import android.content.Context;
 import android.database.Cursor;
+import android.net.Uri;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
 
@@ -97,5 +99,14 @@ public class ItemsProvider {
     @Nullable
     public Cursor getCategories(@Nullable UserId userId) {
         return mLocalItemsProvider.getCategories(userId);
+    }
+
+    public static Uri getItemsUri(long id, UserId userId) {
+        final Uri uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL, id);
+        if (userId.equals(UserId.CURRENT_USER)) {
+            return uri;
+        } else {
+            return ContentProvider.createContentUriForUser(uri, userId.getUserHandle());
+        }
     }
 }

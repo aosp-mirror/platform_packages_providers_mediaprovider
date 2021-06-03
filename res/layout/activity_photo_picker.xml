@@ -35,6 +35,13 @@
 
     </com.google.android.material.appbar.AppBarLayout>
 
+    <Switch
+        android:visibility="gone"
+        android:text="Work Profile"
+        android:id="@+id/workprofile"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/fragment_container"
         android:layout_width="match_parent"

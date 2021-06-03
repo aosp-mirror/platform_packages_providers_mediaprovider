@@ -119,7 +119,8 @@ public class UserCache {
      */
     public boolean userSharesMediaWithParent(@NonNull UserHandle user) {
         synchronized (mLock) {
-            return mUsers.contains(user);
+            // It must be a user that we manage, and not equal to the main user that we run as
+            return user != Process.myUserHandle() && mUsers.contains(user);
         }
     }
 }

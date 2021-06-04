@@ -21,6 +21,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.FrameLayout.LayoutParams;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -41,6 +42,8 @@ import java.util.List;
  */
 public class PreviewFragment extends Fragment {
     private PickerViewModel mPickerViewModel;
+    private ViewPager2 mViewPager;
+    private PreviewAdapter mAdapter;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup parent,
@@ -54,6 +57,9 @@ public class PreviewFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         // Warning: The below code assumes that getSelectedItems will never return null.
+        // We are creating a new ArrayList with selected items, this list used as data for the
+        // adapter. If activity gets killed and recreated, we will lose items that were deselected.
+        // TODO(b/185801129): Save the deselection state instead of making a copy of selected items.
         final List<Item> selectedItemList = new ArrayList<>(
                 mPickerViewModel.getSelectedItems().getValue().values());
 
@@ -65,23 +71,85 @@ public class PreviewFragment extends Fragment {
             return;
         }
 
-        // TODO(b/185801129): Support Deselect and Add button to show the size
+        Button addButton = view.findViewById(R.id.preview_add_button);
 
         // On clicking add button we return the picker result to calling app.
         // This destroys PickerActivity and all fragments.
-        Button addButton = view.findViewById(R.id.preview_add_button);
         addButton.setOnClickListener(v -> {
-                    ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
+            ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
         });
 
         // TODO(b/169737802): Support Videos
-        ImageLoader mImageLoader = new ImageLoader(getContext());
-        PreviewAdapter adapter = new PreviewAdapter(mImageLoader);
-        adapter.updateItemList(selectedItemList);
+        // Initialize adapter to hold selected items
+        ImageLoader imageLoader = new ImageLoader(getContext());
+        mAdapter = new PreviewAdapter(imageLoader);
+        mAdapter.updateItemList(selectedItemList);
 
-        ViewPager2 viewPager = view.findViewById(R.id.preview_viewPager);
-        viewPager.setAdapter(adapter);
+        // Initialize ViewPager2 to swipe between multiple pictures/videos in preview
+        mViewPager = view.findViewById(R.id.preview_viewPager);
+        mViewPager.setAdapter(mAdapter);
         // TODO(b/185801129) We should set the last saved position instead of zero
-        viewPager.setCurrentItem(0);
+        mViewPager.setCurrentItem(0);
+
+        Button selectButton = view.findViewById(R.id.preview_select_button);
+
+        // Update the select icon and text according to the state of selection while swiping
+        // between photos
+        mViewPager.registerOnPageChangeCallback(new OnPageChangeCallBack(selectButton));
+
+        // Adjust the layout based on Single/Multi select and add appropriate onClick listeners
+        if (!mPickerViewModel.canSelectMultiple()) {
+            // Adjust the select and add button layout for single select
+            LayoutParams layoutParams
+                    = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
+            addButton.setLayoutParams(layoutParams);
+            selectButton.setVisibility(View.GONE);
+        } else {
+            // Update add button text to include number of items selected.
+            mPickerViewModel.getSelectedItems().observe(this, selectedItems -> {
+                final int size = selectedItems.size();
+                addButton.setText(getString(R.string.add) + " (" + size + ")");
+            });
+            selectButton.setOnClickListener(v -> {
+                onClickSelect(selectButton);
+            });
+        }
+    }
+
+    private void onClickSelect(@NonNull Button selectButton) {
+        // isSelected tracks new state for select button, which is opposite of old state
+        final boolean isSelected = !selectButton.isSelected();
+        final Item currentItem = mAdapter.getItem(mViewPager.getCurrentItem());
+
+        if (isSelected) {
+            mPickerViewModel.addSelectedItem(currentItem);
+        } else {
+            mPickerViewModel.deleteSelectedItem(currentItem);
+        }
+        setSelected(selectButton, isSelected);
+    }
+
+    private class OnPageChangeCallBack extends ViewPager2.OnPageChangeCallback {
+        private final Button mSelectButton;
+
+        public OnPageChangeCallBack(@NonNull Button selectButton) {
+            mSelectButton = selectButton;
+        }
+
+        @Override
+        public void onPageSelected(int position) {
+            // No action to take as we don't have deselect view here.
+            if (!mPickerViewModel.canSelectMultiple()) return;
+
+            // Set the appropriate select/deselect state for each item in each page based on the
+            // selection list.
+            setSelected(mSelectButton, mPickerViewModel.getSelectedItems().getValue().containsKey(
+                    mAdapter.getItem(position).getContentUri()));
+        }
+    }
+
+    private static void setSelected(@NonNull Button selectButton, boolean isSelected) {
+        selectButton.setSelected(isSelected);
+        selectButton.setText(isSelected ? R.string.deselect : R.string.select);
     }
 }

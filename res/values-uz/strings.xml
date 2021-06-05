@@ -44,6 +44,8 @@
     <string name="allow" msgid="8885707816848569619">"Ruxsat"</string>
     <string name="deny" msgid="6040983710442068936">"Rad etish"</string>
     <string name="add" msgid="2894574044585549298">"Kiritish"</string>
+    <!-- no translation found for picker_view_selected (2266031384396143883) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ilovasiga <xliff:g id="COUNT">^2</xliff:g> ta audio faylni oʻzgartirishi uchun ruxsat berilsinmi?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ilovasiga bu audio faylni oʻzgartirishi uchun ruxsat berilsinmi?</item>

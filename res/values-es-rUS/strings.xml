@@ -44,6 +44,7 @@
     <string name="allow" msgid="8885707816848569619">"Permitir"</string>
     <string name="deny" msgid="6040983710442068936">"Rechazar"</string>
     <string name="add" msgid="2894574044585549298">"Agregar"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"Ver contenido seleccionado"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other">¿Deseas permitir que <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> archivos de audio?</item>
       <item quantity="one">¿Deseas permitir que <xliff:g id="APP_NAME_0">^1</xliff:g> modifique este archivo de audio?</item>

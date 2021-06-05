@@ -44,6 +44,7 @@
     <string name="allow" msgid="8885707816848569619">"អនុញ្ញាត"</string>
     <string name="deny" msgid="6040983710442068936">"បដិសេធ"</string>
     <string name="add" msgid="2894574044585549298">"បញ្ចូល"</string>
+    <string name="picker_view_selected" msgid="2266031384396143883">"បានជ្រើសរើស​ទិដ្ឋភាព"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other">អនុញ្ញាតឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> កែ​ឯកសារសំឡេង <xliff:g id="COUNT">^2</xliff:g> ឬ?</item>
       <item quantity="one">អនុញ្ញាតឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> កែ​ឯកសារសំឡេង​នេះ​ឬ?</item>

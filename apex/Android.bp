@@ -42,9 +42,7 @@ android_app_certificate {
 
 sdk {
     name: "mediaprovider-module-sdk",
-    java_sdk_libs: [
-        "framework-mediaprovider",
-    ],
+    bootclasspath_fragments: ["com.android.mediaprovider-bootclasspath-fragment"],
 }
 
 // Encapsulate the contributions made by the com.android.mediaprovider to the bootclasspath.

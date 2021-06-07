@@ -194,7 +194,7 @@ import com.android.providers.media.DatabaseHelper.OnFilesChangeListener;
 import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
 import com.android.providers.media.fuse.FuseDaemon;
-import com.android.providers.media.metrics.StatsdPuller;
+import com.android.providers.media.metrics.PulledMetrics;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
@@ -1010,7 +1010,7 @@ public class MediaProvider extends ContentProvider {
             mExternalStorageAuthorityAppId = UserHandle.getAppId(provider.applicationInfo.uid);
         }
 
-        StatsdPuller.initialize(context);
+        PulledMetrics.initialize(context);
         return true;
     }
 
@@ -1926,6 +1926,7 @@ public class MediaProvider extends ContentProvider {
     public String[] getFilesInDirectoryForFuse(String path, int uid) {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+        PulledMetrics.logFileAccessViaFuse(getCallingUidOrSelf(), path);
 
         try {
             if (isPrivatePackagePathNotAccessibleByCaller(path)) {
@@ -2518,6 +2519,7 @@ public class MediaProvider extends ContentProvider {
         final String errorMessage = "Rename " + oldPath + " to " + newPath + " failed. ";
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+        PulledMetrics.logFileAccessViaFuse(getCallingUidOrSelf(), oldPath);
 
         try {
             if (isPrivatePackagePathNotAccessibleByCaller(oldPath)
@@ -2701,6 +2703,8 @@ public class MediaProvider extends ContentProvider {
 
     private Cursor queryInternal(Uri uri, String[] projection, Bundle queryArgs,
             CancellationSignal signal, boolean forSelf) throws FallbackException {
+        final String volumeName = getVolumeName(uri);
+        PulledMetrics.logVolumeAccessViaMediaProvider(getCallingUidOrSelf(), volumeName);
         queryArgs = (queryArgs != null) ? queryArgs : new Bundle();
 
         // INCLUDED_DEFAULT_DIRECTORIES extra should only be set inside MediaProvider.
@@ -2720,7 +2724,6 @@ public class MediaProvider extends ContentProvider {
 
         uri = safeUncanonicalize(uri);
 
-        final String volumeName = getVolumeName(uri);
         final int targetSdkVersion = getCallingPackageTargetSdkVersion();
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int table = matchUri(uri, allowHidden);
@@ -3205,6 +3208,7 @@ public class MediaProvider extends ContentProvider {
         mimeType = values.getAsString(MediaColumns.MIME_TYPE);
         // Quick check MIME type against table
         if (mimeType != null) {
+            PulledMetrics.logMimeTypeAccess(getCallingUidOrSelf(), mimeType);
             final int actualMediaType = MimeUtils.resolveMediaType(mimeType);
             if (defaultMediaType == FileColumns.MEDIA_TYPE_NONE) {
                 // Give callers an opportunity to work with playlists and
@@ -4064,6 +4068,9 @@ public class MediaProvider extends ContentProvider {
 
     private @Nullable Uri insertInternal(@NonNull Uri uri, @Nullable ContentValues initialValues,
             @Nullable Bundle extras) throws FallbackException {
+        final String originalVolumeName = getVolumeName(uri);
+        PulledMetrics.logVolumeAccessViaMediaProvider(getCallingUidOrSelf(), originalVolumeName);
+
         extras = (extras != null) ? extras : new Bundle();
         // REDACTED_URI_BUNDLE_KEY extra should only be set inside MediaProvider.
         extras.remove(QUERY_ARG_REDACTED_URI);
@@ -4075,7 +4082,6 @@ public class MediaProvider extends ContentProvider {
         final int match = matchUri(uri, allowHidden);
 
         final int targetSdkVersion = getCallingPackageTargetSdkVersion();
-        final String originalVolumeName = getVolumeName(uri);
         final String resolvedVolumeName = resolveVolumeName(uri);
 
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
@@ -5158,6 +5164,9 @@ public class MediaProvider extends ContentProvider {
 
     private int deleteInternal(@NonNull Uri uri, @Nullable Bundle extras)
             throws FallbackException {
+        final String volumeName = getVolumeName(uri);
+        PulledMetrics.logVolumeAccessViaMediaProvider(getCallingUidOrSelf(), volumeName);
+
         extras = (extras != null) ? extras : new Bundle();
         // REDACTED_URI_BUNDLE_KEY extra should only be set inside MediaProvider.
         extras.remove(QUERY_ARG_REDACTED_URI);
@@ -5202,7 +5211,6 @@ public class MediaProvider extends ContentProvider {
 
         int count = 0;
 
-        final String volumeName = getVolumeName(uri);
         final int targetSdkVersion = getCallingPackageTargetSdkVersion();
 
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
@@ -5282,6 +5290,8 @@ public class MediaProvider extends ContentProvider {
                             final long id = c.getLong(2);
                             final int isDownload = c.getInt(3);
                             final String mimeType = c.getString(4);
+
+                            // TODO(b/188782594) Consider logging mime type access on delete too.
 
                             // Forget that caller is owner of this item
                             mCallingIdentity.get().setOwned(id, false);
@@ -5700,11 +5710,16 @@ public class MediaProvider extends ContentProvider {
                         extras.getParcelable(MediaStore.EXTRA_FILE_DESCRIPTOR);
                 try {
                     File file = getFileFromFileDescriptor(inputPfd);
-                    boolean isModernFormat = mTranscodeHelper.isModernFormat(file.getPath());
-                    if (!isModernFormat) {
+                    if (!mTranscodeHelper.supportsTranscode(file.getPath())) {
                         // Return an empty bundle instead of throwing an exception in the special
-                        // case where the file is not a modern format. This avoids a misleading
+                        // case where the file does not support transcode. This avoids a misleading
                         // warning in android.database.DatabaseUtils#writeExceptionToParcel
+                        //
+                        // Note that we should be checking if a file is a modern format and not just
+                        // that it supports transcoding, unfortunately, checking modern format
+                        // requires either a db query or media scan which can lead to ANRs if apps
+                        // or the system implicitly call this method as part of a
+                        // MediaPlayer#setDataSource.
                         return new Bundle();
                     }
 
@@ -6153,6 +6168,9 @@ public class MediaProvider extends ContentProvider {
 
     private int updateInternal(@NonNull Uri uri, @Nullable ContentValues initialValues,
             @Nullable Bundle extras) throws FallbackException {
+        final String volumeName = getVolumeName(uri);
+        PulledMetrics.logVolumeAccessViaMediaProvider(getCallingUidOrSelf(), volumeName);
+
         extras = (extras != null) ? extras : new Bundle();
         // REDACTED_URI_BUNDLE_KEY extra should only be set inside MediaProvider.
         extras.remove(QUERY_ARG_REDACTED_URI);
@@ -6188,7 +6206,6 @@ public class MediaProvider extends ContentProvider {
 
         int count;
 
-        final String volumeName = getVolumeName(uri);
         final int targetSdkVersion = getCallingPackageTargetSdkVersion();
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
@@ -7074,31 +7091,37 @@ public class MediaProvider extends ContentProvider {
         final String volumeName = getVolumeName(uri);
 
         // Handle some legacy cases where we need to redirect thumbnails
-        switch (match) {
-            case AUDIO_ALBUMART_ID: {
-                final long albumId = Long.parseLong(uri.getPathSegments().get(3));
-                final Uri targetUri = ContentUris
-                        .withAppendedId(Audio.Albums.getContentUri(volumeName), albumId);
-                return ensureThumbnail(targetUri, signal);
+        try {
+            switch (match) {
+                case AUDIO_ALBUMART_ID: {
+                    final long albumId = Long.parseLong(uri.getPathSegments().get(3));
+                    final Uri targetUri = ContentUris
+                            .withAppendedId(Audio.Albums.getContentUri(volumeName), albumId);
+                    return ensureThumbnail(targetUri, signal);
+                }
+                case AUDIO_ALBUMART_FILE_ID: {
+                    final long audioId = Long.parseLong(uri.getPathSegments().get(3));
+                    final Uri targetUri = ContentUris
+                            .withAppendedId(Audio.Media.getContentUri(volumeName), audioId);
+                    return ensureThumbnail(targetUri, signal);
+                }
+                case VIDEO_MEDIA_ID_THUMBNAIL: {
+                    final long videoId = Long.parseLong(uri.getPathSegments().get(3));
+                    final Uri targetUri = ContentUris
+                            .withAppendedId(Video.Media.getContentUri(volumeName), videoId);
+                    return ensureThumbnail(targetUri, signal);
+                }
+                case IMAGES_MEDIA_ID_THUMBNAIL: {
+                    final long imageId = Long.parseLong(uri.getPathSegments().get(3));
+                    final Uri targetUri = ContentUris
+                            .withAppendedId(Images.Media.getContentUri(volumeName), imageId);
+                    return ensureThumbnail(targetUri, signal);
+                }
             }
-            case AUDIO_ALBUMART_FILE_ID: {
-                final long audioId = Long.parseLong(uri.getPathSegments().get(3));
-                final Uri targetUri = ContentUris
-                        .withAppendedId(Audio.Media.getContentUri(volumeName), audioId);
-                return ensureThumbnail(targetUri, signal);
-            }
-            case VIDEO_MEDIA_ID_THUMBNAIL: {
-                final long videoId = Long.parseLong(uri.getPathSegments().get(3));
-                final Uri targetUri = ContentUris
-                        .withAppendedId(Video.Media.getContentUri(volumeName), videoId);
-                return ensureThumbnail(targetUri, signal);
-            }
-            case IMAGES_MEDIA_ID_THUMBNAIL: {
-                final long imageId = Long.parseLong(uri.getPathSegments().get(3));
-                final Uri targetUri = ContentUris
-                        .withAppendedId(Images.Media.getContentUri(volumeName), imageId);
-                return ensureThumbnail(targetUri, signal);
-            }
+        } finally {
+            // We have to log separately here because openFileAndEnforcePathPermissionsHelper calls
+            // a public MediaProvider API and so logs the access there.
+            PulledMetrics.logVolumeAccessViaMediaProvider(getCallingUidOrSelf(), volumeName);
         }
 
         return openFileAndEnforcePathPermissionsHelper(uri, match, mode, signal, opts);
@@ -8018,6 +8041,9 @@ public class MediaProvider extends ContentProvider {
             int transformsReason, boolean forWrite, boolean redact, boolean logTransformsMetrics) {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+
+        PulledMetrics.logFileAccessViaFuse(getCallingUidOrSelf(), path);
+
         boolean isSuccess = false;
 
         final int originalUid = getBinderUidForFuse(uid, tid);
@@ -8354,6 +8380,7 @@ public class MediaProvider extends ContentProvider {
     public int insertFileIfNecessaryForFuse(@NonNull String path, int uid) {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+        PulledMetrics.logFileAccessViaFuse(getCallingUidOrSelf(), path);
 
         try {
             if (isPrivatePackagePathNotAccessibleByCaller(path)) {
@@ -8479,6 +8506,8 @@ public class MediaProvider extends ContentProvider {
     public int deleteFileForFuse(@NonNull String path, int uid) throws IOException {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+        PulledMetrics.logFileAccessViaFuse(getCallingUidOrSelf(), path);
+
         try {
             if (isPrivatePackagePathNotAccessibleByCaller(path)) {
                 Log.e(TAG, "Can't delete a file in another app's external directory!");
@@ -8541,6 +8570,7 @@ public class MediaProvider extends ContentProvider {
             @NonNull String path, int uid, boolean forCreate) {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+        PulledMetrics.logFileAccessViaFuse(getCallingUidOrSelf(), path);
 
         try {
             // App dirs are not indexed, so we don't create an entry for the file.
@@ -8594,6 +8624,7 @@ public class MediaProvider extends ContentProvider {
     public int isOpendirAllowedForFuse(@NonNull String path, int uid, boolean forWrite) {
         final LocalCallingIdentity token =
                 clearLocalCallingIdentity(getCachedCallingIdentityForFuse(uid));
+        PulledMetrics.logFileAccessViaFuse(getCallingUidOrSelf(), path);
         try {
             if ("/storage/emulated".equals(path)) {
                 return OsConstants.EPERM;
@@ -9633,6 +9664,10 @@ public class MediaProvider extends ContentProvider {
 
     private boolean isCallingPackageSystemGallery() {
         return mCallingIdentity.get().hasPermission(PERMISSION_IS_SYSTEM_GALLERY);
+    }
+
+    private int getCallingUidOrSelf() {
+        return mCallingIdentity.get().uid;
     }
 
     @Deprecated

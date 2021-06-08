@@ -59,6 +59,16 @@ public interface UserIdManager {
     UserId getManagedUserId();
 
     /**
+     * Returns the current user profile id. This can be managed user profile id, personal user
+     * profile id. If the user does not have a corresponding managed profile, then this always
+     * returns the current user.
+     */
+    @Nullable
+    UserId getCurrentUserProfileId();
+
+    void setCurrentUserProfileId(UserId userId);
+
+    /**
      * Whether the current user is the personal user profile iff there are at least 2 user
      * profiles for current user. Otherwise, returns false.
      */
@@ -94,6 +104,9 @@ public interface UserIdManager {
         @GuardedBy("mLock")
         private UserId mManagedUser = null;
 
+        @GuardedBy("mLock")
+        private UserId mCurrentUserProfile = null;
+
         private final BroadcastReceiver mIntentReceiver = new BroadcastReceiver() {
 
             @Override
@@ -114,6 +127,7 @@ public interface UserIdManager {
         RuntimeUserIdManager(Context context, UserId currentUser) {
             mContext = context.getApplicationContext();
             mCurrentUser = checkNotNull(currentUser);
+            mCurrentUserProfile = mCurrentUser;
             setUserIds();
 
             IntentFilter filter = new IntentFilter();
@@ -140,6 +154,20 @@ public interface UserIdManager {
         public UserId getManagedUserId() {
             synchronized (mLock) {
                 return mManagedUser;
+            }
+        }
+
+        @Override
+        public UserId getCurrentUserProfileId() {
+            synchronized (mLock) {
+                return mCurrentUserProfile;
+            }
+        }
+
+        @Override
+        public void setCurrentUserProfileId(UserId userId) {
+            synchronized (mLock) {
+                mCurrentUserProfile = userId;
             }
         }
 

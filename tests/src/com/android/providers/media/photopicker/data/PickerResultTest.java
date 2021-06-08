@@ -17,7 +17,6 @@
 package com.android.providers.media.photopicker.data;
 
 import static com.android.compatibility.common.util.SystemUtil.runShellCommand;
-import static com.android.providers.media.MediaProvider.REDACTED_URI_ID_SIZE;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -36,7 +35,9 @@ import android.util.Log;
 
 import androidx.test.InstrumentationRegistry;
 
+import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.data.model.UserId;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -99,30 +100,12 @@ public class PickerResultTest {
     }
 
     private void assertUriPermission(Uri uri) throws Exception {
-        assertRedactedUri(uri);
-        // TODO (b/189086247): Test with non-RES app
-        assertReadAccess(uri);
-        assertNoWriteAccess(uri);
+        assertPickerUri(uri);
     }
 
-    private void assertRedactedUri(Uri uri) {
-        final String uriId = uri.getLastPathSegment();
-        assertThat(uriId.startsWith("RUID")).isTrue();
-        assertThat(uriId.length()).isEqualTo(REDACTED_URI_ID_SIZE);
-    }
-
-    private void assertReadAccess(Uri uri) throws Exception {
-        try (ParcelFileDescriptor pfd = mContext.getContentResolver().openFileDescriptor(uri,
-                "r")) {
-        }
-    }
-
-    private void assertNoWriteAccess(Uri uri) throws Exception {
-        try (ParcelFileDescriptor pfd = mContext.getContentResolver().openFileDescriptor(uri,
-                "w")) {
-            fail("Expected write access to be blocked");
-        } catch (Exception expected) {
-        }
+    private void assertPickerUri(Uri uri) {
+        final String pickerUriPrefix = PickerUriResolver.URI_PREFIX.toString();
+        assertThat(uri.toString().startsWith(pickerUriPrefix)).isTrue();
     }
 
     /**
@@ -148,7 +131,8 @@ public class PickerResultTest {
         // Create an item for the selection, since PickerResult only uses Item#getContentUri(),
         // no need to create actual item, and can mock the class.
         final Item imageItem = mock(Item.class);
-        when(imageItem.getContentUri()).thenReturn(imageUri);
+        final Uri pickerUri = ItemsProvider.getItemsUri(imageItem.getId(), UserId.CURRENT_USER);
+        when(imageItem.getContentUri()).thenReturn(pickerUri);
 
         return imageItem;
     }

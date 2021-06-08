@@ -450,6 +450,7 @@ public class MediaProvider extends ContentProvider {
     private PackageManager mPackageManager;
     private DevicePolicyManager mDevicePolicyManager;
     private UserManager mUserManager;
+    private PickerUriResolver mPickerUriResolver;
 
     private UserCache mUserCache;
     private VolumeCache mVolumeCache;
@@ -909,6 +910,7 @@ public class MediaProvider extends ContentProvider {
         mDevicePolicyManager = context.getSystemService(DevicePolicyManager.class);
         mUserManager = context.getSystemService(UserManager.class);
         mVolumeCache = new VolumeCache(context, mUserCache);
+        mPickerUriResolver = new PickerUriResolver(context);
 
         // Reasonable thumbnail size is half of the smallest screen edge width
         final DisplayMetrics metrics = context.getResources().getDisplayMetrics();
@@ -7157,6 +7159,13 @@ public class MediaProvider extends ContentProvider {
         return -1;
     }
 
+    private boolean isPickerUri(Uri uri) {
+        // TODO(b/188394433): move this method to PickerResolver in the spirit of not
+        // adding picker logic to MediaProvider
+        final int match = matchUri(uri, /* allowHidden */ false);
+        return match == PICKER_ID;
+    }
+
     @Override
     public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
         return openFileCommon(uri, mode, /*signal*/ null, /*opts*/ null);
@@ -7179,6 +7188,12 @@ public class MediaProvider extends ContentProvider {
             uri = getUriForRedactedUri(uri);
         }
         uri = safeUncanonicalize(uri);
+
+        if (isPickerUri(uri)) {
+            final int callingPid = mCallingIdentity.get().pid;
+            final int callingUid = mCallingIdentity.get().uid;
+            return mPickerUriResolver.openFile(uri, mode, signal, callingPid, callingUid);
+        }
 
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
@@ -7250,6 +7265,14 @@ public class MediaProvider extends ContentProvider {
             // 5. Return the fd from #4 to the app or throw an exception if any of the conditions
             // are not met
             return getOriginalMediaFormatFileDescriptor(opts);
+        }
+
+        // This is needed for thumbnail resolution as it doesn't go through openFileCommon
+        if (isPickerUri(uri)) {
+            final int callingPid = mCallingIdentity.get().pid;
+            final int callingUid = mCallingIdentity.get().uid;
+            return mPickerUriResolver.openTypedAssetFile(uri, mimeTypeFilter, opts, signal,
+                    callingPid, callingUid);
         }
 
         // TODO: enforce that caller has access to this uri
@@ -9605,6 +9628,9 @@ public class MediaProvider extends ContentProvider {
     static final int DOWNLOADS = 800;
     static final int DOWNLOADS_ID = 801;
 
+    static final int PICKER = 900;
+    static final int PICKER_ID = 901;
+
     private static final HashSet<Integer> REDACTED_URI_SUPPORTED_TYPES = new HashSet<>(
             Arrays.asList(AUDIO_MEDIA_ID, IMAGES_MEDIA_ID, VIDEO_MEDIA_ID, FILES_ID, DOWNLOADS_ID));
 
@@ -9644,6 +9670,17 @@ public class MediaProvider extends ContentProvider {
         }
 
         public LocalUriMatcher(String auth) {
+            // Warning: Do not move these exact string matches below "*/.." matches.
+            // If "*/.." match is added to mPublic children before "picker/#/#", then while matching
+            // "picker/0/10", UriMatcher matches "*" node with "picker" and tries to match "0/10"
+            // with children of "*".
+            // UriMatcher does not look for exact "picker" string match if it finds * node before
+            // it. It finds the first best child match and proceeds the match from there without
+            // looking at other siblings.
+            mPublic.addURI(auth, "picker", PICKER);
+            // content://media/picker/<user-id>/<media-id>
+            mPublic.addURI(auth, "picker/#/#", PICKER_ID);
+
             mPublic.addURI(auth, "*/images/media", IMAGES_MEDIA);
             mPublic.addURI(auth, "*/images/media/#", IMAGES_MEDIA_ID);
             mPublic.addURI(auth, "*/images/media/#/thumbnail", IMAGES_MEDIA_ID_THUMBNAIL);

@@ -44,8 +44,7 @@
     <string name="allow" msgid="8885707816848569619">"Cho phép"</string>
     <string name="deny" msgid="6040983710442068936">"Từ chối"</string>
     <string name="add" msgid="2894574044585549298">"Thêm"</string>
-    <!-- no translation found for picker_view_selected (2266031384396143883) -->
-    <skip />
+    <string name="picker_view_selected" msgid="2266031384396143883">"Đã chọn Chế độ xem"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> sửa đổi <xliff:g id="COUNT">^2</xliff:g> tệp âm thanh?</item>
       <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> sửa đổi tệp âm thanh này?</item>

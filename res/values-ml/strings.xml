@@ -44,8 +44,7 @@
     <string name="allow" msgid="8885707816848569619">"അനുവദിക്കൂ"</string>
     <string name="deny" msgid="6040983710442068936">"നിരസിക്കുക"</string>
     <string name="add" msgid="2894574044585549298">"ചേർക്കുക"</string>
-    <!-- no translation found for picker_view_selected (2266031384396143883) -->
-    <skip />
+    <string name="picker_view_selected" msgid="2266031384396143883">"തിരഞ്ഞെടുത്തത് കാണുക"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g> ഓഡിയോ ഫയലുകൾ പരിഷ്‍കരിക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>
       <item quantity="one">ഈ ഓഡിയോ ഫയൽ പരിഷ്‍കരിക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?</item>

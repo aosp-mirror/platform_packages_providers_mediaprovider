@@ -44,8 +44,7 @@
     <string name="allow" msgid="8885707816848569619">"ಅನುಮತಿಸಿ"</string>
     <string name="deny" msgid="6040983710442068936">"ನಿರಾಕರಿಸಿ"</string>
     <string name="add" msgid="2894574044585549298">"ಸೇರಿಸಿ"</string>
-    <!-- no translation found for picker_view_selected (2266031384396143883) -->
-    <skip />
+    <string name="picker_view_selected" msgid="2266031384396143883">"ಆಯ್ಕೆಮಾಡಿರುವುದನ್ನು ವೀಕ್ಷಿಸಿ"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="one">ಈ <xliff:g id="COUNT">^2</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_1">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?</item>
       <item quantity="other">ಈ <xliff:g id="COUNT">^2</xliff:g> ಆಡಿಯೋ ಫೈಲ್‌ಗಳನ್ನು ಮಾರ್ಪಡಿಸಲು <xliff:g id="APP_NAME_1">^1</xliff:g> ಗೆ ಅನುಮತಿ ನೀಡಬೇಕೇ?</item>

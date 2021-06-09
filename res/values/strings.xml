@@ -88,6 +88,9 @@
     <!-- Select button for PhotoPicker. [CHAR LIMIT=30] -->
     <string name="select">Select</string>
 
+    <!-- Recent header for PhotoPicker. [CHAR LIMIT=50] -->
+    <string name="recent">Recent</string>
+
     <!-- PhotoPicker view selected action text. [CHAR LIMIT=80] -->
     <string name="picker_view_selected">View selected</string>
 

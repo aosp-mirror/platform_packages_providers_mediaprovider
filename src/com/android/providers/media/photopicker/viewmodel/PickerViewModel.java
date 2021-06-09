@@ -27,6 +27,7 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.android.providers.media.photopicker.DateTimeUtils;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Item;
@@ -42,6 +43,8 @@ import java.util.Map;
  */
 public class PickerViewModel extends AndroidViewModel {
     public static final String TAG = "PhotoPicker";
+
+    private static final int RECENT_MINIMUM_COUNT = 12;
 
     private MutableLiveData<List<Item>> mItemList;
     private MutableLiveData<Map<Uri, Item>> mSelectedItemList = new MutableLiveData<>();
@@ -109,10 +112,28 @@ public class PickerViewModel extends AndroidViewModel {
             return items;
         }
 
+        int recentSize = 0;
+        long currentDateTaken = 0;
+        // add Recent date header
+        items.add(Item.createDateItem(0));
         while (cursor.moveToNext()) {
             // TODO(b/188394433): Return userId in the cursor so that we do not need to pass it
             //  here again.
-            items.add(Item.fromCursor(cursor, userId));
+            final Item item = Item.fromCursor(cursor, userId);
+            final long dateTaken = item.getDateTaken();
+            // the minimum count of items in recent is not reached
+            if (recentSize < RECENT_MINIMUM_COUNT) {
+                recentSize++;
+                currentDateTaken = dateTaken;
+            }
+
+            // The date taken of these two images are not on the
+            // same day, add the new date header.
+            if (!DateTimeUtils.isSameDate(currentDateTaken, dateTaken)) {
+                items.add(Item.createDateItem(dateTaken));
+                currentDateTaken = dateTaken;
+            }
+            items.add(item);
         }
 
         Log.d(TAG, "Loaded " + items.size() + " items for user " + userId.toString());

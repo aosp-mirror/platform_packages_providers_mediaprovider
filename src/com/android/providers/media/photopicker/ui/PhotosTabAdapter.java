@@ -20,6 +20,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.photopicker.data.model.Item;
@@ -33,6 +34,7 @@ import java.util.List;
  */
 public class PhotosTabAdapter extends RecyclerView.Adapter<BaseItemHolder> {
 
+    private static final int ITEM_TYPE_DATE_HEADER = 0;
     private static final int ITEM_TYPE_PHOTO = 1;
 
     public static final int COLUMN_COUNT = 3;
@@ -52,20 +54,26 @@ public class PhotosTabAdapter extends RecyclerView.Adapter<BaseItemHolder> {
     @NonNull
     @Override
     public BaseItemHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
+        if (viewType == ITEM_TYPE_DATE_HEADER) {
+            return new DateHeaderHolder(viewGroup.getContext(), viewGroup);
+        }
         return new PhotoGridHolder(viewGroup.getContext(), viewGroup, mImageLoader,
                 mPickerViewModel.canSelectMultiple());
     }
 
     @Override
-    public void onBindViewHolder(@NonNull BaseItemHolder photoHolder, int position) {
+    public void onBindViewHolder(@NonNull BaseItemHolder itemHolder, int position) {
         final Item item = getItem(position);
-        photoHolder.itemView.setTag(item);
-        photoHolder.itemView.setOnClickListener(mOnClickListener);
-        final boolean isItemSelected =
-                mPickerViewModel.getSelectedItems().getValue().containsKey(
-                        item.getContentUri());
-        photoHolder.itemView.setSelected(isItemSelected);
-        photoHolder.bind();
+        itemHolder.itemView.setTag(item);
+
+        if (getItemViewType(position) == ITEM_TYPE_PHOTO) {
+            itemHolder.itemView.setOnClickListener(mOnClickListener);
+            final boolean isItemSelected =
+                    mPickerViewModel.getSelectedItems().getValue().containsKey(
+                            item.getContentUri());
+            itemHolder.itemView.setSelected(isItemSelected);
+        }
+        itemHolder.bind();
     }
 
     @Override
@@ -75,6 +83,9 @@ public class PhotosTabAdapter extends RecyclerView.Adapter<BaseItemHolder> {
 
     @Override
     public int getItemViewType(int position) {
+        if (getItem(position).isDate()) {
+            return ITEM_TYPE_DATE_HEADER;
+        }
         return ITEM_TYPE_PHOTO;
     }
 
@@ -85,5 +96,20 @@ public class PhotosTabAdapter extends RecyclerView.Adapter<BaseItemHolder> {
     public void updateItemList(List<Item> itemList) {
         mItemList = itemList;
         notifyDataSetChanged();
+    }
+
+    public GridLayoutManager.SpanSizeLookup createSpanSizeLookup() {
+        return new GridLayoutManager.SpanSizeLookup() {
+            @Override
+            public int getSpanSize(int position) {
+                // Make layout whitespace span the grid. This has the effect of breaking
+                // grid rows whenever layout whitespace is encountered.
+                if (getItemViewType(position) == ITEM_TYPE_DATE_HEADER) {
+                    return COLUMN_COUNT;
+                } else {
+                    return 1;
+                }
+            }
+        };
     }
 }

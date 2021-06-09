@@ -44,8 +44,7 @@
     <string name="allow" msgid="8885707816848569619">"Permitir"</string>
     <string name="deny" msgid="6040983710442068936">"Denegar"</string>
     <string name="add" msgid="2894574044585549298">"Engadir"</string>
-    <!-- no translation found for picker_view_selected (2266031384396143883) -->
-    <skip />
+    <string name="picker_view_selected" msgid="2266031384396143883">"Ver elemento seleccionado"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other">Queres permitir que <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> ficheiros de audio?</item>
       <item quantity="one">Queres permitir que <xliff:g id="APP_NAME_0">^1</xliff:g> modifique este ficheiro de audio?</item>

@@ -44,7 +44,7 @@ public class ItemTest {
                 dateTaken, duration);
         cursor.moveToFirst();
 
-        final Item item = new Item(cursor);
+        final Item item = new Item(cursor, UserId.CURRENT_USER);
 
         assertThat(item.getId()).isEqualTo(id);
         assertThat(item.getDateTaken()).isEqualTo(dateTaken);

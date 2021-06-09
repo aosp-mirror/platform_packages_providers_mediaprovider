@@ -44,8 +44,7 @@
     <string name="allow" msgid="8885707816848569619">"Tillad"</string>
     <string name="deny" msgid="6040983710442068936">"Afvis"</string>
     <string name="add" msgid="2894574044585549298">"Tilføj"</string>
-    <!-- no translation found for picker_view_selected (2266031384396143883) -->
-    <skip />
+    <string name="picker_view_selected" msgid="2266031384396143883">"Visning valgt"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="one">Vil du give <xliff:g id="APP_NAME_1">^1</xliff:g> tilladelse til at ændre <xliff:g id="COUNT">^2</xliff:g> lydfil?</item>
       <item quantity="other">Vil du give <xliff:g id="APP_NAME_1">^1</xliff:g> tilladelse til at ændre <xliff:g id="COUNT">^2</xliff:g> lydfiler?</item>

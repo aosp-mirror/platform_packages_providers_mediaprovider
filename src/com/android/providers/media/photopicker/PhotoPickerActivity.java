@@ -21,12 +21,18 @@ import static com.android.providers.media.photopicker.data.PickerResult.getPicke
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.CompoundButton;
+import android.widget.Switch;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.android.providers.media.R;
+
+import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.ui.PhotosTabFragment;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
@@ -41,6 +47,7 @@ import java.util.List;
 public class PhotoPickerActivity extends AppCompatActivity {
 
     private PickerViewModel mPickerViewModel;
+    private UserIdManager mUserIdManager;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -65,6 +72,40 @@ public class PhotoPickerActivity extends AppCompatActivity {
                     .add(R.id.fragment_container, PhotosTabFragment.class, null)
                     .commitNow();
         }
+
+        mUserIdManager = mPickerViewModel.getUserIdManager();
+        final Switch profileSwitch = findViewById(R.id.workprofile);
+        if (mUserIdManager.isMultiUserProfiles()) {
+            profileSwitch.setVisibility(View.VISIBLE);
+            setUpWorkProfileToggleSwitch(profileSwitch);
+        }
+    }
+
+    private void setUpWorkProfileToggleSwitch(Switch profileSwitch) {
+        if (mUserIdManager.isManagedUserId()) {
+            profileSwitch.setChecked(true);
+        }
+
+        profileSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    Toast.makeText(PhotoPickerActivity.this, "Switching to work profile",
+                            Toast.LENGTH_SHORT).show();
+                    // TODO(b/190024747): Add caching for performance before switching data to and
+                    //  fro work profile
+                    mUserIdManager.setCurrentUserProfileId(mUserIdManager.getManagedUserId());
+
+                } else {
+                    Toast.makeText(PhotoPickerActivity.this, "Switching to personal profile",
+                            Toast.LENGTH_SHORT).show();
+                    // TODO(b/190024747): Add caching for performance before switching data to and
+                    //  fro work profile
+                    mUserIdManager.setCurrentUserProfileId(mUserIdManager.getPersonalUserId());
+                }
+                mPickerViewModel.updateItems();
+            }
+        });
     }
 
     public void setResultAndFinishSelf() {

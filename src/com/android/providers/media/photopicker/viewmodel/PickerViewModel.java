@@ -91,6 +91,13 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
+     * @return {@link UserIdManager} for this context.
+     */
+    public UserIdManager getUserIdManager() {
+        return mUserIdManager;
+    }
+
+    /**
      * @return the list of Items with all photos and videos on the device.
      */
     public LiveData<List<Item>> getItems() {

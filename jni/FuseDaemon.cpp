@@ -751,7 +751,7 @@ static void pf_fallocate(fuse_req_t req, fuse_ino_t ino, int mode, off_t offset,
 
     handle* h = reinterpret_cast<handle*>(fi->fh);
     auto err = fallocate(h->fd, mode, offset, length);
-    fuse_reply_err(req, err);
+    fuse_reply_err(req, err ? errno : 0);
 }
 
 static void pf_getattr(fuse_req_t req,

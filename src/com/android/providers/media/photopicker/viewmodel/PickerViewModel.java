@@ -18,6 +18,7 @@ package com.android.providers.media.photopicker.viewmodel;
 
 import android.annotation.NonNull;
 import android.app.Application;
+import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
@@ -27,6 +28,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 
@@ -43,12 +45,15 @@ public class PickerViewModel extends AndroidViewModel {
 
     private MutableLiveData<List<Item>> mItemList;
     private MutableLiveData<Map<Uri, Item>> mSelectedItemList = new MutableLiveData<>();
-    private ItemsProvider mItemsProvider;
+    private final ItemsProvider mItemsProvider;
+    private final UserIdManager mUserIdManager;
     private boolean mSelectMultiple = false;
 
     public PickerViewModel(@NonNull Application application) {
         super(application);
-        mItemsProvider = new ItemsProvider(application.getApplicationContext());
+        final Context context = application.getApplicationContext();
+        mItemsProvider = new ItemsProvider(context);
+        mUserIdManager = UserIdManager.create(context);
     }
 
     /**
@@ -96,19 +101,21 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private List<Item> loadItems() {
-        List<Item> items = new ArrayList<>();
+        final List<Item> items = new ArrayList<>();
+        final UserId userId = mUserIdManager.getCurrentUserProfileId();
         // TODO(b/168001592) call getItems() from worker thread.
-        Cursor cursor = mItemsProvider.getItems(null, 0, -1, null, UserId.CURRENT_USER);
-
+        Cursor cursor = mItemsProvider.getItems(null, 0, -1, null, userId);
         if (cursor == null) {
             return items;
         }
 
         while (cursor.moveToNext()) {
-            items.add(Item.fromCursor(cursor));
+            // TODO(b/188394433): Return userId in the cursor so that we do not need to pass it
+            //  here again.
+            items.add(Item.fromCursor(cursor, userId));
         }
 
-        Log.d(TAG, "Load items with count = " + items.size());
+        Log.d(TAG, "Loaded " + items.size() + " items for user " + userId.toString());
         return items;
     }
 

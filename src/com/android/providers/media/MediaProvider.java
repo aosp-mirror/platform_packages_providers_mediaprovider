@@ -933,12 +933,12 @@ public class MediaProvider extends ContentProvider {
 
         mMediaScanner = new ModernMediaScanner(context);
 
-        mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME,
-                true, false, false, Column.class,
-                Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER, mIdGenerator);
-        mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME,
-                false, false, false, Column.class,
-                Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER, mIdGenerator);
+        mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, false, false,
+                Column.class, Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER,
+                mIdGenerator);
+        mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false, false,
+                Column.class, Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER,
+                mIdGenerator);
 
         mTranscodeHelper = new TranscodeHelper(context, this);
 
@@ -2814,7 +2814,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         // Update locale if necessary.
-        if (helper == mInternalDatabase && !Locale.getDefault().equals(mLastLocale)) {
+        if (helper.isInternal() && !Locale.getDefault().equals(mLastLocale)) {
             Log.i(TAG, "Updating locale within queryInternal");
             onLocaleChanged(false);
         }
@@ -3847,7 +3847,7 @@ public class MediaProvider extends ContentProvider {
         // So we only set the user_id field in the database for external storage.
         qb.allowColumn(FileColumns._USER_ID);
         int ownerUserId = FileUtils.extractUserId(path);
-        if (!helper.mInternal) {
+        if (helper.isExternal()) {
             if (isAppCloneUserForFuse(ownerUserId)) {
                 values.put(FileColumns._USER_ID, ownerUserId);
             } else {
@@ -4232,7 +4232,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             case IMAGES_THUMBNAILS: {
-                if (helper.mInternal) {
+                if (helper.isInternal()) {
                     throw new UnsupportedOperationException(
                             "Writing to internal storage is not supported.");
                 }
@@ -4254,7 +4254,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             case VIDEO_THUMBNAILS: {
-                if (helper.mInternal) {
+                if (helper.isInternal()) {
                     throw new UnsupportedOperationException(
                             "Writing to internal storage is not supported.");
                 }
@@ -4333,7 +4333,7 @@ public class MediaProvider extends ContentProvider {
             }
 
             case AUDIO_ALBUMART: {
-                if (helper.mInternal) {
+                if (helper.isInternal()) {
                     throw new UnsupportedOperationException("no internal album art allowed");
                 }
 
@@ -9278,13 +9278,6 @@ public class MediaProvider extends ContentProvider {
             return true;
         }
         if (name.startsWith("external-") && name.endsWith(".db")) {
-            return true;
-        }
-        return false;
-    }
-
-    static boolean isInternalMediaDatabaseName(String name) {
-        if (INTERNAL_DATABASE_NAME.equals(name)) {
             return true;
         }
         return false;

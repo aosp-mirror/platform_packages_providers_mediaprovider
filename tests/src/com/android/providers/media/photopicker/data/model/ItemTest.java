@@ -39,7 +39,6 @@ public class ItemTest {
         final String displayName = "123.png";
         final String volumeName = "primary";
         final long duration = 1000;
-
         final Cursor cursor = generateCursorForItem(id, mimeType, displayName, volumeName,
                 dateTaken, duration);
         cursor.moveToFirst();
@@ -52,6 +51,67 @@ public class ItemTest {
         assertThat(item.getMimeType()).isEqualTo(mimeType);
         assertThat(item.getVolumeName()).isEqualTo(volumeName);
         assertThat(item.getDuration()).isEqualTo(duration);
+    }
+
+    @Test
+    public void testIsImage() {
+        final long id = 1;
+        final long dateTaken = 12345678l;
+        final String mimeType = "image/png";
+        final String displayName = "123.png";
+        final String volumeName = "primary";
+        final long duration = 1000;
+        final Cursor cursor = generateCursorForItem(id, mimeType, displayName, volumeName,
+                dateTaken, duration);
+        cursor.moveToFirst();
+
+        final Item item = new Item(cursor, UserId.CURRENT_USER);
+
+        assertThat(item.isImage()).isTrue();
+    }
+
+    @Test
+    public void testIsVideo() {
+        final long id = 1;
+        final long dateTaken = 12345678l;
+        final String mimeType = "video/mpeg";
+        final String displayName = "123.png";
+        final String volumeName = "primary";
+        final long duration = 1000;
+        final Cursor cursor = generateCursorForItem(id, mimeType, displayName, volumeName,
+                dateTaken, duration);
+        cursor.moveToFirst();
+
+        final Item item = new Item(cursor, UserId.CURRENT_USER);
+
+        assertThat(item.isVideo()).isTrue();
+    }
+
+    @Test
+    public void testIsGif() {
+        final long id = 1;
+        final long dateTaken = 12345678l;
+        final String mimeType = "image/gif";
+        final String displayName = "123.png";
+        final String volumeName = "primary";
+        final long duration = 1000;
+        final Cursor cursor = generateCursorForItem(id, mimeType, displayName, volumeName,
+                dateTaken, duration);
+        cursor.moveToFirst();
+
+        final Item item = new Item(cursor, UserId.CURRENT_USER);
+
+        assertThat(item.isGif()).isTrue();
+    }
+
+    @Test
+    public void testCreateDateItem() {
+        final long dateTaken = 12345678l;
+
+        final Item item = Item.createDateItem(dateTaken);
+
+        assertThat(item.getDateTaken()).isEqualTo(dateTaken);
+        assertThat(item.isDate()).isTrue();
     }
 
     private static Cursor generateCursorForItem(long id, String mimeType,

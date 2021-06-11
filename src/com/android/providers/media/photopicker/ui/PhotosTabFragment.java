@@ -92,6 +92,10 @@ public class PhotosTabFragment extends Fragment {
             adapter.updateItemList(itemList);
         });
         final GridLayoutManager layoutManager = new GridLayoutManager(getContext(), COLUMN_COUNT);
+        final GridLayoutManager.SpanSizeLookup lookup = adapter.createSpanSizeLookup();
+        if (lookup != null) {
+            layoutManager.setSpanSizeLookup(lookup);
+        }
         photosList.setLayoutManager(layoutManager);
         photosList.setAdapter(adapter);
     }

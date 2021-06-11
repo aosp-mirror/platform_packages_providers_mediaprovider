@@ -67,6 +67,7 @@ public class Item {
     private boolean mIsImage;
     private boolean mIsVideo;
     private boolean mIsGif;
+    private boolean mIsDate;
 
     private Item() {}
 
@@ -88,6 +89,10 @@ public class Item {
 
     public boolean isGif() {
         return mIsGif;
+    }
+
+    public boolean isDate() {
+        return mIsDate;
     }
 
     public Uri getContentUri() {
@@ -116,8 +121,21 @@ public class Item {
 
     public static Item fromCursor(Cursor cursor, UserId userId) {
         assert(cursor != null);
-        final Item info = new Item(cursor, userId);
-        return info;
+        final Item item = new Item(cursor, userId);
+        return item;
+    }
+
+    /**
+     * Return the date item. If dateTaken is 0, it is a recent item.
+     * @param dateTaken the time of date taken. The unit is in milliseconds since
+     *                  January 1, 1970 00:00:00.0 UTC.
+     * @return the item with date type
+     */
+    public static Item createDateItem(long dateTaken) {
+        final Item item = new Item();
+        item.mIsDate = true;
+        item.mDateTaken = dateTaken;
+        return item;
     }
 
     /**

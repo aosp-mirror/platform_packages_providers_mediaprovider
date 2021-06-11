@@ -66,7 +66,25 @@ public interface UserIdManager {
     @Nullable
     UserId getCurrentUserProfileId();
 
-    void setCurrentUserProfileId(UserId userId);
+    /**
+     * Set Managed User as current user profile
+     */
+    void setManagedAsCurrentUserProfile();
+
+    /**
+     * Set Personal User as current user profile
+     */
+    void setPersonalAsCurrentUserProfile();
+
+    /**
+     * @return true iff current user is the current user profile selected
+     */
+    boolean isCurrentUserSelected();
+
+    /**
+     * @return true iff managed user is the current user profile selected
+     */
+    boolean isManagedUserSelected();
 
     /**
      * Whether the current user is the personal user profile iff there are at least 2 user
@@ -165,9 +183,24 @@ public interface UserIdManager {
         }
 
         @Override
-        public void setCurrentUserProfileId(UserId userId) {
+        public void setManagedAsCurrentUserProfile() {
+            setCurrentUserProfileId(getManagedUserId());
+        }
+
+        @Override
+        public void setPersonalAsCurrentUserProfile() {
+            setCurrentUserProfileId(getPersonalUserId());
+        }
+
+        public boolean isCurrentUserSelected() {
             synchronized (mLock) {
-                mCurrentUserProfile = userId;
+                return mCurrentUserProfile.equals(UserId.CURRENT_USER);
+            }
+        }
+
+        public boolean isManagedUserSelected() {
+            synchronized (mLock) {
+                return mCurrentUserProfile.equals(getManagedUserId());
             }
         }
 
@@ -184,6 +217,12 @@ public interface UserIdManager {
         private void setUserIds() {
             synchronized (mLock) {
                 setUserIdsInternal();
+            }
+        }
+
+        private void setCurrentUserProfileId(UserId userId) {
+            synchronized (mLock) {
+                mCurrentUserProfile = userId;
             }
         }
 

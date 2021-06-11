@@ -44,7 +44,8 @@
             android:allowBackup="false"
             android:supportsRtl="true"
             android:forceQueryable="true"
-            android:usesCleartextTraffic="true">
+            android:usesCleartextTraffic="true"
+            android:crossProfile="true">
         <provider
                 android:name="com.android.providers.media.MediaProvider"
                 android:authorities="media"

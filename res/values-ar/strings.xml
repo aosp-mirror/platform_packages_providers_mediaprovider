@@ -52,6 +52,10 @@
     <string name="allow" msgid="8885707816848569619">"سماح"</string>
     <string name="deny" msgid="6040983710442068936">"رفض"</string>
     <string name="add" msgid="2894574044585549298">"إضافة"</string>
+    <string name="deselect" msgid="4297825044827769490">"إلغاء الاختيار"</string>
+    <string name="select" msgid="2704765470563027689">"اختيار"</string>
+    <!-- no translation found for recent (6694613584743207874) -->
+    <skip />
     <string name="picker_view_selected" msgid="2266031384396143883">"عرض المحتوى المحدّد"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="zero">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> ملف صوتي؟</item>

@@ -44,6 +44,10 @@
     <string name="allow" msgid="8885707816848569619">"Дозволи"</string>
     <string name="deny" msgid="6040983710442068936">"Одбиј"</string>
     <string name="add" msgid="2894574044585549298">"Додај"</string>
+    <string name="deselect" msgid="4297825044827769490">"Поништи го изборот"</string>
+    <string name="select" msgid="2704765470563027689">"Избери"</string>
+    <!-- no translation found for recent (6694613584743207874) -->
+    <skip />
     <string name="picker_view_selected" msgid="2266031384396143883">"Прикажи ги избраните"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="one">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> аудиодатотека?</item>

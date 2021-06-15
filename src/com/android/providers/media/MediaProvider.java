@@ -67,6 +67,7 @@ import static com.android.providers.media.util.DatabaseUtils.bindList;
 import static com.android.providers.media.util.FileUtils.DEFAULT_FOLDER_NAMES;
 import static com.android.providers.media.util.FileUtils.PATTERN_PENDING_FILEPATH_FOR_SQL;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
+import static com.android.providers.media.util.FileUtils.extractFileExtension;
 import static com.android.providers.media.util.FileUtils.extractFileName;
 import static com.android.providers.media.util.FileUtils.extractPathOwnerPackageName;
 import static com.android.providers.media.util.FileUtils.extractRelativePath;
@@ -1529,7 +1530,7 @@ public class MediaProvider extends ContentProvider {
 
         final String transformsSyntheticDir = getStorageRootPathForUid(uid) + "/"
                 + REDACTED_URI_DIR;
-        final String fileName = extractDisplayName(path);
+        final String fileName = extractFileName(path);
         return fileName != null && path.toLowerCase(Locale.ROOT).startsWith(
                 transformsSyntheticDir.toLowerCase(Locale.ROOT)) && fileName.startsWith(
                 REDACTED_URI_ID_PREFIX) && fileName.length() == REDACTED_URI_ID_SIZE;
@@ -1544,7 +1545,7 @@ public class MediaProvider extends ContentProvider {
 
     private FileLookupResult getFileLookupResultsForRedactedUriPath(int uid, @NonNull String path) {
         final LocalCallingIdentity token = clearLocalCallingIdentity();
-        final String fileName = extractDisplayName(path);
+        final String fileName = extractFileName(path);
 
         final DatabaseHelper helper;
         try {
@@ -2879,11 +2880,17 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
+        String ext = getFileExtensionFromCursor(c, columnNames);
+        ext = ext == null ? "" : "." + ext;
+        final String displayName = redactedUriId + ext;
+        final String data = getPathForRedactedUriId(displayName);
+
+
         updateRow(columnNames, MediaColumns._ID, row, redactedUriId);
-        updateRow(columnNames, MediaColumns.DISPLAY_NAME, row, redactedUriId);
+        updateRow(columnNames, MediaColumns.DISPLAY_NAME, row, displayName);
         updateRow(columnNames, MediaColumns.RELATIVE_PATH, row, REDACTED_URI_DIR);
         updateRow(columnNames, MediaColumns.BUCKET_DISPLAY_NAME, row, REDACTED_URI_DIR);
-        updateRow(columnNames, MediaColumns.DATA, row, getPathForRedactedUriId(redactedUriId));
+        updateRow(columnNames, MediaColumns.DATA, row, data);
         updateRow(columnNames, MediaColumns.DOCUMENT_ID, row, null);
         updateRow(columnNames, MediaColumns.INSTANCE_ID, row, null);
         updateRow(columnNames, MediaColumns.BUCKET_ID, row, null);
@@ -2891,9 +2898,21 @@ public class MediaProvider extends ContentProvider {
         return redactedUriCursor;
     }
 
-    static private String getPathForRedactedUriId(String redactedUriId) {
+    @Nullable
+    private static String getFileExtensionFromCursor(@NonNull Cursor c,
+            @NonNull HashSet<String> columnNames) {
+        if (columnNames.contains(MediaColumns.DATA)) {
+            return extractFileExtension(c.getString(c.getColumnIndex(MediaColumns.DATA)));
+        }
+        if (columnNames.contains(MediaColumns.DISPLAY_NAME)) {
+            return extractFileExtension(c.getString(c.getColumnIndex(MediaColumns.DISPLAY_NAME)));
+        }
+        return null;
+    }
+
+    static private String getPathForRedactedUriId(@NonNull String displayName) {
         return getStorageRootPathForUid(Binder.getCallingUid()) + "/" + REDACTED_URI_DIR + "/"
-                + redactedUriId;
+                + displayName;
     }
 
     static private String getStorageRootPathForUid(int uid) {
@@ -8105,7 +8124,7 @@ public class MediaProvider extends ContentProvider {
                             mediaCapabilitiesUid, new long[0]);
                 }
 
-                redactedUriId = extractDisplayName(path);
+                redactedUriId = extractFileName(path);
 
                 // If path is redacted Uris' path, ioPath must be the real path, ioPath must
                 // haven been updated to the real path during onFileLookupForFuse.

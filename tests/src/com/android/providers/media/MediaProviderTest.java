@@ -1435,4 +1435,41 @@ public class MediaProviderTest {
             }
         }
     }
+
+    @Test
+    public void testRedactionForFileExtension() throws Exception {
+        testRedactionForFileExtension(R.raw.test_audio, ".mp3");
+        testRedactionForFileExtension(R.raw.test_video_xmp, ".mp4");
+        testRedactionForFileExtension(R.raw.lg_g4_iso_800_jpg, ".jpg");
+    }
+
+    private void testRedactionForFileExtension(int resId, String extension) throws Exception {
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        final File file = new File(dir, "test" + System.nanoTime() + extension);
+
+        stage(resId, file);
+
+        final List<Uri> uris = new ArrayList<>();
+        uris.add(MediaStore.scanFile(sIsolatedResolver, file));
+
+
+        try (ContentProviderClient cpc = sIsolatedResolver
+                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+            final MediaProvider mp = (MediaProvider) cpc.getLocalContentProvider();
+
+            final String[] projection = new String[]{MediaColumns.DISPLAY_NAME, MediaColumns.DATA};
+            for (Uri uri : mp.getRedactedUri(uris)) {
+                try (Cursor c = sIsolatedResolver.query(uri, projection, null, null)) {
+                    assertNotNull(c);
+                    assertEquals(1, c.getCount());
+                    assertTrue(c.moveToFirst());
+                    assertTrue(c.getString(0).endsWith(extension));
+                    assertTrue(c.getString(1).endsWith(extension));
+                }
+            }
+        } finally {
+            file.delete();
+        }
+    }
 }

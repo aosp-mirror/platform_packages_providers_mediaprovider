@@ -44,12 +44,9 @@
     <string name="allow" msgid="8885707816848569619">"ଅନୁମତି ଦିଅନ୍ତୁ"</string>
     <string name="deny" msgid="6040983710442068936">"ଅଗ୍ରାହ୍ୟ କରନ୍ତୁ"</string>
     <string name="add" msgid="2894574044585549298">"ଯୋଗ କରନ୍ତୁ"</string>
-    <!-- no translation found for deselect (4297825044827769490) -->
-    <skip />
-    <!-- no translation found for select (2704765470563027689) -->
-    <skip />
-    <!-- no translation found for recent (6694613584743207874) -->
-    <skip />
+    <string name="deselect" msgid="4297825044827769490">"ଅଚୟନ କରନ୍ତୁ"</string>
+    <string name="select" msgid="2704765470563027689">"ଚୟନ କରନ୍ତୁ"</string>
+    <string name="recent" msgid="6694613584743207874">"ବର୍ତ୍ତମାନର"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"ଚୟନିତଗୁଡ଼ିକୁ ଦେଖନ୍ତୁ"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other"><xliff:g id="COUNT">^2</xliff:g>ଟି ଅଡିଓ ଫାଇଲକୁ ପରିବର୍ତ୍ତନ କରିବା ପାଇଁ <xliff:g id="APP_NAME_1">^1</xliff:g>କୁ ଅନୁମତି ଦେବେ?</item>

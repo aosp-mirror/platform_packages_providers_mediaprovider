@@ -927,7 +927,7 @@ public class MediaProvider extends ContentProvider {
         mTranscodeHelper = new TranscodeHelper(context, this);
 
         // Create dir for redacted URI's path.
-        new File(getStorageRootPathForUid(UserHandle.myUserId()), REDACTED_URI_DIR).mkdirs();
+        new File("/storage/emulated/" + UserHandle.myUserId(), REDACTED_URI_DIR).mkdirs();
 
         final IntentFilter packageFilter = new IntentFilter();
         packageFilter.setPriority(10);

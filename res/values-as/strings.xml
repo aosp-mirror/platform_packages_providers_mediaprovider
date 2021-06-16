@@ -46,8 +46,7 @@
     <string name="add" msgid="2894574044585549298">"যোগ দিয়ক"</string>
     <string name="deselect" msgid="4297825044827769490">"বাছনিৰ পৰা আঁতৰাওক"</string>
     <string name="select" msgid="2704765470563027689">"বাছনি কৰক"</string>
-    <!-- no translation found for recent (6694613584743207874) -->
-    <skip />
+    <string name="recent" msgid="6694613584743207874">"শেহতীয়া"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"ভিউ বাছনি কৰা হৈছে"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>ক <xliff:g id="COUNT">^2</xliff:g> টা অডিঅ’ ফাইল সংশোধন কৰিবলৈ অনুমতি দিবনে?</item>

@@ -48,8 +48,7 @@
     <string name="add" msgid="2894574044585549298">"Dodaj"</string>
     <string name="deselect" msgid="4297825044827769490">"Poništi odabir"</string>
     <string name="select" msgid="2704765470563027689">"Odaberi"</string>
-    <!-- no translation found for recent (6694613584743207874) -->
-    <skip />
+    <string name="recent" msgid="6694613584743207874">"Nedavno"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Prikaži odabrano"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="one">Želite li dopustiti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g> da izmijeni <xliff:g id="COUNT">^2</xliff:g> audiodatoteku?</item>

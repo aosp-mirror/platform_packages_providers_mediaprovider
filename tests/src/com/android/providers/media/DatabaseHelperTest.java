@@ -19,6 +19,10 @@ package com.android.providers.media;
 import static android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY;
 
 import static com.android.providers.media.DatabaseHelper.makePristineSchema;
+import static com.android.providers.media.DatabaseHelper.TEST_RECOMPUTE_DB;
+import static com.android.providers.media.DatabaseHelper.TEST_UPGRADE_DB;
+import static com.android.providers.media.DatabaseHelper.TEST_DOWNGRADE_DB;
+import static com.android.providers.media.DatabaseHelper.TEST_CLEAN_DB;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -57,12 +61,6 @@ import java.util.Set;
 @RunWith(AndroidJUnit4.class)
 public class DatabaseHelperTest {
     private static final String TAG = "DatabaseHelperTest";
-
-    private static final String TEST_RECOMPUTE_DB = "test_recompute";
-    private static final String TEST_UPGRADE_DB = "test_upgrade";
-    private static final String TEST_DOWNGRADE_DB = "test_downgrade";
-    private static final String TEST_CLEAN_DB = "test_clean";
-
     private static final String SQLITE_MASTER_ORDER_BY = "type,name,tbl_name";
 
     private static Context sIsolatedContext;
@@ -544,7 +542,7 @@ public class DatabaseHelperTest {
     private static class DatabaseHelperO extends DatabaseHelper {
         public DatabaseHelperO(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_O,
-                    false, false, false, Column.class, null, null, null, null);
+                    false, false, Column.class, null, null, null, null);
         }
 
         @Override
@@ -556,7 +554,7 @@ public class DatabaseHelperTest {
     private static class DatabaseHelperP extends DatabaseHelper {
         public DatabaseHelperP(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_P,
-                    false, false, false, Column.class, null, null, null, null);
+                    false, false, Column.class, null, null, null, null);
         }
 
         @Override
@@ -568,7 +566,7 @@ public class DatabaseHelperTest {
     private static class DatabaseHelperQ extends DatabaseHelper {
         public DatabaseHelperQ(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_Q,
-                    false, false, false, Column.class, null, null, null, null);
+                    false, false, Column.class, null, null, null, null);
         }
 
         @Override
@@ -580,7 +578,7 @@ public class DatabaseHelperTest {
     private static class DatabaseHelperR extends DatabaseHelper {
         public DatabaseHelperR(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_R,
-                    false, false, false, Column.class, null, null,
+                    false, false, Column.class, null, null,
                     MediaProvider.MIGRATION_LISTENER, null);
         }
 
@@ -593,7 +591,7 @@ public class DatabaseHelperTest {
     private static class DatabaseHelperS extends DatabaseHelper {
         public DatabaseHelperS(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_S,
-                    false, false, false, Column.class, null, null,
+                    false, false, Column.class, null, null,
                     MediaProvider.MIGRATION_LISTENER, null);
         }
     }

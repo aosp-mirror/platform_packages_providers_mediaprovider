@@ -2622,13 +2622,22 @@ public class MediaProvider extends ContentProvider {
         final LocalCallingIdentity token = clearLocalCallingIdentity(
                 LocalCallingIdentity.fromExternal(getContext(), uid));
 
-        if(isRedactedUri(uri)) {
-            if((modeFlags & Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != 0) {
+        if (isRedactedUri(uri)) {
+            if ((modeFlags & Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != 0) {
                 // we don't allow write grants on redacted uris.
                 return PackageManager.PERMISSION_DENIED;
             }
 
             uri = getUriForRedactedUri(uri);
+        }
+
+        if (isPickerUri(uri)) {
+            // Do not allow implicit access (by the virtue of ownership/permission) to picker uris.
+            // Picker uris should have explicit permission grants.
+            // If the calling app A has an explicit grant on picker uri, UriGrantsManagerService
+            // will check the grant status and allow app A to grant the uri to app B (without
+            // calling into MediaProvider)
+            return PackageManager.PERMISSION_DENIED;
         }
 
         try {

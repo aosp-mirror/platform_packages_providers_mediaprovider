@@ -27,11 +27,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import android.Manifest;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.UserHandle;
 import android.provider.Column;
 import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.Files.FileColumns;
@@ -68,6 +70,8 @@ public class DatabaseHelperTest {
 
     @Before
     public void setUp() {
+        InstrumentationRegistry.getInstrumentation().getUiAutomation()
+                .adoptShellPermissionIdentity(Manifest.permission.INTERACT_ACROSS_USERS);
         final Context context = InstrumentationRegistry.getTargetContext();
         sIsolatedContext = new IsolatedContext(context, TAG, /*asFuseThread*/ false);
         sIsolatedResolver = sIsolatedContext.getContentResolver();
@@ -346,17 +350,6 @@ public class DatabaseHelperTest {
             {
                 final ContentValues values = new ContentValues();
                 values.put(FileColumns.DATA,
-                        "/storage/0000-0000/Android/sandbox/com.example2/Download/dir/foo.mp4");
-                values.put(FileColumns.DATE_ADDED, System.currentTimeMillis());
-                values.put(FileColumns.DATE_MODIFIED, System.currentTimeMillis());
-                values.put(FileColumns.DISPLAY_NAME, "foo.mp4");
-                values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_VIDEO);
-                values.put(FileColumns.MIME_TYPE, "video/mp4");
-                assertFalse(db.insert("files", FileColumns.DATA, values) == -1);
-            }
-            {
-                final ContentValues values = new ContentValues();
-                values.put(FileColumns.DATA,
                         "/storage/emulated/0/Download/foo");
                 values.put(FileColumns.DATE_ADDED, System.currentTimeMillis());
                 values.put(FileColumns.DATE_MODIFIED, System.currentTimeMillis());
@@ -403,18 +396,6 @@ public class DatabaseHelperTest {
                 assertEquals("text/plain",
                         c.getString(c.getColumnIndexOrThrow(FileColumns.MIME_TYPE)));
                 assertEquals(null,
-                        c.getString(c.getColumnIndexOrThrow(FileColumns.OWNER_PACKAGE_NAME)));
-                assertEquals("1", c.getString(c.getColumnIndexOrThrow(FileColumns.IS_DOWNLOAD)));
-            }
-            try (Cursor c = db.query("files", null, FileColumns.DISPLAY_NAME + "='foo.mp4'",
-                    null, null, null, null)) {
-                assertEquals(1, c.getCount());
-                assertTrue(c.moveToFirst());
-                assertEquals("/storage/0000-0000/Android/sandbox/com.example2/Download/dir/foo.mp4",
-                        c.getString(c.getColumnIndexOrThrow(FileColumns.DATA)));
-                assertEquals("video/mp4",
-                        c.getString(c.getColumnIndexOrThrow(FileColumns.MIME_TYPE)));
-                assertEquals("com.example2",
                         c.getString(c.getColumnIndexOrThrow(FileColumns.OWNER_PACKAGE_NAME)));
                 assertEquals("1", c.getString(c.getColumnIndexOrThrow(FileColumns.IS_DOWNLOAD)));
             }
@@ -508,6 +489,37 @@ public class DatabaseHelperTest {
                     // Verify that after db upgrade, for existing database rows, we set value of
                     // _modifier=MODIFIER_MEDIA_SCAN
                     assertThat(cr.getInt(0)).isEqualTo(FileColumns._MODIFIER_MEDIA_SCAN);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testAddUserId() throws Exception {
+        try (DatabaseHelper helper = new DatabaseHelperR(sIsolatedContext, TEST_UPGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            {
+                // Insert a row before database upgrade.
+                final ContentValues values = new ContentValues();
+                values.put(FileColumns.DATA, "/storage/emulated/0/DCIM/test.jpg");
+                assertThat(db.insert("files", FileColumns.DATA, values)).isNotEqualTo(-1);
+            }
+        }
+
+        try (DatabaseHelper helper = new DatabaseHelperS(sIsolatedContext, TEST_UPGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            // Insert a row in the new version as well
+            final ContentValues values = new ContentValues();
+            values.put(FileColumns.DATA, "/storage/emulated/0/DCIM/test2.jpg");
+            assertThat(db.insert("files", FileColumns.DATA, values)).isNotEqualTo(-1);
+
+            try (Cursor cr = db.query("files", new String[]{FileColumns._USER_ID}, null, null,
+                    null, null, null)) {
+                assertEquals(2, cr.getCount());
+                while (cr.moveToNext()) {
+                    // Verify that after db upgrade, for all database rows (new inserts and
+                    // upgrades), we set the _user_id
+                    assertThat(cr.getInt(0)).isEqualTo(UserHandle.myUserId());
                 }
             }
         }

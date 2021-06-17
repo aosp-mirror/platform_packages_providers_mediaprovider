@@ -90,6 +90,11 @@ public class IdleServiceTest {
         final Context context = InstrumentationRegistry.getTargetContext();
         final ContentResolver resolver = context.getContentResolver();
 
+        // Previous tests (like DatabaseHelperTest) may have left stale
+        // .database_uuid files, do an idle run first to clean them up.
+        runIdleMaintenance(resolver);
+        MediaStore.waitForIdle(resolver);
+
         final File dir = Environment.getExternalStorageDirectory();
         final File mediaDir = context.getExternalMediaDirs()[0];
 

@@ -47,64 +47,136 @@
       <item quantity="one">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> аудиодатотека?</item>
       <item quantity="other">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> аудиодатотеки?</item>
     </plurals>
+    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
+      <item quantity="one">Се изменува <xliff:g id="COUNT">^1</xliff:g> аудиодатотека…</item>
+      <item quantity="other">Се изменуваат <xliff:g id="COUNT">^1</xliff:g> аудиодатотеки…</item>
+    </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
       <item quantity="one">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> видео?</item>
       <item quantity="other">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> видеа?</item>
+    </plurals>
+    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
+      <item quantity="one">Се изменува <xliff:g id="COUNT">^1</xliff:g> видео…</item>
+      <item quantity="other">Се изменуваат <xliff:g id="COUNT">^1</xliff:g> видеа…</item>
     </plurals>
     <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
       <item quantity="one">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> фотографија?</item>
       <item quantity="other">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> фотографии?</item>
     </plurals>
+    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
+      <item quantity="one">Се изменува <xliff:g id="COUNT">^1</xliff:g> фотографија…</item>
+      <item quantity="other">Се изменуваат <xliff:g id="COUNT">^1</xliff:g> фотографии…</item>
+    </plurals>
     <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
       <item quantity="one">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> ставка?</item>
       <item quantity="other">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да измени <xliff:g id="COUNT">^2</xliff:g> ставки?</item>
+    </plurals>
+    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
+      <item quantity="one">Се изменува <xliff:g id="COUNT">^1</xliff:g> ставка…</item>
+      <item quantity="other">Се изменуваат <xliff:g id="COUNT">^1</xliff:g> ставки…</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
       <item quantity="one">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да премести <xliff:g id="COUNT">^2</xliff:g> аудиодатотека во корпата?</item>
       <item quantity="other">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да премести <xliff:g id="COUNT">^2</xliff:g> аудиодатотеки во корпата?</item>
     </plurals>
+    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
+      <item quantity="one">Се преместува <xliff:g id="COUNT">^1</xliff:g> аудиодатотека во корпата…</item>
+      <item quantity="other">Се преместуваат <xliff:g id="COUNT">^1</xliff:g> аудиодатотеки во корпата…</item>
+    </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
       <item quantity="one">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да премести <xliff:g id="COUNT">^2</xliff:g> видео во корпата?</item>
       <item quantity="other">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да премести <xliff:g id="COUNT">^2</xliff:g> видеа во корпата?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
+      <item quantity="one">Се преместува <xliff:g id="COUNT">^1</xliff:g> видео во корпата…</item>
+      <item quantity="other">Се преместуваат <xliff:g id="COUNT">^1</xliff:g> видеа во корпата…</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
       <item quantity="one">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да премести <xliff:g id="COUNT">^2</xliff:g> фотографија во корпата?</item>
       <item quantity="other">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да премести <xliff:g id="COUNT">^2</xliff:g> фотографии во корпата?</item>
     </plurals>
+    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
+      <item quantity="one">Се преместува <xliff:g id="COUNT">^1</xliff:g> фотографија во корпата…</item>
+      <item quantity="other">Се преместуваат <xliff:g id="COUNT">^1</xliff:g> фотографии во корпата…</item>
+    </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
       <item quantity="one">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да премести <xliff:g id="COUNT">^2</xliff:g> ставка во корпата?</item>
       <item quantity="other">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да премести <xliff:g id="COUNT">^2</xliff:g> ставки во корпата?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
+      <item quantity="one">Се преместува <xliff:g id="COUNT">^1</xliff:g> во корпата…</item>
+      <item quantity="other">Се преместуваат <xliff:g id="COUNT">^1</xliff:g> ставки во корпата…</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
       <item quantity="one">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да извади <xliff:g id="COUNT">^2</xliff:g> аудиодатотека од корпата?</item>
       <item quantity="other">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да извади <xliff:g id="COUNT">^2</xliff:g> аудиодатотеки од корпата?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
+      <item quantity="one">Се вади <xliff:g id="COUNT">^1</xliff:g> аудиодатотека од корпата…</item>
+      <item quantity="other">Се вадат <xliff:g id="COUNT">^1</xliff:g> аудиодатотеки од корпата…</item>
+    </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
       <item quantity="one">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да извади <xliff:g id="COUNT">^2</xliff:g> видео од корпата?</item>
       <item quantity="other">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да извади <xliff:g id="COUNT">^2</xliff:g> видеа од корпата?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
+      <item quantity="one">Се вади <xliff:g id="COUNT">^1</xliff:g> видео од корпата…</item>
+      <item quantity="other">Се вадат <xliff:g id="COUNT">^1</xliff:g> видеа од корпата…</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
       <item quantity="one">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да извади <xliff:g id="COUNT">^2</xliff:g> фотографија од корпата?</item>
       <item quantity="other">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да извади <xliff:g id="COUNT">^2</xliff:g> фотографии од корпата?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
+      <item quantity="one">Се вади <xliff:g id="COUNT">^1</xliff:g> фотографија од корпата…</item>
+      <item quantity="other">Се вадат <xliff:g id="COUNT">^1</xliff:g> фотографии од корпата…</item>
+    </plurals>
     <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
       <item quantity="one">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да извади <xliff:g id="COUNT">^2</xliff:g> ставка од корпата?</item>
       <item quantity="other">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да извади <xliff:g id="COUNT">^2</xliff:g> ставки од корпата?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
+      <item quantity="one">Се вади <xliff:g id="COUNT">^1</xliff:g> ставка од корпата…</item>
+      <item quantity="other">Се вадат <xliff:g id="COUNT">^1</xliff:g> ставки од корпата…</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
       <item quantity="one">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да избрише <xliff:g id="COUNT">^2</xliff:g> аудиодатотека?</item>
       <item quantity="other">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да избрише <xliff:g id="COUNT">^2</xliff:g> аудиодатотеки?</item>
     </plurals>
+    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
+      <item quantity="one">Се брише <xliff:g id="COUNT">^1</xliff:g> аудиодатотека…</item>
+      <item quantity="other">Се бришат <xliff:g id="COUNT">^1</xliff:g> аудиодатотеки…</item>
+    </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
       <item quantity="one">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да избрише <xliff:g id="COUNT">^2</xliff:g> видео?</item>
       <item quantity="other">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да избрише <xliff:g id="COUNT">^2</xliff:g> видеа?</item>
+    </plurals>
+    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
+      <item quantity="one">Се брише <xliff:g id="COUNT">^1</xliff:g> видео…</item>
+      <item quantity="other">Се бришат <xliff:g id="COUNT">^1</xliff:g> видеа…</item>
     </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
       <item quantity="one">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да избрише <xliff:g id="COUNT">^2</xliff:g> фотографија?</item>
       <item quantity="other">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да избрише <xliff:g id="COUNT">^2</xliff:g> фотографии?</item>
     </plurals>
+    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
+      <item quantity="one">Се брише <xliff:g id="COUNT">^1</xliff:g> фотографија…</item>
+      <item quantity="other">Се бришат <xliff:g id="COUNT">^1</xliff:g> фотографии…</item>
+    </plurals>
     <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
       <item quantity="one">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да избрише <xliff:g id="COUNT">^2</xliff:g> ставка?</item>
       <item quantity="other">Да се дозволи <xliff:g id="APP_NAME_1">^1</xliff:g> да избрише <xliff:g id="COUNT">^2</xliff:g> ставки?</item>
     </plurals>
+    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
+      <item quantity="one">Се брише <xliff:g id="COUNT">^1</xliff:g> ставка…</item>
+      <item quantity="other">Се бришат <xliff:g id="COUNT">^1</xliff:g> ставки…</item>
+    </plurals>
+    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> не може да обработува датотеки со аудиовизуелни содржини"</string>
+    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Транскодирањето е откажано"</string>
+    <string name="transcode_processing_error" msgid="8921643164508407874">"Грешка при транскодирање"</string>
+    <string name="transcode_processing_success" msgid="447288876429730122">"Транскодирањето е успешно"</string>
+    <string name="transcode_processing_started" msgid="7789086308155361523">"Транскодирањето започна"</string>
+    <string name="transcode_processing" msgid="6753136468864077258">"Се транскодира…"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"Откажи"</string>
+    <string name="transcode_wait" msgid="8909773149560697501">"Почекајте"</string>
 </resources>

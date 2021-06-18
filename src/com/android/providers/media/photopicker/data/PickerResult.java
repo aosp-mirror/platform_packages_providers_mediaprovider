@@ -17,12 +17,17 @@
 package com.android.providers.media.photopicker.data;
 
 import android.content.ClipData;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
+import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
@@ -41,8 +46,25 @@ public class PickerResult {
     @NonNull
     public static Intent getPickerResponseIntent(@NonNull Context context,
             @NonNull List<Item> selectedItems) {
+        return getPickerResponseIntent(context, selectedItems, /* shouldReturnPickerUris */ true);
+    }
+
+    /**
+     * @return {@code Intent} which contains Uri that has been granted access on.
+     * TODO(b/168001592): Remove this method and merge it with actual method
+     * {@link PickerResult#getPickerResponseIntent(Context, List)} when intent-filter for
+     * ACTION_GET_CONTENT is removed or when we don't have to send redactedUris any more.
+     */
+    @NonNull
+    public static Intent getPickerResponseIntent(@NonNull Context context,
+            @NonNull List<Item> selectedItems, boolean shouldReturnPickerUris) {
         // 1. Get Picker Uris corresponding to the selected items
-        ArrayList<Uri> selectedUris = getPickerUrisForItems(selectedItems);
+        List<Uri> selectedUris;
+        if (shouldReturnPickerUris) {
+            selectedUris = getPickerUrisForItems(selectedItems);
+        } else {
+            selectedUris = getRedactedUrisForItems(context.getContentResolver(), selectedItems);
+        }
 
         // 2. Grant read access to picker Uris and return
         Intent intent = new Intent();
@@ -81,12 +103,34 @@ public class PickerResult {
      * @param ItemList list of Item for which we return uri list.
      */
     @NonNull
-    private static ArrayList<Uri> getPickerUrisForItems(@NonNull List<Item> ItemList) {
-        ArrayList<Uri> uris = new ArrayList<>();
+    private static List<Uri> getPickerUrisForItems(@NonNull List<Item> ItemList) {
+        List<Uri> uris = new ArrayList<>();
         for (Item item : ItemList) {
             uris.add(getPickerUri(item.getContentUri(), item.getId()));
         }
 
         return uris;
+    }
+
+    private static List<Uri> getRedactedUrisForItems(ContentResolver contentResolver,
+            List<Item> ItemList){
+        List<Uri> uris = new ArrayList<>();
+        for (Item item : ItemList) {
+            uris.add(item.getContentUri());
+        }
+
+        if (SdkLevel.isAtLeastS()) {
+            return getRedactedUriFromMediaStoreAPI(contentResolver, uris);
+        } else {
+            // TODO (b/168783994): directly call redacted uri code logic or explore other solution.
+            // This will be addressed in a follow up CL.
+            return uris;
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    private static List<Uri> getRedactedUriFromMediaStoreAPI(ContentResolver contentResolver,
+            List<Uri> uris) {
+        return MediaStore.getRedactedUri(contentResolver, uris);
     }
 }

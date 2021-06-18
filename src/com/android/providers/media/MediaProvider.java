@@ -946,7 +946,7 @@ public class MediaProvider extends ContentProvider {
         mTranscodeHelper = new TranscodeHelper(context, this);
 
         // Create dir for redacted URI's path.
-        new File(getStorageRootPathForUid(UserHandle.myUserId()), REDACTED_URI_DIR).mkdirs();
+        new File("/storage/emulated/" + UserHandle.myUserId(), REDACTED_URI_DIR).mkdirs();
 
         final IntentFilter packageFilter = new IntentFilter();
         packageFilter.setPriority(10);
@@ -2706,6 +2706,11 @@ public class MediaProvider extends ContentProvider {
 
     private Cursor queryInternal(Uri uri, String[] projection, Bundle queryArgs,
             CancellationSignal signal, boolean forSelf) throws FallbackException {
+        if (isPickerUri(uri)) {
+            return mPickerUriResolver.query(uri, projection, queryArgs, signal,
+                    mCallingIdentity.get().pid, mCallingIdentity.get().uid);
+        }
+
         final String volumeName = getVolumeName(uri);
         PulledMetrics.logVolumeAccessViaMediaProvider(getCallingUidOrSelf(), volumeName);
         queryArgs = (queryArgs != null) ? queryArgs : new Bundle();

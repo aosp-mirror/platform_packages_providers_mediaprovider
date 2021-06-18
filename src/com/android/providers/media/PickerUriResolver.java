@@ -22,6 +22,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Build;
@@ -60,16 +61,13 @@ public class PickerUriResolver {
             throw new SecurityException("PhotoPicker Uris can only be accessed to read."
                     + " Uri: " + uri);
         }
-        if (mContext.checkUriPermission(uri, callingPid, callingUid,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION) != PERMISSION_GRANTED) {
-            throw new SecurityException("Calling uid ( " + callingUid + " ) does not have "
-                    + "permission to access picker uri: " + uri);
-        }
-        final UserId userId = getUserId(uri);
-        final ContentResolver resolver = userId.getContentResolver(mContext);
+
+        checkUriPermission(uri, callingPid, callingUid);
+
+        final ContentResolver resolver = getContentResolverForUserId(uri);
         final long token = Binder.clearCallingIdentity();
         try {
-            return resolver.openFile(getRedactedFilesUriFromPickerUri(uri, resolver), "r", signal);
+            return resolver.openFile(getRedactedFileUriFromPickerUri(uri, resolver), "r", signal);
         } finally {
             Binder.restoreCallingIdentity(token);
         }
@@ -78,27 +76,39 @@ public class PickerUriResolver {
     public AssetFileDescriptor openTypedAssetFile(Uri uri, String mimeTypeFilter, Bundle opts,
             CancellationSignal signal, int callingPid, int callingUid)
             throws FileNotFoundException{
-        if (mContext.checkUriPermission(uri, callingPid, callingUid,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION) != PERMISSION_GRANTED) {
-            throw new SecurityException("Calling uid ( " + callingUid + " ) does not have "
-                    + "permission to access picker uri: " + uri);
-        }
-        final UserId userId = getUserId(uri);
-        final ContentResolver resolver = userId.getContentResolver(mContext);
+        checkUriPermission(uri, callingPid, callingUid);
+
+        final ContentResolver resolver = getContentResolverForUserId(uri);
         final long token = Binder.clearCallingIdentity();
         try {
-            return resolver.openTypedAssetFile(getRedactedFilesUriFromPickerUri(uri, resolver),
+            return resolver.openTypedAssetFile(getRedactedFileUriFromPickerUri(uri, resolver),
                     mimeTypeFilter, opts, signal);
         } finally {
             Binder.restoreCallingIdentity(token);
         }
+    }
 
+    public Cursor query(Uri uri, String[] projection, Bundle queryArgs, CancellationSignal signal,
+            int callingPid, int callingUid) {
+        checkUriPermission(uri, callingPid, callingUid);
+
+        final ContentResolver resolver = getContentResolverForUserId(uri);
+        final long token = Binder.clearCallingIdentity();
+        try {
+            // Support query similar to as we support for redacted mediastore file uris.
+            // TODO(b/191362529): Restrict projection values when we start querying picker db. Add
+            // PickerColumns and add checks for projection.
+            return resolver.query(getRedactedFileUriFromPickerUri(uri, resolver), projection,
+                    queryArgs, signal);
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
     }
 
     /**
      * @return {@link MediaStore.Files} Uri that always redacts sensitive data
      */
-    private static Uri getRedactedFilesUriFromPickerUri(Uri uri, ContentResolver contentResolver) {
+    private static Uri getRedactedFileUriFromPickerUri(Uri uri, ContentResolver contentResolver) {
         // content://media/picker/<user-id>/<media-id>
         final long id = Long.parseLong(uri.getPathSegments().get(2));
         final Uri res = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL, id);
@@ -125,5 +135,18 @@ public class PickerUriResolver {
         // content://media/picker/<user-id>/<media-id>
         final int user = Integer.parseInt(uri.getPathSegments().get(1));
         return UserId.of(UserHandle.of(user));
+    }
+
+    private void checkUriPermission(Uri uri, int pid, int uid) {
+        if (mContext.checkUriPermission(uri, pid, uid,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION) != PERMISSION_GRANTED) {
+            throw new SecurityException("Calling uid ( " + uid + " ) does not have permission to " +
+                    "access picker uri: " + uri);
+        }
+    }
+
+    private ContentResolver getContentResolverForUserId(Uri uri) {
+        final UserId userId = getUserId(uri);
+        return userId.getContentResolver(mContext);
     }
 }

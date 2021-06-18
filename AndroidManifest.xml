@@ -44,7 +44,8 @@
             android:allowBackup="false"
             android:supportsRtl="true"
             android:forceQueryable="true"
-            android:usesCleartextTraffic="true">
+            android:usesCleartextTraffic="true"
+            android:crossProfile="true">
         <provider
                 android:name="com.android.providers.media.MediaProvider"
                 android:authorities="media"
@@ -146,5 +147,21 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <activity-alias
+            android:name="com.android.providers.media.photopicker.PhotoPickerGetContentActivity"
+            android:targetActivity="com.android.providers.media.photopicker.PhotoPickerActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:enabled="false">
+            <intent-filter>
+                <action android:name="android.intent.action.GET_CONTENT" />
+                <category android:name="android.intent.category.OPENABLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+            </intent-filter>
+        </activity-alias>
+
     </application>
 </manifest>

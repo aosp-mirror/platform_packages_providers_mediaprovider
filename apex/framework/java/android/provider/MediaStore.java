@@ -1179,11 +1179,7 @@ public final class MediaStore {
          * {@link ContentResolver#openFileDescriptor(Uri, String)} API is recommended for better
          * performance.
          *
-         * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
-         *             may not update the value of this column. However they may read the file path
-         *             value from this column and use in file operations.
          */
-        @Deprecated
         @Column(Cursor.FIELD_TYPE_STRING)
         public static final String DATA = "_data";
 
@@ -2619,12 +2615,7 @@ public final class MediaStore {
              *
              * As of {@link android.os.Build.VERSION_CODES#Q}, this thumbnail
              * has correct rotation, don't need to rotate it again.
-             *
-             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
-             *             may not update the value of this column. However they may read the file
-             *             path value from this column and use in file operations.
              */
-            @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
             public static final String DATA = "_data";
 
@@ -3176,12 +3167,7 @@ public final class MediaStore {
 
             /**
              * Path to the playlist file on disk.
-             *
-             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
-             *             may not update the value of this column. However they may read the file
-             *             path value from this column and use in file operations.
              */
-            @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
             public static final String DATA = "_data";
 
@@ -3594,12 +3580,7 @@ public final class MediaStore {
         public static class Thumbnails implements BaseColumns {
             /**
              * Path to the thumbnail file on disk.
-             *
-             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
-             *             may not update the value of this column. However they may read the file
-             *             path value from this column and use in file operations.
              */
-            @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
             public static final String DATA = "_data";
 
@@ -3931,12 +3912,7 @@ public final class MediaStore {
 
             /**
              * Path to the thumbnail file on disk.
-             *
-             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
-             *             may not update the value of this column. However they may read the file
-             *             path value from this column and use in file operations.
              */
-            @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
             public static final String DATA = "_data";
 

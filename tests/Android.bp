@@ -1,8 +1,74 @@
+android_test_helper_app {
+    name: "MediaProviderTestAppWithStoragePerms",
+    manifest: "test_app/TestAppWithStoragePerms.xml",
+    srcs: [
+        "test_app/src/**/*.java",
+        "src/com/android/providers/media/util/TestUtils.java",
+    ],
+    static_libs: [
+        "cts-install-lib",
+    ],
+    sdk_version: "test_current",
+    target_sdk_version: "30",
+    min_sdk_version: "30",
+    test_suites: [
+        "device-tests",
+        "mts-mediaprovider",
+    ],
+}
+
+android_test_helper_app {
+    name: "MediaProviderTestAppWithoutPerms",
+    manifest: "test_app/TestAppWithoutPerms.xml",
+    srcs: [
+        "test_app/src/**/*.java",
+        "src/com/android/providers/media/util/TestUtils.java",
+    ],
+    static_libs: [
+        "cts-install-lib",
+    ],
+    sdk_version: "test_current",
+    target_sdk_version: "30",
+    min_sdk_version: "30",
+    test_suites: [
+        "device-tests",
+        "mts-mediaprovider",
+    ],
+}
+
+android_test_helper_app {
+    name: "LegacyMediaProviderTestApp",
+    manifest: "test_app/LegacyTestApp.xml",
+    srcs: [
+        "test_app/src/**/*.java",
+        "src/com/android/providers/media/util/TestUtils.java",
+    ],
+    static_libs: [
+        "cts-install-lib",
+    ],
+    sdk_version: "test_current",
+    target_sdk_version: "28",
+    min_sdk_version: "30",
+    test_suites: [
+        "device-tests",
+        "mts-mediaprovider",
+    ],
+}
+
 // This looks a bit awkward, but we need our tests to run against either
 // MediaProvider or MediaProviderGoogle, and we don't know which one is
 // on the device being tested, so we can't sign our tests with a key that
 // will allow instrumentation.  Thus we pull all the sources we need to
 // run tests against into the test itself.
+package {
+    // See: http://go/android-license-faq
+    // A large-scale-change added 'default_applicable_licenses' to import
+    // all of the 'license_kinds' from "packages_providers_MediaProvider_license"
+    // to get the below license kinds:
+    //   SPDX-license-identifier-Apache-2.0
+    default_applicable_licenses: ["packages_providers_MediaProvider_license"],
+}
+
 android_test {
     name: "MediaProviderTests",
     test_suites: [
@@ -38,7 +104,9 @@ android_test {
         "androidx.test.rules",
         "guava",
         "mockito-target",
+        "modules-utils-build",
         "truth-prebuilt",
+        "cts-install-lib",
     ],
 
     certificate: "media",
@@ -51,6 +119,14 @@ android_test {
             "-Xep:MissingFail:ERROR",
         ],
     },
+
+    java_resources: [
+        ":MediaProviderTestAppWithStoragePerms",
+        ":MediaProviderTestAppWithoutPerms",
+        ":LegacyMediaProviderTestApp",
+    ],
+
+    min_sdk_version: "30",
 }
 
 filegroup {

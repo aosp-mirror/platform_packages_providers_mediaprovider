@@ -1395,9 +1395,39 @@ public class FileUtils {
             return false;
         }
 
+        if (isScreenshotsDirNonHidden(relativePath, name)) {
+            nomedia.delete();
+            return false;
+        }
+
         // .nomedia is present which makes this directory as hidden directory
         Logging.logPersistent("Observed non-standard " + nomedia);
         return true;
+    }
+
+    /**
+     * Consider Screenshots directory in root directory or inside well-known directory as always
+     * non-hidden. Nomedia file in these directories will not be able to hide these directories.
+     * i.e., some examples of directories that will be considered non-hidden are
+     * <ul>
+     * <li> /storage/emulated/0/Screenshots or
+     * <li> /storage/emulated/0/DCIM/Screenshots or
+     * <li> /storage/emulated/0/Pictures/Screenshots ...
+     * </ul>
+     * Some examples of directories that can be considered as hidden with nomedia are
+     * <ul>
+     * <li> /storage/emulated/0/foo/Screenshots or
+     * <li> /storage/emulated/0/DCIM/Foo/Screenshots or
+     * <li> /storage/emulated/0/Pictures/foo/bar/Screenshots ...
+     * </ul>
+     */
+    private static boolean isScreenshotsDirNonHidden(@NonNull String[] relativePath,
+            @NonNull String name) {
+        if (name.equalsIgnoreCase(Environment.DIRECTORY_SCREENSHOTS)) {
+            return (relativePath.length == 1 &&
+                (TextUtils.isEmpty(relativePath[0]) || isDefaultDirectoryName(relativePath[0])));
+        }
+        return false;
     }
 
     /**

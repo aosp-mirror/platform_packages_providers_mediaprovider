@@ -44,12 +44,9 @@
     <string name="allow" msgid="8885707816848569619">"অনুমতি দিন"</string>
     <string name="deny" msgid="6040983710442068936">"বাতিল করুন"</string>
     <string name="add" msgid="2894574044585549298">"যোগ করুন"</string>
-    <!-- no translation found for deselect (4297825044827769490) -->
-    <skip />
-    <!-- no translation found for select (2704765470563027689) -->
-    <skip />
-    <!-- no translation found for recent (6694613584743207874) -->
-    <skip />
+    <string name="deselect" msgid="4297825044827769490">"টিক চিহ্নটি সরিয়ে দিন"</string>
+    <string name="select" msgid="2704765470563027689">"বেছে নিন"</string>
+    <string name="recent" msgid="6694613584743207874">"সাম্প্রতিক"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"ভিউ বেছে নেওয়া হয়েছে"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="one"><xliff:g id="APP_NAME_1">^1</xliff:g>-কে <xliff:g id="COUNT">^2</xliff:g>টি অডিও ফাইল পরিবর্তন করার অনুমতি দিতে চান?</item>

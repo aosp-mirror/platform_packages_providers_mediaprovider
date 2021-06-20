@@ -29,6 +29,7 @@ android_app {
         "com.google.android.material_material",
         "guava",
         "modules-utils-build",
+        "glide-prebuilt",
     ],
 
     libs: [

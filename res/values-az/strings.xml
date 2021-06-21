@@ -47,64 +47,136 @@
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> tətbiqinə <xliff:g id="COUNT">^2</xliff:g> audio fayla dəyişiklik etmək icazəsi verilsin?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> tətbiqinə bu audio fayla dəyişiklik etmək icazəsi verilsin?</item>
     </plurals>
+    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> audio fayl dəyişdirilir…</item>
+      <item quantity="one">Audio fayl dəyişdirilir…</item>
+    </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> tətbiqinə <xliff:g id="COUNT">^2</xliff:g> videoya dəyişiklik etmək icazəsi verilsin?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> tətbiqinə bu videoya dəyişiklik etmək icazəsi verilsin?</item>
+    </plurals>
+    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> video dəyişdirilir…</item>
+      <item quantity="one">Video dəyişdirilir…</item>
     </plurals>
     <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> tətbiqinə <xliff:g id="COUNT">^2</xliff:g> fotoya dəyişiklik etmək icazəsi verilsin?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> tətbiqinə bu fotoya dəyişiklik etmək icazəsi verilsin?</item>
     </plurals>
+    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> foto dəyişdirilir…</item>
+      <item quantity="one">Foto dəyişdirilir…</item>
+    </plurals>
     <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> tətbiqinə <xliff:g id="COUNT">^2</xliff:g> elementə dəyişiklik etmək icazəsi verilsin?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> tətbiqinə bu elementə dəyişiklik etmək icazəsi verilsin?</item>
+    </plurals>
+    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> element dəyişdirilir…</item>
+      <item quantity="one">Element dəyişdirilir…</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> tətbiqinə <xliff:g id="COUNT">^2</xliff:g> audio faylı zibil qutusuna köçürmək icazəsi verilsin?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> tətbiqinə bu audio faylı zibil qutusuna köçürmək icazəsi verilsin?</item>
     </plurals>
+    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> audio fayl zibil qutusuna köçürülür…</item>
+      <item quantity="one">Audio fayl zibil qutusuna köçürülür…</item>
+    </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> tətbiqinə <xliff:g id="COUNT">^2</xliff:g> videonu zibil qutusuna köçürmək icazəsi verilsin?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> tətbiqinə bu videonu zibil qutusuna köçürmək icazəsi verilsin?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> video zibil qutusuna köçürülür…</item>
+      <item quantity="one">Video zibil qutusuna köçürülür…</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> tətbiqinə <xliff:g id="COUNT">^2</xliff:g> fotonu zibil qutusuna köçürmək icazəsi verilsin?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> tətbiqinə bu fotonu zibil qutusuna köçürmək icazəsi verilsin?</item>
     </plurals>
+    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> foto zibil qutusuna köçürülür…</item>
+      <item quantity="one">Foto zibil qutusuna köçürülür…</item>
+    </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> tətbiqinə <xliff:g id="COUNT">^2</xliff:g> elementi zibil qutusuna köçürmək icazəsi verilsin?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> tətbiqinə bu elementi zibil qutusuna köçürmək icazəsi verilsin?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> element zibil qutusuna köçürülür…</item>
+      <item quantity="one">Element zibil qutusuna köçürülür…</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> tətbiqinə <xliff:g id="COUNT">^2</xliff:g> audio faylı zibil qutusundan çıxarmaq icazəsi verilsin?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> tətbiqinə bu audio faylı zibil qutusundan çıxarmaq icazəsi verilsin?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> audio fayl zibil qutusundan çıxarılır…</item>
+      <item quantity="one">Audio fayl zibil qutusundan çıxarılır…</item>
+    </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> tətbiqinə <xliff:g id="COUNT">^2</xliff:g> videonu zibil qutusundan çıxarmaq icazəsi verilsin?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> tətbiqinə bu videonu zibil qutusundan çıxarmaq icazəsi verilsin?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> video zibil qutusundan çıxarılır…</item>
+      <item quantity="one">Video zibil qutusundan çıxarılır…</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> tətbiqinə <xliff:g id="COUNT">^2</xliff:g> fotonu zibil qutusundan çıxarmaq icazəsi verilsin?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> tətbiqinə bu fotonu zibil qutusundan çıxarmaq icazəsi verilsin?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> foto zibil qutusundan çıxarılır…</item>
+      <item quantity="one">Foto zibil qutusundan çıxarılır…</item>
+    </plurals>
     <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> tətbiqinə <xliff:g id="COUNT">^2</xliff:g> elementi zibil qutusundan çıxarmaq icazəsi verilsin?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> tətbiqinə bu elementi zibil qutusundan çıxarmaq icazəsi verilsin?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> element zibil qutusundan çıxarılır…</item>
+      <item quantity="one">Element zibil qutusundan çıxarılır…</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> tətbiqinə <xliff:g id="COUNT">^2</xliff:g> audio faylı silmək icazəsi verilsin?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> tətbiqinə bu audio faylı silmək icazəsi verilsin?</item>
     </plurals>
+    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> audio fayl silinir…</item>
+      <item quantity="one">Audio fayl silinir…</item>
+    </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> tətbiqinə <xliff:g id="COUNT">^2</xliff:g> videonu silmək icazəsi verilsin?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> tətbiqinə bu videonu silmək icazəsi verilsin?</item>
+    </plurals>
+    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> video silinir…</item>
+      <item quantity="one">Video silinir…</item>
     </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> tətbiqinə <xliff:g id="COUNT">^2</xliff:g> fotonu silmək icazəsi verilsin?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> tətbiqinə bu fotonu silmək icazəsi verilsin?</item>
     </plurals>
+    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> foto silinir…</item>
+      <item quantity="one">Foto silinir…</item>
+    </plurals>
     <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> tətbiqinə <xliff:g id="COUNT">^2</xliff:g> elementi silmək icazəsi verilsin?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> tətbiqinə bu elementi silmək icazəsi verilsin?</item>
     </plurals>
+    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> element silinir…</item>
+      <item quantity="one">Element silinir…</item>
+    </plurals>
+    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> media fayllarını emal edə bilmir"</string>
+    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Media emalı ləğv edilib"</string>
+    <string name="transcode_processing_error" msgid="8921643164508407874">"Media emalı zamanı xəta oldu"</string>
+    <string name="transcode_processing_success" msgid="447288876429730122">"Media emalı uğurlu oldu"</string>
+    <string name="transcode_processing_started" msgid="7789086308155361523">"Media emalı başladılıb"</string>
+    <string name="transcode_processing" msgid="6753136468864077258">"Media emal edilir…"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"Ləğv edin"</string>
+    <string name="transcode_wait" msgid="8909773149560697501">"Gözləyin"</string>
 </resources>

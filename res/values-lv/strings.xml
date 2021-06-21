@@ -50,79 +50,167 @@
       <item quantity="one">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> modificēt <xliff:g id="COUNT">^2</xliff:g> audio failu?</item>
       <item quantity="other">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> modificēt <xliff:g id="COUNT">^2</xliff:g> audio failus?</item>
     </plurals>
+    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
+      <item quantity="zero">Notiek <xliff:g id="COUNT">^1</xliff:g> audio failu pārveidošana…</item>
+      <item quantity="one">Notiek <xliff:g id="COUNT">^1</xliff:g> audio faila pārveidošana…</item>
+      <item quantity="other">Notiek <xliff:g id="COUNT">^1</xliff:g> audio failu pārveidošana…</item>
+    </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
       <item quantity="zero">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> modificēt <xliff:g id="COUNT">^2</xliff:g> videoklipus?</item>
       <item quantity="one">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> modificēt <xliff:g id="COUNT">^2</xliff:g> videoklipu?</item>
       <item quantity="other">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> modificēt <xliff:g id="COUNT">^2</xliff:g> videoklipus?</item>
+    </plurals>
+    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
+      <item quantity="zero">Notiek <xliff:g id="COUNT">^1</xliff:g> videoklipu pārveidošana…</item>
+      <item quantity="one">Notiek <xliff:g id="COUNT">^1</xliff:g> videoklipa pārveidošana…</item>
+      <item quantity="other">Notiek <xliff:g id="COUNT">^1</xliff:g> videoklipu pārveidošana…</item>
     </plurals>
     <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
       <item quantity="zero">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> modificēt <xliff:g id="COUNT">^2</xliff:g> fotoattēlus?</item>
       <item quantity="one">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> modificēt <xliff:g id="COUNT">^2</xliff:g> fotoattēlu?</item>
       <item quantity="other">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> modificēt <xliff:g id="COUNT">^2</xliff:g> fotoattēlus?</item>
     </plurals>
+    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
+      <item quantity="zero">Notiek <xliff:g id="COUNT">^1</xliff:g> fotoattēlu pārveidošana…</item>
+      <item quantity="one">Notiek <xliff:g id="COUNT">^1</xliff:g> fotoattēla pārveidošana…</item>
+      <item quantity="other">Notiek <xliff:g id="COUNT">^1</xliff:g> fotoattēlu pārveidošana…</item>
+    </plurals>
     <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
       <item quantity="zero">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> modificēt <xliff:g id="COUNT">^2</xliff:g> vienumus?</item>
       <item quantity="one">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> modificēt <xliff:g id="COUNT">^2</xliff:g> vienumu?</item>
       <item quantity="other">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> modificēt <xliff:g id="COUNT">^2</xliff:g> vienumus?</item>
+    </plurals>
+    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
+      <item quantity="zero">Notiek <xliff:g id="COUNT">^1</xliff:g> vienumu pārveidošana…</item>
+      <item quantity="one">Notiek <xliff:g id="COUNT">^1</xliff:g> vienuma pārveidošana…</item>
+      <item quantity="other">Notiek <xliff:g id="COUNT">^1</xliff:g> vienumu pārveidošana…</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
       <item quantity="zero">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> pārvietot <xliff:g id="COUNT">^2</xliff:g> audio failus uz atkritni?</item>
       <item quantity="one">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> pārvietot <xliff:g id="COUNT">^2</xliff:g> audio failu uz atkritni?</item>
       <item quantity="other">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> pārvietot <xliff:g id="COUNT">^2</xliff:g> audio failus uz atkritni?</item>
     </plurals>
+    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
+      <item quantity="zero">Notiek <xliff:g id="COUNT">^1</xliff:g> audio failu pārvietošana uz atkritni…</item>
+      <item quantity="one">Notiek <xliff:g id="COUNT">^1</xliff:g> audio faila pārvietošana uz atkritni…</item>
+      <item quantity="other">Notiek <xliff:g id="COUNT">^1</xliff:g> audio failu pārvietošana uz atkritni…</item>
+    </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
       <item quantity="zero">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> pārvietot <xliff:g id="COUNT">^2</xliff:g> videoklipus uz atkritni?</item>
       <item quantity="one">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> pārvietot <xliff:g id="COUNT">^2</xliff:g> videoklipu uz atkritni?</item>
       <item quantity="other">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> pārvietot <xliff:g id="COUNT">^2</xliff:g> videoklipus uz atkritni?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
+      <item quantity="zero">Notiek <xliff:g id="COUNT">^1</xliff:g> videoklipu pārvietošana uz atkritni…</item>
+      <item quantity="one">Notiek <xliff:g id="COUNT">^1</xliff:g> videoklipa pārvietošana uz atkritni…</item>
+      <item quantity="other">Notiek <xliff:g id="COUNT">^1</xliff:g> videoklipu pārvietošana uz atkritni…</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
       <item quantity="zero">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> pārvietot <xliff:g id="COUNT">^2</xliff:g> fotoattēlus uz atkritni?</item>
       <item quantity="one">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> pārvietot <xliff:g id="COUNT">^2</xliff:g> fotoattēlu uz atkritni?</item>
       <item quantity="other">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> pārvietot <xliff:g id="COUNT">^2</xliff:g> fotoattēlus uz atkritni?</item>
     </plurals>
+    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
+      <item quantity="zero">Notiek <xliff:g id="COUNT">^1</xliff:g> fotoattēlu pārvietošana uz atkritni…</item>
+      <item quantity="one">Notiek <xliff:g id="COUNT">^1</xliff:g> fotoattēla pārvietošana uz atkritni…</item>
+      <item quantity="other">Notiek <xliff:g id="COUNT">^1</xliff:g> fotoattēlu pārvietošana uz atkritni…</item>
+    </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
       <item quantity="zero">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> pārvietot <xliff:g id="COUNT">^2</xliff:g> vienumus uz atkritni?</item>
       <item quantity="one">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> pārvietot <xliff:g id="COUNT">^2</xliff:g> vienumu uz atkritni?</item>
       <item quantity="other">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> pārvietot <xliff:g id="COUNT">^2</xliff:g> vienumus uz atkritni?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
+      <item quantity="zero">Notiek <xliff:g id="COUNT">^1</xliff:g> vienumu pārvietošana uz atkritni…</item>
+      <item quantity="one">Notiek <xliff:g id="COUNT">^1</xliff:g> vienuma pārvietošana uz atkritni…</item>
+      <item quantity="other">Notiek <xliff:g id="COUNT">^1</xliff:g> vienumu pārvietošana uz atkritni…</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
       <item quantity="zero">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> izņemt <xliff:g id="COUNT">^2</xliff:g> audio failus no atkritnes?</item>
       <item quantity="one">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> izņemt <xliff:g id="COUNT">^2</xliff:g> audio failu no atkritnes?</item>
       <item quantity="other">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> izņemt <xliff:g id="COUNT">^2</xliff:g> audio failus no atkritnes?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
+      <item quantity="zero">Notiek <xliff:g id="COUNT">^1</xliff:g> audio failu izņemšana no atkritnes…</item>
+      <item quantity="one">Notiek <xliff:g id="COUNT">^1</xliff:g> audio faila izņemšana no atkritnes…</item>
+      <item quantity="other">Notiek <xliff:g id="COUNT">^1</xliff:g> audio failu izņemšana no atkritnes…</item>
+    </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
       <item quantity="zero">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> izņemt <xliff:g id="COUNT">^2</xliff:g> videoklipus no atkritnes?</item>
       <item quantity="one">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> izņemt <xliff:g id="COUNT">^2</xliff:g> videoklipu no atkritnes?</item>
       <item quantity="other">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> izņemt <xliff:g id="COUNT">^2</xliff:g> videoklipus no atkritnes?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
+      <item quantity="zero">Notiek <xliff:g id="COUNT">^1</xliff:g> videoklipu izņemšana no atkritnes…</item>
+      <item quantity="one">Notiek <xliff:g id="COUNT">^1</xliff:g> videoklipa izņemšana no atkritnes…</item>
+      <item quantity="other">Notiek <xliff:g id="COUNT">^1</xliff:g> videoklipu izņemšana no atkritnes…</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
       <item quantity="zero">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> izņemt <xliff:g id="COUNT">^2</xliff:g> fotoattēlus no atkritnes?</item>
       <item quantity="one">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> izņemt <xliff:g id="COUNT">^2</xliff:g> fotoattēlu no atkritnes?</item>
       <item quantity="other">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> izņemt <xliff:g id="COUNT">^2</xliff:g> fotoattēlus no atkritnes?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
+      <item quantity="zero">Notiek <xliff:g id="COUNT">^1</xliff:g> fotoattēlu izņemšana no atkritnes…</item>
+      <item quantity="one">Notiek <xliff:g id="COUNT">^1</xliff:g> fotoattēla izņemšana no atkritnes…</item>
+      <item quantity="other">Notiek <xliff:g id="COUNT">^1</xliff:g> fotoattēlu izņemšana no atkritnes…</item>
+    </plurals>
     <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
       <item quantity="zero">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> izņemt <xliff:g id="COUNT">^2</xliff:g> vienumus no atkritnes?</item>
       <item quantity="one">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> izņemt <xliff:g id="COUNT">^2</xliff:g> vienumu no atkritnes?</item>
       <item quantity="other">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> izņemt <xliff:g id="COUNT">^2</xliff:g> vienumus no atkritnes?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
+      <item quantity="zero">Notiek <xliff:g id="COUNT">^1</xliff:g> vienumu izņemšana no atkritnes…</item>
+      <item quantity="one">Notiek <xliff:g id="COUNT">^1</xliff:g> vienuma izņemšana no atkritnes…</item>
+      <item quantity="other">Notiek <xliff:g id="COUNT">^1</xliff:g> vienumu izņemšana no atkritnes…</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
       <item quantity="zero">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> dzēst <xliff:g id="COUNT">^2</xliff:g> audio failus?</item>
       <item quantity="one">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> dzēst <xliff:g id="COUNT">^2</xliff:g> audio failu?</item>
       <item quantity="other">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> dzēst <xliff:g id="COUNT">^2</xliff:g> audio failus?</item>
     </plurals>
+    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
+      <item quantity="zero">Notiek <xliff:g id="COUNT">^1</xliff:g> audio failu dzēšana…</item>
+      <item quantity="one">Notiek <xliff:g id="COUNT">^1</xliff:g> audio faila dzēšana…</item>
+      <item quantity="other">Notiek <xliff:g id="COUNT">^1</xliff:g> audio failu dzēšana…</item>
+    </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
       <item quantity="zero">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> dzēst <xliff:g id="COUNT">^2</xliff:g> videoklipus?</item>
       <item quantity="one">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> dzēst <xliff:g id="COUNT">^2</xliff:g> videoklipu?</item>
       <item quantity="other">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> dzēst <xliff:g id="COUNT">^2</xliff:g> videoklipus?</item>
+    </plurals>
+    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
+      <item quantity="zero">Notiek <xliff:g id="COUNT">^1</xliff:g> videoklipu dzēšana…</item>
+      <item quantity="one">Notiek <xliff:g id="COUNT">^1</xliff:g> videoklipa dzēšana…</item>
+      <item quantity="other">Notiek <xliff:g id="COUNT">^1</xliff:g> videoklipu dzēšana…</item>
     </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
       <item quantity="zero">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> dzēst <xliff:g id="COUNT">^2</xliff:g> fotoattēlus?</item>
       <item quantity="one">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> dzēst <xliff:g id="COUNT">^2</xliff:g> fotoattēlu?</item>
       <item quantity="other">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> dzēst <xliff:g id="COUNT">^2</xliff:g> fotoattēlus?</item>
     </plurals>
+    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
+      <item quantity="zero">Notiek <xliff:g id="COUNT">^1</xliff:g> fotoattēlu dzēšana…</item>
+      <item quantity="one">Notiek <xliff:g id="COUNT">^1</xliff:g> fotoattēla dzēšana…</item>
+      <item quantity="other">Notiek <xliff:g id="COUNT">^1</xliff:g> fotoattēlu dzēšana…</item>
+    </plurals>
     <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
       <item quantity="zero">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> dzēst <xliff:g id="COUNT">^2</xliff:g> vienumus?</item>
       <item quantity="one">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> dzēst <xliff:g id="COUNT">^2</xliff:g> vienumu?</item>
       <item quantity="other">Vai atļaut lietotnei <xliff:g id="APP_NAME_1">^1</xliff:g> dzēst <xliff:g id="COUNT">^2</xliff:g> vienumus?</item>
     </plurals>
+    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
+      <item quantity="zero">Notiek <xliff:g id="COUNT">^1</xliff:g> vienumu dzēšana…</item>
+      <item quantity="one">Notiek <xliff:g id="COUNT">^1</xliff:g> vienuma dzēšana…</item>
+      <item quantity="other">Notiek <xliff:g id="COUNT">^1</xliff:g> vienumu dzēšana…</item>
+    </plurals>
+    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> nevar apstrādāt multivides failus"</string>
+    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Multivides apstrāde ir atcelta."</string>
+    <string name="transcode_processing_error" msgid="8921643164508407874">"Radās multivides apstrādes kļūda."</string>
+    <string name="transcode_processing_success" msgid="447288876429730122">"Multivides apstrāde bija sekmīga."</string>
+    <string name="transcode_processing_started" msgid="7789086308155361523">"Tika sākta multivides apstrāde."</string>
+    <string name="transcode_processing" msgid="6753136468864077258">"Notiek multivides apstrāde…"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"Atcelt"</string>
+    <string name="transcode_wait" msgid="8909773149560697501">"Gaidīt"</string>
 </resources>

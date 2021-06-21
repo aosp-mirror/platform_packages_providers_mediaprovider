@@ -496,6 +496,13 @@ public class FileUtilsTest {
     }
 
     @Test
+    public void testGetAbsoluteExtendedPath() throws Exception {
+        assertEquals("/storage/emulated/0/DCIM/.trashed-1888888888-test.jpg",
+                FileUtils.getAbsoluteExtendedPath(
+                        "/storage/emulated/0/DCIM/.trashed-1621147340-test.jpg", 1888888888));
+    }
+
+    @Test
     public void testExtractVolumePath() throws Exception {
         assertEquals("/storage/emulated/0/",
                 extractVolumePath("/storage/emulated/0/foo.jpg"));

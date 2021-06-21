@@ -37,6 +37,7 @@ import static android.media.MediaMetadataRetriever.METADATA_KEY_IMAGE_WIDTH;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_MIMETYPE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_NUM_TRACKS;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_TITLE;
+import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_CODEC_MIME_TYPE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH;
@@ -91,11 +92,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.modules.utils.build.SdkLevel;
+import com.android.providers.media.MediaVolume;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.ExifUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.IsoInterface;
-import com.android.providers.media.util.Logging;
 import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
@@ -174,10 +176,12 @@ public class ModernMediaScanner implements MediaScanner {
     static final int MAX_EXCLUDE_DIRS = 450;
 
     private static final Pattern PATTERN_VISIBLE = Pattern.compile(
-            "(?i)^/storage/[^/]+(?:/[0-9]+)?(?:/Android/sandbox/([^/]+))?$");
+            "(?i)^/storage/[^/]+(?:/[0-9]+)?$");
     private static final Pattern PATTERN_INVISIBLE = Pattern.compile(
-            "(?i)^/storage/[^/]+(?:/[0-9]+)?(?:/Android/sandbox/([^/]+))?/" +
-                    "(?:(?:Android/(?:data|obb)$)|(?:(?:Movies|Music|Pictures)/.thumbnails$))");
+            "(?i)^/storage/[^/]+(?:/[0-9]+)?/"
+                    + "(?:(?:Android/(?:data|obb|sandbox)$)|"
+                    + "(?:\\.transforms$)|"
+                    + "(?:(?:Movies|Music|Pictures)/.thumbnails$))");
 
     private static final Pattern PATTERN_YEAR = Pattern.compile("([1-9][0-9][0-9][0-9])");
 
@@ -267,10 +271,10 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @Override
-    public void onDetachVolume(String volumeName) {
+    public void onDetachVolume(MediaVolume volume) {
         synchronized (mActiveScans) {
             for (Scan scan : mActiveScans) {
-                if (volumeName.equals(scan.mVolumeName)) {
+                if (volume.equals(scan.mVolume)) {
                     scan.mSignal.cancel();
                 }
             }
@@ -319,6 +323,7 @@ public class ModernMediaScanner implements MediaScanner {
 
         private final File mRoot;
         private final int mReason;
+        private final MediaVolume mVolume;
         private final String mVolumeName;
         private final Uri mFilesUri;
         private final CancellationSignal mSignal;
@@ -361,7 +366,13 @@ public class ModernMediaScanner implements MediaScanner {
 
             mRoot = root;
             mReason = reason;
-            mVolumeName = FileUtils.getVolumeName(mContext, root);
+
+            if (FileUtils.contains(Environment.getStorageDirectory(), root)) {
+                mVolume = MediaVolume.fromStorageVolume(FileUtils.getStorageVolume(mContext, root));
+            } else {
+                mVolume = MediaVolume.fromInternal();
+            }
+            mVolumeName = mVolume.getName();
             mFilesUri = MediaStore.Files.getContentUri(mVolumeName);
             mSignal = new CancellationSignal();
 
@@ -509,17 +520,26 @@ public class ModernMediaScanner implements MediaScanner {
                     buildSqlSelectionArgs());
             queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,
                     FileColumns._ID + " DESC");
-            queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_EXCLUDE);
+            queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE);
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_FAVORITE, MediaStore.MATCH_INCLUDE);
 
             final int[] countPerMediaType = new int[FileColumns.MEDIA_TYPE_COUNT];
             try (Cursor c = mResolver.query(mFilesUri,
-                    new String[] { FileColumns._ID, FileColumns.MEDIA_TYPE },
-                    queryArgs, mSignal)) {
+                    new String[]{FileColumns._ID, FileColumns.MEDIA_TYPE, FileColumns.DATE_EXPIRES,
+                            FileColumns.IS_PENDING}, queryArgs, mSignal)) {
                 while (c.moveToNext()) {
                     final long id = c.getLong(0);
                     if (Arrays.binarySearch(scannedIds, id) < 0) {
+                        final long dateExpire = c.getLong(2);
+                        final boolean isPending = c.getInt(3) == 1;
+                        // Don't delete the pending item which is not expired.
+                        // If the scan is triggered between invoking
+                        // ContentResolver#insert() and ContentResolver#openFileDescriptor(),
+                        // it raises the FileNotFoundException b/166063754.
+                        if (isPending && dateExpire > System.currentTimeMillis() / 1000) {
+                            continue;
+                        }
                         mUnknownIds.add(id);
                         final int mediaType = c.getInt(1);
                         // Avoid ArrayIndexOutOfBounds if more mediaTypes are added,
@@ -1204,6 +1224,11 @@ public class ModernMediaScanner implements MediaScanner {
         sAudioTypes.put(Environment.DIRECTORY_PODCASTS, AudioColumns.IS_PODCAST);
         sAudioTypes.put(Environment.DIRECTORY_AUDIOBOOKS, AudioColumns.IS_AUDIOBOOK);
         sAudioTypes.put(Environment.DIRECTORY_MUSIC, AudioColumns.IS_MUSIC);
+        if (SdkLevel.isAtLeastS()) {
+            sAudioTypes.put(Environment.DIRECTORY_RECORDINGS, AudioColumns.IS_RECORDING);
+        } else {
+            sAudioTypes.put(FileUtils.DIRECTORY_RECORDINGS, AudioColumns.IS_RECORDING);
+        }
     }
 
     private static @NonNull ContentProviderOperation.Builder scanItemAudio(long existingId,
@@ -1292,6 +1317,7 @@ public class ModernMediaScanner implements MediaScanner {
         op.withValue(VideoColumns.COLOR_STANDARD, null);
         op.withValue(VideoColumns.COLOR_TRANSFER, null);
         op.withValue(VideoColumns.COLOR_RANGE, null);
+        op.withValue(FileColumns._VIDEO_CODEC_TYPE, null);
 
         try (FileInputStream is = new FileInputStream(file)) {
             try (MediaMetadataRetriever mmr = new MediaMetadataRetriever()) {
@@ -1314,6 +1340,8 @@ public class ModernMediaScanner implements MediaScanner {
                         parseOptional(mmr.extractMetadata(METADATA_KEY_COLOR_TRANSFER)));
                 withOptionalValue(op, VideoColumns.COLOR_RANGE,
                         parseOptional(mmr.extractMetadata(METADATA_KEY_COLOR_RANGE)));
+                withOptionalValue(op, FileColumns._VIDEO_CODEC_TYPE,
+                        parseOptional(mmr.extractMetadata(METADATA_KEY_VIDEO_CODEC_MIME_TYPE)));
             }
 
             // Also hunt around for XMP metadata

@@ -154,7 +154,7 @@ public class PhotosTabFragment extends TabFragment {
     /**
      * Create the fragment with the category and add it into the FragmentManager
      *
-     * @param fm       The fragment manager
+     * @param fm the fragment manager
      * @param category the category
      */
     public static void show(FragmentManager fm, Category category) {

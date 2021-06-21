@@ -18,18 +18,23 @@ package com.android.providers.media.photopicker;
 
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerResponseIntent;
 
+import android.annotation.IntDef;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.SystemProperties;
 import android.provider.MediaStore;
+import android.text.TextUtils;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.ViewModelProvider;
@@ -40,10 +45,16 @@ import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
+import com.android.providers.media.photopicker.ui.AlbumsTabFragment;
 import com.android.providers.media.photopicker.ui.PhotosTabFragment;
+import com.android.providers.media.photopicker.ui.PreviewFragment;
 import com.android.providers.media.photopicker.util.CrossProfileUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
+import com.google.android.material.chip.Chip;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,20 +63,35 @@ import java.util.List;
  * app does not get access to all photos/videos.
  */
 public class PhotoPickerActivity extends AppCompatActivity {
+
     private static final String TAG =  "PhotoPickerActivity";
+    private static final String EXTRA_TAB_CHIP_TYPE = "tab_chip_type";
+    private static final int TAB_CHIP_TYPE_PHOTOS = 0;
+    private static final int TAB_CHIP_TYPE_ALBUMS = 1;
+
+    @IntDef(prefix = { "TAB_CHIP_TYPE" }, value = {
+            TAB_CHIP_TYPE_PHOTOS,
+            TAB_CHIP_TYPE_ALBUMS
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    @interface TabChipType {}
 
     private PickerViewModel mPickerViewModel;
     private UserIdManager mUserIdManager;
+    private ViewGroup mTabChipContainer;
+    private Chip mPhotosTabChip;
+    private Chip mAlbumsTabChip;
+    @TabChipType
+    private int mSelectedTabChipType;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_photo_picker);
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
+        final Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        // TODO (b/185801192): remove this and add tabs Photos and Albums
-        getSupportActionBar().setTitle("Photos & Videos");
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         mPickerViewModel = new ViewModelProvider(this).get(PickerViewModel.class);
         try {
@@ -75,16 +101,118 @@ public class PhotoPickerActivity extends AppCompatActivity {
             setCancelledResultAndFinishSelf();
         }
 
-        // only add the fragment when the activity is created at first time
-        if (savedInstanceState == null) {
-            PhotosTabFragment.show(getSupportFragmentManager(), Category.getDefaultCategory());
-        }
+        mTabChipContainer = findViewById(R.id.chip_container);
+        initTabChips();
+        restoreState(savedInstanceState);
 
         mUserIdManager = mPickerViewModel.getUserIdManager();
         final Switch profileSwitch = findViewById(R.id.workprofile);
         if (mUserIdManager.isMultiUserProfiles()) {
             profileSwitch.setVisibility(View.VISIBLE);
             setUpWorkProfileToggleSwitch(profileSwitch);
+        }
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        onBackPressed();
+        return true;
+    }
+
+    @Override
+    public void setTitle(CharSequence title) {
+        super.setTitle(title);
+        getSupportActionBar().setTitle(title);
+        updateToolbar(TextUtils.isEmpty(title));
+    }
+
+    /**
+     * Called when owning activity is saving state to be used to restore state during creation.
+     *
+     * @param state Bundle to save state
+     */
+    @Override
+    public void onSaveInstanceState(Bundle state) {
+        super.onSaveInstanceState(state);
+        state.putInt(EXTRA_TAB_CHIP_TYPE, mSelectedTabChipType);
+    }
+
+    private void restoreState(Bundle savedInstanceState) {
+        if (savedInstanceState != null) {
+            final int tabChipType = savedInstanceState.getInt(EXTRA_TAB_CHIP_TYPE,
+                    TAB_CHIP_TYPE_PHOTOS);
+            mSelectedTabChipType = tabChipType;
+            if (tabChipType == TAB_CHIP_TYPE_PHOTOS) {
+                if (PreviewFragment.get(getSupportFragmentManager()) == null) {
+                    onTabChipClick(mPhotosTabChip);
+                } else {
+                    // PreviewFragment is shown
+                    mPhotosTabChip.setSelected(true);
+                }
+            } else { // CHIP_TYPE_ALBUMS
+                if (PhotosTabFragment.get(getSupportFragmentManager()) == null) {
+                    onTabChipClick(mAlbumsTabChip);
+                } else {
+                    // PreviewFragment or PhotosTabFragment with category is shown
+                    mAlbumsTabChip.setSelected(true);
+                }
+            }
+        } else {
+            // This is the first launch, set the default behavior. Hide the title, show the chips
+            // and show the PhotosTabFragment
+            setTitle("");
+            onTabChipClick(mPhotosTabChip);
+        }
+    }
+
+    private static Chip generateTabChip(LayoutInflater inflater, ViewGroup parent, String title) {
+        final Chip chip = (Chip) inflater.inflate(R.layout.picker_chip_tab_header, parent, false);
+        chip.setText(title);
+        return chip;
+    }
+
+    private void initTabChips() {
+        initPhotosTabChip();
+        initAlbumsTabChip();
+    }
+
+    private void initPhotosTabChip() {
+        if (mPhotosTabChip == null) {
+            mPhotosTabChip = generateTabChip(getLayoutInflater(), mTabChipContainer,
+                    getString(R.string.picker_photos));
+            mTabChipContainer.addView(mPhotosTabChip);
+            mPhotosTabChip.setOnClickListener(this::onTabChipClick);
+            mPhotosTabChip.setTag(TAB_CHIP_TYPE_PHOTOS);
+        }
+    }
+
+    private void initAlbumsTabChip() {
+        if (mAlbumsTabChip == null) {
+            mAlbumsTabChip = generateTabChip(getLayoutInflater(), mTabChipContainer,
+                    getString(R.string.picker_albums));
+            mTabChipContainer.addView(mAlbumsTabChip);
+            mAlbumsTabChip.setOnClickListener(this::onTabChipClick);
+            mAlbumsTabChip.setTag(TAB_CHIP_TYPE_ALBUMS);
+        }
+    }
+
+    private void onTabChipClick(@NonNull View view) {
+        final int chipType = (int) view.getTag();
+        mSelectedTabChipType = chipType;
+
+        // Check whether the tabChip is already selected or not. If it is selected, do nothing
+        if (view.isSelected()) {
+            return;
+        }
+
+        if (chipType == TAB_CHIP_TYPE_PHOTOS) {
+            mPhotosTabChip.setSelected(true);
+            mAlbumsTabChip.setSelected(false);
+            PhotosTabFragment.show(getSupportFragmentManager(), Category.getDefaultCategory());
+        } else { // CHIP_TYPE_ALBUMS
+            mPhotosTabChip.setSelected(false);
+            mAlbumsTabChip.setSelected(true);
+            AlbumsTabFragment.show(getSupportFragmentManager());
         }
     }
 
@@ -161,5 +289,21 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private void setCancelledResultAndFinishSelf() {
         setResult(Activity.RESULT_CANCELED);
         finish();
+    }
+
+    /**
+     * Update the icons and show/hide the tab chips with {@code shouldShowTabChips}
+     *
+     * @param shouldShowTabChips {@code true}, show the tab chips and show close icon. Otherwise,
+     *                           hide the tab chips and show back icon
+     */
+    public void updateToolbar(boolean shouldShowTabChips) {
+        if (shouldShowTabChips) {
+            getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_close);
+            mTabChipContainer.setVisibility(View.VISIBLE);
+        } else {
+            getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_arrow_back);
+            mTabChipContainer.setVisibility(View.GONE);
+        }
     }
 }

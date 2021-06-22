@@ -22,6 +22,7 @@ import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.util.MimeUtils;
@@ -73,6 +74,19 @@ public class Item {
 
     public Item(@NonNull Cursor cursor, @NonNull UserId userId) {
         updateFromCursor(cursor, userId);
+    }
+
+    @VisibleForTesting
+    public Item(long id, String mimeType, String displayName, String volumeName, long dateTaken,
+            long duration, Uri uri) {
+        mId = id;
+        mMimeType = mimeType;
+        mDisplayName = displayName;
+        mVolumeName = volumeName;
+        mDateTaken = dateTaken;
+        mDuration = duration;
+        mUri = uri;
+        parseMimeType();
     }
 
     public long getId() {

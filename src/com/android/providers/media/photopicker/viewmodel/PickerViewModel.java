@@ -71,7 +71,7 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
-     * Add the selected ItemInfo.
+     * Add the selected Item.
      */
     public void addSelectedItem(Item item) {
         if (mSelectedItemList.getValue() == null) {
@@ -83,7 +83,18 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
-     * Delete the selected ItemInfo.
+     * Clear the selected Item list.
+     */
+    public void clearSelectedItems() {
+        if (mSelectedItemList.getValue() == null) {
+            return;
+        }
+        mSelectedItemList.getValue().clear();
+        mSelectedItemList.postValue(mSelectedItemList.getValue());
+    }
+
+    /**
+     * Delete the selected Item.
      */
     public void deleteSelectedItem(Item item) {
         if (mSelectedItemList.getValue() == null) {

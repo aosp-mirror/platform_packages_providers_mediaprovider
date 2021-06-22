@@ -29,7 +29,7 @@ import java.util.List;
 /**
  * Adapter for Preview RecyclerView to preview all images and videos.
  */
-public class PreviewAdapter extends RecyclerView.Adapter<BaseItemHolder> {
+public class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     private static final int ITEM_TYPE_PHOTO = 1;
 
@@ -42,12 +42,12 @@ public class PreviewAdapter extends RecyclerView.Adapter<BaseItemHolder> {
 
     @NonNull
     @Override
-    public BaseItemHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
+    public BaseViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
         return new PreviewImageHolder(viewGroup.getContext(), viewGroup, mImageLoader);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull BaseItemHolder photoHolder, int position) {
+    public void onBindViewHolder(@NonNull BaseViewHolder photoHolder, int position) {
         final Item item = getItem(position);
         photoHolder.itemView.setTag(item);
         photoHolder.bind();

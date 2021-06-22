@@ -30,7 +30,7 @@ import com.android.providers.media.photopicker.data.model.Item;
 /**
  * ViewHolder of a photo item within a RecyclerView.
  */
-public class PhotoGridHolder extends BaseItemHolder {
+public class PhotoGridHolder extends BaseViewHolder {
 
     private final Context mContext;
     private final ImageLoader mImageLoader;
@@ -62,7 +62,7 @@ public class PhotoGridHolder extends BaseItemHolder {
     @Override
     public void bind() {
         final Item item = (Item) itemView.getTag();
-        mImageLoader.loadThumbanial(item, mIconThumb);
+        mImageLoader.loadPhotoThumbnail(item, mIconThumb);
 
         if (item.isGif()) {
             mIconGif.setVisibility(View.VISIBLE);

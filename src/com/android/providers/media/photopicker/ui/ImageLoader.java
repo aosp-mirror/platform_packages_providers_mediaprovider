@@ -44,7 +44,7 @@ public class ImageLoader {
         mContext = context;
     }
 
-    public void loadThumbanial(Item item, ImageView imageView) {
+    public void loadPhotoThumbnail(Item item, ImageView imageView) {
         int thumbSize = getThumbSize();
         final Size size = new Size(thumbSize, thumbSize);
         try {

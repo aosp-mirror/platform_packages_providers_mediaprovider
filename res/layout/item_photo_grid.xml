@@ -19,7 +19,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="1.5dp"
     android:background="@color/picker_highlight_color"
     android:focusable="true">
 
@@ -46,7 +45,7 @@
                 android:id="@+id/icon_gif"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="right|top"
+                android:layout_gravity="end|top"
                 android:layout_marginEnd="@dimen/picker_item_badge_margin"
                 android:layout_marginTop="@dimen/picker_item_badge_margin"
                 android:scaleType="fitCenter"
@@ -57,7 +56,7 @@
                 android:id="@+id/video_container"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="right|top"
+                android:layout_gravity="end|top"
                 android:layout_marginEnd="@dimen/picker_item_badge_margin"
                 android:layout_marginTop="@dimen/picker_item_badge_margin"
                 android:orientation="horizontal"
@@ -91,7 +90,7 @@
         android:layout_marginStart="@dimen/picker_item_check_margin"
         android:layout_marginTop="@dimen/picker_item_check_margin"
         android:src="@drawable/picker_item_check"
-        android:layout_gravity="top|left"
+        android:layout_gravity="top|start"
         android:scaleType="fitCenter"/>
 
 </FrameLayout>

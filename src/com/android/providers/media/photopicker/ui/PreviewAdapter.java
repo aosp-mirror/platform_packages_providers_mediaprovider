@@ -31,7 +31,8 @@ import java.util.List;
  */
 public class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
-    private static final int ITEM_TYPE_PHOTO = 1;
+    private static final int ITEM_TYPE_IMAGE = 1;
+    private static final int ITEM_TYPE_VIDEO = 2;
 
     private List<Item> mItemList = new ArrayList<>();
     private ImageLoader mImageLoader;
@@ -43,7 +44,11 @@ public class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     @NonNull
     @Override
     public BaseViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
-        return new PreviewImageHolder(viewGroup.getContext(), viewGroup, mImageLoader);
+        if (viewType == ITEM_TYPE_IMAGE) {
+            return new PreviewImageHolder(viewGroup.getContext(), viewGroup, mImageLoader);
+        } else {
+            return new PreviewVideoHolder(viewGroup.getContext(), viewGroup);
+        }
     }
 
     @Override
@@ -54,13 +59,31 @@ public class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     }
 
     @Override
+    public void onViewAttachedToWindow(BaseViewHolder holder) {
+        super.onViewAttachedToWindow(holder);
+        holder.onViewAttachedToWindow();
+    }
+
+    @Override
+    public void onViewDetachedFromWindow(BaseViewHolder holder) {
+        super.onViewDetachedFromWindow(holder);
+        holder.onViewDetachedFromWindow();
+    }
+
+    @Override
+    public void onViewRecycled(BaseViewHolder holder) {
+        super.onViewRecycled(holder);
+        holder.onViewRecycled();
+    }
+
+    @Override
     public int getItemCount() {
         return mItemList.size();
     }
 
     @Override
     public int getItemViewType(int position) {
-        return ITEM_TYPE_PHOTO;
+        return mItemList.get(position).isImage() ? ITEM_TYPE_IMAGE : ITEM_TYPE_VIDEO;
     }
 
     public Item getItem(int position) {

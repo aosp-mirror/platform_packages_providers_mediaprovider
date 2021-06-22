@@ -111,6 +111,7 @@ android_test {
         "androidx.test.espresso.core",
         "androidx.test.espresso.contrib",
         "androidx.test.core",
+        "androidx.arch.core_core-runtime",
     ],
 
     certificate: "media",

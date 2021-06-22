@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -26,6 +27,7 @@ import android.widget.FrameLayout.LayoutParams;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
@@ -41,6 +43,8 @@ import java.util.List;
  * Displays a selected items in one up view. Supports deselecting items.
  */
 public class PreviewFragment extends Fragment {
+    private static String TAG = "PreviewFragment";
+
     private PickerViewModel mPickerViewModel;
     private ViewPager2 mViewPager;
     private PreviewAdapter mAdapter;
@@ -151,5 +155,18 @@ public class PreviewFragment extends Fragment {
     private static void setSelected(@NonNull Button selectButton, boolean isSelected) {
         selectButton.setSelected(isSelected);
         selectButton.setText(isSelected ? R.string.deselect : R.string.select);
+    }
+
+    public static void show(FragmentManager fm) {
+        if (fm.isStateSaved()) {
+            Log.d(TAG, "Skip show preview fragment because state saved");
+            return;
+        }
+
+        final PreviewFragment fragment = new PreviewFragment();
+        fm.beginTransaction()
+                .setReorderingAllowed(true)
+                .replace(R.id.fragment_container, fragment, TAG)
+                .commitNow();
     }
 }

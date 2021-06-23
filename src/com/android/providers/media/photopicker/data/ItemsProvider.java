@@ -16,9 +16,6 @@
 
 package com.android.providers.media.photopicker.data;
 
-import static com.android.providers.media.util.MimeUtils.isImageMimeType;
-import static com.android.providers.media.util.MimeUtils.isVideoMimeType;
-
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.ContentProvider;
@@ -105,11 +102,6 @@ public class ItemsProvider {
                     + "category: " + category);
         }
 
-        if (mimeType != null && !isMimeTypeImageVideo(mimeType)) {
-            throw new IllegalArgumentException("ItemsProvider does not support the given "
-                    + "mimeType: " + mimeType);
-        }
-
         // 2. Create args to query MediaStore
         String selection = null;
         String[] selectionArgs = null;
@@ -118,7 +110,7 @@ public class ItemsProvider {
             selection = Category.getWhereClauseForCategory(category);
         }
 
-        if (mimeType != null && isMimeTypeImageVideo(mimeType)) {
+        if (mimeType != null) {
             if (selection != null) {
                 selection += " AND ";
             } else {
@@ -232,10 +224,6 @@ public class ItemsProvider {
 
     private static Uri getMediaStoreUriForItem(long id) {
         return MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL, id);
-    }
-
-    private static boolean isMimeTypeImageVideo(@NonNull String mimeType) {
-        return isImageMimeType(mimeType) || isVideoMimeType(mimeType);
     }
 
     private static String replaceMatchAnyChar(@NonNull String mimeType) {

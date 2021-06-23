@@ -67,11 +67,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // TODO (b/185801192): remove this and add tabs Photos and Albums
         getSupportActionBar().setTitle("Photos & Videos");
 
-        final boolean canSelectMultiple = getIntent().getBooleanExtra(
-                Intent.EXTRA_ALLOW_MULTIPLE, false);
-
         mPickerViewModel = new ViewModelProvider(this).get(PickerViewModel.class);
-        mPickerViewModel.setSelectMultiple(canSelectMultiple);
+        mPickerViewModel.parseValuesFromIntent(getIntent());
 
         // only add the fragment when the activity is created at first time
         if (savedInstanceState == null) {

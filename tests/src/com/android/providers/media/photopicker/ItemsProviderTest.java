@@ -582,36 +582,6 @@ public class ItemsProviderTest {
         }
     }
 
-    /**
-     * Tests {@link ItemsProvider#getItems(String, int, int, String, UserId)} throws error for
-     * invalid param for mimeType.
-     */
-    @Test
-    public void testGetItemsInvalidParam() throws Exception {
-        try {
-            sItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
-                    /* mimeType */ "audio/*", /* userId */ null);
-            fail("Expected IllegalArgumentException for audio mimeType");
-        } catch (IllegalArgumentException expected) {
-            // Expected flow
-        }
-    }
-
-    /**
-     * Tests {@link ItemsProvider#getItems(String, int, int, String, UserId)} throws error for
-     * invalid param for mimeType.
-     */
-    @Test
-    public void testGetItemsAllMimeType() throws Exception {
-        try {
-            sItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
-                    /* mimeType */ "*/*", /* userId */ null);
-            fail("Expected IllegalArgumentException for audio mimeType");
-        } catch (IllegalArgumentException expected) {
-            // Expected flow
-        }
-    }
-
     private void assertGetCategoriesMatchSingle(String expectedCategoryName,
             int expectedNumberOfItems) {
         if (expectedNumberOfItems == 0) {

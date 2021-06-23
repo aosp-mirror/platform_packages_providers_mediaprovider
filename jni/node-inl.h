@@ -19,6 +19,8 @@
 
 #include <android-base/logging.h>
 
+#include <sys/types.h>
+#include <atomic>
 #include <cstdint>
 #include <limits>
 #include <list>
@@ -40,13 +42,23 @@ namespace mediaprovider {
 namespace fuse {
 
 struct handle {
-    explicit handle(int fd, const RedactionInfo* ri, bool cached) : fd(fd), ri(ri), cached(cached) {
+    explicit handle(int fd, const RedactionInfo* ri, bool cached, bool passthrough, uid_t uid,
+                    uid_t transforms_uid)
+        : fd(fd),
+          ri(ri),
+          cached(cached),
+          passthrough(passthrough),
+          uid(uid),
+          transforms_uid(transforms_uid) {
         CHECK(ri != nullptr);
     }
 
     const int fd;
     const std::unique_ptr<const RedactionInfo> ri;
     const bool cached;
+    const bool passthrough;
+    const uid_t uid;
+    const uid_t transforms_uid;
 
     ~handle() { close(fd); }
 };
@@ -114,21 +126,26 @@ class NodeTracker {
 class node {
   public:
     // Creates a new node with the specified parent, name and lock.
-    static node* Create(node* parent, const std::string& name, std::recursive_mutex* lock,
+    static node* Create(node* parent, const std::string& name, const std::string& io_path,
+                        bool should_invalidate, bool transforms_complete, const int transforms,
+                        const int transforms_reason, std::recursive_mutex* lock, ino_t ino,
                         NodeTracker* tracker) {
         // Place the entire constructor under a critical section to make sure
         // node creation, tracking (if enabled) and the addition to a parent are
         // atomic.
         std::lock_guard<std::recursive_mutex> guard(*lock);
-        return new node(parent, name, lock, tracker);
+        return new node(parent, name, io_path, should_invalidate, transforms_complete, transforms,
+                        transforms_reason, lock, ino, tracker);
     }
 
     // Creates a new root node. Root nodes have no parents by definition
     // and their "name" must signify an absolute path.
-    static node* CreateRoot(const std::string& path, std::recursive_mutex* lock,
+    static node* CreateRoot(const std::string& path, std::recursive_mutex* lock, ino_t ino,
                             NodeTracker* tracker) {
         std::lock_guard<std::recursive_mutex> guard(*lock);
-        node* root = new node(nullptr, path, lock, tracker);
+        node* root = new node(nullptr, path, path, false /* should_invalidate */,
+                              true /* transforms_complete */, 0 /* transforms */,
+                              0 /* transforms_reason */, lock, ino, tracker);
 
         // The root always has one extra reference to avoid it being
         // accidentally collected.
@@ -174,36 +191,42 @@ class node {
     // associated with its descendants.
     std::string BuildSafePath() const;
 
-    // Looks up a direct descendant of this node by name. If |acquire| is true,
+    // Looks up a direct descendant of this node by case-insensitive |name|. If |acquire| is true,
     // also Acquire the node before returning a reference to it.
-    node* LookupChildByName(const std::string& name, bool acquire) const {
-        std::lock_guard<std::recursive_mutex> guard(*lock_);
-
-        // lower_bound will give us the first child with strcasecmp(child->name, name) >=0.
-        // For more context see comment on the NodeCompare struct.
-        auto start = children_.lower_bound(std::make_pair(name, 0));
-        // upper_bound will give us the first child with strcasecmp(child->name, name) > 0
-        auto end =
-                children_.upper_bound(std::make_pair(name, std::numeric_limits<uintptr_t>::max()));
-        for (auto it = start; it != end; it++) {
-            node* child = *it;
-            if (!child->deleted_) {
+    // |transforms| is an opaque flag that is used to distinguish multiple nodes sharing the same
+    // |name| but requiring different IO transformations as determined by the MediaProvider.
+    node* LookupChildByName(const std::string& name, bool acquire, const int transforms = 0) const {
+        return ForChild(name, [acquire, transforms](node* child) {
+            if (child->transforms_ == transforms) {
                 if (acquire) {
                     child->Acquire();
                 }
-                return child;
+                return true;
             }
-        }
-        return nullptr;
+            return false;
+        });
     }
 
-    // Marks this node as deleted. It is still associated with its parent, and
-    // all open handles etc. to this node are preserved until its refcount goes
+    // Marks this node children as deleted. They are still associated with their parent, and
+    // all open handles etc. to the deleted nodes are preserved until their refcount goes
     // to zero.
+    void SetDeletedForChild(const std::string& name) {
+        ForChild(name, [](node* child) {
+            child->SetDeleted();
+            return false;
+        });
+    }
+
     void SetDeleted() {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
-
         deleted_ = true;
+    }
+
+    void RenameChild(const std::string& old_name, const std::string& new_name, node* new_parent) {
+        ForChild(old_name, [=](node* child) {
+            child->Rename(new_name, new_parent);
+            return false;
+        });
     }
 
     void Rename(const std::string& name, node* new_parent) {
@@ -252,6 +275,20 @@ class node {
         return name_;
     }
 
+    const std::string& GetIoPath() const { return io_path_; }
+
+    int GetTransforms() const { return transforms_; }
+
+    int GetTransformsReason() const { return transforms_reason_; }
+
+    bool IsTransformsComplete() const {
+        return transforms_complete_.load(std::memory_order_acquire);
+    }
+
+    void SetTransformsComplete(bool complete) {
+        transforms_complete_.store(complete, std::memory_order_release);
+    }
+
     node* GetParent() const {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
         return parent_;
@@ -282,14 +319,14 @@ class node {
         return false;
     }
 
-    bool HasCaseInsensitiveMatch() const {
+    bool ShouldInvalidate() const {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
-        return has_case_insensitive_match_;
+        return should_invalidate_;
     }
 
-    void SetCaseInsensitiveMatch() {
+    void SetShouldInvalidate() {
         std::lock_guard<std::recursive_mutex> guard(*lock_);
-        has_case_insensitive_match_ = true;
+        should_invalidate_ = true;
     }
 
     bool HasRedactedCache() const {
@@ -324,15 +361,25 @@ class node {
     // through the hierarchy exists.
     static const node* LookupAbsolutePath(const node* root, const std::string& absolute_path);
 
+    // Looks up for the node with the given ino rooted at |root|, or nullptr if no such node exists.
+    static const node* LookupInode(const node* root, ino_t ino);
+
   private:
-    node(node* parent, const std::string& name, std::recursive_mutex* lock, NodeTracker* tracker)
+    node(node* parent, const std::string& name, const std::string& io_path,
+         const bool should_invalidate, const bool transforms_complete, const int transforms,
+         const int transforms_reason, std::recursive_mutex* lock, ino_t ino, NodeTracker* tracker)
         : name_(name),
+          io_path_(io_path),
+          transforms_complete_(transforms_complete),
+          transforms_(transforms),
+          transforms_reason_(transforms_reason),
           refcount_(0),
           parent_(nullptr),
           has_redacted_cache_(false),
-          has_case_insensitive_match_(false),
+          should_invalidate_(should_invalidate),
           deleted_(false),
           lock_(lock),
+          ino_(ino),
           tracker_(tracker) {
         tracker_->NodeCreated(this);
         Acquire();
@@ -340,6 +387,10 @@ class node {
         // non-null parent.
         if (parent != nullptr) {
             AddToParent(parent);
+        }
+        // If the node requires transforms, we MUST never cache it in the VFS
+        if (transforms) {
+            CHECK(should_invalidate_);
         }
     }
 
@@ -379,6 +430,32 @@ class node {
             parent_->Release(1);
             parent_ = nullptr;
         }
+    }
+
+    // Finds *all* non-deleted nodes matching |name| and runs the function |callback| on each
+    // node until |callback| returns true.
+    // When |callback| returns true, the matched node is returned
+    node* ForChild(const std::string& name, const std::function<bool(node*)>& callback) const {
+        std::lock_guard<std::recursive_mutex> guard(*lock_);
+
+        // lower_bound will give us the first child with strcasecmp(child->name, name) >=0.
+        // For more context see comment on the NodeCompare struct.
+        auto start = children_.lower_bound(std::make_pair(name, 0));
+        // upper_bound will give us the first child with strcasecmp(child->name, name) > 0
+        auto end =
+                children_.upper_bound(std::make_pair(name, std::numeric_limits<uintptr_t>::max()));
+
+        // Make a copy of the matches because calling callback might modify the list which will
+        // cause issues while iterating over them.
+        std::vector<node*> children(start, end);
+
+        for (node* child : children) {
+            if (!child->deleted_ && callback(child)) {
+                return child;
+            }
+        }
+
+        return nullptr;
     }
 
     // A custom heterogeneous comparator used for set of this node's children_ to speed up child
@@ -427,6 +504,20 @@ class node {
 
     // The name of this node. Non-const because it can change during renames.
     std::string name_;
+    // Filesystem path that will be used for IO (if it is non-empty) instead of node->BuildPath
+    const std::string io_path_;
+    // Whether any transforms required on |io_path_| are complete.
+    // If false, might need to call a node transform function with |transforms| below
+    std::atomic_bool transforms_complete_;
+    // Opaque flags that determines the 'required' transforms to perform on node
+    // before IO. These flags should not be interpreted in native but should be passed to the
+    // MediaProvider as part of a transform function and if successful, |transforms_complete_|
+    // should be set to true
+    const int transforms_;
+    // Opaque value indicating the reason why transforms are required.
+    // This value should not be interpreted in native but should be passed to the MediaProvider
+    // as part of a transform function
+    const int transforms_reason_;
     // The reference count for this node. Guarded by |lock_|.
     uint32_t refcount_;
     // Set of children of this node. All of them contain a back reference
@@ -439,9 +530,11 @@ class node {
     // List of directory handles associated with this node. Guarded by |lock_|.
     std::vector<std::unique_ptr<dirhandle>> dirhandles_;
     bool has_redacted_cache_;
-    bool has_case_insensitive_match_;
+    bool should_invalidate_;
     bool deleted_;
     std::recursive_mutex* lock_;
+    // Inode number of the file represented by this node.
+    const ino_t ino_;
 
     NodeTracker* const tracker_;
 

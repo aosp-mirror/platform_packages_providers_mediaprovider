@@ -54,6 +54,16 @@ class FuseDaemon final {
      */
     void InvalidateFuseDentryCache(const std::string& path);
 
+    /**
+     * Return path of the original media format file for the given file descriptor.
+     */
+    const std::string GetOriginalMediaFormatFilePath(int fd) const;
+
+    /**
+     * Initialize device id for the FUSE daemon with the FUSE device id of the given path.
+     */
+    void InitializeDeviceId(const std::string& path);
+
   private:
     FuseDaemon(const FuseDaemon&) = delete;
     void operator=(const FuseDaemon&) = delete;

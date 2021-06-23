@@ -47,64 +47,136 @@
       <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> sửa đổi <xliff:g id="COUNT">^2</xliff:g> tệp âm thanh?</item>
       <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> sửa đổi tệp âm thanh này?</item>
     </plurals>
+    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
+      <item quantity="other">Đang sửa đổi <xliff:g id="COUNT">^1</xliff:g> tệp âm thanh…</item>
+      <item quantity="one">Đang sửa đổi tệp âm thanh…</item>
+    </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
       <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> sửa đổi <xliff:g id="COUNT">^2</xliff:g> video?</item>
       <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> sửa đổi video này?</item>
+    </plurals>
+    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
+      <item quantity="other">Đang sửa đổi <xliff:g id="COUNT">^1</xliff:g> video…</item>
+      <item quantity="one">Đang sửa đổi video…</item>
     </plurals>
     <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
       <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> sửa đổi <xliff:g id="COUNT">^2</xliff:g> ảnh?</item>
       <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> sửa đổi ảnh này?</item>
     </plurals>
+    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
+      <item quantity="other">Đang sửa đổi <xliff:g id="COUNT">^1</xliff:g> ảnh…</item>
+      <item quantity="one">Đang sửa đổi ảnh…</item>
+    </plurals>
     <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
       <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> sửa đổi <xliff:g id="COUNT">^2</xliff:g> mục?</item>
       <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> sửa đổi mục này?</item>
+    </plurals>
+    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
+      <item quantity="other">Đang sửa đổi <xliff:g id="COUNT">^1</xliff:g> mục…</item>
+      <item quantity="one">Đang sửa đổi mục…</item>
     </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
       <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> chuyển <xliff:g id="COUNT">^2</xliff:g> tệp âm thanh vào thùng rác?</item>
       <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> chuyển tệp âm thanh này vào thùng rác?</item>
     </plurals>
+    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
+      <item quantity="other">Đang chuyển <xliff:g id="COUNT">^1</xliff:g> tệp âm thanh vào thùng rác…</item>
+      <item quantity="one">Đang chuyển tệp âm thanh vào thùng rác…</item>
+    </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
       <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> chuyển <xliff:g id="COUNT">^2</xliff:g> video vào thùng rác?</item>
       <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> chuyển video này vào thùng rác?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
+      <item quantity="other">Đang chuyển <xliff:g id="COUNT">^1</xliff:g> video vào thùng rác…</item>
+      <item quantity="one">Đang chuyển video vào thùng rác…</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
       <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> chuyển <xliff:g id="COUNT">^2</xliff:g> ảnh vào thùng rác?</item>
       <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> chuyển ảnh này vào thùng rác?</item>
     </plurals>
+    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
+      <item quantity="other">Đang chuyển <xliff:g id="COUNT">^1</xliff:g> ảnh vào thùng rác…</item>
+      <item quantity="one">Đang chuyển ảnh vào thùng rác…</item>
+    </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
       <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> chuyển <xliff:g id="COUNT">^2</xliff:g> mục vào thùng rác?</item>
       <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> chuyển mục này vào thùng rác?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
+      <item quantity="other">Đang chuyển <xliff:g id="COUNT">^1</xliff:g> mục vào thùng rác…</item>
+      <item quantity="one">Đang chuyển mục vào thùng rác…</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
       <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> chuyển <xliff:g id="COUNT">^2</xliff:g> tệp âm thanh ra khỏi thùng rác?</item>
       <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> chuyển tệp âm thanh này ra khỏi thùng rác?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
+      <item quantity="other">Đang chuyển <xliff:g id="COUNT">^1</xliff:g> tệp âm thanh ra khỏi thùng rác…</item>
+      <item quantity="one">Đang chuyển tệp âm thanh ra khỏi thùng rác…</item>
+    </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
       <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> chuyển <xliff:g id="COUNT">^2</xliff:g> video ra khỏi thùng rác?</item>
       <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> chuyển video này ra khỏi thùng rác?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
+      <item quantity="other">Đang chuyển <xliff:g id="COUNT">^1</xliff:g> video ra khỏi thùng rác…</item>
+      <item quantity="one">Đang chuyển video ra khỏi thùng rác…</item>
     </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
       <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> chuyển <xliff:g id="COUNT">^2</xliff:g> ảnh ra khỏi thùng rác?</item>
       <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> chuyển ảnh này ra khỏi thùng rác?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
+      <item quantity="other">Đang chuyển <xliff:g id="COUNT">^1</xliff:g> ảnh ra khỏi thùng rác…</item>
+      <item quantity="one">Đang chuyển ảnh ra khỏi thùng rác…</item>
+    </plurals>
     <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
       <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> chuyển <xliff:g id="COUNT">^2</xliff:g> mục ra khỏi thùng rác?</item>
       <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> chuyển mục này ra khỏi thùng rác?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
+      <item quantity="other">Đang chuyển <xliff:g id="COUNT">^1</xliff:g> mục ra khỏi thùng rác…</item>
+      <item quantity="one">Đang chuyển mục ra khỏi thùng rác…</item>
     </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
       <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> xóa <xliff:g id="COUNT">^2</xliff:g> tệp âm thanh?</item>
       <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> xóa tệp âm thanh này?</item>
     </plurals>
+    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
+      <item quantity="other">Đang xóa <xliff:g id="COUNT">^1</xliff:g> tệp âm thanh…</item>
+      <item quantity="one">Đang xóa tệp âm thanh…</item>
+    </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
       <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> xóa <xliff:g id="COUNT">^2</xliff:g> video?</item>
       <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> xóa video này?</item>
+    </plurals>
+    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
+      <item quantity="other">Đang xóa <xliff:g id="COUNT">^1</xliff:g> video…</item>
+      <item quantity="one">Đang xóa video…</item>
     </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
       <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> xóa <xliff:g id="COUNT">^2</xliff:g> ảnh?</item>
       <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> xóa ảnh này?</item>
     </plurals>
+    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
+      <item quantity="other">Đang xóa <xliff:g id="COUNT">^1</xliff:g> ảnh…</item>
+      <item quantity="one">Đang xóa ảnh…</item>
+    </plurals>
     <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
       <item quantity="other">Cho phép <xliff:g id="APP_NAME_1">^1</xliff:g> xóa <xliff:g id="COUNT">^2</xliff:g> mục?</item>
       <item quantity="one">Cho phép <xliff:g id="APP_NAME_0">^1</xliff:g> xóa mục này?</item>
     </plurals>
+    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
+      <item quantity="other">Đang xóa <xliff:g id="COUNT">^1</xliff:g> mục…</item>
+      <item quantity="one">Đang xóa mục…</item>
+    </plurals>
+    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> không thể xử lý các tệp nội dung nghe nhìn"</string>
+    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Đã hủy quá trình xử lý nội dung nghe nhìn"</string>
+    <string name="transcode_processing_error" msgid="8921643164508407874">"Lỗi khi xử lý nội dung nghe nhìn"</string>
+    <string name="transcode_processing_success" msgid="447288876429730122">"Đã xử lý thành công nội dung nghe nhìn"</string>
+    <string name="transcode_processing_started" msgid="7789086308155361523">"Đã bắt đầu xử lý nội dung nghe nhìn"</string>
+    <string name="transcode_processing" msgid="6753136468864077258">"Đang xử lý nội dung nghe nhìn..."</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"Hủy"</string>
+    <string name="transcode_wait" msgid="8909773149560697501">"Đợi"</string>
 </resources>

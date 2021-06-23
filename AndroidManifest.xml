@@ -8,6 +8,8 @@
 
     <uses-permission android:name="android.permission.MANAGE_USERS" />
     <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
+    <!-- Permission required  to prompt for the work profile to be turned on -->
+    <uses-permission android:name="android.permission.MODIFY_QUIET_MODE" />
 
     <uses-permission android:name="android.permission.WATCH_APPOPS" />
     <uses-permission android:name="android.permission.UPDATE_APP_OPS_STATS" />
@@ -24,6 +26,17 @@
     <!-- Permissions required for reading and logging compat changes -->
     <uses-permission android:name="android.permission.LOG_COMPAT_CHANGE"/>
     <uses-permission android:name="android.permission.READ_COMPAT_CHANGE_CONFIG"/>
+
+    <!-- Permissions required for reading device configs -->
+    <uses-permission android:name="android.permission.READ_DEVICE_CONFIG"/>
+
+    <uses-permission android:name="android.permission.START_FOREGROUND_SERVICES_FROM_BACKGROUND"/>
+
+    <!-- Permissions required for statsd pull metrics -->
+    <uses-permission android:name="android.permission.REGISTER_STATS_PULL_ATOM"/>
+
+    <!-- Permissions required to check if an app is in the foreground or not during IO -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
 
     <application
             android:name="com.android.providers.media.MediaApplication"
@@ -52,7 +65,8 @@
         </provider>
 
         <!-- Handles database upgrades after OTAs, then disables itself -->
-        <receiver android:name="com.android.providers.media.MediaUpgradeReceiver">
+        <receiver android:name="com.android.providers.media.MediaUpgradeReceiver"
+            android:exported="true">
             <!-- This broadcast is sent after the core system has finished
                  booting, before the home app is launched or BOOT_COMPLETED
                  is sent. -->
@@ -61,7 +75,8 @@
             </intent-filter>
         </receiver>
 
-        <receiver android:name="com.android.providers.media.MediaReceiver">
+        <receiver android:name="com.android.providers.media.MediaReceiver"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
@@ -72,10 +87,6 @@
                 <action android:name="android.intent.action.PACKAGE_FULLY_REMOVED" />
                 <action android:name="android.intent.action.PACKAGE_DATA_CLEARED" />
                 <data android:scheme="package" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.MEDIA_MOUNTED" />
-                <data android:scheme="file" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_SCANNER_SCAN_FILE" />
@@ -94,6 +105,7 @@
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
         <service android:name="com.android.providers.media.fuse.ExternalStorageServiceImpl"
+                 android:exported="true"
                  android:permission="android.permission.BIND_EXTERNAL_STORAGE_SERVICE">
             <intent-filter>
                 <action android:name="android.service.storage.ExternalStorageService" />

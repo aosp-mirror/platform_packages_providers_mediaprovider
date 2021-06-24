@@ -1203,7 +1203,7 @@ public class ModernMediaScannerTest {
         firstDirScan.dumpResults();
 
         // Time taken : preVisitDirectory
-        Timer noOpDirScan = new Timer("noOpDirScan");
+        Timer noOpDirScan = new Timer("noOpDirScan1");
         for (int i = 0; i < COUNT_REPEAT; i++) {
             noOpDirScan.start();
             mModern.scanDirectory(mDir, REASON_UNKNOWN);
@@ -1213,24 +1213,21 @@ public class ModernMediaScannerTest {
         assertThat(noOpDirScan.getMaxDurationMillis()).isLessThan(
                 firstDirScan.getMaxDurationMillis());
 
-        // renaming directory for non-M_E_S apps does a scan of the directory as well;
-        // so subsequent scans should be noOp as the directory is not dirty.
-        File renamedTestDir = new File(mIsolatedContext.getExternalMediaDirs()[0],
-                "renamed_test_" + System.nanoTime());
-        assertThat(mDir.renameTo(renamedTestDir)).isTrue();
-        MediaStore.waitForIdle(mIsolatedResolver);
+        // Creating new file in the nomedia dir by a non-M_E_S app should not set nomedia dir dirty.
+        File file = new File(mDir, "file_" + System.nanoTime());
+        assertThat(file.createNewFile()).isTrue();
 
-        Timer renamedDirScan = new Timer("renamedDirScan");
-        renamedDirScan.start();
+        // The dir should not be dirty and subsequest scans should not scan the entire directory.
         // Time taken : preVisitDirectory
-        mModern.scanDirectory(renamedTestDir, REASON_UNKNOWN);
-        renamedDirScan.stop();
-        renamedDirScan.dumpResults();
-        assertThat(renamedDirScan.getMaxDurationMillis()).isLessThan(
+        noOpDirScan = new Timer("noOpDirScan2");
+        for (int i = 0; i < COUNT_REPEAT; i++) {
+            noOpDirScan.start();
+            mModern.scanDirectory(mDir, REASON_UNKNOWN);
+            noOpDirScan.stop();
+        }
+        noOpDirScan.dumpResults();
+        assertThat(noOpDirScan.getMaxDurationMillis()).isLessThan(
                 firstDirScan.getMaxDurationMillis());
-
-        // This is essential for folder cleanup in tearDown
-        mDir = renamedTestDir;
     }
 
     @Test

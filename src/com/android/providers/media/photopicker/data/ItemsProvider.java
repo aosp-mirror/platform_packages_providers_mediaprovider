@@ -16,36 +16,52 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static com.android.providers.media.util.MimeUtils.isImageMimeType;
+import static com.android.providers.media.util.MimeUtils.isVideoMimeType;
+
+import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.ContentProvider;
+import android.content.ContentProviderClient;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.MatrixCursor;
 import android.net.Uri;
+import android.os.Bundle;
+import android.os.RemoteException;
 import android.provider.MediaStore;
+import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
 
 import com.android.providers.media.photopicker.data.model.Category;
-import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.data.model.Category.CategoryColumns;
+import com.android.providers.media.photopicker.data.model.Item.ItemColumns;
 import com.android.providers.media.photopicker.data.model.UserId;
 
+import java.util.List;
+
 /**
- * The base class that is responsible for obtaining data from all providers and
- * merge the data together and provide it to ViewModel.
+ * Provides image and video items from {@link MediaStore} collection to the Photo Picker.
  */
 public class ItemsProvider {
-    private Context mContext;
-    private LocalItemsProvider mLocalItemsProvider;
+
+    private static final String IMAGES_VIDEOS_WHERE_CLAUSE = "( " +
+            FileColumns.MEDIA_TYPE + " = " + FileColumns.MEDIA_TYPE_IMAGE + " OR "
+            + FileColumns.MEDIA_TYPE + " = " + FileColumns.MEDIA_TYPE_VIDEO + " )";
+
+    private final Context mContext;
 
     public ItemsProvider(Context context) {
         mContext = context;
-        mLocalItemsProvider = new LocalItemsProvider(mContext);
     }
 
     /**
-     * Returns a {@link Cursor} to all images/videos that are provided by {@link LocalItemsProvider}
+     * Returns a {@link Cursor} to all images/videos based on the param passed for
+     * {@code categoryType}, {@code offset}, {@code limit}, {@code mimeType} and {@code userId}.
      *
      * <p>
-     * Note: By default the returned {@link Cursor} sorts by {@link MediaColumns#DATE_TAKEN}.
+     * By default the returned {@link Cursor} sorts by latest date taken.
      *
      * @param category the category of items to return, {@link Category.CategoryType} are supported.
      *                 {@code null} defaults to {@link Category#CATEGORY_DEFAULT} which returns
@@ -57,48 +73,170 @@ public class ItemsProvider {
      *                 {@code null} returns all images/videos that are scanned by
      *                 {@link MediaStore}.
      * @param userId the {@link UserId} of the user to get items as.
-     *               {@code null} defaults to {@link UserId#CURRENT_USER}.
+     *               {@code null} defaults to {@link UserId#CURRENT_USER}
      *
-     * @return {@link Cursor} to all images/videos on external storage that are scanned by
-     * {@link MediaStore} based on params passed, or {@code null} if there are no such
-     * images/videos. The Cursor for each item would contain {@link Item.ItemColumns}
+     * @return {@link Cursor} to images/videos on external storage that are scanned by
+     * {@link MediaStore}. The returned cursor is filtered based on params passed, it {@code null}
+     * if there are no such images/videos. The Cursor for each item contains {@link ItemColumns}
      *
      * @throws IllegalArgumentException thrown if unsupported values for {@code mimeType},
      * {@code category} is passed.
      * @throws IllegalStateException thrown if unsupported value for {@code userId} is passed.
+     *
      */
     @Nullable
-    public Cursor getItems(@Nullable String category, int offset, int limit,
-            @Nullable String mimeType, @Nullable UserId userId) throws IllegalArgumentException,
-            IllegalStateException {
-        return mLocalItemsProvider.getItems(category, offset, limit, mimeType, userId);
+    public Cursor getItems(@Nullable @Category.CategoryType String category, int offset,
+            int limit, @Nullable String mimeType, @Nullable UserId userId) throws
+            IllegalArgumentException, IllegalStateException {
+        if (userId == null) {
+            userId = UserId.CURRENT_USER;
+        }
+
+        return getItemsInternal(category, offset, limit, mimeType, userId);
+    }
+
+    @Nullable
+    private Cursor getItemsInternal(@Nullable @Category.CategoryType String category,
+            int offset, int limit, @Nullable String mimeType, @NonNull UserId userId) throws
+            IllegalArgumentException, IllegalStateException {
+        // 1. Validate incoming params
+        if (category != null && Category.isValidCategory(category)) {
+            throw new IllegalArgumentException("ItemsProvider does not support the given "
+                    + "category: " + category);
+        }
+
+        if (mimeType != null && !isMimeTypeImageVideo(mimeType)) {
+            throw new IllegalArgumentException("ItemsProvider does not support the given "
+                    + "mimeType: " + mimeType);
+        }
+
+        // 2. Create args to query MediaStore
+        String selection = null;
+        String[] selectionArgs = null;
+
+        if (category != null && Category.getWhereClauseForCategory(category) != null) {
+            selection = Category.getWhereClauseForCategory(category);
+        }
+
+        if (mimeType != null && isMimeTypeImageVideo(mimeType)) {
+            if (selection != null) {
+                selection += " AND ";
+            } else {
+                selection = "";
+            }
+            selection += MediaColumns.MIME_TYPE + " LIKE ? ";
+            selectionArgs = new String[] {replaceMatchAnyChar(mimeType)};
+        }
+
+        final String[] projection = ItemColumns.ALL_COLUMNS_LIST.toArray(new String[0]);
+        // 3. Query MediaStore and return
+        return queryMediaStore(projection, selection, selectionArgs, offset, limit, userId);
     }
 
     /**
-     * Returns a {@link Cursor} containing basic information (as columns:
-     * {@link Category.CategoryColumns}) for non-empty categories.
-     * A {@link Category} is a collection of items (images/videos) that are put into different
-     * buckets based on various criteria as defined in {@link Category.CategoryType}.
-     * This includes a list of constant categories for LocalItemsProvider: {@link Category} contains
-     * a constant list of local categories supported in v0.
+     * Returns a {@link Cursor} to all non-empty categories in which images/videos are categorised.
+     * This includes:
+     * * A constant list of local categories for on-device images/videos: {@link Category}
+     * * Albums provided by selected cloud provider
      *
      * @param userId the {@link UserId} of the user to get categories as.
      *               {@code null} defaults to {@link UserId#CURRENT_USER}.
      *
      * @return {@link Cursor} for each category would contain the following columns in
      * their relative order:
-     * categoryName: {@link Category.CategoryColumns#NAME} The name of the category,
-     * categoryCoverUri: {@link Category.CategoryColumns#COVER_URI} The Uri for the cover of
+     * categoryName: {@link CategoryColumns#NAME} The name of the category,
+     * categoryCoverUri: {@link CategoryColumns#COVER_URI} The Uri for the cover of
      *                   the category. By default this will be the most recent image/video in that
      *                   category,
-     * categoryNumberOfItems: {@link Category.CategoryColumns#NUMBER_OF_ITEMS} number of image/video
-     *                        items in the category,
-     *
-     * @throws IllegalStateException thrown if unsupported value for {@code userId} is passed.
+     * categoryNumberOfItems: {@link CategoryColumns#NUMBER_OF_ITEMS} number of image/video items
+     *                        in the category,
      */
     @Nullable
     public Cursor getCategories(@Nullable UserId userId) {
-        return mLocalItemsProvider.getCategories(userId);
+        if (userId == null) {
+            userId = UserId.CURRENT_USER;
+        }
+        return buildCategoriesCursor(Category.CATEGORIES_LIST, userId);
+    }
+
+    private Cursor buildCategoriesCursor(List<String> categories, @NonNull UserId userId) {
+        MatrixCursor c = new MatrixCursor(CategoryColumns.getAllColumns());
+
+        for (String category: categories) {
+            String[] categoryRow = getCategoryColumns(category, userId);
+            if (categoryRow != null) {
+                c.addRow(categoryRow);
+            }
+        }
+
+        return c;
+    }
+
+    private String[] getCategoryColumns(@Category.CategoryType String category,
+            @NonNull UserId userId) throws IllegalArgumentException, IllegalStateException {
+        if (!Category.isValidCategory(category)) {
+            throw new IllegalArgumentException("Category type not supported");
+        }
+        final String whereClause = Category.getWhereClauseForCategory(category);
+        final String[] projection = new String[] { MediaColumns._ID };
+        Cursor c = queryMediaStore(projection, whereClause, null, 0, -1, userId);
+        // Send null if the cursor is null or cursor size is empty
+        if (c == null || !c.moveToFirst()) {
+            return null;
+        }
+
+        return new String[] {
+                category,
+                String.valueOf(getMediaStoreUriForItem(c.getLong(0))),
+                String.valueOf(c.getCount())
+        };
+    }
+
+    @Nullable
+    private Cursor queryMediaStore(@NonNull String[] projection,
+            @Nullable String extraSelection, @Nullable String[] extraSelectionArgs, int offset,
+            int limit, @NonNull UserId userId) throws IllegalStateException {
+        final Uri contentUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL);
+
+        String selection = IMAGES_VIDEOS_WHERE_CLAUSE;
+        String[] selectionArgs = null;
+
+        if (extraSelection != null) {
+            selection += " AND " + extraSelection;
+        }
+        if (extraSelectionArgs != null) {
+            selectionArgs = extraSelectionArgs;
+        }
+
+        try (ContentProviderClient client = userId.getContentResolver(mContext)
+                .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
+            Bundle extras = new Bundle();
+            extras.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, selection);
+            extras.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs);
+            extras.putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,
+                    MediaColumns.DATE_TAKEN + " DESC");
+            extras.putInt(ContentResolver.QUERY_ARG_OFFSET, offset);
+            if (limit != -1) {
+                extras.putInt(ContentResolver.QUERY_ARG_LIMIT, limit);
+            }
+
+            return client.query(contentUri, projection, extras, null);
+        } catch (RemoteException ignored) {
+            // Do nothing, return null.
+        }
+        return null;
+    }
+
+    private static Uri getMediaStoreUriForItem(long id) {
+        return MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL, id);
+    }
+
+    private static boolean isMimeTypeImageVideo(@NonNull String mimeType) {
+        return isImageMimeType(mimeType) || isVideoMimeType(mimeType);
+    }
+
+    private static String replaceMatchAnyChar(@NonNull String mimeType) {
+        return mimeType.replace('*', '%');
     }
 
     public static Uri getItemsUri(long id, UserId userId) {

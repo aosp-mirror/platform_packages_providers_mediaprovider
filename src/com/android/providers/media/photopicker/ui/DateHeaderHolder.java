@@ -24,7 +24,7 @@ import com.android.providers.media.photopicker.data.model.Item;
 /**
  * ViewHolder of a date header within a RecyclerView.
  */
-public class DateHeaderHolder extends BaseItemHolder {
+public class DateHeaderHolder extends BaseViewHolder {
     private TextView mTitle;
     public DateHeaderHolder(Context context, ViewGroup parent) {
         super(context, parent, R.layout.item_date_header);

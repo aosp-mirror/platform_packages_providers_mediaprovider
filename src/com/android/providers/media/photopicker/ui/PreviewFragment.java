@@ -16,7 +16,9 @@
 
 package com.android.providers.media.photopicker.ui;
 
+import android.content.Context;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -36,8 +38,10 @@ import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Displays a selected items in one up view. Supports deselecting items.
@@ -111,8 +115,7 @@ public class PreviewFragment extends Fragment {
         } else {
             // Update add button text to include number of items selected.
             mPickerViewModel.getSelectedItems().observe(this, selectedItems -> {
-                final int size = selectedItems.size();
-                addButton.setText(getString(R.string.add) + " (" + size + ")");
+                addButton.setText(generateAddButtonString(getContext(), selectedItems.size()));
             });
             selectButton.setOnClickListener(v -> {
                 onClickSelect(selectButton);
@@ -168,5 +171,12 @@ public class PreviewFragment extends Fragment {
                 .setReorderingAllowed(true)
                 .replace(R.id.fragment_container, fragment, TAG)
                 .commitNow();
+    }
+
+    // TODO: There is a same method in TabFragment. To find a way to reuse it.
+    private static String generateAddButtonString(Context context, int size) {
+        final String sizeString = NumberFormat.getInstance(Locale.getDefault()).format(size);
+        final String template = context.getString(R.string.picker_add_button_multi_select);
+        return TextUtils.expandTemplate(template, sizeString).toString();
     }
 }

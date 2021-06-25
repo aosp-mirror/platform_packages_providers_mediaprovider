@@ -26,6 +26,8 @@
     <color name="picker_background_color">@android:color/white</color>
     <color name="picker_highlight_color">#E8F0FE</color>
     <color name="picker_date_header_text_color">#3C4043</color>
+    <color name="picker_toolbar_icon_color">#3C4043</color>
+    <color name="picker_toolbar_chip_text_color">#5F6368</color>
 
     <!-- PhotoPicker Preview -->
     <color name="preview_default_blue">#8AB4F8</color>

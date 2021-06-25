@@ -22,6 +22,7 @@
 
     <!-- PhotoPicker -->
     <dimen name="picker_photo_size">118dp</dimen>
+    <dimen name="picker_album_size">156dp</dimen>
 
     <dimen name="picker_bottom_bar_size">56dp</dimen>
     <dimen name="picker_bottom_bar_horizontal_gap">16dp</dimen>
@@ -37,7 +38,19 @@
     <dimen name="picker_date_header_height">56dp</dimen>
     <dimen name="picker_date_header_padding">16dp</dimen>
 
+    <dimen name="picker_album_name_height">20dp</dimen>
+    <dimen name="picker_album_name_margin">8dp</dimen>
+    <dimen name="picker_album_item_count_height">16dp</dimen>
+    <dimen name="picker_album_item_count_margin">2dp</dimen>
+    <dimen name="picker_album_bottom_bar_gap">20dp</dimen>
+    <dimen name="picker_album_grid_radius">8dp</dimen>
+    <dimen name="picker_album_item_spacing">16dp</dimen>
+
     <dimen name="picker_photo_item_spacing">3dp</dimen>
+
+    <dimen name="picker_chip_text_size">14sp</dimen>
+    <dimen name="picker_chip_touch_size">48dp</dimen>
+    <dimen name="picker_chip_radius">16dp</dimen>
 
     <!-- PhotoPicker Preview -->
     <dimen name="preview_buttons_margin_horizontal">16dp</dimen>

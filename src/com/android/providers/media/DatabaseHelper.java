@@ -1648,7 +1648,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     // Leave some gaps in database version tagging to allow S schema changes
     // to go independent of T schema changes.
     static final int VERSION_T = 1300;
-    static final int VERSION_LATEST = VERSION_T;
+    public static final int VERSION_LATEST = VERSION_T;
 
     /**
      * This method takes care of updating all the tables in the database to the

@@ -22,6 +22,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.provider.MediaStore;
 
 import androidx.test.runner.AndroidJUnit4;
 
@@ -61,11 +62,8 @@ public class ItemTest {
         final String displayName = "123.png";
         final String volumeName = "primary";
         final long duration = 1000;
-        final Cursor cursor = generateCursorForItem(id, mimeType, displayName, volumeName,
+        final Item item = generateItem(id, mimeType, displayName, volumeName,
                 dateTaken, duration);
-        cursor.moveToFirst();
-
-        final Item item = new Item(cursor, UserId.CURRENT_USER);
 
         assertThat(item.isImage()).isTrue();
     }
@@ -78,11 +76,8 @@ public class ItemTest {
         final String displayName = "123.png";
         final String volumeName = "primary";
         final long duration = 1000;
-        final Cursor cursor = generateCursorForItem(id, mimeType, displayName, volumeName,
+        final Item item = generateItem(id, mimeType, displayName, volumeName,
                 dateTaken, duration);
-        cursor.moveToFirst();
-
-        final Item item = new Item(cursor, UserId.CURRENT_USER);
 
         assertThat(item.isVideo()).isTrue();
     }
@@ -95,11 +90,8 @@ public class ItemTest {
         final String displayName = "123.png";
         final String volumeName = "primary";
         final long duration = 1000;
-        final Cursor cursor = generateCursorForItem(id, mimeType, displayName, volumeName,
+        final Item item = generateItem(id, mimeType, displayName, volumeName,
                 dateTaken, duration);
-        cursor.moveToFirst();
-
-        final Item item = new Item(cursor, UserId.CURRENT_USER);
 
         assertThat(item.isGif()).isTrue();
     }
@@ -120,5 +112,22 @@ public class ItemTest {
                 ItemColumns.ALL_COLUMNS_LIST.toArray(new String[0]));
         cursor.addRow(new Object[] {id, mimeType, displayName, volumeName, dateTaken, duration});
         return cursor;
+    }
+
+    /**
+     * Generate the {@link Item}
+     * @param id the id
+     * @param mimeType the mime type
+     * @param displayName the display name
+     * @param volumeName the volume name
+     * @param dateTaken the time of date taken
+     * @param duration the duration
+     * @return the Item
+     */
+    public static Item generateItem(long id, String mimeType,
+            String displayName, String volumeName, long dateTaken, long duration) {
+
+        return new Item(id, mimeType, displayName, volumeName, dateTaken, duration,
+                MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL, id));
     }
 }

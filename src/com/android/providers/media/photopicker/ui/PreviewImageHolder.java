@@ -27,7 +27,7 @@ import com.android.providers.media.photopicker.data.model.Item;
 /**
  * ViewHolder of a photo item within a RecyclerView.
  */
-public class PreviewImageHolder extends BaseItemHolder {
+public class PreviewImageHolder extends BaseViewHolder {
     private final ImageLoader mImageLoader;
     private final ImageView mImageView;
 

@@ -32,9 +32,9 @@ import java.util.List;
 /**
  * Adapts from model to something RecyclerView understands.
  */
-public class PhotosTabAdapter extends RecyclerView.Adapter<BaseItemHolder> {
+public class PhotosTabAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
-    private static final int ITEM_TYPE_DATE_HEADER = 0;
+    public static final int ITEM_TYPE_DATE_HEADER = 0;
     private static final int ITEM_TYPE_PHOTO = 1;
 
     public static final int COLUMN_COUNT = 3;
@@ -53,7 +53,7 @@ public class PhotosTabAdapter extends RecyclerView.Adapter<BaseItemHolder> {
 
     @NonNull
     @Override
-    public BaseItemHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
+    public BaseViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
         if (viewType == ITEM_TYPE_DATE_HEADER) {
             return new DateHeaderHolder(viewGroup.getContext(), viewGroup);
         }
@@ -62,7 +62,7 @@ public class PhotosTabAdapter extends RecyclerView.Adapter<BaseItemHolder> {
     }
 
     @Override
-    public void onBindViewHolder(@NonNull BaseItemHolder itemHolder, int position) {
+    public void onBindViewHolder(@NonNull BaseViewHolder itemHolder, int position) {
         final Item item = getItem(position);
         itemHolder.itemView.setTag(item);
 

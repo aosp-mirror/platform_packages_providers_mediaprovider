@@ -24,16 +24,16 @@ import android.view.ViewGroup;
 import androidx.recyclerview.widget.RecyclerView;
 
 /**
- * ViewHolder of a photo item within a RecyclerView.
+ * ViewHolder of a item within a {@link RecyclerView.Adapter}.
  */
-public abstract class BaseItemHolder extends RecyclerView.ViewHolder {
+public abstract class BaseViewHolder extends RecyclerView.ViewHolder {
 
-    public BaseItemHolder(Context context, ViewGroup parent, int layout) {
+    public BaseViewHolder(Context context, ViewGroup parent, int layout) {
         this(context, inflateLayout(context, parent, layout));
     }
 
-    public BaseItemHolder(Context context, View item) {
-        super(item);
+    public BaseViewHolder(Context context, View view) {
+        super(view);
     }
 
     private static <V extends View> V inflateLayout(Context context, ViewGroup parent, int layout) {

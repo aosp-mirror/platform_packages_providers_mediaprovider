@@ -14,15 +14,16 @@
      limitations under the License.
 -->
 
-<resources xmlns:android="http://schemas.android.com/apk/res/android">
-
-    <style name="PickerDateHeader" parent="@android:style/TextAppearance.Material.Title">
-        <item name="android:textColor">@color/picker_date_header_text_color</item>
-        <item name="android:textSize">16sp</item>
-    </style>
-
-    <style name="PickerChipText" parent="@android:style/TextAppearance.Material.Title">
-        <item name="android:textSize">@dimen/picker_chip_text_size</item>
-    </style>
-
-</resources>
+<com.google.android.material.chip.Chip
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:textAppearance="@style/PickerChipText"
+    android:textColor="@color/picker_chip_text_color"
+    app:chipBackgroundColor="@color/picker_chip_background_color"
+    app:chipCornerRadius="@dimen/picker_chip_radius"
+    app:chipStrokeWidth="0dp"
+    app:rippleColor="@color/picker_chip_ripple_color"
+    app:chipMinTouchTargetSize="@dimen/picker_chip_touch_size"/>

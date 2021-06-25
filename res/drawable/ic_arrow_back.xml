@@ -14,15 +14,14 @@
      limitations under the License.
 -->
 
-<resources xmlns:android="http://schemas.android.com/apk/res/android">
-
-    <style name="PickerDateHeader" parent="@android:style/TextAppearance.Material.Title">
-        <item name="android:textColor">@color/picker_date_header_text_color</item>
-        <item name="android:textSize">16sp</item>
-    </style>
-
-    <style name="PickerChipText" parent="@android:style/TextAppearance.Material.Title">
-        <item name="android:textSize">@dimen/picker_chip_text_size</item>
-    </style>
-
-</resources>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+        android:width="24dp"
+        android:height="24dp"
+        android:viewportHeight="24"
+        android:viewportWidth="24"
+        android:tint="@color/picker_toolbar_icon_color"
+        android:autoMirrored="true">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M20,11H7.83l5.59,-5.59L12,4l-8,8 8,8 1.41,-1.41L7.83,13H20v-2z"/>
+</vector>

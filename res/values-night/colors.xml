@@ -24,4 +24,7 @@
     <color name="picker_background_color">#202124</color>
     <color name="picker_highlight_color">#3D8AB4F8</color>
     <color name="picker_date_header_text_color">@color/picker_default_white</color>
+    <color name="picker_toolbar_icon_color">#E8EAED</color>
+    <color name="picker_toolbar_chip_text_color">#E8EAED</color>
+
 </resources>

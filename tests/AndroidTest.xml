@@ -16,6 +16,7 @@
 <configuration description="Runs Tests for MediaProvder.">
     <target_preparer class="com.android.tradefed.targetprep.TestAppInstallSetup">
         <option name="test-file-name" value="MediaProviderTests.apk" />
+        <option name="test-file-name" value="MediaProviderTestAppForPermissionActivity.apk" />
         <option name="test-file-name" value="MediaProviderTestAppWithStoragePerms.apk" />
         <option name="test-file-name" value="MediaProviderTestAppWithoutPerms.apk" />
         <option name="test-file-name" value="LegacyMediaProviderTestApp.apk" />

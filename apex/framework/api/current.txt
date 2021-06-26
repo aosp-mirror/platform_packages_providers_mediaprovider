@@ -323,7 +323,7 @@ package android.provider {
     field public static final String CD_TRACK_NUMBER = "cd_track_number";
     field public static final String COMPILATION = "compilation";
     field public static final String COMPOSER = "composer";
-    field @Deprecated public static final String DATA = "_data";
+    field public static final String DATA = "_data";
     field public static final String DATE_ADDED = "date_added";
     field public static final String DATE_EXPIRES = "date_expires";
     field public static final String DATE_MODIFIED = "date_modified";

@@ -213,8 +213,11 @@ public class ItemsProvider {
             Bundle extras = new Bundle();
             extras.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, selection);
             extras.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs);
+            // DATE_TAKEN is time in milliseconds, whereas DATE_MODIFIED is time in seconds.
+            // Sort by DATE_MODIFIED if DATE_TAKEN is NULL
             extras.putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,
-                    MediaColumns.DATE_TAKEN + " DESC");
+                    "COALESCE(" + MediaColumns.DATE_TAKEN + "," + MediaColumns.DATE_MODIFIED +
+                    "* 1000) DESC");
             extras.putInt(ContentResolver.QUERY_ARG_OFFSET, offset);
             if (limit != -1) {
                 extras.putInt(ContentResolver.QUERY_ARG_LIMIT, limit);

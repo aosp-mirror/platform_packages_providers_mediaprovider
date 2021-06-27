@@ -42,6 +42,7 @@ public class Item {
         public static String DISPLAY_NAME = MediaStore.MediaColumns.DISPLAY_NAME;
         public static String VOLUME_NAME = MediaStore.MediaColumns.VOLUME_NAME;
         public static String DATE_TAKEN = MediaStore.MediaColumns.DATE_TAKEN;
+        public static String DATE_MODIFIED = MediaStore.MediaColumns.DATE_MODIFIED;
         public static String DURATION = MediaStore.MediaColumns.DURATION;
 
         private static final String[] ALL_COLUMNS = {
@@ -50,6 +51,7 @@ public class Item {
                 DISPLAY_NAME,
                 VOLUME_NAME,
                 DATE_TAKEN,
+                DATE_MODIFIED,
                 DURATION,
         };
         public static List<String> ALL_COLUMNS_LIST = Collections.unmodifiableList(
@@ -161,6 +163,10 @@ public class Item {
         mMimeType = getCursorString(cursor, ItemColumns.MIME_TYPE);
         mDisplayName = getCursorString(cursor, ItemColumns.DISPLAY_NAME);
         mDateTaken = getCursorLong(cursor, ItemColumns.DATE_TAKEN);
+        if (mDateTaken < 0) {
+            // Convert DATE_MODIFIED to millis
+            mDateTaken = getCursorLong(cursor, ItemColumns.DATE_MODIFIED) * 1000;
+        }
         mVolumeName = getCursorString(cursor, ItemColumns.VOLUME_NAME);
         mDuration = getCursorLong(cursor, ItemColumns.DURATION);
 
@@ -213,17 +219,5 @@ public class Item {
         } catch (NumberFormatException e) {
             return -1;
         }
-    }
-
-    /**
-     * Missing or null values are returned as 0.
-     */
-    private static int getCursorInt(Cursor cursor, String columnName) {
-        if (cursor == null) {
-            return 0;
-        }
-
-        final int index = cursor.getColumnIndex(columnName);
-        return (index != -1) ? cursor.getInt(index) : 0;
     }
 }

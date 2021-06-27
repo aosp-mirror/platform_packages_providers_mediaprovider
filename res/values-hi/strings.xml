@@ -46,7 +46,7 @@
     <string name="add" msgid="2894574044585549298">"जोड़ें"</string>
     <string name="deselect" msgid="4297825044827769490">"चुना हुआ हटाएं"</string>
     <string name="select" msgid="2704765470563027689">"चुनें"</string>
-    <string name="recent" msgid="6694613584743207874">"हाल ही के फ़ोटो वीडियो"</string>
+    <string name="recent" msgid="6694613584743207874">"हाल ही की फ़ोटो और वीडियो"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"चुनी गई फ़ोटो या वीडियो देखें"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="one">क्या आप <xliff:g id="APP_NAME_1">^1</xliff:g> को <xliff:g id="COUNT">^2</xliff:g> ऑडियो फ़ाइल में बदलाव करने की अनुमति देना चाहते हैं?</item>

@@ -65,7 +65,7 @@ import java.io.File;
 @RunWith(AndroidJUnit4.class)
 public class PermissionActivityTest {
     private static final String TEST_APP_PACKAGE_NAME =
-            "com.android.providers.media.testapp.withstorageperms";
+            "com.android.providers.media.testapp.permission";
 
     private static final int TEST_APP_PID = -1;
     private int mTestAppUid = -1;

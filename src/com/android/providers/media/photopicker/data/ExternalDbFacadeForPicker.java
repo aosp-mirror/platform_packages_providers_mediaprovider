@@ -21,6 +21,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
+import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
 
 import androidx.annotation.VisibleForTesting;
@@ -34,13 +35,9 @@ import com.android.providers.media.util.MimeUtils;
  * MediaProvider for the Photo Picker.
  */
 public class ExternalDbFacadeForPicker {
-    private final DatabaseHelper mDatabaseHelper;
-
-    public ExternalDbFacadeForPicker(DatabaseHelper databaseHelper) {
-        mDatabaseHelper = databaseHelper;
-    }
-
     private static final String TAG = "ExternalDbFacade";
+    @VisibleForTesting
+    static final String TABLE_FILES = "files";
 
     private static final String TABLE_DELETED_MEDIA = "deleted_media";
     private static final String COLUMN_OLD_ID = "old_id";
@@ -48,7 +45,36 @@ public class ExternalDbFacadeForPicker {
     private static final String COLUMN_OLD_ID_AS_ID = COLUMN_OLD_ID + " AS " + "id";
     private static final String COLUMN_GENERATION_MODIFIED = MediaColumns.GENERATION_MODIFIED;
 
-    /*
+    // TODO(b/190713331): Use constants from CloudMediaProviderContract#MediaColumns
+    private static final String[] PROJECTION_MEDIA_COLUMNS = new String[] {
+        MediaColumns._ID + " AS " + "id",
+        "COALESCE(" + MediaColumns.DATE_TAKEN + "," + MediaColumns.DATE_MODIFIED +
+                    "* 1000) AS " + "date_taken_ms",
+        MediaColumns.SIZE + " AS " + "size_bytes",
+        MediaColumns.MIME_TYPE + " AS " + "mime_type",
+        MediaColumns.DURATION + " AS " + "duration_ms"
+    };
+    private static final String[] PROJECTION_MEDIA_INFO = new String[] {
+        "COUNT(" + MediaColumns.GENERATION_MODIFIED + ")" + " AS " + "media_count",
+        "MAX(" + MediaColumns.GENERATION_MODIFIED + ")" + " AS " + "media_generation"
+    };
+
+    private static final String WHERE_MEDIA_TYPE = FileColumns.MEDIA_TYPE + " = "
+            + FileColumns.MEDIA_TYPE_IMAGE + " OR " + FileColumns.MEDIA_TYPE + " = "
+            + FileColumns.MEDIA_TYPE_VIDEO;
+    private static final String WHERE_NOT_TRASHED = MediaColumns.IS_TRASHED + " = 0";
+    private static final String WHERE_NOT_PENDING = MediaColumns.IS_PENDING + " = 0";
+    private static final String WHERE_ID = MediaColumns._ID + " = ?";
+    private static final String WHERE_GREATER_GENERATION =
+            MediaColumns.GENERATION_MODIFIED + " > ?";
+
+    private final DatabaseHelper mDatabaseHelper;
+
+    public ExternalDbFacadeForPicker(DatabaseHelper databaseHelper) {
+        mDatabaseHelper = databaseHelper;
+    }
+
+    /**
      * Returns {@code true} if the PhotoPicker should be notified of this change, {@code false}
      * otherwise
      */
@@ -60,7 +86,7 @@ public class ExternalDbFacadeForPicker {
         return !isPending && MimeUtils.isImageOrVideoMediaType(mediaType);
     }
 
-    /*
+    /**
      * Returns {@code true} if the PhotoPicker should be notified of this change, {@code false}
      * otherwise
      */
@@ -92,7 +118,7 @@ public class ExternalDbFacadeForPicker {
         return false;
     }
 
-    /*
+    /**
      * Returns {@code true} if the PhotoPicker should be notified of this change, {@code false}
      * otherwise
      */
@@ -107,6 +133,10 @@ public class ExternalDbFacadeForPicker {
         return addDeletedMedia(id);
     }
 
+    /**
+     * Adds media with row id {@code oldId} to the deleted_media table. Returns {@code true} if
+     * if it was successfully added, {@code false} otherwise.
+     */
     @VisibleForTesting
     boolean addDeletedMedia(long oldId) {
         return mDatabaseHelper.runWithTransaction((db) -> {
@@ -127,6 +157,10 @@ public class ExternalDbFacadeForPicker {
          });
     }
 
+    /**
+     * Removes media with row id {@code oldId} from the deleted_media table. Returns {@code true} if
+     * it was successfully removed, {@code false} otherwise.
+     */
     @VisibleForTesting
     boolean removeDeletedMedia(long oldId) {
         return mDatabaseHelper.runWithTransaction(db -> {
@@ -136,6 +170,9 @@ public class ExternalDbFacadeForPicker {
          });
     }
 
+    /**
+     * Returns all items from the deleted_media table.
+     */
     public Cursor queryDeletedMedia(long generation) {
         return mDatabaseHelper.runWithTransaction(db -> {
             SQLiteQueryBuilder qb = createDeletedMediaQueryBuilder();
@@ -148,9 +185,71 @@ public class ExternalDbFacadeForPicker {
          });
     }
 
+    /**
+     * Returns all items from the files table where {@link MediaColumns#GENERATION_MODIFIED}
+     * is greater than {@code generation}.
+     */
+    public Cursor queryMediaGeneration(long generation) {
+        final String[] selectArg = new String[] {String.valueOf(generation)};
+        final String orderBy = MediaColumns.DATE_TAKEN + " DESC";
+
+        return mDatabaseHelper.runWithTransaction(db -> {
+                SQLiteQueryBuilder qb = createFilesQueryBuilder();
+                qb.appendWhereStandalone(WHERE_MEDIA_TYPE);
+                qb.appendWhereStandalone(WHERE_NOT_TRASHED);
+                qb.appendWhereStandalone(WHERE_NOT_PENDING);
+                qb.appendWhereStandalone(WHERE_GREATER_GENERATION);
+
+                return qb.query(db, PROJECTION_MEDIA_COLUMNS, /* select */ null, selectArg,
+                        /* groupBy */ null, /* having */ null, orderBy);
+            });
+    }
+
+    /** Returns the media item from the files table with row id {@code id}. */
+    public Cursor queryMediaId(long id) {
+        final String[] selectArg = new String[] {String.valueOf(id)};
+
+        return mDatabaseHelper.runWithTransaction(db -> {
+                SQLiteQueryBuilder qb = createFilesQueryBuilder();
+                qb.appendWhereStandalone(WHERE_MEDIA_TYPE);
+                qb.appendWhereStandalone(WHERE_NOT_TRASHED);
+                qb.appendWhereStandalone(WHERE_NOT_PENDING);
+                qb.appendWhereStandalone(WHERE_ID);
+
+                return qb.query(db, PROJECTION_MEDIA_COLUMNS, /* select */ null, selectArg,
+                        /* groupBy */ null, /* having */ null, /* orderBy */ null);
+            });
+    }
+
+    /**
+     * Returns the total count and max {@link MediaColumns#GENERATION_MODIFIED} value
+     * of the media items in the files table greater than {@code generation}.
+     */
+    public Cursor getMediaInfo(long generation) {
+        final String[] selectArg = new String[] {String.valueOf(generation)};
+
+        return mDatabaseHelper.runWithTransaction(db -> {
+                SQLiteQueryBuilder qb = createFilesQueryBuilder();
+                qb.appendWhereStandalone(WHERE_MEDIA_TYPE);
+                qb.appendWhereStandalone(WHERE_NOT_TRASHED);
+                qb.appendWhereStandalone(WHERE_NOT_PENDING);
+                qb.appendWhereStandalone(WHERE_GREATER_GENERATION);
+
+                return qb.query(db, PROJECTION_MEDIA_INFO, /* select */ null, selectArg,
+                        /* groupBy */ null, /* having */ null, /* orderBy */ null);
+            });
+    }
+
     private static SQLiteQueryBuilder createDeletedMediaQueryBuilder() {
         SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
         qb.setTables(TABLE_DELETED_MEDIA);
+
+        return qb;
+    }
+
+    private static SQLiteQueryBuilder createFilesQueryBuilder() {
+        SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
+        qb.setTables(TABLE_FILES);
 
         return qb;
     }

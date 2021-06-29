@@ -131,6 +131,7 @@ android_test {
         "androidx.test.espresso.contrib",
         "androidx.test.core",
         "androidx.arch.core_core-runtime",
+        "glide-prebuilt",
     ],
 
     certificate: "media",

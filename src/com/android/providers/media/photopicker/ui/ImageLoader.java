@@ -17,19 +17,11 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
-
-import android.graphics.Bitmap;
-import android.graphics.ImageDecoder;
-import android.graphics.drawable.BitmapDrawable;
-import android.util.Log;
-import android.util.Size;
 import android.widget.ImageView;
 
-import com.android.providers.media.R;
+import com.bumptech.glide.Glide;
+
 import com.android.providers.media.photopicker.data.model.Item;
-
-import java.io.IOException;
-
 
 /**
  * A class to assist with loading and managing the Images (i.e. thumbnails and preview) associated
@@ -37,7 +29,6 @@ import java.io.IOException;
  */
 public class ImageLoader {
 
-    private static final String TAG = "ImageLoader";
     private final Context mContext;
 
     public ImageLoader(Context context) {
@@ -45,32 +36,17 @@ public class ImageLoader {
     }
 
     public void loadPhotoThumbnail(Item item, ImageView imageView) {
-        int thumbSize = getThumbSize();
-        final Size size = new Size(thumbSize, thumbSize);
-        try {
-            Bitmap bitmap = mContext.getContentResolver().loadThumbnail(item.getContentUri(),
-                    size, null);
-            imageView.setImageDrawable(new BitmapDrawable(mContext.getResources(), bitmap));
-        } catch (IOException ex) {
-            Log.d(TAG, "Loading icon failed", ex);
-            imageView.setImageDrawable(null);
-        }
+        Glide.with(mContext)
+                .load(item.getContentUri())
+                .thumbnail()
+                .into(imageView);
     }
 
     public void loadImagePreview(Item item, ImageView imageView) {
-       // TODO(b/185801129): Use Glide for image loading
        // TODO(b/185801129): Load image in background thread. Loading the image blocks loading the
        // layout now.
-        try {
-            imageView.setImageBitmap(ImageDecoder.decodeBitmap(ImageDecoder.createSource(
-                    mContext.getContentResolver(), item.getContentUri())));
-        } catch (IOException e) {
-            Log.d(TAG, "Failed loading image for uri " + item.getContentUri(), e);
-            imageView.setImageBitmap(null);
-        }
-    }
-
-    private int getThumbSize() {
-        return mContext.getResources().getDimensionPixelSize(R.dimen.picker_photo_size);
+        Glide.with(mContext)
+                .load(item.getContentUri())
+                .into(imageView);
     }
 }

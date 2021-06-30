@@ -111,16 +111,36 @@ public class UserCache {
 
     /**
      *  Returns whether the passed in user shares media with its parent (or peer).
+     *
+     * @param user user to check
+     * @return whether the user shares media with its parent
+     */
+    public boolean userSharesMediaWithParent(@NonNull UserHandle user) {
+        if (Process.myUserHandle().equals(user)) {
+            // Early return path - the owner user doesn't have a parent
+            return false;
+        }
+        boolean found = userSharesMediaWithParentCached(user);
+        if (!found) {
+            // Update the cache and try again
+            update();
+            found = userSharesMediaWithParentCached(user);
+        }
+        return found;
+    }
+
+    /**
+     *  Returns whether the passed in user shares media with its parent (or peer).
      *  Note that the value returned here is based on cached data; it relies on
      *  other callers to keep the user cache up-to-date.
      *
      * @param user user to check
      * @return whether the user shares media with its parent
      */
-    public boolean userSharesMediaWithParent(@NonNull UserHandle user) {
+    public boolean userSharesMediaWithParentCached(@NonNull UserHandle user) {
         synchronized (mLock) {
             // It must be a user that we manage, and not equal to the main user that we run as
-            return user != Process.myUserHandle() && mUsers.contains(user);
+            return !Process.myUserHandle().equals(user) && mUsers.contains(user);
         }
     }
 }

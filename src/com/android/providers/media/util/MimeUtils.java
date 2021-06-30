@@ -127,6 +127,11 @@ public class MimeUtils {
         return startsWithIgnoreCase(mimeType, "image/");
     }
 
+    public static boolean isImageOrVideoMediaType(int mediaType) {
+        return FileColumns.MEDIA_TYPE_IMAGE == mediaType
+                || FileColumns.MEDIA_TYPE_VIDEO == mediaType;
+    }
+
     public static boolean isPlaylistMimeType(@Nullable String mimeType) {
         if (mimeType == null) return false;
         switch (mimeType.toLowerCase(Locale.ROOT)) {

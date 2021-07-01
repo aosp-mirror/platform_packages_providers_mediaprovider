@@ -101,7 +101,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     @VisibleForTesting
     static final String TEST_DOWNGRADE_DB = "test_downgrade";
     @VisibleForTesting
-    static final String TEST_CLEAN_DB = "test_clean";
+    public static final String TEST_CLEAN_DB = "test_clean";
 
     static final String INTERNAL_DATABASE_NAME = "internal.db";
     static final String EXTERNAL_DATABASE_NAME = "external.db";
@@ -154,10 +154,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     public interface OnFilesChangeListener {
         public void onInsert(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
-                int mediaType, boolean isDownload);
+                int mediaType, boolean isDownload, boolean isPending);
         public void onUpdate(@NonNull DatabaseHelper helper, @NonNull String volumeName,
                 long oldId, int oldMediaType, boolean oldIsDownload,
                 long newId, int newMediaType, boolean newIsDownload,
+                boolean oldIsTrashed, boolean newIsTrashed,
+                boolean oldIsPending, boolean newIsPending,
                 String oldOwnerPackage, String newOwnerPackage, String oldPath);
         public void onDelete(@NonNull DatabaseHelper helper, @NonNull String volumeName, long id,
                 int mediaType, boolean isDownload, String ownerPackage, String path);
@@ -273,16 +275,17 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.setCustomScalarFunction("_INSERT", (arg) -> {
             if (arg != null && mFilesListener != null
                     && !mSchemaLock.isWriteLockedByCurrentThread()) {
-                final String[] split = arg.split(":", 4);
+                final String[] split = arg.split(":", 5);
                 final String volumeName = split[0];
                 final long id = Long.parseLong(split[1]);
                 final int mediaType = Integer.parseInt(split[2]);
                 final boolean isDownload = Integer.parseInt(split[3]) != 0;
+                final boolean isPending = Integer.parseInt(split[4]) != 0;
 
                 Trace.beginSection("_INSERT");
                 try {
                     mFilesListener.onInsert(DatabaseHelper.this, volumeName, id,
-                            mediaType, isDownload);
+                            mediaType, isDownload, isPending);
                 } finally {
                     Trace.endSection();
                 }
@@ -292,7 +295,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.setCustomScalarFunction("_UPDATE", (arg) -> {
             if (arg != null && mFilesListener != null
                     && !mSchemaLock.isWriteLockedByCurrentThread()) {
-                final String[] split = arg.split(":", 10);
+                final String[] split = arg.split(":", 14);
                 final String volumeName = split[0];
                 final long oldId = Long.parseLong(split[1]);
                 final int oldMediaType = Integer.parseInt(split[2]);
@@ -300,14 +303,19 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 final long newId = Long.parseLong(split[4]);
                 final int newMediaType = Integer.parseInt(split[5]);
                 final boolean newIsDownload = Integer.parseInt(split[6]) != 0;
-                final String oldOwnerPackage = split[7];
-                final String newOwnerPackage = split[8];
-                final String oldPath = split[9];
+                final boolean oldIsTrashed = Integer.parseInt(split[7]) != 0;
+                final boolean newIsTrashed = Integer.parseInt(split[8]) != 0;
+                final boolean oldIsPending = Integer.parseInt(split[9]) != 0;
+                final boolean newIsPending = Integer.parseInt(split[10]) != 0;
+                final String oldOwnerPackage = split[11];
+                final String newOwnerPackage = split[12];
+                final String oldPath = split[13];
 
                 Trace.beginSection("_UPDATE");
                 try {
                     mFilesListener.onUpdate(DatabaseHelper.this, volumeName, oldId,
                             oldMediaType, oldIsDownload, newId, newMediaType, newIsDownload,
+                            oldIsTrashed, newIsTrashed, oldIsPending, newIsPending,
                             oldOwnerPackage, newOwnerPackage, oldPath);
                 } finally {
                     Trace.endSection();
@@ -839,8 +847,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + "_modifier INTEGER DEFAULT 0, is_recording INTEGER DEFAULT 0,"
                 + "redacted_uri_id TEXT DEFAULT NULL, _user_id INTEGER DEFAULT "
                 + UserHandle.myUserId() + ")");
-
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
+        db.execSQL("CREATE TABLE deleted_media (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + "old_id INTEGER UNIQUE, generation_modified INTEGER NOT NULL)");
+
         if (isExternal()) {
             db.execSQL("CREATE TABLE audio_playlists_map (_id INTEGER PRIMARY KEY,"
                     + "audio_id INTEGER NOT NULL,playlist_id INTEGER NOT NULL,"
@@ -1311,10 +1321,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         makePristineTriggers(db);
 
         final String insertArg =
-                "new.volume_name||':'||new._id||':'||new.media_type||':'||new.is_download";
+                "new.volume_name||':'||new._id||':'||new.media_type||':'||new.is_download"
+                + "||':'||new.is_pending";
         final String updateArg =
                 "old.volume_name||':'||old._id||':'||old.media_type||':'||old.is_download"
                         + "||':'||new._id||':'||new.media_type||':'||new.is_download"
+                        + "||':'||old.is_trashed||':'||new.is_trashed"
+                        + "||':'||old.is_pending||':'||new.is_pending"
                         + "||':'||ifnull(old.owner_package_name,'null')"
                         + "||':'||ifnull(new.owner_package_name,'null')||':'||old._data";
         final String deleteArg =
@@ -1647,7 +1660,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_S = 1209;
     // Leave some gaps in database version tagging to allow S schema changes
     // to go independent of T schema changes.
-    static final int VERSION_T = 1300;
+    static final int VERSION_T = 1301;
     public static final int VERSION_LATEST = VERSION_T;
 
     /**
@@ -1821,6 +1834,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             }
             if (fromVersion < 1209) {
                 // Empty version bump to ensure views are recreated
+            }
+            if (fromVersion < 1301) {
+                db.execSQL("CREATE TABLE deleted_media (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                        + "old_id INTEGER UNIQUE, generation_modified INTEGER NOT NULL)");
             }
 
             // If this is the legacy database, it's not worth recomputing data

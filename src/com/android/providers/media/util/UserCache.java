@@ -26,6 +26,8 @@ import android.util.LongSparseArray;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 
+import com.android.modules.utils.build.SdkLevel;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -64,6 +66,10 @@ public class UserCache {
             mUsers.clear();
             // Add the user we're running as by default
             mUsers.add(Process.myUserHandle());
+            if (!SdkLevel.isAtLeastS()) {
+                // Before S, we only handle the owner user
+                return;
+            }
             // And find all profiles that share media with us
             for (UserHandle profile : profiles) {
                 if (!profile.equals(mContext.getUser())) {

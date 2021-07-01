@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.providers.media.photopicker;
+package com.android.providers.media.photopicker.util;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -22,6 +22,8 @@ import android.content.Context;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
+
+import com.android.providers.media.photopicker.util.DateTimeUtils;
 
 import org.junit.Before;
 import org.junit.Test;

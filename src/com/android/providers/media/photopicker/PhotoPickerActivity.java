@@ -41,7 +41,7 @@ import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.ui.PhotosTabFragment;
-import com.android.providers.media.photopicker.utils.CrossProfileUtils;
+import com.android.providers.media.photopicker.util.CrossProfileUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import java.util.ArrayList;

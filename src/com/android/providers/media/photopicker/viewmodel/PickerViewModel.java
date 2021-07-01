@@ -27,7 +27,7 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
-import com.android.providers.media.photopicker.DateTimeUtils;
+import com.android.providers.media.photopicker.util.DateTimeUtils;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Item;

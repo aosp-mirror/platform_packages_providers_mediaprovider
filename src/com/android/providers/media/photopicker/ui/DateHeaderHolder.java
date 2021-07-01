@@ -18,7 +18,7 @@ import android.content.Context;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import com.android.providers.media.R;
-import com.android.providers.media.photopicker.DateTimeUtils;
+import com.android.providers.media.photopicker.util.DateTimeUtils;
 import com.android.providers.media.photopicker.data.model.Item;
 
 /**

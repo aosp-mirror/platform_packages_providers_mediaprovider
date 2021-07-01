@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.providers.media.photopicker;
+package com.android.providers.media.photopicker.util;
 
 import static android.icu.text.DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE;
 import static android.icu.text.RelativeDateTimeFormatter.Style.LONG;

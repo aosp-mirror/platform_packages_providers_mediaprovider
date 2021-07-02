@@ -575,7 +575,7 @@ public class TranscodeHelper {
     /**
      * @return 0 or >0 representing whether we should transcode or not.
      * 0 means we should not transcode, otherwise we should transcode and the value is the
-     * reason that will be logged to westworld as a transcode reason. Possible values are:
+     * reason that will be logged to statsd as a transcode reason. Possible values are:
      * <ul>
      * <li>MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_REASON__SYSTEM_DEFAULT=1
      * <li>MediaProviderStatsLog.TRANSCODING_DATA__ACCESS_REASON__SYSTEM_CONFIG=2

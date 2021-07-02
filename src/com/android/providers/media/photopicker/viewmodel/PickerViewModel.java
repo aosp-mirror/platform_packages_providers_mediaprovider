@@ -32,6 +32,7 @@ import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
+import com.android.providers.media.util.ForegroundThread;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -124,7 +125,7 @@ public class PickerViewModel extends AndroidViewModel {
     private List<Item> loadItems() {
         final List<Item> items = new ArrayList<>();
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
-        // TODO(b/168001592) call getItems() from worker thread.
+
         Cursor cursor = mItemsProvider.getItems(null, 0, -1, null, userId);
         if (cursor == null) {
             return items;
@@ -136,7 +137,7 @@ public class PickerViewModel extends AndroidViewModel {
         items.add(Item.createDateItem(0));
         while (cursor.moveToNext()) {
             // TODO(b/188394433): Return userId in the cursor so that we do not need to pass it
-            //  here again.
+            // here again.
             final Item item = Item.fromCursor(cursor, userId);
             final long dateTaken = item.getDateTaken();
             // the minimum count of items in recent is not reached
@@ -158,6 +159,12 @@ public class PickerViewModel extends AndroidViewModel {
         return items;
     }
 
+    private void loadItemsAsync() {
+        ForegroundThread.getExecutor().execute(() -> {
+            mItemList.postValue(loadItems());
+        });
+    }
+
     /**
      * Update the item List
      */
@@ -165,7 +172,7 @@ public class PickerViewModel extends AndroidViewModel {
         if (mItemList == null) {
             mItemList = new MutableLiveData<>();
         }
-        mItemList.postValue(loadItems());
+        loadItemsAsync();
     }
 
     /**

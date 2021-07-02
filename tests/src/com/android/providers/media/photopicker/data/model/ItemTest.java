@@ -110,7 +110,8 @@ public class ItemTest {
             String displayName, String volumeName, long dateTaken, long duration) {
         final MatrixCursor cursor = new MatrixCursor(
                 ItemColumns.ALL_COLUMNS_LIST.toArray(new String[0]));
-        cursor.addRow(new Object[] {id, mimeType, displayName, volumeName, dateTaken, duration});
+        cursor.addRow(new Object[] {id, mimeType, displayName, volumeName, dateTaken,
+                /* dateModified */ dateTaken, duration});
         return cursor;
     }
 

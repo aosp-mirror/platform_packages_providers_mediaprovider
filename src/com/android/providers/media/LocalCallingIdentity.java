@@ -130,7 +130,12 @@ public class LocalCallingIdentity {
         } else {
             user = UserHandle.getUserHandleForUid(binderUid);
         }
-        if (!userCache.userSharesMediaWithParent(user)) {
+        // We need to use the cached variant here, because the uncached version may
+        // make a binder transaction, which would cause infinite recursion here.
+        // Using the cached variant is fine, because we shouldn't be getting any binder
+        // requests for this volume before it has been mounted anyway, at which point
+        // we must already know about the new user.
+        if (!userCache.userSharesMediaWithParentCached(user)) {
             // It's possible that we got a cross-profile intent from a regular work profile; in
             // that case, the request was explicitly targeted at the media database of the owner
             // user; reflect that here.

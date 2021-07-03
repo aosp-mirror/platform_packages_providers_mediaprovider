@@ -1218,6 +1218,7 @@ public class ModernMediaScannerTest {
         File renamedTestDir = new File(mIsolatedContext.getExternalMediaDirs()[0],
                 "renamed_test_" + System.nanoTime());
         assertThat(mDir.renameTo(renamedTestDir)).isTrue();
+        MediaStore.waitForIdle(mIsolatedResolver);
 
         Timer renamedDirScan = new Timer("renamedDirScan");
         renamedDirScan.start();

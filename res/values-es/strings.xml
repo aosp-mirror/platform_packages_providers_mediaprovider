@@ -48,6 +48,13 @@
     <string name="select" msgid="2704765470563027689">"Seleccionar"</string>
     <string name="recent" msgid="6694613584743207874">"Reciente"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Ver elementos seleccionados"</string>
+    <!-- no translation found for picker_photos (7415035516411087392) -->
+    <skip />
+    <!-- no translation found for picker_albums (4822511902115299142) -->
+    <skip />
+    <!-- no translation found for picker_album_item_count (1706547226783599356) -->
+    <!-- no translation found for picker_add_button_multi_select (4005164092275518399) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other">¿Permitir que <xliff:g id="APP_NAME_1">^1</xliff:g> modifique <xliff:g id="COUNT">^2</xliff:g> archivos de audio?</item>
       <item quantity="one">¿Permitir que <xliff:g id="APP_NAME_0">^1</xliff:g> modifique este archivo de audio?</item>

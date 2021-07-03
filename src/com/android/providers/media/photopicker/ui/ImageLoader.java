@@ -43,8 +43,6 @@ public class ImageLoader {
     }
 
     public void loadImagePreview(Item item, ImageView imageView) {
-       // TODO(b/185801129): Load image in background thread. Loading the image blocks loading the
-       // layout now.
         Glide.with(mContext)
                 .load(item.getContentUri())
                 .into(imageView);

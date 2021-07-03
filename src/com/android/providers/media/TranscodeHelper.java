@@ -221,7 +221,6 @@ public class TranscodeHelper {
     private final MediaProvider mMediaProvider;
     private final PackageManager mPackageManager;
     private final StorageManager mStorageManager;
-    private final MediaTranscodeManager mMediaTranscodeManager;
     private final ActivityManager mActivityManager;
     private final File mTranscodeDirectory;
     @GuardedBy("mLock")
@@ -262,7 +261,6 @@ public class TranscodeHelper {
         mContext = context;
         mPackageManager = context.getPackageManager();
         mStorageManager = context.getSystemService(StorageManager.class);
-        mMediaTranscodeManager = context.getSystemService(MediaTranscodeManager.class);
         mActivityManager = context.getSystemService(ActivityManager.class);
         mMediaProvider = mediaProvider;
         mTranscodeDirectory = new File("/storage/emulated/" + UserHandle.myUserId(),
@@ -1121,6 +1119,9 @@ public class TranscodeHelper {
 
     private TranscodingSession enqueueTranscodingSession(String src, String dst, int uid,
             final CountDownLatch latch) throws UnsupportedOperationException, IOException {
+        // Fetch the service lazily to improve memory usage
+        final MediaTranscodeManager mediaTranscodeManager =
+                mContext.getSystemService(MediaTranscodeManager.class);
         File file = new File(src);
         File transcodeFile = new File(dst);
 
@@ -1144,7 +1145,7 @@ public class TranscodeHelper {
                         .setSourceFileDescriptor(srcPfd)
                         .setDestinationFileDescriptor(dstPfd)
                         .build();
-        TranscodingSession session = mMediaTranscodeManager.enqueueRequest(request,
+        TranscodingSession session = mediaTranscodeManager.enqueueRequest(request,
                 ForegroundThread.getExecutor(),
                 s -> {
                     mTranscodingUiNotifier.stop(s, src);

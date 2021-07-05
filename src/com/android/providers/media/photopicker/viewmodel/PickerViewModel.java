@@ -26,6 +26,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import androidx.lifecycle.AndroidViewModel;
@@ -51,6 +52,7 @@ public class PickerViewModel extends AndroidViewModel {
     public static final String TAG = "PhotoPicker";
 
     private static final int RECENT_MINIMUM_COUNT = 12;
+    public static final int DEFAULT_MAX_SELECTION_LIMIT = 100;
 
     private MutableLiveData<List<Item>> mItemList;
     private MutableLiveData<Map<Uri, Item>> mSelectedItemList = new MutableLiveData<>();
@@ -58,6 +60,9 @@ public class PickerViewModel extends AndroidViewModel {
     private final UserIdManager mUserIdManager;
     private boolean mSelectMultiple = false;
     private String mMimeTypeFilter = null;
+    private int mMaxSelectionLimit = DEFAULT_MAX_SELECTION_LIMIT;
+    // This is set to false when max selection limit is reached.
+    private boolean mIsSelectionAllowed = true;
 
     public PickerViewModel(@NonNull Application application) {
         super(application);
@@ -87,6 +92,8 @@ public class PickerViewModel extends AndroidViewModel {
         }
         mSelectedItemList.getValue().put(item.getContentUri(), item);
         mSelectedItemList.postValue(mSelectedItemList.getValue());
+
+        updateSelectionAllowed();
     }
 
     /**
@@ -109,6 +116,25 @@ public class PickerViewModel extends AndroidViewModel {
         }
         mSelectedItemList.getValue().remove(item.getContentUri());
         mSelectedItemList.postValue(mSelectedItemList.getValue());
+        updateSelectionAllowed();
+    }
+
+    private void updateSelectionAllowed() {
+        if (!mSelectMultiple) {
+            return;
+        }
+
+        final int size = mSelectedItemList.getValue().size();
+        if (size >= mMaxSelectionLimit) {
+            if (mIsSelectionAllowed) {
+                mIsSelectionAllowed = false;
+            }
+        } else {
+            // size < mMaxSelectionLimit
+            if (!mIsSelectionAllowed) {
+                mIsSelectionAllowed = true;
+            }
+        }
     }
 
     /**
@@ -200,9 +226,31 @@ public class PickerViewModel extends AndroidViewModel {
         if (isMimeTypeMedia(mimeType)) {
             mMimeTypeFilter = mimeType;
         }
+
+        final int max = intent.getIntExtra(MediaStore.EXTRA_PICK_IMAGES_MAX,
+                DEFAULT_MAX_SELECTION_LIMIT);
+        // Multi selection limit should always be greater than 1, and less than global max values
+        // allowed to select.
+        if (max > 1 && max <= DEFAULT_MAX_SELECTION_LIMIT) {
+            mMaxSelectionLimit = max;
+        }
     }
 
     public static boolean isMimeTypeMedia(@Nullable String mimeType) {
         return isImageMimeType(mimeType) || isVideoMimeType(mimeType);
+    }
+
+    /**
+     * Return maximum limit of items that can be selected
+     */
+    public int getMaxSelectionLimit() {
+        return mMaxSelectionLimit;
+    }
+
+    /**
+     * Return whether more items can be selected or not.
+     */
+    public boolean isSelectionAllowed() {
+        return mIsSelectionAllowed;
     }
 }

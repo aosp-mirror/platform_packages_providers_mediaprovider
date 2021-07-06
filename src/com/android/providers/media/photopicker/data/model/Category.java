@@ -49,6 +49,7 @@ public class Category {
             CATEGORY_CAMERA,
             CATEGORY_VIDEOS,
             CATEGORY_FAVORITES,
+            CATEGORY_DOWNLOADS,
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface CategoryType {}
@@ -59,7 +60,11 @@ public class Category {
     public static final String CATEGORY_DEFAULT = "default";
 
     /**
-     * Includes images that are present in the Pictures/Screenshots folder.
+     * Includes images/videos that are present in the
+     * {@link Environment#DIRECTORY_PICTURES}/{@link Environment#DIRECTORY_SCREENSHOTS} directory.
+     *
+     * TODO(b/192932740): Include media that contains {@link Environment#DIRECTORY_SCREENSHOTS}
+     * in its relative_path.
      */
     public static final String CATEGORY_SCREENSHOTS = "Screenshots";
     private static final String SCREENSHOTS_WHERE_CLAUSE =
@@ -68,7 +73,8 @@ public class Category {
                     Environment.DIRECTORY_SCREENSHOTS + "/%'";
 
     /**
-     * Includes images/videos that are present in the DCIM/Camera folder.
+     * Includes images/videos that are present in the {@link Environment#DIRECTORY_DCIM}/Camera
+     * directory.
      */
     public static final String CATEGORY_CAMERA = "Camera";
     private static final String CAMERA_WHERE_CLAUSE =
@@ -89,7 +95,14 @@ public class Category {
     // TODO (b/188053832): Do not reveal implementation detail for is_favorite,
     // use MATCH_INCLUDE in queryArgs.
     private static final String FAVORITES_WHERE_CLAUSE =
-            MediaStore.MediaColumns.IS_FAVORITE + " =1 ";
+            MediaStore.MediaColumns.IS_FAVORITE + " =1";
+
+    /**
+     * Includes images/videos that have {@link MediaStore.MediaColumns#IS_DOWNLOAD} set.
+     */
+    public static final String CATEGORY_DOWNLOADS = "Downloads";
+    private static final String DOWNLOADS_WHERE_CLAUSE =
+            MediaStore.MediaColumns.IS_DOWNLOAD + " =1";
 
     /**
      * Set of {@link Cursor} columns that refer to raw filesystem paths.
@@ -101,6 +114,7 @@ public class Category {
         sCategoryWhereClause.put(CATEGORY_CAMERA, CAMERA_WHERE_CLAUSE);
         sCategoryWhereClause.put(CATEGORY_VIDEOS, VIDEOS_WHERE_CLAUSE);
         sCategoryWhereClause.put(CATEGORY_FAVORITES, FAVORITES_WHERE_CLAUSE);
+        sCategoryWhereClause.put(CATEGORY_DOWNLOADS, DOWNLOADS_WHERE_CLAUSE);
     }
 
     public static String getWhereClauseForCategory(@CategoryType String category) {
@@ -111,7 +125,8 @@ public class Category {
             CATEGORY_SCREENSHOTS,
             CATEGORY_CAMERA,
             CATEGORY_VIDEOS,
-            CATEGORY_FAVORITES
+            CATEGORY_FAVORITES,
+            CATEGORY_DOWNLOADS
     };
 
     public static List<String> CATEGORIES_LIST = Collections.unmodifiableList(

@@ -48,13 +48,13 @@
     <string name="select" msgid="2704765470563027689">"선택"</string>
     <string name="recent" msgid="6694613584743207874">"최근"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"선택 항목 보기"</string>
-    <!-- no translation found for picker_photos (7415035516411087392) -->
-    <skip />
-    <!-- no translation found for picker_albums (4822511902115299142) -->
-    <skip />
-    <!-- no translation found for picker_album_item_count (1706547226783599356) -->
-    <!-- no translation found for picker_add_button_multi_select (4005164092275518399) -->
-    <skip />
+    <string name="picker_photos" msgid="7415035516411087392">"사진"</string>
+    <string name="picker_albums" msgid="4822511902115299142">"앨범"</string>
+    <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
+      <item quantity="other">항목 <xliff:g id="COUNT_1">^1</xliff:g>개</item>
+      <item quantity="one">항목 <xliff:g id="COUNT_0">^1</xliff:g>개</item>
+    </plurals>
+    <string name="picker_add_button_multi_select" msgid="4005164092275518399">"추가(<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g>에서 오디오 파일 <xliff:g id="COUNT">^2</xliff:g>개를 수정하도록 허용하시겠습니까?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g>에서 이 오디오 파일을 수정하도록 허용하시겠습니까?</item>

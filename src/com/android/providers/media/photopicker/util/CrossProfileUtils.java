@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.providers.media.photopicker.utils;
+package com.android.providers.media.photopicker.util;
 
 import android.content.ContentProviderClient;
 import android.content.Context;

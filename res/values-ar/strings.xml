@@ -56,13 +56,17 @@
     <string name="select" msgid="2704765470563027689">"اختيار"</string>
     <string name="recent" msgid="6694613584743207874">"الأحدث"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"عرض المحتوى المحدّد"</string>
-    <!-- no translation found for picker_photos (7415035516411087392) -->
-    <skip />
-    <!-- no translation found for picker_albums (4822511902115299142) -->
-    <skip />
-    <!-- no translation found for picker_album_item_count (1706547226783599356) -->
-    <!-- no translation found for picker_add_button_multi_select (4005164092275518399) -->
-    <skip />
+    <string name="picker_photos" msgid="7415035516411087392">"الصور"</string>
+    <string name="picker_albums" msgid="4822511902115299142">"الألبومات"</string>
+    <plurals name="picker_album_item_count" formatted="false" msgid="1706547226783599356">
+      <item quantity="zero"><xliff:g id="COUNT_1">^1</xliff:g> عنصر</item>
+      <item quantity="two">عنصران (<xliff:g id="COUNT_1">^1</xliff:g>)</item>
+      <item quantity="few"><xliff:g id="COUNT_1">^1</xliff:g> عناصر</item>
+      <item quantity="many"><xliff:g id="COUNT_1">^1</xliff:g> عنصرًا</item>
+      <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> عنصر</item>
+      <item quantity="one">عنصر واحد (<xliff:g id="COUNT_0">^1</xliff:g>)</item>
+    </plurals>
+    <string name="picker_add_button_multi_select" msgid="4005164092275518399">"إضافة (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="zero">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل <xliff:g id="COUNT">^2</xliff:g> ملف صوتي؟</item>
       <item quantity="two">هل تريد السماح لتطبيق <xliff:g id="APP_NAME_1">^1</xliff:g> بتعديل ملفين صوتيين (<xliff:g id="COUNT">^2</xliff:g>)؟</item>

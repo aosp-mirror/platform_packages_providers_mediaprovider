@@ -649,7 +649,7 @@ public final class MediaStore {
      * </ul>
      * <p>
      * Callers can optionally specify MIME type (such as {@code image/*} or
-     * {@literal *}/*), resulting in a range of content selection that the
+     * {@code video/*}), resulting in a range of content selection that the
      * caller is interested in. The optional MIME type can be requested with
      * {@link Intent#setType(String)}.
      * <p>

@@ -63,6 +63,10 @@ public class PreviewFragment extends Fragment {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        // TODO(b/185800839): Add animation preview to full screen and back transition to partial
+        //  screen
+        ((PhotoPickerActivity)getActivity()).setFullScreen();
+
         // Warning: The below code assumes that getSelectedItems will never return null.
         // We are creating a new ArrayList with selected items, this list used as data for the
         // adapter. If activity gets killed and recreated, we will lose items that were deselected.

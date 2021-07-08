@@ -68,9 +68,9 @@ public class Category {
      */
     public static final String CATEGORY_SCREENSHOTS = "Screenshots";
     private static final String SCREENSHOTS_WHERE_CLAUSE =
-            MediaStore.MediaColumns.RELATIVE_PATH + " LIKE '" +
+            "(" + MediaStore.MediaColumns.RELATIVE_PATH + " LIKE '" +
                     Environment.DIRECTORY_PICTURES + "/" +
-                    Environment.DIRECTORY_SCREENSHOTS + "/%'";
+                    Environment.DIRECTORY_SCREENSHOTS + "/%')";
 
     /**
      * Includes images/videos that are present in the {@link Environment#DIRECTORY_DCIM}/Camera
@@ -78,15 +78,16 @@ public class Category {
      */
     public static final String CATEGORY_CAMERA = "Camera";
     private static final String CAMERA_WHERE_CLAUSE =
-            MediaStore.MediaColumns.RELATIVE_PATH + " LIKE '" +
-                    Environment.DIRECTORY_DCIM + "/Camera/%'";
+            "(" + MediaStore.MediaColumns.RELATIVE_PATH + " LIKE '" +
+                    Environment.DIRECTORY_DCIM + "/Camera/%')";
 
     /**
      * Includes videos only.
      */
     public static final String CATEGORY_VIDEOS = "Videos";
-    private static final String VIDEOS_WHERE_CLAUSE = MediaStore.Files.FileColumns.MEDIA_TYPE +
-            " = " + MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO;
+    private static final String VIDEOS_WHERE_CLAUSE =
+            "(" + MediaStore.Files.FileColumns.MEDIA_TYPE +
+            " = " + MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO + ")";
 
     /**
      * Includes images/videos that have {@link MediaStore.MediaColumns#IS_FAVORITE} set.
@@ -95,14 +96,14 @@ public class Category {
     // TODO (b/188053832): Do not reveal implementation detail for is_favorite,
     // use MATCH_INCLUDE in queryArgs.
     private static final String FAVORITES_WHERE_CLAUSE =
-            MediaStore.MediaColumns.IS_FAVORITE + " =1";
+            "(" + MediaStore.MediaColumns.IS_FAVORITE + " =1)";
 
     /**
      * Includes images/videos that have {@link MediaStore.MediaColumns#IS_DOWNLOAD} set.
      */
     public static final String CATEGORY_DOWNLOADS = "Downloads";
     private static final String DOWNLOADS_WHERE_CLAUSE =
-            MediaStore.MediaColumns.IS_DOWNLOAD + " =1";
+            "(" + MediaStore.MediaColumns.IS_DOWNLOAD + " =1)";
 
     /**
      * Set of {@link Cursor} columns that refer to raw filesystem paths.

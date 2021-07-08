@@ -83,8 +83,6 @@ public class ItemsProviderTest {
     /**
      * Tests {@link ItemsProvider#getCategories(UserId)} to return correct info about
      * {@link Category#CATEGORY_CAMERA}.
-     *
-     * @throws Exception
      */
     @Test
     public void testGetCategories_camera() throws Exception {
@@ -105,8 +103,6 @@ public class ItemsProviderTest {
     /**
      * Tests {@link ItemsProvider#getCategories(UserId)} to return correct info about
      * {@link Category#CATEGORY_CAMERA}.
-     *
-     * @throws Exception
      */
     @Test
     public void testGetCategories_not_camera() throws Exception {
@@ -126,8 +122,6 @@ public class ItemsProviderTest {
     /**
      * Tests {@link ItemsProvider#getCategories(UserId)} to return correct info about
      * {@link Category#CATEGORY_VIDEOS}.
-     *
-     * @throws Exception
      */
     @Test
     public void testGetCategories_videos() throws Exception {
@@ -148,8 +142,6 @@ public class ItemsProviderTest {
     /**
      * Tests {@link ItemsProvider#getCategories(UserId)} to return correct info about
      * {@link Category#CATEGORY_VIDEOS}.
-     *
-     * @throws Exception
      */
     @Test
     public void testGetCategories_not_videos() throws Exception {
@@ -169,8 +161,6 @@ public class ItemsProviderTest {
     /**
      * Tests {@link ItemsProvider#getCategories(UserId)} to return correct info about
      * {@link Category#CATEGORY_SCREENSHOTS}.
-     *
-     * @throws Exception
      */
     @Test
     public void testGetCategories_screenshots() throws Exception {
@@ -191,8 +181,6 @@ public class ItemsProviderTest {
     /**
      * Tests {@link ItemsProvider#getCategories(UserId)} to return correct info about
      * {@link Category#CATEGORY_SCREENSHOTS}.
-     *
-     * @throws Exception
      */
     @Test
     public void testGetCategories_not_screenshots() throws Exception {
@@ -212,8 +200,6 @@ public class ItemsProviderTest {
     /**
      * Tests {@link ItemsProvider#getCategories(UserId)} to return correct info about
      * {@link Category#CATEGORY_FAVORITES}.
-     *
-     * @throws Exception
      */
     @Test
     public void testGetCategories_favorites() throws Exception {
@@ -234,8 +220,6 @@ public class ItemsProviderTest {
     /**
      * Tests {@link ItemsProvider#getCategories(UserId)} to return correct info about
      * {@link Category#CATEGORY_FAVORITES}.
-     *
-     * @throws Exception
      */
     @Test
     public void testGetCategories_not_favorites() throws Exception {
@@ -254,9 +238,45 @@ public class ItemsProviderTest {
 
     /**
      * Tests {@link ItemsProvider#getCategories(UserId)} to return correct info about
+     * {@link Category#CATEGORY_DOWNLOADS}.
+     */
+    @Test
+    public void testGetCategories_downloads() throws Exception {
+        Cursor c = sItemsProvider.getCategories(/* userId */ null);
+        assertThat(c.getCount()).isEqualTo(0);
+
+        // Create 1 image file in Downloads dir to test {@link ItemsProvider#getCategories(UserId)}.
+        final File downloadsDir = getDownloadsDir();
+        final File imageFile = assertCreateNewImage(downloadsDir);
+        try {
+            assertGetCategoriesMatchSingle(Category.CATEGORY_DOWNLOADS, /* numberOfItems */ 1);
+        } finally {
+            imageFile.delete();
+        }
+    }
+
+    /**
+     * Tests {@link ItemsProvider#getCategories(UserId)} to return correct info about
+     * {@link Category#CATEGORY_DOWNLOADS}.
+     */
+    @Test
+    public void testGetCategories_not_downloads() throws Exception {
+        Cursor c = sItemsProvider.getCategories(/* userId */ null);
+        assertThat(c.getCount()).isEqualTo(0);
+
+        // negative test case: image file which should not be returned in Downloads category
+        final File picturesDir = getPicturesDir();
+        final File nonDownloadsImageFile = assertCreateNewImage(picturesDir);
+        try {
+            assertGetCategoriesMatchSingle(Category.CATEGORY_DOWNLOADS, /* numberOfItems */ 0);
+        } finally {
+            nonDownloadsImageFile.delete();
+        }
+    }
+
+    /**
+     * Tests {@link ItemsProvider#getCategories(UserId)} to return correct info about
      * {@link Category#CATEGORY_CAMERA} and {@link Category#CATEGORY_VIDEOS}.
-     *
-     * @throws Exception
      */
     @Test
     public void testGetCategories_camera_and_videos() throws Exception {
@@ -278,9 +298,7 @@ public class ItemsProviderTest {
 
     /**
      * Tests {@link ItemsProvider#getCategories(UserId)} to return correct info about
-     * {@link Category#CATEGORY_CAMERA} and {@link Category#CATEGORY_VIDEOS}.
-     *
-     * @throws Exception
+     * {@link Category#CATEGORY_SCREENSHOTS} and {@link Category#CATEGORY_FAVORITES}.
      */
     @Test
     public void testGetCategories_screenshots_and_favorites() throws Exception {
@@ -303,10 +321,32 @@ public class ItemsProviderTest {
     }
 
     /**
+     * Tests {@link ItemsProvider#getCategories(UserId)} to return correct info about
+     * {@link Category#CATEGORY_DOWNLOADS} and {@link Category#CATEGORY_FAVORITES}.
+     */
+    @Test
+    public void testGetCategories_downloads_and_favorites() throws Exception {
+        Cursor c = sItemsProvider.getCategories(/* userId */ null);
+        assertThat(c.getCount()).isEqualTo(0);
+
+        // Create 1 image file in Screenshots dir to test
+        // {@link ItemsProvider#getCategories(UserId)}
+        final File downloadsDir = getDownloadsDir();
+        File imageFile = assertCreateNewImage(downloadsDir);
+        setIsFavorite(imageFile);
+        try {
+            assertGetCategoriesMatchMultiple(Category.CATEGORY_DOWNLOADS,
+                    Category.CATEGORY_FAVORITES,
+                    /* numberOfItemsInScreenshots */ 1,
+                    /* numberOfItemsInFavorites */ 1);
+        } finally {
+            imageFile.delete();
+        }
+    }
+
+    /**
      * Tests {@link ItemsProvider#getItems(String, int, int, String, UserId)} to return all
      * images and videos.
-     *
-     * @throws Exception
      */
     @Test
     public void testGetItems() throws Exception {
@@ -339,8 +379,6 @@ public class ItemsProviderTest {
     /**
      * Tests {@link {@link ItemsProvider#getItems(String, int, int, String, UserId)}} does not
      * return hidden images/videos.
-     *
-     * @throws Exception
      */
     @Test
     public void testGetItems_nonMedia() throws Exception {
@@ -372,8 +410,6 @@ public class ItemsProviderTest {
     /**
      * Tests {@link ItemsProvider#getItems(String, int, int, String, UserId)} to return all
      * images and videos based on the mimeType. Image mimeType should only return images.
-     *
-     * @throws Exception
      */
     @Test
     public void testGetItemsImages() throws Exception {
@@ -406,8 +442,6 @@ public class ItemsProviderTest {
     /**
      * Tests {@link ItemsProvider#getItems(String, int, int, String, UserId)} to return all
      * images and videos based on the mimeType. Image mimeType should only return images.
-     *
-     * @throws Exception
      */
     @Test
     public void testGetItemsImages_png() throws Exception {
@@ -433,8 +467,6 @@ public class ItemsProviderTest {
     /**
      * Tests {@link ItemsProvider#getItems(String, int, int, String, UserId)} does not return
      * hidden images/videos.
-     *
-     * @throws Exception
      */
     @Test
     public void testGetItemsImages_nonMedia() throws Exception {
@@ -466,8 +498,6 @@ public class ItemsProviderTest {
     /**
      * Tests {@link ItemsProvider#getItems(String, int, int, String, UserId)} to return all
      * images and videos based on the mimeType. Video mimeType should only return videos.
-     *
-     * @throws Exception
      */
     @Test
     public void testGetItemsVideos() throws Exception {
@@ -500,8 +530,6 @@ public class ItemsProviderTest {
     /**
      * Tests {@link ItemsProvider#getItems(String, int, int, String, UserId)} to return all
      * images and videos based on the mimeType. Image mimeType should only return images.
-     *
-     * @throws Exception
      */
     @Test
     public void testGetItemsVideos_mp4() throws Exception {
@@ -527,8 +555,6 @@ public class ItemsProviderTest {
     /**
      * Tests {@link ItemsProvider#getItems(String, int, int, String, UserId)} does not return
      * hidden images/videos.
-     *
-     * @throws Exception
      */
     @Test
     public void testGetItemsVideos_nonMedia() throws Exception {
@@ -553,40 +579,6 @@ public class ItemsProviderTest {
             imageFileHidden.delete();
             videoFileHidden.delete();
             hiddenDir.delete();
-        }
-    }
-
-    /**
-     * Tests {@link ItemsProvider#getItems(String, int, int, String, UserId)} throws error for
-     * invalid param for mimeType.
-     *
-     * @throws Exception
-     */
-    @Test
-    public void testGetItemsInvalidParam() throws Exception {
-        try {
-            sItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
-                    /* mimeType */ "audio/*", /* userId */ null);
-            fail("Expected IllegalArgumentException for audio mimeType");
-        } catch (IllegalArgumentException expected) {
-            // Expected flow
-        }
-    }
-
-    /**
-     * Tests {@link ItemsProvider#getItems(String, int, int, String, UserId)} throws error for
-     * invalid param for mimeType.
-     *
-     * @throws Exception
-     */
-    @Test
-    public void testGetItemsAllMimeType() throws Exception {
-        try {
-            sItemsProvider.getItems(/* category */ null, /* offset */ 0, /* limit */ -1,
-                    /* mimeType */ "*/*", /* userId */ null);
-            fail("Expected IllegalArgumentException for audio mimeType");
-        } catch (IllegalArgumentException expected) {
-            // Expected flow
         }
     }
 

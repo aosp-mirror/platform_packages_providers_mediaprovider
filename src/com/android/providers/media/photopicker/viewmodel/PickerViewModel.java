@@ -16,9 +16,14 @@
 
 package com.android.providers.media.photopicker.viewmodel;
 
+import static com.android.providers.media.util.MimeUtils.isImageMimeType;
+import static com.android.providers.media.util.MimeUtils.isVideoMimeType;
+
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.app.Application;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
@@ -52,6 +57,7 @@ public class PickerViewModel extends AndroidViewModel {
     private final ItemsProvider mItemsProvider;
     private final UserIdManager mUserIdManager;
     private boolean mSelectMultiple = false;
+    private String mMimeTypeFilter = null;
 
     public PickerViewModel(@NonNull Application application) {
         super(application);
@@ -126,33 +132,35 @@ public class PickerViewModel extends AndroidViewModel {
         final List<Item> items = new ArrayList<>();
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
 
-        Cursor cursor = mItemsProvider.getItems(null, 0, -1, null, userId);
-        if (cursor == null) {
-            return items;
-        }
-
-        int recentSize = 0;
-        long currentDateTaken = 0;
-        // add Recent date header
-        items.add(Item.createDateItem(0));
-        while (cursor.moveToNext()) {
-            // TODO(b/188394433): Return userId in the cursor so that we do not need to pass it
-            // here again.
-            final Item item = Item.fromCursor(cursor, userId);
-            final long dateTaken = item.getDateTaken();
-            // the minimum count of items in recent is not reached
-            if (recentSize < RECENT_MINIMUM_COUNT) {
-                recentSize++;
-                currentDateTaken = dateTaken;
+        try (Cursor cursor = mItemsProvider.getItems(/* category */ null, /* offset */ 0,
+                /* limit */ -1, mMimeTypeFilter, userId)) {
+            if (cursor == null) {
+                return items;
             }
 
-            // The date taken of these two images are not on the
-            // same day, add the new date header.
-            if (!DateTimeUtils.isSameDate(currentDateTaken, dateTaken)) {
-                items.add(Item.createDateItem(dateTaken));
-                currentDateTaken = dateTaken;
+            int recentSize = 0;
+            long currentDateTaken = 0;
+            // add Recent date header
+            items.add(Item.createDateItem(0));
+            while (cursor.moveToNext()) {
+                // TODO(b/188394433): Return userId in the cursor so that we do not need to pass it
+                //  here again.
+                final Item item = Item.fromCursor(cursor, userId);
+                final long dateTaken = item.getDateTaken();
+                // the minimum count of items in recent is not reached
+                if (recentSize < RECENT_MINIMUM_COUNT) {
+                    recentSize++;
+                    currentDateTaken = dateTaken;
+                }
+
+                // The date taken of these two images are not on the
+                // same day, add the new date header.
+                if (!DateTimeUtils.isSameDate(currentDateTaken, dateTaken)) {
+                    items.add(Item.createDateItem(dateTaken));
+                    currentDateTaken = dateTaken;
+                }
+                items.add(item);
             }
-            items.add(item);
         }
 
         Log.d(TAG, "Loaded " + items.size() + " items for user " + userId.toString());
@@ -183,9 +191,18 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
-     * Set the value for whether supports multiple select or not
+     * Parse values from Intent and set corresponding fields
      */
-    public void setSelectMultiple(boolean allowMultiple) {
-        mSelectMultiple = allowMultiple;
+    public void parseValuesFromIntent(Intent intent) {
+        mSelectMultiple = intent.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
+
+        final String mimeType = intent.getType();
+        if (isMimeTypeMedia(mimeType)) {
+            mMimeTypeFilter = mimeType;
+        }
+    }
+
+    public static boolean isMimeTypeMedia(@Nullable String mimeType) {
+        return isImageMimeType(mimeType) || isVideoMimeType(mimeType);
     }
 }

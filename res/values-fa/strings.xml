@@ -171,7 +171,7 @@
       <item quantity="one">درحال حذف <xliff:g id="COUNT">^1</xliff:g> مورد…</item>
       <item quantity="other">درحال حذف <xliff:g id="COUNT">^1</xliff:g> مورد…</item>
     </plurals>
-    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> نمی‌تواند فایل‌های رسانه‌ای را پردازش کند"</string>
+    <string name="transcode_denied" msgid="6760546817138288976">"‫<xliff:g id="APP_NAME">%s</xliff:g> نمی‌تواند فایل‌های رسانه‌ای را پردازش کند"</string>
     <string name="transcode_processing_cancelled" msgid="5340383917746945590">"پردازش رسانه لغو شد"</string>
     <string name="transcode_processing_error" msgid="8921643164508407874">"خطای پردازش رسانه"</string>
     <string name="transcode_processing_success" msgid="447288876429730122">"پردازش رسانه باموفقیت انجام شد"</string>

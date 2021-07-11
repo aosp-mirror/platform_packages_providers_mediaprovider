@@ -16,8 +16,10 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -30,7 +32,12 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.PhotoPickerActivity;
+import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.providers.media.photopicker.data.model.UserId;
+import com.android.providers.media.photopicker.util.CrossProfileUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
+
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 
 import java.text.NumberFormat;
 import java.util.Locale;
@@ -40,10 +47,16 @@ import java.util.Locale;
  */
 public abstract class TabFragment extends Fragment {
 
+    private static final String TAG =  "PhotoPickerTabFragment";
+
     protected PickerViewModel mPickerViewModel;
     protected ImageLoader mImageLoader;
     protected AutoFitRecyclerView mRecyclerView;
+
     private int mBottomBarSize;
+    private ExtendedFloatingActionButton mProfileButton;
+    private UserIdManager mUserIdManager;
+    private boolean mHideProfileButton;
 
     @Override
     @NonNull
@@ -56,10 +69,19 @@ public abstract class TabFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
         mImageLoader = new ImageLoader(getContext());
         mRecyclerView = view.findViewById(R.id.photo_list);
         mRecyclerView.setHasFixedSize(true);
         mPickerViewModel = new ViewModelProvider(requireActivity()).get(PickerViewModel.class);
+
+        mProfileButton = view.findViewById(R.id.profile_button);
+        mUserIdManager = mPickerViewModel.getUserIdManager();
+        if (mUserIdManager.isMultiUserProfiles()) {
+            mProfileButton.setVisibility(View.VISIBLE);
+            setUpProfileButton();
+        }
+
         final boolean canSelectMultiple = mPickerViewModel.canSelectMultiple();
         if (canSelectMultiple) {
             final Button addButton = view.findViewById(R.id.button_add);
@@ -86,12 +108,95 @@ public abstract class TabFragment extends Fragment {
                     dimen = getBottomGapForRecyclerView(mBottomBarSize);
                 }
                 mRecyclerView.setPadding(0, 0, 0, dimen);
+
+                if (mUserIdManager.isMultiUserProfiles()) {
+                    if (selectedItemList.size() > 0) {
+                        mProfileButton.hide();
+                    } else {
+                        if (!mHideProfileButton) {
+                            mProfileButton.show();
+                        }
+                    }
+                }
             });
         }
     }
 
+    private void setUpProfileButton() {
+        updateProfileIconAndText(mUserIdManager.isManagedUserSelected());
+
+        final Context context = getContext();
+        mProfileButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                // Cross user checks
+                if (mUserIdManager.isCurrentUserSelected()) {
+                    final PackageManager packageManager = context.getPackageManager();
+                    // 1. Check if PICK_IMAGES intent is allowed by admin to show cross user content
+                    if (!CrossProfileUtils.isPickImagesIntentAllowedCrossProfileAccess(
+                            packageManager)) {
+                        // TODO (b/190727775): Show informative error message to the user in UI.
+                        return;
+                    }
+
+                    // 2. Check if work profile is off
+                    if (!mUserIdManager.isManagedUserSelected()) {
+                        final UserId managedUserProfileId =
+                                mUserIdManager.getManagedUserId();
+                        if (!CrossProfileUtils.isMediaProviderAvailable(managedUserProfileId,
+                                context)) {
+                            Log.i(TAG, "Work Profile is off, please turn work profile on to "
+                                    + "access work profile content");
+                            // TODO (b/190727775): Show work profile turned off, please turn on.
+                            return;
+                        }
+                    }
+                }
+
+                if (mUserIdManager.isManagedUserSelected()) {
+                    // TODO(b/190024747): Add caching for performance before switching data to and
+                    //  fro work profile
+                    mUserIdManager.setPersonalAsCurrentUserProfile();
+
+                } else {
+                    // TODO(b/190024747): Add caching for performance before switching data to and
+                    //  fro work profile
+                    mUserIdManager.setManagedAsCurrentUserProfile();
+                }
+
+                updateProfileIconAndText(mUserIdManager.isManagedUserSelected());
+
+                mPickerViewModel.updateItems();
+                mPickerViewModel.updateCategories();
+            }
+        });
+    }
+
+    private void updateProfileIconAndText(boolean isManagedUserSelected) {
+        if (isManagedUserSelected) {
+            mProfileButton.setIconResource(R.drawable.ic_personal_mode);
+            mProfileButton.setText(R.string.picker_personal_profile);
+        } else {
+            mProfileButton.setIconResource(R.drawable.ic_work_outline);
+            mProfileButton.setText(R.string.picker_work_profile);
+        }
+        mProfileButton.setIconTintResource(R.color.picker_profile_button_text_and_icon_color);
+    }
+
     protected int getBottomGapForRecyclerView(int bottomBarSize) {
         return bottomBarSize;
+    }
+
+    protected void hideProfileButton(boolean hide) {
+        if (hide) {
+            mProfileButton.hide();
+            mHideProfileButton = true;
+        } else if (!hide && mUserIdManager.isMultiUserProfiles()
+                && mPickerViewModel.getSelectedItems().getValue().size() == 0) {
+            mProfileButton.show();
+            mHideProfileButton = false;
+        }
     }
 
     private static String generateAddButtonString(Context context, int size) {

@@ -183,7 +183,7 @@
       <item quantity="other">Διαγραφή <xliff:g id="COUNT">^1</xliff:g> στοιχείων…</item>
       <item quantity="one">Διαγραφή στοιχείου…</item>
     </plurals>
-    <string name="transcode_denied" msgid="6760546817138288976">"Η εφαρμογή <xliff:g id="APP_NAME">%s</xliff:g> δεν έχει δυνατότητα επεξεργασία αρχείων μέσων"</string>
+    <string name="transcode_denied" msgid="6760546817138288976">"Η εφαρμογή <xliff:g id="APP_NAME">%s</xliff:g> δεν έχει δυνατότητα επεξεργασίας αρχείων μέσων"</string>
     <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Η επεξεργασία μέσων ακυρώθηκε"</string>
     <string name="transcode_processing_error" msgid="8921643164508407874">"Σφάλμα επεξεργασίας μέσων"</string>
     <string name="transcode_processing_success" msgid="447288876429730122">"Η επεξεργασία μέσων ολοκληρώθηκε επιτυχώς"</string>

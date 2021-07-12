@@ -18,6 +18,8 @@ package com.android.providers.media;
 
 import static android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY;
 
+import static com.android.providers.media.DatabaseHelper.VERSION_LATEST;
+import static com.android.providers.media.DatabaseHelper.VERSION_S;
 import static com.android.providers.media.DatabaseHelper.makePristineSchema;
 import static com.android.providers.media.DatabaseHelper.TEST_RECOMPUTE_DB;
 import static com.android.providers.media.DatabaseHelper.TEST_UPGRADE_DB;
@@ -25,6 +27,7 @@ import static com.android.providers.media.DatabaseHelper.TEST_DOWNGRADE_DB;
 import static com.android.providers.media.DatabaseHelper.TEST_CLEAN_DB;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -534,6 +537,55 @@ public class DatabaseHelperTest {
         }
     }
 
+    /**
+     * Test that database downgrade changed the UUID saved in database file.
+     */
+    @Test
+    public void testDowngradeChangesUUID() throws Exception {
+        Class<? extends DatabaseHelper> dbVersionHigher = DatabaseHelperT.class;
+        Class<? extends DatabaseHelper> dbVersionLower = DatabaseHelperS.class;
+        String originalUUID;
+        int originalVersion;
+
+        // Create the database with database version = dbVersionLower
+        try (DatabaseHelper helper = dbVersionLower.getConstructor(Context.class, String.class)
+                .newInstance(sIsolatedContext, TEST_DOWNGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            originalUUID = DatabaseHelper.getOrCreateUuid(db);
+            originalVersion = db.getVersion();
+            // Verify that original version of the database is dbVersionLower.
+            assertWithMessage("Current database version")
+                    .that(db.getVersion()).isEqualTo(VERSION_S);
+        }
+
+        // Upgrade the database by changing the version to dbVersionHigher
+        try (DatabaseHelper helper = dbVersionHigher.getConstructor(Context.class, String.class)
+                .newInstance(sIsolatedContext, TEST_DOWNGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            // Verify that upgrade resulted in database version change.
+            assertWithMessage("Current database version after upgrade")
+                    .that(db.getVersion()).isNotEqualTo(originalVersion);
+            // Verify that upgrade resulted in database version same as latest version.
+            assertWithMessage("Current database version after upgrade")
+                    .that(db.getVersion()).isEqualTo(VERSION_LATEST);
+            // Verify that upgrade didn't change UUID
+            assertWithMessage("Current database UUID after upgrade")
+                    .that(DatabaseHelper.getOrCreateUuid(db)).isEqualTo(originalUUID);
+        }
+
+        // Downgrade the database by changing the version to dbVersionLower
+        try (DatabaseHelper helper = dbVersionLower.getConstructor(Context.class, String.class)
+                .newInstance(sIsolatedContext, TEST_DOWNGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            // Verify that downgraded version is same as original database version before upgrade
+            assertWithMessage("Current database version after downgrade")
+                    .that(db.getVersion()).isEqualTo(originalVersion);
+            // Verify that downgrade changed UUID
+            assertWithMessage("Current database UUID after downgrade")
+                    .that(DatabaseHelper.getOrCreateUuid(db)).isNotEqualTo(originalUUID);
+        }
+    }
+
     private static String normalize(String sql) {
         return sql != null ? sql.replace(", ", ",") : null;
     }
@@ -601,7 +653,7 @@ public class DatabaseHelperTest {
 
     private static class DatabaseHelperS extends DatabaseHelper {
         public DatabaseHelperS(Context context, String name) {
-            super(context, name, DatabaseHelper.VERSION_S,
+            super(context, name, VERSION_S,
                     false, false, Column.class, null, null,
                     MediaProvider.MIGRATION_LISTENER, null);
         }

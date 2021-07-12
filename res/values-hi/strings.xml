@@ -183,7 +183,7 @@
       <item quantity="one"><xliff:g id="COUNT">^1</xliff:g> आइटम मिटाया जा रहा है…</item>
       <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> आइटम मिटाए जा रहे हैं…</item>
     </plurals>
-    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> मीडिया फ़ाइलों को प्रोसेस नहीं कर सकता"</string>
+    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> ऐप्लिकेशन, मीडिया फ़ाइलों को प्रोसेस नहीं कर सकता"</string>
     <string name="transcode_processing_cancelled" msgid="5340383917746945590">"मीडिया को प्रोसेस करने की कार्रवाई रद्द की गई"</string>
     <string name="transcode_processing_error" msgid="8921643164508407874">"मीडिया को प्रोसेस करने में गड़बड़ी हुई"</string>
     <string name="transcode_processing_success" msgid="447288876429730122">"मीडिया को प्रोसेस कर लिया गया"</string>

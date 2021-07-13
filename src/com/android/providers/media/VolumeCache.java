@@ -28,14 +28,12 @@ import android.provider.MediaStore;
 import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.Log;
-import android.util.LongSparseArray;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.UserCache;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
@@ -86,6 +84,24 @@ public class VolumeCache {
             }
             return volNames;
         }
+    }
+
+    /**
+     * @return List of paths to unreliable volumes if any, an empty list otherwise
+     */
+    public @NonNull ArrayList<File> getUnreliableVolumePath() throws FileNotFoundException {
+        ArrayList<File> unreliableVolumes = new ArrayList<>();
+        synchronized (mLock) {
+            for (MediaVolume volume : mExternalVolumes){
+                final File volPath = volume.getPath();
+                if (volPath != null && volPath.getPath() != null
+                        && !volPath.getPath().startsWith("/storage/")){
+                    unreliableVolumes.add(volPath);
+                }
+            }
+        }
+
+        return unreliableVolumes;
     }
 
     public @NonNull MediaVolume findVolume(@NonNull String volumeName, @NonNull UserHandle user)

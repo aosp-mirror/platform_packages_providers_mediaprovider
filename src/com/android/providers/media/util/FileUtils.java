@@ -45,9 +45,11 @@ import static com.android.providers.media.util.Logging.TAG;
 import android.content.ClipDescription;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
+import android.os.UserHandle;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
@@ -63,6 +65,8 @@ import android.webkit.MimeTypeMap;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
+
+import com.android.modules.utils.build.SdkLevel;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -857,16 +861,39 @@ public class FileUtils {
     }
 
     /**
+     * Return StorageVolume corresponding to the file on Path
+     */
+    public static @NonNull StorageVolume getStorageVolume(@NonNull Context context,
+            @NonNull File path) throws FileNotFoundException {
+        int userId = extractUserId(path.getPath());
+        Context userContext = context;
+        if (userId >= 0 && (context.getUser().getIdentifier() != userId)) {
+            // This volume is for a different user than our context, create a context
+            // for that user to retrieve the correct volume.
+            try {
+                userContext = context.createPackageContextAsUser("system", 0,
+                        UserHandle.of(userId));
+            } catch (PackageManager.NameNotFoundException e) {
+                throw new FileNotFoundException("Can't get package context for user " + userId);
+            }
+        }
+
+        StorageVolume volume = userContext.getSystemService(StorageManager.class)
+                .getStorageVolume(path);
+        if (volume == null) {
+            throw new FileNotFoundException("Can't find volume for " + path.getPath());
+        }
+
+        return volume;
+    }
+
+    /**
      * Return volume name which hosts the given path.
      */
     public static @NonNull String getVolumeName(@NonNull Context context, @NonNull File path)
             throws FileNotFoundException {
         if (contains(Environment.getStorageDirectory(), path)) {
-            StorageVolume volume = context.getSystemService(StorageManager.class)
-                    .getStorageVolume(path);
-            if (volume == null) {
-                throw new FileNotFoundException("Can't find volume for " + path.getPath());
-            }
+            StorageVolume volume = getStorageVolume(context, path);
             return volume.getMediaStoreVolumeName();
         } else {
             return MediaStore.VOLUME_INTERNAL;
@@ -874,9 +901,9 @@ public class FileUtils {
     }
 
     public static final Pattern PATTERN_DOWNLOADS_FILE = Pattern.compile(
-            "(?i)^/storage/[^/]+/(?:[0-9]+/)?(?:Android/sandbox/[^/]+/)?Download/.+");
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Download/.+");
     public static final Pattern PATTERN_DOWNLOADS_DIRECTORY = Pattern.compile(
-            "(?i)^/storage/[^/]+/(?:[0-9]+/)?(?:Android/sandbox/[^/]+/)?Download/?");
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Download/?");
     public static final Pattern PATTERN_EXPIRES_FILE = Pattern.compile(
             "(?i)^\\.(pending|trashed)-(\\d+)-([^/]+)$");
     public static final Pattern PATTERN_PENDING_FILEPATH_FOR_SQL = Pattern.compile(
@@ -904,6 +931,12 @@ public class FileUtils {
      */
     public static final long DEFAULT_DURATION_TRASHED = 30 * DateUtils.DAY_IN_MILLIS;
 
+    /**
+     * Default duration that expired items should be extended in
+     * {@link #runIdleMaintenance}.
+     */
+    public static final long DEFAULT_DURATION_EXTENDED = 7 * DateUtils.DAY_IN_MILLIS;
+
     public static boolean isDownload(@NonNull String path) {
         return PATTERN_DOWNLOADS_FILE.matcher(path).matches();
     }
@@ -917,7 +950,7 @@ public class FileUtils {
      * and which captures the package name as the first group.
      */
     public static final Pattern PATTERN_OWNED_PATH = Pattern.compile(
-            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|media|obb|sandbox)/([^/]+)(/?.*)?");
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|media|obb)/([^/]+)(/?.*)?");
 
     /**
      * Regex that matches Android/obb or Android/data path.
@@ -931,27 +964,53 @@ public class FileUtils {
     public static final Pattern PATTERN_OBB_OR_CHILD_PATH = Pattern.compile(
             "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:obb)(/?.*)");
 
+    /**
+     * The recordings directory. This is used for R OS. For S OS or later,
+     * we use {@link Environment#DIRECTORY_RECORDINGS} directly.
+     */
+    public static final String DIRECTORY_RECORDINGS = "Recordings";
+
     @VisibleForTesting
-    public static final String[] DEFAULT_FOLDER_NAMES = {
-            Environment.DIRECTORY_MUSIC,
-            Environment.DIRECTORY_PODCASTS,
-            Environment.DIRECTORY_RINGTONES,
-            Environment.DIRECTORY_ALARMS,
-            Environment.DIRECTORY_NOTIFICATIONS,
-            Environment.DIRECTORY_PICTURES,
-            Environment.DIRECTORY_MOVIES,
-            Environment.DIRECTORY_DOWNLOADS,
-            Environment.DIRECTORY_DCIM,
-            Environment.DIRECTORY_DOCUMENTS,
-            Environment.DIRECTORY_AUDIOBOOKS,
-    };
+    public static final String[] DEFAULT_FOLDER_NAMES;
+    static {
+        if (SdkLevel.isAtLeastS()) {
+            DEFAULT_FOLDER_NAMES = new String[]{
+                    Environment.DIRECTORY_MUSIC,
+                    Environment.DIRECTORY_PODCASTS,
+                    Environment.DIRECTORY_RINGTONES,
+                    Environment.DIRECTORY_ALARMS,
+                    Environment.DIRECTORY_NOTIFICATIONS,
+                    Environment.DIRECTORY_PICTURES,
+                    Environment.DIRECTORY_MOVIES,
+                    Environment.DIRECTORY_DOWNLOADS,
+                    Environment.DIRECTORY_DCIM,
+                    Environment.DIRECTORY_DOCUMENTS,
+                    Environment.DIRECTORY_AUDIOBOOKS,
+                    Environment.DIRECTORY_RECORDINGS,
+            };
+        } else {
+            DEFAULT_FOLDER_NAMES = new String[]{
+                    Environment.DIRECTORY_MUSIC,
+                    Environment.DIRECTORY_PODCASTS,
+                    Environment.DIRECTORY_RINGTONES,
+                    Environment.DIRECTORY_ALARMS,
+                    Environment.DIRECTORY_NOTIFICATIONS,
+                    Environment.DIRECTORY_PICTURES,
+                    Environment.DIRECTORY_MOVIES,
+                    Environment.DIRECTORY_DOWNLOADS,
+                    Environment.DIRECTORY_DCIM,
+                    Environment.DIRECTORY_DOCUMENTS,
+                    Environment.DIRECTORY_AUDIOBOOKS,
+                    DIRECTORY_RECORDINGS,
+            };
+        }
+    }
 
     /**
-     * Regex that matches paths for {@link MediaColumns#RELATIVE_PATH}; it
-     * captures both top-level paths and sandboxed paths.
+     * Regex that matches paths for {@link MediaColumns#RELATIVE_PATH}
      */
     private static final Pattern PATTERN_RELATIVE_PATH = Pattern.compile(
-            "(?i)^/storage/(?:emulated/[0-9]+/|[^/]+/)(Android/sandbox/([^/]+)/)?");
+            "(?i)^/storage/(?:emulated/[0-9]+/|[^/]+/)");
 
     /**
      * Regex that matches paths under well-known storage paths.
@@ -959,11 +1018,27 @@ public class FileUtils {
     private static final Pattern PATTERN_VOLUME_NAME = Pattern.compile(
             "(?i)^/storage/([^/]+)");
 
+    /**
+     * Regex that matches user-ids under well-known storage paths.
+     */
+    private static final Pattern PATTERN_USER_ID = Pattern.compile(
+            "(?i)^/storage/emulated/([0-9]+)");
+
     private static final String CAMERA_RELATIVE_PATH =
             String.format("%s/%s/", Environment.DIRECTORY_DCIM, "Camera");
 
     private static @Nullable String normalizeUuid(@Nullable String fsUuid) {
         return fsUuid != null ? fsUuid.toLowerCase(Locale.ROOT) : null;
+    }
+
+    public static int extractUserId(@Nullable String data) {
+        if (data == null) return -1;
+        final Matcher matcher = PATTERN_USER_ID.matcher(data);
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group(1));
+        }
+
+        return -1;
     }
 
     public static @Nullable String extractVolumePath(@Nullable String data) {
@@ -1320,9 +1395,39 @@ public class FileUtils {
             return false;
         }
 
+        if (isScreenshotsDirNonHidden(relativePath, name)) {
+            nomedia.delete();
+            return false;
+        }
+
         // .nomedia is present which makes this directory as hidden directory
         Logging.logPersistent("Observed non-standard " + nomedia);
         return true;
+    }
+
+    /**
+     * Consider Screenshots directory in root directory or inside well-known directory as always
+     * non-hidden. Nomedia file in these directories will not be able to hide these directories.
+     * i.e., some examples of directories that will be considered non-hidden are
+     * <ul>
+     * <li> /storage/emulated/0/Screenshots or
+     * <li> /storage/emulated/0/DCIM/Screenshots or
+     * <li> /storage/emulated/0/Pictures/Screenshots ...
+     * </ul>
+     * Some examples of directories that can be considered as hidden with nomedia are
+     * <ul>
+     * <li> /storage/emulated/0/foo/Screenshots or
+     * <li> /storage/emulated/0/DCIM/Foo/Screenshots or
+     * <li> /storage/emulated/0/Pictures/foo/bar/Screenshots ...
+     * </ul>
+     */
+    private static boolean isScreenshotsDirNonHidden(@NonNull String[] relativePath,
+            @NonNull String name) {
+        if (name.equalsIgnoreCase(Environment.DIRECTORY_SCREENSHOTS)) {
+            return (relativePath.length == 1 &&
+                (TextUtils.isEmpty(relativePath[0]) || isDefaultDirectoryName(relativePath[0])));
+        }
+        return false;
     }
 
     /**
@@ -1433,5 +1538,30 @@ public class FileUtils {
         }
 
         return topNoMediaDir;
+    }
+
+    /**
+     * Generate the extended absolute path from the expired file path
+     * E.g. the input expiredFilePath is /storage/emulated/0/DCIM/.trashed-1621147340-test.jpg
+     * The returned result is /storage/emulated/0/DCIM/.trashed-1888888888-test.jpg
+     *
+     * @hide
+     */
+    @Nullable
+    public static String getAbsoluteExtendedPath(@NonNull String expiredFilePath,
+            long extendedTime) {
+        final String displayName = extractDisplayName(expiredFilePath);
+
+        final Matcher matcher = PATTERN_EXPIRES_FILE.matcher(displayName);
+        if (matcher.matches()) {
+            final String newDisplayName = String.format(Locale.US, ".%s-%d-%s", matcher.group(1),
+                    extendedTime, matcher.group(3));
+            final int lastSlash = expiredFilePath.lastIndexOf('/');
+            final String newPath = expiredFilePath.substring(0, lastSlash + 1).concat(
+                    newDisplayName);
+            return newPath;
+        }
+
+        return null;
     }
 }

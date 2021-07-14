@@ -29,105 +29,82 @@
     <string name="permission_required_action" msgid="706370952366113539">"ရှေ့ဆက်ရန်"</string>
     <string name="grant_dialog_button_allow" msgid="1644287024501033471">"ခွင့်ပြုရန်"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"ငြင်းပယ်ရန်"</string>
-    <!-- no translation found for permission_more_thumb (3530243737498196228) -->
+    <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
+      <item quantity="other">+<xliff:g id="COUNT_1">^1</xliff:g></item>
+      <item quantity="one">+<xliff:g id="COUNT_0">^1</xliff:g></item>
+    </plurals>
     <plurals name="permission_more_text" formatted="false" msgid="7291997297174507324">
       <item quantity="other">ထပ်ပေါင်းအရာ <xliff:g id="COUNT_1">^1</xliff:g> ခု အပါအဝင်</item>
       <item quantity="one">ထပ်ပေါင်းအရာ <xliff:g id="COUNT_0">^1</xliff:g> ခု အပါအဝင်</item>
     </plurals>
-    <!-- no translation found for cache_clearing_dialog_title (543177167845854283) -->
-    <skip />
-    <!-- no translation found for cache_clearing_dialog_text (425995541409682360) -->
-    <skip />
-    <!-- no translation found for allow (8885707816848569619) -->
-    <skip />
-    <!-- no translation found for deny (6040983710442068936) -->
-    <skip />
-    <plurals name="permission_write_audio" formatted="false" msgid="3539998638571517689">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား အသံဖိုင် <xliff:g id="COUNT">^2</xliff:g> ခုကို ပြောင်းလဲခွင့်ပြုမလား။</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤအသံဖိုင်ကို ပြောင်းလဲခွင့်ပြုမလား။</item>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"ယာယီအက်ပ်ဖိုင်များ ရှင်းရန်"</string>
+    <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> သည် ယာယီဖိုင်များမှ အချို့ကို ရှင်းထုတ်လိုသည်။ ထို့ကြောင့် ဘက်ထရီ သို့မဟုတ် ဆယ်လူလာဒေတာ အသုံးပြုမှု မြင့်တက်လာနိုင်သည်။"</string>
+    <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"ယာယီအက်ပ်ဖိုင်များ ရှင်းထုတ်နေသည်…"</string>
+    <string name="clear" msgid="5524638938415865915">"ရှင်းရန်"</string>
+    <string name="allow" msgid="8885707816848569619">"ခွင့်ပြုရန်"</string>
+    <string name="deny" msgid="6040983710442068936">"ပယ်ရန်"</string>
+    <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ကို အသံဖိုင် <xliff:g id="COUNT">^2</xliff:g> ဖိုင် ပြင်ဆင်ခွင့်ပြုမလား။</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ကို ဤအသံဖိုင် ပြင်ဆင်ခွင့်ပြုမလား။</item>
     </plurals>
-    <plurals name="permission_write_video" formatted="false" msgid="8695335317588947410">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ဗီဒီယို <xliff:g id="COUNT">^2</xliff:g> ခုကို ပြောင်းလဲခွင့်ပြုမလား။</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤဗီဒီယိုကို ပြောင်းလဲခွင့်ပြုမလား။</item>
+    <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ကို ဗီဒီယို <xliff:g id="COUNT">^2</xliff:g> ခု ပြင်ဆင်ခွင့်ပြုမလား။</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ကို ဤဗီဒီယို ပြင်ဆင်ခွင့်ပြုမလား။</item>
     </plurals>
-    <plurals name="permission_write_image" formatted="false" msgid="9032317900030650266">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ဓာတ်ပုံ <xliff:g id="COUNT">^2</xliff:g> ပုံကို ပြောင်းလဲခွင့်ပြုမလား။</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤဓာတ်ပုံကို ပြောင်းလဲခွင့်ပြုမလား။</item>
+    <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ဓာတ်ပုံ <xliff:g id="COUNT">^2</xliff:g> ပုံကို ပြုပြင်ခွင့်ပြုမလား။</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ကို ဤဓာတ်ပုံ ပြင်ဆင်ခွင့်ပြုမလား။</item>
     </plurals>
-    <plurals name="permission_write_generic" formatted="false" msgid="3099002288826692797">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ပါရှိသည့်အရာ <xliff:g id="COUNT">^2</xliff:g> ခုကို ပြောင်းလဲခွင့်ပြုမလား။</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤအရာကို ပြောင်းလဲခွင့်ပြုမလား။</item>
+    <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ကို ဤအရာ <xliff:g id="COUNT">^2</xliff:g> ခု ပြင်ဆင်ခွင့်ပြုမလား။</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ကို ဤအရာ ပြင်ဆင်ခွင့်ပြုမလား။</item>
     </plurals>
-    <string name="permission_write_grant" msgid="3160858917750790130">"ပြောင်းလဲရန်"</string>
-    <string name="permission_write_deny" msgid="7090074081877311071">"မလုပ်တော့"</string>
-    <plurals name="permission_trash_audio" formatted="false" msgid="6116371056718108592">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား အသံဖိုင် <xliff:g id="COUNT">^2</xliff:g> ဖိုင်ကို အမှိုက်ပုံးထဲသို့ ရွှေ့ခွင့်ပြုမလား။</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤအသံဖိုင်ကို အမှိုက်ပုံးထဲသို့ ရွှေ့ခွင့်ပြုမလား။</item>
+    <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား အသံဖိုင် <xliff:g id="COUNT">^2</xliff:g> ဖိုင်ကို အမှိုက်ပုံးသို့ ရွှေ့ခွင့်ပြုမလား။</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤအသံဖိုင်ကို အမှိုက်ပုံးသို့ ရွှေ့ခွင့်ပြုမလား။</item>
     </plurals>
-    <plurals name="permission_trash_audio_info" formatted="false" msgid="5002847308948758655">
-      <item quantity="other">ဤအသံဖိုင်များကို <xliff:g id="DURATION_1">^3</xliff:g> ရက် ပြည့်လျှင် အပြီးဖျက်ပါမည်</item>
-      <item quantity="one">ဤအသံဖိုင်ကို <xliff:g id="DURATION_0">^3</xliff:g> ရက် ပြည့်လျှင် အပြီးဖျက်ပါမည်</item>
+    <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ဗီဒီယို <xliff:g id="COUNT">^2</xliff:g> ခုကို အမှိုက်ပုံးသို့ ရွှေ့ခွင့်ပြုမလား။</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤဗီဒီယိုကို အမှိုက်ပုံးသို့ ရွှေ့ခွင့်ပြုမလား။</item>
     </plurals>
-    <plurals name="permission_trash_video" formatted="false" msgid="7900111984425589714">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ဗီဒီယို <xliff:g id="COUNT">^2</xliff:g> ခုကို အမှိုက်ပုံးထဲသို့ ရွှေ့ခွင့်ပြုမလား။</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤဗီဒီယိုကို အမှိုက်ပုံးထဲသို့ ရွှေ့ခွင့်ပြုမလား။</item>
+    <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ဓာတ်ပုံ <xliff:g id="COUNT">^2</xliff:g> ပုံကို အမှိုက်ပုံးသို့ ရွှေ့ခွင့်ပြုမလား။</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤဓာတ်ပုံကို အမှိုက်ပုံးသို့ ရွှေ့ခွင့်ပြုမလား။</item>
     </plurals>
-    <plurals name="permission_trash_video_info" formatted="false" msgid="4604871492287117394">
-      <item quantity="other">ဤဗီဒီယိုများကို <xliff:g id="DURATION_1">^3</xliff:g> ရက် ပြည့်လျှင် အပြီးဖျက်ပါမည်</item>
-      <item quantity="one">ဤဗီဒီယိုကို <xliff:g id="DURATION_0">^3</xliff:g> ရက် ပြည့်လျှင် အပြီးဖျက်ပါမည်</item>
+    <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ဤအရာ <xliff:g id="COUNT">^2</xliff:g> ခုကို အမှိုက်ပုံးသို့ ရွှေ့ခွင့်ပြုမလား။</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤအရာကို အမှိုက်ပုံးသို့ ရွှေ့ခွင့်ပြုမလား။</item>
     </plurals>
-    <plurals name="permission_trash_image" formatted="false" msgid="9204660448046457869">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ဓာတ်ပုံ <xliff:g id="COUNT">^2</xliff:g> ပုံကို အမှိုက်ပုံးထဲသို့ ရွှေ့ခွင့်ပြုမလား။</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤဓာတ်ပုံကို အမှိုက်ပုံးထဲသို့ ရွှေ့ခွင့်ပြုမလား။</item>
+    <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား အသံဖိုင် <xliff:g id="COUNT">^2</xliff:g> ဖိုင်ကို အမှိုက်ပုံးထဲမှ ရွှေ့ခွင့်ပြုမလား။</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤအသံဖိုင်ကို အမှိုက်ပုံးထဲမှ ရွှေ့ခွင့်ပြုမလား။</item>
     </plurals>
-    <plurals name="permission_trash_image_info" formatted="false" msgid="4214797662365755925">
-      <item quantity="other">ဤဓာတ်ပုံများကို <xliff:g id="DURATION_1">^3</xliff:g> ရက် ပြည့်လျှင် အပြီးဖျက်ပါမည်</item>
-      <item quantity="one">ဤဓာတ်ပုံကို <xliff:g id="DURATION_0">^3</xliff:g> ရက် ပြည့်လျှင် အပြီးဖျက်ပါမည်</item>
-    </plurals>
-    <plurals name="permission_trash_generic" formatted="false" msgid="427752775725644743">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား အရာ <xliff:g id="COUNT">^2</xliff:g> ခုကို အမှိုက်ပုံးထဲသို့ ရွှေ့ခွင့်ပြုမလား။</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤအရာကို အမှိုက်ပုံးထဲသို့ ရွှေ့ခွင့်ပြုမလား။</item>
-    </plurals>
-    <plurals name="permission_trash_generic_info" formatted="false" msgid="7932965324027540546">
-      <item quantity="other">ဤအရာများကို <xliff:g id="DURATION_1">^3</xliff:g> ရက် ပြည့်လျှင် အပြီးဖျက်ပါမည်</item>
-      <item quantity="one">ဤအရာကို <xliff:g id="DURATION_0">^3</xliff:g> ရက် ပြည့်လျှင် အပြီးဖျက်ပါမည်</item>
-    </plurals>
-    <string name="permission_trash_grant" msgid="2279489962040272178">"အမှိုက်ပုံးသို့ ရွှေ့ရန်"</string>
-    <string name="permission_trash_deny" msgid="2447949475239137483">"မလုပ်တော့"</string>
-    <plurals name="permission_untrash_audio" formatted="false" msgid="5716379492864435914">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား အသံဖိုင် <xliff:g id="COUNT">^2</xliff:g> ခုကို အမှိုက်ပုံးမှ ရွှေ့ခွင့်ပြုမလား။</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤအသံဖိုင်ကို အမှိုက်ပုံးမှ ရွှေ့ခွင့်ပြုမလား။</item>
-    </plurals>
-    <plurals name="permission_untrash_video" formatted="false" msgid="4554487646802678525">
+    <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ဗီဒီယို <xliff:g id="COUNT">^2</xliff:g> ခုကို အမှိုက်ပုံးထဲမှ ရွှေ့ခွင့်ပြုမလား။</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤဗီဒီယိုကို အမှိုက်ပုံးထဲမှ ရွှေ့ခွင့်ပြုမလား။</item>
     </plurals>
-    <plurals name="permission_untrash_image" formatted="false" msgid="3209306923499767662">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ဓာတ်ပုံ<xliff:g id="COUNT">^2</xliff:g> ပုံကို အမှိုက်ပုံးမှ ရွှေ့ခွင့်ပြုမလား။</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤဓာတ်ပုံကို အမှိုက်ပုံးမှ ရွှေ့ခွင့်ပြုမလား။</item>
+    <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ဓာတ်ပုံ <xliff:g id="COUNT">^2</xliff:g> ပုံကို အမှိုက်ပုံးထဲမှ ရွှေ့ခွင့်ပြုမလား။</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤဓာတ်ပုံကို အမှိုက်ပုံးထဲမှ ရွှေ့ခွင့်ပြုမလား။</item>
     </plurals>
-    <plurals name="permission_untrash_generic" formatted="false" msgid="4607666277638602132">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ပါရှိသည့်အရာ <xliff:g id="COUNT">^2</xliff:g> ခုကိုအမှိုက်ပုံးမှ ရွှေ့ခွင့်ပြုမလား။</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤအရာကို အမှိုက်ပုံးမှ ရွှေ့ခွင့်ပြုမလား။</item>
+    <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ဤအရာ <xliff:g id="COUNT">^2</xliff:g> ခုကို အမှိုက်ပုံးထဲမှ ရွှေ့ခွင့်ပြုမလား။</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤအရာကို အမှိုက်ပုံးထဲမှ ရွှေ့ခွင့်ပြုမလား။</item>
     </plurals>
-    <string name="permission_untrash_grant" msgid="8438940480373451790">"အမှိုက်ပုံးထဲမှ ရွှေ့ရန်"</string>
-    <string name="permission_untrash_deny" msgid="8008055757469903604">"မလုပ်တော့"</string>
-    <plurals name="permission_delete_audio" formatted="false" msgid="6390202287788379608">
+    <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား အသံဖိုင် <xliff:g id="COUNT">^2</xliff:g> ဖိုင်ကို ဖျက်ခွင့်ပြုမလား။</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤအသံဖိုင်ကို ဖျက်ခွင့်ပြုမလား။</item>
     </plurals>
-    <plurals name="permission_delete_video" formatted="false" msgid="1577978206881284398">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ဗီဒီယို <xliff:g id="COUNT">^2</xliff:g> ခုကို ဖျက်ခွင့်ပြုမလား။</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤဗီဒီယိုကို ဖျက်ခွင့်ပြုမလား။</item>
+    <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ကို ဗီဒီယို <xliff:g id="COUNT">^2</xliff:g> ခု ဖျက်ခွင့်ပြုမလား။</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ကို ဤဗီဒီယို ဖျက်ခွင့်ပြုမလား။</item>
     </plurals>
-    <plurals name="permission_delete_image" formatted="false" msgid="8435429587272893063">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ဓာတ်ပုံ <xliff:g id="COUNT">^2</xliff:g> ပုံကို ဖျက်ခွင့်ပြုမလား။</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤဓာတ်ပုံကို ဖျက်ခွင့်ပြုမလား။</item>
+    <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ကို ဓာတ်ပုံ <xliff:g id="COUNT">^2</xliff:g> ပုံ ဖျက်ခွင့်ပြုမလား။</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ကို ဤဓာတ်ပုံ ဖျက်ခွင့်ပြုမလား။</item>
     </plurals>
-    <plurals name="permission_delete_generic" formatted="false" msgid="5949614272661654178">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ပါရှိသည့်အရာ <xliff:g id="COUNT">^2</xliff:g> ခုကို ဖျက်ခွင့်ပြုမလား။</item>
+    <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> အား ဤအရာ <xliff:g id="COUNT">^2</xliff:g> ခုကို ဖျက်ခွင့်ပြုမလား။</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> အား ဤအရာကို ဖျက်ခွင့်ပြုမလား။</item>
     </plurals>
-    <string name="permission_delete_grant" msgid="8682518049167813926">"ဖျက်ရန်"</string>
-    <string name="permission_delete_deny" msgid="3742780367403897552">"မလုပ်တော့"</string>
 </resources>

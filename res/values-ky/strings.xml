@@ -47,64 +47,136 @@
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> колдонмосу <xliff:g id="COUNT">^2</xliff:g> аудио файлды өзгөртсүнбү?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> колдонмосу бул аудио файлды өзгөртсүнбү?</item>
     </plurals>
+    <plurals name="permission_progress_write_audio" formatted="false" msgid="3757901555809850632">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> аудио файл өзгөртүлүүдө…</item>
+      <item quantity="one">Аудио файл өзгөртүлүүдө…</item>
+    </plurals>
     <plurals name="permission_write_video" formatted="false" msgid="1098082003326873084">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> колдонмосу <xliff:g id="COUNT">^2</xliff:g> видеону өзгөртсүнбү?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> колдонмосу бул видеону өзгөртсүнбү?</item>
     </plurals>
+    <plurals name="permission_progress_write_video" formatted="false" msgid="2244685155683762411">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> видео өзгөртүлүүдө…</item>
+      <item quantity="one">Видео өзгөртүлүүдө…</item>
+    </plurals>
     <plurals name="permission_write_image" formatted="false" msgid="748745548893845892">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> колдонмосу <xliff:g id="COUNT">^2</xliff:g> сүрөттү өзгөртсүнбү?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> колдонмосу бул сүрөттү өзгөртсүнбү?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> бул <xliff:g id="COUNT">^2</xliff:g> сүрөттү өзгөртсүнбү?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> бул сүрөттү өзгөртсүнбү?</item>
+    </plurals>
+    <plurals name="permission_progress_write_image" formatted="false" msgid="9126939088839855157">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> сүрөт өзгөртүлүүдө…</item>
+      <item quantity="one">Сүрөт өзгөртүлүүдө…</item>
     </plurals>
     <plurals name="permission_write_generic" formatted="false" msgid="3270172714743671779">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> колдонмосу <xliff:g id="COUNT">^2</xliff:g> нерсени өзгөртсүнбү?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> колдонмосу бул нерсени өзгөртсүнбү?</item>
     </plurals>
+    <plurals name="permission_progress_write_generic" formatted="false" msgid="1928961922186705621">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> элемент өзгөртүлүүдө…</item>
+      <item quantity="one">Элемент өзгөртүлүүдө…</item>
+    </plurals>
     <plurals name="permission_trash_audio" formatted="false" msgid="8907813869381755423">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> колдонмосу <xliff:g id="COUNT">^2</xliff:g> аудио файлды таштандыга салсынбы?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> колдонмосу бул аудио файлды таштандыга салсынбы?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> бул <xliff:g id="COUNT">^2</xliff:g> аудио файлды таштандыга ыргытсынбы?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> бул аудио файлды таштандыга ыргытсынбы?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_audio" formatted="false" msgid="8142631134676951388">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> аудио файл таштандыга ыргытылууда…</item>
+      <item quantity="one">Аудио файл таштандыга ыргытылууда…</item>
     </plurals>
     <plurals name="permission_trash_video" formatted="false" msgid="4672871911555787438">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> колдонмосу <xliff:g id="COUNT">^2</xliff:g> видеону таштандыга салсынбы?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> колдонмосу бул видеону таштандыга салсынбы?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> бул <xliff:g id="COUNT">^2</xliff:g> видеону таштандыга ыргытсынбы?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> бул видеону таштандыга ыргытсынбы?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_video" formatted="false" msgid="2566683722600149120">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> видео таштандыга ыргытылууда…</item>
+      <item quantity="one">Видео таштандыга ыргытылууда…</item>
     </plurals>
     <plurals name="permission_trash_image" formatted="false" msgid="6400475304599873227">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> сүрөттү таштандыга салсынбы?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> бул сүрөттү таштандыга салсынбы?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> сүрөттү таштандыга ыргытсынбы?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> бул сүрөттү таштандыга ыргытсынбы?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_image" formatted="false" msgid="4529586663770971476">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> сүрөт таштандыга ыргытылууда…</item>
+      <item quantity="one">Сүрөт таштандыга ыргытылууда…</item>
     </plurals>
     <plurals name="permission_trash_generic" formatted="false" msgid="3814167365075039711">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> колдонмосу <xliff:g id="COUNT">^2</xliff:g> нерсени таштандыга салсынбы?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> колдонмосу бул нерсени таштандыга салсынбы?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> бул <xliff:g id="COUNT">^2</xliff:g> нерсени таштандыга ыргытсынбы?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> бул нерсени таштандыга ыргытсынбы?</item>
+    </plurals>
+    <plurals name="permission_progress_trash_generic" formatted="false" msgid="6995141190896908381">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> элемент таштандыга ыргытылууда…</item>
+      <item quantity="one">Элемент таштандыга ыргытылууда…</item>
     </plurals>
     <plurals name="permission_untrash_audio" formatted="false" msgid="7795265980168966321">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> колдонмосу <xliff:g id="COUNT">^2</xliff:g> аудио файлды калыбына келтирсинби?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> колдонмосу бул аудио файлды калыбына келтирсинби?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_audio" formatted="false" msgid="4047200387122043006">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> аудио файл калыбына келтирилүүдө…</item>
+      <item quantity="one">Аудио файл калыбына келтирилүүдө…</item>
+    </plurals>
     <plurals name="permission_untrash_video" formatted="false" msgid="332894888445508879">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> колдонмосу <xliff:g id="COUNT">^2</xliff:g> видеону калыбына келтирсинби?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> колдонмосу бул видеону калыбына келтирсинби?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_video" formatted="false" msgid="7996233128375495458">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> видео калыбына келтирилүүдө…</item>
+      <item quantity="one">Видео калыбына келтирилүүдө…</item>
+    </plurals>
     <plurals name="permission_untrash_image" formatted="false" msgid="7024071378733595056">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> колдонмосу <xliff:g id="COUNT">^2</xliff:g> сүрөттү калыбына келтирсинби?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> колдонмосу бул сүрөттү калыбына келтирсинби?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> бул <xliff:g id="COUNT">^2</xliff:g> сүрөттү калыбына келтирсинби?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> бул сүрөттү калыбына келтирсинби?</item>
+    </plurals>
+    <plurals name="permission_progress_untrash_image" formatted="false" msgid="3473769131910926122">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> сүрөт калыбына келтирилүүдө…</item>
+      <item quantity="one">Сүрөт калыбына келтирилүүдө…</item>
     </plurals>
     <plurals name="permission_untrash_generic" formatted="false" msgid="6872817093731198374">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> колдонмосу <xliff:g id="COUNT">^2</xliff:g> нерсени калыбына келтирсинби?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> колдонмосу бул нерсени калыбына келтирсинби?</item>
     </plurals>
+    <plurals name="permission_progress_untrash_generic" formatted="false" msgid="263867753672461510">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> элемент калыбына келтирилүүдө…</item>
+      <item quantity="one">Элемент калыбына келтирилүүдө…</item>
+    </plurals>
     <plurals name="permission_delete_audio" formatted="false" msgid="6848547621165184719">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> колдонмосу <xliff:g id="COUNT">^2</xliff:g> аудио файлды өчүрсүнбү?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> колдонмосу бул аудио файлды өчүрсүнбү?</item>
+    </plurals>
+    <plurals name="permission_progress_delete_audio" formatted="false" msgid="8579231060666743501">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> аудио файл өчүрүлүүдө…</item>
+      <item quantity="one">Аудио файл өчүрүлүүдө…</item>
     </plurals>
     <plurals name="permission_delete_video" formatted="false" msgid="1251942606336748563">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> колдонмосу <xliff:g id="COUNT">^2</xliff:g> видеону өчүрсүнбү?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> колдонмосу бул видеону өчүрсүнбү?</item>
     </plurals>
+    <plurals name="permission_progress_delete_video" formatted="false" msgid="4349991290732459111">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> видео жок кылынууда…</item>
+      <item quantity="one">Видео жок кылынууда…</item>
+    </plurals>
     <plurals name="permission_delete_image" formatted="false" msgid="2303409455224710111">
-      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> колдонмосу <xliff:g id="COUNT">^2</xliff:g> сүрөттү өчүрсүнбү?</item>
-      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> колдонмосу бул сүрөттү өчүрсүнбү?</item>
+      <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> бул <xliff:g id="COUNT">^2</xliff:g> сүрөттү өчүрсүнбү?</item>
+      <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> бул сүрөттү өчүрсүнбү?</item>
+    </plurals>
+    <plurals name="permission_progress_delete_image" formatted="false" msgid="118648854886957046">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> сүрөт жок кылынууда…</item>
+      <item quantity="one">Сүрөт жок кылынууда…</item>
     </plurals>
     <plurals name="permission_delete_generic" formatted="false" msgid="1412218850351841181">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> колдонмосу <xliff:g id="COUNT">^2</xliff:g> нерсени өчүрсүнбү?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> колдонмосу бул нерсени өчүрсүнбү?</item>
     </plurals>
+    <plurals name="permission_progress_delete_generic" formatted="false" msgid="1006212243422543162">
+      <item quantity="other"><xliff:g id="COUNT">^1</xliff:g> элемент жок кылынууда…</item>
+      <item quantity="one">Элемент жок кылынууда…</item>
+    </plurals>
+    <string name="transcode_denied" msgid="6760546817138288976">"<xliff:g id="APP_NAME">%s</xliff:g> медиа файлдарды иштете албайт"</string>
+    <string name="transcode_processing_cancelled" msgid="5340383917746945590">"Медианы иштетүү жокко чыгарылды"</string>
+    <string name="transcode_processing_error" msgid="8921643164508407874">"Медианы иштетүү катасы"</string>
+    <string name="transcode_processing_success" msgid="447288876429730122">"Медиа ийгиликтүү иштетилди"</string>
+    <string name="transcode_processing_started" msgid="7789086308155361523">"Медиа иштетилип баштады"</string>
+    <string name="transcode_processing" msgid="6753136468864077258">"Медиа иштетилүүдө…"</string>
+    <string name="transcode_cancel" msgid="8555752601907598192">"Жокко чыгаруу"</string>
+    <string name="transcode_wait" msgid="8909773149560697501">"Күтүү"</string>
 </resources>

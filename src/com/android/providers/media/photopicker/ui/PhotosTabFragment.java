@@ -18,6 +18,7 @@ package com.android.providers.media.photopicker.ui;
 import static com.android.providers.media.photopicker.ui.PhotosTabAdapter.COLUMN_COUNT;
 
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.View;
 
 import androidx.annotation.NonNull;
@@ -66,10 +67,12 @@ public class PhotosTabFragment extends TabFragment {
                 mPickerViewModel.deleteSelectedItem((Item) view.getTag());
             } else {
                 if (!mPickerViewModel.isSelectionAllowed()) {
-                    // TODO(b/192823495): Use R.string for translations and mimeType filters.
-                    Snackbar.make(view,
-                            "Select up to " + mPickerViewModel.getMaxSelectionLimit() + " photos",
-                            Snackbar.LENGTH_SHORT).show();
+                    final int maxCount = mPickerViewModel.getMaxSelectionLimit();
+                    final CharSequence quantityText = getResources().getQuantityText(
+                            R.plurals.select_up_to, maxCount);
+                    final CharSequence message = TextUtils.expandTemplate(quantityText,
+                            String.valueOf(maxCount));
+                    Snackbar.make(view, message, Snackbar.LENGTH_SHORT).show();
                     return;
                 } else {
                     mPickerViewModel.addSelectedItem((Item) view.getTag());

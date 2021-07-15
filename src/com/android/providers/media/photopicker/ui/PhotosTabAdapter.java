@@ -36,6 +36,7 @@ public class PhotosTabAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     public static final int ITEM_TYPE_DATE_HEADER = 0;
     private static final int ITEM_TYPE_PHOTO = 1;
+    private static final int ITEM_TYPE_MESSAGE = 2;
 
     public static final int COLUMN_COUNT = 3;
 
@@ -56,6 +57,10 @@ public class PhotosTabAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     public BaseViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
         if (viewType == ITEM_TYPE_DATE_HEADER) {
             return new DateHeaderHolder(viewGroup.getContext(), viewGroup);
+        }
+        if (viewType == ITEM_TYPE_MESSAGE) {
+            return new MessageHolder(viewGroup.getContext(), viewGroup,
+                    mPickerViewModel.getMaxSelectionLimit());
         }
         return new PhotoGridHolder(viewGroup.getContext(), viewGroup, mImageLoader,
                 mPickerViewModel.canSelectMultiple());
@@ -83,6 +88,9 @@ public class PhotosTabAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     @Override
     public int getItemViewType(int position) {
+        if (getItem(position).isMessage()) {
+            return ITEM_TYPE_MESSAGE;
+        }
         if (getItem(position).isDate()) {
             return ITEM_TYPE_DATE_HEADER;
         }

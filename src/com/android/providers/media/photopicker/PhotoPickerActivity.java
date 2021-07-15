@@ -67,7 +67,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
         getSupportActionBar().setTitle("Photos & Videos");
 
         mPickerViewModel = new ViewModelProvider(this).get(PickerViewModel.class);
-        mPickerViewModel.parseValuesFromIntent(getIntent());
+        try {
+            mPickerViewModel.parseValuesFromIntent(getIntent());
+        } catch (IllegalArgumentException e) {
+            Log.w(TAG, "Finish activity due to: " + e);
+            setCancelledResultAndFinishSelf();
+        }
 
         // only add the fragment when the activity is created at first time
         if (savedInstanceState == null) {
@@ -152,6 +157,11 @@ public class PhotoPickerActivity extends AppCompatActivity {
                 MediaStore.ACTION_PICK_IMAGES.equals(getIntent().getAction());
         setResult(Activity.RESULT_OK, getPickerResponseIntent(this, selectedItemList,
                 shouldReturnPickerUris));
+        finish();
+    }
+
+    private void setCancelledResultAndFinishSelf() {
+        setResult(Activity.RESULT_CANCELED);
         finish();
     }
 }

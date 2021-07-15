@@ -57,7 +57,7 @@
 
     <!-- Text shown at the end of a list indicating that there are more items beyond the number currently displayed on the screen. [CHAR LIMIT=32]  -->
     <plurals name="permission_more_text">
-        <item quantity="one">Plus <xliff:g id="count" example="42">^1</xliff:g> additional item</item>
+        <item quantity="one">Plus <xliff:g id="count" example="1">^1</xliff:g> additional item</item>
         <item quantity="other">Plus <xliff:g id="count" example="42">^1</xliff:g> additional items</item>
     </plurals>
 
@@ -87,6 +87,12 @@
 
     <!-- Select button for PhotoPicker. [CHAR LIMIT=30] -->
     <string name="select">Select</string>
+
+    <!-- Select up to max label message for PhotoPicker. [CHAR LIMIT=30] -->
+    <plurals name="select_up_to">
+        <item quantity="one">Select up to <xliff:g id="count" example="1">^1</xliff:g> item</item>
+        <item quantity="other">Select up to <xliff:g id="count" example="42">^1</xliff:g> items</item>
+    </plurals>
 
     <!-- Recent header for PhotoPicker. [CHAR LIMIT=50] -->
     <string name="recent">Recent</string>

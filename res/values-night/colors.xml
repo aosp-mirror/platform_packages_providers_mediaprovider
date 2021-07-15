@@ -26,5 +26,6 @@
     <color name="picker_date_header_text_color">@color/picker_default_white</color>
     <color name="picker_toolbar_icon_color">#E8EAED</color>
     <color name="picker_toolbar_chip_text_color">#E8EAED</color>
+    <color name="picker_message_text_color">#9AA0A6</color>
 
 </resources>

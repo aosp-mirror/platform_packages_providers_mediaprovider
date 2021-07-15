@@ -26,6 +26,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
 
@@ -63,6 +64,9 @@ public class PickerViewModel extends AndroidViewModel {
     private int mMaxSelectionLimit = DEFAULT_MAX_SELECTION_LIMIT;
     // This is set to false when max selection limit is reached.
     private boolean mIsSelectionAllowed = true;
+    // Show max label text view if and only if caller sets acceptable value for
+    // {@link MediaStore#EXTRA_PICK_IMAGES_MAX}
+    private boolean mShowMaxLabel = false;
 
     public PickerViewModel(@NonNull Application application) {
         super(application);
@@ -166,6 +170,10 @@ public class PickerViewModel extends AndroidViewModel {
 
             int recentSize = 0;
             long currentDateTaken = 0;
+            // add max label message header item
+            if (mShowMaxLabel) {
+                items.add(Item.createMessageItem());
+            }
             // add Recent date header
             items.add(Item.createDateItem(0));
             while (cursor.moveToNext()) {
@@ -219,7 +227,7 @@ public class PickerViewModel extends AndroidViewModel {
     /**
      * Parse values from Intent and set corresponding fields
      */
-    public void parseValuesFromIntent(Intent intent) {
+    public void parseValuesFromIntent(Intent intent) throws IllegalArgumentException {
         mSelectMultiple = intent.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
 
         final String mimeType = intent.getType();
@@ -227,12 +235,23 @@ public class PickerViewModel extends AndroidViewModel {
             mMimeTypeFilter = mimeType;
         }
 
-        final int max = intent.getIntExtra(MediaStore.EXTRA_PICK_IMAGES_MAX,
-                DEFAULT_MAX_SELECTION_LIMIT);
-        // Multi selection limit should always be greater than 1, and less than global max values
-        // allowed to select.
-        if (max > 1 && max <= DEFAULT_MAX_SELECTION_LIMIT) {
-            mMaxSelectionLimit = max;
+        final Bundle extras = intent.getExtras();
+        final boolean isExtraPickImagesMaxSet =
+                extras != null && extras.containsKey(MediaStore.EXTRA_PICK_IMAGES_MAX);
+        // 1. Check EXTRA_PICK_IMAGES_MAX only if EXTRA_ALLOW_MULTIPLE is set.
+        // 2. Do not show "Set up to max items" message if EXTRA_PICK_IMAGES_MAX is not set
+        if (mSelectMultiple && isExtraPickImagesMaxSet) {
+            final int extraMax = intent.getIntExtra(MediaStore.EXTRA_PICK_IMAGES_MAX,
+                    /* defaultValue */ -1);
+            // Multi selection max limit should always be greater than 0
+            if (extraMax <= 0) {
+                throw new IllegalArgumentException("Invalid EXTRA_PICK_IMAGES_MAX value");
+            }
+            // Multi selection limit should always be less than global max values allowed to select.
+            if (extraMax <= DEFAULT_MAX_SELECTION_LIMIT) {
+                mMaxSelectionLimit = extraMax;
+            }
+            mShowMaxLabel = true;
         }
     }
 

@@ -16,6 +16,10 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <style name="PickerMessage" parent="@android:style/TextAppearance.Material.Caption">
+        <item name="android:textColor">@color/picker_message_text_color</item>
+    </style>
+
     <style name="PickerDateHeader" parent="@android:style/TextAppearance.Material.Title">
         <item name="android:textColor">@color/picker_date_header_text_color</item>
         <item name="android:textSize">16sp</item>

@@ -29,6 +29,7 @@ import android.annotation.SuppressLint;
 import android.annotation.SystemApi;
 import android.annotation.WorkerThread;
 import android.app.Activity;
+import android.app.AppOpsManager;
 import android.app.PendingIntent;
 import android.compat.annotation.UnsupportedAppUsage;
 import android.content.ClipData;
@@ -39,19 +40,25 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.UriPermission;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.ImageDecoder;
 import android.graphics.PostProcessor;
+import android.media.ApplicationMediaCapabilities;
 import android.media.ExifInterface;
 import android.media.MediaFormat;
 import android.media.MediaMetadataRetriever;
+import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Environment;
 import android.os.OperationCanceledException;
+import android.os.ParcelFileDescriptor;
+import android.os.Parcelable;
 import android.os.RemoteException;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
@@ -60,6 +67,8 @@ import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.Log;
 import android.util.Size;
+
+import androidx.annotation.RequiresApi;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -192,6 +201,10 @@ public final class MediaStore {
     public static final String FINISH_LEGACY_MIGRATION_CALL = "finish_legacy_migration";
 
     /** {@hide} */
+    public static final String GET_ORIGINAL_MEDIA_FORMAT_FILE_DESCRIPTOR_CALL =
+            "get_original_media_format_file_descriptor";
+
+    /** {@hide} */
     @Deprecated
     public static final String EXTERNAL_STORAGE_PROVIDER_AUTHORITY =
             "com.android.externalstorage.documents";
@@ -200,6 +213,13 @@ public final class MediaStore {
     public static final String GET_DOCUMENT_URI_CALL = "get_document_uri";
     /** {@hide} */
     public static final String GET_MEDIA_URI_CALL = "get_media_uri";
+
+    /** {@hide} */
+    public static final String GET_REDACTED_MEDIA_URI_CALL = "get_redacted_media_uri";
+    /** {@hide} */
+    public static final String GET_REDACTED_MEDIA_URI_LIST_CALL = "get_redacted_media_uri_list";
+    /** {@hide} */
+    public static final String EXTRA_URI_LIST = "uri_list";
 
     /** {@hide} */
     public static final String EXTRA_URI = "uri";
@@ -212,6 +232,16 @@ public final class MediaStore {
     public static final String EXTRA_CONTENT_VALUES = "content_values";
     /** {@hide} */
     public static final String EXTRA_RESULT = "result";
+
+    /** {@hide} */
+    public static final String EXTRA_FILE_DESCRIPTOR = "file_descriptor";
+
+    /** {@hide} */
+    public static final String IS_SYSTEM_GALLERY_CALL = "is_system_gallery";
+    /** {@hide} */
+    public static final String EXTRA_IS_SYSTEM_GALLERY_UID = "is_system_gallery_uid";
+    /** {@hide} */
+    public static final String EXTRA_IS_SYSTEM_GALLERY_RESPONSE = "is_system_gallery_response";
 
     /**
      * This is for internal use by the media scanner only.
@@ -331,7 +361,13 @@ public final class MediaStore {
     public static final String EXTRA_MEDIA_GENRE = "android.intent.extra.genre";
     /**
      * The name of the Intent-extra used to define the playlist.
+     *
+     * @deprecated Android playlists are now deprecated. We will keep the current
+     *             functionality for compatibility resons, but we will no longer take feature
+     *             request. We do not advise adding new usages of Android Playlists. M3U files can
+     *             be used as an alternative.
      */
+    @Deprecated
     public static final String EXTRA_MEDIA_PLAYLIST = "android.intent.extra.playlist";
     /**
      * The name of the Intent-extra used to define the radio channel.
@@ -446,13 +482,17 @@ public final class MediaStore {
      * supply the uri through the EXTRA_OUTPUT field for compatibility with old applications.
      * If you don't set a ClipData, it will be copied there for you when calling
      * {@link Context#startActivity(Intent)}.
-     *
-     * <p>Note: if you app targets {@link android.os.Build.VERSION_CODES#M M} and above
+     * <p>
+     * Regardless of whether or not EXTRA_OUTPUT is present, when an image is captured via this
+     * intent, {@link android.hardware.Camera#ACTION_NEW_PICTURE} won't be broadcasted.
+     * <p>
+     * Note: if you app targets {@link android.os.Build.VERSION_CODES#M M} and above
      * and declares as using the {@link android.Manifest.permission#CAMERA} permission which
      * is not granted, then attempting to use this action will result in a {@link
      * java.lang.SecurityException}.
      *
      *  @see #EXTRA_OUTPUT
+     *  @see android.hardware.Camera#ACTION_NEW_PICTURE
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public final static String ACTION_IMAGE_CAPTURE = "android.media.action.IMAGE_CAPTURE";
@@ -477,9 +517,13 @@ public final class MediaStore {
      * supply the uri through the EXTRA_OUTPUT field for compatibility with old applications.
      * If you don't set a ClipData, it will be copied there for you when calling
      * {@link Context#startActivity(Intent)}.
+     * <p>
+     * Regardless of whether or not EXTRA_OUTPUT is present, when an image is captured via this
+     * intent, {@link android.hardware.Camera#ACTION_NEW_PICTURE} won't be broadcasted.
      *
      * @see #ACTION_IMAGE_CAPTURE
      * @see #EXTRA_OUTPUT
+     * @see android.hardware.Camera#ACTION_NEW_PICTURE
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public static final String ACTION_IMAGE_CAPTURE_SECURE =
@@ -492,14 +536,20 @@ public final class MediaStore {
      * The caller may pass in an extra EXTRA_VIDEO_QUALITY to control the video quality.
      * <p>
      * The caller may pass in an extra EXTRA_OUTPUT to control
-     * where the video is written. If EXTRA_OUTPUT is not present the video will be
-     * written to the standard location for videos, and the Uri of that location will be
-     * returned in the data field of the Uri.
-     * As of {@link android.os.Build.VERSION_CODES#LOLLIPOP}, this uri can also be supplied through
-     * {@link android.content.Intent#setClipData(ClipData)}. If using this approach, you still must
-     * supply the uri through the EXTRA_OUTPUT field for compatibility with old applications.
-     * If you don't set a ClipData, it will be copied there for you when calling
-     * {@link Context#startActivity(Intent)}.
+     * where the video is written.
+     * <ul>
+     * <li>If EXTRA_OUTPUT is not present, the video will be written to the standard location
+     * for videos, and the Uri of that location will be returned in the data field of the Uri.
+     * {@link android.hardware.Camera#ACTION_NEW_VIDEO} will also be broadcasted when the video
+     * is recorded.
+     * <li>If EXTRA_OUTPUT is assigned a Uri value, no
+     * {@link android.hardware.Camera#ACTION_NEW_VIDEO} will be broadcasted. As of
+     * {@link android.os.Build.VERSION_CODES#LOLLIPOP}, this uri can also be
+     * supplied through {@link android.content.Intent#setClipData(ClipData)}.  If using this
+     * approach, you still must supply the uri through the EXTRA_OUTPUT field for compatibility
+     * with old applications. If you don't set a ClipData, it will be copied there for you when
+     * calling {@link Context#startActivity(Intent)}.
+     * </ul>
      *
      * <p>Note: if you app targets {@link android.os.Build.VERSION_CODES#M M} and above
      * and declares as using the {@link android.Manifest.permission#CAMERA} permission which
@@ -510,6 +560,7 @@ public final class MediaStore {
      * @see #EXTRA_VIDEO_QUALITY
      * @see #EXTRA_SIZE_LIMIT
      * @see #EXTRA_DURATION_LIMIT
+     * @see android.hardware.Camera#ACTION_NEW_VIDEO
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public final static String ACTION_VIDEO_CAPTURE = "android.media.action.VIDEO_CAPTURE";
@@ -587,6 +638,64 @@ public final class MediaStore {
     public final static String EXTRA_OUTPUT = "output";
 
     /**
+     * Specify that the caller wants to receive the original media format without transcoding.
+     *
+     * <b>Caution: using this flag can cause app
+     * compatibility issues whenever Android adds support for new media formats.</b>
+     * Clients should instead specify their supported media capabilities explicitly
+     * in their manifest or with the {@link #EXTRA_MEDIA_CAPABILITIES} {@code open} flag.
+     *
+     * This option is useful for apps that don't attempt to parse the actual byte contents of media
+     * files, such as playback using {@link MediaPlayer} or for off-device backup. Note that the
+     * {@link android.Manifest.permission#ACCESS_MEDIA_LOCATION} permission will still be required
+     * to avoid sensitive metadata redaction, similar to {@link #setRequireOriginal(Uri)}.
+     * </ul>
+     *
+     * Note that this flag overrides any explicitly declared {@code media_capabilities.xml} or
+     * {@link ApplicationMediaCapabilities} extras specified in the same {@code open} request.
+     *
+     * <p>This option can be added to the {@code opts} {@link Bundle} in various
+     * {@link ContentResolver} {@code open} methods.
+     *
+     * @see ContentResolver#openTypedAssetFileDescriptor(Uri, String, Bundle)
+     * @see ContentResolver#openTypedAssetFile(Uri, String, Bundle, CancellationSignal)
+     * @see #setRequireOriginal(Uri)
+     * @see MediaStore#getOriginalMediaFormatFileDescriptor(Context, ParcelFileDescriptor)
+     */
+    public final static String EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT =
+            "android.provider.extra.ACCEPT_ORIGINAL_MEDIA_FORMAT";
+
+    /**
+     * Specify the {@link ApplicationMediaCapabilities} that should be used while opening a media.
+     *
+     * If the capabilities specified matches the format of the original file, the app will receive
+     * the original file, otherwise, it will get transcoded to a default supported format.
+     *
+     * This flag takes higher precedence over the applications declared
+     * {@code media_capabilities.xml} and is useful for apps that want to have more granular control
+     * over their supported media capabilities.
+     *
+     * <p>This option can be added to the {@code opts} {@link Bundle} in various
+     * {@link ContentResolver} {@code open} methods.
+     *
+     * @see ContentResolver#openTypedAssetFileDescriptor(Uri, String, Bundle)
+     * @see ContentResolver#openTypedAssetFile(Uri, String, Bundle, CancellationSignal)
+     */
+    public final static String EXTRA_MEDIA_CAPABILITIES =
+            "android.provider.extra.MEDIA_CAPABILITIES";
+
+    /**
+     * Specify the UID of the app that should be used to determine supported media capabilities
+     * while opening a media.
+     *
+     * If this specified UID is found to be capable of handling the original media file format, the
+     * app will receive the original file, otherwise, the file will get transcoded to a default
+     * format supported by the specified UID.
+     */
+    public static final String EXTRA_MEDIA_CAPABILITIES_UID =
+            "android.provider.extra.MEDIA_CAPABILITIES_UID";
+
+    /**
       * The string that is used when a media attribute is not known. For example,
       * if an audio file does not have any meta data, the artist and album columns
       * will be set to this value.
@@ -625,11 +734,35 @@ public final class MediaStore {
      * only be used when {@link ContentResolver#update} operation needs to
      * return early without updating metadata for the file. This may make other
      * apps see incomplete metadata for the updated file as scan runs
-     * asynchronously here. Most apps shouldn't set this flag.
+     * asynchronously here.
+     * Note that when this flag is set, the published file will not appear in
+     * default query until the deferred scan is complete.
+     * Most apps shouldn't set this flag.
      *
      * @hide
      */
-    public static final String QUERY_ARG_DO_ASYNC_SCAN = "android:query-arg-do-async-scan";
+    @SystemApi
+    public static final String QUERY_ARG_DEFER_SCAN = "android:query-arg-defer-scan";
+
+    /**
+     * Flag that requests {@link ContentResolver#query} to include content from
+     * recently unmounted volumes.
+     * <p>
+     * When the flag is set, {@link ContentResolver#query} will return content
+     * from all volumes(i.e., both mounted and recently unmounted volume whose
+     * content is still held by MediaProvider).
+     * <p>
+     * Note that the query result doesn't provide any hint for content from
+     * unmounted volume. It's strongly recommended to use default query to
+     * avoid accessing/operating on the content that are not available on the
+     * device.
+     * <p>
+     * The flag is useful for apps which manage their own database and
+     * query MediaStore in order to synchronize between MediaStore database
+     * and their own database.
+     */
+    public static final String QUERY_ARG_INCLUDE_RECENTLY_UNMOUNTED_VOLUMES =
+            "android:query-arg-recently-unmounted-volumes";
 
     /**
      * Specify how {@link MediaColumns#IS_PENDING} items should be filtered when
@@ -772,6 +905,44 @@ public final class MediaStore {
      */
     public static boolean getRequireOriginal(@NonNull Uri uri) {
         return uri.getBooleanQueryParameter(MediaStore.PARAM_REQUIRE_ORIGINAL, false);
+    }
+
+    /**
+     * Returns {@link ParcelFileDescriptor} representing the original media file format for
+     * {@code fileDescriptor}.
+     *
+     * <p>Media files may get transcoded based on an application's media capabilities requirements.
+     * However, in various cases, when the application needs access to the original media file, or
+     * doesn't attempt to parse the actual byte contents of media files, such as playback using
+     * {@link MediaPlayer} or for off-device backup, this method can be useful.
+     *
+     * <p>This method is applicable only for media files managed by {@link MediaStore}.
+     *
+     * <p>The method returns the original file descriptor with the same permission that the caller
+     * has for the input file descriptor.
+     *
+     * @throws IOException if the given {@link ParcelFileDescriptor} could not be converted
+     *
+     * @see MediaStore#EXTRA_ACCEPT_ORIGINAL_MEDIA_FORMAT
+     */
+    public static @NonNull ParcelFileDescriptor getOriginalMediaFormatFileDescriptor(
+            @NonNull Context context,
+            @NonNull ParcelFileDescriptor fileDescriptor) throws IOException {
+        Bundle input = new Bundle();
+        input.putParcelable(EXTRA_FILE_DESCRIPTOR, fileDescriptor);
+        ParcelFileDescriptor pfd;
+        try {
+            Bundle output = context.getContentResolver().call(AUTHORITY,
+                    GET_ORIGINAL_MEDIA_FORMAT_FILE_DESCRIPTOR_CALL, null, input);
+            pfd = output.getParcelable(EXTRA_FILE_DESCRIPTOR);
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
+
+        if (pfd == null) {
+            throw new IOException("Input file descriptor already original");
+        }
+        return pfd;
     }
 
     /**
@@ -1004,26 +1175,23 @@ public final class MediaStore {
         /**
          * Absolute filesystem path to the media item on disk.
          * <p>
-         * On Android 11, you can use this value when you access an existing
-         * file using direct file paths. That's because this value has a valid
-         * file path. However, don't assume that the file is always available.
-         * Be prepared to handle any file-based I/O errors that could occur.
+         * Apps may use this path to do file operations. However, they should not assume that the
+         * file is always available. Apps must be prepared to handle any file-based I/O errors that
+         * could occur.
          * <p>
-         * Don't use this value when you create or update a media file, even
-         * if you're on Android 11 and are using direct file paths. Instead,
-         * use the values of the {@link #DISPLAY_NAME} and
+         * From Android 11 onwards, this column is read-only for apps that target
+         * {@link android.os.Build.VERSION_CODES#R R} and higher. On those devices, when creating or
+         * updating a uri, this column's value is not accepted. Instead, to update the
+         * filesystem location of a file, use the values of the {@link #DISPLAY_NAME} and
          * {@link #RELATIVE_PATH} columns.
          * <p>
-         * Note that apps may not have filesystem permissions to directly access
-         * this path. Instead of trying to open this path directly, apps should
-         * use {@link ContentResolver#openFileDescriptor(Uri, String)} to gain
-         * access.
+         * Though direct file operations are supported,
+         * {@link ContentResolver#openFileDescriptor(Uri, String)} API is recommended for better
+         * performance.
          *
-         * @deprecated Apps may not have filesystem permissions to directly
-         *             access this path. Instead of trying to open this path
-         *             directly, apps should use
-         *             {@link ContentResolver#openFileDescriptor(Uri, String)}
-         *             to gain access.
+         * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
+         *             may not update the value of this column. However they may read the file path
+         *             value from this column and use in file operations.
          */
         @Deprecated
         @Column(Cursor.FIELD_TYPE_STRING)
@@ -1609,7 +1777,7 @@ public final class MediaStore {
              * The MTP storage ID of the file
              * @hide
              */
-            @UnsupportedAppUsage
+            @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.R, trackingBug = 170729553)
             @Deprecated
             // @Column(Cursor.FIELD_TYPE_INTEGER)
             public static final String STORAGE_ID = "storage_id";
@@ -1684,7 +1852,13 @@ public final class MediaStore {
             /**
              * Constant for the {@link #MEDIA_TYPE} column indicating that file
              * is a playlist file.
+             *
+             * @deprecated Android playlists are now deprecated. We will keep the current
+             *             functionality for compatibility reasons, but we will no longer take
+             *             feature request. We do not advise adding new usages of Android Playlists.
+             *             M3U files can be used as an alternative.
              */
+            @Deprecated
             public static final int MEDIA_TYPE_PLAYLIST = 4;
 
             /**
@@ -1699,6 +1873,12 @@ public final class MediaStore {
             public static final int MEDIA_TYPE_DOCUMENT = 6;
 
             /**
+             * Constant indicating the count of {@link #MEDIA_TYPE} columns.
+             * @hide
+             */
+            public static final int MEDIA_TYPE_COUNT = 7;
+
+            /**
              * Modifier of the database row
              *
              * Specifies the last modifying operation of the database row. This
@@ -1710,7 +1890,7 @@ public final class MediaStore {
              * scanned.
              * @hide
              */
-            @Column(value = Cursor.FIELD_TYPE_INTEGER)
+            // @Column(value = Cursor.FIELD_TYPE_INTEGER)
             public static final String _MODIFIER = "_modifier";
 
             /**
@@ -1735,6 +1915,68 @@ public final class MediaStore {
              * @hide
              */
             public static final int _MODIFIER_MEDIA_SCAN = 3;
+
+            /**
+             * Constant for the {@link #_MODIFIER} column indicating
+             * that the last modifier of the database row is explicit
+             * {@link ContentResolver} operation and is waiting for metadata
+             * update.
+             * @hide
+             */
+            public static final int _MODIFIER_CR_PENDING_METADATA = 4;
+
+            /**
+             * Status of the transcode file
+             *
+             * For apps that do not support modern media formats for video, we
+             * seamlessly transcode the file and return transcoded file for
+             * both file path and ContentResolver operations. This column tracks
+             * the status of the transcoded file.
+             *
+             * @hide
+             */
+            // @Column(value = Cursor.FIELD_TYPE_INTEGER)
+            public static final String _TRANSCODE_STATUS = "_transcode_status";
+
+            /**
+             * Constant for the {@link #_TRANSCODE_STATUS} column indicating
+             * that the transcode file if exists is empty or never transcoded.
+             * @hide
+             */
+            public static final int TRANSCODE_EMPTY = 0;
+
+            /**
+             * Constant for the {@link #_TRANSCODE_STATUS} column indicating
+             * that the transcode file if exists contains transcoded video.
+             * @hide
+             */
+            public static final int TRANSCODE_COMPLETE = 1;
+
+            /**
+             * Indexed value of {@link MediaMetadataRetriever#METADATA_KEY_VIDEO_CODEC_TYPE}
+             * extracted from the video file. This value be null for non-video files.
+             *
+             * @hide
+             */
+            // @Column(value = Cursor.FIELD_TYPE_INTEGER)
+            public static final String _VIDEO_CODEC_TYPE = "_video_codec_type";
+
+            /**
+             * Redacted Uri-ID corresponding to this DB entry. The value will be null if no
+             * redacted uri has ever been created for this uri.
+             *
+             * @hide
+             */
+            // @Column(value = Cursor.FIELD_TYPE_STRING, readOnly = true)
+            public static final String REDACTED_URI_ID = "redacted_uri_id";
+
+            /**
+             * Indexed value of {@link UserIdInt} to which the file belongs.
+             *
+             * @hide
+             */
+            // @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+            public static final String _USER_ID = "_user_id";
         }
     }
 
@@ -2384,21 +2626,13 @@ public final class MediaStore {
 
             /**
              * Path to the thumbnail file on disk.
-             * <p>
-             * Note that apps may not have filesystem permissions to directly
-             * access this path. Instead of trying to open this path directly,
-             * apps should use
-             * {@link ContentResolver#openFileDescriptor(Uri, String)} to gain
-             * access.
              *
              * As of {@link android.os.Build.VERSION_CODES#Q}, this thumbnail
              * has correct rotation, don't need to rotate it again.
              *
-             * @deprecated Apps may not have filesystem permissions to directly
-             *             access this path. Instead of trying to open this path
-             *             directly, apps should use
-             *             {@link ContentResolver#loadThumbnail}
-             *             to gain access.
+             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
+             *             may not update the value of this column. However they may read the file
+             *             path value from this column and use in file operations.
              */
             @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
@@ -2575,39 +2809,81 @@ public final class MediaStore {
 
             /**
              * Non-zero if the audio file is music
+             *
+             * This is mutually exclusive with {@link #IS_ALARM},
+             * {@link #IS_AUDIOBOOK}, {@link #IS_NOTIFICATION},
+             * {@link #IS_PODCAST}, {@link #IS_RECORDING},
+             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_MUSIC = "is_music";
 
             /**
              * Non-zero if the audio file is a podcast
+             *
+             * This is mutually exclusive with {@link #IS_ALARM},
+             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
+             * {@link #IS_NOTIFICATION}, {@link #IS_RECORDING},
+             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_PODCAST = "is_podcast";
 
             /**
              * Non-zero if the audio file may be a ringtone
+             *
+             * This is mutually exclusive with {@link #IS_ALARM},
+             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
+             * {@link #IS_NOTIFICATION}, {@link #IS_PODCAST},
+             * and {@link #IS_RECORDING}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_RINGTONE = "is_ringtone";
 
             /**
              * Non-zero if the audio file may be an alarm
+             *
+             * This is mutually exclusive with {@link #IS_AUDIOBOOK},
+             * {@link #IS_MUSIC}, {@link #IS_NOTIFICATION},
+             * {@link #IS_PODCAST}, {@link #IS_RECORDING},
+             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_ALARM = "is_alarm";
 
             /**
              * Non-zero if the audio file may be a notification sound
+             *
+             * This is mutually exclusive with {@link #IS_ALARM},
+             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
+             * {@link #IS_PODCAST}, {@link #IS_RECORDING},
+             * and {@link #IS_RINGTONE}.
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_NOTIFICATION = "is_notification";
 
             /**
              * Non-zero if the audio file is an audiobook
+             *
+             * This is mutually exclusive with {@link #IS_ALARM},
+             * {@link #IS_MUSIC}, {@link #IS_NOTIFICATION},
+             * {@link #IS_PODCAST}, {@link #IS_RECORDING}, and
+             * {@link #IS_RINGTONE}
              */
             @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
             public static final String IS_AUDIOBOOK = "is_audiobook";
+
+            /**
+             * Non-zero if the audio file is a voice recording recorded
+             * by voice recorder apps
+             *
+             * This is mutually exclusive with {@link #IS_ALARM},
+             * {@link #IS_AUDIOBOOK}, {@link #IS_MUSIC},
+             * {@link #IS_NOTIFICATION}, {@link #IS_PODCAST},
+             * and {@link #IS_RINGTONE}.
+             */
+            @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+            public static final String IS_RECORDING = "is_recording";
 
             /**
              * The id of the genre the audio file is from, if any
@@ -2894,7 +3170,13 @@ public final class MediaStore {
 
         /**
          * Audio playlist metadata columns.
+         *
+         * @deprecated Android playlists are now deprecated. We will keep the current
+         *             functionality for compatibility reasons, but we will no longer take
+         *             feature request. We do not advise adding new usages of Android Playlists.
+         *             M3U files can be used as an alternative.
          */
+        @Deprecated
         public interface PlaylistsColumns extends MediaColumns {
             /**
              * The name of the playlist
@@ -2904,18 +3186,10 @@ public final class MediaStore {
 
             /**
              * Path to the playlist file on disk.
-             * <p>
-             * Note that apps may not have filesystem permissions to directly
-             * access this path. Instead of trying to open this path directly,
-             * apps should use
-             * {@link ContentResolver#openFileDescriptor(Uri, String)} to gain
-             * access.
              *
-             * @deprecated Apps may not have filesystem permissions to directly
-             *             access this path. Instead of trying to open this path
-             *             directly, apps should use
-             *             {@link ContentResolver#openFileDescriptor(Uri, String)}
-             *             to gain access.
+             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
+             *             may not update the value of this column. However they may read the file
+             *             path value from this column and use in file operations.
              */
             @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
@@ -2938,7 +3212,13 @@ public final class MediaStore {
 
         /**
          * Contains playlists for audio files
+         *
+         * @deprecated Android playlists are now deprecated. We will keep the current
+         *             functionality for compatibility resons, but we will no longer take
+         *             feature request. We do not advise adding new usages of Android Playlists.
+         *             M3U files can be used as an alternative.
          */
+        @Deprecated
         public static final class Playlists implements BaseColumns,
                 PlaylistsColumns {
             /**
@@ -3137,7 +3417,7 @@ public final class MediaStore {
              * Sub-directory of each artist containing all albums on which
              * a song by the artist appears.
              */
-            public static final class Albums implements AlbumColumns {
+            public static final class Albums implements BaseColumns, AlbumColumns {
                 public static final Uri getContentUri(String volumeName,long artistId) {
                     return ContentUris
                             .withAppendedId(Audio.Artists.getContentUri(volumeName), artistId)
@@ -3324,18 +3604,10 @@ public final class MediaStore {
         public static class Thumbnails implements BaseColumns {
             /**
              * Path to the thumbnail file on disk.
-             * <p>
-             * Note that apps may not have filesystem permissions to directly
-             * access this path. Instead of trying to open this path directly,
-             * apps should use
-             * {@link ContentResolver#openFileDescriptor(Uri, String)} to gain
-             * access.
              *
-             * @deprecated Apps may not have filesystem permissions to directly
-             *             access this path. Instead of trying to open this path
-             *             directly, apps should use
-             *             {@link ContentResolver#loadThumbnail}
-             *             to gain access.
+             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
+             *             may not update the value of this column. However they may read the file
+             *             path value from this column and use in file operations.
              */
             @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
@@ -3415,7 +3687,7 @@ public final class MediaStore {
              * @deprecated location details are no longer indexed for privacy
              *             reasons, and this value is now always {@code null}.
              *             You can still manually obtain location metadata using
-             *             {@link ExifInterface#getLatLong(float[])}.
+             *             {@link MediaMetadataRetriever#METADATA_KEY_LOCATION}.
              */
             @Deprecated
             @Column(value = Cursor.FIELD_TYPE_FLOAT, readOnly = true)
@@ -3427,7 +3699,7 @@ public final class MediaStore {
              * @deprecated location details are no longer indexed for privacy
              *             reasons, and this value is now always {@code null}.
              *             You can still manually obtain location metadata using
-             *             {@link ExifInterface#getLatLong(float[])}.
+             *             {@link MediaMetadataRetriever#METADATA_KEY_LOCATION}.
              */
             @Deprecated
             @Column(value = Cursor.FIELD_TYPE_FLOAT, readOnly = true)
@@ -3670,11 +3942,9 @@ public final class MediaStore {
             /**
              * Path to the thumbnail file on disk.
              *
-             * @deprecated Apps may not have filesystem permissions to directly
-             *             access this path. Instead of trying to open this path
-             *             directly, apps should use
-             *             {@link ContentResolver#openFileDescriptor(Uri, String)}
-             *             to gain access.
+             * @deprecated Apps that target {@link android.os.Build.VERSION_CODES#R R} and higher
+             *             may not update the value of this column. However they may read the file
+             *             path value from this column and use in file operations.
              */
             @Deprecated
             @Column(Cursor.FIELD_TYPE_STRING)
@@ -3956,13 +4226,16 @@ public final class MediaStore {
 
     /**
      * Return a {@link MediaStore} Uri that is an equivalent to the given
-     * {@link DocumentsProvider} Uri.
+     * {@link DocumentsProvider} Uri. This only supports {@code ExternalStorageProvider}
+     * and {@code MediaDocumentsProvider} Uris.
      * <p>
      * This allows apps with Storage Access Framework permissions to convert
      * between {@link MediaStore} and {@link DocumentsProvider} Uris that refer
-     * to the same underlying item. Note that this method doesn't grant any new
-     * permissions; callers must already hold permissions obtained with
-     * {@link Intent#ACTION_OPEN_DOCUMENT} or related APIs.
+     * to the same underlying item.
+     * Note that this method doesn't grant any new permissions, but it grants the same access to
+     * the Media Store Uri as the caller has to the given DocumentsProvider Uri; callers must
+     * already hold permissions for documentUri obtained with {@link Intent#ACTION_OPEN_DOCUMENT}
+     * or related APIs.
      *
      * @param documentUri The {@link DocumentsProvider} Uri to convert.
      * @return An equivalent {@link MediaStore} Uri. Returns {@code null} if no
@@ -3979,6 +4252,94 @@ public final class MediaStore {
             in.putParcelableArrayList(EXTRA_URI_PERMISSIONS, new ArrayList<>(uriPermissions));
             final Bundle out = client.call(GET_MEDIA_URI_CALL, null, in);
             return out.getParcelable(EXTRA_URI);
+        } catch (RemoteException e) {
+            throw e.rethrowAsRuntimeException();
+        }
+    }
+
+    /**
+     * Returns true if the given application is the current system gallery of the device.
+     * <p>
+     * The system gallery is one app chosen by the OEM that has read & write access to all photos
+     * and videos on the device and control over folders in media collections.
+     *
+     * @param resolver The {@link ContentResolver} used to connect with
+     * {@link MediaStore#AUTHORITY}. Typically this value is {@link Context#getContentResolver()}.
+     * @param uid The uid to be checked if it is the current system gallery.
+     * @param packageName The package name to be checked if it is the current system gallery.
+     */
+    public static boolean isCurrentSystemGallery(
+            @NonNull ContentResolver resolver,
+            int uid,
+            @NonNull String packageName) {
+        Bundle in = new Bundle();
+        in.putInt(EXTRA_IS_SYSTEM_GALLERY_UID, uid);
+        final Bundle out = resolver.call(AUTHORITY, IS_SYSTEM_GALLERY_CALL, packageName, in);
+        return out.getBoolean(EXTRA_IS_SYSTEM_GALLERY_RESPONSE);
+    }
+
+    /**
+     * Returns an EXIF redacted version of {@code uri} i.e. a {@link Uri} with metadata such as
+     * location, GPS datestamp etc. redacted from the EXIF headers.
+     * <p>
+     * A redacted Uri can be used to share a file with another application wherein exposing
+     * sensitive information in EXIF headers is not desirable.
+     * Note:
+     * 1. Redacted uris cannot be granted write access and can neither be used to perform any kind
+     * of write operations.
+     * 2. To get a redacted uri the caller must hold read permission to {@code uri}.
+     *
+     * @param resolver The {@link ContentResolver} used to connect with
+     * {@link MediaStore#AUTHORITY}. Typically this value is gotten from
+     * {@link Context#getContentResolver()}
+     * @param uri the {@link Uri} Uri to convert
+     * @return redacted version of the {@code uri}. Returns {@code null} when the given
+     * {@link Uri} could not be found or is unsupported
+     * @throws SecurityException if the caller doesn't have the read access to {@code uri}
+     * @see #getRedactedUri(ContentResolver, List)
+     */
+    @Nullable
+    public static Uri getRedactedUri(@NonNull ContentResolver resolver, @NonNull Uri uri) {
+        try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+            final Bundle in = new Bundle();
+            in.putParcelable(EXTRA_URI, uri);
+            final Bundle out = client.call(GET_REDACTED_MEDIA_URI_CALL, null, in);
+            return out.getParcelable(EXTRA_URI);
+        } catch (RemoteException e) {
+            throw e.rethrowAsRuntimeException();
+        }
+    }
+
+    /**
+     * Returns a list of EXIF redacted version of {@code uris} i.e. a {@link Uri} with metadata
+     * such as location, GPS datestamp etc. redacted from the EXIF headers.
+     * <p>
+     * A redacted Uri can be used to share a file with another application wherein exposing
+     * sensitive information in EXIF headers is not desirable.
+     * Note:
+     * 1. Order of the returned uris follow the order of the {@code uris}.
+     * 2. Redacted uris cannot be granted write access and can neither be used to perform any kind
+     * of write operations.
+     * 3. To get a redacted uri the caller must hold read permission to its corresponding uri.
+     *
+     * @param resolver The {@link ContentResolver} used to connect with
+     * {@link MediaStore#AUTHORITY}. Typically this value is gotten from
+     * {@link Context#getContentResolver()}
+     * @param uris the list of {@link Uri} Uri to convert
+     * @return a list with redacted version of {@code uris}, in the same order. Returns {@code null}
+     * when the corresponding {@link Uri} could not be found or is unsupported
+     * @throws SecurityException if the caller doesn't have the read access to all the elements
+     * in {@code uris}
+     * @see #getRedactedUri(ContentResolver, Uri)
+     */
+    @NonNull
+    public static List<Uri> getRedactedUri(@NonNull ContentResolver resolver,
+            @NonNull List<Uri> uris) {
+        try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+            final Bundle in = new Bundle();
+            in.putParcelableArrayList(EXTRA_URI_LIST, (ArrayList<? extends Parcelable>) uris);
+            final Bundle out = client.call(GET_REDACTED_MEDIA_URI_LIST_CALL, null, in);
+            return out.getParcelableArrayList(EXTRA_URI_LIST);
         } catch (RemoteException e) {
             throw e.rethrowAsRuntimeException();
         }
@@ -4032,5 +4393,47 @@ public final class MediaStore {
     @WorkerThread
     public static void scanVolume(@NonNull ContentResolver resolver, @NonNull String volumeName) {
         resolver.call(AUTHORITY, SCAN_VOLUME_CALL, volumeName, null);
+    }
+
+    /**
+     * Returns whether the calling app is granted {@link android.Manifest.permission#MANAGE_MEDIA}
+     * or not.
+     * <p>Declaring the permission {@link android.Manifest.permission#MANAGE_MEDIA} isn't
+     * enough to gain the access.
+     * <p>To request access, use {@link android.provider.Settings#ACTION_REQUEST_MANAGE_MEDIA}.
+     *
+     * @param context the request context
+     * @return true, the calling app is granted the permission. Otherwise, false
+     *
+     * @see android.Manifest.permission#MANAGE_MEDIA
+     * @see android.provider.Settings#ACTION_REQUEST_MANAGE_MEDIA
+     * @see #createDeleteRequest(ContentResolver, Collection)
+     * @see #createTrashRequest(ContentResolver, Collection, boolean)
+     * @see #createWriteRequest(ContentResolver, Collection)
+     */
+    @RequiresApi(Build.VERSION_CODES.S)
+    public static boolean canManageMedia(@NonNull Context context) {
+        Objects.requireNonNull(context);
+        final String packageName = context.getOpPackageName();
+        final int uid = context.getApplicationInfo().uid;
+        final String permission = android.Manifest.permission.MANAGE_MEDIA;
+
+        final AppOpsManager appOps = context.getSystemService(AppOpsManager.class);
+        final int opMode = appOps.unsafeCheckOpNoThrow(AppOpsManager.permissionToOp(permission),
+                uid, packageName);
+
+        switch (opMode) {
+            case AppOpsManager.MODE_DEFAULT:
+                return PackageManager.PERMISSION_GRANTED == context.checkPermission(
+                        permission, android.os.Process.myPid(), uid);
+            case AppOpsManager.MODE_ALLOWED:
+                return true;
+            case AppOpsManager.MODE_ERRORED:
+            case AppOpsManager.MODE_IGNORED:
+                return false;
+            default:
+                Log.w(TAG, "Unknown AppOpsManager mode " + opMode);
+                return false;
+        }
     }
 }

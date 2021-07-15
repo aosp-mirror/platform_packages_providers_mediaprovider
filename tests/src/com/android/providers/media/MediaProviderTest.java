@@ -44,12 +44,14 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.pm.ProviderInfo;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Environment;
+import android.os.UserHandle;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.Files.FileColumns;
@@ -79,10 +81,12 @@ import org.junit.runner.RunWith;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.PrintWriter;
+import java.sql.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
@@ -103,7 +107,9 @@ public class MediaProviderTest {
     public static void setUp() {
         InstrumentationRegistry.getInstrumentation().getUiAutomation()
                 .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
-                        Manifest.permission.READ_COMPAT_CHANGE_CONFIG);
+                        Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
+                        Manifest.permission.READ_DEVICE_CONFIG,
+                        Manifest.permission.INTERACT_ACROSS_USERS);
 
         final Context context = InstrumentationRegistry.getTargetContext();
         sIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
@@ -491,8 +497,6 @@ public class MediaProviderTest {
                 getPathOwnerPackageName("/storage/emulated/0/Android/obb/com.example/foo.jpg"));
         assertEquals("com.example",
                 getPathOwnerPackageName("/storage/emulated/0/Android/media/com.example/foo.jpg"));
-        assertEquals("com.example",
-                getPathOwnerPackageName("/storage/emulated/0/Android/sandbox/com.example/foo.jpg"));
     }
 
     @Test
@@ -512,6 +516,24 @@ public class MediaProviderTest {
                 buildFile(uri, null, "file.png", "image/png"));
         assertEndsWith("/Pictures/file.jpg.png",
                 buildFile(uri, null, "file.jpg", "image/png"));
+    }
+
+    @Test
+    public void testBuildData_withUserId() throws Exception {
+        final Uri uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        final ContentValues values = new ContentValues();
+        values.put(MediaColumns.DISPLAY_NAME, "test_userid");
+        values.put(MediaColumns.MIME_TYPE, "image/png");
+        Uri result = sIsolatedResolver.insert(uri, values);
+        try (Cursor c = sIsolatedResolver.query(result,
+                new String[]{MediaColumns.DISPLAY_NAME, FileColumns._USER_ID},
+                null, null)) {
+            assertNotNull(c);
+            assertEquals(1, c.getCount());
+            assertTrue(c.moveToFirst());
+            assertEquals("test_userid.png", c.getString(0));
+            assertEquals(UserHandle.myUserId(), c.getInt(1));
+        }
     }
 
     @Test
@@ -605,6 +627,10 @@ public class MediaProviderTest {
             }
         };
 
+        final ProviderInfo info = sIsolatedContext.getPackageManager()
+                .resolveContentProvider(MediaStore.AUTHORITY, PackageManager.GET_META_DATA);
+        // Attach providerInfo, to make sure mCallingIdentity can be populated
+        provider.attachInfo(sIsolatedContext, info);
         final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         final ContentValues values = new ContentValues();
 
@@ -886,6 +912,7 @@ public class MediaProviderTest {
         map.put("external", "internal");
         builder.setProjectionMap(map);
         builder.setStrict(true);
+        builder.setStrictColumns(true);
 
         assertArrayEquals(
                 new String[] { "internal" },
@@ -913,36 +940,19 @@ public class MediaProviderTest {
         assertTrue(isDownload("/storage/emulated/0/Download/test.pdf"));
         assertTrue(isDownload("/storage/emulated/0/Download/dir/foo.mp4"));
         assertTrue(isDownload("/storage/0000-0000/Download/foo.txt"));
-        assertTrue(isDownload(
-                "/storage/emulated/0/Android/sandbox/com.example/Download/colors.png"));
-        assertTrue(isDownload(
-                "/storage/emulated/0/Android/sandbox/shared-com.uid.shared/Download/colors.png"));
-        assertTrue(isDownload(
-                "/storage/0000-0000/Android/sandbox/com.example/Download/colors.png"));
-        assertTrue(isDownload(
-                "/storage/0000-0000/Android/sandbox/shared-com.uid.shared/Download/colors.png"));
-
 
         assertFalse(isDownload("/storage/emulated/0/Pictures/colors.png"));
         assertFalse(isDownload("/storage/emulated/0/Pictures/Download/colors.png"));
         assertFalse(isDownload("/storage/emulated/0/Android/data/com.example/Download/foo.txt"));
-        assertFalse(isDownload(
-                "/storage/emulated/0/Android/sandbox/com.example/dir/Download/foo.txt"));
         assertFalse(isDownload("/storage/emulated/0/Download"));
-        assertFalse(isDownload("/storage/emulated/0/Android/sandbox/com.example/Download"));
-        assertFalse(isDownload(
-                "/storage/0000-0000/Android/sandbox/shared-com.uid.shared/Download"));
     }
 
     @Test
     public void testIsDownloadDir() throws Exception {
         assertTrue(isDownloadDir("/storage/emulated/0/Download"));
-        assertTrue(isDownloadDir("/storage/emulated/0/Android/sandbox/com.example/Download"));
 
         assertFalse(isDownloadDir("/storage/emulated/0/Download/colors.png"));
         assertFalse(isDownloadDir("/storage/emulated/0/Download/dir/"));
-        assertFalse(isDownloadDir(
-                "/storage/emulated/0/Android/sandbox/com.example/Download/dir/foo.txt"));
     }
 
     @Test
@@ -1003,7 +1013,6 @@ public class MediaProviderTest {
 
         for (String top : new String[] {
                 "/storage/emulated/0",
-                "/storage/emulated/0/Android/sandbox/com.example",
         }) {
             values = computeDataValues(top + "/IMG1024.JPG");
             assertVolume(values, MediaStore.VOLUME_EXTERNAL_PRIMARY);
@@ -1044,6 +1053,10 @@ public class MediaProviderTest {
                 return Build.VERSION_CODES.CUR_DEVELOPMENT;
             }
         };
+        final ProviderInfo info = sIsolatedContext.getPackageManager()
+                .resolveContentProvider(MediaStore.AUTHORITY, PackageManager.GET_META_DATA);
+        // Attach providerInfo, to make sure mCallingIdentity can be populated
+        provider.attachInfo(sIsolatedContext, info);
         provider.ensureFileColumns(uri, values);
 
         assertMimetype(values, "image/png");
@@ -1352,7 +1365,7 @@ public class MediaProviderTest {
 
     @Test
     public void testNestedTransaction_applyBatch() throws Exception {
-        final Uri[] uris = new Uri[] {
+        final Uri[] uris = new Uri[]{
                 MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL, 0),
                 MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY, 0),
         };
@@ -1360,5 +1373,103 @@ public class MediaProviderTest {
         ops.add(ContentProviderOperation.newDelete(uris[0]).build());
         ops.add(ContentProviderOperation.newDelete(uris[1]).build());
         sIsolatedResolver.applyBatch(MediaStore.AUTHORITY, ops);
+    }
+
+    @Test
+    public void testRedactionForInvalidUris() throws Exception {
+        try (ContentProviderClient cpc = sIsolatedResolver
+                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+            MediaProvider mp = (MediaProvider) cpc.getLocalContentProvider();
+            final String volumeName = MediaStore.VOLUME_EXTERNAL;
+            assertNull(mp.getRedactedUri(MediaStore.Images.Media.getContentUri(volumeName)));
+            assertNull(mp.getRedactedUri(MediaStore.Video.Media.getContentUri(volumeName)));
+            assertNull(mp.getRedactedUri(MediaStore.Audio.Media.getContentUri(volumeName)));
+            assertNull(mp.getRedactedUri(MediaStore.Audio.Albums.getContentUri(volumeName)));
+            assertNull(mp.getRedactedUri(MediaStore.Audio.Artists.getContentUri(volumeName)));
+            assertNull(mp.getRedactedUri(MediaStore.Audio.Genres.getContentUri(volumeName)));
+            assertNull(mp.getRedactedUri(MediaStore.Audio.Playlists.getContentUri(volumeName)));
+            assertNull(mp.getRedactedUri(MediaStore.Downloads.getContentUri(volumeName)));
+            assertNull(mp.getRedactedUri(MediaStore.Files.getContentUri(volumeName)));
+
+            // Check with a very large value - which shouldn't be present normally (at least for
+            // tests).
+            assertNull(mp.getRedactedUri(
+                    MediaStore.Images.Media.getContentUri(volumeName, Long.MAX_VALUE)));
+        }
+    }
+
+    @Test
+    public void testRedactionForInvalidAndValidUris() throws Exception {
+        final String volumeName = MediaStore.VOLUME_EXTERNAL;
+        final List<Uri> uris = new ArrayList<>();
+        uris.add(MediaStore.Images.Media.getContentUri(volumeName));
+        uris.add(MediaStore.Video.Media.getContentUri(volumeName));
+
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        final File[] files = new File[]{
+                stage(R.raw.test_audio, new File(dir, "test" + System.nanoTime() + ".mp3")),
+                stage(R.raw.test_video_xmp,
+                        new File(dir, "test" + System.nanoTime() + ".mp4")),
+                stage(R.raw.lg_g4_iso_800_jpg,
+                        new File(dir, "test" + System.nanoTime() + ".jpg"))
+        };
+
+        try (ContentProviderClient cpc = sIsolatedResolver
+                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+            MediaProvider mp = (MediaProvider) cpc.getLocalContentProvider();
+            for (File file : files) {
+                uris.add(MediaStore.scanFile(sIsolatedResolver, file));
+            }
+
+            List<Uri> redactedUris = mp.getRedactedUri(uris);
+            assertEquals(uris.size(), redactedUris.size());
+            assertNull(redactedUris.get(0));
+            assertNull(redactedUris.get(1));
+            assertNotNull(redactedUris.get(2));
+            assertNotNull(redactedUris.get(3));
+            assertNotNull(redactedUris.get(4));
+        } finally {
+            for (File file : files) {
+                file.delete();
+            }
+        }
+    }
+
+    @Test
+    public void testRedactionForFileExtension() throws Exception {
+        testRedactionForFileExtension(R.raw.test_audio, ".mp3");
+        testRedactionForFileExtension(R.raw.test_video_xmp, ".mp4");
+        testRedactionForFileExtension(R.raw.lg_g4_iso_800_jpg, ".jpg");
+    }
+
+    private void testRedactionForFileExtension(int resId, String extension) throws Exception {
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        final File file = new File(dir, "test" + System.nanoTime() + extension);
+
+        stage(resId, file);
+
+        final List<Uri> uris = new ArrayList<>();
+        uris.add(MediaStore.scanFile(sIsolatedResolver, file));
+
+
+        try (ContentProviderClient cpc = sIsolatedResolver
+                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+            final MediaProvider mp = (MediaProvider) cpc.getLocalContentProvider();
+
+            final String[] projection = new String[]{MediaColumns.DISPLAY_NAME, MediaColumns.DATA};
+            for (Uri uri : mp.getRedactedUri(uris)) {
+                try (Cursor c = sIsolatedResolver.query(uri, projection, null, null)) {
+                    assertNotNull(c);
+                    assertEquals(1, c.getCount());
+                    assertTrue(c.moveToFirst());
+                    assertTrue(c.getString(0).endsWith(extension));
+                    assertTrue(c.getString(1).endsWith(extension));
+                }
+            }
+        } finally {
+            file.delete();
+        }
     }
 }

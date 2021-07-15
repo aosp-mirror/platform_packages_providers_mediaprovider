@@ -8,6 +8,9 @@
             "options": [
                 {
                   "exclude-annotation": "androidx.test.filters.LargeTest"
+                },
+                {
+                  "exclude-annotation": "androidx.test.filters.FlakyTest"
                 }
             ]
         },
@@ -31,12 +34,26 @@
             "name": "CtsScopedStorageHostTest"
         },
         {
+            "name": "CtsScopedStorageDeviceOnlyTest"
+        },
+        {
             "name": "fuse_node_test"
+        },
+        {
+            "name": "CtsMediaProviderTranscodeTests"
         }
     ],
     "postsubmit": [
         {
             "name": "MediaProviderClientTests"
+        },
+        {
+            "name": "CtsAppSecurityHostTestCases",
+            "options": [
+                {
+                    "include-filter": "android.appsecurity.cts.ExternalStorageHostTest"
+                }
+            ]
         }
     ]
 }

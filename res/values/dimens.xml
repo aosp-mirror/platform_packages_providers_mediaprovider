@@ -40,6 +40,8 @@
     <dimen name="picker_date_header_height">56dp</dimen>
     <dimen name="picker_date_header_padding">16dp</dimen>
 
+    <dimen name="picker_message_height">32dp</dimen>
+
     <dimen name="picker_album_name_height">20dp</dimen>
     <dimen name="picker_album_name_margin">8dp</dimen>
     <dimen name="picker_album_item_count_height">16dp</dimen>

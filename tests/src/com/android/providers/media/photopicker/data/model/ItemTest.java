@@ -52,6 +52,12 @@ public class ItemTest {
         assertThat(item.getMimeType()).isEqualTo(mimeType);
         assertThat(item.getVolumeName()).isEqualTo(volumeName);
         assertThat(item.getDuration()).isEqualTo(duration);
+
+        assertThat(item.isMessage()).isFalse();
+        assertThat(item.isDate()).isFalse();
+        assertThat(item.isImage()).isTrue();
+        assertThat(item.isVideo()).isFalse();
+        assertThat(item.isGif()).isFalse();
     }
 
     @Test
@@ -66,6 +72,10 @@ public class ItemTest {
                 dateTaken, duration);
 
         assertThat(item.isImage()).isTrue();
+        assertThat(item.isMessage()).isFalse();
+        assertThat(item.isDate()).isFalse();
+        assertThat(item.isVideo()).isFalse();
+        assertThat(item.isGif()).isFalse();
     }
 
     @Test
@@ -80,6 +90,10 @@ public class ItemTest {
                 dateTaken, duration);
 
         assertThat(item.isVideo()).isTrue();
+        assertThat(item.isMessage()).isFalse();
+        assertThat(item.isDate()).isFalse();
+        assertThat(item.isImage()).isFalse();
+        assertThat(item.isGif()).isFalse();
     }
 
     @Test
@@ -94,6 +108,10 @@ public class ItemTest {
                 dateTaken, duration);
 
         assertThat(item.isGif()).isTrue();
+        assertThat(item.isMessage()).isFalse();
+        assertThat(item.isDate()).isFalse();
+        assertThat(item.isImage()).isFalse();
+        assertThat(item.isVideo()).isFalse();
     }
 
     @Test
@@ -104,6 +122,17 @@ public class ItemTest {
 
         assertThat(item.getDateTaken()).isEqualTo(dateTaken);
         assertThat(item.isDate()).isTrue();
+    }
+
+    @Test
+    public void testCreateMessageItem() {
+        final Item item = Item.createMessageItem();
+
+        assertThat(item.isMessage()).isTrue();
+        assertThat(item.isDate()).isFalse();
+        assertThat(item.isImage()).isFalse();
+        assertThat(item.isVideo()).isFalse();
+        assertThat(item.isGif()).isFalse();
     }
 
     private static Cursor generateCursorForItem(long id, String mimeType,

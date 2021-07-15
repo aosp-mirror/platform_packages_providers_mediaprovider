@@ -17,6 +17,7 @@
 package com.android.providers.media;
 
 import static android.Manifest.permission.ACCESS_MEDIA_LOCATION;
+import static android.Manifest.permission.MANAGE_EXTERNAL_STORAGE;
 import static android.app.AppOpsManager.MODE_ALLOWED;
 import static android.app.AppOpsManager.permissionToOp;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
@@ -42,6 +43,9 @@ import static com.android.providers.media.util.PermissionUtils.checkWriteImagesO
 import android.annotation.Nullable;
 import android.app.AppOpsManager;
 import android.app.compat.CompatChanges;
+import android.compat.annotation.ChangeId;
+import android.compat.annotation.EnabledAfter;
+import android.compat.annotation.EnabledSince;
 import android.content.ContentProvider;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
@@ -57,13 +61,16 @@ import android.util.ArrayMap;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.util.LongArray;
+import com.android.providers.media.util.UserCache;
 
 import java.util.Locale;
 
 public class LocalCallingIdentity {
     public final int pid;
     public final int uid;
+    private final UserHandle user;
     private final Context context;
     private final String packageNameUnchecked;
     // Info used for logging permission checks
@@ -72,9 +79,16 @@ public class LocalCallingIdentity {
 
     private LocalCallingIdentity(Context context, int pid, int uid, String packageNameUnchecked,
             @Nullable String attributionTag) {
+        this(context, pid, uid, UserHandle.getUserHandleForUid(uid), packageNameUnchecked,
+                attributionTag);
+    }
+
+    private LocalCallingIdentity(Context context, int pid, int uid, UserHandle user,
+            String packageNameUnchecked, @Nullable String attributionTag) {
         this.context = context;
         this.pid = pid;
         this.uid = uid;
+        this.user = user;
         this.packageNameUnchecked = packageNameUnchecked;
         this.attributionTag = attributionTag;
     }
@@ -91,7 +105,8 @@ public class LocalCallingIdentity {
 
     private static final long UNKNOWN_ROW_ID = -1;
 
-    public static LocalCallingIdentity fromBinder(Context context, ContentProvider provider) {
+    public static LocalCallingIdentity fromBinder(Context context, ContentProvider provider,
+            UserCache userCache) {
         String callingPackage = provider.getCallingPackageUnchecked();
         int binderUid = Binder.getCallingUid();
         if (callingPackage == null) {
@@ -107,8 +122,27 @@ public class LocalCallingIdentity {
         if (callingAttributionTag == null) {
             callingAttributionTag = context.getAttributionTag();
         }
+        UserHandle user;
+        if (binderUid == Process.SHELL_UID || binderUid == Process.ROOT_UID) {
+            // For requests coming from the shell (eg `content query`), assume they are
+            // for the user we are running as.
+            user = Process.myUserHandle();
+        } else {
+            user = UserHandle.getUserHandleForUid(binderUid);
+        }
+        // We need to use the cached variant here, because the uncached version may
+        // make a binder transaction, which would cause infinite recursion here.
+        // Using the cached variant is fine, because we shouldn't be getting any binder
+        // requests for this volume before it has been mounted anyway, at which point
+        // we must already know about the new user.
+        if (!userCache.userSharesMediaWithParentCached(user)) {
+            // It's possible that we got a cross-profile intent from a regular work profile; in
+            // that case, the request was explicitly targeted at the media database of the owner
+            // user; reflect that here.
+            user = Process.myUserHandle();
+        }
         return new LocalCallingIdentity(context, Binder.getCallingPid(), binderUid,
-                callingPackage, callingAttributionTag);
+                user, callingPackage, callingAttributionTag);
     }
 
     public static LocalCallingIdentity fromExternal(Context context, int uid) {
@@ -126,6 +160,7 @@ public class LocalCallingIdentity {
                 ident.hasPermissionResolved = PERMISSION_IS_REDACTION_NEEDED;
             }
         }
+
         return ident;
     }
 
@@ -135,10 +170,15 @@ public class LocalCallingIdentity {
     }
 
     public static LocalCallingIdentity fromSelf(Context context) {
+        return fromSelfAsUser(context, Process.myUserHandle());
+    }
+
+    public static LocalCallingIdentity fromSelfAsUser(Context context, UserHandle user) {
         final LocalCallingIdentity ident = new LocalCallingIdentity(
                 context,
                 android.os.Process.myPid(),
                 android.os.Process.myUid(),
+                user,
                 context.getOpPackageName(),
                 context.getAttributionTag());
 
@@ -147,6 +187,8 @@ public class LocalCallingIdentity {
         // Use ident.attributionTag from context, hence no change
         ident.targetSdkVersion = Build.VERSION_CODES.CUR_DEVELOPMENT;
         ident.targetSdkVersionResolved = true;
+        ident.shouldBypass = false;
+        ident.shouldBypassResolved = true;
         ident.hasPermission = ~(PERMISSION_IS_LEGACY_GRANTED | PERMISSION_IS_LEGACY_WRITE
                 | PERMISSION_IS_LEGACY_READ | PERMISSION_IS_REDACTION_NEEDED
                 | PERMISSION_IS_SHELL | PERMISSION_IS_DELEGATOR);
@@ -209,6 +251,10 @@ public class LocalCallingIdentity {
         } catch (NameNotFoundException ignored) {
         }
         return Build.VERSION_CODES.CUR_DEVELOPMENT;
+    }
+
+    public UserHandle getUser() {
+        return user;
     }
 
     public static final int PERMISSION_IS_SELF = 1 << 0;
@@ -335,7 +381,84 @@ public class LocalCallingIdentity {
             return true;
         }
 
-        return checkIsLegacyStorageGranted(context, uid, getPackageName());
+        return checkIsLegacyStorageGranted(context, uid, getPackageName(), attributionTag);
+    }
+
+    private volatile boolean shouldBypass;
+    private volatile boolean shouldBypassResolved;
+
+    /**
+     * Allow apps holding {@link android.Manifest.permission#MANAGE_EXTERNAL_STORAGE}
+     * permission to request raw external storage access.
+     */
+    @ChangeId
+    @EnabledAfter(targetSdkVersion = Build.VERSION_CODES.R)
+    static final long ENABLE_RAW_MANAGE_EXTERNAL_STORAGE_ACCESS = 178209446L;
+
+    /**
+     * Allow apps holding {@link android.app.role}#SYSTEM_GALLERY role to request raw external
+     * storage access.
+     */
+    @ChangeId
+    @EnabledSince(targetSdkVersion = Build.VERSION_CODES.R)
+    static final long ENABLE_RAW_SYSTEM_GALLERY_ACCESS = 183372781L;
+
+    /**
+     * Checks if app chooses to bypass database operations.
+     *
+     * <p>
+     * Note that this method doesn't check if app qualifies to bypass database operations.
+     *
+     * @return {@code true} if AndroidManifest.xml of this app has
+     * android:requestRawExternalStorageAccess=true
+     * {@code false} otherwise.
+     */
+    public boolean shouldBypassDatabase(boolean isSystemGallery) {
+        if (!shouldBypassResolved) {
+            shouldBypass = shouldBypassDatabaseInternal(isSystemGallery);
+            shouldBypassResolved = true;
+        }
+        return shouldBypass;
+    }
+
+    private boolean shouldBypassDatabaseInternal(boolean isSystemGallery) {
+        if (!SdkLevel.isAtLeastS()) {
+            // We need to parse the manifest flag ourselves here.
+            // TODO(b/178209446): Parse app manifest to get new flag values
+            return true;
+        }
+
+        final ApplicationInfo ai;
+        try {
+            ai = context.getPackageManager()
+                    .getApplicationInfo(getPackageName(), 0);
+            if (ai != null) {
+                final int requestRawExternalStorageValue
+                        = ai.getRequestRawExternalStorageAccess();
+                if (requestRawExternalStorageValue
+                        != ApplicationInfo.RAW_EXTERNAL_STORAGE_ACCESS_DEFAULT) {
+                    return requestRawExternalStorageValue
+                            == ApplicationInfo.RAW_EXTERNAL_STORAGE_ACCESS_REQUESTED;
+                }
+                // Manifest flag is not set, hence return default value based on the category of the
+                // app and targetSDK.
+                if (isSystemGallery) {
+                    if (CompatChanges.isChangeEnabled(
+                            ENABLE_RAW_SYSTEM_GALLERY_ACCESS, uid)) {
+                        // If systemGallery, then the flag will default to false when they are
+                        // targeting targetSDK>=30.
+                        return false;
+                    }
+                } else if (CompatChanges.isChangeEnabled(
+                        ENABLE_RAW_MANAGE_EXTERNAL_STORAGE_ACCESS, uid)) {
+                    // If app has MANAGE_EXTERNAL_STORAGE, the flag will default to false when they
+                    // are targeting targetSDK>=31.
+                    return false;
+                }
+            }
+        } catch (NameNotFoundException e) {
+        }
+        return true;
     }
 
     private boolean isScopedStorageEnforced(boolean defaultScopedStorage,
@@ -423,5 +546,21 @@ public class LocalCallingIdentity {
         synchronized (lock) {
             return rowIdOfDeletedPaths.getOrDefault(path.toLowerCase(Locale.ROOT), UNKNOWN_ROW_ID);
         }
+    }
+
+    private volatile int applicationMediaCapabilitiesSupportedFlags = -1;
+    private volatile int applicationMediaCapabilitiesUnsupportedFlags = -1;
+
+    public int getApplicationMediaCapabilitiesSupportedFlags() {
+        return applicationMediaCapabilitiesSupportedFlags;
+    }
+
+    public int getApplicationMediaCapabilitiesUnsupportedFlags() {
+        return applicationMediaCapabilitiesUnsupportedFlags;
+    }
+
+    public void setApplicationMediaCapabilitiesFlags(int supportedFlags, int unsupportedFlags) {
+        applicationMediaCapabilitiesSupportedFlags = supportedFlags;
+        applicationMediaCapabilitiesUnsupportedFlags = unsupportedFlags;
     }
 }

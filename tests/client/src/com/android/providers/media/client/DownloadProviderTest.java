@@ -127,9 +127,6 @@ public class DownloadProviderTest {
     private void deleteOtherPackageExternalFiles(List<File> otherPackageDirs) throws Exception {
         for (File dir: otherPackageDirs) {
             executeShellCommand("rm -r " + dir.getAbsolutePath());
-            // Need to wait for the directory to be deleted, as it is flaky sometimes due to the
-            // race condition in rm and the next mkdir for the next test.
-            pollForDirectoryToBeDeleted(dir);
         }
     }
 
@@ -156,14 +153,5 @@ public class DownloadProviderTest {
         pollForCondition(
             () -> dir.exists(),
             "Timed out while waiting for dir " + dir + " to be created");
-    }
-
-    /**
-     * Polls for directory to be deleted
-     */
-    private static void pollForDirectoryToBeDeleted(File dir) throws Exception {
-        pollForCondition(
-            () -> !dir.exists(),
-            "Timed out while waiting for dir " + dir + " to be deleted");
     }
 }

@@ -31,12 +31,6 @@ for verb in verbs:
     if verb == "write":
         verblabel = "modify"
 
-    verblabelcaps = verblabel[0].upper() + verblabel[1:]
-    if verb == "trash":
-        verblabelcaps = "Move to trash"
-    if verb == "untrash":
-        verblabelcaps = "Move out of trash"
-
     print '''
 <!-- ========================= %s STRINGS ========================= -->
 ''' % (verb.upper())
@@ -49,6 +43,13 @@ for verb in verbs:
     <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move <xliff:g id="count" example="42">^2</xliff:g> ${datalabel}s to trash?</item>
 </plurals>
 ''').substitute(vars()).strip("\n")
+            print Template('''
+<!-- Progress dialog message after user allows $verb permission to the $data item [CHAR LIMIT=128] -->
+<plurals name="permission_progress_${verb}_${data}">
+    <item quantity="one">Moving $datalabel to trash&#8230;</item>
+    <item quantity="other">Moving <xliff:g id="count" example="42">^1</xliff:g> ${datalabel}s to trash&#8230;</item>
+</plurals>
+''').substitute(vars()).strip("\n")
 
         elif verb == "untrash":
             print Template('''
@@ -58,6 +59,13 @@ for verb in verbs:
     <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to move <xliff:g id="count" example="42">^2</xliff:g> ${datalabel}s out of trash?</item>
 </plurals>
 ''').substitute(vars()).strip("\n")
+            print Template('''
+<!-- Progress dialog message after user allows $verb permission to the $data item [CHAR LIMIT=128] -->
+<plurals name="permission_progress_${verb}_${data}">
+    <item quantity="one">Moving $datalabel out of trash&#8230;</item>
+    <item quantity="other">Moving <xliff:g id="count" example="42">^1</xliff:g> ${datalabel}s out of trash&#8230;</item>
+</plurals>
+''').substitute(vars()).strip("\n")
 
         else:
             print Template('''
@@ -65,6 +73,17 @@ for verb in verbs:
 <plurals name="permission_${verb}_${data}">
     <item quantity="one">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to $verblabel this $datalabel?</item>
     <item quantity="other">Allow <xliff:g id="app_name" example="Gmail">^1</xliff:g> to $verblabel <xliff:g id="count" example="42">^2</xliff:g> ${datalabel}s?</item>
+</plurals>
+''').substitute(vars()).strip("\n")
+            if verb == "write":
+                actionLabel = "Modifying"
+            else:
+                actionLabel = "Deleting"
+            print Template('''
+<!-- Progress dialog message after user allows $verb permission to the $data item [CHAR LIMIT=128] -->
+<plurals name="permission_progress_${verb}_${data}">
+    <item quantity="one">$actionLabel $datalabel&#8230;</item>
+    <item quantity="other">$actionLabel <xliff:g id="count" example="42">^1</xliff:g> ${datalabel}s&#8230;</item>
 </plurals>
 ''').substitute(vars()).strip("\n")
 

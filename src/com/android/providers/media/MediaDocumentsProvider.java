@@ -23,6 +23,7 @@ import static android.provider.DocumentsContract.QUERY_ARG_EXCLUDE_MEDIA;
 import static android.provider.DocumentsContract.QUERY_ARG_FILE_SIZE_OVER;
 import static android.provider.DocumentsContract.QUERY_ARG_LAST_MODIFIED_AFTER;
 import static android.provider.DocumentsContract.QUERY_ARG_MIME_TYPES;
+import static android.provider.MediaStore.GET_MEDIA_URI_CALL;
 
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -71,6 +72,7 @@ import androidx.core.content.MimeTypeFilter;
 import com.android.providers.media.util.FileUtils;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -427,6 +429,28 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         } else {
             throw new UnsupportedOperationException("Unsupported document " + docId);
         }
+    }
+
+    @Override
+    public Bundle call(String method, String arg, Bundle extras) {
+        Bundle bundle = super.call(method, arg, extras);
+        if (bundle == null && !TextUtils.isEmpty(method)) {
+            switch (method) {
+                case GET_MEDIA_URI_CALL: {
+                    getContext().enforceCallingOrSelfPermission(
+                            android.Manifest.permission.WRITE_MEDIA_STORAGE, TAG);
+                    final Uri documentUri = extras.getParcelable(MediaStore.EXTRA_URI);
+                    final String docId = DocumentsContract.getDocumentId(documentUri);
+                    final Bundle out = new Bundle();
+                    final Uri uri = getUriForDocumentId(docId);
+                    out.putParcelable(MediaStore.EXTRA_URI, uri);
+                    return out;
+                }
+                default:
+                    Log.w(TAG, "unknown method passed to call(): " + method);
+            }
+        }
+        return bundle;
     }
 
     @Override
@@ -1018,6 +1042,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
             throws FileNotFoundException {
         enforceShellRestrictions();
         final Uri target = getUriForDocumentId(docId);
+        final int callingUid = Binder.getCallingUid();
 
         if (!"r".equals(mode)) {
             throw new IllegalArgumentException("Media is read-only");
@@ -1026,10 +1051,25 @@ public class MediaDocumentsProvider extends DocumentsProvider {
         // Delegate to real provider
         final long token = Binder.clearCallingIdentity();
         try {
-            return getContext().getContentResolver().openFileDescriptor(target, mode);
+            return openFileForRead(target, callingUid);
         } finally {
             Binder.restoreCallingIdentity(token);
         }
+    }
+
+    public ParcelFileDescriptor openFileForRead(final Uri target, final int callingUid)
+            throws FileNotFoundException {
+        final Bundle opts = new Bundle();
+        opts.putInt(MediaStore.EXTRA_MEDIA_CAPABILITIES_UID, callingUid);
+
+        AssetFileDescriptor afd =
+                getContext().getContentResolver().openTypedAssetFileDescriptor(target, "*/*",
+                        opts);
+        if (afd == null) {
+            return null;
+        }
+
+        return afd.getParcelFileDescriptor();
     }
 
     @Override

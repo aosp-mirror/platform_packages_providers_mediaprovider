@@ -8,6 +8,7 @@ package android.provider {
     method @WorkerThread public static void waitForIdle(@NonNull android.content.ContentResolver);
     field public static final String AUTHORITY_LEGACY = "media_legacy";
     field @NonNull public static final android.net.Uri AUTHORITY_LEGACY_URI;
+    field public static final String QUERY_ARG_DEFER_SCAN = "android:query-arg-defer-scan";
   }
 
 }

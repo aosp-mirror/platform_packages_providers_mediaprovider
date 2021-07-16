@@ -603,9 +603,28 @@ static void pf_init(void* userdata, struct fuse_conn_info* conn) {
                      FUSE_CAP_ASYNC_READ | FUSE_CAP_ATOMIC_O_TRUNC | FUSE_CAP_WRITEBACK_CACHE |
                      FUSE_CAP_EXPORT_SUPPORT | FUSE_CAP_FLOCK_LOCKS);
 
+    bool disable_splice_write = false;
     if (fuse->passthrough) {
         if (conn->capable & FUSE_CAP_PASSTHROUGH) {
             mask |= FUSE_CAP_PASSTHROUGH;
+
+            // SPLICE_WRITE seems to cause linux kernel cache corruption with passthrough enabled.
+            // It is still under investigation but while running
+            // ScopedStorageDeviceTest#testAccessMediaLocationInvalidation, we notice test flakes
+            // of about 1/20 for the following reason:
+            // 1. App without ACCESS_MEDIA_LOCATION permission reads redacted bytes via FUSE cache
+            // 2. App with ACCESS_MEDIA_LOCATION permission reads non-redacted bytes via passthrough
+            // cache
+            // (2) fails because bytes from (1) sneak into the passthrough cache??
+            // To workaround, we disable splice for write when passthrough is enabled.
+            // This shouldn't have any performance regression if comparing passthrough devices to
+            // no-passthrough devices for the following reasons:
+            // 1. No-op for no-passthrough devices
+            // 2. Passthrough devices
+            //   a. Files not requiring redaction use passthrough which bypasses FUSE_READ entirely
+            //   b. Files requiring redaction are still faster than no-passthrough devices that use
+            //      direct_io
+            disable_splice_write = true;
         } else {
             LOG(WARNING) << "Passthrough feature not supported by the kernel";
             fuse->passthrough = false;
@@ -613,6 +632,10 @@ static void pf_init(void* userdata, struct fuse_conn_info* conn) {
     }
 
     conn->want |= conn->capable & mask;
+    if (disable_splice_write) {
+        conn->want &= ~FUSE_CAP_SPLICE_WRITE;
+    }
+
     conn->max_read = MAX_READ_SIZE;
 
     fuse->active->store(true, std::memory_order_release);

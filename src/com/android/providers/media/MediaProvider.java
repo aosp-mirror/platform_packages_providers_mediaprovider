@@ -1312,14 +1312,18 @@ public class MediaProvider extends ContentProvider {
         try {
             UserHandle user1 = UserHandle.of(userId1);
             UserHandle user2 = UserHandle.of(userId2);
-
-            if (SdkLevel.isAtLeastS() && (mUserCache.userSharesMediaWithParent(user1)
+            if (Build.VERSION.DEVICE_INITIAL_SDK_INT < Build.VERSION_CODES.S) {
+                if (SdkLevel.isAtLeastS() && (mUserCache.userSharesMediaWithParent(user1)
                     || mUserCache.userSharesMediaWithParent(user2))) {
-                return true;
-            }
-            Method isAppCloneUserPair = StorageManager.class.getMethod("isAppCloneUserPair",
+                    return true;
+                }
+                Method isAppCloneUserPair = StorageManager.class.getMethod("isAppCloneUserPair",
                     int.class, int.class);
-            return (Boolean) isAppCloneUserPair.invoke(mStorageManager, userId1, userId2);
+                return (Boolean) isAppCloneUserPair.invoke(mStorageManager, userId1, userId2);
+            } else {
+                return (mUserCache.userSharesMediaWithParent(user1)
+                    || mUserCache.userSharesMediaWithParent(user2));
+            }
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             Log.w(TAG, "isAppCloneUserPair failed. Users: " + userId1 + " and " + userId2);
             return false;

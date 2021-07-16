@@ -37,6 +37,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.android.providers.media.R;
 
 import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.ui.PhotosTabFragment;
@@ -76,10 +77,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         // only add the fragment when the activity is created at first time
         if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction()
-                    .setReorderingAllowed(true)
-                    .add(R.id.fragment_container, PhotosTabFragment.class, null)
-                    .commitNow();
+            PhotosTabFragment.show(getSupportFragmentManager(), Category.getDefaultCategory());
         }
 
         mUserIdManager = mPickerViewModel.getUserIdManager();

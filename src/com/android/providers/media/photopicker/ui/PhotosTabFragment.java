@@ -23,9 +23,15 @@ import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.GridLayoutManager;
 
 import com.android.providers.media.R;
+
+import com.android.providers.media.photopicker.data.model.Category;
+import com.android.providers.media.photopicker.data.model.Category.CategoryType;
 import com.android.providers.media.photopicker.data.model.Item;
 
 import com.google.android.material.snackbar.Snackbar;
@@ -35,6 +41,29 @@ import com.google.android.material.snackbar.Snackbar;
  */
 public class PhotosTabFragment extends TabFragment {
 
+    private static final String FRAGMENT_TAG = "PhotosTabFragment";
+    private static final String EXTRA_CATEGORY_TYPE = "category_type";
+    private static final String EXTRA_CATEGORY_NAME = "category_name";
+
+    private boolean mIsDefaultCategory;
+    @CategoryType
+    private String mCategoryType;
+    private String mCategoryName;
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // After the configuration is changed, if the fragment is now shown, onViewCreated will not
+        // be triggered. We need to restore the savedInstanceState in onCreate.
+        // E.g. Click the albums -> preview one item -> rotate the device
+        if (savedInstanceState != null) {
+            mCategoryType = savedInstanceState.getString(EXTRA_CATEGORY_TYPE,
+                    Category.CATEGORY_DEFAULT);
+            mCategoryName = savedInstanceState.getString(EXTRA_CATEGORY_NAME,
+                    /* defaultValue= */ "");
+        }
+    }
+
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -42,9 +71,16 @@ public class PhotosTabFragment extends TabFragment {
         final PhotosTabAdapter adapter = new PhotosTabAdapter(mPickerViewModel, mImageLoader,
                 this::onItemClick);
 
-        mPickerViewModel.getItems().observe(this, itemList -> {
-            adapter.updateItemList(itemList);
-        });
+        mIsDefaultCategory = TextUtils.equals(Category.CATEGORY_DEFAULT, mCategoryType);
+        if (mIsDefaultCategory) {
+            mPickerViewModel.getItems().observe(this, itemList -> {
+                adapter.updateItemList(itemList);
+            });
+        } else {
+            mPickerViewModel.getCategoryItems(mCategoryType).observe(this, itemList -> {
+                adapter.updateItemList(itemList);
+            });
+        }
 
         final GridLayoutManager layoutManager = new GridLayoutManager(getContext(), COLUMN_COUNT);
         final GridLayoutManager.SpanSizeLookup lookup = adapter.createSpanSizeLookup();
@@ -57,6 +93,34 @@ public class PhotosTabFragment extends TabFragment {
         mRecyclerView.setLayoutManager(layoutManager);
         mRecyclerView.setAdapter(adapter);
         mRecyclerView.addItemDecoration(itemDecoration);
+    }
+
+    /**
+     * Called when owning activity is saving state to be used to restore state during creation.
+     *
+     * @param state Bundle to save state
+     */
+    public void onSaveInstanceState(Bundle state) {
+        super.onSaveInstanceState(state);
+        state.putString(EXTRA_CATEGORY_TYPE, mCategoryType);
+        state.putString(EXTRA_CATEGORY_NAME, mCategoryName);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        if (mIsDefaultCategory) {
+            getActivity().setTitle(/* title= */ "");
+        } else {
+            final String categoryName = Category.getCategoryName(getContext(), mCategoryType);
+
+            if (TextUtils.isEmpty(categoryName)) {
+                getActivity().setTitle(mCategoryName);
+            } else {
+                getActivity().setTitle(categoryName);
+            }
+        }
     }
 
     private void onItemClick(@NonNull View view) {
@@ -85,5 +149,32 @@ public class PhotosTabFragment extends TabFragment {
             // Transition to PreviewFragment.
             PreviewFragment.show(getActivity().getSupportFragmentManager());
         }
+    }
+
+    /**
+     * Create the fragment with the category and add it into the FragmentManager
+     *
+     * @param fm       The fragment manager
+     * @param category the category
+     */
+    public static void show(FragmentManager fm, Category category) {
+        final FragmentTransaction ft = fm.beginTransaction();
+        final PhotosTabFragment fragment = new PhotosTabFragment();
+        fragment.mCategoryType = category.getCategoryType();
+        fragment.mCategoryName = category.getCategoryName(/* context= */ null);
+        ft.replace(R.id.fragment_container, fragment, FRAGMENT_TAG);
+        if (!TextUtils.equals(category.getCategoryType(), Category.CATEGORY_DEFAULT)) {
+            ft.addToBackStack(FRAGMENT_TAG);
+        }
+        ft.commitAllowingStateLoss();
+    }
+
+    /**
+     * Get the fragment in the FragmentManager
+     *
+     * @param fm The fragment manager
+     */
+    public static Fragment get(FragmentManager fm) {
+        return fm.findFragmentByTag(FRAGMENT_TAG);
     }
 }

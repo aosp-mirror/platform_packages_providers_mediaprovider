@@ -16,16 +16,26 @@
 
 package com.android.providers.media.photopicker.data.model;
 
+import static com.android.providers.media.photopicker.util.CursorUtils.getCursorInt;
+import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
+
 import android.annotation.StringDef;
+import android.content.Context;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.util.ArrayMap;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
+
+import com.android.providers.media.R;
+
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -123,11 +133,11 @@ public class Category {
     }
 
     private static String[] CATEGORIES = {
-            CATEGORY_SCREENSHOTS,
+            CATEGORY_FAVORITES,
             CATEGORY_CAMERA,
             CATEGORY_VIDEOS,
-            CATEGORY_FAVORITES,
-            CATEGORY_DOWNLOADS
+            CATEGORY_SCREENSHOTS,
+            CATEGORY_DOWNLOADS,
     };
 
     public static List<String> CATEGORIES_LIST = Collections.unmodifiableList(
@@ -137,6 +147,19 @@ public class Category {
         return CATEGORIES_LIST.contains(category);
     }
 
+    @CategoryType
+    private String mCategoryType;
+    private String mCategoryName;
+    private Uri mCoverUri;
+    private int mItemCount;
+
+    private Category() {}
+
+    @VisibleForTesting
+    Category(@NonNull Cursor cursor) {
+        updateFromCursor(cursor);
+    }
+
     /**
      * Defines category columns for each category
      */
@@ -144,13 +167,95 @@ public class Category {
         public static String NAME = "name";
         public static String COVER_URI = "cover_uri";
         public static String NUMBER_OF_ITEMS = "number_of_items";
+        public static String CATEGORY_TYPE = "category_type";
 
         public static String[] getAllColumns() {
             return new String[] {
                     NAME,
                     COVER_URI,
-                    NUMBER_OF_ITEMS
+                    NUMBER_OF_ITEMS,
+                    CATEGORY_TYPE,
             };
         }
+    }
+
+    /**
+     * @return localized category name if {@code context} is not null and {@link #mCategoryType} is
+     * in {@link #CATEGORIES}, {@link #mCategoryName} otherwise.
+     */
+    public String getCategoryName(@Nullable Context context) {
+        if (context != null) {
+            final String categoryName = getCategoryName(context, mCategoryType);
+            if (categoryName != null) {
+                return categoryName;
+            }
+        }
+        return mCategoryName;
+    }
+
+    /**
+     * @return localized category name if {@link #mCategoryType} is in {@link #CATEGORIES},
+     * {@code null} otherwise.
+     */
+    public static String getCategoryName(@NonNull Context context,
+            @NonNull @CategoryType String categoryType) {
+        switch (categoryType) {
+            case CATEGORY_FAVORITES:
+                return context.getString(R.string.picker_category_favorites);
+            case CATEGORY_VIDEOS:
+                return context.getString(R.string.picker_category_videos);
+            case CATEGORY_CAMERA:
+                return context.getString(R.string.picker_category_camera);
+            case CATEGORY_SCREENSHOTS:
+                return context.getString(R.string.picker_category_screenshots);
+            case CATEGORY_DOWNLOADS:
+                return context.getString(R.string.picker_category_downloads);
+            default:
+                return null;
+        }
+    }
+
+    @CategoryType
+    public String getCategoryType() {
+        return mCategoryType;
+    }
+
+    public Uri getCoverUri() {
+        return mCoverUri;
+    }
+
+    public int getItemCount() {
+        return mItemCount;
+    }
+
+    /**
+     * Get the category instance with the {@link #mCategoryType} is {@link #CATEGORY_DEFAULT}
+     *
+     * @return the default category
+     */
+    public static Category getDefaultCategory() {
+        final Category category = new Category();
+        category.mCategoryType = CATEGORY_DEFAULT;
+        return category;
+    }
+
+    /**
+     * @return {@link Category} from the given {@code cursor}
+     */
+    public static Category fromCursor(@NonNull Cursor cursor) {
+        final Category category = new Category(cursor);
+        return category;
+    }
+
+    /**
+     * Update the category based on the {@code cursor}
+     *
+     * @param cursor the cursor to update the data
+     */
+    public void updateFromCursor(@NonNull Cursor cursor) {
+        mCategoryName = getCursorString(cursor, CategoryColumns.NAME);
+        mCoverUri = Uri.parse(getCursorString(cursor, CategoryColumns.COVER_URI));
+        mItemCount = getCursorInt(cursor, CategoryColumns.NUMBER_OF_ITEMS);
+        mCategoryType = getCursorString(cursor, CategoryColumns.CATEGORY_TYPE);
     }
 }

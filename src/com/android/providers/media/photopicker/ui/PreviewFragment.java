@@ -132,6 +132,11 @@ public class PreviewFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+
+        // TODO(185801129): Change the layout of the toolbar or add new toolbar that can overlap
+        // with image/video preview if necessary
+        getActivity().setTitle("");
+
         // This is necessary to ensure we call ViewHolder#bind() onResume()
         if (mAdapter != null) {
             mAdapter.notifyDataSetChanged();
@@ -191,9 +196,17 @@ public class PreviewFragment extends Fragment {
 
         final PreviewFragment fragment = new PreviewFragment();
         fm.beginTransaction()
-                .setReorderingAllowed(true)
                 .replace(R.id.fragment_container, fragment, TAG)
-                .commitNow();
+                .addToBackStack(TAG)
+                .commitAllowingStateLoss();
+    }
+
+    /**
+     * Get the fragment in the FragmentManager
+     * @param fm The fragment manager
+     */
+    public static Fragment get(FragmentManager fm) {
+        return fm.findFragmentByTag(TAG);
     }
 
     // TODO: There is a same method in TabFragment. To find a way to reuse it.

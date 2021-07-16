@@ -16,8 +16,6 @@
 
 package com.android.providers.media.photopicker.ui;
 
-import static com.android.providers.media.photopicker.ui.PhotosTabAdapter.ITEM_TYPE_DATE_HEADER;
-
 import android.content.Context;
 import android.graphics.Rect;
 import android.view.View;
@@ -29,15 +27,18 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.android.providers.media.R;
 
 /**
- * The ItemDecoration that allows to add layout offsets to specific item views from the adapter's
- * data set for the {@link RecyclerView} on Photos tab.
+ * The ItemDecoration that allows adding layout offsets to specific item views from the adapter's
+ * data set for the {@link RecyclerView} on Albums tab.
  */
-public class PhotosTabItemDecoration extends RecyclerView.ItemDecoration {
+public class AlbumsTabItemDecoration extends RecyclerView.ItemDecoration {
 
     private final int mSpacing;
+    private final int mTopSpacing;
 
-    public PhotosTabItemDecoration(Context context) {
-        mSpacing = context.getResources().getDimensionPixelSize(R.dimen.picker_photo_item_spacing);
+    public AlbumsTabItemDecoration(Context context) {
+        mSpacing = context.getResources().getDimensionPixelSize(R.dimen.picker_album_item_spacing);
+        mTopSpacing = context.getResources().getDimensionPixelSize(
+                R.dimen.picker_album_item_top_spacing);
     }
 
     @Override
@@ -49,27 +50,18 @@ public class PhotosTabItemDecoration extends RecyclerView.ItemDecoration {
         final int column = lp.getSpanIndex();
         final int spanCount = layoutManager.getSpanCount();
 
-        // The date header doesn't have spacing
-        if (lp.getSpanSize() == spanCount) {
-            outRect.set(0, 0, 0, 0);
-            return;
-        }
-
         final int adapterPosition = parent.getChildAdapterPosition(view);
-        if (adapterPosition > column) {
-            final int itemViewType = parent.getAdapter().getItemViewType(
-                    adapterPosition - column - 1);
-            // if the above item is not a date header, add the top spacing
-            if (itemViewType != ITEM_TYPE_DATE_HEADER) {
-                outRect.top = mSpacing;
-            }
+        // the top gap of the album items on the first row is mSpacing
+        if (adapterPosition < spanCount) {
+            outRect.top = mSpacing;
+        } else {
+            outRect.top = mTopSpacing;
         }
 
-        // column * ((1f / spanCount) * spacing)
-        final int start = column * mSpacing / spanCount;
-        // spacing - (column + 1) * ((1f / spanCount) * spacing)
-        final int end = mSpacing - (column + 1) * mSpacing / spanCount;
-
+        // spacing - column * ((1f / spanCount) * spacing)
+        final int start = mSpacing - column * mSpacing / spanCount;
+        // (column + 1) * ((1f / spanCount) * spacing)
+        final int end = (column + 1) * mSpacing / spanCount;
         if (ViewUtils.isLayoutRtl(parent)) {
             outRect.left = end;
             outRect.right = start;

@@ -19,8 +19,11 @@ package com.android.providers.media.photopicker.ui;
 import android.content.Context;
 import android.widget.ImageView;
 
+import androidx.annotation.NonNull;
+
 import com.bumptech.glide.Glide;
 
+import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 
 /**
@@ -35,14 +38,38 @@ public class ImageLoader {
         mContext = context;
     }
 
-    public void loadPhotoThumbnail(Item item, ImageView imageView) {
+    /**
+     * Load the thumbnail of the {@code category} and set it on the {@code imageView}
+     * @param category the album
+     * @param imageView the imageView shows the thumbnail
+     */
+    public void loadAlbumThumbnail(@NonNull Category category, @NonNull ImageView imageView) {
+        Glide.with(mContext)
+                .load(category.getCoverUri())
+                .thumbnail()
+                .into(imageView);
+    }
+
+    /**
+     * Load the thumbnail of the photo item {@code item} and set it on the {@code imageView}
+     *
+     * @param item the photo item
+     * @param imageView the imageView shows the thumbnail
+     */
+    public void loadPhotoThumbnail(@NonNull Item item, @NonNull ImageView imageView) {
         Glide.with(mContext)
                 .load(item.getContentUri())
                 .thumbnail()
                 .into(imageView);
     }
 
-    public void loadImagePreview(Item item, ImageView imageView) {
+    /**
+     * Load the image of the photo item {@code item} and set it on the {@code imageView}
+     *
+     * @param item the photo item
+     * @param imageView the imageView shows the image
+     */
+    public void loadImagePreview(@NonNull Item item, @NonNull ImageView imageView) {
         Glide.with(mContext)
                 .load(item.getContentUri())
                 .into(imageView);

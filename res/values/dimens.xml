@@ -42,12 +42,13 @@
 
     <dimen name="picker_message_height">32dp</dimen>
 
-    <dimen name="picker_album_name_height">20dp</dimen>
+    <dimen name="picker_album_name_min_height">20dp</dimen>
     <dimen name="picker_album_name_margin">8dp</dimen>
     <dimen name="picker_album_item_count_height">16dp</dimen>
     <dimen name="picker_album_item_count_margin">2dp</dimen>
     <dimen name="picker_album_bottom_bar_gap">20dp</dimen>
     <dimen name="picker_album_grid_radius">8dp</dimen>
+    <dimen name="picker_album_item_top_spacing">28dp</dimen>
     <dimen name="picker_album_item_spacing">16dp</dimen>
 
     <dimen name="picker_photo_item_spacing">3dp</dimen>

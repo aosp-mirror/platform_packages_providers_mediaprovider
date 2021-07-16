@@ -42,7 +42,7 @@
     <TextView
         android:id="@+id/album_name"
         android:layout_width="wrap_content"
-        android:layout_height="@dimen/picker_album_name_height"
+        android:layout_height="@dimen/picker_album_name_min_height"
         android:layout_marginTop="@dimen/picker_album_name_margin"
         android:textAppearance="?attr/textAppearanceSubtitle2"/>
 

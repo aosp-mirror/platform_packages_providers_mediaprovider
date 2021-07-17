@@ -141,7 +141,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     public interface OnSchemaChangeListener {
         public void onSchemaChange(@NonNull String volumeName, int versionFrom, int versionTo,
-                long itemCount, long durationMillis);
+                long itemCount, long durationMillis, String databaseUuid);
     }
 
     public interface OnFilesChangeListener {
@@ -1827,7 +1827,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
         if (mSchemaListener != null) {
             mSchemaListener.onSchemaChange(mVolumeName, fromVersion, toVersion,
-                    getItemCount(db), elapsedMillis);
+                    getItemCount(db), elapsedMillis, getOrCreateUuid(db));
         }
     }
 
@@ -1840,7 +1840,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
         if (mSchemaListener != null) {
             mSchemaListener.onSchemaChange(mVolumeName, fromVersion, toVersion,
-                    getItemCount(db), elapsedMillis);
+                    getItemCount(db), elapsedMillis, getOrCreateUuid(db));
         }
     }
 

@@ -30,6 +30,9 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * This is a facade that hides the complexities of executing some SQL statements on the picker db.
  * It does not do any caller permission checks and is only intended for internal use within the
@@ -71,6 +74,12 @@ public class PickerDbFacadeForPicker {
     private static final String WHERE_NULL_CLOULD_ID = KEY_CLOUD_ID + " IS NULL";
     private static final String WHERE_NOT_NULL_CLOULD_ID = KEY_CLOUD_ID + " IS NOT NULL";
     private static final String WHERE_IS_VISIBLE = KEY_IS_VISIBLE + " = 1";
+    private static final String WHERE_MIME_TYPE = KEY_MIME_TYPE + " LIKE ? ";
+    private static final String WHERE_SIZE_BYTES = KEY_SIZE_BYTES + " <= ?";
+    private static final String WHERE_DATE_TAKEN_MS_AFTER =
+            "date_taken_ms > ? OR (date_taken_ms = ? AND _id > ?)";
+    private static final String WHERE_DATE_TAKEN_MS_BEFORE =
+            "date_taken_ms < ? OR (date_taken_ms = ? AND _id < ?)";
 
     // Matches all media including cloud+local, cloud-only and local-only
     private static final SQLiteQueryBuilder QB_MATCH_ALL = createMediaQueryBuilder();
@@ -353,9 +362,16 @@ public class PickerDbFacadeForPicker {
      *
      * Returns a {@link Cursor} containing the most recent picker db media rows sorted in reverse
      * chronological order, i.e. newest first, up to a maximum of {@code limit}.
+     *
+     * The results can be further filtered with the {@code mimeTypeFilter} and {@code sizeBytesMax}
+     * filters.
      */
-    public Cursor queryMediaAll(int limit) {
-        return queryMedia(/* selection */ null, /* dateTakenMs */ 0, /* id */ 0, limit);
+    public Cursor queryMediaAll(int limit, String mimeTypeFilter, long sizeBytesMax) {
+        final SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
+        final String[] selectionArgs = buildSelectionArgs(qb, /* isQueryAfter */ false,
+                /* dateTakenMs */ 0, /* id */ 0, mimeTypeFilter, sizeBytesMax);
+
+        return queryMedia(qb, selectionArgs, limit);
     }
 
     /*
@@ -366,10 +382,17 @@ public class PickerDbFacadeForPicker {
      *
      * All returned items are either strictly more recent than {@code dateTakenMs} or if
      * they were captured at the same time, have a picker db id strictly greater than {@code id}.
+     *
+     * The results can be further filtered with the {@code mimeTypeFilter} and {@code sizeBytesMax}
+     * filters.
      */
-    public Cursor queryMediaAfter(long dateTakenMs, long id, int limit) {
-        String select = "(date_taken_ms > ? OR (date_taken_ms = ? AND _id > ?))";
-        return queryMedia(select, dateTakenMs, id, limit);
+    public Cursor queryMediaAfter(long dateTakenMs, long id, int limit, String mimeTypeFilter,
+            long sizeBytesMax) {
+        final SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
+        final String[] selectArgs = buildSelectionArgs(qb, /* isQueryAfter */ true, dateTakenMs, id,
+                mimeTypeFilter, sizeBytesMax);
+
+        return queryMedia(qb, selectArgs, limit);
     }
 
     /*
@@ -380,13 +403,20 @@ public class PickerDbFacadeForPicker {
      *
      * All returned items are either strictly older than {@code dateTakenMs} or if
      * they were captured at the same time, have a picker db id strictly less than {@code id}.
+     *
+     * The results can be further filtered with the {@code mimeTypeFilter} and {@code sizeBytesMax}
+     * filters.
      */
-    public Cursor queryMediaBefore(long dateTakenMs, long id, int limit) {
-        String select = "(date_taken_ms < ? OR (date_taken_ms = ? AND _id < ?))";
-        return queryMedia(select, dateTakenMs, id, limit);
+    public Cursor queryMediaBefore(long dateTakenMs, long id, int limit, String mimeTypeFilter,
+            long sizeBytesMax) {
+        SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
+        String[] selectArgs = buildSelectionArgs(qb, /* isQueryAfter */ false, dateTakenMs, id,
+                mimeTypeFilter, sizeBytesMax);
+
+        return queryMedia(qb, selectArgs, limit);
     }
 
-    public Cursor queryMedia(String selection, long dateTakenMs, long id, int limit) {
+    private Cursor queryMedia(SQLiteQueryBuilder qb, String[] selectionArgs, int limit) {
         final String[] projection = new String[] {
             KEY_LOCAL_ID,
             KEY_CLOUD_ID,
@@ -395,24 +425,19 @@ public class PickerDbFacadeForPicker {
             KEY_DURATION_MS,
             KEY_MIME_TYPE
         };
-        final String[] selectionArgs = new String[] {
-            String.valueOf(dateTakenMs),
-            String.valueOf(dateTakenMs),
-            String.valueOf(id)
-        };
+
         final String orderBy = "date_taken_ms DESC,_id DESC";
         final String limitStr = String.valueOf(limit);
 
-        return QB_MATCH_VISIBLE.query(mDatabase, projection, selection,
-                selection == null ? null : selectionArgs, /* groupBy */ null, /* having */ null,
-                orderBy, limitStr);
+        return qb.query(mDatabase, projection, /* selection */ null, selectionArgs,
+                /* groupBy */ null, /* having */ null, orderBy, limitStr);
     }
 
     private static ContentValues cursorToContentValue(Cursor cursor, boolean isLocal) {
-        ContentValues values = new ContentValues();
+        final ContentValues values = new ContentValues();
         values.put(KEY_IS_VISIBLE, 1);
 
-        int count = cursor.getColumnCount();
+        final int count = cursor.getColumnCount();
         for (int index = 0; index < count; index++) {
             String key = cursor.getColumnName(index);
             switch (key) {
@@ -446,6 +471,38 @@ public class PickerDbFacadeForPicker {
         }
 
         return values;
+    }
+
+    private static String[] buildSelectionArgs(SQLiteQueryBuilder qb, boolean isQueryAfter,
+            long dateTakenMs, long id, String mimeTypeFilter, long sizeBytesMax) {
+        List<String> selectArgs = new ArrayList<>();
+
+        if (id > 0) {
+            if (isQueryAfter) {
+                qb.appendWhereStandalone(WHERE_DATE_TAKEN_MS_AFTER);
+            } else {
+                qb.appendWhereStandalone(WHERE_DATE_TAKEN_MS_BEFORE);
+            }
+            selectArgs.add(String.valueOf(dateTakenMs));
+            selectArgs.add(String.valueOf(dateTakenMs));
+            selectArgs.add(String.valueOf(id));
+        }
+
+        if (sizeBytesMax > 0) {
+            qb.appendWhereStandalone(WHERE_SIZE_BYTES);
+            selectArgs.add(String.valueOf(sizeBytesMax));
+        }
+
+        if (mimeTypeFilter != null) {
+            qb.appendWhereStandalone(WHERE_MIME_TYPE);
+            selectArgs.add(mimeTypeFilter.replace('*', '%'));
+        }
+
+        if (selectArgs.isEmpty()) {
+            return null;
+        }
+
+        return selectArgs.toArray(new String[selectArgs.size()]);
     }
 
     private static SQLiteQueryBuilder createMediaQueryBuilder() {

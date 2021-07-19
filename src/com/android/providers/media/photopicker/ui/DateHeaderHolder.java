@@ -17,6 +17,9 @@ package com.android.providers.media.photopicker.ui;
 import android.content.Context;
 import android.view.ViewGroup;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
 import com.android.providers.media.photopicker.data.model.Item;
@@ -26,7 +29,7 @@ import com.android.providers.media.photopicker.data.model.Item;
  */
 public class DateHeaderHolder extends BaseViewHolder {
     private TextView mTitle;
-    public DateHeaderHolder(Context context, ViewGroup parent) {
+    public DateHeaderHolder(@NonNull Context context, @NonNull ViewGroup parent) {
         super(context, parent, R.layout.item_date_header);
         mTitle = itemView.findViewById(R.id.date_header_title);
     }

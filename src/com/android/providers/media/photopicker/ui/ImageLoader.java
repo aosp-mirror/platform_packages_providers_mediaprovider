@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
+import android.net.Uri;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
@@ -40,14 +41,12 @@ public class ImageLoader {
 
     /**
      * Load the thumbnail of the {@code category} and set it on the {@code imageView}
+     *
      * @param category the album
      * @param imageView the imageView shows the thumbnail
      */
     public void loadAlbumThumbnail(@NonNull Category category, @NonNull ImageView imageView) {
-        Glide.with(mContext)
-                .load(category.getCoverUri())
-                .thumbnail()
-                .into(imageView);
+        loadThumbnail(category.getCoverUri(), imageView);
     }
 
     /**
@@ -57,10 +56,7 @@ public class ImageLoader {
      * @param imageView the imageView shows the thumbnail
      */
     public void loadPhotoThumbnail(@NonNull Item item, @NonNull ImageView imageView) {
-        Glide.with(mContext)
-                .load(item.getContentUri())
-                .thumbnail()
-                .into(imageView);
+        loadThumbnail(item.getContentUri(), imageView);
     }
 
     /**
@@ -70,8 +66,27 @@ public class ImageLoader {
      * @param imageView the imageView shows the image
      */
     public void loadImagePreview(@NonNull Item item, @NonNull ImageView imageView) {
+        if (item.isGif()) {
+            Glide.with(mContext)
+                    .load(item.getContentUri())
+                    .into(imageView);
+            return;
+        }
+        // Preview as bitmap image for all other image types
         Glide.with(mContext)
+                .asBitmap()
                 .load(item.getContentUri())
+                .into(imageView);
+    }
+
+    private void loadThumbnail(@NonNull Uri uri, @NonNull ImageView imageView) {
+        // Always show all thumbnails as bitmap images instead of drawables
+        // This is to ensure that we do not animate any thumbnail (for eg GIF)
+        // TODO(b/194285082): Use drawable instead of bitmap, as it saves memory.
+        Glide.with(mContext)
+                .asBitmap()
+                .load(uri)
+                .thumbnail()
                 .into(imageView);
     }
 }

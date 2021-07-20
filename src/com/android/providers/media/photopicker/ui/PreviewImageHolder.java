@@ -20,12 +20,13 @@ import android.content.Context;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
-import com.android.providers.media.R;
+import androidx.viewpager2.widget.ViewPager2;
 
+import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.model.Item;
 
 /**
- * ViewHolder of a photo item within a RecyclerView.
+ * ViewHolder of an image item within the {@link ViewPager2}
  */
 public class PreviewImageHolder extends BaseViewHolder {
     private final ImageLoader mImageLoader;

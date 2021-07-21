@@ -1309,21 +1309,24 @@ public class MediaProvider extends ContentProvider {
     }
 
     private boolean isAppCloneUserPair(int userId1, int userId2) {
-        try {
-            UserHandle user1 = UserHandle.of(userId1);
-            UserHandle user2 = UserHandle.of(userId2);
-            if (Build.VERSION.DEVICE_INITIAL_SDK_INT < Build.VERSION_CODES.S) {
-                if (SdkLevel.isAtLeastS() && (mUserCache.userSharesMediaWithParent(user1)
-                    || mUserCache.userSharesMediaWithParent(user2))) {
-                    return true;
-                }
-                Method isAppCloneUserPair = StorageManager.class.getMethod("isAppCloneUserPair",
-                    int.class, int.class);
-                return (Boolean) isAppCloneUserPair.invoke(mStorageManager, userId1, userId2);
-            } else {
-                return (mUserCache.userSharesMediaWithParent(user1)
-                    || mUserCache.userSharesMediaWithParent(user2));
+        UserHandle user1 = UserHandle.of(userId1);
+        UserHandle user2 = UserHandle.of(userId2);
+        if (SdkLevel.isAtLeastS()) {
+            if (mUserCache.userSharesMediaWithParent(user1)
+                    || mUserCache.userSharesMediaWithParent(user2)) {
+                return true;
             }
+            if (Build.VERSION.DEVICE_INITIAL_SDK_INT >= Build.VERSION_CODES.S) {
+                // If we're on S or higher, and we shipped with S or higher, only allow the new
+                // app cloning functionality
+                return false;
+            }
+            // else, fall back to deprecated solution below on updating devices
+        }
+        try {
+            Method isAppCloneUserPair = StorageManager.class.getMethod("isAppCloneUserPair",
+                int.class, int.class);
+            return (Boolean) isAppCloneUserPair.invoke(mStorageManager, userId1, userId2);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             Log.w(TAG, "isAppCloneUserPair failed. Users: " + userId1 + " and " + userId2);
             return false;

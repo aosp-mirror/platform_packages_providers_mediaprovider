@@ -45,15 +45,12 @@ public class PickerDatabaseHelperTest {
     private static final String KEY_LOCAL_ID = "local_id";
     private static final String KEY_CLOUD_ID = "cloud_id";
     private static final String KEY_IS_LOCAL_VERIFIED = "is_local_verified";
-    private static final String KEY_LOCAL_DEDUPE_KEY = "local_dedupe_key";
     private static final String KEY_DATE_TAKEN_MS = "date_taken_ms";
     private static final String KEY_SIZE_BYTES = "size_bytes";
     private static final String KEY_DURATION_MS = "duration_ms";
     private static final String KEY_MIME_TYPE = "mime_type";
 
     private static final long LOCAL_ID = 50;
-    // date_modified_ms+size
-    private static final String LOCAL_DEDUPE_KEY = "1623852851911+7000";
     private static final long SIZE_BYTES = 7000;
     private static final long DATE_TAKEN_MS = 1623852851911L;
     private static final String CLOUD_ID = "asdfghjkl;";
@@ -74,7 +71,6 @@ public class PickerDatabaseHelperTest {
             KEY_LOCAL_ID,
             KEY_CLOUD_ID,
             KEY_IS_LOCAL_VERIFIED,
-            KEY_LOCAL_DEDUPE_KEY,
             KEY_DATE_TAKEN_MS,
             KEY_SIZE_BYTES,
             KEY_DURATION_MS,
@@ -89,7 +85,6 @@ public class PickerDatabaseHelperTest {
             values.put(KEY_LOCAL_ID, LOCAL_ID);
             values.put(KEY_CLOUD_ID, CLOUD_ID);
             values.put(KEY_IS_LOCAL_VERIFIED, 1);
-            values.put(KEY_LOCAL_DEDUPE_KEY, LOCAL_DEDUPE_KEY);
             assertThat(db.insert(MEDIA_TABLE, null, values)).isNotEqualTo(-1);
 
             try (Cursor cr = db.query(MEDIA_TABLE, projection, null, null, null, null, null)) {
@@ -98,26 +93,12 @@ public class PickerDatabaseHelperTest {
                     assertThat(cr.getLong(0)).isEqualTo(LOCAL_ID);
                     assertThat(cr.getString(1)).isEqualTo(CLOUD_ID);
                     assertThat(cr.getInt(2)).isEqualTo(1);
-                    assertThat(cr.getString(3)).isEqualTo(LOCAL_DEDUPE_KEY);
-                    assertThat(cr.getLong(4)).isEqualTo(DATE_TAKEN_MS);
-                    assertThat(cr.getLong(5)).isEqualTo(SIZE_BYTES);
-                    assertThat(cr.getLong(6)).isEqualTo(DURATION_MS);
-                    assertThat(cr.getString(7)).isEqualTo(MIME_TYPE);
+                    assertThat(cr.getLong(3)).isEqualTo(DATE_TAKEN_MS);
+                    assertThat(cr.getLong(4)).isEqualTo(SIZE_BYTES);
+                    assertThat(cr.getLong(5)).isEqualTo(DURATION_MS);
+                    assertThat(cr.getString(6)).isEqualTo(MIME_TYPE);
                 }
             }
-
-            // Remove cloud_id to avoid hitting cloud_id unique constraint
-            values.remove(KEY_CLOUD_ID);
-
-            // Same local_dedupe_key with different local_id can be inserted
-            ContentValues valuesLocalId = new ContentValues(values);
-            valuesLocalId.put(KEY_LOCAL_ID, LOCAL_ID + 1);
-            assertThat(db.insert(MEDIA_TABLE, null, valuesLocalId)).isNotEqualTo(-1);
-
-            // Same local_id with different local_dedupe_key can be inserted
-            ContentValues valuesLocalDateModifiedMs = new ContentValues(values);
-            valuesLocalDateModifiedMs.put(KEY_LOCAL_DEDUPE_KEY, LOCAL_DEDUPE_KEY + "1");
-            assertThat(db.insert(MEDIA_TABLE, null, valuesLocalDateModifiedMs)).isNotEqualTo(-1);
         }
     }
 
@@ -135,7 +116,6 @@ public class PickerDatabaseHelperTest {
             values = getBasicContentValues();
             values.put(KEY_LOCAL_ID, LOCAL_ID);
             values.put(KEY_IS_LOCAL_VERIFIED, 1);
-            values.put(KEY_LOCAL_DEDUPE_KEY, LOCAL_DEDUPE_KEY);
             assertThat(db.insert(MEDIA_TABLE, null, values)).isNotEqualTo(-1);
         }
     }
@@ -213,14 +193,6 @@ public class PickerDatabaseHelperTest {
             ContentValues values = getBasicContentValues();
             values.put(KEY_CLOUD_ID, CLOUD_ID);
             values.put(KEY_IS_LOCAL_VERIFIED, 1);
-            values.put(KEY_LOCAL_DEDUPE_KEY, LOCAL_DEDUPE_KEY);
-            assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
-
-            // is_local_verified=1 && local_dedupe_key=NULL
-            values = getBasicContentValues();
-            values.put(KEY_CLOUD_ID, CLOUD_ID);
-            values.put(KEY_IS_LOCAL_VERIFIED, 1);
-            values.put(KEY_LOCAL_ID, LOCAL_ID);
             assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
         }
     }
@@ -234,13 +206,11 @@ public class PickerDatabaseHelperTest {
             ContentValues values = getBasicContentValues();
             values.put(KEY_IS_LOCAL_VERIFIED, 0);
             values.put(KEY_LOCAL_ID, LOCAL_ID);
-            values.put(KEY_LOCAL_DEDUPE_KEY, LOCAL_DEDUPE_KEY);
             assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
 
             // is_local_verified=NULL && cloud_id=NULL
             values = getBasicContentValues();
             values.put(KEY_LOCAL_ID, LOCAL_ID);
-            values.put(KEY_LOCAL_DEDUPE_KEY, LOCAL_DEDUPE_KEY);
             assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
         }
     }
@@ -253,12 +223,11 @@ public class PickerDatabaseHelperTest {
             final ContentValues values = getBasicContentValues();
             values.put(KEY_LOCAL_ID, LOCAL_ID);
             values.put(KEY_IS_LOCAL_VERIFIED, 1);
-            values.put(KEY_LOCAL_DEDUPE_KEY, LOCAL_DEDUPE_KEY);
 
-            // Insert <local_id, local_dedupe_key>: success
+            // Insert <local_id>: success
             assertThat(db.insert(MEDIA_TABLE, null, values)).isNotEqualTo(-1);
 
-            // Insert <local_id, local_dedupe_key, size> again: failure
+            // Insert <local_id> again: failure
             assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
         }
     }

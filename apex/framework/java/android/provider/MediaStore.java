@@ -683,7 +683,7 @@ public final class MediaStore {
      * items that can be returned by {@link MediaStore#ACTION_PICK_IMAGES},
      * action may still return nothing (0 items) if the user chooses to cancel.
      * The value of this intext-extra should be a non-negative integer greater
-     * than or equal to {@link MediaStore#EXTRA_PICK_IMAGES_MAX}, the value
+     * than or equal to {@link MediaStore#EXTRA_PICK_IMAGES_MIN}, the value
      * is ignored otherwise.
      */
     public final static String EXTRA_PICK_IMAGES_MAX = "android.provider.extra.PICK_IMAGES_MAX";

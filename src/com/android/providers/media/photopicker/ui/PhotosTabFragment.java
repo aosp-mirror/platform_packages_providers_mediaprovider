@@ -27,6 +27,8 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.model.Item;
 
+import com.google.android.material.snackbar.Snackbar;
+
 /**
  * Photos tab fragment for showing the photos
  */
@@ -63,7 +65,15 @@ public class PhotosTabFragment extends TabFragment {
             if (isSelectedBefore) {
                 mPickerViewModel.deleteSelectedItem((Item) view.getTag());
             } else {
-                mPickerViewModel.addSelectedItem((Item) view.getTag());
+                if (!mPickerViewModel.isSelectionAllowed()) {
+                    // TODO(b/192823495): Use R.string for translations and mimeType filters.
+                    Snackbar.make(view,
+                            "Select up to " + mPickerViewModel.getMaxSelectionLimit() + " photos",
+                            Snackbar.LENGTH_SHORT).show();
+                    return;
+                } else {
+                    mPickerViewModel.addSelectedItem((Item) view.getTag());
+                }
             }
             view.setSelected(!isSelectedBefore);
         } else {

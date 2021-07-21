@@ -28,6 +28,7 @@ import android.widget.FrameLayout.LayoutParams;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
@@ -52,6 +53,7 @@ public class PreviewFragment extends Fragment {
     private PickerViewModel mPickerViewModel;
     private ViewPager2 mViewPager;
     private PreviewAdapter mAdapter;
+    private ViewPager2.OnPageChangeCallback mOnPageChangeCallBack;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup parent,
@@ -64,10 +66,15 @@ public class PreviewFragment extends Fragment {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        // Hide the toolbar for now. TODO(185801129): Change the layout of the toolbar or add new
+        // toolbar that can overlap with image/video preview if necessary
+        ((AppCompatActivity)getActivity()).getSupportActionBar().hide();
+
         // Warning: The below code assumes that getSelectedItems will never return null.
         // We are creating a new ArrayList with selected items, this list used as data for the
         // adapter. If activity gets killed and recreated, we will lose items that were deselected.
         // TODO(b/185801129): Save the deselection state instead of making a copy of selected items.
+        // TODO(b/185801129): Sort images/videos on based on date_taken
         final List<Item> selectedItemList = new ArrayList<>(
                 mPickerViewModel.getSelectedItems().getValue().values());
 
@@ -96,14 +103,13 @@ public class PreviewFragment extends Fragment {
         // Initialize ViewPager2 to swipe between multiple pictures/videos in preview
         mViewPager = view.findViewById(R.id.preview_viewPager);
         mViewPager.setAdapter(mAdapter);
-        // TODO(b/185801129) We should set the last saved position instead of zero
-        mViewPager.setCurrentItem(0);
 
         Button selectButton = view.findViewById(R.id.preview_select_button);
 
         // Update the select icon and text according to the state of selection while swiping
         // between photos
-        mViewPager.registerOnPageChangeCallback(new OnPageChangeCallBack(selectButton));
+        mOnPageChangeCallBack = new OnPageChangeCallBack(selectButton);
+        mViewPager.registerOnPageChangeCallback(mOnPageChangeCallBack);
 
         // Adjust the layout based on Single/Multi select and add appropriate onClick listeners
         if (!mPickerViewModel.canSelectMultiple()) {
@@ -120,6 +126,23 @@ public class PreviewFragment extends Fragment {
             selectButton.setOnClickListener(v -> {
                 onClickSelect(selectButton);
             });
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // This is necessary to ensure we call ViewHolder#bind() onResume()
+        if (mAdapter != null) {
+            mAdapter.notifyDataSetChanged();
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (mOnPageChangeCallBack != null && mViewPager != null) {
+            mViewPager.unregisterOnPageChangeCallback(mOnPageChangeCallBack);
         }
     }
 

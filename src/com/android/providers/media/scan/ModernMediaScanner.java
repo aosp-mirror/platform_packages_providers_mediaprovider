@@ -37,6 +37,7 @@ import static android.media.MediaMetadataRetriever.METADATA_KEY_IMAGE_WIDTH;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_MIMETYPE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_NUM_TRACKS;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_TITLE;
+import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_CODEC_MIME_TYPE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH;
@@ -46,6 +47,8 @@ import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.UNKNOWN_STRING;
 import static android.text.format.DateUtils.HOUR_IN_MILLIS;
 import static android.text.format.DateUtils.MINUTE_IN_MILLIS;
+
+import static com.android.providers.media.util.Metrics.translateReason;
 
 import android.content.ContentProviderClient;
 import android.content.ContentProviderOperation;
@@ -89,11 +92,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.modules.utils.build.SdkLevel;
+import com.android.providers.media.MediaVolume;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.ExifUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.IsoInterface;
-import com.android.providers.media.util.Logging;
 import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
@@ -172,10 +176,12 @@ public class ModernMediaScanner implements MediaScanner {
     static final int MAX_EXCLUDE_DIRS = 450;
 
     private static final Pattern PATTERN_VISIBLE = Pattern.compile(
-            "(?i)^/storage/[^/]+(?:/[0-9]+)?(?:/Android/sandbox/([^/]+))?$");
+            "(?i)^/storage/[^/]+(?:/[0-9]+)?$");
     private static final Pattern PATTERN_INVISIBLE = Pattern.compile(
-            "(?i)^/storage/[^/]+(?:/[0-9]+)?(?:/Android/sandbox/([^/]+))?/" +
-                    "(?:(?:Android/(?:data|obb)$)|(?:(?:Movies|Music|Pictures)/.thumbnails$))");
+            "(?i)^/storage/[^/]+(?:/[0-9]+)?/"
+                    + "(?:(?:Android/(?:data|obb|sandbox)$)|"
+                    + "(?:\\.transforms$)|"
+                    + "(?:(?:Movies|Music|Pictures)/.thumbnails$))");
 
     private static final Pattern PATTERN_YEAR = Pattern.compile("([1-9][0-9][0-9][0-9])");
 
@@ -265,10 +271,10 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @Override
-    public void onDetachVolume(String volumeName) {
+    public void onDetachVolume(MediaVolume volume) {
         synchronized (mActiveScans) {
             for (Scan scan : mActiveScans) {
-                if (volumeName.equals(scan.mVolumeName)) {
+                if (volume.equals(scan.mVolume)) {
                     scan.mSignal.cancel();
                 }
             }
@@ -317,6 +323,7 @@ public class ModernMediaScanner implements MediaScanner {
 
         private final File mRoot;
         private final int mReason;
+        private final MediaVolume mVolume;
         private final String mVolumeName;
         private final Uri mFilesUri;
         private final CancellationSignal mSignal;
@@ -359,7 +366,13 @@ public class ModernMediaScanner implements MediaScanner {
 
             mRoot = root;
             mReason = reason;
-            mVolumeName = FileUtils.getVolumeName(mContext, root);
+
+            if (FileUtils.contains(Environment.getStorageDirectory(), root)) {
+                mVolume = MediaVolume.fromStorageVolume(FileUtils.getStorageVolume(mContext, root));
+            } else {
+                mVolume = MediaVolume.fromInternal();
+            }
+            mVolumeName = mVolume.getName();
             mFilesUri = MediaStore.Files.getContentUri(mVolumeName);
             mSignal = new CancellationSignal();
 
@@ -507,16 +520,33 @@ public class ModernMediaScanner implements MediaScanner {
                     buildSqlSelectionArgs());
             queryArgs.putString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER,
                     FileColumns._ID + " DESC");
-            queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_EXCLUDE);
+            queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE);
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_INCLUDE);
             queryArgs.putInt(MediaStore.QUERY_ARG_MATCH_FAVORITE, MediaStore.MATCH_INCLUDE);
 
-            try (Cursor c = mResolver.query(mFilesUri, new String[] { FileColumns._ID },
-                    queryArgs, mSignal)) {
+            final int[] countPerMediaType = new int[FileColumns.MEDIA_TYPE_COUNT];
+            try (Cursor c = mResolver.query(mFilesUri,
+                    new String[]{FileColumns._ID, FileColumns.MEDIA_TYPE, FileColumns.DATE_EXPIRES,
+                            FileColumns.IS_PENDING}, queryArgs, mSignal)) {
                 while (c.moveToNext()) {
                     final long id = c.getLong(0);
                     if (Arrays.binarySearch(scannedIds, id) < 0) {
+                        final long dateExpire = c.getLong(2);
+                        final boolean isPending = c.getInt(3) == 1;
+                        // Don't delete the pending item which is not expired.
+                        // If the scan is triggered between invoking
+                        // ContentResolver#insert() and ContentResolver#openFileDescriptor(),
+                        // it raises the FileNotFoundException b/166063754.
+                        if (isPending && dateExpire > System.currentTimeMillis() / 1000) {
+                            continue;
+                        }
                         mUnknownIds.add(id);
+                        final int mediaType = c.getInt(1);
+                        // Avoid ArrayIndexOutOfBounds if more mediaTypes are added,
+                        // but mediaTypeSize is not updated
+                        if (mediaType < countPerMediaType.length) {
+                            countPerMediaType[mediaType]++;
+                        }
                     }
                 }
             } finally {
@@ -538,6 +568,10 @@ public class ModernMediaScanner implements MediaScanner {
                 }
                 applyPending();
             } finally {
+                if (mUnknownIds.size() > 0) {
+                    String scanReason = "scan triggered by reason: " + translateReason(mReason);
+                    Metrics.logDeletionPersistent(mVolumeName, scanReason, countPerMediaType);
+                }
                 Trace.endSection();
             }
         }
@@ -734,8 +768,8 @@ public class ModernMediaScanner implements MediaScanner {
 
                     final boolean sameMetadata =
                             hasSameMetadata(attrs, realFile, isPendingFromFuse, c);
-                    if (isSame(
-                            sameMetadata, actualMimeType, actualMediaType, mimeType, mediaType)) {
+                    final boolean sameMediaType = actualMediaType == mediaType;
+                    if (sameMetadata && sameMediaType) {
                         if (LOGV) Log.v(TAG, "Skipping unchanged " + file);
                         return FileVisitResult.CONTINUE;
                     }
@@ -747,21 +781,6 @@ public class ModernMediaScanner implements MediaScanner {
                             && "audio/mp4".equalsIgnoreCase(mimeType)) {
                         if (LOGV) Log.v(TAG, "Skipping unchanged video/audio " + file);
                         return FileVisitResult.CONTINUE;
-                    }
-
-                    // "audio/mp4" mime types can come from various extensions (e.g. 3ga, m4a). We
-                    // want to avoid unnecessary scans of these files (it takes a long time for
-                    // many files, e.g. on phone reboot), so we check the mime type from the file's
-                    // metadata. We avoid always checking the file's metadata (and only do it for
-                    // this narrow case) since it involves expensive file operations.
-                    if (sameMetadata
-                            && (actualMediaType == mediaType)
-                            && "audio/mp4".equalsIgnoreCase(mimeType)) {
-                        actualMimeType = getAudioMimeTypeFromMetadata(realFile, actualMimeType);
-                        if (mimeType.equalsIgnoreCase(actualMimeType)) {
-                            if (LOGV) Log.v(TAG, "Skipping unchanged audio/mp4 " + file);
-                            return FileVisitResult.CONTINUE;
-                        }
                     }
                 }
 
@@ -799,20 +818,6 @@ public class ModernMediaScanner implements MediaScanner {
                 maybeApplyPending();
             }
             return FileVisitResult.CONTINUE;
-        }
-
-        private boolean isSame(
-                boolean hasSameMetadata,
-                String actualMimeType,
-                int actualMediaType,
-                String mimeType,
-                int mediaType) {
-            boolean sameMimeType =
-                    mimeType == null
-                            ? actualMimeType == null
-                            : mimeType.equalsIgnoreCase(actualMimeType);
-            boolean sameMediaType = (actualMediaType == mediaType);
-            return hasSameMetadata && sameMediaType && sameMimeType;
         }
 
         private int mediaTypeFromMimeType(
@@ -858,25 +863,6 @@ public class ModernMediaScanner implements MediaScanner {
                 }
             }
             return defaultMimeType;
-        }
-
-        /**
-         * Returns the mime type as read from the metadata of the given file or the given default
-         * value if we cannot read the metadata. We want to avoid calling this during sanning,
-         * since it involves expensive file operations.
-         */
-        private String getAudioMimeTypeFromMetadata(File file, String defaultMimeType) {
-            try (
-                    FileInputStream is = new FileInputStream(file);
-                    MediaMetadataRetriever mmr = new MediaMetadataRetriever()) {
-                mmr.setDataSource(is.getFD());
-                Optional<String> optionalMimeType =
-                        parseOptionalMimeType(
-                                defaultMimeType, mmr.extractMetadata(METADATA_KEY_MIMETYPE));
-                return optionalMimeType.orElse(defaultMimeType);
-            } catch (Exception e) {
-                return defaultMimeType;
-            }
         }
 
         @Override
@@ -1238,6 +1224,11 @@ public class ModernMediaScanner implements MediaScanner {
         sAudioTypes.put(Environment.DIRECTORY_PODCASTS, AudioColumns.IS_PODCAST);
         sAudioTypes.put(Environment.DIRECTORY_AUDIOBOOKS, AudioColumns.IS_AUDIOBOOK);
         sAudioTypes.put(Environment.DIRECTORY_MUSIC, AudioColumns.IS_MUSIC);
+        if (SdkLevel.isAtLeastS()) {
+            sAudioTypes.put(Environment.DIRECTORY_RECORDINGS, AudioColumns.IS_RECORDING);
+        } else {
+            sAudioTypes.put(FileUtils.DIRECTORY_RECORDINGS, AudioColumns.IS_RECORDING);
+        }
     }
 
     private static @NonNull ContentProviderOperation.Builder scanItemAudio(long existingId,
@@ -1326,6 +1317,7 @@ public class ModernMediaScanner implements MediaScanner {
         op.withValue(VideoColumns.COLOR_STANDARD, null);
         op.withValue(VideoColumns.COLOR_TRANSFER, null);
         op.withValue(VideoColumns.COLOR_RANGE, null);
+        op.withValue(FileColumns._VIDEO_CODEC_TYPE, null);
 
         try (FileInputStream is = new FileInputStream(file)) {
             try (MediaMetadataRetriever mmr = new MediaMetadataRetriever()) {
@@ -1348,6 +1340,8 @@ public class ModernMediaScanner implements MediaScanner {
                         parseOptional(mmr.extractMetadata(METADATA_KEY_COLOR_TRANSFER)));
                 withOptionalValue(op, VideoColumns.COLOR_RANGE,
                         parseOptional(mmr.extractMetadata(METADATA_KEY_COLOR_RANGE)));
+                withOptionalValue(op, FileColumns._VIDEO_CODEC_TYPE,
+                        parseOptional(mmr.extractMetadata(METADATA_KEY_VIDEO_CODEC_MIME_TYPE)));
             }
 
             // Also hunt around for XMP metadata

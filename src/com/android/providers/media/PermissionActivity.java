@@ -22,10 +22,14 @@ import static com.android.providers.media.MediaProvider.VIDEO_MEDIA_ID;
 import static com.android.providers.media.MediaProvider.collectUris;
 import static com.android.providers.media.util.DatabaseUtils.getAsBoolean;
 import static com.android.providers.media.util.Logging.TAG;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessMediaLocation;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionManageMedia;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionManager;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionReadStorage;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.ProgressDialog;
+import android.app.Dialog;
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -50,7 +54,6 @@ import android.os.Handler;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
 import android.text.TextUtils;
-import android.text.format.DateUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.Size;
@@ -60,10 +63,12 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.MediaProvider.LocalUriMatcher;
 import com.android.providers.media.util.Metrics;
@@ -103,16 +108,28 @@ public class PermissionActivity extends Activity {
 
     private AlertDialog actionDialog;
     private AsyncTask<Void, Void, Void> positiveActionTask;
-    private ProgressDialog progressDialog;
+    private Dialog progressDialog;
     private TextView titleView;
+    private Handler mHandler;
+    private Runnable mShowProgressDialogRunnable = () -> {
+        // We will show the progress dialog, add the dim effect back.
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+        progressDialog.show();
+    };
 
     private static final Long LEAST_SHOW_PROGRESS_TIME_MS = 300L;
+    private static final Long BEFORE_SHOW_PROGRESS_TIME_MS = 300L;
 
-    private static final String VERB_WRITE = "write";
-    private static final String VERB_TRASH = "trash";
+    @VisibleForTesting
+    static final String VERB_WRITE = "write";
+    @VisibleForTesting
+    static final String VERB_TRASH = "trash";
+    @VisibleForTesting
+    static final String VERB_FAVORITE = "favorite";
+    @VisibleForTesting
+    static final String VERB_UNFAVORITE = "unfavorite";
+
     private static final String VERB_UNTRASH = "untrash";
-    private static final String VERB_FAVORITE = "favorite";
-    private static final String VERB_UNFAVORITE = "unfavorite";
     private static final String VERB_DELETE = "delete";
 
     private static final String DATA_AUDIO = "audio";
@@ -136,6 +153,12 @@ public class PermissionActivity extends Activity {
         getWindow().addSystemFlags(
                 WindowManager.LayoutParams.SYSTEM_FLAG_HIDE_NON_SYSTEM_OVERLAY_WINDOWS);
         setFinishOnTouchOutside(false);
+        // remove the dim effect
+        // We may not show the progress dialog, if we don't remove the dim effect,
+        // it may have flicker.
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+        getWindow().setDimAmount(0.0f);
+
 
         // All untrusted input values here were validated when generating the
         // original PendingIntent
@@ -154,30 +177,20 @@ public class PermissionActivity extends Activity {
             return;
         }
 
-        progressDialog = new ProgressDialog(this);
-        progressDialog.setCancelable(false);
+        mHandler = new Handler(getMainLooper());
+        // Create Progress dialog
+        createProgressDialog();
 
-        // Favorite-related requests are automatically granted for now; we still
-        // make developers go through this no-op dialog flow to preserve our
-        // ability to start prompting in the future
-        switch (verb) {
-            case VERB_FAVORITE:
-            case VERB_UNFAVORITE: {
-                onPositiveAction(null, 0);
-                return;
-            }
+        if (!shouldShowActionDialog(this, -1 /* pid */, appInfo.uid, getCallingPackage(),
+                null /* attributionTag */, verb)) {
+            onPositiveAction(null, 0);
+            return;
         }
+
         // Kick off async loading of description to show in dialog
         final View bodyView = getLayoutInflater().inflate(R.layout.permission_body, null, false);
         handleImageViewVisibility(bodyView, uris);
         new DescriptionTask(bodyView).execute(uris);
-
-        final CharSequence message = resolveMessageText();
-        if (!TextUtils.isEmpty(message)) {
-            final TextView messageView = bodyView.requireViewById(R.id.message);
-            messageView.setVisibility(View.VISIBLE);
-            messageView.setText(message);
-        }
 
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         // We set the title in message so that the text doesn't get truncated
@@ -194,8 +207,7 @@ public class PermissionActivity extends Activity {
         TextView dialogMessage = (TextView) actionDialog.findViewById(
                 android.R.id.message);
         if (dialogMessage != null) {
-            dialogMessage.setTextAppearance(
-                    android.R.style.TextAppearance_DeviceDefault_DialogWindowTitle);
+            dialogMessage.setTextAppearance(R.style.PermissionAlertDialogTitle);
         } else {
             Log.w(TAG, "Couldn't find message element");
         }
@@ -212,9 +224,23 @@ public class PermissionActivity extends Activity {
                 });
     }
 
+    private void createProgressDialog() {
+        final ProgressBar progressBar = new ProgressBar(this);
+        final int padding = getResources().getDimensionPixelOffset(R.dimen.dialog_space);
+
+        progressBar.setIndeterminate(true);
+        progressBar.setPadding(0, padding / 2, 0, padding);
+        progressDialog = new AlertDialog.Builder(this)
+                .setTitle(resolveProgressMessageText())
+                .setView(progressBar)
+                .setCancelable(false)
+                .create();
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
+        mHandler.removeCallbacks(mShowProgressDialogRunnable);
         // Cancel and interrupt the AsyncTask of the positive action. This avoids
         // calling the old activity during "onPostExecute", but the AsyncTask could
         // still finish its background task. For now we are ok with:
@@ -240,8 +266,10 @@ public class PermissionActivity extends Activity {
             ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(false);
         }
 
-        progressDialog.show();
         final long startTime = System.currentTimeMillis();
+
+        mHandler.postDelayed(mShowProgressDialogRunnable, BEFORE_SHOW_PROGRESS_TIME_MS);
+
         positiveActionTask = new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... params) {
@@ -292,17 +320,23 @@ public class PermissionActivity extends Activity {
             @Override
             protected void onPostExecute(Void result) {
                 setResult(Activity.RESULT_OK);
-                // Don't dismiss the progress dialog too quick, it will cause bad UX.
-                final long duration = System.currentTimeMillis() - startTime;
-                if (duration > LEAST_SHOW_PROGRESS_TIME_MS) {
-                    progressDialog.dismiss();
+                mHandler.removeCallbacks(mShowProgressDialogRunnable);
+
+                if (!progressDialog.isShowing()) {
                     finish();
                 } else {
-                    Handler handler = new Handler(getMainLooper());
-                    handler.postDelayed(() -> {
+                    // Don't dismiss the progress dialog too quick, it will cause bad UX.
+                    final long duration =
+                            System.currentTimeMillis() - startTime - BEFORE_SHOW_PROGRESS_TIME_MS;
+                    if (duration > LEAST_SHOW_PROGRESS_TIME_MS) {
                         progressDialog.dismiss();
                         finish();
-                    }, LEAST_SHOW_PROGRESS_TIME_MS - duration);
+                    } else {
+                        mHandler.postDelayed(() -> {
+                            progressDialog.dismiss();
+                            finish();
+                        }, LEAST_SHOW_PROGRESS_TIME_MS - duration);
+                    }
                 }
             }
         }.execute();
@@ -336,6 +370,37 @@ public class PermissionActivity extends Activity {
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         // Strategy borrowed from PermissionController
         return keyCode == KeyEvent.KEYCODE_BACK;
+    }
+
+    @VisibleForTesting
+    static boolean shouldShowActionDialog(@NonNull Context context, int pid, int uid,
+            @NonNull String packageName, @Nullable String attributionTag, @NonNull String verb) {
+        // Favorite-related requests are automatically granted for now; we still
+        // make developers go through this no-op dialog flow to preserve our
+        // ability to start prompting in the future
+        if (TextUtils.equals(VERB_FAVORITE, verb) || TextUtils.equals(VERB_UNFAVORITE, verb)) {
+            return false;
+        }
+
+        // check READ_EXTERNAL_STORAGE and MANAGE_EXTERNAL_STORAGE permissions
+        if (!checkPermissionReadStorage(context, pid, uid, packageName, attributionTag)
+                && !checkPermissionManager(context, pid, uid, packageName, attributionTag)) {
+            Log.d(TAG, "No permission READ_EXTERNAL_STORAGE or MANAGE_EXTERNAL_STORAGE");
+            return true;
+        }
+        // check MANAGE_MEDIA permission
+        if (!checkPermissionManageMedia(context, pid, uid, packageName, attributionTag)) {
+            Log.d(TAG, "No permission MANAGE_MEDIA");
+            return true;
+        }
+
+        // if verb is write, check ACCESS_MEDIA_LOCATION permission
+        if (TextUtils.equals(verb, VERB_WRITE) && !checkPermissionAccessMediaLocation(context, pid,
+                uid, packageName, attributionTag)) {
+            Log.d(TAG, "No permission ACCESS_MEDIA_LOCATION");
+            return true;
+        }
+        return false;
     }
 
     private void handleImageViewVisibility(View bodyView, List<Uri> uris) {
@@ -452,41 +517,22 @@ public class PermissionActivity extends Activity {
     }
 
     /**
-     * Resolve the dialog message string to be displayed to the user, if any.
-     * All arguments have been bound and this string is ready to be displayed.
+     * Resolve the progress message string to be displayed to the user. All
+     * arguments have been bound and this string is ready to be displayed.
      */
-    private @Nullable CharSequence resolveMessageText() {
-        final String resName = "permission_" + verb + "_" + data + "_info";
+    private @Nullable CharSequence resolveProgressMessageText() {
+        final String resName = "permission_progress_" + verb + "_" + data;
         final int resId = getResources().getIdentifier(resName, "plurals",
                 getResources().getResourcePackageName(R.string.app_label));
         if (resId != 0) {
             final int count = uris.size();
-            final long durationMillis = (values.getAsLong(MediaColumns.DATE_EXPIRES) * 1000)
-                    - System.currentTimeMillis();
-            final long durationDays = (durationMillis + DateUtils.DAY_IN_MILLIS)
-                    / DateUtils.DAY_IN_MILLIS;
             final CharSequence text = getResources().getQuantityText(resId, count);
-            return TextUtils.expandTemplate(text, label, String.valueOf(count),
-                    String.valueOf(durationDays));
+            return TextUtils.expandTemplate(text, String.valueOf(count));
         } else {
-            // Only some actions have a secondary message string; it's okay if
+            // Only some actions have a progress message string; it's okay if
             // there isn't one defined
             return null;
         }
-    }
-
-    private @NonNull CharSequence resolvePositiveText() {
-        final String resName = "permission_" + verb + "_grant";
-        final int resId = getResources().getIdentifier(resName, "string",
-                getResources().getResourcePackageName(R.string.app_label));
-        return getResources().getText(resId);
-    }
-
-    private @NonNull CharSequence resolveNegativeText() {
-        final String resName = "permission_" + verb + "_deny";
-        final int resId = getResources().getIdentifier(resName, "string",
-                getResources().getResourcePackageName(R.string.app_label));
-        return getResources().getText(resId);
     }
 
     /**

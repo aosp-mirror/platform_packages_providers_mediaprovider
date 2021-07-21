@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="5" by="lint 4.1.0" client="cli" variant="all" version="4.1.0">
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 31 (current min is 30): `android.os.storage.StorageVolume#getStorageUuid`"
+        errorLine1="                mTranscodeVolumeUuid = vol.getStorageUuid();"
+        errorLine2="                                           ~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/src/com/android/providers/media/TranscodeHelper.java"
+            line="311"
+            column="44"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 31 (current min is 30): `android.content.pm.PackageManager#getProperty`"
+        errorLine1="            Property mediaCapProperty = mPackageManager.getProperty("
+        errorLine2="                                                        ~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/src/com/android/providers/media/TranscodeHelper.java"
+            line="827"
+            column="57"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 31 (current min is 30): `android.content.pm.PackageManager.Property#getResourceId`"
+        errorLine1="                    .getXml(mediaCapProperty.getResourceId());"
+        errorLine2="                                             ~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/src/com/android/providers/media/TranscodeHelper.java"
+            line="830"
+            column="46"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 31 (current min is 30): `android.media.ApplicationMediaCapabilities#createFromXml`"
+        errorLine1="            ApplicationMediaCapabilities capability = ApplicationMediaCapabilities.createFromXml("
+        errorLine2="                                                                                   ~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/src/com/android/providers/media/TranscodeHelper.java"
+            line="831"
+            column="84"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 31 (current min is 30): `android.media.ApplicationMediaCapabilities#isFormatSpecified`"
+        errorLine1="        if (capability.isFormatSpecified(MediaFormat.MIMETYPE_VIDEO_HEVC)) {"
+        errorLine2="                       ~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/src/com/android/providers/media/TranscodeHelper.java"
+            line="852"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 31 (current min is 30): `android.media.ApplicationMediaCapabilities#isVideoMimeTypeSupported`"
+        errorLine1="            if (capability.isVideoMimeTypeSupported(MediaFormat.MIMETYPE_VIDEO_HEVC)) {"
+        errorLine2="                           ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/src/com/android/providers/media/TranscodeHelper.java"
+            line="853"
+            column="28"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 31 (current min is 30): `android.media.ApplicationMediaCapabilities#isFormatSpecified`"
+        errorLine1="        if (capability.isFormatSpecified(MediaFeature.HdrType.HDR10)) {"
+        errorLine2="                       ~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/src/com/android/providers/media/TranscodeHelper.java"
+            line="861"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 31 (current min is 30): `android.media.ApplicationMediaCapabilities#isHdrTypeSupported`"
+        errorLine1="            if (capability.isHdrTypeSupported(MediaFeature.HdrType.HDR10)) {"
+        errorLine2="                           ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/src/com/android/providers/media/TranscodeHelper.java"
+            line="862"
+            column="28"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 31 (current min is 30): `android.media.ApplicationMediaCapabilities#isFormatSpecified`"
+        errorLine1="        if (capability.isFormatSpecified(MediaFeature.HdrType.HDR10_PLUS)) {"
+        errorLine2="                       ~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/src/com/android/providers/media/TranscodeHelper.java"
+            line="869"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 31 (current min is 30): `android.media.ApplicationMediaCapabilities#isHdrTypeSupported`"
+        errorLine1="            if (capability.isHdrTypeSupported(MediaFeature.HdrType.HDR10_PLUS)) {"
+        errorLine2="                           ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/src/com/android/providers/media/TranscodeHelper.java"
+            line="870"
+            column="28"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 31 (current min is 30): `android.media.ApplicationMediaCapabilities#isFormatSpecified`"
+        errorLine1="        if (capability.isFormatSpecified(MediaFeature.HdrType.HLG)) {"
+        errorLine2="                       ~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/src/com/android/providers/media/TranscodeHelper.java"
+            line="877"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 31 (current min is 30): `android.media.ApplicationMediaCapabilities#isHdrTypeSupported`"
+        errorLine1="            if (capability.isHdrTypeSupported(MediaFeature.HdrType.HLG)) {"
+        errorLine2="                           ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/src/com/android/providers/media/TranscodeHelper.java"
+            line="878"
+            column="28"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 31 (current min is 30): `android.media.ApplicationMediaCapabilities#isFormatSpecified`"
+        errorLine1="        if (capability.isFormatSpecified(MediaFeature.HdrType.DOLBY_VISION)) {"
+        errorLine2="                       ~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/src/com/android/providers/media/TranscodeHelper.java"
+            line="885"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 31 (current min is 30): `android.media.ApplicationMediaCapabilities#isHdrTypeSupported`"
+        errorLine1="            if (capability.isHdrTypeSupported(MediaFeature.HdrType.DOLBY_VISION)) {"
+        errorLine2="                           ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/src/com/android/providers/media/TranscodeHelper.java"
+            line="886"
+            column="28"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 31 (current min is 30): `android.media.ApplicationMediaCapabilities.Builder#build`"
+        errorLine1="                        new ApplicationMediaCapabilities.Builder().build();"
+        errorLine2="                                                                   ~~~~~">
+        <location
+            file="packages/providers/MediaProvider/src/com/android/providers/media/TranscodeHelper.java"
+            line="1079"
+            column="68"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 31 (current min is 30): `new android.media.ApplicationMediaCapabilities.Builder`"
+        errorLine1="                        new ApplicationMediaCapabilities.Builder().build();"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/src/com/android/providers/media/TranscodeHelper.java"
+            line="1079"
+            column="25"/>
+    </issue>
+
+</issues>

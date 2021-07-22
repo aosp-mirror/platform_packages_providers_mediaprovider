@@ -76,8 +76,10 @@ import static com.android.providers.media.util.FileUtils.extractTopLevelDir;
 import static com.android.providers.media.util.FileUtils.extractVolumeName;
 import static com.android.providers.media.util.FileUtils.extractVolumePath;
 import static com.android.providers.media.util.FileUtils.getAbsoluteSanitizedPath;
+import static com.android.providers.media.util.FileUtils.isCrossUserEnabled;
 import static com.android.providers.media.util.FileUtils.isDataOrObbPath;
 import static com.android.providers.media.util.FileUtils.isDownload;
+import static com.android.providers.media.util.FileUtils.isExternalMediaDirectory;
 import static com.android.providers.media.util.FileUtils.isObbOrChildPath;
 import static com.android.providers.media.util.FileUtils.sanitizePath;
 import static com.android.providers.media.util.Logging.LOGV;
@@ -360,10 +362,6 @@ public class MediaProvider extends ContentProvider {
     // Stolen from: UserHandle#getUserId
     private static final int PER_USER_RANGE = 100000;
     private static final int MY_UID = android.os.Process.myUid();
-    private static final boolean PROP_CROSS_USER_ALLOWED =
-            SystemProperties.getBoolean("external_storage.cross_user.enabled", false);
-    private static final String PROP_CROSS_USER_ROOT =
-            SystemProperties.get("external_storage.cross_user.root", null);
 
     /**
      * Set of {@link Cursor} columns that refer to raw filesystem paths.
@@ -826,11 +824,6 @@ public class MediaProvider extends ContentProvider {
                         id, mediaType, isDownload);
                 break;
         }
-    }
-
-    private static boolean isCrossUserEnabled() {
-        return ((PROP_CROSS_USER_ALLOWED && Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) ||
-                SdkLevel.isAtLeastS());
     }
 
     /**
@@ -3313,18 +3306,9 @@ public class MediaProvider extends ContentProvider {
 
             // Next, consider allowing based on allowed primary directory
             final String[] relativePath = values.getAsString(MediaColumns.RELATIVE_PATH).split("/");
-            final String primary = (relativePath.length > 0) ? relativePath[0] : null;
+            final String primary = extractTopLevelDir(relativePath);
             if (!validPath) {
                 validPath = containsIgnoreCase(allowedPrimary, primary);
-                if (!validPath) {
-                    // Some app-clone implementations use a subdirectory of the main user's root
-                    // to store app clone files; allow these as well.
-                    if (isCrossUserEnabled() && primary != null &&
-                        primary.equals(PROP_CROSS_USER_ROOT) && relativePath.length >= 2) {
-                        final String crossUserPrimary = relativePath[1];
-                        validPath = containsIgnoreCase(allowedPrimary, crossUserPrimary);
-                    }
-                }
             }
 
             // Next, consider allowing paths when referencing a related item
@@ -7776,10 +7760,9 @@ public class MediaProvider extends ContentProvider {
             return false;
         }
 
-        final String relativePath = extractRelativePath(path);
         // Android/media is not considered private, because it contains media that is explicitly
         // scanned and shared by other apps
-        if (relativePath.startsWith("Android/media")) {
+        if (isExternalMediaDirectory(path)) {
             return false;
         }
         return !isUidAllowedAccessToDataOrObbPathForFuse(mCallingIdentity.get().uid, path);
@@ -8353,14 +8336,6 @@ public class MediaProvider extends ContentProvider {
         } finally {
             clearLocalCallingIdentity(token);
         }
-    }
-
-    private boolean isExternalMediaDirectory(@NonNull String path) {
-        final String relativePath = extractRelativePath(path);
-        if (relativePath != null) {
-            return relativePath.startsWith("Android/media");
-        }
-        return false;
     }
 
     private Uri insertFileForFuse(@NonNull String path, @NonNull Uri uri, @NonNull String mimeType,

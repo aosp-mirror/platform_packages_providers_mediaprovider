@@ -47,9 +47,11 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.os.UserHandle;
+import android.os.SystemProperties;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
@@ -945,24 +947,39 @@ public class FileUtils {
         return PATTERN_DOWNLOADS_DIRECTORY.matcher(path).matches();
     }
 
+    private static final boolean PROP_CROSS_USER_ALLOWED =
+            SystemProperties.getBoolean("external_storage.cross_user.enabled", false);
+
+    private static final String PROP_CROSS_USER_ROOT = isCrossUserEnabled()
+            ? SystemProperties.get("external_storage.cross_user.root", "") : "";
+
+    private static final String PROP_CROSS_USER_ROOT_PATTERN = ((PROP_CROSS_USER_ROOT.isEmpty())
+            ? "" : "(?:" + PROP_CROSS_USER_ROOT + "/)?");
+
     /**
      * Regex that matches paths in all well-known package-specific directories,
      * and which captures the package name as the first group.
      */
     public static final Pattern PATTERN_OWNED_PATH = Pattern.compile(
-            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|media|obb)/([^/]+)(/?.*)?");
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?"
+            + PROP_CROSS_USER_ROOT_PATTERN
+            + "Android/(?:data|media|obb)/([^/]+)(/?.*)?");
 
     /**
      * Regex that matches Android/obb or Android/data path.
      */
     public static final Pattern PATTERN_DATA_OR_OBB_PATH = Pattern.compile(
-            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:data|obb)/?$");
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?"
+            + PROP_CROSS_USER_ROOT_PATTERN
+            + "Android/(?:data|obb)/?$");
 
     /**
      * Regex that matches Android/obb paths.
      */
     public static final Pattern PATTERN_OBB_OR_CHILD_PATH = Pattern.compile(
-            "(?i)^/storage/[^/]+/(?:[0-9]+/)?Android/(?:obb)(/?.*)");
+            "(?i)^/storage/[^/]+/(?:[0-9]+/)?"
+            + PROP_CROSS_USER_ROOT_PATTERN
+            + "Android/(?:obb)(/?.*)");
 
     /**
      * The recordings directory. This is used for R OS. For S OS or later,
@@ -1026,6 +1043,10 @@ public class FileUtils {
 
     private static final String CAMERA_RELATIVE_PATH =
             String.format("%s/%s/", Environment.DIRECTORY_DCIM, "Camera");
+
+    public static boolean isCrossUserEnabled() {
+        return PROP_CROSS_USER_ALLOWED || SdkLevel.isAtLeastS();
+    }
 
     private static @Nullable String normalizeUuid(@Nullable String fsUuid) {
         return fsUuid != null ? fsUuid.toLowerCase(Locale.ROOT) : null;
@@ -1126,6 +1147,21 @@ public class FileUtils {
         }
     }
 
+    public static boolean isExternalMediaDirectory(@NonNull String path) {
+        return isExternalMediaDirectory(path, PROP_CROSS_USER_ROOT);
+    }
+
+    @VisibleForTesting
+    static boolean isExternalMediaDirectory(@NonNull String path, String crossUserRoot) {
+        final String relativePath = extractRelativePath(path);
+        if (relativePath != null) {
+            final String externalMediaDir = (crossUserRoot == null || crossUserRoot.isEmpty())
+                    ? "Android/media" : crossUserRoot + "/Android/media";
+            return relativePath.startsWith(externalMediaDir);
+        }
+        return false;
+    }
+
     /**
      * Returns true if relative path is Android/data or Android/obb path.
      */
@@ -1154,8 +1190,26 @@ public class FileUtils {
         if (relativePath == null) {
             return null;
         }
-        final String[] relativePathSegments = relativePath.split("/");
-        return relativePathSegments.length > 0 ? relativePathSegments[0] : null;
+
+        return extractTopLevelDir(relativePath.split("/"));
+    }
+
+    @Nullable
+    public static String extractTopLevelDir(String[] relativePathSegments) {
+        return extractTopLevelDir(relativePathSegments, PROP_CROSS_USER_ROOT);
+    }
+
+    @VisibleForTesting
+    @Nullable
+    static String extractTopLevelDir(String[] relativePathSegments, String crossUserRoot) {
+        if (relativePathSegments == null) return null;
+
+        final String topLevelDir = relativePathSegments.length > 0 ? relativePathSegments[0] : null;
+        if (crossUserRoot != null && crossUserRoot.equals(topLevelDir)) {
+            return relativePathSegments.length > 1 ? relativePathSegments[1] : null;
+        }
+
+        return topLevelDir;
     }
 
     public static boolean isDefaultDirectoryName(@Nullable String dirName) {

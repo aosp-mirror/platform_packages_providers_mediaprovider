@@ -34,6 +34,8 @@
     <dimen name="picker_item_badge_margin">5dp</dimen>
     <dimen name="picker_item_badge_text_margin">3dp</dimen>
     <dimen name="picker_item_badge_text_size">10dp</dimen>
+    <dimen name="picker_item_gif_badge_margin">3dp</dimen>
+    <dimen name="picker_item_gradient_height">56dp</dimen>
 
     <dimen name="picker_date_header_height">56dp</dimen>
     <dimen name="picker_date_header_padding">16dp</dimen>

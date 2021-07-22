@@ -1597,6 +1597,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("UPDATE files SET _modifier=3;");
     }
 
+    private static void updateAddDeletedMediaTable(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE deleted_media (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                        + "old_id INTEGER UNIQUE, generation_modified INTEGER NOT NULL)");
+    }
+
     private void updateUserId(SQLiteDatabase db) {
         db.execSQL(String.format("ALTER TABLE files ADD COLUMN _user_id INTEGER DEFAULT %d;",
                 UserHandle.myUserId()));
@@ -1841,8 +1846,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 // Empty version bump to ensure views are recreated
             }
             if (fromVersion < 1301) {
-                db.execSQL("CREATE TABLE deleted_media (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                        + "old_id INTEGER UNIQUE, generation_modified INTEGER NOT NULL)");
+                updateAddDeletedMediaTable(db);
             }
 
             // If this is the legacy database, it's not worth recomputing data

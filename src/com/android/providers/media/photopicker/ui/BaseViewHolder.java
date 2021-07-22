@@ -21,6 +21,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 /**
@@ -28,15 +29,16 @@ import androidx.recyclerview.widget.RecyclerView;
  */
 public abstract class BaseViewHolder extends RecyclerView.ViewHolder {
 
-    public BaseViewHolder(Context context, ViewGroup parent, int layout) {
+    public BaseViewHolder(@NonNull Context context, @NonNull ViewGroup parent, int layout) {
         this(context, inflateLayout(context, parent, layout));
     }
 
-    public BaseViewHolder(Context context, View view) {
+    public BaseViewHolder(@NonNull Context context, @NonNull View view) {
         super(view);
     }
 
-    private static <V extends View> V inflateLayout(Context context, ViewGroup parent, int layout) {
+    private static <V extends View> V inflateLayout(@NonNull Context context,
+            @NonNull ViewGroup parent, int layout) {
         final LayoutInflater inflater = LayoutInflater.from(context);
         return (V) inflater.inflate(layout, parent, false);
     }

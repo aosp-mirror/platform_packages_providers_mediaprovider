@@ -129,7 +129,8 @@ public class PreviewFragment extends Fragment {
         // TODO(185801129): Change the layout of the toolbar or add new toolbar that can overlap
         // with image/video preview if necessary
         getActivity().setTitle("");
-        ((PhotoPickerActivity) getActivity()).updateToolbar(/* showTabChips= */ false);
+        ((PhotoPickerActivity) getActivity()).updateToolbar(/* showTabChips= */ false,
+                /* isLightBackgroundMode= */ false);
 
         // This is necessary to ensure we call ViewHolder#bind() onResume()
         if (mAdapter != null) {

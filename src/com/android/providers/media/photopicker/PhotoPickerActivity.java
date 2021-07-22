@@ -22,6 +22,10 @@ import android.annotation.IntDef;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.SystemProperties;
 import android.provider.MediaStore;
@@ -30,6 +34,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsetsController;
 import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.Toast;
@@ -40,7 +45,6 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.android.providers.media.R;
-
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
@@ -123,7 +127,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
     public void setTitle(CharSequence title) {
         super.setTitle(title);
         getSupportActionBar().setTitle(title);
-        updateToolbar(TextUtils.isEmpty(title));
+        updateToolbar(TextUtils.isEmpty(title), /* isLightBackgroundMode= */ true);
     }
 
     /**
@@ -292,18 +296,62 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     /**
-     * Update the icons and show/hide the tab chips with {@code shouldShowTabChips}
+     * Update the icons and show/hide the tab chips with {@code shouldShowTabChips}.
+     *
+     * When the tab chips are shown, picker is always in light background mode.
+     * When the tab chips are not shown, whether picker is in light background mode or dark
+     * background mode depends on {@code isLightBackgroundMode}.
      *
      * @param shouldShowTabChips {@code true}, show the tab chips and show close icon. Otherwise,
      *                           hide the tab chips and show back icon
+     * @param isLightBackgroundMode {@code true}, show light background and dark icon.
+     *                              Otherwise, show dark background and light icon.
+     *
      */
-    public void updateToolbar(boolean shouldShowTabChips) {
+    public void updateToolbar(boolean shouldShowTabChips, boolean isLightBackgroundMode) {
         if (shouldShowTabChips) {
             getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_close);
+            getSupportActionBar().setBackgroundDrawable(
+                    new ColorDrawable(getColor(R.color.picker_background_color)));
             mTabChipContainer.setVisibility(View.VISIBLE);
+            // In show tab chips case, picker is always in lightBackground mode in light theme.
+            updateStatusBarAndNavBar(/* isLightBackgroundMode= */ true);
         } else {
-            getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_arrow_back);
+            final Drawable icon = getDrawable(R.drawable.ic_arrow_back);
+            if (isLightBackgroundMode) {
+                icon.setTint(getColor(R.color.picker_toolbar_icon_color));
+                getSupportActionBar().setBackgroundDrawable(
+                        new ColorDrawable(getColor(R.color.picker_background_color)));
+            } else {
+                icon.setTint(Color.WHITE);
+                getSupportActionBar().setBackgroundDrawable(
+                        new ColorDrawable(getColor(R.color.preview_default_black)));
+            }
+            updateStatusBarAndNavBar(isLightBackgroundMode);
+            getSupportActionBar().setHomeAsUpIndicator(icon);
             mTabChipContainer.setVisibility(View.GONE);
         }
+    }
+
+    private void updateStatusBarAndNavBar(boolean isLightBackgroundMode) {
+        final int mask = WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+                | WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS;
+        final int backgroundColor;
+        if (isLightBackgroundMode) {
+            backgroundColor = getColor(R.color.picker_background_color);
+
+            final int uiModeNight =
+                    getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+
+            // if the system is not in Dark theme, set the system bars to light mode.
+            if (uiModeNight == Configuration.UI_MODE_NIGHT_NO) {
+                getWindow().getInsetsController().setSystemBarsAppearance(mask, mask);
+            }
+        } else {
+            backgroundColor = getColor(R.color.preview_default_black);
+            getWindow().getInsetsController().setSystemBarsAppearance(/* appearance= */ 0, mask);
+        }
+        getWindow().setStatusBarColor(backgroundColor);
+        getWindow().setNavigationBarColor(backgroundColor);
     }
 }

@@ -83,7 +83,12 @@ public class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     @Override
     public int getItemViewType(int position) {
-        return mItemList.get(position).isImage() ? ITEM_TYPE_IMAGE : ITEM_TYPE_VIDEO;
+        if (mItemList.get(position).isVideo()) {
+            return ITEM_TYPE_VIDEO;
+        }
+        // Everything other than video mimeType are previewed using PreviewImageHolder. This also
+        // includes GIF which uses Glide to load image.
+        return ITEM_TYPE_IMAGE;
     }
 
     public Item getItem(int position) {

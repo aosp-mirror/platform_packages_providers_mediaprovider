@@ -54,21 +54,21 @@ public class PickerDbFacadeForPicker {
     private static final String TABLE_MEDIA = "media";
 
     @VisibleForTesting
-    static final String KEY_ID = "_id";
+    public static final String KEY_ID = "_id";
     @VisibleForTesting
-    static final String KEY_LOCAL_ID = "local_id";
+    public static final String KEY_LOCAL_ID = "local_id";
     @VisibleForTesting
-    static final String KEY_CLOUD_ID = "cloud_id";
+    public static final String KEY_CLOUD_ID = "cloud_id";
     @VisibleForTesting
-    static final String KEY_IS_VISIBLE = "is_visible";
+    public static final String KEY_IS_VISIBLE = "is_visible";
     @VisibleForTesting
-    static final String KEY_DATE_TAKEN_MS = "date_taken_ms";
+    public static final String KEY_DATE_TAKEN_MS = "date_taken_ms";
     @VisibleForTesting
-    static final String KEY_SIZE_BYTES = "size_bytes";
+    public static final String KEY_SIZE_BYTES = "size_bytes";
     @VisibleForTesting
-    static final String KEY_DURATION_MS = "duration_ms";
+    public static final String KEY_DURATION_MS = "duration_ms";
     @VisibleForTesting
-    static final String KEY_MIME_TYPE = "mime_type";
+    public static final String KEY_MIME_TYPE = "mime_type";
 
     private static final String WHERE_ID = KEY_ID + " = ?";
     private static final String WHERE_LOCAL_ID = KEY_LOCAL_ID + " = ?";

@@ -195,7 +195,10 @@ import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
 import com.android.providers.media.fuse.FuseDaemon;
 import com.android.providers.media.metrics.PulledMetrics;
+import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.ExternalDbFacadeForPicker;
+import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
+import com.android.providers.media.photopicker.data.PickerDbFacadeForPicker;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
@@ -673,7 +676,7 @@ public class MediaProvider extends ContentProvider {
                 MediaDocumentsProvider.onMediaStoreInsert(getContext(), volumeName, mediaType, id);
 
                 if (mExternalDbFacade.onFileInserted(mediaType, isPending)) {
-                    // TODO(b/190713331): Notify PhotoPicker
+                    mPickerSyncController.notifyMediaEvent();
                 }
             });
         }
@@ -699,7 +702,7 @@ public class MediaProvider extends ContentProvider {
 
                 if (mExternalDbFacade.onFileUpdated(oldId, oldMediaType, newMediaType, oldIsTrashed,
                                 newIsTrashed, oldIsPending, newIsPending)) {
-                    // TODO(b/190713331): Notify PhotoPicker
+                    mPickerSyncController.notifyMediaEvent();
                 }
             });
 
@@ -748,7 +751,7 @@ public class MediaProvider extends ContentProvider {
                 MediaDocumentsProvider.onMediaStoreDelete(getContext(), volumeName, mediaType, id);
 
                 if (mExternalDbFacade.onFileDeleted(id, mediaType)) {
-                    // TODO(b/190713331): Notify photo picker
+                    mPickerSyncController.notifyMediaEvent();
                 }
             });
         }
@@ -940,7 +943,10 @@ public class MediaProvider extends ContentProvider {
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false, false,
                 Column.class, Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER,
                 mIdGenerator);
+        mPickerDatabase = new PickerDatabaseHelper(context);
         mExternalDbFacade = new ExternalDbFacadeForPicker(mExternalDatabase);
+        mPickerDbFacade = new PickerDbFacadeForPicker(mPickerDatabase.getWritableDatabase());
+        mPickerSyncController = new PickerSyncController(context, mPickerDbFacade);
 
         if (SdkLevel.isAtLeastS()) {
             mTranscodeHelper = new TranscodeHelperImpl(context, this);
@@ -9593,7 +9599,10 @@ public class MediaProvider extends ContentProvider {
 
     private DatabaseHelper mInternalDatabase;
     private DatabaseHelper mExternalDatabase;
+    private PickerDatabaseHelper mPickerDatabase;
+    private PickerDbFacadeForPicker mPickerDbFacade;
     private ExternalDbFacadeForPicker mExternalDbFacade;
+    private PickerSyncController mPickerSyncController;
     private TranscodeHelper mTranscodeHelper;
 
     // name of the volume currently being scanned by the media scanner (or null)
@@ -9879,6 +9888,10 @@ public class MediaProvider extends ContentProvider {
 
     public DatabaseHelper getExternalDatabaseHelper() {
         return mExternalDatabase;
+    }
+
+    public PickerSyncController getPickerSyncController() {
+        return mPickerSyncController;
     }
 
     private boolean isCallingPackageSystemGallery() {

@@ -9378,6 +9378,12 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    public boolean isVolumeAttached(MediaVolume volume) {
+        synchronized (mAttachedVolumes) {
+            return mAttachedVolumes.contains(volume);
+        }
+    }
+
     public void detachVolume(MediaVolume volume) {
         if (mCallingIdentity.get().pid != android.os.Process.myPid()) {
             throw new SecurityException(

@@ -46,6 +46,7 @@
     <string name="add" msgid="2894574044585549298">"যোগ করুন"</string>
     <string name="deselect" msgid="4297825044827769490">"টিক চিহ্নটি সরিয়ে দিন"</string>
     <string name="select" msgid="2704765470563027689">"বেছে নিন"</string>
+    <!-- no translation found for select_up_to (2878367759927215675) -->
     <string name="recent" msgid="6694613584743207874">"সাম্প্রতিক"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"ভিউ বেছে নেওয়া হয়েছে"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ফটো"</string>

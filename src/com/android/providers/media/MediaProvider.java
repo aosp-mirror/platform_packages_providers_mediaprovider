@@ -9877,6 +9877,10 @@ public class MediaProvider extends ContentProvider {
         return builder.build();
     }
 
+    public DatabaseHelper getExternalDatabaseHelper() {
+        return mExternalDatabase;
+    }
+
     private boolean isCallingPackageSystemGallery() {
         return mCallingIdentity.get().hasPermission(PERMISSION_IS_SYSTEM_GALLERY);
     }

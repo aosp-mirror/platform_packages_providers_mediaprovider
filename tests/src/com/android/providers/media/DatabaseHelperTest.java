@@ -45,6 +45,7 @@ import android.provider.Column;
 import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.Audio;
 import android.provider.MediaStore.Files.FileColumns;
+import android.system.Os;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -61,6 +62,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.Set;
+import java.util.UUID;
 
 @RunWith(AndroidJUnit4.class)
 public class DatabaseHelperTest {
@@ -622,6 +624,28 @@ public class DatabaseHelperTest {
             assertWithMessage("Current UUID is same as")
                     .that(uuid1).isEqualTo(uuid2);
         }
+    }
+
+    /**
+     * Test that we use {@link DatabaseHelper#XATTR_UUID_V2} for saving UUID
+     */
+    @Test
+    public void testVerifyXATTR_UUID_V2() throws Exception {
+        try (DatabaseHelper helper
+                     = DatabaseHelperT.class.getConstructor(Context.class, String.class)
+                .newInstance(sIsolatedContext, TEST_CLEAN_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            String oldXattrUUID = setAndGetOldUUIDXattr(db);
+            String newXattrUUIDV2 = DatabaseHelper.getUuid(db);
+            assertWithMessage("New XATTR_UUID_V2")
+                    .that(newXattrUUIDV2).isNotEqualTo(oldXattrUUID);
+        }
+    }
+
+    private String setAndGetOldUUIDXattr(SQLiteDatabase db) throws Exception {
+        final String uuid = UUID.randomUUID().toString();
+        Os.setxattr(db.getPath(), "user.uuid", uuid.getBytes(), 0);
+        return uuid;
     }
 
     private static String normalize(String sql) {

@@ -29,6 +29,42 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <provider android:name="com.android.providers.media.photopicker.LocalProvider"
+            android:authorities="com.android.providers.media.photopicker.tests.local"
+            android:exported="false" />
+
+        <provider android:name="com.android.providers.media.cloudproviders.CloudProviderPrimary"
+                  android:authorities="com.android.providers.media.photopicker.tests.cloud_primary"
+                  android:permission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
+                  android:exported="true">
+          <intent-filter>
+            <action android:name="android.content.action.CLOUD_MEDIA_PROVIDER" />
+          </intent-filter>
+        </provider>
+
+        <provider android:name="com.android.providers.media.cloudproviders.CloudProviderSecondary"
+                  android:authorities="com.android.providers.media.photopicker.tests.cloud_secondary"
+                  android:readPermission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
+                  android:exported="true">
+          <intent-filter>
+            <action android:name="android.content.action.CLOUD_MEDIA_PROVIDER" />
+          </intent-filter>
+        </provider>
+
+        <provider android:name="com.android.providers.media.cloudproviders.CloudProviderNoPermission"
+                  android:authorities="com.android.providers.media.photopicker.tests.cloud_no_permission"
+                  android:exported="true">
+          <intent-filter>
+            <action android:name="android.content.action.CLOUD_MEDIA_PROVIDER" />
+          </intent-filter>
+        </provider>
+
+        <provider android:name="com.android.providers.media.cloudproviders.CloudProviderNoIntentFilter"
+                  android:permission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
+                  android:authorities="com.android.providers.media.photopicker.tests.cloud_no_intent_filter"
+                  android:exported="true">
+        </provider>
     </application>
 
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"

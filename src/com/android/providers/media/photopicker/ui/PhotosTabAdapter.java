@@ -112,7 +112,8 @@ public class PhotosTabAdapter extends RecyclerView.Adapter<BaseViewHolder> {
             public int getSpanSize(int position) {
                 // Make layout whitespace span the grid. This has the effect of breaking
                 // grid rows whenever layout whitespace is encountered.
-                if (getItemViewType(position) == ITEM_TYPE_DATE_HEADER) {
+                if (getItemViewType(position) == ITEM_TYPE_DATE_HEADER ||
+                        getItemViewType(position) == ITEM_TYPE_MESSAGE) {
                     return COLUMN_COUNT;
                 } else {
                     return 1;

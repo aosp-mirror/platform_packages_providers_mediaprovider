@@ -27,7 +27,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.PhotoPickerActivity;
@@ -43,7 +42,7 @@ public abstract class TabFragment extends Fragment {
 
     protected PickerViewModel mPickerViewModel;
     protected ImageLoader mImageLoader;
-    protected RecyclerView mRecyclerView;
+    protected AutoFitRecyclerView mRecyclerView;
     private int mBottomBarSize;
 
     @Override

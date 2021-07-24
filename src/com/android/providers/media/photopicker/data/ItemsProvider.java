@@ -94,7 +94,7 @@ public class ItemsProvider {
             int offset, int limit, @Nullable String mimeType, @NonNull UserId userId) throws
             IllegalArgumentException, IllegalStateException {
         // Validate incoming params
-        if (category != null && Category.isValidCategory(category)) {
+        if (category != null && !Category.isValidCategory(category)) {
             throw new IllegalArgumentException("ItemsProvider does not support the given "
                     + "category: " + category);
         }
@@ -160,9 +160,10 @@ public class ItemsProvider {
         }
 
         return new String[] {
-                category,
-                String.valueOf(getMediaStoreUriForItem(c.getLong(0))),
-                String.valueOf(c.getCount())
+                category, // category name
+                String.valueOf(getMediaStoreUriForItem(c.getLong(0))), // coverUri
+                String.valueOf(c.getCount()), // item count
+                category // category type
         };
     }
 

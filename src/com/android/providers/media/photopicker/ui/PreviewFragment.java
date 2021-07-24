@@ -28,7 +28,6 @@ import android.widget.FrameLayout.LayoutParams;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
@@ -59,17 +58,11 @@ public class PreviewFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup parent,
             Bundle savedInstanceState) {
         mPickerViewModel = new ViewModelProvider(requireActivity()).get(PickerViewModel.class);
-        // TODO(b/185801129): Add handler for back button to go back to previous fragment/activity
-        // instead of exiting the activity.
         return inflater.inflate(R.layout.fragment_preview, parent, /* attachToRoot */ false);
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        // Hide the toolbar for now. TODO(185801129): Change the layout of the toolbar or add new
-        // toolbar that can overlap with image/video preview if necessary
-        ((AppCompatActivity)getActivity()).getSupportActionBar().hide();
-
         // Warning: The below code assumes that getSelectedItems will never return null.
         // We are creating a new ArrayList with selected items, this list used as data for the
         // adapter. If activity gets killed and recreated, we will lose items that were deselected.
@@ -132,6 +125,13 @@ public class PreviewFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+
+        // TODO(185801129): Change the layout of the toolbar or add new toolbar that can overlap
+        // with image/video preview if necessary
+        getActivity().setTitle("");
+        ((PhotoPickerActivity) getActivity()).updateToolbar(/* showTabChips= */ false,
+                /* isLightBackgroundMode= */ false);
+
         // This is necessary to ensure we call ViewHolder#bind() onResume()
         if (mAdapter != null) {
             mAdapter.notifyDataSetChanged();
@@ -191,9 +191,17 @@ public class PreviewFragment extends Fragment {
 
         final PreviewFragment fragment = new PreviewFragment();
         fm.beginTransaction()
-                .setReorderingAllowed(true)
                 .replace(R.id.fragment_container, fragment, TAG)
-                .commitNow();
+                .addToBackStack(TAG)
+                .commitAllowingStateLoss();
+    }
+
+    /**
+     * Get the fragment in the FragmentManager
+     * @param fm the fragment manager
+     */
+    public static Fragment get(FragmentManager fm) {
+        return fm.findFragmentByTag(TAG);
     }
 
     // TODO: There is a same method in TabFragment. To find a way to reuse it.

@@ -16,6 +16,9 @@
 
 package com.android.providers.media.photopicker.data.model;
 
+import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
+import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
+
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;
@@ -198,40 +201,6 @@ public class Item {
             mIsImage = true;
         } else if (MimeUtils.isVideoMimeType(mMimeType)) {
             mIsVideo = true;
-        }
-    }
-
-    @Nullable
-    private static String getCursorString(Cursor cursor, String columnName) {
-        if (cursor == null) {
-            return null;
-        }
-        final int index = cursor.getColumnIndex(columnName);
-        return (index != -1) ? cursor.getString(index) : null;
-    }
-
-    /**
-     * Missing or null values are returned as -1.
-     */
-    private static long getCursorLong(Cursor cursor, String columnName) {
-        if (cursor == null) {
-            return -1;
-        }
-
-        final int index = cursor.getColumnIndex(columnName);
-        if (index == -1) {
-            return -1;
-        }
-
-        final String value = cursor.getString(index);
-        if (value == null) {
-            return -1;
-        }
-
-        try {
-            return Long.parseLong(value);
-        } catch (NumberFormatException e) {
-            return -1;
         }
     }
 }

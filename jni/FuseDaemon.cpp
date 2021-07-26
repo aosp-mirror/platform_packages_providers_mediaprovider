@@ -1774,9 +1774,7 @@ static void pf_access(fuse_req_t req, fuse_ino_t ino, int mask) {
                 false /* redact */, false /* log_transforms_metrics */);
         if (!result) {
             status = EFAULT;
-        }
-
-        if (result->status) {
+        } else if (result->status) {
             status = EACCES;
         }
     }

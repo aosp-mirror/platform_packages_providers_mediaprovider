@@ -51,6 +51,10 @@ public class AlbumsTabFragment extends TabFragment {
         final AlbumsTabItemDecoration itemDecoration = new AlbumsTabItemDecoration(
                 view.getContext());
 
+        final int spacing = getResources().getDimensionPixelSize(R.dimen.picker_album_item_spacing);
+        final int albumSize = getResources().getDimensionPixelSize(R.dimen.picker_album_size);
+        mRecyclerView.setColumnWidth(albumSize + spacing);
+
         mRecyclerView.setLayoutManager(layoutManager);
         mRecyclerView.setAdapter(adapter);
         mRecyclerView.addItemDecoration(itemDecoration);

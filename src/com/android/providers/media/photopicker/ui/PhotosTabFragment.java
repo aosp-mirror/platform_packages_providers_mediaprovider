@@ -83,12 +83,15 @@ public class PhotosTabFragment extends TabFragment {
         }
 
         final GridLayoutManager layoutManager = new GridLayoutManager(getContext(), COLUMN_COUNT);
-        final GridLayoutManager.SpanSizeLookup lookup = adapter.createSpanSizeLookup();
-        if (lookup != null) {
-            layoutManager.setSpanSizeLookup(lookup);
-        }
+        final GridLayoutManager.SpanSizeLookup lookup = adapter.createSpanSizeLookup(layoutManager);
+        layoutManager.setSpanSizeLookup(lookup);
+
         final PhotosTabItemDecoration itemDecoration = new PhotosTabItemDecoration(
                 view.getContext());
+
+        final int spacing = getResources().getDimensionPixelSize(R.dimen.picker_photo_item_spacing);
+        final int photoSize = getResources().getDimensionPixelSize(R.dimen.picker_photo_size);
+        mRecyclerView.setColumnWidth(photoSize + spacing);
 
         mRecyclerView.setLayoutManager(layoutManager);
         mRecyclerView.setAdapter(adapter);

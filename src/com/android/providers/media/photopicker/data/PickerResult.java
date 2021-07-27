@@ -89,12 +89,12 @@ public class PickerResult {
         return intent;
     }
 
-    private static Uri getPickerUri(Uri uri, long id) {
+    private static Uri getPickerUri(Uri uri, String id) {
         final String userInfo = uri.getUserInfo();
         final String userId = userInfo == null ? UserId.CURRENT_USER.toString() : userInfo;
         final Uri uriWithUserId =
                 PickerUriResolver.URI_PREFIX.buildUpon().appendPath(userId).build();
-        return uriWithUserId.buildUpon().appendPath(String.valueOf(id)).build();
+        return uriWithUserId.buildUpon().appendPath(id).build();
     }
 
     /**

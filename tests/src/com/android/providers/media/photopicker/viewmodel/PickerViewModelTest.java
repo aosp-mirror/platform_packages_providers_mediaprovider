@@ -44,7 +44,6 @@ import java.util.Map;
 public class PickerViewModelTest {
 
     private static final String FAKE_IMAGE_MIME_TYPE = "image/jpg";
-    private static final String FAKE_DISPLAY_NAME = "testDisplayName";
 
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
@@ -65,7 +64,7 @@ public class PickerViewModelTest {
 
     @Test
     public void testAddSelectedItem() throws Exception {
-        final long id = 1;
+        final String id = "1";
         final Item item = generateFakeImageItem(id);
 
         mPickerViewModel.addSelectedItem(item);
@@ -75,15 +74,13 @@ public class PickerViewModelTest {
 
         assertThat(selectedItem.getId()).isEqualTo(item.getId());
         assertThat(selectedItem.getDateTaken()).isEqualTo(item.getDateTaken());
-        assertThat(selectedItem.getDisplayName()).isEqualTo(item.getDisplayName());
         assertThat(selectedItem.getMimeType()).isEqualTo(item.getMimeType());
-        assertThat(selectedItem.getVolumeName()).isEqualTo(item.getVolumeName());
         assertThat(selectedItem.getDuration()).isEqualTo(item.getDuration());
     }
 
     @Test
     public void testDeleteSelectedItem() throws Exception {
-        final long id = 1;
+        final String id = "1";
         final Item item = generateFakeImageItem(id);
         Map<Uri, Item> selectedItems = mPickerViewModel.getSelectedItems().getValue();
 
@@ -102,9 +99,9 @@ public class PickerViewModelTest {
 
     @Test
     public void testClearSelectedItem() throws Exception {
-        final long id1 = 1;
+        final String id1 = "1";
         final Item item1 = generateFakeImageItem(id1);
-        final long id2 = 2;
+        final String id2 = "2";
         final Item item2 = generateFakeImageItem(id2);
         Map<Uri, Item> selectedItems = mPickerViewModel.getSelectedItems().getValue();
 
@@ -122,9 +119,7 @@ public class PickerViewModelTest {
         assertThat(selectedItems.size()).isEqualTo(0);
     }
 
-    private static Item generateFakeImageItem(long id) {
-        return ItemTest.generateItem(id, FAKE_IMAGE_MIME_TYPE, FAKE_DISPLAY_NAME + id,
-                MediaStore.VOLUME_EXTERNAL, 12345678l, 1000l);
+    private static Item generateFakeImageItem(String id) {
+        return ItemTest.generateItem(id, FAKE_IMAGE_MIME_TYPE, 12345678l, 1000l);
     }
 }
-

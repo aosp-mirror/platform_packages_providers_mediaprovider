@@ -21,7 +21,6 @@ import static com.android.compatibility.common.util.SystemUtil.runShellCommand;
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import android.content.ClipData;
@@ -36,6 +35,7 @@ import androidx.test.InstrumentationRegistry;
 
 import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.data.model.ItemTest;
 import com.android.providers.media.photopicker.data.model.UserId;
 
 import org.junit.Before;
@@ -129,9 +129,11 @@ public class PickerResultTest {
 
         // Create an item for the selection, since PickerResult only uses Item#getContentUri(),
         // no need to create actual item, and can mock the class.
-        final Item imageItem = mock(Item.class);
-        final Uri pickerUri = ItemsProvider.getItemsUri(imageItem.getId(), UserId.CURRENT_USER);
-        when(imageItem.getContentUri()).thenReturn(pickerUri);
+        final String id = "1";
+        final long dateTaken = 12345678l;
+        final String mimeType = "image/gif";
+        final long duration = 1000;
+        final Item imageItem = ItemTest.generateItem(id, mimeType, dateTaken, duration);
 
         return imageItem;
     }

@@ -200,7 +200,7 @@ public class PickerViewModel extends AndroidViewModel {
             while (cursor.moveToNext()) {
                 // TODO(b/188394433): Return userId in the cursor so that we do not need to pass it
                 // here again.
-                final Item item = Item.fromCursor(cursor, userId);
+                final Item item = Item.fromCursor(cursor, MediaStore.AUTHORITY, userId);
                 final long dateTaken = item.getDateTaken();
                 // the minimum count of items in recent is not reached
                 if (showRecent && recentSize < RECENT_MINIMUM_COUNT) {

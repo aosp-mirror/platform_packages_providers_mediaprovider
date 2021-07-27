@@ -9339,6 +9339,9 @@ public class MediaProvider extends ContentProvider {
                 }
             }
             if (!volumeAttached) {
+                // Dump some more debug info
+                Log.e(TAG, "Volume " + volumeName + " not found, calling identity: "
+                        + user + ", attached volumes: " + mAttachedVolumes);
                 throw new VolumeNotFoundException(volumeName);
             }
         }
@@ -9814,6 +9817,12 @@ public class MediaProvider extends ContentProvider {
         synchronized (mAttachedVolumes) {
             writer.println("mAttachedVolumes=" + mAttachedVolumes);
         }
+        writer.println();
+
+        mVolumeCache.dump(writer);
+        writer.println();
+
+        mUserCache.dump(writer);
         writer.println();
 
         mTranscodeHelper.dump(writer);

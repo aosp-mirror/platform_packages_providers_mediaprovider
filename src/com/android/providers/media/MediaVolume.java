@@ -138,6 +138,12 @@ public final class MediaVolume implements Parcelable {
         dest.writeString(mId);
     }
 
+    @Override
+    public String toString() {
+        return "MediaVolume name: [" + mName + "] id: [" + mId + "] user: [" + mUser + "] path: ["
+                + mPath + "]";
+    }
+
     public static final @android.annotation.NonNull Creator<MediaVolume> CREATOR
             = new Creator<MediaVolume>() {
         @Override

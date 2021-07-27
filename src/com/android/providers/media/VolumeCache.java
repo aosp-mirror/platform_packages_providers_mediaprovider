@@ -38,6 +38,7 @@ import com.android.providers.media.util.UserCache;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -197,6 +198,15 @@ public class VolumeCache {
             for (UserHandle user : users) {
                 Context userContext = mUserCache.getContextForUser(user);
                 updateExternalVolumesForUserLocked(userContext);
+            }
+        }
+    }
+
+    public void dump(PrintWriter writer) {
+        writer.println("Volume cache state:");
+        synchronized (mLock) {
+            for (MediaVolume volume : mExternalVolumes)  {
+                writer.println("  " + volume.toString());
             }
         }
     }

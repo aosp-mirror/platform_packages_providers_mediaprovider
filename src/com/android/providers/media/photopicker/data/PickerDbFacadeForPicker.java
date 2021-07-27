@@ -51,6 +51,8 @@ public class PickerDbFacadeForPicker {
     private static final int SUCCESS = 1;
     private static final int FAIL = -1;
 
+    private static final String TABLE_MEDIA = "media";
+
     @VisibleForTesting
     static final String KEY_ID = "_id";
     @VisibleForTesting
@@ -204,12 +206,9 @@ public class PickerDbFacadeForPicker {
 
             if (isLocal) {
                 // If we reset local media, we need to promote cloud media items
-                ContentValues values = new ContentValues();
-                values.put(KEY_IS_VISIBLE, 1);
-
                 // Ignore conflicts in case we have multiple cloud_ids mapped to the
                 // same local_id. Promoting either is fine.
-                mDatabase.updateWithOnConflict("media", values, /* where */ null,
+                mDatabase.updateWithOnConflict(TABLE_MEDIA, CONTENT_VALUE_VISIBLE, /* where */ null,
                         /* whereClause */ null, SQLiteDatabase.CONFLICT_IGNORE);
             }
             mDatabase.setTransactionSuccessful();
@@ -507,7 +506,7 @@ public class PickerDbFacadeForPicker {
 
     private static SQLiteQueryBuilder createMediaQueryBuilder() {
         SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
-        qb.setTables("media");
+        qb.setTables(TABLE_MEDIA);
 
         return qb;
     }

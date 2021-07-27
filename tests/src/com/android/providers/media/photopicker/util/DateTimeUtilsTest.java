@@ -23,13 +23,12 @@ import android.content.Context;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.providers.media.photopicker.util.DateTimeUtils;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 
 @RunWith(AndroidJUnit4.class)
@@ -48,7 +47,9 @@ public class DateTimeUtilsTest {
 
     @Test
     public void testGetDateTimeString_today() throws Exception {
-        final String result = DateTimeUtils.getDateTimeString(mContext, FAKE_TIME, FAKE_DATE);
+        final long when = generateDateTimeMillis(FAKE_DATE);
+
+        final String result = DateTimeUtils.getDateTimeString(mContext, when, FAKE_DATE);
 
         assertThat(result).isEqualTo(DateTimeUtils.getTodayString());
     }
@@ -56,8 +57,7 @@ public class DateTimeUtilsTest {
     @Test
     public void testGetDateTimeString_yesterday() throws Exception {
         final LocalDate whenDate = FAKE_DATE.minusDays(1);
-        final long when = generateDateTimeMillis(whenDate.getYear(), whenDate.getMonthValue(),
-                whenDate.getDayOfMonth());
+        final long when = generateDateTimeMillis(whenDate);
 
         final String result = DateTimeUtils.getDateTimeString(mContext, when, FAKE_DATE);
 
@@ -67,8 +67,7 @@ public class DateTimeUtilsTest {
     @Test
     public void testGetDateTimeString_weekday() throws Exception {
         final LocalDate whenDate = FAKE_DATE.minusDays(3);
-        final long when = generateDateTimeMillis(whenDate.getYear(), whenDate.getMonthValue(),
-                whenDate.getDayOfMonth());
+        final long when = generateDateTimeMillis(whenDate);
 
         final String result = DateTimeUtils.getDateTimeString(mContext, when, FAKE_DATE);
 
@@ -78,8 +77,7 @@ public class DateTimeUtilsTest {
     @Test
     public void testGetDateTimeString_weekdayAndDate() throws Exception {
         final LocalDate whenDate = FAKE_DATE.minusMonths(1);
-        final long when = generateDateTimeMillis(whenDate.getYear(), whenDate.getMonthValue(),
-                whenDate.getDayOfMonth());
+        final long when = generateDateTimeMillis(whenDate);
 
         final String result = DateTimeUtils.getDateTimeString(mContext, when, FAKE_DATE);
 
@@ -89,8 +87,7 @@ public class DateTimeUtilsTest {
     @Test
     public void testGetDateTimeString_weekdayDateAndYear() throws Exception {
         final LocalDate whenDate = FAKE_DATE.minusYears(1);
-        long when = generateDateTimeMillis(whenDate.getYear(), whenDate.getMonthValue(),
-                whenDate.getDayOfMonth());
+        long when = generateDateTimeMillis(whenDate);
 
         final String result = DateTimeUtils.getDateTimeString(mContext, when, FAKE_DATE);
 
@@ -100,8 +97,7 @@ public class DateTimeUtilsTest {
     @Test
     public void testIsSameDay_differentYear_false() throws Exception {
         final LocalDate whenDate = FAKE_DATE.minusYears(1);
-        long when = generateDateTimeMillis(whenDate.getYear(), whenDate.getMonthValue(),
-                whenDate.getDayOfMonth());
+        long when = generateDateTimeMillis(whenDate);
 
         assertThat(DateTimeUtils.isSameDate(when, FAKE_TIME)).isFalse();
     }
@@ -109,17 +105,15 @@ public class DateTimeUtilsTest {
     @Test
     public void testIsSameDay_differentMonth_false() throws Exception {
         final LocalDate whenDate = FAKE_DATE.minusMonths(1);
-        final long when = generateDateTimeMillis(whenDate.getYear(), whenDate.getMonthValue(),
-                whenDate.getDayOfMonth());
+        final long when = generateDateTimeMillis(whenDate);
 
         assertThat(DateTimeUtils.isSameDate(when, FAKE_TIME)).isFalse();
     }
 
     @Test
     public void testIsSameDay_differentDay_false() throws Exception {
-        final LocalDate whenDate = FAKE_DATE.minusDays(1);
-        final long when = generateDateTimeMillis(whenDate.getYear(), whenDate.getMonthValue(),
-                whenDate.getDayOfMonth());
+        final LocalDate whenDate = FAKE_DATE.minusDays(2);
+        final long when = generateDateTimeMillis(whenDate);
 
         assertThat(DateTimeUtils.isSameDate(when, FAKE_TIME)).isFalse();
     }
@@ -129,9 +123,8 @@ public class DateTimeUtilsTest {
         assertThat(DateTimeUtils.isSameDate(FAKE_TIME, FAKE_TIME)).isTrue();
     }
 
-    private static long generateDateTimeMillis(int year, int month, int dayOfMonth) {
-        final LocalDate result = LocalDate.of(year, month, dayOfMonth);
-        return result.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli();
+    private static long generateDateTimeMillis(LocalDate when) {
+        return when.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
     }
 }
 

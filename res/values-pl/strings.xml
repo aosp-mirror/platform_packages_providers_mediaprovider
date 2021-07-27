@@ -50,7 +50,12 @@
     <string name="add" msgid="2894574044585549298">"Dodaj"</string>
     <string name="deselect" msgid="4297825044827769490">"Odznacz"</string>
     <string name="select" msgid="2704765470563027689">"Zaznacz"</string>
-    <!-- no translation found for select_up_to (2878367759927215675) -->
+    <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
+      <item quantity="few">Wybierz maksymalnie <xliff:g id="COUNT_1">^1</xliff:g> elementy</item>
+      <item quantity="many">Wybierz maksymalnie <xliff:g id="COUNT_1">^1</xliff:g> elementów</item>
+      <item quantity="other">Wybierz maksymalnie <xliff:g id="COUNT_1">^1</xliff:g> elementu</item>
+      <item quantity="one">Wybierz maksymalnie <xliff:g id="COUNT_0">^1</xliff:g> element</item>
+    </plurals>
     <string name="recent" msgid="6694613584743207874">"Ostatnie"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Wyświetl wybrane"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Zdjęcia"</string>
@@ -62,6 +67,12 @@
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> element</item>
     </plurals>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Dodaj (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_category_camera" msgid="4857367052026843664">"Aparat"</string>
+    <string name="picker_category_downloads" msgid="793866660287361900">"Pobrane"</string>
+    <string name="picker_category_favorites" msgid="7008495397818966088">"Ulubione"</string>
+    <string name="picker_category_screenshots" msgid="7216102327587644284">"Zrzuty ekranu"</string>
+    <!-- no translation found for picker_category_videos (1478458836380241356) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="few">Zezwolić aplikacji <xliff:g id="APP_NAME_1">^1</xliff:g> na zmodyfikowanie <xliff:g id="COUNT">^2</xliff:g> plików audio?</item>
       <item quantity="many">Zezwolić aplikacji <xliff:g id="APP_NAME_1">^1</xliff:g> na zmodyfikowanie <xliff:g id="COUNT">^2</xliff:g> plików audio?</item>

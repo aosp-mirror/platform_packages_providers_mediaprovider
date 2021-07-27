@@ -46,7 +46,10 @@
     <string name="add" msgid="2894574044585549298">"Ավելացնել"</string>
     <string name="deselect" msgid="4297825044827769490">"Ապընտրել"</string>
     <string name="select" msgid="2704765470563027689">"Ընտրել"</string>
-    <!-- no translation found for select_up_to (2878367759927215675) -->
+    <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
+      <item quantity="one">Ընտրեք մինչև <xliff:g id="COUNT_1">^1</xliff:g> տարր</item>
+      <item quantity="other">Ընտրեք մինչև <xliff:g id="COUNT_1">^1</xliff:g> տարր</item>
+    </plurals>
     <string name="recent" msgid="6694613584743207874">"Վերջինները"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Դիտել ընտրությունը"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Լուսանկարներ"</string>
@@ -56,6 +59,12 @@
       <item quantity="other"><xliff:g id="COUNT_1">^1</xliff:g> տարր</item>
     </plurals>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Ավելացնել (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_category_camera" msgid="4857367052026843664">"Տեսախցիկ"</string>
+    <string name="picker_category_downloads" msgid="793866660287361900">"Ներբեռնումներ"</string>
+    <string name="picker_category_favorites" msgid="7008495397818966088">"Ընտրանի"</string>
+    <string name="picker_category_screenshots" msgid="7216102327587644284">"Սքրինշոթներ"</string>
+    <!-- no translation found for picker_category_videos (1478458836380241356) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="one">Թույլատրե՞լ <xliff:g id="APP_NAME_1">^1</xliff:g> հավելվածին վերականգնել <xliff:g id="COUNT">^2</xliff:g> աուդիո ֆայլ աղբարկղից</item>
       <item quantity="other">Թույլատրե՞լ <xliff:g id="APP_NAME_1">^1</xliff:g> հավելվածին վերականգնել <xliff:g id="COUNT">^2</xliff:g> աուդիո ֆայլ աղբարկղից</item>

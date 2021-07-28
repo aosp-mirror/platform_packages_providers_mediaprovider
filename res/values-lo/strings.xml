@@ -46,7 +46,10 @@
     <string name="add" msgid="2894574044585549298">"ເພີ່ມ"</string>
     <string name="deselect" msgid="4297825044827769490">"ເຊົາເລືອກ"</string>
     <string name="select" msgid="2704765470563027689">"ເລືອກ"</string>
-    <!-- no translation found for select_up_to (2878367759927215675) -->
+    <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
+      <item quantity="other">ເລືອກບໍ່ເກີນ <xliff:g id="COUNT_1">^1</xliff:g> ລາຍການ</item>
+      <item quantity="one">ເລືອກບໍ່ເກີນ <xliff:g id="COUNT_0">^1</xliff:g> ລາຍການ</item>
+    </plurals>
     <string name="recent" msgid="6694613584743207874">"ຫຼ້າສຸດ"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"ເບິ່ງອັນທີ່ເລືອກໄວ້"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ຮູບພາບ"</string>
@@ -56,6 +59,12 @@
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> ລາຍການ</item>
     </plurals>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"ເພີ່ມ (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_category_camera" msgid="4857367052026843664">"ກ້ອງຖ່າຍຮູບ"</string>
+    <string name="picker_category_downloads" msgid="793866660287361900">"ດາວໂຫຼດ"</string>
+    <string name="picker_category_favorites" msgid="7008495397818966088">"ລາຍການທີ່ມັກ"</string>
+    <string name="picker_category_screenshots" msgid="7216102327587644284">"ຮູບໜ້າຈໍ"</string>
+    <!-- no translation found for picker_category_videos (1478458836380241356) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other">ອະນຸຍາດໃຫ້ <xliff:g id="APP_NAME_1">^1</xliff:g> ແກ້ໄຂໄຟລ໌ສຽງ <xliff:g id="COUNT">^2</xliff:g> ໄຟລ໌ບໍ?</item>
       <item quantity="one">ອະນຸຍາດໃຫ້ <xliff:g id="APP_NAME_0">^1</xliff:g> ແກ້ໄຂໄຟລ໌ສຽງນີ້ບໍ?</item>

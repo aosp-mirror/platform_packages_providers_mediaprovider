@@ -1865,7 +1865,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         createLatestViews(db);
         createLatestTriggers(db);
 
-        getOrCreateUuid(db);
+        // Always change the UUID when we are upgrading to new version. This is
+        // useful when we revert back to the same version(because of upgrade +
+        // downgrade) with major reset in database. Changing the UUID during
+        // upgrade will ensure MediaStore#getVersion is different after the
+        // reset
+        resetAndGetUuid(db);
 
         final long elapsedMillis = (SystemClock.elapsedRealtime() - startTime);
         if (mSchemaListener != null) {
@@ -1888,6 +1893,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     }
 
     private static final String XATTR_UUID = "user.uuid";
+    // Define new XATTR_UUID_V2 which will replace XATTR_UUID. This is necessary
+    // for a one time reset of XATTR_UUID without changing the database version.
+    private static final String XATTR_UUID_V2 = "user.uuid.v2";
 
     /**
      * Return a UUID for the given database. If the database is deleted or
@@ -1895,7 +1903,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      */
     public static @NonNull String getOrCreateUuid(@NonNull SQLiteDatabase db) {
         try {
-            return new String(Os.getxattr(db.getPath(), XATTR_UUID));
+            return getUuid(db);
         } catch (ErrnoException e) {
             if (e.errno == OsConstants.ENODATA) {
                 // Doesn't exist yet, so generate and persist a UUID
@@ -1906,9 +1914,18 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
     }
 
+    @VisibleForTesting
+    static @NonNull String getUuid(@NonNull SQLiteDatabase db) throws ErrnoException {
+        return new String(Os.getxattr(db.getPath(), XATTR_UUID_V2));
+    }
+
     private static @NonNull String resetAndGetUuid(SQLiteDatabase db) {
         final String uuid = UUID.randomUUID().toString();
         try {
+            Os.setxattr(db.getPath(), XATTR_UUID_V2, uuid.getBytes(), 0);
+            // This is useful if old MediaProvider code still uses XATTR_UUID.
+            // By changing both, we ensure we always see a change in UUID when
+            // database is completely reset.
             Os.setxattr(db.getPath(), XATTR_UUID, uuid.getBytes(), 0);
         } catch (ErrnoException e) {
             throw new RuntimeException(e);

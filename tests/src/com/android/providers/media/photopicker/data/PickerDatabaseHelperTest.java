@@ -44,7 +44,7 @@ public class PickerDatabaseHelperTest {
 
     private static final String KEY_LOCAL_ID = "local_id";
     private static final String KEY_CLOUD_ID = "cloud_id";
-    private static final String KEY_IS_LOCAL_VERIFIED = "is_local_verified";
+    private static final String KEY_IS_VISIBLE = "is_visible";
     private static final String KEY_DATE_TAKEN_MS = "date_taken_ms";
     private static final String KEY_SIZE_BYTES = "size_bytes";
     private static final String KEY_DURATION_MS = "duration_ms";
@@ -66,11 +66,11 @@ public class PickerDatabaseHelperTest {
     }
 
     @Test
-    public void testPickerValidInput_CloudAndLocal() throws Exception {
+    public void testColumns() throws Exception {
         String[] projection = new String[] {
             KEY_LOCAL_ID,
             KEY_CLOUD_ID,
-            KEY_IS_LOCAL_VERIFIED,
+            KEY_IS_VISIBLE,
             KEY_DATE_TAKEN_MS,
             KEY_SIZE_BYTES,
             KEY_DURATION_MS,
@@ -84,7 +84,7 @@ public class PickerDatabaseHelperTest {
             ContentValues values = getBasicContentValues();
             values.put(KEY_LOCAL_ID, LOCAL_ID);
             values.put(KEY_CLOUD_ID, CLOUD_ID);
-            values.put(KEY_IS_LOCAL_VERIFIED, 1);
+            values.put(KEY_IS_VISIBLE, 1);
             assertThat(db.insert(MEDIA_TABLE, null, values)).isNotEqualTo(-1);
 
             try (Cursor cr = db.query(MEDIA_TABLE, projection, null, null, null, null, null)) {
@@ -103,25 +103,121 @@ public class PickerDatabaseHelperTest {
     }
 
     @Test
-    public void testPickerValidInput_CloudOrLocal() throws Exception {
+    public void testCheck_cloudOrLocal() throws Exception {
         try (PickerDatabaseHelper helper = new PickerDatabaseHelperT(sIsolatedContext)) {
             SQLiteDatabase db = helper.getWritableDatabase();
 
-            // Cloud only
+            // Visible but no cloud or local specified
+            ContentValues values = getBasicContentValues();
+            values.put(KEY_IS_VISIBLE, 1);
+            assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
+
+            // Hidden but no cloud or local specified
+            values = getBasicContentValues();
+            assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
+        }
+    }
+
+    @Test
+    public void testUniqueConstraint_local() throws Exception {
+        try (PickerDatabaseHelper helper = new PickerDatabaseHelperT(sIsolatedContext)) {
+            SQLiteDatabase db = helper.getWritableDatabase();
+
+            // Hidden local only
+            ContentValues values = getBasicContentValues();
+            values.put(KEY_LOCAL_ID, LOCAL_ID);
+            assertThat(db.insert(MEDIA_TABLE, null, values)).isNotEqualTo(-1);
+
+            // Another hidden local only
+            values = getBasicContentValues();
+            values.put(KEY_LOCAL_ID, LOCAL_ID);
+            assertThat(db.insert(MEDIA_TABLE, null, values)).isNotEqualTo(-1);
+
+            // Visible local only
+            values = getBasicContentValues();
+            values.put(KEY_LOCAL_ID, LOCAL_ID);
+            values.put(KEY_IS_VISIBLE, 1);
+            assertThat(db.insert(MEDIA_TABLE, null, values)).isNotEqualTo(-1);
+
+            // Another visible local only
+            values = getBasicContentValues();
+            values.put(KEY_LOCAL_ID, LOCAL_ID);
+            values.put(KEY_IS_VISIBLE, 1);
+            assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
+        }
+    }
+
+    @Test
+    public void testUniqueConstraint_cloud() throws Exception {
+        try (PickerDatabaseHelper helper = new PickerDatabaseHelperT(sIsolatedContext)) {
+            SQLiteDatabase db = helper.getWritableDatabase();
+
+            // Hidden cloud only
             ContentValues values = getBasicContentValues();
             values.put(KEY_CLOUD_ID, CLOUD_ID);
             assertThat(db.insert(MEDIA_TABLE, null, values)).isNotEqualTo(-1);
 
-            // Local only
+            // Another hidden cloud only
             values = getBasicContentValues();
+            values.put(KEY_CLOUD_ID, CLOUD_ID);
+            assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
+
+            // Visible cloud only
+            values = getBasicContentValues();
+            values.put(KEY_CLOUD_ID, CLOUD_ID);
+            values.put(KEY_IS_VISIBLE, 1);
+            assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
+        }
+    }
+
+    @Test
+    public void testUniqueConstraint_localAndCloudPlusLocal() throws Exception {
+        try (PickerDatabaseHelper helper = new PickerDatabaseHelperT(sIsolatedContext)) {
+            SQLiteDatabase db = helper.getWritableDatabase();
+
+            // Visible local only
+            ContentValues values = getBasicContentValues();
             values.put(KEY_LOCAL_ID, LOCAL_ID);
-            values.put(KEY_IS_LOCAL_VERIFIED, 1);
+            values.put(KEY_IS_VISIBLE, 1);
+            assertThat(db.insert(MEDIA_TABLE, null, values)).isNotEqualTo(-1);
+
+            // Visible Cloud+Local (same local_id)
+            values = getBasicContentValues();
+            values.put(KEY_CLOUD_ID, CLOUD_ID + "1");
+            values.put(KEY_LOCAL_ID, LOCAL_ID);
+            values.put(KEY_IS_VISIBLE, 1);
+            assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
+
+            // Hidden Cloud+Local (same local_id)
+            values = getBasicContentValues();
+            values.put(KEY_CLOUD_ID, CLOUD_ID + "1");
+            values.put(KEY_LOCAL_ID, LOCAL_ID);
+            values.putNull(KEY_IS_VISIBLE);
             assertThat(db.insert(MEDIA_TABLE, null, values)).isNotEqualTo(-1);
         }
     }
 
     @Test
-    public void testPickerInvalidInput_Size() throws Exception {
+    public void testCheck_IsVisible() throws Exception {
+        try (PickerDatabaseHelper helper = new PickerDatabaseHelperT(sIsolatedContext)) {
+            SQLiteDatabase db = helper.getWritableDatabase();
+
+            // is_visible < 1
+            ContentValues values = getBasicContentValues();
+            values.put(KEY_CLOUD_ID, CLOUD_ID);
+            values.put(KEY_IS_VISIBLE, 0);
+            assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
+
+            // is_visible > 1
+            values = getBasicContentValues();
+            values.put(KEY_LOCAL_ID, LOCAL_ID);
+            values.put(KEY_IS_VISIBLE, 2);
+            assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
+        }
+    }
+
+    @Test
+    public void testCheck_Size() throws Exception {
         try (PickerDatabaseHelper helper = new PickerDatabaseHelperT(sIsolatedContext)) {
             SQLiteDatabase db = helper.getWritableDatabase();
 
@@ -140,7 +236,7 @@ public class PickerDatabaseHelperTest {
     }
 
     @Test
-    public void testPickerInvalidInput_MimeType() throws Exception {
+    public void testCheck_MimeType() throws Exception {
         try (PickerDatabaseHelper helper = new PickerDatabaseHelperT(sIsolatedContext)) {
             SQLiteDatabase db = helper.getWritableDatabase();
 
@@ -153,7 +249,7 @@ public class PickerDatabaseHelperTest {
     }
 
     @Test
-    public void testPickerInvalidInput_DateTaken() throws Exception {
+    public void testCheck_DateTaken() throws Exception {
         try (PickerDatabaseHelper helper = new PickerDatabaseHelperT(sIsolatedContext)) {
             SQLiteDatabase db = helper.getWritableDatabase();
 
@@ -172,7 +268,7 @@ public class PickerDatabaseHelperTest {
     }
 
     @Test
-    public void testPickerInvalidInput_Duration() throws Exception {
+    public void testCheck_Duration() throws Exception {
         try (PickerDatabaseHelper helper = new PickerDatabaseHelperT(sIsolatedContext)) {
             SQLiteDatabase db = helper.getWritableDatabase();
 
@@ -180,70 +276,6 @@ public class PickerDatabaseHelperTest {
             ContentValues values = getBasicContentValues();
             values.put(KEY_DURATION_MS, -1);
             values.put(KEY_CLOUD_ID, CLOUD_ID);
-            assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
-        }
-    }
-
-    @Test
-    public void testPickerInvalidInput_Local() throws Exception {
-        try (PickerDatabaseHelper helper = new PickerDatabaseHelperT(sIsolatedContext)) {
-            SQLiteDatabase db = helper.getWritableDatabase();
-
-            // is_local_verified=1 && local_id=NULL
-            ContentValues values = getBasicContentValues();
-            values.put(KEY_CLOUD_ID, CLOUD_ID);
-            values.put(KEY_IS_LOCAL_VERIFIED, 1);
-            assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
-        }
-    }
-
-    @Test
-    public void testPickerInvalidInput_Cloud() throws Exception {
-        try (PickerDatabaseHelper helper = new PickerDatabaseHelperT(sIsolatedContext)) {
-            SQLiteDatabase db = helper.getWritableDatabase();
-
-            // is_local_verified=0 && cloud_id=NULL
-            ContentValues values = getBasicContentValues();
-            values.put(KEY_IS_LOCAL_VERIFIED, 0);
-            values.put(KEY_LOCAL_ID, LOCAL_ID);
-            assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
-
-            // is_local_verified=NULL && cloud_id=NULL
-            values = getBasicContentValues();
-            values.put(KEY_LOCAL_ID, LOCAL_ID);
-            assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
-        }
-    }
-
-    @Test
-    public void testPickerInvalidInput_UniqueConstraintLocal() throws Exception {
-        try (PickerDatabaseHelper helper = new PickerDatabaseHelperT(sIsolatedContext)) {
-            SQLiteDatabase db = helper.getWritableDatabase();
-
-            final ContentValues values = getBasicContentValues();
-            values.put(KEY_LOCAL_ID, LOCAL_ID);
-            values.put(KEY_IS_LOCAL_VERIFIED, 1);
-
-            // Insert <local_id>: success
-            assertThat(db.insert(MEDIA_TABLE, null, values)).isNotEqualTo(-1);
-
-            // Insert <local_id> again: failure
-            assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
-        }
-    }
-
-    @Test
-    public void testPickerInvalidInput_UniqueConstraintCloud() throws Exception {
-        try (PickerDatabaseHelper helper = new PickerDatabaseHelperT(sIsolatedContext)) {
-            SQLiteDatabase db = helper.getWritableDatabase();
-
-            final ContentValues values = getBasicContentValues();
-            values.put(KEY_CLOUD_ID, CLOUD_ID);
-
-            // Insert <cloud_id>: success
-            assertThat(db.insert(MEDIA_TABLE, null, values)).isNotEqualTo(-1);
-
-            // Insert <cloud_id> again: failure
             assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
         }
     }

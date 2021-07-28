@@ -175,14 +175,6 @@ public class ModernMediaScanner implements MediaScanner {
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     static final int MAX_EXCLUDE_DIRS = 450;
 
-    private static final Pattern PATTERN_VISIBLE = Pattern.compile(
-            "(?i)^/storage/[^/]+(?:/[0-9]+)?$");
-    private static final Pattern PATTERN_INVISIBLE = Pattern.compile(
-            "(?i)^/storage/[^/]+(?:/[0-9]+)?/"
-                    + "(?:(?:Android/(?:data|obb|sandbox)$)|"
-                    + "(?:\\.transforms$)|"
-                    + "(?:(?:Movies|Music|Pictures)/.thumbnails$))");
-
     private static final Pattern PATTERN_YEAR = Pattern.compile("([1-9][0-9][0-9][0-9])");
 
     private static final Pattern PATTERN_ALBUM_ART = Pattern.compile(
@@ -1677,14 +1669,14 @@ public class ModernMediaScanner implements MediaScanner {
 
         // Handle well-known paths that should always be visible or invisible,
         // regardless of .nomedia presence
-        if (PATTERN_VISIBLE.matcher(dir.getAbsolutePath()).matches()) {
+        if (FileUtils.shouldBeVisible(dir.getAbsolutePath())) {
             // Well known paths can never be a hidden directory. Delete any non-standard nomedia
             // presence in well known path.
             nomedia.delete();
             return true;
         }
 
-        if (PATTERN_INVISIBLE.matcher(dir.getAbsolutePath()).matches()) {
+        if (FileUtils.shouldBeInvisible(dir.getAbsolutePath())) {
             // Create the .nomedia file in paths that are not scannable. This is useful when user
             // ejects the SD card and brings it to an older device and its media scanner can
             // now correctly identify these paths as not scannable.

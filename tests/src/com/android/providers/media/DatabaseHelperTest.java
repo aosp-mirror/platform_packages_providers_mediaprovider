@@ -45,6 +45,7 @@ import android.provider.Column;
 import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.Audio;
 import android.provider.MediaStore.Files.FileColumns;
+import android.system.Os;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -61,6 +62,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.Set;
+import java.util.UUID;
 
 @RunWith(AndroidJUnit4.class)
 public class DatabaseHelperTest {
@@ -538,20 +540,23 @@ public class DatabaseHelperTest {
     }
 
     /**
-     * Test that database downgrade changed the UUID saved in database file.
+     * Test that database upgrade or database downgrade will always change UUID saved in the
+     * database file.
      */
     @Test
-    public void testDowngradeChangesUUID() throws Exception {
+    public void testUpgradeAndDowngradeChangeUUID() throws Exception {
         Class<? extends DatabaseHelper> dbVersionHigher = DatabaseHelperT.class;
         Class<? extends DatabaseHelper> dbVersionLower = DatabaseHelperS.class;
-        String originalUUID;
+        String uuidOriginal;
         int originalVersion;
+        String uuidAfterUpgrade;
+        String uuidAfterDowngrade;
 
         // Create the database with database version = dbVersionLower
         try (DatabaseHelper helper = dbVersionLower.getConstructor(Context.class, String.class)
                 .newInstance(sIsolatedContext, TEST_DOWNGRADE_DB)) {
             SQLiteDatabase db = helper.getWritableDatabaseForTest();
-            originalUUID = DatabaseHelper.getOrCreateUuid(db);
+            uuidOriginal = DatabaseHelper.getUuid(db);
             originalVersion = db.getVersion();
             // Verify that original version of the database is dbVersionLower.
             assertWithMessage("Current database version")
@@ -568,9 +573,11 @@ public class DatabaseHelperTest {
             // Verify that upgrade resulted in database version same as latest version.
             assertWithMessage("Current database version after upgrade")
                     .that(db.getVersion()).isEqualTo(VERSION_LATEST);
-            // Verify that upgrade didn't change UUID
+            // Verify that upgrade changed UUID
+            uuidAfterUpgrade = DatabaseHelper.getUuid(db);
             assertWithMessage("Current database UUID after upgrade")
-                    .that(DatabaseHelper.getOrCreateUuid(db)).isEqualTo(originalUUID);
+                    .that(uuidAfterUpgrade).isNotEqualTo(uuidOriginal);
+
         }
 
         // Downgrade the database by changing the version to dbVersionLower
@@ -581,9 +588,64 @@ public class DatabaseHelperTest {
             assertWithMessage("Current database version after downgrade")
                     .that(db.getVersion()).isEqualTo(originalVersion);
             // Verify that downgrade changed UUID
+            uuidAfterDowngrade = DatabaseHelper.getUuid(db);
             assertWithMessage("Current database UUID after downgrade")
-                    .that(DatabaseHelper.getOrCreateUuid(db)).isNotEqualTo(originalUUID);
+                    .that(uuidAfterDowngrade).isNotEqualTo(uuidOriginal);
+            assertWithMessage("Current database UUID after downgrade")
+                    .that(uuidAfterDowngrade).isNotEqualTo(uuidAfterUpgrade);
         }
+    }
+
+    /**
+     * Test that database uuid doesn't change when we call open() on the same database.
+     */
+    @Test
+    public void testDatabaseUUIDDoesntChange() throws Exception {
+        Class<? extends DatabaseHelper> dbVersion1 = DatabaseHelperT.class;
+        Class<? extends DatabaseHelper> dbVersion2 = DatabaseHelperT.class;
+        String uuid1;
+
+        try (DatabaseHelper helper1 = dbVersion1.getConstructor(Context.class, String.class)
+                .newInstance(sIsolatedContext, TEST_CLEAN_DB)) {
+            SQLiteDatabase db1 = helper1.getWritableDatabaseForTest();
+            uuid1 = DatabaseHelper.getUuid(db1);
+            assertWithMessage("Current database version")
+                    .that(db1.getVersion()).isEqualTo(VERSION_LATEST);
+        }
+
+        try (DatabaseHelper helper2 = dbVersion2.getConstructor(Context.class, String.class)
+                .newInstance(sIsolatedContext, TEST_CLEAN_DB)) {
+            SQLiteDatabase db2 = helper2.getWritableDatabaseForTest();
+            String uuid2 = DatabaseHelper.getUuid(db2);
+            // Verify that database version is same
+            assertWithMessage("Current database version")
+                    .that(db2.getVersion()).isEqualTo(VERSION_LATEST);
+            // Verify that UUID hasn't changed.
+            assertWithMessage("Current UUID is same as")
+                    .that(uuid1).isEqualTo(uuid2);
+        }
+    }
+
+    /**
+     * Test that we use {@link DatabaseHelper#XATTR_UUID_V2} for saving UUID
+     */
+    @Test
+    public void testVerifyXATTR_UUID_V2() throws Exception {
+        try (DatabaseHelper helper
+                     = DatabaseHelperT.class.getConstructor(Context.class, String.class)
+                .newInstance(sIsolatedContext, TEST_CLEAN_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            String oldXattrUUID = setAndGetOldUUIDXattr(db);
+            String newXattrUUIDV2 = DatabaseHelper.getUuid(db);
+            assertWithMessage("New XATTR_UUID_V2")
+                    .that(newXattrUUIDV2).isNotEqualTo(oldXattrUUID);
+        }
+    }
+
+    private String setAndGetOldUUIDXattr(SQLiteDatabase db) throws Exception {
+        final String uuid = UUID.randomUUID().toString();
+        Os.setxattr(db.getPath(), "user.uuid", uuid.getBytes(), 0);
+        return uuid;
     }
 
     private static String normalize(String sql) {

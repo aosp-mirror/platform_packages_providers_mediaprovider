@@ -93,13 +93,13 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper implements AutoClosea
         makePristineSchema(db);
 
         db.execSQL("CREATE TABLE media (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + "local_id INTEGER UNIQUE,cloud_id TEXT UNIQUE,is_local_verified INTEGER DEFAULT 0,"
+                + "local_id TEXT,cloud_id TEXT UNIQUE,is_visible INTEGER CHECK(is_visible == 1),"
                 + "date_taken_ms INTEGER NOT NULL CHECK(date_taken_ms >= 0),"
                 + "size_bytes INTEGER NOT NULL CHECK(size_bytes > 0),"
                 + "duration_ms INTEGER CHECK(duration_ms >= 0),"
                 + "mime_type TEXT NOT NULL,"
-                + "CHECK((is_local_verified = 0 AND cloud_id IS NOT NULL) OR "
-                + "(is_local_verified != 0 AND local_id IS NOT NULL)))");
+                + "CHECK(local_id IS NOT NULL OR cloud_id IS NOT NULL),"
+                + "UNIQUE(local_id, is_visible))");
     }
 
     private static void createLatestIndexes(SQLiteDatabase db) {
@@ -107,6 +107,7 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper implements AutoClosea
 
         db.execSQL("CREATE INDEX local_id_index on media(local_id)");
         db.execSQL("CREATE INDEX cloud_id_index on media(cloud_id)");
+        db.execSQL("CREATE INDEX is_visible_index on media(is_visible)");
         db.execSQL("CREATE INDEX date_taken_index on media(date_taken_ms)");
         db.execSQL("CREATE INDEX size_index on media(size_bytes)");
         db.execSQL("CREATE INDEX mime_type_index on media(mime_type)");

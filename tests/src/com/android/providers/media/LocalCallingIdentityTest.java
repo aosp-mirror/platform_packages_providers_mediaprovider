@@ -29,7 +29,6 @@ import androidx.test.runner.AndroidJUnit4;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -87,7 +86,6 @@ public class LocalCallingIdentityTest {
     }
 
     @Test
-    @Ignore("b/179675679")
     public void testFromExternal() throws Exception {
         final Context context = InstrumentationRegistry.getContext();
         final PackageManager pm = context.getPackageManager();

@@ -77,12 +77,6 @@ public class LocalCallingIdentity {
     private final @Nullable String attributionTag;
     private final Object lock = new Object();
 
-    private LocalCallingIdentity(Context context, int pid, int uid, String packageNameUnchecked,
-            @Nullable String attributionTag) {
-        this(context, pid, uid, UserHandle.getUserHandleForUid(uid), packageNameUnchecked,
-                attributionTag);
-    }
-
     private LocalCallingIdentity(Context context, int pid, int uid, UserHandle user,
             String packageNameUnchecked, @Nullable String attributionTag) {
         this.context = context;
@@ -145,12 +139,14 @@ public class LocalCallingIdentity {
                 user, callingPackage, callingAttributionTag);
     }
 
-    public static LocalCallingIdentity fromExternal(Context context, int uid) {
+    public static LocalCallingIdentity fromExternal(Context context, @Nullable UserCache userCache,
+            int uid) {
         final String[] sharedPackageNames = context.getPackageManager().getPackagesForUid(uid);
         if (sharedPackageNames == null || sharedPackageNames.length == 0) {
             throw new IllegalArgumentException("UID " + uid + " has no associated package");
         }
-        LocalCallingIdentity ident =  fromExternal(context, uid, sharedPackageNames[0], null);
+        LocalCallingIdentity ident = fromExternal(context, userCache, uid, sharedPackageNames[0],
+                null);
         ident.sharedPackageNames = sharedPackageNames;
         ident.sharedPackageNamesResolved = true;
         if (uid == Process.SHELL_UID) {
@@ -164,9 +160,18 @@ public class LocalCallingIdentity {
         return ident;
     }
 
-    public static LocalCallingIdentity fromExternal(Context context, int uid, String packageName,
-            @Nullable String attributionTag) {
-        return new LocalCallingIdentity(context, -1, uid, packageName, attributionTag);
+    public static LocalCallingIdentity fromExternal(Context context, @Nullable UserCache userCache,
+            int uid, String packageName, @Nullable String attributionTag) {
+        UserHandle user = UserHandle.getUserHandleForUid(uid);
+        if (userCache != null && !userCache.userSharesMediaWithParentCached(user)) {
+            // This can happen on some proprietary app clone solutions, where the owner
+            // and clone user each have their own MediaProvider instance, but refer to
+            // each other for cross-user file access through the use of bind mounts.
+            // In this case, assume the access is for the owner user, since that is
+            // the only user for which we manage volumes anyway.
+            user = Process.myUserHandle();
+        }
+        return new LocalCallingIdentity(context, -1, uid, user, packageName, attributionTag);
     }
 
     public static LocalCallingIdentity fromSelf(Context context) {

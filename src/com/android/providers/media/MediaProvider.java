@@ -5763,49 +5763,6 @@ public class MediaProvider extends ContentProvider {
                 res.putParcelable(MediaStore.EXTRA_RESULT, pi);
                 return res;
             }
-            case MediaStore.GET_ORIGINAL_MEDIA_FORMAT_FILE_DESCRIPTOR_CALL: {
-                ParcelFileDescriptor inputPfd =
-                        extras.getParcelable(MediaStore.EXTRA_FILE_DESCRIPTOR);
-                try {
-                    File file = getFileFromFileDescriptor(inputPfd);
-                    if (!mTranscodeHelper.supportsTranscode(file.getPath())) {
-                        // Return an empty bundle instead of throwing an exception in the special
-                        // case where the file does not support transcode. This avoids a misleading
-                        // warning in android.database.DatabaseUtils#writeExceptionToParcel
-                        //
-                        // Note that we should be checking if a file is a modern format and not just
-                        // that it supports transcoding, unfortunately, checking modern format
-                        // requires either a db query or media scan which can lead to ANRs if apps
-                        // or the system implicitly call this method as part of a
-                        // MediaPlayer#setDataSource.
-                        return new Bundle();
-                    }
-
-                    FuseDaemon fuseDaemon = getFuseDaemonForFile(file);
-                    String outputPath = fuseDaemon.getOriginalMediaFormatFilePath(inputPfd);
-                    if (TextUtils.isEmpty(outputPath)) {
-                        throw new IllegalArgumentException(
-                                "Invalid path for original media format file");
-                    }
-
-                    int posixMode = Os.fcntlInt(inputPfd.getFileDescriptor(), F_GETFL,
-                            0 /* args */);
-                    int modeBits = FileUtils.translateModePosixToPfd(posixMode);
-                    int uid = Binder.getCallingUid();
-
-                    ParcelFileDescriptor outputPfd = openWithFuse(outputPath, uid,
-                            0 /* mediaCapabilitiesUid */, modeBits, true /* shouldRedact */,
-                            false /* shouldTranscode */, 0 /* transcodeReason */);
-                    Bundle res = new Bundle();
-                    res.putParcelable(MediaStore.EXTRA_FILE_DESCRIPTOR, outputPfd);
-                    return res;
-                } catch (IOException e) {
-                    throw new IllegalStateException(e);
-                } catch (ErrnoException e) {
-                    throw new IllegalStateException(
-                            "Failed to fetch access mode for file descriptor", e);
-                }
-            }
             case MediaStore.IS_SYSTEM_GALLERY_CALL:
                 final LocalCallingIdentity token = clearLocalCallingIdentity();
                 try {
@@ -5821,6 +5778,44 @@ public class MediaProvider extends ContentProvider {
                 }
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
+        }
+    }
+
+    private AssetFileDescriptor getOriginalMediaFormatFileDescriptor(Bundle extras)
+            throws FileNotFoundException {
+        try (ParcelFileDescriptor inputPfd =
+                extras.getParcelable(MediaStore.EXTRA_FILE_DESCRIPTOR)) {
+            final File file = getFileFromFileDescriptor(inputPfd);
+            if (!mTranscodeHelper.supportsTranscode(file.getPath())) {
+                // Note that we should be checking if a file is a modern format and not just
+                // that it supports transcoding, unfortunately, checking modern format
+                // requires either a db query or media scan which can lead to ANRs if apps
+                // or the system implicitly call this method as part of a
+                // MediaPlayer#setDataSource.
+                throw new FileNotFoundException("Input file descriptor is already original");
+            }
+
+            FuseDaemon fuseDaemon = getFuseDaemonForFile(file);
+            String outputPath = fuseDaemon.getOriginalMediaFormatFilePath(inputPfd);
+            if (TextUtils.isEmpty(outputPath)) {
+                throw new FileNotFoundException("Invalid path for original media format file");
+            }
+
+            int posixMode = Os.fcntlInt(inputPfd.getFileDescriptor(), F_GETFL,
+                    0 /* args */);
+            int modeBits = FileUtils.translateModePosixToPfd(posixMode);
+            int uid = Binder.getCallingUid();
+
+            ParcelFileDescriptor pfd = openWithFuse(outputPath, uid, 0 /* mediaCapabilitiesUid */,
+                    modeBits, true /* shouldRedact */, false /* shouldTranscode */,
+                    0 /* transcodeReason */);
+            return new AssetFileDescriptor(pfd, 0, AssetFileDescriptor.UNKNOWN_LENGTH);
+        } catch (IOException e) {
+            Log.w(TAG, "Failed to fetch original file descriptor", e);
+            throw new FileNotFoundException("Failed to fetch original file descriptor");
+        } catch (ErrnoException e) {
+            Log.w(TAG, "Failed to fetch access mode for file descriptor", e);
+            throw new FileNotFoundException("Failed to fetch access mode for file descriptor");
         }
     }
 
@@ -7213,6 +7208,21 @@ public class MediaProvider extends ContentProvider {
     private AssetFileDescriptor openTypedAssetFileCommon(Uri uri, String mimeTypeFilter,
             Bundle opts, CancellationSignal signal) throws FileNotFoundException {
         uri = safeUncanonicalize(uri);
+
+        if (opts != null && opts.containsKey(MediaStore.EXTRA_FILE_DESCRIPTOR)) {
+            // This is called as part of MediaStore#getOriginalMediaFormatFileDescriptor
+            // We don't need to use the |uri| because the input fd already identifies the file and
+            // we actually don't have a valid URI, we are going to identify the file via the fd.
+            // While identifying the file, we also perform the following security checks.
+            // 1. Find the FUSE file with the associated inode
+            // 2. Verify that the binder caller opened it
+            // 3. Verify the access level the fd is opened with (r/w)
+            // 4. Open the original (non-transcoded) file *with* redaction enabled and the access
+            // level from #3
+            // 5. Return the fd from #4 to the app or throw an exception if any of the conditions
+            // are not met
+            return getOriginalMediaFormatFileDescriptor(opts);
+        }
 
         // This is needed for thumbnail resolution as it doesn't go through openFileCommon
         if (isPickerUri(uri)) {

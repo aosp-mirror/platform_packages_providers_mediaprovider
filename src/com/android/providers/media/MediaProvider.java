@@ -8921,6 +8921,10 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     public boolean getBooleanDeviceConfig(String key, boolean defaultValue) {
+        if (!canReadDeviceConfig(key, defaultValue)) {
+            return defaultValue;
+        }
+
         final long token = Binder.clearCallingIdentity();
         try {
             return DeviceConfig.getBoolean(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
@@ -8932,6 +8936,10 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     public int getIntDeviceConfig(String key, int defaultValue) {
+        if (!canReadDeviceConfig(key, defaultValue)) {
+            return defaultValue;
+        }
+
         final long token = Binder.clearCallingIdentity();
         try {
             return DeviceConfig.getInt(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
@@ -8943,6 +8951,10 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     public String getStringDeviceConfig(String key, String defaultValue) {
+        if (!canReadDeviceConfig(key, defaultValue)) {
+            return defaultValue;
+        }
+
         final long token = Binder.clearCallingIdentity();
         try {
             return DeviceConfig.getString(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT, key,
@@ -8952,8 +8964,23 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    private static <T> boolean canReadDeviceConfig(String key, T defaultValue) {
+        if (SdkLevel.isAtLeastS()) {
+            return true;
+        }
+
+        Log.w(TAG, "Cannot read device config before Android S. Returning defaultValue: "
+                + defaultValue + " for key: " + key);
+        return false;
+    }
+
     @VisibleForTesting
     public void addOnPropertiesChangedListener(OnPropertiesChangedListener listener) {
+        if (!SdkLevel.isAtLeastS()) {
+            Log.w(TAG, "Cannot add device config changed listener before Android S");
+            return;
+        }
+
         DeviceConfig.addOnPropertiesChangedListener(DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT,
                 BackgroundThread.getExecutor(), listener);
     }

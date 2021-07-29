@@ -56,6 +56,16 @@
       <item quantity="one"><xliff:g id="COUNT_0">^1</xliff:g> वस्तु</item>
     </plurals>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"थप्नुहोस् (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <!-- no translation found for picker_category_camera (4857367052026843664) -->
+    <skip />
+    <!-- no translation found for picker_category_downloads (793866660287361900) -->
+    <skip />
+    <!-- no translation found for picker_category_favorites (7008495397818966088) -->
+    <skip />
+    <!-- no translation found for picker_category_screenshots (7216102327587644284) -->
+    <skip />
+    <!-- no translation found for picker_category_videos (1478458836380241356) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> लाई यी <xliff:g id="COUNT">^2</xliff:g> अडियो फाइलहरू परिमार्जन गर्न दिने हो?</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> लाई यो अडियो फाइल परिमार्जन गर्न दिने हो?</item>

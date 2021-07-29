@@ -46,7 +46,10 @@
     <string name="add" msgid="2894574044585549298">"បញ្ចូល"</string>
     <string name="deselect" msgid="4297825044827769490">"ដក​ការជ្រើសរើស"</string>
     <string name="select" msgid="2704765470563027689">"ជ្រើសរើស"</string>
-    <!-- no translation found for select_up_to (2878367759927215675) -->
+    <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
+      <item quantity="other">ជ្រើសរើស​ធាតុ​រហូតដល់ <xliff:g id="COUNT_1">^1</xliff:g></item>
+      <item quantity="one">ជ្រើសរើស​ធាតុ​រហូតដល់ <xliff:g id="COUNT_0">^1</xliff:g></item>
+    </plurals>
     <string name="recent" msgid="6694613584743207874">"ថ្មីៗ"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"បានជ្រើសរើស​ទិដ្ឋភាព"</string>
     <string name="picker_photos" msgid="7415035516411087392">"រូបថត"</string>
@@ -56,6 +59,12 @@
       <item quantity="one">ធាតុ <xliff:g id="COUNT_0">^1</xliff:g></item>
     </plurals>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"បញ្ចូល (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_category_camera" msgid="4857367052026843664">"កាមេរ៉ា"</string>
+    <string name="picker_category_downloads" msgid="793866660287361900">"ការទាញយក"</string>
+    <string name="picker_category_favorites" msgid="7008495397818966088">"សំណព្វ"</string>
+    <string name="picker_category_screenshots" msgid="7216102327587644284">"រូបថត​អេក្រង់"</string>
+    <!-- no translation found for picker_category_videos (1478458836380241356) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other">អនុញ្ញាតឱ្យ <xliff:g id="APP_NAME_1">^1</xliff:g> កែ​ឯកសារសំឡេង <xliff:g id="COUNT">^2</xliff:g> ឬ?</item>
       <item quantity="one">អនុញ្ញាតឱ្យ <xliff:g id="APP_NAME_0">^1</xliff:g> កែ​ឯកសារសំឡេង​នេះ​ឬ?</item>

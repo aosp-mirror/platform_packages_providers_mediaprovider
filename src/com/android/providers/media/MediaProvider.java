@@ -482,8 +482,8 @@ public class MediaProvider extends ContentProvider {
             if (active) {
                 // TODO moltmann: Set correct featureId
                 mCachedCallingIdentity.put(uid,
-                        LocalCallingIdentity.fromExternal(getContext(), uid, packageName,
-                                null));
+                        LocalCallingIdentity.fromExternal(getContext(), mUserCache, uid,
+                            packageName, null));
             } else {
                 mCachedCallingIdentity.remove(uid);
             }
@@ -514,7 +514,7 @@ public class MediaProvider extends ContentProvider {
             PermissionUtils.setOpDescription("via FUSE");
             LocalCallingIdentity identity = mCachedCallingIdentityForFuse.get(uid);
             if (identity == null) {
-               identity = LocalCallingIdentity.fromExternal(getContext(), uid);
+               identity = LocalCallingIdentity.fromExternal(getContext(), mUserCache, uid);
                if (uid / PER_USER_RANGE == sUserId) {
                    mCachedCallingIdentityForFuse.put(uid, identity);
                } else {
@@ -2643,7 +2643,7 @@ public class MediaProvider extends ContentProvider {
     public int checkUriPermission(@NonNull Uri uri, int uid,
             /* @Intent.AccessUriMode */ int modeFlags) {
         final LocalCallingIdentity token = clearLocalCallingIdentity(
-                LocalCallingIdentity.fromExternal(getContext(), uid));
+                LocalCallingIdentity.fromExternal(getContext(), mUserCache, uid));
 
         if (isRedactedUri(uri)) {
             if ((modeFlags & Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != 0) {
@@ -9426,6 +9426,12 @@ public class MediaProvider extends ContentProvider {
             detachVolume(getVolume(volumeName));
         } catch (FileNotFoundException e) {
             Log.e(TAG, "Couldn't find volume for URI " + uri, e) ;
+        }
+    }
+
+    public boolean isVolumeAttached(MediaVolume volume) {
+        synchronized (mAttachedVolumes) {
+            return mAttachedVolumes.contains(volume);
         }
     }
 

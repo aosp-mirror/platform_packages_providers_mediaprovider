@@ -36,6 +36,9 @@ import com.android.providers.media.photopicker.data.model.Item;
 
 import com.google.android.material.snackbar.Snackbar;
 
+import java.text.NumberFormat;
+import java.util.Locale;
+
 /**
  * Photos tab fragment for showing the photos
  */
@@ -132,10 +135,12 @@ public class PhotosTabFragment extends TabFragment {
             } else {
                 if (!mPickerViewModel.isSelectionAllowed()) {
                     final int maxCount = mPickerViewModel.getMaxSelectionLimit();
-                    final CharSequence quantityText = getResources().getQuantityText(
-                            R.plurals.select_up_to, maxCount);
+                    final CharSequence quantityText =
+                            getResources().getQuantityString(R.plurals.select_up_to, maxCount);
+                    final String itemCountString = NumberFormat.getInstance(Locale.getDefault())
+                            .format(maxCount);
                     final CharSequence message = TextUtils.expandTemplate(quantityText,
-                            String.valueOf(maxCount));
+                            itemCountString);
                     Snackbar.make(view, message, Snackbar.LENGTH_SHORT).show();
                     return;
                 } else {

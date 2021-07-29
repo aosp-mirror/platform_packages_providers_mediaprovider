@@ -46,7 +46,10 @@
     <string name="add" msgid="2894574044585549298">"ထည့်ရန်"</string>
     <string name="deselect" msgid="4297825044827769490">"မရွေးပါနှင့်"</string>
     <string name="select" msgid="2704765470563027689">"ရွေးရန်"</string>
-    <!-- no translation found for select_up_to (2878367759927215675) -->
+    <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
+      <item quantity="other">ဖိုင် <xliff:g id="COUNT_1">^1</xliff:g> ဖိုင်အထိ ရွေးနိုင်သည်</item>
+      <item quantity="one">ဖိုင် <xliff:g id="COUNT_0">^1</xliff:g> ဖိုင်အထိ ရွေးနိုင်သည်</item>
+    </plurals>
     <string name="recent" msgid="6694613584743207874">"မကြာသေးမီက"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"ပြသမှုကို ရွေးချယ်ထားသည်"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ဓာတ်ပုံများ"</string>
@@ -56,6 +59,12 @@
       <item quantity="one">ဖိုင် <xliff:g id="COUNT_0">^1</xliff:g> ခု</item>
     </plurals>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>) ခု ထည့်ရန်"</string>
+    <string name="picker_category_camera" msgid="4857367052026843664">"ကင်မရာ"</string>
+    <string name="picker_category_downloads" msgid="793866660287361900">"ဒေါင်းလုဒ်များ"</string>
+    <string name="picker_category_favorites" msgid="7008495397818966088">"စိတ်ကြိုက်များ"</string>
+    <string name="picker_category_screenshots" msgid="7216102327587644284">"ဖန်သားပြင်ဓာတ်ပုံများ"</string>
+    <!-- no translation found for picker_category_videos (1478458836380241356) -->
+    <skip />
     <plurals name="permission_write_audio" formatted="false" msgid="8914759422381305478">
       <item quantity="other"><xliff:g id="APP_NAME_1">^1</xliff:g> ကို အသံဖိုင် <xliff:g id="COUNT">^2</xliff:g> ဖိုင် ပြင်ဆင်ခွင့်ပြုမလား။</item>
       <item quantity="one"><xliff:g id="APP_NAME_0">^1</xliff:g> ကို ဤအသံဖိုင် ပြင်ဆင်ခွင့်ပြုမလား။</item>

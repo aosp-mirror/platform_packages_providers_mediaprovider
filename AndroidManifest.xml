@@ -90,6 +90,10 @@
                 <data android:scheme="package" />
             </intent-filter>
             <intent-filter>
+                <action android:name="android.intent.action.MEDIA_MOUNTED" />
+                <data android:scheme="file" />
+            </intent-filter>
+            <intent-filter>
                 <action android:name="android.intent.action.MEDIA_SCANNER_SCAN_FILE" />
                 <data android:scheme="file" />
             </intent-filter>

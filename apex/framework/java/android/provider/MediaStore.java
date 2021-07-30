@@ -201,10 +201,6 @@ public final class MediaStore {
     public static final String FINISH_LEGACY_MIGRATION_CALL = "finish_legacy_migration";
 
     /** {@hide} */
-    public static final String GET_ORIGINAL_MEDIA_FORMAT_FILE_DESCRIPTOR_CALL =
-            "get_original_media_format_file_descriptor";
-
-    /** {@hide} */
     @Deprecated
     public static final String EXTERNAL_STORAGE_PROVIDER_AUTHORITY =
             "com.android.externalstorage.documents";
@@ -981,19 +977,9 @@ public final class MediaStore {
             @NonNull ParcelFileDescriptor fileDescriptor) throws IOException {
         Bundle input = new Bundle();
         input.putParcelable(EXTRA_FILE_DESCRIPTOR, fileDescriptor);
-        ParcelFileDescriptor pfd;
-        try {
-            Bundle output = context.getContentResolver().call(AUTHORITY,
-                    GET_ORIGINAL_MEDIA_FORMAT_FILE_DESCRIPTOR_CALL, null, input);
-            pfd = output.getParcelable(EXTRA_FILE_DESCRIPTOR);
-        } catch (Exception e) {
-            throw new IOException(e);
-        }
 
-        if (pfd == null) {
-            throw new IOException("Input file descriptor already original");
-        }
-        return pfd;
+        return context.getContentResolver().openTypedAssetFileDescriptor(Files.EXTERNAL_CONTENT_URI,
+                "*/*", input).getParcelFileDescriptor();
     }
 
     /**

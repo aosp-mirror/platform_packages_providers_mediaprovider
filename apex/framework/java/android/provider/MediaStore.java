@@ -230,7 +230,6 @@ public final class MediaStore {
     public static final String EXTRA_CONTENT_VALUES = "content_values";
     /** {@hide} */
     public static final String EXTRA_RESULT = "result";
-
     /** {@hide} */
     public static final String EXTRA_FILE_DESCRIPTOR = "file_descriptor";
 
@@ -240,6 +239,18 @@ public final class MediaStore {
     public static final String EXTRA_IS_SYSTEM_GALLERY_UID = "is_system_gallery_uid";
     /** {@hide} */
     public static final String EXTRA_IS_SYSTEM_GALLERY_RESPONSE = "is_system_gallery_response";
+
+    /** {@hide} */
+    public static final String SYNC_PROVIDERS_CALL = "sync_providers";
+    /** {@hide} */
+    public static final String SET_CLOUD_PROVIDER_CALL = "set_cloud_provider";
+
+    /** {@hide} */
+    public static final String QUERY_ARG_LIMIT = ContentResolver.QUERY_ARG_LIMIT;
+    /** {@hide} */
+    public static final String QUERY_ARG_MIME_TYPE = "android:query-arg-mime_type";
+    /** {@hide} */
+    public static final String QUERY_ARG_SIZE_BYTES = "android:query-arg-size_bytes";
 
     /**
      * This is for internal use by the media scanner only.

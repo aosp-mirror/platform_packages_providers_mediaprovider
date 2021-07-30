@@ -2788,6 +2788,15 @@ public class MediaProvider extends ContentProvider {
             return c;
         }
 
+        // TODO(b/195008831): Add test to verify that apps can't access
+        if (table == PICKER_INTERNAL) {
+            final int limit = queryArgs.getInt(MediaStore.QUERY_ARG_LIMIT, -1);
+            final int sizeBytes = queryArgs.getInt(MediaStore.QUERY_ARG_SIZE_BYTES, -1);
+            final String mimeType =queryArgs.getString(MediaStore.QUERY_ARG_MIME_TYPE, null);
+
+            return mPickerDbFacade.queryMediaAll(limit, mimeType, sizeBytes);
+        }
+
         final DatabaseHelper helper = getDatabaseForUri(uri);
         final SQLiteQueryBuilder qb = getQueryBuilder(TYPE_QUERY, table, uri, queryArgs,
                 honoredArgs::add);
@@ -5763,6 +5772,17 @@ public class MediaProvider extends ContentProvider {
                 } finally {
                     restoreLocalCallingIdentity(token);
                 }
+            case MediaStore.SET_CLOUD_PROVIDER_CALL:
+                // TODO(b/190713331): Remove after initial development
+                final String cloudProvider = extras.getString(PickerDbFacade.KEY_CLOUD_PROVIDER);
+                Log.i(TAG, "Developer initiated cloud provider switch: " + cloudProvider);
+                mPickerSyncController.setCloudProvider(cloudProvider);
+                // fall through
+            case MediaStore.SYNC_PROVIDERS_CALL:
+                // TODO(b/190713331): Remove after initial development
+                Log.i(TAG, "Developer initiated provider sync");
+                mPickerSyncController.syncPicker();
+                return new Bundle();
             default:
                 throw new UnsupportedOperationException("Unsupported call: " + method);
         }
@@ -7106,7 +7126,7 @@ public class MediaProvider extends ContentProvider {
     private boolean isPickerUri(Uri uri) {
         // TODO(b/188394433): move this method to PickerResolver in the spirit of not
         // adding picker logic to MediaProvider
-        final int match = matchUri(uri, /* allowHidden */ false);
+        final int match = matchUri(uri, /* allowHidden */ isCallingPackageAllowedHidden());
         return match == PICKER_ID;
     }
 
@@ -9557,6 +9577,7 @@ public class MediaProvider extends ContentProvider {
 
     static final int PICKER = 900;
     static final int PICKER_ID = 901;
+    static final int PICKER_INTERNAL = 902;
 
     private static final HashSet<Integer> REDACTED_URI_SUPPORTED_TYPES = new HashSet<>(
             Arrays.asList(AUDIO_MEDIA_ID, IMAGES_MEDIA_ID, VIDEO_MEDIA_ID, FILES_ID, DOWNLOADS_ID));
@@ -9652,6 +9673,7 @@ public class MediaProvider extends ContentProvider {
             // NOTE: technically hidden, since Uri is never exposed
             mPublic.addURI(auth, "*/version", VERSION);
 
+            mHidden.addURI(auth, "picker_internal", PICKER_INTERNAL);
             mHidden.addURI(auth, "*", VOLUMES_ID);
             mHidden.addURI(auth, null, VOLUMES);
 

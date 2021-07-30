@@ -44,6 +44,7 @@ import static com.android.providers.media.util.FileUtils.extractRelativePath;
 import static com.android.providers.media.util.FileUtils.extractTopLevelDir;
 import static com.android.providers.media.util.FileUtils.extractVolumeName;
 import static com.android.providers.media.util.FileUtils.extractVolumePath;
+import static com.android.providers.media.util.FileUtils.isExternalMediaDirectory;
 import static com.android.providers.media.util.FileUtils.translateModeAccessToPosix;
 import static com.android.providers.media.util.FileUtils.translateModePfdToPosix;
 import static com.android.providers.media.util.FileUtils.translateModePosixToPfd;
@@ -58,8 +59,10 @@ import static org.junit.Assert.fail;
 
 import android.content.ContentValues;
 import android.os.Environment;
+import android.os.SystemProperties;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
+import android.text.TextUtils;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
@@ -68,6 +71,7 @@ import com.google.common.collect.Range;
 import com.google.common.truth.Truth;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -549,6 +553,62 @@ public class FileUtilsTest {
     }
 
     @Test
+    public void testExtractTopLevelDirWithRelativePathSegments() throws Exception {
+        assertEquals(null,
+                extractTopLevelDir(new String[] { null }));
+        assertEquals("DCIM",
+                extractTopLevelDir(new String[] { "DCIM" }));
+        assertEquals("DCIM",
+                extractTopLevelDir(new String[] { "DCIM", "My Vacation" }));
+
+        assertEquals(null,
+                extractTopLevelDir(new String[] { "AppClone" }, "AppClone"));
+        assertEquals("DCIM",
+                extractTopLevelDir(new String[] { "AppClone", "DCIM" }, "AppClone"));
+        assertEquals("DCIM",
+                extractTopLevelDir(new String[] { "AppClone", "DCIM", "My Vacation" }, "AppClone"));
+
+        assertEquals("Test",
+                extractTopLevelDir(new String[] { "Test" }, "AppClone"));
+        assertEquals("Test",
+                extractTopLevelDir(new String[] { "Test", "DCIM" }, "AppClone"));
+        assertEquals("Test",
+                extractTopLevelDir(new String[] { "Test", "DCIM", "My Vacation" }, "AppClone"));
+    }
+
+    @Test
+    public void testExtractTopLevelDirForCrossUser() throws Exception {
+        Assume.assumeTrue(FileUtils.isCrossUserEnabled());
+
+        final String crossUserRoot = SystemProperties.get("external_storage.cross_user.root", null);
+        Assume.assumeFalse(TextUtils.isEmpty(crossUserRoot));
+
+        for (String prefix : new String[] {
+                "/storage/emulated/0/",
+                "/storage/0000-0000/"
+        }) {
+            assertEquals(null,
+                    extractTopLevelDir(prefix + "foo.jpg"));
+            assertEquals("DCIM",
+                    extractTopLevelDir(prefix + "DCIM/foo.jpg"));
+            assertEquals("DCIM",
+                    extractTopLevelDir(prefix + "DCIM/My Vacation/foo.jpg"));
+
+            assertEquals(null,
+                    extractTopLevelDir(prefix + crossUserRoot + "/foo.jpg"));
+            assertEquals("DCIM",
+                    extractTopLevelDir(prefix + crossUserRoot + "/DCIM/foo.jpg"));
+            assertEquals("DCIM",
+                    extractTopLevelDir(prefix + crossUserRoot + "/DCIM/My Vacation/foo.jpg"));
+
+            assertEquals("Test",
+                    extractTopLevelDir(prefix + "Test/DCIM/foo.jpg"));
+            assertEquals("Test",
+                    extractTopLevelDir(prefix + "Test/DCIM/My Vacation/foo.jpg"));
+        }
+    }
+
+    @Test
     public void testExtractDisplayName() throws Exception {
         for (String probe : new String[] {
                 "foo.bar.baz",
@@ -847,5 +907,16 @@ public class FileUtilsTest {
         // the largest length of the file name is MAX_FILENAME_BYTES 255
         Truth.assertThat(result.length()).isAtMost(MAX_FILENAME_BYTES);
         Truth.assertThat(result).isNotEqualTo(originalName);
+    }
+
+    @Test
+    public void testIsExternalMediaDirectory() throws Exception {
+        for (String prefix : new String[] {
+                "/storage/emulated/0/AppClone/",
+                "/storage/0000-0000/AppClone/"
+        }) {
+            assertTrue(isExternalMediaDirectory(prefix + "Android/media/foo.jpg", "AppClone"));
+            assertFalse(isExternalMediaDirectory(prefix + "Android/media/foo.jpg", "NotAppClone"));
+        }
     }
 }

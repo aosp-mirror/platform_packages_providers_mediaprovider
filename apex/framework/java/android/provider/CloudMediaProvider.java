@@ -41,7 +41,6 @@ import android.os.ParcelFileDescriptor;
 
 import java.io.FileNotFoundException;
 
-// TODO(b/190713331): Fix MANAGE_CLOUD_MEDIA_PROVIDERS permission link
 /**
  * Base class for a cloud media provider. A cloud media provider offers read-only access to durable
  * media files, specifically photos and videos stored on a local disk, or files in a cloud storage
@@ -56,7 +55,7 @@ import java.io.FileNotFoundException;
  *            android:name="com.example.MyCloudProvider"
  *            android:authorities="com.example.mycloudprovider"
  *            android:exported="true"
- *            android:readPermission="android.permission.WRITE_MEDIA_STORAGE"
+ *            android:permission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
  *            &lt;intent-filter&gt;
  *                &lt;action android:name="android.content.action.CLOUD_MEDIA_PROVIDER" /&gt;
  *            &lt;/intent-filter&gt;
@@ -65,10 +64,10 @@ import java.io.FileNotFoundException;
  *    &lt;/application&gt;
  *&lt;/manifest&gt;</pre>
  * <p>
- * When defining your provider, you must protect it with
- * {@code android.permission.MANAGE_CLOUD_MEDIA_PROVIDERS}, which is a permission only the system
- * can obtain, trying to define an unprotected {@link CloudMediaProvider} will result in a
- * {@link SecurityException}.
+ * When defining your provider, you must protect it with the
+ * {@link CloudMediaProviderContract#MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION}, which is a permission
+ * only the system can obtain, trying to define an unprotected {@link CloudMediaProvider} will
+ * result in a {@link SecurityException}.
  * <p>
  * Applications cannot use a cloud media provider directly; they must go through
  * {@link MediaStore#ACTION_PICK_IMAGES} which requires a user to actively navigate and select

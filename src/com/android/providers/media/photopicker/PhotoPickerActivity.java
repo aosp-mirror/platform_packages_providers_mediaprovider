@@ -22,8 +22,8 @@ import android.annotation.IntDef;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.content.res.Configuration;
 import android.graphics.Color;
+import android.graphics.Outline;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -31,10 +31,11 @@ import android.os.SystemProperties;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowInsetsController;
+import android.view.ViewOutlineProvider;
 import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.Toast;
@@ -55,6 +56,8 @@ import com.android.providers.media.photopicker.ui.PreviewFragment;
 import com.android.providers.media.photopicker.util.CrossProfileUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback;
 import com.google.android.material.chip.Chip;
 
 import java.lang.annotation.Retention;
@@ -87,6 +90,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private Chip mAlbumsTabChip;
     @TabChipType
     private int mSelectedTabChipType;
+    private BottomSheetBehavior mBottomSheetBehavior;
+    private View mBottomSheetView;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -115,6 +120,41 @@ public class PhotoPickerActivity extends AppCompatActivity {
             profileSwitch.setVisibility(View.VISIBLE);
             setUpWorkProfileToggleSwitch(profileSwitch);
         }
+        mBottomSheetView = findViewById(R.id.bottom_sheet);
+        mBottomSheetBehavior = BottomSheetBehavior.from(mBottomSheetView);
+        if (mPickerViewModel.canSelectMultiple()) {
+            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+            mBottomSheetBehavior.setSkipCollapsed(true);
+        } else {
+            //TODO(b/185800839): Compute this dynamically such that 2 photos rows is shown
+            mBottomSheetBehavior.setPeekHeight(1200);
+            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        }
+
+        mBottomSheetBehavior.addBottomSheetCallback(new BottomSheetCallback() {
+            @Override
+            public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                if (newState == BottomSheetBehavior.STATE_HIDDEN) {
+                    finish();
+                }
+            }
+
+            @Override
+            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+            }
+        });
+
+        final float cornerRadiusDP = getResources().getDimension(R.dimen.picker_top_corner_radius);
+        final float cornerRadius = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX,
+                cornerRadiusDP, getResources().getDisplayMetrics());
+        final ViewOutlineProvider viewOutlineProvider = new ViewOutlineProvider() {
+            @Override
+            public void getOutline(final View view, final Outline outline) {
+                outline.setRoundRect(0, 0, view.getWidth(),
+                        (int)(view.getHeight() + cornerRadius), cornerRadius);
+            }
+        };
+        mBottomSheetView.setOutlineProvider(viewOutlineProvider);
     }
 
     @Override
@@ -334,24 +374,28 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     private void updateStatusBarAndNavBar(boolean isLightBackgroundMode) {
-        final int mask = WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
-                | WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS;
         final int backgroundColor;
+        final boolean isPreview = !isLightBackgroundMode;
         if (isLightBackgroundMode) {
             backgroundColor = getColor(R.color.picker_background_color);
-
-            final int uiModeNight =
-                    getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
-
-            // if the system is not in Dark theme, set the system bars to light mode.
-            if (uiModeNight == Configuration.UI_MODE_NIGHT_NO) {
-                getWindow().getInsetsController().setSystemBarsAppearance(mask, mask);
-            }
         } else {
             backgroundColor = getColor(R.color.preview_default_black);
-            getWindow().getInsetsController().setSystemBarsAppearance(/* appearance= */ 0, mask);
         }
-        getWindow().setStatusBarColor(backgroundColor);
         getWindow().setNavigationBarColor(backgroundColor);
+        getWindow().setStatusBarColor(isPreview ? backgroundColor : android.R.color.transparent);
+        if (mBottomSheetView != null) {
+            mBottomSheetView.setClipToOutline(!isPreview);
+            // TODO(b/185800839): downward swipe for bottomsheet should go back to photos grid
+            mBottomSheetBehavior.setDraggable(!isPreview);
+        }
+    }
+
+    /**
+     * Set full screen if the state is not full screen
+     */
+    public void setFullScreen() {
+        if (mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
+            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+        }
     }
 }

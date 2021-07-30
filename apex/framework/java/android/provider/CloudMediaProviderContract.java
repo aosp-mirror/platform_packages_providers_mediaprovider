@@ -356,4 +356,39 @@ public final class CloudMediaProviderContract {
      */
     @SystemApi(client = SystemApi.Client.MODULE_LIBRARIES)
     public static final String METHOD_GET_MEDIA_INFO = "android:getMediaInfo";
+
+    /**
+     * URI path for {@link CloudMediaProvider#onQueryMedia}
+     *
+     * {@hide}
+     */
+    public static final String URI_PATH_MEDIA = "media";
+
+    /**
+     * URI path for {@link CloudMediaProvider#onQueryMedia}
+     *
+     * {@hide}
+     */
+    public static final String URI_PATH_MEDIA_EXACT = URI_PATH_MEDIA + "/*";
+
+    /**
+     * URI path for {@link CloudMediaProvider#onQueryDeletedMedia}
+     *
+     * {@hide}
+     */
+    public static final String URI_PATH_DELETED_MEDIA = "deleted_media";
+
+    /**
+     * URI path for {@link CloudMediaProvider#onQueryAlbums}
+     *
+     * {@hide}
+     */
+    public static final String URI_PATH_ALBUM = "album";
+
+    /**
+     * URI path for {@link CloudMediaProvider#onGetMediaInfo}
+     *
+     * {@hide}
+     */
+    public static final String URI_PATH_MEDIA_INFO = "media_info";
 }

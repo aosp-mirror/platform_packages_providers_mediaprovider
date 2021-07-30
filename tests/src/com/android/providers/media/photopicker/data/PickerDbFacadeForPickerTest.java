@@ -55,7 +55,7 @@ public class PickerDbFacadeForPickerTest {
     private static final long DATE_TAKEN_MS = 1623852851911L;
     private static final long DURATION_MS = 5;
     private static final String LOCAL_ID = "50";
-    private static final String MEDIA_STORE_URI = "content://media/file/external/" + LOCAL_ID;
+    private static final String MEDIA_STORE_URI = "content://media/external/file/" + LOCAL_ID;
     private static final String CLOUD_ID = "asdfghjkl;";
     private static final String MIME_TYPE = "video/mp4";
 

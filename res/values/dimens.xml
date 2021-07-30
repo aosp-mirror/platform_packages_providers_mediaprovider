@@ -21,6 +21,7 @@
     <dimen name="dialog_space">20dp</dimen>
 
     <!-- PhotoPicker -->
+    <dimen name="picker_top_corner_radius">16dp</dimen>
     <dimen name="picker_photo_size">118dp</dimen>
     <dimen name="picker_album_size">156dp</dimen>
 

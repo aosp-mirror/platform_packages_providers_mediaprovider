@@ -38,6 +38,12 @@
     <!-- Permissions required to check if an app is in the foreground or not during IO -->
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
 
+    <!-- Permission required to access CloudMediaProviders. Declared by us -->
+    <uses-permission android:name="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS" />
+
+    <permission android:name="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
+                android:protectionLevel="signature" />
+
     <application
             android:name="com.android.providers.media.MediaApplication"
             android:label="@string/app_label"

@@ -17,27 +17,27 @@
 package android.provider;
 
 import static android.provider.CloudMediaProviderContract.METHOD_GET_MEDIA_INFO;
+import static android.provider.CloudMediaProviderContract.URI_PATH_ALBUM;
+import static android.provider.CloudMediaProviderContract.URI_PATH_DELETED_MEDIA;
+import static android.provider.CloudMediaProviderContract.URI_PATH_MEDIA;
+import static android.provider.CloudMediaProviderContract.URI_PATH_MEDIA_EXACT;
+import static android.provider.CloudMediaProviderContract.URI_PATH_MEDIA_INFO;
 
-import android.Manifest;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.annotation.SystemApi;
 import android.content.ContentProvider;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.UriMatcher;
-import android.content.pm.PackageManager;
 import android.content.pm.ProviderInfo;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.graphics.Point;
 import android.net.Uri;
-import android.os.Binder;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
-import android.os.UserHandle;
 
 import java.io.FileNotFoundException;
 
@@ -55,7 +55,7 @@ import java.io.FileNotFoundException;
  *            android:name="com.example.MyCloudProvider"
  *            android:authorities="com.example.mycloudprovider"
  *            android:exported="true"
- *            android:readPermission="android.permission.WRITE_MEDIA_STORAGE"
+ *            android:permission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
  *            &lt;intent-filter&gt;
  *                &lt;action android:name="android.content.action.CLOUD_MEDIA_PROVIDER" /&gt;
  *            &lt;/intent-filter&gt;
@@ -64,10 +64,10 @@ import java.io.FileNotFoundException;
  *    &lt;/application&gt;
  *&lt;/manifest&gt;</pre>
  * <p>
- * When defining your provider, you must protect it with
- * {@code android.permission.WRITE_MEDIA_STORAGE}, which is a permission only the system
- * can obtain, trying to define an unprotected {@link CloudMediaProvider} will result in a
- * {@link SecurityException}.
+ * When defining your provider, you must protect it with the
+ * {@link CloudMediaProviderContract#MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION}, which is a permission
+ * only the system can obtain, trying to define an unprotected {@link CloudMediaProvider} will
+ * result in a {@link SecurityException}.
  * <p>
  * Applications cannot use a cloud media provider directly; they must go through
  * {@link MediaStore#ACTION_PICK_IMAGES} which requires a user to actively navigate and select
@@ -86,13 +86,6 @@ import java.io.FileNotFoundException;
 public abstract class CloudMediaProvider extends ContentProvider {
     private static final String TAG = "CloudMediaProvider";
 
-    private static final String URI_PATH_MEDIA = "media";
-    // content://<authority>/media/<version>/<id>
-    private static final String URI_PATH_MEDIA_EXACT = URI_PATH_MEDIA + "/*/*";
-    private static final String URI_PATH_DELETED_MEDIA = "deleted_media";
-    private static final String URI_PATH_ALBUM = "album";
-    private static final String URI_PATH_MEDIA_INFO = "media_info";
-
     private static final int MATCH_MEDIAS = 1;
     private static final int MATCH_MEDIA_ID = 2;
     private static final int MATCH_DELETED_MEDIAS = 3;
@@ -108,29 +101,6 @@ public abstract class CloudMediaProvider extends ContentProvider {
     @Override
     public final void attachInfo(@NonNull Context context, @NonNull ProviderInfo info) {
         registerAuthority(info.authority);
-
-        // Validity check our setup
-        if (!info.exported) {
-            throw new SecurityException("Provider must be exported");
-        }
-        // TODO(b/190713331): Replace the permission checks below with MANAGE_CLOUD_MEDIA_PROVIDERS
-        // permission
-        if (info.writePermission != null) {
-            throw new SecurityException("Provider must be readOnly. "
-                    + "Use android:readPermission instead of android:permission");
-        }
-        if (!Manifest.permission.WRITE_MEDIA_STORAGE.equals(info.readPermission)) {
-            throw new SecurityException("Provider must be protected by WRITE_MEDIA_STORAGE");
-        }
-
-        // Initialize the MediaStore app id for security checks
-        ProviderInfo mediaProviderInfo = context.getPackageManager().resolveContentProvider(
-                MediaStore.AUTHORITY, PackageManager.MATCH_DIRECT_BOOT_AWARE
-                | PackageManager.MATCH_DIRECT_BOOT_UNAWARE);
-        if (mediaProviderInfo == null) {
-            throw new SecurityException("Unable to identify the MediaStore authority");
-        }
-        mMediaStoreAuthorityAppId = UserHandle.getAppId(mediaProviderInfo.applicationInfo.uid);
 
         super.attachInfo(context, info);
     }
@@ -295,8 +265,6 @@ public abstract class CloudMediaProvider extends ContentProvider {
     @NonNull
     public final Bundle call(@NonNull String method, @Nullable String arg,
             @Nullable Bundle extras) {
-        enforceCallerIsMediaProvider();
-
         if (!method.startsWith("android:")) {
             // Ignore non-platform methods
             return super.call(method, arg, extras);
@@ -368,8 +336,6 @@ public abstract class CloudMediaProvider extends ContentProvider {
     public final AssetFileDescriptor openTypedAssetFile(
             @NonNull Uri uri, @NonNull String mimeTypeFilter, @Nullable Bundle opts,
             @Nullable CancellationSignal signal) throws FileNotFoundException {
-        enforceCallerIsMediaProvider();
-
         String mediaId = uri.getLastPathSegment();
         final boolean wantsThumb = (opts != null) && opts.containsKey(ContentResolver.EXTRA_SIZE)
                 && mimeTypeFilter.startsWith("image/");
@@ -392,8 +358,6 @@ public abstract class CloudMediaProvider extends ContentProvider {
     @Override
     public final Cursor query(@NonNull Uri uri, @Nullable String[] projection,
             @Nullable Bundle queryArgs, @Nullable CancellationSignal cancellationSignal) {
-        enforceCallerIsMediaProvider();
-
         switch (mMatcher.match(uri)) {
             case MATCH_MEDIAS:
                 return onQueryMedia(queryArgs);
@@ -405,13 +369,6 @@ public abstract class CloudMediaProvider extends ContentProvider {
                 return onQueryAlbums(queryArgs);
             default:
                 throw new UnsupportedOperationException("Unsupported Uri " + uri);
-        }
-    }
-
-    private void enforceCallerIsMediaProvider() {
-        int callingUid = Binder.getCallingUid();
-        if (mMediaStoreAuthorityAppId != UserHandle.getAppId(callingUid)) {
-            throw new SecurityException("Caller must be MediaProvider. Calling uid: " + callingUid);
         }
     }
 

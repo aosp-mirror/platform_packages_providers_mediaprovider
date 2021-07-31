@@ -43,6 +43,14 @@ public final class CloudMediaProviderContract {
      */
     public static final String PROVIDER_INTERFACE = "android.content.action.CLOUD_MEDIA_PROVIDER";
 
+    /**
+     * Permission required to protect {@link CloudMediaProvider} instances. Providers should
+     * require this in the {@code permission} attribute in their {@code <provider>} tag.
+     * The OS will not connect to a provider without this protection.
+     */
+    public static final String MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION =
+            "com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS";
+
     /** Constants related to a media item, including {@link Cursor} column names */
     public static final class MediaColumns {
         private MediaColumns() {}
@@ -356,4 +364,39 @@ public final class CloudMediaProviderContract {
      */
     @SystemApi(client = SystemApi.Client.MODULE_LIBRARIES)
     public static final String METHOD_GET_MEDIA_INFO = "android:getMediaInfo";
+
+    /**
+     * URI path for {@link CloudMediaProvider#onQueryMedia}
+     *
+     * {@hide}
+     */
+    public static final String URI_PATH_MEDIA = "media";
+
+    /**
+     * URI path for {@link CloudMediaProvider#onQueryMedia}
+     *
+     * {@hide}
+     */
+    public static final String URI_PATH_MEDIA_EXACT = URI_PATH_MEDIA + "/*";
+
+    /**
+     * URI path for {@link CloudMediaProvider#onQueryDeletedMedia}
+     *
+     * {@hide}
+     */
+    public static final String URI_PATH_DELETED_MEDIA = "deleted_media";
+
+    /**
+     * URI path for {@link CloudMediaProvider#onQueryAlbums}
+     *
+     * {@hide}
+     */
+    public static final String URI_PATH_ALBUM = "album";
+
+    /**
+     * URI path for {@link CloudMediaProvider#onGetMediaInfo}
+     *
+     * {@hide}
+     */
+    public static final String URI_PATH_MEDIA_INFO = "media_info";
 }

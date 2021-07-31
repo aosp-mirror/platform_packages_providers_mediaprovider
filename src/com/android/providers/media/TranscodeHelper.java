@@ -1595,7 +1595,7 @@ public class TranscodeHelper {
         // Related to notification settings
         private static final String TRANSCODE_NOTIFICATION_SYS_PROP_KEY =
                 "persist.sys.fuse.transcode_notification";
-        private static final boolean NOTIFICATION_ALLOWED_DEFAULT_VALUE = true;
+        private static final boolean NOTIFICATION_ALLOWED_DEFAULT_VALUE = false;
 
         private final Context mContext;
         private final NotificationManagerCompat mNotificationManager;

@@ -28,6 +28,7 @@ import androidx.annotation.NonNull;
 
 import com.android.modules.utils.build.SdkLevel;
 
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -147,6 +148,15 @@ public class UserCache {
         synchronized (mLock) {
             // It must be a user that we manage, and not equal to the main user that we run as
             return !Process.myUserHandle().equals(user) && mUsers.contains(user);
+        }
+    }
+
+    public void dump(PrintWriter writer) {
+        writer.println("User cache state:");
+        synchronized (mLock) {
+            for (UserHandle user : mUsers) {
+                writer.println("  user: " + user);
+            }
         }
     }
 }

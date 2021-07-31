@@ -33,6 +33,7 @@ package android.provider {
     field public static final String EXTRA_FILTER_SIZE_BYTES = "android.provider.extra.FILTER_SIZE_BYTES";
     field public static final String EXTRA_GENERATION = "android.provider.extra.GENERATION";
     field public static final String EXTRA_PAGE_TOKEN = "android.provider.extra.PAGE_TOKEN";
+    field public static final String MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION = "com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS";
     field public static final String PROVIDER_INTERFACE = "android.content.action.CLOUD_MEDIA_PROVIDER";
   }
 

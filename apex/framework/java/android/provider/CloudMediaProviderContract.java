@@ -43,6 +43,14 @@ public final class CloudMediaProviderContract {
      */
     public static final String PROVIDER_INTERFACE = "android.content.action.CLOUD_MEDIA_PROVIDER";
 
+    /**
+     * Permission required to protect {@link CloudMediaProvider} instances. Providers should
+     * require this in the {@code permission} attribute in their {@code <provider>} tag.
+     * The OS will not connect to a provider without this protection.
+     */
+    public static final String MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION =
+            "com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS";
+
     /** Constants related to a media item, including {@link Cursor} column names */
     public static final class MediaColumns {
         private MediaColumns() {}

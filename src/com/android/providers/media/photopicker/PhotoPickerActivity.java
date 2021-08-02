@@ -22,6 +22,7 @@ import android.annotation.IntDef;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.drawable.ColorDrawable;
@@ -36,6 +37,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
+import android.view.WindowInsetsController;
 import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.Toast;
@@ -383,6 +385,21 @@ public class PhotoPickerActivity extends AppCompatActivity {
         }
         getWindow().setNavigationBarColor(backgroundColor);
         getWindow().setStatusBarColor(isPreview ? backgroundColor : android.R.color.transparent);
+
+        // Update the system bar appearance
+        final int mask = WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+        int appearance = 0;
+        if (isLightBackgroundMode) {
+            final int uiModeNight =
+                    getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+
+            if (uiModeNight == Configuration.UI_MODE_NIGHT_NO) {
+                // If the system is not in Dark theme, set the system bars to light mode.
+                appearance = mask;
+            }
+        }
+        getWindow().getInsetsController().setSystemBarsAppearance(appearance, mask);
+
         if (mBottomSheetView != null) {
             mBottomSheetView.setClipToOutline(!isPreview);
             // TODO(b/185800839): downward swipe for bottomsheet should go back to photos grid

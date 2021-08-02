@@ -53,7 +53,7 @@
     <plurals name="select_up_to" formatted="false" msgid="2878367759927215675">
       <item quantity="few">Vyberte maximálne <xliff:g id="COUNT_1">^1</xliff:g> položky</item>
       <item quantity="many">Select up to <xliff:g id="COUNT_1">^1</xliff:g> items</item>
-      <item quantity="other">Vyberte <xliff:g id="COUNT_1">^1</xliff:g> položiek</item>
+      <item quantity="other">Vyberte maximálne <xliff:g id="COUNT_1">^1</xliff:g> položiek</item>
       <item quantity="one">Vyberte maximálne <xliff:g id="COUNT_0">^1</xliff:g> položku</item>
     </plurals>
     <string name="recent" msgid="6694613584743207874">"Nedávne"</string>

@@ -25,6 +25,9 @@ import androidx.annotation.NonNull;
 
 import com.android.providers.media.R;
 
+import java.text.NumberFormat;
+import java.util.Locale;
+
 /**
  * ViewHolder of a message within a RecyclerView.
  */
@@ -39,10 +42,10 @@ public class MessageHolder extends BaseViewHolder {
 
     @Override
     public void bind() {
-        final Resources res = itemView.getContext().getResources();
-        final CharSequence quantityText = res.getQuantityText(R.plurals.select_up_to, mMaxCount);
-        final CharSequence message = TextUtils.expandTemplate(quantityText,
-                String.valueOf(mMaxCount));
-        mMessage.setText(message);
+        final Resources res = itemView.getResources();
+        final CharSequence quantityText = res.getQuantityString(R.plurals.select_up_to, mMaxCount);
+        final String itemCountString = NumberFormat.getInstance(Locale.getDefault()).format(
+                mMaxCount);
+        mMessage.setText(TextUtils.expandTemplate(quantityText, itemCountString));
     }
 }

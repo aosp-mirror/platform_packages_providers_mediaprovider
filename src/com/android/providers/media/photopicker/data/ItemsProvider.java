@@ -161,7 +161,7 @@ public class ItemsProvider {
 
         return new String[] {
                 category, // category name
-                String.valueOf(getMediaStoreUriForItem(c.getLong(0))), // coverUri
+                getMediaStoreUriForItem(c.getString(0)).toString(), // coverUri
                 String.valueOf(c.getCount()), // item count
                 category // category type
         };
@@ -212,16 +212,17 @@ public class ItemsProvider {
         return null;
     }
 
-    private static Uri getMediaStoreUriForItem(long id) {
-        return MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL, id);
+    private static Uri getMediaStoreUriForItem(String id) {
+        return MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL, Long.parseLong(id));
     }
 
     private static String replaceMatchAnyChar(@NonNull String mimeType) {
         return mimeType.replace('*', '%');
     }
 
-    public static Uri getItemsUri(long id, UserId userId) {
-        final Uri uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL, id);
+    public static Uri getItemsUri(String id, String authority, UserId userId) {
+        final Uri uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL,
+                Long.parseLong(id));
         if (userId.equals(UserId.CURRENT_USER)) {
             return uri;
         } else {

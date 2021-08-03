@@ -19,8 +19,6 @@ package com.android.providers.media.photopicker.viewmodel;
 import static com.android.providers.media.util.MimeUtils.isImageMimeType;
 import static com.android.providers.media.util.MimeUtils.isVideoMimeType;
 
-import android.annotation.NonNull;
-import android.annotation.Nullable;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
@@ -31,6 +29,9 @@ import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -66,7 +67,7 @@ public class PickerViewModel extends AndroidViewModel {
     private MutableLiveData<List<Item>> mCategoryItemList;
     private MutableLiveData<Map<Uri, Item>> mSelectedItemList = new MutableLiveData<>();
     private MutableLiveData<List<Category>> mCategoryList;
-    private final ItemsProvider mItemsProvider;
+    private ItemsProvider mItemsProvider;
     private final UserIdManager mUserIdManager;
     private boolean mSelectMultiple = false;
     private String mMimeTypeFilter = null;
@@ -84,6 +85,11 @@ public class PickerViewModel extends AndroidViewModel {
         final Context context = application.getApplicationContext();
         mItemsProvider = new ItemsProvider(context);
         mUserIdManager = UserIdManager.create(context);
+    }
+
+    @VisibleForTesting
+    void setItemsProvider(@NonNull ItemsProvider itemsProvider) {
+        mItemsProvider = itemsProvider;
     }
 
     /**
@@ -287,17 +293,19 @@ public class PickerViewModel extends AndroidViewModel {
     private List<Category> loadCategories() {
         final List<Category> categoryList = new ArrayList<>();
         final UserId userId = mUserIdManager.getCurrentUserProfileId();
-        final Cursor cursor = mItemsProvider.getCategories(mMimeTypeFilter, userId);
-        if (cursor == null) {
-            return categoryList;
-        }
+        try (final Cursor cursor = mItemsProvider.getCategories(mMimeTypeFilter, userId)) {
+            if (cursor == null) {
+                return categoryList;
+            }
 
-        while (cursor.moveToNext()) {
-            final Category category = Category.fromCursor(cursor);
-            categoryList.add(category);
-        }
+            while (cursor.moveToNext()) {
+                final Category category = Category.fromCursor(cursor);
+                categoryList.add(category);
+            }
 
-        Log.d(TAG, "Loaded " + categoryList.size() + " categories for user " + userId.toString());
+            Log.d(TAG,
+                    "Loaded " + categoryList.size() + " categories for user " + userId.toString());
+        }
         return categoryList;
     }
 

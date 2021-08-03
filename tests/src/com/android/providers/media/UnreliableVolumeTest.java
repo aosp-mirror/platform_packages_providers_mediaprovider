@@ -44,9 +44,9 @@ import java.util.function.Supplier;
 
 public class UnreliableVolumeTest {
 
-    private static String mVolumePath;
-    private static String mVolumeName;
-    private static VolumeCache mVolumeCache;
+    private static String sVolumePath;
+    private static String sVolumeName;
+    private static VolumeCache sVolumeCache;
     private static final long POLLING_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(2);
     private static final long POLLING_SLEEP_MILLIS = 100;
     private static final String TAG = "UnreliableVolumeTest";
@@ -56,11 +56,11 @@ public class UnreliableVolumeTest {
         createRemovableVolume();
         final Context context = getContext();
         UserCache mUserCache = new UserCache(context);
-        mVolumeCache = new VolumeCache(context, mUserCache);
-        mVolumeCache.update();
+        sVolumeCache = new VolumeCache(context, mUserCache);
+        sVolumeCache.update();
 
-        mVolumeName = getCurrentPublicVolumeString();
-        mVolumePath = "/mnt/media_rw/" + mVolumeName;
+        sVolumeName = getCurrentPublicVolumeString();
+        sVolumePath = "/mnt/media_rw/" + sVolumeName;
     }
 
     @AfterClass
@@ -72,8 +72,8 @@ public class UnreliableVolumeTest {
 
     @Test
     public void testUnreliableVolumeSimple() throws Exception {
-        assertEquals(mVolumeName, mVolumeCache.getUnreliableVolumePath().get(0).getName());
-        assertEquals(mVolumePath, mVolumeCache.getUnreliableVolumePath().get(0).getPath());
+        assertEquals(sVolumeName, sVolumeCache.getUnreliableVolumePath().get(0).getName());
+        assertEquals(sVolumePath, sVolumeCache.getUnreliableVolumePath().get(0).getPath());
     }
 
     /**

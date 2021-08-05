@@ -435,11 +435,13 @@ public class ModernMediaScannerTest {
     }
 
     /**
-     * b/168830497: Test that default folders and Camera folder are always visible
+     * b/168830497: Test that root folder, default folders and Camera folder are always visible
      */
     @Test
     public void testVisibleDefaultFolders() throws Exception {
         final File root = new File("storage/emulated/0");
+
+        assertVisibleFolder(root);
 
         // Top level directories should always be visible
         for (String dirName : FileUtils.DEFAULT_FOLDER_NAMES) {
@@ -450,6 +452,29 @@ public class ModernMediaScannerTest {
         // DCIM/Camera should always be visible
         final File cameraDir = new File(root, Environment.DIRECTORY_DCIM + "/" + "Camera");
         assertVisibleFolder(cameraDir);
+    }
+
+    /**
+     *  b/192799231: Test that root folder which has .nomedia directory is always visible
+     */
+    @Test
+    public void testVisibleRootWithNoMediaDirectory() throws Exception {
+        final File root = new File("storage/emulated/0");
+        final File nomediaDir = new File(root, ".nomedia");
+        final File file = new File(nomediaDir, "test.jpg");
+
+        try {
+            if (!nomediaDir.exists()) {
+                executeShellCommand("mkdir -p " + nomediaDir.getAbsolutePath());
+            }
+            if (!file.exists()) {
+                executeShellCommand("touch " + file.getAbsolutePath());
+                assertTrue(file.exists());
+            }
+            assertShouldScanPathAndIsPathHidden(true, false, root);
+        } finally {
+            executeShellCommand("rm -rf " + nomediaDir.getAbsolutePath());
+        }
     }
 
     private static void assertShouldScanDirectory(File file) {

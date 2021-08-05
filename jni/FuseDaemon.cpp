@@ -1189,8 +1189,10 @@ static void pf_write_buf(fuse_req_t req,
     if (size < 0)
         fuse_reply_err(req, -size);
     else {
-        fuse_reply_write(req, size);
+        // Execute Record *before* fuse_reply_write to avoid the following ordering:
+        // fuse_reply_write -> pf_release (destroy handle) -> Record (use handle after free)
         fuse->fadviser.Record(h->fd, size);
+        fuse_reply_write(req, size);
     }
 }
 // Haven't tested this one. Not sure what calls it.

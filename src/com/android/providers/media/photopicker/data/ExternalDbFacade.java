@@ -34,7 +34,7 @@ import com.android.providers.media.util.MimeUtils;
  * It does not do any caller permission checks and is only intended for internal use within the
  * MediaProvider for the Photo Picker.
  */
-public class ExternalDbFacadeForPicker {
+public class ExternalDbFacade {
     private static final String TAG = "ExternalDbFacade";
     @VisibleForTesting
     static final String TABLE_FILES = "files";
@@ -70,7 +70,7 @@ public class ExternalDbFacadeForPicker {
 
     private final DatabaseHelper mDatabaseHelper;
 
-    public ExternalDbFacadeForPicker(DatabaseHelper databaseHelper) {
+    public ExternalDbFacade(DatabaseHelper databaseHelper) {
         mDatabaseHelper = databaseHelper;
     }
 

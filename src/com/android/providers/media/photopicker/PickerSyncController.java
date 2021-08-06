@@ -41,7 +41,7 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
-import com.android.providers.media.photopicker.data.PickerDbFacadeForPicker;
+import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.util.BackgroundThread;
 
 import java.lang.annotation.Retention;
@@ -81,7 +81,7 @@ public class PickerSyncController {
     @Retention(RetentionPolicy.SOURCE)
     private @interface SyncType {}
 
-    private final PickerDbFacadeForPicker mDbFacade;
+    private final PickerDbFacade mDbFacade;
     private final Context mContext;
     private final SharedPreferences mPrefs;
     private final String mLocalProvider;
@@ -91,12 +91,12 @@ public class PickerSyncController {
     // TODO(b/190713331): Listen for package_removed
     private volatile String mCloudProvider;
 
-    public PickerSyncController(Context context, PickerDbFacadeForPicker dbFacade) {
+    public PickerSyncController(Context context, PickerDbFacade dbFacade) {
         this(context, dbFacade, LOCAL_PICKER_PROVIDER_AUTHORITY, DEFAULT_SYNC_DELAY_MS);
     }
 
     @VisibleForTesting
-    PickerSyncController(Context context, PickerDbFacadeForPicker dbFacade,
+    PickerSyncController(Context context, PickerDbFacade dbFacade,
             String localProvider, long syncDelayMs) {
         mContext = context;
         mPrefs = mContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);

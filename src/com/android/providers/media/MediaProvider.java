@@ -196,9 +196,8 @@ import com.android.providers.media.fuse.ExternalStorageServiceImpl;
 import com.android.providers.media.fuse.FuseDaemon;
 import com.android.providers.media.metrics.PulledMetrics;
 import com.android.providers.media.photopicker.PickerSyncController;
-import com.android.providers.media.photopicker.data.ExternalDbFacadeForPicker;
-import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
-import com.android.providers.media.photopicker.data.PickerDbFacadeForPicker;
+import com.android.providers.media.photopicker.data.ExternalDbFacade;
+import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.ModernMediaScanner;
@@ -943,9 +942,8 @@ public class MediaProvider extends ContentProvider {
         mExternalDatabase = new DatabaseHelper(context, EXTERNAL_DATABASE_NAME, false, false,
                 Column.class, Metrics::logSchemaChange, mFilesListener, MIGRATION_LISTENER,
                 mIdGenerator);
-        mPickerDatabase = new PickerDatabaseHelper(context);
-        mExternalDbFacade = new ExternalDbFacadeForPicker(mExternalDatabase);
-        mPickerDbFacade = new PickerDbFacadeForPicker(mPickerDatabase.getWritableDatabase());
+        mExternalDbFacade = new ExternalDbFacade(mExternalDatabase);
+        mPickerDbFacade = new PickerDbFacade(context);
         mPickerSyncController = new PickerSyncController(context, mPickerDbFacade);
 
         if (SdkLevel.isAtLeastS()) {
@@ -9599,9 +9597,8 @@ public class MediaProvider extends ContentProvider {
 
     private DatabaseHelper mInternalDatabase;
     private DatabaseHelper mExternalDatabase;
-    private PickerDatabaseHelper mPickerDatabase;
-    private PickerDbFacadeForPicker mPickerDbFacade;
-    private ExternalDbFacadeForPicker mExternalDbFacade;
+    private PickerDbFacade mPickerDbFacade;
+    private ExternalDbFacade mExternalDbFacade;
     private PickerSyncController mPickerSyncController;
     private TranscodeHelper mTranscodeHelper;
 

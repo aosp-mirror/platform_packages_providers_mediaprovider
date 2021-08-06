@@ -26,10 +26,13 @@ import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore.MediaColumns;
+import android.os.Bundle;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
+
+import com.android.providers.media.photopicker.PickerSyncController;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,11 +43,22 @@ import java.util.List;
  * MediaProvider for the Photo Picker.
  */
 public class PickerDbFacade {
+    private final Object mLock = new Object();
     private final SQLiteDatabase mDatabase;
+    private final String mLocalProvider;
+    private String mCloudProvider;
 
     public PickerDbFacade(Context context) {
         final PickerDatabaseHelper databaseHelper = new PickerDatabaseHelper(context);
         mDatabase = databaseHelper.getWritableDatabase();
+        mLocalProvider = PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
+    }
+
+    @VisibleForTesting
+    public PickerDbFacade(Context context, String localProvider) {
+        final PickerDatabaseHelper databaseHelper = new PickerDatabaseHelper(context);
+        mDatabase = databaseHelper.getWritableDatabase();
+        mLocalProvider = localProvider;
     }
 
     private static final String TAG = "PickerDbFacade";
@@ -52,6 +66,9 @@ public class PickerDbFacade {
     private static final int RETRY = 0;
     private static final int SUCCESS = 1;
     private static final int FAIL = -1;
+
+    public static final String KEY_LOCAL_PROVIDER = "local_provider";
+    public static final String KEY_CLOUD_PROVIDER = "cloud_provider";
 
     private static final String TABLE_MEDIA = "media";
 
@@ -75,8 +92,8 @@ public class PickerDbFacade {
     private static final String WHERE_ID = KEY_ID + " = ?";
     private static final String WHERE_LOCAL_ID = KEY_LOCAL_ID + " = ?";
     private static final String WHERE_CLOUD_ID = KEY_CLOUD_ID + " = ?";
-    private static final String WHERE_NULL_CLOULD_ID = KEY_CLOUD_ID + " IS NULL";
-    private static final String WHERE_NOT_NULL_CLOULD_ID = KEY_CLOUD_ID + " IS NOT NULL";
+    private static final String WHERE_NULL_CLOUD_ID = KEY_CLOUD_ID + " IS NULL";
+    private static final String WHERE_NOT_NULL_CLOUD_ID = KEY_CLOUD_ID + " IS NOT NULL";
     private static final String WHERE_IS_VISIBLE = KEY_IS_VISIBLE + " = 1";
     private static final String WHERE_MIME_TYPE = KEY_MIME_TYPE + " LIKE ? ";
     private static final String WHERE_SIZE_BYTES = KEY_SIZE_BYTES + " <= ?";
@@ -111,48 +128,14 @@ public class PickerDbFacade {
     }
 
     /*
-     * Add media from the {@link MediaStore} a.k.a. LocalMediaProvider into the picker db.
+     * Add media belonging to {@code authority} into the picker db.
      *
      * @param cursor containing items to add
+     * @param authority to add media from
      * @return the number of {@code cursor} items that were inserted/updated in the picker db
      */
-    public int addLocalMedia(Cursor cursor) {
-        return addMedia(cursor, /* isLocal */ true);
-    }
-
-    /*
-     * Add media from a remote CloudMediaProvider into the picker db.
-     *
-     * @param cursor containing items to add
-     * @return the number of {@code cursor} items that were inserted/updated in the picker db
-     */
-    public int addCloudMedia(Cursor cursor) {
-        return addMedia(cursor, /* isLocal */ false);
-    }
-
-    /*
-     * Remove {@link MediaStore} a.k.a. LocalMediaProvider media from the picker db.
-     *
-     * @param cursor containing items to remove
-     * @param idIndex column index in {@code cursor} of the local id
-     * @return the number of {@code cursor} items that were deleted/updated in the picker db
-     */
-    public int removeLocalMedia(Cursor cursor, int idIndex) {
-        return removeMedia(cursor, idIndex, /* isLocal */ true);
-    }
-
-    /*
-     * Remove remote CloudMediaProvider media from the picker db.
-     *
-     * @param cursor containing items to remove
-     * @param idIndex column index in the {@code cursor} of the cloud id
-     * @return the number of {@code cursor} items that were deleted/updated in the picker db
-     */
-    public int removeCloudMedia(Cursor cursor, int idIndex) {
-        return removeMedia(cursor, idIndex, /* isLocal */ false);
-    }
-
-    private int addMedia(Cursor cursor, boolean isLocal) {
+    public int addMedia(Cursor cursor, String authority) {
+        final boolean isLocal = isLocal(authority);
         final SQLiteQueryBuilder qb = isLocal ? QB_MATCH_LOCAL_ONLY : QB_MATCH_CLOUD;
         int counter = 0;
 
@@ -192,36 +175,16 @@ public class PickerDbFacade {
         return counter;
     }
 
-    public int resetMedia(boolean isLocal) {
-        final SQLiteQueryBuilder qb = createMediaQueryBuilder();
-        if (isLocal) {
-            qb.appendWhereStandalone(WHERE_NULL_CLOULD_ID);
-        } else {
-            qb.appendWhereStandalone(WHERE_NOT_NULL_CLOULD_ID);
-        }
-
-        int counter = 0;
-
-        mDatabase.beginTransaction();
-        try {
-            counter = qb.delete(mDatabase, /* selection */ null, /* selectionArgs */ null);
-
-            if (isLocal) {
-                // If we reset local media, we need to promote cloud media items
-                // Ignore conflicts in case we have multiple cloud_ids mapped to the
-                // same local_id. Promoting either is fine.
-                mDatabase.updateWithOnConflict(TABLE_MEDIA, CONTENT_VALUE_VISIBLE, /* where */ null,
-                        /* whereClause */ null, SQLiteDatabase.CONFLICT_IGNORE);
-            }
-            mDatabase.setTransactionSuccessful();
-        } finally {
-            mDatabase.endTransaction();
-        }
-
-        return counter;
-    }
-
-    private int removeMedia(Cursor cursor, int idIndex, boolean isLocal) {
+    /*
+     * Remove media belonging to {@code authority} from the picker db.
+     *
+     * @param cursor containing items to remove
+     * @param idIndex column index in {@code cursor} of the local id
+     * @param authority to remove media from
+     * @return the number of {@code cursor} items that were deleted/updated in the picker db
+     */
+    public int removeMedia(Cursor cursor, int idIndex, String authority) {
+        final boolean isLocal = isLocal(authority);
         final SQLiteQueryBuilder qb = isLocal ? QB_MATCH_LOCAL_ONLY : QB_MATCH_CLOUD;
 
         int counter = 0;
@@ -249,6 +212,69 @@ public class PickerDbFacade {
         }
 
         return counter;
+    }
+
+    /**
+     * Clear local media or all cloud media from the picker db. If {@code authority} is
+     * null, we also clear all cloud media.
+     *
+     * @param authority to determine whether local or cloud media should be cleared
+     * @return the number of items deleted
+     */
+    public int resetMedia(String authority) {
+        final boolean isLocal = isLocal(authority);
+        final SQLiteQueryBuilder qb = createMediaQueryBuilder();
+
+        if (isLocal) {
+            qb.appendWhereStandalone(WHERE_NULL_CLOUD_ID);
+        } else {
+            qb.appendWhereStandalone(WHERE_NOT_NULL_CLOUD_ID);
+        }
+
+        int counter = 0;
+
+        mDatabase.beginTransaction();
+        try {
+            counter = qb.delete(mDatabase, /* selection */ null, /* selectionArgs */ null);
+
+            if (isLocal) {
+                // If we reset local media, we need to promote cloud media items
+                // Ignore conflicts in case we have multiple cloud_ids mapped to the
+                // same local_id. Promoting either is fine.
+                mDatabase.updateWithOnConflict(TABLE_MEDIA, CONTENT_VALUE_VISIBLE, /* where */ null,
+                        /* whereClause */ null, SQLiteDatabase.CONFLICT_IGNORE);
+            }
+
+            mDatabase.setTransactionSuccessful();
+        } finally {
+            mDatabase.endTransaction();
+        }
+
+        return counter;
+    }
+
+    /**
+     * Sets the cloud provider to be returned after querying the picker db
+     * If null, cloud media will be excluded from all queries.
+     */
+    public void setCloudProvider(String authority) {
+        synchronized (mLock) {
+            mCloudProvider = authority;
+        }
+    }
+
+    /**
+     * Returns the cloud provider that will be returned after querying the picker db
+     */
+    @VisibleForTesting
+    public String getCloudProvider() {
+        synchronized (mLock) {
+            return mCloudProvider;
+        }
+    }
+
+    private boolean isLocal(String authority) {
+        return mLocalProvider.equals(authority);
     }
 
     private int insertMedia(ContentValues values) {
@@ -430,8 +456,29 @@ public class PickerDbFacade {
         final String orderBy = "date_taken_ms DESC,_id DESC";
         final String limitStr = String.valueOf(limit);
 
-        return qb.query(mDatabase, projection, /* selection */ null, selectionArgs,
-                /* groupBy */ null, /* having */ null, orderBy, limitStr);
+        final Cursor cursor;
+        final Bundle bundle = new Bundle();
+        bundle.putString(KEY_LOCAL_PROVIDER, mLocalProvider);
+
+        // Hold lock while checking the cloud provider and querying so that cursor extras containing
+        // the cloud provider is consistent with the cursor results and doesn't race with
+        // #setCloudProvider
+        synchronized (mLock) {
+            if (mCloudProvider == null) {
+                // If cloud provider is null, avoid all cloud items in the picker db
+                qb.appendWhereStandalone(WHERE_NULL_CLOUD_ID);
+            } else {
+                // If cloud provider is not null, return the current cloud provider as part of the
+                // cursor result
+                bundle.putString(KEY_CLOUD_PROVIDER, mCloudProvider);
+            }
+
+            cursor = qb.query(mDatabase, projection, /* selection */ null, selectionArgs,
+                    /* groupBy */ null, /* having */ null, orderBy, limitStr);
+        }
+
+        cursor.setExtras(bundle);
+        return cursor;
     }
 
     private static ContentValues cursorToContentValue(Cursor cursor, boolean isLocal) {
@@ -515,7 +562,7 @@ public class PickerDbFacade {
 
     private static SQLiteQueryBuilder createLocalOnlyMediaQueryBuilder() {
         SQLiteQueryBuilder qb = createLocalMediaQueryBuilder();
-        qb.appendWhereStandalone(WHERE_NULL_CLOULD_ID);
+        qb.appendWhereStandalone(WHERE_NULL_CLOUD_ID);
 
         return qb;
     }

@@ -81,6 +81,7 @@ public class PickerSyncController {
     @Retention(RetentionPolicy.SOURCE)
     private @interface SyncType {}
 
+    private final Object mLock = new Object();
     private final PickerDbFacade mDbFacade;
     private final Context mContext;
     private final SharedPreferences mPrefs;
@@ -89,7 +90,7 @@ public class PickerSyncController {
     private final PickerHandler mHandler;
 
     // TODO(b/190713331): Listen for package_removed
-    private volatile String mCloudProvider;
+    private String mCloudProvider;
 
     public PickerSyncController(Context context, PickerDbFacade dbFacade) {
         this(context, dbFacade, LOCAL_PICKER_PROVIDER_AUTHORITY, DEFAULT_SYNC_DELAY_MS);
@@ -130,13 +131,19 @@ public class PickerSyncController {
      */
     public void syncPicker() {
         syncAndCommitProvider(mLocalProvider);
-        syncAndCommitProvider(mCloudProvider);
+
+        synchronized (mLock) {
+            syncAndCommitProvider(mCloudProvider);
+
+            // Set the latest cloud provider on the facade
+            mDbFacade.setCloudProvider(mCloudProvider);
+        }
     }
 
     private void syncAndCommitProvider(@Nullable String authority) {
         if (authority == null) {
             // Only cloud authority can be null
-            mDbFacade.resetMedia(/* isLocal */ false);
+            mDbFacade.resetMedia(authority);
             return;
         }
 
@@ -153,7 +160,7 @@ public class PickerSyncController {
         if (result == SYNC_TYPE_RESET) {
             // Odd! Can only happen if cloud provider gave us unexpected MediaInfo
             // We reset the cloud media in the picker db
-            mDbFacade.resetMedia(isLocal(authority));
+            mDbFacade.resetMedia(authority);
 
             // And clear our cached MediaInfo, so that whenever the provider recovers,
             // we force a full sync
@@ -191,25 +198,35 @@ public class PickerSyncController {
         return result;
     }
 
-    // TODO(b/190713331): Avoid switching cloud provider during picker query or sync
     /**
      * Enables a provider with {@code authority} as the default cloud {@link CloudMediaProvider}.
      * If {@code authority} is set to {@code null}, it simply clears the cloud provider.
      *
-     * Note, that this doesn't sync the new provider after switching.
+     * Note, that this doesn't sync the new provider after switching, however, no cloud items will
+     * available from the picker db until the next sync. Callers should schedule a sync in the
+     * background after switching providers.
      *
      * @return {@code true} if the provider was successfully enabled or cleared, {@code false}
      * otherwise
      */
     public boolean setCloudProvider(String authority) {
-        if (Objects.equals(mCloudProvider, authority)) {
-            Log.w(TAG, "Cloud provider already set: " + authority);
-            return true;
+        synchronized (mLock) {
+            if (Objects.equals(mCloudProvider, authority)) {
+                Log.w(TAG, "Cloud provider already set: " + authority);
+                return true;
+            }
         }
 
         if (authority == null || getSupportedCloudProviders().contains(authority)) {
-            mCloudProvider = authority;
-            clearCachedCloudMediaInfo(authority);
+            synchronized (mLock) {
+                mCloudProvider = authority;
+
+                // This will *clear* the cloud provider on the mDbFacade and prevents any queries
+                // from seeing the old or new cloud media until a sync where the cloud provider
+                // on the facade will be set again
+                clearCachedCloudMediaInfo(authority);
+            }
+
             return true;
         }
 
@@ -242,12 +259,12 @@ public class PickerSyncController {
         int result = 0;
         if (fullSync) {
             // Reset media
-            result = mDbFacade.resetMedia(isLocal(authority));
+            result = mDbFacade.resetMedia(authority);
             Log.i(TAG, "Reset sync. Authority: " + authority +  ". Result count: " + result);
 
             // Sync media
             try (Cursor cursor = query(getMediaUri(authority), /* extras */ null)) {
-                result = addMedia(authority, cursor);
+                result = mDbFacade.addMedia(cursor, authority);
                 Log.i(TAG, "Full sync. Authority: " + authority +  ". Result count: " + result
                         + ". Cursor count: " + cursor.getCount());
             }
@@ -258,7 +275,7 @@ public class PickerSyncController {
             queryArgs.putLong(MediaInfo.MEDIA_GENERATION, cachedGeneration);
 
             try (Cursor cursor = query(getMediaUri(authority), queryArgs)) {
-                result = addMedia(authority, cursor);
+                result = mDbFacade.addMedia(cursor, authority);
                 Log.i(TAG, "Incremental sync. Authority: " + authority +  ". Result count: "
                         + result + ". Cursor count: " + cursor.getCount());
             }
@@ -269,7 +286,7 @@ public class PickerSyncController {
 
             try (Cursor cursor = query(getDeletedMediaUri(authority), queryDeletedArgs)) {
                 final int idIndex = cursor.getColumnIndex(MediaColumns.ID);
-                result = removeMedia(authority, cursor, idIndex);
+                result = mDbFacade.removeMedia(cursor, idIndex, authority);
                 Log.i(TAG, "Incremental deleted sync. Authority: " + authority +  ". Result count: "
                         + result + ". Cursor count: " + cursor.getCount());
             }
@@ -296,6 +313,9 @@ public class PickerSyncController {
             // nor expect incorrect data from the local provider since we are bundled together
             return;
         }
+
+        // Disable cloud provider queries on the db until next sync
+        mDbFacade.setCloudProvider(null);
 
         final SharedPreferences.Editor editor = mPrefs.edit();
 
@@ -367,16 +387,6 @@ public class PickerSyncController {
 
         Log.d(TAG, "checkSync. Authority: " + authority + ". Result: SYNC_TYPE_INCREMENTAL");
         return SYNC_TYPE_INCREMENTAL;
-    }
-
-    private int addMedia(String authority, Cursor cursor) {
-        return isLocal(authority) ? mDbFacade.addLocalMedia(cursor)
-                : mDbFacade.addCloudMedia(cursor);
-    }
-
-    private int removeMedia(String authority, Cursor cursor, int idIndex) {
-        return isLocal(authority) ? mDbFacade.removeLocalMedia(cursor, idIndex)
-                : mDbFacade.removeCloudMedia(cursor, idIndex);
     }
 
     private String getPrefsKey(String authority, String key) {

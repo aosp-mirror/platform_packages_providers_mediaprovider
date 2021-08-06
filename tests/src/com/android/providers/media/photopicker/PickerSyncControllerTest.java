@@ -17,8 +17,8 @@
 package com.android.providers.media.photopicker;
 
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
-import static com.android.providers.media.photopicker.data.PickerDbFacadeForPicker.KEY_CLOUD_ID;
-import static com.android.providers.media.photopicker.data.PickerDbFacadeForPicker.KEY_LOCAL_ID;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_CLOUD_ID;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_LOCAL_ID;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -31,8 +31,7 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.PickerProviderMediaGenerator;
-import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
-import com.android.providers.media.photopicker.data.PickerDbFacadeForPicker;
+import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.util.BackgroundThread;
 
 import java.util.List;
@@ -79,7 +78,7 @@ public class PickerSyncControllerTest {
     private static final long SYNC_DELAY_MS = 1000;
 
     private Context mContext;
-    private PickerDbFacadeForPicker mFacade;
+    private PickerDbFacade mFacade;
     private PickerSyncController mController;
 
     @Before
@@ -93,8 +92,7 @@ public class PickerSyncControllerTest {
         mCloudSecondaryMediaGenerator.setVersion(VERSION_1);
 
         mContext = InstrumentationRegistry.getTargetContext();
-        final PickerDatabaseHelper helper = new PickerDatabaseHelper(mContext);
-        mFacade = new PickerDbFacadeForPicker(helper.getWritableDatabase());
+        mFacade = new PickerDbFacade(mContext);
         mController = new PickerSyncController(mContext, mFacade, LOCAL_PROVIDER_AUTHORITY,
                 /* syncDelay */ 0);
 

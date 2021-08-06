@@ -16,7 +16,7 @@
 
 package com.android.providers.media.photopicker.data;
 
-import static com.android.providers.media.photopicker.data.ExternalDbFacadeForPicker.TABLE_FILES;
+import static com.android.providers.media.photopicker.data.ExternalDbFacade.TABLE_FILES;
 import static com.google.common.truth.Truth.assertThat;
 
 import android.content.ContentValues;
@@ -38,8 +38,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4.class)
-public class ExternalDbFacadeForPickerTest {
-    private static final String TAG = "ExternalDbFacadeForPickerTest";
+public class ExternalDbFacadeTest {
+    private static final String TAG = "ExternalDbFacadeTest";
 
     private static final long OLD_ID1 = 1;
     private static final long OLD_ID2 = 2;
@@ -63,7 +63,7 @@ public class ExternalDbFacadeForPickerTest {
     @Test
     public void testDeletedMedia_addAndRemove() throws Exception {
         try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
-            ExternalDbFacadeForPicker facade = new ExternalDbFacadeForPicker(helper);
+            ExternalDbFacade facade = new ExternalDbFacade(helper);
 
             assertThat(facade.addDeletedMedia(OLD_ID1)).isTrue();
             assertThat(facade.addDeletedMedia(OLD_ID2)).isTrue();
@@ -116,7 +116,7 @@ public class ExternalDbFacadeForPickerTest {
     @Test
     public void testDeletedMedia_onInsert() throws Exception {
         try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
-            ExternalDbFacadeForPicker facade = new ExternalDbFacadeForPicker(helper);
+            ExternalDbFacade facade = new ExternalDbFacade(helper);
 
             assertThat(facade.onFileInserted(FileColumns.MEDIA_TYPE_VIDEO, /* isPending */ false))
                     .isTrue();
@@ -137,7 +137,7 @@ public class ExternalDbFacadeForPickerTest {
     @Test
     public void testDeletedMedia_onUpdate_mediaType() throws Exception {
         try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
-            ExternalDbFacadeForPicker facade = new ExternalDbFacadeForPicker(helper);
+            ExternalDbFacade facade = new ExternalDbFacade(helper);
 
             // Non-media -> non-media: no-op
             assertThat(facade.onFileUpdated(OLD_ID1,
@@ -179,7 +179,7 @@ public class ExternalDbFacadeForPickerTest {
     @Test
     public void testDeletedMedia_onUpdate_trashed() throws Exception {
         try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
-            ExternalDbFacadeForPicker facade = new ExternalDbFacadeForPicker(helper);
+            ExternalDbFacade facade = new ExternalDbFacade(helper);
 
             // Was trashed but is now neither trashed nor pending
             assertThat(facade.onFileUpdated(OLD_ID1,
@@ -207,7 +207,7 @@ public class ExternalDbFacadeForPickerTest {
     @Test
     public void testDeletedMedia_onUpdate_pending() throws Exception {
         try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
-            ExternalDbFacadeForPicker facade = new ExternalDbFacadeForPicker(helper);
+            ExternalDbFacade facade = new ExternalDbFacade(helper);
 
             // Was pending but is now neither trashed nor pending
             assertThat(facade.onFileUpdated(OLD_ID1,
@@ -235,7 +235,7 @@ public class ExternalDbFacadeForPickerTest {
     @Test
     public void testDeletedMedia_onDelete() throws Exception {
         try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
-            ExternalDbFacadeForPicker facade = new ExternalDbFacadeForPicker(helper);
+            ExternalDbFacade facade = new ExternalDbFacade(helper);
 
             assertThat(facade.onFileDeleted(OLD_ID1, FileColumns.MEDIA_TYPE_NONE)).isFalse();
             assertDeletedMediaEmpty(facade);
@@ -251,7 +251,7 @@ public class ExternalDbFacadeForPickerTest {
     @Test
     public void testQueryMediaGeneration_match() throws Exception {
         try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
-            ExternalDbFacadeForPicker facade = new ExternalDbFacadeForPicker(helper);
+            ExternalDbFacade facade = new ExternalDbFacade(helper);
 
             // Intentionally associate <date_taken_ms2 with generation_modifed1>
             // and <date_taken_ms1 with generation_modifed2> below.
@@ -292,7 +292,7 @@ public class ExternalDbFacadeForPickerTest {
         cvTrashed.put(MediaColumns.IS_TRASHED, 1);
 
         try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
-            ExternalDbFacadeForPicker facade = new ExternalDbFacadeForPicker(helper);
+            ExternalDbFacade facade = new ExternalDbFacade(helper);
 
             helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cvPending));
             helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cvTrashed));
@@ -306,7 +306,7 @@ public class ExternalDbFacadeForPickerTest {
     @Test
     public void testQueryMediaGeneration_withDateModified() throws Exception {
         try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
-            ExternalDbFacadeForPicker facade = new ExternalDbFacadeForPicker(helper);
+            ExternalDbFacade facade = new ExternalDbFacade(helper);
             long dateModifiedSeconds1 = DATE_TAKEN_MS1 / 1000;
             long dateModifiedSeconds2 = DATE_TAKEN_MS2 / 1000;
             // Intentionally associate <dateModifiedSeconds2 with generation_modifed1>
@@ -344,7 +344,7 @@ public class ExternalDbFacadeForPickerTest {
     @Test
     public void testQueryMediaId_match() throws Exception {
         try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
-            ExternalDbFacadeForPicker facade = new ExternalDbFacadeForPicker(helper);
+            ExternalDbFacade facade = new ExternalDbFacade(helper);
 
             ContentValues cv = getContentValues(DATE_TAKEN_MS1, GENERATION_MODIFIED1);
             helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv));
@@ -361,7 +361,7 @@ public class ExternalDbFacadeForPickerTest {
     @Test
     public void testQueryMediaId_noMatch() throws Exception {
         try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
-            ExternalDbFacadeForPicker facade = new ExternalDbFacadeForPicker(helper);
+            ExternalDbFacade facade = new ExternalDbFacade(helper);
 
             ContentValues cvPending = getContentValues(DATE_TAKEN_MS1, GENERATION_MODIFIED1);
             cvPending.put(MediaColumns.IS_PENDING, 1);
@@ -380,7 +380,7 @@ public class ExternalDbFacadeForPickerTest {
     @Test
     public void testQueryMediaId_withDateModified() throws Exception {
         try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
-            ExternalDbFacadeForPicker facade = new ExternalDbFacadeForPicker(helper);
+            ExternalDbFacade facade = new ExternalDbFacade(helper);
 
             long dateModifiedSeconds = DATE_TAKEN_MS1 / 1000;
             ContentValues cv = new ContentValues();
@@ -404,7 +404,7 @@ public class ExternalDbFacadeForPickerTest {
     @Test
     public void testGetMediaInfo() throws Exception {
         try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
-            ExternalDbFacadeForPicker facade = new ExternalDbFacadeForPicker(helper);
+            ExternalDbFacade facade = new ExternalDbFacade(helper);
 
             ContentValues cv = getContentValues(DATE_TAKEN_MS1, GENERATION_MODIFIED1);
             helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv));
@@ -436,13 +436,13 @@ public class ExternalDbFacadeForPickerTest {
         }
     }
 
-    private static void assertDeletedMediaEmpty(ExternalDbFacadeForPicker facade) {
+    private static void assertDeletedMediaEmpty(ExternalDbFacade facade) {
         try (Cursor cursor = facade.queryDeletedMedia(/* generation */ 0)) {
             assertThat(cursor.getCount()).isEqualTo(0);
         }
     }
 
-    private static void assertDeletedMedia(ExternalDbFacadeForPicker facade, long id) {
+    private static void assertDeletedMedia(ExternalDbFacade facade, long id) {
         try (Cursor cursor = facade.queryDeletedMedia(/* generation */ 0)) {
             assertThat(cursor.getCount()).isEqualTo(1);
 
@@ -453,7 +453,7 @@ public class ExternalDbFacadeForPickerTest {
         }
     }
 
-    private static void assertMediaColumns(ExternalDbFacadeForPicker facade, Cursor cursor, long id,
+    private static void assertMediaColumns(ExternalDbFacade facade, Cursor cursor, long id,
             long dateTakenMs) {
         // TODO(b/190713331): Use CloudMediaProviderContract#MediaColumns
         int idIndex = cursor.getColumnIndex("id");
@@ -469,7 +469,7 @@ public class ExternalDbFacadeForPickerTest {
         assertThat(cursor.getLong(durationIndex)).isEqualTo(DURATION_MS);
     }
 
-    private static void assertMediaInfo(ExternalDbFacadeForPicker facade, Cursor cursor,
+    private static void assertMediaInfo(ExternalDbFacade facade, Cursor cursor,
             long count, long generation) {
         // TODO(b/190713331): Use CloudMediaProviderContract#MediaColumns
         int countIndex = cursor.getColumnIndex("media_count");

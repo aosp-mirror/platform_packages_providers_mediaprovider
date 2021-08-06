@@ -18,6 +18,7 @@ package com.android.providers.media.photopicker.data;
 
 import android.content.ContentValues;
 import android.content.ContentUris;
+import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
@@ -38,14 +39,15 @@ import java.util.List;
  * It does not do any caller permission checks and is only intended for internal use within the
  * MediaProvider for the Photo Picker.
  */
-public class PickerDbFacadeForPicker {
+public class PickerDbFacade {
     private final SQLiteDatabase mDatabase;
 
-    public PickerDbFacadeForPicker(SQLiteDatabase database) {
-        mDatabase = database;
+    public PickerDbFacade(Context context) {
+        final PickerDatabaseHelper databaseHelper = new PickerDatabaseHelper(context);
+        mDatabase = databaseHelper.getWritableDatabase();
     }
 
-    private static final String TAG = "PickerDbFacadeForPicker";
+    private static final String TAG = "PickerDbFacade";
 
     private static final int RETRY = 0;
     private static final int SUCCESS = 1;

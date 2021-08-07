@@ -44,9 +44,10 @@
             android:layout_marginHorizontal="@dimen/picker_bottom_bar_horizontal_gap"
             android:layout_gravity="start"
             android:paddingVertical="@dimen/picker_bottom_bar_vertical_gap"
-            android:drawableLeft="@drawable/ic_view_selected"
+            android:drawableLeft="@drawable/ic_collections"
             android:text="@string/picker_view_selected"
             android:textAllCaps="false"
+            android:textColor="?android:attr/colorAccent"
             app:iconPadding="@dimen/picker_bottom_bar_vertical_gap"
             style="?attr/borderlessButtonStyle"/>
 
@@ -59,6 +60,7 @@
             android:paddingVertical="@dimen/picker_bottom_bar_vertical_gap"
             android:text="@string/add"
             android:textAllCaps="false"
+            android:backgroundTint="?android:attr/colorAccent"
             style="?attr/materialButtonStyle"/>
 
     </FrameLayout>

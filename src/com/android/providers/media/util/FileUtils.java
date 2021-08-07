@@ -981,6 +981,15 @@ public class FileUtils {
             + PROP_CROSS_USER_ROOT_PATTERN
             + "Android/(?:obb)(/?.*)");
 
+    private static final Pattern PATTERN_VISIBLE = Pattern.compile(
+            "(?i)^/storage/[^/]+(?:/[0-9]+)?$");
+
+    private static final Pattern PATTERN_INVISIBLE = Pattern.compile(
+            "(?i)^/storage/[^/]+(?:/[0-9]+)?/"
+                    + "(?:(?:Android/(?:data|obb|sandbox)$)|"
+                    + "(?:\\.transforms$)|"
+                    + "(?:(?:Movies|Music|Pictures)/.thumbnails$))");
+
     /**
      * The recordings directory. This is used for R OS. For S OS or later,
      * we use {@link Environment#DIRECTORY_RECORDINGS} directly.
@@ -1177,6 +1186,18 @@ public class FileUtils {
     public static boolean isObbOrChildPath(String path) {
         if (path == null) return false;
         final Matcher m = PATTERN_OBB_OR_CHILD_PATH.matcher(path);
+        return m.matches();
+    }
+
+    public static boolean shouldBeVisible(@Nullable String path) {
+        if (path == null) return false;
+        final Matcher m = PATTERN_VISIBLE.matcher(path);
+        return m.matches();
+    }
+
+    public static boolean shouldBeInvisible(@Nullable String path) {
+        if (path == null) return false;
+        final Matcher m = PATTERN_INVISIBLE.matcher(path);
         return m.matches();
     }
 
@@ -1429,6 +1450,11 @@ public class FileUtils {
 
         // check for .nomedia presence
         if (!nomedia.exists()) {
+            return false;
+        }
+
+        if (shouldBeVisible(dir.getAbsolutePath())) {
+            nomedia.delete();
             return false;
         }
 

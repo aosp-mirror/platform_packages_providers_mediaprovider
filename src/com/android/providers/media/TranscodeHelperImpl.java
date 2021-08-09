@@ -119,7 +119,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class TranscodeHelper {
+public class TranscodeHelperImpl {
     private static final String TAG = "TranscodeHelper";
     private static final boolean DEBUG = SystemProperties.getBoolean("persist.sys.fuse.log", false);
     private static final float MAX_APP_NAME_SIZE_PX = 500f;
@@ -257,7 +257,7 @@ public class TranscodeHelper {
     private static final String TRANSCODE_WHERE_CLAUSE =
             FileColumns.DATA + "=?" + " and mime_type not like 'null'";
 
-    public TranscodeHelper(Context context, MediaProvider mediaProvider) {
+    public TranscodeHelperImpl(Context context, MediaProvider mediaProvider) {
         mContext = context;
         mPackageManager = context.getPackageManager();
         mStorageManager = context.getSystemService(StorageManager.class);

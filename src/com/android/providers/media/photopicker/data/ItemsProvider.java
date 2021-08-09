@@ -31,6 +31,8 @@ import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
 
+import com.android.providers.media.PickerUriResolver;
+import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Category.CategoryColumns;
 import com.android.providers.media.photopicker.data.model.Item.ItemColumns;
@@ -182,6 +184,12 @@ public class ItemsProvider {
             selection += " AND (" + MediaColumns.MIME_TYPE + " LIKE ? )";
             selectionArgs = new String[] {replaceMatchAnyChar(mimeType)};
         }
+
+        if (PickerDbFacade.isPickerDbEnabled() && category == null) {
+            // The picker db doesn't yet support categories, so only serve non-category queries
+            // from the picker db
+            return queryPickerDb(limit, mimeType, userId);
+        }
         return queryMediaStore(projection, selection, selectionArgs, offset, limit, userId);
     }
 
@@ -212,6 +220,23 @@ public class ItemsProvider {
         return null;
     }
 
+    @Nullable
+    private Cursor queryPickerDb(int limit, @Nullable String mimeType, @NonNull UserId userId)
+            throws IllegalStateException {
+        try (ContentProviderClient client = userId.getContentResolver(mContext)
+                .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
+            final Bundle extras = new Bundle();
+            extras.putInt(MediaStore.QUERY_ARG_LIMIT, limit);
+            extras.putString(MediaStore.QUERY_ARG_MIME_TYPE, mimeType);
+
+            return client.query(PickerUriResolver.PICKER_INTERNAL_URI, /* projection */ null,
+                    extras, /* cancellationSignal */ null);
+        } catch (RemoteException ignored) {
+            // Do nothing, return null.
+        }
+        return null;
+    }
+
     private static Uri getMediaStoreUriForItem(String id) {
         return MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL, Long.parseLong(id));
     }
@@ -221,8 +246,15 @@ public class ItemsProvider {
     }
 
     public static Uri getItemsUri(String id, String authority, UserId userId) {
-        final Uri uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL,
-                Long.parseLong(id));
+        final Uri uri;
+        if (authority == null) {
+            uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL,
+                    Long.parseLong(id));
+        } else {
+            // We only have authority after querying the picker db
+            uri = PickerUriResolver.getMediaUri(authority).buildUpon().appendPath(id).build();
+        }
+
         if (userId.equals(UserId.CURRENT_USER)) {
             return uri;
         } else {

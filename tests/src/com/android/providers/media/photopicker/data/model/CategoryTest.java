@@ -38,6 +38,8 @@ import androidx.test.runner.AndroidJUnit4;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.List;
+
 @RunWith(AndroidJUnit4.class)
 public class CategoryTest {
 
@@ -115,6 +117,18 @@ public class CategoryTest {
         final Category category = Category.getDefaultCategory();
 
         assertThat(category.getCategoryType()).isEqualTo(CATEGORY_DEFAULT);
+    }
+
+    @Test
+    public void testOrderOfCategories() {
+        final List<String> categoryList = Category.CATEGORIES_LIST;
+
+        // Favorites, Camera, Videos, ScreenShots, Downloads
+        assertThat(categoryList.get(0)).isEqualTo(CATEGORY_FAVORITES);
+        assertThat(categoryList.get(1)).isEqualTo(CATEGORY_CAMERA);
+        assertThat(categoryList.get(2)).isEqualTo(CATEGORY_VIDEOS);
+        assertThat(categoryList.get(3)).isEqualTo(CATEGORY_SCREENSHOTS);
+        assertThat(categoryList.get(4)).isEqualTo(CATEGORY_DOWNLOADS);
     }
 
     private static Cursor generateCursorForCategory(String categoryName, Uri coverUri,

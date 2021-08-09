@@ -18,6 +18,9 @@ package com.android.providers.media.photopicker;
 
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static android.provider.CloudMediaProviderContract.MediaInfo;
+import static com.android.providers.media.PickerUriResolver.getMediaUri;
+import static com.android.providers.media.PickerUriResolver.getDeletedMediaUri;
+import static com.android.providers.media.PickerUriResolver.getMediaInfoUri;
 
 import android.annotation.IntDef;
 import android.content.ContentResolver;
@@ -63,7 +66,7 @@ public class PickerSyncController {
 
     public static final String LOCAL_PICKER_PROVIDER_AUTHORITY =
             "com.android.providers.media.photopicker";
-    private static final long DEFAULT_SYNC_DELAY_MS = 5000;
+    private static final long DEFAULT_SYNC_DELAY_MS = 1000;
 
     private static final int H_SYNC_PICKER = 1;
 
@@ -400,20 +403,5 @@ public class PickerSyncController {
     private Cursor query(Uri uri, Bundle extras) {
         return mContext.getContentResolver().query(uri, /* projection */ null, extras,
                 /* cancellationSignal */ null);
-    }
-
-    private static Uri getMediaUri(String authority) {
-        return Uri.parse("content://" + authority + "/"
-                + CloudMediaProviderContract.URI_PATH_MEDIA);
-    }
-
-    private static Uri getDeletedMediaUri(String authority) {
-        return Uri.parse("content://" + authority + "/"
-                + CloudMediaProviderContract.URI_PATH_DELETED_MEDIA);
-    }
-
-    private static Uri getMediaInfoUri(String authority) {
-        return Uri.parse("content://" + authority + "/"
-                + CloudMediaProviderContract.URI_PATH_MEDIA_INFO);
     }
 }

@@ -41,7 +41,7 @@ public class ItemTest {
         final Cursor cursor = generateCursorForItem(id, mimeType, dateTaken, duration);
         cursor.moveToFirst();
 
-        final Item item = new Item(cursor, MediaStore.AUTHORITY, UserId.CURRENT_USER);
+        final Item item = new Item(cursor, UserId.CURRENT_USER);
 
         assertThat(item.getId()).isEqualTo(id);
         assertThat(item.getDateTaken()).isEqualTo(dateTaken);

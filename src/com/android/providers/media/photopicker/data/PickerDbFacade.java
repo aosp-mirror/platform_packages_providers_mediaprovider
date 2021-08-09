@@ -27,6 +27,7 @@ import android.net.Uri;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore.MediaColumns;
 import android.os.Bundle;
+import android.os.SystemProperties;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -87,6 +88,10 @@ public class PickerDbFacade {
     @VisibleForTesting
     public static final String KEY_MIME_TYPE = "mime_type";
 
+    // We prefer cloud_id first and it only matters for cloud+local items. For those, the row
+    // will already be associated with a cloud authority, see #getProjectionAuthorityLocked.
+    // Note that hidden cloud+local items will not be returned in the query, so there's no concern
+    // of preferring the cloud_id in a cloud+local item over the local_id in a local-only item.
     private static final String PROJECTION_ID = String.format("IFNULL(%s, %s) AS %s", KEY_CLOUD_ID,
             KEY_LOCAL_ID, Item.ItemColumns.ID);
     private static final String PROJECTION_DATE_TAKEN = String.format("%s AS %s", KEY_DATE_TAKEN_MS,
@@ -450,6 +455,10 @@ public class PickerDbFacade {
                 mimeTypeFilter, sizeBytesMax);
 
         return queryMedia(qb, selectArgs, limit);
+    }
+
+    public static boolean isPickerDbEnabled() {
+        return SystemProperties.getBoolean("sys.photopicker.pickerdb.enabled", false);
     }
 
     private Cursor queryMedia(SQLiteQueryBuilder qb, String[] selectionArgs, int limit) {

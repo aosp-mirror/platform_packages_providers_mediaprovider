@@ -93,7 +93,7 @@ public class PickerResult {
         final String userInfo = uri.getUserInfo();
         final String userId = userInfo == null ? UserId.CURRENT_USER.toString() : userInfo;
         final Uri uriWithUserId =
-                PickerUriResolver.URI_PREFIX.buildUpon().appendPath(userId).build();
+                PickerUriResolver.PICKER_URI.buildUpon().appendPath(userId).build();
         return uriWithUserId.buildUpon().appendPath(id).build();
     }
 

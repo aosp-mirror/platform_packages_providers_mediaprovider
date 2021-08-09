@@ -18,6 +18,7 @@ package com.android.providers.media.photopicker.data;
 
 import android.content.ContentValues;
 import android.content.ContentUris;
+import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
@@ -38,14 +39,15 @@ import java.util.List;
  * It does not do any caller permission checks and is only intended for internal use within the
  * MediaProvider for the Photo Picker.
  */
-public class PickerDbFacadeForPicker {
+public class PickerDbFacade {
     private final SQLiteDatabase mDatabase;
 
-    public PickerDbFacadeForPicker(SQLiteDatabase database) {
-        mDatabase = database;
+    public PickerDbFacade(Context context) {
+        final PickerDatabaseHelper databaseHelper = new PickerDatabaseHelper(context);
+        mDatabase = databaseHelper.getWritableDatabase();
     }
 
-    private static final String TAG = "PickerDbFacadeForPicker";
+    private static final String TAG = "PickerDbFacade";
 
     private static final int RETRY = 0;
     private static final int SUCCESS = 1;
@@ -54,21 +56,21 @@ public class PickerDbFacadeForPicker {
     private static final String TABLE_MEDIA = "media";
 
     @VisibleForTesting
-    static final String KEY_ID = "_id";
+    public static final String KEY_ID = "_id";
     @VisibleForTesting
-    static final String KEY_LOCAL_ID = "local_id";
+    public static final String KEY_LOCAL_ID = "local_id";
     @VisibleForTesting
-    static final String KEY_CLOUD_ID = "cloud_id";
+    public static final String KEY_CLOUD_ID = "cloud_id";
     @VisibleForTesting
-    static final String KEY_IS_VISIBLE = "is_visible";
+    public static final String KEY_IS_VISIBLE = "is_visible";
     @VisibleForTesting
-    static final String KEY_DATE_TAKEN_MS = "date_taken_ms";
+    public static final String KEY_DATE_TAKEN_MS = "date_taken_ms";
     @VisibleForTesting
-    static final String KEY_SIZE_BYTES = "size_bytes";
+    public static final String KEY_SIZE_BYTES = "size_bytes";
     @VisibleForTesting
-    static final String KEY_DURATION_MS = "duration_ms";
+    public static final String KEY_DURATION_MS = "duration_ms";
     @VisibleForTesting
-    static final String KEY_MIME_TYPE = "mime_type";
+    public static final String KEY_MIME_TYPE = "mime_type";
 
     private static final String WHERE_ID = KEY_ID + " = ?";
     private static final String WHERE_LOCAL_ID = KEY_LOCAL_ID + " = ?";

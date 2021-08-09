@@ -85,6 +85,7 @@ import android.widget.Toast;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
@@ -119,7 +120,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class TranscodeHelperImpl {
+@RequiresApi(Build.VERSION_CODES.S)
+public class TranscodeHelperImpl implements TranscodeHelper {
     private static final String TAG = "TranscodeHelper";
     private static final boolean DEBUG = SystemProperties.getBoolean("persist.sys.fuse.log", false);
     private static final float MAX_APP_NAME_SIZE_PX = 500f;
@@ -800,7 +802,7 @@ public class TranscodeHelperImpl {
         return isHevc(mimeType) || isHdr10Plus(colorStandard, colorTransfer);
     }
 
-    public static boolean supportsTranscode(String path) {
+    public boolean supportsTranscode(String path) {
         File file = new File(path);
         String name = file.getName();
         final String cameraRelativePath =
@@ -939,7 +941,7 @@ public class TranscodeHelperImpl {
     }
 
     // called from MediaProvider
-    void onUriPublished(Uri uri) {
+    public void onUriPublished(Uri uri) {
         if (!isTranscodeEnabled()) {
             return;
         }
@@ -997,7 +999,7 @@ public class TranscodeHelperImpl {
         }
     }
 
-    void onFileOpen(String path, String ioPath, int uid, int transformsReason) {
+    public void onFileOpen(String path, String ioPath, int uid, int transformsReason) {
         if (!isTranscodeEnabled()) {
             return;
         }

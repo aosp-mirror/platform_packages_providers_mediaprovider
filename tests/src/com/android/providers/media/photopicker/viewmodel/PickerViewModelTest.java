@@ -140,6 +140,21 @@ public class PickerViewModelTest {
     }
 
     @Test
+    public void testGetItems_noItems() throws Exception {
+        final int itemCount = 0;
+        mItemsProvider.setItems(generateFakeImageItemList(itemCount));
+        mPickerViewModel.updateItems();
+        // We use ForegroundThread to execute the loadItems in updateItems(), wait for the thread
+        // idle
+        ForegroundThread.waitForIdle();
+
+        final List<Item> itemList = mPickerViewModel.getItems().getValue();
+
+        // No date headers, the size should be 0
+        assertThat(itemList.size()).isEqualTo(itemCount);
+    }
+
+    @Test
     public void testGetItems_hasRecentItem() throws Exception {
         final int itemCount = 1;
         final List<Item> fakeItemList = generateFakeImageItemList(itemCount);

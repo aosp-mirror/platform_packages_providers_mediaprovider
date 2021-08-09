@@ -955,7 +955,7 @@ public class MediaProvider extends ContentProvider {
         mExternalDbFacade = new ExternalDbFacade(mExternalDatabase);
         mPickerDbFacade = new PickerDbFacade(context);
         mPickerSyncController = new PickerSyncController(context, mPickerDbFacade);
-        mTranscodeHelper = new TranscodeHelper(context, this);
+        mTranscodeHelper = new TranscodeHelperImpl(context, this);
 
         // Create dir for redacted URI's path.
         new File("/storage/emulated/" + UserHandle.myUserId(), REDACTED_URI_DIR).mkdirs();
@@ -9497,7 +9497,7 @@ public class MediaProvider extends ContentProvider {
     private PickerDbFacade mPickerDbFacade;
     private ExternalDbFacade mExternalDbFacade;
     private PickerSyncController mPickerSyncController;
-    private TranscodeHelper mTranscodeHelper;
+    private TranscodeHelperImpl mTranscodeHelper;
 
     // name of the volume currently being scanned by the media scanner (or null)
     private String mMediaScannerVolume;

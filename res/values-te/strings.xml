@@ -27,8 +27,8 @@
     <string name="root_documents" msgid="3829103301363849237">"డాక్యుమెంట్‌లు"</string>
     <string name="permission_required" msgid="1460820436132943754">"ఈ అంశాన్ని మార్చడానికి లేదా తొలగించడానికి అనుమతి అవసరం."</string>
     <string name="permission_required_action" msgid="706370952366113539">"కొనసాగించు"</string>
-    <string name="grant_dialog_button_allow" msgid="1644287024501033471">"అనుమతించు"</string>
-    <string name="grant_dialog_button_deny" msgid="6190589471415815741">"తిరస్కరించు"</string>
+    <string name="grant_dialog_button_allow" msgid="1644287024501033471">"అనుమతించండి"</string>
+    <string name="grant_dialog_button_deny" msgid="6190589471415815741">"తిరస్కరించండి"</string>
     <plurals name="permission_more_thumb" formatted="false" msgid="4392079224649478923">
       <item quantity="other">+<xliff:g id="COUNT_1">^1</xliff:g></item>
       <item quantity="one">+<xliff:g id="COUNT_0">^1</xliff:g></item>
@@ -41,7 +41,7 @@
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"కొన్ని తాత్కాలిక ఫైల్స్‌ను క్లియర్ చేయడానికి <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> అనుమతి కోరుతోంది. దీని వలన బ్యాటరీ లేదా సెల్యూలార్ డేటా వినియోగం పెరగవచ్చు."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"తాత్కాలిక యాప్ ఫైళ్లను క్లియర్ చేస్తోంది…"</string>
     <string name="clear" msgid="5524638938415865915">"క్లియర్ చేయండి"</string>
-    <string name="allow" msgid="8885707816848569619">"అనుమతించు"</string>
+    <string name="allow" msgid="8885707816848569619">"అనుమతించండి"</string>
     <string name="deny" msgid="6040983710442068936">"నిరాకరించు"</string>
     <string name="add" msgid="2894574044585549298">"జోడించు"</string>
     <string name="deselect" msgid="4297825044827769490">"ఎంపికను తొలగించండి"</string>
